@@ -31,5 +31,7 @@ plugins:
 
 nav:
   - Home: index.md
+  - Architecture: architecture.md
+  - Components: components.md
   - API Reference: reference.md
   - Interactive API: swagger.md

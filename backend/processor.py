@@ -1,10 +1,25 @@
 import fitz  # PyMuPDF
 import os
+from typing import Dict, Any
+from component import BaseComponent
 
-class PDFProcessor:
+class PDFProcessor(BaseComponent):
     """
     Handles processing of PDF files to extract text.
     """
+
+    def execute(self, file_path: str, **kwargs) -> Dict[str, Any]:
+        """
+        Executes the PDF extraction.
+
+        Args:
+            file_path (str): The absolute path to the PDF file.
+
+        Returns:
+            Dict[str, Any]: Dictionary containing the extracted text.
+        """
+        text = self.extract_text_from_pdf(file_path)
+        return {"text": text}
 
     @staticmethod
     def extract_text_from_pdf(file_path: str) -> str:
@@ -29,8 +44,6 @@ class PDFProcessor:
             for page in doc:
                 text += page.get_text()
             
-            # Basic cleaning: remove excessive whitespace if needed, 
-            # but for now we keep it raw to preserve structure.
             return text.strip()
         except Exception as e:
             raise Exception(f"Failed to process PDF {file_path}: {str(e)}")

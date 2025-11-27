@@ -4,3 +4,9 @@ tinydb
 pydantic
 python-multipart
 pymupdf
+jinja2
+googlesearch-python
+google-generativeai
+openai
+python-dotenv
+google-api-python-client
