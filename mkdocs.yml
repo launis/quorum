@@ -1,0 +1,35 @@
+site_name: Cognitive Quorum Documentation
+repo_url: https://github.com/launis/quorum
+repo_name: launis/quorum
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - search.suggest
+    - search.highlight
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to dark mode
+
+plugins:
+  - search
+  - swagger-ui-tag
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [backend]
+          options:
+            docstring_style: google
+
+nav:
+  - Home: index.md
+  - API Reference: reference.md
+  - Interactive API: swagger.md

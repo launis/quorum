@@ -1,0 +1,26 @@
+services:
+  backend:
+    build: ./backend
+    container_name: quorum-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    networks:
+      - quorum-net
+
+  frontend:
+    build: ./frontend
+    container_name: quorum-frontend
+    ports:
+      - "8501:8501"
+    environment:
+      - API_URL=http://backend:8000
+    depends_on:
+      - backend
+    networks:
+      - quorum-net
+
+networks:
+  quorum-net:
+    driver: bridge
