@@ -6,13 +6,25 @@ from src.components.hook_registry import HookRegistry
 def _clean_and_parse_json(text: str) -> Dict[str, Any]:
     """
     Helper to extract and parse JSON from LLM output.
-    Handles markdown code blocks.
+    Handles markdown code blocks and extra text by finding the first '{' and last '}'.
     """
     try:
-        # Remove markdown code blocks if present
+        if not text:
+            return {}
+
+        # Find the first '{' and last '}'
+        start = text.find('{')
+        end = text.rfind('}')
+        
+        if start != -1 and end != -1 and end > start:
+            cleaned = text[start:end+1]
+            return json.loads(cleaned)
+        
+        # Fallback: try cleaning markdown if braces logic failed (unlikely for valid objects)
         cleaned = re.sub(r'```json\s*', '', text)
         cleaned = re.sub(r'```', '', cleaned)
         return json.loads(cleaned.strip())
+
     except json.JSONDecodeError:
         print(f"[Parsing] Warning: Failed to parse JSON. Returning raw text.")
         return {"raw_output": text}

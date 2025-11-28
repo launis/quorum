@@ -2,6 +2,7 @@ from typing import Dict, Any
 from src.database.client import DatabaseClient
 from src.models.schema_registry import SchemaRegistry
 from src.components.hook_registry import HookRegistry
+import src.components.hooks  # Register all hooks
 from src.engine.llm_handler import LLMHandler
 from tinydb import Query
 
@@ -47,42 +48,74 @@ class Executor:
             if hook_result:
                 current_data.update(hook_result)
 
-        # 4. LLM Execution
-        prompts = []
+        # 4. LLM Execution & 6. Output Validation (Retry Loop)
+        max_retries = 5
+        attempt = 0
+        last_error = None
+        
+        # Prepare initial prompts
+        current_prompts = []
         for prompt_id in config.get('llm_prompts', []):
-            # Fetch prompt content from DB
             components_table = self.db_client.get_table('components')
             prompt_record = components_table.get(Query().id == prompt_id)
             if prompt_record:
-                prompts.append({"content": prompt_record['content']})
+                current_prompts.append({"content": prompt_record['content']})
             else:
                 print(f"[EXECUTOR] Warning: Prompt {prompt_id} not found.")
 
-        if prompts:
-            llm_response = self.llm_handler.call_llm(prompts, model=model_override or "gemini-1.5-flash")
-            # Assume LLM response maps to some key in output? 
-            # Or does the post-hook parse it?
-            # For now, let's store it in a generic key, or assume the step defines where it goes.
-            # Let's assume it goes to 'llm_output'
-            current_data['llm_output'] = llm_response
+        import json
+        data_context = f"\n\nCONTEXT DATA:\n{json.dumps(current_data, indent=2, default=str)}"
+        current_prompts.append({"content": data_context})
 
-        # 5. Post-Hooks
-        for hook_name in config.get('post_hooks', []):
-            hook_func = HookRegistry.get_hook(hook_name)
-            hook_result = hook_func(current_data)
-            if hook_result:
-                current_data.update(hook_result)
+        while attempt < max_retries:
+            attempt += 1
+            print(f"[EXECUTOR] Attempt {attempt}/{max_retries} for Step {step_id}")
+            
+            if attempt > 1 and last_error:
+                # Add error feedback to prompts
+                feedback = f"\n\nSYSTEM: Your previous response failed validation. Error: {last_error}. Please correct your JSON output to match the schema exactly."
+                current_prompts.append({"content": feedback})
 
-        # 6. Output Validation
-        output_schema_name = step.get('output_schema')
-        if output_schema_name:
-            OutputModel = SchemaRegistry.get_schema(output_schema_name)
-            try:
-                validated_output = OutputModel(**current_data)
-                print(f"[EXECUTOR] Output Validated: {output_schema_name}")
-                return validated_output.dict()
-            except Exception as e:
-                print(f"[EXECUTOR] Output Validation Failed: {e}")
-                raise e
+            if current_prompts:
+                llm_response = self.llm_handler.call_llm(current_prompts, model=model_override or "gemini-1.5-flash")
+                current_data['llm_output'] = llm_response
+
+            # 5. Automatic JSON Parsing (Run BEFORE hooks so they have access to data)
+            output_schema_name = step.get('output_schema')
+            if output_schema_name and 'llm_output' in current_data and isinstance(current_data['llm_output'], str):
+                 try:
+                     from src.components.hooks.parsing import _clean_and_parse_json
+                     parsed_llm = _clean_and_parse_json(current_data['llm_output'])
+                     if isinstance(parsed_llm, dict):
+                         current_data.update(parsed_llm)
+                         print(f"[EXECUTOR] Auto-parsed LLM output for {output_schema_name}")
+                 except Exception as e:
+                     print(f"[EXECUTOR] Auto-parsing failed: {e}")
+
+            # 6. Post-Hooks (Run on every attempt to ensure fresh parsing)
+            for hook_name in config.get('post_hooks', []):
+                hook_func = HookRegistry.get_hook(hook_name)
+                hook_result = hook_func(current_data)
+                if hook_result:
+                    current_data.update(hook_result)
+
+            # 7. Output Validation
+            # output_schema_name already retrieved above
+
+            if output_schema_name:
+                OutputModel = SchemaRegistry.get_schema(output_schema_name)
+                try:
+                    validated_output = OutputModel(**current_data)
+                    print(f"[EXECUTOR] Output Validated: {output_schema_name}")
+                    return validated_output.dict()
+                except Exception as e:
+                    print(f"[EXECUTOR] Validation Failed (Attempt {attempt}): {e}")
+                    last_error = str(e)
+                    # Loop continues to retry
+            else:
+                return current_data
+        
+        # If loop finishes without success
+        raise Exception(f"Step {step_id} failed after {max_retries} attempts. Last error: {last_error}")
         
         return current_data

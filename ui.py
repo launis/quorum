@@ -12,6 +12,9 @@ initialize_database()
 st.set_page_config(page_title="Cognitive Quorum v2", layout="wide")
 
 st.title("Cognitive Quorum v2 - Dynamic Workflow Engine")
+print("--------------------------------------------------")
+print("STARTING COGNITIVE QUORUM v2 (ROOT APP.PY)")
+print("--------------------------------------------------")
 
 # Sidebar: Workflow Selection
 st.sidebar.header("Configuration")
@@ -47,25 +50,23 @@ st.sidebar.write(f"OpenAI API: {status_icon(config.OPENAI_API_KEY)}")
 st.sidebar.write(f"Google Search API: {status_icon(config.GOOGLE_SEARCH_API_KEY)}")
 
 # Main Area: Inputs
-st.header("1. Upload Evidence")
+st.header("1. Syötä Todistusaineisto (Evidence)")
 
 col1, col2 = st.columns(2)
 
 with col1:
-    prompt_text = st.text_area("Prompt Text", height=150, value="Sample Prompt")
-    history_text = st.text_area("History Text", height=150, value="Sample History")
+    history_text = st.text_area("Keskusteluhistoria (Chat Logs)", height=300, value="Kopioi tähän keskusteluhistoria tekoälyn kanssa...")
 
 with col2:
-    product_text = st.text_area("Product Text", height=150, value="Sample Product")
-    reflection_text = st.text_area("Reflection Text", height=150, value="Sample Reflection")
+    product_text = st.text_area("Lopputuote (Final Product)", height=150, value="Kopioi tähän opiskelijan palauttama lopputuote...")
+    reflection_text = st.text_area("Itsearviointi (Reflection)", height=150, value="Kopioi tähän opiskelijan reflektio...")
 
-if st.button("Run Assessment"):
+if st.button("Käynnistä Arviointi (Run Assessment)"):
     if not selected_workflow_id:
         st.error("Please select a workflow.")
     else:
         with st.spinner("Running Workflow..."):
             initial_inputs = {
-                "prompt_text": prompt_text,
                 "history_text": history_text,
                 "product_text": product_text,
                 "reflection_text": reflection_text

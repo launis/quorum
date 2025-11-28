@@ -10,3 +10,4 @@ google-generativeai
 openai
 python-dotenv
 google-api-python-client
+streamlit

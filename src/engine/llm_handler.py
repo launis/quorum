@@ -37,15 +37,28 @@ class LLMHandler:
                 return f"[Mock Response] Unknown model: {model}"
         except Exception as e:
             print(f"[LLM] Error calling {model}: {e}")
+            with open("llm_errors.txt", "a") as f:
+                f.write(f"[LLM] Error calling {model}: {e}\n")
             return f"[Error] Failed to call LLM: {e}"
 
     def _call_gemini(self, prompt: str, model_name: str) -> str:
         if not config.GOOGLE_API_KEY:
             return "[Error] GOOGLE_API_KEY missing."
         
-        model = genai.GenerativeModel(model_name)
-        response = model.generate_content(prompt)
-        return response.text
+        try:
+            model = genai.GenerativeModel(model_name)
+            # Use JSON mode for robustness
+            generation_config = genai.types.GenerationConfig(
+                response_mime_type="application/json"
+            )
+            response = model.generate_content(prompt, generation_config=generation_config)
+            return response.text
+        except Exception as e:
+            error_msg = f"[LLM] Error calling {model_name}: {e}"
+            print(error_msg)
+            with open("llm_errors.txt", "a") as f:
+                f.write(f"{error_msg}\nPrompt: {prompt[:100]}...\n\n")
+            return error_msg
 
     def _call_openai(self, prompt: str, model_name: str) -> str:
         if not self.openai_client:

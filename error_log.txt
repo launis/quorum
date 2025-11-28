@@ -1,0 +1,2 @@
+Exception Type: <class 'UnicodeEncodeError'>
+Exception: 'charmap' codec can't encode character '\u25cf' in position 109: character maps to <undefined>

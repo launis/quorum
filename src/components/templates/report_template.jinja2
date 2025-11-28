@@ -1,13 +1,58 @@
-# Kognitiivinen Kvoorum - Arviointiraportti
+OSA 1: YHTEENVETO JA KRIITTISET HAVAINNOT
 
-## Lopullinen Tuomio
-{{ final_verdict }}
+Päätelmät:
+{{ report_content.summary }}
 
-## Luotettavuusaste
-**{{ reliability_score }}**
+Kriittiset Havainnot:
+{% for finding in report_content.critical_findings %}
+● {{ finding }}
+{% endfor %}
+{% if report_content.pre_mortem_signals %}
+● [PRE-MORTEM HAVAINTO] {{ report_content.pre_mortem_signals }}
+{% endif %}
 
----
-*{{ disclaimer }}*
+HITL-VAHVISTUS VAADITAAN:
+{% if report_content.hitl_required %}
+”Järjestelmä ei voinut varmentaa heterogeenista ajoa (eri perusmallit eri agenteille). VAROITUS: Jos ajo on suoritettu homogeenisesti, Kriitikkoryhmän (VAIHEET 4-7) ristiinvalidoinnin hyöty on mitätöity ja systeemisen hallusinaation riski on KORKEA (Ye ym. 2025). Arvioinnin luotettavuusaste (Reliability Score) laskee automaattisesti tasolle EHDOLLEINEN. Vahvistatko manuaalisesti, että ajo oli heterogeeninen (eri perusmallit eri agenteille) ja että agenttien väliset konteksti-ikkunat on nollattu (eristys)? Ilman eristystä myötäilyvinouman (Sycophancy) riski on kriittinen.”
+{% endif %}
 
----
-*Vastuuvapauslauseke: Tämä raportti on tekoälyn generoima. Ihmisvalvojan (HITL) tulee tarkistaa tulokset.*
+Eettiset ja Periaatteelliset Huomiot (SÄÄNTÖ 9):
+{% if report_content.ethical_issues %}
+{% for issue in report_content.ethical_issues %}
+● {{ issue }}
+{% endfor %}
+{% else %}
+● "Ei merkittäviä eettisiä tai periaatteellisia huomioita."
+{% endif %}
+
+OSA 2: ANALYYTTINEN ARVIOINTI (Kognitiivinen Arviointimatriisi)
+
+Kriteeri 1: Analyysi ja Prosessin Tehokkuus
+● Pistemäärä: {{ report_content.scores.analysis.score }}/4
+● Perustelu: {{ report_content.scores.analysis.reasoning }}
+
+Kriteeri 2: Arviointi ja Argumentaatio
+● Pistemäärä: {{ report_content.scores.evaluation.score }}/4
+● Perustelu: {{ report_content.scores.evaluation.reasoning }}
+
+Kriteeri 3: Synteesi ja Luovuus
+● Pistemäärä: {{ report_content.scores.synthesis.score }}/4
+● Perustelu: {{ report_content.scores.synthesis.reasoning }}
+
+OSA 3: XAI-RAPORTTI (LÄPINÄKYVYYS JA EPÄVARMUUS)
+
+3.1. KRIITTISET AUDITOINTIKYSYMYKSET (HITL-VASTAUS VAADITAAN)
+{% for question in report_content.audit_questions %}
+{{ question }}
+{% endfor %}
+
+3.2. EPÄVARMUUDEN KARTOITUS
+Aleatorinen Epävarmuus (Datan Luonne): {{ report_content.uncertainty.aleatoric }}
+Systeeminen Epävarmuus (Arkkitehtuurin ja Prosessin Rajoitteet):
+{% for log in report_content.uncertainty.systemic %}
+● {{ log }}
+{% endfor %}
+Episteeminen Epävarmuus (Päättelyn Rajallisuus): {{ report_content.uncertainty.epistemic }}
+
+OSA 4: VASTUUVAPAUSLAUSEKE JA KÄYTTÖRAJOITUKSET
+”Tämä raportti on tuotettu automatisoidun moniagenttijärjestelmän ("Kognitiivinen Kvoorum") toimesta. Se on tarkoitettu päätöksenteon tueksi, ei sen korvaajaksi. EU:n tekoälyasetuksen ja eettisten ohjeistusten (Euroopan komission korkean tason asiantuntijaryhmä 2019) mukaisesti tätä arviota ei tule käyttää ainoana perusteena korkean panoksen (high-stakes) päätöksille ilman pätevän ihmisasiantuntijan suorittamaa varmistusta (Human-in-the-Loop).”
