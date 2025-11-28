@@ -17,25 +17,29 @@
 
 ## 🏗️ Architecture
 
-The system follows a modular architecture:
+The system follows a modern **Cloud Native** architecture, designed for scalability on Google Cloud Platform:
 
 ```
 src/
+├── api/                # FastAPI Backend (REST API)
+│   ├── routers/        # API Endpoints (Orchestrator, DB, LLM)
+│   └── server.py       # App Entry Point
 ├── engine/             # Generic Orchestrator & Executor
 ├── components/         # Hybrid Components (Hooks & Templates)
-├── models/             # Pydantic Schemas & Registry
-└── database/           # Database Client & Initialization
+├── database/           # Database Client (Firestore & TinyDB)
+└── models/             # Pydantic Schemas & Registry
+ui.py                   # Streamlit Frontend
 ```
 
-*   **Orchestrator**: Manages the workflow lifecycle and state.
-*   **Executor**: Runs individual steps, handling Pre-Hooks -> LLM -> Post-Hooks.
-*   **Hooks**: Python functions that perform specific actions (e.g., `execute_google_search`, `parse_analyst_output`).
+*   **Backend (FastAPI)**: Handles all business logic, workflow execution, and database interactions.
+*   **Frontend (Streamlit)**: A lightweight UI that consumes the REST API.
+*   **Database**: Supports **Google Cloud Firestore** (Production) and **TinyDB** (Local Development).
+*   **Storage**: Supports **Google Cloud Storage** and local file system.
 
 ## 🛠️ Installation & Setup
 
 ### Prerequisites
 *   Python 3.10+
-*   Docker (optional, for containerized deployment)
 *   API Keys for Google Gemini, OpenAI, and Google Custom Search.
 
 ### 1. Clone the Repository
@@ -51,32 +55,34 @@ GOOGLE_API_KEY=your_gemini_key
 OPENAI_API_KEY=your_openai_key
 GOOGLE_SEARCH_API_KEY=your_search_key
 GOOGLE_SEARCH_CX=your_search_cx
+# Optional: Set for Cloud Mode
+# GOOGLE_CLOUD_PROJECT=your_project_id
 ```
 
 ### 3. Install Dependencies
 ```bash
 pip install -r requirements.txt
-pip install -r backend/requirements.txt
 ```
 
 ## 🖥️ Usage
 
-### Running the Streamlit UI
-The primary interface is a Streamlit web application.
+### Running Locally (Recommended)
+We provide a helper script to start both the Backend and Frontend simultaneously:
 
+**Windows:**
 ```bash
-streamlit run app.py
+run_locally.bat
 ```
 
-1.  **Select Workflow**: Choose between `KVOORUMI_PHASED_A` (Detailed) or `KVOORUMI_OPTIMIZED` (Fast).
-2.  **Upload Evidence**: Enter the text for Prompt, History, Product, and Reflection.
-3.  **Run Assessment**: Click the button to start the workflow.
-4.  **View Results**: See the final verdict, citations, and XAI report.
+**Manual Start:**
+1. **Backend**: `uvicorn src.api.server:app --reload --port 8000`
+2. **Frontend**: `streamlit run ui.py`
 
-### Running Tests
-```bash
-python scripts/verify_optimized.py
-```
+### Workflow Selection
+1.  **Select Workflow**: Choose between `HOLISTINEN_MESTARUUS_3` (Full) or `KVOORUMI_OPTIMIZED` (Fast).
+2.  **Upload Evidence**: Upload PDF/Text files for History, Product, and Reflection.
+3.  **Run Assessment**: Click the button to start the asynchronous job.
+4.  **View Results**: The UI polls the backend and displays the final XAI report.
 
 ## 📚 Documentation
 Full documentation is available in the `docs/` directory and can be viewed with MkDocs:

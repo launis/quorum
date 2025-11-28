@@ -1,53 +1,42 @@
 import streamlit as st
+import requests
+import time
+import os
 import json
-from tinydb import TinyDB, Query
-import config
-from src.database.initialization import initialize_database
-from src.engine.orchestrator import Orchestrator
-import src.components.hooks # Ensure hooks are registered
 
-# Initialize DB on startup (idempotent)
-initialize_database()
+# Configuration
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 
 st.set_page_config(page_title="Cognitive Quorum v2", layout="wide")
 
 st.title("Cognitive Quorum v2 - Dynamic Workflow Engine")
-print("--------------------------------------------------")
-print("STARTING COGNITIVE QUORUM v2 (ROOT APP.PY)")
-print("--------------------------------------------------")
+st.markdown(f"**Backend:** `{BACKEND_URL}`")
 
 # Sidebar: Workflow Selection
 st.sidebar.header("Configuration")
 try:
-    db = TinyDB(config.DB_PATH)
-    workflows_table = db.table('workflows')
-    workflows = workflows_table.all()
-    workflow_options = {wf['id']: wf for wf in workflows}
-    
-    selected_workflow_id = st.sidebar.selectbox(
-        "Select Workflow",
-        options=list(workflow_options.keys())
-    )
-    
-    if selected_workflow_id:
-        st.sidebar.subheader("Model Mapping")
-        wf = workflow_options[selected_workflow_id]
-        st.sidebar.json(wf.get('default_model_mapping', {}))
+    # Fetch workflows from API
+    response = requests.get(f"{BACKEND_URL}/db/workflows")
+    if response.status_code == 200:
+        workflows = response.json()
+        workflow_options = {wf['id']: wf for wf in workflows}
+        
+        selected_workflow_id = st.sidebar.selectbox(
+            "Select Workflow",
+            options=list(workflow_options.keys())
+        )
+        
+        if selected_workflow_id:
+            st.sidebar.subheader("Model Mapping")
+            wf = workflow_options[selected_workflow_id]
+            st.sidebar.json(wf.get('default_model_mapping', {}))
+    else:
+        st.sidebar.error(f"Failed to fetch workflows: {response.status_code}")
+        selected_workflow_id = None
 
 except Exception as e:
-    st.error(f"Failed to load workflows from DB: {e}")
+    st.sidebar.error(f"Connection Error: {e}")
     selected_workflow_id = None
-
-# Sidebar: System Status
-st.sidebar.markdown("---")
-st.sidebar.header("System Status")
-
-def status_icon(check):
-    return "✅" if check else "❌"
-
-st.sidebar.write(f"Google Gemini API: {status_icon(config.GOOGLE_API_KEY)}")
-st.sidebar.write(f"OpenAI API: {status_icon(config.OPENAI_API_KEY)}")
-st.sidebar.write(f"Google Search API: {status_icon(config.GOOGLE_SEARCH_API_KEY)}")
 
 # Main Area: Inputs
 st.header("1. Syötä Todistusaineisto (Evidence)")
@@ -55,46 +44,81 @@ st.header("1. Syötä Todistusaineisto (Evidence)")
 col1, col2 = st.columns(2)
 
 with col1:
-    history_text = st.text_area("Keskusteluhistoria (Chat Logs)", height=300, value="Kopioi tähän keskusteluhistoria tekoälyn kanssa...")
+    history_file = st.file_uploader("Keskusteluhistoria (Chat Logs)", type=['txt', 'pdf', 'docx'])
 
 with col2:
-    product_text = st.text_area("Lopputuote (Final Product)", height=150, value="Kopioi tähän opiskelijan palauttama lopputuote...")
-    reflection_text = st.text_area("Itsearviointi (Reflection)", height=150, value="Kopioi tähän opiskelijan reflektio...")
+    product_file = st.file_uploader("Lopputuote (Final Product)", type=['txt', 'pdf', 'docx'])
+    reflection_file = st.file_uploader("Itsearviointi (Reflection)", type=['txt', 'pdf', 'docx'])
 
 if st.button("Käynnistä Arviointi (Run Assessment)"):
     if not selected_workflow_id:
         st.error("Please select a workflow.")
+    elif not history_file or not product_file or not reflection_file:
+        st.error("Please upload all 3 files.")
     else:
-        with st.spinner("Running Workflow..."):
-            initial_inputs = {
-                "history_text": history_text,
-                "product_text": product_text,
-                "reflection_text": reflection_text
-            }
-            
+        with st.spinner("Starting Workflow..."):
             try:
-                # Direct Orchestrator Call
-                orchestrator = Orchestrator()
-                result = orchestrator.run_workflow(selected_workflow_id, initial_inputs)
+                # Prepare files for upload
+                files = {
+                    "history_file": (history_file.name, history_file, history_file.type),
+                    "product_file": (product_file.name, product_file, product_file.type),
+                    "reflection_file": (reflection_file.name, reflection_file, reflection_file.type)
+                }
                 
-                st.success("Workflow Completed!")
+                # Start Job
+                response = requests.post(
+                    f"{BACKEND_URL}/orchestrator/run",
+                    params={"workflow_id": selected_workflow_id},
+                    files=files
+                )
                 
-                st.header("2. Results")
-                
-                # Display Citations if present
-                if 'citations' in result and result['citations']:
-                    st.subheader("📚 Citations & Sources")
-                    for cit in result['citations']:
-                        st.info(f"**{cit.get('source', 'Unknown')}**: {cit.get('explanation', '')}")
-
-                # Display XAI Report
-                if 'xai_report' in result:
-                    st.subheader("📝 XAI Report")
-                    st.markdown(result['xai_report'])
-                
-                # Raw JSON
-                with st.expander("View Raw Output JSON"):
-                    st.json(result)
+                if response.status_code == 200:
+                    job_data = response.json()
+                    job_id = job_data['job_id']
+                    st.success(f"Job Started! ID: {job_id}")
+                    
+                    # Polling Loop
+                    progress_bar = st.progress(0)
+                    status_text = st.empty()
+                    
+                    while True:
+                        status_res = requests.get(f"{BACKEND_URL}/orchestrator/status/{job_id}")
+                        if status_res.status_code == 200:
+                            status_data = status_res.json()
+                            status = status_data.get('status')
+                            
+                            if status == "COMPLETED":
+                                progress_bar.progress(100)
+                                status_text.success("Assessment Completed!")
+                                result = status_data.get('result', {})
+                                
+                                st.header("2. Results")
+                                
+                                # Display XAI Report
+                                report_md = result.get('xai_report') or result.get('report_content')
+                                if report_md:
+                                    st.subheader("📝 XAI Report")
+                                    st.markdown(report_md)
+                                else:
+                                    st.warning("Report content not found in result.")
+                                
+                                # Raw JSON
+                                with st.expander("View Raw Output JSON"):
+                                    st.json(result)
+                                break
+                            
+                            elif status == "FAILED":
+                                status_text.error(f"Job Failed: {status_data.get('error')}")
+                                break
+                            
+                            else:
+                                status_text.info(f"Status: {status}...")
+                                time.sleep(2)
+                        else:
+                            st.error("Failed to poll status.")
+                            break
+                else:
+                    st.error(f"Failed to start job: {response.text}")
 
             except Exception as e:
-                st.error(f"Execution Error: {e}")
+                st.error(f"Client Error: {e}")

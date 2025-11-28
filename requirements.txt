@@ -2,3 +2,13 @@ mkdocs
 mkdocs-material
 mkdocstrings[python]
 mkdocs-swagger-ui-tag
+mkdocs-swagger-ui-tag
+fastapi
+uvicorn
+python-multipart
+requests
+google-cloud-firestore
+google-cloud-storage
+tinydb
+streamlit
+pymupdf
