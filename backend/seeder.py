@@ -28,10 +28,14 @@ def get_valid_models():
         print(f"Warning: Failed to list models: {e}")
         return []
 
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from src.database.client import UTF8JSONStorage
+
 def seed_database():
     print(f"Seeding database from {SEED_DATA_PATH} to {DB_PATH}...")
     
-    db = TinyDB(DB_PATH)
+    db = TinyDB(DB_PATH, storage=UTF8JSONStorage)
     db.drop_tables() # Clear everything to ensure clean state
     
     components_table = db.table('components')

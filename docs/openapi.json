@@ -1,0 +1,514 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Cognitive Quorum API",
+    "description": "REST API for the Cognitive Quorum Multi-Agent System",
+    "version": "2.0.0"
+  },
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "Health Check",
+        "description": "Health check endpoint.",
+        "operationId": "health_check__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/db/components/{component_id}": {
+      "get": {
+        "tags": [
+          "Database"
+        ],
+        "summary": "Get Component",
+        "operationId": "get_component_db_components__component_id__get",
+        "parameters": [
+          {
+            "name": "component_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Component Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/db/workflows": {
+      "get": {
+        "tags": [
+          "Database"
+        ],
+        "summary": "List Workflows",
+        "operationId": "list_workflows_db_workflows_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/db/logs": {
+      "post": {
+        "tags": [
+          "Database"
+        ],
+        "summary": "Add Log",
+        "operationId": "add_log_db_logs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Log Entry"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/db/jobs/{job_id}": {
+      "get": {
+        "tags": [
+          "Database"
+        ],
+        "summary": "Get Job Status",
+        "operationId": "get_job_status_db_jobs__job_id__get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/llm/generate": {
+      "post": {
+        "tags": [
+          "LLM"
+        ],
+        "summary": "Generate Text",
+        "description": "Wraps LLMHandler.call_llm.",
+        "operationId": "generate_text_llm_generate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LLMRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/orchestrator/run": {
+      "post": {
+        "tags": [
+          "Orchestrator"
+        ],
+        "summary": "Run Workflow",
+        "description": "Starts a workflow execution job.\nAccepts 3 files. Returns job_id.",
+        "operationId": "run_workflow_orchestrator_run_post",
+        "parameters": [
+          {
+            "name": "workflow_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Workflow Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_run_workflow_orchestrator_run_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/orchestrator/status/{job_id}": {
+      "get": {
+        "tags": [
+          "Orchestrator"
+        ],
+        "summary": "Get Status",
+        "operationId": "get_status_orchestrator_status__job_id__get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tools/search": {
+      "post": {
+        "tags": [
+          "Tools"
+        ],
+        "summary": "Search Tool",
+        "description": "Exposes execute_google_search hook.",
+        "operationId": "search_tool_tools_search_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tools/sanitize": {
+      "post": {
+        "tags": [
+          "Tools"
+        ],
+        "summary": "Sanitize Tool",
+        "description": "Exposes sanitize_and_anonymize_input hook.",
+        "operationId": "sanitize_tool_tools_sanitize_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SanitizeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Body_run_workflow_orchestrator_run_post": {
+        "properties": {
+          "history_file": {
+            "type": "string",
+            "format": "binary",
+            "title": "History File"
+          },
+          "product_file": {
+            "type": "string",
+            "format": "binary",
+            "title": "Product File"
+          },
+          "reflection_file": {
+            "type": "string",
+            "format": "binary",
+            "title": "Reflection File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "history_file",
+          "product_file",
+          "reflection_file"
+        ],
+        "title": "Body_run_workflow_orchestrator_run_post"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "LLMRequest": {
+        "properties": {
+          "prompts": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Prompts"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model",
+            "default": "gemini-1.5-flash"
+          }
+        },
+        "type": "object",
+        "required": [
+          "prompts"
+        ],
+        "title": "LLMRequest"
+      },
+      "SanitizeRequest": {
+        "properties": {
+          "data": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Data"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "SanitizeRequest"
+      },
+      "SearchRequest": {
+        "properties": {
+          "data": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Data"
+          },
+          "hypothesis_argument": {
+            "type": "string",
+            "title": "Hypothesis Argument",
+            "default": ""
+          },
+          "prompt_text": {
+            "type": "string",
+            "title": "Prompt Text",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "SearchRequest"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
