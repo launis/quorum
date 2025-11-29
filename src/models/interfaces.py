@@ -1,23 +1,36 @@
-from typing import List, Dict, Any, Optional, Union
+from typing import Literal, Any
 from pydantic import BaseModel, Field
 
 # --- Base Schema ---
-class BaseJSON(BaseModel):
-    metadata: Dict[str, Any] = Field(..., description="Metadata including timestamp, agent, phase, version")
-    metodologinen_loki: str = Field(..., description="Methodological log of constraints and limitations")
-    semanttinen_tarkistussumma: str = Field(..., description="Short summary of content")
 
-# --- Step 1: Guard ---
+class Metadata(BaseModel):
+    luontiaika: str = Field(..., description="ISO 8601 format timestamp")
+    agentti: str
+    vaihe: int
+    versio: Literal["1.0"] = "1.0"
+    suoritus_ymparisto: Literal["Kriitikkoryhma_External", "Internal"] | None = None
+
+class BaseJSON(BaseModel):
+    metadata: Metadata
+    metodologinen_loki: str
+    edellisen_vaiheen_validointi: str
+    semanttinen_tarkistussumma: str
+
 class SecurityCheck(BaseModel):
     uhka_havaittu: bool
     adversariaalinen_simulaatio_tulos: str
-    riski_taso: str # "MATALA" | "KESKITASO" | "KORKEA"
+    riski_taso: Literal["MATALA", "KESKITASO", "KORKEA"]
+
+class TaintedDataContent(BaseModel):
+    keskusteluhistoria: str
+    lopputuote: str
+    reflektiodokumentti: str
 
 class TaintedData(BaseJSON):
-    data: Dict[str, str] # keskusteluhistoria, lopputuote, reflektiodokumentti
+    data: TaintedDataContent
     security_check: SecurityCheck
+    safe_data: dict[str, Any] | None = None
 
-# --- Step 2: Analyst ---
 class Hypoteesi(BaseModel):
     id: str
     vaite_teksti: str
@@ -30,8 +43,8 @@ class RagTodiste(BaseModel):
     relevanssi_score: int
 
 class TodistusKartta(BaseJSON):
-    hypoteesit: List[Hypoteesi]
-    rag_todisteet: List[RagTodiste]
+    hypoteesit: list[Hypoteesi]
+    rag_todisteet: list[RagTodiste]
 
 # --- Step 3: Logician ---
 class ToulminAnalyysi(BaseModel):
@@ -47,10 +60,10 @@ class KognitiivinenTaso(BaseModel):
 
 class WaltonSkeema(BaseModel):
     tunnistettu_skeema: str
-    kriittiset_kysymykset: List[str]
+    kriittiset_kysymykset: list[str]
 
 class ArgumentaatioAnalyysi(BaseJSON):
-    toulmin_analyysi: List[ToulminAnalyysi]
+    toulmin_analyysi: list[ToulminAnalyysi]
     kognitiivinen_taso: KognitiivinenTaso
     walton_skeema: WaltonSkeema
 
@@ -66,7 +79,7 @@ class UskollisuusAuditointi(BaseModel):
     uskollisuus_score: str # "KORKEA" | "EPÄVARMA" | "HEIKKO"
 
 class LogiikkaAuditointi(BaseJSON):
-    walton_stressitesti_loydokset: List[WaltonStressitesti]
+    walton_stressitesti_loydokset: list[WaltonStressitesti]
     paattelyketjun_uskollisuus_auditointi: UskollisuusAuditointi
 
 # --- Step 5: Causal ---
@@ -92,10 +105,10 @@ class Heuristiikka(BaseModel):
 
 class PreMortem(BaseModel):
     suoritettu: bool
-    hiljaiset_signaalit: List[str]
+    hiljaiset_signaalit: list[str]
 
 class PerformatiivisuusAuditointi(BaseJSON):
-    performatiivisuus_heuristiikat: List[Heuristiikka]
+    performatiivisuus_heuristiikat: list[Heuristiikka]
     pre_mortem_analyysi: PreMortem
     yleisarvio_aitoudesta: str # "Orgaaninen" | "Performatiivinen" | "Epäilyttävä"
 
@@ -111,8 +124,8 @@ class EettinenHavainto(BaseModel):
     kuvaus: str
 
 class EtiikkaJaFakta(BaseJSON):
-    faktantarkistus_rfi: List[FaktantarkistusRFI]
-    eettiset_havainnot: List[EettinenHavainto]
+    faktantarkistus_rfi: list[FaktantarkistusRFI]
+    eettiset_havainnot: list[EettinenHavainto]
 
 # --- Step 8: Judge ---
 class KonfliktinRatkaisu(BaseModel):
@@ -138,27 +151,27 @@ class Pisteet(BaseModel):
     synteesi_ja_luovuus: Arvosana
 
 class TuomioJaPisteet(BaseJSON):
-    konfliktin_ratkaisut: List[KonfliktinRatkaisu]
+    konfliktin_ratkaisut: list[KonfliktinRatkaisu]
     mestaruus_poikkeama: MestaruusPoikkeama
     aitous_epaily: AitousEpaily
     pisteet: Pisteet
-    kriittiset_havainnot_yhteenveto: List[str]
-    lasketut_yhteispisteet: Optional[int] = None
-    lasketut_keskiarvo: Optional[float] = None
+    kriittiset_havainnot_yhteenveto: list[str]
+    lasketut_yhteispisteet: int | None = None
+    lasketut_keskiarvo: float | None = None
 
 # --- Step 9: XAI (Report) ---
 # --- Step 9: XAI (Report) ---
 class UncertaintyAnalysis(BaseModel):
     aleatoric: str
-    systemic: List[str]
+    systemic: list[str]
     epistemic: str
 
 class XAIReport(BaseJSON):
     summary: str
-    critical_findings: List[str]
-    pre_mortem_signals: Optional[str] = None
+    critical_findings: list[str]
+    pre_mortem_signals: str | None = None
     hitl_required: bool
-    ethical_issues: List[str]
-    audit_questions: List[str]
+    ethical_issues: list[str]
+    audit_questions: list[str]
     uncertainty: UncertaintyAnalysis
-    report_content: Optional[str] = None
+    report_content: str | None = None

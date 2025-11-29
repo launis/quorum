@@ -3,3 +3,46 @@
 [LLM] Error calling gemini-1.5-pro: 404 models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.
 [LLM] Error calling gemini-1.5-flash: 404 models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.
 [LLM] Error calling gemini-1.5-flash: 404 models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.
+[LLM] Error calling gemini-1.5-flash: 404 models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.
+Prompt: OSA 1: KOGNITIIVISEN KVOORUMIN PERUSMANDAATIT (JÄRJESTELMÄOHJE)
+HUOMIO KAIKILLE AGENTEILLE: Toimitte...
+
+[LLM] Error calling gemini-1.5-flash: 404 models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.
+Prompt: OSA 1: KOGNITIIVISEN KVOORUMIN PERUSMANDAATIT (JÄRJESTELMÄOHJE)
+HUOMIO KAIKILLE AGENTEILLE: Toimitte...
+
+[LLM] Error calling gemini-1.5-flash: 404 models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.
+Prompt: OSA 1: KOGNITIIVISEN KVOORUMIN PERUSMANDAATIT (JÄRJESTELMÄOHJE)
+HUOMIO KAIKILLE AGENTEILLE: Toimitte...
+
+[LLM] Error calling gemini-1.5-flash: 404 models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.
+Prompt: OSA 1: KOGNITIIVISEN KVOORUMIN PERUSMANDAATIT (JÄRJESTELMÄOHJE)
+HUOMIO KAIKILLE AGENTEILLE: Toimitte...
+
+[LLM] Error calling gemini-1.5-flash: 404 models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.
+Prompt: OSA 1: KOGNITIIVISEN KVOORUMIN PERUSMANDAATIT (JÄRJESTELMÄOHJE)
+HUOMIO KAIKILLE AGENTEILLE: Toimitte...
+
+[LLM] Error calling gemini-1.5-flash-latest: 404 models/gemini-1.5-flash-latest is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.
+Prompt: Olet KOGNITIIVINEN QUORUM, moniagenttijärjestelmä (MAS), joka on suunniteltu arvioimaan opiskelijoid...
+
+[LLM] Error calling gemini-1.5-flash-latest: 404 models/gemini-1.5-flash-latest is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.
+[LLM] Error calling gemini-1.5-flash-latest: 404 models/gemini-1.5-flash-latest is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.
+Prompt: Olet KOGNITIIVINEN QUORUM, moniagenttijärjestelmä (MAS), joka on suunniteltu arvioimaan opiskelijoid...
+
+[LLM] Error calling gemini-1.5-flash-latest: 404 models/gemini-1.5-flash-latest is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.
+[LLM] Error calling gemini-1.5-flash-latest: 404 models/gemini-1.5-flash-latest is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.
+Prompt: Olet KOGNITIIVINEN QUORUM, moniagenttijärjestelmä (MAS), joka on suunniteltu arvioimaan opiskelijoid...
+
+[LLM] Error calling gemini-1.5-flash-latest: 404 models/gemini-1.5-flash-latest is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.
+[LLM] Error calling gemini-1.5-flash-latest: 404 models/gemini-1.5-flash-latest is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.
+Prompt: Olet KOGNITIIVINEN QUORUM, moniagenttijärjestelmä (MAS), joka on suunniteltu arvioimaan opiskelijoid...
+
+[LLM] Error calling gemini-1.5-flash-latest: 404 models/gemini-1.5-flash-latest is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.
+[LLM] Error calling gemini-1.5-flash-latest: 404 models/gemini-1.5-flash-latest is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.
+Prompt: Olet KOGNITIIVINEN QUORUM, moniagenttijärjestelmä (MAS), joka on suunniteltu arvioimaan opiskelijoid...
+
+[LLM] Error calling gemini-1.5-flash-latest: 404 models/gemini-1.5-flash-latest is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.
+[LLM] Error calling gemini-2.5-flash: Invalid operation: The `response.text` quick accessor requires the response to contain a valid `Part`, but none were returned. The candidate's [finish_reason](https://ai.google.dev/api/generate-content#finishreason) is 2.
+Prompt: Olet KOGNITIIVINEN QUORUM, moniagenttijärjestelmä (MAS), joka on suunniteltu arvioimaan opiskelijoid...
+

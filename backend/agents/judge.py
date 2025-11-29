@@ -1,48 +1,84 @@
-from typing import Dict, Any, List
+from typing import Any
 from backend.agents.base import BaseAgent
 
 class JudgeAgent(BaseAgent):
     """
     Tuomari-agentti (Judge Agent).
-    Responsible for:
-    1. Synthesis (Synteesi)
-    2. Conflict Resolution (Hierarkkinen konfliktinratkaisu)
-    3. Applying 'Primacy of Falsification' (Falsifioinnin etusija)
     """
-    def _process(self, hypothesis_argument: str, logical_audit: str, factual_verification: str, causal_audit: str, performativity_check: str, **kwargs) -> Dict[str, Any]:
+    def _process(self, **kwargs) -> dict[str, Any]:
+        import json
         
-        # Conflict Resolution Logic
-        # If Factual Overseer found a contradiction, it overrides everything.
+        # Needs: 7_etiikkajafakta.json (FactChecker output) which contains accumulated context
+        # Actually, Judge needs everything:
+        # 3_argumentaatioanalyysi.json
+        # 4_logiikkaauditointi.json
+        # 5_kausaalinenauditointi.json
+        # 6_performatiivisuusauditointi.json
+        # 7_etiikkajafakta.json
         
-        verdict = self._call_llm(
-            prompt=f"""
-            Synthesize a final verdict based on:
-            Hypothesis: {hypothesis_argument}
-            Logical Audit: {logical_audit}
-            Factual Verification: {factual_verification}
-            Causal Audit: {causal_audit}
-            Performativity Check: {performativity_check}
-            
-            Rule: Facts override interpretations.
-            """,
-            system_instruction=kwargs.get('system_instruction', "You are a Judge.")
+        relevant_keys = [
+            'argumentaatioanalyysi', 
+            'logiikkaauditointi', 
+            'kausaalinenauditointi', 
+            'performatiivisuusauditointi', 
+            'etiikkajafakta',
+            'metodologinen_loki'
+        ]
+        input_data = {k: kwargs.get(k) for k in relevant_keys if k in kwargs}
+        
+        if not input_data:
+             input_data = {k: v for k, v in kwargs.items() if k != 'system_instruction'}
+
+        user_content = f"""
+        INPUT DATA (AUDITOINTIRAPORTIT):
+        ---
+        {json.dumps(input_data, indent=2, ensure_ascii=False)}
+        ---
+        """
+        
+        # Call LLM with Retry Logic
+        return self.get_json_response(
+            prompt=user_content,
+            system_instruction=kwargs.get('system_instruction')
         )
-        return {"final_verdict": verdict}
 
 class XAIReporterAgent(BaseAgent):
     """
     XAI-Raportoija-agentti (XAI Reporter Agent).
-    Responsible for:
-    1. Reporting (Raportointi)
-    2. Uncertainty Quantification (Epävarmuuden erottelu)
-    3. Generating 'Reliability Score'
     """
-    def _process(self, final_verdict: str, **kwargs) -> Dict[str, Any]:
-        report = self._call_llm(
-            prompt=f"Generate an XAI report for: {final_verdict}",
-            system_instruction=kwargs.get('system_instruction', "You are an XAI Reporter.")
+    def _process(self, **kwargs) -> dict[str, Any]:
+        import json
+        
+        # Needs: 8_tuomiojapisteet.json (Judge output)
+        # And potentially everything else for the full report context
+        
+        relevant_keys = [
+            'tuomiojapisteet',
+            'metodologinen_loki',
+            'data' # Original input
+        ]
+        input_data = {k: kwargs.get(k) for k in relevant_keys if k in kwargs}
+        
+        if not input_data:
+             input_data = {k: v for k, v in kwargs.items() if k != 'system_instruction'}
+
+        user_content = f"""
+        INPUT DATA (TUOMIO JA PISTEET):
+        ---
+        {json.dumps(input_data, indent=2, ensure_ascii=False)}
+        ---
+        """
+        
+        llm_response = self._call_llm(
+            prompt=user_content,
+            system_instruction=kwargs.get('system_instruction')
         )
+        
+        # XAI Agent produces a TEXT REPORT, not necessarily JSON.
+        # But the prompt says "SINUN TÄYTYY TUOTTAA TEKSTIRAPORTTI".
+        # However, the engine might expect a dict to update context.
+        # Let's return a dict with the report content.
+        
         return {
-            "xai_report": report,
-            "reliability_score": "CONDITIONAL (Mock)"
+            "xai_report_content": llm_response
         }

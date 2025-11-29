@@ -1,62 +1,131 @@
+from typing import Any
+from backend.agents.base import BaseAgent
+
+class LogicalFalsifierAgent(BaseAgent):
+    """
+    Looginen Falsifioija-agentti (Logical Falsifier).
+    """
+    def _process(self, **kwargs) -> dict[str, Any]:
+        import json
+        
+        # Needs: 2_todistuskartta.json, 3_argumentaatioanalyysi.json, 1_tainted_data.json
+        relevant_keys = ['todistuskartta', 'argumentaatioanalyysi', 'data', 'metodologinen_loki']
+        input_data = {k: kwargs.get(k) for k in relevant_keys if k in kwargs}
+        
+        if not input_data:
+             input_data = {k: v for k, v in kwargs.items() if k != 'system_instruction'}
+
+        user_content = f"""
 from typing import Dict, Any, List
 from backend.agents.base import BaseAgent
 
 class LogicalFalsifierAgent(BaseAgent):
     """
     Looginen Falsifioija-agentti (Logical Falsifier).
-    Responsible for:
-    1. Argumentation Audit (Argumentaation Auditoija)
-    2. Faithfulness Audit (Päättelyn uskollisuus)
     """
-    def _process(self, hypothesis_argument: str, **kwargs) -> Dict[str, Any]:
-        audit = self._call_llm(
-            prompt=f"Attempt to falsify this argument logic: {hypothesis_argument}",
-            system_instruction=kwargs.get('system_instruction', "You are a Logical Falsifier.")
+    def _process(self, **kwargs) -> Dict[str, Any]:
+        import json
+        
+        # Needs: 2_todistuskartta.json, 3_argumentaatioanalyysi.json, 1_tainted_data.json
+        relevant_keys = ['todistuskartta', 'argumentaatioanalyysi', 'data', 'metodologinen_loki']
+        input_data = {k: kwargs.get(k) for k in relevant_keys if k in kwargs}
+        
+        if not input_data:
+             input_data = {k: v for k, v in kwargs.items() if k != 'system_instruction'}
+
+        user_content = f"""
+        INPUT DATA:
+        ---
+        {json.dumps(input_data, indent=2, ensure_ascii=False)}
+        ---
+        """
+        
+        return self.get_json_response(
+            prompt=user_content,
+            system_instruction=kwargs.get('system_instruction')
         )
-        return {"logical_audit": audit}
+
 
 class FactualOverseerAgent(BaseAgent):
     """
     Faktuaalinen ja Eettinen Valvoja-agentti (Factual & Ethical Overseer).
-    Responsible for:
-    1. Evidence Verification (Todisteiden Valvoja)
-    2. External Search (Google Search API - Mocked for now)
-    3. Ethical Check
     """
-    def _process(self, hypothesis_argument: str, **kwargs) -> Dict[str, Any]:
-        # Mock Google Search
-        search_results = "[MOCK SEARCH RESULTS: No contradictions found]"
+    def _process(self, **kwargs) -> dict[str, Any]:
+        import json
         
-        verification = self._call_llm(
-            prompt=f"Verify these claims against search results: {hypothesis_argument} \n Results: {search_results}",
-            system_instruction=kwargs.get('system_instruction', "You are a Factual Overseer.")
+        # Needs: 2_todistuskartta.json, 3_argumentaatioanalyysi.json, 1_tainted_data.json
+        # AND google_search_results from pre-hook
+        relevant_keys = ['todistuskartta', 'argumentaatioanalyysi', 'data', 'google_search_results', 'metodologinen_loki']
+        input_data = {k: kwargs.get(k) for k in relevant_keys if k in kwargs}
+        
+        if not input_data:
+             input_data = {k: v for k, v in kwargs.items() if k != 'system_instruction'}
+
+        user_content = f"""
+        INPUT DATA:
+        ---
+        {json.dumps(input_data, indent=2, ensure_ascii=False)}
+        ---
+        ULKOISEN FAKTANTARKISTUKSEN TULOKSET:
+        {kwargs.get('google_search_results', 'Ei hakutuloksia.')}
+        ---
+        """
+        
+        return self.get_json_response(
+            prompt=user_content,
+            system_instruction=kwargs.get('system_instruction')
         )
-        return {"factual_verification": verification}
+
 
 class CausalAnalystAgent(BaseAgent):
     """
     Kausaalinen Analyytikko-agentti (Causal Analyst).
-    Responsible for:
-    1. Temporal Audit (Temporaalinen auditointi)
-    2. Counterfactual Stress Test (L3-simulaatio)
     """
-    def _process(self, hypothesis_argument: str, evidence_map: Dict[str, str], **kwargs) -> Dict[str, Any]:
-        causal_check = self._call_llm(
-            prompt=f"Check temporal consistency between history and reflection: {evidence_map['history_evidence']} vs {evidence_map['reflection_evidence']}",
-            system_instruction=kwargs.get('system_instruction', "You are a Causal Analyst.")
+    def _process(self, **kwargs) -> dict[str, Any]:
+        import json
+        
+        # Needs: 2_todistuskartta.json, 3_argumentaatioanalyysi.json, 1_tainted_data.json
+        relevant_keys = ['todistuskartta', 'argumentaatioanalyysi', 'data', 'metodologinen_loki']
+        input_data = {k: kwargs.get(k) for k in relevant_keys if k in kwargs}
+        
+        if not input_data:
+             input_data = {k: v for k, v in kwargs.items() if k != 'system_instruction'}
+
+        user_content = f"""
+        INPUT DATA:
+        ---
+        {json.dumps(input_data, indent=2, ensure_ascii=False)}
+        ---
+        """
+        
+        return self.get_json_response(
+            prompt=user_content,
+            system_instruction=kwargs.get('system_instruction')
         )
-        return {"causal_audit": causal_check}
+
 
 class PerformativityDetectorAgent(BaseAgent):
     """
     Performatiivisuuden Tunnistaja-agentti (Performativity Detector).
-    Responsible for:
-    1. Detecting Gaming/Manipulation (Pelistrategiat)
-    2. Statistical Anomaly Detection (Epäilyttävä Täydellisyys)
     """
-    def _process(self, hypothesis_argument: str, **kwargs) -> Dict[str, Any]:
-        perf_check = self._call_llm(
-            prompt=f"Analyze for signs of gaming or AI-generated narrative: {hypothesis_argument}",
-            system_instruction=kwargs.get('system_instruction', "You are a Performativity Detector.")
+    def _process(self, **kwargs) -> dict[str, Any]:
+        import json
+        
+        # Needs: 2_todistuskartta.json, 3_argumentaatioanalyysi.json, 1_tainted_data.json
+        relevant_keys = ['todistuskartta', 'argumentaatioanalyysi', 'data', 'metodologinen_loki']
+        input_data = {k: kwargs.get(k) for k in relevant_keys if k in kwargs}
+        
+        if not input_data:
+             input_data = {k: v for k, v in kwargs.items() if k != 'system_instruction'}
+
+        user_content = f"""
+        INPUT DATA:
+        ---
+        {json.dumps(input_data, indent=2, ensure_ascii=False)}
+        ---
+        """
+        
+        return self.get_json_response(
+            prompt=user_content,
+            system_instruction=kwargs.get('system_instruction')
         )
-        return {"performativity_check": perf_check}

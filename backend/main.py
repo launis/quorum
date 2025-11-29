@@ -76,38 +76,54 @@ async def get_execution_status(execution_id: int):
 
 # --- Legacy / Helper Endpoints ---
 
-@app.post("/upload")
-async def upload_files(
-    prompt_file: UploadFile = File(...),
+@app.post("/orchestrator/run")
+async def run_orchestrator(
+    workflow_id: str,
     history_file: UploadFile = File(...),
     product_file: UploadFile = File(...),
     reflection_file: UploadFile = File(...)
 ):
     """
-    Uploads files and returns their paths. 
-    Does NOT trigger processing automatically anymore (use Workflows for that).
+    Uploads files, extracts text using DataHandler, and starts the workflow.
     """
-    files = [prompt_file, history_file, product_file, reflection_file]
-    saved_filenames = {}
+    from data_handler import DataHandler
+    handler = DataHandler()
 
     try:
-        for file in files:
-            file_location = f"{UPLOAD_DIR}/{file.filename}"
-            with open(file_location, "wb+") as file_object:
-                shutil.copyfileobj(file.file, file_object)
-            # Map the field name to the saved path
-            if file == prompt_file: saved_filenames['prompt_path'] = file_location
-            if file == history_file: saved_filenames['history_path'] = file_location
-            if file == product_file: saved_filenames['product_path'] = file_location
-            if file == reflection_file: saved_filenames['reflection_path'] = file_location
+        # Extract text from uploaded files
+        history_text = handler.read_file_content(history_file)
+        product_text = handler.read_file_content(product_file)
+        reflection_text = handler.read_file_content(reflection_file)
 
-        return {
-            "status": "success",
-            "message": "Files uploaded successfully",
-            "file_paths": saved_filenames
+        # Prepare inputs for the workflow
+        inputs = {
+            "history_text": history_text,
+            "product_text": product_text,
+            "reflection_text": reflection_text
         }
+
+        # Execute workflow
+        # Note: workflow_id is passed as a query parameter
+        execution_id = engine.execute_workflow(workflow_id, inputs)
+        
+        return {
+            "status": "started",
+            "execution_id": execution_id,
+            "message": "Workflow started successfully"
+        }
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Orchestration failed: {str(e)}")
+
+@app.get("/orchestrator/status/{execution_id}")
+async def get_orchestrator_status(execution_id: int):
+    """
+    Gets the status of a workflow execution.
+    """
+    status = engine.get_execution_status(execution_id)
+    if not status:
+        raise HTTPException(status_code=404, detail="Execution not found")
+    return status
 
 @app.get("/health")
 def health_check():

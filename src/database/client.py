@@ -10,7 +10,7 @@ class DatabaseClient:
         if cls._instance is None:
             cls._instance = super(DatabaseClient, cls).__new__(cls)
             # Use path from config
-            cls._db = TinyDB(config.DB_PATH)
+            cls._db = TinyDB(config.DB_PATH, encoding='utf-8')
         return cls._instance
 
     @property

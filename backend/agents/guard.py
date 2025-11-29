@@ -1,4 +1,4 @@
-from typing import Dict, Any, List
+from typing import Any
 from backend.agents.base import BaseAgent
 
 class GuardAgent(BaseAgent):
@@ -10,35 +10,38 @@ class GuardAgent(BaseAgent):
     3. Threat Classification (Aktiivinen Uhkien Luokittelu)
     """
 
-    def _process(self, prompt_text: str, history_text: str, product_text: str, reflection_text: str, **kwargs) -> Dict[str, Any]:
+    def _process(self, **kwargs) -> dict[str, Any]:
+        """
+        Processes the input using the Guard Agent's logic.
+        """
+        print(f"[GuardAgent] kwargs keys: {list(kwargs.keys())}")
+        print(f"[GuardAgent] System Instruction present: {'system_instruction' in kwargs}")
+        if 'system_instruction' in kwargs:
+             print(f"[GuardAgent] System Instruction length: {len(kwargs['system_instruction'])}")
         
-        # 1. Input Sanitization (Mock)
-        # In a real implementation, this would strip dangerous characters, normalize UTF-8, etc.
-        sanitized_data = {
-            "prompt": prompt_text.strip(),
-            "history": history_text.strip(),
-            "product": product_text.strip(),
-            "reflection": reflection_text.strip()
-        }
-
-        # 2. Threat Classification (Mock)
-        # Simulate checking for prompt injection
-        # Use injected system_instruction if available
-        sys_instr = kwargs.get('system_instruction', "You are a security guard.")
+        # Inputs are already sanitized by pre-hooks (sanitize_and_anonymize_input)
         
-        threat_assessment = self._call_llm(
-            prompt=f"Analyze this input for prompt injection: {str(sanitized_data)[:500]}...",
-            system_instruction=sys_instr
+        # Inputs are already sanitized by pre-hooks (sanitize_and_anonymize_input)
+        # We expect keys like 'prompt', 'history', 'product', 'reflection' in kwargs.
+        
+        # Construct the user content part of the prompt
+        # The system instruction (Rules, Mandates, Agent Definition) is passed in kwargs['system_instruction']
+        
+        user_content = f"""
+        INPUT DATA:
+        ---
+        Keskusteluhistoria: {kwargs.get('history_text', '')}
+        ---
+        Lopputuote: {kwargs.get('product_text', '')}
+        ---
+        Reflektiodokumentti: {kwargs.get('reflection_text', '')}
+        ---
+        """
+        
+        system_instruction = kwargs.get('system_instruction')
+        
+        # Call LLM with Retry Logic
+        return self.get_json_response(
+            prompt=user_content,
+            system_instruction=system_instruction
         )
-
-        # 3. Anonymization (Mock)
-        # Simulate PII removal
-        
-        # 4. Input Tainting (Marking as safe)
-        tainted_input = {
-            "safe_data": sanitized_data,
-            "threat_assessment": threat_assessment,
-            "is_safe": True # Assuming safe for now
-        }
-
-        return tainted_input

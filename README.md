@@ -10,6 +10,10 @@
     *   **Python Hooks** for deterministic tasks (Math, Parsing, Search, RAG).
 *   **Data-Driven Logic**: All Rules, Prompts, Steps, and Workflows are stored in a JSON-based database (`seed_data.json`), allowing for easy modification without code changes.
 *   **Registry Pattern**: Dynamic mapping of string identifiers to Pydantic models (`SchemaRegistry`) and Python functions (`HookRegistry`).
+*   **Reliability & Robustness**:
+    *   **UTF-8 Everywhere**: Full support for Scandinavian characters in database, logs, and LLM calls.
+    *   **Error Fallback**: Automatic retry logic and model switching (e.g., Gemini Flash -> Pro) on failure.
+*   **Adversarial Testing**: Built-in test suite (`run_scenarios.py`) for simulating rule violations (Prompt Injection, PII Leaks) and technical errors.
 *   **External Integrations**:
     *   **Google Custom Search API** for real-time fact-checking.
     *   **RAG (Retrieval-Augmented Generation)** stub for document context.
@@ -79,17 +83,25 @@ run_locally.bat
 2. **Frontend**: `streamlit run ui.py`
 
 ### Workflow Selection
-1.  **Select Workflow**: Choose between `HOLISTINEN_MESTARUUS_3` (Full) or `KVOORUMI_OPTIMIZED` (Fast).
+1.  **Select Workflow**: The primary workflow is **`HOLISTINEN_MESTARUUS_3`**, which implements the full 5-stage assessment process (Guard -> Analyst -> Logician -> Critics -> Judge).
 2.  **Upload Evidence**: Upload PDF/Text files for History, Product, and Reflection.
 3.  **Run Assessment**: Click the button to start the asynchronous job.
 4.  **View Results**: The UI polls the backend and displays the final XAI report.
 
 ## 📚 Documentation
-Full documentation is available in the `docs/` directory and can be viewed with MkDocs:
+Full documentation is available in the `docs/` directory.
 
+### 📖 Viewing Documentation
+
+**Option 1: Online (GitHub Pages)**
+[View Documentation](https://launis.github.io/quorum/)
+
+**Option 2: Local Server**
+To view the documentation locally with live reloading:
 ```bash
 mkdocs serve
 ```
+Then open [http://localhost:8000](http://localhost:8000) in your browser.
 
 ## 📄 License
 [MIT License](LICENSE)

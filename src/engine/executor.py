@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Any
 from src.database.client import DatabaseClient
 from src.models.schema_registry import SchemaRegistry
 from src.components.hook_registry import HookRegistry
@@ -11,7 +11,7 @@ class Executor:
         self.db_client = DatabaseClient()
         self.llm_handler = LLMHandler()
 
-    def execute_step(self, step_id: str, context: Dict[str, Any], model_override: str = None) -> Dict[str, Any]:
+    def execute_step(self, step_id: str, context: dict[str, Any], model_override: str = None) -> dict[str, Any]:
         print(f"[EXECUTOR] Executing Step: {step_id}")
         
         # 1. Load Step Definition
@@ -67,6 +67,17 @@ class Executor:
         data_context = f"\n\nCONTEXT DATA:\n{json.dumps(current_data, indent=2, default=str)}"
         current_prompts.append({"content": data_context})
 
+        # Inject Output Schema
+        output_schema_name = step.get('output_schema')
+        if output_schema_name:
+            try:
+                OutputModel = SchemaRegistry.get_schema(output_schema_name)
+                schema_json = json.dumps(OutputModel.model_json_schema(), indent=2)
+                schema_instruction = f"\n\nSYSTEM: You must output a valid JSON object that strictly matches the following schema:\n{schema_json}\n\nEnsure your response is a valid JSON object."
+                current_prompts.append({"content": schema_instruction})
+            except Exception as e:
+                print(f"[EXECUTOR] Warning: Failed to inject schema for {output_schema_name}: {e}")
+
         while attempt < max_retries:
             attempt += 1
             print(f"[EXECUTOR] Attempt {attempt}/{max_retries} for Step {step_id}")
@@ -77,8 +88,13 @@ class Executor:
                 current_prompts.append({"content": feedback})
 
             if current_prompts:
-                llm_response = self.llm_handler.call_llm(current_prompts, model=model_override or "gemini-1.5-flash")
-                current_data['llm_output'] = llm_response
+                try:
+                    llm_response = self.llm_handler.call_llm(current_prompts, model=model_override or "gemini-1.5-flash")
+                    current_data['llm_output'] = llm_response
+                except Exception as e:
+                    print(f"[EXECUTOR] LLM Call Failed (Attempt {attempt}): {e}")
+                    last_error = f"LLM Call Failed: {e}"
+                    continue # Retry loop
 
             # 5. Automatic JSON Parsing (Run BEFORE hooks so they have access to data)
             output_schema_name = step.get('output_schema')

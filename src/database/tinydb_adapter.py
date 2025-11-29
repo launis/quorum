@@ -1,4 +1,4 @@
-from typing import Dict, Any, List, Optional
+from typing import Any
 from tinydb import Query
 from src.database.client import DatabaseClient
 import uuid
@@ -11,7 +11,7 @@ class TinyDBAdapter:
     def __init__(self):
         self.client = DatabaseClient()
 
-    def get_document(self, collection_name: str, doc_id: str) -> Optional[Dict[str, Any]]:
+    def get_document(self, collection_name: str, doc_id: str) -> dict[str, Any] | None:
         table = self.client.get_table(collection_name)
         # Assuming 'id' field is used for lookups, or we use doc_id if it's an int?
         # Firestore uses string IDs. TinyDB uses int doc_ids by default but we store 'id' field.
@@ -22,7 +22,7 @@ class TinyDBAdapter:
             return result[0]
         return None
 
-    def upsert_document(self, collection_name: str, doc_id: str, data: Dict[str, Any]):
+    def upsert_document(self, collection_name: str, doc_id: str, data: dict[str, Any]):
         table = self.client.get_table(collection_name)
         User = Query()
         # Check if exists
@@ -35,7 +35,7 @@ class TinyDBAdapter:
             table.insert(data)
         return doc_id
 
-    def add_document(self, collection_name: str, data: Dict[str, Any]) -> str:
+    def add_document(self, collection_name: str, data: dict[str, Any]) -> str:
         """Adds a document with an auto-generated ID."""
         table = self.client.get_table(collection_name)
         doc_id = str(uuid.uuid4())
@@ -43,11 +43,11 @@ class TinyDBAdapter:
         table.insert(data)
         return doc_id
 
-    def get_all(self, collection_name: str) -> List[Dict[str, Any]]:
+    def get_all(self, collection_name: str) -> list[dict[str, Any]]:
         table = self.client.get_table(collection_name)
         return table.all()
 
-    def query(self, collection_name: str, field: str, operator: str, value: Any) -> List[Dict[str, Any]]:
+    def query(self, collection_name: str, field: str, operator: str, value: Any) -> list[dict[str, Any]]:
         """
         Simple query wrapper.
         Only supports '==' for now in this adapter for simplicity.

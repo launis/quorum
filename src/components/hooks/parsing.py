@@ -1,9 +1,9 @@
 import json
 import re
-from typing import Dict, Any
+from typing import Any
 from src.components.hook_registry import HookRegistry
 
-def _clean_and_parse_json(text: str) -> Dict[str, Any]:
+def _clean_and_parse_json(text: str) -> dict[str, Any]:
     """
     Helper to extract and parse JSON from LLM output.
     Handles markdown code blocks and extra text by finding the first '{' and last '}'.
@@ -18,18 +18,33 @@ def _clean_and_parse_json(text: str) -> Dict[str, Any]:
         
         if start != -1 and end != -1 and end > start:
             cleaned = text[start:end+1]
-            return json.loads(cleaned)
+            # Remove trailing commas (common LLM error)
+            cleaned = re.sub(r',\s*}', '}', cleaned)
+            cleaned = re.sub(r',\s*]', ']', cleaned)
+            return json.loads(cleaned, strict=False)
         
         # Fallback: try cleaning markdown if braces logic failed (unlikely for valid objects)
         cleaned = re.sub(r'```json\s*', '', text)
         cleaned = re.sub(r'```', '', cleaned)
-        return json.loads(cleaned.strip())
+        # Remove trailing commas here too
+        cleaned = re.sub(r',\s*}', '}', cleaned)
+        cleaned = re.sub(r',\s*]', ']', cleaned)
+        return json.loads(cleaned.strip(), strict=False)
 
-    except json.JSONDecodeError:
-        print(f"[Parsing] Warning: Failed to parse JSON. Returning raw text.")
-        return {"raw_output": text}
+    except json.JSONDecodeError as e:
+        print(f"[Parsing] Warning: Failed to parse JSON: {e}")
+        # Try AST literal_eval as fallback (handles trailing commas, single quotes)
+        try:
+            import ast
+            # Fix JSON booleans/null for Python AST
+            ast_text = cleaned.replace("true", "True").replace("false", "False").replace("null", "None")
+            return ast.literal_eval(ast_text)
+        except Exception as ast_e:
+            print(f"[Parsing] Warning: AST parsing also failed: {ast_e}")
+            print(f"[Parsing] Raw output start: {text[:500]}...")
+            return {"raw_output": text}
 
-def parse_analyst_output(data: Dict[str, Any]) -> Dict[str, Any]:
+def parse_analyst_output(data: dict[str, Any]) -> dict[str, Any]:
     """
     HOOK: parse_analyst_output
     Logic: Parses LLM output into AnalysisSummary schema.
@@ -43,7 +58,7 @@ def parse_analyst_output(data: Dict[str, Any]) -> Dict[str, Any]:
         "citations": parsed.get('citations', [])
     }
 
-def parse_logician_output(data: Dict[str, Any]) -> Dict[str, Any]:
+def parse_logician_output(data: dict[str, Any]) -> dict[str, Any]:
     """
     HOOK: parse_logician_output
     Logic: Parses LLM output into HypothesisArgument schema.
@@ -58,7 +73,7 @@ def parse_logician_output(data: Dict[str, Any]) -> Dict[str, Any]:
         "citations": parsed.get('citations', [])
     }
 
-def parse_judge_output(data: Dict[str, Any]) -> Dict[str, Any]:
+def parse_judge_output(data: dict[str, Any]) -> dict[str, Any]:
     """
     HOOK: parse_judge_output
     Logic: Parses LLM output into FinalVerdict schema.
