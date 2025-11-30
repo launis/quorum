@@ -24,14 +24,15 @@
 The system follows a modern **Cloud Native** architecture, designed for scalability on Google Cloud Platform:
 
 ```
-src/
-├── api/                # FastAPI Backend (REST API)
-│   ├── routers/        # API Endpoints (Orchestrator, DB, LLM)
-│   └── server.py       # App Entry Point
-├── engine/             # Generic Orchestrator & Executor
-├── components/         # Hybrid Components (Hooks & Templates)
-├── database/           # Database Client (Firestore & TinyDB)
-└── models/             # Pydantic Schemas & Registry
+backend/                # FastAPI Backend (REST API)
+│   ├── api/            # API Endpoints (Orchestrator, DB, LLM)
+│   ├── agents/         # AI Agents (Guard, Analyst, Judge, etc.)
+│   ├── engine.py       # Generic Orchestrator & Executor
+│   ├── component.py    # Base Component Class
+│   └── main.py         # App Entry Point
+data/                   # Data Storage
+│   ├── seed_data.json  # Initial Database State
+│   └── templates/      # Jinja2 Prompts
 ui.py                   # Streamlit Frontend
 ```
 
@@ -83,7 +84,7 @@ run_locally.bat
 2. **Frontend**: `streamlit run ui.py`
 
 ### Workflow Selection
-1.  **Select Workflow**: The primary workflow is **`HOLISTINEN_MESTARUUS_3`**, which implements the full 5-stage assessment process (Guard -> Analyst -> Logician -> Critics -> Judge).
+1.  **Select Workflow**: The primary workflow is **`WORKFLOW_MAIN`**, which implements the full 9-step assessment process (Guard -> Analyst -> Logician -> Critics -> Judge -> XAI).
 2.  **Upload Evidence**: Upload PDF/Text files for History, Product, and Reflection.
 3.  **Run Assessment**: Click the button to start the asynchronous job.
 4.  **View Results**: The UI polls the backend and displays the final XAI report.
