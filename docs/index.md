@@ -26,5 +26,7 @@ By treating prompts, rules, and workflows as data, Cognitive Quorum enables rapi
 
 - **[Architecture](architecture.md)**: Deep dive into the Generic Engine and Registry Pattern.
 - **[Data Management](data_management.md)**: Understanding the data-driven core (JSON, TinyDB, Templates).
+- **[Prompt Engineering](prompt_engineering.md)**: Strategies for constructing effective agent prompts.
 - **[Components & Hooks](components.md)**: Reference for available Python hooks and hybrid components.
 - **[API Reference](reference.md)**: Technical documentation of the backend classes.
+- **[Interactive API](swagger.md)**: Live Swagger UI for testing endpoints.
