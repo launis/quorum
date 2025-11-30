@@ -76,7 +76,7 @@ We provide a helper script to start both the Backend and Frontend simultaneously
 
 **Windows:**
 ```bash
-run_locally.bat
+.\run_locally.bat
 ```
 
 **Manual Start:**
