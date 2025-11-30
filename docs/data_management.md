@@ -75,6 +75,27 @@ Tämä on väliaikainen tallennuspaikka käyttäjän käyttöliittymän kautta l
 
 ## Yhteenveto Tietovirrasta
 
-1.  **Alustus**: `seed_data.json` -> `db.json` (Konfiguraatio).
-2.  **Kehotteen luonti**: `templates/*.j2` + `fragments/*.json` -> Lopullinen kehote.
-3.  **Suoritus**: Käyttäjän syöte + `uploads/*` -> LLM -> `db.json` (Suoritushistoria).
+```mermaid
+graph TD
+    subgraph Initialization
+        Seed[seed_data.json] -->|Load| DB[(db.json)]
+    end
+
+    subgraph PromptEngineering
+        Tpl[templates/*.j2] -->|Render| Prompt
+        Frag[fragments/*.json] -->|Inject| Prompt
+        DB -->|Config| Prompt
+    end
+
+    subgraph Execution
+        User[User Input] --> Engine
+        Uploads[data/uploads/*] -->|Process| Engine
+        Prompt -->|Context| Engine
+        Engine -->|Call| LLM[LLM API]
+        LLM -->|Response| Engine
+        Engine -->|Save History| DB
+    end
+
+    style DB fill:#f9f,stroke:#333,stroke-width:2px
+    style LLM fill:#ff9,stroke:#333,stroke-width:2px
+```
