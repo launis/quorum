@@ -94,7 +94,7 @@ Full documentation is available in the `docs/` directory.
 ### 📖 Viewing Documentation
 
 **Option 1: Online (GitHub Pages)**
-[View Documentation](https://launis.github.io/quorum/)
+[View Documentation](https://github.com/launis/quorum)
 
 **Option 2: Local Server**
 To view the documentation locally with live reloading:
