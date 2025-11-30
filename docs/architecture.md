@@ -41,14 +41,46 @@ src/
 
 ## Execution Flow
 
-1.  **Frontend** uploads files to `POST /orchestrator/run`.
-2.  **API** saves files (Local/GCS), creates a `Job` record (PENDING), and triggers a background task.
-3.  **Background Task**:
-    *   Updates Job status to RUNNING.
-    *   **Orchestrator** loads the Workflow definition.
-    *   **Executor** runs each Step (Pre-Hooks -> LLM -> Post-Hooks).
-    *   Updates Job status to COMPLETED and saves the result (JSON + Markdown).
-4.  **Frontend** polls `GET /orchestrator/status` and displays the result when ready.
+## Execution Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant API
+    participant DB
+    participant Orchestrator
+    participant Executor
+    participant LLM
+
+    User->>Frontend: Upload Files
+    Frontend->>API: POST /orchestrator/run
+    API->>DB: Create Job (PENDING)
+    API-->>Frontend: Return Job ID
+    
+    par Async Processing
+        API->>Orchestrator: Trigger Background Task
+        Orchestrator->>DB: Update Job (RUNNING)
+        Orchestrator->>DB: Load Workflow Definition
+        
+        loop For Each Step
+            Orchestrator->>Executor: Execute Step
+            Executor->>DB: Load Step Config
+            Executor->>LLM: Generate Response
+            Executor->>DB: Save Step Result
+        end
+        
+        Orchestrator->>DB: Update Job (COMPLETED)
+    and Polling
+        loop Every X seconds
+            Frontend->>API: GET /orchestrator/status/{job_id}
+            API->>DB: Check Status
+            DB-->>Frontend: Status (RUNNING/COMPLETED)
+        end
+    end
+    
+    Frontend->>User: Display Results
+```
 
 ## 5. Prompt Engineering & SSOT Architecture
 

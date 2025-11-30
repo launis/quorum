@@ -1,26 +1,45 @@
 # API Reference
 
-## Backend Main
-::: backend.main
+## Core Engine
 
-## Engine
-::: backend.engine
+The core logic of the Generic Workflow Engine.
 
-## Agents
-::: backend.agents.base
-::: backend.agents.guard
-::: backend.agents.analyst
-::: backend.agents.logician
-::: backend.agents.critics
-::: backend.agents.judge
+::: src.engine.orchestrator
+    options:
+      heading_level: 3
 
-## API Routers
-::: backend.api.hooks_router
-::: backend.api.tools_router
-::: backend.api.agents_router
-::: backend.api.templates_router
-::: backend.api.admin_router
+::: src.engine.executor
+    options:
+      heading_level: 3
 
-## Utilities
-::: backend.processor
-::: backend.hooks
+::: src.engine.llm_handler
+    options:
+      heading_level: 3
+
+## Database
+
+Abstraction layer for database interactions.
+
+::: src.database.client
+    options:
+      heading_level: 3
+
+## Components & Registry
+
+Registries for mapping JSON configuration to Python code.
+
+::: src.components.hook_registry
+    options:
+      heading_level: 3
+
+::: src.models.schema_registry
+    options:
+      heading_level: 3
+
+## API
+
+FastAPI application structure.
+
+::: src.api.server
+    options:
+      heading_level: 3
