@@ -12,7 +12,6 @@ class BaseAgent(BaseComponent):
         self.model = model
         # TODO: Initialize LLM client here (e.g., Gemini, OpenAI)
         # self.client = ...
-
     def execute(self, **kwargs) -> dict[str, Any]:
         """
         Standard execution entry point.

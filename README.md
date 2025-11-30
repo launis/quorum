@@ -99,9 +99,9 @@ Full documentation is available in the `docs/` directory.
 **Option 2: Local Server**
 To view the documentation locally with live reloading:
 ```bash
-mkdocs serve
+mkdocs serve -a localhost:8001
 ```
-Then open [http://localhost:8000](http://localhost:8000) in your browser.
+Then open [http://localhost:8001](http://localhost:8001) in your browser.
 
 ## 📄 License
 [MIT License](LICENSE)
