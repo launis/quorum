@@ -9,7 +9,7 @@ load_dotenv()
 
 # Configuration
 API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
-WORKFLOW_ID = "HOLISTINEN_MESTARUUS_3"
+WORKFLOW_ID = "WORKFLOW_MAIN"
 SCENARIOS_DIR = os.path.join(os.path.dirname(__file__), "scenarios", "workflow")
 
 def wait_for_backend(base_url: str, timeout: int = 60):

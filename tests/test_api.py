@@ -46,7 +46,8 @@ def test_render_template():
         assert response.status_code == 200
         data = response.json()
         assert "rendered_text" in data
-        assert "Test History" in data["rendered_text"]
+        # The template contains static text "VAIHE 1: VARTIJA-AGENTTI"
+        assert "VAIHE 1: VARTIJA-AGENTTI" in data["rendered_text"]
 
 def test_run_agent_mock():
     """

@@ -81,7 +81,11 @@ class WorkflowEngine:
             self.executions_table.update({'status': 'RUNNING'}, doc_ids=[execution_id])
             
             # 2. Fetch Workflow Definition
-            workflow = self.workflows_table.get(Query().id == workflow_id)
+            if isinstance(workflow_id, int):
+                workflow = self.workflows_table.get(doc_id=workflow_id)
+            else:
+                workflow = self.workflows_table.get(Query().id == workflow_id)
+                
             if not workflow:
                 raise ValueError(f"Workflow {workflow_id} not found")
 

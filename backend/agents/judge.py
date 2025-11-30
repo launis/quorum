@@ -15,7 +15,8 @@ class JudgeAgent(BaseAgent):
             'performatiivisuusauditointi', 
             'etiikkajafakta',
             'metodologinen_loki',
-            'metadata'
+            'metadata',
+            'data'
         ]
         input_data = {k: kwargs.get(k) for k in relevant_keys if k in kwargs}
         

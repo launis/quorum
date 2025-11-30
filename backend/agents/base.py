@@ -87,7 +87,7 @@ class BaseAgent(BaseComponent):
 
         try:
             print(f"[{self.__class__.__name__}] Calling LLM ({model_name})...")
-            response = model.generate_content(prompt)
+            response = model.generate_content(prompt, request_options={'timeout': 600})
             
             # Robustly handle response
             if response.parts:
