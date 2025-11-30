@@ -24,9 +24,9 @@ class SecurityCheck(BaseModel):
     riski_taso: Literal["MATALA", "KESKITASO", "KORKEA"]
 
 class TaintedDataContent(BaseModel):
-    keskusteluhistoria: str
-    lopputuote: str
-    reflektiodokumentti: str
+    keskusteluhistoria: str | None = None
+    lopputuote: str | None = None
+    reflektiodokumentti: str | None = None
 
 class TaintedData(BaseJSON):
     data: TaintedDataContent

@@ -23,17 +23,37 @@ class DataHandler:
     
     def read_file_content(self, uploaded_file: Any) -> str:
         """Reads file content as text."""
-        # Check for Streamlit UploadedFile or similar interface
-        file_type = getattr(uploaded_file, 'type', '')
+        # Determine file type and content
+        file_type = ""
+        file_obj = None
+
+        # Check for FastAPI UploadFile
+        if hasattr(uploaded_file, 'content_type'):
+            file_type = uploaded_file.content_type
+            file_obj = uploaded_file.file
+        # Check for Streamlit UploadedFile
+        elif hasattr(uploaded_file, 'type'):
+            file_type = uploaded_file.type
+            file_obj = uploaded_file
         
         if file_type == "application/pdf":
-            return self._read_pdf(uploaded_file)
+            return self._read_pdf(file_obj)
         elif file_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-             return self._read_docx(uploaded_file)
+             return self._read_docx(file_obj)
         else:
             # Assume text file
             try:
-                content = uploaded_file.getvalue()
+                # FastAPI
+                if hasattr(uploaded_file, 'read'):
+                    # Reset cursor just in case
+                    uploaded_file.file.seek(0)
+                    content = uploaded_file.file.read()
+                # Streamlit
+                elif hasattr(uploaded_file, 'getvalue'):
+                    content = uploaded_file.getvalue()
+                else:
+                    return str(uploaded_file)
+
                 if isinstance(content, bytes):
                     return content.decode("utf-8")
                 return str(content)
@@ -41,13 +61,26 @@ class DataHandler:
                 return str(uploaded_file)
 
     def _read_pdf(self, file_obj) -> str:
-        """Reads text from PDF using PyPDF2."""
+        """Reads text from PDF using pdfplumber (robust)."""
         try:
-            reader = PyPDF2.PdfReader(file_obj)
+            import pdfplumber
             text = ""
-            for page in reader.pages:
-                text += page.extract_text() + "\n"
+            with pdfplumber.open(file_obj) as pdf:
+                for page in pdf.pages:
+                    page_text = page.extract_text()
+                    if page_text:
+                        text += page_text + "\n"
             return text
+        except ImportError:
+             # Fallback to PyPDF2 if pdfplumber is not installed
+             try:
+                reader = PyPDF2.PdfReader(file_obj)
+                text = ""
+                for page in reader.pages:
+                    text += page.extract_text() + "\n"
+                return text
+             except Exception as e:
+                 return f"Error reading PDF file (PyPDF2): {str(e)}"
         except Exception as e:
             return f"Error reading PDF file: {str(e)}"
 

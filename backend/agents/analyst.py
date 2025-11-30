@@ -9,41 +9,39 @@ class AnalystAgent(BaseAgent):
     2. Creating an 'Evidence Map' (Todistuskartta)
     """
 
-    def _process(self, **kwargs) -> dict[str, Any]:
-        """
-        Processes the input using the Analyst Agent's logic.
-        """
-        
-        # The input 'safe_data' (or similar) comes from GuardAgent's output (TaintedData).
-        # However, the engine passes 'current_inputs' which contains the accumulated context.
-        # We expect 'data' (from TaintedData) or 'safe_data' to be available.
-        # Actually, GuardAgent returns a dict which updates the context.
-        # GuardAgent returned a dict which might be the TaintedData object itself or wrapped.
-        # Let's assume the context has the relevant keys.
-        
-        # The prompt requires: 1_tainted_data.json (Step 1 Output).
-        # We can pass the relevant parts of the context to the LLM.
-        
-        # Construct the user content
-        # We dump the relevant context as JSON string for the LLM to analyze.
+    def construct_user_prompt(self, **kwargs) -> str:
         import json
         
-        # Filter context to avoid passing too much noise if possible, 
-        # but for now let's pass the relevant keys if they exist.
-        relevant_keys = ['data', 'security_check', 'metodologinen_loki']
+        # Prioritize safe_data if available, otherwise look for data
+        relevant_keys = ['safe_data', 'data', 'security_check', 'metodologinen_loki', 'metadata']
         input_data = {k: kwargs.get(k) for k in relevant_keys if k in kwargs}
         
-        # If input_data is empty, maybe the keys are different (e.g. from GuardAgent's return)
+        # DEBUG: Verify data content
+        if 'data' in input_data:
+            print(f"[AnalystAgent] 'data' keys: {list(input_data['data'].keys())}")
+            for k, v in input_data['data'].items():
+                print(f"[AnalystAgent] 'data[{k}]' length: {len(str(v))}")
+        
         if not input_data:
-             # Fallback: pass all kwargs except system_instruction
-             input_data = {k: v for k, v in kwargs.items() if k != 'system_instruction'}
+             # Fallback: Try to find 'history_text' etc directly if no structured data found
+             # But DO NOT dump everything.
+             fallback_keys = ['history_text', 'product_text', 'reflection_text']
+             input_data = {k: kwargs.get(k) for k in fallback_keys if k in kwargs}
+             if not input_data:
+                 input_data = {"error": "No relevant input data found for AnalystAgent"}
 
-        user_content = f"""
-        INPUT DATA (TaintedData):
+        return f"""
+        INPUT DATA:
         ---
         {json.dumps(input_data, indent=2, ensure_ascii=False)}
         ---
         """
+
+    def _process(self, **kwargs) -> dict[str, Any]:
+        """
+        Processes the input using the Analyst Agent's logic.
+        """
+        user_content = self.construct_user_prompt(**kwargs)
         
         system_instruction = kwargs.get('system_instruction')
         

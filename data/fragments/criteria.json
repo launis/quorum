@@ -1,0 +1,32 @@
+[
+    {
+        "id": "CRITERION_1",
+        "name": "ANALYYSI JA PROSESSIN TEHOKKUUS (Bloom: Analyze)",
+        "levels": {
+            "4": "Erinomainen / Strateginen:\n- Prosessi on strateginen ja ennakoiva. Käyttäjä on purkanut ongelman osiin ja ohjannut tekoälyä ennaltaehkäisevästi.\n- TAI Prosessi osoittaa poikkeuksellista strategista ketteryyttä. Merkittävä oivallus on muuttanut suuntaa.",
+            "3": "Hyvä / Omaperäinen:\n- Prosessi on tehokas ja systemaattinen. Reaktiivinen mutta johdonmukainen ohjaus.",
+            "2": "Kohtalainen / Reaktiivinen:\n- Prosessi on hajanainen tai puhtaasti reaktiivinen. Heikko analyyttinen strategia.",
+            "1": "Heikko / Puutteellinen:\n- Prosessi on tehoton ja epälooginen."
+        }
+    },
+    {
+        "id": "CRITERION_2",
+        "name": "ARVIOINTI JA ARGUMENTAATIO (Bloom: Evaluate; Toulmin)",
+        "levels": {
+            "4": "Erinomainen / Strateginen:\n- Poikkeuksellinen arviointikyky. Haastanut tekoälyn päättelyä.\n- TAI Asiantuntijan Hyväksyntä: Perusteltu suora hyväksyntä.\n- Toulmin: Virheetön, itsekriittinen argumentti.",
+            "3": "Hyvä / Omaperäinen:\n- Korkea arviointikyky. Korjannut tekoälyn tuotoksia.\n- Toulmin: Vahva argumentti (Väite, Perusteet, Oikeutus).",
+            "2": "Kohtalainen / Reaktiivinen:\n- Perustason arviointikyky. Pieniä korjauksia.\n- Toulmin: Argumentin aihio.",
+            "1": "Heikko / Puutteellinen:\n- Ei arviointikykyä.\n- Toulmin: Ei pätevää argumenttia."
+        }
+    },
+    {
+        "id": "CRITERION_3",
+        "name": "SYNTEESI JA LUOVUUS (Bloom: Create)",
+        "levels": {
+            "4": "Erinomainen / Strateginen:\n- Strateginen synteesi. Uutta, omaperäistä lisäarvoa.",
+            "3": "Hyvä / Omaperäinen:\n- Omaperäinen synteesi. Parannellut tekoälyn tuotosta.",
+            "2": "Kohtalainen / Reaktiivinen:\n- Pääosin kooste tekoälyn materiaalista.",
+            "1": "Heikko / Puutteellinen:\n- Suora kopio."
+        }
+    }
+]

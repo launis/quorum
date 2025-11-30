@@ -10,24 +10,8 @@ class GuardAgent(BaseAgent):
     3. Threat Classification (Aktiivinen Uhkien Luokittelu)
     """
 
-    def _process(self, **kwargs) -> dict[str, Any]:
-        """
-        Processes the input using the Guard Agent's logic.
-        """
-        print(f"[GuardAgent] kwargs keys: {list(kwargs.keys())}")
-        print(f"[GuardAgent] System Instruction present: {'system_instruction' in kwargs}")
-        if 'system_instruction' in kwargs:
-             print(f"[GuardAgent] System Instruction length: {len(kwargs['system_instruction'])}")
-        
-        # Inputs are already sanitized by pre-hooks (sanitize_and_anonymize_input)
-        
-        # Inputs are already sanitized by pre-hooks (sanitize_and_anonymize_input)
-        # We expect keys like 'prompt', 'history', 'product', 'reflection' in kwargs.
-        
-        # Construct the user content part of the prompt
-        # The system instruction (Rules, Mandates, Agent Definition) is passed in kwargs['system_instruction']
-        
-        user_content = f"""
+    def construct_user_prompt(self, **kwargs) -> str:
+        return f"""
         INPUT DATA:
         ---
         Keskusteluhistoria: {kwargs.get('history_text', '')}
@@ -37,6 +21,17 @@ class GuardAgent(BaseAgent):
         Reflektiodokumentti: {kwargs.get('reflection_text', '')}
         ---
         """
+
+    def _process(self, **kwargs) -> dict[str, Any]:
+        """
+        Processes the input using the Guard Agent's logic.
+        """
+        print(f"[GuardAgent] kwargs keys: {list(kwargs.keys())}")
+        print(f"[GuardAgent] System Instruction present: {'system_instruction' in kwargs}")
+        if 'system_instruction' in kwargs:
+             print(f"[GuardAgent] System Instruction length: {len(kwargs['system_instruction'])}")
+        
+        user_content = self.construct_user_prompt(**kwargs)
         
         system_instruction = kwargs.get('system_instruction')
         

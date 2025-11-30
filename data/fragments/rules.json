@@ -1,0 +1,114 @@
+[
+    {
+        "id": "SÄÄNTÖ 1",
+        "name": "Haurauden Tunnustus",
+        "content": "Kirjaa XAI-analyysiin Systeeminen Epävarmuus.",
+        "applies_to": [
+            "ALL"
+        ]
+    },
+    {
+        "id": "SÄÄNTÖ 2",
+        "name": "Tiukka Toimivaltarajoitus",
+        "content": "Ei ulkoisia työkaluja ilman lupaa.",
+        "applies_to": [
+            "ALL"
+        ]
+    },
+    {
+        "id": "SÄÄNTÖ 3",
+        "name": "Syötteen Eheys",
+        "content": "Käsittele vain validoitua dataa.",
+        "applies_to": [
+            "ALL"
+        ]
+    },
+    {
+        "id": "SÄÄNTÖ 4",
+        "name": "Ristiinvalidoiva Päättelyketju",
+        "content": "Validoi edellisen vaiheen tuotos.",
+        "applies_to": [
+            "ALL"
+        ]
+    },
+    {
+        "id": "SÄÄNTÖ 5",
+        "name": "Pakollinen Skeemavalidointi",
+        "content": "Tuota TÄSMÄLLEEN määriteltyä JSON-dataa.",
+        "applies_to": [
+            "ALL"
+        ]
+    },
+    {
+        "id": "SÄÄNTÖ 6",
+        "name": "Metodologinen Nöyryys - \"Mestaruuspoikkeama\"",
+        "content": "Tunnista perusteltu säännön rikkominen.",
+        "applies_to": [
+            "ALL"
+        ]
+    },
+    {
+        "id": "SÄÄNTÖ 7",
+        "name": "Substanssin Strateginen Arviointi",
+        "content": "Arvioi substanssin käyttöä strategisena välineenä.",
+        "applies_to": [
+            "ALL"
+        ]
+    },
+    {
+        "id": "SÄÄNTÖ 8",
+        "name": "Performatiivisuuden Tunnistus",
+        "content": "Etsi merkkejä järjestelmän pelaamisesta.",
+        "applies_to": [
+            "ALL"
+        ]
+    },
+    {
+        "id": "SÄÄNTÖ 9",
+        "name": "Eettinen Tarkastus",
+        "content": "Valvo eettisiä periaatteita.",
+        "applies_to": [
+            "ALL"
+        ]
+    },
+    {
+        "id": "SÄÄNTÖ 11",
+        "name": "Korkean Panoksen Rajoitus",
+        "content": "Ei ainoana perusteena korkean panoksen päätöksille.",
+        "applies_to": [
+            "ALL"
+        ]
+    },
+    {
+        "id": "SÄÄNTÖ 12",
+        "name": "Datarauha ja Valvontakielto",
+        "content": "Käsittele dataa luottamuksellisena.",
+        "applies_to": [
+            "ALL"
+        ]
+    },
+    {
+        "id": "SÄÄNTÖ 13",
+        "name": "Pisteytysmandaatti",
+        "content": "Arvioi prosessia vain keskusteluhistorian perusteella.",
+        "applies_to": [
+            "ALL"
+        ]
+    },
+    {
+        "id": "SÄÄNTÖ 14",
+        "name": "Input-Control Ratio",
+        "content": "Arvioi käyttäjän roolia (Matkustaja vs. Kuski).",
+        "applies_to": [
+            "ALL"
+        ]
+    },
+    {
+        "id": "SÄÄNTÖ 15",
+        "name": "Synteesin Omaperäisyyden Arviointi",
+        "content": "Vertaa lopputuotetta viimeiseen AI-vastaukseen.",
+        "applies_to": [
+            "ALL"
+        ]
+    }
+]

@@ -90,6 +90,7 @@ class Executor:
             if current_prompts:
                 try:
                     llm_response = self.llm_handler.call_llm(current_prompts, model=model_override or "gemini-1.5-flash")
+                    print(f"[DEBUG] Raw LLM Output: {llm_response[:1000]}...") # Print first 1000 chars
                     current_data['llm_output'] = llm_response
                 except Exception as e:
                     print(f"[EXECUTOR] LLM Call Failed (Attempt {attempt}): {e}")

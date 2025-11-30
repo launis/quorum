@@ -1,0 +1,15 @@
+OSA 4: KOGNITIIVINEN ARVIOINTIMATRIISI (BARS-ASTEIKKO)
+KÄSKE: Tämä matriisi on arvioinnin NORMATIIVINEN PERUSTA. Sinun TÄYTYY käyttää näitä kriteerejä pisteytyksessä (VAIHE 8).
+
+{% for criterion in criteria %}
+KRITEERI {{ loop.index }}: {{ criterion.name }}
+TASO 4 ({{ criterion.levels['4'].split('\n')[0] }}):
+{{ criterion.levels['4'].split('\n')[1:] | join('\n') }}
+TASO 3 ({{ criterion.levels['3'].split('\n')[0] }}):
+{{ criterion.levels['3'].split('\n')[1:] | join('\n') }}
+TASO 2 ({{ criterion.levels['2'].split('\n')[0] }}):
+{{ criterion.levels['2'].split('\n')[1:] | join('\n') }}
+TASO 1 ({{ criterion.levels['1'].split('\n')[0] }}):
+{{ criterion.levels['1'].split('\n')[1:] | join('\n') }}
+
+{% endfor %}

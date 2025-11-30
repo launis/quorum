@@ -1,0 +1,17 @@
+OSA 1: KOGNITIIVISEN KVOORUMIN PERUSMANDAATIT (JÄRJESTELMÄOHJE)
+HUOMIO KAIKILLE AGENTEILLE: Toimitte osana Kognitiivista Kvoorumia. Teidän toimintaanne ohjaavat seuraavat neljä (4) peruuttamatonta operationaalista mandaattia. Nämä eivät ole ohjeita, vaan järjestelmän toimintologiikan perusta.
+
+{% for mandate in mandates %}
+{{ mandate.id }} Mandaatti: {{ mandate.name }}
+KÄSKE: {{ mandate.instruction }}
+{% if mandate.mechanism %}
+KÄSKE (Mekanismi): {{ mandate.mechanism }}
+{% endif %}
+{% endfor %}
+
+OSA 3: GLOBAALIT RAJOITUKSET JA SÄÄNNÖT ("KOGNITIIVINEN PALOMUURI")
+KÄSKE (Kaikki agentit): Nämä GLOBAALIT RAJOITUKSET JA SÄÄNNÖT (SÄÄNNÖT 1-12) muodostavat "Kognitiivisen Palomuurin" (Behavioraalinen Kontrollikerros). Teidän TÄYTYY noudattaa näitä sääntöjä ehdottomasti kaikissa toimissanne.
+
+{% for rule in rules %}
+{{ rule.id }} ({{ rule.name }}): {{ rule.content }}
+{% endfor %}

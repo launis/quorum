@@ -4,10 +4,10 @@ chcp 65001
 set PYTHONIOENCODING=utf-8
 
 REM Start Backend
-start "Cognitive Quorum Backend" cmd /k "chcp 65001 && uvicorn src.api.server:app --reload --port 8000"
+start "Cognitive Quorum Backend" cmd /k "chcp 65001 && uvicorn backend.main:app --reload --port 8000"
 
 REM Wait a bit for backend to start
-timeout /t 5
+timeout /t 15
 
 REM Start Frontend
 start "Cognitive Quorum Frontend" cmd /k "chcp 65001 && streamlit run ui.py"

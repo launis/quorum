@@ -90,7 +90,7 @@ class LLMHandler:
             # Use JSON mode for robustness
             generation_config = genai.types.GenerationConfig(
                 response_mime_type="application/json",
-                max_output_tokens=8192
+                max_output_tokens=65536
             )
             response = model.generate_content(prompt, generation_config=generation_config)
             return response.text

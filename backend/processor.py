@@ -1,7 +1,7 @@
 import fitz  # PyMuPDF
 import os
 from typing import Dict, Any
-from component import BaseComponent
+from backend.component import BaseComponent
 
 class PDFProcessor(BaseComponent):
     """

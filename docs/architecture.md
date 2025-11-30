@@ -49,3 +49,30 @@ src/
     *   **Executor** runs each Step (Pre-Hooks -> LLM -> Post-Hooks).
     *   Updates Job status to COMPLETED and saves the result (JSON + Markdown).
 4.  **Frontend** polls `GET /orchestrator/status` and displays the result when ready.
+
+## 5. Prompt Engineering & SSOT Architecture
+
+To ensure consistency and maintainability across all agents, the system employs a **Single Source of Truth (SSOT)** architecture for prompt engineering.
+
+### 5.1 Data Fragments (`data/fragments/`)
+Instead of monolithic prompt files, core logic is atomized into JSON fragments:
+- **`rules.json`**: Global constraints (e.g., "SÄÄNTÖ 1: Haurauden Tunnustus").
+- **`mandates.json`**: System-wide mandates (e.g., "Mandaatti 1.4: Performatiivisuuden Torjunta").
+- **`protocols.json`**: Operational protocols (e.g., RFI, Schema Validation).
+- **`methods.json`**: Methodological tools (e.g., Metodologinen Loki).
+- **`criteria.json`**: BARS evaluation criteria.
+
+### 5.2 Dynamic Assembly (Jinja2)
+Prompts are dynamically assembled using **Jinja2 templates** (`data/templates/`) during the database seeding process.
+- **Templates**: Define the structure of the prompt (e.g., `prompt_guard.j2`).
+- **Injection**: Fragments are injected into templates (e.g., `{{ methods | selectattr('id', 'equalto', 'METHOD_LOG') ... }}`).
+
+### 5.3 Seeding Process (`backend/seeder.py`)
+The seeding script:
+1.  Loads all JSON fragments.
+2.  Loads Jinja2 templates.
+3.  Renders the final prompt text for each agent.
+4.  Upserts the rendered prompts into the `components` table in `data/db.json`.
+
+This ensures that a change to a single rule in `rules.json` is automatically propagated to every agent that references it.
+

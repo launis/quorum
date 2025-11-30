@@ -1,7 +1,11 @@
 import importlib
+import os
+import traceback
 from typing import List, Dict, Any, Union
+from datetime import datetime
 from tinydb import TinyDB, Query
 from pydantic import BaseModel
+import backend.hooks as hooks
 
 class WorkflowStep(BaseModel):
     component: str
@@ -17,7 +21,7 @@ class WorkflowEngine:
     """
     
     def __init__(self, db_path: str):
-        self.db = TinyDB(db_path)
+        self.db = TinyDB(db_path, encoding='utf-8')
         self.components_table = self.db.table('components')
         self.workflows_table = self.db.table('workflows')
         self.executions_table = self.db.table('executions')
@@ -51,89 +55,61 @@ class WorkflowEngine:
         module = importlib.import_module(component_record['module'])
         return getattr(module, component_record['class'])
 
-    def _resolve_references(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Resolves references to Rules and Prompts in the inputs.
-        Keys ending in '_ref' or '_refs' are resolved.
-        """
-        resolved = inputs.copy()
-        
-        for key, value in inputs.items():
-            # Resolve Rule References (List)
-            if key.endswith('_refs') and isinstance(value, list):
-                resolved_rules = []
-                for rule_id in value:
-                    rule = self.rules_table.get(Query().id == rule_id)
-                    if rule:
-                        resolved_rules.append(rule['content'])
-                    else:
-                        print(f"Warning: Rule ID {rule_id} not found.")
-                
-                # Replace 'rule_refs' with 'rules' (or whatever the prefix is)
-                new_key = key.replace('_refs', 's') # e.g., rule_refs -> rules
-                resolved[new_key] = resolved_rules
-            
-            # Resolve Prompt Reference (Single)
-            elif key.endswith('_ref') and isinstance(value, str):
-                prompt = self.prompts_table.get(Query().id == value)
-                if prompt:
-                    # Replace 'prompt_ref' with 'system_instruction' or similar
-                    # For now, let's map prompt_ref -> system_instruction if it's a system prompt
-                    # or just resolve the content.
-                    new_key = key.replace('_ref', '') # e.g., prompt_ref -> prompt
-                    resolved[new_key] = prompt['content']
-                else:
-                    print(f"Warning: Prompt ID {value} not found.")
-
-        return resolved
-
-    def execute_workflow(self, workflow_id: Union[int, str], initial_inputs: Dict[str, Any] = {}) -> int:
-        """
-        Executes a workflow by ID (string) or doc_id (int).
-        """
-        if isinstance(workflow_id, int):
-            workflow = self.workflows_table.get(doc_id=workflow_id)
-        else:
-            workflow = self.workflows_table.get(Query().id == workflow_id)
-            
-        if not workflow:
-            raise ValueError(f"Workflow ID {workflow_id} not found.")
-
+    def create_execution(self, workflow_id: str, inputs: Dict[str, Any]) -> int:
+        """Creates an execution record and returns its ID."""
         execution_id = self.executions_table.insert({
             'workflow_id': workflow_id,
-            'status': 'running',
-            'step_results': [],
-            'initial_inputs': initial_inputs
+            'status': 'PENDING',
+            'start_time': datetime.now().isoformat(),
+            'inputs': inputs,
+            'step_results': []
         })
+        return execution_id
 
-        context = initial_inputs.copy()
-        step_results = []
-
+    def run_execution(self, execution_id: int):
+        """Runs the workflow for a given execution ID."""
         try:
-            step_ids = workflow.get('sequence', [])
-            if not step_ids and 'steps' in workflow:
-                 # Legacy support or if create_workflow was used
-                 step_ids = [s['id'] for s in workflow['steps']]
+            # 1. Fetch execution record
+            execution = self.executions_table.get(doc_id=execution_id)
+            if not execution:
+                raise ValueError(f"Execution {execution_id} not found")
+            
+            workflow_id = execution['workflow_id']
+            inputs = execution['inputs']
+            
+            # Update status to RUNNING
+            self.executions_table.update({'status': 'RUNNING'}, doc_ids=[execution_id])
+            
+            # 2. Fetch Workflow Definition
+            workflow = self.workflows_table.get(Query().id == workflow_id)
+            if not workflow:
+                raise ValueError(f"Workflow {workflow_id} not found")
 
-            for step_id in step_ids:
+            # 3. Execute Steps
+            context = inputs.copy()
+            step_results = []
+            
+            # Robustly get steps
+            steps = workflow.get('sequence', [])
+            if not steps:
+                steps = workflow.get('steps', [])
+
+            for step_id in steps:
+                print(f"--- Executing Step: {step_id} ---")
+                
+                # Update current step in DB for UI tracking
+                self.executions_table.update({'current_step': step_id}, doc_ids=[execution_id])
+                
+                # Get Step Definition
                 step_def = self.steps_table.get(Query().id == step_id)
                 if not step_def:
-                    raise ValueError(f"Step {step_id} not found in DB.")
+                    print(f"Error: Step {step_id} not found")
+                    continue
+
+                # Prepare Inputs
+                current_inputs = context.copy()
                 
-                # Determine component class based on step ID or description?
-                # In seed_data, steps don't explicitly say "component class".
-                # But the ID usually implies it (STEP_1_GUARD -> GuardAgent).
-                # We need a mapping or convention.
-                # Let's assume a mapping exists or we infer it.
-                # For now, let's map manually or use a registry lookup if possible.
-                # The current engine uses 'component' field in step.
-                # Let's add 'component' to the step definition in DB or infer it.
-                # In seed_data.json, steps have 'id', 'description', 'execution_config'.
-                # They DO NOT have 'component'.
-                # However, the workflow has 'default_model_mapping'.
-                # We need to map Step ID to Component Class.
-                # Let's infer from ID: STEP_1_GUARD -> GuardAgent.
-                
+                # Get Component Class
                 component_map = {
                     "STEP_1_GUARD": "GuardAgent",
                     "STEP_2_ANALYST": "AnalystAgent",
@@ -144,17 +120,16 @@ class WorkflowEngine:
                     "STEP_7_FACT_CHECKER": "FactualOverseerAgent",
                     "STEP_8_JUDGE": "JudgeAgent",
                     "STEP_9_XAI": "XAIReporterAgent",
-                    "STEP_ALL_CRITICS": "CriticGroup" # Special case
                 }
                 
-                component_class_name = component_map.get(step_id)
+                component_class_name = component_map.get(step_id) or step_def.get('component')
+                
                 if not component_class_name:
-                     print(f"Warning: No component mapping for {step_id}")
-                     continue
-
+                    print(f"Error: Could not determine component for step {step_id}")
+                    continue
                 execution_config = step_def.get('execution_config', {})
-
-                # 1. Assemble System Instruction (Prompts)
+                
+                # Assemble System Instruction
                 prompt_ids = execution_config.get('llm_prompts', [])
                 system_instruction = ""
                 for p_id in prompt_ids:
@@ -162,7 +137,6 @@ class WorkflowEngine:
                     if prompt:
                         content = prompt['content']
                         # Resolve Schema References
-                        # Pattern: [Ks. schemas.py / ModelName]
                         import re
                         import json
                         import backend.schemas as schemas
@@ -179,28 +153,18 @@ class WorkflowEngine:
                         content = re.sub(r'\[Ks\. schemas\.py / (\w+)\]', replace_schema, content)
                         system_instruction += f"\n\n{content}"
                 
-                # 2. Execute Pre-Hooks
-                import backend.hooks as hooks
-                current_inputs = context.copy()
-                for hook_name in execution_config.get('pre_hooks', []):
-                    if hasattr(hooks, hook_name):
-                        hook_func = getattr(hooks, hook_name)
-                        current_inputs = hook_func(current_inputs)
-                    else:
-                        print(f"Warning: Pre-hook {hook_name} not found.")
+                system_instruction = system_instruction.strip()
 
-                # 3. Load and Execute Component
-                # We need to find the module for the class.
-                # Assuming standard location backend.agents.*
-                # We can try to find it in the registry or guess.
-                # The registry has 'name', 'module', 'class'.
-                # Let's try to find by class name in registry.
+                # Instantiate Component
                 comp_record = self.components_table.get(Query()['class'] == component_class_name)
                 if comp_record:
-                    ComponentClass = self._load_component_class(comp_record['name'])
+                    try:
+                        ComponentClass = self._load_component_class(comp_record['name'])
+                    except Exception as e:
+                         print(f"Error loading component {comp_record['name']}: {e}")
+                         continue
                 else:
                     # Fallback: try to find in agents modules
-                    # This is a bit hacky, but robust for now.
                     try:
                         if "Guard" in component_class_name: module_name = "backend.agents.guard"
                         elif "Analyst" in component_class_name: module_name = "backend.agents.analyst"
@@ -219,19 +183,29 @@ class WorkflowEngine:
                         print(f"Error: Could not load class {component_class_name}")
                         continue
 
-                component_instance = ComponentClass()
+                # Determine model for this step
+                model_mapping = workflow.get('default_model_mapping')
+                if model_mapping is None:
+                    model_mapping = {}
+                
+                model_name = model_mapping.get(step_id)
+                
+                if model_name:
+                    print(f"DEBUG: Using model {model_name} for step {step_id}")
+                    component_instance = ComponentClass(model=model_name)
+                else:
+                    print(f"DEBUG: No model mapped for {step_id}, using default.")
+                    component_instance = ComponentClass()
                 
                 print(f"Executing component: {component_class_name}")
                 
                 # Pass system_instruction to execute/process
-                # We pass it as a kwarg.
                 output = component_instance.execute(system_instruction=system_instruction, **current_inputs)
                 
                 # 4. Execute Post-Hooks
                 for hook_name in execution_config.get('post_hooks', []):
                     if hasattr(hooks, hook_name):
                         hook_func = getattr(hooks, hook_name)
-                        # Post-hooks might take inputs AND output
                         output = hook_func(current_inputs, output)
                     else:
                         print(f"Warning: Post-hook {hook_name} not found.")
@@ -243,17 +217,181 @@ class WorkflowEngine:
 
                 # Update context with output if it's a dictionary
                 if isinstance(output, dict):
+                    print(f"DEBUG: Step {step_id} output keys: {list(output.keys())}")
                     context.update(output)
+                    print(f"DEBUG: Context keys after update: {list(context.keys())}")
             
+            # Update status to completed
+            self.executions_table.update(
+                {'status': 'COMPLETED', 'result': context, 'step_results': step_results},
+                doc_ids=[execution_id]
+            )
+
         except Exception as e:
             print(f"Workflow execution failed: {e}")
+            traceback.print_exc()
             self.executions_table.update(
-                {'status': 'failed', 'error': str(e), 'step_results': step_results},
+                {'status': 'FAILED', 'error': str(e), 'step_results': []}, 
                 doc_ids=[execution_id]
             )
             raise e
 
+    def execute_workflow(self, workflow_id: str, inputs: Dict[str, Any]) -> int:
+        """
+        Synchronous wrapper for backward compatibility.
+        """
+        execution_id = self.create_execution(workflow_id, inputs)
+        self.run_execution(execution_id)
         return execution_id
 
     def get_execution_status(self, execution_id: int):
         return self.executions_table.get(doc_id=execution_id)
+
+    def preview_step_prompt(self, step_id: str) -> Dict[str, Any]:
+        print(f"DEBUG: preview_step_prompt called for {step_id}", flush=True)
+        step_def = self.steps_table.get(Query().id == step_id)
+        if not step_def:
+            print(f"DEBUG: Step {step_id} not found", flush=True)
+            raise ValueError(f"Step {step_id} not found in DB.")
+
+        # 1. Determine Component Class
+        component_map = {
+            "STEP_1_GUARD": "GuardAgent",
+            "STEP_2_ANALYST": "AnalystAgent",
+            "STEP_3_LOGICIAN": "LogicianAgent",
+            "STEP_4_FALSIFIER": "LogicalFalsifierAgent",
+            "STEP_5_CAUSAL": "CausalAnalystAgent",
+            "STEP_6_PERFORMATIVITY": "PerformativityDetectorAgent",
+            "STEP_7_FACT_CHECKER": "FactualOverseerAgent",
+            "STEP_8_JUDGE": "JudgeAgent",
+            "STEP_9_XAI": "XAIReporterAgent",
+        }
+        
+        component_class_name = component_map.get(step_id)
+        print(f"DEBUG: Component class: {component_class_name}", flush=True)
+        if not component_class_name:
+             return {"error": f"No component mapping for {step_id}"}
+
+        # 2. Get Step Definition
+        execution_config = step_def.get('execution_config', {})
+        
+        # 3. Resolve System Instruction
+        prompt_ids = execution_config.get('llm_prompts', [])
+        print(f"DEBUG: Prompt IDs: {prompt_ids}", flush=True)
+        system_instruction = ""
+        for p_id in prompt_ids:
+            prompt = self.components_table.get(Query().id == p_id)
+            if prompt:
+                content = prompt['content']
+                # Resolve Schema References
+                import re
+                import json
+                import backend.schemas as schemas
+                
+                def replace_schema(match):
+                    model_name = match.group(1)
+                    if hasattr(schemas, model_name):
+                        model_class = getattr(schemas, model_name)
+                        schema = model_class.model_json_schema()
+                        return json.dumps(schema, indent=2, ensure_ascii=False)
+                    else:
+                        return f"[SCHEMA ERROR: Model {model_name} not found]"
+
+                content = re.sub(r'\[Ks\. schemas\.py / (\w+)\]', replace_schema, content)
+                system_instruction += f"\n\n{content}"
+        
+        # 4. Generate User Prompt (Template)
+        mock_inputs = {
+            "history_text": "[PLACEHOLDER: CHAT HISTORY]",
+            "product_text": "[PLACEHOLDER: PRODUCT TEXT]",
+            "reflection_text": "[PLACEHOLDER: REFLECTION TEXT]",
+            "tainted_data": {"data": "...", "metadata": "..."},
+            "todistuskartta": {"hypoteesit": [], "rag_todisteet": []},
+            "argumentaatioanalyysi": {"toulmin_analyysi": []},
+        }
+        
+        try:
+            # Explicit mapping to avoid substring matching errors
+            class_to_module = {
+                "GuardAgent": "backend.agents.guard",
+                "AnalystAgent": "backend.agents.analyst",
+                "LogicianAgent": "backend.agents.logician",
+                "LogicalFalsifierAgent": "backend.agents.critics",
+                "CausalAnalystAgent": "backend.agents.critics",
+                "PerformativityDetectorAgent": "backend.agents.critics",
+                "FactualOverseerAgent": "backend.agents.critics",
+                "JudgeAgent": "backend.agents.judge",
+                "XAIReporterAgent": "backend.agents.judge"
+            }
+            
+            module_name = class_to_module.get(component_class_name, "backend.agents.base")
+            
+            module = importlib.import_module(module_name)
+            ComponentClass = getattr(module, component_class_name)
+            agent_instance = ComponentClass()
+            
+            # Prepare inputs based on agent requirements to avoid potential crashes with unused complex types
+            if "Guard" in component_class_name:
+                # GuardAgent only needs strings
+                agent_inputs = {k: v for k, v in mock_inputs.items() if isinstance(v, str)}
+            else:
+                agent_inputs = mock_inputs
+
+            if hasattr(agent_instance, 'construct_user_prompt'):
+                user_prompt = agent_instance.construct_user_prompt(**agent_inputs)
+            else:
+                user_prompt = "[ERROR: Agent does not support prompt preview (missing construct_user_prompt)]"
+                
+        except Exception as e:
+            print(f"DEBUG: Exception in preview: {e}", flush=True)
+            traceback.print_exc()
+            user_prompt = f"[ERROR generating user prompt: {str(e)}]"
+
+        return {
+            "step_id": step_id,
+            "agent_class": component_class_name,
+            "system_instruction": system_instruction.strip(),
+            "user_prompt": user_prompt
+        }
+
+    def preview_full_chain_prompts(self, workflow_id: str) -> str:
+        """
+        Generates a concatenated string of all prompts in the workflow.
+        """
+        # Get workflow
+        if isinstance(workflow_id, int):
+             # This might happen if passed as int, but usually string ID in DB
+             # Let's assume we search by 'id' string first
+             workflow = self.workflows_table.get(Query().id == str(workflow_id))
+        else:
+             workflow = self.workflows_table.get(Query().id == workflow_id)
+             
+        if not workflow:
+             # Try searching by doc_id if it's an int-like string?
+             # Or just return error
+             return f"Error: Workflow {workflow_id} not found."
+
+        # Workflow structure uses 'sequence' which is a list of step IDs
+        step_ids = workflow.get('sequence', [])
+        if not step_ids and 'steps' in workflow:
+            # Fallback if structure changes
+            step_ids = [s['id'] for s in workflow['steps']]
+        
+        full_chain_text = f"=== FULL CHAIN PROMPT PREVIEW FOR WORKFLOW: {workflow.get('name', workflow_id)} ===\n\n"
+        
+        for step_id in step_ids:
+            preview = self.preview_step_prompt(step_id)
+            
+            full_chain_text += f"################################################################################\n"
+            full_chain_text += f"### STEP: {step_id} ({preview.get('agent_class', 'Unknown Agent')})\n"
+            full_chain_text += f"################################################################################\n\n"
+            
+            full_chain_text += f"--- SYSTEM INSTRUCTION ---\n"
+            full_chain_text += f"{preview.get('system_instruction', '')}\n\n"
+            
+            full_chain_text += f"--- USER PROMPT (TEMPLATE) ---\n"
+            full_chain_text += f"{preview.get('user_prompt', '')}\n\n"
+            
+            full_chain_text += f"\n\n"
+            
+        return full_chain_text

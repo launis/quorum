@@ -33,6 +33,27 @@ class BaseAgent(BaseComponent):
         """
         raise NotImplementedError
 
+    def construct_user_prompt(self, **kwargs) -> str:
+        """
+        Constructs the user content part of the prompt.
+        Subclasses should implement this to separate prompt construction from execution.
+        """
+        raise NotImplementedError("Subclasses must implement construct_user_prompt")
+
+    from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+    import google.api_core.exceptions
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=4, max=10),
+        retry=retry_if_exception_type((
+            google.api_core.exceptions.ServiceUnavailable,
+            google.api_core.exceptions.DeadlineExceeded,
+            ConnectionError,
+            TimeoutError
+        )),
+        reraise=True
+    )
     def _call_llm(self, prompt: str, system_instruction: str | None = None, json_mode: bool = False) -> str:
         """
         Helper to call the LLM using Google Gemini API.
@@ -67,7 +88,27 @@ class BaseAgent(BaseComponent):
         try:
             print(f"[{self.__class__.__name__}] Calling LLM ({model_name})...")
             response = model.generate_content(prompt)
-            return response.text
+            
+            # Robustly handle response
+            if response.parts:
+                return response.text
+            
+            # Handle cases where finish_reason is MAX_TOKENS but no parts (rare but possible in some API versions)
+            # or SAFETY blocks
+            if response.candidates:
+                candidate = response.candidates[0]
+                if candidate.finish_reason == 2: # MAX_TOKENS
+                     # Try to get text from parts if they exist, otherwise return empty or error
+                     if candidate.content and candidate.content.parts:
+                         return candidate.content.parts[0].text
+                     else:
+                         print(f"[{self.__class__.__name__}] Warning: MAX_TOKENS reached but no content returned.")
+                         return "" # Return empty string to allow retry or partial processing
+                elif candidate.finish_reason == 3: # SAFETY
+                     raise ValueError(f"Response blocked by safety filters. Ratings: {candidate.safety_ratings}")
+            
+            raise ValueError(f"No content returned. Finish reason: {response.candidates[0].finish_reason if response.candidates else 'Unknown'}")
+
         except Exception as e:
             print(f"[{self.__class__.__name__}] LLM Call Failed: {e}")
             raise e
@@ -77,8 +118,7 @@ class BaseAgent(BaseComponent):
         Calls the LLM and attempts to parse the response as JSON.
         Retries if parsing fails.
         """
-        import json
-        import re
+        from backend.hooks import _clean_and_parse_json
         
         current_prompt = prompt
         
@@ -86,23 +126,20 @@ class BaseAgent(BaseComponent):
             # Enable JSON mode for Gemini
             response_text = self._call_llm(current_prompt, system_instruction, json_mode=True)
             
-            try:
-                # Try to find JSON block
-                json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
-                if json_match:
-                    json_str = json_match.group(0)
-                    return json.loads(json_str)
-                else:
-                    raise ValueError("No JSON block found in response.")
-            except (json.JSONDecodeError, ValueError) as e:
-                print(f"[{self.__class__.__name__}] JSON Parse Error (Attempt {attempt+1}/{max_retries}): {e}")
+            # Use robust parsing from hooks
+            parsed_json = _clean_and_parse_json(response_text)
+            
+            if parsed_json and "raw_output" not in parsed_json:
+                 return parsed_json
+            
+            # If parsing failed (returned dict with raw_output only) or returned empty
+            if not parsed_json or "raw_output" in parsed_json:
+                print(f"[{self.__class__.__name__}] JSON Parse Error (Attempt {attempt+1}/{max_retries}): Failed to parse.")
                 if attempt < max_retries - 1:
                     # Append error message to prompt for next attempt
-                    current_prompt += f"\n\nERROR: Your previous response was not valid JSON. Error: {str(e)}. Please try again and ensure you output ONLY valid JSON."
+                    current_prompt += f"\n\nERROR: Your previous response was not valid JSON. Please try again and ensure you output ONLY valid JSON."
                 else:
                     print(f"[{self.__class__.__name__}] Failed to get valid JSON after {max_retries} attempts.")
-                    # Return raw text in a wrapper to avoid crashing, or raise error
-                    # For robustness, let's return a special error dict
                     return {"error": "Failed to parse JSON", "raw_output": response_text}
         
         return {"error": "Unknown error"}

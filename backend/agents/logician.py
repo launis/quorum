@@ -9,32 +9,31 @@ class LogicianAgent(BaseAgent):
     2. Applying Cognitive Assessment Matrix (Bloom/Toulmin)
     """
 
-    def _process(self, **kwargs) -> dict[str, Any]:
-        """
-        Processes the input using the Logician Agent's logic.
-        """
-        
-        # We expect inputs from previous steps (Guard, Analyst) in kwargs.
-        # Specifically, we need 2_todistuskartta.json (Analyst output) and 1_tainted_data.json (Guard output).
-        
+    def construct_user_prompt(self, **kwargs) -> str:
         import json
         
-        # Filter context
-        # We need 'hypoteesit', 'rag_todisteet' from Analyst
-        # And 'data' from Guard (TaintedData)
-        
-        relevant_keys = ['hypoteesit', 'rag_todisteet', 'data', 'metodologinen_loki']
+        relevant_keys = ['todistuskartta', 'metodologinen_loki']
         input_data = {k: kwargs.get(k) for k in relevant_keys if k in kwargs}
         
         if not input_data:
-             input_data = {k: v for k, v in kwargs.items() if k != 'system_instruction'}
+             # Fallback: Look for raw inputs if structured data missing
+             fallback_keys = ['history_text', 'product_text', 'reflection_text']
+             input_data = {k: kwargs.get(k) for k in fallback_keys if k in kwargs}
+             if not input_data:
+                 input_data = {"error": "No relevant input data found for LogicianAgent"}
 
-        user_content = f"""
-        INPUT DATA (TodistusKartta & TaintedData):
+        return f"""
+        INPUT DATA:
         ---
         {json.dumps(input_data, indent=2, ensure_ascii=False)}
         ---
         """
+
+    def _process(self, **kwargs) -> dict[str, Any]:
+        """
+        Processes the input using the Logician Agent's logic.
+        """
+        user_content = self.construct_user_prompt(**kwargs)
         
         system_instruction = kwargs.get('system_instruction')
         

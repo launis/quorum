@@ -1,12 +1,22 @@
 import os
 import shutil
+import json
 from typing import List, Dict, Any, Optional
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from tinydb import TinyDB, Query
 
-from processor import PDFProcessor
-from engine import WorkflowEngine
+from backend.processor import PDFProcessor
+from backend.engine import WorkflowEngine
+from backend.api.hooks_router import router as hooks_router
+from backend.api.tools_router import router as tools_router
+from backend.api.agents_router import router as agents_router
+from backend.api.templates_router import router as templates_router
+from backend.api.admin_router import router as admin_router
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 app = FastAPI(
     title="Cognitive Quorum API",
@@ -14,9 +24,22 @@ app = FastAPI(
     version="0.2.0"
 )
 
+app.include_router(hooks_router)
+app.include_router(tools_router)
+app.include_router(agents_router)
+app.include_router(templates_router)
+app.include_router(admin_router)
+
 # Database setup
-DB_PATH = '/app/data/db.json'
-db = TinyDB(DB_PATH)
+# Robust path resolution for DB
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(os.path.dirname(BASE_DIR), 'data')
+DB_PATH = os.path.join(DATA_DIR, 'db.json')
+
+# Ensure data dir exists
+os.makedirs(DATA_DIR, exist_ok=True)
+
+db = TinyDB(DB_PATH, encoding='utf-8')
 engine = WorkflowEngine(DB_PATH)
 
 # Initialize/Seed Components
@@ -46,7 +69,7 @@ class WorkflowExecutionRequest(BaseModel):
     inputs: Dict[str, Any] = {}
 
 @app.post("/workflows")
-async def create_workflow(request: WorkflowCreateRequest):
+def create_workflow(request: WorkflowCreateRequest):
     """
     Creates a new workflow definition.
     """
@@ -54,18 +77,23 @@ async def create_workflow(request: WorkflowCreateRequest):
     return {"status": "created", "workflow_id": workflow_id}
 
 @app.post("/executions")
-async def execute_workflow(request: WorkflowExecutionRequest):
+def execute_workflow(request: WorkflowExecutionRequest, background_tasks: BackgroundTasks):
     """
-    Starts a workflow execution.
+    Starts a workflow execution asynchronously.
     """
     try:
-        execution_id = engine.execute_workflow(request.workflow_id, request.inputs)
+        # 1. Create Execution Record (Sync, Fast)
+        execution_id = engine.create_execution(request.workflow_id, request.inputs)
+        
+        # 2. Schedule Execution in Background
+        background_tasks.add_task(engine.run_execution, execution_id)
+        
         return {"status": "started", "execution_id": execution_id}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/executions/{execution_id}")
-async def get_execution_status(execution_id: int):
+def get_execution_status(execution_id: int):
     """
     Gets the status of a workflow execution.
     """
@@ -74,19 +102,77 @@ async def get_execution_status(execution_id: int):
         raise HTTPException(status_code=404, detail="Execution not found")
     return status
 
+@app.get("/db/seed_data")
+@app.get("/db/seed_data")
+def get_seed_data():
+    """
+    Returns the content of seed data from the database.
+    """
+    try:
+        components = engine.components_table.all()
+        steps = engine.steps_table.all()
+        workflows = engine.workflows_table.all()
+        
+        return {
+            "components": components,
+            "steps": steps,
+            "workflows": workflows
+        }
+    except Exception as e:
+        print(f"DEBUG: Error reading seed data from DB: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/db/workflows")
+def get_workflows():
+    """
+    Returns all workflows from the database.
+    """
+    try:
+        workflows = engine.workflows_table.all()
+        return workflows
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/db/preview_prompt/{step_id}")
+def preview_prompt(step_id: str):
+    """
+    Returns a preview of the prompt for a given step.
+    """
+    try:
+        preview = engine.preview_step_prompt(step_id)
+        if "error" in preview:
+            raise HTTPException(status_code=400, detail=preview["error"])
+        return preview
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/db/preview_full_chain/{workflow_id}")
+def preview_full_chain(workflow_id: str):
+    """
+    Returns a full chain prompt preview for a given workflow.
+    """
+    try:
+        preview_text = engine.preview_full_chain_prompts(workflow_id)
+        if preview_text.startswith("Error"):
+            raise HTTPException(status_code=404, detail=preview_text)
+        return {"full_chain_text": preview_text}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # --- Legacy / Helper Endpoints ---
 
 @app.post("/orchestrator/run")
-async def run_orchestrator(
+def run_orchestrator(
     workflow_id: str,
+    background_tasks: BackgroundTasks,
     history_file: UploadFile = File(...),
     product_file: UploadFile = File(...),
     reflection_file: UploadFile = File(...)
 ):
     """
-    Uploads files, extracts text using DataHandler, and starts the workflow.
+    Uploads files, extracts text using DataHandler, and starts the workflow asynchronously.
     """
-    from data_handler import DataHandler
+    from backend.data_handler import DataHandler
     handler = DataHandler()
 
     try:
@@ -102,21 +188,23 @@ async def run_orchestrator(
             "reflection_text": reflection_text
         }
 
-        # Execute workflow
-        # Note: workflow_id is passed as a query parameter
-        execution_id = engine.execute_workflow(workflow_id, inputs)
+        # 1. Create Execution Record (Sync, Fast)
+        execution_id = engine.create_execution(workflow_id, inputs)
+        
+        # 2. Schedule Execution in Background
+        background_tasks.add_task(engine.run_execution, execution_id)
         
         return {
             "status": "started",
             "execution_id": execution_id,
-            "message": "Workflow started successfully"
+            "message": "Workflow started successfully (Async)"
         }
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Orchestration failed: {str(e)}")
 
 @app.get("/orchestrator/status/{execution_id}")
-async def get_orchestrator_status(execution_id: int):
+def get_orchestrator_status(execution_id: int):
     """
     Gets the status of a workflow execution.
     """
