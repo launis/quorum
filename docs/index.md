@@ -30,3 +30,4 @@ By treating prompts, rules, and workflows as data, Cognitive Quorum enables rapi
 - **[Components & Hooks](components.md)**: A reference for available Python hooks and hybrid components.
 - **[API Reference](reference.md)**: Technical documentation for the backend classes.
 - **[Interactive API](swagger.md)**: A live Swagger UI for testing API endpoints.
+- **[Standalone API Viewer](api-view.html)**: A lightweight, full-screen Swagger UI.
