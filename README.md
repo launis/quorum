@@ -71,32 +71,5 @@ The system is built on a modern, service-oriented architecture, designed for sca
     Create a `.env` file in the root directory and add your API keys. Refer to `config.py` for the required variable names.
     ```env
     GOOGLE_API_KEY="your_google_api_key"
-    OPENAI_API_KEY="your_openai_api_key"
-    # ... and other required keys
-    ```
-
-### Running the Engine
-
-1.  **Seed the Database:**
-    The engine relies on data defined in the `data/` directory. Run the seeder script to populate the database with the initial workflows, prompts, and rules.
-    ```bash
-    python scripts/seed_workflow.py
-    ```
-
-2.  **Start the Services:**
-    Launch the API server and any other services using Docker Compose.
-    ```bash
-    docker-compose up --build
-    ```
-    The API will be available at `http://localhost:8000`, with interactive documentation at `http://localhost:8000/docs`.
-
-3.  **Execute a Workflow:**
-    Trigger a workflow by sending a POST request to the appropriate API endpoint (e.g., `/orchestrator/run/{workflow_name}`).
-
-## 🧪 Running Tests
-
-To ensure the system is functioning correctly, run the test suite using `pytest`.
-
-```bash
 pytest
 ```

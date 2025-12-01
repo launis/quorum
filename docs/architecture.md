@@ -103,7 +103,7 @@ graph LR
     end
     
     subgraph "Runtime"
-        LLM[LLM (Gemini)]
+        LLM["LLM (Gemini)"]
     end
     
     F -- "Injects Content" --> T
@@ -136,7 +136,7 @@ The engine manages data flow between steps in memory and persists the final stat
 graph TD
     subgraph "In-Memory Execution (RAM)"
         WE[WorkflowEngine]
-        CTX[Context (Dictionary)]
+        CTX["Context (Dictionary)"]
         
         WE -- "1. Reads Inputs" --> CTX
         

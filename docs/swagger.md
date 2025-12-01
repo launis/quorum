@@ -1,3 +1,3 @@
 # Interactive API Documentation
 
-<swagger-ui src="./openapi.json"/>
+<swagger-ui src="/openapi.json"/>
