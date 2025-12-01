@@ -40,15 +40,15 @@ graph TD
 
     %% Flows
     Code -.->|Validates| Engine
-    Files -->|1. Seed (Init)| Seeder
-    Seeder -->|2. Insert/Reset| DB
+    Files -- "1. Seed (Init)" --> Seeder
+    Seeder -- "2. Insert/Reset" --> DB
     
-    DB <-->|3. Read/Write Config| API
-    API <-->|4. Manage Rules/Prompts| UI
+    DB -- "3. Read/Write Config" <--> API
+    API -- "4. Manage Rules/Prompts" <--> UI
     
-    DB -->|5. Fetch Active Config| Engine
+    DB -- "5. Fetch Active Config" --> Engine
     
-    API -.->|6. Export (Optional)| Files
+    API -. "6. Export (Optional)" .-> Files
 ```
 
 ## Operational Workflows
