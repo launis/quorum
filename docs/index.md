@@ -29,5 +29,5 @@ By treating prompts, rules, and workflows as data, Cognitive Quorum enables rapi
 - **[Prompt Engineering](prompt_engineering.md)**: Strategies for constructing effective agent prompts.
 - **[Components & Hooks](components.md)**: A reference for available Python hooks and hybrid components.
 - **[API Reference](reference.md)**: Technical documentation for the backend classes.
-- **[Interactive API](swagger.md)**: A live Swagger UI for testing API endpoints.
+- **[Interactive API](swagger/index.md)**: A live Swagger UI for testing API endpoints.
 - **[Standalone API Viewer](api-view.html)**: A lightweight, full-screen Swagger UI.

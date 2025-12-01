@@ -49,4 +49,4 @@ nav:
   - Components: components.md
   - API Reference: reference.md
   - Tietojen Hallinta: data_management.md
-  - Interactive API: swagger.md
+  - Interactive API: swagger/index.md
