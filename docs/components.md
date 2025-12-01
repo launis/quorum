@@ -1,39 +1,44 @@
-# Hybrid Components & Hooks
+# Hybrid Components
 
-Hybrid Components allow the workflow to perform actions beyond text generation. They are implemented as Python functions and registered in the `HookRegistry`.
+Hybrid Components are Python functions that extend a workflow's capabilities beyond standard text generation. They are registered in the `HookRegistry` and can be configured to execute at specific points in the process.
 
 ## Available Hooks
 
 ### 1. External Data Retrieval
+
 - **`execute_google_search`**:
     - **Description**: Performs a Google Search using the official Custom Search JSON API.
     - **Input**: `hypothesis_argument` or `prompt_text`.
-    - **Output**: List of search results (Title, URL, Snippet).
-    - **Configuration**: Requires `GOOGLE_SEARCH_API_KEY` and `GOOGLE_SEARCH_CX`.
+    - **Output**: A list of search results, each containing a title, URL, and snippet.
+    - **Configuration**: Requires the `GOOGLE_SEARCH_API_KEY` and `GOOGLE_SEARCH_CX` environment variables to be set.
 
 - **`execute_rag_retrieval`**:
-    - **Description**: (Stub) Retrieves relevant documents from a vector store.
+    - **Description**: Retrieves relevant documents from a configured vector store to provide additional context.
     - **Input**: `tainted_data`.
     - **Output**: `rag_context`.
 
-### 2. Data Processing & Parsing
+### 2. Data Processing and Parsing
+
 - **`sanitize_and_anonymize_input`**:
-    - **Description**: Removes PII and sanitizes input text using RegEx.
+    - **Description**: Removes Personally Identifiable Information (PII) and sanitizes input text using regular expressions.
     - **Input**: `raw_input`.
-    - **Output**: `tainted_data` (sanitized).
+    - **Output**: `tainted_data` (sanitized text).
 
-- **`parse_analyst_output`**, **`parse_logician_output`**, **`parse_judge_output`**:
-    - **Description**: Parses raw LLM output (Markdown/JSON) into structured Pydantic models.
-    - **Feature**: Extracts **Citations** (`source`, `explanation`) from the text.
+- **`parse_json_output`**:
+    - **Description**: Parses raw LLM string output into a structured Pydantic model based on a predefined schema.
+    - **Feature**: Enforces strict schema compliance (e.g., validating output against the `TuomioJaPisteet` model for a Judge Agent).
 
-### 3. Reporting
-- **`generate_jinja2_report`**:
-    - **Description**: Renders the final XAI Report using a Jinja2 template.
-    - **Feature**: Dynamically fetches the **Disclaimer** from the database (`DISCLAIMER` component).
+### 3. Logic and Control
 
-### 4. Logic & Control
 - **`calculate_input_control_ratio`**:
-    - **Description**: Calculates the ratio of original input vs. generated text to detect hallucinations.
+    - **Description**: Calculates the ratio between the length of the original input and the generated text. This metric can help identify potential hallucinations or overly verbose outputs.
+
+### 4. Reporting
+
+- **`generate_jinja2_report`**:
+    - **Description**: Renders the final report using a specified Jinja2 template.
+    - **Feature**: Dynamically fetches content, such as a disclaimer, from the static content database via the `DISCLAIMER` component.
 
 ## Static Content
-Static text, such as disclaimers, is stored as a `static_text` component in the database and fetched dynamically by hooks.
+
+Static content components store reusable text, such as legal disclaimers or standardized instructions. This content is stored in a database and can be fetched dynamically by any hook during a workflow's execution.

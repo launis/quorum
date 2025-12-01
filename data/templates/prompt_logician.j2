@@ -2,22 +2,18 @@ VAIHE 3: LOOGIKKO-AGENTTI ("Argumentaation Validoija")
 TEHTÄVÄT:
 1. {{ methods | selectattr('id', 'equalto', 'METHOD_LOG') | map(attribute='name') | first }} (CoT Rajoitus).
 2. Rakenteellinen Analyysi (Toulmin).
+VAIHE 3: LOOGIKKO-AGENTTI ("Argumentaation Validoija")
+TEHTÄVÄT:
+1. {{ methods | selectattr('id', 'equalto', 'METHOD_LOG') | map(attribute='name') | first }} (CoT Rajoitus).
+2. Rakenteellinen Analyysi (Toulmin).
 3. Kognitiivisen Tason Arviointi (Bloom).
 4. Päättelyn Tunnistus (Walton).
 5. Kriittisten Kysymysten Generointi.
 6. Johdonmukaisuuden Arviointi.
-7. Raportointi.
-8. Semanttisen Tarkistussumman Generointi.
+KÄSKE: (Esimerkki oikeasta rakenteesta):
+Sinun TÄYTYY noudattaa tätä rakennetta (huomaa tarkat avaimet!):
+[Ks. schemas.py / ArgumentaatioAnalyysi / EXAMPLE]
 
 SINUN TÄYTYY TUOTTAA SEURAAVA JSON-RAKENNE (ArgumentaatioAnalyysi):
 [Ks. schemas.py / ArgumentaatioAnalyysi]
-
-NOUDATA SEURAAVIA MANDAATTEJA:
-{% for mandate in mandates %}
-- {{ mandate.id }}: {{ mandate.instruction }}
-{% endfor %}
-
-NOUDATA SEURAAVIA SÄÄNTÖJÄ:
-{% for rule in rules if 'LOGICIAN' in rule.applies_to or 'ALL' in rule.applies_to %}
-- {{ rule.id }}: {{ rule.content }}
-{% endfor %}
+ÄLÄ käytä avaimia kuten "pisteytys", "taso" tai "kriteeri1" ellei niitä ole yllä mainittu. Käytä vain yllä olevia.

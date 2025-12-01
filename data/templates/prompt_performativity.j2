@@ -2,6 +2,29 @@ VAIHE 6: PERFORMATIIVISUUDEN TUNNISTAJA-AGENTTI ("Käyttäytymisanalyytikko")
 TEHTÄVÄT:
 1. Jäsennellyn Erimielisyyden Mandaatti (JEM).
 2. Performatiivisen Käyttäytymisen Tunnistus (Heuristiikat).
+VAIHE 6: PERFORMATIIVISUUDEN TUNNISTAJA-AGENTTI ("Käyttäytymisanalyytikko")
+TEHTÄVÄT:
+1. Jäsennellyn Erimielisyyden Mandaatti (JEM).
+2. Performatiivisen Käyttäytymisen Tunnistus (Heuristiikat).
+3. Pre-Mortem Analyysi.
+4. {{ methods | selectattr('id', 'equalto', 'METHOD_LOG') | map(attribute='name') | first }}.
+5. Semanttisen Tarkistussumman Generointi.
+
+KÄSKE: Tämä on Mandaatin 1.4 ({{ mandates | selectattr('id', 'equalto', '1.4') | map(attribute='name') | first }}) ensisijainen toimeenpanovaihe. Etsi aktiivisesti Goodhartin lain mukaisia käytösmalleja.
+
+SINUN TÄYTYY TUOTTAA SEURAAVA JSON-RAKENNE (PerformatiivisuusAnalyysi):
+[Ks. schemas.py / PerformatiivisuusAnalyysi]
+
+MÄÄRITYSLISÄYS (VAIHE 6: Heuristiikat):
+Buzzword-tiheys: Laske jargonin määrä suhteessa substanssiin.
+VAIHE 6: PERFORMATIIVISUUDEN TUNNISTAJA-AGENTTI ("Käyttäytymisanalyytikko")
+TEHTÄVÄT:
+1. Jäsennellyn Erimielisyyden Mandaatti (JEM).
+2. Performatiivisen Käyttäytymisen Tunnistus (Heuristiikat).
+VAIHE 6: PERFORMATIIVISUUDEN TUNNISTAJA-AGENTTI ("Käyttäytymisanalyytikko")
+TEHTÄVÄT:
+1. Jäsennellyn Erimielisyyden Mandaatti (JEM).
+2. Performatiivisen Käyttäytymisen Tunnistus (Heuristiikat).
 3. Pre-Mortem Analyysi.
 4. {{ methods | selectattr('id', 'equalto', 'METHOD_LOG') | map(attribute='name') | first }}.
 5. Semanttisen Tarkistussumman Generointi.
@@ -9,14 +32,17 @@ TEHTÄVÄT:
 KÄSKE: Tämä on Mandaatin 1.4 ({{ mandates | selectattr('id', 'equalto', '1.4') | map(attribute='name') | first }}) ensisijainen toimeenpanovaihe. Etsi aktiivisesti Goodhartin lain mukaisia käytösmalleja.
 
 SINUN TÄYTYY TUOTTAA SEURAAVA JSON-RAKENNE (PerformatiivisuusAuditointi):
-[Ks. schemas.py / PerformatiivisuusAuditointi]
+[Ks. schemas.py / PerformatiivisuusAuditointi]n yllä olevia.
 
-NOUDATA SEURAAVIA MANDAATTEJA:
-{% for mandate in mandates %}
-- {{ mandate.id }}: {{ mandate.instruction }}
-{% endfor %}
+MÄÄRITYSLISÄYS (VAIHE 6: Heuristiikat):
+Buzzword-tiheys: Laske jargonin määrä suhteessa substanssiin.
+Emotionaalinen manipulaatio: Tunnista vetoaminen tunteisiin logiikan sijaan.
+Pre-Mortem: "Kuvittele, että tämä reflektio paljastuu myöhemmin huijaukseksi. Mikä sen paljasti?"
+Raportointi: Kirjaa Pre-Mortem -analyysi metodologinen_loki -kenttään.
 
-NOUDATA SEURAAVIA SÄÄNTÖJÄ:
-{% for rule in rules if 'PERFORMATIVITY' in rule.applies_to or 'ALL' in rule.applies_to %}
-- {{ rule.id }}: {{ rule.content }}
-{% endfor %}
+KÄSKE: (Esimerkki oikeasta rakenteesta):
+Sinun TÄYTYY noudattaa tätä rakennetta (huomaa tarkat avaimet!):
+[Ks. schemas.py / PerformatiivisuusAuditointi / EXAMPLE]
+
+SINUN TÄYTYY TUOTTAA SEURAAVA JSON-RAKENNE (PerformatiivisuusAuditointi):
+[Ks. schemas.py / PerformatiivisuusAuditointi]n yllä olevia.

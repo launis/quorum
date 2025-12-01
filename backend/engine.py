@@ -154,7 +154,22 @@ class WorkflowEngine:
                             else:
                                 return f"[SCHEMA ERROR: Model {model_name} not found]"
 
+                        def replace_example(match):
+                            model_name = match.group(1)
+                            if hasattr(schemas, model_name):
+                                model_class = getattr(schemas, model_name)
+                                # Pydantic V2: examples are in json_schema_extra
+                                config = model_class.model_config
+                                extra = config.get('json_schema_extra', {})
+                                examples = extra.get('examples', [])
+                                if examples:
+                                    return json.dumps(examples[0], indent=2, ensure_ascii=False)
+                                return f"[EXAMPLE ERROR: No examples found for {model_name}]"
+                            else:
+                                return f"[EXAMPLE ERROR: Model {model_name} not found]"
+
                         content = re.sub(r'\[Ks\. schemas\.py / (\w+)\]', replace_schema, content)
+                        content = re.sub(r'\[Ks\. schemas\.py / (\w+) / EXAMPLE\]', replace_example, content)
                         system_instruction += f"\n\n{content}"
                 
                 system_instruction = system_instruction.strip()
@@ -301,7 +316,21 @@ class WorkflowEngine:
                     else:
                         return f"[SCHEMA ERROR: Model {model_name} not found]"
 
+                def replace_example(match):
+                    model_name = match.group(1)
+                    if hasattr(schemas, model_name):
+                        model_class = getattr(schemas, model_name)
+                        config = model_class.model_config
+                        extra = config.get('json_schema_extra', {})
+                        examples = extra.get('examples', [])
+                        if examples:
+                            return json.dumps(examples[0], indent=2, ensure_ascii=False)
+                        return f"[EXAMPLE ERROR: No examples found for {model_name}]"
+                    else:
+                        return f"[EXAMPLE ERROR: Model {model_name} not found]"
+
                 content = re.sub(r'\[Ks\. schemas\.py / (\w+)\]', replace_schema, content)
+                content = re.sub(r'\[Ks\. schemas\.py / (\w+) / EXAMPLE\]', replace_example, content)
                 system_instruction += f"\n\n{content}"
         
         # 4. Generate User Prompt (Template)

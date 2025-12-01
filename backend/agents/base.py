@@ -8,7 +8,7 @@ class BaseAgent(BaseComponent):
     Handles LLM interaction and common agent behaviors.
     """
     
-    def __init__(self, model: str = "gemini-1.5-flash"):
+    def __init__(self, model: str = "gemini-2.5-pro"):
         self.model = model
         # TODO: Initialize LLM client here (e.g., Gemini, OpenAI)
         # self.client = ...
@@ -112,10 +112,10 @@ class BaseAgent(BaseComponent):
             print(f"[{self.__class__.__name__}] LLM Call Failed: {e}")
             raise e
 
-    def get_json_response(self, prompt: str, system_instruction: str | None = None, max_retries: int = 3) -> dict[str, Any]:
+    def get_json_response(self, prompt: str, system_instruction: str | None = None, max_retries: int = 3, validation_schema: type[Any] | None = None) -> dict[str, Any]:
         """
         Calls the LLM and attempts to parse the response as JSON.
-        Retries if parsing fails.
+        Retries if parsing fails or if schema validation fails (if validation_schema is provided).
         """
         from backend.hooks import _clean_and_parse_json
         
@@ -129,7 +129,22 @@ class BaseAgent(BaseComponent):
             parsed_json = _clean_and_parse_json(response_text)
             
             if parsed_json and "raw_output" not in parsed_json:
-                 return parsed_json
+                # If schema validation is requested
+                if validation_schema:
+                    try:
+                        # Validate against the schema
+                        validation_schema.model_validate(parsed_json)
+                        return parsed_json
+                    except Exception as e:
+                        print(f"[{self.__class__.__name__}] Schema Validation Error (Attempt {attempt+1}/{max_retries}): {e}")
+                        if attempt < max_retries - 1:
+                            current_prompt += f"\n\nERROR: Your response did not match the required schema. Validation error: {str(e)}\nPlease correct your JSON output to strictly match the schema."
+                            continue
+                        else:
+                            print(f"[{self.__class__.__name__}] Failed validation after {max_retries} attempts.")
+                            return {"error": f"Schema validation failed: {e}", "raw_output": response_text}
+                
+                return parsed_json
             
             # If parsing failed (returned dict with raw_output only) or returned empty
             if not parsed_json or "raw_output" in parsed_json:

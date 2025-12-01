@@ -1,5 +1,6 @@
 from typing import Any
 from backend.agents.base import BaseAgent
+from backend.schemas import TuomioJaPisteet
 
 class JudgeAgent(BaseAgent):
     """
@@ -33,10 +34,11 @@ class JudgeAgent(BaseAgent):
     def _process(self, **kwargs) -> dict[str, Any]:
         user_content = self.construct_user_prompt(**kwargs)
         
-        # Call LLM with Retry Logic
+        # Call LLM with Retry Logic and Schema Validation
         return self.get_json_response(
             prompt=user_content,
-            system_instruction=kwargs.get('system_instruction')
+            system_instruction=kwargs.get('system_instruction'),
+            validation_schema=TuomioJaPisteet
         )
 
 class XAIReporterAgent(BaseAgent):
@@ -73,7 +75,16 @@ class XAIReporterAgent(BaseAgent):
                 'reflektiodokumentti',
                 'lopputuote'
             ]
-            tuomio_data = {k: kwargs.get(k) for k in possible_fields if k in kwargs}
+            
+            # Helper for case-insensitive lookup
+            def get_ci(d, key):
+                if key in d: return d[key]
+                for k in d:
+                    if k.lower() == key.lower():
+                        return d[k]
+                return None
+
+            tuomio_data = {k: get_ci(kwargs, k) for k in possible_fields if get_ci(kwargs, k) is not None}
 
         relevant_keys = [
             'metodologinen_loki',

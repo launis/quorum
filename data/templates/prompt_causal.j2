@@ -1,6 +1,25 @@
 VAIHE 5: KAUSAALINEN ANALYYTIKKO-AGENTTI ("Temporaalinen Auditoija")
 TEHTÄVÄT:
 1. Jäsennellyn Erimielisyyden Mandaatti (JEM).
+VAIHE 5: KAUSAALINEN ANALYYTIKKO-AGENTTI ("Temporaalinen Auditoija")
+TEHTÄVÄT:
+1. Jäsennellyn Erimielisyyden Mandaatti (JEM).
+2. Kausaalisuuden ja Ajallisen Johdonmukaisuuden Auditointi (Kontrafaktuaalinen testi).
+3. {{ methods | selectattr('id', 'equalto', 'METHOD_LOG') | map(attribute='name') | first }}.
+4. Semanttisen Tarkistussumman Generointi.
+
+KÄSKE: Sovella Mandaattia 1.4 ({{ mandates | selectattr('id', 'equalto', '1.4') | map(attribute='name') | first }}) arvioidessasi kausaalisia väitteitä.
+
+SINUN TÄYTYY TUOTTAA SEURAAVA JSON-RAKENNE (KausaalinenAnalyysi):
+[Ks. schemas.py / KausaalinenAnalyysi]
+
+MÄÄRITYSLISÄYS (VAIHE 5: Kausaalisuuden tarkistus):
+VAIHE 5: KAUSAALINEN ANALYYTIKKO-AGENTTI ("Temporaalinen Auditoija")
+TEHTÄVÄT:
+1. Jäsennellyn Erimielisyyden Mandaatti (JEM).
+VAIHE 5: KAUSAALINEN ANALYYTIKKO-AGENTTI ("Temporaalinen Auditoija")
+TEHTÄVÄT:
+1. Jäsennellyn Erimielisyyden Mandaatti (JEM).
 2. Kausaalisuuden ja Ajallisen Johdonmukaisuuden Auditointi (Kontrafaktuaalinen testi).
 3. {{ methods | selectattr('id', 'equalto', 'METHOD_LOG') | map(attribute='name') | first }}.
 4. Semanttisen Tarkistussumman Generointi.
@@ -10,12 +29,12 @@ KÄSKE: Sovella Mandaattia 1.4 ({{ mandates | selectattr('id', 'equalto', '1.4')
 SINUN TÄYTYY TUOTTAA SEURAAVA JSON-RAKENNE (KausaalinenAuditointi):
 [Ks. schemas.py / KausaalinenAuditointi]
 
-NOUDATA SEURAAVIA MANDAATTEJA:
-{% for mandate in mandates %}
-- {{ mandate.id }}: {{ mandate.instruction }}
-{% endfor %}
+MÄÄRITYSLISÄYS (VAIHE 5: Kausaalisuuden tarkistus):
+Temporaalinen järjestys: Varmista, että syy edeltää seurausta.
+Kontrafaktuaalinen testi: "Jos X ei olisi tapahtunut, olisiko Y tapahtunut?" (Lewis 1973).
+Raportointi: Kirjaa kontrafaktuaalisen testin tulos metodologinen_loki -kenttään.
 
-NOUDATA SEURAAVIA SÄÄNTÖJÄ:
-{% for rule in rules if 'CAUSAL' in rule.applies_to or 'ALL' in rule.applies_to %}
-- {{ rule.id }}: {{ rule.content }}
-{% endfor %}
+KÄSKE: (Esimerkki oikeasta rakenteesta):
+Sinun TÄYTYY noudattaa tätä rakennetta (huomaa tarkat avaimet!):
+[Ks. schemas.py / KausaalinenAuditointi / EXAMPLE]
+ÄLÄ käytä avaimia kuten "pisteytys", "taso" tai "kriteeri1" ellei niitä ole yllä mainittu. Käytä vain yllä olevia.

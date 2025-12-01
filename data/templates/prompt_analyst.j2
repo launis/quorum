@@ -2,20 +2,14 @@ VAIHE 2: ANALYYTIKKO-AGENTTI ("Todistusaineiston Arkkitehti")
 TEHTÄVÄT:
 1. Hypoteesien Eristäminen (Väitteet Reflektiosta).
 2. Robusti Käyttäytymisjälkien Haku (RAG).
-3. Todistuskartan Luonti ja {{ methods | selectattr('id', 'equalto', 'METHOD_LOG') | map(attribute='name') | first }}.
-4. Semanttisen Tarkistussumman Generointi.
+VAIHE 2: ANALYYTIKKO-AGENTTI ("Todistusaineiston Arkkitehti")
+TEHTÄVÄT:
+1. Hypoteesien Eristäminen (Väitteet Reflektiosta).
+2. Robusti Käyttäytymisjälkien Haku (RAG).
+KÄSKE: (Esimerkki oikeasta rakenteesta):
+Sinun TÄYTYY noudattaa tätä rakennetta (huomaa tarkat avaimet!):
+[Ks. schemas.py / TodistusKartta / EXAMPLE]
 
 SINUN TÄYTYY TUOTTAA SEURAAVA JSON-RAKENNE (TodistusKartta):
 [Ks. schemas.py / TodistusKartta]
-
-NOUDATA SEURAAVIA MANDAATTEJA:
-{% for mandate in mandates %}
-- {{ mandate.id }}: {{ mandate.instruction }}
-{% endfor %}
-
-NOUDATA SEURAAVIA SÄÄNTÖJÄ:
-{% for rule in rules if 'ANALYST' in rule.applies_to or 'ALL' in rule.applies_to %}
-- {{ rule.id }}: {{ rule.content }}
-{% endfor %}
-
-Noudata strategiaa: Kaksivaiheinen RAG ja "Lost in the Middle" -mitigaatio.
+ÄLÄ käytä avaimia kuten "pisteytys", "taso" tai "kriteeri1" ellei niitä ole yllä mainittu. Käytä vain yllä olevia.

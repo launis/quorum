@@ -1,79 +1,79 @@
-# Tietojen Hallinta ja Tietokannat
+# Data Management & Databases
 
-Tämä dokumentti kuvaa Cognitive Quorum -järjestelmän tiedonhallinnan arkkitehtuuria. Järjestelmä on **data-driven**, eli sen toimintalogiikka, kehotteet (prompts) ja työnkulut (workflows) on määritelty tietokannassa eikä kovakoodattu sovelluslogiikkaan.
+This document describes the data management architecture of the Cognitive Quorum system. The system is **data-driven**, meaning its business logic, prompts, and workflows are defined in the database rather than hardcoded in the application.
 
-## Datarakenne
+## Data Structure
 
-Kaikki data sijaitsee `data/`-hakemistossa. Järjestelmä käyttää tiedostopohjaista lähestymistapaa, joka on helppo varmuuskopioida ja versioida.
+All system data is located in the `data/` directory. This file-based approach simplifies backup and version control.
 
-### 1. Alustusdata (`data/seed_data.json`)
+### 1. Initialization Data (`data/seed_data.json`)
 
-Tämä tiedosto toimii järjestelmän "tehdasasetuksina". Se sisältää:
+This file contains the system's "factory settings" and defines its core logic. It includes:
 
-*   **Komponentit**: Agenttien ja kehotteiden määritelmät.
-*   **Vaiheet (Steps)**: Työnkulun yksittäiset vaiheet, niiden syöte- ja tuloskaavat (schemas) sekä suoritettavat Python-koukut (hooks).
-*   **Työnkulut (Workflows)**: Miten vaiheet linkittyvät toisiinsa.
+*   **Components**: Definitions for agents, tools, and prompts.
+*   **Steps**: Individual workflow steps, including their input/output schemas and execution hooks.
+*   **Workflows**: The sequence and linkage of steps that form a complete process.
 
-**Käyttö:**
-Kun järjestelmä käynnistetään (tai tietokanta nollataan), `seed_data.json` luetaan ja sen sisältö viedään ajonaikaiseen tietokantaan. Tämä mahdollistaa järjestelmän logiikan muuttamisen pelkästään JSON-tiedostoa muokkaamalla.
+**Usage:**
+On system initialization or database reset, `seed_data.json` is loaded into the runtime database. This design allows system behavior to be modified by changing the JSON file without altering application code.
 
-### 2. Ajonaikainen Tietokanta (`data/db.json`)
+### 2. Runtime Database (`data/db.json`)
 
-Järjestelmä käyttää **TinyDB**:tä, joka on kevyt, dokumenttipohjainen tietokanta. `db.json` on tämän tietokannan fyysinen tiedosto.
+The system uses **TinyDB**, a lightweight, document-oriented database stored in the `db.json` file.
 
-Se sisältää kaksi päätyyppiä tietoa:
-1.  **Konfiguraatio**: Kopio `seed_data.json`:n sisällöstä (komponentit, vaiheet, työnkulut). Tätä voidaan muokata ajonaikaisesti ilman koodimuutoksia.
-2.  **Suoritushistoria (Executions)**: Jokainen ajettu analyysi tallennetaan tänne. Tämä sisältää:
-    *   Käyttäjän syötteet.
-    *   Jokaisen agentin tuottamat vastaukset ja välitulokset.
-    *   Lopullisen raportin.
-    *   Aikaleimat ja tilatiedot.
+It contains two primary categories of data:
+1.  **Configuration**: A live copy of the content from `seed_data.json` (components, steps, workflows). This data can be modified at runtime to adjust system behavior dynamically.
+2.  **Execution History**: A complete record of every analysis run is stored here, including:
+    *   User inputs
+    *   Intermediate results and responses from each agent
+    *   The final generated report
+    *   Timestamps and status information
 
-> **Huomio:** `db.json` voi kasvaa suureksi, koska se säilyttää kaiken historian.
+> **Note:** The `db.json` file can grow significantly in size over time, as it stores a complete history of all execution runs.
 
-### 3. Fragmentit (`data/fragments/`)
+### 3. Fragments (`data/fragments/`)
 
-Tämä kansio sisältää uudelleenkäytettäviä tekstikatkelmia (JSON-muodossa), joita käytetään kehotteiden rakentamisessa.
+This directory contains reusable JSON-formatted text snippets used to construct prompts. Examples include:
 
-*   `mandates.json`: Järjestelmän ylätason mandaatit (esim. "Järjestelmä 2 -ajattelu").
-*   `rules.json`: Globaalit säännöt (esim. "Ei ulkoisia työkaluja ilman lupaa").
-*   `criteria.json`: Arviointikriteerit (BARS-matriisi).
-*   `protocols.json` & `methods.json`: Muut metodologiset ohjeet.
+*   `mandates.json`: High-level system goals (e.g., "Employ System 2 Thinking").
+*   `rules.json`: Global operational rules (e.g., "Do not use external tools without permission").
+*   `criteria.json`: Standardized evaluation criteria (e.g., a BARS matrix).
+*   `protocols.json` & `methods.json`: Other methodological instructions.
 
-**Hyöty:** Fragmenttien avulla vältetään toistoa. Sama sääntö voidaan sisällyttää useaan eri kehotteeseen viittaamalla siihen, jolloin säännön muuttaminen yhdessä paikassa päivittää sen kaikkialle.
+This approach avoids content duplication. A rule or mandate can be referenced by multiple prompts; updating the fragment file ensures the change is propagated everywhere it is used.
 
-### 4. Mallipohjat (`data/templates/`)
+### 4. Templates (`data/templates/`)
 
-Kansio sisältää **Jinja2**-mallipohjia (`.j2`), jotka määrittelevät agenttien kehotteiden rakenteen.
+This directory contains **Jinja2** templates (`.j2`) that define the structure of agent prompts.
 
-Esimerkiksi `prompt_analyst.j2` voi näyttää tältä:
+For example, `prompt_analyst.j2` might contain:
 ```jinja2
 {{ MASTER_INSTRUCTIONS }}
 
-VAIHE 2: ANALYYTIKKO-AGENTTI
+PHASE 2: ANALYST AGENT
 ...
-NOUDATA SEURAAVIA SÄÄNTÖJÄ:
+FOLLOW THESE RULES:
 {% for rule in rules %}
 - {{ rule }}
 {% endfor %}
 ```
 
-Järjestelmä yhdistää ajonaikaisesti:
-1.  `seed_data.json`:sta tulevan konfiguraation.
-2.  `fragments/`-kansiosta tulevat säännöt.
-3.  `templates/`-kansion mallipohjan.
+The system dynamically combines the following to construct a complete prompt for the Large Language Model (LLM):
+1.  Configuration data from the runtime database (`db.json`).
+2.  Text snippets from the `fragments/` directory.
+3.  A structural template from the `templates/` directory.
 
-Lopputuloksena on täydellinen kehote, joka lähetetään kielimallille (LLM).
+### 5. Uploads (`data/uploads/`)
 
-### 5. Lataukset (`data/uploads/`)
+This directory serves as temporary storage for files uploaded by the user through the UI, such as PDF documents.
 
-Tämä on väliaikainen tallennuspaikka käyttäjän käyttöliittymän kautta lataamille tiedostoille (esim. PDF-dokumentit).
+The process is as follows:
+*   A file is uploaded to this directory.
+*   The system processes the file (e.g., extracts text from a PDF).
+*   The extracted content is used as an input for a workflow.
+*   The folder can be cleaned periodically, either automatically or manually.
 
-*   Tiedostot prosessoidaan (esim. tekstin irrotus PDF:stä).
-*   Prosessoinnin jälkeen sisältö syötetään työnkulkuun.
-*   Kansiota voidaan siivota automaattisesti tai manuaalisesti.
-
-## Yhteenveto Tietovirrasta
+## Data Flow Summary
 
 ```mermaid
 graph TD
@@ -81,7 +81,7 @@ graph TD
         Seed[seed_data.json] -->|Load| DB[(db.json)]
     end
 
-    subgraph PromptEngineering
+    subgraph "Prompt Engineering"
         Tpl[templates/*.j2] -->|Render| Prompt
         Frag[fragments/*.json] -->|Inject| Prompt
         DB -->|Config| Prompt

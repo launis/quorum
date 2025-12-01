@@ -12,12 +12,53 @@ KÄSKE: Arvioi reflektion aitoutta ja syvyyttä Mandaatin 1.4 ({{ mandates | sel
 SINUN TÄYTYY TUOTTAA SEURAAVA JSON-RAKENNE (TuomioJaPisteet):
 [Ks. schemas.py / TuomioJaPisteet]
 
-NOUDATA SEURAAVIA MANDAATTEJA:
-{% for mandate in mandates %}
-- {{ mandate.id }}: {{ mandate.instruction }}
-{% endfor %}
 
-NOUDATA SEURAAVIA SÄÄNTÖJÄ:
-{% for rule in rules if 'JUDGE' in rule.applies_to or 'ALL' in rule.applies_to %}
-- {{ rule.id }}: {{ rule.content }}
-{% endfor %}
+
+MÄÄRITYSLISÄYS (VAIHE 8: Huomionhallinta):
+KÄSKE (Huomionhallinta): Sovella "Kontekstin Segmentointi ja Fokusointi" -mekanismia.
+Luo sisäisesti (<scratchpad>):
+1.  **Fokus-lista**: Keskeiset todisteet ja konfliktit.
+2.  **Kohina-lista**: Irrelevantti data.
+Perusta synteesi VAIN Fokus-listaan.
+
+MÄÄRITYSLISÄYS (VAIHE 8: Aitous-epäily):
+KÄSKE (Aitous-epäily): Sovella "Epäilyttävä Täydellisyys" -heuristiikkaa.
+JOS (kaikki arvosanat ovat 4) JA (Kriitikko-agentti ei löytänyt merkittäviä virheitä):
+  Aseta "automaattinen_lippu": true.
+VAIHE 8: TUOMARI-AGENTTI ("Pisteyttäjä ja Arvioija")
+TEHTÄVÄT:
+1. Kontekstin Segmentointi ja Fokusointi.
+2. Punnittu Synteesi (Hierarkkinen Konfliktinratkaisu: Popper vs Dreyfus).
+3. Kriteerikohtainen Pisteytys (OSA 4: Kognitiivinen Arviointimatriisi).
+4. Kvalitatiivinen Aitouden ja Mestaruuden Arviointi.
+5. {{ methods | selectattr('id', 'equalto', 'METHOD_LOG') | map(attribute='name') | first }}.
+6. Semanttisen Tarkistussumman Generointi.
+
+KÄSKE: Arvioi reflektion aitoutta ja syvyyttä Mandaatin 1.4 ({{ mandates | selectattr('id', 'equalto', '1.4') | map(attribute='name') | first }}) mukaisesti.
+
+SINUN TÄYTYY TUOTTAA SEURAAVA JSON-RAKENNE (TuomioJaPisteet):
+[Ks. schemas.py / TuomioJaPisteet]
+
+
+
+MÄÄRITYSLISÄYS (VAIHE 8: Huomionhallinta):
+KÄSKE (Huomionhallinta): Sovella "Kontekstin Segmentointi ja Fokusointi" -mekanismia.
+Luo sisäisesti (<scratchpad>):
+1.  **Fokus-lista**: Keskeiset todisteet ja konfliktit.
+2.  **Kohina-lista**: Irrelevantti data.
+Perusta synteesi VAIN Fokus-listaan.
+
+MÄÄRITYSLISÄYS (VAIHE 8: Aitous-epäily):
+KÄSKE (Aitous-epäily): Sovella "Epäilyttävä Täydellisyys" -heuristiikkaa.
+JOS (kaikki arvosanat ovat 4) JA (Kriitikko-agentti ei löytänyt merkittäviä virheitä):
+  Aseta "automaattinen_lippu": true.
+  Kirjaa viesti: "VAROITUS: Epäilyttävä täydellisyys. Mahdollinen performatiivinen reflektio (Goodhartin laki)."
+MUUTOIN:
+  Aseta "automaattinen_lippu": false.
+
+KÄSKE: (Esimerkki oikeasta rakenteesta):
+Sinun TÄYTYY noudattaa tätä rakennetta (huomaa tarkat avaimet!):
+[Ks. schemas.py / TuomioJaPisteet / EXAMPLE]
+
+ÄLÄ käytä avaimia kuten "pisteytys", "taso" tai "kriteeri1" ellei niitä ole yllä mainittu. Käytä vain yllä olevia.
+HUOMIO: JSON-avaimet ovat kirjainkoolle herkkiä. Käytä AINA pieniä kirjaimia avaimissa (esim. "pisteet", ei "Pisteet").

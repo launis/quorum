@@ -2,80 +2,60 @@
 
 ## Core Engine
 
-The core logic of the Generic Workflow Engine.
+The core logic of the generic, data-driven workflow engine.
 
-::: src.engine.orchestrator
+::: backend.engine
     options:
       heading_level: 3
 
-::: src.engine.executor
+## Agents
+
+Provides the foundational logic for agents, including interactions with Large Language Models (LLMs).
+
+::: backend.agents.base
     options:
       heading_level: 3
 
-::: src.engine.llm_handler
+## Data Handling and Seeding
+
+Modules responsible for loading, parsing, and seeding data into the system.
+
+::: backend.data_handler
     options:
       heading_level: 3
 
-## Data Handling & Seeding
-
-Modules responsible for loading, parsing, and seeding data.
-
-::: src.data_handler
-    options:
-      heading_level: 3
-
-::: src.seeder
+::: backend.seeder
     options:
       heading_level: 3
 
 ## Database
 
-Abstraction layer for database interactions.
+Provides the abstraction layer for all database interactions.
 
 ::: src.database.client
     options:
       heading_level: 3
 
-## Components & Registry
+## Schemas
 
-Registries for mapping JSON configuration to Python code.
+Defines the Pydantic models and data schemas used throughout the application.
 
-::: src.components.hook_registry
-    options:
-      heading_level: 3
-
-::: src.models.schema_registry
+::: backend.schemas
     options:
       heading_level: 3
 
 ## Hooks (Functional Logic)
 
-Deterministic Python functions called by the engine.
+Contains the deterministic Python functions (hooks) that are executed by the workflow engine at specific stages.
 
-::: src.components.hooks.search
-    options:
-      heading_level: 3
-
-::: src.components.hooks.calculations
-    options:
-      heading_level: 3
-
-::: src.components.hooks.parsing
-    options:
-      heading_level: 3
-
-::: src.components.hooks.sanitization
-    options:
-      heading_level: 3
-
-::: src.components.hooks.reporting
+::: backend.hooks
     options:
       heading_level: 3
 
 ## API
 
-FastAPI application structure.
+The main FastAPI application, defining API endpoints and server configuration.
 
-::: src.api.server
+::: backend.main
     options:
       heading_level: 3
