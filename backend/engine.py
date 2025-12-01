@@ -124,6 +124,7 @@ class WorkflowEngine:
                     "STEP_7_FACT_CHECKER": "FactualOverseerAgent",
                     "STEP_8_JUDGE": "JudgeAgent",
                     "STEP_9_XAI": "XAIReporterAgent",
+                    "STEP_CRITICS_PANEL": "PanelAgent",
                 }
                 
                 component_class_name = component_map.get(step_id) or step_def.get('component')
@@ -194,6 +195,7 @@ class WorkflowEngine:
                         elif "Overseer" in component_class_name: module_name = "backend.agents.critics"
                         elif "Judge" in component_class_name: module_name = "backend.agents.judge"
                         elif "XAI" in component_class_name: module_name = "backend.agents.judge"
+                        elif "Panel" in component_class_name: module_name = "backend.agents.panel"
                         else: module_name = "backend.agents.base"
                         
                         module = importlib.import_module(module_name)
@@ -284,12 +286,15 @@ class WorkflowEngine:
             "STEP_7_FACT_CHECKER": "FactualOverseerAgent",
             "STEP_8_JUDGE": "JudgeAgent",
             "STEP_9_XAI": "XAIReporterAgent",
+            "STEP_CRITICS_PANEL": "PanelAgent",
         }
         
-        component_class_name = component_map.get(step_id)
+        component_class_name = component_map.get(step_id) or step_def.get('component')
         print(f"DEBUG: Component class: {component_class_name}", flush=True)
         if not component_class_name:
-             return {"error": f"No component mapping for {step_id}"}
+             # Try to infer from ID if possible, or fail
+             if "PANEL" in step_id: component_class_name = "PanelAgent"
+             else: return {"error": f"No component mapping for {step_id}"}
 
         # 2. Get Step Definition
         execution_config = step_def.get('execution_config', {})
@@ -354,7 +359,8 @@ class WorkflowEngine:
                 "PerformativityDetectorAgent": "backend.agents.critics",
                 "FactualOverseerAgent": "backend.agents.critics",
                 "JudgeAgent": "backend.agents.judge",
-                "XAIReporterAgent": "backend.agents.judge"
+                "XAIReporterAgent": "backend.agents.judge",
+                "PanelAgent": "backend.agents.panel"
             }
             
             module_name = class_to_module.get(component_class_name, "backend.agents.base")

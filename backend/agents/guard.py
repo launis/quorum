@@ -36,7 +36,21 @@ class GuardAgent(BaseAgent):
         system_instruction = kwargs.get('system_instruction')
         
         # Call LLM with Retry Logic
-        return self.get_json_response(
+        response = self.get_json_response(
             prompt=user_content,
             system_instruction=system_instruction
         )
+        
+        # Post-processing: Restore original content if LLM returned empty strings
+        # This prevents overwriting the context with empty data while saving tokens in the LLM response.
+        if response and 'data' in response:
+            data_content = response['data']
+            if isinstance(data_content, dict):
+                if not data_content.get('keskusteluhistoria'):
+                    data_content['keskusteluhistoria'] = kwargs.get('history_text')
+                if not data_content.get('lopputuote'):
+                    data_content['lopputuote'] = kwargs.get('product_text')
+                if not data_content.get('reflektiodokumentti'):
+                    data_content['reflektiodokumentti'] = kwargs.get('reflection_text')
+                    
+        return response

@@ -1,0 +1,196 @@
+from fastapi import APIRouter, HTTPException, BackgroundTasks
+from tinydb import TinyDB, Query
+from typing import List, Dict, Any, Optional
+from pydantic import BaseModel
+import os
+
+from backend.exporter import export_db_to_files
+
+router = APIRouter(
+    prefix="/config",
+    tags=["Configuration"]
+)
+
+# Database Setup (Same as main.py)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(BASE_DIR)), 'data')
+DB_PATH = os.path.join(DATA_DIR, 'db.json')
+
+def get_db():
+    return TinyDB(DB_PATH, encoding='utf-8')
+
+# --- Models ---
+
+class ComponentUpdate(BaseModel):
+    content: str
+    description: Optional[str] = None
+
+class WorkflowUpdate(BaseModel):
+    steps: Optional[List[Dict[str, Any]]] = None
+    sequence: Optional[List[str]] = None
+    description: Optional[str] = None
+    default_model_mapping: Optional[Dict[str, str]] = None
+
+# --- Endpoints ---
+
+@router.get("/components")
+def get_components():
+    """List all components (prompts, rules)."""
+    db = get_db()
+    return db.table('components').all()
+
+@router.get("/components/{comp_id}")
+def get_component(comp_id: str):
+    """Get a specific component by ID."""
+    db = get_db()
+    Component = Query()
+    # Try matching 'id' first, then 'name'
+    res = db.table('components').search(Component.id == comp_id)
+    if not res:
+        res = db.table('components').search(Component.name == comp_id)
+    
+    if not res:
+        raise HTTPException(status_code=404, detail="Component not found")
+    return res[0]
+
+@router.put("/components/{comp_id}")
+def update_component(comp_id: str, update: ComponentUpdate):
+    """Update a component's content."""
+    db = get_db()
+    Component = Query()
+    table = db.table('components')
+    
+    # Check existence
+    exists = table.search((Component.id == comp_id) | (Component.name == comp_id))
+    if not exists:
+        raise HTTPException(status_code=404, detail="Component not found")
+    
+    # Update
+    update_data = {"content": update.content}
+    if update.description:
+        update_data["description"] = update.description
+        
+    # Update by ID or Name
+    table.update(update_data, (Component.id == comp_id) | (Component.name == comp_id))
+    return {"status": "updated", "id": comp_id}
+
+@router.get("/steps")
+def get_steps():
+    """List all steps."""
+    db = get_db()
+    return db.table('steps').all()
+
+@router.post("/steps")
+def create_step(step: Dict[str, Any]):
+    """Create a new step."""
+    db = get_db()
+    table = db.table('steps')
+    if table.search(Query().id == step.get('id')):
+        raise HTTPException(status_code=400, detail="Step ID already exists")
+    table.insert(step)
+    return {"status": "created", "id": step.get('id')}
+
+@router.put("/steps/{step_id}")
+def update_step(step_id: str, step: Dict[str, Any]):
+    """Update a step."""
+    db = get_db()
+    table = db.table('steps')
+    if not table.search(Query().id == step_id):
+        raise HTTPException(status_code=404, detail="Step not found")
+    table.update(step, Query().id == step_id)
+    return {"status": "updated", "id": step_id}
+
+@router.delete("/steps/{step_id}")
+def delete_step(step_id: str):
+    """Delete a step."""
+    db = get_db()
+    table = db.table('steps')
+    if not table.search(Query().id == step_id):
+        raise HTTPException(status_code=404, detail="Step not found")
+    table.remove(Query().id == step_id)
+    return {"status": "deleted", "id": step_id}
+
+@router.get("/workflows")
+def get_workflows():
+    """List all workflows."""
+    db = get_db()
+    return db.table('workflows').all()
+
+@router.get("/workflows/{wf_id}")
+def get_workflow(wf_id: str):
+    """Get a specific workflow."""
+    db = get_db()
+    Workflow = Query()
+    res = db.table('workflows').search(Workflow.id == wf_id)
+    if not res:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+    return res[0]
+
+@router.put("/workflows/{wf_id}")
+def update_workflow(wf_id: str, update: WorkflowUpdate):
+    """Update a workflow definition."""
+    db = get_db()
+    Workflow = Query()
+    table = db.table('workflows')
+    
+    if not table.search(Workflow.id == wf_id):
+        raise HTTPException(status_code=404, detail="Workflow not found")
+        
+    update_data = {}
+    if update.steps is not None:
+        update_data["steps"] = update.steps
+    if update.sequence is not None:
+        update_data["sequence"] = update.sequence
+    if update.description:
+        update_data["description"] = update.description
+    if update.default_model_mapping is not None:
+        update_data["default_model_mapping"] = update.default_model_mapping
+        
+    if not update_data:
+         raise HTTPException(status_code=400, detail="No data to update")
+
+    table.update(update_data, Workflow.id == wf_id)
+    return {"status": "updated", "id": wf_id}
+
+class WorkflowCreate(BaseModel):
+    id: str
+    name: str
+    sequence: List[str] = []
+    description: Optional[str] = None
+    default_model_mapping: Optional[Dict[str, str]] = {}
+
+@router.post("/workflows")
+def create_workflow(workflow: WorkflowCreate):
+    """Create a new workflow."""
+    db = get_db()
+    Workflow = Query()
+    table = db.table('workflows')
+    
+    if table.search(Workflow.id == workflow.id):
+        raise HTTPException(status_code=400, detail="Workflow ID already exists")
+        
+    new_wf = workflow.dict()
+    # Ensure sequence is saved as 'sequence' (and maybe 'steps' for compat if needed, but let's stick to sequence)
+    # The engine looks for 'sequence' first.
+    
+    table.insert(new_wf)
+    return {"status": "created", "id": workflow.id}
+
+@router.delete("/workflows/{wf_id}")
+def delete_workflow(wf_id: str):
+    """Delete a workflow."""
+    db = get_db()
+    Workflow = Query()
+    table = db.table('workflows')
+    
+    if not table.search(Workflow.id == wf_id):
+        raise HTTPException(status_code=404, detail="Workflow not found")
+        
+    table.remove(Workflow.id == wf_id)
+    return {"status": "deleted", "id": wf_id}
+
+@router.post("/export")
+def trigger_export(background_tasks: BackgroundTasks):
+    """Trigger an export of the database to the file system."""
+    background_tasks.add_task(export_db_to_files)
+    return {"status": "export_started", "message": "Exporting DB to files in background."}
