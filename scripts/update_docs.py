@@ -8,7 +8,7 @@ PROJECT_ROOT = Path(__file__).parent.parent
 DOCS_DIR = PROJECT_ROOT / "docs"
 README_PATH = PROJECT_ROOT / "README.md"
 OPENAPI_URL = "http://localhost:8000/openapi.json"
-OPENAPI_OUTPUT = DOCS_DIR / "openapi.json"
+OPENAPI_OUTPUT = DOCS_DIR / "swagger" / "openapi.json"
 
 IGNORE_DIRS = {
     ".git", "__pycache__", "venv", ".venv", "site", ".gemini", ".agent", ".idea", ".vscode", "node_modules"
