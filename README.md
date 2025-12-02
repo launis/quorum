@@ -29,40 +29,14 @@
 
     ```env
     # --- Required for Production Mode ---
-    GOOGLE_API_KEY=...                 # Your Google Gemini API Key
-    
-    # --- Optional: Google Search Integration ---
-    GOOGLE_SEARCH_API_KEY=...          # Google Custom Search JSON API Key
-    GOOGLE_SEARCH_CX=...               # Google Custom Search Engine ID
+    GOOGLE_API_KEY=...                       # Your Google Gemini API Key
+    GOOGLE_SEARCH_API_KEY=...                # Google Custom Search JSON API Key
+    GOOGLE_SEARCH_CX=...                     # Google Custom Search Engine ID
     
     # --- System Modes ---
     USE_MOCK_LLM=False                       # Set True to use offline mock responses (no API cost)
     USE_MOCK_DB=True                         # Set True to use db_mock.json, False for db.json
-    BACKEND_URL=http://localhost:8000        # URL for the FastAPI backend
     ```
-
-    ### Environment Variable Reference
-
-    | Variable | Required | Default | Description |
-    | :--- | :---: | :--- | :--- |
-    | `GOOGLE_API_KEY` | Yes* | - | Required for Gemini API calls unless `USE_MOCK_LLM=True`. |
-    | `USE_MOCK_LLM` | No | `False` | Toggle to `True` to disable real API calls and use cached/mock responses. |
-    | `USE_MOCK_DB` | No | `True` | Toggle to `False` to use the production database (`db.json`). |
-    | `GOOGLE_SEARCH_API_KEY` | No | - | Required for the *Factual Overseer* agent to perform live web searches. |
-    | `GOOGLE_SEARCH_CX` | No | - | Custom Search Engine ID for the *Factual Overseer*. |
-    | `BACKEND_URL` | No | `http://localhost:8000` | URL where the frontend looks for the API. |
-
-    ### 🔑 Obtaining API Keys
-
-    1.  **GOOGLE_API_KEY**:
-        *   Visit [Google AI Studio](https://aistudio.google.com/).
-        *   Create a new API key.
-        *   *Required* for the LLM to function (unless `USE_MOCK_LLM=True`).
-
-    2.  **GOOGLE_SEARCH_API_KEY & CX** (Optional):
-        *   Required for the *Factual Overseer* agent.
-        *   Enable the **Custom Search API** in [Google Cloud Console](https://console.cloud.google.com/).
-        *   Create a Search Engine at [Programmable Search Engine](https://programmablesearchengine.google.com/) to get the `CX` ID.
 
 ## 🚦 Quick Start
 
