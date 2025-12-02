@@ -96,6 +96,19 @@ class XAIReporterAgent(BaseAgent):
         # Add the reconstructed or found tuomio data
         if tuomio_data:
             input_data['tuomiojapisteet'] = tuomio_data
+            
+        # Add Bibliography if present
+        bib_section = ""
+        if 'bibliography_context' in kwargs:
+            bib_list = kwargs['bibliography_context']
+            if bib_list and isinstance(bib_list, list):
+                bib_text = "\n".join([f"- {item}" for item in sorted(bib_list)])
+                bib_section = f"""
+        LÄHDELUETTELO (KÄYTETYT LÄHTEET):
+        ---
+        {bib_text}
+        ---
+        """
         
         if not input_data:
              input_data = {k: v for k, v in kwargs.items() if k != 'system_instruction'}
@@ -105,6 +118,7 @@ class XAIReporterAgent(BaseAgent):
         ---
         {json.dumps(input_data, indent=2, ensure_ascii=False)}
         ---
+        {bib_section}
         """
 
     def _process(self, **kwargs) -> dict[str, Any]:

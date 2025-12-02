@@ -42,3 +42,32 @@ async def generate_text(request: LLMRequest):
     except Exception as e:
         print(f"LLM Generation Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/models")
+def get_available_models():
+    """
+    Lists available Google AI models.
+    """
+    import google.generativeai as genai
+    import os
+    
+    api_key = os.getenv("GOOGLE_API_KEY")
+    if not api_key:
+        return {"models": ["gpt-4o", "gemini-1.5-pro", "local-model"]} # Fallback
+        
+    try:
+        genai.configure(api_key=api_key)
+        models = []
+        for m in genai.list_models():
+            if 'generateContent' in m.supported_generation_methods:
+                # Clean up model name (remove 'models/' prefix)
+                name = m.name.replace("models/", "")
+                models.append(name)
+        
+        # Add some common aliases or non-Google models if needed
+        if "gpt-4o" not in models: models.append("gpt-4o")
+        
+        return {"models": sorted(models)}
+    except Exception as e:
+        print(f"Error listing models: {e}")
+        return {"models": ["gpt-4o", "gemini-1.5-pro", "local-model"]} # Fallback

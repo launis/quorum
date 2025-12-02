@@ -24,6 +24,8 @@ def get_db():
 class ComponentUpdate(BaseModel):
     content: str
     description: Optional[str] = None
+    citation: Optional[str] = None
+    citation_full: Optional[str] = None
 
 class WorkflowUpdate(BaseModel):
     steps: Optional[List[Dict[str, Any]]] = None
@@ -53,6 +55,36 @@ def get_component(comp_id: str):
         raise HTTPException(status_code=404, detail="Component not found")
     return res[0]
 
+class ComponentCreate(BaseModel):
+    id: str
+    name: str
+    type: str
+    content: str
+    description: Optional[str] = None
+    citation: Optional[str] = None
+    citation_full: Optional[str] = None
+    module: Optional[str] = "config"
+    component_class: Optional[str] = "ConfigComponent" # Renamed from 'class' to avoid keyword conflict
+
+@router.post("/components")
+def create_component(comp: ComponentCreate):
+    """Create a new component."""
+    db = get_db()
+    table = db.table('components')
+    if table.search(Query().id == comp.id):
+        raise HTTPException(status_code=400, detail="Component ID already exists")
+    
+    # Dump model to dict, handling aliasing if needed (but here simple dict is fine)
+    new_comp = comp.dict()
+    # Rename component_class back to class for storage if that's the convention, 
+    # but 'class' is a reserved keyword in Python so pydantic model uses component_class.
+    # Let's check how it's stored. The previous code used "class": "ConfigComponent".
+    if 'component_class' in new_comp:
+        new_comp['class'] = new_comp.pop('component_class')
+        
+    table.insert(new_comp)
+    return {"status": "created", "id": comp.id}
+
 @router.put("/components/{comp_id}")
 def update_component(comp_id: str, update: ComponentUpdate):
     """Update a component's content."""
@@ -69,6 +101,10 @@ def update_component(comp_id: str, update: ComponentUpdate):
     update_data = {"content": update.content}
     if update.description:
         update_data["description"] = update.description
+    if update.citation:
+        update_data["citation"] = update.citation
+    if update.citation_full:
+        update_data["citation_full"] = update.citation_full
         
     # Update by ID or Name
     table.update(update_data, (Component.id == comp_id) | (Component.name == comp_id))

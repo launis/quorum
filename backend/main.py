@@ -217,6 +217,43 @@ def get_orchestrator_status(execution_id: int):
         raise HTTPException(status_code=404, detail="Execution not found")
     return status
 
+@app.get("/config/introspection")
+def introspect_codebase():
+    """
+    Returns available Schemas and Hooks by inspecting the codebase.
+    """
+    import inspect
+    from backend import schemas, hooks
+    
+    # 1. Inspect Schemas
+    available_schemas = []
+    for name, obj in inspect.getmembers(schemas):
+        if inspect.isclass(obj) and issubclass(obj, schemas.BaseModel) and obj is not schemas.BaseModel:
+            available_schemas.append(name)
+            
+    # 2. Inspect Hooks
+    available_hooks = []
+    for name, obj in inspect.getmembers(hooks):
+        if inspect.isfunction(obj) and not name.startswith("_"):
+            available_hooks.append(name)
+
+    # 3. Inspect Agents
+    available_agents = []
+    from backend.agents import base, guard, analyst, logician, critics, judge, panel
+    
+    agent_modules = [base, guard, analyst, logician, critics, judge, panel]
+    
+    for module in agent_modules:
+        for name, obj in inspect.getmembers(module):
+            if inspect.isclass(obj) and name.endswith("Agent") and name != "BaseAgent":
+                available_agents.append(name)
+            
+    return {
+        "schemas": sorted(available_schemas),
+        "hooks": sorted(available_hooks),
+        "agents": sorted(list(set(available_agents)))
+    }
+
 @app.get("/health")
 def health_check():
     return {"status": "ok"}

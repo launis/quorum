@@ -215,6 +215,11 @@ def generate_jinja2_report(inputs: Dict[str, Any], output: Dict[str, Any]) -> Di
             }
         }
 
+        # Check if we have valid data to render
+        if not scores and output.get('xai_report_content'):
+            print("   [HOOK] Missing 'pisteet' in inputs, but Mock content exists. Skipping template rendering to avoid broken report.")
+            return output
+
         rendered_report = template.render(
             report_content=report_data,
             final_verdict="KATSO PISTEYTYS",
@@ -222,8 +227,13 @@ def generate_jinja2_report(inputs: Dict[str, Any], output: Dict[str, Any]) -> Di
             disclaimer="Tämä on automaattisesti generoitu raportti." # Placeholder
         )
         
-        # Overwrite or append the rendered report to the output
-        output['xai_report_content'] = rendered_report
+        # If output already has content (e.g. from Mock LLM), append the detailed report
+        if output.get('xai_report_content'):
+            print("   [HOOK] Appending rendered report to existing content.")
+            output['xai_report_content'] += "\n\n---\n\n" + rendered_report
+        else:
+            output['xai_report_content'] = rendered_report
+            
         print("   Report generated successfully.")
         
     except Exception as e:

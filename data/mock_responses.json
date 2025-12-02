@@ -1,0 +1,215 @@
+{
+    "guard_agent": {
+        "metadata": {
+            "luontiaika": "2024-01-01T12:00:00Z",
+            "agentti": "Vartija",
+            "vaihe": 1,
+            "versio": "1.0",
+            "suoritus_ymparisto": "Internal"
+        },
+        "metodologinen_loki": "[MOCK] Input sanitized successfully.",
+        "edellisen_vaiheen_validointi": "Initial Step",
+        "semanttinen_tarkistussumma": "mock_hash_123",
+        "data": {
+            "keskusteluhistoria": "",
+            "lopputuote": "",
+            "reflektiodokumentti": ""
+        },
+        "security_check": {
+            "uhka_havaittu": false,
+            "adversariaalinen_simulaatio_tulos": "No threats detected in simulation.",
+            "riski_taso": "MATALA"
+        },
+        "safe_data": {
+            "sanitized_content": "Mock sanitized content"
+        }
+    },
+    "analyst_agent": {
+        "metadata": {
+            "luontiaika": "2024-01-01T12:01:00Z",
+            "agentti": "Analyytikko",
+            "vaihe": 2,
+            "versio": "1.0"
+        },
+        "metodologinen_loki": "[MOCK] Hypotheses generated.",
+        "edellisen_vaiheen_validointi": "Guard check passed",
+        "semanttinen_tarkistussumma": "mock_hash_456",
+        "hypoteesit": [
+            {
+                "id": "H1",
+                "vaite_teksti": "Mock Hypothesis 1: The student demonstrates critical thinking.",
+                "loytyyko_todisteita": true
+            }
+        ],
+        "rag_todisteet": [
+            {
+                "viittaa_hypoteesiin_id": "H1",
+                "perusteet": "Direct quote from reflection.",
+                "konteksti_segmentti": "I thought about X and Y...",
+                "relevanssi_score": 9
+            }
+        ]
+    },
+    "logician_agent": {
+        "metadata": {
+            "luontiaika": "...",
+            "agentti": "Loogikko",
+            "vaihe": 3,
+            "versio": "1.0"
+        },
+        "metodologinen_loki": "[MOCK] Logic analyzed.",
+        "edellisen_vaiheen_validointi": "...",
+        "semanttinen_tarkistussumma": "...",
+        "toulmin_analyysi": [
+            {
+                "vaite_id": "H1",
+                "claim": "Student thinks critically",
+                "data": "Reflection text",
+                "warrant": "Thinking about X implies critical thought",
+                "backing": "Pedagogical theory"
+            }
+        ],
+        "kognitiivinen_taso": {
+            "bloom_taso": "Analyze",
+            "strateginen_syvyys": "Korkea"
+        },
+        "walton_skeema": {
+            "tunnistettu_skeema": "Argument from Evidence",
+            "kriittiset_kysymykset": [
+                "Is the evidence sufficient?"
+            ]
+        }
+    },
+    "falsifier_agent": {
+        "metadata": {
+            "luontiaika": "...",
+            "agentti": "Falsifioija",
+            "vaihe": 4,
+            "versio": "1.0"
+        },
+        "metodologinen_loki": "[MOCK] Falsification attempt.",
+        "edellisen_vaiheen_validointi": "...",
+        "semanttinen_tarkistussumma": "...",
+        "walton_stressitesti_loydokset": [
+            {
+                "kysymys": "Could this be performative?",
+                "kestiko_todistusaineisto": true,
+                "havainto": "Evidence holds up."
+            }
+        ],
+        "paattelyketjun_uskollisuus_auditointi": {
+            "onko_post_hoc_rationalisointia": false,
+            "perustelu": "Reasoning follows action.",
+            "uskollisuus_score": "KORKEA"
+        }
+    },
+    "causal_agent": {
+        "metadata": {
+            "luontiaika": "...",
+            "agentti": "Kausaalinen",
+            "vaihe": 5,
+            "versio": "1.0"
+        },
+        "metodologinen_loki": "[MOCK] Causal check.",
+        "edellisen_vaiheen_validointi": "...",
+        "semanttinen_tarkistussumma": "...",
+        "kausaalinen_auditointi": {
+            "aikajana_validi": true,
+            "havainnot": "Timeline is consistent."
+        },
+        "kontrafaktuaalinen_testi": {
+            "skenaario_A_toteutunut": "Student did X",
+            "skenaario_B_simulaatio": "If student didn't do X...",
+            "uskottavuus_arvio": "Plausible"
+        },
+        "abduktiivinen_paatelma": "Aito Oivallus"
+    },
+    "performativity_agent": {
+        "metadata": {
+            "luontiaika": "...",
+            "agentti": "Performatiivisuus",
+            "vaihe": 6,
+            "versio": "1.0"
+        },
+        "metodologinen_loki": "[MOCK] Performativity check.",
+        "edellisen_vaiheen_validointi": "...",
+        "semanttinen_tarkistussumma": "...",
+        "performatiivisuus_heuristiikat": [
+            {
+                "heuristiikka": "Buzzword density",
+                "lippu_nostettu": false,
+                "kuvaus": "Low jargon usage."
+            }
+        ],
+        "pre_mortem_analyysi": {
+            "suoritettu": true,
+            "hiljaiset_signaalit": [
+                "None"
+            ]
+        },
+        "yleisarvio_aitoudesta": "Orgaaninen"
+    },
+    "fact_checker_agent": {
+        "metadata": {
+            "luontiaika": "...",
+            "agentti": "Valvoja",
+            "vaihe": 7,
+            "versio": "1.0"
+        },
+        "metodologinen_loki": "[MOCK] Fact check.",
+        "edellisen_vaiheen_validointi": "...",
+        "semanttinen_tarkistussumma": "...",
+        "faktantarkistus_rfi": [
+            {
+                "vaite": "Earth is round",
+                "verifiointi_tulos": "Vahvistettu",
+                "lahde_tai_paattely": "General knowledge"
+            }
+        ],
+        "eettiset_havainnot": [
+            {
+                "tyyppi": "Ei havaittu",
+                "vakavuus": "N/A",
+                "kuvaus": "No ethical issues."
+            }
+        ]
+    },
+    "judge_agent": {
+        "metadata": {
+            "luontiaika": "...",
+            "agentti": "Tuomari",
+            "vaihe": 8,
+            "versio": "1.0"
+        },
+        "metodologinen_loki": "[MOCK] Final judgment.",
+        "edellisen_vaiheen_validointi": "...",
+        "semanttinen_tarkistussumma": "...",
+        "konfliktin_ratkaisut": [],
+        "mestaruus_poikkeama": {
+            "tunnistettu": false,
+            "perustelu": "Standard performance."
+        },
+        "aitous_epaily": {
+            "automaattinen_lippu": false,
+            "viesti_hitl:lle": "None"
+        },
+        "pisteet": {
+            "analyysi_ja_prosessi": {
+                "arvosana": 3,
+                "perustelu": "Good analysis."
+            },
+            "arviointi_ja_argumentaatio": {
+                "arvosana": 4,
+                "perustelu": "Excellent argumentation."
+            },
+            "synteesi_ja_luovuus": {
+                "arvosana": 3,
+                "perustelu": "Solid synthesis."
+            }
+        },
+        "kriittiset_havainnot_yhteenveto": [
+            "Strong work."
+        ]
+    },
+    "xai_agent": "# XAI-RAPORTTI (MOCK)\n\n## OSA 1: YHTEENVETO JA KRIITTISET HAVAINNOT\n\n**Päätelmät:**\nOpiskelijan suoritus on erinomainen. Reflektio osoittaa syvällistä ymmärrystä.\n\n**Kriittiset Havainnot:**\n*   Ei merkittäviä puutteita.\n*   Argumentaatio on johdonmukaista.\n\n## OSA 2: ANALYYTTINEN ARVIOINTI\n\n| Kriteeri | Pisteet | Perustelu |\n| :--- | :--- | :--- |\n| Analyysi | 4/4 | Erinomainen erittely. |\n| Argumentaatio | 4/4 | Vahvat perustelut. |\n| Synteesi | 3/4 | Hyvä kokonaisuus. |\n\n## OSA 3: XAI-RAPORTTI\n\n**Epävarmuus:** Matala.\n**Tekoälyn luotettavuus:** Korkea.\n\n## OSA 4: VASTUUVAPAUSLAUSEKE\nTämä on automaattisesti generoitu MOCK-raportti."
+}

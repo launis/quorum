@@ -21,7 +21,21 @@ class WorkflowEngine:
     """
     
     def __init__(self, db_path: str):
-        self.db = TinyDB(db_path, encoding='utf-8')
+        from backend.config import USE_MOCK_DB, DATA_DIR
+        import shutil
+        
+        if USE_MOCK_DB:
+            print("[WorkflowEngine] Using MOCK Database (TinyDB).")
+            # Use a separate mock DB file to avoid polluting the main DB
+            self.db_path = os.path.join(DATA_DIR, "db_mock.json")
+            # Optional: Reset mock DB on startup or ensure it has seed data
+            # For now, we just use a separate file.
+        else:
+            print("[WorkflowEngine] Using REAL Database (Firebase - Not Implemented).")
+            print("[WorkflowEngine] Fallback to Persistent TinyDB.")
+            self.db_path = db_path
+
+        self.db = TinyDB(self.db_path, encoding='utf-8')
         self.components_table = self.db.table('components')
         self.workflows_table = self.db.table('workflows')
         self.executions_table = self.db.table('executions')
@@ -92,6 +106,7 @@ class WorkflowEngine:
             # 3. Execute Steps
             context = inputs.copy()
             step_results = []
+            collected_citations = set() # Track unique citations
             
             # Robustly get steps
             steps = workflow.get('sequence', [])
@@ -171,9 +186,27 @@ class WorkflowEngine:
 
                         content = re.sub(r'\[Ks\. schemas\.py / (\w+)\]', replace_schema, content)
                         content = re.sub(r'\[Ks\. schemas\.py / (\w+) / EXAMPLE\]', replace_example, content)
+                        
+                        # Inject Citation if present
+                        if prompt.get('citation'):
+                            citation_text = prompt.get('citation')
+                            content += f"\n[Lähde: {citation_text}]"
+                            
+                            # Use full citation for bibliography if available, else short
+                            bib_entry = prompt.get('citation_full') or citation_text
+                            collected_citations.add(bib_entry)
+                            
                         system_instruction += f"\n\n{content}"
                 
                 system_instruction = system_instruction.strip()
+
+                # Inject Step-Level Citation (Ad-Hoc)
+                if execution_config.get('citation'):
+                    citation_text = execution_config.get('citation')
+                    system_instruction += f"\n\n[Lähde: {citation_text}]"
+                    
+                    bib_entry = execution_config.get('citation_full') or citation_text
+                    collected_citations.add(bib_entry)
 
                 # Instantiate Component
                 comp_record = self.components_table.get(Query()['class'] == component_class_name)
@@ -220,6 +253,10 @@ class WorkflowEngine:
                 
                 print(f"Executing component: {component_class_name}")
                 
+                # Special handling for XAI Reporter: Pass bibliography
+                if "XAI" in component_class_name or "Reporter" in component_class_name:
+                    current_inputs['bibliography_context'] = list(collected_citations)
+
                 # Pass system_instruction to execute/process
                 output = component_instance.execute(system_instruction=system_instruction, **current_inputs)
                 
@@ -328,26 +365,12 @@ class WorkflowEngine:
                         config = model_class.model_config
                         extra = config.get('json_schema_extra', {})
                         examples = extra.get('examples', [])
-                        if examples:
-                            return json.dumps(examples[0], indent=2, ensure_ascii=False)
-                        return f"[EXAMPLE ERROR: No examples found for {model_name}]"
-                    else:
-                        return f"[EXAMPLE ERROR: Model {model_name} not found]"
 
-                content = re.sub(r'\[Ks\. schemas\.py / (\w+)\]', replace_schema, content)
-                content = re.sub(r'\[Ks\. schemas\.py / (\w+) / EXAMPLE\]', replace_example, content)
-                system_instruction += f"\n\n{content}"
-        
-        # 4. Generate User Prompt (Template)
-        mock_inputs = {
-            "history_text": "[PLACEHOLDER: CHAT HISTORY]",
-            "product_text": "[PLACEHOLDER: PRODUCT TEXT]",
-            "reflection_text": "[PLACEHOLDER: REFLECTION TEXT]",
-            "tainted_data": {"data": "...", "metadata": "..."},
-            "todistuskartta": {"hypoteesit": [], "rag_todisteet": []},
-            "argumentaatioanalyysi": {"toulmin_analyysi": []},
-        }
-        
+            # Inject Citation if present
+            if prompt.get('citation'):
+                content += f"\n[Lähde: {prompt.get('citation')}]"
+
+            system_instruction += f"\n\n{content}"
         try:
             # Explicit mapping to avoid substring matching errors
             class_to_module = {

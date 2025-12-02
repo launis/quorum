@@ -55,8 +55,15 @@ class BaseAgent(BaseComponent):
     )
     def _call_llm(self, prompt: str, system_instruction: str | None = None, json_mode: bool = False) -> str:
         """
-        Helper to call the LLM using Google Gemini API.
+        Helper to call the LLM using Google Gemini API or Mock Service.
         """
+        from backend.config import USE_MOCK_LLM
+        
+        if USE_MOCK_LLM:
+            from backend.mock_llm import MockLLMService
+            mock_service = MockLLMService()
+            return mock_service.generate_content(prompt, system_instruction)
+
         import google.generativeai as genai
         import os
 
