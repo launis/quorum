@@ -75,6 +75,23 @@ def import_references(background_tasks: BackgroundTasks):
     background_tasks.add_task(_run_import)
     return {"status": "started", "message": "References import started in background."}
 
+@router.post("/export/seed-data")
+def export_seed_data(background_tasks: BackgroundTasks):
+    """
+    Triggers the seed data export script (DB -> seed_data.json).
+    """
+    def _run_export():
+        try:
+            res = run_script("update_seed_data.py")
+            print(f"Seed Data Export Output: {res.stdout}")
+            if res.returncode != 0:
+                print(f"Seed Data Export Error: {res.stderr}")
+        except Exception as e:
+            print(f"Seed Data Export Failed: {e}")
+
+    background_tasks.add_task(_run_export)
+    return {"status": "started", "message": "Seed data export started in background."}
+
 @router.post("/self-test")
 def run_self_test():
     """

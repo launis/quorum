@@ -257,7 +257,7 @@ with tab1:
         if selected_comp:
             st.info(f"ID: `{selected_comp.get('id')}` | Name: `{selected_comp.get('name')}` | Type: `{selected_comp.get('type')}`")
             
-            new_desc = st.text_input("Description", value=selected_comp.get('description', ''))
+            new_desc = st.text_input("Description", value=selected_comp.get('description', ''), key=f"desc_{selected_comp_name}")
             new_citation = st.text_input("Citation (Short)", value=selected_comp.get('citation', ''), key=f"citation_{selected_comp_name}")
             new_citation_full = st.text_area("Bibliography Entry (Full)", value=selected_comp.get('citation_full', ''), key=f"citation_full_{selected_comp_name}", height=100)
             
@@ -270,7 +270,7 @@ with tab1:
             except:
                 pass
                 
-            new_content = st.text_area("Content (Jinja2 Template or JSON)", value=content, height=400, key="comp_content_area_v2")
+            new_content = st.text_area("Content (Jinja2 Template or JSON)", value=content, height=400, key=f"comp_content_{selected_comp_name}")
             
             if st.button("Save Changes", key=f"save_comp_{selected_comp_name}"):
                 update_component(selected_comp_name, new_content, new_desc, new_citation, new_citation_full)

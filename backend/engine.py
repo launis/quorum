@@ -123,21 +123,8 @@ class WorkflowEngine:
                 # Prepare Inputs
                 current_inputs = context.copy()
                 
-                # Get Component Class
-                component_map = {
-                    "STEP_1_GUARD": "GuardAgent",
-                    "STEP_2_ANALYST": "AnalystAgent",
-                    "STEP_3_LOGICIAN": "LogicianAgent",
-                    "STEP_4_FALSIFIER": "LogicalFalsifierAgent",
-                    "STEP_5_CAUSAL": "CausalAnalystAgent",
-                    "STEP_6_PERFORMATIVITY": "PerformativityDetectorAgent",
-                    "STEP_7_FACT_CHECKER": "FactualOverseerAgent",
-                    "STEP_8_JUDGE": "JudgeAgent",
-                    "STEP_9_XAI": "XAIReporterAgent",
-                    "STEP_CRITICS_PANEL": "PanelAgent",
-                }
-                
-                component_class_name = component_map.get(step_id) or step_def.get('component')
+                # Get Component Class Name
+                component_class_name = step_def.get('component')
                 
                 if not component_class_name:
                     print(f"Error: Could not determine component for step {step_id}")
@@ -204,33 +191,23 @@ class WorkflowEngine:
                     collected_citations.add(bib_entry)
 
                 # Instantiate Component
+                # 1. Try to find by class name in components table (preferred)
                 comp_record = self.components_table.get(Query()['class'] == component_class_name)
-                if comp_record:
+                
+                # 2. If not found by class, try by name (fallback for older configs)
+                if not comp_record:
+                     comp_record = self.components_table.get(Query()['name'] == component_class_name)
+
+                if comp_record and 'module' in comp_record and 'class' in comp_record:
                     try:
-                        ComponentClass = self._load_component_class(comp_record['name'])
+                        module = importlib.import_module(comp_record['module'])
+                        ComponentClass = getattr(module, comp_record['class'])
                     except Exception as e:
-                         print(f"Error loading component {comp_record['name']}: {e}")
+                         print(f"Error loading component {comp_record['name']} from {comp_record['module']}: {e}")
                          continue
                 else:
-                    # Fallback: try to find in agents modules
-                    try:
-                        if "Guard" in component_class_name: module_name = "backend.agents.guard"
-                        elif "Analyst" in component_class_name: module_name = "backend.agents.analyst"
-                        elif "Logician" in component_class_name: module_name = "backend.agents.logician"
-                        elif "Falsifier" in component_class_name: module_name = "backend.agents.critics"
-                        elif "Causal" in component_class_name: module_name = "backend.agents.critics"
-                        elif "Performativity" in component_class_name: module_name = "backend.agents.critics"
-                        elif "Overseer" in component_class_name: module_name = "backend.agents.critics"
-                        elif "Judge" in component_class_name: module_name = "backend.agents.judge"
-                        elif "XAI" in component_class_name: module_name = "backend.agents.judge"
-                        elif "Panel" in component_class_name: module_name = "backend.agents.panel"
-                        else: module_name = "backend.agents.base"
-                        
-                        module = importlib.import_module(module_name)
-                        ComponentClass = getattr(module, component_class_name)
-                    except ImportError:
-                        print(f"Error: Could not load class {component_class_name}")
-                        continue
+                    print(f"Error: Component definition not found for class '{component_class_name}'. Ensure it is registered in 'components' table with 'module' and 'class'.")
+                    continue
 
                 # Determine model for this step
                 model_mapping = workflow.get('default_model_mapping')
@@ -308,25 +285,11 @@ class WorkflowEngine:
             raise ValueError(f"Step {step_id} not found in DB.")
 
         # 1. Determine Component Class
-        component_map = {
-            "STEP_1_GUARD": "GuardAgent",
-            "STEP_2_ANALYST": "AnalystAgent",
-            "STEP_3_LOGICIAN": "LogicianAgent",
-            "STEP_4_FALSIFIER": "LogicalFalsifierAgent",
-            "STEP_5_CAUSAL": "CausalAnalystAgent",
-            "STEP_6_PERFORMATIVITY": "PerformativityDetectorAgent",
-            "STEP_7_FACT_CHECKER": "FactualOverseerAgent",
-            "STEP_8_JUDGE": "JudgeAgent",
-            "STEP_9_XAI": "XAIReporterAgent",
-            "STEP_CRITICS_PANEL": "PanelAgent",
-        }
-        
-        component_class_name = component_map.get(step_id) or step_def.get('component')
+        component_class_name = step_def.get('component')
         print(f"DEBUG: Component class: {component_class_name}", flush=True)
+        
         if not component_class_name:
-             # Try to infer from ID if possible, or fail
-             if "PANEL" in step_id: component_class_name = "PanelAgent"
-             else: return {"error": f"No component mapping for {step_id}"}
+             return {"error": f"No component class defined for step {step_id}"}
 
         # 2. Get Step Definition
         execution_config = step_def.get('execution_config', {})
@@ -360,32 +323,39 @@ class WorkflowEngine:
                         config = model_class.model_config
                         extra = config.get('json_schema_extra', {})
                         examples = extra.get('examples', [])
+                        if examples:
+                            return json.dumps(examples[0], indent=2, ensure_ascii=False)
+                        return f"[EXAMPLE ERROR: No examples found for {model_name}]"
+                    else:
+                        return f"[EXAMPLE ERROR: Model {model_name} not found]"
 
-            # Inject Citation if present
-            if prompt.get('citation'):
-                content += f"\n[Lähde: {prompt.get('citation')}]"
-
-            system_instruction += f"\n\n{content}"
+                content = re.sub(r'\[Ks\. schemas\.py / (\w+)\]', replace_schema, content)
+                content = re.sub(r'\[Ks\. schemas\.py / (\w+) / EXAMPLE\]', replace_example, content)
+                
+                # Inject Citation if present
+                if prompt.get('citation'):
+                    content += f"\n[Lähde: {prompt.get('citation')}]"
+                    
+                system_instruction += f"\n\n{content}"
+        
+        user_prompt = ""
         try:
-            # Explicit mapping to avoid substring matching errors
-            class_to_module = {
-                "GuardAgent": "backend.agents.guard",
-                "AnalystAgent": "backend.agents.analyst",
-                "LogicianAgent": "backend.agents.logician",
-                "LogicalFalsifierAgent": "backend.agents.critics",
-                "CausalAnalystAgent": "backend.agents.critics",
-                "PerformativityDetectorAgent": "backend.agents.critics",
-                "FactualOverseerAgent": "backend.agents.critics",
-                "JudgeAgent": "backend.agents.judge",
-                "XAIReporterAgent": "backend.agents.judge",
-                "PanelAgent": "backend.agents.panel"
-            }
+            # Instantiate Component Dynamically
+            comp_record = self.components_table.get(Query()['class'] == component_class_name)
             
-            module_name = class_to_module.get(component_class_name, "backend.agents.base")
-            
-            module = importlib.import_module(module_name)
-            ComponentClass = getattr(module, component_class_name)
-            agent_instance = ComponentClass()
+            # Fallback: try by name if class lookup fails
+            if not comp_record:
+                 comp_record = self.components_table.get(Query()['name'] == component_class_name)
+
+            if comp_record and 'module' in comp_record and 'class' in comp_record:
+                module = importlib.import_module(comp_record['module'])
+                ComponentClass = getattr(module, comp_record['class'])
+                agent_instance = ComponentClass()
+            else:
+                # Fallback to base agent if not found (or raise error)
+                print(f"Warning: Component class {component_class_name} not found in DB. Using BaseAgent for preview.")
+                from backend.agents.base import BaseAgent
+                agent_instance = BaseAgent()
             
             # Define mock inputs for preview
             mock_inputs = {

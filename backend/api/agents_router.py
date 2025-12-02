@@ -4,33 +4,48 @@ import importlib
 
 router = APIRouter(prefix="/agents", tags=["Agents"])
 
+from tinydb import TinyDB, Query
+from backend.config import DB_PATH
+
 def _load_agent_class(agent_name: str):
     """
-    Dynamically loads an agent class by name.
+    Dynamically loads an agent class by name using the database registry.
     """
-    # Mapping of common agent names to modules
-    # This could be improved by using the database registry, but hardcoding for simplicity/robustness here
-    mapping = {
-        "GuardAgent": "backend.agents.guard",
-        "AnalystAgent": "backend.agents.analyst",
-        "LogicianAgent": "backend.agents.logician",
-        "LogicalFalsifierAgent": "backend.agents.critics",
-        "FactualOverseerAgent": "backend.agents.critics",
-        "CausalAnalystAgent": "backend.agents.critics",
-        "PerformativityDetectorAgent": "backend.agents.critics",
-        "JudgeAgent": "backend.agents.judge",
-        "XAIReporterAgent": "backend.agents.judge"
-    }
+    db = TinyDB(DB_PATH, encoding='utf-8')
+    components_table = db.table('components')
     
-    module_name = mapping.get(agent_name)
-    if not module_name:
-        raise ValueError(f"Unknown agent: {agent_name}")
+    # 1. Try to find by class name (preferred)
+    comp_record = components_table.get(Query()['class'] == agent_name)
+    
+    # 2. If not found by class, try by name (fallback)
+    if not comp_record:
+         comp_record = components_table.get(Query()['name'] == agent_name)
+
+    if not comp_record:
+        # Fallback for legacy hardcoded names if DB is not fully populated or for testing
+        # This ensures we don't break immediately if DB is missing something
+        legacy_mapping = {
+            "GuardAgent": "backend.agents.guard",
+            "AnalystAgent": "backend.agents.analyst",
+            "LogicianAgent": "backend.agents.logician",
+            "LogicalFalsifierAgent": "backend.agents.critics",
+            "FactualOverseerAgent": "backend.agents.critics",
+            "CausalAnalystAgent": "backend.agents.critics",
+            "PerformativityDetectorAgent": "backend.agents.critics",
+            "JudgeAgent": "backend.agents.judge",
+            "XAIReporterAgent": "backend.agents.judge"
+        }
+        module_name = legacy_mapping.get(agent_name)
+        if not module_name:
+             raise ValueError(f"Unknown agent: {agent_name} (not found in DB or legacy map)")
+    else:
+        module_name = comp_record.get('module')
         
     try:
         module = importlib.import_module(module_name)
         return getattr(module, agent_name)
     except (ImportError, AttributeError) as e:
-        raise ValueError(f"Failed to load agent {agent_name}: {e}")
+        raise ValueError(f"Failed to load agent {agent_name} from {module_name}: {e}")
 
 @router.post("/{agent_name}/run")
 async def run_agent(
