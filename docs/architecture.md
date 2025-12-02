@@ -12,7 +12,7 @@ graph TD
     subgraph "Backend Core"
         FastAPI --> Engine[Workflow Engine]
         Engine -->|Read/Write| DB[(TinyDB JSON)]
-        Engine -->|Generate| LLM[LLM Service (Gemini)]
+        Engine -->|Generate| LLM["LLM Service (Gemini)"]
         Engine -->|Execute| Hooks[Hybrid Hooks]
     end
     
