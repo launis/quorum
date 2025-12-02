@@ -7,11 +7,13 @@ from jinja2 import Environment, FileSystemLoader
 # Add project root to sys.path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from src.database.client import UTF8JSONStorage
+from backend.config import DB_PATH
 
 # Paths
 BASE_DIR = os.path.dirname(__file__)
 DATA_DIR = os.path.join(BASE_DIR, '..', 'data')
-DB_PATH = os.path.join(DATA_DIR, 'db.json')
+# DB_PATH imported from config
+SEED_DATA_PATH = os.path.join(DATA_DIR, 'seed_data.json')
 SEED_DATA_PATH = os.path.join(DATA_DIR, 'seed_data.json')
 FRAGMENTS_DIR = os.path.join(DATA_DIR, 'fragments')
 TEMPLATES_DIR = os.path.join(DATA_DIR, 'templates')
@@ -52,8 +54,9 @@ def load_fragments():
                 fragments[key] = json.load(f)
     return fragments
 
-def seed_database():
-    print(f"Seeding database from {SEED_DATA_PATH} to {DB_PATH} using SSOT fragments...")
+def seed_database(target_db_path=None):
+    db_path_to_use = target_db_path if target_db_path else DB_PATH
+    print(f"Seeding database from {SEED_DATA_PATH} to {db_path_to_use} using SSOT fragments...")
     
     # Load Fragments
     context = load_fragments()
@@ -66,7 +69,7 @@ def seed_database():
     with open(SEED_DATA_PATH, 'r', encoding='utf-8') as f:
         seed_data = json.load(f)
 
-    db = TinyDB(DB_PATH, storage=UTF8JSONStorage)
+    db = TinyDB(db_path_to_use, storage=UTF8JSONStorage)
     db.drop_tables()
     
     components_table = db.table('components')

@@ -8,7 +8,13 @@ Kriittiset Havainnot:
 ● {{ finding }}
 {% endfor %}
 {% if report_content.pre_mortem_signals %}
+  {% if report_content.pre_mortem_signals is mapping %}
+      {% for signal in report_content.pre_mortem_signals.hiljaiset_signaalit %}
+● [PRE-MORTEM HAVAINTO] {{ signal }}
+      {% endfor %}
+  {% else %}
 ● [PRE-MORTEM HAVAINTO] {{ report_content.pre_mortem_signals }}
+  {% endif %}
 {% endif %}
 
 HITL-VAHVISTUS VAADITAAN:
@@ -19,7 +25,11 @@ HITL-VAHVISTUS VAADITAAN:
 Eettiset ja Periaatteelliset Huomiot (SÄÄNTÖ 9):
 {% if report_content.ethical_issues %}
 {% for issue in report_content.ethical_issues %}
+  {% if issue is mapping %}
+● {{ issue.tyyppi }}: {{ issue.kuvaus }} (Vakavuus: {{ issue.vakavuus }})
+  {% else %}
 ● {{ issue }}
+  {% endif %}
 {% endfor %}
 {% else %}
 ● "Ei merkittäviä eettisiä tai periaatteellisia huomioita."
@@ -43,7 +53,13 @@ OSA 3: XAI-RAPORTTI (LÄPINÄKYVYYS JA EPÄVARMUUS)
 
 3.1. KRIITTISET AUDITOINTIKYSYMYKSET (HITL-VASTAUS VAADITAAN)
 {% for question in report_content.audit_questions %}
-{{ question }}
+  {% if question is mapping %}
+● Vaite: "{{ question.vaite }}"
+  - Tulos: {{ question.verifiointi_tulos }}
+  - Lähde/Päättely: {{ question.lahde_tai_paattely }}
+  {% else %}
+● {{ question }}
+  {% endif %}
 {% endfor %}
 
 3.2. EPÄVARMUUDEN KARTOITUS

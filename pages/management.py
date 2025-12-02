@@ -193,17 +193,6 @@ def update_workflow(wf_id, sequence, description, model_mapping):
         st.error(f"Error updating workflow: {e}")
     return False
 
-def trigger_export():
-    try:
-        res = requests.post(f"{API_URL}/config/export")
-        if res.status_code == 200:
-            st.success("Export triggered successfully!")
-            return True
-        else:
-            st.error(f"Failed to trigger export: {res.text}")
-    except Exception as e:
-        st.error(f"Error triggering export: {e}")
-    return False
 
 # --- UI Layout ---
 
@@ -216,10 +205,15 @@ with tab1:
     with st.expander("➕ Create New Component"):
         new_comp_id = st.text_input("Component ID (Unique)", placeholder="PROMPT_NEW_TASK")
         new_comp_name = st.text_input("Name", placeholder="My Custom Prompt")
-                # Let's look at update_component definition in this file... it's not defined in the snippet I saw earlier!
-                # Ah, I saw 'update_component' usage in the previous view (line 140 approx).
-                # Let's assume I can use requests.post or put.
-                
+        new_comp_type = st.selectbox("Type", ["prompt", "rule", "mandate", "persona", "context", "reference", "other"])
+        new_comp_desc = st.text_input("Description", placeholder="What this component does")
+        new_comp_content = st.text_area("Content", height=200, placeholder="Enter text or Jinja2 template...")
+        new_comp_citation = st.text_input("Citation (Short)", placeholder="(Author Year)")
+        
+        if st.button("Create Component"):
+            if not new_comp_id:
+                st.error("Component ID is required.")
+            else:
                 try:
                     payload = {
                         "id": new_comp_id,
@@ -228,11 +222,9 @@ with tab1:
                         "description": new_comp_desc,
                         "content": new_comp_content,
                         "citation": new_comp_citation,
-                        "module": "config", # Default module for custom configs
-                        "component_class": "ConfigComponent" # Default class
+                        "module": "config", 
+                        "component_class": "ConfigComponent"
                     }
-                    # We need a create endpoint. 
-                    # Let's assume POST /config/components is the standard REST way.
                     res = requests.post(f"{API_URL}/config/components", json=payload)
                     if res.status_code == 200:
                         st.success(f"Created component {new_comp_id} successfully!")
@@ -241,7 +233,6 @@ with tab1:
                         st.error(f"Failed to create: {res.text}")
                 except Exception as e:
                     st.error(f"Error creating component: {e}")
-
     st.divider()
     
     components = get_components()
@@ -279,7 +270,7 @@ with tab1:
             except:
                 pass
                 
-            new_content = st.text_area("Content (Jinja2 Template or JSON)", value=content, height=400, key="comp_content_area")
+            new_content = st.text_area("Content (Jinja2 Template or JSON)", value=content, height=400, key="comp_content_area_v2")
             
             if st.button("Save Changes", key=f"save_comp_{selected_comp_name}"):
                 update_component(selected_comp_name, new_content, new_desc, new_citation, new_citation_full)
@@ -421,21 +412,10 @@ with tab2:
                 if st.button("🗑️ Delete Workflow", key=f"del_wf_{selected_wf_id}", type="primary"):
                     if delete_workflow(selected_wf_id):
                         st.rerun()
-    else:
-        st.warning("No workflows found.")
 
 with tab3:
-    st.header("Steps Definition")
-    st.markdown("""
-    **Manage the building blocks of your workflows.**
-    
-    Here you define **Steps**, which are individual units of work. Each step consists of:
-    *   **Component:** The logic (Agent) that executes the task.
-    *   **Prompts:** Instructions for the AI.
-    *   **Hooks:** Pre- and post-processing functions for data manipulation.
-    *   **Schemas:** Data contracts for input and output validation.
-    """)
-    
+    st.header("Steps")
+
     # --- Fetch Dynamic Options ---
     try:
         res = requests.get(f"{API_URL}/config/introspection")
@@ -685,7 +665,49 @@ with tab3:
 # --- Sidebar Actions ---
 with st.sidebar:
     st.divider()
-    st.header("Actions")
-    if st.button("📤 Export to Files"):
-        trigger_export()
-        st.info("This will overwrite the files in `data/templates` and `data/seed_data.json` with the current database state.")
+    st.header("System Maintenance")
+    
+    if st.button("💾 Save State to Seed"):
+        try:
+            res = requests.post(f"{API_URL}/config/export-seed")
+            if res.status_code == 200:
+                st.success("System state saved to seed_data.json!")
+            else:
+                st.error(f"Failed to save state: {res.text}")
+        except Exception as e:
+            st.error(f"Error: {e}")
+
+    if st.button("⚠️ Reset DB from Seed"):
+        try:
+            res = requests.post(f"{API_URL}/config/reset-from-seed")
+            if res.status_code == 200:
+                st.success("Database reset from seed data!")
+                st.rerun()
+            else:
+                st.error(f"Failed to reset: {res.text}")
+        except Exception as e:
+            st.error(f"Error: {e}")
+
+    if st.button("🚀 Deploy Mock to Production"):
+        st.warning("This will overwrite the PRODUCTION database with the current Mock configuration (via seed_data.json).")
+        if st.checkbox("Confirm Deployment"):
+            try:
+                res = requests.post(f"{API_URL}/config/deploy-mock-to-prod")
+                if res.status_code == 200:
+                    st.success("Mock environment deployed to Production DB!")
+                else:
+                    st.error(f"Failed to deploy: {res.text}")
+            except Exception as e:
+                st.error(f"Error: {e}")
+
+    if st.button("⬅️ Deploy Production to Mock"):
+        st.warning("This will overwrite the MOCK database with the current Production configuration (via seed_data.json).")
+        if st.checkbox("Confirm Prod to Mock Deployment"):
+            try:
+                res = requests.post(f"{API_URL}/config/deploy-prod-to-mock")
+                if res.status_code == 200:
+                    st.success("Production environment deployed to Mock DB!")
+                else:
+                    st.error(f"Failed to deploy: {res.text}")
+            except Exception as e:
+                st.error(f"Error: {e}")

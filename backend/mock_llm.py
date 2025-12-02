@@ -61,15 +61,28 @@ class MockLLMService:
         # 1. Check System Instruction First (Most Reliable)
         if system_instruction:
             sys_lower = system_instruction.lower()
-            if "xai-raportoija" in sys_lower: return "xai_agent"
-            if "tuomari-agentti" in sys_lower: return "judge_agent"
-            if "valvoja-agentti" in sys_lower: return "fact_checker_agent"
-            if "performatiivisuus" in sys_lower: return "performativity_agent"
-            if "kausaalinen" in sys_lower: return "causal_agent"
-            if "falsifioija-agentti" in sys_lower: return "falsifier_agent"
-            if "loogikko-agentti" in sys_lower: return "logician_agent"
-            if "analyytikko-agentti" in sys_lower: return "analyst_agent"
-            if "vartija-agentti" in sys_lower: return "guard_agent"
+            
+            # Check for Output Schema names (Most Reliable)
+            if "tainteddata" in sys_lower: return "guard_agent"
+            if "todistuskartta" in sys_lower: return "analyst_agent"
+            if "argumentaatioanalyysi" in sys_lower: return "logician_agent"
+            if "logiikkaauditointi" in sys_lower: return "falsifier_agent"
+            if "kausaalinenauditointi" in sys_lower: return "causal_agent"
+            if "performatiivisuusauditointi" in sys_lower: return "performativity_agent"
+            if "etiikkajafakta" in sys_lower: return "fact_checker_agent"
+            if "tuomiojapisteet" in sys_lower: return "judge_agent"
+            if "xaireport" in sys_lower: return "xai_agent"
+
+            # Fallback: Check for specific Phase/Agent headers
+            if "vaihe 1: vartija-agentti" in sys_lower: return "guard_agent"
+            if "vaihe 2: analyytikko-agentti" in sys_lower: return "analyst_agent"
+            if "vaihe 3: loogikko-agentti" in sys_lower: return "logician_agent"
+            if "vaihe 4: falsifioija-agentti" in sys_lower: return "falsifier_agent"
+            if "vaihe 5: kausaalinen" in sys_lower: return "causal_agent"
+            if "vaihe 6: performatiivisuus" in sys_lower: return "performativity_agent"
+            if "vaihe 7: faktuaalinen" in sys_lower or "valvoja-agentti" in sys_lower: return "fact_checker_agent"
+            if "vaihe 8: tuomari-agentti" in sys_lower: return "judge_agent"
+            if "vaihe 9: xai-raportoija" in sys_lower: return "xai_agent"
 
         # 2. Check Prompt Content (Fallback)
         # Check for specific headers often found in prompts
@@ -127,6 +140,55 @@ class MockLLMService:
                     "synteesi_ja_luovuus": {"arvosana": 3, "perustelu": "Good"}
                 },
                 "kriittiset_havainnot_yhteenveto": ["Mock finding 1", "Mock finding 2"]
+            })
+        elif key == "analyst_agent":
+            return json.dumps({
+                "metadata": {"luontiaika": "2024-01-01T00:00:00Z", "agentti": "Analyytikko", "vaihe": 2},
+                "metodologinen_loki": "[MOCK] Analysis complete.",
+                "edellisen_vaiheen_validointi": "OK",
+                "semanttinen_tarkistussumma": "mock_hash",
+                "todistuskartta": [{"vaite_id": "V1", "vaite_teksti": "Mock Claim", "todistusaineisto": "Mock Evidence", "sitaatti": "Quote"}],
+                "puuttuvat_tiedot": []
+            })
+        elif key == "logician_agent":
+            return json.dumps({
+                "metadata": {"luontiaika": "2024-01-01T00:00:00Z", "agentti": "Loogikko", "vaihe": 3},
+                "metodologinen_loki": "[MOCK] Logic check complete.",
+                "edellisen_vaiheen_validointi": "OK",
+                "semanttinen_tarkistussumma": "mock_hash",
+                "argumentaatio_analyysi": [{"vaite_id": "V1", "premissit": ["P1"], "johtopaatos": "C1", "looginen_patevyys": "Valid", "virhepaatelmat": []}]
+            })
+        elif key == "falsifier_agent":
+            return json.dumps({
+                "metadata": {"luontiaika": "2024-01-01T00:00:00Z", "agentti": "Falsifioija", "vaihe": 4},
+                "metodologinen_loki": "[MOCK] Falsification complete.",
+                "edellisen_vaiheen_validointi": "OK",
+                "semanttinen_tarkistussumma": "mock_hash",
+                "falsifiointi_raportti": [{"vaite_id": "V1", "vasta_argumentti": "Counter", "falsifioitu": False}]
+            })
+        elif key == "causal_agent":
+            return json.dumps({
+                "metadata": {"luontiaika": "2024-01-01T00:00:00Z", "agentti": "Kausaalinen", "vaihe": 5},
+                "metodologinen_loki": "[MOCK] Causal check complete.",
+                "edellisen_vaiheen_validointi": "OK",
+                "semanttinen_tarkistussumma": "mock_hash",
+                "kausaalinen_analyysi": [{"vaite_id": "V1", "kausaalisuhde": "Correlation", "analyysi": "Mock analysis"}]
+            })
+        elif key == "performativity_agent":
+            return json.dumps({
+                "metadata": {"luontiaika": "2024-01-01T00:00:00Z", "agentti": "Performatiivisuus", "vaihe": 6},
+                "metodologinen_loki": "[MOCK] Performativity check complete.",
+                "edellisen_vaiheen_validointi": "OK",
+                "semanttinen_tarkistussumma": "mock_hash",
+                "performatiivisuus_analyysi": {"aitous_arvio": "Authentic", "havainnot": []}
+            })
+        elif key == "fact_checker_agent":
+            return json.dumps({
+                "metadata": {"luontiaika": "2024-01-01T00:00:00Z", "agentti": "Valvoja", "vaihe": 7},
+                "metodologinen_loki": "[MOCK] Fact check complete.",
+                "edellisen_vaiheen_validointi": "OK",
+                "semanttinen_tarkistussumma": "mock_hash",
+                "faktantarkistus_raportti": [{"vaite_id": "V1", "tulos": "Supported", "perustelu": "Mock source"}]
             })
         elif key == "xai_agent":
             return "# MOCK XAI REPORT\n\n## Summary\nThis is a fallback mock report."

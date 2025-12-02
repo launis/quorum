@@ -5,6 +5,8 @@ from pydantic import BaseModel
 import os
 
 from backend.exporter import export_db_to_files
+from backend.seeder import seed_database
+from backend.config import DB_PATH, PROD_DB_PATH, MOCK_DB_PATH
 
 router = APIRouter(
     prefix="/config",
@@ -12,9 +14,7 @@ router = APIRouter(
 )
 
 # Database Setup (Same as main.py)
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(BASE_DIR)), 'data')
-DB_PATH = os.path.join(DATA_DIR, 'db.json')
+# BASE_DIR and DATA_DIR are no longer needed here if we import DB_PATH
 
 def get_db():
     return TinyDB(DB_PATH, encoding='utf-8')
@@ -225,8 +225,53 @@ def delete_workflow(wf_id: str):
     table.remove(Workflow.id == wf_id)
     return {"status": "deleted", "id": wf_id}
 
-@router.post("/export")
-def trigger_export(background_tasks: BackgroundTasks):
+@router.post("/export-seed")
+def export_seed_data(background_tasks: BackgroundTasks):
     """Trigger an export of the database to the file system."""
     background_tasks.add_task(export_db_to_files)
     return {"status": "export_started", "message": "Exporting DB to files in background."}
+
+@router.post("/reset-from-seed")
+def reset_from_seed():
+    """Reset the database from the seed data file."""
+    try:
+        seed_database()
+        return {"status": "success", "message": "Database reset from seed data."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/deploy-mock-to-prod")
+def deploy_mock_to_prod():
+    """
+    Deploys the current Mock environment configuration to the Production Database.
+    1. Exports current DB (Mock) to seed_data.json
+    2. Resets Production DB from seed_data.json
+    """
+    try:
+        # 1. Export Mock DB to seed_data.json
+        export_db_to_files(source_db_path=MOCK_DB_PATH)
+        
+        # 2. Seed Production DB from the updated seed file
+        seed_database(target_db_path=PROD_DB_PATH)
+        
+        return {"status": "success", "message": "Mock environment deployed to Production DB."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/deploy-prod-to-mock")
+def deploy_prod_to_mock():
+    """
+    Deploys the current Production environment configuration to the Mock Database.
+    1. Exports current DB (Prod) to seed_data.json
+    2. Resets Mock DB from seed_data.json
+    """
+    try:
+        # 1. Export Prod DB to seed_data.json
+        export_db_to_files(source_db_path=PROD_DB_PATH)
+        
+        # 2. Seed Mock DB from the updated seed file
+        seed_database(target_db_path=MOCK_DB_PATH)
+        
+        return {"status": "success", "message": "Production environment deployed to Mock DB."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

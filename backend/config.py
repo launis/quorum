@@ -18,7 +18,16 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 # --- Paths ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(os.path.dirname(BASE_DIR), "data")
-DB_PATH = os.path.join(DATA_DIR, "db.json")
+
+MOCK_DB_PATH = os.path.join(DATA_DIR, "db_mock.json")
+PROD_DB_PATH = os.path.join(DATA_DIR, "db.json")
+
+if USE_MOCK_DB:
+    DB_PATH = MOCK_DB_PATH
+    print(f"CONFIG: Using MOCK DB at {DB_PATH}")
+else:
+    DB_PATH = PROD_DB_PATH
+    print(f"CONFIG: Using REAL DB at {DB_PATH}")
 MOCK_RESPONSES_PATH = os.path.join(DATA_DIR, "mock_responses.json")
 
 def get_db_path():

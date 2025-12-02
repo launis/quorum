@@ -68,10 +68,57 @@ The system dynamically combines the following to construct a complete prompt for
 This directory serves as temporary storage for files uploaded by the user through the UI, such as PDF documents.
 
 The process is as follows:
-*   A file is uploaded to this directory.
-*   The system processes the file (e.g., extracts text from a PDF).
-*   The extracted content is used as an input for a workflow.
-*   The folder can be cleaned periodically, either automatically or manually.
+1.  A file is uploaded to this directory.
+2.  The system processes the file (e.g., extracts text from a PDF).
+3.  The extracted content is used as an input for a workflow.
+4.  The folder can be cleaned periodically, either automatically or manually.
+
+## Detailed Database Usage & Structure
+
+This section details how data is retrieved from the database and injected into the AI agents during execution.
+
+### 1. Prompt Construction (The "Seeding" Phase)
+
+Before the system runs, the `seeder.py` script compiles the raw data into usable prompts.
+
+*   **Input**: `fragments/*.json` (Raw text snippets) + `templates/*.j2` (Structure).
+*   **Process**: The Jinja2 engine renders the templates, injecting the fragments (e.g., replacing `{{ rules.RULE_1 }}` with the actual text of Rule 1).
+*   **Storage**: The fully rendered text is stored in the `components` table of `db.json` with a specific ID (e.g., `PROMPT_ANALYST`).
+
+### 2. Dynamic Schema Injection (Runtime)
+
+To ensure the AI produces valid JSON that the system can understand, we use a **Dynamic Schema Injection** mechanism.
+
+*   **The Problem**: The AI needs to know exactly what JSON fields to output (e.g., `score`, `reasoning`, `evidence_id`).
+*   **The Solution**: In the prompt templates, we use special placeholders like:
+    `[Ks. schemas.py / TuomioJaPisteet]`
+*   **Execution**: When `WorkflowEngine` prepares a step:
+    1.  It reads the prompt text from `db.json`.
+    2.  It detects the `[Ks. schemas.py / ...]` tag.
+    3.  It looks up the corresponding Pydantic model in `backend/schemas.py`.
+    4.  It generates the **JSON Schema** for that model and replaces the tag with the actual schema definition.
+
+**Example:**
+If the prompt contains `[Ks. schemas.py / Hypoteesi]`, the engine injects:
+```json
+{
+  "properties": {
+    "id": {"type": "string"},
+    "vaite_teksti": {"type": "string"},
+    "loytyyko_todisteita": {"type": "boolean"}
+  },
+  "required": ["id", "vaite_teksti", "loytyyko_todisteita"]
+}
+```
+This guarantees that the AI's output matches the Python code's expectations.
+
+### 3. Citation & Source Tracking
+
+The database also tracks the academic or methodological sources for each prompt component.
+
+*   **Structure**: Each component in `seed_data.json` can have a `citation` field (e.g., *"Toulmin, S. (1958). The Uses of Argument"*).
+*   **Injection**: When the `WorkflowEngine` assembles the System Instruction, it automatically appends `[Lähde: Citation Text]` to the prompt.
+*   **Collection**: The engine collects all unique citations used in a workflow run and passes them to the **XAI Reporter** (Phase 9), which generates the final "Bibliography" section in the report.
 
 ## Data Flow Summary
 
@@ -98,4 +145,54 @@ graph TD
 
     style DB fill:#f9f,stroke:#333,stroke-width:2px
     style LLM fill:#ff9,stroke:#333,stroke-width:2px
+```
+
+## Data Synchronization Flows
+
+The following diagram illustrates how data flows between the Mock Database, Production Database, and the file system (`seed_data.json`) during various management operations.
+
+```mermaid
+graph TD
+    subgraph Filesystem
+        SEED[seed_data.json]
+        TEMPLATES[templates/*.j2]
+    end
+
+    subgraph Databases
+        MOCK_DB[(db_mock.json)]
+        PROD_DB[(db.json)]
+    end
+
+    subgraph UI Actions
+        SAVE[Save State to Seed]
+        RESET[Reset DB from Seed]
+        DEPLOY_M2P[🚀 Deploy Mock to Prod]
+        DEPLOY_P2M[⬅️ Deploy Prod to Mock]
+    end
+
+    %% Save State (Context dependent)
+    SAVE -.->|If Mock Mode| MOCK_DB
+    SAVE -.->|If Prod Mode| PROD_DB
+    MOCK_DB -->|Export| SEED
+    PROD_DB -->|Export| SEED
+
+    %% Reset (Context dependent)
+    RESET -.->|If Mock Mode| MOCK_DB
+    RESET -.->|If Prod Mode| PROD_DB
+    SEED -->|Import| MOCK_DB
+    SEED -->|Import| PROD_DB
+
+    %% Deploy Mock to Prod
+    DEPLOY_M2P -->|1. Export Mock| MOCK_DB
+    MOCK_DB -->|2. Update| SEED
+    SEED -->|3. Overwrite| PROD_DB
+
+    %% Deploy Prod to Mock
+    DEPLOY_P2M -->|1. Export Prod| PROD_DB
+    PROD_DB -->|2. Update| SEED
+    SEED -->|3. Overwrite| MOCK_DB
+
+    style SEED fill:#f9f,stroke:#333,stroke-width:2px
+    style MOCK_DB fill:#bbf,stroke:#333,stroke-width:2px
+    style PROD_DB fill:#bfb,stroke:#333,stroke-width:2px
 ```

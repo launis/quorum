@@ -16,6 +16,7 @@ from backend.api.admin_router import router as admin_router
 from backend.api.llm_router import router as llm_router
 from backend.api.config_router import router as config_router
 from dotenv import load_dotenv
+from backend.config import DB_PATH, DATA_DIR
 
 # Load environment variables
 load_dotenv()
@@ -34,11 +35,20 @@ app.include_router(admin_router)
 app.include_router(config_router)
 app.include_router(llm_router, prefix="/llm", tags=["LLM"])
 
+@app.middleware("http")
+async def add_no_cache_header(request, call_next):
+    response = await call_next(request)
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
 # Database setup
 # Robust path resolution for DB
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(os.path.dirname(BASE_DIR), 'data')
-DB_PATH = os.path.join(DATA_DIR, 'db.json')
+print(f"DEBUG: ACTIVE DATABASE PATH: {os.path.abspath(DB_PATH)}")
+
+# Ensure data dir exists
+os.makedirs(DATA_DIR, exist_ok=True)
 
 # Ensure data dir exists
 os.makedirs(DATA_DIR, exist_ok=True)

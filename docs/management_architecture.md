@@ -1,81 +1,43 @@
-# Proposed Architecture: Hybrid Database-First Management
+# Management Architecture
 
-This document outlines a proposed architecture where the system transitions from a "File-First" to a "Database-First" approach for configuration management. This enables a rich Management UI while maintaining the robustness of hardcoded data structures.
+The Management Architecture of Cognitive Quorum allows administrators to modify the system's "brain" (prompts, rules, and logic) without touching the source code. This is achieved through the **Management UI** in Streamlit.
 
-## Core Philosophy
+## The "Configuration as Code" Philosophy
 
-**"Seed from Files, Live in Database, Structure in Code."**
+While the system is running, its behavior is governed by the data in `db.json`. However, the "Source of Truth" is the `seed_data.json` file and the `fragments/` directory.
 
-1.  **Structure (Immutable)**: Data structures (Schemas) remain hardcoded in Python (`schemas.py`) to ensure type safety and validation.
-2.  **Semantics (Mutable)**: Rules, Prompts, and Workflows are stored in the Database (`db.json` / Firestore). Files (`data/fragments`) are only used for initialization (Seeding) and version control (Export).
+### Management Workflow
 
-## Component Breakdown
+1.  **Edit**: The user modifies a Rule or Prompt in the Streamlit UI.
+2.  **Runtime Update**: The change is immediately saved to `db.json` (or `db_mock.json`), affecting all *subsequent* workflow runs.
+3.  **Persistence**: To make the change permanent (surviving a database reset), the user must click **"Deploy to Seed"** (or "Deploy Mock to Prod").
 
-| Component | Source of Truth (Runtime) | Source of Truth (Init/Backup) | Editable via UI? |
-| :--- | :--- | :--- | :--- |
-| **Tietorakenteet** (Schemas) | `backend/schemas.py` | `backend/schemas.py` | ❌ **Ei** (Vaatii koodimuutoksen) |
-| **Säännöt & Mandaatit** | Tietokanta (`db.json`) | `data/fragments/*.json` | ✅ **Kyllä** (Lomake-editori) |
-| **Prompti-pohjat** | Tietokanta (`db.json`) | `data/templates/*.j2` | ✅ **Kyllä** (Tekstieditori) |
-| **Workflow-määrittelyt** | Tietokanta (`db.json`) | `data/seed_data.json` | ✅ **Kyllä** (Flowchart-editori) |
+## UI Components (`pages/management.py`)
 
-## Architecture Diagram
+The Management Dashboard is divided into several tabs:
 
-```mermaid
-graph TD
-    subgraph "Development Environment"
-        Code[backend/schemas.py]
-        Files[data/fragments/*.json<br/>data/templates/*.j2]
-    end
+### 1. Prompts & Rules
+*   **Editor**: A rich text editor for modifying prompt templates.
+*   **Fragment Manager**: Allows editing specific `rules.json` or `mandates.json` entries.
+*   **Preview**: Shows how a prompt will look after Jinja2 rendering.
 
-    subgraph "Runtime System"
-        Seeder[Seeder Service]
-        DB[(Operational Database<br/>TinyDB / Firestore)]
-        Engine[Workflow Engine]
-        API[Management API]
-    end
+### 2. System Maintenance
+*   **Database Reset**: Wipes the current `db.json` and reloads from `seed_data.json`.
+*   **Migration**: Tools to move data between Mock and Production environments.
+    *   *Deploy Mock to Prod*: Promotes tested configurations to the live system.
+    *   *Deploy Prod to Mock*: Copies live data to the sandbox for debugging.
 
-    subgraph "User Interface"
-        UI[Management Dashboard]
-    end
+### 3. Workflow Editor
+*   **Visualizer**: Displays the current workflow steps and their connections.
+*   **Configuration**: Allows changing the model (e.g., Flash vs Pro) for specific steps.
 
-    %% Flows
-    Code -.->|Validates| Engine
-    Files -- "1. Seed (Init)" --> Seeder
-    Seeder -- "2. Insert/Reset" --> DB
-    
-    DB -- "3. Read/Write Config" <--> API
-    API -- "4. Manage Rules/Prompts" <--> UI
-    
-    DB -- "5. Fetch Active Config" --> Engine
-    
-    API -. "6. Export (Optional)" .-> Files
-```
+## Data Synchronization
 
-## Operational Workflows
+The system maintains two parallel environments:
 
-### 1. Initialization (Seeding)
-*   **Trigger**: System startup (if DB empty) or manual "Factory Reset".
-*   **Action**: The `Seeder` reads JSON fragments and Jinja2 templates from the file system and inserts them into the Database.
-*   **Result**: The Database is populated with the default configuration.
+| Environment | Database File | Purpose |
+| :--- | :--- | :--- |
+| **MOCK** | `data/db_mock.json` | Sandbox for testing new prompts and rules safely. |
+| **PROD** | `data/db.json` | The live environment used for actual assessments. |
 
-### 2. Runtime Execution
-*   **Trigger**: User starts a workflow.
-*   **Action**: The `Workflow Engine` fetches the *current* rules and prompts directly from the Database.
-*   **Benefit**: Changes made in the UI are immediately reflected in the next run without restarting the server.
-
-### 3. Management (UI Editing)
-*   **Trigger**: Admin user edits a rule in the Dashboard.
-*   **Action**: The UI sends a `PUT` request to the API. The API updates the record in the Database.
-*   **Constraint**: The UI cannot change the *structure* of the data (e.g., cannot add a new field to `TuomioJaPisteet`), only the *instructions* on how to fill it.
-
-### 4. Version Control (Export)
-*   **Trigger**: Developer wants to commit changes made in the UI to Git.
-*   **Action**: "Export Configuration" feature dumps the current Database state back into `data/fragments/*.json` and `data/templates/*.j2`.
-*   **Result**: The file system is updated, ready for `git commit`.
-
-## Benefits
-
-1.  **No Code for Logic Changes**: Subject Matter Experts (SMEs) can tune prompts and rules via a UI without touching Python code.
-2.  **Immediate Feedback**: Changes take effect instantly.
-3.  **Safety**: Hardcoded schemas prevent the UI from breaking the internal data flow or validation logic.
-4.  **Best of Both Worlds**: Combines the flexibility of a CMS (Content Management System) with the rigor of a typed software application.
+The **Management UI** automatically detects which environment is active (based on `.env` or backend config) and operates on the corresponding database.

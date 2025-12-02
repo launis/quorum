@@ -1,83 +1,54 @@
-# Prompt Engineering & Data Seeding
+# Prompt Engineering & Dynamic Construction
 
-This document explains how Cognitive Quorum v2 constructs prompts dynamically and manages its configuration data.
+Cognitive Quorum uses a sophisticated **Dynamic Prompt Construction** system. Instead of hardcoding prompts in Python strings, we assemble them at runtime from modular components.
 
-## 1. Dynamic Prompt Construction
+## The Architecture of a Prompt
 
-The system does not use static, pre-written prompts. Instead, it assembles prompts at runtime from modular components stored in the database. This approach ensures flexibility, context-awareness, and strict schema enforcement.
+A final prompt sent to the LLM is composed of three layers:
 
-### The Construction Pipeline
+1.  **Template (`.j2`)**: The structural skeleton.
+2.  **Fragments (`.json`)**: Reusable content blocks (Rules, Mandates).
+3.  **Context (Runtime Data)**: The specific input data for the task.
 
-The `Executor` class (defined in `src/engine/executor.py`) is responsible for building the final prompt sent to the LLM.
+### 1. Jinja2 Templates
 
-```mermaid
-graph TD
-    A[Start Step Execution] --> B{Load Step Config};
-    B --> C[Fetch MASTER_INSTRUCTIONS];
-    B --> D[Fetch Step-Specific Prompt];
-    D --> E[Inject Context Data JSON];
-    E --> F[Inject Output Schema];
-    F --> G[Send to LLM];
+We use **Jinja2** for templating. This allows for logic within the prompt itself.
+
+**Example (`templates/prompt_analyst.j2`):**
+```jinja2
+You are the ANALYST AGENT.
+
+{{ MANDATES.SYSTEM_2_THINKING }}
+
+YOUR TASK:
+Analyze the following input data:
+{{ input_data }}
+
+CRITERIA:
+{% for criterion in criteria.BARS_MATRIX %}
+- {{ criterion.name }}: {{ criterion.description }}
+{% endfor %}
 ```
 
-### Components of a Prompt
+### 2. Fragments
 
-1.  **Master Instructions (`MASTER_INSTRUCTIONS`):**
-    *   **Source:** `components` table in the database (seeded from `data/templates/master_instructions.j2`).
-    *   **Purpose:** Defines the global persona (Cognitive Quorum), core principles (e.g., Truth, Role Adherence), and universal rules.
-    *   **Example:** "You are COGNITIVE QUORUM... Do not hallucinate."
+Fragments are small, atomic pieces of text stored in `data/fragments/`.
 
-2.  **Step-Specific Prompt (e.g., `PROMPT_GUARD`):**
-    *   **Source:** `components` table in the database (seeded from `data/templates/prompt_*.j2`).
-    *   **Purpose:** Provides the specific instructions for the current agent's task.
-    *   **Example:** "PHASE 1: GUARD AGENT... Sanitize input..."
+*   **Why?** If we want to update the definition of "Critical Thinking," we change it in `fragments/mandates.json` once, and it automatically updates every agent that uses that mandate.
 
-3.  **Context Data (`CONTEXT DATA`):**
-    *   **Source:** Runtime execution context.
-    *   **Purpose:** Provides the actual data for the agent to process, such as uploaded files or outputs from previous agents.
-    *   **Format:** Injected as a JSON string under the header `CONTEXT DATA`.
+### 3. Schema Injection
 
-4.  **Output Schema Enforcement:**
-    *   **Source:** `backend/schemas.py` (via `SchemaRegistry`).
-    *   **Purpose:** Instructs the LLM to produce a valid JSON output that conforms to a specific Pydantic model.
-    *   **Mechanism:** The system generates a JSON Schema from the corresponding Pydantic model and appends it to the prompt with a strict instruction: *"SYSTEM: You must output a valid JSON object that strictly matches the following schema..."*
+To ensure the LLM outputs valid JSON, we inject the JSON Schema directly into the prompt.
 
-## 2. Data Seeding (Configuration Management)
+*   **Syntax**: `[Ks. schemas.py / ModelName]`
+*   **Mechanism**: The `WorkflowEngine` parses this tag, looks up the Pydantic model in `backend/schemas.py`, and inserts the corresponding JSON Schema definition.
 
-The system's "intelligence"—including prompts, rules, and workflow definitions—is defined as **data**, not code. This data is managed in JSON fragments and Jinja2 templates, which are then seeded into the database.
+## Prompt Engineering Workflow
 
-### The Seeding Process
+To create or modify a prompt:
 
-```mermaid
-sequenceDiagram
-    participant Fragments as data/fragments/*.json
-    participant Templates as data/templates/*.j2
-    participant Script as backend/seeder.py
-    participant DB as Database (db.json)
-    participant App as Application
-
-    Note over Fragments, Templates: Single Source of Truth (SSOT)
-    Script->>Fragments: Load Rules, Mandates, Criteria
-    Script->>Templates: Load Prompt Templates
-    Script->>Script: Render Final Prompts (Jinja2)
-    Script->>DB: Drop Tables (Clean Slate)
-    Script->>DB: Insert Components (Rendered Prompts)
-    Script->>DB: Insert Steps & Workflows
-    Note over DB: Runtime Data Store
-    App->>DB: Read Prompts at Runtime
-```
-
-### Key Files
-
-*   **`data/fragments/`**: Contains reusable JSON snippets, such as rules and mandates, that can be injected into prompt templates.
-*   **`data/templates/`**: Contains the Jinja2 templates used to build the final prompt components.
-*   **`backend/seeder.py`**: This script combines fragments and templates, renders the final prompt components, and loads them into the TinyDB database. Its responsibilities include:
-    *   Cleaning up the database.
-    *   Validating model configurations.
-    *   Inserting all configuration data.
-
-### How to Modify Prompts
-
-1.  **Edit** the relevant Jinja2 template in `data/templates/` or JSON fragment in `data/fragments/`.
-2.  **Run** the seeder script to update the database: `python backend/seeder.py`.
-3.  **Restart** the application to ensure it loads the new configuration from the database.
+1.  **Identify the Goal**: What should this agent do?
+2.  **Select Fragments**: Which existing Rules or Mandates apply?
+3.  **Draft the Template**: Create a new `.j2` file (or edit via UI) combining instructions and fragments.
+4.  **Define Output Schema**: Create a Pydantic model in `backend/schemas.py` and reference it in the template.
+5.  **Test**: Run the workflow in Mock mode to verify the LLM understands the instructions and adheres to the schema.

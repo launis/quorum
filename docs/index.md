@@ -1,33 +1,39 @@
-# Cognitive Quorum v2
+# Cognitive Quorum v2 Documentation
 
-**Cognitive Quorum** is a next-generation **Agentic Workflow Engine** designed for high-stakes, multi-agent AI assessments. It bridges the gap between probabilistic Generative AI and deterministic software engineering by implementing a **Neuro-symbolic architecture**.
+Welcome to the documentation for **Cognitive Quorum**, an advanced AI-driven assessment and auditing system.
 
-By treating prompts, rules, and workflows as data, Cognitive Quorum enables rapid iteration and precise control over complex reasoning chains.
+## Overview
+
+Cognitive Quorum is designed to simulate a "quorum" of expert AI agents that evaluate, debate, and judge complex inputs. Unlike simple chatbot interactions, this system employs a rigorous, multi-step cognitive workflow to ensure high-quality, unbiased, and hallucination-resistant results.
 
 ## Key Features
 
-- **🧩 Generic Engine**: A unified execution core that runs any workflow defined in JSON.
-- **🤖 Hybrid Architecture**: Seamlessly orchestrates LLMs (such as Gemini and GPT-4) with deterministic Python Hooks for search, math, and logic.
-- **💾 Data-Driven Core**: All business logic—prompts, rules, and workflows—is decoupled from the application code and stored in a database, seeded from modular fragments and templates.
-- **🔍 Explainable AI (XAI)**: Built-in transparency with citation tracking, uncertainty quantification, and detailed audit trails.
-- **⚡ Multi-Model Agnostic**: Switch language models at any step to optimize for cost, speed, or reasoning capability.
-
-## Getting Started
-
-1.  **Set Up Environment**: Ensure you have Python 3.10+ and all required dependencies installed.
-2.  **Configure Secrets**: Create a `.env` file with your API keys (e.g., `GEMINI_API_KEY`, `OPENAI_API_KEY`).
-3.  **Launch the UI**:
-    ```bash
-    streamlit run app.py
-    ```
-4.  **Execute a Workflow**: Select a workflow to run. For example, choose `KVOORUMI_PHASED_A` to perform a comprehensive assessment.
+*   **Multi-Agent Architecture**: Uses specialized agents (Analyst, Logician, Critics, Judge) to handle different cognitive tasks.
+*   **Data-Driven Logic**: All prompts, rules, and workflow steps are defined in a database (`db.json`), allowing for dynamic reconfiguration without code changes.
+*   **Hybrid Execution**: Combines Large Language Models (LLM) with deterministic Python code (Hooks) for tasks like fact-checking, math, and validation.
+*   **Transparent Auditing**: Every step of the reasoning process is recorded, from initial evidence gathering to the final verdict.
 
 ## Documentation Structure
 
-- **[Architecture](architecture.md)**: A deep dive into the Generic Engine and Registry Pattern.
-- **[Data Management](data_management.md)**: An explanation of the data-driven core (JSON, TinyDB, Templates).
-- **[Prompt Engineering](prompt_engineering.md)**: Strategies for constructing effective agent prompts.
-- **[Components & Hooks](components.md)**: A reference for available Python hooks and hybrid components.
-- **[API Reference](reference.md)**: Technical documentation for the backend classes.
-- **[Interactive API](swagger/index.md)**: A live Swagger UI for testing API endpoints.
-- **[Standalone API Viewer](api-view.html)**: A lightweight, full-screen Swagger UI.
+*   **[Architecture](architecture.md)**: High-level technical design, including the Backend (FastAPI) and Frontend (Streamlit).
+*   **[Components & Agents](components.md)**: Detailed breakdown of the specific AI agents and hybrid hooks used in the system.
+*   **[Data Management](data_management.md)**: How data is stored, seeded, and managed (TinyDB, Seed Data, Fragments).
+*   **[Prompt Engineering](prompt_engineering.md)**: Explanation of the dynamic prompt construction system using Jinja2 templates.
+*   **[Management UI](management_architecture.md)**: Guide to the administrative interface for managing rules and prompts.
+*   **[API Reference](reference.md)**: Details on the backend REST API.
+
+## Getting Started
+
+To run the system locally:
+
+1.  **Start the Services**:
+    ```bash
+    .\run_locally.bat
+    ```
+    This starts both the FastAPI backend (port 8000) and the Streamlit frontend (port 8501).
+
+2.  **Access the UI**:
+    Open [http://localhost:8501](http://localhost:8501) in your browser.
+
+3.  **View API Docs**:
+    Open [http://localhost:8000/docs](http://localhost:8000/docs) for the Swagger UI.

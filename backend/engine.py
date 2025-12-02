@@ -20,20 +20,15 @@ class WorkflowEngine:
     Orchestrates the execution of workflows.
     """
     
-    def __init__(self, db_path: str):
-        from backend.config import USE_MOCK_DB, DATA_DIR
-        import shutil
+    def __init__(self, db_path: str = None):
+        from backend.config import DB_PATH
         
-        if USE_MOCK_DB:
-            print("[WorkflowEngine] Using MOCK Database (TinyDB).")
-            # Use a separate mock DB file to avoid polluting the main DB
-            self.db_path = os.path.join(DATA_DIR, "db_mock.json")
-            # Optional: Reset mock DB on startup or ensure it has seed data
-            # For now, we just use a separate file.
-        else:
-            print("[WorkflowEngine] Using REAL Database (Firebase - Not Implemented).")
-            print("[WorkflowEngine] Fallback to Persistent TinyDB.")
+        if db_path:
             self.db_path = db_path
+        else:
+            self.db_path = DB_PATH
+
+        print(f"[WorkflowEngine] Using Database at: {self.db_path}")
 
         self.db = TinyDB(self.db_path, encoding='utf-8')
         self.components_table = self.db.table('components')
@@ -391,6 +386,21 @@ class WorkflowEngine:
             module = importlib.import_module(module_name)
             ComponentClass = getattr(module, component_class_name)
             agent_instance = ComponentClass()
+            
+            # Define mock inputs for preview
+            mock_inputs = {
+                "history_text": "[PLACEHOLDER: Chat History]",
+                "product_text": "[PLACEHOLDER: Final Product]",
+                "reflection_text": "[PLACEHOLDER: Reflection Document]",
+                "tainted_data": {},
+                "evidence_map": {},
+                "argument_analysis": {},
+                "logical_errors": {},
+                "causal_analysis": {},
+                "performativity_analysis": {},
+                "fact_check_report": {},
+                "bibliography_context": []
+            }
             
             # Prepare inputs based on agent requirements to avoid potential crashes with unused complex types
             if "Guard" in component_class_name:

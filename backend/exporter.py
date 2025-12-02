@@ -2,11 +2,13 @@ import json
 import os
 import sys
 from tinydb import TinyDB, Query
+from backend.config import DB_PATH
 
 # Paths (mirroring seeder.py)
 BASE_DIR = os.path.dirname(__file__)
 DATA_DIR = os.path.join(BASE_DIR, '..', 'data')
-DB_PATH = os.path.join(DATA_DIR, 'db.json')
+# DB_PATH imported from config
+SEED_DATA_PATH = os.path.join(DATA_DIR, 'seed_data.json')
 SEED_DATA_PATH = os.path.join(DATA_DIR, 'seed_data.json')
 FRAGMENTS_DIR = os.path.join(DATA_DIR, 'fragments')
 TEMPLATES_DIR = os.path.join(DATA_DIR, 'templates')
@@ -26,15 +28,16 @@ TEMPLATE_MAP = {
     "PROMPT_XAI": "prompt_xai.j2"
 }
 
-def export_db_to_files():
+def export_db_to_files(source_db_path=None):
     """
     Exports the current state of the database back to the file system.
     1. Components -> templates/*.j2 (WARNING: Overwrites dynamic templates with static content)
     2. Workflows -> seed_data.json
     """
-    print("Starting export from DB to files...")
+    db_path_to_use = source_db_path if source_db_path else DB_PATH
+    print(f"Starting export from DB ({db_path_to_use}) to files...")
     
-    db = TinyDB(DB_PATH, encoding='utf-8')
+    db = TinyDB(db_path_to_use, encoding='utf-8')
     components_table = db.table('components')
     workflows_table = db.table('workflows')
     steps_table = db.table('steps')
