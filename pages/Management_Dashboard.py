@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 import json
+import time
 
 # Configuration
 API_URL = "http://localhost:8000"
@@ -196,7 +197,7 @@ def update_workflow(wf_id, sequence, description, model_mapping):
 
 # --- UI Layout ---
 
-tab1, tab2, tab3 = st.tabs(["Prompts & Rules", "Workflows", "Steps"])
+tab1, tab2, tab3, tab4 = st.tabs(["Prompts & Rules", "Workflows", "Steps", "Kielletyt Ilmaisut"])
 
 with tab1:
     st.header("Prompts & Rules")
@@ -505,7 +506,7 @@ with tab3:
                 )
                 new_step_citation = st.text_input("Citation (Short)", help="In-text citation for custom instructions.")
                 new_step_citation_full = st.text_area("Bibliography Entry (Full)", help="Full reference for bibliography.", height=100)
-
+                
             # Live Preview of JSON (Visual Only)
             preview_data_display = {
                 "id": new_step_id,
@@ -661,6 +662,89 @@ with tab3:
                 if st.button("🗑️ Delete Step", key=f"del_step_{selected_step_id}", type="primary"):
                      if delete_step(selected_step_id):
                          st.rerun()
+
+with tab4:
+    st.header("🚫 Kielletyt Ilmaisut (Banned Phrases)")
+    st.markdown("Hallitse sanoja ja lauseita, jotka `GuardAgent` tunnistaa uhkiksi.")
+    
+    # Fetch existing phrases
+    try:
+        res = requests.get(f"{API_URL}/admin/banned-phrases")
+        if res.status_code == 200:
+            banned_phrases = res.json()
+        else:
+            st.error(f"Failed to fetch banned phrases: {res.text}")
+            banned_phrases = []
+    except Exception as e:
+        st.error(f"Error: {e}")
+        banned_phrases = []
+        
+    # --- Add New Phrase ---
+    with st.expander("➕ Lisää uusi kielletty ilmaisu"):
+        with st.form("add_banned_phrase_form"):
+            new_phrase = st.text_input("Ilmaisu (Phrase)", placeholder="esim. 'ignore previous instructions'")
+            new_lang = st.selectbox("Kieli (Language)", ["fi", "en"])
+            
+            if st.form_submit_button("Lisää"):
+                if new_phrase:
+                    try:
+                        payload = {"phrase": new_phrase, "language": new_lang}
+                        res = requests.post(f"{API_URL}/admin/banned-phrases", json=payload)
+                        if res.status_code == 200:
+                            st.success("Lisätty!")
+                            st.rerun()
+                        else:
+                            st.error(f"Virhe: {res.text}")
+                    except Exception as e:
+                        st.error(f"Error: {e}")
+                else:
+                    st.warning("Kirjoita ilmaisu.")
+
+    # --- Generate with AI ---
+    with st.expander("✨ Generoi tekoälyllä (Generate with AI)"):
+        st.markdown("Luo automaattisesti uusia kiellettyjä ilmaisuja, jotka eivät ole vielä listalla.")
+        gen_lang = st.selectbox("Valitse kieli (Select Language)", ["fi", "en"], key="gen_lang_select")
+        
+        if st.button("Generoi 10 uutta ilmaisua"):
+            with st.spinner("Generoidaan... (Tämä voi kestää hetken)"):
+                try:
+                    res = requests.post(f"{API_URL}/admin/banned-phrases/generate", json={"language": gen_lang})
+                    if res.status_code == 200:
+                        data = res.json()
+                        st.success(f"{data.get('message')}")
+                        if data.get('added_phrases'):
+                            st.write("Lisätyt ilmaisut:")
+                            st.json(data.get('added_phrases'))
+                        time.sleep(2)
+                        st.rerun()
+                    else:
+                        st.error(f"Virhe generoinnissa: {res.text}")
+                except Exception as e:
+                    st.error(f"Error: {e}")
+
+    st.divider()
+    
+    # List Phrases
+    if banned_phrases:
+        for item in banned_phrases:
+            col_phrase, col_lang, col_action = st.columns([3, 1, 1])
+            with col_phrase:
+                st.write(f"**{item.get('phrase')}**")
+            with col_lang:
+                st.caption(f"Kieli: {item.get('language')}")
+            with col_action:
+                if st.button("Poista", key=f"del_bp_{item.get('doc_id')}"):
+                    try:
+                        res = requests.delete(f"{API_URL}/admin/banned-phrases/{item.get('doc_id')}")
+                        if res.status_code == 200:
+                            st.success("Poistettu!")
+                            st.rerun()
+                        else:
+                            st.error("Virhe poistettaessa.")
+                    except Exception as e:
+                        st.error(f"Error: {e}")
+    else:
+        st.info("Ei kiellettyjä ilmaisuja tietokannassa.")
 
 # --- Sidebar Actions ---
 with st.sidebar:

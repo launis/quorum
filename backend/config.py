@@ -14,6 +14,7 @@ USE_MOCK_DB = os.getenv("USE_MOCK_DB", "True").lower() == "true"
 
 # --- API Keys ---
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+INITIAL_MODEL = os.getenv("INITIAL_MODEL", "gemini-1.5-flash")
 
 # --- Paths ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

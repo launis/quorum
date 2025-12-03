@@ -12,21 +12,21 @@ class BaseAgent(BaseComponent):
         self.model = model
         # TODO: Initialize LLM client here (e.g., Gemini, OpenAI)
         # self.client = ...
-    def execute(self, **kwargs) -> dict[str, Any]:
+    def execute(self, validation_schema: Any = None, **kwargs) -> dict[str, Any]:
         """
         Standard execution entry point.
         Subclasses should implement _process to handle specific logic.
         """
         print(f"[{self.__class__.__name__}] Starting execution...")
         try:
-            result = self._process(**kwargs)
+            result = self._process(validation_schema=validation_schema, **kwargs)
             print(f"[{self.__class__.__name__}] Execution completed.")
             return result
         except Exception as e:
             print(f"[{self.__class__.__name__}] Execution failed: {e}")
             raise e
 
-    def _process(self, **kwargs) -> dict[str, Any]:
+    def _process(self, validation_schema: Any = None, **kwargs) -> dict[str, Any]:
         """
         Internal processing logic to be implemented by subclasses.
         """

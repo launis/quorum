@@ -16,6 +16,7 @@ Cognitive Quorum is designed to simulate a "quorum" of expert AI agents that eva
 ## Documentation Structure
 
 *   **[Architecture](architecture.md)**: High-level technical design, including the Backend (FastAPI) and Frontend (Streamlit).
+*   **[Structured Cognitive Architecture](structured_cognitive_architecture.md)**: Deep dive into the "Mind vs. Spine" design pattern and Monolithic Validation.
 *   **[Components & Agents](components.md)**: Detailed breakdown of the specific AI agents and hybrid hooks used in the system.
 *   **[Data Management](data_management.md)**: How data is stored, seeded, and managed (TinyDB, Seed Data, Fragments).
 *   **[Prompt Engineering](prompt_engineering.md)**: Explanation of the dynamic prompt construction system using Jinja2 templates.

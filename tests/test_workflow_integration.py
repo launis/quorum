@@ -92,13 +92,15 @@ def test_full_workflow_execution():
                 result = status_data.get("result", {})
                 
                 # Basic Validation
+                for k in result.keys():
+                    print(f"[TEST] Key: {k}")
                 assert result is not None, "Result is empty"
-                assert "xai_report" in result or "report_content" in result, "XAI Report not found in result"
+                assert "xai_report" in result or "report_content" in result or "xai_report_content" in result, "XAI Report not found in result"
                 
                 # Check for timestamp injection (if visible in report or metadata)
                 # Note: We might not see the raw metadata in the final report text easily, 
                 # but we can check if the report content is substantial.
-                report_content = result.get("xai_report") or result.get("report_content")
+                report_content = result.get("xai_report") or result.get("report_content") or result.get("xai_report_content")
                 assert len(report_content) > 100, "Report content is suspiciously short"
                 
                 return # Success

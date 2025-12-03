@@ -37,6 +37,7 @@ class WorkflowEngine:
         self.steps_table = self.db.table('steps')
         self.rules_table = self.db.table('rules')
         self.prompts_table = self.db.table('prompts')
+        self.banned_phrases_table = self.db.table('banned_phrases')
 
     def register_component(self, name: str, module_path: str, class_name: str):
         """
@@ -229,8 +230,24 @@ class WorkflowEngine:
                 if "XAI" in component_class_name or "Reporter" in component_class_name:
                     current_inputs['bibliography_context'] = list(collected_citations)
 
+                # Resolve Output Schema Class dynamically
+                output_schema_name = step_def.get('output_schema')
+                validation_schema_class = None
+
+                if output_schema_name:
+                    import backend.schemas as schemas
+                    # Check if the schema exists in your Pydantic definitions
+                    if hasattr(schemas, output_schema_name):
+                        validation_schema_class = getattr(schemas, output_schema_name)
+                    else:
+                        print(f"Warning: Output schema '{output_schema_name}' defined in step but not found in backend.schemas.")
+
                 # Pass system_instruction to execute/process
-                output = component_instance.execute(system_instruction=system_instruction, **current_inputs)
+                output = component_instance.execute(
+                    system_instruction=system_instruction, 
+                    validation_schema=validation_schema_class,
+                    **current_inputs
+                )
                 
                 # 4. Execute Post-Hooks
                 for hook_name in execution_config.get('post_hooks', []):

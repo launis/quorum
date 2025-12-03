@@ -438,9 +438,38 @@ class TuomioJaPisteet(BaseJSON):
     )
 
 # --- Step 9: XAI Reporter ---
-# Note: Step 9 produces a text report, but we might want a schema for the intermediate XAI data if needed.
-# The prompt says "VAIHE 9: XAI-Raportoija ... generoi lopullisen luettavan raportin ... hyödyntäen yllä olevia tietorakenteita."
-# It doesn't explicitly define a JSON output schema for Step 9 in the latest prompt, unlike the previous version.
-# However, the previous seed_data.json had an XAIReport schema. 
-# Given the user's latest prompt says "Vaihe 9 ei tuota JSON-tiedostoa myöhemmille agenteille", we might not need a strict schema for it, 
-# but having one for the internal generation is good practice. I will omit it for now to strictly follow the latest prompt which focuses on the report text.
+
+class XAIReportSection(BaseModel):
+    title: str
+    content: str
+    visualizations: list[str] | None = None
+
+class XAIReport(BaseJSON):
+    executive_summary: str
+    detailed_analysis: list[XAIReportSection]
+    final_verdict: str
+    confidence_score: float
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "metadata": { "luontiaika": "...", "agentti": "XAI-Raportoija", "vaihe": 9, "versio": "1.0" },
+                    "metodologinen_loki": "...",
+                    "edellisen_vaiheen_validointi": "...",
+                    "semanttinen_tarkistussumma": "...",
+                    "executive_summary": "...",
+                    "detailed_analysis": [
+                        {
+                            "title": "Analyysin Yhteenveto",
+                            "content": "...",
+                            "visualizations": []
+                        }
+                    ],
+                    "final_verdict": "Hyväksytty",
+                    "confidence_score": 0.95
+                }
+            ]
+        }
+    )
+

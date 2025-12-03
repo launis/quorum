@@ -311,14 +311,24 @@ def _clean_and_parse_json(text: str) -> Dict[str, Any]:
                 candidates.append(json.loads(_balance_braces(json_str)))
             except: pass
 
-    # Scan for JSON objects
+    # Scan for JSON objects and arrays
     idx = 0
     while idx < len(repaired_text):
-        start_idx = repaired_text.find('{', idx)
-        if start_idx == -1: break
+        # Find next potential start
+        start_obj = repaired_text.find('{', idx)
+        start_arr = repaired_text.find('[', idx)
+        
+        if start_obj == -1 and start_arr == -1:
+            break
+            
+        if start_obj != -1 and (start_arr == -1 or start_obj < start_arr):
+            start_idx = start_obj
+        else:
+            start_idx = start_arr
+            
         try:
             obj, end_idx = decoder.raw_decode(repaired_text, start_idx)
-            if isinstance(obj, dict): candidates.append(obj)
+            if isinstance(obj, (dict, list)): candidates.append(obj)
             idx = end_idx
         except json.JSONDecodeError:
             idx = start_idx + 1

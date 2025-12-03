@@ -140,6 +140,22 @@ elif page == "System Info":
         if response.status_code == 200:
             data = response.json()
             
+            # Unified Master View (Printable)
+            st.subheader("Unified Master View (Printable)")
+            
+            try:
+                unified_res = requests.get(f"{BACKEND_URL}/config/unified-prompts")
+                if unified_res.status_code == 200:
+                    unified_text = unified_res.json().get("content", "")
+                    st.text_area("Unified Content (with Schemas)", unified_text, height=800)
+                    st.download_button("Download Unified View", unified_text, file_name="unified_system_view.md")
+                else:
+                    st.error(f"Failed to fetch unified prompts: {unified_res.text}")
+            except Exception as e:
+                st.error(f"Error fetching unified prompts: {e}")
+            
+            st.markdown("---")
+
             # Display Components (Prompts)
             st.subheader("1. Components (Prompts)")
             all_components = data.get('components', [])
@@ -228,33 +244,5 @@ elif page == "System Info":
     except Exception as e:
         st.error(f"Error fetching seed data: {e}")
 
-    # System Maintenance Section
-    st.markdown("---")
-    st.header("System Maintenance")
-    
-    col_m1, col_m2 = st.columns(2)
-    
-    with col_m1:
-        st.subheader("Documentation")
-        if st.button("Update Documentation"):
-            try:
-                res = requests.post(f"{BACKEND_URL}/admin/docs/update")
-                if res.status_code == 200:
-                    st.success("Documentation update started.")
-                else:
-                    st.error(f"Failed to start update: {res.text}")
-            except Exception as e:
-                st.error(f"Error: {e}")
 
-    with col_m2:
-        st.subheader("Data Management")
-        if st.button("Export DB to Seed Data (Snapshot)"):
-            try:
-                res = requests.post(f"{BACKEND_URL}/admin/export/seed-data")
-                if res.status_code == 200:
-                    st.success("Seed data export started.")
-                else:
-                    st.error(f"Failed to start export: {res.text}")
-            except Exception as e:
-                st.error(f"Error: {e}")
 

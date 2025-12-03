@@ -224,55 +224,55 @@
     {
       "id": "PROMPT_GUARD",
       "type": "prompt",
-      "content": "VAIHE 1: VARTIJA-AGENTTI (AI-Palomuuri ja Luokittelija)\nTEHTÄVÄT:\n1. Rakenteellinen Puhdistus ja Datan Normalisointi.\n2. Monikerroksinen Datan Anonymisointi (PII).\n3. Uhkien Luokittelu.\n4. Aktiivinen Adversariaalinen Simulaatio (<scratchpad>).\n5. Datan Merkintä ja Metodologinen Loki.\n6. Semanttisen Tarkistussumman Generointi.\n\nSINUN TÄYTYY TUOTTAA SEURAAVA JSON-RAKENNE (TaintedData):\n[Ks. schemas.py / TaintedData]\nVAIHE 1: VARTIJA-AGENTTI (AI-Palomuuri ja Luokittelija)\nTEHTÄVÄT:\n1. Rakenteellinen Puhdistus ja Datan Normalisointi.\n2. Monikerroksinen Datan Anonymisointi (PII).\n3. Uhkien Luokittelu.\n4. Aktiivinen Adversariaalinen Simulaatio (<scratchpad>).\n5. Datan Merkintä ja Metodologinen Loki.\n6. Semanttisen Tarkistussumman Generointi.\n\nSINUN TÄYTYY TUOTTAA SEURAAVA JSON-RAKENNE (TaintedData):\n[Ks. schemas.py / TaintedData]\n\nHUOMIO (KRIITTINEN): ÄLÄ KOSKAAN kopioi 'keskusteluhistoria', 'lopputuote' tai 'reflektiodokumentti' kenttien sisältöä JSON-vastaukseen. Nämä ovat suuria tekstikenttiä ja niiden toistaminen aiheuttaa vastauksen katkeamisen.\nSinun TÄYTYY asettaa näiden kenttien arvoksi tyhjä merkkijono \"\" (ellei sinulla ole nimenomaista syytä muokata niitä, jolloin palauta VAIN muokattu versio).\nJärjestelmä täyttää puuttuvat tiedot automaattisesti alkuperäisestä syötteestä.\nKÄSKE: (Esimerkki oikeasta rakenteesta):\nSinun TÄYTYY noudattaa tätä rakennetta (huomaa tarkat avaimet!):\n[Ks. schemas.py / TaintedData / EXAMPLE]\nÄLÄ käytä avaimia kuten \"pisteytys\", \"taso\" tai \"kriteeri1\" ellei niitä ole yllä mainittu. Käytä vain yllä olevia.\n\n\n\nNoudata tarkasti annettuja ohjeita input sanitizationista, anonymisoinnista ja uhkien luokittelusta.",
+      "content": "VAIHE 1: VARTIJA-AGENTTI (AI-Palomuuri ja Luokittelija)\nTEHTÄVÄT:\n1. Rakenteellinen Puhdistus ja Datan Normalisointi.\n2. Monikerroksinen Datan Anonymisointi (PII).\n3. Uhkien Luokittelu.\n4. Aktiivinen Adversariaalinen Simulaatio (<scratchpad>).\n5. Datan Merkintä ja Metodologinen Loki.\n6. Semanttisen Tarkistussumman Generointi.\n\nSINUN TÄYTYY TUOTTAA SEURAAVA JSON-RAKENNE (TaintedData):\n[Ks. schemas.py / TaintedData]",
       "name": "Phase 1: Guard Agent Prompt"
     },
     {
       "id": "PROMPT_ANALYST",
       "type": "prompt",
-      "content": "VAIHE 2: ANALYYTIKKO-AGENTTI (\"Todistusaineiston Arkkitehti\")\nTEHTÄVÄT:\n1. Hypoteesien Eristäminen (Väitteet Reflektiosta).\n2. Robusti Käyttäytymisjälkien Haku (RAG).\nVAIHE 2: ANALYYTIKKO-AGENTTI (\"Todistusaineiston Arkkitehti\")\nTEHTÄVÄT:\n1. Hypoteesien Eristäminen (Väitteet Reflektiosta).\n2. Robusti Käyttäytymisjälkien Haku (RAG).\nKÄSKE: (Esimerkki oikeasta rakenteesta):\nSinun TÄYTYY noudattaa tätä rakennetta (huomaa tarkat avaimet!):\n[Ks. schemas.py / TodistusKartta / EXAMPLE]\n\nSINUN TÄYTYY TUOTTAA SEURAAVA JSON-RAKENNE (TodistusKartta):\n[Ks. schemas.py / TodistusKartta]\nÄLÄ käytä avaimia kuten \"pisteytys\", \"taso\" tai \"kriteeri1\" ellei niitä ole yllä mainittu. Käytä vain yllä olevia.",
+      "content": "VAIHE 2: ANALYYTIKKO-AGENTTI (\"Todistusaineiston Arkkitehti\")\nTEHTÄVÄT:\n1. Hypoteesien Eristäminen (Väitteet Reflektiosta).\n2. Robusti Käyttäytymisjälkien Haku (RAG).\n\nSINUN TÄYTYY TUOTTAA SEURAAVA JSON-RAKENNE (TodistusKartta):\n[Ks. schemas.py / TodistusKartta]\n\nESIMERKKI:\n[Ks. schemas.py / TodistusKartta / EXAMPLE]",
       "name": "Phase 2: Analyst Agent Prompt"
     },
     {
       "id": "PROMPT_LOGICIAN",
       "type": "prompt",
-      "content": "VAIHE 3: LOOGIKKO-AGENTTI (\"Argumentaation Validoija\")\nTEHTÄVÄT:\n1. Metodologinen Loki (CoT Rajoitus).\n2. Rakenteellinen Analyysi (Toulmin).\nVAIHE 3: LOOGIKKO-AGENTTI (\"Argumentaation Validoija\")\nTEHTÄVÄT:\n1. Metodologinen Loki (CoT Rajoitus).\n2. Rakenteellinen Analyysi (Toulmin).\n3. Kognitiivisen Tason Arviointi (Bloom).\n4. Päättelyn Tunnistus (Walton).\n5. Kriittisten Kysymysten Generointi.\n6. Johdonmukaisuuden Arviointi.\nKÄSKE: (Esimerkki oikeasta rakenteesta):\nSinun TÄYTYY noudattaa tätä rakennetta (huomaa tarkat avaimet!):\n[Ks. schemas.py / ArgumentaatioAnalyysi / EXAMPLE]\n\nSINUN TÄYTYY TUOTTAA SEURAAVA JSON-RAKENNE (ArgumentaatioAnalyysi):\n[Ks. schemas.py / ArgumentaatioAnalyysi]\nÄLÄ käytä avaimia kuten \"pisteytys\", \"taso\" tai \"kriteeri1\" ellei niitä ole yllä mainittu. Käytä vain yllä olevia.",
+      "content": "VAIHE 3: LOOGIKKO-AGENTTI (\"Argumentaation Validoija\")\nTEHTÄVÄT:\n1. Metodologinen Loki (CoT Rajoitus).\n2. Rakenteellinen Analyysi (Toulmin).\n\nSINUN TÄYTYY TUOTTAA SEURAAVA JSON-RAKENNE (ArgumentaatioAnalyysi):\n[Ks. schemas.py / ArgumentaatioAnalyysi]\n\nESIMERKKI:\n[Ks. schemas.py / ArgumentaatioAnalyysi / EXAMPLE]",
       "name": "Phase 3: Logician Agent Prompt"
     },
     {
       "id": "PROMPT_FALSIFIER",
       "type": "prompt",
-      "content": "VAIHE 4: LOOGINEN FALSIFIOIJA-AGENTTI (\"Argumentaation Auditoija\")\nTEHTÄVÄT:\n1. Jäsennellyn Erimielisyyden Mandaatti (JEM).\n2. Argumentaation haasto (Walton).\n3. Päättelyketjun Uskollisuuden Auditointi.\n4. Metodologinen Loki.\n5. Semanttisen Tarkistussumman Generointi.\n\nSINUN TÄYTYY TUOTTAA SEURAAVA JSON-RAKENNE (LooginenVirheAnalyysi):\n[Ks. schemas.py / LooginenVirheAnalyysi]\n\nMÄÄRITYSLISÄYS (VAIHE 4: JEM-protokolla):\nVAIHE 4: LOOGINEN FALSIFIOIJA-AGENTTI (\"Argumentaation Auditoija\")\nTEHTÄVÄT:\nVAIHE 4: LOOGINEN FALSIFIOIJA-AGENTTI (\"Argumentaation Auditoija\")\nTEHTÄVÄT:\n1. Jäsennellyn Erimielisyyden Mandaatti (JEM).\n2. Argumentaation haasto (Walton).\n3. Päättelyketjun Uskollisuuden Auditointi.\n4. Metodologinen Loki.\n5. Semanttisen Tarkistussumman Generointi.\n\nSINUN TÄYTYY TUOTTAA SEURAAVA JSON-RAKENNE (LogiikkaAuditointi):\n[Ks. schemas.py / LogiikkaAuditointi]\n\nMÄÄRITYSLISÄYS (VAIHE 4: JEM-protokolla):\nJoint Exploration Mission (JEM): Simuloi vastapuolen argumentaatiota.\nRed Teaming: Yritä aktiivisesti rikkoa logiikka.\nRaportointi: Kirjaa JEM-session tulokset metodologinen_loki -kenttään.\n\nKÄSKE: (Esimerkki oikeasta rakenteesta):\nSinun TÄYTYY noudattaa tätä rakennetta (huomaa tarkat avaimet!):\n[Ks. schemas.py / LogiikkaAuditointi / EXAMPLE]\nÄLÄ käytä avaimia kuten \"pisteytys\", \"taso\" tai \"kriteeri1\" ellei niitä ole yllä mainittu. Käytä vain yllä olevia.",
+      "content": "VAIHE 4: LOOGINEN FALSIFIOIJA-AGENTTI (\"Argumentaation Auditoija\")\nTEHTÄVÄT:\n1. Jäsennellyn Erimielisyyden Mandaatti (JEM).\n2. Argumentaation haasto (Walton).\n3. Päättelyketjun Uskollisuuden Auditointi.\n4. Metodologinen Loki.\n5. Semanttisen Tarkistussumman Generointi.\n\nSINUN TÄYTYY TUOTTAA SEURAAVA JSON-RAKENNE (LogiikkaAuditointi):\n[Ks. schemas.py / LogiikkaAuditointi]\n\nESIMERKKI:\n[Ks. schemas.py / LogiikkaAuditointi / EXAMPLE]\n\nMÄÄRITYSLISÄYS (VAIHE 4: JEM-protokolla):",
       "name": "Phase 4: Falsifier Agent Prompt"
     },
     {
       "id": "PROMPT_CAUSAL",
       "type": "prompt",
-      "content": "VAIHE 5: KAUSAALINEN ANALYYTIKKO-AGENTTI (\"Temporaalinen Auditoija\")\nTEHTÄVÄT:\n1. Jäsennellyn Erimielisyyden Mandaatti (JEM).\nVAIHE 5: KAUSAALINEN ANALYYTIKKO-AGENTTI (\"Temporaalinen Auditoija\")\nTEHTÄVÄT:\n1. Jäsennellyn Erimielisyyden Mandaatti (JEM).\n2. Kausaalisuuden ja Ajallisen Johdonmukaisuuden Auditointi (Kontrafaktuaalinen testi).\n3. Metodologinen Loki.\n4. Semanttisen Tarkistussumman Generointi.\n\nKÄSKE: Sovella Mandaattia 1.4 (Performatiivisuuden Torjunta (Goodhartin Laki)) arvioidessasi kausaalisia väitteitä.\n\nSINUN TÄYTYY TUOTTAA SEURAAVA JSON-RAKENNE (KausaalinenAnalyysi):\n[Ks. schemas.py / KausaalinenAnalyysi]\n\nMÄÄRITYSLISÄYS (VAIHE 5: Kausaalisuuden tarkistus):\nVAIHE 5: KAUSAALINEN ANALYYTIKKO-AGENTTI (\"Temporaalinen Auditoija\")\nTEHTÄVÄT:\n1. Jäsennellyn Erimielisyyden Mandaatti (JEM).\nVAIHE 5: KAUSAALINEN ANALYYTIKKO-AGENTTI (\"Temporaalinen Auditoija\")\nTEHTÄVÄT:\n1. Jäsennellyn Erimielisyyden Mandaatti (JEM).\n2. Kausaalisuuden ja Ajallisen Johdonmukaisuuden Auditointi (Kontrafaktuaalinen testi).\n3. Metodologinen Loki.\n4. Semanttisen Tarkistussumman Generointi.\n\nKÄSKE: Sovella Mandaattia 1.4 (Performatiivisuuden Torjunta (Goodhartin Laki)) arvioidessasi kausaalisia väitteitä.\n\nSINUN TÄYTYY TUOTTAA SEURAAVA JSON-RAKENNE (KausaalinenAuditointi):\n[Ks. schemas.py / KausaalinenAuditointi]\n\nMÄÄRITYSLISÄYS (VAIHE 5: Kausaalisuuden tarkistus):\nTemporaalinen järjestys: Varmista, että syy edeltää seurausta.\nKontrafaktuaalinen testi: \"Jos X ei olisi tapahtunut, olisiko Y tapahtunut?\" (Lewis 1973).\nRaportointi: Kirjaa kontrafaktuaalisen testin tulos metodologinen_loki -kenttään.\n\nKÄSKE: (Esimerkki oikeasta rakenteesta):\nSinun TÄYTYY noudattaa tätä rakennetta (huomaa tarkat avaimet!):\n[Ks. schemas.py / KausaalinenAuditointi / EXAMPLE]\nÄLÄ käytä avaimia kuten \"pisteytys\", \"taso\" tai \"kriteeri1\" ellei niitä ole yllä mainittu. Käytä vain yllä olevia.",
+      "content": "VAIHE 5: KAUSAALINEN ANALYYTIKKO-AGENTTI (\"Temporaalinen Auditoija\")\nTEHTÄVÄT:\n1. Jäsennellyn Erimielisyyden Mandaatti (JEM).\n\nSINUN TÄYTYY TUOTTAA SEURAAVA JSON-RAKENNE (KausaalinenAuditointi):\n[Ks. schemas.py / KausaalinenAuditointi]\n\nESIMERKKI:\n[Ks. schemas.py / KausaalinenAuditointi / EXAMPLE]",
       "name": "Phase 5: Causal Agent Prompt"
     },
     {
       "id": "PROMPT_PERFORMATIVITY",
       "type": "prompt",
-      "content": "VAIHE 6: PERFORMATIIVISUUDEN TUNNISTAJA-AGENTTI (\"Käyttäytymisanalyytikko\")\nTEHTÄVÄT:\n1. Jäsennellyn Erimielisyyden Mandaatti (JEM).\n2. Performatiivisen Käyttäytymisen Tunnistus (Heuristiikat).\nVAIHE 6: PERFORMATIIVISUUDEN TUNNISTAJA-AGENTTI (\"Käyttäytymisanalyytikko\")\nTEHTÄVÄT:\n1. Jäsennellyn Erimielisyyden Mandaatti (JEM).\n2. Performatiivisen Käyttäytymisen Tunnistus (Heuristiikat).\n3. Pre-Mortem Analyysi.\n4. Metodologinen Loki.\n5. Semanttisen Tarkistussumman Generointi.\n\nKÄSKE: Tämä on Mandaatin 1.4 (Performatiivisuuden Torjunta (Goodhartin Laki)) ensisijainen toimeenpanovaihe. Etsi aktiivisesti Goodhartin lain mukaisia käytösmalleja.\n\nSINUN TÄYTYY TUOTTAA SEURAAVA JSON-RAKENNE (PerformatiivisuusAnalyysi):\n[Ks. schemas.py / PerformatiivisuusAnalyysi]\n\nMÄÄRITYSLISÄYS (VAIHE 6: Heuristiikat):\nBuzzword-tiheys: Laske jargonin määrä suhteessa substanssiin.\nVAIHE 6: PERFORMATIIVISUUDEN TUNNISTAJA-AGENTTI (\"Käyttäytymisanalyytikko\")\nTEHTÄVÄT:\n1. Jäsennellyn Erimielisyyden Mandaatti (JEM).\n2. Performatiivisen Käyttäytymisen Tunnistus (Heuristiikat).\nVAIHE 6: PERFORMATIIVISUUDEN TUNNISTAJA-AGENTTI (\"Käyttäytymisanalyytikko\")\nTEHTÄVÄT:\n1. Jäsennellyn Erimielisyyden Mandaatti (JEM).\n2. Performatiivisen Käyttäytymisen Tunnistus (Heuristiikat).\n3. Pre-Mortem Analyysi.\n4. Metodologinen Loki.\n5. Semanttisen Tarkistussumman Generointi.\n\nKÄSKE: Tämä on Mandaatin 1.4 (Performatiivisuuden Torjunta (Goodhartin Laki)) ensisijainen toimeenpanovaihe. Etsi aktiivisesti Goodhartin lain mukaisia käytösmalleja.\n\nSINUN TÄYTYY TUOTTAA SEURAAVA JSON-RAKENNE (PerformatiivisuusAuditointi):\n[Ks. schemas.py / PerformatiivisuusAuditointi]n yllä olevia.\n\nMÄÄRITYSLISÄYS (VAIHE 6: Heuristiikat):\nBuzzword-tiheys: Laske jargonin määrä suhteessa substanssiin.\nEmotionaalinen manipulaatio: Tunnista vetoaminen tunteisiin logiikan sijaan.\nPre-Mortem: \"Kuvittele, että tämä reflektio paljastuu myöhemmin huijaukseksi. Mikä sen paljasti?\"\nRaportointi: Kirjaa Pre-Mortem -analyysi metodologinen_loki -kenttään.\n\nKÄSKE: (Esimerkki oikeasta rakenteesta):\nSinun TÄYTYY noudattaa tätä rakennetta (huomaa tarkat avaimet!):\n[Ks. schemas.py / PerformatiivisuusAuditointi / EXAMPLE]\n\nSINUN TÄYTYY TUOTTAA SEURAAVA JSON-RAKENNE (PerformatiivisuusAuditointi):\n[Ks. schemas.py / PerformatiivisuusAuditointi]n yllä olevia.",
+      "content": "VAIHE 6: PERFORMATIIVISUUDEN TUNNISTAJA-AGENTTI (\"Käyttäytymisanalyytikko\")\nTEHTÄVÄT:\n1. Jäsennellyn Erimielisyyden Mandaatti (JEM).\n2. Performatiivisen Käyttäytymisen Tunnistus (Heuristiikat).\n\nSINUN TÄYTYY TUOTTAA SEURAAVA JSON-RAKENNE (PerformatiivisuusAuditointi):\n[Ks. schemas.py / PerformatiivisuusAuditointi]\n\nESIMERKKI:\n[Ks. schemas.py / PerformatiivisuusAuditointi / EXAMPLE]",
       "name": "Phase 6: Performativity Agent Prompt"
     },
     {
       "id": "PROMPT_FACT_CHECKER",
       "type": "prompt",
-      "content": "VAIHE 7: FAKTUAALINEN JA EETTINEN VALVOJA -AGENTTI (\"Todisteiden Valvoja\")\nTEHTÄVÄT:\n1. Jäsennellyn Erimielisyyden Mandaatti (JEM).\n2. Standardivalidointi ja Eettinen Tarkastus (RFI-Protokolla (Request for Information)).\n3. Metodologinen Loki.\n4. Semanttisen Tarkistussumman Generointi.\n\nVAIHE 7: FAKTUAALINEN JA EETTINEN VALVOJA -AGENTTI (\"Todisteiden Valvoja\")\nTEHTÄVÄT:\n1. Jäsennellyn Erimielisyyden Mandaatti (JEM).\n2. Standardivalidointi ja Eettinen Tarkastus (RFI-Protokolla (Request for Information)).\n3. Metodologinen Loki.\n4. Semanttisen Tarkistussumman Generointi.\n\nSINUN TÄYTYY TUOTTAA SEURAAVA JSON-RAKENNE (FaktantarkistusRaportti):\n[Ks. schemas.py / FaktantarkistusRaportti]\n\nMÄÄRITYSLISÄYS (VAIHE 7: RFI-protokolla):\nVAIHE 7: FAKTUAALINEN JA EETTINEN VALVOJA -AGENTTI (\"Todisteiden Valvoja\")\nTEHTÄVÄT:\n1. Jäsennellyn Erimielisyyden Mandaatti (JEM).\n2. Standardivalidointi ja Eettinen Tarkastus (RFI-Protokolla (Request for Information)).\n3. Metodologinen Loki.\n4. Semanttisen Tarkistussumman Generointi.\n\nVAIHE 7: FAKTUAALINEN JA EETTINEN VALVOJA -AGENTTI (\"Todisteiden Valvoja\")\nTEHTÄVÄT:\n1. Jäsennellyn Erimielisyyden Mandaatti (JEM).\n2. Standardivalidointi ja Eettinen Tarkastus (RFI-Protokolla (Request for Information)).\n3. Metodologinen Loki.\n4. Semanttisen Tarkistussumman Generointi.\n\nSINUN TÄYTYY TUOTTAA SEURAAVA JSON-RAKENNE (FaktantarkistusRaportti):\n[Ks. schemas.py / FaktantarkistusRaportti]\n\nMÄÄRITYSLISÄYS (VAIHE 7: RFI-protokolla):\nRequest for Information (RFI): Jos fakta on epävarma, luo RFI-kysymys.\nLähdekritiikki: Arvioi lähteen luotettavuus (jos mainittu).\nRaportointi: Kirjaa RFI:t faktantarkistus_rfi -listaan.\n\nKÄSKE: (Esimerkki oikeasta rakenteesta):\nSinun TÄYTYY noudattaa tätä rakennetta (huomaa tarkat avaimet!):\n[Ks. schemas.py / EtiikkaJaFakta / EXAMPLE]\n\nSINUN TÄYTYY TUOTTAA SEURAAVA JSON-RAKENNE (EtiikkaJaFakta):\n[Ks. schemas.py / EtiikkaJaFakta]riteeri1\" ellei niitä ole yllä mainittu. Käytä vain yllä olevia.",
+      "content": "VAIHE 7: FAKTUAALINEN JA EETTINEN VALVOJA -AGENTTI (\"Todisteiden Valvoja\")\nTEHTÄVÄT:\n1. Jäsennellyn Erimielisyyden Mandaatti (JEM).\n2. Standardivalidointi ja Eettinen Tarkastus (RFI-Protokolla (Request for Information)).\n3. Metodologinen Loki.\n4. Semanttisen Tarkistussumman Generointi.\n\nSINUN TÄYTYY TUOTTAA SEURAAVA JSON-RAKENNE (EtiikkaJaFakta):\n[Ks. schemas.py / EtiikkaJaFakta]\n\nESIMERKKI:\n[Ks. schemas.py / EtiikkaJaFakta / EXAMPLE]",
       "name": "Phase 7: Fact Checker Agent Prompt"
     },
     {
       "id": "PROMPT_JUDGE",
       "type": "prompt",
-      "content": "VAIHE 8: TUOMARI-AGENTTI (\"Pisteyttäjä ja Arvioija\")\nTEHTÄVÄT:\n1. Kontekstin Segmentointi ja Fokusointi.\n2. Punnittu Synteesi (Hierarkkinen Konfliktinratkaisu: Popper vs Dreyfus).\n3. Kriteerikohtainen Pisteytys (OSA 4: Kognitiivinen Arviointimatriisi).\n4. Kvalitatiivinen Aitouden ja Mestaruuden Arviointi.\n5. Metodologinen Loki.\n6. Semanttisen Tarkistussumman Generointi.\n\nKÄSKE: Arvioi reflektion aitoutta ja syvyyttä Mandaatin 1.4 (Performatiivisuuden Torjunta (Goodhartin Laki)) mukaisesti.\n\nSINUN TÄYTYY TUOTTAA SEURAAVA JSON-RAKENNE (TuomioJaPisteet):\n[Ks. schemas.py / TuomioJaPisteet]\n\n\n\nMÄÄRITYSLISÄYS (VAIHE 8: Huomionhallinta):\nKÄSKE (Huomionhallinta): Sovella \"Kontekstin Segmentointi ja Fokusointi\" -mekanismia.\nLuo sisäisesti (<scratchpad>):\n1.  **Fokus-lista**: Keskeiset todisteet ja konfliktit.\n2.  **Kohina-lista**: Irrelevantti data.\nPerusta synteesi VAIN Fokus-listaan.\n\nMÄÄRITYSLISÄYS (VAIHE 8: Aitous-epäily):\nKÄSKE (Aitous-epäily): Sovella \"Epäilyttävä Täydellisyys\" -heuristiikkaa.\nJOS (kaikki arvosanat ovat 4) JA (Kriitikko-agentti ei löytänyt merkittäviä virheitä):\n  Aseta \"automaattinen_lippu\": true.\nVAIHE 8: TUOMARI-AGENTTI (\"Pisteyttäjä ja Arvioija\")\nTEHTÄVÄT:\n1. Kontekstin Segmentointi ja Fokusointi.\n2. Punnittu Synteesi (Hierarkkinen Konfliktinratkaisu: Popper vs Dreyfus).\n3. Kriteerikohtainen Pisteytys (OSA 4: Kognitiivinen Arviointimatriisi).\n4. Kvalitatiivinen Aitouden ja Mestaruuden Arviointi.\n5. Metodologinen Loki.\n6. Semanttisen Tarkistussumman Generointi.\n\nKÄSKE: Arvioi reflektion aitoutta ja syvyyttä Mandaatin 1.4 (Performatiivisuuden Torjunta (Goodhartin Laki)) mukaisesti.\n\nSINUN TÄYTYY TUOTTAA SEURAAVA JSON-RAKENNE (TuomioJaPisteet):\n[Ks. schemas.py / TuomioJaPisteet]\n\n\n\nMÄÄRITYSLISÄYS (VAIHE 8: Huomionhallinta):\nKÄSKE (Huomionhallinta): Sovella \"Kontekstin Segmentointi ja Fokusointi\" -mekanismia.\nLuo sisäisesti (<scratchpad>):\n1.  **Fokus-lista**: Keskeiset todisteet ja konfliktit.\n2.  **Kohina-lista**: Irrelevantti data.\nPerusta synteesi VAIN Fokus-listaan.\n\nMÄÄRITYSLISÄYS (VAIHE 8: Aitous-epäily):\nKÄSKE (Aitous-epäily): Sovella \"Epäilyttävä Täydellisyys\" -heuristiikkaa.\nJOS (kaikki arvosanat ovat 4) JA (Kriitikko-agentti ei löytänyt merkittäviä virheitä):\n  Aseta \"automaattinen_lippu\": true.\n  Kirjaa viesti: \"VAROITUS: Epäilyttävä täydellisyys. Mahdollinen performatiivinen reflektio (Goodhartin laki).\"\nMUUTOIN:\n  Aseta \"automaattinen_lippu\": false.\n\nKÄSKE: (Esimerkki oikeasta rakenteesta):\nSinun TÄYTYY noudattaa tätä rakennetta (huomaa tarkat avaimet!):\n[Ks. schemas.py / TuomioJaPisteet / EXAMPLE]\n\nÄLÄ käytä avaimia kuten \"pisteytys\", \"taso\" tai \"kriteeri1\" ellei niitä ole yllä mainittu. Käytä vain yllä olevia.\nHUOMIO: JSON-avaimet ovat kirjainkoolle herkkiä. Käytä AINA pieniä kirjaimia avaimissa (esim. \"pisteet\", ei \"Pisteet\").",
+      "content": "VAIHE 8: TUOMARI-AGENTTI (\"Pisteyttäjä ja Arvioija\")\nTEHTÄVÄT:\n1. Kontekstin Segmentointi ja Fokusointi.\n2. Punnittu Synteesi (Hierarkkinen Konfliktinratkaisu: Popper vs Dreyfus).\n3. Kriteerikohtainen Pisteytys (OSA 4: Kognitiivinen Arviointimatriisi).\n4. Kvalitatiivinen Aitouden ja Mestaruuden Arviointi.\n5. Metodologinen Loki.\n6. Semanttisen Tarkistussumman Generointi.\n\nKÄSKE: Arvioi reflektion aitoutta ja syvyyttä Mandaatin 1.4 (Performatiivisuuden Torjunta (Goodhartin Laki)) mukaisesti.\n\nSINUN TÄYTYY TUOTTAA SEURAAVA JSON-RAKENNE (TuomioJaPisteet):\n[Ks. schemas.py / TuomioJaPisteet]\n\nESIMERKKI:\n[Ks. schemas.py / TuomioJaPisteet / EXAMPLE]\n\n\n\nMÄÄRITYSLISÄYS (VAIHE 8: Huomionhallinta):\nKÄSKE (Huomionhallinta): Sovella \"Kontekstin Segmentointi ja Fokusointi\" -mekanismia.\nLuo sisäisesti (<scratchpad>):\n1.  **Fokus-lista**: Keskeiset todisteet ja konfliktit.\n2.  **Kohina-lista**: Irrelevantti data.\nPerusta synteesi VAIN Fokus-listaan.\n\nMÄÄRITYSLISÄYS (VAIHE 8: Aitous-epäily):\nKÄSKE (Aitous-epäily): Sovella \"Epäilyttävä Täydellisyys\" -heuristiikkaa.\nJOS (kaikki arvosanat ovat 4) JA (Kriitikko-agentti ei löytänyt merkittäviä virheitä):\n  Aseta \"automaattinen_lippu\": true.",
       "name": "Phase 8: Judge Agent Prompt"
     },
     {
       "id": "PROMPT_XAI",
       "type": "prompt",
-      "content": "VAIHE 9: XAI-RAPORTOIJA-AGENTTI (\"Byrokraatti ja Auditoija\")\nTEHTÄVÄT:\n1. XAI-Kartoitus ja Interrogatiivinen Raportointi.\n2. Metodologinen Loki.\n3. Raportin Sisällön Koostaminen (OSA 7: LOPULLINEN ARVIOINTIRAPORTTI).\n\nSINUN TÄYTYY TUOTTAA TEKSTIRAPORTTI, JOKA NOUDATTAA TARKASTI ANNETTUA FORMAATTIA.",
+      "content": "VAIHE 9: XAI-RAPORTOIJA-AGENTTI (\"Byrokraatti ja Auditoija\")\nTEHTÄVÄT:\n1. XAI-Kartoitus ja Interrogatiivinen Raportointi.\n2. Metodologinen Loki.\n3. Raportin Sisällön Koostaminen (OSA 7: LOPULLINEN ARVIOINTIRAPORTTI).\n\nSINUN TÄYTYY TUOTTAA TEKSTIRAPORTTI, JOKA NOUDATTAA TARKASTI ANNETTUA FORMAATTIA.\n\nLISÄKSI TUOTA JSON-RAKENNE (XAIReport):\n[Ks. schemas.py / XAIReport]\n\nESIMERKKI:\n[Ks. schemas.py / XAIReport / EXAMPLE]",
       "name": "Phase 9: XAI Report Agent Prompt"
     },
     {
@@ -1680,83 +1680,6 @@
     },
     {
       "id": "REF_PEREZ_2212",
-      "name": "Ref: Perez 2212",
-      "type": "Reference",
-      "description": "Reference entry for Perez 2212",
-      "content": "Reference: (Perez 2212)",
-      "citation": "(Perez 2212)",
-      "citation_full": "Perez, Ethan ym. 2022b: Discovering Language Model Behaviors with Model-Written Evaluations. arXiv preprint arXiv:2212.09251. DOI: 10.48550/arXiv.2212.09251.",
-      "module": "references",
-      "class": "ReferenceComponent"
-    },
-    {
-      "id": "REF_PERROW_1984",
-      "name": "Ref: Perrow 1984",
-      "type": "Reference",
-      "description": "Reference entry for Perrow 1984",
-      "content": "Reference: (Perrow 1984)",
-      "citation": "(Perrow 1984)",
-      "citation_full": "Perrow, Charles. 1984: Normal accidents: Living with high-risk technologies. Princeton: Princeton University Press.",
-      "module": "references",
-      "class": "ReferenceComponent"
-    },
-    {
-      "id": "REF_PFEIFER_2025",
-      "name": "Ref: Pfeifer 2025",
-      "type": "Reference",
-      "description": "Reference entry for Pfeifer 2025",
-      "content": "Reference: (Pfeifer 2025)",
-      "citation": "(Pfeifer 2025)",
-      "citation_full": "Pfeifer, Karen. 2025: Humanity-in-the-loop: Human AI oversight is an imperative. Medium. Julkaistu 22.10.2025. [Verkkojulkaisu]. Saatavilla: https://medium.com/@karenpfeifer/humanity-in-the-loop-human-ai-oversight-is-an-imperative-50bdcc2688d8. [Haettu 14.11.2025].",
-      "module": "references",
-      "class": "ReferenceComponent"
-    },
-    {
-      "id": "REF_POLANYI_1966",
-      "name": "Ref: Polanyi 1966",
-      "type": "Reference",
-      "description": "Reference entry for Polanyi 1966",
-      "content": "Reference: (Polanyi 1966)",
-      "citation": "(Polanyi 1966)",
-      "citation_full": "Polanyi, Michael. 1966: The tacit dimension. Chicago: University of Chicago Press.",
-      "module": "references",
-      "class": "ReferenceComponent"
-    },
-    {
-      "id": "REF_POLLITT_2012",
-      "name": "Ref: Pollitt 2012",
-      "type": "Reference",
-      "description": "Reference entry for Pollitt 2012",
-      "content": "Reference: (Pollitt 2012)",
-      "citation": "(Pollitt 2012)",
-      "citation_full": "Pollitt, Alastair. 2012: The method of Adaptive Comparative Judgement. Assessment in Education: Principles, Policy & Practice, 19(3), 281–300. DOI: 10.1080/0969594X.2012.665354",
-      "module": "references",
-      "class": "ReferenceComponent"
-    },
-    {
-      "id": "REF_POPPER_1934",
-      "name": "Ref: Popper 1934",
-      "type": "Reference",
-      "description": "Reference entry for Popper 1934",
-      "content": "Reference: (Popper 1934)",
-      "citation": "(Popper 1934)",
-      "citation_full": "Popper, Karl. 1934: Logik der Forschung. Vienna: Julius Springer.",
-      "module": "references",
-      "class": "ReferenceComponent"
-    },
-    {
-      "id": "REF_PWC_2024",
-      "name": "Ref: PwC 2024",
-      "type": "Reference",
-      "description": "Reference entry for PwC 2024",
-      "content": "Reference: (PwC 2024)",
-      "citation": "(PwC 2024)",
-      "citation_full": "PwC. 2024: AI jobs barometer. PricewaterhouseCoopers. [Verkkojulkaisu]. Saatavilla: https://www.pwc.com/gx/en/issues/artificial-intelligence/ai-jobs-barometer.html. [Haettu 14.11.2025].",
-      "module": "references",
-      "class": "ReferenceComponent"
-    },
-    {
-      "id": "REF_QUINE_1951",
       "name": "Ref: Quine 1951",
       "type": "Reference",
       "description": "Reference entry for Quine 1951",
@@ -3190,7 +3113,8 @@
         "post_hooks": [
           "ensure_tainted_data_content"
         ]
-      }
+      },
+      "component": "GuardAgent"
     },
     {
       "id": "STEP_2_ANALYST",
@@ -3226,7 +3150,8 @@
           "PROMPT_ANALYST"
         ],
         "post_hooks": []
-      }
+      },
+      "component": "AnalystAgent"
     },
     {
       "id": "STEP_3_LOGICIAN",
@@ -3260,7 +3185,8 @@
           "PROMPT_LOGICIAN"
         ],
         "post_hooks": []
-      }
+      },
+      "component": "LogicianAgent"
     },
     {
       "id": "STEP_4_FALSIFIER",
@@ -3398,7 +3324,8 @@
           "PROMPT_FACT_CHECKER"
         ],
         "post_hooks": []
-      }
+      },
+      "component": "FactualOverseerAgent"
     },
     {
       "id": "STEP_8_JUDGE",
@@ -3435,7 +3362,8 @@
         "post_hooks": [
           "calculate_final_scores"
         ]
-      }
+      },
+      "component": "JudgeAgent"
     },
     {
       "id": "STEP_9_XAI",
@@ -3471,7 +3399,8 @@
         "post_hooks": [
           "generate_jinja2_report"
         ]
-      }
+      },
+      "component": "XAIReporterAgent"
     },
     {
       "input_schema": "TodistusKartta",
@@ -3488,7 +3417,7 @@
       },
       "id": "STEP_PANEL",
       "name": "Custom Panel",
-      "component": ""
+      "component": "JudgeAgent"
     }
   ],
   "workflows": [

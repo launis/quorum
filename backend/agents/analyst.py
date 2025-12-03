@@ -37,7 +37,7 @@ class AnalystAgent(BaseAgent):
         ---
         """
 
-    def _process(self, **kwargs) -> dict[str, Any]:
+    def _process(self, validation_schema: Any = None, **kwargs) -> dict[str, Any]:
         """
         Processes the input using the Analyst Agent's logic.
         """
@@ -48,5 +48,6 @@ class AnalystAgent(BaseAgent):
         # Call LLM with Retry Logic
         return self.get_json_response(
             prompt=user_content,
-            system_instruction=system_instruction
+            system_instruction=system_instruction,
+            validation_schema=validation_schema
         )

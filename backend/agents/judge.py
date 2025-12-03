@@ -31,15 +31,38 @@ class JudgeAgent(BaseAgent):
         ---
         """
 
-    def _process(self, **kwargs) -> dict[str, Any]:
+    def _process(self, validation_schema: Any = None, **kwargs) -> dict[str, Any]:
         user_content = self.construct_user_prompt(**kwargs)
         
         # Call LLM with Retry Logic and Schema Validation
-        return self.get_json_response(
+        # Call LLM with Retry Logic and Schema Validation
+        response = self.get_json_response(
             prompt=user_content,
             system_instruction=kwargs.get('system_instruction'),
-            validation_schema=TuomioJaPisteet
+            validation_schema=validation_schema
         )
+
+        # Python-side Calculation (Monolithic Validation Extension)
+        if response and 'pisteet' in response:
+            try:
+                pisteet = response['pisteet']
+                # Extract raw scores (assuming schema validation ensured structure)
+                s1 = pisteet.get('analyysi_ja_prosessi', {}).get('arvosana', 0)
+                s2 = pisteet.get('arviointi_ja_argumentaatio', {}).get('arvosana', 0)
+                s3 = pisteet.get('synteesi_ja_luovuus', {}).get('arvosana', 0)
+                
+                total = s1 + s2 + s3
+                avg = round(total / 3, 2)
+                
+                # Inject calculated values
+                response['lasketut_yhteispisteet'] = total
+                response['lasketut_keskiarvo'] = avg
+                
+                print(f"[JudgeAgent] Calculated Scores: Total={total}, Avg={avg}")
+            except Exception as e:
+                print(f"[JudgeAgent] Error calculating scores: {e}")
+        
+        return response
 
 class XAIReporterAgent(BaseAgent):
     """
