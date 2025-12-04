@@ -439,7 +439,7 @@ with tab3:
     # Fetch available text components (Prompts, Rules, etc.)
     all_components = get_components()
     # Allow all text-based component types. Check case-insensitively.
-    TEXT_COMPONENT_TYPES = ["prompt", "rule", "mandate", "persona", "context", "reference"]
+    TEXT_COMPONENT_TYPES = ["prompt", "rule", "mandate", "persona", "context", "reference", "task", "instruction", "header", "protocol", "method"]
     available_prompts = [
         c.get('id') for c in all_components 
         if c.get('type', '').lower() in TEXT_COMPONENT_TYPES
@@ -597,14 +597,14 @@ with tab3:
             edit_pre_hooks = st.multiselect(
                 "Pre-Hooks", 
                 AVAILABLE_HOOKS, 
-                default=[h for h in exec_config.get('pre_hooks', []) if h in AVAILABLE_HOOKS],
+                default=[h for h in (exec_config.get('pre_hooks') or []) if h in AVAILABLE_HOOKS],
                 help="Functions executed BEFORE the agent runs. Useful for data sanitization or preparation.",
                 key=f"edit_pre_hooks_{selected_step_id}"
             )
             edit_llm_prompts = st.multiselect(
                 "LLM Prompts & Components", 
                 available_prompts, 
-                default=[p for p in exec_config.get('llm_prompts', []) if p in available_prompts],
+                default=[p for p in (exec_config.get('llm_prompts') or []) if p in available_prompts],
                 help="System instructions (prompts, rules, mandates) passed to the LLM. You can select multiple components to be concatenated.",
                 key=f"edit_llm_prompts_{selected_step_id}"
             )
@@ -612,7 +612,7 @@ with tab3:
             edit_post_hooks = st.multiselect(
                 "Post-Hooks", 
                 AVAILABLE_HOOKS, 
-                default=[h for h in exec_config.get('post_hooks', []) if h in AVAILABLE_HOOKS],
+                default=[h for h in (exec_config.get('post_hooks') or []) if h in AVAILABLE_HOOKS],
                 help="Functions executed AFTER the agent runs. Useful for scoring, formatting, or saving results.",
                 key=f"edit_post_hooks_{selected_step_id}"
             )

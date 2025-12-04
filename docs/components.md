@@ -7,7 +7,7 @@ Hybrid Components are Python functions that extend a workflow's capabilities bey
 ### 1. External Data Retrieval
 
 - **`execute_google_search`**:
-    - **Description**: Performs a Google Search using the official Custom Search JSON API.
+    - **Description**: Performs a Google Search using the official Custom Search JSON API. (Step 5)
     - **Input**: `hypothesis_argument` or `prompt_text`.
     - **Output**: A list of search results, each containing a title, URL, and snippet.
     - **Configuration**: Requires the `GOOGLE_SEARCH_API_KEY` and `GOOGLE_SEARCH_CX` environment variables to be set.
@@ -38,6 +38,13 @@ Hybrid Components are Python functions that extend a workflow's capabilities bey
 - **`generate_jinja2_report`**:
     - **Description**: Renders the final report using a specified Jinja2 template.
     - **Feature**: Dynamically fetches content, such as a disclaimer, from the static content database via the `DISCLAIMER` component.
+
+### 5. Analysis Hooks
+
+- **`detect_performative_patterns`**:
+    - **Description**: Scans input text for specific keywords and phrases often associated with performative or "fluff" language (e.g., "delve into", "tapestry").
+    - **Input**: `history_text` and `product_text`.
+    - **Output**: `performative_patterns_detected` (JSON list of found patterns).
 
 ## Static Content
 
@@ -84,19 +91,39 @@ The system relies on a set of specialized AI agents, located in `backend/agents/
     - **Action**: Applies cognitive frameworks (Bloom's Taxonomy, Toulmin Argumentation) to build an argument.
     - **Output**: `argumentaatioanalyysi` (Argumentation Analysis).
 
-### 4. `PanelAgent` (`backend/agents/panel.py`)
-- **When**: **Phases 4-7 (Multi-Perspective Auditing)**.
-- **Why**: To subject the argument to rigorous criticism from multiple angles without making multiple expensive API calls.
+### 4. `LogicalFalsifierAgent` (`backend/agents/critics.py`)
+- **When**: **Phase 4 (Argument Stress Testing)**.
+- **Why**: To subject the argument to rigorous logical stress testing.
 - **How**:
-    - **Input**: Argumentation Analysis and Evidence Map.
-    - **Action**: Simulates a panel of critics in a single execution:
-        - **Logical Falsifier**: Checks for fallacies.
-        - **Causal Analyst**: Verifies cause-and-effect claims.
-        - **Performativity Detector**: Checks for AI-generated artifacts or lack of authenticity.
-        - **Factual Overseer**: Verifies external facts (optionally using Google Search results).
-    - **Output**: A combined JSON object containing audit reports from all perspectives.
+    - **Input**: Argumentation Analysis.
+    - **Action**: Applies Walton's critical questions to identify logical fallacies and weak links.
+    - **Output**: `LogiikkaAuditointi` (Logic Audit).
 
-### 5. `JudgeAgent` (`backend/agents/judge.py`)
+### 5. `FactualOverseerAgent` (`backend/agents/critics.py`)
+- **When**: **Phase 5 (Fact Checking)**.
+- **Why**: To verify the factual accuracy and ethical compliance of the content.
+- **How**:
+    - **Input**: Claims and Evidence.
+    - **Action**: Executes RFI (Request for Information) protocols, potentially using Google Search, to verify claims.
+    - **Output**: `EtiikkaJaFakta` (Ethics and Fact Report).
+
+### 6. `CausalAnalystAgent` (`backend/agents/critics.py`)
+- **When**: **Phase 6 (Causal Analysis)**.
+- **Why**: To ensure that claimed cause-and-effect relationships are valid and not post-hoc rationalizations.
+- **How**:
+    - **Input**: Narrative and timeline.
+    - **Action**: Performs counterfactual simulations (L3) and temporal auditing.
+    - **Output**: `KausaalinenAuditointi` (Causal Audit).
+
+### 7. `PerformativityDetectorAgent` (`backend/agents/critics.py`)
+- **When**: **Phase 7 (Authenticity Check)**.
+- **Why**: To detect "gaming the system" or performative AI artifacts.
+- **How**:
+    - **Input**: Full text and history.
+    - **Action**: Scans for "suspicious perfection", specific vocabulary patterns, and lack of genuine friction.
+    - **Output**: `PerformatiivisuusAuditointi` (Performativity Audit).
+
+### 8. `JudgeAgent` (`backend/agents/judge.py`)
 - **When**: **Phase 8 (Final Verdict)**.
 - **Why**: To synthesize all analyses and audits into a final score and verdict.
 - **How**:
@@ -104,7 +131,7 @@ The system relies on a set of specialized AI agents, located in `backend/agents/
     - **Action**: Weighs the evidence and audits to determine the final grade.
     - **Output**: `TuomioJaPisteet` (Verdict and Points) - a strictly validated JSON object.
 
-### 6. `XAIReporterAgent` (`backend/agents/judge.py`)
+### 9. `XAIReporterAgent` (`backend/agents/judge.py`)
 - **When**: **Phase 9 (Reporting)**.
 - **Why**: To translate the structured data and scores into a human-readable, educational report.
 - **How**:

@@ -75,7 +75,8 @@ def execute_rag_retrieval(inputs: Dict[str, Any]) -> Dict[str, Any]:
 
 def execute_google_search(inputs: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Step 7 Pre-hook: Executes Google Search using Custom Search JSON API.
+    Step 5 Pre-hook: Executes Google Search using Custom Search JSON API.
+    (Previously Step 7, moved to Step 5 in Hybrid Rubric Architecture)
     """
     print("[HOOK] Running execute_google_search...")
     
@@ -88,27 +89,46 @@ def execute_google_search(inputs: Dict[str, Any]) -> Dict[str, Any]:
         return inputs
 
     queries = []
-    # Simple fallback query extraction
-    if 'hypoteesit' in inputs:
-        # Try to extract a query from hypotheses if available (simplified)
-        queries.append("Cognitive Quorum fact check") 
-    else:
+    
+    # Extract queries from Hypotheses (Step 2 Output)
+    if 'hypoteesit' in inputs and isinstance(inputs['hypoteesit'], list):
+        print(f"   [HOOK] Found {len(inputs['hypoteesit'])} hypotheses for query generation.")
+        for hyp in inputs['hypoteesit']:
+            if isinstance(hyp, dict) and 'vaite_teksti' in hyp:
+                # Create a search query from the claim
+                # We might want to prepend context or just search the claim
+                query = hyp['vaite_teksti']
+                # Truncate if too long (Google limit is around 2048 chars, but shorter is better)
+                if len(query) > 150:
+                    query = query[:150] + "..."
+                queries.append(query)
+    
+    # Fallback if no hypotheses found
+    if not queries:
+        print("   [HOOK] No hypotheses found. Using fallback query.")
         queries.append("Cognitive Quorum verification")
 
     all_results = []
     try:
         service = build("customsearch", "v1", developerKey=api_key)
         
-        for query in queries[:1]: # Limit to 1 query for now to save quota
-            print(f"   Query: {query}")
-            res = service.cse().list(q=query, cx=cx, num=3).execute()
-            
-            for item in res.get('items', []):
-                all_results.append({
-                    "title": item.get('title'),
-                    "link": item.get('link'),
-                    "snippet": item.get('snippet')
-                })
+        # Limit to top 3 queries to save quota
+        for i, query in enumerate(queries[:3]): 
+            print(f"   Query {i+1}: {query}")
+            try:
+                res = service.cse().list(q=query, cx=cx, num=3).execute()
+                
+                for item in res.get('items', []):
+                    all_results.append({
+                        "query": query,
+                        "title": item.get('title'),
+                        "link": item.get('link'),
+                        "snippet": item.get('snippet')
+                    })
+            except Exception as q_err:
+                print(f"   Query '{query}' failed: {q_err}")
+                
+        inputs['google_search_results'] = json.dumps(all_results, indent=2)
                 
         inputs['google_search_results'] = json.dumps(all_results, indent=2)
         
@@ -116,6 +136,42 @@ def execute_google_search(inputs: Dict[str, Any]) -> Dict[str, Any]:
         print(f"   Search failed: {e}")
         inputs['google_search_results'] = f"Search failed: {str(e)}"
 
+    return inputs
+
+# --- 3.5. Performativity Hook ---
+
+def detect_performative_patterns(inputs: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Step 7 Pre-hook: Scans input for performative language patterns.
+    """
+    print("[HOOK] Running detect_performative_patterns...")
+    
+    # List of "suspect" words/phrases often associated with AI performativity or fluff
+    suspect_patterns = [
+        "delve into", "tapestry", "comprehensive overview", "rich history",
+        "testament to", "underscore the importance", "pivotal role",
+        "landscape of", "realm of", "foster a sense of"
+    ]
+    
+    detected = []
+    # Check history or product text
+    text_to_scan = ""
+    if 'history_text' in inputs: text_to_scan += inputs['history_text']
+    if 'product_text' in inputs: text_to_scan += inputs['product_text']
+    
+    # Normalize
+    text_lower = text_to_scan.lower()
+    
+    for pattern in suspect_patterns:
+        if pattern in text_lower:
+            detected.append(pattern)
+            
+    if detected:
+        print(f"   [HOOK] Detected performative patterns: {detected}")
+        inputs['performative_patterns_detected'] = json.dumps(detected)
+    else:
+        inputs['performative_patterns_detected'] = "[]"
+        
     return inputs
 
 # --- 4. Calculation Hook ---
@@ -169,6 +225,7 @@ def generate_jinja2_report(inputs: Dict[str, Any], output: Dict[str, Any]) -> Di
     Step 9 Post-hook: Generates the final report using Jinja2.
     """
     print("[HOOK] Running generate_jinja2_report...")
+    print(f"   [DEBUG] Inputs keys available: {list(inputs.keys())}")
     
     try:
         # Locate templates directory
@@ -189,8 +246,15 @@ def generate_jinja2_report(inputs: Dict[str, Any], output: Dict[str, Any]) -> Di
         
         # The context (inputs) has keys like 'pisteet', 'critical_findings', etc.
         data = inputs 
-        scores = data.get('pisteet', {})
         
+        # Check where scores are located. They might be in '8_tuomio_ja_pisteet.json' or merged to root
+        scores = data.get('pisteet', {})
+        if not scores and '8_tuomio_ja_pisteet.json' in data:
+             print("   [DEBUG] Found scores in '8_tuomio_ja_pisteet.json', extracting...")
+             scores = data['8_tuomio_ja_pisteet.json'].get('pisteet', {})
+        
+        print(f"   [DEBUG] Scores found: {scores}")
+
         report_data = {
             "summary": data.get('kriittiset_havainnot_yhteenveto') or data.get('score_summary') or 'Yhteenveto puuttuu.',
             "critical_findings": data.get('kriittiset_havainnot_yhteenveto') if isinstance(data.get('kriittiset_havainnot_yhteenveto'), list) else data.get('eettiset_havainnot', []),
@@ -228,16 +292,20 @@ def generate_jinja2_report(inputs: Dict[str, Any], output: Dict[str, Any]) -> Di
         )
         
         # If output already has content (e.g. from Mock LLM), append the detailed report
-        if output.get('xai_report_content'):
+        # NOTE: With new JSON output from XAI, output might not have 'xai_report_content' key yet
+        if 'xai_report_content' in output:
             print("   [HOOK] Appending rendered report to existing content.")
             output['xai_report_content'] += "\n\n---\n\n" + rendered_report
         else:
+            print("   [HOOK] Setting rendered report as 'xai_report_content'.")
             output['xai_report_content'] = rendered_report
             
         print("   Report generated successfully.")
         
     except Exception as e:
         print(f"   Report generation failed: {e}")
+        import traceback
+        traceback.print_exc()
         output['xai_report_error'] = str(e)
         
     return output
@@ -267,8 +335,23 @@ def _repair_json_string(text: str) -> str:
 
 def _balance_braces(text: str) -> str:
     """
-    Attempts to balance unclosed braces.
+    Attempts to balance unclosed braces and strings.
     """
+    # 1. Check for open string
+    escape = False
+    in_string = False
+    for char in text:
+        if char == '\\':
+            escape = not escape
+            continue
+        if char == '"' and not escape:
+            in_string = not in_string
+        escape = False
+    
+    if in_string:
+        text += '"'
+
+    # 2. Balance braces
     stack = []
     escape = False
     in_string = False
@@ -341,19 +424,55 @@ def _clean_and_parse_json(text: str) -> Dict[str, Any]:
 
 def parse_analyst_output(inputs: Dict[str, Any], output: Dict[str, Any]) -> Dict[str, Any]:
     print("[HOOK] Parsing Analyst Output...")
-    # If output is already a dict (from engine), use it. If string, parse it.
-    if isinstance(output, dict): return output
-    return _clean_and_parse_json(str(output))
+    parsed = output if isinstance(output, (dict, list)) else _clean_and_parse_json(str(output))
+    
+    # If Analyst returns a list (of hypotheses), wrap it in the expected schema structure
+    if isinstance(parsed, list):
+        print("[HOOK] Analyst returned a list. Wrapping in 'hypoteesit'...")
+        # Assume the list contains hypotheses
+        parsed = {
+            "hypoteesit": parsed,
+            "rag_todisteet": [] # Initialize empty list for required field
+        }
+    
+    # Ensure required fields exist for TodistusKartta schema
+    if isinstance(parsed, dict):
+        if 'hypoteesit' not in parsed:
+            parsed['hypoteesit'] = []
+        if 'rag_todisteet' not in parsed:
+            parsed['rag_todisteet'] = []
+
+    return parsed
 
 def parse_logician_output(inputs: Dict[str, Any], output: Dict[str, Any]) -> Dict[str, Any]:
     print("[HOOK] Parsing Logician Output...")
-    if isinstance(output, dict): return output
-    return _clean_and_parse_json(str(output))
+    parsed = output if isinstance(output, dict) else _clean_and_parse_json(str(output))
+    return parsed
+
+def parse_logical_falsifier_output(inputs: Dict[str, Any], output: Dict[str, Any]) -> Dict[str, Any]:
+    print("[HOOK] Parsing Logical Falsifier Output...")
+    parsed = output if isinstance(output, dict) else _clean_and_parse_json(str(output))
+    return parsed
+
+def parse_factual_overseer_output(inputs: Dict[str, Any], output: Dict[str, Any]) -> Dict[str, Any]:
+    print("[HOOK] Parsing Factual Overseer Output...")
+    parsed = output if isinstance(output, dict) else _clean_and_parse_json(str(output))
+    return parsed
+
+def parse_causal_analyst_output(inputs: Dict[str, Any], output: Dict[str, Any]) -> Dict[str, Any]:
+    print("[HOOK] Parsing Causal Analyst Output...")
+    parsed = output if isinstance(output, dict) else _clean_and_parse_json(str(output))
+    return parsed
+
+def parse_performativity_detector_output(inputs: Dict[str, Any], output: Dict[str, Any]) -> Dict[str, Any]:
+    print("[HOOK] Parsing Performativity Detector Output...")
+    parsed = output if isinstance(output, dict) else _clean_and_parse_json(str(output))
+    return parsed
 
 def parse_judge_output(inputs: Dict[str, Any], output: Dict[str, Any]) -> Dict[str, Any]:
     print("[HOOK] Parsing Judge Output...")
-    if isinstance(output, dict): return output
-    return _clean_and_parse_json(str(output))
+    parsed = output if isinstance(output, dict) else _clean_and_parse_json(str(output))
+    return parsed
 
 def ensure_tainted_data_content(inputs: Dict[str, Any], output: Dict[str, Any]) -> Dict[str, Any]:
     """

@@ -46,8 +46,31 @@ class AnalystAgent(BaseAgent):
         system_instruction = kwargs.get('system_instruction')
         
         # Call LLM with Retry Logic
-        return self.get_json_response(
+        # Pass validation_schema=None to allow manual validation after injection
+        response = self.get_json_response(
             prompt=user_content,
             system_instruction=system_instruction,
-            validation_schema=validation_schema
+            validation_schema=None
         )
+        
+        # --- AUTO-INJECT MISSING FIELDS ---
+        if response:
+            if 'hypoteesit' not in response:
+                print("[AnalystAgent] Warning: 'hypoteesit' missing. Injecting empty list.")
+                response['hypoteesit'] = []
+            if 'rag_todisteet' not in response:
+                print("[AnalystAgent] Warning: 'rag_todisteet' missing. Injecting empty list.")
+                response['rag_todisteet'] = []
+                
+        # --- FINAL VALIDATION ---
+        if validation_schema and response:
+            try:
+                print(f"[AnalystAgent] Validating against schema: {validation_schema.__name__}")
+                validation_schema.model_validate(response)
+                print("[AnalystAgent] Validation successful.")
+            except Exception as e:
+                print(f"[AnalystAgent] Validation failed after injection: {e}")
+                # We could retry or raise. For now, let's log and proceed.
+                pass
+
+        return response

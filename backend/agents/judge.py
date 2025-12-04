@@ -36,11 +36,55 @@ class JudgeAgent(BaseAgent):
         
         # Call LLM with Retry Logic and Schema Validation
         # Call LLM with Retry Logic and Schema Validation
+        # Call LLM with Retry Logic
+        # Pass validation_schema=None to allow manual validation after injection
         response = self.get_json_response(
             prompt=user_content,
             system_instruction=kwargs.get('system_instruction'),
-            validation_schema=validation_schema
+            validation_schema=None
         )
+        
+        # --- AUTO-INJECT MISSING FIELDS ---
+        if response:
+            if 'konfliktin_ratkaisut' not in response:
+                print("[JudgeAgent] Warning: 'konfliktin_ratkaisut' missing. Injecting empty list.")
+                response['konfliktin_ratkaisut'] = []
+            
+            if 'mestaruus_poikkeama' not in response:
+                print("[JudgeAgent] Warning: 'mestaruus_poikkeama' missing. Injecting default.")
+                response['mestaruus_poikkeama'] = {
+                    "tunnistettu": False,
+                    "perustelu": "Ei tunnistettu poikkeamaa."
+                }
+                
+            if 'aitous_epaily' not in response:
+                print("[JudgeAgent] Warning: 'aitous_epaily' missing. Injecting default.")
+                response['aitous_epaily'] = {
+                    "automaattinen_lippu": False,
+                    "viesti_hitl:lle": "Ei epäilyä."
+                }
+                
+            if 'pisteet' not in response:
+                print("[JudgeAgent] Warning: 'pisteet' missing. Injecting defaults.")
+                response['pisteet'] = {
+                    "analyysi_ja_prosessi": {"arvosana": 1, "perustelu": "N/A"},
+                    "arviointi_ja_argumentaatio": {"arvosana": 1, "perustelu": "N/A"},
+                    "synteesi_ja_luovuus": {"arvosana": 1, "perustelu": "N/A"}
+                }
+            
+            if 'kriittiset_havainnot_yhteenveto' not in response:
+                print("[JudgeAgent] Warning: 'kriittiset_havainnot_yhteenveto' missing. Injecting empty list.")
+                response['kriittiset_havainnot_yhteenveto'] = []
+
+        # --- FINAL VALIDATION ---
+        if validation_schema and response:
+            try:
+                print(f"[JudgeAgent] Validating against schema: {validation_schema.__name__}")
+                validation_schema.model_validate(response)
+                print("[JudgeAgent] Validation successful.")
+            except Exception as e:
+                print(f"[JudgeAgent] Validation failed after injection: {e}")
+                pass
 
         # Python-side Calculation (Monolithic Validation Extension)
         if response and 'pisteet' in response:

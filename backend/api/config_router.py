@@ -358,27 +358,41 @@ def get_unified_prompts():
     # 3. Fetch Components
     db = get_db()
     all_components = db.table('components').all()
-    comp_map = {c.get('id'): c for c in all_components if c.get('id')}
-
-    # 4. Define Order
-    ordered_ids = [
-        "HEADER_MANDATES",
-        "MANDATE_1_1", "MANDATE_1_2", "MANDATE_1_3", "MANDATE_1_4",
-        "HEADER_RULES",
-        "RULE_1", "RULE_2", "RULE_3", "RULE_4", "RULE_5", "RULE_6", "RULE_7", "RULE_8", "RULE_9", "RULE_10", "RULE_11", "RULE_12", "RULE_13", "RULE_14", "RULE_15",
-        "BARS_MATRIX",
-        "PROMPT_GUARD", "PROMPT_ANALYST", "PROMPT_LOGICIAN", "PROMPT_FALSIFIER", "PROMPT_CAUSAL", "PROMPT_PERFORMATIVITY", "PROMPT_FACT_CHECKER", "PROMPT_JUDGE", "PROMPT_XAI"
-    ]
-
+    
+    # Group by type
+    grouped = {}
+    for c in all_components:
+        ctype = c.get('type', 'other')
+        if ctype not in grouped:
+            grouped[ctype] = []
+        grouped[ctype].append(c)
+        
+    # Define Type Order
+    type_order = ["header", "mandate", "rule", "principle", "protocol", "method", "heuristic", "requirement", "prompt"]
+    
     # 5. Build Text
     unified_text = "# KOGNITIIVINEN KVOORUM - SYSTEM PROMPTS & SCHEMAS\n\n"
-    for cid in ordered_ids:
-        comp = comp_map.get(cid)
-        if comp:
-            unified_text += f"### {comp.get('id')} ({comp.get('type')})\n\n"
-            raw_content = comp.get('content', '')
-            expanded_content = expand_content(raw_content, schema_data)
-            unified_text += f"{expanded_content}\n\n"
-            unified_text += "---\n\n"
-            
+    
+    for ctype in type_order:
+        if ctype in grouped:
+            # Sort by ID
+            comps = sorted(grouped[ctype], key=lambda x: x.get('id'))
+            for comp in comps:
+                unified_text += f"### {comp.get('id')} ({comp.get('type')})\n\n"
+                raw_content = comp.get('content', '')
+                expanded_content = expand_content(raw_content, schema_data)
+                unified_text += f"{expanded_content}\n\n"
+                unified_text += "---\n\n"
+                
+    # Add any remaining types
+    for ctype, comps in grouped.items():
+        if ctype not in type_order:
+             comps = sorted(comps, key=lambda x: x.get('id'))
+             for comp in comps:
+                unified_text += f"### {comp.get('id')} ({comp.get('type')})\n\n"
+                raw_content = comp.get('content', '')
+                expanded_content = expand_content(raw_content, schema_data)
+                unified_text += f"{expanded_content}\n\n"
+                unified_text += "---\n\n"
+
     return {"content": unified_text}

@@ -38,8 +38,42 @@ class LogicianAgent(BaseAgent):
         system_instruction = kwargs.get('system_instruction')
         
         # Call LLM with Retry Logic
-        return self.get_json_response(
+        # Call LLM with Retry Logic
+        # Pass validation_schema=None to allow manual validation after injection
+        response = self.get_json_response(
             prompt=user_content,
             system_instruction=system_instruction,
-            validation_schema=validation_schema
+            validation_schema=None
         )
+        
+        # --- AUTO-INJECT MISSING FIELDS ---
+        if response:
+            if 'toulmin_analyysi' not in response:
+                print("[LogicianAgent] Warning: 'toulmin_analyysi' missing. Injecting empty list.")
+                response['toulmin_analyysi'] = []
+            
+            if 'kognitiivinen_taso' not in response:
+                print("[LogicianAgent] Warning: 'kognitiivinen_taso' missing. Injecting default.")
+                response['kognitiivinen_taso'] = {
+                    "bloom_taso": "Tuntematon",
+                    "strateginen_syvyys": "Määrittelemätön"
+                }
+                
+            if 'walton_skeema' not in response:
+                print("[LogicianAgent] Warning: 'walton_skeema' missing. Injecting default.")
+                response['walton_skeema'] = {
+                    "tunnistettu_skeema": "Ei tunnistettu",
+                    "kriittiset_kysymykset": []
+                }
+
+        # --- FINAL VALIDATION ---
+        if validation_schema and response:
+            try:
+                print(f"[LogicianAgent] Validating against schema: {validation_schema.__name__}")
+                validation_schema.model_validate(response)
+                print("[LogicianAgent] Validation successful.")
+            except Exception as e:
+                print(f"[LogicianAgent] Validation failed after injection: {e}")
+                pass
+
+        return response

@@ -6,6 +6,8 @@ from datetime import datetime
 from tinydb import TinyDB, Query
 from pydantic import BaseModel
 import backend.hooks as hooks
+import json
+from tenacity import retry, stop_after_attempt, wait_fixed, retry_if_exception_type
 
 class WorkflowStep(BaseModel):
     component: str
@@ -105,9 +107,7 @@ class WorkflowEngine:
             collected_citations = set() # Track unique citations
             
             # Robustly get steps
-            steps = workflow.get('sequence', [])
-            if not steps:
-                steps = workflow.get('steps', [])
+            steps = workflow.get('sequence') or workflow.get('steps') or []
 
             for step_id in steps:
                 print(f"--- Executing Step: {step_id} ---")
@@ -130,10 +130,10 @@ class WorkflowEngine:
                 if not component_class_name:
                     print(f"Error: Could not determine component for step {step_id}")
                     continue
-                execution_config = step_def.get('execution_config', {})
+                execution_config = step_def.get('execution_config') or {}
                 
                 # Assemble System Instruction
-                prompt_ids = execution_config.get('llm_prompts', [])
+                prompt_ids = execution_config.get('llm_prompts') or []
                 system_instruction = ""
                 for p_id in prompt_ids:
                     prompt = self.components_table.get(Query().id == p_id)
@@ -243,6 +243,16 @@ class WorkflowEngine:
                         print(f"Warning: Output schema '{output_schema_name}' defined in step but not found in backend.schemas.")
 
                 # Pass system_instruction to execute/process
+                
+                # Execute Pre-Hooks
+                for hook_name in (execution_config.get('pre_hooks') or []):
+                    if hasattr(hooks, hook_name):
+                        print(f"Executing pre-hook: {hook_name}")
+                        hook_func = getattr(hooks, hook_name)
+                        current_inputs = hook_func(current_inputs)
+                    else:
+                        print(f"Warning: Pre-hook {hook_name} not found.")
+
                 output = component_instance.execute(
                     system_instruction=system_instruction, 
                     validation_schema=validation_schema_class,
@@ -250,8 +260,33 @@ class WorkflowEngine:
                 )
                 
                 # 4. Execute Post-Hooks
-                for hook_name in execution_config.get('post_hooks', []):
+                # Automatic Parsing Hook: Check if a parser exists for this component/step
+                # Convention: parse_{component_snake_case}_output
+                # e.g. parse_analyst_agent_output or parse_analyst_output
+                
+                # Try to map component class to hook name
+                # GuardAgent -> parse_guard_output (if exists)
+                # AnalystAgent -> parse_analyst_output
+                
+                # Helper to convert CamelCase to snake_case
+                import re
+                s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', component_class_name)
+                snake_name = re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+                # Remove _agent suffix if present
+                if snake_name.endswith('_agent'):
+                    snake_name = snake_name[:-6]
+                    
+                parser_hook_name = f"parse_{snake_name}_output"
+                
+                if hasattr(hooks, parser_hook_name):
+                    print(f"Executing implicit parser hook: {parser_hook_name}")
+                    hook_func = getattr(hooks, parser_hook_name)
+                    output = hook_func(current_inputs, output)
+
+                # Explicit Post-Hooks from Config
+                for hook_name in (execution_config.get('post_hooks') or []):
                     if hasattr(hooks, hook_name):
+                        print(f"Executing post-hook: {hook_name}")
                         hook_func = getattr(hooks, hook_name)
                         output = hook_func(current_inputs, output)
                     else:
@@ -262,11 +297,38 @@ class WorkflowEngine:
                     'output': output
                 })
 
-                # Update context with output if it's a dictionary
+                # Update context with output
+                # NEW LOGIC: Use output_filename from step definition if available
+                output_filename = step_def.get('output_filename')
+                
+                if output_filename:
+                    print(f"[DEBUG] Saving step output to context as '{output_filename}'")
+                    # If output is a dict (JSON), save it directly
+                    if isinstance(output, dict):
+                        print(f"   [DEBUG] Output is dict with keys: {list(output.keys())}")
+                        context[output_filename] = output
+                    # If output is a Pydantic model (from structured output), dump to dict
+                    elif hasattr(output, 'model_dump'):
+                        print(f"   [DEBUG] Output is Pydantic model, dumping to dict.")
+                        context[output_filename] = output.model_dump()
+                    else:
+                        # Fallback for strings or other types
+                        print(f"   [DEBUG] Output is raw type: {type(output)}")
+                        context[output_filename] = output
+                    
+                    # Verify save
+                    if output_filename in context:
+                        print(f"   [DEBUG] SUCCESS: '{output_filename}' exists in context.")
+                    else:
+                        print(f"   [DEBUG] ERROR: Failed to save '{output_filename}' to context!")
+                
+                # Legacy support: Update context with output keys if it's a dictionary
+                # This ensures backward compatibility for steps relying on direct key access
                 if isinstance(output, dict):
-                    print(f"DEBUG: Step {step_id} output keys: {list(output.keys())}")
+                    print(f"[DEBUG] Merging output keys to global context (Legacy): {list(output.keys())}")
                     context.update(output)
-                    print(f"DEBUG: Context keys after update: {list(context.keys())}")
+                
+                print(f"[DEBUG] Current Context Keys: {list(context.keys())}")
             
             # Update status to completed
             self.executions_table.update(
@@ -292,7 +354,17 @@ class WorkflowEngine:
         return execution_id
 
     def get_execution_status(self, execution_id: int):
-        return self.executions_table.get(doc_id=execution_id)
+        @retry(stop=stop_after_attempt(5), wait=wait_fixed(0.2), retry=retry_if_exception_type(json.JSONDecodeError))
+        def _get_safe():
+            # Force reload of table data to ensure freshness and handle race conditions
+            self.executions_table.clear_cache() 
+            return self.executions_table.get(doc_id=execution_id)
+            
+        try:
+            return _get_safe()
+        except Exception as e:
+            print(f"[WorkflowEngine] Error reading execution status after retries: {e}")
+            return None
 
     def preview_step_prompt(self, step_id: str) -> Dict[str, Any]:
         print(f"DEBUG: preview_step_prompt called for {step_id}", flush=True)

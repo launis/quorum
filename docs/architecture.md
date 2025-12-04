@@ -56,11 +56,11 @@ The system implements a sequential "Assembly Line" of cognition:
 2.  **Analyst Agent**: Evidence extraction and anchoring.
 3.  **Logician Agent**: Argument construction and logical structuring.
 4.  **Logical Falsifier**: Stress-testing the argument (Panel).
-5.  **Causal Analyst**: Verifying cause-and-effect claims (Panel).
-6.  **Performativity Detector**: Checking for AI artifacts (Panel).
-7.  **Factual Overseer**: External fact-checking (Panel).
+5.  **Factual Overseer**: External fact-checking (Panel).
+6.  **Causal Analyst**: Verifying cause-and-effect claims (Panel).
+7.  **Performativity Detector**: Checking for AI artifacts (Panel).
 8.  **Judge Agent**: Final synthesis, scoring, and verdict.
-9.  **XAI Reporter**: Generating the human-readable explanation.
+9.  **XAI Reporter**: Generating the human-readable explanation (implemented via `XAIReportAgent` and Jinja2 templates).
 
 ## Technology Stack
 

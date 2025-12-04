@@ -7,7 +7,7 @@ class Metadata(BaseModel):
     luontiaika: str = Field(..., description="ISO 8601 format timestamp")
     agentti: str
     vaihe: int
-    versio: Literal["1.0"] = "1.0"
+    versio: Literal["1.0", "2.0"] = "2.0"
     suoritus_ymparisto: Literal["Kriitikkoryhma_External", "Internal"] | None = None
 
 class BaseJSON(BaseModel):
@@ -255,7 +255,50 @@ class LogiikkaAuditointi(BaseJSON):
         }
     )
 
-# --- Step 5: Causal Analyst ---
+# --- Step 5: Factual & Ethical Overseer ---
+
+class FaktantarkistusRFI(BaseModel):
+    vaite: str
+    verifiointi_tulos: Literal["Vahvistettu", "Kumottu", "Ei voitu vahvistaa"]
+    lahde_tai_paattely: str
+
+class EettinenHavainto(BaseModel):
+    tyyppi: Literal["Syrjintä", "Haitallinen sisältö", "Plagiointi", "Ei havaittu"]
+    vakavuus: Literal["Kriittinen", "Varoitus", "N/A"]
+    kuvaus: str
+
+class EtiikkaJaFakta(BaseJSON):
+    faktantarkistus_rfi: list[FaktantarkistusRFI] = Field(default_factory=list)
+    eettiset_havainnot: list[EettinenHavainto] = Field(default_factory=list)
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "metadata": { "luontiaika": "...", "agentti": "Valvoja", "vaihe": 5, "versio": "1.0" },
+                    "metodologinen_loki": "...",
+                    "edellisen_vaiheen_validointi": "...",
+                    "semanttinen_tarkistussumma": "...",
+                    "faktantarkistus_rfi": [
+                        {
+                            "vaite": "...",
+                            "verifiointi_tulos": "Vahvistettu",
+                            "lahde_tai_paattely": "..."
+                        }
+                    ],
+                    "eettiset_havainnot": [
+                        {
+                            "tyyppi": "Ei havaittu",
+                            "vakavuus": "N/A",
+                            "kuvaus": "..."
+                        }
+                    ]
+                }
+            ]
+        }
+    )
+
+# --- Step 6: Causal Analyst ---
 
 class KausaalinenAuditointiData(BaseModel):
     aikajana_validi: bool
@@ -275,7 +318,7 @@ class KausaalinenAuditointi(BaseJSON):
         json_schema_extra={
             "examples": [
                 {
-                    "metadata": { "luontiaika": "...", "agentti": "Kausaalinen", "vaihe": 5, "versio": "1.0" },
+                    "metadata": { "luontiaika": "...", "agentti": "Kausaalinen", "vaihe": 6, "versio": "1.0" },
                     "metodologinen_loki": "...",
                     "edellisen_vaiheen_validointi": "...",
                     "semanttinen_tarkistussumma": "...",
@@ -294,7 +337,7 @@ class KausaalinenAuditointi(BaseJSON):
         }
     )
 
-# --- Step 6: Performativity Detector ---
+# --- Step 7: Performativity Detector ---
 
 class PerformatiivisuusHeuristiikka(BaseModel):
     heuristiikka: str
@@ -314,7 +357,7 @@ class PerformatiivisuusAuditointi(BaseJSON):
         json_schema_extra={
             "examples": [
                 {
-                    "metadata": { "luontiaika": "...", "agentti": "Performatiivisuus", "vaihe": 6, "versio": "1.0" },
+                    "metadata": { "luontiaika": "...", "agentti": "Performatiivisuus", "vaihe": 7, "versio": "1.0" },
                     "metodologinen_loki": "...",
                     "edellisen_vaiheen_validointi": "...",
                     "semanttinen_tarkistussumma": "...",
@@ -330,49 +373,6 @@ class PerformatiivisuusAuditointi(BaseJSON):
                         "hiljaiset_signaalit": ["..."]
                     },
                     "yleisarvio_aitoudesta": "Orgaaninen"
-                }
-            ]
-        }
-    )
-
-# --- Step 7: Factual & Ethical Overseer ---
-
-class FaktantarkistusRFI(BaseModel):
-    vaite: str
-    verifiointi_tulos: Literal["Vahvistettu", "Kumottu", "Ei voitu vahvistaa"]
-    lahde_tai_paattely: str
-
-class EettinenHavainto(BaseModel):
-    tyyppi: Literal["Syrjintä", "Haitallinen sisältö", "Plagiointi", "Ei havaittu"]
-    vakavuus: Literal["Kriittinen", "Varoitus", "N/A"]
-    kuvaus: str
-
-class EtiikkaJaFakta(BaseJSON):
-    faktantarkistus_rfi: list[FaktantarkistusRFI]
-    eettiset_havainnot: list[EettinenHavainto]
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "examples": [
-                {
-                    "metadata": { "luontiaika": "...", "agentti": "Valvoja", "vaihe": 7, "versio": "1.0" },
-                    "metodologinen_loki": "...",
-                    "edellisen_vaiheen_validointi": "...",
-                    "semanttinen_tarkistussumma": "...",
-                    "faktantarkistus_rfi": [
-                        {
-                            "vaite": "...",
-                            "verifiointi_tulos": "Vahvistettu",
-                            "lahde_tai_paattely": "..."
-                        }
-                    ],
-                    "eettiset_havainnot": [
-                        {
-                            "tyyppi": "Ei havaittu",
-                            "vakavuus": "N/A",
-                            "kuvaus": "..."
-                        }
-                    ]
                 }
             ]
         }

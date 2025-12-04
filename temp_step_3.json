@@ -1,0 +1,33 @@
+{
+  "id": "step_3",
+  "name": "Loogikko (Logician)",
+  "description": "Argumentaation rakentaminen. Toulmin-malli ja Bloomin taksonomia.",
+  "citation": "Toulmin 2003",
+  "citation_full": "Toulmin, Stephen E. 2003: The uses of argument. P\u00e4ivitetty painos. Cambridge: Cambridge University Press. DOI: 10.1017/CBO9780511802031. Towards AI. 2025: AI Sandbox in 2025: How Enterprises and Governments Shape AI's Future. Towards AI. Julkaistu 26.9.2025. [Verkkojulkaisu]. Saatavilla: https://pub.towardsai.net/ai-sandbox-in-2025-how-enterprises-and-governments-shape-ais-future-b41f0d267c4d. [Haettu 14.11.2025].",
+  "component": "LogicianAgent",
+  "execution_config": {
+    "llm_prompts": [
+      "HEADER_MANDATES",
+      "MANDATE_1",
+      "MANDATE_2",
+      "MANDATE_3",
+      "MANDATE_4",
+      "HEADER_RULES",
+      "RULE_1",
+      "RULE_2",
+      "RULE_3",
+      "HEADER_PROTOCOLS",
+      "PROTOCOL_2",
+      "HEADER_METHODS",
+      "METHOD_2",
+      "INSTRUCTION_TOULMIN",
+      "INSTRUCTION_BLOOM",
+      "HEADER_INSTRUCTIONS",
+      "TASK_LOGICIAN"
+    ],
+    "pre_hooks": null,
+    "post_hooks": null
+  },
+  "output_schema": "ArgumentaatioAnalyysi",
+  "output_filename": "3_argumentaatioanalyysi.json"
+}

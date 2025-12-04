@@ -43,6 +43,31 @@ async def add_no_cache_header(request, call_next):
     response.headers["Expires"] = "0"
     return response
 
+@app.on_event("startup")
+async def startup_event():
+    from datetime import datetime
+    print("\n" + "="*50)
+    print(f"   Cognitive Quorum Backend v0.2.0")
+    print(f"   Startup Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print("="*50)
+    
+    # DB Path
+    print(f"   [CONFIG] Database Path: {os.path.abspath(DB_PATH)}")
+    
+    # LLM Config
+    llm_model = os.getenv("GEMINI_MODEL", "Not Set (Using Default)")
+    print(f"   [CONFIG] LLM Model: {llm_model}")
+    
+    # Google Search Config
+    search_key = os.getenv("GOOGLE_SEARCH_API_KEY")
+    search_cx = os.getenv("GOOGLE_SEARCH_CX")
+    if search_key and search_cx:
+        print(f"   [CONFIG] Google Search: ENABLED (Key: ...{search_key[-4:]})")
+    else:
+        print(f"   [CONFIG] Google Search: DISABLED (Missing Key or CX)")
+        
+    print("="*50 + "\n")
+
 # Database setup
 # Robust path resolution for DB
 print(f"DEBUG: ACTIVE DATABASE PATH: {os.path.abspath(DB_PATH)}")
@@ -249,9 +274,9 @@ def introspect_codebase():
 
     # 3. Inspect Agents
     available_agents = []
-    from backend.agents import base, guard, analyst, logician, critics, judge, panel
+    from backend.agents import base, guard, analyst, logician, critics, judge, panel, xai
     
-    agent_modules = [base, guard, analyst, logician, critics, judge, panel]
+    agent_modules = [base, guard, analyst, logician, critics, judge, panel, xai]
     
     for module in agent_modules:
         for name, obj in inspect.getmembers(module):

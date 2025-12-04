@@ -100,9 +100,16 @@ if page == "Assessment":
                                     st.header("2. Results")
                                     
                                     # Display XAI Report
-                                    report_md = result.get('xai_report_content') or result.get('xai_report') or result.get('report_content')
+                                    report_md = (
+                                        result.get('xai_report_content') or 
+                                        result.get('xai_report') or 
+                                        result.get('report_content') or
+                                        result.get('product_text') or
+                                        result.get('safe_data', {}).get('product_text') or
+                                        result.get('1_tainted_data.json', {}).get('product_text')
+                                    )
                                     if report_md:
-                                        st.subheader("📝 XAI Report")
+                                        st.subheader("📝 XAI Report (or Product Text)")
                                         st.markdown(report_md)
                                     else:
                                         st.warning("Report content not found in result.")
@@ -160,7 +167,8 @@ elif page == "System Info":
             st.subheader("1. Components (Prompts)")
             all_components = data.get('components', [])
             # Filter prompt, Mandate, and Rule components
-            components = [c for c in all_components if c.get('type') in ['prompt', 'Mandate', 'Rule']]
+            relevant_types = ['prompt', 'Mandate', 'Rule', 'instruction', 'header', 'protocol', 'method', 'task']
+            components = [c for c in all_components if c.get('type') in relevant_types]
             
             if components:
                 for i, comp in enumerate(components):
