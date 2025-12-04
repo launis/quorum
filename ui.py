@@ -101,6 +101,7 @@ if page == "Assessment":
                                     
                                     # Display XAI Report
                                     report_md = (
+                                        result.get('xai_report_formatted') or 
                                         result.get('xai_report_content') or 
                                         result.get('xai_report') or 
                                         result.get('report_content') or

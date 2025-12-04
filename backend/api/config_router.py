@@ -110,6 +110,22 @@ def update_component(comp_id: str, update: ComponentUpdate):
     table.update(update_data, (Component.id == comp_id) | (Component.name == comp_id))
     return {"status": "updated", "id": comp_id}
 
+@router.delete("/components/{comp_id}")
+def delete_component(comp_id: str):
+    """Delete a component."""
+    db = get_db()
+    table = db.table('components')
+    Component = Query()
+    
+    # Check existence
+    exists = table.search((Component.id == comp_id) | (Component.name == comp_id))
+    if not exists:
+        raise HTTPException(status_code=404, detail="Component not found")
+        
+    # Remove
+    table.remove((Component.id == comp_id) | (Component.name == comp_id))
+    return {"status": "deleted", "id": comp_id}
+
 @router.get("/steps")
 def get_steps():
     """List all steps."""

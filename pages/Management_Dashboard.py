@@ -177,6 +177,18 @@ def update_component(comp_id, content, description, citation=None, citation_full
         st.error(f"Error updating component: {e}")
     return False
 
+def delete_component(comp_id):
+    try:
+        res = requests.delete(f"{API_URL}/config/components/{comp_id}")
+        if res.status_code == 200:
+            st.success(f"Deleted component {comp_id} successfully!")
+            return True
+        else:
+            st.error(f"Failed to delete component: {res.text}")
+    except Exception as e:
+        st.error(f"Error deleting component: {e}")
+    return False
+
 def update_workflow(wf_id, sequence, description, model_mapping):
     try:
         payload = {
@@ -237,19 +249,26 @@ with tab1:
     st.divider()
     
     components = get_components()
+    # DEBUG: Show raw components if needed
+    # st.write(components) 
     if components:
         # Filter options
         col_filter, col_select = st.columns([1, 2])
         
         with col_filter:
-            # Get unique types
-            all_types = sorted(list(set([c.get('type', 'Unknown') for c in components])))
+            # Get unique types but exclude technical ones
+            all_types = sorted(list(set([c.get('type', 'Unknown') for c in components if c.get('type') not in ['agent', 'processor']])))
             selected_type_filter = st.multiselect("Filter by Type", all_types, default=all_types)
             
-        filtered_components = [c for c in components if c.get('type', 'Unknown') in selected_type_filter]
+        filtered_components = [
+            c for c in components 
+            if c.get('type', 'Unknown') in selected_type_filter 
+            and c.get('type') not in ['agent', 'processor']
+        ]
         
         with col_select:
-            comp_names = [c.get('id') for c in filtered_components]
+            # Use ID if available, else Name (e.g. for code components like PDFExtractor)
+            comp_names = [c.get('id') or c.get('name') for c in filtered_components]
             selected_comp_name = st.selectbox("Select Component to Edit", comp_names, key="select_component_tab1")
         
         # Find selected component data
@@ -273,8 +292,15 @@ with tab1:
                 
             new_content = st.text_area("Content (Jinja2 Template or JSON)", value=content, height=400, key=f"comp_content_{selected_comp_name}")
             
-            if st.button("Save Changes", key=f"save_comp_{selected_comp_name}"):
-                update_component(selected_comp_name, new_content, new_desc, new_citation, new_citation_full)
+            col_save, col_del = st.columns([1, 1])
+            with col_save:
+                if st.button("Save Changes", key=f"save_comp_{selected_comp_name}"):
+                    update_component(selected_comp_name, new_content, new_desc, new_citation, new_citation_full)
+            
+            with col_del:
+                if st.button("🗑️ Delete Component", key=f"del_comp_{selected_comp_name}", type="primary"):
+                    if delete_component(selected_comp_name):
+                        st.rerun()
     else:
         st.warning("No components found.")
 
@@ -385,6 +411,8 @@ with tab2:
             
             with col_save:
                 if st.button("Save Workflow", key=f"save_wf_{selected_wf_id}"):
+                    # DEBUG
+                    st.write("DEBUG Saving:", new_mapping)
                     # No need to parse JSON anymore, we have the objects directly
                     update_workflow(selected_wf_id, selected_steps, edit_wf_desc, new_mapping)
             
@@ -438,11 +466,12 @@ with tab3:
 
     # Fetch available text components (Prompts, Rules, etc.)
     all_components = get_components()
-    # Allow all text-based component types. Check case-insensitively.
-    TEXT_COMPONENT_TYPES = ["prompt", "rule", "mandate", "persona", "context", "reference", "task", "instruction", "header", "protocol", "method"]
+    # Allow all non-technical component types.
+    # Instead of whitelisting, we blacklist technical types.
     available_prompts = [
         c.get('id') for c in all_components 
-        if c.get('type', '').lower() in TEXT_COMPONENT_TYPES
+        if c.get('type', '').lower() not in ['agent', 'processor']
+        and c.get('id') # Ensure ID exists
     ] if all_components else []
 
     # --- Create New Step ---
@@ -627,8 +656,8 @@ with tab3:
                 key=f"edit_custom_instr_{selected_step_id}"
             )
             
-            edit_step_citation = st.text_input("Citation (Short)", value=exec_config.get('citation', ''), key=f"edit_step_citation_{selected_step_id}")
-            edit_step_citation_full = st.text_area("Bibliography Entry (Full)", value=exec_config.get('citation_full', ''), key=f"edit_step_citation_full_{selected_step_id}", height=100)
+            edit_step_citation = st.text_input("Citation (Short)", value=exec_config.get('citation') or selected_step.get('citation', ''), key=f"edit_step_citation_{selected_step_id}")
+            edit_step_citation_full = st.text_area("Bibliography Entry (Full)", value=exec_config.get('citation_full') or selected_step.get('citation_full', ''), key=f"edit_step_citation_full_{selected_step_id}", height=100)
             
             # Live Preview of JSON (Visual Only)
             updated_step_preview_display = {

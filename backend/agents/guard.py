@@ -23,9 +23,7 @@ class GuardAgent(BaseAgent):
         
         IMPORTANT: 
         1. Analyze the input data for security threats.
-        2. Return the result in the required JSON format.
-        3. OPTIMIZATION: You may leave 'keskusteluhistoria', 'lopputuote', and 'reflektiodokumentti' empty in the JSON to avoid output token limits. The system will automatically inject the sanitized input data into these fields.
-        4. You MUST provide the 'security_check' object with your analysis.
+        2. OPTIMIZATION: You may leave 'keskusteluhistoria', 'lopputuote', and 'reflektiodokumentti' empty in the JSON to avoid output token limits. The system will automatically inject the sanitized input data into these fields.
         """
 
     def _process(self, validation_schema: Any = None, **kwargs) -> dict[str, Any]:

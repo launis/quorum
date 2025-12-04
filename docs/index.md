@@ -1,27 +1,29 @@
 # Cognitive Quorum v2 Documentation
 
-Welcome to the documentation for **Cognitive Quorum**, an advanced AI-driven assessment and auditing system.
+Welcome to the documentation for **Cognitive Quorum v2**, a generic, data-driven engine for orchestrating advanced AI workflows.
 
 ## Overview
 
-Cognitive Quorum is designed to simulate a "quorum" of expert AI agents that evaluate, debate, and judge complex inputs. Unlike simple chatbot interactions, this system employs a rigorous, multi-step cognitive workflow to ensure high-quality, unbiased, and hallucination-resistant results.
+Cognitive Quorum is designed to execute complex cognitive tasks by simulating a "quorum" of specialized AI agents and deterministic code modules. The system is architected as a highly configurable engine where the entire workflow—including the sequence of steps, agent personas, prompts, and business rules—is defined in a database. This data-driven approach allows for rapid adaptation and reconfiguration for various use cases without requiring any changes to the underlying source code.
+
+The engine processes inputs through a rigorous, multi-step workflow, ensuring that every stage of the process is transparent, auditable, and produces high-quality, hallucination-resistant results.
 
 ## Key Features
 
-*   **Multi-Agent Architecture**: Uses specialized agents (Analyst, Logician, Critics, Judge) to handle different cognitive tasks.
-*   **Data-Driven Logic**: All prompts, rules, and workflow steps are defined in a database (`db.json`), allowing for dynamic reconfiguration without code changes.
-*   **Hybrid Execution**: Combines Large Language Models (LLM) with deterministic Python code (Hooks) for tasks like fact-checking, math, and validation.
-*   **Transparent Auditing**: Every step of the reasoning process is recorded, from initial evidence gathering to the final verdict.
+*   **Configurable Workflows**: Define complex, multi-step processes composed of specialized AI agents (e.g., Analyst, Critic, Judge) and deterministic Python functions (Hooks).
+*   **Data-Driven Engine**: All system behavior—prompts, agent instructions, validation rules, and workflow logic—is loaded from a database (`db.json`), enabling dynamic reconfiguration.
+*   **Hybrid Execution**: Blends the reasoning capabilities of Large Language Models (LLMs) with the precision of deterministic code (Hooks) for tasks like data validation, calculations, and external API calls.
+*   **Transparent Auditing**: Records every step of the workflow, from initial data ingestion to the final conclusion, providing a complete and verifiable audit trail.
 
 ## Documentation Structure
 
-*   **[Architecture](architecture.md)**: High-level technical design, including the Backend (FastAPI) and Frontend (Streamlit).
-*   **[Structured Cognitive Architecture](structured_cognitive_architecture.md)**: Deep dive into the "Mind vs. Spine" design pattern and Monolithic Validation.
-*   **[Components & Agents](components.md)**: Detailed breakdown of the specific AI agents and hybrid hooks used in the system.
-*   **[Data Management](data_management.md)**: How data is stored, seeded, and managed (TinyDB, Seed Data, Fragments).
-*   **[Prompt Engineering](prompt_engineering.md)**: Explanation of the dynamic prompt construction system using Jinja2 templates.
-*   **[Management UI](management_architecture.md)**: Guide to the administrative interface for managing rules and prompts.
-*   **[API Reference](reference.md)**: Details on the backend REST API.
+*   **[Architecture](architecture.md)**: A high-level overview of the technical design, including the FastAPI backend and Streamlit frontend.
+*   **[Workflow Engine](structured_cognitive_architecture.md)**: A deep dive into the core data-driven orchestration, detailing how workflow steps are executed and how agents and hooks interact.
+*   **[Components](components.md)**: A detailed breakdown of the system's building blocks, including Agents and Hooks.
+*   **[Data Model & Management](data_management.md)**: An explanation of how the system's behavior is defined, stored, and managed using TinyDB.
+*   **[Dynamic Prompts](prompt_engineering.md)**: A guide to the Jinja2-based templating system used for constructing dynamic prompts.
+*   **[Admin UI Guide](management_architecture.md)**: A walkthrough of the administrative interface for managing workflow configurations.
+*   **[API Reference](reference.md)**: Technical reference for the backend REST API.
 
 ## Getting Started
 
@@ -31,10 +33,10 @@ To run the system locally:
     ```bash
     .\run_locally.bat
     ```
-    This starts both the FastAPI backend (port 8000) and the Streamlit frontend (port 8501).
+    This command starts both the FastAPI backend (port 8000) and the Streamlit frontend (port 8501).
 
 2.  **Access the UI**:
     Open [http://localhost:8501](http://localhost:8501) in your browser.
 
 3.  **View API Docs**:
-    Open [http://localhost:8000/docs](http://localhost:8000/docs) for the Swagger UI.
+    Open [http://localhost:8000/docs](http://localhost:8000/docs) for the interactive Swagger UI.

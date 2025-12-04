@@ -9,6 +9,7 @@ class JudgeAgent(BaseAgent):
     def construct_user_prompt(self, **kwargs) -> str:
         import json
         
+        # 1. Context from previous steps
         relevant_keys = [
             'argumentaatioanalyysi', 
             'logiikkaauditointi', 
@@ -19,33 +20,55 @@ class JudgeAgent(BaseAgent):
             'metadata',
             'data'
         ]
-        input_data = {k: kwargs.get(k) for k in relevant_keys if k in kwargs}
+        context_data = {k: kwargs.get(k) for k in relevant_keys if k in kwargs}
         
-        if not input_data:
-             input_data = {k: v for k, v in kwargs.items() if k != 'system_instruction'}
+        if not context_data:
+             context_data = {k: v for k, v in kwargs.items() if k != 'system_instruction'}
+
+        # 2. Raw Evidence (Unstructured Text)
+        history_text = kwargs.get('history_text', 'N/A')
+        product_text = kwargs.get('product_text', 'N/A')
+        reflection_text = kwargs.get('reflection_text', 'N/A')
 
         return f"""
         INPUT DATA (AUDITOINTIRAPORTIT):
         ---
-        {json.dumps(input_data, indent=2, ensure_ascii=False)}
+        {json.dumps(context_data, indent=2, ensure_ascii=False)}
         ---
+        
+        RAW EVIDENCE FOR VERIFICATION:
+        
+        === KESKUSTELUHISTORIA ===
+        {history_text}
+        
+        === LOPPUTUOTE ===
+        {product_text}
+        
+        === REFLEKTIODOKUMENTTI ===
+        {reflection_text}
         """
 
     def _process(self, validation_schema: Any = None, **kwargs) -> dict[str, Any]:
         user_content = self.construct_user_prompt(**kwargs)
         
         # Call LLM with Retry Logic and Schema Validation
-        # Call LLM with Retry Logic and Schema Validation
         # Call LLM with Retry Logic
-        # Pass validation_schema=None to allow manual validation after injection
+        # We pass validation_schema=None initially to allow partial JSON, 
+        # then we inject defaults, and FINALLY validate against the schema.
+        schema_to_use = validation_schema if validation_schema else TuomioJaPisteet
+        
         response = self.get_json_response(
             prompt=user_content,
             system_instruction=kwargs.get('system_instruction'),
-            validation_schema=None
+            validation_schema=None # Allow partial JSON for injection logic
         )
         
         # --- AUTO-INJECT MISSING FIELDS ---
         if response:
+            if isinstance(response, list):
+                print("[JudgeAgent] Response is a list. Wrapping in 'konfliktin_ratkaisut'.")
+                response = {"konfliktin_ratkaisut": response}
+
             if 'konfliktin_ratkaisut' not in response:
                 print("[JudgeAgent] Warning: 'konfliktin_ratkaisut' missing. Injecting empty list.")
                 response['konfliktin_ratkaisut'] = []
@@ -77,10 +100,10 @@ class JudgeAgent(BaseAgent):
                 response['kriittiset_havainnot_yhteenveto'] = []
 
         # --- FINAL VALIDATION ---
-        if validation_schema and response:
+        if schema_to_use and response:
             try:
-                print(f"[JudgeAgent] Validating against schema: {validation_schema.__name__}")
-                validation_schema.model_validate(response)
+                print(f"[JudgeAgent] Validating against schema: {schema_to_use.__name__}")
+                schema_to_use.model_validate(response)
                 print("[JudgeAgent] Validation successful.")
             except Exception as e:
                 print(f"[JudgeAgent] Validation failed after injection: {e}")
@@ -186,21 +209,55 @@ class XAIReporterAgent(BaseAgent):
         {json.dumps(input_data, indent=2, ensure_ascii=False)}
         ---
         {bib_section}
+        
+        IMPORTANT: You MUST output a valid JSON object containing the XAI report.
+        Strictly follow the 'XAIRaportti' schema. Do not include any Markdown formatting outside the JSON.
         """
 
-    def _process(self, **kwargs) -> dict[str, Any]:
+    def _process(self, validation_schema: Any = None, **kwargs) -> dict[str, Any]:
+        from backend.schemas import XAIRaportti
+        import json
+        
         user_content = self.construct_user_prompt(**kwargs)
         
-        llm_response = self._call_llm(
+        # 1. Get raw JSON without strict schema validation first to allow structural fixes
+        response = self.get_json_response(
             prompt=user_content,
-            system_instruction=kwargs.get('system_instruction')
+            system_instruction=kwargs.get('system_instruction'),
+            validation_schema=None 
         )
         
-        # XAI Agent produces a TEXT REPORT, not necessarily JSON.
-        # But the prompt says "SINUN TÄYTYY TUOTTAA TEKSTIRAPORTTI".
-        # However, the engine might expect a dict to update context.
-        # Let's return a dict with the report content.
+        if response:
+            # --- NEW CLEANING LOGIC ---
+            if isinstance(response, str):
+                try:
+                    # Try to extract JSON from the string, ignoring trailing text
+                    response_str = response.strip()
+                    start_idx = response_str.find('{')
+                    if start_idx != -1:
+                        response_str = response_str[start_idx:]
+                        # raw_decode returns (obj, end_index)
+                        response, _ = json.JSONDecoder().raw_decode(response_str)
+                        print("[XAIReporterAgent] Successfully extracted JSON from mixed output.")
+                except Exception as e:
+                    print(f"[XAIReporterAgent] Failed to parse raw response string: {e}")
+            # --------------------------
+
+            # 2. Check and Fix Structure (Missing Root Key)
+            if "kognitiivinen_arviointiraportti" not in response:
+                # Check if it looks like the inner content
+                if "analyyttinen_arviointimatriisi_JEM_A" in response:
+                    print("[XAIReporterAgent] Missing root key 'kognitiivinen_arviointiraportti'. Wrapping response.")
+                    response = {"kognitiivinen_arviointiraportti": response}
+            
+            # 3. Validate manually
+            try:
+                XAIRaportti.model_validate(response)
+                print("[XAIReporterAgent] Schema validation successful.")
+            except Exception as e:
+                print(f"[XAIReporterAgent] Validation failed after fixing: {e}")
+                # Proceeding with best effort
         
         return {
-            "xai_report_content": llm_response
+            "xai_report_content": json.dumps(response, ensure_ascii=False) if response else "{}"
         }

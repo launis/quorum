@@ -1,140 +1,85 @@
-# Hybrid Components
+# Workflow Components
 
-Hybrid Components are Python functions that extend a workflow's capabilities beyond standard text generation. They are registered in the `HookRegistry` and can be configured to execute at specific points in the process.
+Workflow Components are the building blocks of the Cognitive Quorum engine. They are divided into two main categories: **Workflow Hooks**, which are procedural Python functions for tasks like data retrieval and processing, and **Workflow Agents**, which are configurable, LLM-powered units for core reasoning and generation tasks.
 
-## Available Hooks
+---
+
+## Workflow Hooks
+
+Workflow Hooks are Python functions that extend a workflow's capabilities beyond standard text generation. Registered in the `HookRegistry`, they can be configured to execute at specific points in a workflow, such as before or after an Agent runs.
 
 ### 1. External Data Retrieval
 
 - **`execute_google_search`**:
-    - **Description**: Performs a Google Search using the official Custom Search JSON API. (Step 5)
-    - **Input**: `hypothesis_argument` or `prompt_text`.
+    - **Description**: Performs a Google Search using the official Custom Search JSON API to enrich the workflow context with real-time information.
+    - **Input**: `search_query` (typically derived from a prompt or a previous step's output).
     - **Output**: A list of search results, each containing a title, URL, and snippet.
-    - **Configuration**: Requires the `GOOGLE_SEARCH_API_KEY` and `GOOGLE_SEARCH_CX` environment variables to be set.
+    - **Configuration**: Requires the `GOOGLE_SEARCH_API_KEY` and `GOOGLE_SEARCH_CX` environment variables.
 
 - **`execute_rag_retrieval`**:
-    - **Description**: Retrieves relevant documents from a configured vector store to provide additional context.
-    - **Input**: `tainted_data`.
-    - **Output**: `rag_context`.
+    - **Description**: Retrieves relevant documents from a configured vector store to provide additional, domain-specific context to an Agent.
+    - **Input**: A query string (e.g., `tainted_data`).
+    - **Output**: A string of concatenated documents (`rag_context`).
 
 ### 2. Data Processing and Parsing
 
 - **`sanitize_and_anonymize_input`**:
-    - **Description**: Removes Personally Identifiable Information (PII) and sanitizes input text using regular expressions.
+    - **Description**: Removes Personally Identifiable Information (PII) and sanitizes input text using regular expressions to ensure data privacy and security.
     - **Input**: `raw_input`.
     - **Output**: `tainted_data` (sanitized text).
 
 - **`parse_json_output`**:
-    - **Description**: Parses raw LLM string output into a structured Pydantic model based on a predefined schema.
-    - **Feature**: Enforces strict schema compliance (e.g., validating output against the `TuomioJaPisteet` model for a Judge Agent).
+    - **Description**: Parses a raw LLM string output into a structured Pydantic model defined in the workflow configuration.
+    - **Feature**: Enforces strict schema compliance, ensuring the data passed between steps is valid and well-formed.
 
 ### 3. Logic and Control
 
 - **`calculate_input_control_ratio`**:
-    - **Description**: Calculates the ratio between the length of the original input and the generated text. This metric can help identify potential hallucinations or overly verbose outputs.
+    - **Description**: Calculates the ratio between the length of an input text and a generated text. This metric can be used as a heuristic to help identify potential hallucinations or overly verbose outputs.
 
 ### 4. Reporting
 
 - **`generate_jinja2_report`**:
-    - **Description**: Renders the final report using a specified Jinja2 template.
-    - **Feature**: Dynamically fetches content, such as a disclaimer, from the static content database via the `DISCLAIMER` component.
+    - **Description**: Renders a final report by populating a specified Jinja2 template with data from the workflow context.
+    - **Feature**: Can dynamically fetch content, such as a disclaimer, from the static content database via a `DISCLAIMER` component.
 
 ### 5. Analysis Hooks
 
 - **`detect_performative_patterns`**:
-    - **Description**: Scans input text for specific keywords and phrases often associated with performative or "fluff" language (e.g., "delve into", "tapestry").
-    - **Input**: `history_text` and `product_text`.
-    - **Output**: `performative_patterns_detected` (JSON list of found patterns).
+    - **Description**: Scans text for specific keywords and phrases associated with performative or "fluff" language (e.g., "delve into", "tapestry").
+    - **Input**: Any text field from the workflow context (e.g., `history_text`, `product_text`).
+    - **Output**: A JSON list of detected patterns (`performative_patterns_detected`).
+
+---
 
 ## Static Content
 
-Static content components store reusable text, such as legal disclaimers or standardized instructions. This content is stored in a database and can be fetched dynamically by any hook during a workflow's execution.
+Static content components store reusable text snippets, such as legal disclaimers, standardized instructions, or system prompts. This content is stored in a database and can be dynamically fetched and injected into the workflow context by any hook or agent.
 
-# Core Agents
+---
 
-The system relies on a set of specialized AI agents, located in `backend/agents/`, each designed for a specific phase of the cognitive assessment process. All agents inherit from `BaseAgent`.
+## Workflow Agents
 
-## Base Infrastructure
+Agents are the core reasoning units of the workflow engine. Located in `backend/agents/`, they are designed to be generic and configurable. Instead of a fixed sequence of hardcoded agents, a workflow is now defined by a series of agent configurations, allowing for flexible and adaptable data processing pipelines.
 
-### `BaseAgent` (`backend/agents/base.py`)
-- **What**: The abstract base class for all agents.
-- **Why**: Standardizes LLM interactions, error handling, retries, and configuration.
+### Base Infrastructure
+
+#### `BaseAgent` (`backend/agents/base.py`)
+- **What**: The abstract base class for all dynamically configured agents.
+- **Why**: It standardizes LLM interactions, error handling, retries, and configuration management, ensuring consistent behavior across all workflow steps.
 - **How**:
-    - Manages the connection to Google Gemini (or Mock LLM).
-    - Applies global generation parameters (Temperature: 0.7, Top-P: 0.95, Top-K: 64).
-    - Implements retry logic for network errors.
-    - Provides `get_json_response` helper for robust JSON parsing.
+    - Manages the connection to the configured LLM (e.g., Google Gemini, Mock LLM).
+    - Applies global and per-agent generation parameters (e.g., Temperature, Top-P, Top-K).
+    - Implements robust retry logic for transient network or API errors.
+    - Provides a `get_json_response` helper method for reliable parsing of LLM outputs into Pydantic models.
 
-## Operational Agents (By Phase)
+### Agent Configuration
 
-### 1. `GuardAgent` (`backend/agents/guard.py`)
-- **When**: **Phase 1 (Input Processing)**.
-- **Why**: To ensure data safety, privacy, and compliance before deep analysis begins.
-- **How**:
-    - **Input**: Raw user submissions (chat history, product text, reflection).
-    - **Action**: Sanitizes PII, checks for security threats, and structures the raw data.
-    - **Output**: Cleaned and structured JSON data (`safe_data`).
+An "Agent" is not a static class but an *instance* configured within a workflow definition. Each agent in a sequence is defined by its specific configuration, which typically includes:
 
-### 2. `AnalystAgent` (`backend/agents/analyst.py`)
-- **When**: **Phase 2 (Evidence Anchoring)**.
-- **Why**: To create a factual foundation for the assessment.
-- **How**:
-    - **Input**: `safe_data` from the Guard Agent.
-    - **Action**: Extracts verifiable facts and creates an "Evidence Map" (Todistuskartta).
-    - **Output**: A structured map of evidence linking claims to specific parts of the input.
+- **`agent_name`**: A unique identifier for the workflow step.
+- **`llm_config`**: Specifies the model to use (e.g., `gemini-1.5-pro-latest`) and its generation parameters.
+- **`prompt_template`**: The Jinja2 template used to generate the prompt sent to the LLM.
+- **`output_schema`**: The Pydantic model that the agent's response is expected to conform to.
 
-### 3. `LogicianAgent` (`backend/agents/logician.py`)
-- **When**: **Phase 3 (Argument Construction)**.
-- **Why**: To structure the evidence into a coherent logical argument.
-- **How**:
-    - **Input**: Evidence Map from the Analyst.
-    - **Action**: Applies cognitive frameworks (Bloom's Taxonomy, Toulmin Argumentation) to build an argument.
-    - **Output**: `argumentaatioanalyysi` (Argumentation Analysis).
-
-### 4. `LogicalFalsifierAgent` (`backend/agents/critics.py`)
-- **When**: **Phase 4 (Argument Stress Testing)**.
-- **Why**: To subject the argument to rigorous logical stress testing.
-- **How**:
-    - **Input**: Argumentation Analysis.
-    - **Action**: Applies Walton's critical questions to identify logical fallacies and weak links.
-    - **Output**: `LogiikkaAuditointi` (Logic Audit).
-
-### 5. `FactualOverseerAgent` (`backend/agents/critics.py`)
-- **When**: **Phase 5 (Fact Checking)**.
-- **Why**: To verify the factual accuracy and ethical compliance of the content.
-- **How**:
-    - **Input**: Claims and Evidence.
-    - **Action**: Executes RFI (Request for Information) protocols, potentially using Google Search, to verify claims.
-    - **Output**: `EtiikkaJaFakta` (Ethics and Fact Report).
-
-### 6. `CausalAnalystAgent` (`backend/agents/critics.py`)
-- **When**: **Phase 6 (Causal Analysis)**.
-- **Why**: To ensure that claimed cause-and-effect relationships are valid and not post-hoc rationalizations.
-- **How**:
-    - **Input**: Narrative and timeline.
-    - **Action**: Performs counterfactual simulations (L3) and temporal auditing.
-    - **Output**: `KausaalinenAuditointi` (Causal Audit).
-
-### 7. `PerformativityDetectorAgent` (`backend/agents/critics.py`)
-- **When**: **Phase 7 (Authenticity Check)**.
-- **Why**: To detect "gaming the system" or performative AI artifacts.
-- **How**:
-    - **Input**: Full text and history.
-    - **Action**: Scans for "suspicious perfection", specific vocabulary patterns, and lack of genuine friction.
-    - **Output**: `PerformatiivisuusAuditointi` (Performativity Audit).
-
-### 8. `JudgeAgent` (`backend/agents/judge.py`)
-- **When**: **Phase 8 (Final Verdict)**.
-- **Why**: To synthesize all analyses and audits into a final score and verdict.
-- **How**:
-    - **Input**: All previous outputs (Audits, Argumentation, Evidence).
-    - **Action**: Weighs the evidence and audits to determine the final grade.
-    - **Output**: `TuomioJaPisteet` (Verdict and Points) - a strictly validated JSON object.
-
-### 9. `XAIReporterAgent` (`backend/agents/judge.py`)
-- **When**: **Phase 9 (Reporting)**.
-- **Why**: To translate the structured data and scores into a human-readable, educational report.
-- **How**:
-    - **Input**: Final Verdict, Audits, and original context.
-    - **Action**: Generates a natural language explanation of the results.
-    - **Output**: Markdown-formatted text for the final report.
+This data-driven approach allows developers to construct complex workflows by defining a sequence of specialized agents, each performing a discrete task—such as data extraction, analysis, critique, synthesis, or formatting—without writing new Python code for each step.

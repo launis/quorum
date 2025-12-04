@@ -1,17 +1,17 @@
 # Data Management & Databases
 
-This document describes the data management architecture of the Cognitive Quorum system. The system is **data-driven**, meaning its business logic, prompts, and workflows are defined in the database rather than hardcoded in the application.
+This document describes the data management architecture for the workflow engine. The system is fundamentally **data-driven**, meaning its business logic, prompts, and operational flows are defined in the database rather than being hardcoded in the application.
 
 ## Data Structure
 
-All system data is located in the `data/` directory. This file-based approach simplifies backup and version control.
+All system data is located in the `data/` directory. This file-based approach simplifies configuration, backup, and version control.
 
 ### 1. Initialization Data (`data/seed_data.json`)
 
-This file contains the system's "factory settings" and defines its core logic. It includes:
+This file contains the system's "factory settings" and defines its core logic. It is the single source of truth for the engine's configuration. It includes:
 
-*   **Components**: Definitions for agents, tools, and prompts.
-*   **Steps**: Individual workflow steps, including their input/output schemas and execution hooks.
+*   **Components**: Definitions for prompt templates, tools, and other reusable entities.
+*   **Steps**: Individual workflow steps, including their input/output schemas and execution logic.
 *   **Workflows**: The sequence and linkage of steps that form a complete process.
 
 **Usage:**
@@ -22,35 +22,35 @@ On system initialization or database reset, `seed_data.json` is loaded into the 
 The system uses **TinyDB**, a lightweight, document-oriented database stored in the `db.json` file.
 
 It contains two primary categories of data:
-1.  **Configuration**: A live copy of the content from `seed_data.json` (components, steps, workflows). This data can be modified at runtime to adjust system behavior dynamically.
-2.  **Execution History**: A complete record of every analysis run is stored here, including:
+1.  **Configuration**: A live copy of the content from `seed_data.json` (components, steps, workflows). This data can be modified at runtime via the UI to adjust system behavior dynamically.
+2.  **Execution History**: A complete record of every workflow execution is stored here, including:
     *   User inputs
-    *   Intermediate results and responses from each agent
-    *   The final generated report
+    *   Intermediate results and responses from each step
+    *   The final generated output
     *   Timestamps and status information
 
-> **Note:** The `db.json` file can grow significantly in size over time, as it stores a complete history of all execution runs.
+> **Note:** The `db.json` file can grow significantly in size over time, as it stores a complete history of all workflow executions.
 
 ### 3. Fragments (`data/fragments/`)
 
 This directory contains reusable JSON-formatted text snippets used to construct prompts. Examples include:
 
-*   `mandates.json`: High-level system goals (e.g., "Employ System 2 Thinking").
-*   `rules.json`: Global operational rules (e.g., "Do not use external tools without permission").
-*   `criteria.json`: Standardized evaluation criteria (e.g., a BARS matrix).
-*   `protocols.json` & `methods.json`: Other methodological instructions.
+*   `global_rules.json`: Global operational rules (e.g., "Do not use external tools without permission").
+*   `style_guides.json`: Instructions on tone and format (e.g., "Respond in a professional tone").
+*   `evaluation_rubric.json`: Standardized evaluation criteria.
+*   `common_instructions.json`: Other shared methodological instructions.
 
-This approach avoids content duplication. A rule or mandate can be referenced by multiple prompts; updating the fragment file ensures the change is propagated everywhere it is used.
+This approach avoids content duplication. A rule or instruction can be referenced by multiple prompts; updating the fragment file ensures the change is propagated everywhere it is used.
 
 ### 4. Templates (`data/templates/`)
 
-This directory contains **Jinja2** templates (`.j2`) that define the structure of agent prompts.
+This directory contains **Jinja2** templates (`.j2`) that define the structure of prompts sent to the Large Language Model (LLM).
 
-For example, `prompt_analyst.j2` might contain:
+For example, `generic_prompt.j2` might contain:
 ```jinja2
-{{ MASTER_INSTRUCTIONS }}
+{{ GLOBAL_INSTRUCTIONS }}
 
-PHASE 2: ANALYST AGENT
+TASK: {{ task_description }}
 ...
 FOLLOW THESE RULES:
 {% for rule in rules %}
@@ -58,14 +58,14 @@ FOLLOW THESE RULES:
 {% endfor %}
 ```
 
-The system dynamically combines the following to construct a complete prompt for the Large Language Model (LLM):
+The system dynamically combines the following to construct a complete prompt:
 1.  Configuration data from the runtime database (`db.json`).
 2.  Text snippets from the `fragments/` directory.
 3.  A structural template from the `templates/` directory.
 
 ### 5. Uploads (`data/uploads/`)
 
-This directory serves as temporary storage for files uploaded by the user through the UI, such as PDF documents.
+This directory serves as temporary storage for files uploaded by the user through the UI, such as PDF or text documents.
 
 The process is as follows:
 1.  A file is uploaded to this directory.
@@ -75,50 +75,53 @@ The process is as follows:
 
 ## Detailed Database Usage & Structure
 
-This section details how data is retrieved from the database and injected into the AI agents during execution.
+This section details how data is retrieved from the database and used to construct prompts during a workflow execution.
 
-### 1. Prompt Construction (The "Seeding" Phase)
+### 1. Runtime Prompt Assembly
 
-Before the system runs, the `seeder.py` script compiles the raw data into usable prompts.
+When the `WorkflowEngine` executes a step, it assembles the final prompt dynamically.
 
-*   **Input**: `fragments/*.json` (Raw text snippets) + `templates/*.j2` (Structure).
-*   **Process**: The Jinja2 engine renders the templates, injecting the fragments (e.g., replacing `{{ rules.RULE_1 }}` with the actual text of Rule 1).
-*   **Storage**: The fully rendered text is stored in the `components` table of `db.json` with a specific ID (e.g., `PROMPT_ANALYST`).
+*   **Input**: The engine uses definitions stored in `db.json`, which reference raw data from `fragments/*.json` and `templates/*.j2`.
+*   **Process**:
+    1.  The engine loads the appropriate Jinja2 template (`.j2`) for the current step.
+    2.  It fetches the required text snippets (`fragments`) and other configuration data from the database.
+    3.  The Jinja2 engine renders the template, injecting the fragments and other dynamic data (e.g., user input, results from a previous step).
+*   **Output**: A fully-formed prompt ready to be sent to the LLM.
 
-### 2. Dynamic Schema Injection (Runtime)
+### 2. Dynamic Schema Injection
 
-To ensure the AI produces valid JSON that the system can understand, we use a **Dynamic Schema Injection** mechanism.
+To ensure the LLM produces valid JSON that the system can parse, we use a **Dynamic Schema Injection** mechanism.
 
-*   **The Problem**: The AI needs to know exactly what JSON fields to output (e.g., `score`, `reasoning`, `evidence_id`).
-*   **The Solution**: In the prompt templates, we use special placeholders like:
-    `[Ks. schemas.py / TuomioJaPisteet]`
-*   **Execution**: When `WorkflowEngine` prepares a step:
-    1.  It reads the prompt text from `db.json`.
-    2.  It detects the `[Ks. schemas.py / ...]` tag.
-    3.  It looks up the corresponding Pydantic model in `backend/schemas.py`.
-    4.  It generates the **JSON Schema** for that model and replaces the tag with the actual schema definition.
+*   **The Problem**: The LLM needs to know the exact JSON structure to output (e.g., fields, data types, required keys).
+*   **The Solution**: Prompt templates contain special placeholders that reference Pydantic models defined in the application code, for example:
+    `[SCHEMA: MyPydanticModel]`
+*   **Execution**: When the `WorkflowEngine` prepares a step:
+    1.  It reads the prompt text from the database.
+    2.  It detects a `[SCHEMA: ...]` tag.
+    3.  It looks up the corresponding Pydantic model in the application's `schemas` module.
+    4.  It generates the **JSON Schema** for that model and replaces the tag with the schema definition.
 
 **Example:**
-If the prompt contains `[Ks. schemas.py / Hypoteesi]`, the engine injects:
+If a prompt contains `[SCHEMA: Hypothesis]`, the engine injects:
 ```json
 {
   "properties": {
     "id": {"type": "string"},
-    "vaite_teksti": {"type": "string"},
-    "loytyyko_todisteita": {"type": "boolean"}
+    "statement_text": {"type": "string"},
+    "is_evidence_found": {"type": "boolean"}
   },
-  "required": ["id", "vaite_teksti", "loytyyko_todisteita"]
+  "required": ["id", "statement_text", "is_evidence_found"]
 }
 ```
-This guarantees that the AI's output matches the Python code's expectations.
+This guarantees that the LLM's output conforms to the data structures expected by the application code.
 
 ### 3. Citation & Source Tracking
 
-The database also tracks the academic or methodological sources for each prompt component.
+The database can also track academic or methodological sources for each prompt component.
 
 *   **Structure**: Each component in `seed_data.json` can have a `citation` field (e.g., *"Toulmin, S. (1958). The Uses of Argument"*).
-*   **Injection**: When the `WorkflowEngine` assembles the System Instruction, it automatically appends `[Lähde: Citation Text]` to the prompt.
-*   **Collection**: The engine collects all unique citations used in a workflow run and passes them to the **XAI Reporter** (Phase 9), which generates the final "Bibliography" section in the report.
+*   **Injection**: During prompt assembly, the `WorkflowEngine` can automatically append `[Source: Citation Text]` to the relevant instruction.
+*   **Collection**: The engine collects all unique citations used in a workflow run and passes them to a final reporting step, which can use this information to generate a "Bibliography" or "References" section in the final output.
 
 ## Data Flow Summary
 
@@ -128,7 +131,7 @@ graph TD
         Seed[seed_data.json] -->|Load| DB[(db.json)]
     end
 
-    subgraph "Prompt Engineering"
+    subgraph "Prompt Assembly"
         Tpl[templates/*.j2] -->|Render| Prompt
         Frag[fragments/*.json] -->|Inject| Prompt
         DB -->|Config| Prompt
@@ -155,7 +158,6 @@ The following diagram illustrates how data flows between the Mock Database, Prod
 graph TD
     subgraph Filesystem
         SEED[seed_data.json]
-        TEMPLATES[templates/*.j2]
     end
 
     subgraph Databases
@@ -183,14 +185,14 @@ graph TD
     SEED -->|Import| PROD_DB
 
     %% Deploy Mock to Prod
-    DEPLOY_M2P -->|1. Export Mock| MOCK_DB
-    MOCK_DB -->|2. Update| SEED
-    SEED -->|3. Overwrite| PROD_DB
+    DEPLOY_M2P -->|1. Export from Mock DB| MOCK_DB
+    MOCK_DB -->|2. Update seed file| SEED
+    SEED -->|3. Import to Prod DB| PROD_DB
 
     %% Deploy Prod to Mock
-    DEPLOY_P2M -->|1. Export Prod| PROD_DB
-    PROD_DB -->|2. Update| SEED
-    SEED -->|3. Overwrite| MOCK_DB
+    DEPLOY_P2M -->|1. Export from Prod DB| PROD_DB
+    PROD_DB -->|2. Update seed file| SEED
+    SEED -->|3. Import to Mock DB| MOCK_DB
 
     style SEED fill:#f9f,stroke:#333,stroke-width:2px
     style MOCK_DB fill:#bbf,stroke:#333,stroke-width:2px

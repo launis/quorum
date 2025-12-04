@@ -117,6 +117,118 @@ def run_mkdocs():
     except FileNotFoundError:
         print("mkdocs command not found. Please ensure it is installed.")
 
+import json
+
+def get_db_content():
+    """
+    Loads the seed data from data/seed_data.json to provide context for documentation.
+    """
+    seed_path = PROJECT_ROOT / "data" / "seed_data.json"
+    try:
+        if seed_path.exists():
+            with open(seed_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            # Summarize data to avoid hitting token limits if too large
+            # For now, we'll try to pass the structure of workflows and steps
+            return json.dumps(data, indent=2)
+    except Exception as e:
+        print(f"Warning: Could not load seed data: {e}")
+    return ""
+
+def get_prompt_for_file(filename, content, db_context=""):
+    """
+    Returns a tailored prompt based on the filename.
+    """
+    base_instructions = """
+    INSTRUCTIONS:
+    1.  **Update & Correct**: Review the current content and update it to strictly match the current software state (Cognitive Quorum v2). Remove any obsolete "v1" or hardcoded logic references. The system is now a Generic Engine driven by data.
+    2.  **Tone & Style**: Professional, concise, technical but accessible.
+    3.  **Formatting**: Use clean Markdown.
+    4.  **Output**: Return ONLY the updated markdown content.
+    """
+
+    if filename.lower() == "readme.md":
+        return f"""
+        You are an expert technical writer. Rewrite README.md to follow industry best practices.
+        
+        FILENAME: {filename}
+        CURRENT CONTENT:
+        {content[:20000]}
+        
+        SPECIFIC INSTRUCTIONS:
+        1.  **Structure**: Title, Badges, TOC, Key Features, Architecture v2, Getting Started (Prereqs, Install), Usage (Backend, Frontend), Configuration, Development, License.
+        2.  **Content**: Compelling summary, clear instructions.
+        {base_instructions}
+        """
+    
+    elif "structured_cognitive_architecture.md" in filename.lower():
+        return f"""
+        You are a Cognitive Systems Architect and Scientific Researcher. 
+        Your task is to rewrite this document to be a functional and scientific explanation of the "Cognitive Quorum" workflow, based on the actual database configuration provided below.
+
+        FILENAME: {filename}
+        
+        DATABASE CONTEXT (The actual "Mind" of the system):
+        {db_context[:60000]} # Injecting DB content here. Truncate if absolutely necessary but try to keep steps.
+
+        CURRENT CONTENT:
+        {content[:15000]}
+        
+        SPECIFIC INSTRUCTIONS:
+        1.  **Code-First / Data-Driven**: Explain that the system's behavior is defined by the data in `db.json` (Steps, Components).
+        2.  **Workflow Breakdown**: detailed section for the "Cognitive Quorum Assessment" workflow found in the DB.
+            -   Iterate through each **Step** defined in the DB.
+            -   For each step, explain its **Purpose** (Scientific/Functional justification).
+            -   Mention the **Components** used (Prompts, Rules, Mandates) and why they are selected.
+            -   Reference external scientific concepts where applicable (e.g., "System 2 thinking", "Adversarial Review", "Chain of Thought").
+        3.  **Architecture**: Keep the "Mind vs. Spine" concept but ground it in the actual JSON data structure shown above.
+        4.  **Scientific Tone**: The document should read like a technical whitepaper justifying the design choices.
+        {base_instructions}
+        """
+
+    elif "architecture" in filename.lower():
+        return f"""
+        You are a software architect. Update this architecture document to accurately describe the implemented v2 system.
+        
+        FILENAME: {filename}
+        CURRENT CONTENT:
+        {content[:15000]}
+        
+        SPECIFIC INSTRUCTIONS:
+        1.  **Diagrams**: Ensure Mermaid diagrams reflect the actual v2 flow (Streamlit -> FastAPI -> Generic Engine -> Agents).
+        2.  **Components**: Define the roles of Frontend, Backend, Engine, and Database clearly.
+        3.  **Data Flow**: Explain the data-driven nature (Workflows defined in DB, not hardcoded).
+        {base_instructions}
+        """
+
+    elif filename.lower() == "index.md":
+        return f"""
+        You are a technical librarian. Update this index page to be an accurate and up-to-date entry point.
+        
+        FILENAME: {filename}
+        CURRENT CONTENT:
+        {content[:10000]}
+        
+        SPECIFIC INSTRUCTIONS:
+        1.  **Navigation**: Provide clear links to all other major documentation files.
+        2.  **Overview**: Summarize the current "Cognitive Quorum v2" capabilities.
+        {base_instructions}
+        """
+
+    else:
+        return f"""
+        You are an expert technical writer. Your task is to update this documentation file to accurately reflect the current software version.
+        
+        FILENAME: {filename}
+        CURRENT CONTENT:
+        {content[:15000]}
+        
+        SPECIFIC INSTRUCTIONS:
+        1.  **Accuracy**: Correct any outdated information. The software is now a data-driven workflow engine.
+        2.  **Clarity**: Improve sentence structure and readability.
+        {base_instructions}
+        """
+
 def update_content_with_ai():
     """
     Iterates through documentation files and requests an AI update via the backend API.
@@ -124,61 +236,56 @@ def update_content_with_ai():
     print("--- Starting AI Content Update ---")
     files_to_update = [README_PATH] + list(DOCS_DIR.glob("*.md"))
     
+    # Load DB context once
+    db_context = get_db_content()
+    if db_context:
+        print(f"Loaded database context ({len(db_context)} chars).")
+    else:
+        print("Warning: No database context loaded.")
+
     llm_url = "http://localhost:8000/llm/generate"
     
     for file_path in files_to_update:
         if file_path.name == "openapi.json": continue
         
-        print(f"Processing {file_path.name}...")
+        print(f"\nProcessing {file_path.name}...")
         
         try:
             with open(file_path, "r", encoding="utf-8") as f:
                 current_content = f.read()
             
-            # Construct a prompt for the LLM
-            # In a real scenario, we would also inject relevant code snippets or summaries here.
-            prompt_text = f"""
-            You are an expert technical writer. Your task is to review and update the following documentation file.
-            
-            FILENAME: {file_path.name}
-            
-            CURRENT CONTENT:
-            {current_content[:10000]} # Truncate to avoid token limits for now
-            
-            INSTRUCTIONS:
-            1. Fix any typos or grammatical errors.
-            2. Ensure the tone is professional and consistent.
-            3. If the content refers to "v1" architecture, update it to "v2" (Generic Engine, Data-Driven).
-            4. Return ONLY the updated markdown content. Do not include explanations.
-            """
+            prompt_text = get_prompt_for_file(file_path.name, current_content, db_context)
             
             payload = {
                 "prompts": [{"role": "user", "parts": [prompt_text]}],
                 "model": "gemini-2.5-pro"
             }
             
-            response = requests.post(llm_url, json=payload, timeout=60)
+            # Increased timeout for larger files
+            response = requests.post(llm_url, json=payload, timeout=180)
             
             if response.status_code == 200:
                 result = response.json()
-                # The response structure depends on LLMHandler. Assuming it returns text directly or nested.
-                # Based on llm_router.py: return {"response": response}
-                # And LLMHandler.call_llm returns a string.
                 updated_content = result.get("response", "")
                 
                 if updated_content:
-                    # Basic safety check: don't overwrite if empty
-                    with open(file_path, "w", encoding="utf-8") as f:
-                        f.write(updated_content)
-                    print(f"Updated {file_path.name}")
+                    print(f"--- Proposed Update for {file_path.name} Generated ---")
+                    # Universal confirmation for all files
+                    user_response = input(f"Do you want to overwrite {file_path.name}? (y/N): ").strip().lower()
+                    
+                    if user_response == 'y':
+                        with open(file_path, "w", encoding="utf-8") as f:
+                            f.write(updated_content)
+                        print(f"Successfully updated {file_path.name}")
+                    else:
+                        print(f"Skipped update for {file_path.name}")
                 else:
                     print(f"Received empty response for {file_path.name}")
             else:
                 print(f"Failed to update {file_path.name}: Status {response.status_code}")
-                print(f"Response: {response.text}")
                 
         except requests.exceptions.ConnectionError:
-            print("Backend not reachable. Skipping AI update.")
+            print("Backend not reachable. Is the server running? Skipping AI update.")
             break
         except Exception as e:
             print(f"Error updating {file_path.name}: {e}")

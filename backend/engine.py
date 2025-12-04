@@ -41,6 +41,36 @@ class WorkflowEngine:
         self.prompts_table = self.db.table('prompts')
         self.banned_phrases_table = self.db.table('banned_phrases')
 
+    def simplify_schema(self, schema: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Simplifies a JSON Schema for LLM consumption by removing Pydantic-specific metadata
+        and flattening structures where possible.
+        """
+        if not isinstance(schema, dict):
+            return schema
+            
+        # Remove metadata keys that add noise
+        keys_to_remove = ['title', 'description', 'default', 'examples'] 
+        # Note: We keep 'description' if it's meaningful, but Pydantic often adds redundant titles.
+        # Let's keep description for fields but remove title.
+        
+        new_schema = {}
+        for k, v in schema.items():
+            if k == 'title':
+                continue
+            if k == '$defs':
+                # Recursively simplify definitions
+                new_schema[k] = {dk: self.simplify_schema(dv) for dk, dv in v.items()}
+                continue
+            if isinstance(v, dict):
+                new_schema[k] = self.simplify_schema(v)
+            elif isinstance(v, list):
+                new_schema[k] = [self.simplify_schema(i) if isinstance(i, dict) else i for i in v]
+            else:
+                new_schema[k] = v
+                
+        return new_schema
+
     def register_component(self, name: str, module_path: str, class_name: str):
         """
         Registers a component in the database.
@@ -183,6 +213,11 @@ class WorkflowEngine:
                 
                 system_instruction = system_instruction.strip()
 
+                # Inject Custom Instruction (Ad-Hoc)
+                if execution_config.get('custom_instruction'):
+                    custom_instr = execution_config.get('custom_instruction')
+                    system_instruction += f"\n\n[MUKAUTETTU OHJEISTUS]:\n{custom_instr}"
+
                 # Inject Step-Level Citation (Ad-Hoc)
                 if execution_config.get('citation'):
                     citation_text = execution_config.get('citation')
@@ -242,8 +277,53 @@ class WorkflowEngine:
                     else:
                         print(f"Warning: Output schema '{output_schema_name}' defined in step but not found in backend.schemas.")
 
-                # Pass system_instruction to execute/process
+                # --- SCHEMA INJECTION ---
+                # If an output schema is defined, explicitly inject its definition into the System Instruction.
+                # This ensures the LLM knows exactly what structure to produce, regardless of prompt placeholders.
+                if validation_schema_class:
+                    try:
+                        raw_schema = validation_schema_class.model_json_schema()
+                        simplified_schema = self.simplify_schema(raw_schema)
+                        schema_json = json.dumps(simplified_schema, indent=2, ensure_ascii=False)
+                        
+                        schema_instruction = (
+                            f"\n\n*** REQUIRED OUTPUT SCHEMA ({output_schema_name}) ***\n"
+                            f"You MUST output a valid JSON object that strictly adheres to the following schema:\n"
+                            f"```json\n{schema_json}\n```\n"
+                        )
+                        
+                        # Inject Example if available in ConfigDict
+                        config = validation_schema_class.model_config
+                        extra = config.get('json_schema_extra', {})
+                        examples = extra.get('examples', [])
+                        if examples:
+                            example_json = json.dumps(examples[0], indent=2, ensure_ascii=False)
+                            schema_instruction += (
+                                f"\n*** EXAMPLE OUTPUT ***\n"
+                                f"```json\n{example_json}\n```\n"
+                            )
+                        
+                        schema_instruction += "Do not include any other text."
+                        
+                        system_instruction += schema_instruction
+                        print(f"   [Engine] Injected schema definition for: {output_schema_name}")
+                    except Exception as e:
+                        print(f"   [Engine] Error injecting schema definition: {e}")
+                # ------------------------
+                # ------------------------
                 
+                # --- Static Inputs Injection ---
+                static_input_ids = execution_config.get('static_inputs') or []
+                for s_id in static_input_ids:
+                    comp = self.components_table.get(Query().id == s_id)
+                    if comp:
+                        # Inject into current_inputs
+                        # Use lowercase ID as key: "DISCLAIMER_TEXT" -> "disclaimer_text"
+                        key = s_id.lower()
+                        current_inputs[key] = comp.get('content', '')
+                        print(f"   [Engine] Injected static input: {key}")
+                # -------------------------------
+
                 # Execute Pre-Hooks
                 for hook_name in (execution_config.get('pre_hooks') or []):
                     if hasattr(hooks, hook_name):
@@ -253,11 +333,24 @@ class WorkflowEngine:
                     else:
                         print(f"Warning: Pre-hook {hook_name} not found.")
 
+                # --- DEBUG LOGGING ---
+                # Preview the prompt for debugging purposes
+                try:
+                    debug_prompt = component_instance.construct_user_prompt(**current_inputs)
+                    print(f"\n--- [DEBUG] STEP: {step_id} ---")
+                    print(f"--- [DEBUG] SYSTEM INSTRUCTION (First 500 chars) ---\n{system_instruction[:500]}...\n--- [DEBUG] END SYSTEM INSTRUCTION ---")
+                    print(f"--- [DEBUG] USER PROMPT (Last 500 chars) ---\n...{debug_prompt[-500:]}\n--- [DEBUG] END USER PROMPT ---")
+                except Exception as e:
+                    print(f"--- [DEBUG] Could not preview prompt: {e}")
+                # ---------------------
+
                 output = component_instance.execute(
                     system_instruction=system_instruction, 
                     validation_schema=validation_schema_class,
                     **current_inputs
                 )
+                
+                print(f"--- [DEBUG] RAW RESULT (First 500 chars) ---\n{str(output)[:500]}...\n--- [DEBUG] END RAW RESULT ---")
                 
                 # 4. Execute Post-Hooks
                 # Automatic Parsing Hook: Check if a parser exists for this component/step

@@ -1,5 +1,6 @@
-from typing import Literal, Any
+from typing import Literal, Any, List, Dict, Optional
 from pydantic import BaseModel, Field, field_validator, ConfigDict
+from backend.schemas_xai import XAIRaportti
 
 # --- Base Schema ---
 
@@ -23,10 +24,20 @@ class SecurityCheck(BaseModel):
     adversariaalinen_simulaatio_tulos: str
     riski_taso: Literal["MATALA", "KESKITASO", "KORKEA"]
 
+    @field_validator('uhka_havaittu', mode='before')
+    @classmethod
+    def parse_uhka_havaittu(cls, v: Any) -> bool:
+        if isinstance(v, str):
+            if v.upper() in ['EI', 'NO', 'FALSE']:
+                return False
+            if v.upper() in ['KYLLÄ', 'YES', 'TRUE']:
+                return True
+        return v
+
 class TaintedDataContent(BaseModel):
-    keskusteluhistoria: str | None = None
-    lopputuote: str | None = None
-    reflektiodokumentti: str | None = None
+    keskusteluhistoria: str | None = Field(default=None, description="ÄLÄ TULOSTA SISÄLTÖÄ! Käytä VAIN tätä tekstiä: '{{FILE: Keskusteluhistoria.pdf}}'")
+    lopputuote: str | None = Field(default=None, description="ÄLÄ TULOSTA SISÄLTÖÄ! Käytä VAIN tätä tekstiä: '{{FILE: Lopputuote.pdf}}'")
+    reflektiodokumentti: str | None = Field(default=None, description="ÄLÄ TULOSTA SISÄLTÖÄ! Käytä VAIN tätä tekstiä: '{{FILE: Reflektiodokumentti.pdf}}'")
 
 class TaintedData(BaseJSON):
     data: TaintedDataContent
@@ -48,9 +59,9 @@ class TaintedData(BaseJSON):
                     "edellisen_vaiheen_validointi": "Ei edellistä vaihetta.",
                     "semanttinen_tarkistussumma": "a1b2c3d4...",
                     "data": {
-                        "keskusteluhistoria": "...",
-                        "lopputuote": "...",
-                        "reflektiodokumentti": "..."
+                        "keskusteluhistoria": "{{FILE: Keskusteluhistoria.pdf}}",
+                        "lopputuote": "{{FILE: Lopputuote.pdf}}",
+                        "reflektiodokumentti": "{{FILE: Reflektiodokumentti.pdf}}"
                     },
                     "security_check": {
                         "uhka_havaittu": False,
@@ -71,10 +82,23 @@ class Hypoteesi(BaseModel):
     loytyyko_todisteita: bool
 
 class RagTodiste(BaseModel):
-    viittaa_hypoteesiin_id: str
+    viittaa_hypoteesiin_id: str | list[str]
     perusteet: str
-    konteksti_segmentti: str
+    konteksti_segmentti: str = Field(..., description="Lyhyt ote tekstistä. ÄLÄ kopioi koko dokumenttia.")
     relevanssi_score: int = Field(..., ge=1, le=10)
+
+    @field_validator('viittaa_hypoteesiin_id', mode='before')
+    @classmethod
+    def parse_viittaa_hypoteesiin_id(cls, v: Any) -> str | list[str]:
+        if isinstance(v, str):
+            # If it looks like a list string "['ID1', 'ID2']", try to parse it
+            if v.startswith('[') and v.endswith(']'):
+                import json
+                try:
+                    return json.loads(v.replace("'", '"'))
+                except:
+                    return v
+        return v
 
     @field_validator('konteksti_segmentti', mode='before')
     @classmethod
@@ -382,7 +406,7 @@ class PerformatiivisuusAuditointi(BaseJSON):
 
 class KonfliktinRatkaisu(BaseModel):
     konflikti: str
-    ratkaisu_malli: Literal["POPPER", "DREYFUS"]
+    ratkaisu_malli: str # Relaxed from Literal to allow flexibility
     perustelu: str
 
 class MestaruusPoikkeama(BaseModel):
@@ -394,7 +418,7 @@ class AitousEpaily(BaseModel):
     viesti_hitl_lle: str = Field(..., alias="viesti_hitl:lle") 
 
 class PisteetKriteeri(BaseModel):
-    arvosana: Literal[1, 2, 3, 4]
+    arvosana: int = Field(..., ge=1, le=4)
     perustelu: str
 
 class Pisteet(BaseModel):

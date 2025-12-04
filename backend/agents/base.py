@@ -57,6 +57,13 @@ class BaseAgent(BaseComponent):
         """
         Helper to call the LLM using Google Gemini API or Mock Service.
         """
+        # --- GLOBAL OUTPUT COMMAND INJECTION ---
+        # Ensure every prompt ends with a clear command to generate JSON.
+        # This is applied to ALL agents using this base class.
+        if json_mode and "GENERATE THE OUTPUT JSON NOW" not in prompt:
+             prompt += "\n\nIMPORTANT: GENERATE THE OUTPUT JSON NOW."
+        # ---------------------------------------
+
         from backend.config import USE_MOCK_LLM
         
         if USE_MOCK_LLM:
@@ -199,7 +206,8 @@ class BaseAgent(BaseComponent):
                             continue
                         else:
                             print(f"[{self.__class__.__name__}] Failed validation after {max_retries} attempts.")
-                            return {"error": f"Schema validation failed: {e}", "raw_output": response_text}
+                            # RAISE exception on final failure so caller knows
+                            raise e 
                 
                 return parsed_json
             
@@ -211,6 +219,6 @@ class BaseAgent(BaseComponent):
                     current_prompt += f"\n\nERROR: Your previous response was not valid JSON. Please try again and ensure you output ONLY valid JSON."
                 else:
                     print(f"[{self.__class__.__name__}] Failed to get valid JSON after {max_retries} attempts.")
-                    return {"error": "Failed to parse JSON", "raw_output": response_text}
+                    raise ValueError(f"Failed to parse JSON response: {response_text[:100]}...")
         
-        return {"error": "Unknown error"}
+        raise ValueError("Unknown error in get_json_response")

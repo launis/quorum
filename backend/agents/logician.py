@@ -22,6 +22,18 @@ class LogicianAgent(BaseAgent):
              if not input_data:
                  input_data = {"error": "No relevant input data found for LogicianAgent"}
 
+        # 2. Re-hydrate Raw Evidence (Critical for Argument Construction)
+        raw_evidence = {}
+        if kwargs.get('history_text'):
+            raw_evidence['keskusteluhistoria'] = kwargs.get('history_text')
+        if kwargs.get('product_text'):
+            raw_evidence['lopputuote'] = kwargs.get('product_text')
+        if kwargs.get('reflection_text'):
+            raw_evidence['reflektiodokumentti'] = kwargs.get('reflection_text')
+            
+        if raw_evidence:
+            input_data['raw_evidence_for_analysis'] = raw_evidence
+
         return f"""
         INPUT DATA:
         ---
@@ -38,8 +50,6 @@ class LogicianAgent(BaseAgent):
         system_instruction = kwargs.get('system_instruction')
         
         # Call LLM with Retry Logic
-        # Call LLM with Retry Logic
-        # Pass validation_schema=None to allow manual validation after injection
         response = self.get_json_response(
             prompt=user_content,
             system_instruction=system_instruction,
@@ -48,6 +58,29 @@ class LogicianAgent(BaseAgent):
         
         # --- AUTO-INJECT MISSING FIELDS ---
         if response:
+            if isinstance(response, list):
+                print("[LogicianAgent] Response is a list. Wrapping in 'toulmin_analyysi'.")
+                response = {
+                    "toulmin_analyysi": response,
+                    "kognitiivinen_taso": {
+                        "bloom_taso": "Analysoi",
+                        "strateginen_syvyys": "Keskinkertainen"
+                    },
+                    "walton_skeema": {
+                        "tunnistettu_skeema": "Yleinen",
+                        "kriittiset_kysymykset": []
+                    },
+                    "metodologinen_loki": "Generaatio palautti listan. Loki generoitu automaattisesti.",
+                    "metadata": {
+                        "agentti": "LogicianAgent",
+                        "luontiaika": "2024-01-01T00:00:00Z",
+                        "vaihe": 3,
+                        "versio": "2.0"
+                    },
+                    "edellisen_vaiheen_validointi": "N/A",
+                    "semanttinen_tarkistussumma": "autogen"
+                }
+
             if 'toulmin_analyysi' not in response:
                 print("[LogicianAgent] Warning: 'toulmin_analyysi' missing. Injecting empty list.")
                 response['toulmin_analyysi'] = []

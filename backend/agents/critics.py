@@ -14,6 +14,18 @@ class LogicalFalsifierAgent(BaseAgent):
         if not input_data:
              input_data = {k: v for k, v in kwargs.items() if k != 'system_instruction'}
 
+        # 2. Re-hydrate Raw Evidence (Critical for Logical Falsification)
+        raw_evidence = {}
+        if kwargs.get('history_text'):
+            raw_evidence['keskusteluhistoria'] = kwargs.get('history_text')
+        if kwargs.get('product_text'):
+            raw_evidence['lopputuote'] = kwargs.get('product_text')
+        if kwargs.get('reflection_text'):
+            raw_evidence['reflektiodokumentti'] = kwargs.get('reflection_text')
+            
+        if raw_evidence:
+            input_data['raw_evidence_for_analysis'] = raw_evidence
+
         return f"""
         INPUT DATA:
         ---
@@ -33,7 +45,12 @@ class LogicalFalsifierAgent(BaseAgent):
         )
         
         # --- AUTO-INJECT MISSING FIELDS ---
+        # --- AUTO-INJECT MISSING FIELDS ---
         if response:
+            if isinstance(response, list):
+                print("[LogicalFalsifierAgent] Response is a list. Wrapping in 'walton_stressitesti_loydokset'.")
+                response = {"walton_stressitesti_loydokset": response}
+                
             if 'walton_stressitesti_loydokset' not in response:
                 print("[LogicalFalsifierAgent] Warning: 'walton_stressitesti_loydokset' missing. Injecting empty list.")
                 response['walton_stressitesti_loydokset'] = []
@@ -87,11 +104,31 @@ class FactualOverseerAgent(BaseAgent):
                      input_data[k] = v[:5000] + "... [TRUNCATED]"
              optimized_input = input_data
 
+        # 2. Raw Evidence (Unstructured Text) - Re-hydrated for analysis
+        history_text = kwargs.get('history_text', 'N/A')
+        product_text = kwargs.get('product_text', 'N/A')
+        reflection_text = kwargs.get('reflection_text', 'N/A')
+        
+        print(f"[FactualOverseerAgent] Input Data Check: History={history_text != 'N/A'}, Product={product_text != 'N/A'}, Reflection={reflection_text != 'N/A'}")
+        if product_text == 'N/A':
+             print(f"[FactualOverseerAgent] Available keys in kwargs: {list(kwargs.keys())}")
+
         return f"""
-        INPUT DATA:
+        INPUT DATA (JSON):
         ---
         {json.dumps(optimized_input, indent=2, ensure_ascii=False)}
         ---
+
+        RAW EVIDENCE:
+        === KESKUSTELUHISTORIA ===
+        {history_text}
+        
+        === LOPPUTUOTE ===
+        {product_text}
+        
+        === REFLEKTIODOKUMENTTI ===
+        {reflection_text}
+
         ULKOISEN FAKTANTARKISTUKSEN TULOKSET:
         {kwargs.get('google_search_results', 'Ei hakutuloksia.')}
         ---
@@ -109,7 +146,12 @@ class FactualOverseerAgent(BaseAgent):
         )
         
         # --- AUTO-INJECT MISSING FIELDS ---
+        # --- AUTO-INJECT MISSING FIELDS ---
         if response:
+            if isinstance(response, list):
+                print("[FactualOverseerAgent] Response is a list. Wrapping in 'faktantarkistus_rfi'.")
+                response = {"faktantarkistus_rfi": response}
+
             if 'faktantarkistus_rfi' not in response:
                 print("[FactualOverseerAgent] Warning: 'faktantarkistus_rfi' missing. Injecting empty list.")
                 response['faktantarkistus_rfi'] = []
@@ -137,17 +179,36 @@ class CausalAnalystAgent(BaseAgent):
     def construct_user_prompt(self, **kwargs) -> str:
         import json
         
+        # 1. Context from previous steps (Structured Data)
         relevant_keys = ['todistuskartta', 'argumentaatioanalyysi', 'data', 'metodologinen_loki']
-        input_data = {k: kwargs.get(k) for k in relevant_keys if k in kwargs}
+        context_data = {k: kwargs.get(k) for k in relevant_keys if k in kwargs}
         
-        if not input_data:
-             input_data = {k: v for k, v in kwargs.items() if k != 'system_instruction'}
+        if not context_data:
+             context_data = {k: v for k, v in kwargs.items() if k != 'system_instruction'}
+
+        # 2. Raw Evidence (Unstructured Text)
+        # We inject this OUTSIDE the JSON structure to avoid parsing issues and token bloat within the JSON object.
+        history_text = kwargs.get('history_text', 'N/A')
+        product_text = kwargs.get('product_text', 'N/A')
+        reflection_text = kwargs.get('reflection_text', 'N/A')
 
         return f"""
-        INPUT DATA:
+        CONTEXT DATA (JSON):
         ---
-        {json.dumps(input_data, indent=2, ensure_ascii=False)}
+        {json.dumps(context_data, indent=2, ensure_ascii=False)}
         ---
+
+        RAW EVIDENCE FOR ANALYSIS:
+        
+        === KESKUSTELUHISTORIA ===
+        {history_text}
+        
+        === LOPPUTUOTE ===
+        {product_text}
+        
+        === REFLEKTIODOKUMENTTI ===
+        {reflection_text}
+        
         """
 
     def _process(self, validation_schema: Any = None, **kwargs) -> dict[str, Any]:
@@ -162,7 +223,13 @@ class CausalAnalystAgent(BaseAgent):
         )
         
         # --- AUTO-INJECT MISSING FIELDS ---
+        # --- AUTO-INJECT MISSING FIELDS ---
         if response:
+            if isinstance(response, list):
+                print("[CausalAnalystAgent] Response is a list. Wrapping in 'kausaalinen_auditointi' (best guess).")
+                # This might fail validation if schema expects dict, but better than crash
+                response = {"kausaalinen_auditointi": {"havainnot": str(response)}}
+
             if 'kausaalinen_auditointi' not in response:
                 print("[CausalAnalystAgent] Warning: 'kausaalinen_auditointi' missing. Injecting default.")
                 response['kausaalinen_auditointi'] = {
@@ -202,17 +269,35 @@ class PerformativityDetectorAgent(BaseAgent):
     def construct_user_prompt(self, **kwargs) -> str:
         import json
         
+        # 1. Context from previous steps (Structured Data)
         relevant_keys = ['todistuskartta', 'argumentaatioanalyysi', 'data', 'metodologinen_loki']
-        input_data = {k: kwargs.get(k) for k in relevant_keys if k in kwargs}
+        context_data = {k: kwargs.get(k) for k in relevant_keys if k in kwargs}
         
-        if not input_data:
-             input_data = {k: v for k, v in kwargs.items() if k != 'system_instruction'}
+        if not context_data:
+             context_data = {k: v for k, v in kwargs.items() if k != 'system_instruction'}
+
+        # 2. Raw Evidence (Unstructured Text)
+        history_text = kwargs.get('history_text', 'N/A')
+        product_text = kwargs.get('product_text', 'N/A')
+        reflection_text = kwargs.get('reflection_text', 'N/A')
 
         return f"""
-        INPUT DATA:
+        CONTEXT DATA (JSON):
         ---
-        {json.dumps(input_data, indent=2, ensure_ascii=False)}
+        {json.dumps(context_data, indent=2, ensure_ascii=False)}
         ---
+
+        RAW EVIDENCE FOR ANALYSIS:
+        
+        === KESKUSTELUHISTORIA ===
+        {history_text}
+        
+        === LOPPUTUOTE ===
+        {product_text}
+        
+        === REFLEKTIODOKUMENTTI ===
+        {reflection_text}
+        
         """
 
     def _process(self, validation_schema: Any = None, **kwargs) -> dict[str, Any]:
@@ -227,7 +312,12 @@ class PerformativityDetectorAgent(BaseAgent):
         )
         
         # --- AUTO-INJECT MISSING FIELDS ---
+        # --- AUTO-INJECT MISSING FIELDS ---
         if response:
+            if isinstance(response, list):
+                print("[PerformativityDetectorAgent] Response is a list. Wrapping in 'performatiivisuus_heuristiikat'.")
+                response = {"performatiivisuus_heuristiikat": response}
+
             if 'performatiivisuus_heuristiikat' not in response:
                 print("[PerformativityDetectorAgent] Warning: 'performatiivisuus_heuristiikat' missing. Injecting empty list.")
                 response['performatiivisuus_heuristiikat'] = []

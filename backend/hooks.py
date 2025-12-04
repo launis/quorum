@@ -247,8 +247,48 @@ def generate_jinja2_report(inputs: Dict[str, Any], output: Dict[str, Any]) -> Di
         # The context (inputs) has keys like 'pisteet', 'critical_findings', etc.
         data = inputs 
         
+        # 0. Try to extract corrected scores from XAI output (Step 9)
+        xai_scores = {}
+        xai_summary = None
+        xai_critical = None
+        
+        if 'xai_report_content' in output:
+            try:
+                # Use the helper defined in this file
+                xai_data = _clean_and_parse_json(str(output['xai_report_content']))
+                
+                if isinstance(xai_data, dict) and 'kognitiivinen_arviointiraportti' in xai_data:
+                    print("   [DEBUG] Found structured XAI report. Extracting corrected scores...")
+                    report_body = xai_data['kognitiivinen_arviointiraportti']
+                    
+                    # Extract Matrix
+                    matrix = report_body.get('analyyttinen_arviointimatriisi_JEM_A', [])
+                    if isinstance(matrix, list):
+                        for item in matrix:
+                            kriteeri = item.get('kriteeri', '').lower()
+                            score = item.get('arvosana', 'N/A')
+                            reason = item.get('perustelu', '')
+                            
+                            if 'analyysi' in kriteeri:
+                                xai_scores['analyysi_ja_prosessi'] = {'arvosana': score, 'perustelu': reason}
+                            elif 'arviointi' in kriteeri:
+                                xai_scores['arviointi_ja_argumentaatio'] = {'arvosana': score, 'perustelu': reason}
+                            elif 'synteesi' in kriteeri:
+                                xai_scores['synteesi_ja_luovuus'] = {'arvosana': score, 'perustelu': reason}
+                            
+                    # Extract Summary
+                    if 'yhteenveto_ja_keskeiset_havainnot' in report_body:
+                        summary_section = report_body['yhteenveto_ja_keskeiset_havainnot']
+                        xai_summary = summary_section.get('tiivistelma')
+                        xai_critical = summary_section.get('kriittinen_havainto')
+                        
+            except Exception as e:
+                print(f"   [DEBUG] Failed to parse XAI content for scores: {e}")
+
+        # 1. Get Scores (Prefer XAI, then Context)
         # Check where scores are located. They might be in '8_tuomio_ja_pisteet.json' or merged to root
-        scores = data.get('pisteet', {})
+        scores = xai_scores if xai_scores else data.get('pisteet', {})
+        
         if not scores and '8_tuomio_ja_pisteet.json' in data:
              print("   [DEBUG] Found scores in '8_tuomio_ja_pisteet.json', extracting...")
              scores = data['8_tuomio_ja_pisteet.json'].get('pisteet', {})
@@ -256,8 +296,8 @@ def generate_jinja2_report(inputs: Dict[str, Any], output: Dict[str, Any]) -> Di
         print(f"   [DEBUG] Scores found: {scores}")
 
         report_data = {
-            "summary": data.get('kriittiset_havainnot_yhteenveto') or data.get('score_summary') or 'Yhteenveto puuttuu.',
-            "critical_findings": data.get('kriittiset_havainnot_yhteenveto') if isinstance(data.get('kriittiset_havainnot_yhteenveto'), list) else data.get('eettiset_havainnot', []),
+            "summary": xai_summary or data.get('kriittiset_havainnot_yhteenveto') or data.get('score_summary') or 'Yhteenveto puuttuu.',
+            "critical_findings": xai_critical or (data.get('kriittiset_havainnot_yhteenveto') if isinstance(data.get('kriittiset_havainnot_yhteenveto'), list) else data.get('eettiset_havainnot', [])),
             "pre_mortem_signals": data.get('pre_mortem_analyysi'),
             "hitl_required": data.get('aitous_epaily', False), # Using aitus_epaily as proxy for HITL
             "ethical_issues": data.get('eettiset_havainnot', []),
@@ -284,21 +324,30 @@ def generate_jinja2_report(inputs: Dict[str, Any], output: Dict[str, Any]) -> Di
             print("   [HOOK] Missing 'pisteet' in inputs, but Mock content exists. Skipping template rendering to avoid broken report.")
             return output
 
+        # Fetch static content from injected inputs (Data-Driven via Engine Injection)
+        # The Engine injects components defined in 'static_inputs' with lowercase keys.
+        disclaimer_text = inputs.get('disclaimer_text')
+        
+        if not disclaimer_text:
+             print("   [Warning] 'disclaimer_text' not found in inputs. Using fallback.")
+             disclaimer_text = "Tämä on automaattisesti generoitu raportti (Oletus)."
+
         rendered_report = template.render(
             report_content=report_data,
             final_verdict="KATSO PISTEYTYS",
             reliability_score="EHDOLLEINEN" if data.get('hitl_required') else "KORKEA",
-            disclaimer="Tämä on automaattisesti generoitu raportti." # Placeholder
+            disclaimer=disclaimer_text
         )
         
         # If output already has content (e.g. from Mock LLM), append the detailed report
         # NOTE: With new JSON output from XAI, output might not have 'xai_report_content' key yet
-        if 'xai_report_content' in output:
-            print("   [HOOK] Appending rendered report to existing content.")
-            output['xai_report_content'] += "\n\n---\n\n" + rendered_report
-        else:
-            print("   [HOOK] Setting rendered report as 'xai_report_content'.")
-            output['xai_report_content'] = rendered_report
+        # Store the rendered report in a separate field to keep xai_report_content as pure JSON
+        print("   [HOOK] Saving rendered report to 'xai_report_formatted'.")
+        output['xai_report_formatted'] = rendered_report
+        
+        # Legacy support: If xai_report_content is missing, set it (but this shouldn't happen with XAIReporterAgent)
+        if 'xai_report_content' not in output:
+             output['xai_report_content'] = rendered_report
             
         print("   Report generated successfully.")
         

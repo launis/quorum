@@ -21,16 +21,22 @@ pip install -r frontend/requirements.txt
 
 # Start Backend in background
 Write-Host "Starting Backend..."
-$backendProcess = Start-Process -FilePath "python" -ArgumentList "-m uvicorn backend.main:app --host 0.0.0.0 --port 8000" -PassThru -NoNewWindow
+$backendProcess = Start-Process -FilePath "cmd" -ArgumentList "/k title Cognitive Quorum Backend && python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000" -PassThru
 
 # Wait a bit for backend to start
 Start-Sleep -Seconds 3
 
 # Start Frontend
+# Start Frontend in a new window
 Write-Host "Starting Frontend..."
 # Set environment variable for frontend to find backend
 $env:API_URL = "http://localhost:8000"
-python -m streamlit run frontend/app.py --server.port 8501
+$frontendProcess = Start-Process -FilePath "cmd" -ArgumentList "/k title Cognitive Quorum Frontend && python -m streamlit run ui.py --server.port 8501" -PassThru
 
-# Cleanup on exit (this part is tricky in simple scripts, user might need to kill backend manually if script stops abruptly, but we'll try)
+# Wait for the frontend window to be closed
+Write-Host "Both services are running in separate windows."
+Write-Host "Close the Frontend window to stop the Backend and exit."
+Wait-Process -Id $frontendProcess.Id
+
+# Cleanup on exit
 Stop-Process -Id $backendProcess.Id -ErrorAction SilentlyContinue
