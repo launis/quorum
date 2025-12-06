@@ -17,9 +17,20 @@ class SimpleAgent(BaseAgent):
         pass
     def construct_user_prompt(self, **kwargs):
         pass
-    def generate(self, prompt: str, model: str):
+    async def generate(self, prompt: str, model: str):
         self.model = model
-        return self._call_llm(prompt)
+        # Re-initialize provider if model changes (or just rely on init if created per request)
+        # Note: BaseAgent init creates provider based on self.model
+        
+        # Call the provider directly
+        # For simple text generation, we might not have a schema.
+        # Check if provider supports text-only or needs a dummy schema?
+        # Our GeminiProvider supports response_schema=None for text.
+        return await self.llm_provider.generate(
+            prompt=prompt,
+            system_instruction="You are a helpful technical writer.",
+            response_schema=None
+        )
 
 @router.post("/generate")
 async def generate_text(request: LLMRequest):
@@ -36,7 +47,7 @@ async def generate_text(request: LLMRequest):
         prompt_text = request.prompts[0]["parts"][0]
         
         agent = SimpleAgent(model=request.model)
-        response_text = agent.generate(prompt_text, request.model)
+        response_text = await agent.generate(prompt_text, request.model)
         
         return {"response": response_text}
     except Exception as e:

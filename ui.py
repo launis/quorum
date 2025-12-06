@@ -8,6 +8,113 @@ import pandas as pd
 # Configuration
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 
+def render_dashboard(result):
+    st.header("2. Results")
+    
+    # --- New: System Status Dashboard (Flattened Data) ---
+    # Safety & Errors
+    uhka = result.get('uhka_havaittu')
+    riski = result.get('riski_taso')
+    post_hoc = result.get('onko_post_hoc_rationalisointia')
+    # Metadata
+    timestamp = result.get('luontiaika')
+    version = result.get('versio')
+    
+    if any([uhka is not None, riski, post_hoc is not None]):
+        st.subheader("🛡️ Järjestelmän Tila (System Status)")
+        m1, m2, m3, m4 = st.columns(4)
+        
+        # Safety
+        if uhka is True:
+            m1.error("URHEILU HAVAITTU! (THREAT)")
+        elif uhka is False:
+            m1.success("Turvallinen (Safe)")
+        else:
+            m1.info("Turvallisuus: N/A")
+            
+        # Risk Level
+        if riski:
+            m2.metric("Riski Taso", riski)
+            
+        # Falsifier
+        if post_hoc is True:
+            m3.error("Post-Hoc Rationalisointi!")
+        elif post_hoc is False:
+            m3.success("Logiikka: Valid")
+            
+        # Metadata
+        if timestamp:
+            m4.caption(f"Luotu: {timestamp}")
+            if version:
+                m4.caption(f"Versio: {version}")
+        
+        st.divider()
+    # ----------------------------------------------------
+    def format_xai_report(data):
+        if not data: return None
+        # Standardized Report Layout (Finnish Headers)
+        md = f"### Tiivistelmä\n{data.get('executive_summary', '')}\n\n"
+        
+        md += f"**Tuomio:** {data.get('final_verdict', '')}\n"
+        md += f"**Luottamus:** {data.get('confidence_score', '')}\n\n"
+        
+        md += f"### Vahvuudet\n{data.get('analysis_strengths', '')}\n\n"
+        md += f"### Heikkoudet\n{data.get('analysis_weaknesses', '')}\n\n"
+        md += f"### Mahdollisuudet\n{data.get('analysis_opportunities', '')}\n\n"
+        md += f"### Suositukset\n{data.get('analysis_recommendations', '')}\n\n"
+        return md
+
+    # Display XAI Report
+    # Check for hoisted fields (Standardized XAI Report)
+    if result.get('analysis_strengths') or result.get('executive_summary'):
+        report_data = result
+    else:
+        # Fallback to nested format
+        report_data = result.get('step_9_reporter')
+
+    if report_data:
+        report_md = format_xai_report(report_data)
+    else:
+        # Fallback legacy fields
+        report_md = (
+            result.get('xai_report_formatted') or 
+            result.get('xai_report_content') or 
+            result.get('xai_report') or 
+            result.get('report_content') or
+            result.get('product_text') or
+            result.get('safe_data', {}).get('product_text') or
+            result.get('1_tainted_data.json', {}).get('product_text')
+        )
+    
+    # Explicitly display scores if available
+    # Explicitly display scores (Flattened preferred)
+    score_analyysi = result.get('analyysi') or result.get('step_8_judge', {}).get('pisteet', {}).get('analyysi')
+    score_arviointi = result.get('arviointi') or result.get('step_8_judge', {}).get('pisteet', {}).get('arviointi')
+    score_synteesi = result.get('synteesi') or result.get('step_8_judge', {}).get('pisteet', {}).get('synteesi')
+
+    if score_analyysi or score_arviointi:
+        st.subheader("🏆 Pisteytys (BARS 1-4)")
+        s_col1, s_col2, s_col3 = st.columns(3)
+        
+        def show_score(col, title, s_data):
+            if s_data:
+                col.metric(label=title, value=f"{s_data.get('arvosana')}/4")
+                # Show full text, no truncation
+                col.caption(s_data.get('perustelu', ''))
+
+        show_score(s_col1, "Analyysi", score_analyysi)
+        show_score(s_col2, "Arviointi", score_arviointi)
+        show_score(s_col3, "Synteesi", score_synteesi)
+        st.divider()
+    
+    if report_md:
+        st.subheader("📝 XAI Report (or Product Text)")
+        st.markdown(report_md)
+    else:
+        st.warning("Report content not found in result.")
+    with st.expander("View Raw Output JSON"):
+        st.json(result)
+
 st.set_page_config(page_title="Cognitive Quorum v2", layout="wide")
 
 st.title("Cognitive Quorum v2 - Dynamic Workflow Engine")
@@ -55,7 +162,21 @@ if page == "Assessment":
         product_file = st.file_uploader("Lopputuote (Final Product)", type=['txt', 'pdf', 'docx'])
         reflection_file = st.file_uploader("Itsearviointi (Reflection)", type=['txt', 'pdf', 'docx'])
     
-    if st.button("Käynnistä Arviointi (Run Assessment)"):
+    # Buttons
+    b_col1, b_col2 = st.columns([1, 1])
+    
+    start_clicked = False
+    resume_clicked = False
+    
+    with b_col1:
+        if st.button("Käynnistä Arviointi (Run Assessment)"):
+            start_clicked = True
+            
+    with b_col2:
+        if st.button("Hae viimeisin tulos (Resume Last)"):
+             resume_clicked = True
+
+    if start_clicked:
         if not selected_workflow_id:
             st.error("Please select a workflow.")
         elif not history_file or not product_file or not reflection_file:
@@ -63,18 +184,42 @@ if page == "Assessment":
         else:
             with st.spinner("Starting Workflow..."):
                 try:
-                    # Prepare files for upload
-                    files = {
-                        "history_file": (history_file.name, history_file, history_file.type),
-                        "product_file": (product_file.name, product_file, product_file.type),
-                        "reflection_file": (reflection_file.name, reflection_file, reflection_file.type)
+                    # Helper to read text
+                    import base64
+
+                    def read_file_content(uploaded_file):
+                        if uploaded_file.type == "application/pdf":
+                            try:
+                                # Read bytes
+                                file_bytes = uploaded_file.getvalue()
+                                # Encode to Base64
+                                b64_encoded = base64.b64encode(file_bytes).decode('utf-8')
+                                # Return with Protocol Prefix
+                                return f"[BASE64:PDF]{b64_encoded}"
+                            except Exception as e:
+                                return f"Error reading PDF: {str(e)}"
+                        else:
+                            return uploaded_file.getvalue().decode("utf-8")
+
+                    # Extract content
+                    hist_text = read_file_content(history_file)
+                    prod_text = read_file_content(product_file)
+                    refl_text = read_file_content(reflection_file)
+                    
+                    # Construct Payload (matching verify_standardization.py)
+                    payload = {
+                        "workflow_id": selected_workflow_id,
+                        "inputs": {
+                            "history_text": hist_text,
+                            "product_text": prod_text,
+                            "reflection_text": refl_text
+                        }
                     }
                     
                     # Start Job
                     response = requests.post(
-                        f"{BACKEND_URL}/orchestrator/run",
-                        params={"workflow_id": selected_workflow_id},
-                        files=files
+                        f"{BACKEND_URL}/executions",
+                        json=payload
                     )
                     
                     if response.status_code == 200:
@@ -88,7 +233,7 @@ if page == "Assessment":
                         
                         while True:
                             try:
-                                status_res = requests.get(f"{BACKEND_URL}/orchestrator/status/{job_id}")
+                                status_res = requests.get(f"{BACKEND_URL}/executions/{job_id}")
                                 if status_res.status_code == 200:
                                     status_data = status_res.json()
                                     status = status_data.get('status')
@@ -98,70 +243,7 @@ if page == "Assessment":
                                         status_text.success("Assessment Completed!")
                                         result = status_data.get('result', {})
                                         
-                                        st.header("2. Results")
-                                        
-                                        # Helper to format XAI Report
-                                        def format_xai_report(data):
-                                            if not data: return None
-                                            md = f"# {data.get('executive_summary', 'XAI Report')}\n\n"
-                                            md += f"**Verdict:** {data.get('final_verdict')}\n"
-                                            md += f"**Confidence:** {data.get('confidence_score')}\n\n"
-                                            
-                                            for section in data.get('detailed_analysis', []):
-                                                md += f"## {section.get('title')}\n"
-                                                md += f"{section.get('content')}\n\n"
-                                                if section.get('visualizations'):
-                                                    md += "**Visualizations:**\n"
-                                                    for v in section.get('visualizations'):
-                                                        md += f"- {v}\n"
-                                                md += "\n"
-                                            return md
-
-                                        # Display XAI Report
-                                        # Check for hoisted fields first (New V2 format)
-                                        if result.get('final_verdict') and result.get('detailed_analysis'):
-                                            report_data = result
-                                        else:
-                                            # Fallback to nested format
-                                            report_data = result.get('step_9_reporter')
-
-                                        if report_data:
-                                            report_md = format_xai_report(report_data)
-                                        else:
-                                            report_md = (
-                                                result.get('xai_report_formatted') or 
-                                                result.get('xai_report_content') or 
-                                                result.get('xai_report') or 
-                                                result.get('report_content') or
-                                                result.get('product_text') or
-                                                result.get('safe_data', {}).get('product_text') or
-                                                result.get('1_tainted_data.json', {}).get('product_text')
-                                            )
-                                        
-                                        # Explicitly display scores if available
-                                        if result.get('step_8_judge'):
-                                            scores = result['step_8_judge'].get('pisteet', {})
-                                            if scores:
-                                                st.subheader("🏆 Pisteytys (BARS 1-4)")
-                                                s_col1, s_col2, s_col3 = st.columns(3)
-                                                
-                                                def show_score(col, title, s_data):
-                                                    if s_data:
-                                                        col.metric(label=title, value=f"{s_data.get('arvosana')}/4")
-                                                        col.caption(s_data.get('perustelu')[:150] + "...")
-
-                                                show_score(s_col1, "Analyysi", scores.get('analyysi_ja_prosessi'))
-                                                show_score(s_col2, "Arviointi", scores.get('arviointi_ja_argumentaatio'))
-                                                show_score(s_col3, "Synteesi", scores.get('synteesi_ja_luovuus'))
-                                                st.divider()
-                                        
-                                        if report_md:
-                                            st.subheader("📝 XAI Report (or Product Text)")
-                                            st.markdown(report_md)
-                                        else:
-                                            st.warning("Report content not found in result.")
-                                        with st.expander("View Raw Output JSON"):
-                                            st.json(result)
+                                        render_dashboard(result)
                                         break
                                     
                                     elif status and status.upper() == "FAILED":
@@ -189,6 +271,26 @@ if page == "Assessment":
     
                 except Exception as e:
                     st.error(f"Client Error: {e}")
+
+    if resume_clicked:
+         with st.spinner("Noudetaan viimeisin tulos..."):
+             try:
+                 res = requests.get(f"{BACKEND_URL}/executions/latest")
+                 if res.status_code == 200:
+                      data = res.json()
+                      status = data.get('status')
+                      
+                      if status and status.upper() == "COMPLETED":
+                           result = data.get('result', {})
+                           st.success(f"Ladattu viimeisin ajo: {data.get('execution_id')}")
+                           render_dashboard(result)
+                      else:
+                           st.warning(f"Viimeisin ajo on tilassa: {status}")
+                           st.json(data)
+                 else:
+                      st.error("Ei löytynyt aiempia ajoja tai virhe haussa.")
+             except Exception as e:
+                 st.error(f"Virhe haettaessa: {e}")
 
 elif page == "System Info":
     st.header("System Configuration & Seed Data")

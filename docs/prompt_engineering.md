@@ -1,18 +1,18 @@
 # Dynamic Prompt Construction
 
-The workflow engine utilizes a **Dynamic Prompt Construction** system. This approach avoids hardcoding prompts in source code, instead assembling them at runtime from modular, data-driven components. This provides greater flexibility, reusability, and maintainability.
+The workflow engine employs a data-driven **Dynamic Prompt Construction** system. This approach avoids hardcoding prompts in source code. Instead, prompts are assembled at runtime from modular, reusable components. This design provides superior flexibility, maintainability, and reusability across all workflows.
 
 ## The Architecture of a Prompt
 
 A final prompt sent to an LLM is composed of three distinct layers:
 
 1.  **Template (`.j2`)**: The structural skeleton of the prompt, containing logic and placeholders.
-2.  **Fragments (`.json`)**: Reusable, modular blocks of content (e.g., rules, instructions, examples).
+2.  **Content Fragments (`.json`)**: Reusable, modular blocks of content (e.g., rules, instructions, examples).
 3.  **Runtime Context**: The specific input data and variables for a given task execution.
 
 ### 1. Jinja2 Templates
 
-We use the powerful **Jinja2** templating engine. This allows for conditional logic, loops, and variable injection directly within the prompt's structure, enabling highly adaptive prompts.
+The engine uses the powerful **Jinja2** templating language. This allows for conditional logic, loops, and variable injection directly within the prompt's structure, enabling the creation of highly adaptive and context-aware prompts.
 
 **Example (`templates/generic_task.j2`):**
 ```jinja2
@@ -36,24 +36,28 @@ User Input:
 Your output must be a JSON object that adheres to the provided schema.
 ```
 
-### 2. Fragments
+### 2. Content Fragments
 
-Fragments are atomic, reusable pieces of text stored as structured data (e.g., JSON). They are centrally managed and can be included in any template.
+Fragments are atomic, reusable pieces of text stored in a structured format like JSON. They are centrally managed and can be dynamically included in any template.
 
-*   **Benefit**: This design promotes the DRY (Don't Repeat Yourself) principle. For example, a standard safety warning can be defined in a single fragment file. Any workflow needing this warning can include it. Updating the warning in the one source file propagates the change to all dependent prompts instantly.
+This design promotes the DRY (Don't Repeat Yourself) principle. For instance, a standard safety warning can be defined in a single fragment file. Any workflow needing this warning can include it. Updating the warning in the source fragment instantly propagates the change to all dependent prompts.
 
-### 3. Structured Output (Schema Enforcement)
+### 3. Runtime Context
 
-To ensure reliable, machine-readable outputs, the engine enforces a JSON Schema on the LLM's response.
+This layer consists of the dynamic, real-time data provided to the workflow for a specific execution. It includes user inputs, data retrieved from other systems, and any other variables needed to complete the task. The Jinja2 template injects this context into the appropriate placeholders to create a complete, task-specific prompt.
 
-*   **Mechanism**: The workflow's configuration specifies a Pydantic model or a direct JSON Schema for the desired output. The engine automatically handles enforcement by using the LLM provider's most effective method (e.g., Tool Calling, JSON Mode). This guarantees that the output conforms to the defined structure, eliminating the need for fragile parsing logic.
+## Structured Output and Schema Enforcement
+
+To ensure reliable, machine-readable outputs, the engine enforces a strict schema on the LLM's response.
+
+The workflow's configuration specifies a Pydantic model or a raw JSON Schema that defines the desired output structure. The engine automatically ensures the LLM's response conforms to this schema by using the most effective method available from the provider (e.g., Tool Calling, JSON Mode). This eliminates the need for fragile parsing logic and guarantees that the output is valid and predictable.
 
 ## Prompt Engineering Workflow
 
-To create or modify a prompt for a workflow:
+To create or modify a prompt for a workflow, follow these steps:
 
-1.  **Define the Goal**: Clearly articulate the task the LLM needs to perform.
-2.  **Author Reusable Fragments**: Break down instructions, rules, or examples into modular JSON fragments for maximum reuse.
-3.  **Construct the Template**: Create a Jinja2 template (`.j2` file) that arranges the fragments and placeholders for runtime data.
-4.  **Define the Output Schema**: Create a Pydantic model that defines the exact structure of the expected JSON output. This model is linked in the workflow configuration, not referenced in the template text.
-5.  **Test and Iterate**: Use the engine's testing tools to build and inspect the final prompt, then run the workflow to validate the LLM's output against the schema.
+1.  **Define the Goal**: Clearly articulate the task the LLM needs to perform and the desired outcome.
+2.  **Create Reusable Fragments**: Break down instructions, rules, or examples into modular JSON fragments for maximum reuse and maintainability.
+3.  **Construct the Template**: Create a Jinja2 template (`.j2` file) that arranges the fragments and defines placeholders for runtime data.
+4.  **Define the Output Schema**: Create a Pydantic model that defines the exact structure of the expected JSON output. This model is referenced in the workflow configuration, not in the prompt text itself.
+5.  **Test and Iterate**: Use the engine's development tools to render and inspect the final prompt. Run the workflow with sample data to validate the LLM's output against the defined schema.

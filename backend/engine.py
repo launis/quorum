@@ -146,6 +146,12 @@ class WorkflowEngine:
                             phrases_str = ", ".join([f'"{p}"' for p in banned_phrases_list]) if banned_phrases_list else "NONE"
                             content = content.replace("{{BANNED_PHRASES}}", phrases_str)
                             
+                        # Check/Replace CURRENT_DATE
+                        if "{{CURRENT_DATE}}" in content:
+                            from datetime import datetime
+                            now_str = datetime.now().strftime("%d.%m.%Y")
+                            content = content.replace("{{CURRENT_DATE}}", now_str)
+                            
                         full_prompt_parts.append(content)
             
             return "\n\n".join(full_prompt_parts)
@@ -155,9 +161,9 @@ class WorkflowEngine:
 
     # --- CORE EXECUTION LOGIC (V2) ---
 
-    def run_execution(self, execution_id: str, raw_inputs: Dict[str, Any]) -> Dict[str, Any]:
+    async def run_execution(self, execution_id: str, raw_inputs: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Runs the full workflow using the new State-based architecture.
+        Runs the full workflow using the new State-based architecture (Async).
         """
         print(f"[WorkflowEngine] Starting execution {execution_id}")
         
@@ -186,10 +192,6 @@ class WorkflowEngine:
         # 2. Execute Pipeline
         try:
             # Fetch Workflow Definition
-            # We assume the execution_id allows us to look up the workflow, 
-            # but currently create_execution stores workflow_id.
-            
-            # Fetch execution record to get workflow_id
             Execution = Query()
             exec_record = self.executions_table.search(Execution.execution_id == execution_id)
             if not exec_record:
@@ -204,8 +206,6 @@ class WorkflowEngine:
             pipeline_steps = []
             if wf_record:
                 step_ids = wf_record[0]['steps']
-                # Create a list of (Agent, step_id) to execute
-                # We need step_id to fetch the prompt
                 Step = Query()
                 for sid in step_ids:
                     s_doc = self.steps_table.search(Step.id == sid)
@@ -214,7 +214,6 @@ class WorkflowEngine:
                         if agent_name in self.agents_map:
                             pipeline_steps.append((self.agents_map[agent_name], s_doc[0]))
             
-            # Fallback to hardcoded pipeline if no dynamic workflow found (e.g. for testing)
             if not pipeline_steps:
                 print(f"[WorkflowEngine] Error: No workflow steps found for Workflow ID {workflow_id}")
                 raise ValueError(f"No steps defined for workflow {workflow_id}. Ensure the workflow is correctly seeded.")
@@ -226,7 +225,7 @@ class WorkflowEngine:
                 current_state.current_step_name = agent_name
                 print(f"[WorkflowEngine] Running step: {agent_name} (Step ID: {step_id})")
                 
-                # Construct data-driven prompt if step_id exists
+                # Construct data-driven prompt
                 system_instruction = self._construct_prompt_for_step(step_id) if step_id else None
                 
                 # --- EXECUTE PRE-HOOKS ---
@@ -235,8 +234,8 @@ class WorkflowEngine:
                 for hook_name in pre_hooks:
                     current_state = self._execute_hook(hook_name, agent, current_state)
 
-                # Execute agent (updates state internally)
-                current_state = agent.execute(current_state, system_instruction=system_instruction)
+                # Execute agent (ASYNC AWAIT)
+                current_state = await agent.execute(current_state, system_instruction=system_instruction)
 
                 # --- EXECUTE POST-HOOKS ---
                 post_hooks = config.get('post_hooks') or []
@@ -252,25 +251,65 @@ class WorkflowEngine:
             # 3. Success
             print(f"[WorkflowEngine] Execution {execution_id} completed successfully.")
             
-            # Prepare result with flattened fields
-            final_result = current_state.model_dump(mode='json')
+            # Capture full state for debugging (could be saved to a separate 'trace' field if needed)
+            full_state = current_state.model_dump(mode='json')
             
-            # Flatten/Hoist XAI Report fields for easier client access
-            if final_result.get('step_9_reporter'):
-                report = final_result['step_9_reporter']
-                final_result['executive_summary'] = report.get('executive_summary')
-                final_result['final_verdict'] = report.get('final_verdict')
-                final_result['confidence_score'] = report.get('confidence_score')
-                # We also hoist the detailed analysis for direct access
-                final_result['detailed_analysis'] = report.get('detailed_analysis')
+            # Initialize strictly filtered public result
+            public_result = {}
+            
+            # Dynamic Result Projection (Strict Filtering)
+            # We iterate through the steps that were executed and project specific fields
+            # based on their configured output components.
+            for agent, step_doc in pipeline_steps:
+                state_key = step_doc.get('state_key')
+                hoist_fields = step_doc.get('hoist_fields', [])
+                
+                # Check for component-based configuration (Level A)
+                output_config_id = step_doc.get('output_config_component')
+                if output_config_id:
+                    Component = Query()
+                    comp_record = self.components_table.search(Component.id == output_config_id)
+                    if comp_record:
+                        # Merge or override fields from component
+                        hoist_fields = comp_record[0].get('content', [])
+                
+                # Perform Projection
+                if state_key and hoist_fields and full_state.get(state_key):
+                    source_data = full_state[state_key]
+                    print(f"[WorkflowEngine] Projecting {len(hoist_fields)} fields from {state_key}")
+                    
+                    for field in hoist_fields:
+                        # Support dot notation for nested source fields
+                        if '.' in field:
+                            parts = field.split('.')
+                            val = source_data
+                            for part in parts:
+                                if isinstance(val, dict):
+                                    val = val.get(part)
+                                else:
+                                    val = None
+                                    break
+                            
+                            # Naming Convention: Use the leaf name as the public key
+                            # e.g. 'pisteet.analyysi' -> 'analyysi'
+                            target_key = parts[-1]
+                        else:
+                            val = source_data.get(field)
+                            target_key = field
 
+                        # Add to public result keys
+                        public_result[target_key] = val
+
+            # Update DB with strict result
             self.executions_table.update({
                 'status': 'completed',
                 'end_time': datetime.now().isoformat(),
-                'result': final_result
+                'result': public_result,
+                # Save full trace for detailed audit/debugging
+                'trace': full_state 
             }, Execution.execution_id == execution_id)
             
-            return final_result
+            return public_result
 
         except Exception as e:
             print(f"[WorkflowEngine] Pipeline crashed at {current_state.current_step_name}: {e}")

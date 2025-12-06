@@ -16,6 +16,11 @@ USE_MOCK_DB = os.getenv("USE_MOCK_DB", "True").lower() == "true"
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 INITIAL_MODEL = os.getenv("INITIAL_MODEL", "gemini-2.5-flash")
 
+# --- LLM Settings ---
+LLM_DEFAULT_TIMEOUT = float(os.getenv("LLM_DEFAULT_TIMEOUT", "30.0"))
+LLM_MAX_RETRIES = int(os.getenv("LLM_MAX_RETRIES", "3"))
+LLM_RETRY_DELAY = float(os.getenv("LLM_RETRY_DELAY", "1.0"))
+
 # --- Paths ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(os.path.dirname(BASE_DIR), "data")

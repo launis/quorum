@@ -119,6 +119,56 @@ class GuardAgent(BaseAgent):
             
         return state
 
+    def extract_text_from_inputs(self, state: WorkflowState) -> WorkflowState:
+        """
+        Public hook method (Pre-Hook).
+        Detects Base64 encoded PDFs in inputs and extracts text using PyMuPDF (fitz).
+        Protocol: UI sends strings prefixed with "[BASE64:PDF]".
+        """
+        print("[GuardAgent] Executing PDF Extraction Pre-Hook...")
+        import base64
+        import fitz # PyMuPDF
+
+        # Map of field names to current values
+        input_fields = {
+            "history_text": state.inputs.history_text,
+            "product_text": state.inputs.product_text,
+            "reflection_text": state.inputs.reflection_text
+        }
+        
+        updates = {}
+
+        for field_name, content in input_fields.items():
+            if content and content.startswith("[BASE64:PDF]"):
+                try:
+                    print(f"[GuardAgent] Detecting PDF payload in {field_name}...")
+                    # Remove prefix
+                    b64_str = content.replace("[BASE64:PDF]", "")
+                    # Decode
+                    file_bytes = base64.b64decode(b64_str)
+                    
+                    # Extract with fitz
+                    doc = fitz.open(stream=file_bytes, filetype="pdf")
+                    text = ""
+                    for page in doc:
+                        text += page.get_text()
+                    
+                    print(f"[GuardAgent] Extracted {len(text)} characters from {field_name}.")
+                    updates[field_name] = text
+                    
+                except Exception as e:
+                    error_msg = f"[GuardAgent] PDF Extraction failed for {field_name}: {str(e)}"
+                    print(error_msg)
+                    updates[field_name] = error_msg
+        
+        # Apply updates to state
+        # We need to create a new inputs object or modify the existing one?
+        # WorkflowState.inputs is a Pydantic model (WorkflowInputs). It's mutable.
+        for k, v in updates.items():
+            setattr(state.inputs, k, v)
+
+        return state
+
     def check_banned_phrases_python(self, state: WorkflowState) -> WorkflowState:
         """
         Public hook method (Pre-Hook).

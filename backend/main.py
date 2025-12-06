@@ -116,7 +116,7 @@ def create_workflow(request: WorkflowCreateRequest):
     return {"status": "created", "workflow_id": workflow_id}
 
 @app.post("/executions")
-def execute_workflow(request: WorkflowExecutionRequest, background_tasks: BackgroundTasks):
+async def execute_workflow(request: WorkflowExecutionRequest, background_tasks: BackgroundTasks):
     """
     Starts a workflow execution asynchronously.
     """
@@ -125,6 +125,7 @@ def execute_workflow(request: WorkflowExecutionRequest, background_tasks: Backgr
         execution_id = engine.create_execution(request.workflow_id, request.inputs)
         
         # 2. Schedule Execution in Background
+        # FastAPI BackgroundTasks can handle async functions
         background_tasks.add_task(engine.run_execution, execution_id, request.inputs)
         
         return {"status": "started", "execution_id": execution_id}
@@ -132,7 +133,7 @@ def execute_workflow(request: WorkflowExecutionRequest, background_tasks: Backgr
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/executions/{execution_id}")
-def get_execution_status(execution_id: str):
+async def get_execution_status(execution_id: str):
     """
     Gets the status of a workflow execution.
     """
@@ -141,9 +142,27 @@ def get_execution_status(execution_id: str):
         raise HTTPException(status_code=404, detail="Execution not found")
     return status
 
+@app.get("/executions/latest")
+async def get_latest_execution():
+    """
+    Returns the most recent execution (by start_time).
+    Useful for 'Resume' functionality.
+    """
+    try:
+        all_execs = engine.executions_table.all()
+        if not all_execs:
+             raise HTTPException(status_code=404, detail="No executions found")
+        
+        # Sort by start_time descending
+        # Assuming start_time is ISO string, which sorts correctly lexicographically
+        latest = sorted(all_execs, key=lambda x: x.get('start_time', ''), reverse=True)[0]
+        return latest
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/db/seed_data")
 @app.get("/db/seed_data")
-def get_seed_data():
+async def get_seed_data():
     """
     Returns the content of seed data from the database.
     """
@@ -162,7 +181,7 @@ def get_seed_data():
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/db/workflows")
-def get_workflows():
+async def get_workflows():
     """
     Returns all workflows from the database.
     """
@@ -173,7 +192,7 @@ def get_workflows():
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/db/preview_prompt/{step_id}")
-def preview_prompt(step_id: str):
+async def preview_prompt(step_id: str):
     """
     Returns a preview of the prompt for a given step.
     """
@@ -186,7 +205,7 @@ def preview_prompt(step_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/db/preview_full_chain/{workflow_id}")
-def preview_full_chain(workflow_id: str):
+async def preview_full_chain(workflow_id: str):
     """
     Returns a full chain prompt preview for a given workflow.
     """
@@ -201,7 +220,7 @@ def preview_full_chain(workflow_id: str):
 # --- Legacy / Helper Endpoints ---
 
 @app.post("/orchestrator/run")
-def run_orchestrator(
+async def run_orchestrator(
     workflow_id: str,
     background_tasks: BackgroundTasks,
     history_file: UploadFile = File(...),
@@ -215,7 +234,7 @@ def run_orchestrator(
     handler = DataHandler()
 
     try:
-        # Extract text from uploaded files
+        # Extract text from uploaded files (Handler is sync, maybe should be async too in future)
         history_text = handler.read_file_content(history_file)
         product_text = handler.read_file_content(product_file)
         reflection_text = handler.read_file_content(reflection_file)

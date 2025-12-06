@@ -76,9 +76,9 @@ class JudgeAgent(BaseAgent):
             # Helper to safely get score
             def get_val(s): return s.arvosana if s else 0
             
-            val1 = get_val(p.analyysi_ja_prosessi)
-            val2 = get_val(p.arviointi_ja_argumentaatio)
-            val3 = get_val(p.synteesi_ja_luovuus)
+            val1 = get_val(p.analyysi)
+            val2 = get_val(p.arviointi)
+            val3 = get_val(p.synteesi)
             
             total = val1 + val2 + val3
             count = 3 # Fixed count for now

@@ -39,7 +39,7 @@ class BaseAgent(BaseComponent):
             print(f"[{self.__class__.__name__}] Warning: Failed to get example from schema {schema_class.__name__}: {e}")
         return ""
 
-    def execute(self, state: WorkflowState, system_instruction: Optional[str] = None) -> WorkflowState:
+    async def execute(self, state: WorkflowState, system_instruction: Optional[str] = None) -> WorkflowState:
         """
         Standard execution entry point.
         Takes the entire WorkflowState, processes it, and returns the updated state.
@@ -58,8 +58,8 @@ class BaseAgent(BaseComponent):
             # 3. Determine Output Schema (Subclasses must define this!)
             response_schema = self.get_response_schema()
 
-            # 4. Call LLM (The "Mask" handles the details)
-            response_data = self.llm_provider.generate(
+            # 4. Call LLM (The "Mask" handles the details) — ASYNC WAIT
+            response_data = await self.llm_provider.generate(
                 prompt=user_prompt,
                 system_instruction=system_instruction,
                 response_schema=response_schema

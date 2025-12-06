@@ -1,6 +1,6 @@
 # Data Management & Databases
 
-This document describes the data management architecture for the workflow engine. The system is fundamentally **data-driven**, meaning its business logic, prompts, and operational flows are defined in the database rather than being hardcoded in the application.
+This document outlines the data management architecture of the workflow engine. The engine is fundamentally **data-driven**, meaning its business logic, prompts, and operational flows are defined in the database rather than being hardcoded in the application.
 
 ## Data Structure
 
@@ -8,7 +8,7 @@ All system data is located in the `data/` directory. This file-based approach si
 
 ### 1. Initialization Data (`data/seed_data.json`)
 
-This file contains the system's "factory settings" and defines its core logic. It is the single source of truth for the engine's configuration. It includes:
+This file contains the system's "factory settings" and defines its core logic. It is the single source of truth for the engine's initial configuration. It includes:
 
 *   **Components**: Definitions for prompt templates, tools, and other reusable entities.
 *   **Steps**: Individual workflow steps, including their input/output schemas and execution logic.
@@ -19,7 +19,7 @@ On system initialization or database reset, `seed_data.json` is loaded into the 
 
 ### 2. Runtime Database (`data/db.json`)
 
-The system uses **TinyDB**, a lightweight, document-oriented database stored in the `db.json` file.
+The system utilizes **TinyDB**, a lightweight, document-oriented database stored in the `db.json` file.
 
 It contains two primary categories of data:
 1.  **Configuration**: A live copy of the content from `seed_data.json` (components, steps, workflows). This data can be modified at runtime via the UI to adjust system behavior dynamically.
@@ -33,7 +33,7 @@ It contains two primary categories of data:
 
 ### 3. Fragments (`data/fragments/`)
 
-This directory contains reusable JSON-formatted text snippets used to construct prompts. Examples include:
+This directory contains reusable text snippets, formatted as JSON, that are used to construct prompts. Examples include:
 
 *   `global_rules.json`: Global operational rules (e.g., "Do not use external tools without permission").
 *   `style_guides.json`: Instructions on tone and format (e.g., "Respond in a professional tone").
@@ -90,9 +90,9 @@ When the `WorkflowEngine` executes a step, it assembles the final prompt dynamic
 
 ### 2. Dynamic Schema Injection
 
-To ensure the LLM produces valid JSON that the system can parse, we use a **Dynamic Schema Injection** mechanism.
+To ensure the LLM produces valid JSON that the system can parse, the engine uses a **Dynamic Schema Injection** mechanism.
 
-*   **The Problem**: The LLM needs to know the exact JSON structure to output (e.g., fields, data types, required keys).
+*   **The Problem**: The LLM needs to know the exact JSON structure to output, including fields, data types, and required keys.
 *   **The Solution**: Prompt templates contain special placeholders that reference Pydantic models defined in the application code, for example:
     `[SCHEMA: MyPydanticModel]`
 *   **Execution**: When the `WorkflowEngine` prepares a step:
@@ -117,7 +117,7 @@ This guarantees that the LLM's output conforms to the data structures expected b
 
 ### 3. Citation & Source Tracking
 
-The database can also track academic or methodological sources for each prompt component.
+The database can also track sources or citations for each prompt component.
 
 *   **Structure**: Each component in `seed_data.json` can have a `citation` field (e.g., *"Toulmin, S. (1958). The Uses of Argument"*).
 *   **Injection**: During prompt assembly, the `WorkflowEngine` can automatically append `[Source: Citation Text]` to the relevant instruction.

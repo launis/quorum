@@ -12,3 +12,8 @@ google-cloud-storage
 tinydb
 streamlit
 pymupdf
+openai
+google-generativeai
+tenacity
+pydantic
+python-dotenv

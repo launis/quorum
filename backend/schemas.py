@@ -422,9 +422,9 @@ class PisteetKriteeri(BaseModel):
     perustelu: str
 
 class Pisteet(BaseModel):
-    analyysi_ja_prosessi: PisteetKriteeri
-    arviointi_ja_argumentaatio: PisteetKriteeri
-    synteesi_ja_luovuus: PisteetKriteeri
+    analyysi: PisteetKriteeri
+    arviointi: PisteetKriteeri
+    synteesi: PisteetKriteeri
 
 class TuomioJaPisteet(BaseJSON):
     konfliktin_ratkaisut: list[KonfliktinRatkaisu]
@@ -470,7 +470,10 @@ class XAIReportSection(BaseModel):
 
 class XAIReport(BaseJSON):
     executive_summary: str
-    detailed_analysis: list[XAIReportSection]
+    analysis_strengths: str
+    analysis_weaknesses: str
+    analysis_opportunities: str
+    analysis_recommendations: str
     final_verdict: str
     confidence_score: float
 
