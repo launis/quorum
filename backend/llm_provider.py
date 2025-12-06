@@ -41,6 +41,77 @@ class GoogleGeminiProvider(LLMProvider):
             raise ValueError("GOOGLE_API_KEY not found.")
         genai.configure(api_key=self.api_key)
 
+    def _sanitize_schema(self, schema: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Sanitizes Pydantic JSON schema for Gemini:
+        1. Removes 'examples', 'title'.
+        2. Inlines '$defs' references because Gemini might not support top-level $defs.
+        """
+        import copy
+        schema = copy.deepcopy(schema)
+        defs = schema.pop('$defs', {})
+        defs.update(schema.pop('definitions', {}))
+        
+        def resolve_refs(node):
+            if isinstance(node, dict):
+                # Handle $ref
+                if '$ref' in node:
+                    ref_path = node['$ref']
+                    ref_name = ref_path.split('/')[-1]
+                    if ref_name in defs:
+                        # Replace ref with the definition (recursively resolved)
+                        definition = copy.deepcopy(defs[ref_name])
+                        return resolve_refs(definition)
+                
+                # Handle anyOf (usually for Optional fields)
+                if 'anyOf' in node:
+                    any_of = node.pop('anyOf')
+                    # Check if it's a nullable field (one of the types is 'null')
+                    non_null_types = [t for t in any_of if t.get('type') != 'null']
+                    
+                    if len(non_null_types) == 1:
+                        # It's a simple nullable field
+                        # Merge the non-null type into the node
+                        node.update(resolve_refs(non_null_types[0]))
+                        node['nullable'] = True
+                    elif non_null_types:
+                        # Complex union. Gemini doesn't support anyOf.
+                        # Fallback: Use the first type.
+                        node.update(resolve_refs(non_null_types[0]))
+
+                # Clean fields
+                node.pop('examples', None)
+                node.pop('title', None)
+                node.pop('default', None) # Gemini doesn't support 'default' in schema
+                node.pop('additionalProperties', None) # Gemini doesn't support 'additionalProperties'
+                node.pop('maximum', None) # Gemini doesn't support 'maximum'
+                node.pop('minimum', None) # Gemini doesn't support 'minimum'
+                
+                # Fix for "should be non-empty for OBJECT type"
+                if node.get('type') == 'object' and not node.get('properties'):
+                    # Gemini requires at least one property for OBJECT.
+                    # We inject a dummy optional property.
+                    node['properties'] = {'_dynamic_content': {'type': 'string', 'nullable': True}}
+
+                # Recursively clean children
+                new_node = {}
+                for k, v in node.items():
+                    if k == 'properties' and isinstance(v, dict):
+                        # Special handling for properties map: recurse on values (schemas), 
+                        # but DO NOT call resolve_refs on the map itself (which would strip keys like 'title')
+                        new_props = {}
+                        for pk, pv in v.items():
+                            new_props[pk] = resolve_refs(pv)
+                        new_node[k] = new_props
+                    else:
+                        new_node[k] = resolve_refs(v)
+                return new_node
+            elif isinstance(node, list):
+                return [resolve_refs(item) for item in node]
+            return node
+
+        return resolve_refs(schema)
+
     def generate(
         self, 
         prompt: str, 
@@ -59,7 +130,15 @@ class GoogleGeminiProvider(LLMProvider):
         # 1. Structured Output (The "Magic")
         if response_schema:
             generation_config["response_mime_type"] = "application/json"
-            generation_config["response_schema"] = response_schema
+            
+            # SANITIZATION: Get JSON schema and remove 'examples' + inline '$defs'
+            try:
+                raw_schema = response_schema.model_json_schema()
+                sanitized_schema = self._sanitize_schema(raw_schema)
+                generation_config["response_schema"] = sanitized_schema
+            except Exception as e:
+                print(f"[GeminiProvider] Schema sanitization failed: {e}. Using raw schema.")
+                generation_config["response_schema"] = response_schema
         
         model = genai.GenerativeModel(
             model_name=self.model_name,
@@ -70,6 +149,10 @@ class GoogleGeminiProvider(LLMProvider):
         try:
             # DEBUG LOGGING
             print(f"[GeminiProvider] Calling {self.model_name}...")
+            if system_instruction:
+                print(f"--- SYSTEM INSTRUCTION ---\n{system_instruction}\n--------------------------")
+            print(f"--- PROMPT ---\n{prompt}\n--------------")
+
             if response_schema:
                 print(f"[GeminiProvider] Enforcing schema: {response_schema.__name__}")
 
@@ -117,6 +200,9 @@ class OpenAIProvider(LLMProvider):
 
         try:
             print(f"[OpenAIProvider] Calling {self.model_name}...")
+            if system_instruction:
+                print(f"--- SYSTEM INSTRUCTION ---\n{system_instruction}\n--------------------------")
+            print(f"--- PROMPT ---\n{prompt}\n--------------")
             
             if response_schema:
                 print(f"[OpenAIProvider] Enforcing schema: {response_schema.__name__} (Structured Outputs)")
@@ -144,6 +230,11 @@ class OpenAIProvider(LLMProvider):
 class MockProvider(LLMProvider):
     def generate(self, prompt: str, system_instruction: Optional[str] = None, response_schema: Optional[Type[BaseModel]] = None, temperature: float = 0.7) -> Union[str, Dict[str, Any]]:
         from backend.mock_llm import MockLLMService
+        print(f"[MockProvider] Calling Mock Service...")
+        if system_instruction:
+            print(f"--- SYSTEM INSTRUCTION ---\n{system_instruction}\n--------------------------")
+        print(f"--- PROMPT ---\n{prompt}\n--------------")
+
         mock = MockLLMService()
         # Mock currently returns string JSON. We might need to parse it if schema is requested.
         result = mock.generate_content(prompt, system_instruction)

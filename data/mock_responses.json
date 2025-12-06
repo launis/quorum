@@ -1,0 +1,243 @@
+{
+  "guard_agent": {
+    "metadata": {
+      "luontiaika": "2024-01-01T00:00:00Z",
+      "agentti": "Vartija",
+      "vaihe": 1,
+      "versio": "2.0",
+      "suoritus_ymparisto": "Internal"
+    },
+    "metodologinen_loki": "[MOCK] Fallback generation.",
+    "edellisen_vaiheen_validointi": "N/A",
+    "semanttinen_tarkistussumma": "mock_hash",
+    "data": {
+      "keskusteluhistoria": "{{FILE: Keskusteluhistoria.pdf}}",
+      "lopputuote": "{{FILE: Lopputuote.pdf}}",
+      "reflektiodokumentti": "{{FILE: Reflektiodokumentti.pdf}}"
+    },
+    "security_check": {
+      "uhka_havaittu": false,
+      "adversariaalinen_simulaatio_tulos": "Clean",
+      "riski_taso": "MATALA"
+    },
+    "safe_data": {
+      "mock_key": "mock_value"
+    }
+  },
+  "analyst_agent": {
+    "metadata": {
+      "luontiaika": "2024-01-01T00:00:00Z",
+      "agentti": "Analyytikko",
+      "vaihe": 2,
+      "versio": "2.0",
+      "suoritus_ymparisto": "Internal"
+    },
+    "metodologinen_loki": "[MOCK] Fallback generation.",
+    "edellisen_vaiheen_validointi": "N/A",
+    "semanttinen_tarkistussumma": "mock_hash",
+    "hypoteesit": [
+      {
+        "id": "H1",
+        "vaite_teksti": "Opiskelija osoittaa kriittistä ajattelua.",
+        "loytyyko_todisteita": true
+      }
+    ],
+    "rag_todisteet": [
+      {
+        "viittaa_hypoteesiin_id": "H1",
+        "perusteet": "Löytyy reflektiosta.",
+        "konteksti_segmentti": "Oivalsin, että...",
+        "relevanssi_score": 9
+      }
+    ]
+  },
+  "logician_agent": {
+    "metadata": {
+      "luontiaika": "2024-01-01T00:00:00Z",
+      "agentti": "Loogikko",
+      "vaihe": 3,
+      "versio": "2.0",
+      "suoritus_ymparisto": "Internal"
+    },
+    "metodologinen_loki": "[MOCK] Fallback generation.",
+    "edellisen_vaiheen_validointi": "N/A",
+    "semanttinen_tarkistussumma": "mock_hash",
+    "toulmin_analyysi": [
+      {
+        "vaite_id": "H1",
+        "claim": "Claim text",
+        "data": "Data text",
+        "warrant": "Warrant text",
+        "backing": "Backing text"
+      }
+    ],
+    "kognitiivinen_taso": {
+      "bloom_taso": "Analyze",
+      "strateginen_syvyys": "Syvä"
+    },
+    "walton_skeema": {
+      "tunnistettu_skeema": "Expert Opinion",
+      "kriittiset_kysymykset": [
+        "Q1?"
+      ]
+    }
+  },
+  "falsifier_agent": {
+    "metadata": {
+      "luontiaika": "2024-01-01T00:00:00Z",
+      "agentti": "Falsifioija",
+      "vaihe": 4,
+      "versio": "2.0",
+      "suoritus_ymparisto": "Internal"
+    },
+    "metodologinen_loki": "[MOCK] Fallback generation.",
+    "edellisen_vaiheen_validointi": "N/A",
+    "semanttinen_tarkistussumma": "mock_hash",
+    "walton_stressitesti_loydokset": [
+      {
+        "kysymys": "Miksi?",
+        "kestiko_todistusaineisto": true,
+        "havainto": "Kesti."
+      }
+    ],
+    "paattelyketjun_uskollisuus_auditointi": {
+      "onko_post_hoc_rationalisointia": false,
+      "perustelu": "Ei havaittu.",
+      "uskollisuus_score": "KORKEA"
+    }
+  },
+  "fact_checker_agent": {
+    "metadata": {
+      "luontiaika": "2024-01-01T00:00:00Z",
+      "agentti": "Valvoja",
+      "vaihe": 5,
+      "versio": "2.0",
+      "suoritus_ymparisto": "Internal"
+    },
+    "metodologinen_loki": "[MOCK] Fallback generation.",
+    "edellisen_vaiheen_validointi": "N/A",
+    "semanttinen_tarkistussumma": "mock_hash",
+    "faktantarkistus_rfi": [
+      {
+        "vaite": "Maa on pyöreä",
+        "verifiointi_tulos": "Vahvistettu",
+        "lahde_tai_paattely": "Yleistieto"
+      }
+    ],
+    "eettiset_havainnot": [
+      {
+        "tyyppi": "Ei havaittu",
+        "vakavuus": "N/A",
+        "kuvaus": "OK"
+      }
+    ]
+  },
+  "causal_agent": {
+    "metadata": {
+      "luontiaika": "2024-01-01T00:00:00Z",
+      "agentti": "Kausaalinen",
+      "vaihe": 6,
+      "versio": "2.0",
+      "suoritus_ymparisto": "Internal"
+    },
+    "metodologinen_loki": "[MOCK] Fallback generation.",
+    "edellisen_vaiheen_validointi": "N/A",
+    "semanttinen_tarkistussumma": "mock_hash",
+    "kausaalinen_auditointi": {
+      "aikajana_validi": true,
+      "havainnot": "Johdonmukainen."
+    },
+    "kontrafaktuaalinen_testi": {
+      "skenaario_A_toteutunut": "X tapahtui",
+      "skenaario_B_simulaatio": "Jos X ei, niin Y",
+      "uskottavuus_arvio": "Uskottava"
+    },
+    "abduktiivinen_paatelma": "Aito Oivallus"
+  },
+  "performativity_agent": {
+    "metadata": {
+      "luontiaika": "2024-01-01T00:00:00Z",
+      "agentti": "Performatiivisuus",
+      "vaihe": 7,
+      "versio": "2.0",
+      "suoritus_ymparisto": "Internal"
+    },
+    "metodologinen_loki": "[MOCK] Fallback generation.",
+    "edellisen_vaiheen_validointi": "N/A",
+    "semanttinen_tarkistussumma": "mock_hash",
+    "performatiivisuus_heuristiikat": [
+      {
+        "heuristiikka": "Buzzwords",
+        "lippu_nostettu": false,
+        "kuvaus": "Normaali kieli."
+      }
+    ],
+    "pre_mortem_analyysi": {
+      "suoritettu": true,
+      "hiljaiset_signaalit": [
+        "Ei signaaleja."
+      ]
+    },
+    "yleisarvio_aitoudesta": "Orgaaninen"
+  },
+  "judge_agent": {
+    "metadata": {
+      "luontiaika": "2024-01-01T00:00:00Z",
+      "agentti": "Tuomari",
+      "vaihe": 8,
+      "versio": "2.0",
+      "suoritus_ymparisto": "Internal"
+    },
+    "metodologinen_loki": "[MOCK] Fallback generation.",
+    "edellisen_vaiheen_validointi": "N/A",
+    "semanttinen_tarkistussumma": "mock_hash",
+    "konfliktin_ratkaisut": [],
+    "mestaruus_poikkeama": {
+      "tunnistettu": false,
+      "perustelu": "Normaali suoritus."
+    },
+    "aitous_epaily": {
+      "automaattinen_lippu": false,
+      "viesti_hitl:lle": "Ei huomautettavaa."
+    },
+    "pisteet": {
+      "analyysi_ja_prosessi": {
+        "arvosana": 3,
+        "perustelu": "Hyvä."
+      },
+      "arviointi_ja_argumentaatio": {
+        "arvosana": 3,
+        "perustelu": "Hyvä."
+      },
+      "synteesi_ja_luovuus": {
+        "arvosana": 3,
+        "perustelu": "Hyvä."
+      }
+    },
+    "kriittiset_havainnot_yhteenveto": [
+      "Kaikki ok."
+    ]
+  },
+  "xai_agent": {
+    "metadata": {
+      "luontiaika": "2024-01-01T00:00:00Z",
+      "agentti": "XAI-Raportoija",
+      "vaihe": 9,
+      "versio": "2.0",
+      "suoritus_ymparisto": "Internal"
+    },
+    "metodologinen_loki": "[MOCK] Fallback generation.",
+    "edellisen_vaiheen_validointi": "N/A",
+    "semanttinen_tarkistussumma": "mock_hash",
+    "executive_summary": "Tämä on automaattinen yhteenveto.",
+    "detailed_analysis": [
+      {
+        "title": "Osa 1",
+        "content": "Sisältö...",
+        "visualizations": []
+      }
+    ],
+    "final_verdict": "Hyväksytty",
+    "confidence_score": 0.95
+  }
+}

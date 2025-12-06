@@ -19,7 +19,15 @@ class JudgeAgent(BaseAgent):
         }
         
         import json
+        
+        # Get Example
+        example_text = self.get_schema_example(TuomioJaPisteet)
+
         return f"""
+        TASK: Synthesize audit reports and assign a final score.
+
+        {example_text}
+
         INPUT DATA (AUDITOINTIRAPORTIT):
         ---
         {json.dumps(context, indent=2, ensure_ascii=False)}
@@ -49,4 +57,43 @@ class JudgeAgent(BaseAgent):
         except Exception as e:
             print(f"[JudgeAgent] State update failed: {e}")
             raise e
+        return state
+
+    def calculate_final_scores(self, state: WorkflowState) -> WorkflowState:
+        """
+        HOOK: calculate_final_scores
+        Calculates averages and summary of the scores.
+        """
+        print("[JudgeAgent] Running calculate_final_scores...")
+        
+        if not state.step_8_judge or not state.step_8_judge.pisteet:
+            print("   [JudgeAgent] No scores to calculate.")
+            return state
+            
+        try:
+            p = state.step_8_judge.pisteet
+            
+            # Helper to safely get score
+            def get_val(s): return s.arvosana if s else 0
+            
+            val1 = get_val(p.analyysi_ja_prosessi)
+            val2 = get_val(p.arviointi_ja_argumentaatio)
+            val3 = get_val(p.synteesi_ja_luovuus)
+            
+            total = val1 + val2 + val3
+            count = 3 # Fixed count for now
+            average = total / count
+            
+            summary = f"Total Score: {total}/{count*4} (Avg: {average:.2f})"
+            print(f"   {summary}")
+            
+            # We can store this in aux_data for reference, or update the model if schema allows.
+            # The schema TuomioJaPisteet might not have 'calculated_avg'.
+            # We'll store in aux_data to be safe.
+            state.aux_data['score_summary'] = summary
+            state.aux_data['calculated_average'] = average
+            
+        except Exception as e:
+            print(f"[JudgeAgent] Calculation failed: {e}")
+            
         return state

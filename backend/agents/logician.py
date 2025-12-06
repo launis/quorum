@@ -16,7 +16,14 @@ class LogicianAgent(BaseAgent):
         # Logician needs the Evidence Map from the previous step + Raw Data
         evidence_map = state.step_2_analyst.model_dump_json(indent=2) if state.step_2_analyst else "N/A"
         
+        # Get Example
+        example_text = self.get_schema_example(ArgumentaatioAnalyysi)
+
         return f"""
+        TASK: Evaluate the logical structure of the argumentation.
+
+        {example_text}
+
         INPUT DATA:
         ---
         TODISTUSKARTTA (Edellisestä vaiheesta):

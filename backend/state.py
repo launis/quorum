@@ -45,5 +45,8 @@ class WorkflowState(BaseModel):
     step_8_judge: Optional[TuomioJaPisteet] = None
     step_9_reporter: Optional[XAIReport] = None
 
+    # Formatted output
+    xai_report_formatted: Optional[str] = None
+
     # Apumuuttujat (esim. hakutulokset, jotka eivät ole skeemassa)
     aux_data: Dict[str, Any] = Field(default_factory=dict)

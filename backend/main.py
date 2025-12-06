@@ -104,7 +104,7 @@ class WorkflowCreateRequest(BaseModel):
     steps: List[Dict[str, Any]]
 
 class WorkflowExecutionRequest(BaseModel):
-    workflow_id: int
+    workflow_id: str
     inputs: Dict[str, Any] = {}
 
 @app.post("/workflows")
@@ -132,7 +132,7 @@ def execute_workflow(request: WorkflowExecutionRequest, background_tasks: Backgr
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/executions/{execution_id}")
-def get_execution_status(execution_id: int):
+def get_execution_status(execution_id: str):
     """
     Gets the status of a workflow execution.
     """
@@ -243,7 +243,7 @@ def run_orchestrator(
         raise HTTPException(status_code=500, detail=f"Orchestration failed: {str(e)}")
 
 @app.get("/orchestrator/status/{execution_id}")
-def get_orchestrator_status(execution_id: int):
+def get_orchestrator_status(execution_id: str):
     """
     Gets the status of a workflow execution.
     """

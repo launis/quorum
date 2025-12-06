@@ -17,21 +17,43 @@ class BaseAgent(BaseComponent):
         # Initialize the provider lazily or here
         self.llm_provider: LLMProvider = LLMFactory.create_provider(provider, model)
 
-    def execute(self, state: WorkflowState) -> WorkflowState:
+    def get_schema_example(self, schema_class: Type[BaseModel]) -> str:
+        """
+        Retrieves the example from the Pydantic model's json_schema_extra.
+        Used to teach the LLM the expected output format and style.
+        """
+        try:
+            # Pydantic v2 way to access config
+            config = schema_class.model_config
+            examples = config.get('json_schema_extra', {}).get('examples')
+            
+            if examples and len(examples) > 0:
+                import json
+                example_json = json.dumps(examples[0], indent=2, ensure_ascii=False)
+                return f"""
+=== MODEL RESPONSE (Follow this format and style) ===
+{example_json}
+=====================================================
+"""
+        except Exception as e:
+            print(f"[{self.__class__.__name__}] Warning: Failed to get example from schema {schema_class.__name__}: {e}")
+        return ""
+
+    def execute(self, state: WorkflowState, system_instruction: Optional[str] = None) -> WorkflowState:
         """
         Standard execution entry point.
         Takes the entire WorkflowState, processes it, and returns the updated state.
+        Now accepts an optional system_instruction override (for data-driven prompts).
         """
         print(f"[{self.__class__.__name__}] Starting execution...")
         try:
             # 1. Construct Prompt (using state)
             user_prompt = self.construct_user_prompt(state)
             
-            # 2. Get System Instruction (usually from kwargs/config, but here we might need a better way)
-            # For now, we assume subclasses might have a way to get it, or we pass it in constructor.
-            # In the V1 code, it was passed in kwargs. In V2, we might fetch it from DB based on agent name.
-            # For this refactor, we'll assume a method `get_system_instruction()` exists or return None.
-            system_instruction = self.get_system_instruction()
+            # 2. Get System Instruction
+            # If not provided by engine, use the class default
+            if not system_instruction:
+                system_instruction = self.get_system_instruction()
 
             # 3. Determine Output Schema (Subclasses must define this!)
             response_schema = self.get_response_schema()

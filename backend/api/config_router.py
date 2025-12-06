@@ -392,7 +392,7 @@ def get_unified_prompts():
     for ctype in type_order:
         if ctype in grouped:
             # Sort by ID
-            comps = sorted(grouped[ctype], key=lambda x: x.get('id'))
+            comps = sorted(grouped[ctype], key=lambda x: str(x.get('id') or ''))
             for comp in comps:
                 unified_text += f"### {comp.get('id')} ({comp.get('type')})\n\n"
                 raw_content = comp.get('content', '')
@@ -403,7 +403,7 @@ def get_unified_prompts():
     # Add any remaining types
     for ctype, comps in grouped.items():
         if ctype not in type_order:
-             comps = sorted(comps, key=lambda x: x.get('id'))
+             comps = sorted(comps, key=lambda x: str(x.get('id') or ''))
              for comp in comps:
                 unified_text += f"### {comp.get('id')} ({comp.get('type')})\n\n"
                 raw_content = comp.get('content', '')

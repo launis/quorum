@@ -15,8 +15,15 @@ class AnalystAgent(BaseAgent):
     def construct_user_prompt(self, state: WorkflowState) -> str:
         inputs = state.inputs
         
+        # Get Example
+        example_text = self.get_schema_example(TodistusKartta)
+
         # We need the full text for analysis
         return f"""
+        TASK: Analyze the input data and create an Evidence Map.
+
+        {example_text}
+
         INPUT DATA FOR ANALYSIS:
         ---
         KESKUSTELUHISTORIA:

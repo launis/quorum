@@ -87,52 +87,102 @@ if page == "Assessment":
                         status_text = st.empty()
                         
                         while True:
-                            status_res = requests.get(f"{BACKEND_URL}/orchestrator/status/{job_id}")
-                            if status_res.status_code == 200:
-                                status_data = status_res.json()
-                                status = status_data.get('status')
-                                
-                                if status == "COMPLETED":
-                                    progress_bar.progress(100)
-                                    status_text.success("Assessment Completed!")
-                                    result = status_data.get('result', {})
+                            try:
+                                status_res = requests.get(f"{BACKEND_URL}/orchestrator/status/{job_id}")
+                                if status_res.status_code == 200:
+                                    status_data = status_res.json()
+                                    status = status_data.get('status')
                                     
-                                    st.header("2. Results")
+                                    if status and status.upper() == "COMPLETED":
+                                        progress_bar.progress(100)
+                                        status_text.success("Assessment Completed!")
+                                        result = status_data.get('result', {})
+                                        
+                                        st.header("2. Results")
+                                        
+                                        # Helper to format XAI Report
+                                        def format_xai_report(data):
+                                            if not data: return None
+                                            md = f"# {data.get('executive_summary', 'XAI Report')}\n\n"
+                                            md += f"**Verdict:** {data.get('final_verdict')}\n"
+                                            md += f"**Confidence:** {data.get('confidence_score')}\n\n"
+                                            
+                                            for section in data.get('detailed_analysis', []):
+                                                md += f"## {section.get('title')}\n"
+                                                md += f"{section.get('content')}\n\n"
+                                                if section.get('visualizations'):
+                                                    md += "**Visualizations:**\n"
+                                                    for v in section.get('visualizations'):
+                                                        md += f"- {v}\n"
+                                                md += "\n"
+                                            return md
+
+                                        # Display XAI Report
+                                        # Check for hoisted fields first (New V2 format)
+                                        if result.get('final_verdict') and result.get('detailed_analysis'):
+                                            report_data = result
+                                        else:
+                                            # Fallback to nested format
+                                            report_data = result.get('step_9_reporter')
+
+                                        if report_data:
+                                            report_md = format_xai_report(report_data)
+                                        else:
+                                            report_md = (
+                                                result.get('xai_report_formatted') or 
+                                                result.get('xai_report_content') or 
+                                                result.get('xai_report') or 
+                                                result.get('report_content') or
+                                                result.get('product_text') or
+                                                result.get('safe_data', {}).get('product_text') or
+                                                result.get('1_tainted_data.json', {}).get('product_text')
+                                            )
+                                        
+                                        # Explicitly display scores if available
+                                        if result.get('step_8_judge'):
+                                            scores = result['step_8_judge'].get('pisteet', {})
+                                            if scores:
+                                                st.subheader("🏆 Pisteytys (BARS 1-4)")
+                                                s_col1, s_col2, s_col3 = st.columns(3)
+                                                
+                                                def show_score(col, title, s_data):
+                                                    if s_data:
+                                                        col.metric(label=title, value=f"{s_data.get('arvosana')}/4")
+                                                        col.caption(s_data.get('perustelu')[:150] + "...")
+
+                                                show_score(s_col1, "Analyysi", scores.get('analyysi_ja_prosessi'))
+                                                show_score(s_col2, "Arviointi", scores.get('arviointi_ja_argumentaatio'))
+                                                show_score(s_col3, "Synteesi", scores.get('synteesi_ja_luovuus'))
+                                                st.divider()
+                                        
+                                        if report_md:
+                                            st.subheader("📝 XAI Report (or Product Text)")
+                                            st.markdown(report_md)
+                                        else:
+                                            st.warning("Report content not found in result.")
+                                        with st.expander("View Raw Output JSON"):
+                                            st.json(result)
+                                        break
                                     
-                                    # Display XAI Report
-                                    report_md = (
-                                        result.get('xai_report_formatted') or 
-                                        result.get('xai_report_content') or 
-                                        result.get('xai_report') or 
-                                        result.get('report_content') or
-                                        result.get('product_text') or
-                                        result.get('safe_data', {}).get('product_text') or
-                                        result.get('1_tainted_data.json', {}).get('product_text')
-                                    )
-                                    if report_md:
-                                        st.subheader("📝 XAI Report (or Product Text)")
-                                        st.markdown(report_md)
+                                    elif status and status.upper() == "FAILED":
+                                        status_text.error(f"Job Failed: {status_data.get('error')}")
+                                        break
+                                    
                                     else:
-                                        st.warning("Report content not found in result.")
-                                    
-                                    # Raw JSON
-                                    with st.expander("View Raw Output JSON"):
-                                        st.json(result)
-                                    break
-                                
-                                elif status == "FAILED":
-                                    status_text.error(f"Job Failed: {status_data.get('error')}")
-                                    break
-                                
+                                        current_step = status_data.get('current_step')
+                                        if current_step:
+                                            status_text.info(f"Status: {status} - Processing: {current_step}")
+                                        else:
+                                            status_text.info(f"Status: {status}...")
+                                        time.sleep(2)
                                 else:
-                                    current_step = status_data.get('current_step')
-                                    if current_step:
-                                        status_text.info(f"Status: {status} - Processing: {current_step}")
-                                    else:
-                                        status_text.info(f"Status: {status}...")
+                                    st.warning(f"Failed to poll status (Code: {status_res.status_code}). Retrying...")
                                     time.sleep(2)
-                            else:
-                                st.error("Failed to poll status.")
+                            except requests.exceptions.ConnectionError:
+                                st.warning("Connection lost. Retrying...")
+                                time.sleep(2)
+                            except Exception as e:
+                                st.error(f"Polling Error: {e}")
                                 break
                     else:
                         st.error(f"Failed to start job: {response.text}")
