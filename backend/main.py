@@ -125,7 +125,7 @@ def execute_workflow(request: WorkflowExecutionRequest, background_tasks: Backgr
         execution_id = engine.create_execution(request.workflow_id, request.inputs)
         
         # 2. Schedule Execution in Background
-        background_tasks.add_task(engine.run_execution, execution_id)
+        background_tasks.add_task(engine.run_execution, execution_id, request.inputs)
         
         return {"status": "started", "execution_id": execution_id}
     except Exception as e:
@@ -231,7 +231,7 @@ def run_orchestrator(
         execution_id = engine.create_execution(workflow_id, inputs)
         
         # 2. Schedule Execution in Background
-        background_tasks.add_task(engine.run_execution, execution_id)
+        background_tasks.add_task(engine.run_execution, execution_id, inputs)
         
         return {
             "status": "started",

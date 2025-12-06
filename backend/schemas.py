@@ -44,35 +44,7 @@ class TaintedData(BaseJSON):
     security_check: SecurityCheck
     safe_data: dict[str, Any] | None = None
 
-    model_config = ConfigDict(
-        json_schema_extra={
-            "examples": [
-                {
-                    "metadata": {
-                        "luontiaika": "2024-07-30T12:00:00Z",
-                        "agentti": "Vartija",
-                        "vaihe": 1,
-                        "versio": "1.0",
-                        "suoritus_ymparisto": "Internal"
-                    },
-                    "metodologinen_loki": "Suoritettu syötteen puhdistus ja tarkistus.",
-                    "edellisen_vaiheen_validointi": "Ei edellistä vaihetta.",
-                    "semanttinen_tarkistussumma": "a1b2c3d4...",
-                    "data": {
-                        "keskusteluhistoria": "{{FILE: Keskusteluhistoria.pdf}}",
-                        "lopputuote": "{{FILE: Lopputuote.pdf}}",
-                        "reflektiodokumentti": "{{FILE: Reflektiodokumentti.pdf}}"
-                    },
-                    "security_check": {
-                        "uhka_havaittu": False,
-                        "adversariaalinen_simulaatio_tulos": "Ei uhkia.",
-                        "riski_taso": "MATALA"
-                    },
-                    "safe_data": None
-                }
-            ]
-        }
-    )
+    model_config = ConfigDict()
 
 # --- Step 2: Analyst Agent ---
 
@@ -152,39 +124,7 @@ class TodistusKartta(BaseJSON):
             return parsed_list
         return v
 
-    model_config = ConfigDict(
-        json_schema_extra={
-            "examples": [
-                {
-                    "metadata": {
-                        "luontiaika": "...",
-                        "agentti": "Analyytikko",
-                        "vaihe": 2,
-                        "versio": "1.0",
-                        "suoritus_ymparisto": "Internal"
-                    },
-                    "metodologinen_loki": "...",
-                    "edellisen_vaiheen_validointi": "...",
-                    "semanttinen_tarkistussumma": "...",
-                    "hypoteesit": [
-                        {
-                            "id": "H1",
-                            "vaite_teksti": "...",
-                            "loytyyko_todisteita": True
-                        }
-                    ],
-                    "rag_todisteet": [
-                        {
-                            "viittaa_hypoteesiin_id": "H1",
-                            "perusteet": "...",
-                            "konteksti_segmentti": "...",
-                            "relevanssi_score": 10
-                        }
-                    ]
-                }
-            ]
-        }
-    )
+    model_config = ConfigDict()
 
 # --- Step 3: Logician Agent ---
 
@@ -208,35 +148,7 @@ class ArgumentaatioAnalyysi(BaseJSON):
     kognitiivinen_taso: KognitiivinenTaso
     walton_skeema: WaltonSkeema
 
-    model_config = ConfigDict(
-        json_schema_extra={
-            "examples": [
-                {
-                    "metadata": { "luontiaika": "...", "agentti": "Loogikko", "vaihe": 3, "versio": "1.0" },
-                    "metodologinen_loki": "...",
-                    "edellisen_vaiheen_validointi": "...",
-                    "semanttinen_tarkistussumma": "...",
-                    "toulmin_analyysi": [
-                        {
-                            "vaite_id": "H1",
-                            "claim": "...",
-                            "data": "...",
-                            "warrant": "...",
-                            "backing": "..."
-                        }
-                    ],
-                    "kognitiivinen_taso": {
-                        "bloom_taso": "Analyze",
-                        "strateginen_syvyys": "Korkea"
-                    },
-                    "walton_skeema": {
-                        "tunnistettu_skeema": "Expert Opinion",
-                        "kriittiset_kysymykset": ["..."]
-                    }
-                }
-            ]
-        }
-    )
+    model_config = ConfigDict()
 
 # --- Step 4: Logical Falsifier ---
 
@@ -254,30 +166,7 @@ class LogiikkaAuditointi(BaseJSON):
     walton_stressitesti_loydokset: list[WaltonStressitesti]
     paattelyketjun_uskollisuus_auditointi: PaattelyketjunUskollisuus
 
-    model_config = ConfigDict(
-        json_schema_extra={
-            "examples": [
-                {
-                    "metadata": { "luontiaika": "...", "agentti": "Falsifioija", "vaihe": 4, "versio": "1.0" },
-                    "metodologinen_loki": "...",
-                    "edellisen_vaiheen_validointi": "...",
-                    "semanttinen_tarkistussumma": "...",
-                    "walton_stressitesti_loydokset": [
-                        {
-                            "kysymys": "...",
-                            "kestiko_todistusaineisto": True,
-                            "havainto": "..."
-                        }
-                    ],
-                    "paattelyketjun_uskollisuus_auditointi": {
-                        "onko_post_hoc_rationalisointia": False,
-                        "perustelu": "...",
-                        "uskollisuus_score": "KORKEA"
-                    }
-                }
-            ]
-        }
-    )
+    model_config = ConfigDict()
 
 # --- Step 5: Factual & Ethical Overseer ---
 
@@ -295,32 +184,7 @@ class EtiikkaJaFakta(BaseJSON):
     faktantarkistus_rfi: list[FaktantarkistusRFI] = Field(default_factory=list)
     eettiset_havainnot: list[EettinenHavainto] = Field(default_factory=list)
 
-    model_config = ConfigDict(
-        json_schema_extra={
-            "examples": [
-                {
-                    "metadata": { "luontiaika": "...", "agentti": "Valvoja", "vaihe": 5, "versio": "1.0" },
-                    "metodologinen_loki": "...",
-                    "edellisen_vaiheen_validointi": "...",
-                    "semanttinen_tarkistussumma": "...",
-                    "faktantarkistus_rfi": [
-                        {
-                            "vaite": "...",
-                            "verifiointi_tulos": "Vahvistettu",
-                            "lahde_tai_paattely": "..."
-                        }
-                    ],
-                    "eettiset_havainnot": [
-                        {
-                            "tyyppi": "Ei havaittu",
-                            "vakavuus": "N/A",
-                            "kuvaus": "..."
-                        }
-                    ]
-                }
-            ]
-        }
-    )
+    model_config = ConfigDict()
 
 # --- Step 6: Causal Analyst ---
 
@@ -338,28 +202,7 @@ class KausaalinenAuditointi(BaseJSON):
     kontrafaktuaalinen_testi: KontrafaktuaalinenTesti
     abduktiivinen_paatelma: Literal["Aito Oivallus", "Post-Hoc Rationalisointi", "Epävarma"]
 
-    model_config = ConfigDict(
-        json_schema_extra={
-            "examples": [
-                {
-                    "metadata": { "luontiaika": "...", "agentti": "Kausaalinen", "vaihe": 6, "versio": "1.0" },
-                    "metodologinen_loki": "...",
-                    "edellisen_vaiheen_validointi": "...",
-                    "semanttinen_tarkistussumma": "...",
-                    "kausaalinen_auditointi": {
-                        "aikajana_validi": True,
-                        "havainnot": "..."
-                    },
-                    "kontrafaktuaalinen_testi": {
-                        "skenaario_A_toteutunut": "...",
-                        "skenaario_B_simulaatio": "...",
-                        "uskottavuus_arvio": "..."
-                    },
-                    "abduktiivinen_paatelma": "Aito Oivallus"
-                }
-            ]
-        }
-    )
+    model_config = ConfigDict()
 
 # --- Step 7: Performativity Detector ---
 
@@ -377,30 +220,7 @@ class PerformatiivisuusAuditointi(BaseJSON):
     pre_mortem_analyysi: PreMortemAnalyysi
     yleisarvio_aitoudesta: Literal["Orgaaninen", "Performatiivinen", "Epäilyttävä"]
 
-    model_config = ConfigDict(
-        json_schema_extra={
-            "examples": [
-                {
-                    "metadata": { "luontiaika": "...", "agentti": "Performatiivisuus", "vaihe": 7, "versio": "1.0" },
-                    "metodologinen_loki": "...",
-                    "edellisen_vaiheen_validointi": "...",
-                    "semanttinen_tarkistussumma": "...",
-                    "performatiivisuus_heuristiikat": [
-                        {
-                            "heuristiikka": "Keinotekoinen monimutkaisuus",
-                            "lippu_nostettu": False,
-                            "kuvaus": "..."
-                        }
-                    ],
-                    "pre_mortem_analyysi": {
-                        "suoritettu": True,
-                        "hiljaiset_signaalit": ["..."]
-                    },
-                    "yleisarvio_aitoudesta": "Orgaaninen"
-                }
-            ]
-        }
-    )
+    model_config = ConfigDict()
 
 # --- Step 8: Judge Agent ---
 
@@ -433,33 +253,7 @@ class TuomioJaPisteet(BaseJSON):
     pisteet: Pisteet
     kriittiset_havainnot_yhteenveto: list[str]
 
-    model_config = ConfigDict(
-        json_schema_extra={
-            "examples": [
-                {
-                    "metadata": { "luontiaika": "...", "agentti": "Tuomari", "vaihe": 8, "versio": "1.0" },
-                    "metodologinen_loki": "...",
-                    "edellisen_vaiheen_validointi": "...",
-                    "semanttinen_tarkistussumma": "...",
-                    "konfliktin_ratkaisut": [],
-                    "mestaruus_poikkeama": {
-                        "tunnistettu": False,
-                        "perustelu": "..."
-                    },
-                    "aitous_epaily": {
-                        "automaattinen_lippu": False,
-                        "viesti_hitl:lle": "..."
-                    },
-                    "pisteet": {
-                        "analyysi_ja_prosessi": { "arvosana": 3, "perustelu": "..." },
-                        "arviointi_ja_argumentaatio": { "arvosana": 3, "perustelu": "..." },
-                        "synteesi_ja_luovuus": { "arvosana": 3, "perustelu": "..." }
-                    },
-                    "kriittiset_havainnot_yhteenveto": ["..."]
-                }
-            ]
-        }
-    )
+    model_config = ConfigDict()
 
 # --- Step 9: XAI Reporter ---
 
@@ -474,26 +268,5 @@ class XAIReport(BaseJSON):
     final_verdict: str
     confidence_score: float
 
-    model_config = ConfigDict(
-        json_schema_extra={
-            "examples": [
-                {
-                    "metadata": { "luontiaika": "...", "agentti": "XAI-Raportoija", "vaihe": 9, "versio": "1.0" },
-                    "metodologinen_loki": "...",
-                    "edellisen_vaiheen_validointi": "...",
-                    "semanttinen_tarkistussumma": "...",
-                    "executive_summary": "...",
-                    "detailed_analysis": [
-                        {
-                            "title": "Analyysin Yhteenveto",
-                            "content": "...",
-                            "visualizations": []
-                        }
-                    ],
-                    "final_verdict": "Hyväksytty",
-                    "confidence_score": 0.95
-                }
-            ]
-        }
-    )
+    model_config = ConfigDict()
 

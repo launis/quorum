@@ -1,67 +1,42 @@
-from typing import Any
-import json
+from typing import Any, Optional, Type
 from backend.agents.base import BaseAgent
+from backend.state import WorkflowState
+from backend.schemas import XAIReport
+from pydantic import BaseModel
 
-class XAIReportAgent(BaseAgent):
+class XAIReporterAgent(BaseAgent):
     """
-    XAI Reporter Agent (Step 9).
-    Generates the final Explainable AI report based on all previous steps.
+    XAI-Raportoija-agentti (XAI Reporter Agent).
     """
-
-    def construct_user_prompt(self, **kwargs) -> str:
-        """
-        Constructs the prompt for the XAI Reporter.
-        It needs access to the outputs of all previous agents.
-        """
-        # Filter out very large raw texts to save tokens, as the agent relies on the structured analysis from previous steps.
-        # However, we keep 'product_text' if it's not too huge, or rely on the analyses.
+    def construct_user_prompt(self, state: WorkflowState) -> str:
+        # Reporter needs the final verdict and scores
+        judge_output = state.step_8_judge.model_dump_json(indent=2) if state.step_8_judge else "N/A"
         
-        # We want to pass the structured JSON outputs from previous steps.
-        # These are usually passed as kwargs matching their keys in the context.
-        
-        relevant_keys = [
-            '1_tainted_data.json',
-            '2_todistuskartta.json',
-            '3_argumentaatioanalyysi.json',
-            '4_logiikka_auditointi.json',
-            '5_kausaalinen_auditointi.json',
-            '6_performatiivisuus_auditointi.json',
-            '7_falsifiointi_ja_etiikka.json',
-            '8_tuomio_ja_pisteet.json'
-        ]
-        
-        input_data = {}
-        for k in relevant_keys:
-            if k in kwargs:
-                input_data[k] = kwargs[k]
-            elif k.split('.')[0] in kwargs: # Handle cases where extension is dropped or key is different
-                 input_data[k] = kwargs[k.split('.')[0]]
-        
-        # Also include metadata if available
-        if 'metadata' in kwargs:
-            input_data['metadata'] = kwargs['metadata']
-
         return f"""
-INPUT DATA (Previous Analysis Steps):
----
-{json.dumps(input_data, indent=2, ensure_ascii=False, default=str)}
----
-"""
+        INPUT DATA (TUOMIO JA PISTEET):
+        ---
+        {judge_output}
+        ---
+        """
 
-    def _process(self, validation_schema: Any = None, **kwargs) -> dict[str, Any]:
-        # Construct prompt
-        user_prompt = self.construct_user_prompt(**kwargs)
+    def get_response_schema(self) -> Optional[Type[BaseModel]]:
+        return XAIReport
+
+    def get_system_instruction(self) -> str:
+        return """
+        You are the XAI Reporter Agent. Your task is to generate a human-readable report for the student/teacher.
         
-        # Get system instruction (usually passed in kwargs or fetched from DB by engine)
-        system_instruction = kwargs.get('system_instruction')
+        1. Create an Executive Summary.
+        2. Provide Detailed Analysis sections based on the scores.
+        3. Give a Final Verdict and Confidence Score.
         
-        # Call LLM
-        # We use a higher retry count here as this is the final step
-        response = self.get_json_response(
-            user_prompt, 
-            system_instruction, 
-            max_retries=3,
-            validation_schema=validation_schema
-        )
-        
-        return response
+        Output must be a valid JSON object matching the XAIReport schema.
+        """
+
+    def _update_state(self, state: WorkflowState, response_data: Any) -> WorkflowState:
+        try:
+            state.step_9_reporter = XAIReport(**response_data)
+        except Exception as e:
+            print(f"[XAIReporterAgent] State update failed: {e}")
+            raise e
+        return state

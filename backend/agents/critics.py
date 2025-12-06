@@ -1,346 +1,175 @@
-from typing import Any
+from typing import Any, Optional, Type
 from backend.agents.base import BaseAgent
+from backend.state import WorkflowState
+from backend.schemas import (
+    LogiikkaAuditointi, 
+    EtiikkaJaFakta, 
+    KausaalinenAuditointi, 
+    PerformatiivisuusAuditointi
+)
+from pydantic import BaseModel
 
 class LogicalFalsifierAgent(BaseAgent):
     """
     Looginen Falsifioija-agentti (Logical Falsifier).
     """
-    def construct_user_prompt(self, **kwargs) -> str:
-        import json
+    def construct_user_prompt(self, state: WorkflowState) -> str:
+        # Needs Logician's output + Raw Data
+        logician_output = state.step_3_logician.model_dump_json(indent=2) if state.step_3_logician else "N/A"
         
-        relevant_keys = ['todistuskartta', 'argumentaatioanalyysi', 'data', 'metodologinen_loki']
-        input_data = {k: kwargs.get(k) for k in relevant_keys if k in kwargs}
-        
-        if not input_data:
-             input_data = {k: v for k, v in kwargs.items() if k != 'system_instruction'}
-
-        # 2. Re-hydrate Raw Evidence (Critical for Logical Falsification)
-        raw_evidence = {}
-        if kwargs.get('history_text'):
-            raw_evidence['keskusteluhistoria'] = kwargs.get('history_text')
-        if kwargs.get('product_text'):
-            raw_evidence['lopputuote'] = kwargs.get('product_text')
-        if kwargs.get('reflection_text'):
-            raw_evidence['reflektiodokumentti'] = kwargs.get('reflection_text')
-            
-        if raw_evidence:
-            input_data['raw_evidence_for_analysis'] = raw_evidence
-
         return f"""
         INPUT DATA:
         ---
-        {json.dumps(input_data, indent=2, ensure_ascii=False)}
+        ARGUMENTAATIOANALYYSI (Edellisestä vaiheesta):
+        {logician_output}
+        ---
+        KESKUSTELUHISTORIA:
+        {state.inputs.history_text}
+        
+        LOPPUTUOTE:
+        {state.inputs.product_text}
         ---
         """
 
-    def _process(self, validation_schema: Any = None, **kwargs) -> dict[str, Any]:
-        user_content = self.construct_user_prompt(**kwargs)
-        
-        # Call LLM with Retry Logic
-        # Pass validation_schema=None to allow manual validation after injection
-        response = self.get_json_response(
-            prompt=user_content,
-            system_instruction=kwargs.get('system_instruction'),
-            validation_schema=None
-        )
-        
-        # --- AUTO-INJECT MISSING FIELDS ---
-        # --- AUTO-INJECT MISSING FIELDS ---
-        if response:
-            if isinstance(response, list):
-                print("[LogicalFalsifierAgent] Response is a list. Wrapping in 'walton_stressitesti_loydokset'.")
-                response = {"walton_stressitesti_loydokset": response}
-                
-            if 'walton_stressitesti_loydokset' not in response:
-                print("[LogicalFalsifierAgent] Warning: 'walton_stressitesti_loydokset' missing. Injecting empty list.")
-                response['walton_stressitesti_loydokset'] = []
-                
-            if 'paattelyketjun_uskollisuus_auditointi' not in response:
-                print("[LogicalFalsifierAgent] Warning: 'paattelyketjun_uskollisuus_auditointi' missing. Injecting default.")
-                response['paattelyketjun_uskollisuus_auditointi'] = {
-                    "onko_post_hoc_rationalisointia": False,
-                    "perustelu": "Automaattinen täydennys (LLM ei palauttanut arviota).",
-                    "uskollisuus_score": "EPÄVARMA"
-                }
+    def get_response_schema(self) -> Optional[Type[BaseModel]]:
+        return LogiikkaAuditointi
 
-        # --- FINAL VALIDATION ---
-        if validation_schema and response:
-            try:
-                print(f"[LogicalFalsifierAgent] Validating against schema: {validation_schema.__name__}")
-                validation_schema.model_validate(response)
-                print("[LogicalFalsifierAgent] Validation successful.")
-            except Exception as e:
-                print(f"[LogicalFalsifierAgent] Validation failed after injection: {e}")
-                pass
+    def get_system_instruction(self) -> str:
+        return """
+        You are the Logical Falsifier Agent. Your task is to stress-test the student's logic.
+        
+        1. Perform a 'Walton Stress Test': Ask critical questions to challenge the arguments.
+        2. Check for 'Post-Hoc Rationalization': Did the student invent reasons after the fact?
+        
+        Output must be a valid JSON object matching the LogiikkaAuditointi schema.
+        """
 
-        return response
+    def _update_state(self, state: WorkflowState, response_data: Any) -> WorkflowState:
+        try:
+            state.step_4_falsifier = LogiikkaAuditointi(**response_data)
+        except Exception as e:
+            print(f"[LogicalFalsifierAgent] State update failed: {e}")
+            raise e
+        return state
 
 
 class FactualOverseerAgent(BaseAgent):
     """
     Faktuaalinen ja Eettinen Valvoja-agentti (Factual & Ethical Overseer).
     """
-    def construct_user_prompt(self, **kwargs) -> str:
-        import json
+    def construct_user_prompt(self, state: WorkflowState) -> str:
+        # Needs Analyst's output + Search Results (if any)
+        analyst_output = state.step_2_analyst.model_dump_json(indent=2) if state.step_2_analyst else "N/A"
+        search_results = state.aux_data.get('google_search_results', 'Ei hakutuloksia.')
         
-        # Optimize input data to avoid timeouts
-        # FactualOverseer needs: todistuskartta, argumentaatioanalyysi, google_search_results
-        # It does NOT need the full raw data (history, product, reflection) if it has the analysis.
-        
-        optimized_input = {}
-        if 'todistuskartta' in kwargs:
-            optimized_input['todistuskartta'] = kwargs['todistuskartta']
-        if 'argumentaatioanalyysi' in kwargs:
-            optimized_input['argumentaatioanalyysi'] = kwargs['argumentaatioanalyysi']
-        if 'metodologinen_loki' in kwargs:
-            optimized_input['metodologinen_loki'] = kwargs['metodologinen_loki']
-            
-        # If we have absolutely no structured data, fallback to raw but truncated
-        if not optimized_input:
-             input_data = {k: v for k, v in kwargs.items() if k != 'system_instruction'}
-             # Truncate large strings if falling back
-             for k, v in input_data.items():
-                 if isinstance(v, str) and len(v) > 5000:
-                     input_data[k] = v[:5000] + "... [TRUNCATED]"
-             optimized_input = input_data
-
-        # 2. Raw Evidence (Unstructured Text) - Re-hydrated for analysis
-        history_text = kwargs.get('history_text', 'N/A')
-        product_text = kwargs.get('product_text', 'N/A')
-        reflection_text = kwargs.get('reflection_text', 'N/A')
-        
-        print(f"[FactualOverseerAgent] Input Data Check: History={history_text != 'N/A'}, Product={product_text != 'N/A'}, Reflection={reflection_text != 'N/A'}")
-        if product_text == 'N/A':
-             print(f"[FactualOverseerAgent] Available keys in kwargs: {list(kwargs.keys())}")
-
         return f"""
-        INPUT DATA (JSON):
+        INPUT DATA:
         ---
-        {json.dumps(optimized_input, indent=2, ensure_ascii=False)}
+        TODISTUSKARTTA:
+        {analyst_output}
         ---
-
-        RAW EVIDENCE:
-        === KESKUSTELUHISTORIA ===
-        {history_text}
-        
-        === LOPPUTUOTE ===
-        {product_text}
-        
-        === REFLEKTIODOKUMENTTI ===
-        {reflection_text}
-
         ULKOISEN FAKTANTARKISTUKSEN TULOKSET:
-        {kwargs.get('google_search_results', 'Ei hakutuloksia.')}
+        {search_results}
+        ---
+        LOPPUTUOTE:
+        {state.inputs.product_text}
         ---
         """
 
-    def _process(self, validation_schema: Any = None, **kwargs) -> dict[str, Any]:
-        user_content = self.construct_user_prompt(**kwargs)
-        
-        # Call LLM with Retry Logic
-        # Pass validation_schema=None to allow manual validation after injection
-        response = self.get_json_response(
-            prompt=user_content,
-            system_instruction=kwargs.get('system_instruction'),
-            validation_schema=None
-        )
-        
-        # --- AUTO-INJECT MISSING FIELDS ---
-        # --- AUTO-INJECT MISSING FIELDS ---
-        if response:
-            if isinstance(response, list):
-                print("[FactualOverseerAgent] Response is a list. Wrapping in 'faktantarkistus_rfi'.")
-                response = {"faktantarkistus_rfi": response}
+    def get_response_schema(self) -> Optional[Type[BaseModel]]:
+        return EtiikkaJaFakta
 
-            if 'faktantarkistus_rfi' not in response:
-                print("[FactualOverseerAgent] Warning: 'faktantarkistus_rfi' missing. Injecting empty list.")
-                response['faktantarkistus_rfi'] = []
-            if 'eettiset_havainnot' not in response:
-                print("[FactualOverseerAgent] Warning: 'eettiset_havainnot' missing. Injecting empty list.")
-                response['eettiset_havainnot'] = []
-                
-        # --- FINAL VALIDATION ---
-        if validation_schema and response:
-            try:
-                print(f"[FactualOverseerAgent] Validating against schema: {validation_schema.__name__}")
-                validation_schema.model_validate(response)
-                print("[FactualOverseerAgent] Validation successful.")
-            except Exception as e:
-                print(f"[FactualOverseerAgent] Validation failed after injection: {e}")
-                pass
+    def get_system_instruction(self) -> str:
+        return """
+        You are the Factual & Ethical Overseer. Your task is to verify facts and check for ethical issues.
+        
+        1. Verify claims against external search results (if provided) or general knowledge.
+        2. Check for ethical violations (plagiarism, bias, harmful content).
+        
+        Output must be a valid JSON object matching the EtiikkaJaFakta schema.
+        """
 
-        return response
+    def _update_state(self, state: WorkflowState, response_data: Any) -> WorkflowState:
+        try:
+            state.step_5_overseer = EtiikkaJaFakta(**response_data)
+        except Exception as e:
+            print(f"[FactualOverseerAgent] State update failed: {e}")
+            raise e
+        return state
 
 
 class CausalAnalystAgent(BaseAgent):
     """
     Kausaalinen Analyytikko-agentti (Causal Analyst).
     """
-    def construct_user_prompt(self, **kwargs) -> str:
-        import json
-        
-        # 1. Context from previous steps (Structured Data)
-        relevant_keys = ['todistuskartta', 'argumentaatioanalyysi', 'data', 'metodologinen_loki']
-        context_data = {k: kwargs.get(k) for k in relevant_keys if k in kwargs}
-        
-        if not context_data:
-             context_data = {k: v for k, v in kwargs.items() if k != 'system_instruction'}
-
-        # 2. Raw Evidence (Unstructured Text)
-        # We inject this OUTSIDE the JSON structure to avoid parsing issues and token bloat within the JSON object.
-        history_text = kwargs.get('history_text', 'N/A')
-        product_text = kwargs.get('product_text', 'N/A')
-        reflection_text = kwargs.get('reflection_text', 'N/A')
-
+    def construct_user_prompt(self, state: WorkflowState) -> str:
         return f"""
-        CONTEXT DATA (JSON):
+        INPUT DATA:
         ---
-        {json.dumps(context_data, indent=2, ensure_ascii=False)}
+        KESKUSTELUHISTORIA:
+        {state.inputs.history_text}
+        
+        REFLEKTIODOKUMENTTI:
+        {state.inputs.reflection_text}
         ---
-
-        RAW EVIDENCE FOR ANALYSIS:
-        
-        === KESKUSTELUHISTORIA ===
-        {history_text}
-        
-        === LOPPUTUOTE ===
-        {product_text}
-        
-        === REFLEKTIODOKUMENTTI ===
-        {reflection_text}
-        
         """
 
-    def _process(self, validation_schema: Any = None, **kwargs) -> dict[str, Any]:
-        user_content = self.construct_user_prompt(**kwargs)
+    def get_response_schema(self) -> Optional[Type[BaseModel]]:
+        return KausaalinenAuditointi
+
+    def get_system_instruction(self) -> str:
+        return """
+        You are the Causal Analyst. Your task is to verify the cause-and-effect relationship between the process and the product.
         
-        # Call LLM with Retry Logic
-        # Pass validation_schema=None to allow manual validation after injection
-        response = self.get_json_response(
-            prompt=user_content,
-            system_instruction=kwargs.get('system_instruction'),
-            validation_schema=None
-        )
+        1. Check if the timeline of events in the history matches the reflection.
+        2. Perform a Counterfactual Test: "If X hadn't happened, would Y exist?"
         
-        # --- AUTO-INJECT MISSING FIELDS ---
-        # --- AUTO-INJECT MISSING FIELDS ---
-        if response:
-            if isinstance(response, list):
-                print("[CausalAnalystAgent] Response is a list. Wrapping in 'kausaalinen_auditointi' (best guess).")
-                # This might fail validation if schema expects dict, but better than crash
-                response = {"kausaalinen_auditointi": {"havainnot": str(response)}}
+        Output must be a valid JSON object matching the KausaalinenAuditointi schema.
+        """
 
-            if 'kausaalinen_auditointi' not in response:
-                print("[CausalAnalystAgent] Warning: 'kausaalinen_auditointi' missing. Injecting default.")
-                response['kausaalinen_auditointi'] = {
-                    "aikajana_validi": False,
-                    "havainnot": "Automaattinen täydennys (LLM ei palauttanut arviota)."
-                }
-                
-            if 'kontrafaktuaalinen_testi' not in response:
-                print("[CausalAnalystAgent] Warning: 'kontrafaktuaalinen_testi' missing. Injecting default.")
-                response['kontrafaktuaalinen_testi'] = {
-                    "skenaario_A_toteutunut": "N/A",
-                    "skenaario_B_simulaatio": "N/A",
-                    "uskottavuus_arvio": "N/A"
-                }
-                
-            if 'abduktiivinen_paatelma' not in response:
-                print("[CausalAnalystAgent] Warning: 'abduktiivinen_paatelma' missing. Injecting default.")
-                response['abduktiivinen_paatelma'] = "Epävarma"
-
-        # --- FINAL VALIDATION ---
-        if validation_schema and response:
-            try:
-                print(f"[CausalAnalystAgent] Validating against schema: {validation_schema.__name__}")
-                validation_schema.model_validate(response)
-                print("[CausalAnalystAgent] Validation successful.")
-            except Exception as e:
-                print(f"[CausalAnalystAgent] Validation failed after injection: {e}")
-                pass
-
-        return response
+    def _update_state(self, state: WorkflowState, response_data: Any) -> WorkflowState:
+        try:
+            state.step_6_causal = KausaalinenAuditointi(**response_data)
+        except Exception as e:
+            print(f"[CausalAnalystAgent] State update failed: {e}")
+            raise e
+        return state
 
 
 class PerformativityDetectorAgent(BaseAgent):
     """
     Performatiivisuuden Tunnistaja-agentti (Performativity Detector).
     """
-    def construct_user_prompt(self, **kwargs) -> str:
-        import json
-        
-        # 1. Context from previous steps (Structured Data)
-        relevant_keys = ['todistuskartta', 'argumentaatioanalyysi', 'data', 'metodologinen_loki']
-        context_data = {k: kwargs.get(k) for k in relevant_keys if k in kwargs}
-        
-        if not context_data:
-             context_data = {k: v for k, v in kwargs.items() if k != 'system_instruction'}
-
-        # 2. Raw Evidence (Unstructured Text)
-        history_text = kwargs.get('history_text', 'N/A')
-        product_text = kwargs.get('product_text', 'N/A')
-        reflection_text = kwargs.get('reflection_text', 'N/A')
-
+    def construct_user_prompt(self, state: WorkflowState) -> str:
         return f"""
-        CONTEXT DATA (JSON):
+        INPUT DATA:
         ---
-        {json.dumps(context_data, indent=2, ensure_ascii=False)}
+        KESKUSTELUHISTORIA:
+        {state.inputs.history_text}
+        
+        REFLEKTIODOKUMENTTI:
+        {state.inputs.reflection_text}
         ---
-
-        RAW EVIDENCE FOR ANALYSIS:
-        
-        === KESKUSTELUHISTORIA ===
-        {history_text}
-        
-        === LOPPUTUOTE ===
-        {product_text}
-        
-        === REFLEKTIODOKUMENTTI ===
-        {reflection_text}
-        
         """
 
-    def _process(self, validation_schema: Any = None, **kwargs) -> dict[str, Any]:
-        user_content = self.construct_user_prompt(**kwargs)
+    def get_response_schema(self) -> Optional[Type[BaseModel]]:
+        return PerformatiivisuusAuditointi
+
+    def get_system_instruction(self) -> str:
+        return """
+        You are the Performativity Detector. Your task is to detect "theater" or fake engagement.
         
-        # Call LLM with Retry Logic
-        # Pass validation_schema=None to allow manual validation after injection
-        response = self.get_json_response(
-            prompt=user_content,
-            system_instruction=kwargs.get('system_instruction'),
-            validation_schema=None
-        )
+        1. Look for heuristics of performativity (e.g., overly formal language, lack of struggle).
+        2. Perform a Pre-Mortem Analysis.
+        3. Give an overall verdict: Organic vs. Performative.
         
-        # --- AUTO-INJECT MISSING FIELDS ---
-        # --- AUTO-INJECT MISSING FIELDS ---
-        if response:
-            if isinstance(response, list):
-                print("[PerformativityDetectorAgent] Response is a list. Wrapping in 'performatiivisuus_heuristiikat'.")
-                response = {"performatiivisuus_heuristiikat": response}
+        Output must be a valid JSON object matching the PerformatiivisuusAuditointi schema.
+        """
 
-            if 'performatiivisuus_heuristiikat' not in response:
-                print("[PerformativityDetectorAgent] Warning: 'performatiivisuus_heuristiikat' missing. Injecting empty list.")
-                response['performatiivisuus_heuristiikat'] = []
-                
-            if 'pre_mortem_analyysi' not in response:
-                print("[PerformativityDetectorAgent] Warning: 'pre_mortem_analyysi' missing. Injecting default.")
-                response['pre_mortem_analyysi'] = {
-                    "suoritettu": False,
-                    "hiljaiset_signaalit": []
-                }
-                
-            if 'yleisarvio_aitoudesta' not in response:
-                print("[PerformativityDetectorAgent] Warning: 'yleisarvio_aitoudesta' missing. Injecting default.")
-                response['yleisarvio_aitoudesta'] = "Epäilyttävä"
-
-        # --- FINAL VALIDATION ---
-        if validation_schema and response:
-            try:
-                print(f"[PerformativityDetectorAgent] Validating against schema: {validation_schema.__name__}")
-                validation_schema.model_validate(response)
-                print("[PerformativityDetectorAgent] Validation successful.")
-            except Exception as e:
-                print(f"[PerformativityDetectorAgent] Validation failed after injection: {e}")
-                pass
-
-        return response
+    def _update_state(self, state: WorkflowState, response_data: Any) -> WorkflowState:
+        try:
+            state.step_7_detector = PerformatiivisuusAuditointi(**response_data)
+        except Exception as e:
+            print(f"[PerformativityDetectorAgent] State update failed: {e}")
+            raise e
+        return state
