@@ -356,6 +356,13 @@ def get_unified_prompts():
     def expand_content(text, schemas):
         if not text: return ""
         
+        # Handle case where content is a list (e.g. from JSON import)
+        if isinstance(text, list):
+            text = "\n".join(str(x) for x in text)
+        # Ensure text is string
+        if not isinstance(text, str):
+            text = str(text)
+        
         def replace_match(match):
             schema_name = match.group(1)
             is_example = match.group(2) is not None

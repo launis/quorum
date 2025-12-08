@@ -31,20 +31,21 @@ class WorkflowEngine:
         
         from backend.config import INITIAL_MODEL
         
-        # Initialize Agents (The Pipeline)
-        # In a fully dynamic system, these would be loaded based on the 'steps' config.
-        # For now, we hardcode the V2 pipeline for robustness.
-        self.agents_map = {
-            "GuardAgent": GuardAgent(model=INITIAL_MODEL),
-            "AnalystAgent": AnalystAgent(model=INITIAL_MODEL),
-            "LogicianAgent": LogicianAgent(model=INITIAL_MODEL),
-            "LogicalFalsifierAgent": LogicalFalsifierAgent(model=INITIAL_MODEL),
-            "FactualOverseerAgent": FactualOverseerAgent(model=INITIAL_MODEL),
-            "CausalAnalystAgent": CausalAnalystAgent(model=INITIAL_MODEL),
-            "PerformativityDetectorAgent": PerformativityDetectorAgent(model=INITIAL_MODEL),
-            "JudgeAgent": JudgeAgent(model=INITIAL_MODEL),
-            "XAIReporterAgent": XAIReporterAgent(model=INITIAL_MODEL)
-        }
+        from backend.agents.base import BaseAgent
+        
+        # Initialize Agents (The Pipeline) - Fully Dynamic
+        self.agents_map = {}
+        
+        # 1. Discover imported Agent classes from globals
+        # This allows us to just add an import at the top and it's auto-registered
+        current_globals = globals().copy()
+        for name, obj in current_globals.items():
+            if isinstance(obj, type) and issubclass(obj, BaseAgent) and obj is not BaseAgent:
+                try:
+                    self.agents_map[name] = obj(model=INITIAL_MODEL)
+                    print(f"[WorkflowEngine] Registered agent: {name}")
+                except Exception as e:
+                    print(f"[WorkflowEngine] Failed to initialize {name}: {e}")
         
         #     "XAIReporterAgent": XAIReporterAgent(model=INITIAL_MODEL)
         # }
