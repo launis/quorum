@@ -1,6 +1,6 @@
 from typing import Literal, Any, List, Dict, Optional
 from pydantic import BaseModel, Field, field_validator, ConfigDict
-from backend.schemas_xai import XAIRaportti
+
 
 # --- Base Schema ---
 

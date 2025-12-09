@@ -3,6 +3,8 @@ from typing import Dict, Any
 from jinja2 import Environment, FileSystemLoader
 import os
 
+from backend.config import DATA_DIR, BASE_DIR
+
 router = APIRouter(prefix="/templates", tags=["Templates"])
 
 @router.post("/render")
@@ -15,14 +17,12 @@ async def render_template(
     """
     try:
         # Locate templates directory
-        # Assuming we are in backend/api/templates_router.py -> ../../src/components/templates
-        # Or more robustly relative to project root
-        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        template_dir = os.path.join(base_dir, 'data', 'templates')
+        template_dir = os.path.join(DATA_DIR, 'templates')
         
-        # Fallback to src/components/templates if data/templates doesn't exist (legacy path?)
+        # Fallback to src/components/templates if data/templates doesn't exist (legacy path)
         if not os.path.exists(template_dir):
-             template_dir = os.path.join(base_dir, 'src', 'components', 'templates')
+             root_dir = os.path.dirname(BASE_DIR)
+             template_dir = os.path.join(root_dir, 'src', 'components', 'templates')
 
         if not os.path.exists(template_dir):
             raise HTTPException(status_code=500, detail=f"Template directory not found: {template_dir}")

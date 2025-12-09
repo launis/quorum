@@ -43,7 +43,7 @@ class MockLLMService:
         with open("mock_debug.log", "a", encoding="utf-8") as f:
             f.write(f"Identified Key: {key}\n")
             
-        print(f"[MockLLM] Identified prompt type: {key}")
+        print(f"\033[93m[MOCK RESPONSE] Generating response for: {key}\033[0m") # Yellow text for visibility
         
         # 2. Retrieve mock response
         response_template = self.mock_responses.get(key)
@@ -72,17 +72,24 @@ class MockLLMService:
             sys_lower = system_instruction.lower()
             
             # Check for Output Schema names (Most Reliable)
+            # PRIORITIZE LATE STAGE AGENTS (Judge, XAI) because they consume previous agents' outputs
+            if "tuomiojapisteet" in sys_lower: return "judge_agent"
+            if "xaireport" in sys_lower: return "xai_agent"
+            
             if "tainteddata" in sys_lower: return "guard_agent"
-            if "todistuskartta" in sys_lower: return "analyst_agent"
+            # Move Logician/Falsifier checks UP because they might reference 'todistuskartta' as input
             if "argumentaatioanalyysi" in sys_lower: return "logician_agent"
             if "logiikkaauditointi" in sys_lower: return "falsifier_agent"
+            
+            # Now check for Analyst (which produces todistuskartta)
+            if "todistuskartta" in sys_lower: return "analyst_agent"
+            
             if "kausaalinenauditointi" in sys_lower: return "causal_agent"
             if "performatiivisuusauditointi" in sys_lower: return "performativity_agent"
             if "etiikkajafakta" in sys_lower: return "fact_checker_agent"
-            if "tuomiojapisteet" in sys_lower: return "judge_agent"
-            if "xaireport" in sys_lower: return "xai_agent"
 
             # Fallback: Check for specific Phase/Agent headers
+            if "logician agent" in sys_lower: return "logician_agent" # Added for LogicianAgent.py override
             if "vaihe 1: vartija-agentti" in sys_lower: return "guard_agent"
             if "vaihe 2: analyytikko-agentti" in sys_lower: return "analyst_agent"
             if "vaihe 3: loogikko-agentti" in sys_lower: return "logician_agent"
@@ -99,7 +106,17 @@ class MockLLMService:
         # V2 Specific Headers (Strong Signal)
         if "input data to validate" in prompt_lower: return "guard_agent"
         if "input data for analysis" in prompt_lower: return "analyst_agent"
-        if "todistuskartta (edellisestä vaiheesta)" in prompt_lower: return "logician_agent"
+        
+        # Identity-based matching (Strongest for Agents)
+        if "loogikko-agentti" in prompt_lower or "logician agent" in prompt_lower: return "logician_agent"
+        if "analyytikko-agentti" in prompt_lower or "analyst agent" in prompt_lower: return "analyst_agent"
+        if "vartija-agentti" in prompt_lower or "guard agent" in prompt_lower: return "guard_agent"
+        
+        # Context-based matching
+        if "todistuskartta" in prompt_lower and "edellisestä vaiheesta" in prompt_lower: return "logician_agent" # Fixed casing from LogicianAgent.py
+        if "todistuskartta" in prompt_lower and "edellisen vaiheen" in prompt_lower: return "logician_agent" 
+        if "argumentaatioanalyysi" in prompt_lower: return "logician_agent"
+        
         if "argumentaatioanalyysi (edellisestä vaiheesta)" in prompt_lower: return "falsifier_agent"
         if "ulkoisen faktantarkistuksen tulokset" in prompt_lower: return "fact_checker_agent"
         if "kausaalinen analyytikko" in prompt_lower: return "causal_agent" # System instruction check fallback
@@ -119,12 +136,15 @@ class MockLLMService:
         if "vaihe 1" in prompt_lower or "vartija-agentti" in prompt_lower: return "guard_agent"
         
         # 3. Broad Keyword Matching (Last Resort)
-        if "tuomiojapisteet" in prompt_lower: return "judge_agent"
-        if "etiikkajafakta" in prompt_lower: return "fact_checker_agent"
-        if "performatiivisuusauditointi" in prompt_lower: return "performativity_agent"
-        if "kausaalinenauditointi" in prompt_lower: return "causal_agent"
-        if "logiikkaauditointi" in prompt_lower: return "falsifier_agent"
         if "argumentaatioanalyysi" in prompt_lower: return "logician_agent"
+        if "logiikkaauditointi" in prompt_lower: return "falsifier_agent"
+        if "kausaalinenauditointi" in prompt_lower: return "causal_agent"
+        if "performatiivisuusauditointi" in prompt_lower: return "performativity_agent"
+        if "etiikkajafakta" in prompt_lower: return "fact_checker_agent"
+        if "tuomiojapisteet" in prompt_lower: return "judge_agent"
+        
+        # Broader checks (Order matters!)
+        if "todistuskartta" in prompt_lower and "edellisestä vaiheesta" in prompt_lower: return "logician_agent"
         if "todistuskartta" in prompt_lower: return "analyst_agent"
         if "tainteddata" in prompt_lower: return "guard_agent"
         
@@ -281,9 +301,9 @@ class MockLLMService:
                 "mestaruus_poikkeama": {"tunnistettu": False, "perustelu": "Normaali suoritus."},
                 "aitous_epaily": {"automaattinen_lippu": False, "viesti_hitl:lle": "Ei huomautettavaa."},
                 "pisteet": {
-                    "analyysi_ja_prosessi": {"arvosana": 3, "perustelu": "Hyvä."},
-                    "arviointi_ja_argumentaatio": {"arvosana": 3, "perustelu": "Hyvä."},
-                    "synteesi_ja_luovuus": {"arvosana": 3, "perustelu": "Hyvä."}
+                    "analyysi": {"arvosana": 3, "perustelu": "Hyvä."},
+                    "arviointi": {"arvosana": 3, "perustelu": "Hyvä."},
+                    "synteesi": {"arvosana": 3, "perustelu": "Hyvä."}
                 },
                 "kriittiset_havainnot_yhteenveto": ["Kaikki ok."]
             })

@@ -103,18 +103,4 @@ class BaseAgent(BaseComponent):
         # We might need to inject it or fetch it.
         return "You are a helpful AI assistant."
 
-    def get_schema_example(self, schema: Type[BaseModel]) -> str:
-        """
-        Helper to extract examples from Pydantic schema for prompting (if needed).
-        With Structured Outputs, this is less critical but still useful for 'style'.
-        """
-        try:
-            config = schema.model_config
-            examples = config.get('json_schema_extra', {}).get('examples')
-            if examples and len(examples) > 0:
-                import json
-                example_json = json.dumps(examples[0], indent=2, ensure_ascii=False)
-                return f"""=== MALLIVASTAUS (Seuraa tätä tyyliä) ===\n{example_json}\n======================================="""
-        except Exception:
-            pass
-        return ""
+

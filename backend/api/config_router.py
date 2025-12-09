@@ -1,12 +1,13 @@
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from tinydb import TinyDB, Query
 from typing import List, Dict, Any, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import os
 
 from backend.exporter import export_db_to_files
 from backend.seeder import seed_database
 from backend.config import DB_PATH, PROD_DB_PATH, MOCK_DB_PATH
+from backend.database.wrapper import get_db_client
 
 router = APIRouter(
     prefix="/config",
@@ -26,6 +27,15 @@ class ComponentUpdate(BaseModel):
     description: Optional[str] = None
     citation: Optional[str] = None
     citation_full: Optional[str] = None
+
+class ModelSettings(BaseModel):
+    model_name: str
+    temperature: Optional[float] = Field(None)
+    max_tokens: Optional[int] = Field(None)
+    top_p: Optional[float] = Field(None)
+
+class GlobalModelConfig(BaseModel):
+    registry: Dict[str, Dict[str, ModelSettings]]
 
 class WorkflowUpdate(BaseModel):
     steps: Optional[List[Dict[str, Any]]] = None
@@ -419,3 +429,49 @@ def get_unified_prompts():
                 unified_text += "---\n\n"
 
     return {"content": unified_text}
+
+@router.get("/models/registry")
+def get_model_registry():
+    """
+    Get the global model registry from system_config.
+    """
+    db = get_db_client()
+    table = db.table('system_config')
+    # Assuming Query is available or we scan
+    # AbstractTable.search might expect different things, but TinyDBClient expects TinyDB Query
+    # The wrapper's TinyDBTable.search takes a query.
+    Config = Query()
+    res = table.search(Config.type == 'model_registry')
+    if res:
+        return res[0].get('models', {})
+    return {}
+
+@router.post("/models/registry")
+def update_model_registry(config: GlobalModelConfig):
+    """
+    Update the global model registry.
+    """
+    db = get_db_client()
+    table = db.table('system_config')
+    Config = Query()
+    
+    import json
+    
+    # Serialize to dict for TinyDB
+    # Pydantic v2 uses model_dump_json(), fallback to json() for v1
+    # We parse it back to dict to ensure all nested models are purely Python dicts
+    if hasattr(config, 'model_dump_json'):
+        raw_json = config.model_dump_json()
+    else:
+        raw_json = config.json()
+        
+    registry_data = json.loads(raw_json)['registry']
+    
+    table.upsert(
+        {
+            'type': 'model_registry',
+            'models': registry_data
+        },
+        Config.type == 'model_registry'
+    )
+    return {"status": "updated", "registry": registry_data}

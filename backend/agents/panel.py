@@ -27,14 +27,10 @@ class PanelAgent(BaseAgent):
         ---
         """
 
-    def _process(self, **kwargs) -> Dict[str, Any]:
+    async def execute(self, system_instruction: str = None, **kwargs) -> Dict[str, Any]:
         user_content = self.construct_user_prompt(**kwargs)
-        system_instruction = kwargs.get('system_instruction', "")
         
         # Append the Meta-Instruction for JSON formatting
-        # We assume the system_instruction already contains the instructions for the sub-roles.
-        # We just need to enforce the combined output structure.
-        
         meta_instruction = """
         
         ### PANEL OUTPUT INSTRUCTION ###
@@ -59,15 +55,27 @@ class PanelAgent(BaseAgent):
         Ensure each sub-object strictly follows the schema defined in its respective instruction.
         """
         
-        full_system_instruction = system_instruction + meta_instruction
+        full_system_instruction = (system_instruction or "") + meta_instruction
         
         # Call LLM
-        response = self.get_json_response(
+        response = await self.llm_provider.generate(
             prompt=user_content,
-            system_instruction=full_system_instruction
+            system_instruction=full_system_instruction,
+            response_schema=None
         )
         
-        # The response is already a dict.
-        # We return it directly. The WorkflowEngine will merge this dict into the context.
-        # So context['logiikka_auditointi'] will be populated.
+        # Parse JSON if response is a string
+        if isinstance(response, str):
+            try:
+                # Basic cleanup for markdown code blocks
+                clean_txt = response.strip()
+                if clean_txt.startswith("```"):
+                     clean_txt = clean_txt.split("\n", 1)[1]
+                     if clean_txt.endswith("```"):
+                         clean_txt = clean_txt.rsplit("\n", 1)[0]
+                return json.loads(clean_txt)
+            except json.JSONDecodeError:
+                # If parsing fails, return as error or raw text wrapped
+                return {"error": "Failed to parse JSON", "raw_response": response}
+        
         return response

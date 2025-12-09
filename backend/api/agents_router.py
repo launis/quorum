@@ -33,7 +33,7 @@ def _load_agent_class(agent_name: str):
             "CausalAnalystAgent": "backend.agents.critics",
             "PerformativityDetectorAgent": "backend.agents.critics",
             "JudgeAgent": "backend.agents.judge",
-            "XAIReporterAgent": "backend.agents.judge"
+            "XAIReporterAgent": "backend.agents.xai"
         }
         module_name = legacy_mapping.get(agent_name)
         if not module_name:

@@ -1,5 +1,14 @@
 @echo off
-echo Starting Cognitive Quorum v2 (MOCK MODE)...
+echo Starting Cognitive Quorum v2 (MOCK LLM / Offline Mode)...
+echo.
+echo [INFO] MODE: MOCK LLM (Local Database)
+echo [INFO] No real API calls will be made. No costs.
+echo [INFO] Data is saved LOCALLY to 'data/db_mock.json'.
+echo [INFO] Responses are generated from local templates.
+echo.
+echo [TIP]  Look for YELLOW text "[MOCK RESPONSE]" in the backend logs
+echo        to confirm you are running in Mock mode.
+echo.
 set USE_MOCK_LLM=true
 chcp 65001
 set PYTHONIOENCODING=utf-8

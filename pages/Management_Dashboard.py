@@ -43,13 +43,45 @@ def get_steps():
     return []
 
 def get_available_models():
+    """
+    Fetches available models. Returns a dict {"google": [], "openai": [], ...} or a flat list for fallback legacy support.
+    """
     try:
+        # Try new structured endpoint first
+        res = requests.get(f"{API_URL}/llm/available-models")
+        if res.status_code == 200:
+            return res.json()
+        
+        # Fallback to old endpoint
         res = requests.get(f"{API_URL}/llm/models")
         if res.status_code == 200:
-            return res.json().get("models", [])
+            return {"google": res.json().get("models", [])}
+            
     except Exception as e:
         st.error(f"Error fetching models: {e}")
-    return ["gpt-4o", "gemini-1.5-pro", "local-model"] # Fallback
+    return {"google": ["gemini-1.5-pro"], "openai": ["gpt-4o"]} # Fallback
+
+def get_model_registry():
+    try:
+        res = requests.get(f"{API_URL}/config/models/registry")
+        if res.status_code == 200:
+            return res.json()
+    except Exception as e:
+        st.error(f"Error fetching registry: {e}")
+    return {}
+
+def update_model_registry(registry_data):
+    try:
+        payload = {"registry": registry_data}
+        res = requests.post(f"{API_URL}/config/models/registry", json=payload)
+        if res.status_code == 200:
+            st.success("Model registry updated successfully!")
+            return True
+        else:
+            st.error(f"Failed to update registry: {res.text}")
+    except Exception as e:
+        st.error(f"Error updating registry: {e}")
+    return False
 
 def validate_workflow(workflow, all_steps):
     """
@@ -209,7 +241,7 @@ def update_workflow(wf_id, sequence, description, model_mapping):
 
 # --- UI Layout ---
 
-tab1, tab2, tab3, tab4 = st.tabs(["Prompts & Rules", "Workflows", "Steps", "Kielletyt Ilmaisut"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["Prompts & Rules", "Workflows", "Steps", "Kielletyt Ilmaisut", "AI Models"])
 
 with tab1:
     st.header("Prompts & Rules")
@@ -329,14 +361,24 @@ with tab2:
         st.subheader("Model Mapping")
         new_wf_mapping = {}
         
-        AVAILABLE_MODELS = get_available_models()
-        
+        AVAILABLE_MODELS_RAW = get_available_models()
+        # Flatten if dict
+        if isinstance(AVAILABLE_MODELS_RAW, dict):
+            # Flatten lists from all keys
+            AVAILABLE_MODELS = []
+            for sublist in AVAILABLE_MODELS_RAW.values():
+                if isinstance(sublist, list):
+                    AVAILABLE_MODELS.extend(sublist)
+        else:
+            AVAILABLE_MODELS = AVAILABLE_MODELS_RAW
+
         if new_wf_steps:
             for step_id in new_wf_steps:
                 chosen_model = st.selectbox(
                     f"Model for {step_id}",
-                    options=AVAILABLE_MODELS,
-                    index=0, # Default to first (gpt-4o)
+                    # Deduplicate
+                    options=sorted(list(set(AVAILABLE_MODELS))),
+                    index=0, 
                     key=f"new_model_{step_id}",
                     help=f"Select the AI model to use for the step '{step_id}'."
                 )
@@ -387,8 +429,20 @@ with tab2:
             current_mapping = selected_wf.get('default_model_mapping', {})
             new_mapping = {}
             
-            AVAILABLE_MODELS = get_available_models()
+            AVAILABLE_MODELS_RAW = get_available_models()
+             # Flatten if dict
+            if isinstance(AVAILABLE_MODELS_RAW, dict):
+                # Flatten lists from all keys
+                AVAILABLE_MODELS = []
+                for sublist in AVAILABLE_MODELS_RAW.values():
+                    if isinstance(sublist, list):
+                        AVAILABLE_MODELS.extend(sublist)
+            else:
+                AVAILABLE_MODELS = AVAILABLE_MODELS_RAW
             
+            # Ensure unique
+            AVAILABLE_MODELS = sorted(list(set(AVAILABLE_MODELS)))
+
             if selected_steps:
                 for step_id in selected_steps:
                     # Determine current model for this step
@@ -774,6 +828,127 @@ with tab4:
                         st.error(f"Error: {e}")
     else:
         st.info("Ei kiellettyjä ilmaisuja tietokannassa.")
+
+with tab5:
+    st.header("🎛️ AI Model Strategy")
+    st.markdown("Configure global model strategies for different providers and modes (Fast vs Deep).")
+    
+    # Fetch Data
+    live_models = get_available_models()
+    current_registry = get_model_registry()
+    
+    # Ensure live_models is dict
+    if isinstance(live_models, list):
+        live_models = {"google": live_models}
+        
+    # Filter out error keys
+    p_keys = [k for k in live_models.keys() if "error" not in k]
+    err_keys = [k for k in live_models.keys() if "error" in k]
+    
+    for k in err_keys:
+        st.error(f"{k}: {live_models[k]}")
+        
+    if p_keys:
+        p_tabs = st.tabs([p.capitalize() for p in p_keys])
+        
+        # We need a shared state form across tabs or separate forms? 
+        # Using one big form is cleaner for "Save All".
+        with st.form("model_strategy_form"):
+            new_registry = current_registry.copy()
+            
+            for i, provider in enumerate(p_keys):
+                with p_tabs[i]:
+                    models = live_models[provider]
+                    if not models:
+                        st.warning(f"No models found for {provider}.")
+                        continue
+                        
+                    col_fast, col_deep = st.columns(2)
+                    
+                    # Function to render config block
+                    def render_mode_config(col, mode_name, key_suffix, curr):
+                        with col:
+                            st.subheader(f"{mode_name} Mode")
+                            
+                            c_model = curr.get("model_name", models[0] if models else "")
+                            c_temp = curr.get("temperature", 0.7)
+                            c_tokens = curr.get("max_tokens", 8192)
+                            
+                            # Inputs
+                            s_model = st.selectbox(
+                                "Model", 
+                                options=models, 
+                                index=models.index(c_model) if c_model in models else 0,
+                                key=f"model_{provider}_{key_suffix}"
+                            )
+                            s_temp = st.slider(
+                                "Temperature", 
+                                0.0, 2.0, float(c_temp or 0.7), 
+                                key=f"temp_{provider}_{key_suffix}"
+                            )
+                            s_tokens = st.number_input(
+                                "Max Tokens", 
+                                min_value=1, max_value=128000, value=int(c_tokens or 8192), 
+                                step=1024,
+                                key=f"tok_{provider}_{key_suffix}"
+                            )
+                            
+                            # Construct config object
+                            return {
+                                "model_name": s_model,
+                                "temperature": s_temp,
+                                "max_tokens": s_tokens
+                            }
+
+                    # Fast Mode
+                    # Ensure provider dict exists
+                    if provider not in new_registry:
+                        new_registry[provider] = {}
+                    
+                    # Also handle if it was initialized as string (legacy) or flat (legacy) from copy
+                    if not isinstance(new_registry[provider], dict):
+                        new_registry[provider] = {}
+
+                    # Resolve current fast config
+                    # 1. Try nested: registry[provider]['fast']
+                    # 2. Try flat key: registry['provider/fast'] (Legacy)
+                    # 3. Try string default: registry['provider'] (Legacy fallback)
+                    
+                    current_fast = {}
+                    if isinstance(current_registry.get(provider), dict):
+                        current_fast = current_registry[provider].get('fast', {})
+                    elif f"{provider}/fast" in current_registry:
+                        current_fast = current_registry[f"{provider}/fast"]
+                    
+                    # Normalize current_fast to dict
+                    if isinstance(current_fast, str):
+                        current_fast = {"model_name": current_fast}
+                    elif not isinstance(current_fast, dict):
+                        current_fast = {}
+                        
+                    fast_conf = render_mode_config(col_fast, "⚡ Fast", "fast", current_fast)
+                    new_registry[provider]["fast"] = fast_conf
+                    
+                    # Deep Mode
+                    current_deep = {}
+                    if isinstance(current_registry.get(provider), dict):
+                        current_deep = current_registry[provider].get('deep', {})
+                    elif f"{provider}/deep" in current_registry:
+                        current_deep = current_registry[f"{provider}/deep"]
+                        
+                    if isinstance(current_deep, str):
+                        current_deep = {"model_name": current_deep}
+                    elif not isinstance(current_deep, dict):
+                        current_deep = {}
+
+                    deep_conf = render_mode_config(col_deep, "🧠 Deep", "deep", current_deep)
+                    new_registry[provider]["deep"] = deep_conf
+
+            st.divider()
+            if st.form_submit_button("Save Global Strategy"):
+                update_model_registry(new_registry)
+    else:
+        st.info("No providers available.")
 
 # --- Sidebar Actions ---
 with st.sidebar:

@@ -40,7 +40,8 @@ class LLMProvider(ABC):
         prompt: str, 
         system_instruction: Optional[str] = None,
         response_schema: Optional[Type[BaseModel]] = None,
-        temperature: float = 0.7
+        temperature: float = 0.7,
+        max_tokens: Optional[int] = None
     ) -> Union[str, Dict[str, Any]]:
         pass
 
@@ -124,13 +125,14 @@ class GoogleGeminiProvider(LLMProvider):
         prompt: str, 
         system_instruction: Optional[str] = None,
         response_schema: Optional[Type[BaseModel]] = None,
-        temperature: float = 0.7
+        temperature: float = 0.7,
+        max_tokens: Optional[int] = None
     ) -> Union[str, Dict[str, Any]]:
         import google.generativeai as genai
         
         generation_config = {
             "temperature": temperature,
-            "max_output_tokens": 8192,
+            "max_output_tokens": max_tokens or 8192,
         }
 
         # Native Structured Output Support
@@ -197,7 +199,8 @@ class OpenAIProvider(LLMProvider):
         prompt: str, 
         system_instruction: Optional[str] = None,
         response_schema: Optional[Type[BaseModel]] = None,
-        temperature: float = 0.7
+        temperature: float = 0.7,
+        max_tokens: Optional[int] = None
     ) -> Union[str, Dict[str, Any]]:
         
         messages = []
@@ -214,7 +217,8 @@ class OpenAIProvider(LLMProvider):
                     model=self.model_name,
                     messages=messages,
                     response_format=response_schema,
-                    temperature=temperature
+                    temperature=temperature,
+                    max_tokens=max_tokens
                 )
                 parsed_obj = completion.choices[0].message.parsed
                 if not parsed_obj:
@@ -228,7 +232,8 @@ class OpenAIProvider(LLMProvider):
                 completion = await self.client.chat.completions.create(
                     model=self.model_name,
                     messages=messages,
-                    temperature=temperature
+                    temperature=temperature,
+                    max_tokens=max_tokens
                 )
                 return completion.choices[0].message.content
 
@@ -237,7 +242,7 @@ class OpenAIProvider(LLMProvider):
             raise e
 
 class MockProvider(LLMProvider):
-    async def generate(self, prompt: str, system_instruction: Optional[str] = None, response_schema: Optional[Type[BaseModel]] = None, temperature: float = 0.7) -> Union[str, Dict[str, Any]]:
+    async def generate(self, prompt: str, system_instruction: Optional[str] = None, response_schema: Optional[Type[BaseModel]] = None, temperature: float = 0.7, max_tokens: Optional[int] = None) -> Union[str, Dict[str, Any]]:
         from backend.mock_llm import MockLLMService
         logger.info(f"[MockProvider] Calling Mock Service (Simulating Async)...")
         
