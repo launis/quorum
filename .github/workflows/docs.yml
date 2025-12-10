@@ -23,5 +23,6 @@ jobs:
           restore-keys: |
             mkdocs-material-
       - run: pip install -r backend/requirements.txt
+      - run: pip install mkdocs-material "mkdocstrings[python]" mkdocs-swagger-ui-tag
       - run: python scripts/generate_openapi.py
       - run: mkdocs gh-deploy --force
