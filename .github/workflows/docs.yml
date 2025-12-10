@@ -22,7 +22,6 @@ jobs:
           path: .cache
           restore-keys: |
             mkdocs-material-
-      - run: pip install -r requirements.txt
       - run: pip install -r backend/requirements.txt
       - run: python scripts/generate_openapi.py
       - run: mkdocs gh-deploy --force
