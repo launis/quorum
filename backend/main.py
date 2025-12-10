@@ -85,8 +85,9 @@ print(f"DEBUG: ACTIVE DATABASE PATH: {os.path.abspath(DB_PATH)}")
 # Ensure data dir exists
 os.makedirs(DATA_DIR, exist_ok=True)
 
-# Ensure data dir exists
+# Ensure data and database dirs exist
 os.makedirs(DATA_DIR, exist_ok=True)
+os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
 db = TinyDB(DB_PATH, encoding='utf-8')
 engine = WorkflowEngine(DB_PATH)

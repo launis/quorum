@@ -14,6 +14,12 @@ USE_MOCK_DB = os.getenv("USE_MOCK_DB", "True").lower().strip() == "true"
 
 # --- API Keys ---
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+
+# Force Mock Mode if API Key is missing (e.g., in CI/CD)
+if not GOOGLE_API_KEY and not USE_MOCK_LLM:
+    print("WARNING: GOOGLE_API_KEY not found. Forcing Mock LLM Mode.")
+    USE_MOCK_LLM = True
+
 INITIAL_MODEL = os.getenv("INITIAL_MODEL", "gemini-2.5-flash")
 
 # --- LLM Settings ---
