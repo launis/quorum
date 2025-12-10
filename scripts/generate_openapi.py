@@ -7,8 +7,10 @@ sys.path.append(os.getcwd())
 
 try:
     from backend.main import app
-except ImportError as e:
-    print(f"Error importing backend.main: {e}")
+except Exception as e:
+    import traceback
+    print(f"CRITICAL ERROR importing backend.main: {e}")
+    traceback.print_exc()
     sys.exit(1)
 
 def generate_openapi():
