@@ -105,7 +105,8 @@ engine.register_component("JudgeAgent", "backend.agents.judge", "JudgeAgent")
 engine.register_component("XAIReporterAgent", "backend.agents.judge", "XAIReporterAgent")
 
 # Ensure upload directory exists
-UPLOAD_DIR = "/app/data/uploads"
+# Ensure upload directory exists
+UPLOAD_DIR = os.path.join(DATA_DIR, "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # --- Generic Workflow Endpoints ---

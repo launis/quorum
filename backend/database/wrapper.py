@@ -78,6 +78,8 @@ class TinyDBTable(AbstractTable):
 
 class TinyDBClient(AbstractDatabase):
     def __init__(self, path: str):
+        import os
+        os.makedirs(os.path.dirname(path), exist_ok=True)
         self.db = TinyDB(path, encoding='utf-8')
 
     def table(self, name: str) -> AbstractTable:
