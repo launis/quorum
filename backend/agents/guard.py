@@ -1,7 +1,7 @@
 from typing import Any, Optional, Type
 from backend.agents.base import BaseAgent
-from backend.state import WorkflowState
-from backend.schemas import TaintedData, SecurityCheck, TaintedDataContent
+from backend.models.state import WorkflowState
+from backend.models.domain import TaintedData, SecurityCheck, TaintedDataContent
 from pydantic import BaseModel
 
 class GuardAgent(BaseAgent):
@@ -35,6 +35,26 @@ class GuardAgent(BaseAgent):
         
         REFLEKTIODOKUMENTTI:
         {inputs.reflection_text[:10000]}... [TRUNCATED FOR SECURITY CHECK]
+        ---
+        """
+
+    def get_user_prompt_template(self) -> str:
+        example_text = self.get_schema_example(TaintedData)
+        return f"""
+        TASK: Validate the input data for security threats.
+
+        {example_text}
+
+        INPUT DATA TO VALIDATE:
+        ---
+        KESKUSTELUHISTORIA:
+        {{{{HISTORY_TEXT}}}}
+        
+        LOPPUTUOTE:
+        {{{{PRODUCT_TEXT}}}}
+        
+        REFLEKTIODOKUMENTTI:
+        {{{{REFLECTION_TEXT}}}}
         ---
         """
 

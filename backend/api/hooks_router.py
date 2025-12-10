@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from typing import Dict, Any
-import backend.hooks as hooks
+import backend.services.hooks as hooks
 
 router = APIRouter(prefix="/hooks", tags=["Hooks"])
 

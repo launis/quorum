@@ -6,8 +6,8 @@ from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from tinydb import TinyDB, Query
 
-from backend.processor import PDFProcessor
-from backend.engine import WorkflowEngine
+from backend.services.pdf_processor import PDFProcessor
+from backend.core.engine import WorkflowEngine
 from backend.api.hooks_router import router as hooks_router
 from backend.api.tools_router import router as tools_router
 from backend.api.agents_router import router as agents_router
@@ -56,7 +56,19 @@ async def startup_event():
     
     # LLM Config
     llm_model = os.getenv("GEMINI_MODEL", "Not Set (Using Default)")
+    from backend.config import USE_MOCK_LLM
     print(f"   [CONFIG] LLM Model: {llm_model}")
+    
+    if USE_MOCK_LLM:
+        print("\n" + "!"*50)
+        print("   [INFO] OPERATING IN MOCK LLM MODE")
+        print("   [INFO] No external API calls will be made.")
+        print("!"*50 + "\n")
+    else:
+        print("\n" + "="*50)
+        print("   [INFO] OPERATING IN REAL LLM MODE")
+        print("   [INFO] External API calls WILL be made.")
+        print("="*50 + "\n")
     
     # Google Search Config
     search_key = os.getenv("GOOGLE_SEARCH_API_KEY")
@@ -230,7 +242,7 @@ async def run_orchestrator(
     """
     Uploads files, extracts text using DataHandler, and starts the workflow asynchronously.
     """
-    from backend.data_handler import DataHandler
+    from backend.services.document_loader import DataHandler
     handler = DataHandler()
 
     try:
@@ -277,12 +289,13 @@ def introspect_codebase():
     Returns available Schemas and Hooks by inspecting the codebase.
     """
     import inspect
-    from backend import schemas, hooks
+    from backend.models import domain
+    from backend.services import hooks
     
     # 1. Inspect Schemas
     available_schemas = []
-    for name, obj in inspect.getmembers(schemas):
-        if inspect.isclass(obj) and issubclass(obj, schemas.BaseModel) and obj is not schemas.BaseModel:
+    for name, obj in inspect.getmembers(domain):
+        if inspect.isclass(obj) and issubclass(obj, domain.BaseModel) and obj is not domain.BaseModel:
             available_schemas.append(name)
             
     # 2. Inspect Hooks

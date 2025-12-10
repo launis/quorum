@@ -1,8 +1,8 @@
 from typing import Any, Optional, Type
 import os
-from backend.component import BaseComponent
-from backend.state import WorkflowState
-from backend.llm_provider import LLMFactory, LLMProvider
+from backend.core.component import BaseComponent
+from backend.models.state import WorkflowState
+from backend.llm.provider import LLMFactory, LLMProvider
 from pydantic import BaseModel
 
 class BaseAgent(BaseComponent):
@@ -102,5 +102,12 @@ class BaseAgent(BaseComponent):
         # Placeholder: In the real app, this comes from the 'Step' configuration.
         # We might need to inject it or fetch it.
         return "You are a helpful AI assistant."
+
+    def get_user_prompt_template(self) -> str:
+        """
+        Returns a string representation of the user prompt template for UI preview.
+        Subclasses should override this to show their specific template structure.
+        """
+        return "User Prompt Template not defined for this Agent."
 
 

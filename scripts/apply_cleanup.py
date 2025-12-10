@@ -4,7 +4,7 @@ import os
 # Add project root to sys.path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from backend.seeder import seed_database
+from backend.database.seeder import seed_database
 
 # Paths
 PROD_DB_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'db.json')

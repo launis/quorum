@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from backend.agents.judge import JudgeAgent
-from backend.schemas import TuomioJaPisteet
+from backend.models.domain import TuomioJaPisteet
 
 def test_judge_scoring_calculation():
     agent = JudgeAgent()

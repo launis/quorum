@@ -1,7 +1,7 @@
 from typing import Any, Optional, Type
 from backend.agents.base import BaseAgent
-from backend.state import WorkflowState
-from backend.schemas import ArgumentaatioAnalyysi
+from backend.models.state import WorkflowState
+from backend.models.domain import ArgumentaatioAnalyysi
 from pydantic import BaseModel
 
 class LogicianAgent(BaseAgent):
@@ -34,6 +34,26 @@ class LogicianAgent(BaseAgent):
         
         LOPPUTUOTE:
         {state.inputs.product_text}
+        ---
+        """
+
+    def get_user_prompt_template(self) -> str:
+        example_text = self.get_schema_example(ArgumentaatioAnalyysi)
+        return f"""
+        TASK: Evaluate the logical structure of the argumentation.
+
+        {example_text}
+
+        INPUT DATA:
+        ---
+        TODISTUSKARTTA (Edellisestä vaiheesta):
+        {{{{STEP_2_EVIDENCE_MAP}}}}
+        ---
+        KESKUSTELUHISTORIA:
+        {{{{HISTORY_TEXT}}}}
+        
+        LOPPUTUOTE:
+        {{{{PRODUCT_TEXT}}}}
         ---
         """
 

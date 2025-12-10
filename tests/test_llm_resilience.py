@@ -16,7 +16,7 @@ os.environ["LLM_MAX_RETRIES"] = "2"
 os.environ["GOOGLE_API_KEY"] = "fake_key"
 os.environ["OPENAI_API_KEY"] = "fake_key"
 
-from backend.llm_provider import GoogleGeminiProvider, OpenAIProvider
+from backend.llm.provider import GoogleGeminiProvider, OpenAIProvider
 
 class TestSchema(BaseModel):
     field: str

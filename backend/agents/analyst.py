@@ -1,7 +1,7 @@
 from typing import Any, Optional, Type
 from backend.agents.base import BaseAgent
-from backend.state import WorkflowState
-from backend.schemas import TodistusKartta
+from backend.models.state import WorkflowState
+from backend.models.domain import TodistusKartta
 from pydantic import BaseModel
 
 class AnalystAgent(BaseAgent):
@@ -34,6 +34,26 @@ class AnalystAgent(BaseAgent):
         
         REFLEKTIODOKUMENTTI:
         {inputs.reflection_text}
+        ---
+        """
+
+    def get_user_prompt_template(self) -> str:
+        example_text = self.get_schema_example(TodistusKartta)
+        return f"""
+        TASK: Analyze the input data and create an Evidence Map.
+
+        {example_text}
+
+        INPUT DATA FOR ANALYSIS:
+        ---
+        KESKUSTELUHISTORIA:
+        {{{{HISTORY_TEXT}}}}
+        
+        LOPPUTUOTE:
+        {{{{PRODUCT_TEXT}}}}
+        
+        REFLEKTIODOKUMENTTI:
+        {{{{REFLECTION_TEXT}}}}
         ---
         """
 

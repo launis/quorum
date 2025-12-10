@@ -10,7 +10,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ["USE_MOCK_LLM"] = "True"
 os.environ["USE_MOCK_DB"] = "True"
 
-from backend.engine import WorkflowEngine
+from backend.core.engine import WorkflowEngine
 from backend.config import get_db_path
 
 def test_mock_workflow_execution():

@@ -6,7 +6,7 @@ from tinydb import TinyDB, Query
 # Add project root to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from backend.engine import WorkflowEngine
+from backend.core.engine import WorkflowEngine
 
 def test_workflow_construction():
     print("Testing Workflow Construction...")

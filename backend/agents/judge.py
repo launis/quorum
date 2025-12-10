@@ -1,7 +1,7 @@
 from typing import Any, Optional, Type
 from backend.agents.base import BaseAgent
-from backend.state import WorkflowState
-from backend.schemas import TuomioJaPisteet
+from backend.models.state import WorkflowState
+from backend.models.domain import TuomioJaPisteet
 from pydantic import BaseModel
 
 class JudgeAgent(BaseAgent):
@@ -34,6 +34,24 @@ class JudgeAgent(BaseAgent):
         ---
         RAW EVIDENCE:
         {state.inputs.product_text[:5000]}...
+        ---
+        """
+
+
+
+    def get_user_prompt_template(self) -> str:
+        example_text = self.get_schema_example(TuomioJaPisteet)
+        return f"""
+        TASK: Synthesize audit reports and assign a final score.
+
+        {example_text}
+
+        INPUT DATA (AUDITOINTIRAPORTIT):
+        ---
+        {{{{ALL_AUDIT_REPORTS}}}}
+        ---
+        RAW EVIDENCE:
+        {{{{PRODUCT_TEXT_SNIPPET}}}}
         ---
         """
 

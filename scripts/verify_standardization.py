@@ -8,7 +8,7 @@ from datetime import datetime
 # Add project root to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from backend.engine import WorkflowEngine
+from backend.core.engine import WorkflowEngine
 from backend.config import MOCK_DB_PATH
 
 # Dummy Data

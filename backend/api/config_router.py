@@ -4,10 +4,11 @@ from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
 import os
 
-from backend.exporter import export_db_to_files
-from backend.seeder import seed_database
+from backend.database.exporter import export_db_to_files
+from backend.database.seeder import seed_database
 from backend.config import DB_PATH, PROD_DB_PATH, MOCK_DB_PATH
 from backend.database.wrapper import get_db_client
+from backend.config import MODEL_STRATEGIES
 
 router = APIRouter(
     prefix="/config",
@@ -309,7 +310,7 @@ def get_schemas():
     Used for UI rendering and prompt expansion.
     """
     import inspect
-    from backend import schemas
+    from backend.models import domain as schemas
     
     schema_data = {}
     
@@ -342,7 +343,7 @@ def get_unified_prompts():
     """
     import json
     import re
-    from backend import schemas
+    from backend.models import domain as schemas
     import inspect
 
     # 1. Fetch Schemas
@@ -475,3 +476,10 @@ def update_model_registry(config: GlobalModelConfig):
         Config.type == 'model_registry'
     )
     return {"status": "updated", "registry": registry_data}
+
+@router.get("/models/strategies")
+def get_model_strategies():
+    """
+    Get the available model strategies (Fast vs Deep).
+    """
+    return MODEL_STRATEGIES

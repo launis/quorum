@@ -1,8 +1,8 @@
 from typing import Any, Optional, Type
 import re
 from backend.agents.base import BaseAgent
-from backend.state import WorkflowState
-from backend.schemas import XAIReport
+from backend.models.state import WorkflowState
+from backend.models.domain import XAIReport
 from pydantic import BaseModel
 
 class XAIReporterAgent(BaseAgent):
@@ -24,6 +24,19 @@ class XAIReporterAgent(BaseAgent):
         INPUT DATA (TUOMIO JA PISTEET):
         ---
         {judge_output}
+        ---
+        """
+
+    def get_user_prompt_template(self) -> str:
+        example_text = self.get_schema_example(XAIReport)
+        return f"""
+        TASK: Generate a human-readable report.
+
+        {example_text}
+
+        INPUT DATA (TUOMIO JA PISTEET):
+        ---
+        {{{{STEP_8_JUDGE_OUTPUT}}}}
         ---
         """
 

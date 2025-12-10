@@ -3,8 +3,8 @@ import os
 import json
 from googleapiclient.discovery import build
 from backend.agents.base import BaseAgent
-from backend.state import WorkflowState
-from backend.schemas import (
+from backend.models.state import WorkflowState
+from backend.models.domain import (
     LogiikkaAuditointi, 
     EtiikkaJaFakta, 
     KausaalinenAuditointi, 
@@ -38,6 +38,26 @@ class LogicalFalsifierAgent(BaseAgent):
         
         LOPPUTUOTE:
         {state.inputs.product_text}
+        ---
+        """
+
+    def get_user_prompt_template(self) -> str:
+        example_text = self.get_schema_example(LogiikkaAuditointi)
+        return f"""
+        TASK: Stress-test the student's logic.
+
+        {example_text}
+
+        INPUT DATA:
+        ---
+        ARGUMENTAATIOANALYYSI (Edellisestä vaiheesta):
+        {{{{STEP_3_ARGUMENTATION_ANALYSIS}}}}
+        ---
+        KESKUSTELUHISTORIA:
+        {{{{HISTORY_TEXT}}}}
+        
+        LOPPUTUOTE:
+        {{{{PRODUCT_TEXT}}}}
         ---
         """
 
@@ -90,6 +110,26 @@ class FactualOverseerAgent(BaseAgent):
         ---
         LOPPUTUOTE:
         {state.inputs.product_text}
+        ---
+        """
+
+    def get_user_prompt_template(self) -> str:
+        example_text = self.get_schema_example(EtiikkaJaFakta)
+        return f"""
+        TASK: Verify facts and check for ethical issues.
+
+        {example_text}
+
+        INPUT DATA:
+        ---
+        TODISTUSKARTTA:
+        {{{{STEP_2_EVIDENCE_MAP}}}}
+        ---
+        ULKOISEN FAKTANTARKISTUKSEN TULOKSET:
+        {{{{GOOGLE_SEARCH_RESULTS}}}}
+        ---
+        LOPPUTUOTE:
+        {{{{PRODUCT_TEXT}}}}
         ---
         """
 
@@ -194,6 +234,23 @@ class CausalAnalystAgent(BaseAgent):
         ---
         """
 
+    def get_user_prompt_template(self) -> str:
+        example_text = self.get_schema_example(KausaalinenAuditointi)
+        return f"""
+        TASK: Verify the cause-and-effect relationship.
+
+        {example_text}
+
+        INPUT DATA:
+        ---
+        KESKUSTELUHISTORIA:
+        {{{{HISTORY_TEXT}}}}
+        
+        REFLEKTIODOKUMENTTI:
+        {{{{REFLECTION_TEXT}}}}
+        ---
+        """
+
     def get_response_schema(self) -> Optional[Type[BaseModel]]:
         return KausaalinenAuditointi
 
@@ -236,6 +293,23 @@ class PerformativityDetectorAgent(BaseAgent):
         
         REFLEKTIODOKUMENTTI:
         {state.inputs.reflection_text}
+        ---
+        """
+
+    def get_user_prompt_template(self) -> str:
+        example_text = self.get_schema_example(PerformatiivisuusAuditointi)
+        return f"""
+        TASK: Detect performativity or fake engagement.
+
+        {example_text}
+
+        INPUT DATA:
+        ---
+        KESKUSTELUHISTORIA:
+        {{{{HISTORY_TEXT}}}}
+        
+        REFLEKTIODOKUMENTTI:
+        {{{{REFLECTION_TEXT}}}}
         ---
         """
 

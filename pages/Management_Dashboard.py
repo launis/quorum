@@ -61,6 +61,18 @@ def get_available_models():
         st.error(f"Error fetching models: {e}")
     return {"google": ["gemini-1.5-pro"], "openai": ["gpt-4o"]} # Fallback
 
+def get_model_strategies():
+    """
+    Fetches available model strategies (Fast vs Deep).
+    """
+    try:
+        res = requests.get(f"{API_URL}/config/models/strategies")
+        if res.status_code == 200:
+            return res.json()
+    except Exception as e:
+        st.error(f"Error fetching strategies: {e}")
+    return {}
+
 def get_model_registry():
     try:
         res = requests.get(f"{API_URL}/config/models/registry")
@@ -372,17 +384,38 @@ with tab2:
         else:
             AVAILABLE_MODELS = AVAILABLE_MODELS_RAW
 
+        # --- Models ---
+        strategies = get_model_strategies()
+        # Default models (fallback if strategy fetch fails)
+        fast_model = "gemini-2.0-flash-exp"
+        deep_model = "gemini-2.0-flash-thinking-exp-1219"
+        
+        if strategies:
+            if "fast" in strategies: fast_model = strategies["fast"]["model"]
+            if "deep" in strategies: deep_model = strategies["deep"]["model"]
+
         if new_wf_steps:
             for step_id in new_wf_steps:
-                chosen_model = st.selectbox(
-                    f"Model for {step_id}",
-                    # Deduplicate
-                    options=sorted(list(set(AVAILABLE_MODELS))),
-                    index=0, 
-                    key=f"new_model_{step_id}",
-                    help=f"Select the AI model to use for the step '{step_id}'."
+                st.markdown(f"**Step: {step_id}**")
+                
+                # Checkbox / Radio for Strategy
+                strategy_choice = st.radio(
+                    f"Model Strategy for {step_id}",
+                    options=["⚡ Fast Mode", "🧠 Deep Mode"],
+                    key=f"new_strat_{step_id}",
+                    horizontal=True,
+                    label_visibility="collapsed"
                 )
-                new_wf_mapping[step_id] = chosen_model
+                
+                if strategy_choice == "⚡ Fast Mode":
+                    new_wf_mapping[step_id] = fast_model
+                    st.caption(f"Using: `{fast_model}`")
+                else:
+                    new_wf_mapping[step_id] = deep_model
+                    st.caption(f"Using: `{deep_model}`")
+                    
+                st.divider()
+
         else:
             st.info("Select steps to configure model mapping.")
 
@@ -443,23 +476,53 @@ with tab2:
             # Ensure unique
             AVAILABLE_MODELS = sorted(list(set(AVAILABLE_MODELS)))
 
+            # --- Models ---
+            strategies = get_model_strategies()
+            # Default models (fallback if strategy fetch fails)
+            fast_model = "gemini-2.0-flash-exp"
+            deep_model = "gemini-2.0-flash-thinking-exp-1219"
+            
+            if strategies:
+                if "fast" in strategies: fast_model = strategies["fast"]["model"]
+                if "deep" in strategies: deep_model = strategies["deep"]["model"]
+
             if selected_steps:
                 for step_id in selected_steps:
-                    # Determine current model for this step
-                    current_model = current_mapping.get(step_id, "gpt-4o")
-                    if current_model not in AVAILABLE_MODELS:
-                        AVAILABLE_MODELS.append(current_model)
-                        
-                    chosen_model = st.selectbox(
-                        f"Model for {step_id}",
-                        options=AVAILABLE_MODELS,
-                        index=AVAILABLE_MODELS.index(current_model),
-                        key=f"model_{step_id}_{selected_wf_id}",
-                        help=f"Select the AI model to use for the step '{step_id}'."
+                    st.markdown(f"**Step: {step_id}**")
+                    
+                    # Determine current selection
+                    current_model = current_mapping.get(step_id, fast_model)
+                    
+                    # Default index logic
+                    # If current model matches Deep -> Index 1
+                    # Else -> Index 0 (Fast) - Even if it's some other legacy model, we default UI to Fast for simplicity, 
+                    # users can switch to Deep if they want.
+                    
+                    default_idx = 0
+                    if current_model == deep_model:
+                        default_idx = 1
+                    
+                    strategy_choice = st.radio(
+                        f"Model Strategy for {step_id}",
+                        options=["⚡ Fast Mode", "🧠 Deep Mode"],
+                        index=default_idx,
+                        key=f"strat_{step_id}_{selected_wf_id}",
+                        horizontal=True,
+                        label_visibility="collapsed"
                     )
-                    new_mapping[step_id] = chosen_model
+                    
+                    if strategy_choice == "⚡ Fast Mode":
+                         new_mapping[step_id] = fast_model
+                         st.caption(f"Using: `{fast_model}`")
+                    else:
+                         new_mapping[step_id] = deep_model
+                         st.caption(f"Using: `{deep_model}`")
+                    
+                    st.divider()
+
             else:
                 st.info("Select steps to configure model mapping.")
+
             
             col_save, col_validate, col_delete = st.columns([1, 1, 1])
             

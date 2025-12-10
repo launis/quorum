@@ -2,8 +2,8 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Dict, Any
 from backend.agents.base import BaseAgent
-from backend.registry import DatabaseClient
-from backend.core.llm_handler import LLMHandler
+from backend.core.registry import DatabaseClient
+from backend.llm.handler import LLMHandler
 from tinydb import Query
 
 router = APIRouter()

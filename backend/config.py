@@ -21,12 +21,32 @@ LLM_DEFAULT_TIMEOUT = float(os.getenv("LLM_DEFAULT_TIMEOUT", "30.0"))
 LLM_MAX_RETRIES = int(os.getenv("LLM_MAX_RETRIES", "3"))
 LLM_RETRY_DELAY = float(os.getenv("LLM_RETRY_DELAY", "1.0"))
 
+# Model Strategies
+MODEL_STRATEGIES = {
+    "fast": {
+        "name": "⚡ Fast Mode",
+        "description": "Optimized for speed and cost. Uses lighter models (e.g., Flash).",
+        "model": "gemini-2.0-flash-exp"
+    },
+    "deep": {
+        "name": "🧠 Deep Mode",
+        "description": "Optimized for complex reasoning and quality. Uses deep thinking models.",
+        "model": "gemini-2.0-flash-thinking-exp-1219"
+    }
+}
+
 # --- Paths ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# DATA_DIR is now primarily for uploads and other assets, not DB files
 DATA_DIR = os.path.join(os.path.dirname(BASE_DIR), "data")
+DB_DIR = os.path.join(BASE_DIR, "database")
 
-MOCK_DB_PATH = os.path.join(DATA_DIR, "db_mock.json")
-PROD_DB_PATH = os.path.join(DATA_DIR, "db.json")
+MOCK_DB_PATH = os.path.join(DB_DIR, "db_mock.json")
+# Production DB can stay in data or move. For now assuming it stays or I should move it?
+# The request didn't strictly say move PROD DB, but it said "Consolidate Database Management".
+# I'll point PROD to data/db.json to be safe unless I move it too.
+PROD_DB_PATH = os.path.join(DATA_DIR, "db.json") 
+SEED_DATA_PATH = os.path.join(DB_DIR, "seed_data.json")
 
 if USE_MOCK_DB:
     DB_PATH = MOCK_DB_PATH

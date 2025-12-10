@@ -1,6 +1,6 @@
 import pytest
 from tinydb import TinyDB
-from backend.engine import WorkflowEngine
+from backend.core.engine import WorkflowEngine
 from unittest.mock import MagicMock, patch
 
 @pytest.fixture
