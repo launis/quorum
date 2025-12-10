@@ -3,6 +3,10 @@ from backend.agents.base import BaseAgent
 from backend.models.state import WorkflowState
 from backend.models.domain import TuomioJaPisteet
 from pydantic import BaseModel
+import logging
+import json
+
+logger = logging.getLogger(__name__)
 
 class JudgeAgent(BaseAgent):
     """
@@ -18,7 +22,7 @@ class JudgeAgent(BaseAgent):
             "argumentaatio": state.step_3_logician.model_dump_json(indent=2) if state.step_3_logician else "N/A"
         }
         
-        import json
+
         
         # Get Example
         example_text = self.get_schema_example(TuomioJaPisteet)
@@ -73,7 +77,7 @@ class JudgeAgent(BaseAgent):
         try:
             state.step_8_judge = TuomioJaPisteet(**response_data)
         except Exception as e:
-            print(f"[JudgeAgent] State update failed: {e}")
+            logger.error(f"[JudgeAgent] State update failed: {e}")
             raise e
         return state
 
@@ -82,10 +86,10 @@ class JudgeAgent(BaseAgent):
         HOOK: calculate_final_scores
         Calculates averages and summary of the scores.
         """
-        print("[JudgeAgent] Running calculate_final_scores...")
+        logger.info("[JudgeAgent] Running calculate_final_scores...")
         
         if not state.step_8_judge or not state.step_8_judge.pisteet:
-            print("   [JudgeAgent] No scores to calculate.")
+            logger.warning("   [JudgeAgent] No scores to calculate.")
             return state
             
         try:
@@ -103,7 +107,7 @@ class JudgeAgent(BaseAgent):
             average = total / count
             
             summary = f"Total Score: {total}/{count*4} (Avg: {average:.2f})"
-            print(f"   {summary}")
+            logger.info(f"   {summary}")
             
             # We can store this in aux_data for reference, or update the model if schema allows.
             # The schema TuomioJaPisteet might not have 'calculated_avg'.
@@ -112,6 +116,6 @@ class JudgeAgent(BaseAgent):
             state.aux_data['calculated_average'] = average
             
         except Exception as e:
-            print(f"[JudgeAgent] Calculation failed: {e}")
+            logger.error(f"[JudgeAgent] Calculation failed: {e}")
             
         return state

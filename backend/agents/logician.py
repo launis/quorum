@@ -3,6 +3,9 @@ from backend.agents.base import BaseAgent
 from backend.models.state import WorkflowState
 from backend.models.domain import ArgumentaatioAnalyysi
 from pydantic import BaseModel
+import logging
+
+logger = logging.getLogger(__name__)
 
 class LogicianAgent(BaseAgent):
     """
@@ -76,6 +79,6 @@ class LogicianAgent(BaseAgent):
             validated_data = ArgumentaatioAnalyysi(**response_data)
             state.step_3_logician = validated_data
         except Exception as e:
-            print(f"[LogicianAgent] State update failed: {e}")
+            logger.error(f"[LogicianAgent] State update failed: {e}")
             raise e
         return state

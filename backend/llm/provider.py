@@ -254,9 +254,11 @@ class MockProvider(LLMProvider):
         
         if response_schema:
             try:
+                if isinstance(result, dict):
+                    return result
                 return json.loads(result)
-            except:
-                logger.warning("Mock provider returned non-JSON text when schema was requested. Returning empty dict.")
+            except Exception as e:
+                logger.warning(f"Mock provider returned non-JSON text when schema was requested: {e}. Returning empty dict.")
                 return {} 
         return result
 

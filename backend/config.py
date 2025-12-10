@@ -6,11 +6,11 @@ load_dotenv()
 
 # --- Mock Configuration ---
 # Set to True to use the Mock LLM Service (no API costs)
-USE_MOCK_LLM = os.getenv("USE_MOCK_LLM", "False").lower() == "true"
+USE_MOCK_LLM = os.getenv("USE_MOCK_LLM", "False").lower().strip() == "true"
 
 # Set to True to use the Mock Database (TinyDB)
 # Set to False to use the Real Database (Firebase - Future Implementation)
-USE_MOCK_DB = os.getenv("USE_MOCK_DB", "True").lower() == "true"
+USE_MOCK_DB = os.getenv("USE_MOCK_DB", "True").lower().strip() == "true"
 
 # --- API Keys ---
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
@@ -40,6 +40,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # DATA_DIR is now primarily for uploads and other assets, not DB files
 DATA_DIR = os.path.join(os.path.dirname(BASE_DIR), "data")
 DB_DIR = os.path.join(BASE_DIR, "database")
+SCRIPTS_DIR = os.path.join(os.path.dirname(BASE_DIR), "scripts")
 
 MOCK_DB_PATH = os.path.join(DB_DIR, "db_mock.json")
 # Production DB can stay in data or move. For now assuming it stays or I should move it?

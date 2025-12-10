@@ -201,15 +201,15 @@
       "viesti_hitl:lle": "Ei huomautettavaa."
     },
     "pisteet": {
-      "analyysi_ja_prosessi": {
+      "analyysi": {
         "arvosana": 3,
         "perustelu": "Hyvä."
       },
-      "arviointi_ja_argumentaatio": {
+      "arviointi": {
         "arvosana": 3,
         "perustelu": "Hyvä."
       },
-      "synteesi_ja_luovuus": {
+      "synteesi": {
         "arvosana": 3,
         "perustelu": "Hyvä."
       }
@@ -230,13 +230,10 @@
     "edellisen_vaiheen_validointi": "N/A",
     "semanttinen_tarkistussumma": "mock_hash",
     "executive_summary": "Tämä on automaattinen yhteenveto.",
-    "detailed_analysis": [
-      {
-        "title": "Osa 1",
-        "content": "Sisältö...",
-        "visualizations": []
-      }
-    ],
+    "analysis_strengths": "Vahvuudet...",
+    "analysis_weaknesses": "Heikkoudet...",
+    "analysis_opportunities": "Mahdollisuudet...",
+    "analysis_recommendations": "Suositukset...",
     "final_verdict": "Hyväksytty",
     "confidence_score": 0.95
   }

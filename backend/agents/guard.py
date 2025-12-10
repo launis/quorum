@@ -3,6 +3,9 @@ from backend.agents.base import BaseAgent
 from backend.models.state import WorkflowState
 from backend.models.domain import TaintedData, SecurityCheck, TaintedDataContent
 from pydantic import BaseModel
+import logging
+
+logger = logging.getLogger(__name__)
 
 class GuardAgent(BaseAgent):
     """
@@ -83,7 +86,7 @@ class GuardAgent(BaseAgent):
         """
 
     def _update_state(self, state: WorkflowState, response_data: Any) -> WorkflowState:
-        print(f"[GuardAgent] Updating state with response keys: {response_data.keys() if isinstance(response_data, dict) else 'Not a dict'}")
+        logger.info(f"[GuardAgent] Updating state with response keys: {response_data.keys() if isinstance(response_data, dict) else 'Not a dict'}")
         
         try:
             # Validate using Pydantic (double check, or cast dict to model)
@@ -119,22 +122,22 @@ class GuardAgent(BaseAgent):
                             detected.append(phrase)
                 
                 if detected:
-                    print(f"[GuardAgent] STRICT CHECK: Found banned phrases: {detected}")
+                    logger.warning(f"[GuardAgent] STRICT CHECK: Found banned phrases: {detected}")
                     validated_data.security_check.uhka_havaittu = True
                     validated_data.security_check.adversariaalinen_simulaatio_tulos += f"\n[SYSTEM ALERT] Banned phrases detected by strict filter: {', '.join(detected)}"
                     
             except Exception as e:
-                print(f"[GuardAgent] Banned phrase check failed: {e}")
+                logger.error(f"[GuardAgent] Banned phrase check failed: {e}")
             
             # Update the Blackboard
             state.step_1_guard = validated_data
             
             # Logic: If threat detected, we might want to flag execution (future feature)
             if validated_data.security_check.uhka_havaittu:
-                print("[GuardAgent] THREAT DETECTED! Marking state potentially unsafe.")
+                logger.warning("[GuardAgent] THREAT DETECTED! Marking state potentially unsafe.")
                 
         except Exception as e:
-            print(f"[GuardAgent] State update failed: {e}")
+            logger.error(f"[GuardAgent] State update failed: {e}")
             raise e
             
         return state
@@ -145,7 +148,7 @@ class GuardAgent(BaseAgent):
         Detects Base64 encoded PDFs in inputs and extracts text using PyMuPDF (fitz).
         Protocol: UI sends strings prefixed with "[BASE64:PDF]".
         """
-        print("[GuardAgent] Executing PDF Extraction Pre-Hook...")
+        logger.info("[GuardAgent] Executing PDF Extraction Pre-Hook...")
         import base64
         import fitz # PyMuPDF
 
@@ -161,7 +164,7 @@ class GuardAgent(BaseAgent):
         for field_name, content in input_fields.items():
             if content and content.startswith("[BASE64:PDF]"):
                 try:
-                    print(f"[GuardAgent] Detecting PDF payload in {field_name}...")
+                    logger.info(f"[GuardAgent] Detecting PDF payload in {field_name}...")
                     # Remove prefix
                     b64_str = content.replace("[BASE64:PDF]", "")
                     # Decode
@@ -173,12 +176,12 @@ class GuardAgent(BaseAgent):
                     for page in doc:
                         text += page.get_text()
                     
-                    print(f"[GuardAgent] Extracted {len(text)} characters from {field_name}.")
+                    logger.info(f"[GuardAgent] Extracted {len(text)} characters from {field_name}.")
                     updates[field_name] = text
                     
                 except Exception as e:
                     error_msg = f"[GuardAgent] PDF Extraction failed for {field_name}: {str(e)}"
-                    print(error_msg)
+                    logger.error(error_msg)
                     updates[field_name] = error_msg
         
         # Apply updates to state
@@ -195,7 +198,7 @@ class GuardAgent(BaseAgent):
         Scans inputs for banned phrases BEFORE the LLM sees them.
         If found, injects a system alert into the inputs to ensure the LLM flags it.
         """
-        print("[GuardAgent] Executing Python-based Banned Phrases Scan (Pre-Hook)...")
+        logger.info("[GuardAgent] Executing Python-based Banned Phrases Scan (Pre-Hook)...")
         
         from backend.config import DB_PATH
         from tinydb import TinyDB
@@ -222,7 +225,7 @@ class GuardAgent(BaseAgent):
             
             if detected:
                 distinct_phrases = list(set(detected))
-                print(f"[GuardAgent] PRE-HOOK: Found banned phrases: {distinct_phrases}")
+                logger.warning(f"[GuardAgent] PRE-HOOK: Found banned phrases: {distinct_phrases}")
                 
                 # INJECT WARNING into the product text so the LLM sees it clearly
                 injection = f"\n\n[SYSTEM SECURITY ALERT]: The following BANNED PHRASES were detected in the input via strict regex scan: {', '.join(distinct_phrases)}. You MUST reject this and flag 'uhka_havaittu' as True."
@@ -231,6 +234,6 @@ class GuardAgent(BaseAgent):
                 state.inputs.product_text += injection
                 
         except Exception as e:
-            print(f"[GuardAgent] Pre-hook scan failed: {e}")
+            logger.error(f"[GuardAgent] Pre-hook scan failed: {e}")
             
         return state

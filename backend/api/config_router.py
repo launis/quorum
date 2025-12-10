@@ -3,20 +3,20 @@ from tinydb import TinyDB, Query
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
 import os
+import json
+import re
+import inspect
 
 from backend.database.exporter import export_db_to_files
 from backend.database.seeder import seed_database
-from backend.config import DB_PATH, PROD_DB_PATH, MOCK_DB_PATH
+from backend.config import DB_PATH, PROD_DB_PATH, MOCK_DB_PATH, MODEL_STRATEGIES
 from backend.database.wrapper import get_db_client
-from backend.config import MODEL_STRATEGIES
+from backend.models import domain as schemas
 
 router = APIRouter(
     prefix="/config",
     tags=["Configuration"]
 )
-
-# Database Setup (Same as main.py)
-# BASE_DIR and DATA_DIR are no longer needed here if we import DB_PATH
 
 def get_db():
     return TinyDB(DB_PATH, encoding='utf-8')
@@ -44,6 +44,24 @@ class WorkflowUpdate(BaseModel):
     description: Optional[str] = None
     default_model_mapping: Optional[Dict[str, str]] = None
 
+class ComponentCreate(BaseModel):
+    id: str
+    name: str
+    type: str
+    content: str
+    description: Optional[str] = None
+    citation: Optional[str] = None
+    citation_full: Optional[str] = None
+    module: Optional[str] = "config"
+    component_class: Optional[str] = "ConfigComponent" 
+
+class WorkflowCreate(BaseModel):
+    id: str
+    name: str
+    sequence: List[str] = []
+    description: Optional[str] = None
+    default_model_mapping: Optional[Dict[str, str]] = {}
+
 # --- Endpoints ---
 
 @router.get("/components")
@@ -66,17 +84,6 @@ def get_component(comp_id: str):
         raise HTTPException(status_code=404, detail="Component not found")
     return res[0]
 
-class ComponentCreate(BaseModel):
-    id: str
-    name: str
-    type: str
-    content: str
-    description: Optional[str] = None
-    citation: Optional[str] = None
-    citation_full: Optional[str] = None
-    module: Optional[str] = "config"
-    component_class: Optional[str] = "ConfigComponent" # Renamed from 'class' to avoid keyword conflict
-
 @router.post("/components")
 def create_component(comp: ComponentCreate):
     """Create a new component."""
@@ -85,11 +92,7 @@ def create_component(comp: ComponentCreate):
     if table.search(Query().id == comp.id):
         raise HTTPException(status_code=400, detail="Component ID already exists")
     
-    # Dump model to dict, handling aliasing if needed (but here simple dict is fine)
     new_comp = comp.dict()
-    # Rename component_class back to class for storage if that's the convention, 
-    # but 'class' is a reserved keyword in Python so pydantic model uses component_class.
-    # Let's check how it's stored. The previous code used "class": "ConfigComponent".
     if 'component_class' in new_comp:
         new_comp['class'] = new_comp.pop('component_class')
         
@@ -117,7 +120,6 @@ def update_component(comp_id: str, update: ComponentUpdate):
     if update.citation_full:
         update_data["citation_full"] = update.citation_full
         
-    # Update by ID or Name
     table.update(update_data, (Component.id == comp_id) | (Component.name == comp_id))
     return {"status": "updated", "id": comp_id}
 
@@ -128,12 +130,10 @@ def delete_component(comp_id: str):
     table = db.table('components')
     Component = Query()
     
-    # Check existence
     exists = table.search((Component.id == comp_id) | (Component.name == comp_id))
     if not exists:
         raise HTTPException(status_code=404, detail="Component not found")
         
-    # Remove
     table.remove((Component.id == comp_id) | (Component.name == comp_id))
     return {"status": "deleted", "id": comp_id}
 
@@ -215,13 +215,6 @@ def update_workflow(wf_id: str, update: WorkflowUpdate):
     table.update(update_data, Workflow.id == wf_id)
     return {"status": "updated", "id": wf_id}
 
-class WorkflowCreate(BaseModel):
-    id: str
-    name: str
-    sequence: List[str] = []
-    description: Optional[str] = None
-    default_model_mapping: Optional[Dict[str, str]] = {}
-
 @router.post("/workflows")
 def create_workflow(workflow: WorkflowCreate):
     """Create a new workflow."""
@@ -233,9 +226,6 @@ def create_workflow(workflow: WorkflowCreate):
         raise HTTPException(status_code=400, detail="Workflow ID already exists")
         
     new_wf = workflow.dict()
-    # Ensure sequence is saved as 'sequence' (and maybe 'steps' for compat if needed, but let's stick to sequence)
-    # The engine looks for 'sequence' first.
-    
     table.insert(new_wf)
     return {"status": "created", "id": workflow.id}
 
@@ -271,8 +261,6 @@ def reset_from_seed():
 def deploy_mock_to_prod():
     """
     Deploys the current Mock environment configuration to the Production Database.
-    1. Exports current DB (Mock) to seed_data.json
-    2. Resets Production DB from seed_data.json
     """
     try:
         # 1. Export Mock DB to seed_data.json
@@ -289,8 +277,6 @@ def deploy_mock_to_prod():
 def deploy_prod_to_mock():
     """
     Deploys the current Production environment configuration to the Mock Database.
-    1. Exports current DB (Prod) to seed_data.json
-    2. Resets Mock DB from seed_data.json
     """
     try:
         # 1. Export Prod DB to seed_data.json
@@ -307,11 +293,7 @@ def deploy_prod_to_mock():
 def get_schemas():
     """
     Returns a dictionary of all available schemas and their examples.
-    Used for UI rendering and prompt expansion.
     """
-    import inspect
-    from backend.models import domain as schemas
-    
     schema_data = {}
     
     for name, obj in inspect.getmembers(schemas):
@@ -335,17 +317,13 @@ def get_schemas():
                 }
             except Exception as e:
                 print(f"Error processing schema {name}: {e}")
-                
+    return schema_data
+
 @router.get("/unified-prompts")
 def get_unified_prompts():
     """
     Generates the Unified Master View text with schema expansion.
     """
-    import json
-    import re
-    from backend.models import domain as schemas
-    import inspect
-
     # 1. Fetch Schemas
     schema_data = {}
     for name, obj in inspect.getmembers(schemas):
@@ -366,11 +344,8 @@ def get_unified_prompts():
     # 2. Define Expansion Logic
     def expand_content(text, schemas):
         if not text: return ""
-        
-        # Handle case where content is a list (e.g. from JSON import)
         if isinstance(text, list):
             text = "\n".join(str(x) for x in text)
-        # Ensure text is string
         if not isinstance(text, str):
             text = str(text)
         
@@ -409,7 +384,6 @@ def get_unified_prompts():
     
     for ctype in type_order:
         if ctype in grouped:
-            # Sort by ID
             comps = sorted(grouped[ctype], key=lambda x: str(x.get('id') or ''))
             for comp in comps:
                 unified_text += f"### {comp.get('id')} ({comp.get('type')})\n\n"
@@ -438,9 +412,6 @@ def get_model_registry():
     """
     db = get_db_client()
     table = db.table('system_config')
-    # Assuming Query is available or we scan
-    # AbstractTable.search might expect different things, but TinyDBClient expects TinyDB Query
-    # The wrapper's TinyDBTable.search takes a query.
     Config = Query()
     res = table.search(Config.type == 'model_registry')
     if res:
@@ -456,11 +427,7 @@ def update_model_registry(config: GlobalModelConfig):
     table = db.table('system_config')
     Config = Query()
     
-    import json
-    
     # Serialize to dict for TinyDB
-    # Pydantic v2 uses model_dump_json(), fallback to json() for v1
-    # We parse it back to dict to ensure all nested models are purely Python dicts
     if hasattr(config, 'model_dump_json'):
         raw_json = config.model_dump_json()
     else:

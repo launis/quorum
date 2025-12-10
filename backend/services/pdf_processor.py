@@ -1,7 +1,10 @@
 import fitz  # PyMuPDF
 import os
+import logging
 from typing import Dict, Any
 from backend.core.component import BaseComponent
+
+logger = logging.getLogger(__name__)
 
 class PDFProcessor(BaseComponent):
     """
@@ -18,6 +21,7 @@ class PDFProcessor(BaseComponent):
         Returns:
             Dict[str, Any]: Dictionary containing the extracted text.
         """
+        logger.info(f"Executing PDFProcessor for file: {file_path}")
         text = self.extract_text_from_pdf(file_path)
         return {"text": text}
 
@@ -36,14 +40,18 @@ class PDFProcessor(BaseComponent):
             Exception: If the file cannot be opened or processed.
         """
         if not os.path.exists(file_path):
+            logger.error(f"File not found: {file_path}")
             raise FileNotFoundError(f"File not found: {file_path}")
 
         try:
+            logger.debug(f"Opening PDF: {file_path}")
             doc = fitz.open(file_path)
             text = ""
             for page in doc:
                 text += page.get_text()
             
+            logger.info(f"Successfully extracted {len(text)} characters from PDF.")
             return text.strip()
         except Exception as e:
+            logger.error(f"Failed to process PDF {file_path}: {str(e)}", exc_info=True)
             raise Exception(f"Failed to process PDF {file_path}: {str(e)}")

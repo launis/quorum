@@ -4,6 +4,9 @@ from backend.core.component import BaseComponent
 from backend.models.state import WorkflowState
 from backend.llm.provider import LLMFactory, LLMProvider
 from pydantic import BaseModel
+import logging
+
+logger = logging.getLogger(__name__)
 
 class BaseAgent(BaseComponent):
     """
@@ -36,7 +39,7 @@ class BaseAgent(BaseComponent):
 =====================================================
 """
         except Exception as e:
-            print(f"[{self.__class__.__name__}] Warning: Failed to get example from schema {schema_class.__name__}: {e}")
+            logger.warning(f"[{self.__class__.__name__}] Failed to get example from schema {schema_class.__name__}: {e}")
         return ""
 
     async def execute(self, state: WorkflowState, system_instruction: Optional[str] = None) -> WorkflowState:
@@ -45,7 +48,7 @@ class BaseAgent(BaseComponent):
         Takes the entire WorkflowState, processes it, and returns the updated state.
         Now accepts an optional system_instruction override (for data-driven prompts).
         """
-        print(f"[{self.__class__.__name__}] Starting execution...")
+        logger.info(f"[{self.__class__.__name__}] Starting execution...")
         try:
             # 1. Construct Prompt (using state)
             user_prompt = self.construct_user_prompt(state)
@@ -68,11 +71,11 @@ class BaseAgent(BaseComponent):
             # 5. Update State
             updated_state = self._update_state(state, response_data)
             
-            print(f"[{self.__class__.__name__}] Execution completed.")
+            logger.info(f"[{self.__class__.__name__}] Execution completed.")
             return updated_state
 
         except Exception as e:
-            print(f"[{self.__class__.__name__}] Execution failed: {e}")
+            logger.error(f"[{self.__class__.__name__}] Execution failed: {e}", exc_info=True)
             raise e
 
     def construct_user_prompt(self, state: WorkflowState) -> str:

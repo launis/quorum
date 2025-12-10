@@ -9,30 +9,10 @@ BASE_DIR = os.path.dirname(__file__)
 DATA_DIR = os.path.join(BASE_DIR, '..', 'data')
 # DB_PATH imported from config
 SEED_DATA_PATH = os.path.join(DATA_DIR, 'seed_data.json')
-SEED_DATA_PATH = os.path.join(DATA_DIR, 'seed_data.json')
-FRAGMENTS_DIR = os.path.join(DATA_DIR, 'fragments')
-TEMPLATES_DIR = os.path.join(DATA_DIR, 'templates')
-
-# Template Mapping (mirroring seeder.py)
-TEMPLATE_MAP = {
-    "MASTER_INSTRUCTIONS": "master_instructions.j2",
-    "BARS_MATRIX": "bars_matrix.j2",
-    "PROMPT_GUARD": "prompt_guard.j2",
-    "PROMPT_ANALYST": "prompt_analyst.j2",
-    "PROMPT_LOGICIAN": "prompt_logician.j2",
-    "PROMPT_FALSIFIER": "prompt_falsifier.j2",
-    "PROMPT_CAUSAL": "prompt_causal.j2",
-    "PROMPT_PERFORMATIVITY": "prompt_performativity.j2",
-    "PROMPT_FACT_CHECKER": "prompt_fact_checker.j2",
-    "PROMPT_JUDGE": "prompt_judge.j2",
-    "PROMPT_XAI": "prompt_xai.j2"
-}
 
 def export_db_to_files(source_db_path=None):
     """
-    Exports the current state of the database back to the file system.
-    1. Components -> templates/*.j2 (WARNING: Overwrites dynamic templates with static content)
-    2. Workflows -> seed_data.json
+    Exports the current state of the database back to `seed_data.json`.
     """
     db_path_to_use = source_db_path if source_db_path else DB_PATH
     print(f"Starting export from DB ({db_path_to_use}) to files...")
@@ -41,22 +21,6 @@ def export_db_to_files(source_db_path=None):
     components_table = db.table('components')
     workflows_table = db.table('workflows')
     steps_table = db.table('steps')
-
-    # 1. Export Components to Templates
-    for comp in components_table.all():
-        comp_id = comp.get('id') or comp.get('name')
-        if comp_id in TEMPLATE_MAP:
-            template_filename = TEMPLATE_MAP[comp_id]
-            file_path = os.path.join(TEMPLATES_DIR, template_filename)
-            
-            content = comp.get('content', '')
-            
-            try:
-                with open(file_path, 'w', encoding='utf-8') as f:
-                    f.write(content)
-                print(f"Exported {comp_id} to {template_filename}")
-            except Exception as e:
-                print(f"Error exporting {comp_id}: {e}")
 
     # 2. Export Workflows and Steps to seed_data.json
     # We need to reconstruct the seed_data.json structure

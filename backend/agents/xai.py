@@ -1,9 +1,11 @@
 from typing import Any, Optional, Type
-import re
 from backend.agents.base import BaseAgent
 from backend.models.state import WorkflowState
 from backend.models.domain import XAIReport
 from pydantic import BaseModel
+import logging
+
+logger = logging.getLogger(__name__)
 
 class XAIReporterAgent(BaseAgent):
     """
@@ -63,6 +65,6 @@ class XAIReporterAgent(BaseAgent):
         try:
             state.step_9_reporter = XAIReport(**response_data)
         except Exception as e:
-            print(f"[XAIReporterAgent] State update failed: {e}")
+            logger.error(f"[XAIReporterAgent] State update failed: {e}")
             raise e
         return state

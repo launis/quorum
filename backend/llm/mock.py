@@ -1,8 +1,11 @@
 import json
 import random
+import logging
 import os
 from typing import Dict, Any, Optional
 from backend.config import get_mock_responses_path
+
+logger = logging.getLogger(__name__)
 
 class MockLLMService:
     """
@@ -16,21 +19,19 @@ class MockLLMService:
     def _load_mock_responses(self) -> Dict[str, Any]:
         """Loads mock responses from the JSON file."""
         if not os.path.exists(self.mock_data_path):
-            print(f"[MockLLM] Warning: Mock data file not found at {self.mock_data_path}. Using empty defaults.")
+            logger.warning(f"[MockLLM] Mock data file not found at {self.mock_data_path}. Using empty defaults.")
             return {}
         
         try:
             with open(self.mock_data_path, 'r', encoding='utf-8') as f:
                 return json.load(f)
         except Exception as e:
-            print(f"[MockLLM] Error loading mock data: {e}")
+            logger.error(f"[MockLLM] Error loading mock data: {e}")
             return {}
 
     def generate_content(self, prompt: str, system_instruction: str = None) -> str:
-        """
-        Generates a mock response based on the prompt content.
-        """
-        print(f"[MockLLM] Intercepted call. Prompt length: {len(prompt)}")
+
+        logger.info(f"[MockLLM] Intercepted call. Prompt length: {len(prompt)}")
         
         # 1. Determine which agent/step is calling based on prompt keywords
         with open("mock_debug.log", "a", encoding="utf-8") as f:
@@ -43,7 +44,7 @@ class MockLLMService:
         with open("mock_debug.log", "a", encoding="utf-8") as f:
             f.write(f"Identified Key: {key}\n")
             
-        print(f"\033[93m[MOCK RESPONSE] Generating response for: {key}\033[0m") # Yellow text for visibility
+        logger.info(f"[MOCK RESPONSE] Generating response for: {key}")
         
         # 2. Retrieve mock response
         response_template = self.mock_responses.get(key)
@@ -59,7 +60,7 @@ class MockLLMService:
             return str(response_template)
             
         # 3. Fallback: Generate generic valid JSON if possible
-        print(f"[MockLLM] No specific mock found for '{key}'. Returning generic fallback.")
+        logger.info(f"[MockLLM] No specific mock found for '{key}'. Returning generic fallback.")
         return self._generate_fallback(key)
 
     def _identify_prompt_type(self, prompt: str, system_instruction: str) -> str:
@@ -154,7 +155,6 @@ class MockLLMService:
         """
         Generates a minimal valid JSON response for the identified key, strictly matching backend/schemas.py.
         """
-        import json
         
         common_metadata = {
             "luontiaika": "2024-01-01T00:00:00Z",
@@ -315,9 +315,10 @@ class MockLLMService:
             data["metadata"]["vaihe"] = 9
             data.update({
                 "executive_summary": "Tämä on automaattinen yhteenveto.",
-                "detailed_analysis": [
-                    {"title": "Osa 1", "content": "Sisältö...", "visualizations": []}
-                ],
+                "analysis_strengths": "Vahvuudet...",
+                "analysis_weaknesses": "Heikkoudet...",
+                "analysis_opportunities": "Mahdollisuudet...",
+                "analysis_recommendations": "Suositukset...",
                 "final_verdict": "Hyväksytty",
                 "confidence_score": 0.95
             })

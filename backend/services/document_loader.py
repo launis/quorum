@@ -1,4 +1,3 @@
-import io
 import docx
 import PyPDF2
 import re

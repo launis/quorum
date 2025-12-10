@@ -1,0 +1,61 @@
+# Kognitiivinen Auditointiraportti
+
+**Luontiaika:** {{ report_content.timestamp if report_content.timestamp else "Ei tiedossa" }}
+**Luottamusaste:** {{ reliability_score }}
+
+---
+
+## 1. Yhteenveto
+{{ report_content.summary }}
+
+---
+
+## 2. Pisteytys (BARS 1-4)
+
+| Kategoria | Arvosana | Perustelu |
+| :--- | :---: | :--- |
+| **Analyysi ja Prosessi** | {{ report_content.scores.analysis.score }} | {{ report_content.scores.analysis.reasoning }} |
+| **Arviointi ja Argumentaatio** | {{ report_content.scores.evaluation.score }} | {{ report_content.scores.evaluation.reasoning }} |
+| **Synteesi ja Luovuus** | {{ report_content.scores.synthesis.score }} | {{ report_content.scores.synthesis.reasoning }} |
+
+---
+
+## 3. Kriittiset Havainnot ja Riske
+{% if report_content.critical_findings %}
+{% if report_content.critical_findings is string %}
+{{ report_content.critical_findings }}
+{% else %}
+{% for finding in report_content.critical_findings %}
+- **{{ finding.tyyppi if finding.tyyppi else "Havainto" }}:** {{ finding.kuvaus if finding.kuvaus else finding }}
+{% endfor %}
+{% endif %}
+{% else %}
+Ei merkittäviä kriittisiä havaintoja.
+{% endif %}
+
+---
+
+## 4. Eettiset Havainnot
+{% if report_content.ethical_issues %}
+{% for issue in report_content.ethical_issues %}
+- [{{ issue.vakavuus }}] {{ issue.kuvaus }}
+{% endfor %}
+{% else %}
+Ei eettisiä huomioita.
+{% endif %}
+
+---
+
+## 5. Auditointikysymykset (RFI)
+{% if report_content.audit_questions %}
+{% for q in report_content.audit_questions %}
+- **Kysymys:** {{ q.vaite }}
+  - *Tulos:* {{ q.verifiointi_tulos }}
+{% endfor %}
+{% else %}
+Ei avoimia kysymyksiä.
+{% endif %}
+
+---
+
+*{{ disclaimer }}*

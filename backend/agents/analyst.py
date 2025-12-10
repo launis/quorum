@@ -3,6 +3,9 @@ from backend.agents.base import BaseAgent
 from backend.models.state import WorkflowState
 from backend.models.domain import TodistusKartta
 from pydantic import BaseModel
+import logging
+
+logger = logging.getLogger(__name__)
 
 class AnalystAgent(BaseAgent):
     """
@@ -76,6 +79,6 @@ class AnalystAgent(BaseAgent):
             validated_data = TodistusKartta(**response_data)
             state.step_2_analyst = validated_data
         except Exception as e:
-            print(f"[AnalystAgent] State update failed: {e}")
+            logger.error(f"[AnalystAgent] State update failed: {e}")
             raise e
         return state

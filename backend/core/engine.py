@@ -4,6 +4,8 @@ from typing import Dict, Any, List, Optional
 from tinydb import TinyDB, Query
 
 from backend.models.state import WorkflowState, InputData
+from backend.config import INITIAL_MODEL
+from backend.agents.base import BaseAgent
 from backend.agents.guard import GuardAgent
 from backend.agents.analyst import AnalystAgent
 from backend.agents.logician import LogicianAgent
@@ -14,7 +16,6 @@ from backend.agents.critics import (
     PerformativityDetectorAgent
 )
 from backend.agents.judge import JudgeAgent
-from backend.agents.xai import XAIReporterAgent
 from backend.agents.xai import XAIReporterAgent
 
 class WorkflowEngine:
@@ -28,10 +29,6 @@ class WorkflowEngine:
         self.workflows_table = self.db.table('workflows')
         self.executions_table = self.db.table('executions')
         self.banned_phrases_table = self.db.table('banned_phrases')
-        
-        from backend.config import INITIAL_MODEL
-        
-        from backend.agents.base import BaseAgent
         
         # Initialize Agents (The Pipeline) - Fully Dynamic
         self.agents_map = {}

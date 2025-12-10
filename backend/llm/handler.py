@@ -1,16 +1,19 @@
+import os
+import logging
 from typing import List, Dict, Any, Optional
 from tinydb import Query
 from backend.database.wrapper import get_db_client
 from backend.config import GOOGLE_API_KEY, USE_MOCK_LLM
 from backend.llm.provider import LLMFactory
-import logging
+import google.generativeai as genai
+import openai
 
 logger = logging.getLogger(__name__)
 
 class LLMHandler:
     """
     Handles LLM model retrieval, configuration, and resolution.
-    NOW unified with the Agent's LLMFactory system.
+    Delegates actual generation to LLMFactory.
     """
     def __init__(self):
         self.db_client = get_db_client()
@@ -32,18 +35,16 @@ class LLMHandler:
         
         # 1. Fetch Google Models
         try:
-            import google.generativeai as genai
             if GOOGLE_API_KEY:
                 genai.configure(api_key=GOOGLE_API_KEY)
                 for m in genai.list_models():
                     if 'generateContent' in m.supported_generation_methods:
-                        models["google"].append(m.name)
+                        models["google"].append(m.name.replace("models/", ""))
         except Exception as e:
             models["google_error"] = str(e)
             
         # 2. Fetch OpenAI Models
         try:
-            import openai
             api_key = os.getenv("OPENAI_API_KEY")
             if api_key:
                 client = openai.OpenAI(api_key=api_key)

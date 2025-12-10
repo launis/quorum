@@ -2,12 +2,14 @@ from fastapi import APIRouter, HTTPException, BackgroundTasks
 import subprocess
 import os
 import sys
-from backend.config import BASE_DIR
-from backend.agents.base import BaseAgent
+import json
+from pydantic import BaseModel
+from tinydb import TinyDB, Query
+
+from backend.config import BASE_DIR, SCRIPTS_DIR, INITIAL_MODEL, DB_PATH
+from backend.llm.provider import LLMFactory
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
-
-SCRIPTS_DIR = os.path.join(os.path.dirname(BASE_DIR), "scripts")
 
 def run_script(script_name: str, args: list = []):
     """
@@ -93,7 +95,7 @@ def export_seed_data(background_tasks: BackgroundTasks):
     return {"status": "started", "message": "Seed data export started in background."}
 
 @router.post("/self-test")
-def run_self_test():
+async def run_self_test():
     """
     Runs a quick self-test of the LLM connection and Database.
     Returns a health report.
@@ -106,128 +108,39 @@ def run_self_test():
     
     # 1. Test LLM
     try:
-        agent = BaseAgent(model="gemini-1.5-flash")
-        response = agent._call_llm("Hello, reply with 'OK' if you can hear me.")
+        # Use LLMFactory to get a provider instance (respects MOCK settings)
+        provider = LLMFactory.create_provider(model_name="gemini-1.5-flash")
+        
+        response = await provider.generate(
+            prompt="Hello, reply with 'OK' if you can hear me.",
+            system_instruction="You are a health check bot. Reply briefly."
+        )
+        # Check if response is valid string or dict
         if response:
-            report["llm_status"] = "ok"
-            report["details"]["llm_response"] = response
+             report["llm_status"] = "ok"
+             report["details"]["llm_response"] = str(response)[:100]
         else:
-            report["llm_status"] = "failed"
-            report["details"]["llm_error"] = "Empty response"
+             report["llm_status"] = "empty_response"
+
     except Exception as e:
         report["llm_status"] = "error"
         report["details"]["llm_error"] = str(e)
-        
-    # 2. Test DB (Implicitly tested by API availability, but let's check write/read if needed)
-    # For now, just checking if we can read components
+
+    # 2. Test DB
     try:
-        from backend.main import engine
-        count = len(engine.components_table.all())
-        report["db_status"] = "ok"
-        report["details"]["component_count"] = count
+        if os.path.exists(DB_PATH):
+             db = TinyDB(DB_PATH)
+             # Basic read
+             len(db.table('workflows').all())
+             report["db_status"] = "ok"
+             report["details"]["db_path"] = DB_PATH
+        else:
+             report["db_status"] = "file_not_found"
+             report["details"]["db_path"] = DB_PATH
+             
     except Exception as e:
         report["db_status"] = "error"
         report["details"]["db_error"] = str(e)
-        
+
     return report
 
-# --- Banned Phrases Management ---
-from pydantic import BaseModel
-
-class BannedPhrase(BaseModel):
-    phrase: str
-    language: str = "fi" # 'fi' or 'en'
-
-@router.get("/banned-phrases")
-def get_banned_phrases():
-    from backend.main import engine
-    phrases = []
-    for doc in engine.banned_phrases_table.all():
-        item = doc.copy()
-        item['doc_id'] = doc.doc_id
-        phrases.append(item)
-    return phrases
-
-@router.post("/banned-phrases")
-def add_banned_phrase(phrase: BannedPhrase):
-    from backend.main import engine
-    from tinydb import Query
-    
-    # Check if exists
-    exists = engine.banned_phrases_table.search(Query().phrase == phrase.phrase)
-    if exists:
-        return {"status": "exists", "message": "Phrase already exists."}
-        
-    doc_id = engine.banned_phrases_table.insert(phrase.dict())
-    return {"status": "success", "id": doc_id, "phrase": phrase.phrase}
-
-@router.delete("/banned-phrases/{doc_id}")
-def delete_banned_phrase(doc_id: int):
-    from backend.main import engine
-    engine.banned_phrases_table.remove(doc_ids=[doc_id])
-    return {"status": "success", "message": "Phrase deleted."}
-
-# --- AI Generation ---
-class GeneratePhrasesRequest(BaseModel):
-    language: str = "fi"
-
-@router.post("/banned-phrases/generate")
-def generate_banned_phrases(req: GeneratePhrasesRequest):
-    from backend.main import engine
-    from backend.agents.base import BaseAgent
-    from backend.config import INITIAL_MODEL
-    import json
-    from tinydb import Query
-
-    # 1. Fetch existing
-    all_phrases = engine.banned_phrases_table.all()
-    existing_texts = [p['phrase'].lower() for p in all_phrases]
-    
-    # 2. Prompt LLM
-    agent = BaseAgent(model=INITIAL_MODEL)
-    
-    prompt = f"""
-    Generate 10 distinct banned phrases in {req.language} that are commonly used in prompt injection, jailbreaking, or harmful attempts against LLMs.
-    
-    Constraints:
-    - Do NOT include any of the following phrases: {json.dumps(existing_texts)}
-    - Return a JSON object with a single key "phrases" containing the list of strings.
-    - Example: {{"phrases": ["phrase 1", "phrase 2"]}}
-    """
-    
-    try:
-        response = agent.get_json_response(prompt)
-        
-        new_phrases = []
-        if isinstance(response, dict):
-            new_phrases = response.get("phrases", [])
-            # Fallback if it returns just the list or other keys
-            if not new_phrases:
-                 for key, val in response.items():
-                    if isinstance(val, list):
-                        new_phrases = val
-                        break
-        elif isinstance(response, list):
-            new_phrases = response
-        
-        added_count = 0
-        added_phrases = []
-        
-        for phrase in new_phrases:
-            if isinstance(phrase, str):
-                clean_phrase = phrase.strip()
-                if clean_phrase.lower() not in existing_texts:
-                    engine.banned_phrases_table.insert({"phrase": clean_phrase, "language": req.language})
-                    existing_texts.append(clean_phrase.lower())
-                    added_phrases.append(clean_phrase)
-                    added_count += 1
-        
-        return {
-            "status": "success", 
-            "added_count": added_count, 
-            "added_phrases": added_phrases,
-            "message": f"Successfully generated and added {added_count} new banned phrases."
-        }
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Generation failed: {str(e)}")

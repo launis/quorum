@@ -11,6 +11,9 @@ from backend.models.domain import (
     PerformatiivisuusAuditointi
 )
 from pydantic import BaseModel
+import logging
+
+logger = logging.getLogger(__name__)
 
 class LogicalFalsifierAgent(BaseAgent):
     """
@@ -78,7 +81,7 @@ class LogicalFalsifierAgent(BaseAgent):
         try:
             state.step_4_falsifier = LogiikkaAuditointi(**response_data)
         except Exception as e:
-            print(f"[LogicalFalsifierAgent] State update failed: {e}")
+            logger.error(f"[LogicalFalsifierAgent] State update failed: {e}")
             raise e
         return state
 
@@ -150,7 +153,7 @@ class FactualOverseerAgent(BaseAgent):
         try:
             state.step_5_overseer = EtiikkaJaFakta(**response_data)
         except Exception as e:
-            print(f"[FactualOverseerAgent] State update failed: {e}")
+            logger.error(f"[FactualOverseerAgent] State update failed: {e}")
             raise e
         return state
 
@@ -159,13 +162,13 @@ class FactualOverseerAgent(BaseAgent):
         HOOK: execute_google_search
         Executes Google Search based on hypotheses.
         """
-        print("[FactualOverseerAgent] Running execute_google_search...")
+        logger.info("[FactualOverseerAgent] Running execute_google_search...")
         
         api_key = os.getenv("GOOGLE_SEARCH_API_KEY")
         cx = os.getenv("GOOGLE_SEARCH_CX")
         
         if not api_key or not cx:
-            print("   [Warning] Missing GOOGLE_SEARCH_API_KEY or GOOGLE_SEARCH_CX")
+            logger.warning("[Warning] Missing GOOGLE_SEARCH_API_KEY or GOOGLE_SEARCH_CX")
             state.aux_data['google_search_results'] = "Search disabled (Missing API Keys)"
             return state
 
@@ -173,13 +176,13 @@ class FactualOverseerAgent(BaseAgent):
         
         # Extract queries from Hypotheses (Step 2 Analyst)
         if state.step_2_analyst and state.step_2_analyst.hypoteesit:
-            print(f"   [HOOK] Found {len(state.step_2_analyst.hypoteesit)} hypotheses.")
+            logger.info(f"   [HOOK] Found {len(state.step_2_analyst.hypoteesit)} hypotheses.")
             for hyp in state.step_2_analyst.hypoteesit:
                 if hyp.vaite_teksti:
                     q = hyp.vaite_teksti[:150]
                     queries.append(q)
         else:
-             print("   [HOOK] No hypotheses found. Using fallback.")
+             logger.info("   [HOOK] No hypotheses found. Using fallback.")
              queries.append("Cognitive Quorum verification")
 
         all_results = []
@@ -188,7 +191,7 @@ class FactualOverseerAgent(BaseAgent):
             
             # Limit to top 3 queries
             for i, query in enumerate(queries[:3]): 
-                print(f"   Query {i+1}: {query}")
+                logger.info(f"   Query {i+1}: {query}")
                 try:
                     res = service.cse().list(q=query, cx=cx, num=3).execute()
                     
@@ -200,12 +203,12 @@ class FactualOverseerAgent(BaseAgent):
                             "snippet": item.get('snippet')
                         })
                 except Exception as q_err:
-                    print(f"   Query '{query}' failed: {q_err}")
+                    logger.warning(f"   Query '{query}' failed: {q_err}")
                     
             state.aux_data['google_search_results'] = json.dumps(all_results, indent=2)
             
         except Exception as e:
-            print(f"   Search failed: {e}")
+            logger.error(f"   Search failed: {e}")
             state.aux_data['google_search_results'] = f"Search failed: {str(e)}"
 
         return state
@@ -268,7 +271,7 @@ class CausalAnalystAgent(BaseAgent):
         try:
             state.step_6_causal = KausaalinenAuditointi(**response_data)
         except Exception as e:
-            print(f"[CausalAnalystAgent] State update failed: {e}")
+            logger.error(f"[CausalAnalystAgent] State update failed: {e}")
             raise e
         return state
 
@@ -331,7 +334,7 @@ class PerformativityDetectorAgent(BaseAgent):
         try:
             state.step_7_detector = PerformatiivisuusAuditointi(**response_data)
         except Exception as e:
-            print(f"[PerformativityDetectorAgent] State update failed: {e}")
+            logger.error(f"[PerformativityDetectorAgent] State update failed: {e}")
             raise e
         return state
 
@@ -340,7 +343,7 @@ class PerformativityDetectorAgent(BaseAgent):
         HOOK: detect_performative_patterns
         Scans input for performative language patterns.
         """
-        print("[PerformativityDetectorAgent] Running detect_performative_patterns...")
+        logger.info("[PerformativityDetectorAgent] Running detect_performative_patterns...")
         
         suspect_patterns = [
             "delve into", "tapestry", "comprehensive overview", "rich history",
@@ -357,7 +360,7 @@ class PerformativityDetectorAgent(BaseAgent):
                 detected.append(pattern)
                 
         if detected:
-            print(f"   [HOOK] Detected patterns: {detected}")
+            logger.info(f"   [HOOK] Detected patterns: {detected}")
             state.aux_data['performative_patterns_detected'] = json.dumps(detected)
         else:
             state.aux_data['performative_patterns_detected'] = "[]"

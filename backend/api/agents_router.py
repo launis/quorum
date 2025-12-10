@@ -2,10 +2,10 @@ from fastapi import APIRouter, HTTPException, Body
 from typing import Dict, Any, Optional
 import importlib
 
-router = APIRouter(prefix="/agents", tags=["Agents"])
-
 from tinydb import TinyDB, Query
 from backend.config import DB_PATH
+
+router = APIRouter(prefix="/agents", tags=["Agents"])
 
 def _load_agent_class(agent_name: str):
     """
@@ -62,7 +62,8 @@ async def run_agent(
         agent = AgentClass(model=model)
         
         print(f"Executing agent {agent_name} via API...")
-        result = agent.execute(system_instruction=system_instruction, **inputs)
+        # Fixed: Added await since execute is async
+        result = await agent.execute(system_instruction=system_instruction, **inputs)
         return {"agent": agent_name, "result": result}
         
     except ValueError as e:

@@ -1,6 +1,9 @@
 from typing import Any, Dict
 from backend.agents.base import BaseAgent
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 class PanelAgent(BaseAgent):
     """
@@ -74,8 +77,9 @@ class PanelAgent(BaseAgent):
                      if clean_txt.endswith("```"):
                          clean_txt = clean_txt.rsplit("\n", 1)[0]
                 return json.loads(clean_txt)
-            except json.JSONDecodeError:
+            except json.JSONDecodeError as e:
                 # If parsing fails, return as error or raw text wrapped
+                logger.error(f"Failed to parse JSON response: {e}")
                 return {"error": "Failed to parse JSON", "raw_response": response}
         
         return response

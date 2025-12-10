@@ -11,7 +11,6 @@ from backend.core.engine import WorkflowEngine
 from backend.api.hooks_router import router as hooks_router
 from backend.api.tools_router import router as tools_router
 from backend.api.agents_router import router as agents_router
-from backend.api.templates_router import router as templates_router
 from backend.api.admin_router import router as admin_router
 from backend.api.llm_router import router as llm_router
 from backend.api.config_router import router as config_router
@@ -30,7 +29,6 @@ app = FastAPI(
 app.include_router(hooks_router)
 app.include_router(tools_router)
 app.include_router(agents_router)
-app.include_router(templates_router)
 app.include_router(admin_router)
 app.include_router(config_router)
 app.include_router(llm_router, prefix="/llm", tags=["LLM"])

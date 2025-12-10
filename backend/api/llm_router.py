@@ -1,10 +1,12 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
+from tinydb import Query
+
 from backend.agents.base import BaseAgent
 from backend.core.registry import DatabaseClient
 from backend.llm.handler import LLMHandler
-from tinydb import Query
+from backend.llm.provider import LLMFactory
 
 router = APIRouter()
 llm_handler = LLMHandler()
@@ -20,16 +22,19 @@ class SimpleAgent(BaseAgent):
     """
     A simple agent wrapper to access the BaseAgent's LLM calling capabilities.
     """
-    def _process(self, **kwargs):
-        pass
-    def construct_user_prompt(self, **kwargs):
-        pass
-    async def generate(self, prompt: str, model: str):
-        self.model = model
-        # Call the provider directly
+    def construct_user_prompt(self, state):
+        return ""
+        
+    def _update_state(self, state, response):
+        return state
+
+    async def generate_simple(self, prompt: str, system_instruction: str = "You are a helpful technical writer."):
+        """
+        Direct generation helper.
+        """
         return await self.llm_provider.generate(
             prompt=prompt,
-            system_instruction="You are a helpful technical writer.",
+            system_instruction=system_instruction,
             response_schema=None
         )
 
@@ -44,8 +49,9 @@ async def generate_text(request: LLMRequest):
             
         prompt_text = request.prompts[0]["parts"][0]
         
+        # Use SimpleAgent correctly
         agent = SimpleAgent(model=request.model)
-        response_text = await agent.generate(prompt_text, request.model)
+        response_text = await agent.generate_simple(prompt_text)
         
         return {"response": response_text}
     except Exception as e:
@@ -75,8 +81,6 @@ def update_model_config(update: ModelRegistryUpdate):
         db_client = DatabaseClient()
         table = db_client.get_table('system_config')
         
-        # Upsert the registry
-        # We search for type='model_registry'
         Config = Query()
         table.upsert(
             {
