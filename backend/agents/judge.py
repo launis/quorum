@@ -98,13 +98,17 @@ class JudgeAgent(BaseAgent):
             # Helper to safely get score
             def get_val(s): return s.arvosana if s else 0
             
-            val1 = get_val(p.analyysi)
-            val2 = get_val(p.arviointi)
-            val3 = get_val(p.synteesi)
+            total = 0
+            count = 0
             
-            total = val1 + val2 + val3
-            count = 3 # Fixed count for now
-            average = total / count
+            # Check each component dynamically
+            for comp in [p.analyysi, p.arviointi, p.synteesi]:
+                if comp and comp.arvosana is not None:
+                    total += comp.arvosana
+                    count += 1
+            
+            # Calculate average
+            average = (total / count) if count > 0 else 0.0
             
             summary = f"Total Score: {total}/{count*4} (Avg: {average:.2f})"
             logger.info(f"   {summary}")

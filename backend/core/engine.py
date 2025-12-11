@@ -2,21 +2,14 @@ import uuid
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 from tinydb import TinyDB, Query
+import pkgutil
+import importlib
+import inspect
+import backend.agents
 
 from backend.models.state import WorkflowState, InputData
 from backend.config import INITIAL_MODEL
 from backend.agents.base import BaseAgent
-from backend.agents.guard import GuardAgent
-from backend.agents.analyst import AnalystAgent
-from backend.agents.logician import LogicianAgent
-from backend.agents.critics import (
-    LogicalFalsifierAgent, 
-    FactualOverseerAgent, 
-    CausalAnalystAgent, 
-    PerformativityDetectorAgent
-)
-from backend.agents.judge import JudgeAgent
-from backend.agents.xai import XAIReporterAgent
 
 class WorkflowEngine:
     def __init__(self, db_path: str):
@@ -33,21 +26,29 @@ class WorkflowEngine:
         # Initialize Agents (The Pipeline) - Fully Dynamic
         self.agents_map = {}
         
-        # 1. Discover imported Agent classes from globals
-        # This allows us to just add an import at the top and it's auto-registered
-        current_globals = globals().copy()
-        for name, obj in current_globals.items():
-            if isinstance(obj, type) and issubclass(obj, BaseAgent) and obj is not BaseAgent:
-                try:
-                    self.agents_map[name] = obj(model=INITIAL_MODEL)
-                    print(f"[WorkflowEngine] Registered agent: {name}")
-                except Exception as e:
-                    print(f"[WorkflowEngine] Failed to initialize {name}: {e}")
+        # 1. Dynamically discover and register Agent classes from backend.agents package
+        print(f"[WorkflowEngine] Scanning for agents in {backend.agents.__name__}...")
         
-        #     "XAIReporterAgent": XAIReporterAgent(model=INITIAL_MODEL)
-        # }
-        
-        # Hardcoded pipeline list removed. We purely rely on DB "steps".
+        # Iterate over modules in the backend.agents package
+        for module_info in pkgutil.iter_modules(backend.agents.__path__):
+            module_name = f"backend.agents.{module_info.name}"
+            try:
+                module = importlib.import_module(module_name)
+                
+                # Scan for classes in the module
+                for name, obj in inspect.getmembers(module):
+                    if (inspect.isclass(obj) and 
+                        issubclass(obj, BaseAgent) and 
+                        obj is not BaseAgent):
+                        
+                        try:
+                            self.agents_map[name] = obj(model=INITIAL_MODEL)
+                            print(f"[WorkflowEngine] Registered agent: {name} (from {module_name})")
+                        except Exception as e:
+                            print(f"[WorkflowEngine] Failed to initialize {name}: {e}")
+                            
+            except Exception as e:
+                print(f"[WorkflowEngine] Failed to import module {module_name}: {e}")
 
     # --- LEGACY / MANAGEMENT METHODS (Required by main.py) ---
 

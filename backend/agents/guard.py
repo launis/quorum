@@ -31,13 +31,13 @@ class GuardAgent(BaseAgent):
         INPUT DATA TO VALIDATE:
         ---
         KESKUSTELUHISTORIA:
-        {inputs.history_text[:10000]}... [TRUNCATED FOR SECURITY CHECK]
+        {inputs.history_text}
         
         LOPPUTUOTE:
-        {inputs.product_text[:10000]}... [TRUNCATED FOR SECURITY CHECK]
+        {inputs.product_text}
         
         REFLEKTIODOKUMENTTI:
-        {inputs.reflection_text[:10000]}... [TRUNCATED FOR SECURITY CHECK]
+        {inputs.reflection_text}
         ---
         """
 

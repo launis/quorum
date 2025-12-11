@@ -1,5 +1,12 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from backend.agents.base import BaseAgent
+from backend.models.state import WorkflowState
+from backend.models.domain import (
+    LogiikkaAuditointi,
+    KausaalinenAuditointi,
+    PerformatiivisuusAuditointi,
+    EtiikkaJaFakta
+)
 import json
 import logging
 
@@ -11,14 +18,25 @@ class PanelAgent(BaseAgent):
     Executes multiple critical roles in a single LLM call to save tokens and time.
     """
     
-    def construct_user_prompt(self, **kwargs) -> str:
-        # Collect all relevant data for all potential critics
-        relevant_keys = [
-            'todistuskartta', 'argumentaatioanalyysi', 'data', 
-            'metodologinen_loki', 'google_search_results',
-            'history_text', 'product_text', 'reflection_text'
-        ]
-        input_data = {k: kwargs.get(k) for k in relevant_keys if k in kwargs}
+    def construct_user_prompt(self, state: WorkflowState) -> str:
+        # Collect all relevant data for all potential critics from the state
+        # Utilizing previous steps' outputs if available
+        input_data = {
+            "inputs": {
+                "history_text": state.inputs.history_text,
+                "product_text": state.inputs.product_text,
+                "reflection_text": state.inputs.reflection_text
+            }
+        }
+
+        # Add available intermediate results
+        if state.step_2_analyst:
+            input_data["todistuskartta"] = state.step_2_analyst.model_dump(mode='json')
+        if state.step_3_logician:
+            input_data["argumentaatioanalyysi"] = state.step_3_logician.model_dump(mode='json')
+            
+        # Add aux data if relevant (like search results)
+        google_search_results = state.aux_data.get('google_search_results', 'Ei hakutuloksia.')
         
         return f"""
         INPUT DATA FOR THE PANEL:
@@ -26,14 +44,15 @@ class PanelAgent(BaseAgent):
         {json.dumps(input_data, indent=2, ensure_ascii=False)}
         ---
         ULKOISEN FAKTANTARKISTUKSEN TULOKSET (jos saatavilla):
-        {kwargs.get('google_search_results', 'Ei hakutuloksia.')}
+        {google_search_results}
         ---
         """
 
-    async def execute(self, system_instruction: str = None, **kwargs) -> Dict[str, Any]:
-        user_content = self.construct_user_prompt(**kwargs)
+    async def execute(self, state: WorkflowState, system_instruction: str = None) -> WorkflowState:
+        # 1. Construct User Prompt
+        user_content = self.construct_user_prompt(state)
         
-        # Append the Meta-Instruction for JSON formatting
+        # 2. Append the Meta-Instruction for JSON formatting
         meta_instruction = """
         
         ### PANEL OUTPUT INSTRUCTION ###
@@ -44,15 +63,16 @@ class PanelAgent(BaseAgent):
         Return a SINGLE JSON object where the top-level keys correspond to the output of each role.
         Based on the instructions provided, you should include keys such as:
         - "logiikka_auditointi" (for Logical Falsifier)
+        - "etiikka_ja_fakta" (for Factual Overseer)
         - "kausaalinen_auditointi" (for Causal Analyst)
         - "performatiivisuus_auditointi" (for Performativity Detector)
-        - "etiikka_ja_fakta" (for Factual Overseer)
         
         Example:
         {
             "logiikka_auditointi": { ... },
+            "etiikka_ja_fakta": { ... },
             "kausaalinen_auditointi": { ... },
-            ...
+            "performatiivisuus_auditointi": { ... }
         }
         
         Ensure each sub-object strictly follows the schema defined in its respective instruction.
@@ -60,14 +80,17 @@ class PanelAgent(BaseAgent):
         
         full_system_instruction = (system_instruction or "") + meta_instruction
         
-        # Call LLM
+        # 3. Call LLM
+        # We do NOT pass a specific response_schema because the output is a composite dict 
+        # of multiple schemas. We rely on the prompt to enforce structure (or we could define a super-model).
         response = await self.llm_provider.generate(
             prompt=user_content,
             system_instruction=full_system_instruction,
-            response_schema=None
+            response_schema=None 
         )
         
-        # Parse JSON if response is a string
+        # 4. Parse JSON
+        parsed_data = {}
         if isinstance(response, str):
             try:
                 # Basic cleanup for markdown code blocks
@@ -76,10 +99,41 @@ class PanelAgent(BaseAgent):
                      clean_txt = clean_txt.split("\n", 1)[1]
                      if clean_txt.endswith("```"):
                          clean_txt = clean_txt.rsplit("\n", 1)[0]
-                return json.loads(clean_txt)
+                parsed_data = json.loads(clean_txt)
             except json.JSONDecodeError as e:
-                # If parsing fails, return as error or raw text wrapped
                 logger.error(f"Failed to parse JSON response: {e}")
-                return {"error": "Failed to parse JSON", "raw_response": response}
-        
-        return response
+                # Return state without updates if parsing fails
+                # Ideally, we might want to flag an error in state, but simpler for now.
+                return state
+        elif isinstance(response, dict):
+            parsed_data = response
+
+        # 5. Instantiate Pydantic models and update State
+        try:
+            if "logiikka_auditointi" in parsed_data:
+                state.step_4_falsifier = LogiikkaAuditointi(**parsed_data["logiikka_auditointi"])
+                logger.info("[PanelAgent] Updated step_4_falsifier")
+                
+            if "etiikka_ja_fakta" in parsed_data:
+                state.step_5_overseer = EtiikkaJaFakta(**parsed_data["etiikka_ja_fakta"])
+                logger.info("[PanelAgent] Updated step_5_overseer")
+                
+            if "kausaalinen_auditointi" in parsed_data:
+                state.step_6_causal = KausaalinenAuditointi(**parsed_data["kausaalinen_auditointi"])
+                logger.info("[PanelAgent] Updated step_6_causal")
+                
+            if "performatiivisuus_auditointi" in parsed_data:
+                state.step_7_detector = PerformatiivisuusAuditointi(**parsed_data["performatiivisuus_auditointi"])
+                logger.info("[PanelAgent] Updated step_7_detector")
+                
+        except Exception as e:
+             logger.error(f"[PanelAgent] Failed to instantiate Pydantic models from output: {e}")
+             # We allow partial updates if some succeed and others fail? 
+             # The try block wraps all, so first failure stops it. 
+             # This is acceptable for now.
+             
+        return state
+
+    def _update_state(self, state: WorkflowState, response_data: Any) -> WorkflowState:
+        # Not used since we override execute(), but implemented to satisfy BaseAgent contract if needed
+        return state

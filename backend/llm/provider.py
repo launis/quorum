@@ -171,21 +171,45 @@ class GoogleGeminiProvider(LLMProvider):
             text_response = response.text
             
             if response_schema:
-                try:
-                    return json.loads(text_response)
-                except json.JSONDecodeError as e:
-                    logger.error(f"Failed to parse JSON from Gemini: {e}")
-                    clean_text = text_response.replace("```json", "").replace("```", "").strip()
-                    try:
-                        return json.loads(clean_text)
-                    except:
-                        raise ValueError(f"Invalid JSON received from Gemini: {text_response[:100]}...")
+                return self._clean_json_response(text_response)
             
             return text_response
 
         except Exception as e:
             logger.error(f"[GeminiProvider] Error: {e}", exc_info=True)
             raise e
+
+    def _clean_json_response(self, raw_response: str) -> Dict[str, Any]:
+        """
+        Robustly parses JSON from LLM output, handling markdown blocks and conversational text.
+        """
+        
+        try:
+            # 1. Try direct parsing
+            return json.loads(raw_response)
+        except json.JSONDecodeError:
+            pass
+
+        # 2. Try removing markdown code blocks
+        clean_text = raw_response.replace("```json", "").replace("```", "").strip()
+        try:
+            return json.loads(clean_text)
+        except json.JSONDecodeError:
+            logger.warning(f"[GeminiProvider] Standard JSON cleaning failed. Attempting fallback regex extraction.")
+
+        # 3. Fallback: Find the first '{' and the last '}'
+        try:
+            start_index = raw_response.find('{')
+            end_index = raw_response.rfind('}')
+            
+            if start_index != -1 and end_index != -1 and end_index > start_index:
+                json_candidate = raw_response[start_index : end_index + 1]
+                return json.loads(json_candidate)
+        except json.JSONDecodeError as e:
+            logger.error(f"[GeminiProvider] Fallback extraction failed: {e}")
+            raise ValueError(f"Could not extract valid JSON from response: {raw_response[:200]}...")
+            
+        raise ValueError(f"Could not extract valid JSON from response: {raw_response[:200]}...")
 
 class OpenAIProvider(LLMProvider):
     def __init__(self, model_name: str = "gpt-4o", api_key: Optional[str] = None):
