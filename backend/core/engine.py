@@ -369,6 +369,37 @@ class WorkflowEngine:
                 for hook_name in post_hooks:
                     current_state = self._execute_hook(hook_name, agent, current_state)
 
+                # --- VALIDATION (Dynamic Output Schema) ---
+                output_config_id = step_doc.get('output_config_component')
+                if output_config_id:
+                    Component = Query()
+                    comp_record = self.components_table.search(Component.id == output_config_id)
+                    if comp_record:
+                        required_fields = comp_record[0].get('content', [])
+                        if isinstance(required_fields, list):
+                            # Get output from state
+                            state_key = step_doc.get('state_key')
+                            if state_key and hasattr(current_state, state_key):
+                                output_obj = getattr(current_state, state_key)
+                                if output_obj:
+                                    # Safe dump (BaseJSON allows extra)
+                                    output_data = output_obj.model_dump(mode='json')
+                                    missing_fields = []
+                                    for field in required_fields:
+                                        # Handle dot notation for nested fields? 
+                                        # Assuming standard top-level or handled by Pydantic alias, 
+                                        # but simplistic check:
+                                        if "." not in field:
+                                            if field not in output_data:
+                                                missing_fields.append(field)
+                                        # (Optional) Deep check for nested fields could go here
+                                    
+                                    if missing_fields:
+                                        error_msg = f"Validation Failed: Missing required fields in {agent_name} output: {missing_fields}"
+                                        logger.error(f"[WorkflowEngine] {error_msg}")
+                                        # Strict Mode: Raise Error
+                                        raise ValueError(error_msg)
+                
                 # Update DB with progress
                 self.executions_table.update({
                     'current_step': agent_name,

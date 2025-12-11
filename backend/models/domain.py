@@ -16,6 +16,8 @@ class BaseJSON(BaseModel):
     edellisen_vaiheen_validointi: str
     semanttinen_tarkistussumma: str
 
+    model_config = ConfigDict(extra='allow')
+
 # --- Step 1: Guard Agent ---
 
 class SecurityCheck(BaseModel):

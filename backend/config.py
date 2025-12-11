@@ -25,19 +25,23 @@ INITIAL_MODEL = os.getenv("INITIAL_MODEL", "gemini-2.5-flash")
 # --- LLM Settings ---
 LLM_DEFAULT_TIMEOUT = float(os.getenv("LLM_DEFAULT_TIMEOUT", "30.0"))
 LLM_MAX_RETRIES = int(os.getenv("LLM_MAX_RETRIES", "3"))
-LLM_RETRY_DELAY = float(os.getenv("LLM_RETRY_DELAY", "1.0"))
+LLM_RETRY_DELAY = float(os.getenv("LLM_RETRY_DELAY", "4.0"))
 
 # Model Strategies
 MODEL_STRATEGIES = {
     "fast": {
         "name": "⚡ Fast Mode",
         "description": "Optimized for speed and cost. Uses lighter models (e.g., Flash).",
-        "model": "gemini-2.0-flash-exp"
+        "model": "gemini-2.0-flash-exp",
+        "temperature": 0.0,
+        "max_tokens": 8192
     },
     "deep": {
         "name": "🧠 Deep Mode",
         "description": "Optimized for complex reasoning and quality. Uses deep thinking models.",
-        "model": "gemini-2.0-flash-thinking-exp-1219"
+        "model": "gemini-2.0-flash-thinking-exp-1219",
+        "temperature": 0.0,
+        "max_tokens": 8192
     }
 }
 

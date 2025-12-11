@@ -172,8 +172,32 @@ class GoogleGeminiProvider(LLMProvider):
             logger.debug("---------------------------")
 
             # ASYNC CHANGE: generate_content_async
-            response = await model.generate_content_async(prompt)
-            
+            try:
+                response = await model.generate_content_async(prompt)
+            except Exception as e:
+                # 429 Handling: If tenacity gave up, we catch it here.
+                # Check for resource exhaustion / 429
+                if "429" in str(e) or "ResourceExhausted" in str(e) or "quota" in str(e).lower():
+                    logger.warning(f"[GeminiProvider] 429/Quota Exhausted for {self.model_name}.")
+                    
+                    # FALLBACK STRATEGY
+                    fallback_model = "gemini-2.0-flash-exp" # Much cheaper/higher quota
+                    if self.model_name != fallback_model:
+                        logger.warning(f"[GeminiProvider] ⚠️ FALLING BACK to {fallback_model} to salvage request...")
+                        
+                        fallback_model_instance = genai.GenerativeModel(
+                            model_name=fallback_model,
+                            generation_config=generation_config,
+                            system_instruction=system_instruction
+                        )
+                        # One final attempt with fallback
+                        response = await fallback_model_instance.generate_content_async(prompt)
+                        logger.info(f"[GeminiProvider] Fallback to {fallback_model} SUCCESSFUL.")
+                    else:
+                        raise e # Already on fallback, nothing else to do
+                else:
+                    raise e
+
             if not response.parts:
                  finish_reason = response.candidates[0].finish_reason if response.candidates else 'Unknown'
                  msg = f"Gemini returned no content. Finish reason: {finish_reason}"

@@ -391,8 +391,10 @@ with tab2:
         deep_model = "gemini-2.0-flash-thinking-exp-1219"
         
         if strategies:
-            if "fast" in strategies: fast_model = strategies["fast"]["model"]
-            if "deep" in strategies: deep_model = strategies["deep"]["model"]
+            if "fast" in strategies: 
+                fast_model = strategies["fast"].get("model_name", strategies["fast"].get("model"))
+            if "deep" in strategies: 
+                deep_model = strategies["deep"].get("model_name", strategies["deep"].get("model"))
 
         if new_wf_steps:
             for step_id in new_wf_steps:
@@ -409,10 +411,16 @@ with tab2:
                 
                 if strategy_choice == "⚡ Fast Mode":
                     new_wf_mapping[step_id] = fast_model
-                    st.caption(f"Using: `{fast_model}`")
+                    f_temp = strategies.get("fast", {}).get("temperature", 0.7)
+                    f_tok = strategies.get("fast", {}).get("max_tokens", 8192)
+                    st.markdown(f"**Using:** `{fast_model}`")
+                    st.caption(f"Temp: `{f_temp}` | Max Tokens: `{f_tok}`")
                 else:
                     new_wf_mapping[step_id] = deep_model
-                    st.caption(f"Using: `{deep_model}`")
+                    d_temp = strategies.get("deep", {}).get("temperature", 0.7)
+                    d_tok = strategies.get("deep", {}).get("max_tokens", 8192)
+                    st.markdown(f"**Using:** `{deep_model}`")
+                    st.caption(f"Temp: `{d_temp}` | Max Tokens: `{d_tok}`")
                     
                 st.divider()
 
@@ -483,8 +491,10 @@ with tab2:
             deep_model = "gemini-2.0-flash-thinking-exp-1219"
             
             if strategies:
-                if "fast" in strategies: fast_model = strategies["fast"]["model"]
-                if "deep" in strategies: deep_model = strategies["deep"]["model"]
+                if "fast" in strategies: 
+                    fast_model = strategies["fast"].get("model_name", strategies["fast"].get("model"))
+                if "deep" in strategies: 
+                    deep_model = strategies["deep"].get("model_name", strategies["deep"].get("model"))
 
             if selected_steps:
                 for step_id in selected_steps:
@@ -513,10 +523,18 @@ with tab2:
                     
                     if strategy_choice == "⚡ Fast Mode":
                          new_mapping[step_id] = fast_model
-                         st.caption(f"Using: `{fast_model}`")
+                         
+                         f_temp = strategies.get("fast", {}).get("temperature", 0.7)
+                         f_tok = strategies.get("fast", {}).get("max_tokens", 8192)
+                         st.markdown(f"**Using:** `{fast_model}`")
+                         st.caption(f"Temp: `{f_temp}` | Max Tokens: `{f_tok}`")
+                        
                     else:
                          new_mapping[step_id] = deep_model
-                         st.caption(f"Using: `{deep_model}`")
+                         d_temp = strategies.get("deep", {}).get("temperature", 0.7)
+                         d_tok = strategies.get("deep", {}).get("max_tokens", 8192)
+                         st.markdown(f"**Using:** `{deep_model}`")
+                         st.caption(f"Temp: `{d_temp}` | Max Tokens: `{d_tok}`")
                     
                     st.divider()
 
@@ -524,12 +542,16 @@ with tab2:
                 st.info("Select steps to configure model mapping.")
 
             
+            # Show Effective Mapping
+            if new_mapping:
+                st.subheader("Effective Model Mapping (Live)")
+                st.caption("This is the configuration that will be saved.")
+                st.json(new_mapping)
+
             col_save, col_validate, col_delete = st.columns([1, 1, 1])
             
             with col_save:
                 if st.button("Save Workflow", key=f"save_wf_{selected_wf_id}"):
-                    # DEBUG
-                    st.write("DEBUG Saving:", new_mapping)
                     # No need to parse JSON anymore, we have the objects directly
                     update_workflow(selected_wf_id, selected_steps, edit_wf_desc, new_mapping)
             

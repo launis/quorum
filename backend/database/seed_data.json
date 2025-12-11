@@ -66,7 +66,8 @@
                 "analysis_opportunities",
                 "analysis_recommendations",
                 "metadata.luontiaika",
-                "metadata.versio"
+                "metadata.versio",
+                "test_dynamic_field"
             ]
         },
         {
@@ -121,7 +122,7 @@
             "id": "instruction_reporter",
             "type": "prompt",
             "name": "XAI Raportointi (Reporter)",
-            "content": "### ROOLI: RAPORTOIJA (XAI REPORTER) ###\nTehtäväsi on kääntää tekninen data ihmisluettavaksi raportiksi.\nTAVOITTEET:\n1. Kirjoita selkeä ja ytimekäs tiivistelmä johdolle.\n2. Korosta vahvuudet ja heikkoudet rakentavalla äänensävyllä.\n3. Anna konkreettisia toimenpidesuosituksia.\nKRIITTISET SÄÄNNÖT:\n- Älä käytä teknistä jargonia (JSON-kenttien nimiä) tekstissä."
+            "content": "### ROOLI: RAPORTOIJA (XAI REPORTER) ###\nTehtäväsi on kääntää tekninen data ihmisluettavaksi raportiksi.\nTAVOITTEET JA KENTÄT:\n1. Kirjoita selkeä ja ytimekäs tiivistelmä johdolle kenttään 'executive_summary'.\n2. Kirjaa lopullinen tuomio (sanallinen) kenttään 'final_verdict'.\n3. Määritä luottamuspisteet (0.0 - 1.0) kenttään 'confidence_score'.\n4. Listaa vahvuudet kenttään 'analysis_strengths'.\n5. Listaa heikkoudet kenttään 'analysis_weaknesses'.\n6. Listaa mahdollisuudet kenttään 'analysis_opportunities'.\n7. Kirjaa konkreettiset toimenpidesuositukset kenttään 'analysis_recommendations'.\n8. Kirjaa testiarvo kenttään 'test_dynamic_field'.\nKRIITTISET SÄÄNNÖT:\n- Varmista, että tekstisisältö (esim. summary) ei käytä teknistä jargonia, vaikka kentän nimi on tekninen."
         }
     ],
     "steps": [
@@ -343,15 +344,15 @@
                 "step_9"
             ],
             "default_model_mapping": {
-                "step_1": "gpt-4o",
-                "step_2": "gpt-4o",
-                "step_3": "gpt-4o",
-                "step_4": "gpt-4o",
-                "step_5": "gpt-4o",
-                "step_6": "gpt-4o",
-                "step_7": "gpt-4o",
-                "step_8": "gpt-4o",
-                "step_9": "gpt-4o"
+                "step_1": "gemini-2.0-flash-exp",
+                "step_2": "gemini-2.0-flash-exp",
+                "step_3": "gemini-2.0-flash-exp",
+                "step_4": "gemini-2.0-flash-exp",
+                "step_5": "gemini-2.0-flash-exp",
+                "step_6": "gemini-2.0-flash-exp",
+                "step_7": "gemini-2.0-flash-exp",
+                "step_8": "gemini-2.0-flash-exp",
+                "step_9": "gemini-2.0-flash-exp"
             }
         }
     ]

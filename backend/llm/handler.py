@@ -130,6 +130,7 @@ class LLMHandler:
         
         # Create Provider via Factory (Unified Logic)
         try:
+            logger.info(f"[LLM Execution] Strategy: {provider}/{mode} -> Model: {model_name} (Temp: {temperature}, MaxTokens: {max_tokens})")
             llm_provider = LLMFactory.create_provider(provider, model_name)
             
             response = await llm_provider.generate(

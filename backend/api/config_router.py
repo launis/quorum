@@ -451,7 +451,24 @@ def update_model_registry(config: GlobalModelConfig):
 def get_model_strategies():
     """
     Get the available model strategies (Fast vs Deep).
+    Prioritizes DB config 'model_registry' > 'google' provider.
+    Fallback to static MODEL_STRATEGIES.
     """
+    # 1. Try fetching from DB
+    try:
+        db = get_db_client()
+        table = db.table('system_config')
+        Config = Query()
+        res = table.search(Config.type == 'model_registry')
+        if res and 'models' in res[0]:
+            registry = res[0]['models']
+            # Default to google for now as it's the main provider
+            if 'google' in registry:
+                return registry['google']
+    except Exception as e:
+        logger.error(f"Error fetching strategies from DB: {e}")
+
+    # 2. Fallback to static
     return MODEL_STRATEGIES
 
 @router.get("/introspection")

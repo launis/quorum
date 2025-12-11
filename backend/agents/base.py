@@ -42,11 +42,12 @@ class BaseAgent(BaseComponent):
             logger.warning(f"[{self.__class__.__name__}] Failed to get example from schema {schema_class.__name__}: {e}")
         return ""
 
-    async def execute(self, state: WorkflowState, system_instruction: Optional[str] = None) -> WorkflowState:
+    async def execute(self, state: WorkflowState, system_instruction: Optional[str] = None, **kwargs) -> WorkflowState:
         """
         Standard execution entry point.
         Takes the entire WorkflowState, processes it, and returns the updated state.
         Now accepts an optional system_instruction override (for data-driven prompts).
+        Key Change: Accepts **kwargs to pass parameters like max_tokens to generate.
         """
         logger.info(f"[{self.__class__.__name__}] Starting execution...")
         try:
@@ -61,11 +62,23 @@ class BaseAgent(BaseComponent):
             # 3. Determine Output Schema (Subclasses must define this!)
             response_schema = self.get_response_schema()
 
+            # --- LOGGING EXECUTION CONFIG ---
+            # Extract config to show user exactly what is running
+            conf_model = self.model
+            conf_temp = kwargs.get('temperature', 'Default')
+            conf_tokens = kwargs.get('max_tokens', 'Default')
+            
+            logger.info(f"[{self.__class__.__name__}] >>> EXECUTION START <<<")
+            logger.info(f"[{self.__class__.__name__}] MODEL: {conf_model} | TEMP: {conf_temp} | TOKENS: {conf_tokens}")
+            # --------------------------------
+
             # 4. Call LLM (The "Mask" handles the details) — ASYNC WAIT
+            # Pass kwargs (e.g. max_tokens) here
             response_data = await self.llm_provider.generate(
                 prompt=user_prompt,
                 system_instruction=system_instruction,
-                response_schema=response_schema
+                response_schema=response_schema,
+                **kwargs
             )
 
             # 5. Update State
