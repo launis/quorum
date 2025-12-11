@@ -7,6 +7,9 @@ from backend.agents.base import BaseAgent
 from backend.core.registry import DatabaseClient
 from backend.llm.handler import LLMHandler
 from backend.llm.provider import LLMFactory
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 llm_handler = LLMHandler()
@@ -55,7 +58,7 @@ async def generate_text(request: LLMRequest):
         
         return {"response": response_text}
     except Exception as e:
-        print(f"LLM Generation Error: {e}")
+        logger.error(f"LLM Generation Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/available-models")

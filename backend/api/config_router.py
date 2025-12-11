@@ -12,6 +12,9 @@ from backend.database.seeder import seed_database
 from backend.config import DB_PATH, PROD_DB_PATH, MOCK_DB_PATH, MODEL_STRATEGIES
 from backend.database.wrapper import get_db_client
 from backend.models import domain as schemas
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/config",
@@ -316,7 +319,7 @@ def get_schemas():
                     "example": example
                 }
             except Exception as e:
-                print(f"Error processing schema {name}: {e}")
+                logger.error(f"Error processing schema {name}: {e}")
     return schema_data
 
 @router.get("/unified-prompts")
@@ -450,3 +453,47 @@ def get_model_strategies():
     Get the available model strategies (Fast vs Deep).
     """
     return MODEL_STRATEGIES
+
+@router.get("/introspection")
+def get_introspection():
+    """
+    Introspects the backend to return available Schemas, Hooks, and Agents.
+    """
+    # 1. Schemas
+    available_schemas = []
+    for name, obj in inspect.getmembers(schemas):
+        if inspect.isclass(obj) and issubclass(obj, schemas.BaseModel) and obj is not schemas.BaseModel:
+            available_schemas.append(name)
+            
+    # 2. Agents & Hooks
+    import backend.agents.guard as guard_agent
+    import backend.agents.analyst as analyst_agent
+    import backend.agents.logician as logician_agent
+    import backend.agents.critics as critics_agent
+    import backend.agents.judge as judge_agent
+    import backend.agents.xai as xai_agent
+    from backend.agents.base import BaseAgent
+    
+    agent_modules = [guard_agent, analyst_agent, logician_agent, critics_agent, judge_agent, xai_agent]
+    available_agents = []
+    available_hooks = set()
+    
+    for module in agent_modules:
+        for name, obj in inspect.getmembers(module):
+            if inspect.isclass(obj) and issubclass(obj, BaseAgent) and obj is not BaseAgent:
+                available_agents.append(name)
+                
+                # Inspect methods for hooks
+                for method_name, method in inspect.getmembers(obj):
+                    if inspect.isfunction(method) or inspect.ismethod(method):
+                        # Filter out dunder methods and private methods
+                        if not method_name.startswith('_'):
+                            # Filter out BaseAgent methods that aren't really hooks
+                            if method_name not in ['execute', 'get_response_schema', 'run', 'get_output_schema_name']:
+                                available_hooks.add(method_name)
+                                
+    return {
+        "schemas": sorted(available_schemas),
+        "agents": sorted(available_agents),
+        "hooks": sorted(list(available_hooks))
+    }

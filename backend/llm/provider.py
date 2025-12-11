@@ -158,6 +158,18 @@ class GoogleGeminiProvider(LLMProvider):
 
         try:
             logger.info(f"[GeminiProvider] Calling {self.model_name} (ASYNC)...")
+            
+            # LOGGING: Detailed Trace
+            logger.debug("--- LLM REQUEST TRACE ---")
+            logger.debug(f"COMMAND: {'Structured Output (JSON)' if response_schema else 'Standard Generation'}")
+            logger.debug(f"MODEL: {self.model_name}")
+            if system_instruction:
+                logger.debug(f"SYSTEM INSTRUCTION (First 200 chars): {system_instruction[:200]}...")
+            else:
+                logger.debug("SYSTEM INSTRUCTION: None")
+            
+            logger.debug(f"PROMPT (First 500 chars): {prompt[:500]}...")
+            logger.debug("---------------------------")
 
             # ASYNC CHANGE: generate_content_async
             response = await model.generate_content_async(prompt)
@@ -234,6 +246,18 @@ class OpenAIProvider(LLMProvider):
 
         try:
             logger.info(f"[OpenAIProvider] Calling {self.model_name} (ASYNC)...")
+
+            # LOGGING: Detailed Trace
+            logger.debug("--- LLM REQUEST TRACE ---")
+            logger.debug(f"COMMAND: {'Structured Output (JSON)' if response_schema else 'Standard Generation'}")
+            logger.debug(f"MODEL: {self.model_name}")
+            if system_instruction:
+                logger.debug(f"SYSTEM INSTRUCTION (First 200 chars): {system_instruction[:200]}...")
+            else:
+                logger.debug("SYSTEM INSTRUCTION: None")
+            
+            logger.debug(f"PROMPT (First 500 chars): {prompt[:500]}...")
+            logger.debug("---------------------------")
             
             if response_schema:
                 logger.info(f"[OpenAIProvider] Enforcing schema: {response_schema.__name__} (Structured Outputs)")

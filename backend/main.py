@@ -44,39 +44,46 @@ async def add_no_cache_header(request, call_next):
 @app.on_event("startup")
 async def startup_event():
     from datetime import datetime
-    print("\n" + "="*50)
-    print(f"   Cognitive Quorum Backend v0.2.0")
-    print(f"   Startup Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print("="*50)
+    from backend.logging_config import setup_logging
+    import logging
+    
+    # Initialize Logging
+    setup_logging(log_level=logging.DEBUG) # Set to DEBUG for detailed traces
+    logger = logging.getLogger("backend.main")
+    
+    logger.info("="*50)
+    logger.info(f"   Cognitive Quorum Backend v0.2.0")
+    logger.info(f"   Startup Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info("="*50)
     
     # DB Path
-    print(f"   [CONFIG] Database Path: {os.path.abspath(DB_PATH)}")
+    logger.info(f"   [CONFIG] Database Path: {os.path.abspath(DB_PATH)}")
     
     # LLM Config
     llm_model = os.getenv("GEMINI_MODEL", "Not Set (Using Default)")
     from backend.config import USE_MOCK_LLM
-    print(f"   [CONFIG] LLM Model: {llm_model}")
+    logger.info(f"   [CONFIG] LLM Model: {llm_model}")
     
     if USE_MOCK_LLM:
-        print("\n" + "!"*50)
-        print("   [INFO] OPERATING IN MOCK LLM MODE")
-        print("   [INFO] No external API calls will be made.")
-        print("!"*50 + "\n")
+        logger.warning("!"*50)
+        logger.warning("   [INFO] OPERATING IN MOCK LLM MODE")
+        logger.warning("   [INFO] No external API calls will be made.")
+        logger.warning("!"*50)
     else:
-        print("\n" + "="*50)
-        print("   [INFO] OPERATING IN REAL LLM MODE")
-        print("   [INFO] External API calls WILL be made.")
-        print("="*50 + "\n")
+        logger.info("="*50)
+        logger.info("   [INFO] OPERATING IN REAL LLM MODE")
+        logger.info("   [INFO] External API calls WILL be made.")
+        logger.info("="*50)
     
     # Google Search Config
     search_key = os.getenv("GOOGLE_SEARCH_API_KEY")
     search_cx = os.getenv("GOOGLE_SEARCH_CX")
     if search_key and search_cx:
-        print(f"   [CONFIG] Google Search: ENABLED (Key: ...{search_key[-4:]})")
+        logger.info(f"   [CONFIG] Google Search: ENABLED (Key: ...{search_key[-4:]})")
     else:
-        print(f"   [CONFIG] Google Search: DISABLED (Missing Key or CX)")
+        logger.info(f"   [CONFIG] Google Search: DISABLED (Missing Key or CX)")
         
-    print("="*50 + "\n")
+    logger.info("="*50)
 
 # Database setup
 # Robust path resolution for DB

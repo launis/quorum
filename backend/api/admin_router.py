@@ -8,6 +8,9 @@ from tinydb import TinyDB, Query
 
 from backend.config import BASE_DIR, SCRIPTS_DIR, INITIAL_MODEL, DB_PATH
 from backend.llm.provider import LLMFactory
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -34,11 +37,11 @@ def update_documentation(background_tasks: BackgroundTasks, ai_enhanced: bool = 
         args = ["--ai"] if ai_enhanced else []
         try:
             res = run_script("update_docs.py", args)
-            print(f"Docs Update Output: {res.stdout}")
+            logger.info(f"Docs Update Output: {res.stdout}")
             if res.returncode != 0:
-                print(f"Docs Update Error: {res.stderr}")
+                logger.error(f"Docs Update Error: {res.stderr}")
         except Exception as e:
-            print(f"Docs Update Failed: {e}")
+            logger.error(f"Docs Update Failed: {e}")
 
     background_tasks.add_task(_run_update)
     return {"status": "started", "message": "Documentation update started in background."}
@@ -51,11 +54,11 @@ def import_rules(background_tasks: BackgroundTasks):
     def _run_import():
         try:
             res = run_script("import_rules.py")
-            print(f"Rules Import Output: {res.stdout}")
+            logger.info(f"Rules Import Output: {res.stdout}")
             if res.returncode != 0:
-                print(f"Rules Import Error: {res.stderr}")
+                logger.error(f"Rules Import Error: {res.stderr}")
         except Exception as e:
-            print(f"Rules Import Failed: {e}")
+            logger.error(f"Rules Import Failed: {e}")
 
     background_tasks.add_task(_run_import)
     return {"status": "started", "message": "Rules import started in background."}
@@ -68,11 +71,11 @@ def import_references(background_tasks: BackgroundTasks):
     def _run_import():
         try:
             res = run_script("import_references.py")
-            print(f"References Import Output: {res.stdout}")
+            logger.info(f"References Import Output: {res.stdout}")
             if res.returncode != 0:
-                print(f"References Import Error: {res.stderr}")
+                logger.error(f"References Import Error: {res.stderr}")
         except Exception as e:
-            print(f"References Import Failed: {e}")
+            logger.error(f"References Import Failed: {e}")
 
     background_tasks.add_task(_run_import)
     return {"status": "started", "message": "References import started in background."}
@@ -85,11 +88,11 @@ def export_seed_data(background_tasks: BackgroundTasks):
     def _run_export():
         try:
             res = run_script("update_seed_data.py")
-            print(f"Seed Data Export Output: {res.stdout}")
+            logger.info(f"Seed Data Export Output: {res.stdout}")
             if res.returncode != 0:
-                print(f"Seed Data Export Error: {res.stderr}")
+                logger.error(f"Seed Data Export Error: {res.stderr}")
         except Exception as e:
-            print(f"Seed Data Export Failed: {e}")
+            logger.error(f"Seed Data Export Failed: {e}")
 
     background_tasks.add_task(_run_export)
     return {"status": "started", "message": "Seed data export started in background."}

@@ -50,3 +50,34 @@ class WorkflowState(BaseModel):
 
     # Apumuuttujat (esim. hakutulokset, jotka eivät ole skeemassa)
     aux_data: Dict[str, Any] = Field(default_factory=dict)
+
+    def get_previous_outputs_summary(self) -> str:
+        """
+        Kerää yhteenvedon aiempien vaiheiden tuloksista.
+        """
+        summary = []
+        steps = [
+            ("Vartija", self.step_1_guard),
+            ("Analyytikko", self.step_2_analyst),
+            ("Loogikko", self.step_3_logician),
+            ("Falsifioija", self.step_4_falsifier),
+            ("Valvoja", self.step_5_overseer),
+            ("Kausaalinen", self.step_6_causal),
+            ("Tunnistaja", self.step_7_detector),
+            ("Tuomari", self.step_8_judge)
+        ]
+        
+        for name, data in steps:
+            if data:
+                # Use model_dump_json() for Pydantic v2 or json() for v1
+                # formatting for readability
+                try:
+                    content = data.model_dump_json(indent=2)
+                except AttributeError:
+                    content = str(data)
+                summary.append(f"--- {name} ---\n{content}\n")
+        
+        if not summary:
+            return "(Ei aiempia tuloksia)"
+            
+        return "\n".join(summary)

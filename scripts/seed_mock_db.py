@@ -19,7 +19,8 @@ def seed_mock_db():
     engine = WorkflowEngine(get_db_path())
     print(f"Target DB Path: {engine.db_path}")
     
-    seed_file = os.path.join(DATA_DIR, "seed_data.json")
+    # seed_file path adjusted to where we know it is
+    seed_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "backend", "database", "seed_data.json")
     if not os.path.exists(seed_file):
         print(f"Error: Seed file not found at {seed_file}")
         return

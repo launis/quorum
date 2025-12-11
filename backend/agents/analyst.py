@@ -15,64 +15,8 @@ class AnalystAgent(BaseAgent):
     2. Creating an 'Evidence Map' (Todistuskartta)
     """
 
-    def construct_user_prompt(self, state: WorkflowState) -> str:
-        inputs = state.inputs
-        
-        # Get Example
-        example_text = self.get_schema_example(TodistusKartta)
-
-        # We need the full text for analysis
-        return f"""
-        TASK: Analyze the input data and create an Evidence Map.
-
-        {example_text}
-
-        INPUT DATA FOR ANALYSIS:
-        ---
-        KESKUSTELUHISTORIA:
-        {inputs.history_text}
-        
-        LOPPUTUOTE:
-        {inputs.product_text}
-        
-        REFLEKTIODOKUMENTTI:
-        {inputs.reflection_text}
-        ---
-        """
-
-    def get_user_prompt_template(self) -> str:
-        example_text = self.get_schema_example(TodistusKartta)
-        return f"""
-        TASK: Analyze the input data and create an Evidence Map.
-
-        {example_text}
-
-        INPUT DATA FOR ANALYSIS:
-        ---
-        KESKUSTELUHISTORIA:
-        {{{{HISTORY_TEXT}}}}
-        
-        LOPPUTUOTE:
-        {{{{PRODUCT_TEXT}}}}
-        
-        REFLEKTIODOKUMENTTI:
-        {{{{REFLECTION_TEXT}}}}
-        ---
-        """
-
     def get_response_schema(self) -> Optional[Type[BaseModel]]:
         return TodistusKartta
-
-    def get_system_instruction(self) -> str:
-        return """
-        You are the Analyst Agent. Your task is to analyze the input data and create an Evidence Map (Todistuskartta).
-        
-        1. Identify key claims or hypotheses about the student's work.
-        2. Find concrete evidence (quotes) from the input texts to support or refute these claims.
-        3. Assign a relevance score (1-10) to each piece of evidence.
-        
-        Output must be a valid JSON object matching the TodistusKartta schema.
-        """
 
     def _update_state(self, state: WorkflowState, response_data: Any) -> WorkflowState:
         try:

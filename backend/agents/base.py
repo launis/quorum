@@ -50,13 +50,13 @@ class BaseAgent(BaseComponent):
         """
         logger.info(f"[{self.__class__.__name__}] Starting execution...")
         try:
-            # 1. Construct Prompt (using state)
-            user_prompt = self.construct_user_prompt(state)
+            # 1. Use Generic User Prompt (The System Instruction carries the context)
+            user_prompt = "Proceed with your task according to the system instructions."
             
             # 2. Get System Instruction
-            # If not provided by engine, use the class default
             if not system_instruction:
-                system_instruction = self.get_system_instruction()
+                # Fallback if engine didn't provide it (should not happen in new flow)
+                system_instruction = "You are a helpful AI assistant."
 
             # 3. Determine Output Schema (Subclasses must define this!)
             response_schema = self.get_response_schema()
@@ -80,9 +80,9 @@ class BaseAgent(BaseComponent):
 
     def construct_user_prompt(self, state: WorkflowState) -> str:
         """
-        Constructs the prompt based on the current state.
+        Deprecated: User prompts are now generic.
         """
-        raise NotImplementedError("Subclasses must implement construct_user_prompt(state)")
+        return "Proceed with your task."
 
     def _update_state(self, state: WorkflowState, response_data: Any) -> WorkflowState:
         """
@@ -111,6 +111,6 @@ class BaseAgent(BaseComponent):
         Returns a string representation of the user prompt template for UI preview.
         Subclasses should override this to show their specific template structure.
         """
-        return "User Prompt Template not defined for this Agent."
+        return "Proceed with your task according to the system instructions."
 
 

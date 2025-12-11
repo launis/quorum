@@ -10,6 +10,9 @@ import backend.agents
 from backend.models.state import WorkflowState, InputData
 from backend.config import INITIAL_MODEL
 from backend.agents.base import BaseAgent
+import logging
+
+logger = logging.getLogger(__name__)
 
 class WorkflowEngine:
     def __init__(self, db_path: str):
@@ -27,7 +30,7 @@ class WorkflowEngine:
         self.agents_map = {}
         
         # 1. Dynamically discover and register Agent classes from backend.agents package
-        print(f"[WorkflowEngine] Scanning for agents in {backend.agents.__name__}...")
+        logger.info(f"[WorkflowEngine] Scanning for agents in {backend.agents.__name__}...")
         
         # Iterate over modules in the backend.agents package
         for module_info in pkgutil.iter_modules(backend.agents.__path__):
@@ -43,9 +46,9 @@ class WorkflowEngine:
                         
                         try:
                             self.agents_map[name] = obj(model=INITIAL_MODEL)
-                            print(f"[WorkflowEngine] Registered agent: {name} (from {module_name})")
+                            logger.info(f"[WorkflowEngine] Registered agent: {name} (from {module_name})")
                         except Exception as e:
-                            print(f"[WorkflowEngine] Failed to initialize {name}: {e}")
+                            logger.error(f"[WorkflowEngine] Failed to initialize {name}: {e}")
                             
             except Exception as e:
                 print(f"[WorkflowEngine] Failed to import module {module_name}: {e}")
@@ -169,11 +172,11 @@ class WorkflowEngine:
         except Exception as e:
             return f"Error generating chain preview: {str(e)}"
 
-    def _construct_prompt_for_step(self, step_id: str) -> str:
+    def _construct_prompt_for_step(self, step_id: str, current_state: Optional[WorkflowState] = None) -> str:
         """
         Fetches the step configuration and constructs the full system prompt
         by concatenating the content of all referenced prompt components.
-        Also inspects for placeholders like {{BANNED_PHRASES}}.
+        Also inspects for placeholders like {{BANNED_PHRASES}} and state variables.
         """
         try:
             Step = Query()
@@ -196,7 +199,14 @@ class WorkflowEngine:
                 if comp:
                     content = comp[0].get('content', '')
                     if content:
-                        # Check/Replace BANNED_PHRASES
+                        # Ensure content is string
+                        if isinstance(content, list):
+                            content = "\n".join(str(x) for x in content)
+                        elif isinstance(content, dict):
+                            import json
+                            content = json.dumps(content, indent=2, ensure_ascii=False)
+                        
+                        # 1. Check/Replace BANNED_PHRASES
                         if "{{BANNED_PHRASES}}" in content:
                             if not banned_phrases_list:
                                 banned_phrases_list = [p['phrase'] for p in self.banned_phrases_table.all()]
@@ -204,17 +214,73 @@ class WorkflowEngine:
                             phrases_str = ", ".join([f'"{p}"' for p in banned_phrases_list]) if banned_phrases_list else "NONE"
                             content = content.replace("{{BANNED_PHRASES}}", phrases_str)
                             
-                        # Check/Replace CURRENT_DATE
+                        # 2. Check/Replace CURRENT_DATE
                         if "{{CURRENT_DATE}}" in content:
                             from datetime import datetime
                             now_str = datetime.now().strftime("%d.%m.%Y")
                             content = content.replace("{{CURRENT_DATE}}", now_str)
+
+                        # 3. Inject State Variables (if state is provided)
+                        if current_state:
+                            if "{{CURRENT_STEP_NAME}}" in content:
+                                content = content.replace("{{CURRENT_STEP_NAME}}", current_state.current_step_name)
+                            if "{{HISTORY_TEXT}}" in content:
+                                content = content.replace("{{HISTORY_TEXT}}", current_state.inputs.history_text)
+                            if "{{PRODUCT_TEXT}}" in content:
+                                content = content.replace("{{PRODUCT_TEXT}}", current_state.inputs.product_text)
+                            if "{{REFLECTION_TEXT}}" in content:
+                                content = content.replace("{{REFLECTION_TEXT}}", current_state.inputs.reflection_text)
+                            if "{{PREVIOUS_STEP_OUTPUTS}}" in content:
+                                content = content.replace("{{PREVIOUS_STEP_OUTPUTS}}", current_state.get_previous_outputs_summary())
+                        
+                        # 4. Inject Schema Example
+                        if "{{SCHEMA_EXAMPLE}}" in content:
+                            agent_name = step_data.get('component')
+                            schema_example = "{}"
+                            if agent_name and agent_name in self.agents_map:
+                                agent_instance = self.agents_map[agent_name]
+                                try:
+                                    # Try to get example from schema
+                                    if hasattr(agent_instance, 'get_response_schema'):
+                                        schema_class = agent_instance.get_response_schema()
+                                        # Check for json_schema_extra example
+                                        if hasattr(schema_class, 'Config') and hasattr(schema_class.Config, 'json_schema_extra'):
+                                            examples = schema_class.Config.json_schema_extra.get('examples')
+                                            if examples:
+                                                import json
+                                                schema_example = json.dumps(examples[0], indent=2, ensure_ascii=False)
+                                            else:
+                                                 schema_example = schema_class.schema_json(indent=2)
+                                        elif hasattr(schema_class, 'model_json_schema'): # Pydantic v2
+                                            schema_json = schema_class.model_json_schema()
+                                            if 'examples' in schema_json:
+                                                 import json
+                                                 schema_example = json.dumps(schema_json['examples'][0], indent=2, ensure_ascii=False)
+                                            else:
+                                                 schema_example = schema_class.model_json_schema()
+                                        else:
+                                            # Fallback to simple schema dumping
+                                            try:
+                                                schema_example = schema_class.schema_json(indent=2)
+                                            except:
+                                                schema_example = schema_class.model_json_schema() # Pydantic v2 fallback
+                                    else:
+                                        schema_example = "Error: Agent does not expose get_response_schema()"
+                                except Exception as e:
+                                    schema_example = f"Error generating schema example: {str(e)}"
+                            
+                            content = content.replace("{{SCHEMA_EXAMPLE}}", str(schema_example))
                             
                         full_prompt_parts.append(content)
             
+            # LOGGING: Trace constructed prompt (truncated)
+            logger.debug(f"[WorkflowEngine] Constructed PROMPT for {step_id} (Length: {len(full_prompt_parts)} parts)")
+            for i, part in enumerate(full_prompt_parts):
+                logger.debug(f"   [PART {i+1}] {part[:100]}...")
+
             return "\n\n".join(full_prompt_parts)
         except Exception as e:
-            print(f"[WorkflowEngine] Error constructing prompt for step {step_id}: {e}")
+            logger.error(f"[WorkflowEngine] Error constructing prompt for step {step_id}: {e}")
             return ""
 
     # --- CORE EXECUTION LOGIC (V2) ---
@@ -223,7 +289,7 @@ class WorkflowEngine:
         """
         Runs the full workflow using the new State-based architecture (Async).
         """
-        print(f"[WorkflowEngine] Starting execution {execution_id}")
+        logger.info(f"[WorkflowEngine] Starting execution {execution_id}")
         
         # Update status to running
         Execution = Query()
@@ -238,12 +304,14 @@ class WorkflowEngine:
                 bibliography_context=raw_inputs.get('bibliography_context', [])
             )
             
+
             current_state = WorkflowState(
                 execution_id=execution_id,
                 inputs=input_data
             )
+            logger.debug(f"[WorkflowEngine] State initialized with inputs: {raw_inputs.keys()}")
         except Exception as e:
-            print(f"[WorkflowEngine] Failed to initialize state: {e}")
+            logger.error(f"[WorkflowEngine] Failed to initialize state: {e}")
             self.executions_table.update({'status': 'failed', 'error': str(e)}, Execution.execution_id == execution_id)
             raise e
 
@@ -273,7 +341,7 @@ class WorkflowEngine:
                             pipeline_steps.append((self.agents_map[agent_name], s_doc[0]))
             
             if not pipeline_steps:
-                print(f"[WorkflowEngine] Error: No workflow steps found for Workflow ID {workflow_id}")
+                logger.error(f"[WorkflowEngine] Error: No workflow steps found for Workflow ID {workflow_id}")
                 raise ValueError(f"No steps defined for workflow {workflow_id}. Ensure the workflow is correctly seeded.")
 
 
@@ -281,16 +349,17 @@ class WorkflowEngine:
                 step_id = step_doc['id']
                 agent_name = agent.__class__.__name__
                 current_state.current_step_name = agent_name
-                print(f"[WorkflowEngine] Running step: {agent_name} (Step ID: {step_id})")
-                
-                # Construct data-driven prompt
-                system_instruction = self._construct_prompt_for_step(step_id) if step_id else None
+                logger.info(f"[WorkflowEngine] Running step: {agent_name} (Step ID: {step_id})")
                 
                 # --- EXECUTE PRE-HOOKS ---
                 config = step_doc.get('execution_config') or {}
                 pre_hooks = config.get('pre_hooks') or []
                 for hook_name in pre_hooks:
                     current_state = self._execute_hook(hook_name, agent, current_state)
+
+                # Construct data-driven prompt WITH STATE INJECTION
+                # MOVED AFTER PRE-HOOKS to ensure sanitization (e.g. PDF extraction) happens first
+                system_instruction = self._construct_prompt_for_step(step_id, current_state) if step_id else None
 
                 # Execute agent (ASYNC AWAIT)
                 current_state = await agent.execute(current_state, system_instruction=system_instruction)
@@ -307,7 +376,7 @@ class WorkflowEngine:
                 }, Execution.execution_id == execution_id)
 
             # 3. Success
-            print(f"[WorkflowEngine] Execution {execution_id} completed successfully.")
+            logger.info(f"[WorkflowEngine] Execution {execution_id} completed successfully.")
             
             # Capture full state for debugging (could be saved to a separate 'trace' field if needed)
             full_state = current_state.model_dump(mode='json')
@@ -334,7 +403,7 @@ class WorkflowEngine:
                 # Perform Projection
                 if state_key and hoist_fields and full_state.get(state_key):
                     source_data = full_state[state_key]
-                    print(f"[WorkflowEngine] Projecting {len(hoist_fields)} fields from {state_key}")
+                    logger.debug(f"[WorkflowEngine] Projecting {len(hoist_fields)} fields from {state_key}")
                     
                     for field in hoist_fields:
                         # Support dot notation for nested source fields
@@ -370,7 +439,7 @@ class WorkflowEngine:
             return public_result
 
         except Exception as e:
-            print(f"[WorkflowEngine] Pipeline crashed at {current_state.current_step_name}: {e}")
+            logger.error(f"[WorkflowEngine] Pipeline crashed at {current_state.current_step_name}: {e}", exc_info=True)
             self.executions_table.update({
                 'status': 'failed',
                 'error': str(e),
@@ -388,12 +457,12 @@ class WorkflowEngine:
         """
         # 1. Agent Method Check
         if hasattr(agent, hook_name):
-            print(f"[WorkflowEngine] Executing Hook: {agent.__class__.__name__}.{hook_name}")
+            logger.debug(f"[WorkflowEngine] Executing Hook: {agent.__class__.__name__}.{hook_name}")
             try:
                 hook_method = getattr(agent, hook_name)
                 return hook_method(state)
             except Exception as e:
-                print(f"[WorkflowEngine] Hook {hook_name} failed: {e}")
+                logger.error(f"[WorkflowEngine] Hook {hook_name} failed: {e}")
                 return state
         
         # 2. Strict Rejection
@@ -402,5 +471,5 @@ class WorkflowEngine:
             if hook_name.startswith('parse_'):
                 pass # Silent ignore for redundant legacy hooks
             else:
-                print(f"[WorkflowEngine] Warning: Hook '{hook_name}' not found on Agent {agent.__class__.__name__}. Skipping.")
+                logger.warning(f"[WorkflowEngine] Warning: Hook '{hook_name}' not found on Agent {agent.__class__.__name__}. Skipping.")
             return state

@@ -450,22 +450,17 @@ class TuomioJaPisteet(BaseJSON):
                         "viesti_hitl:lle": "Ei huomautettavaa"
                     },
                     "pisteet": {
-                        "analyysi_ja_prosessi": { "arvosana": 3, "perustelu": "Hyvä" },
-                        "arviointi_ja_argumentaatio": { "arvosana": 3, "perustelu": "Hyvä" },
-                        "synteesi_ja_luovuus": { "arvosana": 3, "perustelu": "Hyvä" }
+                        "analyysi": { "arvosana": 3, "perustelu": "Opiskelija erittelee olennaisia seikkoja..." },
+                        "arviointi": { "arvosana": 3, "perustelu": "Argumentaatio on loogista..." },
+                        "synteesi": { "arvosana": 3, "perustelu": "Kokonaisuus on eheä..." }
                     },
-                    "kriittiset_havainnot_yhteenveto": ["Kaikki ok."]
+                    "kriittiset_havainnot_yhteenveto": ["Ei kriittisiä poikkeamia."]
                 }
             ]
         }
     )
 
 # --- Step 9: XAI Reporter ---
-
-class XAIReportSection(BaseModel):
-    title: str
-    content: str
-    visualizations: list[str] | None = None
 
 class XAIReport(BaseJSON):
     executive_summary: str
@@ -484,15 +479,12 @@ class XAIReport(BaseJSON):
                     "metodologinen_loki": "Raportti luotu.",
                     "edellisen_vaiheen_validointi": "OK",
                     "semanttinen_tarkistussumma": "hash123",
-                    "executive_summary": "Yhteenveto.",
-                    "detailed_analysis": [
-                        {
-                            "title": "Osa 1",
-                            "content": "Sisältö...",
-                            "visualizations": []
-                        }
-                    ],
-                    "final_verdict": "Hyväksytty",
+                    "executive_summary": "Yhteenveto työstä...",
+                    "analysis_strengths": "Vahvuudet listattuna...",
+                    "analysis_weaknesses": "Kehityskohteet listattuna...",
+                    "analysis_opportunities": "Mahdollisuudet...",
+                    "analysis_recommendations": "Suositukset...",
+                    "final_verdict": "Hyväksytty (3/4)",
                     "confidence_score": 0.95
                 }
             ]

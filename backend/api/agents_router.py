@@ -4,6 +4,9 @@ import importlib
 
 from tinydb import TinyDB, Query
 from backend.config import DB_PATH
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/agents", tags=["Agents"])
 
@@ -61,7 +64,7 @@ async def run_agent(
         AgentClass = _load_agent_class(agent_name)
         agent = AgentClass(model=model)
         
-        print(f"Executing agent {agent_name} via API...")
+        logger.info(f"Executing agent {agent_name} via API...")
         # Fixed: Added await since execute is async
         result = await agent.execute(system_instruction=system_instruction, **inputs)
         return {"agent": agent_name, "result": result}
