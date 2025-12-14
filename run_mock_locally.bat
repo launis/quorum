@@ -3,7 +3,7 @@ echo Starting Cognitive Quorum v2 (MOCK LLM / Offline Mode)...
 echo.
 echo [INFO] MODE: MOCK LLM (Local Database)
 echo [INFO] No real API calls will be made. No costs.
-echo [INFO] Data is saved LOCALLY to 'data/db_mock.json'.
+echo [INFO] Data is saved LOCALLY to 'backend/database/db_mock.json'.
 echo [INFO] Responses are generated from local templates.
 echo.
 echo [TIP]  Look for YELLOW text "[MOCK RESPONSE]" in the backend logs

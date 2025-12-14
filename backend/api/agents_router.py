@@ -2,7 +2,8 @@ from fastapi import APIRouter, HTTPException, Body
 from typing import Dict, Any, Optional
 import importlib
 
-from tinydb import TinyDB, Query
+from backend.database.wrapper import get_db_client
+from tinydb import Query
 from backend.config import DB_PATH
 import logging
 
@@ -14,7 +15,7 @@ def _load_agent_class(agent_name: str):
     """
     Dynamically loads an agent class by name using the database registry.
     """
-    db = TinyDB(DB_PATH, encoding='utf-8')
+    db = get_db_client()
     components_table = db.table('components')
     
     # 1. Try to find by class name (preferred)
@@ -25,22 +26,7 @@ def _load_agent_class(agent_name: str):
          comp_record = components_table.get(Query()['name'] == agent_name)
 
     if not comp_record:
-        # Fallback for legacy hardcoded names if DB is not fully populated or for testing
-        # This ensures we don't break immediately if DB is missing something
-        legacy_mapping = {
-            "GuardAgent": "backend.agents.guard",
-            "AnalystAgent": "backend.agents.analyst",
-            "LogicianAgent": "backend.agents.logician",
-            "LogicalFalsifierAgent": "backend.agents.critics",
-            "FactualOverseerAgent": "backend.agents.critics",
-            "CausalAnalystAgent": "backend.agents.critics",
-            "PerformativityDetectorAgent": "backend.agents.critics",
-            "JudgeAgent": "backend.agents.judge",
-            "XAIReporterAgent": "backend.agents.xai"
-        }
-        module_name = legacy_mapping.get(agent_name)
-        if not module_name:
-             raise ValueError(f"Unknown agent: {agent_name} (not found in DB or legacy map)")
+         raise ValueError(f"Unknown agent: {agent_name} (not found in registry)")
     else:
         module_name = comp_record.get('module')
         

@@ -2,11 +2,11 @@ import os
 import shutil
 import json
 from typing import List, Dict, Any, Optional
-from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks
+from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks, Request
 from pydantic import BaseModel
-from tinydb import TinyDB, Query
+from tinydb import Query
 
-from backend.services.pdf_processor import PDFProcessor
+from backend.services.document_processor import DocumentProcessor
 from backend.core.engine import WorkflowEngine
 from backend.api.hooks_router import router as hooks_router
 from backend.api.tools_router import router as tools_router
@@ -96,11 +96,12 @@ os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
-db = TinyDB(DB_PATH, encoding='utf-8')
+from backend.database.wrapper import get_db_client
+db_client = get_db_client()
 engine = WorkflowEngine(DB_PATH)
 
 # Initialize/Seed Components
-engine.register_component("PDFExtractor", "processor", "PDFProcessor")
+engine.register_component("DocumentProcessor", "processor", "DocumentProcessor")
 engine.register_component("GuardAgent", "backend.agents.guard", "GuardAgent")
 engine.register_component("AnalystAgent", "backend.agents.analyst", "AnalystAgent")
 engine.register_component("LogicianAgent", "backend.agents.logician", "LogicianAgent")
@@ -135,31 +136,61 @@ def create_workflow(request: WorkflowCreateRequest):
     return {"status": "created", "workflow_id": workflow_id}
 
 @app.post("/executions")
-async def execute_workflow(request: WorkflowExecutionRequest, background_tasks: BackgroundTasks):
+async def execute_workflow(request: Request, background_tasks: BackgroundTasks):
     """
-    Starts a workflow execution asynchronously.
+    Starts a workflow execution asynchronously (Multipart).
     """
     try:
-        # 1. Create Execution Record (Sync, Fast)
-        execution_id = engine.create_execution(request.workflow_id, request.inputs)
+        form = await request.form()
         
-        # 2. Schedule Execution in Background
-        # FastAPI BackgroundTasks can handle async functions
-        background_tasks.add_task(engine.run_execution, execution_id, request.inputs)
+        workflow_id = form.get("workflow_id")
+        if not workflow_id:
+            raise HTTPException(status_code=422, detail="Missing workflow_id")
+            
+        inputs = {}
+        inputs_str = form.get("inputs")
+        if inputs_str:
+            inputs = json.loads(inputs_str)
+            
+        files_map = {}
+        for key, value in form.items():
+            if hasattr(value, "filename") and value.filename:
+                content = await value.read()
+                files_map[key] = (value.filename, content)
+
+        execution_id = engine.create_execution(workflow_id, inputs, files=files_map)
+        
+        # Fetch actual text inputs from DB for the runner
+        Execution = Query()
+        rec = engine.executions_table.search(Execution.execution_id == execution_id)[0]
+        cleaned_inputs = rec['inputs']
+        
+        background_tasks.add_task(engine.run_execution, execution_id, cleaned_inputs)
         
         return {"status": "started", "execution_id": execution_id}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/executions/{execution_id}")
-async def get_execution_status(execution_id: str):
+@app.get("/executions/recent")
+async def get_recent_executions(limit: int = 5, status: Optional[str] = None):
     """
-    Gets the status of a workflow execution.
+    Returns the most recent executions (by start_time).
+    Supports filtering by status (e.g. 'completed', 'failed').
     """
-    status = engine.get_execution_status(execution_id)
-    if not status:
-        raise HTTPException(status_code=404, detail="Execution not found")
-    return status
+    try:
+        all_execs = engine.executions_table.all()
+        if not all_execs:
+             return []
+        
+        # Filter by status if provided
+        if status:
+            all_execs = [ex for ex in all_execs if ex.get('status', '').lower() == status.lower()]
+
+        # Sort by start_time descending
+        sorted_execs = sorted(all_execs, key=lambda x: x.get('start_time', ''), reverse=True)
+        return sorted_execs[:limit]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/executions/latest")
 async def get_latest_execution():
@@ -178,6 +209,18 @@ async def get_latest_execution():
         return latest
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/executions/{execution_id}")
+async def get_execution_status(execution_id: str):
+    """
+    Gets the status of a workflow execution.
+    """
+    status = engine.get_execution_status(execution_id)
+    if not status:
+        raise HTTPException(status_code=404, detail="Execution not found")
+    return status
+
+
 
 @app.get("/db/seed_data")
 @app.get("/db/seed_data")
@@ -238,47 +281,7 @@ async def preview_full_chain(workflow_id: str):
 
 # --- Legacy / Helper Endpoints ---
 
-@app.post("/orchestrator/run")
-async def run_orchestrator(
-    workflow_id: str,
-    background_tasks: BackgroundTasks,
-    history_file: UploadFile = File(...),
-    product_file: UploadFile = File(...),
-    reflection_file: UploadFile = File(...)
-):
-    """
-    Uploads files, extracts text using DataHandler, and starts the workflow asynchronously.
-    """
-    from backend.services.document_loader import DataHandler
-    handler = DataHandler()
 
-    try:
-        # Extract text from uploaded files (Handler is sync, maybe should be async too in future)
-        history_text = handler.read_file_content(history_file)
-        product_text = handler.read_file_content(product_file)
-        reflection_text = handler.read_file_content(reflection_file)
-
-        # Prepare inputs for the workflow
-        inputs = {
-            "history_text": history_text,
-            "product_text": product_text,
-            "reflection_text": reflection_text
-        }
-
-        # 1. Create Execution Record (Sync, Fast)
-        execution_id = engine.create_execution(workflow_id, inputs)
-        
-        # 2. Schedule Execution in Background
-        background_tasks.add_task(engine.run_execution, execution_id, inputs)
-        
-        return {
-            "status": "started",
-            "execution_id": execution_id,
-            "message": "Workflow started successfully (Async)"
-        }
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Orchestration failed: {str(e)}")
 
 @app.get("/orchestrator/status/{execution_id}")
 def get_orchestrator_status(execution_id: str):

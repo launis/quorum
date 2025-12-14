@@ -32,13 +32,12 @@ class GuardAgent(BaseAgent):
             # Even if LLM missed it, we check strictly here.
             # We must load the banned phrases from the DB or a known source.
             # Ideally this is a pre-hook, but we can also enforce it post-LLM to override the verdict.
-            from backend.config import DB_PATH
-            from tinydb import TinyDB, Query
+            from backend.database.wrapper import get_db_client
             
             try:
-                # We use a fresh DB connection to avoid threading issues
-                db = TinyDB(DB_PATH, encoding='utf-8')
-                banned_table = db.table('banned_phrases')
+                # Use wrapper to get client
+                db_client = get_db_client()
+                banned_table = db_client.table('banned_phrases')
                 banned_phrases = [r['phrase'].lower() for r in banned_table.all()]
                 
                 detected = []
@@ -80,51 +79,10 @@ class GuardAgent(BaseAgent):
     def extract_text_from_inputs(self, state: WorkflowState) -> WorkflowState:
         """
         Public hook method (Pre-Hook).
-        Detects Base64 encoded PDFs in inputs and extracts text using PyMuPDF (fitz).
-        Protocol: UI sends strings prefixed with "[BASE64:PDF]".
+        (Deprecated Logic) PDF extraction is now handled upstream by WorkflowEngine (create_execution).
+        This hook is kept for backward compatibility with step configuration but is effectively a pass-through.
         """
-        logger.info("[GuardAgent] Executing PDF Extraction Pre-Hook...")
-        import base64
-        import fitz # PyMuPDF
-
-        # Map of field names to current values
-        input_fields = {
-            "history_text": state.inputs.history_text,
-            "product_text": state.inputs.product_text,
-            "reflection_text": state.inputs.reflection_text
-        }
-        
-        updates = {}
-
-        for field_name, content in input_fields.items():
-            if content and content.startswith("[BASE64:PDF]"):
-                try:
-                    logger.info(f"[GuardAgent] Detecting PDF payload in {field_name}...")
-                    # Remove prefix
-                    b64_str = content.replace("[BASE64:PDF]", "")
-                    # Decode
-                    file_bytes = base64.b64decode(b64_str)
-                    
-                    # Extract with fitz
-                    doc = fitz.open(stream=file_bytes, filetype="pdf")
-                    text = ""
-                    for page in doc:
-                        text += page.get_text()
-                    
-                    logger.info(f"[GuardAgent] Extracted {len(text)} characters from {field_name}.")
-                    updates[field_name] = text
-                    
-                except Exception as e:
-                    error_msg = f"[GuardAgent] PDF Extraction failed for {field_name}: {str(e)}"
-                    logger.error(error_msg)
-                    updates[field_name] = error_msg
-        
-        # Apply updates to state
-        # We need to create a new inputs object or modify the existing one?
-        # WorkflowState.inputs is a Pydantic model (WorkflowInputs). It's mutable.
-        for k, v in updates.items():
-            setattr(state.inputs, k, v)
-
+        logger.info("[GuardAgent] PDF Extraction Pre-Hook: Pass-through (Handled by Engine).")
         return state
 
     def check_banned_phrases_python(self, state: WorkflowState) -> WorkflowState:
@@ -135,13 +93,12 @@ class GuardAgent(BaseAgent):
         """
         logger.info("[GuardAgent] Executing Python-based Banned Phrases Scan (Pre-Hook)...")
         
-        from backend.config import DB_PATH
-        from tinydb import TinyDB
+        from backend.database.wrapper import get_db_client
         
         try:
             # Load banned phrases
-            db = TinyDB(DB_PATH, encoding='utf-8')
-            banned_table = db.table('banned_phrases')
+            db_client = get_db_client()
+            banned_table = db_client.table('banned_phrases')
             banned_phrases = [r['phrase'].lower() for r in banned_table.all()]
             
             detected = []

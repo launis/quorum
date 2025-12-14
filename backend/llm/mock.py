@@ -89,8 +89,20 @@ class MockLLMService:
             if "performatiivisuusauditointi" in sys_lower: return "performativity_agent"
             if "etiikkajafakta" in sys_lower: return "fact_checker_agent"
 
+            # Robust Agent Identity Checks (V2) - Reordered to prevent substring collisions
+            if "causalanalystagent" in sys_lower or "causal analyst" in sys_lower: return "causal_agent"
+            if "performativitydetectoragent" in sys_lower or "performativity detector" in sys_lower: return "performativity_agent"
+            if "factualoverseeragent" in sys_lower or "factual overseer" in sys_lower: return "fact_checker_agent"
+            
+            if "guardagent" in sys_lower or "guard agent" in sys_lower: return "guard_agent"
+            if "analystagent" in sys_lower or "analyst agent" in sys_lower: return "analyst_agent"
+            if "logicianagent" in sys_lower or "logician agent" in sys_lower: return "logician_agent"
+            if "falsifieragent" in sys_lower or "falsifier agent" in sys_lower: return "falsifier_agent"
+            if "judgeagent" in sys_lower or "judge agent" in sys_lower: return "judge_agent"
+            if "xaireporteragent" in sys_lower or "xai reporter" in sys_lower: return "xai_agent"
+
             # Fallback: Check for specific Phase/Agent headers
-            if "logician agent" in sys_lower: return "logician_agent" # Added for LogicianAgent.py override
+            if "logician agent" in sys_lower: return "logician_agent" 
             if "vaihe 1: vartija-agentti" in sys_lower: return "guard_agent"
             if "vaihe 2: analyytikko-agentti" in sys_lower: return "analyst_agent"
             if "vaihe 3: loogikko-agentti" in sys_lower: return "logician_agent"
@@ -166,9 +178,9 @@ class MockLLMService:
         
         common_base = {
             "metadata": common_metadata,
-            "metodologinen_loki": "[MOCK] Fallback generation.",
-            "edellisen_vaiheen_validointi": "N/A",
-            "semanttinen_tarkistussumma": "mock_hash"
+            "metodologinen_loki": {}, 
+            "edellisen_vaiheen_validointi": {},
+            "semanttinen_tarkistussumma": {}
         }
 
         if key == "guard_agent":

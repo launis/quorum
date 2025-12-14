@@ -93,12 +93,7 @@ class LLMHandler:
         if config:
             return config
 
-        # Try specific key first (legacy flat)
-        key = f"{provider}/{mode}"
-        if key in registry:
-            return registry[key]
-            
-        return None
+
 
     async def call_llm(self, provider: str, mode: str, prompt: str, system_instruction: Optional[str] = None) -> str:
         """

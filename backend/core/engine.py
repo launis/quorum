@@ -1,7 +1,8 @@
 import uuid
 from datetime import datetime
 from typing import Dict, Any, List, Optional
-from tinydb import TinyDB, Query
+from backend.database.wrapper import get_db_client # Refactor
+from tinydb import Query
 import pkgutil
 import importlib
 import inspect
@@ -17,14 +18,15 @@ logger = logging.getLogger(__name__)
 class WorkflowEngine:
     def __init__(self, db_path: str):
         self.db_path = db_path
-        self.db = TinyDB(db_path, encoding='utf-8')
+        # Use Abstract Client
+        self.db_client = get_db_client()
         
         # Initialize Tables
-        self.components_table = self.db.table('components')
-        self.steps_table = self.db.table('steps')
-        self.workflows_table = self.db.table('workflows')
-        self.executions_table = self.db.table('executions')
-        self.banned_phrases_table = self.db.table('banned_phrases')
+        self.components_table = self.db_client.table('components')
+        self.steps_table = self.db_client.table('steps')
+        self.workflows_table = self.db_client.table('workflows')
+        self.executions_table = self.db_client.table('executions')
+        self.banned_phrases_table = self.db_client.table('banned_phrases')
         
         # Initialize Agents (The Pipeline) - Fully Dynamic
         self.agents_map = {}
@@ -79,20 +81,72 @@ class WorkflowEngine:
         })
         return workflow_id
 
-    def create_execution(self, workflow_id: Any, inputs: Dict[str, Any]) -> str:
+    def create_execution(self, workflow_id: Any, inputs: Dict[str, Any], files: Optional[Dict[str, tuple]] = None) -> str:
         """
         Creates a new execution record.
+        Supports optional file attachments (Multipart/Form-Data source).
+        files: Dict[key, (filename, bytes)]
         """
         execution_id = str(uuid.uuid4())
+        
+        # Merge basic inputs
+        final_inputs = inputs.copy()
+
+        # Handle Files (Extract & Archive)
+        if files:
+            file_updates = self._ingest_files(execution_id, files)
+            final_inputs.update(file_updates)
+
         self.executions_table.insert({
             "execution_id": execution_id,
             "workflow_id": workflow_id,
             "status": "pending",
             "start_time": datetime.now().isoformat(),
-            "inputs": inputs, # Save inputs for debugging/restart
+            "inputs": final_inputs,
             "logs": []
         })
         return execution_id
+
+    def _ingest_files(self, execution_id: str, files: Dict[str, tuple]) -> Dict[str, str]:
+        """
+        Archives files to disk and extracts text.
+        Returns dictionary of {input_key: extracted_text}
+        files format: { "input_key": ("filename.ext", b"file_bytes") }
+        """
+        import os
+        from backend.services.document_processor import DocumentProcessor
+        from pathlib import Path
+        
+        extracted_data = {}
+        archive_dir = Path(f"backend/files/executions/{execution_id}")
+        archive_dir.mkdir(parents=True, exist_ok=True)
+        
+        for input_key, (filename, file_bytes) in files.items():
+            try:
+                # 1. Save to Disk
+                file_path = archive_dir / filename
+                with open(file_path, "wb") as f:
+                    f.write(file_bytes)
+                
+                # 2. Extract Text
+                lower_name = filename.lower()
+                text = ""
+                if lower_name.endswith(".pdf"):
+                    text = DocumentProcessor.extract_text_from_pdf(file_bytes)
+                elif lower_name.endswith(".docx"):
+                    text = DocumentProcessor.extract_text_from_docx(file_bytes)
+                else:
+                    # Treat as text file
+                    text = file_bytes.decode('utf-8', errors='ignore')
+
+                extracted_data[input_key] = text
+                logger.info(f"[WorkflowEngine] Archived {filename} (key: {input_key}) and extracted {len(text)} chars.")
+                
+            except Exception as e:
+                logger.error(f"[WorkflowEngine] Failed to ingest file {filename} ({input_key}): {e}")
+                extracted_data[input_key] = f"Error processing file: {str(e)}"
+                
+        return extracted_data
 
     def get_execution_status(self, execution_id: Any) -> Optional[Dict[str, Any]]:
         """
@@ -232,6 +286,11 @@ class WorkflowEngine:
                                 content = content.replace("{{REFLECTION_TEXT}}", current_state.inputs.reflection_text)
                             if "{{PREVIOUS_STEP_OUTPUTS}}" in content:
                                 content = content.replace("{{PREVIOUS_STEP_OUTPUTS}}", current_state.get_previous_outputs_summary())
+                            # NEW: Inject Google Search Results
+                            if "{{GOOGLE_SEARCH_RESULTS}}" in content:
+                                search_res = current_state.aux_data.get('google_search_results', '[]')
+                                content = content.replace("{{GOOGLE_SEARCH_RESULTS}}", str(search_res))
+
                         
                         # 4. Inject Schema Example
                         if "{{SCHEMA_EXAMPLE}}" in content:
@@ -405,6 +464,25 @@ class WorkflowEngine:
                     'current_step': agent_name,
                     'last_updated': datetime.now().isoformat()
                 }, Execution.execution_id == execution_id)
+
+                # --- KILL SWITCH (Security Gate) ---
+                if agent_name == 'GuardAgent' and current_state.step_1_guard:
+                    if current_state.step_1_guard.security_check.uhka_havaittu:
+                        msg = f"[WorkflowEngine] SECURITY INTERVENTION: Threat detected by GuardAgent. Aborting execution {execution_id}."
+                        logger.critical(msg)
+                        
+                        # 1. Update DB as Rejected/Failed
+                        self.executions_table.update({
+                            'status': 'rejected',
+                            'error': f"Security Threat Detected: {current_state.step_1_guard.security_check.riski_taso}",
+                            'end_time': datetime.now().isoformat(),
+                            'result': {"security_alert": "Execution aborted due to security violation."},
+                            'trace': current_state.model_dump(mode='json')
+                        }, Execution.execution_id == execution_id)
+
+                        # 2. Halt Pipeline
+                        return {"security_alert": "Execution aborted due to security violation."}
+
 
             # 3. Success
             logger.info(f"[WorkflowEngine] Execution {execution_id} completed successfully.")

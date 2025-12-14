@@ -35,13 +35,22 @@
             ]
         },
         {
-            "id": "JUDGE_OUTPUT_CONFIG",
+            "id": "ANALYST_OUTPUT_CONFIG",
             "type": "output_config",
-            "name": "Judge Output Fields",
+            "name": "Analyst Output Fields",
             "content": [
-                "pisteet.analyysi",
-                "pisteet.arviointi",
-                "pisteet.synteesi"
+                "hypoteesit",
+                "rag_todisteet"
+            ]
+        },
+        {
+            "id": "LOGICIAN_OUTPUT_CONFIG",
+            "type": "output_config",
+            "name": "Logician Output Fields",
+            "content": [
+                "toulmin_analyysi",
+                "kognitiivinen_taso",
+                "walton_skeema"
             ]
         },
         {
@@ -51,6 +60,45 @@
             "content": [
                 "paattelyketjun_uskollisuus_auditointi.onko_post_hoc_rationalisointia",
                 "paattelyketjun_uskollisuus_auditointi.uskollisuus_score"
+            ]
+        },
+        {
+            "id": "OVERSEER_OUTPUT_CONFIG",
+            "type": "output_config",
+            "name": "Overseer Output Fields",
+            "content": [
+                "faktantarkistus_rfi",
+                "eettiset_havainnot"
+            ]
+        },
+        {
+            "id": "CAUSAL_OUTPUT_CONFIG",
+            "type": "output_config",
+            "name": "Causal Output Fields",
+            "content": [
+                "kausaalinen_auditointi",
+                "kontrafaktuaalinen_testi",
+                "abduktiivinen_paatelma"
+            ]
+        },
+        {
+            "id": "DETECTOR_OUTPUT_CONFIG",
+            "type": "output_config",
+            "name": "Detector Output Fields",
+            "content": [
+                "performatiivisuus_heuristiikat",
+                "pre_mortem_analyysi",
+                "yleisarvio_aitoudesta"
+            ]
+        },
+        {
+            "id": "JUDGE_OUTPUT_CONFIG",
+            "type": "output_config",
+            "name": "Judge Output Fields",
+            "content": [
+                "pisteet.analyysi",
+                "pisteet.arviointi",
+                "pisteet.synteesi"
             ]
         },
         {
@@ -66,8 +114,7 @@
                 "analysis_opportunities",
                 "analysis_recommendations",
                 "metadata.luontiaika",
-                "metadata.versio",
-                "test_dynamic_field"
+                "metadata.versio"
             ]
         },
         {
@@ -80,7 +127,7 @@
             "id": "instruction_analyst",
             "type": "prompt",
             "name": "Todistusaineiston Ankkurointi (Analyst)",
-            "content": "### ROOLI: ANALYYTIKKO (ANALYST AGENT) ###\nTehtäväsi on luoda 'Todistuskartta' (Evidence Map) ankkuroimalla väitteet suoraan lähdetekstiin.\nTAVOITTEET:\n1. Pura syöte atomisiksi väitteiksi.\n2. Etsi jokaiselle väitteelle suora lainaus (sitaatti) lähdemateriaalista.\n3. Tunnista keskeiset teemat ja niiden väliset yhteydet.\n4. Luo hypoteeseja oppimisprosessin laadusta, mutta älä vielä arvostele niitä.\nKRIITTISET SÄÄNNÖT:\n- Jokaisella havainnolla on oltava viite (line reference/quote)."
+            "content": "### ROOLI: ANALYYTIKKO (ANALYST AGENT) ###\nTehtäväsi on luoda 'Todistuskartta' (Evidence Map) ankkuroimalla väitteet suoraan lähdetekstiin.\nTAVOITTEET:\n1. Pura syöte atomisiksi väitteiksi.\n2. Etsi jokaiselle väitteelle suora lainaus (sitaatti) lähdemateriaalista.\n3. Tunnista keskeiset teemat ja niiden väliset yhteydet.\n4. MÄÄRITÄ HAKUSANAT LUOTETTAVUUDEN TARKISTUKSEEN:\n   - Jos väite on ULKOINEN FAKTA (esim. \"Suomi itsenäistyi 1917\", \"Toulminin malli\", \"J.K. Rowling sanoi\"), kirjaa kenttään 'hakusana_ehdotus' tarkka hakulauseke.\n   - Jos väite on SISÄINEN HAVAINTO (esim. \"Opiskelija pohtii\", \"Teksti on hyvin jäsennelty\"), jätä 'hakusana_ehdotus' TYHJÄKSI (null).\nKRIITTISET SÄÄNNÖT:\n- Jokaisella havainnolla on oltava viite (line reference/quote)."
         },
         {
             "id": "instruction_logician",
@@ -98,7 +145,7 @@
             "id": "instruction_overseer",
             "type": "prompt",
             "name": "Fakta- ja Etiikkatarkistus (Overseer)",
-            "content": "### ROOLI: VALVOJA (FACTUAL & ETHICAL OVERSEER) ###\nTehtäväsi on tarkistaa faktat ja eettiset näkökulmat.\nTAVOITTEET:\n1. Faktantarkistus: Ovatko esitetyt väitteet totta ulkoisen tiedon valossa?\n2. Eettinen tarkistus: Onko työ plagioitu? Onko se tehty vastuullisesti?\n3. Hallusinaatiokontrolli: Varmista, ettei opiskelija tai AI ole keksinyt lähteitä.\nKRIITTISET SÄÄNNÖT:\n- Liputa kaikki epäilyttävät faktat, joita ei voida verifioida."
+            "content": "### ROOLI: VALVOJA (FACTUAL & ETHICAL OVERSEER) ###\nTehtäväsi on tarkistaa faktat ja eettiset näkökulmat.\nTAVOITTEET:\n1. Faktantarkistus: Ovatko esitetyt väitteet totta ulkoisen tiedon valossa?\n   KÄYTÄ NÄITÄ HAKUTULOKSIA: {{GOOGLE_SEARCH_RESULTS}}\n2. Eettinen tarkistus: Onko työ plagioitu? Onko se tehty vastuullisesti?\n3. Hallusinaatiokontrolli: Varmista, ettei opiskelija tai AI ole keksinyt lähteitä.\nKRIITTISET SÄÄNNÖT:\n- Liputa kaikki epäilyttävät faktat, joita ei voida verifioida."
         },
         {
             "id": "instruction_causal",
@@ -122,7 +169,7 @@
             "id": "instruction_reporter",
             "type": "prompt",
             "name": "XAI Raportointi (Reporter)",
-            "content": "### ROOLI: RAPORTOIJA (XAI REPORTER) ###\nTehtäväsi on kääntää tekninen data ihmisluettavaksi raportiksi.\nTAVOITTEET JA KENTÄT:\n1. Kirjoita selkeä ja ytimekäs tiivistelmä johdolle kenttään 'executive_summary'.\n2. Kirjaa lopullinen tuomio (sanallinen) kenttään 'final_verdict'.\n3. Määritä luottamuspisteet (0.0 - 1.0) kenttään 'confidence_score'.\n4. Listaa vahvuudet kenttään 'analysis_strengths'.\n5. Listaa heikkoudet kenttään 'analysis_weaknesses'.\n6. Listaa mahdollisuudet kenttään 'analysis_opportunities'.\n7. Kirjaa konkreettiset toimenpidesuositukset kenttään 'analysis_recommendations'.\n8. Kirjaa testiarvo kenttään 'test_dynamic_field'.\nKRIITTISET SÄÄNNÖT:\n- Varmista, että tekstisisältö (esim. summary) ei käytä teknistä jargonia, vaikka kentän nimi on tekninen."
+            "content": "### ROOLI: RAPORTOIJA (XAI REPORTER) ###\nTehtäväsi on kääntää tekninen data ihmisluettavaksi raportiksi.\nTAVOITTEET JA KENTÄT:\n1. Kirjoita selkeä ja ytimekäs tiivistelmä johdolle kenttään 'executive_summary'.\n2. Kirjaa lopullinen tuomio (sanallinen) kenttään 'final_verdict'.\n3. Määritä luottamuspisteet (0.0 - 1.0) kenttään 'confidence_score'.\n4. Listaa vahvuudet kenttään 'analysis_strengths'.\n5. Listaa heikkoudet kenttään 'analysis_weaknesses'.\n6. Listaa mahdollisuudet kenttään 'analysis_opportunities'.\n7. Kirjaa konkreettiset toimenpidesuositukset kenttään 'analysis_recommendations'.\nKRIITTISET SÄÄNNÖT:\n- Varmista, että tekstisisältö (esim. summary) ei käytä teknistä jargonia, vaikka kentän nimi on tekninen."
         }
     ],
     "steps": [
@@ -161,7 +208,7 @@
                     "common_mandate",
                     "common_scientific_method",
                     "instruction_analyst",
-                    "STANDARD_REPORT_OUTPUT",
+                    "ANALYST_OUTPUT_CONFIG",
                     "template_output_enforcer"
                 ],
                 "pre_hooks": [],
@@ -169,7 +216,7 @@
             },
             "output_schema": "TodistusKartta",
             "output_filename": "2_todistuskartta.json",
-            "output_config_component": "STANDARD_REPORT_OUTPUT"
+            "output_config_component": "ANALYST_OUTPUT_CONFIG"
         },
         {
             "id": "step_3",
@@ -183,7 +230,7 @@
                     "common_scientific_method",
                     "common_bars_matrix",
                     "instruction_logician",
-                    "STANDARD_REPORT_OUTPUT",
+                    "LOGICIAN_OUTPUT_CONFIG",
                     "template_output_enforcer"
                 ],
                 "pre_hooks": [],
@@ -191,7 +238,7 @@
             },
             "output_schema": "ArgumentaatioAnalyysi",
             "output_filename": "3_argumentaatioanalyysi.json",
-            "output_config_component": "STANDARD_REPORT_OUTPUT"
+            "output_config_component": "LOGICIAN_OUTPUT_CONFIG"
         },
         {
             "id": "step_4",
@@ -225,7 +272,7 @@
                     "template_context_now",
                     "common_mandate",
                     "instruction_overseer",
-                    "STANDARD_REPORT_OUTPUT",
+                    "OVERSEER_OUTPUT_CONFIG",
                     "template_output_enforcer"
                 ],
                 "pre_hooks": [
@@ -235,7 +282,7 @@
             },
             "output_schema": "EtiikkaJaFakta",
             "output_filename": "5_faktatarkistus.json",
-            "output_config_component": "STANDARD_REPORT_OUTPUT"
+            "output_config_component": "OVERSEER_OUTPUT_CONFIG"
         },
         {
             "id": "step_6",
@@ -247,7 +294,7 @@
                     "template_context_now",
                     "common_mandate",
                     "instruction_causal",
-                    "STANDARD_REPORT_OUTPUT",
+                    "CAUSAL_OUTPUT_CONFIG",
                     "template_output_enforcer"
                 ],
                 "pre_hooks": [],
@@ -255,7 +302,7 @@
             },
             "output_schema": "KausaalinenAuditointi",
             "output_filename": "6_kausaalinen_auditointi.json",
-            "output_config_component": "STANDARD_REPORT_OUTPUT"
+            "output_config_component": "CAUSAL_OUTPUT_CONFIG"
         },
         {
             "id": "step_7",
@@ -267,7 +314,7 @@
                     "template_context_now",
                     "common_mandate",
                     "instruction_detector",
-                    "STANDARD_REPORT_OUTPUT",
+                    "DETECTOR_OUTPUT_CONFIG",
                     "template_output_enforcer"
                 ],
                 "pre_hooks": [
@@ -277,7 +324,7 @@
             },
             "output_schema": "PerformatiivisuusAuditointi",
             "output_filename": "7_performatiivisuus_auditointi.json",
-            "output_config_component": "STANDARD_REPORT_OUTPUT"
+            "output_config_component": "DETECTOR_OUTPUT_CONFIG"
         },
         {
             "id": "step_8",

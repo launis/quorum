@@ -32,14 +32,14 @@ MODEL_STRATEGIES = {
     "fast": {
         "name": "⚡ Fast Mode",
         "description": "Optimized for speed and cost. Uses lighter models (e.g., Flash).",
-        "model": "gemini-2.0-flash-exp",
+        "model": "gemini-2.5-flash",
         "temperature": 0.0,
         "max_tokens": 8192
     },
     "deep": {
         "name": "🧠 Deep Mode",
         "description": "Optimized for complex reasoning and quality. Uses deep thinking models.",
-        "model": "gemini-2.0-flash-thinking-exp-1219",
+        "model": "gemini-2.5-flash",
         "temperature": 0.0,
         "max_tokens": 8192
     }

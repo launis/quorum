@@ -184,42 +184,29 @@ if page == "Assessment":
         else:
             with st.spinner("Starting Workflow..."):
                 try:
-                    # Helper to read text
-                    import base64
+                    # Prepare Multipart Payload
+                    files = {}
+                    inputs_metadata = {} # Additional non-file inputs could go here
 
-                    def read_file_content(uploaded_file):
-                        if uploaded_file.type == "application/pdf":
-                            try:
-                                # Read bytes
-                                file_bytes = uploaded_file.getvalue()
-                                # Encode to Base64
-                                b64_encoded = base64.b64encode(file_bytes).decode('utf-8')
-                                # Return with Protocol Prefix
-                                return f"[BASE64:PDF]{b64_encoded}"
-                            except Exception as e:
-                                return f"Error reading PDF: {str(e)}"
-                        else:
-                            return uploaded_file.getvalue().decode("utf-8")
-
-                    # Extract content
-                    hist_text = read_file_content(history_file)
-                    prod_text = read_file_content(product_file)
-                    refl_text = read_file_content(reflection_file)
+                    if history_file:
+                        files["history_text"] = (history_file.name, history_file.getvalue())
+                    if product_file:
+                        files["product_text"] = (product_file.name, product_file.getvalue())
+                    if reflection_file:
+                        files["reflection_text"] = (reflection_file.name, reflection_file.getvalue())
                     
-                    # Construct Payload (matching verify_standardization.py)
-                    payload = {
+                    # Send Request (Multipart/Form-Data)
+                    # 'data' fields are form fields
+                    # 'files' are attachments
+                    form_data = {
                         "workflow_id": selected_workflow_id,
-                        "inputs": {
-                            "history_text": hist_text,
-                            "product_text": prod_text,
-                            "reflection_text": refl_text
-                        }
+                        "inputs": json.dumps(inputs_metadata) 
                     }
                     
-                    # Start Job
                     response = requests.post(
                         f"{BACKEND_URL}/executions",
-                        json=payload
+                        data=form_data,
+                        files=files
                     )
                     
                     if response.status_code == 200:
@@ -252,10 +239,32 @@ if page == "Assessment":
                                     
                                     else:
                                         current_step = status_data.get('current_step')
-                                        if current_step:
+                                        
+                                        # Define Standard Workflow Steps for Progress Bar
+                                        STEPS_ORDER = [
+                                            "GuardAgent", 
+                                            "AnalystAgent", 
+                                            "LogicianAgent", 
+                                            "LogicalFalsifierAgent", 
+                                            "FactualOverseerAgent", 
+                                            "CausalAnalystAgent", 
+                                            "PerformativityDetectorAgent", 
+                                            "JudgeAgent", 
+                                            "XAIReporterAgent"
+                                        ]
+
+                                        if current_step and current_step in STEPS_ORDER:
+                                            idx = STEPS_ORDER.index(current_step)
+                                            # Show progress relative to total steps (cap at 95% until actually complete)
+                                            progress = (idx + 1) / len(STEPS_ORDER)
+                                            progress_bar.progress(min(progress, 0.95))
+                                            status_text.info(f"Vaihe {idx+1}/{len(STEPS_ORDER)}: {current_step} käynnissä...")
+                                        elif current_step:
+                                            # Fallback for non-standard steps
                                             status_text.info(f"Status: {status} - Processing: {current_step}")
                                         else:
                                             status_text.info(f"Status: {status}...")
+                                            
                                         time.sleep(2)
                                 else:
                                     st.warning(f"Failed to poll status (Code: {status_res.status_code}). Retrying...")
@@ -272,25 +281,36 @@ if page == "Assessment":
                 except Exception as e:
                     st.error(f"Client Error: {e}")
 
-    if resume_clicked:
-         with st.spinner("Noudetaan viimeisin tulos..."):
-             try:
-                 res = requests.get(f"{BACKEND_URL}/executions/latest")
-                 if res.status_code == 200:
-                      data = res.json()
-                      status = data.get('status')
-                      
-                      if status and status.upper() == "COMPLETED":
-                           result = data.get('result', {})
-                           st.success(f"Ladattu viimeisin ajo: {data.get('execution_id')}")
-                           render_dashboard(result)
-                      else:
-                           st.warning(f"Viimeisin ajo on tilassa: {status}")
-                           st.json(data)
-                 else:
-                      st.error("Ei löytynyt aiempia ajoja tai virhe haussa.")
-             except Exception as e:
-                 st.error(f"Virhe haettaessa: {e}")
+    st.subheader("Historia")
+    with st.expander("Selaa aiempia ajoja", expanded=False):
+        if st.button("Hae viimeiset 5 ajoa"):
+            try:
+                res = requests.get(f"{BACKEND_URL}/executions/recent?limit=5")
+                if res.status_code == 200:
+                    st.session_state['recent_runs'] = res.json()
+                else:
+                    st.error(f"Virhe haettaessa historiaa: {res.status_code}")
+            except Exception as e:
+                st.error(f"Yhteysvirhe: {e}")
+
+        if 'recent_runs' in st.session_state and st.session_state['recent_runs']:
+            runs = st.session_state['recent_runs']
+            # Create a label map
+            run_options = {f"{r.get('start_time', 'N/A')} - {r.get('status')} ({r.get('execution_id')[:8]}...)": r for r in runs}
+            
+            selected_label = st.selectbox("Valitse ajo:", options=list(run_options.keys()))
+            
+            if st.button("Lataa valittu tulos"):
+                selected_run = run_options[selected_label]
+                if selected_run.get('status') == 'completed':
+                    if 'result' in selected_run:
+                        st.success(f"Ladattu ajo: {selected_run.get('execution_id')}")
+                        render_dashboard(selected_run['result'])
+                    else:
+                        st.warning("Valitussa ajossa ei ole tulosta (result).")
+                else:
+                    st.warning(f"Valittu ajo on tilassa: {selected_run.get('status')}")
+                    st.json(selected_run)
 
 elif page == "System Info":
     st.header("System Configuration & Seed Data")
@@ -301,7 +321,7 @@ elif page == "System Info":
             data = response.json()
             
             # Unified Master View (Printable)
-            st.subheader("Unified Master View (Printable)")
+            st.subheader("📚 Komponenttikirjasto (Component Library)")
             
             try:
                 unified_res = requests.get(f"{BACKEND_URL}/config/unified-prompts")
@@ -379,7 +399,18 @@ elif page == "System Info":
                         st.error(f"Error fetching preview: {e}")
             
             # Full Chain Preview
-            st.subheader("5. Full Chain Preview")
+            st.subheader("🎬 Unified Master View (Execution Chain)")
+            
+            with st.expander("📋 Ohjeet Manuaaliseen Testaukseen (Gemini UI)", expanded=True):
+                st.markdown("""
+                **Näin testaat koko ketjun manuaalisesti Geminissä:**
+                1. **Liitä tiedostot:** Avaa Gemini ja liitä analysoitavat tiedostot (PDF/TXT) liitteiksi.
+                2. **Kopioi Prompt:** Generoi ja kopioi alla oleva "Full Chain Prompt".
+                3. **Syötä Saatesanat:** Kirjoita Geminin viestikentän alkuun seuraava ohje ja liitä prompt sen perään:
+                
+                > *Toimi Workflow Enginena. Liitteenä ovat lähdetiedostot: Keskusteluhistoria ja Lopputuote. Alla on monivaiheinen prosessi. Kun näet tekstissä merkinnän `{{HISTORY_TEXT}}` tai `{{PRODUCT_TEXT}}`, käytä liitteenä olevia tiedostoja. Suorita vaiheet ja simuloi edellisten vaiheiden tulokset (`{{PREVIOUS_STEP_OUTPUTS}}`) tarvittaessa.*
+                """)
+
             workflows = data.get('workflows', [])
             if workflows:
                 wf_ids = [w['id'] for w in workflows]

@@ -81,6 +81,7 @@ class Hypoteesi(BaseModel):
     id: str
     vaite_teksti: str
     loytyyko_todisteita: bool
+    hakusana_ehdotus: Optional[str] = None # Jos tyhjä, ei haeta Googlesta. Jos täytetty, käytetään tätä.
 
 class RagTodiste(BaseModel):
     viittaa_hypoteesiin_id: str | list[str]

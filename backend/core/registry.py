@@ -1,20 +1,19 @@
 from typing import Callable, Any, Type, Optional
-from tinydb import TinyDB
-from backend.config import DB_PATH
+from backend.database.wrapper import get_db_client
 from backend.models import domain as schemas
 from backend.services import hooks
 from pydantic import BaseModel
 
 class DatabaseClient:
     """
-    Wrapper for TinyDB database access.
+    Wrapper for database access via the global wrapper.
     """
     def __init__(self):
-        self.db = TinyDB(DB_PATH, encoding='utf-8')
+        self.client = get_db_client()
 
     def get_table(self, table_name: str):
-        """Returns a TinyDB table."""
-        return self.db.table(table_name)
+        """Returns a database table."""
+        return self.client.table(table_name)
 
 class SchemaRegistry:
     """

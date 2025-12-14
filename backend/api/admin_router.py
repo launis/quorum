@@ -131,16 +131,13 @@ async def run_self_test():
 
     # 2. Test DB
     try:
-        if os.path.exists(DB_PATH):
-             db = TinyDB(DB_PATH)
-             # Basic read
-             len(db.table('workflows').all())
-             report["db_status"] = "ok"
-             report["details"]["db_path"] = DB_PATH
-        else:
-             report["db_status"] = "file_not_found"
-             report["details"]["db_path"] = DB_PATH
-             
+         from backend.database.wrapper import get_db_client
+         db_client = get_db_client()
+         # Basic read
+         len(db_client.table('workflows').all())
+         report["db_status"] = "ok"
+         report["details"]["db_path"] = DB_PATH
+              
     except Exception as e:
         report["db_status"] = "error"
         report["details"]["db_error"] = str(e)

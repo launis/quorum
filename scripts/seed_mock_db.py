@@ -29,23 +29,23 @@ def seed_mock_db():
         seed_data = json.load(f)
 
     # Clear existing tables
-    engine.db.drop_tables()
+    engine.db_client.db.drop_tables()
     
     # Insert data
     if 'components' in seed_data:
-        engine.components_table.insert_multiple(seed_data['components'])
+        engine.components_table._table.insert_multiple(seed_data['components'])
         print(f"Inserted {len(seed_data['components'])} components.")
         
     if 'workflows' in seed_data:
-        engine.workflows_table.insert_multiple(seed_data['workflows'])
+        engine.workflows_table._table.insert_multiple(seed_data['workflows'])
         print(f"Inserted {len(seed_data['workflows'])} workflows.")
         
     if 'steps' in seed_data:
-        engine.steps_table.insert_multiple(seed_data['steps'])
+        engine.steps_table._table.insert_multiple(seed_data['steps'])
         print(f"Inserted {len(seed_data['steps'])} steps.")
         
     if 'prompts' in seed_data:
-        engine.prompts_table.insert_multiple(seed_data['prompts'])
+        engine.prompts_table._table.insert_multiple(seed_data['prompts'])
         print(f"Inserted {len(seed_data['prompts'])} prompts.")
 
     print("Mock Database seeded successfully.")

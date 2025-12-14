@@ -67,9 +67,9 @@ class FactualOverseerAgent(BaseAgent):
         if state.step_2_analyst and state.step_2_analyst.hypoteesit:
             logger.info(f"   [HOOK] Found {len(state.step_2_analyst.hypoteesit)} hypotheses.")
             for hyp in state.step_2_analyst.hypoteesit:
-                if hyp.vaite_teksti:
-                    q = hyp.vaite_teksti[:150]
-                    queries.append(q)
+                # ONLY use explicit search suggestions (external facts)
+                if hyp.hakusana_ehdotus and len(hyp.hakusana_ehdotus.strip()) > 3:
+                    queries.append(hyp.hakusana_ehdotus)
         else:
              logger.info("   [HOOK] No hypotheses found. Using fallback.")
              queries.append("Cognitive Quorum verification")

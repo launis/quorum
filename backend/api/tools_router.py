@@ -1,5 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
-import fitz
+
 
 
 router = APIRouter(prefix="/tools", tags=["Tools"])
@@ -17,11 +17,9 @@ async def extract_pdf(file: UploadFile = File(...)):
         if len(file_bytes) > 10 * 1024 * 1024:
             raise HTTPException(status_code=413, detail="File size exceeds 10MB limit")
 
-        # Process directly from memory
-        with fitz.open(stream=file_bytes, filetype="pdf") as doc:
-            text = ""
-            for page in doc:
-                text += page.get_text()
+        # Process directly from memory (using centralized processor)
+        from backend.services.document_processor import DocumentProcessor
+        text = DocumentProcessor.extract_text_from_pdf(file_bytes)
         
         return {"filename": file.filename, "text": text}
                 

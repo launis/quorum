@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, BackgroundTasks
-from tinydb import TinyDB, Query
+from tinydb import Query
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
 import os
@@ -22,7 +22,7 @@ router = APIRouter(
 )
 
 def get_db():
-    return TinyDB(DB_PATH, encoding='utf-8')
+    return get_db_client()
 
 # --- Models ---
 
