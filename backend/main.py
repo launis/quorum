@@ -2,20 +2,23 @@ import os
 import shutil
 import json
 from typing import List, Dict, Any, Optional
-from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks, Request
+from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks, Request, Depends
 from pydantic import BaseModel
-from tinydb import Query
+# from tinydb import Query # Removed
 
 from backend.services.document_processor import DocumentProcessor
 from backend.core.engine import WorkflowEngine
+from backend.dependencies import get_engine, get_db_client_dep
 
+from backend.api.tools_router import router as tools_router
 from backend.api.tools_router import router as tools_router
 from backend.api.agents_router import router as agents_router
 from backend.api.admin_router import router as admin_router
 from backend.api.llm_router import router as llm_router
-from backend.api.llm_router import router as llm_router
 from backend.api.config_router import router as config_router
 from backend.api.workflows_router import router as workflows_router
+from backend.exceptions import AppException
+from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
 from backend.config import DB_PATH, DATA_DIR
 
@@ -27,6 +30,13 @@ app = FastAPI(
     description="Backend for Cognitive Quorum application.",
     version="0.2.0"
 )
+
+@app.exception_handler(AppException)
+async def app_exception_handler(request: Request, exc: AppException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"error": exc.message, "details": exc.details, "status": "error"}
+    )
 
 
 app.include_router(tools_router)
@@ -87,6 +97,25 @@ async def startup_event():
         logger.info(f"   [CONFIG] Google Search: DISABLED (Missing Key or CX)")
         
     logger.info("="*50)
+    
+    # Warmup Engine Singleton
+    try:
+        logger.info("   [INFO] Warming up Engine Singleton...")
+        from backend.dependencies import get_db_client_dep, get_repository_dep, get_agent_registry_dep, get_prompt_builder_dep
+        
+        logger.info("   [INFO] Warming up Engine Singleton...")
+        # Manually resolve dependencies to avoid Depends() objects leaking in
+        db = get_db_client_dep()
+        repo = get_repository_dep(db)
+        registry = get_agent_registry_dep(repo)
+        pb = get_prompt_builder_dep(repo, registry)
+        
+        # Initialize Engine with resolved deps
+        get_engine(repository=repo, registry=registry, prompt_builder=pb)
+        logger.info("   [INFO] Engine Ready.")
+    except Exception as e:
+        logger.error(f"   [CRITICAL] Engine Warmup Failed: {e}")
+
 
 # Database setup
 # Robust path resolution for DB
@@ -99,16 +128,18 @@ os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
-from backend.database.wrapper import get_db_client
-db_client = get_db_client()
-engine = WorkflowEngine(DB_PATH)
+# Database setup
+# Robust path resolution for DB
+print(f"DEBUG: ACTIVE DATABASE PATH: {os.path.abspath(DB_PATH)}")
 
-# Initialize/Seed Components
-engine.register_component("DocumentProcessor", "processor", "DocumentProcessor")
+# Ensure data dir exists
+os.makedirs(DATA_DIR, exist_ok=True)
 
-# Dynamic Agent Registration (V2 Architecture)
-# Automatically scans backend.agents and registers all BaseAgent subclasses
-engine.discover_and_register_agents()
+# Ensure data and database dirs exist
+os.makedirs(DATA_DIR, exist_ok=True)
+os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+
+# Global Engine REMOVED in favor of DI (backend.dependencies.get_engine)
 
 # Ensure upload directory exists
 # Ensure upload directory exists
@@ -121,14 +152,15 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @app.get("/db/seed_data")
 @app.get("/db/seed_data")
-async def get_seed_data():
+@app.get("/db/seed_data")
+async def get_seed_data(engine: WorkflowEngine = Depends(get_engine)):
     """
     Returns the content of seed data from the database.
     """
     try:
-        components = engine.components_table.all()
-        steps = engine.steps_table.all()
-        workflows = engine.workflows_table.all()
+        components = engine.repository.get_all_components()
+        steps = engine.repository.get_all_steps()
+        workflows = engine.repository.get_all_workflows()
         
         return {
             "components": components,
@@ -140,18 +172,20 @@ async def get_seed_data():
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/db/workflows")
-async def get_workflows():
+@app.get("/db/workflows")
+async def get_workflows(engine: WorkflowEngine = Depends(get_engine)):
     """
     Returns all workflows from the database.
     """
     try:
-        workflows = engine.workflows_table.all()
+        workflows = engine.repository.get_all_workflows()
         return workflows
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/db/preview_prompt/{step_id}")
-async def preview_prompt(step_id: str):
+@app.get("/db/preview_prompt/{step_id}")
+async def preview_prompt(step_id: str, engine: WorkflowEngine = Depends(get_engine)):
     """
     Returns a preview of the prompt for a given step.
     """
@@ -164,7 +198,8 @@ async def preview_prompt(step_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/db/preview_full_chain/{workflow_id}")
-async def preview_full_chain(workflow_id: str):
+@app.get("/db/preview_full_chain/{workflow_id}")
+async def preview_full_chain(workflow_id: str, engine: WorkflowEngine = Depends(get_engine)):
     """
     Returns a full chain prompt preview for a given workflow.
     """

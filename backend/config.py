@@ -1,89 +1,47 @@
-import os
-from dotenv import load_dotenv
+from backend.settings import get_settings
 
-# Load environment variables from .env file
-load_dotenv()
+# --- Load Settings via Pydantic ---
+settings = get_settings()
 
-# --- Mock Configuration ---
-# Set to True to use the Mock LLM Service (no API costs)
-USE_MOCK_LLM = os.getenv("USE_MOCK_LLM", "False").lower().strip() == "true"
+# --- Export Constants for Backward Compatibility ---
 
-# Set to True to use the Mock Database (TinyDB)
-# Set to False to use the Real Database (Firebase - Future Implementation)
-USE_MOCK_DB = os.getenv("USE_MOCK_DB", "True").lower().strip() == "true"
+# Feature Flags
+USE_MOCK_LLM = settings.use_mock_llm
+USE_MOCK_DB = settings.use_mock_db
 
-# --- API Keys ---
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+# API Keys
+GOOGLE_API_KEY = settings.google_api_key
 
-print(f"DEBUG: Initial USE_MOCK_LLM via os.getenv: {os.getenv('USE_MOCK_LLM')}")
-
-# Force Mock Mode if API Key is missing (e.g., in CI/CD)
-if not GOOGLE_API_KEY and not USE_MOCK_LLM:
-    print("WARNING: GOOGLE_API_KEY not found. Forcing Mock LLM Mode.")
-    USE_MOCK_LLM = True
-
-print(f"DEBUG: Final USE_MOCK_LLM: {USE_MOCK_LLM}")
-
-
-INITIAL_MODEL = os.getenv("INITIAL_MODEL", "gemini-2.5-flash")
-
-# --- LLM Settings ---
-LLM_DEFAULT_TIMEOUT = float(os.getenv("LLM_DEFAULT_TIMEOUT", "30.0"))
-LLM_MAX_RETRIES = int(os.getenv("LLM_MAX_RETRIES", "3"))
-LLM_RETRY_DELAY = float(os.getenv("LLM_RETRY_DELAY", "4.0"))
+# LLM Configuration
+INITIAL_MODEL = settings.initial_model
+LLM_DEFAULT_TIMEOUT = settings.llm_default_timeout
+LLM_MAX_RETRIES = settings.llm_max_retries
+LLM_RETRY_DELAY = settings.llm_retry_delay
 
 # Model Strategies
-# Model Strategies
-# Source of Truth Hierarchy:
-# 1. DB (system_config table)
-# 2. These Defaults (Fallback)
-MODEL_STRATEGIES = {
-    "fast": {
-        "name": "⚡ Fast Mode",
-        "description": "Optimized for speed and cost. Uses lighter models (e.g., Flash).",
-        "model": os.getenv("GEMINI_MODEL_FAST", INITIAL_MODEL),
-        "temperature": 0.7,
-        "max_tokens": 8192
-    },
-    "deep": {
-        "name": "🧠 Deep Mode",
-        "description": "Optimized for complex reasoning and quality. Uses deep thinking models.",
-        "model": os.getenv("GEMINI_MODEL_DEEP", INITIAL_MODEL), # Or gemini-2.5-pro
-        "temperature": 0.5,
-        "max_tokens": 8192
-    }
-}
+MODEL_STRATEGIES = settings.model_strategies
 
-# --- Paths ---
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-# DATA_DIR is now primarily for uploads and other assets, not DB files
-DATA_DIR = os.path.join(os.path.dirname(BASE_DIR), "data")
-DB_DIR = os.path.join(BASE_DIR, "database")
-SCRIPTS_DIR = os.path.join(os.path.dirname(BASE_DIR), "scripts")
+# Paths
+BASE_DIR = settings.base_dir
+DATA_DIR = settings.data_dir
+DB_DIR = settings.db_dir
+SCRIPTS_DIR = settings.scripts_dir
 
-MOCK_DB_PATH = os.path.join(DB_DIR, "db_mock.json")
-# Production DB can stay in data or move. For now assuming it stays or I should move it?
-# The request didn't strictly say move PROD DB, but it said "Consolidate Database Management".
-# I'll point PROD to data/db.json to be safe unless I move it too.
-PROD_DB_PATH = os.path.join(DATA_DIR, "db.json") 
-SEED_DATA_PATH = os.path.join(DB_DIR, "seed_data.json")
+MOCK_DB_PATH = settings.mock_db_path
+PROD_DB_PATH = settings.prod_db_path
+SEED_DATA_PATH = settings.seed_data_path
+MOCK_RESPONSES_PATH = settings.mock_responses_path
 
-# --- Storage Configuration ---
-# Options: "LOCAL", "NONE", "FIRESTORE" (Future)
-STORAGE_BACKEND = os.getenv("STORAGE_BACKEND", "LOCAL").upper()
+DB_PATH = settings.start_db_path
 
-if USE_MOCK_DB:
-    DB_PATH = MOCK_DB_PATH
-    print(f"CONFIG: Using MOCK DB at {DB_PATH}")
-else:
-    DB_PATH = PROD_DB_PATH
-    print(f"CONFIG: Using REAL DB at {DB_PATH}")
-MOCK_RESPONSES_PATH = os.path.join(DATA_DIR, "mock_responses.json")
+# Storage
+STORAGE_BACKEND = settings.storage_backend
 
+# --- Legacy Help Functions ---
 def get_db_path():
     """Returns the path to the database file."""
-    return DB_PATH
+    return settings.start_db_path
 
 def get_mock_responses_path():
     """Returns the path to the mock responses file."""
-    return MOCK_RESPONSES_PATH
+    return settings.mock_responses_path

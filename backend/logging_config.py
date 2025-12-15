@@ -1,6 +1,16 @@
 import logging
 import os
 import sys
+from backend.context import get_execution_context
+
+class ContextFilter(logging.Filter):
+    """
+    Injects execution_id from contextvars into log records.
+    """
+    def filter(self, record):
+        exec_id = get_execution_context()
+        record.execution_id = exec_id if exec_id else "SYSTEM"
+        return True
 
 def setup_logging(log_level=logging.INFO):
     """
@@ -17,18 +27,23 @@ def setup_logging(log_level=logging.INFO):
 
     # Create formatters
     formatter = logging.Formatter(
-        "%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+        "%(asctime)s | %(levelname)s | [%(execution_id)s] | %(name)s | %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S"
     )
+
+    # Context Filter
+    context_filter = ContextFilter()
 
     # 1. File Handler (UTF-8)
     file_handler = logging.FileHandler(log_file_path, mode='a', encoding='utf-8')
     file_handler.setFormatter(formatter)
+    file_handler.addFilter(context_filter) # Add Filter
     file_handler.setLevel(log_level)
 
     # 2. Console Handler
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(formatter)
+    console_handler.addFilter(context_filter) # Add Filter
     console_handler.setLevel(log_level)
 
     # Configure Root Logger

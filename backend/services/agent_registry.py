@@ -1,0 +1,123 @@
+import logging
+import pkgutil
+import importlib
+import inspect
+from typing import Dict, Any, Optional
+from backend.database.repository import WorkflowRepository
+from backend.agents.base import BaseAgent
+from backend.config import INITIAL_MODEL, MODEL_STRATEGIES
+
+logger = logging.getLogger(__name__)
+
+class AgentRegistry:
+    def __init__(self, repository: WorkflowRepository):
+        self.repository = repository
+        self.agents_map: Dict[str, BaseAgent] = {}
+
+    def resolve_model_name(self, model_identifier: str) -> str:
+        """
+        Resolves a model identifier (e.g., 'fast', 'deep') to an actual model name
+        using the global MODEL_STRATEGIES config, prioritizing DB overrides.
+        """
+        # 1. Fetch Dynamic Strategies from Repository
+        reg_entry = self.repository.get_model_registry()
+        
+        dynamic_strategies = None
+        if reg_entry and 'models' in reg_entry:
+            registry = reg_entry['models']
+            # Default to google for now
+            if 'google' in registry:
+                dynamic_strategies = registry['google']
+
+        # 2. Resolve Strategy Key
+        if dynamic_strategies and model_identifier in dynamic_strategies:
+             strategy = dynamic_strategies[model_identifier]
+             if isinstance(strategy, dict):
+                 return strategy.get("model_name", strategy.get("model", INITIAL_MODEL))
+             elif isinstance(strategy, str):
+                 return strategy
+        
+        # Fallback to Static Config
+        if model_identifier in MODEL_STRATEGIES:
+            strategy = MODEL_STRATEGIES[model_identifier]
+            return strategy.get("model_name", strategy.get("model", INITIAL_MODEL))
+            
+        # 3. Return as-is
+        return model_identifier
+
+    def register_component(self, name: str, type: str, class_name: str):
+        """
+        Registers a component in the DB via Repository.
+        """
+        if not self.repository.get_component_by_name(name):
+            self.repository.register_component({
+                "name": name,
+                "type": type,
+                "class_name": class_name,
+                "registered_at": "now" # Simple placeholder, repo handles formatting or use datetime here? usage in engine used datetime.now().isoformat()
+            })
+            # Note: I should import datetime if I want to match exactly.
+            # But repository insert is raw dict.
+            # Let's import datetime.
+
+    def _update_component_metadata(self, name, module, component_class):
+         """Helper to add module/class info for dynamic router loading."""
+         self.repository.update_component_metadata(name, module, component_class)
+
+    def discover_and_register_agents(self, package_path: str = 'backend.agents'):
+        """
+        Dynamically discovers and registers all Agent classes in the specified package.
+        """
+        from datetime import datetime
+        import backend.agents
+        
+        logger.info(f"[AgentRegistry] discovering agents in {package_path}...")
+        
+        # Ensure package is imported
+        package = importlib.import_module(package_path)
+        prefix = package.__name__ + "."
+        
+        count = 0
+        for _, name, ispkg in pkgutil.iter_modules(package.__path__, prefix):
+            if name == "backend.agents.base": continue
+            
+            try:
+                module = importlib.import_module(name)
+                for cls_name, obj in inspect.getmembers(module):
+                    if inspect.isclass(obj) and issubclass(obj, BaseAgent) and obj is not BaseAgent:
+                        
+                        # 1. Instantiate & Store in Map
+                        try:
+                            resolved_initial_model = self.resolve_model_name(INITIAL_MODEL)
+                            self.agents_map[cls_name] = obj(model=resolved_initial_model)
+                            logger.debug(f"[AgentRegistry] Instantiated {cls_name} with {resolved_initial_model}")
+                        except Exception as e:
+                            logger.error(f"[AgentRegistry] Failed to instantiate {cls_name}: {e}")
+                            continue
+
+                        # 2. Register in DB
+                        agent_type = "agent"
+                        if "critic" in cls_name.lower(): agent_type = "critic"
+                        
+                        # Use datetime for consistency
+                        if not self.repository.get_component_by_name(cls_name):
+                             self.repository.register_component({
+                                "name": cls_name,
+                                "type": agent_type,
+                                "class_name": cls_name,
+                                "registered_at": datetime.now().isoformat()
+                            })
+                        
+                        self._update_component_metadata(cls_name, module=name, component_class=cls_name)
+                        count += 1
+                        
+            except Exception as e:
+                logger.error(f"Failed to inspect module {name}: {e}")
+        
+        logger.info(f"[AgentRegistry] Registered {count} agents dynamically.")
+
+    def get_agent(self, agent_name: str) -> Optional[BaseAgent]:
+        return self.agents_map.get(agent_name)
+    
+    def get_all_agents(self) -> Dict[str, BaseAgent]:
+        return self.agents_map.copy()
