@@ -489,9 +489,17 @@ def get_introspection():
     import backend.agents.critics as critics_agent
     import backend.agents.judge as judge_agent
     import backend.agents.xai as xai_agent
+    # Courtroom 2.0 Additions
+    import backend.agents.profiler as profiler_agent
+    import backend.agents.archivist as archivist_agent
+    import backend.agents.coach as coach_agent
+    
     from backend.agents.base import BaseAgent
     
-    agent_modules = [guard_agent, analyst_agent, logician_agent, critics_agent, judge_agent, xai_agent]
+    agent_modules = [
+        guard_agent, analyst_agent, logician_agent, critics_agent, judge_agent, xai_agent,
+        profiler_agent, archivist_agent, coach_agent
+    ]
     available_agents = []
     available_hooks = set()
     

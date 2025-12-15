@@ -47,13 +47,57 @@ class WorkflowEngine:
                         obj is not BaseAgent):
                         
                         try:
-                            self.agents_map[name] = obj(model=INITIAL_MODEL)
-                            logger.info(f"[WorkflowEngine] Registered agent: {name} (from {module_name})")
+                            # Resolve Initial Model (Usually from Config or Env)
+                            resolved_initial_model = self._resolve_model_name(INITIAL_MODEL)
+                            self.agents_map[name] = obj(model=resolved_initial_model)
+                            logger.info(f"[WorkflowEngine] Registered agent: {name} (from {module_name}) with model {resolved_initial_model}")
                         except Exception as e:
                             logger.error(f"[WorkflowEngine] Failed to initialize {name}: {e}")
                             
             except Exception as e:
                 print(f"[WorkflowEngine] Failed to import module {module_name}: {e}")
+
+    def _resolve_model_name(self, model_identifier: str) -> str:
+        """
+        Resolves a model identifier (e.g., 'fast', 'deep') to an actual model name
+        using the global MODEL_STRATEGIES config, prioritizing DB overrides.
+        """
+        from backend.config import MODEL_STRATEGIES, INITIAL_MODEL
+        
+        # 1. Fetch Dynamic Strategies from DB
+        try:
+            Config = Query()
+            # Searching in 'system_config' table
+            sc_table = self.db_client.table('system_config') 
+            res = sc_table.search(Config.type == 'model_registry')
+            
+            dynamic_strategies = None
+            if res and 'models' in res[0]:
+                registry = res[0]['models']
+                # Default to google for now, as per router logic
+                if 'google' in registry:
+                    dynamic_strategies = registry['google']
+        except Exception as e:
+            logger.warning(f"[WorkflowEngine] Failed to fetch dynamic strategies: {e}")
+            dynamic_strategies = None
+
+        # 2. Resolve Strategy Key
+        # Check Dynamic DB first
+        if dynamic_strategies and model_identifier in dynamic_strategies:
+             strategy = dynamic_strategies[model_identifier]
+             # Handle both structure variations
+             if isinstance(strategy, dict):
+                 return strategy.get("model_name", strategy.get("model", INITIAL_MODEL))
+             elif isinstance(strategy, str):
+                 return strategy
+        
+        # Fallback to Static Config
+        if model_identifier in MODEL_STRATEGIES:
+            strategy = MODEL_STRATEGIES[model_identifier]
+            return strategy.get("model_name", strategy.get("model", INITIAL_MODEL))
+            
+        # 3. Return as-is (Direct Model Name)
+        return model_identifier
 
     # --- LEGACY / MANAGEMENT METHODS (Required by main.py) ---
 
@@ -416,6 +460,26 @@ class WorkflowEngine:
                 for hook_name in pre_hooks:
                     current_state = self._execute_hook(hook_name, agent, current_state)
 
+                # --- DYNAMIC MODEL SWITCHING (Refactor) ---
+                # 1. Get mapping from Workflow Definition
+                # (Ideally passed from run_execution inputs or fetched from DB record)
+                # Here we fetch it from the workflow definition record we already loaded (wf_record)
+                workflow_model_mapping = {}
+                if wf_record:
+                    workflow_model_mapping = wf_record[0].get('default_model_mapping', {})
+
+                # 2. Determine Model for this Step
+                # Default to 'fast' if not specified (safe fallback)
+                step_model_key = workflow_model_mapping.get(step_id, "fast")
+                
+                # 3. Resolve Strategy to Actual Model Name
+                resolved_model_name = self._resolve_model_name(step_model_key)
+                
+                # 4. Update Agent
+                if hasattr(agent, 'set_model'):
+                    agent.set_model(resolved_model_name)
+                    logger.debug(f"[WorkflowEngine] Method 'set_model' called on {agent_name} -> {resolved_model_name} (Key: {step_model_key})")
+                
                 # Construct data-driven prompt WITH STATE INJECTION
                 # MOVED AFTER PRE-HOOKS to ensure sanitization (e.g. PDF extraction) happens first
                 system_instruction = self._construct_prompt_for_step(step_id, current_state) if step_id else None

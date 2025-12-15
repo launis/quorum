@@ -410,16 +410,18 @@ with tab2:
                 )
                 
                 if strategy_choice == "⚡ Fast Mode":
-                    new_wf_mapping[step_id] = fast_model
+                    new_wf_mapping[step_id] = "fast" # STORE STRATEGY KEY
+                    f_name = strategies.get("fast", {}).get("model", fast_model)
                     f_temp = strategies.get("fast", {}).get("temperature", 0.7)
                     f_tok = strategies.get("fast", {}).get("max_tokens", 8192)
-                    st.markdown(f"**Using:** `{fast_model}`")
+                    st.markdown(f"**Using:** `{f_name}` (via Fast)")
                     st.caption(f"Temp: `{f_temp}` | Max Tokens: `{f_tok}`")
                 else:
-                    new_wf_mapping[step_id] = deep_model
+                    new_wf_mapping[step_id] = "deep" # STORE STRATEGY KEY
+                    d_name = strategies.get("deep", {}).get("model", deep_model)
                     d_temp = strategies.get("deep", {}).get("temperature", 0.7)
                     d_tok = strategies.get("deep", {}).get("max_tokens", 8192)
-                    st.markdown(f"**Using:** `{deep_model}`")
+                    st.markdown(f"**Using:** `{d_name}` (via Deep)")
                     st.caption(f"Temp: `{d_temp}` | Max Tokens: `{d_tok}`")
                     
                 st.divider()
@@ -501,15 +503,12 @@ with tab2:
                     st.markdown(f"**Step: {step_id}**")
                     
                     # Determine current selection
-                    current_model = current_mapping.get(step_id, fast_model)
-                    
-                    # Default index logic
-                    # If current model matches Deep -> Index 1
-                    # Else -> Index 0 (Fast) - Even if it's some other legacy model, we default UI to Fast for simplicity, 
-                    # users can switch to Deep if they want.
+                    # Legacy: might be a model name ("gemini-2.5-flash")
+                    # New: might be a strategy key ("fast", "deep")
+                    current_val = current_mapping.get(step_id, "fast")
                     
                     default_idx = 0
-                    if current_model == deep_model:
+                    if current_val == "deep" or (strategies.get('deep') and current_val == strategies['deep'].get('model')):
                         default_idx = 1
                     
                     strategy_choice = st.radio(
@@ -522,18 +521,20 @@ with tab2:
                     )
                     
                     if strategy_choice == "⚡ Fast Mode":
-                         new_mapping[step_id] = fast_model
+                         new_mapping[step_id] = "fast" # STORE STRATEGY KEY
                          
+                         f_name = strategies.get("fast", {}).get("model", fast_model) # Resolved name
                          f_temp = strategies.get("fast", {}).get("temperature", 0.7)
                          f_tok = strategies.get("fast", {}).get("max_tokens", 8192)
-                         st.markdown(f"**Using:** `{fast_model}`")
+                         st.markdown(f"**Using:** `{f_name}` (via Fast)")
                          st.caption(f"Temp: `{f_temp}` | Max Tokens: `{f_tok}`")
                         
                     else:
-                         new_mapping[step_id] = deep_model
+                         new_mapping[step_id] = "deep" # STORE STRATEGY KEY
+                         d_name = strategies.get("deep", {}).get("model", deep_model) # Resolved name
                          d_temp = strategies.get("deep", {}).get("temperature", 0.7)
                          d_tok = strategies.get("deep", {}).get("max_tokens", 8192)
-                         st.markdown(f"**Using:** `{deep_model}`")
+                         st.markdown(f"**Using:** `{d_name}` (via Deep)")
                          st.caption(f"Temp: `{d_temp}` | Max Tokens: `{d_tok}`")
                     
                     st.divider()

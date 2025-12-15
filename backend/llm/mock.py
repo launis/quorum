@@ -64,6 +64,18 @@ class MockLLMService:
         return self._generate_fallback(key)
 
     def _identify_prompt_type(self, prompt: str, system_instruction: str) -> str:
+        # 0. Check for explicit STEP_ID injected into prompt
+        import re
+        step_id_match = re.search(r"STEP_ID: (\w+)", prompt)
+        if step_id_match:
+            return step_id_match.group(1)
+        
+        # Also check system instruction just in case
+        if system_instruction:
+            step_id_match_sys = re.search(r"STEP_ID: (\w+)", system_instruction)
+            if step_id_match_sys:
+                return step_id_match_sys.group(1)
+
         """
         Heuristics to identify the prompt type.
         Prioritizes system_instruction as it defines the agent's persona.
@@ -100,6 +112,10 @@ class MockLLMService:
             if "falsifieragent" in sys_lower or "falsifier agent" in sys_lower: return "falsifier_agent"
             if "judgeagent" in sys_lower or "judge agent" in sys_lower: return "judge_agent"
             if "xaireporteragent" in sys_lower or "xai reporter" in sys_lower: return "xai_agent"
+            # Courtroom 2.0 Agents
+            if "profileragent" in sys_lower: return "profiler_agent"
+            if "archivistagent" in sys_lower: return "archivist_agent"
+            if "coachagent" in sys_lower: return "coach_agent"
 
             # Fallback: Check for specific Phase/Agent headers
             if "logician agent" in sys_lower: return "logician_agent" 
@@ -147,6 +163,10 @@ class MockLLMService:
         if "vaihe 3" in prompt_lower or "loogikko-agentti" in prompt_lower: return "logician_agent"
         if "vaihe 2" in prompt_lower or "analyytikko-agentti" in prompt_lower: return "analyst_agent"
         if "vaihe 1" in prompt_lower or "vartija-agentti" in prompt_lower: return "guard_agent"
+        # New Agents (V2.1)
+        if "profiler" in prompt_lower or "profiloija" in prompt_lower: return "profiler_agent"
+        if "archivist" in prompt_lower or "arkistonhoitaja" in prompt_lower: return "archivist_agent"
+        if "coach" in prompt_lower or "valmentaja" in prompt_lower: return "coach_agent"
         
         # 3. Broad Keyword Matching (Last Resort)
         if "argumentaatioanalyysi" in prompt_lower: return "logician_agent"
@@ -221,6 +241,19 @@ class MockLLMService:
             })
             return json.dumps(data, ensure_ascii=False)
 
+        elif key == "profiler_agent":
+            data = common_base.copy()
+            data["metadata"]["agentti"] = "Profiloija"
+            data["metadata"]["vaihe"] = 2.5
+            data.update({
+                "intentio_analyysi": "Kirjoittajan intentio on vaikuttaa tunteisiin vetoamalla.",
+                "tunnetila_ja_savy": "Ahdistunut mutta toiveikas.",
+                "tunnistetut_vinoumat": ["Vahvistusharha (Confirmation Bias)"],
+                "psykologinen_profiili": "Puolustuskannalla oleva oppija.",
+                "manipulaatio_yritykset": "Ei havaittu selkeää manipulaatiota."
+            })
+            return json.dumps(data, ensure_ascii=False)
+
         elif key == "logician_agent":
             data = common_base.copy()
             data["metadata"]["agentti"] = "Loogikko"
@@ -288,6 +321,18 @@ class MockLLMService:
             })
             return json.dumps(data, ensure_ascii=False)
 
+        elif key == "archivist_agent":
+            data = common_base.copy()
+            data["metadata"]["agentti"] = "Arkistonhoitaja"
+            data["metadata"]["vaihe"] = 8.5
+            data.update({
+                "linjakkuus_analyysi": "Suoritus on linjassa aiempien tapausten kanssa.",
+                "poikkeamat_linjasta": "Ei merkittäviä poikkeamia.",
+                "suositus_tuomarille": "Suosittelen neutraalia arviota.",
+                "viitatut_ennakkotapaukset": ["Case-123"]
+            })
+            return json.dumps(data, ensure_ascii=False)
+
         elif key == "performativity_agent":
             data = common_base.copy()
             data["metadata"]["agentti"] = "Performatiivisuus"
@@ -333,6 +378,19 @@ class MockLLMService:
                 "analysis_recommendations": "Suositukset...",
                 "final_verdict": "Hyväksytty",
                 "confidence_score": 0.95
+            })
+            return json.dumps(data, ensure_ascii=False)
+
+        elif key == "coach_agent":
+            data = common_base.copy()
+            data["metadata"]["agentti"] = "Valmentaja"
+            data["metadata"]["vaihe"] = 10.5
+            data.update({
+                "kannustava_palaute": "Hyvää työtä analyysin kanssa!",
+                "kehityskohteet_konkreettisesti": [
+                    {"otsikko": "Argumentaation syventäminen", "kuvaus": "Tutustu Toulmin malliin tarkemmin.", "resurssit": []}
+                ],
+                "oppimispolku_viikko": "Maanantai: Lue teoria. Tiistai: Harjoittele."
             })
             return json.dumps(data, ensure_ascii=False)
         

@@ -1,9 +1,21 @@
 {
     "components": [
         {
+            "id": "HEADER_TEXT",
+            "type": "static_text",
+            "name": "Raportin Otsikko",
+            "content": "# Kognitiivinen Arviointiraportti (v2)\n\n**Järjestelmä:** Cognitive Quorum Assessment Engine\n**Versio:** 2.0 (Data-Driven)\n**Päiväys:** {{ date }}\n\n---"
+        },
+        {
+            "id": "DISCLAIMER_TEXT",
+            "type": "static_text",
+            "name": "Vastuuvapauslauseke",
+            "content": "> **Vastuuvapauslauseke:** Tämä raportti on generoitu tekoälyavusteisesti (AI-Assisted). Se perustuu syötettyyn aineistoon ja määriteltyihin kognitiivisiin sääntöihin."
+        },
+        {
             "id": "template_context_now",
             "type": "template",
-            "content": "### TILANNEKUVA (CONTEXT_NOW) ###\nSYSTEM TIME: {{CURRENT_DATE}}\nOlet vaiheessa: {{CURRENT_STEP_NAME}}\n    KÄYTETTÄVISSÄ OLEVA DATA:\n    ---\n    HISTORIA: {{HISTORY_TEXT}}\n    TUOTE: {{PRODUCT_TEXT}}\n    REFLEKTIO: {{REFLECTION_TEXT}}\n    ---\n    AIEMMAT LÖYDÖKSET: {{PREVIOUS_STEP_OUTPUTS}}\n    ---\n"
+            "content": "### TILANNEKUVA (CONTEXT_NOW) ###\nSTEP_ID: {{CURRENT_STEP_ID}}\nSYSTEM TIME: {{CURRENT_DATE}}\nOlet vaiheessa: {{CURRENT_STEP_NAME}}\n    KÄYTETTÄVISSÄ OLEVA DATA:\n    ---\n    HISTORIA: {{HISTORY_TEXT}}\n    TUOTE: {{PRODUCT_TEXT}}\n    REFLEKTIO: {{REFLECTION_TEXT}}\n    ---\n    AIEMMAT LÖYDÖKSET: {{PREVIOUS_STEP_OUTPUTS}}\n    ---\n"
         },
         {
             "id": "common_mandate",
@@ -102,6 +114,37 @@
             ]
         },
         {
+            "id": "PROFILER_OUTPUT_CONFIG",
+            "type": "output_config",
+            "name": "Profiler Output Fields",
+            "content": [
+                "psykologinen_profiili",
+                "tunnistetut_vinoumat",
+                "manipulaatio_yritykset"
+            ]
+        },
+        {
+            "id": "ARCHIVIST_OUTPUT_CONFIG",
+            "type": "output_config",
+            "name": "Archivist Output Fields",
+            "content": [
+                "linjakkuus_analyysi",
+                "suositus_tuomarille",
+                "viitatut_ennakkotapaukset"
+            ]
+        },
+        {
+            "id": "COACH_OUTPUT_CONFIG",
+            "type": "output_config",
+            "name": "Coach Output Fields",
+            "content": [
+                "kannustava_palaute",
+                "kehityskohteet_konkreettisesti",
+                "oppimispolku_viikko",
+                "lopputuloksen_kehitysehdotukset"
+            ]
+        },
+        {
             "id": "STANDARD_REPORT_OUTPUT",
             "type": "output_config",
             "name": "Standard Report Output Fields",
@@ -130,9 +173,15 @@
             "content": "### ROOLI: ANALYYTIKKO (ANALYST AGENT) ###\nTehtäväsi on luoda 'Todistuskartta' (Evidence Map) ankkuroimalla väitteet suoraan lähdetekstiin.\nTAVOITTEET:\n1. Pura syöte atomisiksi väitteiksi.\n2. Etsi jokaiselle väitteelle suora lainaus (sitaatti) lähdemateriaalista.\n3. Tunnista keskeiset teemat ja niiden väliset yhteydet.\n4. MÄÄRITÄ HAKUSANAT LUOTETTAVUUDEN TARKISTUKSEEN:\n   - Jos väite on ULKOINEN FAKTA (esim. \"Suomi itsenäistyi 1917\", \"Toulminin malli\", \"J.K. Rowling sanoi\"), kirjaa kenttään 'hakusana_ehdotus' tarkka hakulauseke.\n   - Jos väite on SISÄINEN HAVAINTO (esim. \"Opiskelija pohtii\", \"Teksti on hyvin jäsennelty\"), jätä 'hakusana_ehdotus' TYHJÄKSI (null).\nKRIITTISET SÄÄNNÖT:\n- Jokaisella havainnolla on oltava viite (line reference/quote)."
         },
         {
+            "id": "instruction_profiler",
+            "type": "prompt",
+            "name": "Oikeuspsykologi (Profiler)",
+            "content": "### ROOLI: PROFILOIJA (PROFILER AGENT) ###\nTehtäväsi on analysoida tekstin kirjoittajan intentioita, tunnetilaa ja kognitiivisia vinoumia.\nTAVOITTEET:\n1. Hyödynnä syötteenä saatuja tekstimetriikoita (aux_data) analyysin tukena.\n2. Tunnista piilovaikuttaminen, sarkasmi tai manipulaatioyritykset.\n3. Arvioi kirjoittajan confirmation bias: jättääkö teksti huomiotta vastakkaiset näkökulmat?\nKRIITTISET SÄÄNNÖT:\n- Älä analysoi vain sitä MITÄ sanotaan, vaan MIKSI se sanotaan ja MITEN."
+        },
+        {
             "id": "instruction_logician",
             "type": "prompt",
-            "name": "Argumentaatioanalyysi (Logician)",
+            "name": "Argumentaationanalyysi (Logician)",
             "content": "### ROOLI: LOOGIKKO (LOGICIAN AGENT) ###\nTehtäväsi on arvioida argumentaation rakennetta ja kognitiivista tasoa.\nTAVOITTEET:\n1. Sovella Toulminin argumentaatiomallia (Väite, Peruste, Oikeutus).\n2. Arvioi kognitiivinen taso Bloomin taksonomian avulla (Muistaminen -> Luominen).\n3. Tunnista argumentaatiovirheet ja loogiset puutteet.\nKRIITTISET SÄÄNNÖT:\n- Arvioi vain logiikan johdonmukaisuutta, ei väitteiden totuusarvoa."
         },
         {
@@ -160,10 +209,22 @@
             "content": "### ROOLI: PERFORMATIIVISUUDEN TUNNISTAJA (DETECTOR) ###\nTehtäväsi on tunnistaa 'teatteri' eli näytelty oppiminen.\nTAVOITTEET:\n1. Etsi performatiivista kieltä: Jargonia ilman ymmärrystä, liiallista muodollisuutta.\n2. Tunnista 'False Struggle': Onko raportoitu haaste aito vai keksitty?\n3. Arvioi aitous: Onko työ orgaanista vai mekaanista suorittamista?\nKRIITTISET SÄÄNNÖT:\n- Käytä heuristiikkoja (esim. 'delve into', 'tapestry') vihjeinä."
         },
         {
+            "id": "instruction_archivist",
+            "type": "prompt",
+            "name": "Arkistonhoitaja (Archivist)",
+            "content": "### ROOLI: ARKISTONHOITAJA (ARCHIVIST AGENT) ###\nTehtäväsi on toimia oikeuskäytännön vartijana ja varmistaa arvioinnin linjakkuus.\nTAVOITTEET:\n1. Analysoi sinulle toimitetut ennakkotapaukset (aux_data).\n2. Vertaa nykyistä tapausta aiempiin: Onko suoritus linjassa aiempien arvioiden kanssa?\n3. Anna suositus Tuomarille: Tulisiko olla ankara vai lempeä linjakkuuden nimissä?\nKRIITTISET SÄÄNNÖT:\n- Oikeudenmukaisuus vaatii johdonmukaisuutta. Jos poikkeat linjasta, se on perusteltava erittäin hyvin."
+        },
+        {
             "id": "instruction_judge",
             "type": "prompt",
             "name": "Lopullinen Tuomio ja Pisteytys (Judge)",
-            "content": "### ROOLI: TUOMARI (JUDGE AGENT) ###\nTehtäväsi on syntetisoida kaikki auditointiraportit ja antaa lopullinen tuomio.\nTAVOITTEET:\n1. Ratkaise ristiriidat eri agenttien (esim. Loogikko vs. Falsifioija) välillä.\n2. Tarkista 'Mastery Deviation': Onko työ epäilyttävän täydellistä suhteessa prosessiin?\n3. Määritä arvosanat (1-4) kategorioille: Analyysi, Arviointi, Synteesi.\nKRIITTISET SÄÄNNÖT:\n- Tuomiosi on lopullinen. Perustele se kattavasti viittaamalla muiden agenttien löydöksiin."
+            "content": "### ROOLI: TUOMARI (JUDGE AGENT) ###\nTehtäväsi on syntetisoida kaikki auditointiraportit ja antaa lopullinen tuomio.\nTAVOITTEET:\n1. Ratkaise ristiriidat eri agenttien (esim. Logiikko vs. Falsifioija) välillä.\n2. Tarkista 'Mastery Deviation': Onko työ epäilyttävän täydellistä suhteessa prosessiin?\n3. HUOMIOI ARKISTONHOITAJAN SUOSITUS LINJAKKUUDESTA.\n4. Määritä arvosanat (1-4) kategorioille: Analyysi, Arviointi, Synteesi.\nKRIITTISET SÄÄNNÖT:\n- Tuomiosi on lopullinen. Perustele se kattavasti viittaamalla muiden agenttien löydöksiin."
+        },
+        {
+            "id": "instruction_coach",
+            "type": "prompt",
+            "name": "Valmentaja (Coach)",
+            "content": "### ROOLI: VALMENTAJA (COACH AGENT) ###\nTehtäväsi on kääntää Tuomarin kriittinen tuomio pedagogiseksi, eteenpäin katsovaksi ohjaukseksi.\nTAVOITTEET:\n1. Muuta virheet oppimismahdollisuuksiksi ('Growth Mindset').\n2. Luo konkreettinen 'Toimintasuunnitelma' (Action Plan) ensi viikolle.\n3. Ehdota selkeitä lähteitä tai menetelmiä (esim. 'Kokeile Toulminia').\nKRIITTISET SÄÄNNÖT:\n- Älä ole lannistava. Ole vaativa mutta kannustava.\n4. Anna konkreettisia parannusehdotuksia itse lopputuotteeseen (esim. tekstiin) ja kirjaa ne kenttään 'lopputuloksen_kehitysehdotukset'."
         },
         {
             "id": "instruction_reporter",
@@ -174,7 +235,7 @@
     ],
     "steps": [
         {
-            "id": "step_1",
+            "id": "step_guard",
             "name": "Vartija (Guard)",
             "description": "Esikäsittely ja Turvaportti (Vaihe 1).",
             "component": "GuardAgent",
@@ -198,7 +259,7 @@
             "output_config_component": "GUARD_OUTPUT_CONFIG"
         },
         {
-            "id": "step_2",
+            "id": "step_analyst",
             "name": "Analyytikko (Analyst)",
             "description": "Todistepohjainen ankkurointi (Vaihe 2).",
             "component": "AnalystAgent",
@@ -219,7 +280,30 @@
             "output_config_component": "ANALYST_OUTPUT_CONFIG"
         },
         {
-            "id": "step_3",
+            "id": "step_profiler",
+            "name": "Profiloija (Profiler)",
+            "description": "Kirjoittajan intention ja sävyn analyysi (Vaihe 2.5).",
+            "component": "ProfilerAgent",
+            "execution_config": {
+                "llm_prompts": [
+                    "template_context_now",
+                    "common_mandate",
+                    "instruction_profiler",
+                    "PROFILER_OUTPUT_CONFIG",
+                    "template_output_enforcer"
+                ],
+                "pre_hooks": [
+                    "analyze_text_metrics"
+                ],
+                "post_hooks": []
+            },
+            "output_schema": "ProfilerAnalysis",
+            "output_filename": "2_5_profiili.json",
+            "output_config_component": "PROFILER_OUTPUT_CONFIG",
+            "state_key": "step_profiler"
+        },
+        {
+            "id": "step_logician",
             "name": "Loogikko (Logician)",
             "description": "Argumentaation rakentaminen (Vaihe 3).",
             "component": "LogicianAgent",
@@ -241,7 +325,7 @@
             "output_config_component": "LOGICIAN_OUTPUT_CONFIG"
         },
         {
-            "id": "step_4",
+            "id": "step_falsifier",
             "name": "Looginen Falsifioija (Logical Falsifier)",
             "description": "Argumentaation auditointi (Vaihe 4).",
             "component": "LogicalFalsifierAgent",
@@ -263,31 +347,9 @@
             "output_config_component": "FALSIFIER_OUTPUT_CONFIG"
         },
         {
-            "id": "step_5",
-            "name": "Faktuaalinen ja Eettinen Valvoja (Overseer)",
-            "description": "Todisteiden valvoja (Vaihe 5).",
-            "component": "FactualOverseerAgent",
-            "execution_config": {
-                "llm_prompts": [
-                    "template_context_now",
-                    "common_mandate",
-                    "instruction_overseer",
-                    "OVERSEER_OUTPUT_CONFIG",
-                    "template_output_enforcer"
-                ],
-                "pre_hooks": [
-                    "execute_google_search"
-                ],
-                "post_hooks": []
-            },
-            "output_schema": "EtiikkaJaFakta",
-            "output_filename": "5_faktatarkistus.json",
-            "output_config_component": "OVERSEER_OUTPUT_CONFIG"
-        },
-        {
-            "id": "step_6",
+            "id": "step_causal",
             "name": "Kausaalinen Analyytikko (Causal Analyst)",
-            "description": "Kausaalisuuden auditointi (Vaihe 6).",
+            "description": "Kausaalisuuden auditointi (Vaihe 5).",
             "component": "CausalAnalystAgent",
             "execution_config": {
                 "llm_prompts": [
@@ -305,9 +367,9 @@
             "output_config_component": "CAUSAL_OUTPUT_CONFIG"
         },
         {
-            "id": "step_7",
+            "id": "step_detector",
             "name": "Performatiivisuuden Tunnistaja (Performativity Detector)",
-            "description": "Käyttäytymisanalyysi (Vaihe 7).",
+            "description": "Käyttäytymisanalyysi (Vaihe 6).",
             "component": "PerformativityDetectorAgent",
             "execution_config": {
                 "llm_prompts": [
@@ -327,9 +389,54 @@
             "output_config_component": "DETECTOR_OUTPUT_CONFIG"
         },
         {
-            "id": "step_8",
+            "id": "step_overseer",
+            "name": "Faktuaalinen ja Eettinen Valvoja (Overseer)",
+            "description": "Todisteiden valvoja (Vaihe 7).",
+            "component": "FactualOverseerAgent",
+            "execution_config": {
+                "llm_prompts": [
+                    "template_context_now",
+                    "common_mandate",
+                    "instruction_overseer",
+                    "OVERSEER_OUTPUT_CONFIG",
+                    "template_output_enforcer"
+                ],
+                "pre_hooks": [
+                    "execute_google_search"
+                ],
+                "post_hooks": []
+            },
+            "output_schema": "EtiikkaJaFakta",
+            "output_filename": "5_faktatarkistus.json",
+            "output_config_component": "OVERSEER_OUTPUT_CONFIG"
+        },
+        {
+            "id": "step_archivist",
+            "name": "Arkistonhoitaja (Archivist)",
+            "description": "Oikeuskäytännön ja linjakkuuden vartija (Vaihe 8a).",
+            "component": "ArchivistAgent",
+            "execution_config": {
+                "llm_prompts": [
+                    "template_context_now",
+                    "common_mandate",
+                    "instruction_archivist",
+                    "ARCHIVIST_OUTPUT_CONFIG",
+                    "template_output_enforcer"
+                ],
+                "pre_hooks": [
+                    "retrieve_precedent"
+                ],
+                "post_hooks": []
+            },
+            "output_schema": "CaseLawContext",
+            "output_filename": "8a_arkisto.json",
+            "output_config_component": "ARCHIVIST_OUTPUT_CONFIG",
+            "state_key": "step_archivist"
+        },
+        {
+            "id": "step_judge",
             "name": "Tuomari (Judge)",
-            "description": "Synteesi ja konfliktinratkaisu (Vaihe 8).",
+            "description": "Synteesi ja konfliktinratkaisu (Vaihe 8b).",
             "component": "JudgeAgent",
             "execution_config": {
                 "llm_prompts": [
@@ -351,7 +458,30 @@
             "state_key": "step_8_judge"
         },
         {
-            "id": "step_9",
+            "id": "step_coach",
+            "name": "Valmentaja (Coach)",
+            "description": "Pedagoginen palaute ja oppimispolku (Vaihe 8c).",
+            "component": "CoachAgent",
+            "execution_config": {
+                "llm_prompts": [
+                    "template_context_now",
+                    "common_mandate",
+                    "instruction_coach",
+                    "COACH_OUTPUT_CONFIG",
+                    "template_output_enforcer"
+                ],
+                "pre_hooks": [],
+                "post_hooks": [
+                    "enrich_learning_plan"
+                ]
+            },
+            "output_schema": "CoachingPlan",
+            "output_filename": "8c_valmennus.json",
+            "output_config_component": "COACH_OUTPUT_CONFIG",
+            "state_key": "step_coach"
+        },
+        {
+            "id": "step_xai",
             "name": "XAI-Raportoija (XAI Reporter)",
             "description": "Selitettävä tekoäly ja raportointi (Vaihe 9).",
             "component": "XAIReporterAgent",
@@ -361,7 +491,9 @@
                     "common_mandate",
                     "instruction_reporter",
                     "STANDARD_REPORT_OUTPUT",
-                    "template_output_enforcer"
+                    "template_output_enforcer",
+                    "HEADER_TEXT",
+                    "DISCLAIMER_TEXT"
                 ],
                 "pre_hooks": [],
                 "post_hooks": [
@@ -377,29 +509,35 @@
     "workflows": [
         {
             "id": "sequential_audit_chain",
-            "name": "Sequential Audit Chain",
-            "description": "9-step audit chain based on Chapter 2.3",
+            "name": "Courtroom 2.0 (Full Audit)",
+            "description": "Enhanced 12-step audit chain with Profiler, Archivist, and Coach.",
             "steps": [
-                "step_1",
-                "step_2",
-                "step_3",
-                "step_4",
-                "step_5",
-                "step_6",
-                "step_7",
-                "step_8",
-                "step_9"
+                "step_guard",
+                "step_analyst",
+                "step_profiler",
+                "step_logician",
+                "step_falsifier",
+                "step_causal",
+                "step_detector",
+                "step_overseer",
+                "step_archivist",
+                "step_judge",
+                "step_coach",
+                "step_xai"
             ],
             "default_model_mapping": {
-                "step_1": "gemini-2.0-flash-exp",
-                "step_2": "gemini-2.0-flash-exp",
-                "step_3": "gemini-2.0-flash-exp",
-                "step_4": "gemini-2.0-flash-exp",
-                "step_5": "gemini-2.0-flash-exp",
-                "step_6": "gemini-2.0-flash-exp",
-                "step_7": "gemini-2.0-flash-exp",
-                "step_8": "gemini-2.0-flash-exp",
-                "step_9": "gemini-2.0-flash-exp"
+                "step_guard": "fast",
+                "step_analyst": "fast",
+                "step_profiler": "fast",
+                "step_logician": "fast",
+                "step_falsifier": "fast",
+                "step_causal": "fast",
+                "step_detector": "fast",
+                "step_overseer": "fast",
+                "step_archivist": "fast",
+                "step_judge": "fast",
+                "step_coach": "fast",
+                "step_xai": "fast"
             }
         }
     ]

@@ -8,6 +8,42 @@ import pandas as pd
 # Configuration
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 
+# Helper: Generic Renderer for Step Outputs
+def render_generic_step(key, value, level=1):
+    """
+    Recursively renders dictionary/list content for dynamic agent displays.
+    """
+    if isinstance(value, dict):
+        if not value: return
+        # Display as section
+        header_level = min(level + 2, 6) # h3-h6
+        # If it's a top-level step dict (e.g. step_profiler), use subheader
+        if level == 1:
+            friendly_name = key.replace("step_", "").replace("_", " ").title()
+            st.subheader(f"🧩 {friendly_name}")
+            for k, v in value.items():
+                render_generic_step(k, v, level + 1)
+            st.divider()
+        else:
+            # Nested dicts
+            with st.expander(f"{key.replace('_', ' ').title()}"):
+                for k, v in value.items():
+                    render_generic_step(k, v, level + 1)
+                    
+    elif isinstance(value, list):
+        if not value: return
+        st.markdown(f"**{key.replace('_', ' ').title()}:**")
+        for item in value:
+            if isinstance(item, (dict, list)):
+                 st.json(item) # Fallback for complex nested lists
+            else:
+                 st.markdown(f"- {item}")
+                 
+    else:
+        # Simple Key-Value
+        if value:
+            st.markdown(f"**{key.replace('_', ' ').title()}:** {value}")
+
 def render_dashboard(result):
     st.header("2. Results")
     
@@ -50,6 +86,14 @@ def render_dashboard(result):
         
         st.divider()
     # ----------------------------------------------------
+    # --- Courtroom 2.0 Additions (Refactored to Generic Loop) ---
+
+    # (Archivist removed)
+
+    # 3. Coach (Learning Plan)
+    # Shown AFTER scores usually, but let's put it here for visibility or maybe at the end?
+    # Let's put Coach AT THE END, after XAI report.
+    
     def format_xai_report(data):
         if not data: return None
         # Standardized Report Layout (Finnish Headers)
@@ -112,6 +156,35 @@ def render_dashboard(result):
         st.markdown(report_md)
     else:
         st.warning("Report content not found in result.")
+
+    # --- Dynamic Agent Rendering (Generic) ---
+    
+    # 1. Standard Reports (Always Hoist these if present)
+    # Check for hoisted Fields
+    report_data = None
+    if result.get('analysis_strengths') or result.get('executive_summary'):
+         report_data = result
+    elif result.get('step_9_reporter'):
+         report_data = result.get('step_9_reporter')
+         
+    # 2. Iterate remaining "step_" keys for generic rendering
+    metadata_keys = ['uhka_havaittu', 'riski_taso', 'onko_post_hoc_rationalisointia', 'luontiaika', 'versio', 'execution_id']
+    
+    # Sort keys to ensure some order: profiler -> archivist -> etc.
+    # Usually step keys have prefixes or we rely on insertion order (Python 3.7+)
+    all_keys = [k for k in result.keys() if k.startswith("step_")]
+    
+    # Exclude Auditor/Reporter/Judge if they are handled specially below or above
+    # For now, Judge/Reporter are special because of BARS scores and Markdown reports
+    # But Profiler, Archivist, Coach, etc. can be generic.
+    
+    special_steps = ['step_9_reporter', 'step_8_judge'] # Rendered separately
+    
+    for key in all_keys:
+        if key not in special_steps:
+            render_generic_step(key, result[key])
+
+    # 3. Special Rendering for Judge (Scores) & Reporter (XAI)
     with st.expander("View Raw Output JSON"):
         st.json(result)
 
@@ -214,6 +287,38 @@ if page == "Assessment":
                         job_id = job_data['execution_id']
                         st.success(f"Job Started! ID: {job_id}")
                         
+                        # --- Dynamic Progress Bar Setup ---
+                        # 1. Fetch all steps to resolve Component IDs (Agent Names)
+                        steps_lookup = {}
+                        try:
+                            # Note: Using /config/steps to get definitions
+                            steps_res = requests.get(f"{BACKEND_URL}/config/steps")
+                            if steps_res.status_code == 200:
+                                for s in steps_res.json():
+                                    steps_lookup[s['id']] = s.get('component')
+                        except Exception as e:
+                            st.warning(f"Failed to fetch steps for progress bar: {e}")
+
+                        # 2. Get Steps for selected Workflow
+                        current_workflow = workflow_options.get(selected_workflow_id)
+                        dynamic_steps_order = []
+                        if current_workflow:
+                            wf_step_ids = current_workflow.get('steps', [])
+                            for sid in wf_step_ids:
+                                agent_name = steps_lookup.get(sid)
+                                if agent_name:
+                                    dynamic_steps_order.append(agent_name)
+                        
+                        # Fallback if lookup failed (shouldn't happen if DB is seeded)
+                        if not dynamic_steps_order:
+                             # Default fallback
+                            dynamic_steps_order = [
+                                "GuardAgent", "AnalystAgent", "ProfilerAgent", "LogicianAgent", 
+                                "LogicalFalsifierAgent", "FactualOverseerAgent", "CausalAnalystAgent", 
+                                "PerformativityDetectorAgent", "ArchivistAgent", "JudgeAgent", 
+                                "XAIReporterAgent", "CoachAgent"
+                            ]
+
                         # Polling Loop
                         progress_bar = st.progress(0)
                         status_text = st.empty()
@@ -240,25 +345,14 @@ if page == "Assessment":
                                     else:
                                         current_step = status_data.get('current_step')
                                         
-                                        # Define Standard Workflow Steps for Progress Bar
-                                        STEPS_ORDER = [
-                                            "GuardAgent", 
-                                            "AnalystAgent", 
-                                            "LogicianAgent", 
-                                            "LogicalFalsifierAgent", 
-                                            "FactualOverseerAgent", 
-                                            "CausalAnalystAgent", 
-                                            "PerformativityDetectorAgent", 
-                                            "JudgeAgent", 
-                                            "XAIReporterAgent"
-                                        ]
+                                        # (Dynamic steps used now)
 
-                                        if current_step and current_step in STEPS_ORDER:
-                                            idx = STEPS_ORDER.index(current_step)
+                                        if current_step and current_step in dynamic_steps_order:
+                                            idx = dynamic_steps_order.index(current_step)
                                             # Show progress relative to total steps (cap at 95% until actually complete)
-                                            progress = (idx + 1) / len(STEPS_ORDER)
+                                            progress = (idx + 1) / len(dynamic_steps_order)
                                             progress_bar.progress(min(progress, 0.95))
-                                            status_text.info(f"Vaihe {idx+1}/{len(STEPS_ORDER)}: {current_step} käynnissä...")
+                                            status_text.info(f"Vaihe {idx+1}/{len(dynamic_steps_order)}: {current_step} käynnissä...")
                                         elif current_step:
                                             # Fallback for non-standard steps
                                             status_text.info(f"Status: {status} - Processing: {current_step}")
