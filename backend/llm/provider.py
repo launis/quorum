@@ -41,7 +41,8 @@ class LLMProvider(ABC):
         system_instruction: Optional[str] = None,
         response_schema: Optional[Type[BaseModel]] = None,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None
+        max_tokens: Optional[int] = None,
+        **kwargs
     ) -> Union[str, Dict[str, Any]]:
         pass
 
@@ -126,7 +127,8 @@ class GoogleGeminiProvider(LLMProvider):
         system_instruction: Optional[str] = None,
         response_schema: Optional[Type[BaseModel]] = None,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None
+        max_tokens: Optional[int] = None,
+        **kwargs
     ) -> Union[str, Dict[str, Any]]:
         import google.generativeai as genai
         
@@ -243,6 +245,18 @@ class GoogleGeminiProvider(LLMProvider):
                 return json.loads(json_candidate)
         except json.JSONDecodeError as e:
             logger.error(f"[GeminiProvider] Fallback extraction failed: {e}")
+            
+            # 4. Last Resort: Heuristic Fix for Missing Commas (Common Gemini Issue)
+            try:
+                import re
+                logger.warning("[GeminiProvider] Attempting heuristic fix for missing commas...")
+                # Insert comma between value ending (quote, digit, bool, brace) and next key start (quote)
+                # Ensure we don't double-comma
+                fixed_json = re.sub(r'(?<=[}\]"\'0-9lue])\s*(?<!,)\s*\n\s*(?=")', ',\n', json_candidate)
+                return json.loads(fixed_json)
+            except Exception as e2:
+                logger.error(f"[GeminiProvider] Heuristic fix failed: {e2}")
+
             raise ValueError(f"Could not extract valid JSON from response: {raw_response[:200]}...")
             
         raise ValueError(f"Could not extract valid JSON from response: {raw_response[:200]}...")
@@ -260,7 +274,8 @@ class OpenAIProvider(LLMProvider):
         system_instruction: Optional[str] = None,
         response_schema: Optional[Type[BaseModel]] = None,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None
+        max_tokens: Optional[int] = None,
+        **kwargs
     ) -> Union[str, Dict[str, Any]]:
         
         messages = []
@@ -314,15 +329,19 @@ class OpenAIProvider(LLMProvider):
             raise e
 
 class MockProvider(LLMProvider):
-    async def generate(self, prompt: str, system_instruction: Optional[str] = None, response_schema: Optional[Type[BaseModel]] = None, temperature: float = 0.7, max_tokens: Optional[int] = None) -> Union[str, Dict[str, Any]]:
+    async def generate(self, prompt: str, system_instruction: Optional[str] = None, response_schema: Optional[Type[BaseModel]] = None, temperature: float = 0.7, max_tokens: Optional[int] = None, **kwargs) -> Union[str, Dict[str, Any]]:
         from backend.llm.mock import MockLLMService
-        logger.info(f"[MockProvider] Calling Mock Service (Simulating Async)...")
+        logger.info(f"[MockProvider] Calling Mock Service (Simulating Async)... {kwargs}")
         
         # Simulate network delay for verification of async behavior
         await asyncio.sleep(0.5)
 
         mock = MockLLMService()
-        result = mock.generate_content(prompt, system_instruction)
+        
+        # Extract explicit identity if provided
+        agent_identity = kwargs.get('mock_identity')
+        
+        result = mock.generate_content(prompt, system_instruction, agent_identity=agent_identity)
         
         if response_schema:
             try:

@@ -473,6 +473,7 @@ class XAIReport(BaseJSON):
     analysis_recommendations: str
     final_verdict: str
     confidence_score: float
+    xai_report_formatted: Optional[str] = None
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -550,33 +551,31 @@ class CaseLawContext(BaseJSON):
 
 # --- Step 8c: Coach Agent ---
 
-class Kehitysehdotus(BaseModel):
-    kohde: Literal["Prosessi", "Lopputuote", "Argumentaatio"]
-    ongelma: str
-    ratkaisuehdotus: str
-    hyoty: str
+class ActionItem(BaseModel):
+    otsikko: str
+    kuvaus: str
+    resurssit: List[str] = Field(default_factory=list, description="URLs or Book refs")
 
 class CoachingPlan(BaseJSON):
     kannustava_palaute: str
-    kehityskohteet_konkreettisesti: list[Kehitysehdotus]
-    lopputuloksen_kehitysehdotukset: list[str] = Field(..., description="Konkreettiset ehdotukset lopputuotteen (esim. tekstin) parantamiseksi.")
-    oppimispolku_viikko: str
+    kehityskohteet_konkreettisesti: list[ActionItem] = Field(..., description="Concrete steps to improve")
+    lopputuloksen_kehitysehdotukset: list[str] = Field(..., description="Concrete suggestions to improve the final product")
+    oppimispolku_viikko: str = Field(..., description="A 1-week plan to fix the issues")
 
     model_config = ConfigDict(
         json_schema_extra={
             "examples": [
                 {
-                    "metadata": { "luontiaika": "2024-01-01T00:00:00Z", "agentti": "Valmentaja", "vaihe": 8.5, "versio": "1.0" },
+                    "metadata": { "luontiaika": "2024-01-01T00:00:00Z", "agentti": "Valmentaja", "vaihe": 8.5, "versio": "2.0" },
                     "metodologinen_loki": "Valmennus luotu.",
                     "edellisen_vaiheen_validointi": "OK",
                     "semanttinen_tarkistussumma": "hash123",
                     "kannustava_palaute": "Hyvä alku!",
                     "kehityskohteet_konkreettisesti": [
                         {
-                            "kohde": "Argumentaatio",
-                            "ongelma": "Perusteet puuttuvat.",
-                            "ratkaisuehdotus": "Lisää lähteitä.",
-                            "hyoty": "Uskottavuus kasvaa."
+                            "otsikko": "Argumentaatio",
+                            "kuvaus": "Perusteet puuttuvat. Lisää lähteitä.",
+                            "resurssit": ["Kirja X", "URL Y"]
                         }
                     ],
                     "lopputuloksen_kehitysehdotukset": ["Tiivistä johdantoa.", "Lisää väliotsikoita."],

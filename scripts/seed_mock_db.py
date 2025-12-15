@@ -1,8 +1,9 @@
 import os
 import sys
 
-# Set environment variable to force Mock DB usage
-os.environ["USE_MOCK_DB"] = "True"
+# Set environment variable to force Mock DB usage ONLY if not already set
+if "USE_MOCK_DB" not in os.environ:
+    os.environ["USE_MOCK_DB"] = "True"
 
 # Add project root to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -47,6 +48,18 @@ def seed_mock_db():
     if 'prompts' in seed_data:
         engine.prompts_table._table.insert_multiple(seed_data['prompts'])
         print(f"Inserted {len(seed_data['prompts'])} prompts.")
+
+    if 'system_config' in seed_data:
+        # engine.db_client is generic, but usually exposes .table()
+        # For TinyDB wrapper, .table() returns the TinyDB Table wrapper which has _table
+        sc_table = engine.db_client.table('system_config')
+        if hasattr(sc_table, '_table'):
+            sc_table._table.insert_multiple(seed_data['system_config'])
+        else:
+            # Slower fallback if interface differs
+            for item in seed_data['system_config']:
+                sc_table.insert(item)
+        print(f"Inserted {len(seed_data['system_config'])} system configs.")
 
     print("Mock Database seeded successfully.")
 

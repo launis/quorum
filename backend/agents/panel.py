@@ -30,10 +30,10 @@ class PanelAgent(BaseAgent):
         }
 
         # Add available intermediate results
-        if state.step_2_analyst:
-            input_data["todistuskartta"] = state.step_2_analyst.model_dump(mode='json')
-        if state.step_3_logician:
-            input_data["argumentaatioanalyysi"] = state.step_3_logician.model_dump(mode='json')
+        if state.step_analyst:
+            input_data["todistuskartta"] = state.step_analyst.model_dump(mode='json')
+        if state.step_logician:
+            input_data["argumentaatioanalyysi"] = state.step_logician.model_dump(mode='json')
             
         # Add aux data if relevant (like search results)
         google_search_results = state.aux_data.get('google_search_results', 'Ei hakutuloksia.')
@@ -48,7 +48,7 @@ class PanelAgent(BaseAgent):
         ---
         """
 
-    async def execute(self, state: WorkflowState, system_instruction: str = None) -> WorkflowState:
+    async def execute(self, state: WorkflowState, system_instruction: Optional[str] = None, **kwargs) -> WorkflowState:
         # 1. Construct User Prompt
         user_content = self.construct_user_prompt(state)
         
@@ -83,10 +83,12 @@ class PanelAgent(BaseAgent):
         # 3. Call LLM
         # We do NOT pass a specific response_schema because the output is a composite dict 
         # of multiple schemas. We rely on the prompt to enforce structure (or we could define a super-model).
+        # We pass **kwargs (like temperature, max_tokens) to the provider
         response = await self.llm_provider.generate(
             prompt=user_content,
             system_instruction=full_system_instruction,
-            response_schema=None 
+            response_schema=None,
+            **kwargs
         )
         
         # 4. Parse JSON
@@ -103,7 +105,6 @@ class PanelAgent(BaseAgent):
             except json.JSONDecodeError as e:
                 logger.error(f"Failed to parse JSON response: {e}")
                 # Return state without updates if parsing fails
-                # Ideally, we might want to flag an error in state, but simpler for now.
                 return state
         elif isinstance(response, dict):
             parsed_data = response
@@ -111,29 +112,22 @@ class PanelAgent(BaseAgent):
         # 5. Instantiate Pydantic models and update State
         try:
             if "logiikka_auditointi" in parsed_data:
-                state.step_4_falsifier = LogiikkaAuditointi(**parsed_data["logiikka_auditointi"])
-                logger.info("[PanelAgent] Updated step_4_falsifier")
+                state.step_falsifier = LogiikkaAuditointi(**parsed_data["logiikka_auditointi"])
+                logger.info("[PanelAgent] Updated step_falsifier")
                 
             if "etiikka_ja_fakta" in parsed_data:
-                state.step_5_overseer = EtiikkaJaFakta(**parsed_data["etiikka_ja_fakta"])
-                logger.info("[PanelAgent] Updated step_5_overseer")
+                state.step_overseer = EtiikkaJaFakta(**parsed_data["etiikka_ja_fakta"])
+                logger.info("[PanelAgent] Updated step_overseer")
                 
             if "kausaalinen_auditointi" in parsed_data:
-                state.step_6_causal = KausaalinenAuditointi(**parsed_data["kausaalinen_auditointi"])
-                logger.info("[PanelAgent] Updated step_6_causal")
+                state.step_causal = KausaalinenAuditointi(**parsed_data["kausaalinen_auditointi"])
+                logger.info("[PanelAgent] Updated step_causal")
                 
             if "performatiivisuus_auditointi" in parsed_data:
-                state.step_7_detector = PerformatiivisuusAuditointi(**parsed_data["performatiivisuus_auditointi"])
-                logger.info("[PanelAgent] Updated step_7_detector")
+                state.step_detector = PerformatiivisuusAuditointi(**parsed_data["performatiivisuus_auditointi"])
+                logger.info("[PanelAgent] Updated step_detector")
                 
         except Exception as e:
              logger.error(f"[PanelAgent] Failed to instantiate Pydantic models from output: {e}")
-             # We allow partial updates if some succeed and others fail? 
-             # The try block wraps all, so first failure stops it. 
-             # This is acceptable for now.
              
-        return state
-
-    def _update_state(self, state: WorkflowState, response_data: Any) -> WorkflowState:
-        # Not used since we override execute(), but implemented to satisfy BaseAgent contract if needed
         return state

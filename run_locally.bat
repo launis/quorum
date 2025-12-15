@@ -14,13 +14,13 @@ chcp 65001
 set PYTHONIOENCODING=utf-8
 
 REM Start Backend
-start "Cognitive Quorum Backend" cmd /k "chcp 65001 && set USE_MOCK_LLM=false && uvicorn backend.main:app --reload --port 8000"
+start "Cognitive Quorum Backend" cmd /k "chcp 65001 && set USE_MOCK_LLM=false && set USE_MOCK_DB=false && echo [CHECK] USE_MOCK_LLM is %USE_MOCK_LLM% && echo [CHECK] USE_MOCK_DB is %USE_MOCK_DB% && uvicorn backend.main:app --reload --port 8000"
 
 REM Wait a bit for backend to start
 timeout /t 15
 
 REM Start Frontend
-start "Cognitive Quorum Frontend" cmd /k "chcp 65001 && set USE_MOCK_LLM=false && streamlit run ui.py"
+start "Cognitive Quorum Frontend" cmd /k "chcp 65001 && set USE_MOCK_LLM=false && set USE_MOCK_DB=false && streamlit run ui.py"
 
 echo.
 echo Services started!

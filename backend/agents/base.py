@@ -14,13 +14,43 @@ class BaseAgent(BaseComponent):
     Handles LLM interaction via the Provider Pattern and manages WorkflowState.
     """
     
+    state_field: Optional[str] = None
+
     def __init__(self, model: str = "gemini-1.5-flash", provider: str = "gemini"):
         self.model = model
         self.provider_type = provider
         # Initialize the provider lazily or here
         self.llm_provider: LLMProvider = LLMFactory.create_provider(provider, model)
 
-    def get_schema_example(self, schema_class: Type[BaseModel]) -> str:
+    def _update_state(self, state: WorkflowState, response_data: Any) -> WorkflowState:
+        """
+        Updates the WorkflowState with the LLM response.
+        Generic implementation: Uses self.state_field and self.get_response_schema().
+        """
+        if self.state_field and self.get_response_schema():
+            try:
+                SchemaClass = self.get_response_schema()
+                # Validate and create Pydantic model
+                validated_data = SchemaClass(**response_data)
+                
+                # Check if state has this field
+                if hasattr(state, self.state_field):
+                    setattr(state, self.state_field, validated_data)
+                    logger.info(f"[{self.__class__.__name__}] Updated state.{self.state_field}")
+                else:
+                    # Fallback or Error? 
+                    # If field missing in State model, we can't assign.
+                    # Maybe allow dynamic aux_data fallback?
+                    logger.warning(f"[{self.__class__.__name__}] State model missing field '{self.state_field}'. Assigning to aux_data.")
+                    state.aux_data[self.state_field] = validated_data.model_dump()
+                    
+                return state
+            except Exception as e:
+                logger.error(f"[{self.__class__.__name__}] Generic state update failed: {e}")
+                raise e
+        
+        # If no state_field defined, raise error (Subclasses must implement or define field)
+        raise NotImplementedError(f"[{self.__class__.__name__}] must define 'state_field' or override '_update_state'.")
         """
         Retrieves the example from the Pydantic model's json_schema_extra.
         Used to teach the LLM the expected output format and style.
@@ -74,6 +104,9 @@ class BaseAgent(BaseComponent):
 
             # 4. Call LLM (The "Mask" handles the details) — ASYNC WAIT
             # Pass kwargs (e.g. max_tokens) here
+            # Inject identity for MockLLM robustness
+            kwargs['mock_identity'] = self.__class__.__name__
+            
             response_data = await self.llm_provider.generate(
                 prompt=user_prompt,
                 system_instruction=system_instruction,
@@ -97,11 +130,7 @@ class BaseAgent(BaseComponent):
         """
         return "Proceed with your task."
 
-    def _update_state(self, state: WorkflowState, response_data: Any) -> WorkflowState:
-        """
-        Updates the WorkflowState with the LLM response.
-        """
-        raise NotImplementedError("Subclasses must implement _update_state")
+
 
     def get_response_schema(self) -> Optional[Type[BaseModel]]:
         """

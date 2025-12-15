@@ -15,10 +15,15 @@ USE_MOCK_DB = os.getenv("USE_MOCK_DB", "True").lower().strip() == "true"
 # --- API Keys ---
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
+print(f"DEBUG: Initial USE_MOCK_LLM via os.getenv: {os.getenv('USE_MOCK_LLM')}")
+
 # Force Mock Mode if API Key is missing (e.g., in CI/CD)
 if not GOOGLE_API_KEY and not USE_MOCK_LLM:
     print("WARNING: GOOGLE_API_KEY not found. Forcing Mock LLM Mode.")
     USE_MOCK_LLM = True
+
+print(f"DEBUG: Final USE_MOCK_LLM: {USE_MOCK_LLM}")
+
 
 INITIAL_MODEL = os.getenv("INITIAL_MODEL", "gemini-2.5-flash")
 
@@ -28,19 +33,23 @@ LLM_MAX_RETRIES = int(os.getenv("LLM_MAX_RETRIES", "3"))
 LLM_RETRY_DELAY = float(os.getenv("LLM_RETRY_DELAY", "4.0"))
 
 # Model Strategies
+# Model Strategies
+# Source of Truth Hierarchy:
+# 1. DB (system_config table)
+# 2. These Defaults (Fallback)
 MODEL_STRATEGIES = {
     "fast": {
         "name": "⚡ Fast Mode",
         "description": "Optimized for speed and cost. Uses lighter models (e.g., Flash).",
-        "model": "gemini-2.5-flash",
-        "temperature": 0.0,
+        "model": os.getenv("GEMINI_MODEL_FAST", INITIAL_MODEL),
+        "temperature": 0.7,
         "max_tokens": 8192
     },
     "deep": {
         "name": "🧠 Deep Mode",
         "description": "Optimized for complex reasoning and quality. Uses deep thinking models.",
-        "model": "gemini-2.5-flash",
-        "temperature": 0.0,
+        "model": os.getenv("GEMINI_MODEL_DEEP", INITIAL_MODEL), # Or gemini-2.5-pro
+        "temperature": 0.5,
         "max_tokens": 8192
     }
 }
@@ -58,6 +67,10 @@ MOCK_DB_PATH = os.path.join(DB_DIR, "db_mock.json")
 # I'll point PROD to data/db.json to be safe unless I move it too.
 PROD_DB_PATH = os.path.join(DATA_DIR, "db.json") 
 SEED_DATA_PATH = os.path.join(DB_DIR, "seed_data.json")
+
+# --- Storage Configuration ---
+# Options: "LOCAL", "NONE", "FIRESTORE" (Future)
+STORAGE_BACKEND = os.getenv("STORAGE_BACKEND", "LOCAL").upper()
 
 if USE_MOCK_DB:
     DB_PATH = MOCK_DB_PATH

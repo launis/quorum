@@ -113,6 +113,63 @@ class WorkflowEngine:
                 "class_name": class_name,
                 "registered_at": datetime.now().isoformat()
             })
+        else:
+             # Optional: Update existing registration if needed
+             pass
+
+    def discover_and_register_agents(self, package_path: str = 'backend.agents'):
+        """
+        Dynamically discovers and registers all Agent classes in the specified package.
+        """
+        import pkgutil
+        import importlib
+        import inspect
+        import backend.agents
+        from backend.agents.base import BaseAgent
+        
+        logger.info(f"[WorkflowEngine] discovering agents in {package_path}...")
+        
+        # Ensure package is imported
+        package = importlib.import_module(package_path)
+        prefix = package.__name__ + "."
+        
+        count = 0
+        for _, name, ispkg in pkgutil.iter_modules(package.__path__, prefix):
+            if name == "backend.agents.base": continue
+            
+            try:
+                module = importlib.import_module(name)
+                for cls_name, obj in inspect.getmembers(module):
+                    if inspect.isclass(obj) and issubclass(obj, BaseAgent) and obj is not BaseAgent:
+                        # Register Agent
+                        # Heuristic: type is broadly 'agent' or based on name
+                        agent_type = "agent"
+                        if "critic" in cls_name.lower(): agent_type = "critic"
+                        
+                        full_class_path = f"{name}" # e.g. backend.agents.guard
+                        
+                        logger.debug(f"   Discovered: {cls_name} ({full_class_path})")
+                        self.register_component(cls_name, agent_type, cls_name)
+                        
+                        # Also register implicit module path for router loading
+                        # The router expects 'module' field for importlib
+                        # Updating registry structure slightly to match router expectation
+                        self._update_component_metadata(cls_name, module=name, component_class=cls_name)
+                        count += 1
+                        
+            except Exception as e:
+                logger.error(f"Failed to inspect module {name}: {e}")
+        
+        logger.info(f"[WorkflowEngine] Registered {count} agents dynamically.")
+
+    def _update_component_metadata(self, name, module, component_class):
+         """Helper to add module/class info for dynamic router loading."""
+         Component = Query()
+         self.components_table.update({
+             "module": module,
+             "class": component_class # Legacy field expected by agents_router
+         }, Component.name == name)
+
 
     def create_workflow(self, name: str, steps: List[Dict[str, Any]]) -> int:
         """
@@ -153,26 +210,20 @@ class WorkflowEngine:
 
     def _ingest_files(self, execution_id: str, files: Dict[str, tuple]) -> Dict[str, str]:
         """
-        Archives files to disk and extracts text.
+        Archives files to storage (if enabled) and extracts text.
         Returns dictionary of {input_key: extracted_text}
         files format: { "input_key": ("filename.ext", b"file_bytes") }
         """
         import os
         from backend.services.document_processor import DocumentProcessor
-        from pathlib import Path
+        from backend.services.storage import get_storage_client
         
         extracted_data = {}
-        archive_dir = Path(f"backend/files/executions/{execution_id}")
-        archive_dir.mkdir(parents=True, exist_ok=True)
+        storage_client = get_storage_client()
         
         for input_key, (filename, file_bytes) in files.items():
             try:
-                # 1. Save to Disk
-                file_path = archive_dir / filename
-                with open(file_path, "wb") as f:
-                    f.write(file_bytes)
-                
-                # 2. Extract Text
+                # 1. Extract Text (Always, from bytes)
                 lower_name = filename.lower()
                 text = ""
                 if lower_name.endswith(".pdf"):
@@ -184,7 +235,13 @@ class WorkflowEngine:
                     text = file_bytes.decode('utf-8', errors='ignore')
 
                 extracted_data[input_key] = text
-                logger.info(f"[WorkflowEngine] Archived {filename} (key: {input_key}) and extracted {len(text)} chars.")
+                
+                # 2. Save to Storage (Conditional via Factory/Impl)
+                # LocalStorage expects path relative to its base (backend/files/executions)
+                relative_path = f"{execution_id}/{filename}"
+                saved_path = storage_client.save(relative_path, file_bytes)
+                
+                logger.info(f"[WorkflowEngine] File {filename} processed. Extracted {len(text)} chars. Storage: {saved_path}")
                 
             except Exception as e:
                 logger.error(f"[WorkflowEngine] Failed to ingest file {filename} ({input_key}): {e}")
@@ -530,22 +587,28 @@ class WorkflowEngine:
                 }, Execution.execution_id == execution_id)
 
                 # --- KILL SWITCH (Security Gate) ---
-                if agent_name == 'GuardAgent' and current_state.step_1_guard:
-                    if current_state.step_1_guard.security_check.uhka_havaittu:
-                        msg = f"[WorkflowEngine] SECURITY INTERVENTION: Threat detected by GuardAgent. Aborting execution {execution_id}."
-                        logger.critical(msg)
-                        
-                        # 1. Update DB as Rejected/Failed
-                        self.executions_table.update({
-                            'status': 'rejected',
-                            'error': f"Security Threat Detected: {current_state.step_1_guard.security_check.riski_taso}",
-                            'end_time': datetime.now().isoformat(),
-                            'result': {"security_alert": "Execution aborted due to security violation."},
-                            'trace': current_state.model_dump(mode='json')
-                        }, Execution.execution_id == execution_id)
+                # Check data, not agent name (Robustness Fix)
+                if current_state.step_guard and current_state.step_guard.security_check.uhka_havaittu:
+                    msg = f"[WorkflowEngine] SECURITY INTERVENTION: Threat detected by GuardAgent. Aborting execution {execution_id}."
+                    logger.critical(msg)
+                    
+                    # 1. Update DB as Rejected/Failed
+                    rejection_details = {
+                        "security_alert": "Execution aborted due to security violation.",
+                        "risk_level": current_state.step_guard.security_check.riski_taso,
+                        "analysis": current_state.step_guard.security_check.adversariaalinen_simulaatio_tulos,
+                        "guard_data": current_state.step_guard.model_dump()
+                    }
+                    
+                    self.executions_table.update({
+                        'status': 'rejected',
+                        'error': f"Security Threat Detected: {current_state.step_guard.security_check.riski_taso}",
+                        'end_time': datetime.now().isoformat(),
+                        'result': rejection_details
+                    }, Execution.execution_id == execution_id)
 
-                        # 2. Halt Pipeline
-                        return {"security_alert": "Execution aborted due to security violation."}
+                    # 2. Halt Pipeline
+                    return {"security_alert": "Execution aborted due to security violation."}
 
 
             # 3. Success

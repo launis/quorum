@@ -474,5 +474,47 @@
         "analysis_recommendations": "Suositukset...",
         "final_verdict": "Hyväksytty",
         "confidence_score": 0.95
+    },
+    "archivist_agent": {
+        "metadata": {
+            "luontiaika": "2024-01-01T00:00:00Z",
+            "agentti": "step_archivist",
+            "vaihe": 8,
+            "versio": "2.0",
+            "suoritus_ymparisto": "Internal"
+        },
+        "metodologinen_loki": "[MOCK] Archivist result.",
+        "edellisen_vaiheen_validointi": "N/A",
+        "semanttinen_tarkistussumma": "mock_hash",
+        "linjakkuus_analyysi": "Suoritus on linjassa aiempien tapausten kanssa.",
+        "poikkeamat_linjasta": "Ei merkittäviä poikkeamia.",
+        "suositus_tuomarille": "Suosittelen neutraalia arviota.",
+        "viitatut_ennakkotapaukset": [
+            "Case-123"
+        ]
+    },
+    "coach_agent": {
+        "metadata": {
+            "luontiaika": "2024-01-01T00:00:00Z",
+            "agentti": "step_coach",
+            "vaihe": 10,
+            "versio": "2.0",
+            "suoritus_ymparisto": "Internal"
+        },
+        "metodologinen_loki": "[MOCK] Coach result.",
+        "edellisen_vaiheen_validointi": "N/A",
+        "semanttinen_tarkistussumma": "mock_hash",
+        "kannustava_palaute": "Hyvää työtä analyysin kanssa!",
+        "kehityskohteet_konkreettisesti": [
+            {
+                "otsikko": "Argumentaation syventäminen",
+                "kuvaus": "Tutustu Toulmin malliin tarkemmin.",
+                "resurssit": []
+            }
+        ],
+        "lopputuloksen_kehitysehdotukset": [
+            "Parempi jäsentely."
+        ],
+        "oppimispolku_viikko": "Maanantai: Lue teoria. Tiistai: Harjoittele."
     }
 }

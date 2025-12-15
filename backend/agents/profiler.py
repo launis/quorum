@@ -34,6 +34,8 @@ class ProfilerAgent(BaseAgent):
     Step 2.5: Analyzes the 'human' side of the input: intent, biases, tone.
     """
 
+    state_field = "step_profiler"
+
     def get_response_schema(self) -> Optional[Type[BaseModel]]:
         return ProfilerAnalysis
         
@@ -41,21 +43,12 @@ class ProfilerAgent(BaseAgent):
         return "Analyze the following text for intent, tone, and cognitive biases."
 
     def _update_state(self, state: WorkflowState, response_data: Any) -> WorkflowState:
-        # We can store this in a new field in WorkflowState (needs to be added dynamically or uses aux_data if strict checking)
-        # Assuming we will update WorkflowState model or use 'aux_data' for now to avoid breaking Pydantic models immediately.
-        # But 'ProfilerAnalysis' is a nice structured object.
-        # Let's attach it to 'aux_data' first, or we can add 'step_profiler' to State. 
-        # For now, let's use aux_data to be safe without refactoring State model yet, 
-        # OR we can assume dynamic attribute assignment works if we allow it.
-        # SAFE BET: aux_data['profiler_analysis']
-        
-        # However, to be a "First Class Citizen", we'd ideally want state.step_profiler.
-        # Since I cannot easily change `backend/models/state.py` without seeing it and potentially breaking things,
-        # I will store it in `aux_data` AND try to set it as an attribute if possible.
-        
-        analysis = ProfilerAnalysis(**response_data)
-        state.aux_data['step_profiler'] = analysis.model_dump()
-        return state
+        # Merge Python-calculated metrics if available (from pre-hook)
+        if 'profiler_metrics' in state.aux_data and isinstance(response_data, dict):
+            # We inject it into the dict so BaseAgent validates it including the metrics
+            response_data['teksti_metriikka'] = state.aux_data['profiler_metrics']
+            
+        return super()._update_state(state, response_data)
 
     # --- PYTHON HOOKS ---
 

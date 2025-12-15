@@ -19,32 +19,20 @@ class LogicalFalsifierAgent(BaseAgent):
     """
     Looginen Falsifioija-agentti (Logical Falsifier).
     """
+    state_field = "step_falsifier"
+    
     def get_response_schema(self) -> Optional[Type[BaseModel]]:
         return LogiikkaAuditointi
-
-    def _update_state(self, state: WorkflowState, response_data: Any) -> WorkflowState:
-        try:
-            state.step_4_falsifier = LogiikkaAuditointi(**response_data)
-        except Exception as e:
-            logger.error(f"[LogicalFalsifierAgent] State update failed: {e}")
-            raise e
-        return state
 
 
 class FactualOverseerAgent(BaseAgent):
     """
     Faktuaalinen ja Eettinen Valvoja-agentti (Factual & Ethical Overseer).
     """
+    state_field = "step_overseer"
+
     def get_response_schema(self) -> Optional[Type[BaseModel]]:
         return EtiikkaJaFakta
-
-    def _update_state(self, state: WorkflowState, response_data: Any) -> WorkflowState:
-        try:
-            state.step_5_overseer = EtiikkaJaFakta(**response_data)
-        except Exception as e:
-            logger.error(f"[FactualOverseerAgent] State update failed: {e}")
-            raise e
-        return state
 
     def execute_google_search(self, state: WorkflowState) -> WorkflowState:
         """
@@ -64,9 +52,9 @@ class FactualOverseerAgent(BaseAgent):
         queries = []
         
         # Extract queries from Hypotheses (Step 2 Analyst)
-        if state.step_2_analyst and state.step_2_analyst.hypoteesit:
-            logger.info(f"   [HOOK] Found {len(state.step_2_analyst.hypoteesit)} hypotheses.")
-            for hyp in state.step_2_analyst.hypoteesit:
+        if state.step_analyst and state.step_analyst.hypoteesit:
+            logger.info(f"   [HOOK] Found {len(state.step_analyst.hypoteesit)} hypotheses.")
+            for hyp in state.step_analyst.hypoteesit:
                 # ONLY use explicit search suggestions (external facts)
                 if hyp.hakusana_ehdotus and len(hyp.hakusana_ehdotus.strip()) > 3:
                     queries.append(hyp.hakusana_ehdotus)
@@ -107,32 +95,20 @@ class CausalAnalystAgent(BaseAgent):
     """
     Kausaalinen Analyytikko-agentti (Causal Analyst).
     """
+    state_field = "step_causal"
+
     def get_response_schema(self) -> Optional[Type[BaseModel]]:
         return KausaalinenAuditointi
-
-    def _update_state(self, state: WorkflowState, response_data: Any) -> WorkflowState:
-        try:
-            state.step_6_causal = KausaalinenAuditointi(**response_data)
-        except Exception as e:
-            logger.error(f"[CausalAnalystAgent] State update failed: {e}")
-            raise e
-        return state
 
 
 class PerformativityDetectorAgent(BaseAgent):
     """
     Performatiivisuuden Tunnistaja-agentti (Performativity Detector).
     """
+    state_field = "step_detector"
+
     def get_response_schema(self) -> Optional[Type[BaseModel]]:
         return PerformatiivisuusAuditointi
-
-    def _update_state(self, state: WorkflowState, response_data: Any) -> WorkflowState:
-        try:
-            state.step_7_detector = PerformatiivisuusAuditointi(**response_data)
-        except Exception as e:
-            logger.error(f"[PerformativityDetectorAgent] State update failed: {e}")
-            raise e
-        return state
 
     def detect_performative_patterns(self, state: WorkflowState) -> WorkflowState:
         """

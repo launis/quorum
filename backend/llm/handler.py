@@ -35,12 +35,21 @@ class LLMHandler:
         
         # 1. Fetch Google Models
         try:
+            logger.info(f"Attempting to fetch Google models using API Key: {'Present' if GOOGLE_API_KEY else 'MISSING'}")
             if GOOGLE_API_KEY:
                 genai.configure(api_key=GOOGLE_API_KEY)
+                found_count = 0
                 for m in genai.list_models():
+                    logger.debug(f"Found model: {m.name} | Methods: {m.supported_generation_methods}")
+                    # Flexible check for generation methods
                     if 'generateContent' in m.supported_generation_methods:
                         models["google"].append(m.name.replace("models/", ""))
+                        found_count += 1
+                logger.info(f"Successfully fetched {found_count} Google models.")
+            else:
+                 models["google_error"] = "GOOGLE_API_KEY not set in environment."
         except Exception as e:
+            logger.error(f"Error fetching Google models: {e}", exc_info=True)
             models["google_error"] = str(e)
             
         # 2. Fetch OpenAI Models
@@ -54,7 +63,8 @@ class LLMHandler:
                     if "gpt" in m.id:
                         models["openai"].append(m.id)
             else:
-                 models["openai_error"] = "OPENAI_API_KEY not found"
+                 # Not an error per se if user only wants Gemini
+                 models["openai_warning"] = "OPENAI_API_KEY not found"
         except Exception as e:
             models["openai_error"] = str(e)
             

@@ -22,10 +22,41 @@ class DocumentProcessor(BaseComponent):
             text = self.extract_text_from_pdf(file_path)
         elif file_path.lower().endswith(".docx"):
             text = self.extract_text_from_docx(file_path)
+        elif file_path.lower().endswith(".txt"):
+            text = self.extract_text_from_txt(file_path)
         else:
             raise ValueError(f"Unsupported file type: {file_path}")
             
         return {"text": text}
+
+    @staticmethod
+    def extract_text_from_txt(input_data: Union[str, bytes]) -> str:
+        """
+        Extracts text from a TXT file or bytes.
+        """
+        try:
+            content = ""
+            if isinstance(input_data, str):
+                if not os.path.exists(input_data):
+                    raise FileNotFoundError(f"File not found: {input_data}")
+                logger.debug(f"Opening TXT from path: {input_data}")
+                with open(input_data, 'r', encoding='utf-8', errors='ignore') as f:
+                    content = f.read()
+            
+            elif isinstance(input_data, bytes):
+                logger.debug("Opening TXT from bytes")
+                content = input_data.decode('utf-8', errors='ignore')
+            
+            else:
+                raise ValueError("Input must be a file path (str) or bytes.")
+
+            logger.info(f"Successfully extracted {len(content)} characters from TXT.")
+            return content.strip()
+
+        except Exception as e:
+            source = input_data if isinstance(input_data, str) else "bytes"
+            logger.error(f"Failed to process TXT {source}: {str(e)}", exc_info=True)
+            raise Exception(f"Failed to process TXT {source}: {str(e)}")
 
     @staticmethod
     def extract_text_from_pdf(input_data: Union[str, bytes]) -> str:

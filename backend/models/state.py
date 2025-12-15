@@ -10,7 +10,10 @@ from backend.models.domain import (
     PerformatiivisuusAuditointi, 
     EtiikkaJaFakta,
     TuomioJaPisteet, 
-    XAIReport
+    XAIReport,
+    ProfilerAnalysis,
+    CaseLawContext,
+    CoachingPlan
 )
 
 class InputData(BaseModel):
@@ -35,15 +38,18 @@ class WorkflowState(BaseModel):
     inputs: InputData
     
     # Agenttien tulosteet (Alussa None, täyttyvät matkan varrella)
-    step_1_guard: Optional[TaintedData] = None
-    step_2_analyst: Optional[TodistusKartta] = None
-    step_3_logician: Optional[ArgumentaatioAnalyysi] = None
-    step_4_falsifier: Optional[LogiikkaAuditointi] = None
-    step_5_overseer: Optional[EtiikkaJaFakta] = None
-    step_6_causal: Optional[KausaalinenAuditointi] = None
-    step_7_detector: Optional[PerformatiivisuusAuditointi] = None
-    step_8_judge: Optional[TuomioJaPisteet] = None
-    step_9_reporter: Optional[XAIReport] = None
+    step_guard: Optional[TaintedData] = None
+    step_analyst: Optional[TodistusKartta] = None
+    step_profiler: Optional[ProfilerAnalysis] = None # Step 2.5
+    step_logician: Optional[ArgumentaatioAnalyysi] = None
+    step_falsifier: Optional[LogiikkaAuditointi] = None
+    step_overseer: Optional[EtiikkaJaFakta] = None
+    step_causal: Optional[KausaalinenAuditointi] = None
+    step_detector: Optional[PerformatiivisuusAuditointi] = None
+    step_judge: Optional[TuomioJaPisteet] = None
+    step_archivist: Optional[CaseLawContext] = None # Step 8.5/8a
+    step_coach: Optional[CoachingPlan] = None # Step 8.5/8c
+    step_reporter: Optional[XAIReport] = None
 
     # Formatted output
     xai_report_formatted: Optional[str] = None
@@ -57,14 +63,17 @@ class WorkflowState(BaseModel):
         """
         summary = []
         steps = [
-            ("Vartija", self.step_1_guard),
-            ("Analyytikko", self.step_2_analyst),
-            ("Loogikko", self.step_3_logician),
-            ("Falsifioija", self.step_4_falsifier),
-            ("Valvoja", self.step_5_overseer),
-            ("Kausaalinen", self.step_6_causal),
-            ("Tunnistaja", self.step_7_detector),
-            ("Tuomari", self.step_8_judge)
+            ("Vartija", self.step_guard),
+            ("Analyytikko", self.step_analyst),
+            ("Profiloija", self.step_profiler),
+            ("Loogikko", self.step_logician),
+            ("Falsifioija", self.step_falsifier),
+            ("Valvoja", self.step_overseer),
+            ("Kausaalinen", self.step_causal),
+            ("Tunnistaja", self.step_detector),
+            ("Tuomari", self.step_judge),
+            ("Arkistonhoitaja", self.step_archivist),
+            ("Valmentaja", self.step_coach)
         ]
         
         for name, data in steps:

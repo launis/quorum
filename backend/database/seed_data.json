@@ -30,7 +30,7 @@
         {
             "id": "common_bars_matrix",
             "type": "heuristic",
-            "content": "OSA 4: KOGNITIIVINEN ARVIOINTIMATRIISI (BARS-ASTEIKKO)\nKÄSKE: Tämä matriisi on arvioinnin NORMATIIVINEN PERUSTA. Sinun TÄYTYY käyttää näitä kriteerejä pisteytyksessä (VAIHE 8).\n\nTaulukko 1. Kognitiivinen Arviointimatriisi (4-portainen BARS-asteikko)\n\nKRITEERI 1: ANALYYSI JA PROSESSIN TEHOKKUUS (Bloom: Analyze)\nTASO 4 (Erinomainen / Strateginen):\n- Prosessi on strateginen ja ennakoiva. Käyttäjä on purkanut ongelman osiin ja ohjannut tekoälyä ennaltaehkäisevästi (esim. roolilla, analyysipakolla, rajoitteilla) minimoiden turhat iteraatiot.\n- TAI Prosessi osoittaa poikkeuksellista strategista ketteryyttä. Käyttäjä on tehnyt prosessin aikana merkittävän oivalluksen, joka on perustavanlaatuisesti ja todistettavasti muuttanut tehtävän suuntaa tai laatua. Reflektio perustelee tämän käännekohdan strategisen merkityksen.\nTASO 3 (Hyvä / Omaperäinen):\n- Prosessi on tehokas ja systemaattinen. Käyttäjä on tunnistanut ongelman ja ohjannut tekoälyä reaktiivisesti mutta johdonmukaisesti (esim. pyytämällä parannuksia). Reflektio analysoi käännekohdat.\nTASO 2 (Kohtalainen / Reaktiivinen):\n- Prosessi on hajanainen tai puhtaasti reaktiivinen. Käyttäjä on reagoinut tekoälyn vastauksiin, mutta selkeä analyyttinen strategia puuttuu tai on heikko. Iteraatioita voi olla useita ilman merkittävää laadullista parannusta. Reflektio on pääosin kuvaileva.\nTASO 1 (Heikko / Puutteellinen):\n- Prosessi on tehoton ja epälooginen. Käyttäjä ei ole kyennyt ohjaamaan tekoälyä kohti tavoitetta. Reflektio on puutteellinen tai puuttuu kokonaan.\n\nKRITEERI 2: ARVIOINTI JA ARGUMENTAATIO (Bloom: Evaluate; Toulmin)\nTASO 4 (Erinomainen / Strateginen):\n- Suoritus osoittaa poikkeuksellista arviointikykyä. Käyttäjä on haastanut tekoälyn päättelyä (esim. eettisesti tai loogisesti).\n- TAI (Asiantuntijan Hyväksyntä): Käyttäjä osoittaa poikkeuksellista arviointikykyä perustelemalla reflektiossa vankasti, miksi lyhyt prosessi ja tekoälyn tuotoksen suora hyväksyntä oli strategisesti optimaalinen valinta.\n- Molemmissa tapauksissa Toulmin: Reflektio sisältää vankan, itsekriittisen argumentin, joka on täysin virheetön.\nTASO 3 (Hyvä / Omaperäinen):\n- Suoritus osoittaa korkeaa arviointikykyä. Käyttäjä on korjannut tekoälyn tuotoksia.\n- Toulmin: Reflektio sisältää vahvan argumentin: Selkeä Väite, Vankat Perusteet (viittaukset Keskusteluhistoriaan) ja Eksplisiittinen Oikeutus.\nTASO 2 (Kohtalainen / Reaktiivinen):\n- Suoritus osoittaa perustason arviointikykyä. Käyttäjä on tehnyt pieniä korjauksia.\n- Toulmin: Reflektio sisältää argumentin aihion: Väite on esitetty, mutta Perusteet ovat yleisiä ja/tai Oikeutus on implisiittinen tai heikko.\nTASO 1 (Heikko / Puutteellinen):\n- Suoritus ei osoita arviointikykyä. Tekoälyn tuotoksia on käytetty sellaisenaan.\n- Toulmin: Reflektio ei sisällä tunnistettavaa, pätevää argumenttia ja/tai se on kokonaisuudessaan faktuaalisesti virheellinen tai harhaanjohtava.\n\nKRITEERI 3: SYNTEESI JA LUOVUUS (Bloom: Create)\nTASO 4 (Erinomainen / Strateginen):\n- Lopputuote osoittaa strategista synteesiä. Käyttäjä on luonut kokonaan uutta, omaperäistä lisäarvoa, jota tekoäly ei ehdottanut (esim. lisännyt uuden vastuullisuusosion). Reflektio perustelee tämän strategisen lisäarvon.\nTASO 3 (Hyvä / Omaperäinen):\n- Lopputuote on omaperäinen synteesi. Käyttäjä on parannellut ja viimeistellyt tekoälyn tuotosta omalla perustellulla panoksellaan (esim. lisännyt hyötyjä, vaihtanut otsikon). Reflektio perustelee muutokset.\nTASO 2 (Kohtalainen / Reaktiivinen):\n- Lopputuote on pääosin kooste tekoälyn tuottamasta materiaalista. Muutokset ovat kielellistä viimeistelyä tai pieniä lisäyksiä. Reflektio kuvaa tehdyt muutokset pinnallisesti.\nTASO 1 (Heikko / Puutteellinen):\n- Lopputuote on suora kopio tekoälyn tuottamasta materiaalista ilman omaa panosta. Reflektio on puutteellinen tai puuttuu."
+            "content": "OSA 4: KOGNITIIVINEN ARVIOINTIMATRIISI (BARS-ASTEIKKO - STRICT MODE)\nKÄSKE: Tämä matriisi on arvioinnin NORMATIIVINEN PERUSTA. Sinun TÄYTYY käyttää näitä kriteerejä pisteytyksessä (VAIHE 8).\n\nYLEISOHJE: Ole ankara. Suosi asteikon alapäätä (1-2) oletusarvona. Taso 3 ja 4 vaativat VAHVAA näyttöä. Jos olet epävarma, anna huonompi arvosana.\n\nTaulukko 1. Kognitiivinen Arviointimatriisi (4-portainen BARS-asteikko)\n\nKRITEERI 1: ANALYYSI JA PROSESSIN TEHOKKUUS (Bloom: Analyze)\nTASO 4 (Erinomainen / Strateginen):\n- Prosessi on täysin käyttäjän hallinnassa. Käyttäjä on purkanut ongelman osiin ja ohjannut tekoälyä ennaltaehkäisevästi (esim. roolilla, tarkoilla rajoitteilla, kontekstilla).\n- TAI Prosessi osoittaa poikkeuksellista strategista ketteryyttä (Pivot). Käyttäjä on tunnistanut umpikuijan ja muuttanut lähestymistapaa radikaalisti.\n- VAATIMUS: Pelkkä 'hyvä promptaus' ei riitä. Strategian on oltava eksplisiittinen.\nTASO 3 (Hyvä / Systemaattinen):\n- Prosessi on tavoitteellinen. Käyttäjä ei vain reagoi, vaan iterai kohti selkeää visiota. Ohjaus on johdonmukaista.\n- RAJOITE: Satunnainen 'kokeilu' tai 'keskustelu' on Taso 2.\nTASO 2 (Kohtalainen / Reaktiivinen):\n- Prosessi on reaktiivinen. Käyttäjä pyytää korjauksia vasta kun tekoäly tekee virheen. Promptit ovat lyhyitä tai epämääräisiä ('tee parempi').\nTASO 1 (Heikko / Puutteellinen):\n- Prosessi on tehoton tai kaoottinen. Käyttäjä hyväksyy ensimmäisen vastauksen tai pyörii ympyrää ilman edistystä.\n\nKRITEERI 2: ARVIOINTI JA ARGUMENTAATIO (Bloom: Evaluate; Toulmin)\nTASO 4 (Erinomainen / Kriittinen):\n- Suoritus osoittaa syvällistä kriittistä ajattelua. Käyttäjä on EKSPLISIITTISESTI haastanut tekoälyn premissit, logiikan tai eettisyyden.\n- TAI (Poikkeus): Jos käyttäjä on hyväksynyt tuotoksen nopeasti, reflektion on todistettava aukottomasti, miksi se oli ainoa oikea ratkaisu (ns. 'Negative Proof').\n- Toulmin: Reflektio sisältää täydellisen argumentin (Väite, Data, Oikeutus, Varaukset).\nTASO 3 (Hyvä / Perusteltu):\n- Suoritus osoittaa arviointikykyä. Käyttäjä on korjannut faktavirheitä tai tyyliseikkoja perustellusti.\n- Toulmin: Reflektio sisältää selkeän argumentin.\nTASO 2 (Kohtalainen / Toteava):\n- Arviointi on pinnallista. Käyttäjä kommentoi 'Ihan kiva' tai 'Hyvä teksti' ilman analyyttistä perustetta.\nTASO 1 (Heikko / Puuttuva):\n- Ei arviointia. Tekoälyn tuotos on hyväksytty sokeasti.\n\nKRITEERI 3: SYNTEESI JA LUOVUUS (Bloom: Create)\nTASO 4 (Erinomainen / Transformatiivinen):\n- Lopputuote on aito ihmis-tekoäly-yhteistyön tulos ('Hybrid Intelligence'). Siinä on käyttäjän oma ääni ('Authorial Voice'), jota tekoäly on vain tukenut. Se sisältää oivalluksia, joita tekoäly yksin ei olisi tuottanut.\nTASO 3 (Hyvä / Integratiivinen):\n- Lopputuote yhdistelee asioita mielekkäästi. Käyttäjä on tuonut mukaan omia lähteitä tai näkökulmia, muokaten tekoälyn runkoa merkittävästi.\nTASO 2 (Kohtalainen / Koostava):\n- Lopputuote on tekoälyn tekstin siistitty versio. Käyttäjä on toiminut 'oikolukijana' eikä 'kanssakirjoittajana'.\nTASO 1 (Heikko / Kopioitu):\n- Lopputuote on copypaste tekoälyn vastauksesta."
         },
         {
             "id": "template_output_enforcer",
@@ -156,6 +156,7 @@
                 "analysis_weaknesses",
                 "analysis_opportunities",
                 "analysis_recommendations",
+                "xai_report_formatted",
                 "metadata.luontiaika",
                 "metadata.versio"
             ]
@@ -455,7 +456,7 @@
             "output_schema": "TuomioJaPisteet",
             "output_filename": "8_tuomio_ja_pisteet.json",
             "output_config_component": "JUDGE_OUTPUT_CONFIG",
-            "state_key": "step_8_judge"
+            "state_key": "step_judge"
         },
         {
             "id": "step_coach",
@@ -503,7 +504,7 @@
             "output_schema": "XAIReport",
             "output_filename": "9_xai_raportti.json",
             "output_config_component": "STANDARD_REPORT_OUTPUT",
-            "state_key": "step_9_reporter"
+            "state_key": "step_reporter"
         }
     ],
     "workflows": [
@@ -528,16 +529,36 @@
             "default_model_mapping": {
                 "step_guard": "fast",
                 "step_analyst": "fast",
-                "step_profiler": "fast",
-                "step_logician": "fast",
-                "step_falsifier": "fast",
-                "step_causal": "fast",
+                "step_profiler": "deep",
+                "step_logician": "deep",
+                "step_falsifier": "deep",
+                "step_causal": "deep",
                 "step_detector": "fast",
-                "step_overseer": "fast",
-                "step_archivist": "fast",
-                "step_judge": "fast",
-                "step_coach": "fast",
+                "step_overseer": "deep",
+                "step_archivist": "deep",
+                "step_judge": "deep",
+                "step_coach": "deep",
                 "step_xai": "fast"
+            }
+        }
+    ],
+    "system_config": [
+        {
+            "id": "model_registry",
+            "type": "model_registry",
+            "models": {
+                "google": {
+                    "fast": {
+                        "model_name": "gemini-2.5-flash",
+                        "temperature": 0.5,
+                        "max_tokens": 8192
+                    },
+                    "deep": {
+                        "model_name": "gemini-2.5-pro",
+                        "temperature": 0.7,
+                        "max_tokens": 8192
+                    }
+                }
             }
         }
     ]

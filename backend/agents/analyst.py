@@ -15,14 +15,32 @@ class AnalystAgent(BaseAgent):
     2. Creating an 'Evidence Map' (Todistuskartta)
     """
 
+    state_field = "step_analyst"
+
     def get_response_schema(self) -> Optional[Type[BaseModel]]:
         return TodistusKartta
 
-    def _update_state(self, state: WorkflowState, response_data: Any) -> WorkflowState:
-        try:
-            validated_data = TodistusKartta(**response_data)
-            state.step_2_analyst = validated_data
-        except Exception as e:
-            logger.error(f"[AnalystAgent] State update failed: {e}")
-            raise e
+    def verify_structure(self, state: WorkflowState) -> WorkflowState:
+        """
+        HOOK: verify_structure
+        Pre-hook. Validates that inputs have sufficient content for analysis.
+        """
+        logger.info("[AnalystAgent] Running verify_structure (Pre-Hook)...")
+        
+        # Minimum char limits
+        MIN_CHARS = 100 
+        
+        warnings = []
+        
+        for key in ["history_text", "product_text", "reflection_text"]:
+            text = getattr(state.inputs, key, "")
+            if not text or len(text) < MIN_CHARS:
+                warnings.append(f"Input '{key}' is too short ({len(text) if text else 0} chars). Analysis quality may suffer.")
+                
+        if warnings:
+            logger.warning(f"[AnalystAgent] Structural Warnings: {warnings}")
+            # Inject into state so Analyst sees it?
+            # Or just log it. If purely structural, we might want to fail fast, but for now just warn.
+            state.aux_data['structural_warnings'] = warnings
+            
         return state

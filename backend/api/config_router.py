@@ -474,7 +474,7 @@ def get_model_strategies():
 @router.get("/introspection")
 def get_introspection():
     """
-    Introspects the backend to return available Schemas, Hooks, and Agents.
+    Introspects the backend to return available Schemas and Agents.
     """
     # 1. Schemas
     available_schemas = []
@@ -482,40 +482,45 @@ def get_introspection():
         if inspect.isclass(obj) and issubclass(obj, schemas.BaseModel) and obj is not schemas.BaseModel:
             available_schemas.append(name)
             
-    # 2. Agents & Hooks
-    import backend.agents.guard as guard_agent
-    import backend.agents.analyst as analyst_agent
-    import backend.agents.logician as logician_agent
-    import backend.agents.critics as critics_agent
-    import backend.agents.judge as judge_agent
-    import backend.agents.xai as xai_agent
-    # Courtroom 2.0 Additions
-    import backend.agents.profiler as profiler_agent
-    import backend.agents.archivist as archivist_agent
-    import backend.agents.coach as coach_agent
-    
+    # 2. Agents (Dynamic Discovery)
+    import pkgutil
+    import importlib
+    import backend.agents
     from backend.agents.base import BaseAgent
     
-    agent_modules = [
-        guard_agent, analyst_agent, logician_agent, critics_agent, judge_agent, xai_agent,
-        profiler_agent, archivist_agent, coach_agent
-    ]
     available_agents = []
     available_hooks = set()
     
-    for module in agent_modules:
-        for name, obj in inspect.getmembers(module):
-            if inspect.isclass(obj) and issubclass(obj, BaseAgent) and obj is not BaseAgent:
-                available_agents.append(name)
-                
-                # Inspect methods for hooks
-                for method_name, method in inspect.getmembers(obj):
-                    if inspect.isfunction(method) or inspect.ismethod(method):
-                        # Filter out dunder methods and private methods
-                        if not method_name.startswith('_'):
-                            # Filter out BaseAgent methods that aren't really hooks
-                            if method_name not in ['execute', 'get_response_schema', 'run', 'get_output_schema_name']:
-                                available_hooks.add(method_name)
+    # Iterate over all modules in backend.agents package
+    package = backend.agents
+    prefix = package.__name__ + "."
+    
+    for _, name, ispkg in pkgutil.iter_modules(package.__path__, prefix):
+        if name == "backend.agents.base": continue # Skip base
+        
+        try:
+            module = importlib.import_module(name)
+            
+            for cls_name, obj in inspect.getmembers(module):
+                # Find classes that inherit from BaseAgent
+                if inspect.isclass(obj) and issubclass(obj, BaseAgent) and obj is not BaseAgent:
+                    available_agents.append(cls_name)
+                    
+                    # Inspect methods for hooks (public methods not defined in BaseAgent)
+                    # Note: With V2 architecture, hooks are just methods.
+                    # We expose them for clarity/documentation if needed.
+                    base_methods = set(dir(BaseAgent))
+                    
+                    for method_name, method in inspect.getmembers(obj):
+                        if inspect.isfunction(method) or inspect.ismethod(method):
+                            if not method_name.startswith('_'):
+                                if method_name not in base_methods and method_name not in ['get_response_schema', 'execute']:
+                                     # It's likely a custom hook/method
+                                     available_hooks.add(f"{cls_name}.{method_name}")
+
+        except Exception as e:
+            logger.warning(f"Failed to introspect module {name}: {e}")
+            continue
                                 
     return {
         "schemas": sorted(available_schemas),

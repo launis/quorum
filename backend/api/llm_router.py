@@ -4,9 +4,10 @@ from typing import List, Dict, Any, Optional
 from tinydb import Query
 
 from backend.agents.base import BaseAgent
-from backend.core.registry import DatabaseClient
+from backend.agents.base import BaseAgent
 from backend.llm.handler import LLMHandler
 from backend.llm.provider import LLMFactory
+from backend.database.wrapper import get_db_client
 import logging
 
 logger = logging.getLogger(__name__)
@@ -81,8 +82,8 @@ def update_model_config(update: ModelRegistryUpdate):
     Updates the model registry configuration.
     """
     try:
-        db_client = DatabaseClient()
-        table = db_client.get_table('system_config')
+        db_client = get_db_client()
+        table = db_client.table('system_config')
         
         Config = Query()
         table.upsert(

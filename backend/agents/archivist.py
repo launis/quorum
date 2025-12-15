@@ -29,13 +29,10 @@ class ArchivistAgent(BaseAgent):
     Step 8.5: Retrieves past cases to ensure consistency (Stare Decisis).
     """
 
+    state_field = "step_archivist"
+
     def get_response_schema(self) -> Optional[Type[BaseModel]]:
         return CaseLawContext
-
-    def _update_state(self, state: WorkflowState, response_data: Any) -> WorkflowState:
-        analysis = CaseLawContext(**response_data)
-        state.aux_data['step_archivist'] = analysis.model_dump()
-        return state
 
     # --- PYTHON HOOKS ---
 
@@ -69,8 +66,8 @@ class ArchivistAgent(BaseAgent):
             for res in recent_results:
                 # Check if it has judge output
                 trace = res.get('trace', {})
-                # Try step_8_judge (old) or potentially new keys
-                judge_data = trace.get('step_8_judge')
+                # Try step_judge (new) or step_8_judge (legacy)
+                judge_data = trace.get('step_judge') or trace.get('step_8_judge')
                 
                 if judge_data:
                     # Extract score

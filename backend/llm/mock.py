@@ -15,6 +15,23 @@ class MockLLMService:
     def __init__(self):
         self.mock_data_path = get_mock_responses_path()
         self.mock_responses = self._load_mock_responses()
+        
+        # MAPPING: Agent Class Name -> Mock Key in JSON
+        self.agent_identity_map = {
+            "GuardAgent": "guard_agent",
+            "AnalystAgent": "analyst_agent",
+            "ProfilerAgent": "profiler_agent", # Step 2.5
+            "LogicianAgent": "logician_agent",
+            "FalsifierAgent": "falsifier_agent",
+            "FactualOverseerAgent": "fact_checker_agent",
+            "CausalAnalystAgent": "causal_agent",
+            "PerformativityDetectorAgent": "performativity_agent",
+            "JudgeAgent": "judge_agent",
+            "XAIReporterAgent": "xai_agent",
+            "ArchivistAgent": "archivist_agent", # Step 8.5/8a
+            "CoachAgent": "coach_agent", # Step 8.5/8c
+            "PanelAgent": "panel_agent", # If panel needs specific mock
+        }
 
     def _load_mock_responses(self) -> Dict[str, Any]:
         """Loads mock responses from the JSON file."""
@@ -29,20 +46,30 @@ class MockLLMService:
             logger.error(f"[MockLLM] Error loading mock data: {e}")
             return {}
 
-    def generate_content(self, prompt: str, system_instruction: str = None) -> str:
+    def generate_content(self, prompt: str, system_instruction: str = None, agent_identity: str = None) -> str:
 
         logger.info(f"[MockLLM] Intercepted call. Prompt length: {len(prompt)}")
         
-        # 1. Determine which agent/step is calling based on prompt keywords
+        # 1. Determine Identity
+        key = None
+        
+        # A) Explicit Identity (Robust)
+        if agent_identity:
+            key = self.agent_identity_map.get(agent_identity)
+            if key:
+                logger.info(f"[MockLLM] Identified agent via explicit identity: '{agent_identity}' -> '{key}'")
+            else:
+                 logger.warning(f"[MockLLM] Explicit identity '{agent_identity}' not found in map. Falling back to heuristics.")
+
+        # B) Heuristics (Legacy/Fallback)
+        if not key:
+            key = self._identify_prompt_type(prompt, system_instruction)
+            logger.info(f"[MockLLM] Identified agent via heuristics: '{key}'")
+        
         with open("mock_debug.log", "a", encoding="utf-8") as f:
             f.write(f"\n--- NEW CALL ---\n")
-            f.write(f"System Instruction: {system_instruction}\n")
-            f.write(f"Prompt Preview: {prompt[:100]}\n")
-        
-        key = self._identify_prompt_type(prompt, system_instruction)
-        
-        with open("mock_debug.log", "a", encoding="utf-8") as f:
-            f.write(f"Identified Key: {key}\n")
+            f.write(f"Agent Identity: {agent_identity}\n")
+            f.write(f"Resolved Key: {key}\n")
             
         logger.info(f"[MOCK RESPONSE] Generating response for: {key}")
         
@@ -198,9 +225,9 @@ class MockLLMService:
         
         common_base = {
             "metadata": common_metadata,
-            "metodologinen_loki": {}, 
-            "edellisen_vaiheen_validointi": {},
-            "semanttinen_tarkistussumma": {}
+            "metodologinen_loki": "[MOCK] Fallback generation", 
+            "edellisen_vaiheen_validointi": "N/A",
+            "semanttinen_tarkistussumma": "mock_hash"
         }
 
         if key == "guard_agent":
@@ -384,12 +411,13 @@ class MockLLMService:
         elif key == "coach_agent":
             data = common_base.copy()
             data["metadata"]["agentti"] = "Valmentaja"
-            data["metadata"]["vaihe"] = 10.5
+            data["metadata"]["vaihe"] = 10
             data.update({
                 "kannustava_palaute": "Hyvää työtä analyysin kanssa!",
                 "kehityskohteet_konkreettisesti": [
                     {"otsikko": "Argumentaation syventäminen", "kuvaus": "Tutustu Toulmin malliin tarkemmin.", "resurssit": []}
                 ],
+                "lopputuloksen_kehitysehdotukset": ["Parempi jäsentely."],
                 "oppimispolku_viikko": "Maanantai: Lue teoria. Tiistai: Harjoittele."
             })
             return json.dumps(data, ensure_ascii=False)

@@ -8,12 +8,14 @@ from tinydb import Query
 
 from backend.services.document_processor import DocumentProcessor
 from backend.core.engine import WorkflowEngine
-from backend.api.hooks_router import router as hooks_router
+
 from backend.api.tools_router import router as tools_router
 from backend.api.agents_router import router as agents_router
 from backend.api.admin_router import router as admin_router
 from backend.api.llm_router import router as llm_router
+from backend.api.llm_router import router as llm_router
 from backend.api.config_router import router as config_router
+from backend.api.workflows_router import router as workflows_router
 from dotenv import load_dotenv
 from backend.config import DB_PATH, DATA_DIR
 
@@ -26,11 +28,12 @@ app = FastAPI(
     version="0.2.0"
 )
 
-app.include_router(hooks_router)
+
 app.include_router(tools_router)
 app.include_router(agents_router)
 app.include_router(admin_router)
 app.include_router(config_router)
+app.include_router(workflows_router)
 app.include_router(llm_router, prefix="/llm", tags=["LLM"])
 
 @app.middleware("http")
@@ -102,123 +105,17 @@ engine = WorkflowEngine(DB_PATH)
 
 # Initialize/Seed Components
 engine.register_component("DocumentProcessor", "processor", "DocumentProcessor")
-engine.register_component("GuardAgent", "backend.agents.guard", "GuardAgent")
-engine.register_component("AnalystAgent", "backend.agents.analyst", "AnalystAgent")
-engine.register_component("LogicianAgent", "backend.agents.logician", "LogicianAgent")
-engine.register_component("LogicalFalsifierAgent", "backend.agents.critics", "LogicalFalsifierAgent")
-engine.register_component("FactualOverseerAgent", "backend.agents.critics", "FactualOverseerAgent")
-engine.register_component("CausalAnalystAgent", "backend.agents.critics", "CausalAnalystAgent")
-engine.register_component("PerformativityDetectorAgent", "backend.agents.critics", "PerformativityDetectorAgent")
-engine.register_component("JudgeAgent", "backend.agents.judge", "JudgeAgent")
-engine.register_component("XAIReporterAgent", "backend.agents.judge", "XAIReporterAgent")
+
+# Dynamic Agent Registration (V2 Architecture)
+# Automatically scans backend.agents and registers all BaseAgent subclasses
+engine.discover_and_register_agents()
 
 # Ensure upload directory exists
 # Ensure upload directory exists
 UPLOAD_DIR = os.path.join(DATA_DIR, "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-# --- Generic Workflow Endpoints ---
 
-class WorkflowCreateRequest(BaseModel):
-    name: str
-    steps: List[Dict[str, Any]]
-
-class WorkflowExecutionRequest(BaseModel):
-    workflow_id: str
-    inputs: Dict[str, Any] = {}
-
-@app.post("/workflows")
-def create_workflow(request: WorkflowCreateRequest):
-    """
-    Creates a new workflow definition.
-    """
-    workflow_id = engine.create_workflow(request.name, request.steps)
-    return {"status": "created", "workflow_id": workflow_id}
-
-@app.post("/executions")
-async def execute_workflow(request: Request, background_tasks: BackgroundTasks):
-    """
-    Starts a workflow execution asynchronously (Multipart).
-    """
-    try:
-        form = await request.form()
-        
-        workflow_id = form.get("workflow_id")
-        if not workflow_id:
-            raise HTTPException(status_code=422, detail="Missing workflow_id")
-            
-        inputs = {}
-        inputs_str = form.get("inputs")
-        if inputs_str:
-            inputs = json.loads(inputs_str)
-            
-        files_map = {}
-        for key, value in form.items():
-            if hasattr(value, "filename") and value.filename:
-                content = await value.read()
-                files_map[key] = (value.filename, content)
-
-        execution_id = engine.create_execution(workflow_id, inputs, files=files_map)
-        
-        # Fetch actual text inputs from DB for the runner
-        Execution = Query()
-        rec = engine.executions_table.search(Execution.execution_id == execution_id)[0]
-        cleaned_inputs = rec['inputs']
-        
-        background_tasks.add_task(engine.run_execution, execution_id, cleaned_inputs)
-        
-        return {"status": "started", "execution_id": execution_id}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/executions/recent")
-async def get_recent_executions(limit: int = 5, status: Optional[str] = None):
-    """
-    Returns the most recent executions (by start_time).
-    Supports filtering by status (e.g. 'completed', 'failed').
-    """
-    try:
-        all_execs = engine.executions_table.all()
-        if not all_execs:
-             return []
-        
-        # Filter by status if provided
-        if status:
-            all_execs = [ex for ex in all_execs if ex.get('status', '').lower() == status.lower()]
-
-        # Sort by start_time descending
-        sorted_execs = sorted(all_execs, key=lambda x: x.get('start_time', ''), reverse=True)
-        return sorted_execs[:limit]
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/executions/latest")
-async def get_latest_execution():
-    """
-    Returns the most recent execution (by start_time).
-    Useful for 'Resume' functionality.
-    """
-    try:
-        all_execs = engine.executions_table.all()
-        if not all_execs:
-             raise HTTPException(status_code=404, detail="No executions found")
-        
-        # Sort by start_time descending
-        # Assuming start_time is ISO string, which sorts correctly lexicographically
-        latest = sorted(all_execs, key=lambda x: x.get('start_time', ''), reverse=True)[0]
-        return latest
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/executions/{execution_id}")
-async def get_execution_status(execution_id: str):
-    """
-    Gets the status of a workflow execution.
-    """
-    status = engine.get_execution_status(execution_id)
-    if not status:
-        raise HTTPException(status_code=404, detail="Execution not found")
-    return status
 
 
 
@@ -283,15 +180,7 @@ async def preview_full_chain(workflow_id: str):
 
 
 
-@app.get("/orchestrator/status/{execution_id}")
-def get_orchestrator_status(execution_id: str):
-    """
-    Gets the status of a workflow execution.
-    """
-    status = engine.get_execution_status(execution_id)
-    if not status:
-        raise HTTPException(status_code=404, detail="Execution not found")
-    return status
+
 
 @app.get("/config/introspection")
 def introspect_codebase():
@@ -300,7 +189,7 @@ def introspect_codebase():
     """
     import inspect
     from backend.models import domain
-    from backend.services import hooks
+
     
     # 1. Inspect Schemas
     available_schemas = []
@@ -308,11 +197,9 @@ def introspect_codebase():
         if inspect.isclass(obj) and issubclass(obj, domain.BaseModel) and obj is not domain.BaseModel:
             available_schemas.append(name)
             
-    # 2. Inspect Hooks
+    # 2. Inspect Hooks (Legacy - Deprecated/Removed)
     available_hooks = []
-    for name, obj in inspect.getmembers(hooks):
-        if inspect.isfunction(obj) and not name.startswith("_"):
-            available_hooks.append(name)
+
 
     # 3. Inspect Agents
     available_agents = []
@@ -327,7 +214,7 @@ def introspect_codebase():
             
     return {
         "schemas": sorted(available_schemas),
-        "hooks": sorted(available_hooks),
+        "hooks": [],
         "agents": sorted(list(set(available_agents)))
     }
 

@@ -1,195 +1,16 @@
 import streamlit as st
-import requests
 import time
 import os
 import json
 import pandas as pd
+from frontend.api import APIClient
+from frontend.components import render_dashboard
 
 # Configuration
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
-
-# Helper: Generic Renderer for Step Outputs
-def render_generic_step(key, value, level=1):
-    """
-    Recursively renders dictionary/list content for dynamic agent displays.
-    """
-    if isinstance(value, dict):
-        if not value: return
-        # Display as section
-        header_level = min(level + 2, 6) # h3-h6
-        # If it's a top-level step dict (e.g. step_profiler), use subheader
-        if level == 1:
-            friendly_name = key.replace("step_", "").replace("_", " ").title()
-            st.subheader(f"🧩 {friendly_name}")
-            for k, v in value.items():
-                render_generic_step(k, v, level + 1)
-            st.divider()
-        else:
-            # Nested dicts
-            with st.expander(f"{key.replace('_', ' ').title()}"):
-                for k, v in value.items():
-                    render_generic_step(k, v, level + 1)
-                    
-    elif isinstance(value, list):
-        if not value: return
-        st.markdown(f"**{key.replace('_', ' ').title()}:**")
-        for item in value:
-            if isinstance(item, (dict, list)):
-                 st.json(item) # Fallback for complex nested lists
-            else:
-                 st.markdown(f"- {item}")
-                 
-    else:
-        # Simple Key-Value
-        if value:
-            st.markdown(f"**{key.replace('_', ' ').title()}:** {value}")
-
-def render_dashboard(result):
-    st.header("2. Results")
-    
-    # --- New: System Status Dashboard (Flattened Data) ---
-    # Safety & Errors
-    uhka = result.get('uhka_havaittu')
-    riski = result.get('riski_taso')
-    post_hoc = result.get('onko_post_hoc_rationalisointia')
-    # Metadata
-    timestamp = result.get('luontiaika')
-    version = result.get('versio')
-    
-    if any([uhka is not None, riski, post_hoc is not None]):
-        st.subheader("🛡️ Järjestelmän Tila (System Status)")
-        m1, m2, m3, m4 = st.columns(4)
-        
-        # Safety
-        if uhka is True:
-            m1.error("URHEILU HAVAITTU! (THREAT)")
-        elif uhka is False:
-            m1.success("Turvallinen (Safe)")
-        else:
-            m1.info("Turvallisuus: N/A")
-            
-        # Risk Level
-        if riski:
-            m2.metric("Riski Taso", riski)
-            
-        # Falsifier
-        if post_hoc is True:
-            m3.error("Post-Hoc Rationalisointi!")
-        elif post_hoc is False:
-            m3.success("Logiikka: Valid")
-            
-        # Metadata
-        if timestamp:
-            m4.caption(f"Luotu: {timestamp}")
-            if version:
-                m4.caption(f"Versio: {version}")
-        
-        st.divider()
-    # ----------------------------------------------------
-    # --- Courtroom 2.0 Additions (Refactored to Generic Loop) ---
-
-    # (Archivist removed)
-
-    # 3. Coach (Learning Plan)
-    # Shown AFTER scores usually, but let's put it here for visibility or maybe at the end?
-    # Let's put Coach AT THE END, after XAI report.
-    
-    def format_xai_report(data):
-        if not data: return None
-        # Standardized Report Layout (Finnish Headers)
-        md = f"### Tiivistelmä\n{data.get('executive_summary', '')}\n\n"
-        
-        md += f"**Tuomio:** {data.get('final_verdict', '')}\n"
-        md += f"**Luottamus:** {data.get('confidence_score', '')}\n\n"
-        
-        md += f"### Vahvuudet\n{data.get('analysis_strengths', '')}\n\n"
-        md += f"### Heikkoudet\n{data.get('analysis_weaknesses', '')}\n\n"
-        md += f"### Mahdollisuudet\n{data.get('analysis_opportunities', '')}\n\n"
-        md += f"### Suositukset\n{data.get('analysis_recommendations', '')}\n\n"
-        return md
-
-    # Display XAI Report
-    # Check for hoisted fields (Standardized XAI Report)
-    if result.get('analysis_strengths') or result.get('executive_summary'):
-        report_data = result
-    else:
-        # Fallback to nested format
-        report_data = result.get('step_9_reporter')
-
-    if report_data:
-        report_md = format_xai_report(report_data)
-    else:
-        # Fallback legacy fields
-        report_md = (
-            result.get('xai_report_formatted') or 
-            result.get('xai_report_content') or 
-            result.get('xai_report') or 
-            result.get('report_content') or
-            result.get('product_text') or
-            result.get('safe_data', {}).get('product_text') or
-            result.get('1_tainted_data.json', {}).get('product_text')
-        )
-    
-    # Explicitly display scores if available
-    # Explicitly display scores (Flattened preferred)
-    score_analyysi = result.get('analyysi') or result.get('step_8_judge', {}).get('pisteet', {}).get('analyysi')
-    score_arviointi = result.get('arviointi') or result.get('step_8_judge', {}).get('pisteet', {}).get('arviointi')
-    score_synteesi = result.get('synteesi') or result.get('step_8_judge', {}).get('pisteet', {}).get('synteesi')
-
-    if score_analyysi or score_arviointi:
-        st.subheader("🏆 Pisteytys (BARS 1-4)")
-        s_col1, s_col2, s_col3 = st.columns(3)
-        
-        def show_score(col, title, s_data):
-            if s_data:
-                col.metric(label=title, value=f"{s_data.get('arvosana')}/4")
-                # Show full text, no truncation
-                col.caption(s_data.get('perustelu', ''))
-
-        show_score(s_col1, "Analyysi", score_analyysi)
-        show_score(s_col2, "Arviointi", score_arviointi)
-        show_score(s_col3, "Synteesi", score_synteesi)
-        st.divider()
-    
-    if report_md:
-        st.subheader("📝 XAI Report (or Product Text)")
-        st.markdown(report_md)
-    else:
-        st.warning("Report content not found in result.")
-
-    # --- Dynamic Agent Rendering (Generic) ---
-    
-    # 1. Standard Reports (Always Hoist these if present)
-    # Check for hoisted Fields
-    report_data = None
-    if result.get('analysis_strengths') or result.get('executive_summary'):
-         report_data = result
-    elif result.get('step_9_reporter'):
-         report_data = result.get('step_9_reporter')
-         
-    # 2. Iterate remaining "step_" keys for generic rendering
-    metadata_keys = ['uhka_havaittu', 'riski_taso', 'onko_post_hoc_rationalisointia', 'luontiaika', 'versio', 'execution_id']
-    
-    # Sort keys to ensure some order: profiler -> archivist -> etc.
-    # Usually step keys have prefixes or we rely on insertion order (Python 3.7+)
-    all_keys = [k for k in result.keys() if k.startswith("step_")]
-    
-    # Exclude Auditor/Reporter/Judge if they are handled specially below or above
-    # For now, Judge/Reporter are special because of BARS scores and Markdown reports
-    # But Profiler, Archivist, Coach, etc. can be generic.
-    
-    special_steps = ['step_9_reporter', 'step_8_judge'] # Rendered separately
-    
-    for key in all_keys:
-        if key not in special_steps:
-            render_generic_step(key, result[key])
-
-    # 3. Special Rendering for Judge (Scores) & Reporter (XAI)
-    with st.expander("View Raw Output JSON"):
-        st.json(result)
+api_client = APIClient(BACKEND_URL)
 
 st.set_page_config(page_title="Cognitive Quorum v2", layout="wide")
-
 st.title("Cognitive Quorum v2 - Dynamic Workflow Engine")
 st.markdown(f"**Backend:** `{BACKEND_URL}`")
 
@@ -201,53 +22,44 @@ if page == "Assessment":
     # Sidebar: Workflow Selection
     st.sidebar.header("Configuration")
     selected_workflow_id = None
-    try:
-        # Fetch workflows from API
-        response = requests.get(f"{BACKEND_URL}/db/workflows")
-        if response.status_code == 200:
-            workflows = response.json()
-            workflow_options = {wf['id']: wf for wf in workflows}
-            
-            selected_workflow_id = st.sidebar.selectbox(
-                "Select Workflow",
-                options=list(workflow_options.keys())
-            )
-            
-            if selected_workflow_id:
-                st.sidebar.subheader("Model Mapping")
-                wf = workflow_options[selected_workflow_id]
-                st.sidebar.json(wf.get('default_model_mapping', {}))
-        else:
-            st.sidebar.error(f"Failed to fetch workflows: {response.status_code}")
     
-    except Exception as e:
-        st.sidebar.error(f"Connection Error: {e}")
+    workflows = api_client.get_workflows()
+    if workflows:
+        workflow_options = {wf['id']: wf for wf in workflows}
+        selected_workflow_id = st.sidebar.selectbox(
+            "Select Workflow",
+            options=list(workflow_options.keys())
+        )
+        if selected_workflow_id:
+            st.sidebar.subheader("Model Mapping")
+            wf = workflow_options[selected_workflow_id]
+            st.sidebar.json(wf.get('default_model_mapping', {}))
+    else:
+        st.sidebar.warning("No workflows found or backend unreachable.")
+        workflow_options = {}
 
     # Main Area: Inputs
     st.header("1. Syötä Todistusaineisto (Evidence)")
     
     col1, col2 = st.columns(2)
-    
     with col1:
         history_file = st.file_uploader("Keskusteluhistoria (Chat Logs)", type=['txt', 'pdf', 'docx'])
-    
     with col2:
         product_file = st.file_uploader("Lopputuote (Final Product)", type=['txt', 'pdf', 'docx'])
         reflection_file = st.file_uploader("Itsearviointi (Reflection)", type=['txt', 'pdf', 'docx'])
     
     # Buttons
     b_col1, b_col2 = st.columns([1, 1])
-    
     start_clicked = False
-    resume_clicked = False
     
     with b_col1:
         if st.button("Käynnistä Arviointi (Run Assessment)"):
             start_clicked = True
             
     with b_col2:
-        if st.button("Hae viimeisin tulos (Resume Last)"):
-             resume_clicked = True
+        # Resume functionality logic: Fetch last run and display?
+        # The original code just set a flag. Let's make it fetch recent runs.
+        pass
 
     if start_clicked:
         if not selected_workflow_id:
@@ -259,7 +71,7 @@ if page == "Assessment":
                 try:
                     # Prepare Multipart Payload
                     files = {}
-                    inputs_metadata = {} # Additional non-file inputs could go here
+                    inputs_metadata = {} 
 
                     if history_file:
                         files["history_text"] = (history_file.name, history_file.getvalue())
@@ -268,130 +80,74 @@ if page == "Assessment":
                     if reflection_file:
                         files["reflection_text"] = (reflection_file.name, reflection_file.getvalue())
                     
-                    # Send Request (Multipart/Form-Data)
-                    # 'data' fields are form fields
-                    # 'files' are attachments
-                    form_data = {
-                        "workflow_id": selected_workflow_id,
-                        "inputs": json.dumps(inputs_metadata) 
-                    }
+                    job_data = api_client.start_execution(selected_workflow_id, files, inputs_metadata)
+                    job_id = job_data['execution_id']
+                    st.success(f"Job Started! ID: {job_id}")
                     
-                    response = requests.post(
-                        f"{BACKEND_URL}/executions",
-                        data=form_data,
-                        files=files
-                    )
+                    # --- Polling Loop ---
+                    # Get Steps for progress bar
+                    dynamic_steps_order = api_client.get_workflow_steps(selected_workflow_id, workflow_options)
                     
-                    if response.status_code == 200:
-                        job_data = response.json()
-                        job_id = job_data['execution_id']
-                        st.success(f"Job Started! ID: {job_id}")
+                    progress_bar = st.progress(0)
+                    status_text = st.empty()
+                    
+                    while True:
+                        status_data = api_client.get_execution_status(job_id)
+                        if not status_data:
+                            time.sleep(2)
+                            continue
+                            
+                        status = status_data.get('status')
                         
-                        # --- Dynamic Progress Bar Setup ---
-                        # 1. Fetch all steps to resolve Component IDs (Agent Names)
-                        steps_lookup = {}
-                        try:
-                            # Note: Using /config/steps to get definitions
-                            steps_res = requests.get(f"{BACKEND_URL}/config/steps")
-                            if steps_res.status_code == 200:
-                                for s in steps_res.json():
-                                    steps_lookup[s['id']] = s.get('component')
-                        except Exception as e:
-                            st.warning(f"Failed to fetch steps for progress bar: {e}")
-
-                        # 2. Get Steps for selected Workflow
-                        current_workflow = workflow_options.get(selected_workflow_id)
-                        dynamic_steps_order = []
-                        if current_workflow:
-                            wf_step_ids = current_workflow.get('steps', [])
-                            for sid in wf_step_ids:
-                                agent_name = steps_lookup.get(sid)
-                                if agent_name:
-                                    dynamic_steps_order.append(agent_name)
+                        if status and status.upper() == "COMPLETED":
+                            progress_bar.progress(100)
+                            status_text.success("Assessment Completed!")
+                            result = status_data.get('result', {})
+                            render_dashboard(result)
+                            break
                         
-                        # Fallback if lookup failed (shouldn't happen if DB is seeded)
-                        if not dynamic_steps_order:
-                             # Default fallback
-                            dynamic_steps_order = [
-                                "GuardAgent", "AnalystAgent", "ProfilerAgent", "LogicianAgent", 
-                                "LogicalFalsifierAgent", "FactualOverseerAgent", "CausalAnalystAgent", 
-                                "PerformativityDetectorAgent", "ArchivistAgent", "JudgeAgent", 
-                                "XAIReporterAgent", "CoachAgent"
-                            ]
-
-                        # Polling Loop
-                        progress_bar = st.progress(0)
-                        status_text = st.empty()
+                        elif status and status.upper() == "FAILED":
+                            status_text.error(f"Job Failed: {status_data.get('error')}")
+                            break
                         
-                        while True:
-                            try:
-                                status_res = requests.get(f"{BACKEND_URL}/executions/{job_id}")
-                                if status_res.status_code == 200:
-                                    status_data = status_res.json()
-                                    status = status_data.get('status')
-                                    
-                                    if status and status.upper() == "COMPLETED":
-                                        progress_bar.progress(100)
-                                        status_text.success("Assessment Completed!")
-                                        result = status_data.get('result', {})
-                                        
-                                        render_dashboard(result)
-                                        break
-                                    
-                                    elif status and status.upper() == "FAILED":
-                                        status_text.error(f"Job Failed: {status_data.get('error')}")
-                                        break
-                                    
-                                    else:
-                                        current_step = status_data.get('current_step')
-                                        
-                                        # (Dynamic steps used now)
-
-                                        if current_step and current_step in dynamic_steps_order:
-                                            idx = dynamic_steps_order.index(current_step)
-                                            # Show progress relative to total steps (cap at 95% until actually complete)
-                                            progress = (idx + 1) / len(dynamic_steps_order)
-                                            progress_bar.progress(min(progress, 0.95))
-                                            status_text.info(f"Vaihe {idx+1}/{len(dynamic_steps_order)}: {current_step} käynnissä...")
-                                        elif current_step:
-                                            # Fallback for non-standard steps
-                                            status_text.info(f"Status: {status} - Processing: {current_step}")
-                                        else:
-                                            status_text.info(f"Status: {status}...")
-                                            
-                                        time.sleep(2)
-                                else:
-                                    st.warning(f"Failed to poll status (Code: {status_res.status_code}). Retrying...")
-                                    time.sleep(2)
-                            except requests.exceptions.ConnectionError:
-                                st.warning("Connection lost. Retrying...")
-                                time.sleep(2)
-                            except Exception as e:
-                                st.error(f"Polling Error: {e}")
-                                break
-                    else:
-                        st.error(f"Failed to start job: {response.text}")
-    
+                        elif status and status.upper() == "REJECTED":
+                            status_text.error(f"⚠️ Security Intervention (Rejected): {status_data.get('error')}")
+                            # Optional: Render partial result if available
+                            if 'result' in status_data:
+                                with st.expander("Details"):
+                                    st.json(status_data['result'])
+                            break
+                        
+                        else:
+                            current_step = status_data.get('current_step')
+                            if current_step and current_step in dynamic_steps_order:
+                                idx = dynamic_steps_order.index(current_step)
+                                progress = (idx + 1) / len(dynamic_steps_order)
+                                progress_bar.progress(min(progress, 0.95))
+                                status_text.info(f"Vaihe {idx+1}/{len(dynamic_steps_order)}: {current_step} käynnissä...")
+                            elif current_step:
+                                status_text.info(f"Status: {status} - Processing: {current_step}")
+                            else:
+                                status_text.info(f"Status: {status}...")
+                                
+                            time.sleep(2)
+                            
                 except Exception as e:
                     st.error(f"Client Error: {e}")
 
+    # History Section
     st.subheader("Historia")
     with st.expander("Selaa aiempia ajoja", expanded=False):
         if st.button("Hae viimeiset 5 ajoa"):
-            try:
-                res = requests.get(f"{BACKEND_URL}/executions/recent?limit=5")
-                if res.status_code == 200:
-                    st.session_state['recent_runs'] = res.json()
-                else:
-                    st.error(f"Virhe haettaessa historiaa: {res.status_code}")
-            except Exception as e:
-                st.error(f"Yhteysvirhe: {e}")
+            runs = api_client.get_recent_runs()
+            if runs:
+                st.session_state['recent_runs'] = runs
+            else:
+                st.warning("Ei ajoja löytynyt tai yhteysvirhe.")
 
         if 'recent_runs' in st.session_state and st.session_state['recent_runs']:
             runs = st.session_state['recent_runs']
-            # Create a label map
             run_options = {f"{r.get('start_time', 'N/A')} - {r.get('status')} ({r.get('execution_id')[:8]}...)": r for r in runs}
-            
             selected_label = st.selectbox("Valitse ajo:", options=list(run_options.keys()))
             
             if st.button("Lataa valittu tulos"):
@@ -401,7 +157,7 @@ if page == "Assessment":
                         st.success(f"Ladattu ajo: {selected_run.get('execution_id')}")
                         render_dashboard(selected_run['result'])
                     else:
-                        st.warning("Valitussa ajossa ei ole tulosta (result).")
+                        st.warning("Valitussa ajossa ei ole tulosta.")
                 else:
                     st.warning(f"Valittu ajo on tilassa: {selected_run.get('status')}")
                     st.json(selected_run)
@@ -409,126 +165,65 @@ if page == "Assessment":
 elif page == "System Info":
     st.header("System Configuration & Seed Data")
     
-    try:
-        response = requests.get(f"{BACKEND_URL}/db/seed_data")
-        if response.status_code == 200:
-            data = response.json()
-            
-            # Unified Master View (Printable)
-            st.subheader("📚 Komponenttikirjasto (Component Library)")
-            
-            try:
-                unified_res = requests.get(f"{BACKEND_URL}/config/unified-prompts")
-                if unified_res.status_code == 200:
-                    unified_text = unified_res.json().get("content", "")
-                    st.text_area("Unified Content (with Schemas)", unified_text, height=800)
-                    st.download_button("Download Unified View", unified_text, file_name="unified_system_view.md")
-                else:
-                    st.error(f"Failed to fetch unified prompts: {unified_res.text}")
-            except Exception as e:
-                st.error(f"Error fetching unified prompts: {e}")
-            
-            st.markdown("---")
+    data = api_client.get_seed_data()
+    if data:
+        # Unified Master View
+        st.subheader("📚 Komponenttikirjasto")
+        unified_text = api_client.get_unified_prompts()
+        if unified_text:
+            st.text_area("Unified Content", unified_text, height=800)
+            st.download_button("Download Unified View", unified_text, file_name="unified_system_view.md")
+        
+        st.markdown("---")
+        
+        # Components
+        st.subheader("1. Components (Prompts)")
+        all_components = data.get('components', [])
+        relevant_types = ['prompt', 'Mandate', 'Rule', 'instruction', 'header', 'protocol', 'method', 'task']
+        components = [c for c in all_components if c.get('type') in relevant_types]
+        
+        if components:
+            for i, comp in enumerate(components):
+                with st.expander(f"{comp.get('id')} ({comp.get('type')})"):
+                    st.text_area("Content", comp.get('content'), height=300, key=f"comp_{comp.get('id')}_{i}")
+        
+        # Steps
+        st.subheader("2. Steps")
+        steps = data.get('steps', [])
+        if steps:
+            st.dataframe(pd.DataFrame(steps))
 
-            # Display Components (Prompts)
-            st.subheader("1. Components (Prompts)")
-            all_components = data.get('components', [])
-            # Filter prompt, Mandate, and Rule components
-            relevant_types = ['prompt', 'Mandate', 'Rule', 'instruction', 'header', 'protocol', 'method', 'task']
-            components = [c for c in all_components if c.get('type') in relevant_types]
-            
-            if components:
-                for i, comp in enumerate(components):
-                    with st.expander(f"{comp.get('id')} ({comp.get('type')})"):
-                        st.text_area("Content", comp.get('content'), height=300, key=f"comp_{comp.get('id')}_{i}")
-            else:
-                st.info("No components found.")
+        # Workflows
+        st.subheader("3. Workflows")
+        st.json(data.get('workflows', []))
+        
+        # Preview
+        st.subheader("4. Prompt Preview")
+        if steps:
+            step_ids = [s['id'] for s in steps]
+            selected_step = st.selectbox("Select Step to Preview", step_ids)
+            if selected_step:
+                preview_data = api_client.get_prompt_preview(selected_step)
+                if preview_data:
+                    st.markdown(f"**Agent Class:** `{preview_data.get('agent_class')}`")
+                    c1, c2 = st.columns(2)
+                    with c1:
+                        st.markdown("### System Instruction")
+                        st.text_area("System", preview_data.get('system_instruction'), height=500)
+                    with c2:
+                        st.markdown("### User Prompt")
+                        st.text_area("User", preview_data.get('user_prompt'), height=500)
 
-            # Display Steps
-            st.subheader("2. Steps")
-            steps = data.get('steps', [])
-            if steps:
-                # Convert to DataFrame for better display, selecting key columns
-                df_steps = pd.DataFrame(steps)
-                st.dataframe(df_steps)
-            else:
-                st.info("No steps found.")
-
-            # Display Workflows
-            st.subheader("3. Workflows")
-            workflows = data.get('workflows', [])
-            if workflows:
-                st.json(workflows)
-            else:
-                st.info("No workflows found.")
-                
-            # Prompt Preview
-            st.subheader("4. Prompt Preview")
-            steps = data.get('steps', [])
-            if steps:
-                step_ids = [s['id'] for s in steps]
-                selected_step = st.selectbox("Select Step to Preview", step_ids)
-                
-                # Auto-fetch preview when step is selected
-                if selected_step:
-                    try:
-                        preview_res = requests.get(f"{BACKEND_URL}/db/preview_prompt/{selected_step}")
-                        if preview_res.status_code == 200:
-                            preview_data = preview_res.json()
-                            
-                            st.markdown(f"**Agent Class:** `{preview_data.get('agent_class')}`")
-                            
-                            col_p1, col_p2 = st.columns(2)
-                            
-                            with col_p1:
-                                st.markdown("### System Instruction")
-                                st.text_area("System Instruction", preview_data.get('system_instruction'), height=500)
-                                
-                            with col_p2:
-                                st.markdown("### User Prompt (Template)")
-                                st.text_area("User Prompt", preview_data.get('user_prompt'), height=500)
-                        else:
-                            st.error(f"Failed to fetch preview: {preview_res.text}")
-                    except Exception as e:
-                        st.error(f"Error fetching preview: {e}")
-            
-            # Full Chain Preview
-            st.subheader("🎬 Unified Master View (Execution Chain)")
-            
-            with st.expander("📋 Ohjeet Manuaaliseen Testaukseen (Gemini UI)", expanded=True):
-                st.markdown("""
-                **Näin testaat koko ketjun manuaalisesti Geminissä:**
-                1. **Liitä tiedostot:** Avaa Gemini ja liitä analysoitavat tiedostot (PDF/TXT) liitteiksi.
-                2. **Kopioi Prompt:** Generoi ja kopioi alla oleva "Full Chain Prompt".
-                3. **Syötä Saatesanat:** Kirjoita Geminin viestikentän alkuun seuraava ohje ja liitä prompt sen perään:
-                
-                > *Toimi Workflow Enginena. Liitteenä ovat lähdetiedostot: Keskusteluhistoria ja Lopputuote. Alla on monivaiheinen prosessi. Kun näet tekstissä merkinnän `{{HISTORY_TEXT}}` tai `{{PRODUCT_TEXT}}`, käytä liitteenä olevia tiedostoja. Suorita vaiheet ja simuloi edellisten vaiheiden tulokset (`{{PREVIOUS_STEP_OUTPUTS}}`) tarvittaessa.*
-                """)
-
-            workflows = data.get('workflows', [])
-            if workflows:
-                wf_ids = [w['id'] for w in workflows]
-                selected_wf = st.selectbox("Select Workflow for Full Chain", wf_ids, key="full_chain_wf")
-                
-                if st.button("Generate Full Chain Preview"):
-                    try:
-                        res = requests.get(f"{BACKEND_URL}/db/preview_full_chain/{selected_wf}")
-                        if res.status_code == 200:
-                            full_text = res.json().get("full_chain_text", "")
-                            st.text_area("Full Chain Prompt", full_text, height=800)
-                            st.download_button("Download Full Chain Prompt", full_text, file_name=f"full_chain_{selected_wf}.txt")
-                        else:
-                            st.error(f"Failed to fetch full chain: {res.text}")
-                    except Exception as e:
-                        st.error(f"Error fetching full chain: {e}")
-            else:
-                st.info("No workflows found for full chain preview.")
-
-        else:
-            st.error(f"Failed to load seed data. Status: {response.status_code}, Error: {response.text}")
-            
-    except Exception as e:
-        st.error(f"Error fetching seed data: {e}")
-
-
-
+        # Full Chain
+        st.subheader("🎬 Unified Master View (Execution Chain)")
+        workflows = data.get('workflows', [])
+        if workflows:
+            wf_ids = [w['id'] for w in workflows]
+            sel_wf = st.selectbox("Select Workflow for Full Chain", wf_ids, key="full_chain_wf")
+            if st.button("Generate Full Chain Preview"):
+                full_text = api_client.get_full_chain_preview(sel_wf)
+                if full_text:
+                    st.text_area("Full Chain Prompt", full_text, height=800)
+                    st.download_button("Download", full_text, file_name=f"full_chain_{sel_wf}.txt")
+    else:
+        st.error("Failed to load seed data.")
