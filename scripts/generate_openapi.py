@@ -21,6 +21,7 @@ def generate_openapi():
     openapi_schema = app.openapi()
     
     output_path = os.path.join("docs", "openapi.json")
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
     
     with open(output_path, "w") as f:
         json.dump(openapi_schema, f, indent=2)
