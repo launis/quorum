@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
 from tinydb import Query
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
@@ -10,7 +10,8 @@ import inspect
 from backend.database.exporter import export_db_to_files
 from backend.database.seeder import seed_database
 from backend.config import DB_PATH, PROD_DB_PATH, MOCK_DB_PATH, MODEL_STRATEGIES
-from backend.database.wrapper import get_db_client
+from backend.database.wrapper import get_db_client, AbstractDatabase
+from backend.dependencies import get_db_client_dep
 from backend.models import domain as schemas
 import logging
 
@@ -21,8 +22,7 @@ router = APIRouter(
     tags=["Configuration"]
 )
 
-def get_db():
-    return get_db_client()
+
 
 # --- Models ---
 
@@ -68,15 +68,13 @@ class WorkflowCreate(BaseModel):
 # --- Endpoints ---
 
 @router.get("/components")
-def get_components():
+def get_components(db: AbstractDatabase = Depends(get_db_client_dep)):
     """List all components (prompts, rules)."""
-    db = get_db()
     return db.table('components').all()
 
 @router.get("/components/{comp_id}")
-def get_component(comp_id: str):
+def get_component(comp_id: str, db: AbstractDatabase = Depends(get_db_client_dep)):
     """Get a specific component by ID."""
-    db = get_db()
     Component = Query()
     # Try matching 'id' first, then 'name'
     res = db.table('components').search(Component.id == comp_id)
@@ -88,9 +86,8 @@ def get_component(comp_id: str):
     return res[0]
 
 @router.post("/components")
-def create_component(comp: ComponentCreate):
+def create_component(comp: ComponentCreate, db: AbstractDatabase = Depends(get_db_client_dep)):
     """Create a new component."""
-    db = get_db()
     table = db.table('components')
     if table.search(Query().id == comp.id):
         raise HTTPException(status_code=400, detail="Component ID already exists")
@@ -103,9 +100,8 @@ def create_component(comp: ComponentCreate):
     return {"status": "created", "id": comp.id}
 
 @router.put("/components/{comp_id}")
-def update_component(comp_id: str, update: ComponentUpdate):
+def update_component(comp_id: str, update: ComponentUpdate, db: AbstractDatabase = Depends(get_db_client_dep)):
     """Update a component's content."""
-    db = get_db()
     Component = Query()
     table = db.table('components')
     
@@ -127,9 +123,8 @@ def update_component(comp_id: str, update: ComponentUpdate):
     return {"status": "updated", "id": comp_id}
 
 @router.delete("/components/{comp_id}")
-def delete_component(comp_id: str):
+def delete_component(comp_id: str, db: AbstractDatabase = Depends(get_db_client_dep)):
     """Delete a component."""
-    db = get_db()
     table = db.table('components')
     Component = Query()
     
@@ -141,15 +136,13 @@ def delete_component(comp_id: str):
     return {"status": "deleted", "id": comp_id}
 
 @router.get("/steps")
-def get_steps():
+def get_steps(db: AbstractDatabase = Depends(get_db_client_dep)):
     """List all steps."""
-    db = get_db()
     return db.table('steps').all()
 
 @router.post("/steps")
-def create_step(step: Dict[str, Any]):
+def create_step(step: Dict[str, Any], db: AbstractDatabase = Depends(get_db_client_dep)):
     """Create a new step."""
-    db = get_db()
     table = db.table('steps')
     if table.search(Query().id == step.get('id')):
         raise HTTPException(status_code=400, detail="Step ID already exists")
@@ -157,9 +150,8 @@ def create_step(step: Dict[str, Any]):
     return {"status": "created", "id": step.get('id')}
 
 @router.put("/steps/{step_id}")
-def update_step(step_id: str, step: Dict[str, Any]):
+def update_step(step_id: str, step: Dict[str, Any], db: AbstractDatabase = Depends(get_db_client_dep)):
     """Update a step."""
-    db = get_db()
     table = db.table('steps')
     if not table.search(Query().id == step_id):
         raise HTTPException(status_code=404, detail="Step not found")
@@ -167,9 +159,8 @@ def update_step(step_id: str, step: Dict[str, Any]):
     return {"status": "updated", "id": step_id}
 
 @router.delete("/steps/{step_id}")
-def delete_step(step_id: str):
+def delete_step(step_id: str, db: AbstractDatabase = Depends(get_db_client_dep)):
     """Delete a step."""
-    db = get_db()
     table = db.table('steps')
     if not table.search(Query().id == step_id):
         raise HTTPException(status_code=404, detail="Step not found")
@@ -177,15 +168,13 @@ def delete_step(step_id: str):
     return {"status": "deleted", "id": step_id}
 
 @router.get("/workflows")
-def get_workflows():
+def get_workflows(db: AbstractDatabase = Depends(get_db_client_dep)):
     """List all workflows."""
-    db = get_db()
     return db.table('workflows').all()
 
 @router.get("/workflows/{wf_id}")
-def get_workflow(wf_id: str):
+def get_workflow(wf_id: str, db: AbstractDatabase = Depends(get_db_client_dep)):
     """Get a specific workflow."""
-    db = get_db()
     Workflow = Query()
     res = db.table('workflows').search(Workflow.id == wf_id)
     if not res:
@@ -193,9 +182,8 @@ def get_workflow(wf_id: str):
     return res[0]
 
 @router.put("/workflows/{wf_id}")
-def update_workflow(wf_id: str, update: WorkflowUpdate):
+def update_workflow(wf_id: str, update: WorkflowUpdate, db: AbstractDatabase = Depends(get_db_client_dep)):
     """Update a workflow definition."""
-    db = get_db()
     Workflow = Query()
     table = db.table('workflows')
     
@@ -219,9 +207,8 @@ def update_workflow(wf_id: str, update: WorkflowUpdate):
     return {"status": "updated", "id": wf_id}
 
 @router.post("/workflows")
-def create_workflow(workflow: WorkflowCreate):
+def create_workflow(workflow: WorkflowCreate, db: AbstractDatabase = Depends(get_db_client_dep)):
     """Create a new workflow."""
-    db = get_db()
     Workflow = Query()
     table = db.table('workflows')
     
@@ -233,9 +220,8 @@ def create_workflow(workflow: WorkflowCreate):
     return {"status": "created", "id": workflow.id}
 
 @router.delete("/workflows/{wf_id}")
-def delete_workflow(wf_id: str):
+def delete_workflow(wf_id: str, db: AbstractDatabase = Depends(get_db_client_dep)):
     """Delete a workflow."""
-    db = get_db()
     Workflow = Query()
     table = db.table('workflows')
     
@@ -323,7 +309,7 @@ def get_schemas():
     return schema_data
 
 @router.get("/unified-prompts")
-def get_unified_prompts():
+def get_unified_prompts(db: AbstractDatabase = Depends(get_db_client_dep)):
     """
     Generates the Unified Master View text with schema expansion.
     Refactored to use helper functions for clarity.
@@ -333,7 +319,6 @@ def get_unified_prompts():
         schema_data = _fetch_schemas()
 
         # 2. Fetch Components
-        db = get_db()
         all_components = db.table('components').all()
         
         # 3. Build Text
@@ -429,11 +414,10 @@ def _build_unified_view(components: list, schema_data: Dict[str, Any]) -> str:
     return unified_text
 
 @router.get("/models/registry")
-def get_model_registry():
+def get_model_registry(db: AbstractDatabase = Depends(get_db_client_dep)):
     """
     Get the global model registry from system_config.
     """
-    db = get_db_client()
     table = db.table('system_config')
     Config = Query()
     res = table.search(Config.type == 'model_registry')
@@ -442,11 +426,10 @@ def get_model_registry():
     return {}
 
 @router.post("/models/registry")
-def update_model_registry(config: GlobalModelConfig):
+def update_model_registry(config: GlobalModelConfig, db: AbstractDatabase = Depends(get_db_client_dep)):
     """
     Update the global model registry.
     """
-    db = get_db_client()
     table = db.table('system_config')
     Config = Query()
     
@@ -468,7 +451,7 @@ def update_model_registry(config: GlobalModelConfig):
     return {"status": "updated", "registry": registry_data}
 
 @router.get("/models/strategies")
-def get_model_strategies():
+def get_model_strategies(db: AbstractDatabase = Depends(get_db_client_dep)):
     """
     Get the available model strategies (Fast vs Deep).
     Prioritizes DB config 'model_registry' > 'google' provider.
@@ -476,7 +459,6 @@ def get_model_strategies():
     """
     # 1. Try fetching from DB
     try:
-        db = get_db_client()
         table = db.table('system_config')
         Config = Query()
         res = table.search(Config.type == 'model_registry')

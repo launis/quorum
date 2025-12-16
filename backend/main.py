@@ -102,8 +102,8 @@ async def startup_event():
     try:
         logger.info("   [INFO] Warming up Engine Singleton...")
         from backend.dependencies import get_db_client_dep, get_repository_dep, get_agent_registry_dep, get_prompt_builder_dep
+        from backend.exceptions import FatalInterruption # Import locally
         
-        logger.info("   [INFO] Warming up Engine Singleton...")
         # Manually resolve dependencies to avoid Depends() objects leaking in
         db = get_db_client_dep()
         repo = get_repository_dep(db)
@@ -113,8 +113,23 @@ async def startup_event():
         # Initialize Engine with resolved deps
         get_engine(repository=repo, registry=registry, prompt_builder=pb)
         logger.info("   [INFO] Engine Ready.")
+        
+    except FatalInterruption as fi:
+        logger.critical("!"*60)
+        logger.critical(f"   [CRITICAL STARTUP FAILURE] {fi.step_name}")
+        logger.critical(f"   Reason: {fi.reason}")
+        logger.critical(f"   Details: {json.dumps(fi.details, indent=2)}")
+        logger.critical("!"*60)
+        # We don't exit(1) because Uvicorn manages the process, but we log loud.
+        # Ideally we might raise to crash the pod/service.
+        # Re-raise to let exception handler or Uvicorn see it? 
+        # Actually raising here during startup cancels startup.
+        raise fi
+        
     except Exception as e:
-        logger.error(f"   [CRITICAL] Engine Warmup Failed: {e}")
+        logger.error(f"   [CRITICAL] Engine Warmup Failed: {e}", exc_info=True)
+        # Raise to abort startup
+        raise RuntimeError(f"Startup Failed: {e}")
 
 
 # Database setup

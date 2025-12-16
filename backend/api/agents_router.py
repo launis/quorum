@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException, Body
+from fastapi import APIRouter, HTTPException, Body, Depends
 from typing import Dict, Any, Optional
 import importlib
 
-from backend.database.wrapper import get_db_client
+from backend.database.wrapper import AbstractDatabase, get_db_client
+from backend.dependencies import get_db_client_dep
 from tinydb import Query
 from backend.config import DB_PATH
 import logging
@@ -11,11 +12,11 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/agents", tags=["Agents"])
 
-def _load_agent_class(agent_name: str):
+def _load_agent_class(agent_name: str, db: AbstractDatabase):
     """
     Dynamically loads an agent class by name using the database registry.
     """
-    db = get_db_client()
+    # db = get_db_client() # Removed
     components_table = db.table('components')
     
     # 1. Try to find by class name (preferred)
@@ -41,13 +42,14 @@ async def run_agent(
     agent_name: str, 
     inputs: Dict[str, Any] = Body(...),
     system_instruction: Optional[str] = Body(None),
-    model: Optional[str] = Body("gemini-2.5-flash")
+    model: Optional[str] = Body("gemini-2.5-flash"),
+    db: AbstractDatabase = Depends(get_db_client_dep)
 ):
     """
     Executes a specific agent with provided inputs.
     """
     try:
-        AgentClass = _load_agent_class(agent_name)
+        AgentClass = _load_agent_class(agent_name, db)
         agent = AgentClass(model=model)
         
         logger.info(f"Executing agent {agent_name} via API...")

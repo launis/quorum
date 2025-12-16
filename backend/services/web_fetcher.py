@@ -1,0 +1,40 @@
+import urllib.request
+import urllib.error
+import re
+import logging
+from typing import Optional
+
+logger = logging.getLogger(__name__)
+
+class WebFetcher:
+    """
+    Simple service to fetch text content from URLs.
+    Uses urllib to avoid extra dependencies like requests if not present.
+    """
+    
+    @staticmethod
+    def fetch_text(url: str, timeout: int = 5) -> Optional[str]:
+        """
+        Fetches the content of a URL and extracts visible text (naive).
+        """
+        try:
+            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) CognitiveQuorum/1.0'}
+            req = urllib.request.Request(url, headers=headers)
+            
+            with urllib.request.urlopen(req, timeout=timeout) as response:
+                html_bytes = response.read()
+                html_text = html_bytes.decode('utf-8', errors='ignore')
+                
+                # Naive HTML to Text
+                # 1. Remove scripts and styles
+                text = re.sub(r'<(script|style).*?>.*?</\1>', '', html_text, flags=re.DOTALL | re.IGNORECASE)
+                # 2. Remove tags
+                text = re.sub(r'<.*?>', ' ', text)
+                # 3. Collapse whitespace
+                text = re.sub(r'\s+', ' ', text).strip()
+                
+                return text[:5000] # Limit context size
+                
+        except Exception as e:
+            logger.error(f"[WebFetcher] Failed to fetch {url}: {e}")
+            return None

@@ -2,6 +2,7 @@ from typing import Optional
 from fastapi import Depends
 import logging
 from backend.database.wrapper import get_db_client, AbstractDatabase
+from backend.services.storage import AbstractStorage
 from backend.database.repository import AbstractWorkflowRepository, TinyDBRepository
 from backend.services.agent_registry import AgentRegistry
 from backend.services.prompt_builder import PromptBuilder
@@ -55,10 +56,17 @@ def get_prompt_builder_dep(
          _prompt_builder_instance = PromptBuilder(repo, registry)
     return _prompt_builder_instance
 
+
+
+def get_storage_service_dep() -> AbstractStorage:
+    from backend.services.storage import get_storage_client
+    return get_storage_client()
+
 def get_engine(
     repository: AbstractWorkflowRepository = Depends(get_repository_dep),
     registry: AgentRegistry = Depends(get_agent_registry_dep),
-    prompt_builder: PromptBuilder = Depends(get_prompt_builder_dep)
+    prompt_builder: PromptBuilder = Depends(get_prompt_builder_dep),
+    storage_service: AbstractStorage = Depends(get_storage_service_dep)
 ) -> WorkflowEngine:
     """
     Dependency to provide a Singleton WorkflowEngine, injected with Services.
@@ -66,12 +74,27 @@ def get_engine(
     global _engine_instance
     if _engine_instance is None:
         logger.info("[Dependencies] Initializing Singleton WorkflowEngine...")
+        
+        # MANUAL RESOLUTION IF CALLED WITHOUT DI
+        from fastapi.params import Depends as DependsParams
+        
+        if isinstance(repository, DependsParams):
+            repository = get_repository_dep()
+        if isinstance(registry, DependsParams):
+            # Registry depends on repository, so we must ensure repo is resolved first
+            registry = get_agent_registry_dep(repository)
+        if isinstance(prompt_builder, DependsParams):
+             prompt_builder = get_prompt_builder_dep(repository, registry)
+        if isinstance(storage_service, DependsParams):
+             storage_service = get_storage_service_dep() # No args needed
+
         # Inject Services
         _engine_instance = WorkflowEngine(
             db_path=DB_PATH, 
             repository=repository,
             registry=registry,
-            prompt_builder=prompt_builder
+            prompt_builder=prompt_builder,
+            storage_client=storage_service
         )
         
         # Initialize Components - now handled by registry for agents, 
@@ -81,6 +104,29 @@ def get_engine(
         # We should call registry.register_component here.
         registry.register_component("DocumentProcessor", "processor", "DocumentProcessor")
         
+
         # Discovery is already done in get_agent_registry_dep
         
     return _engine_instance
+
+def get_llm_provider(
+    model_name: str = "gemini-1.5-flash"
+):
+    """
+    Dependency to provide a configured LLM Provider.
+    For more complex usages (switching models dynamically), 
+    requests should use the LLMFactory directly or the Engine's resolution logic.
+    But for simple endpoints (like admin self-test), this suffices.
+    """
+    from backend.llm.provider import LLMFactory
+    return LLMFactory.create_provider(model_name=model_name)
+
+def get_llm_handler_dep(db_client: AbstractDatabase = Depends(get_db_client_dep)):
+    from backend.llm.handler import LLMHandler
+    return LLMHandler(db_client)
+
+def get_llm_factory_dep():
+    from backend.llm.provider import LLMFactory
+    return LLMFactory
+
+

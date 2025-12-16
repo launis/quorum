@@ -93,7 +93,21 @@ class AgentRegistry:
                             logger.debug(f"[AgentRegistry] Instantiated {cls_name} with {resolved_initial_model}")
                         except Exception as e:
                             logger.error(f"[AgentRegistry] Failed to instantiate {cls_name}: {e}")
-                            continue
+                            # FATAL: Raising interruption here ensures app triggers a clean crash/halt during startup
+                            # However, during startup we might want to skip broken plugins rather than crash whole app?
+                            # User requested strict halts. But registry runs at STARTUP usually. 
+                            # If registry fails, app might crash before API is ready. 
+                            # Let's keep SKIP for startup (to allow other parts to work) but LOG CRITICAL?
+                            # OR RAISE if strictness is required.
+                            # User said "vastaavia keskeytyksiä". If an Agent fails to load, the workflow referencing it will fail later.
+                            # So I will raise FatalInterruption which likely bubbles up to main.py startup logic.
+                            from backend.exceptions import FatalInterruption
+                            raise FatalInterruption(
+                                step_name="AgentDiscovery",
+                                reason=f"Failed to instantiate agent {cls_name}",
+                                details={"agent_class": cls_name, "error": str(e)}
+                            )
+
 
                         # 2. Register in DB
                         agent_type = "agent"

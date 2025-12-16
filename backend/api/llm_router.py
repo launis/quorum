@@ -1,19 +1,18 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 from tinydb import Query
 
 from backend.agents.base import BaseAgent
-from backend.agents.base import BaseAgent
-from backend.llm.handler import LLMHandler
 from backend.llm.provider import LLMFactory
-from backend.database.wrapper import get_db_client
+from backend.database.wrapper import AbstractDatabase, get_db_client
+from backend.dependencies import get_llm_handler_dep, get_db_client_dep, get_llm_factory_dep
 import logging
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-llm_handler = LLMHandler()
+
 
 class LLMRequest(BaseModel):
     prompts: List[Dict[str, Any]] # {"role": "user", "parts": ["..."]}
@@ -43,7 +42,7 @@ class SimpleAgent(BaseAgent):
         )
 
 @router.post("/generate")
-async def generate_text(request: LLMRequest):
+async def generate_text(request: LLMRequest, factory = Depends(get_llm_factory_dep)):
     """
     Generates text using the configured LLM.
     """
@@ -53,9 +52,14 @@ async def generate_text(request: LLMRequest):
             
         prompt_text = request.prompts[0]["parts"][0]
         
-        # Use SimpleAgent correctly
-        agent = SimpleAgent(model=request.model)
-        response_text = await agent.generate_simple(prompt_text)
+        # Use Factory from dependency
+        provider = factory.create_provider(model_name=request.model)
+        
+        response_text = await provider.generate(
+            prompt=prompt_text,
+            system_instruction="You are a helpful technical writer.",
+            response_schema=None
+        )
         
         return {"response": response_text}
     except Exception as e:
@@ -63,26 +67,25 @@ async def generate_text(request: LLMRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/available-models")
-def get_available_models():
+def get_available_models(llm_handler = Depends(get_llm_handler_dep)):
     """
     Lists available models from Google and OpenAI.
     """
     return llm_handler.fetch_all_available_models()
 
 @router.get("/config")
-def get_model_config():
+def get_model_config(llm_handler = Depends(get_llm_handler_dep)):
     """
     Gets the current model registry configuration.
     """
     return llm_handler.get_active_model_registry()
 
 @router.post("/config")
-def update_model_config(update: ModelRegistryUpdate):
+def update_model_config(update: ModelRegistryUpdate, db_client: AbstractDatabase = Depends(get_db_client_dep)):
     """
     Updates the model registry configuration.
     """
     try:
-        db_client = get_db_client()
         table = db_client.table('system_config')
         
         Config = Query()

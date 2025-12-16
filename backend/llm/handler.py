@@ -15,8 +15,8 @@ class LLMHandler:
     Handles LLM model retrieval, configuration, and resolution.
     Delegates actual generation to LLMFactory.
     """
-    def __init__(self):
-        self.db_client = get_db_client()
+    def __init__(self, db_client: Any):
+        self.db_client = db_client
 
     def fetch_all_available_models(self) -> Dict[str, List[str]]:
         """

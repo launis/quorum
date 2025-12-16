@@ -1,3 +1,5 @@
+from typing import Dict, Any
+
 class AppException(Exception):
     """Base class for application exceptions."""
     def __init__(self, message: str, status_code: int = 500, details: dict = None):
@@ -35,6 +37,25 @@ class AgentExecutionError(AppException):
             status_code=500,
             details={"agent": agent_name, "step_id": step_id, "original_error": str(original_error)}
         )
+
+class FatalInterruption(AppException):
+    """
+    Raised when a critical error requires stopping the entire workflow execution immediately.
+    This is favored over silent failures or partial execution.
+    """
+    def __init__(self, step_name: str, reason: str, details: Dict[str, Any] = None):
+        if details is None:
+            details = {}
+        # Ensure minimal structure
+        details.update({"step": step_name, "reason": reason})
+        
+        super().__init__(
+            message=f"Fatal Interruption at {step_name}: {reason}",
+            status_code=500,
+            details=details
+        )
+        self.step_name = step_name
+        self.reason = reason
 
 class ConfigurationError(AppException):
     """Raised when there is a misconfiguration (e.g. missing API key)."""

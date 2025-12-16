@@ -561,6 +561,7 @@ class CoachingPlan(BaseJSON):
     kehityskohteet_konkreettisesti: list[ActionItem] = Field(..., description="Concrete steps to improve")
     lopputuloksen_kehitysehdotukset: list[str] = Field(..., description="Concrete suggestions to improve the final product")
     oppimispolku_viikko: str = Field(..., description="A 1-week plan to fix the issues")
+    lahdeluettelo: list[str] = Field(default_factory=list, description="Bibliography references used in this plan")
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -579,7 +580,8 @@ class CoachingPlan(BaseJSON):
                         }
                     ],
                     "lopputuloksen_kehitysehdotukset": ["Tiivistä johdantoa.", "Lisää väliotsikoita."],
-                    "oppimispolku_viikko": "Lue kirja X."
+                    "oppimispolku_viikko": "Lue kirja X.",
+                    "lahdeluettelo": ["Lähde A (DOI...)", "Lähde B"]
                 }
             ]
         }

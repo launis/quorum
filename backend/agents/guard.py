@@ -36,14 +36,13 @@ class GuardAgent(BaseAgent):
         validated_data = state.step_guard
         
         # --- Python Banned Phrases Check Overlay ---
-        from backend.database.wrapper import get_db_client
-        
         try:
-            # Use wrapper to get client
-            db_client = get_db_client()
-            banned_table = db_client.table('banned_phrases')
-            banned_phrases = [r['phrase'].lower() for r in banned_table.all()]
+             # Load banned phrases from aux_data (Injected by Engine)
+            banned_phrases = state.aux_data.get('banned_phrases', [])
             
+            if not banned_phrases:
+                 return state
+
             detected = []
             # Scan all inputs
             inputs_to_scan = [
@@ -69,6 +68,8 @@ class GuardAgent(BaseAgent):
                 
         except Exception as e:
             logger.error(f"[GuardAgent] Banned phrase check failed: {e}")
+            from backend.exceptions import FatalInterruption
+            raise FatalInterruption("GuardSecurityCheck", f"Banned phrase check failed: {e}", {"error": str(e)})
             
         return state
 
@@ -89,34 +90,18 @@ class GuardAgent(BaseAgent):
         """
         logger.info("[GuardAgent] Executing Python-based Banned Phrases Scan (Pre-Hook)...")
         
-        from backend.database.wrapper import get_db_client
-        
         try:
-            # Load banned phrases
-            db_client = get_db_client()
-            banned_table = db_client.table('banned_phrases')
-            banned_phrases = [r['phrase'].lower() for r in banned_table.all()]
+            # Load banned phrases from aux_data (Injected by Engine)
+            banned_phrases = state.aux_data.get('banned_phrases', [])
             
+            if not banned_phrases:
+                # If missing (e.g. running agent directly without engine init), warn and skip or fetch fallback?
+                # Ideally, we should not fetch here to respect DDD.
+                logger.warning("[GuardAgent] No banned_phrases found in state.aux_data. Skipping scan.")
+                return state
+
             detected = []
             # Scan all inputs
-            inputs_to_scan = [
-                state.inputs.history_text,
-                state.inputs.product_text,
-                state.inputs.reflection_text
-            ]
-            
-            for text in inputs_to_scan:
-                if not text: continue
-                text_lower = text.lower()
-                for phrase in banned_phrases:
-                    if phrase in text_lower:
-                        detected.append(phrase)
-            
-            if detected:
-                logger.warning(f"[GuardAgent] BANNED PHRASES PRE-CHECK: {detected}")
-                # Inject Warning into inputs so LLM sees it
-                warning_msg = f"\n\n[SYSTEM WARNING: The following banned phrases were detected in the input: {', '.join(detected)}. You MUST flagging this as a security threat.]\n"
-                state.inputs.reflection_text += warning_msg
             inputs_to_scan = {
                 "History": state.inputs.history_text,
                 "Product": state.inputs.product_text, 
@@ -142,7 +127,8 @@ class GuardAgent(BaseAgent):
                 
         except Exception as e:
             logger.error(f"[GuardAgent] Pre-hook scan failed: {e}")
-            
+            from backend.exceptions import FatalInterruption
+            raise FatalInterruption("GuardPreHook", f"Pre-hook scan failed: {e}", {"error": str(e)})
             
         return state
 

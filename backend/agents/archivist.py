@@ -36,32 +36,38 @@ class ArchivistAgent(BaseAgent):
 
     # --- PYTHON HOOKS ---
 
-    def retrieve_precedent(self, state: WorkflowState) -> WorkflowState:
+    def retrieve_precedent(self, state: WorkflowState, repository: Any = None) -> WorkflowState:
         """
         PRE-HOOK: Retrieves the last N completed executions with a valid Judge score.
         Injects this "Case Law" into aux_data for the prompt.
+        Requires 'repository' to be injected by the Engine.
         """
         logger.info("[ArchivistAgent] Running retrieve_precedent hook...")
         
+        if not repository:
+             logger.warning("[ArchivistAgent] Repository not injected. Cannot retrieve precedents.")
+             return state
+
         try:
-            # 1. Access DB (Engine has initialized it, but Agent usually doesn't have direct DB access)
-            # We need to manually initialize a DB client or use the one if passed.
-            # BaseAgent doesn't have self.db_client.
-            # We use the wrapper.
-            from backend.database.wrapper import get_db_client
-            db = get_db_client()
-            executions_table = db.table('executions')
+            # 1. Use Repository Abstraction
+            # We need raw access to execution query, but repository abstraction relies on id.
+            # However, TinyDBRepository exposes tables if we cheat, but let's try to use generic get_all_executions 
+            # and filter in memory if the repository doesn't support complex searching.
+            # Proper DDD: Repository should have 'find_completed_executions()'.
+            # For now, we use get_all_executions() and filter python-side.
             
-            # 2. Query Completed Executions
-            Execution = Query()
-            # Search for completed strings
-            results = executions_table.search(Execution.status == 'completed')
+            all_executions = repository.get_all_executions()
+            
+            # 2. Query Completed Executions (Memory Filter)
+            # This might be slow if 10k items, but fine for prototype.
+            results = [x for x in all_executions if x.get('status') == 'completed']
+            
             
             # 3. Filter and Format
             precedents = []
-            # Sort by end_time desc (if available), or just take last ones
-            # TinyDB returns list, let's just take the last 3 (most recent usually at bottom)
-            recent_results = results[-5:] # Take 5, might filter down
+            # Sort by end_time desc (string compare is okay for isoformat)
+            results.sort(key=lambda x: x.get('end_time', ''), reverse=True)
+            recent_results = results[:5]
             
             for res in recent_results:
                 # Check if it has judge output

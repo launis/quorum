@@ -14,6 +14,7 @@ from backend.services.prompt_builder import PromptBuilder
 import logging
 from backend.database.repository import AbstractWorkflowRepository
 from backend.context import set_execution_context, clear_execution_context
+from backend.exceptions import ExecutionNotFoundError, WorkflowNotFoundError, AgentExecutionError, FatalInterruption # Added
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +25,8 @@ class WorkflowEngine:
         repository: Optional[AbstractWorkflowRepository] = None, 
         registry: Optional[AgentRegistry] = None,
         prompt_builder: Optional[PromptBuilder] = None,
-        db_client: Optional[Any] = None
+        db_client: Optional[Any] = None,
+        storage_client: Optional[Any] = None
     ):
         self.db_path = db_path
         
@@ -49,6 +51,12 @@ class WorkflowEngine:
             self.prompt_builder = prompt_builder
         else:
             self.prompt_builder = PromptBuilder(self.repository, self.registry)
+
+        if storage_client:
+             self.storage_client = storage_client
+        else:
+             from backend.services.storage import get_storage_client
+             self.storage_client = get_storage_client()
         
         # Agents Map is now in Registry
         # self.agents_map = {} # Removed
@@ -116,11 +124,10 @@ class WorkflowEngine:
         """
         import os
         from backend.services.document_processor import DocumentProcessor
-        from backend.services.storage import get_storage_client
         from fastapi.concurrency import run_in_threadpool
         
         extracted_data = {}
-        storage_client = get_storage_client()
+        storage_client = self.storage_client
         
         for input_key, (filename, file_bytes) in files.items():
             try:
@@ -134,14 +141,14 @@ class WorkflowEngine:
                     except Exception as e:
                          # Fallback or re-raise? Logging is enough for ingestion partial failure
                          logger.error(f"PDF extraction failed for {filename}: {e}")
-                         text = f"[Error extracting PDF: {e}]"
+                         raise FatalInterruption("FileIngestion", f"PDF extraction failed for {filename}: {e}", {"filename": filename})
 
                 elif lower_name.endswith(".docx"):
                     try:
                         text = await run_in_threadpool(DocumentProcessor.extract_text_from_docx, file_bytes)
                     except Exception as e:
                          logger.error(f"DOCX extraction failed for {filename}: {e}")
-                         text = f"[Error extracting DOCX: {e}]"
+                         raise FatalInterruption("FileIngestion", f"DOCX extraction failed for {filename}: {e}", {"filename": filename})
                 else:
                     # Treat as text file (fast enough)
                     text = file_bytes.decode('utf-8', errors='ignore')
@@ -155,9 +162,17 @@ class WorkflowEngine:
                 
                 logger.info(f"[WorkflowEngine] File {filename} processed. Extracted {len(text)} chars. Storage: {saved_path}")
                 
+                
+            except FatalInterruption as fi:
+                 raise fi
             except Exception as e:
                 logger.error(f"[WorkflowEngine] Failed to ingest file {filename} ({input_key}): {e}")
-                extracted_data[input_key] = f"Error processing file: {str(e)}"
+                # FATAL: Raise interruption instead of swallowing
+                raise FatalInterruption(
+                    step_name="FileIngestion",
+                    reason=f"Failed to ingest file {filename}: {str(e)}",
+                    details={"filename": filename, "error": str(e)}
+                )
                 
         return extracted_data
 
@@ -189,7 +204,11 @@ class WorkflowEngine:
         """
         set_execution_context(execution_id)
         logger.info(f"[WorkflowEngine] Starting execution {execution_id}")
-        self.repository.update_execution(execution_id, {'status': 'running'})
+        
+        # NOTE: Tracker.start() is called after resolving steps to avoid premature updates,
+        # but we can set initial running state here.
+        # Legacy: self.repository.update_execution(execution_id, {'status': 'running'})
+        # We will let tracker.start() handle it inside the try block.
         
         try:
             # 1. Initialize State
@@ -204,23 +223,80 @@ class WorkflowEngine:
             workflow_id = exec_record['workflow_id']
             pipeline_steps = self._resolve_pipeline_steps(workflow_id)
 
+            # Unified Progress Tracker
+            from backend.services.progress import DatabaseProgressTracker
+            tracker = DatabaseProgressTracker(self.repository, execution_id)
+            tracker.start() # Sets status=started
+
+            total_steps = len(pipeline_steps)
+
             # Execute Steps Serially
-            for agent, step_doc in pipeline_steps:
+            for index, (agent, step_doc) in enumerate(pipeline_steps):
+                # Calculate unified progress
+                step_num = index + 1
+                percent = int((step_num / total_steps) * 100)
+                stage_name = f"Step {step_num}/{total_steps}: {agent.__class__.__name__}"
+                
+                tracker.update(stage=stage_name, percent=percent)
+
                 current_state = await self._execute_step(current_state, agent, step_doc, execution_id)
+                
                 # Check for Early Exit (Security)
                 if isinstance(current_state, dict) and "security_alert" in current_state:
+                     # Tracker handled by explicit update inside?
+                     # No, we should probably fail() via tracker or just return result?
+                     # Current logic returns dict.
+                     # Let's keep consistent:
+                     # Security intervention sets status='rejected'. 
+                     # Unified tracker focuses on start/run/end. Rejection is a form of end.
                      return current_state
 
             # 3. Success & Result Projection
             logger.info(f"[WorkflowEngine] Execution {execution_id} completed successfully.")
-            return self._project_final_result(execution_id, current_state, pipeline_steps)
+            result = self._project_final_result(execution_id, current_state, pipeline_steps)
+            tracker.complete(result)
+            return result
 
+        except FatalInterruption as fi:
+            # UNIFIED HALT
+            return self._create_halt_response(execution_id, fi.step_name, fi)
         except AgentExecutionError as ae:
+            # Treat Agent errors as fatal too? For now, standard handler but maybe future unified?
             self._handle_execution_error(execution_id, ae)
         except Exception as e:
             self._handle_execution_error(execution_id, e)
         finally:
             clear_execution_context()
+
+    def _create_halt_response(self, execution_id: str, step_name: str, error: FatalInterruption) -> Dict[str, Any]:
+        """Helper to create a structured HALT response."""
+        msg = f"[WorkflowEngine] FATAL INTERRUPTION at {step_name}: {error.reason}"
+        logger.error(msg)
+        
+        halt_result = error.details
+        
+        # Unified Fail via Tracker?
+        # Since this method IS the unified halt responder, we can use tracker inside here if we had instance.
+        # But for now, direct update to ensure fail state matches spec.
+        # Ideally, we pass tracker to this method, but for refactor size, let's keep it atomic.
+        # Or instantiate tracker just for the fail call? 
+        # Using Direct Repo update is effectively what DatabaseProgressTracker.fail() does.
+        # Let's assume Engine owns the "Fail" logic directly in this helper for now.
+        
+        halt_result.update({
+             "status": "failed",
+             "halted_at": step_name,
+             "timestamp": datetime.now().isoformat(),
+             "reason": error.reason
+        })
+
+        self.repository.update_execution(execution_id, {
+            'status': 'failed',
+            'error': error.reason,
+            'end_time': datetime.now().isoformat(),
+            'result': halt_result
+        })
+        return halt_result
 
     # --- HELPER METHODS (Refactoring) ---
 
@@ -238,12 +314,20 @@ class WorkflowEngine:
                 execution_id=execution_id,
                 inputs=input_data
             )
+            
+            # Inject Global Configuration (DDD: Infrastructure pushes config to Domain)
+            try:
+                banned_raw = self.repository.get_banned_phrases()
+                current_state.aux_data['banned_phrases'] = [r['phrase'].lower() for r in banned_raw] if banned_raw else []
+            except Exception as e:
+                logger.error(f"[WorkflowEngine] Failed to load banned phrases: {e}")
+                current_state.aux_data['banned_phrases'] = []
+            
             logger.debug(f"[WorkflowEngine] State initialized with inputs: {raw_inputs.keys()}")
             return current_state
         except Exception as e:
             logger.error(f"[WorkflowEngine] Failed to initialize state: {e}")
-            self.repository.update_execution(execution_id, {'status': 'failed', 'error': str(e)})
-            raise e
+            raise FatalInterruption("StateInitialization", f"Failed to initialize state: {e}", {"error": str(e)})
 
     def _resolve_pipeline_steps(self, workflow_id: str) -> List[Any]:
         """Helper to fetch steps and resolve Agent instances."""
@@ -289,7 +373,12 @@ class WorkflowEngine:
 
         # 4. Agent Execution (Async)
         try:
-            current_state = await agent.execute(current_state, system_instruction=system_instruction)
+            # Inject repository based on DDD refactoring (CoachAgent needs it)
+            current_state = await agent.execute(
+                current_state, 
+                system_instruction=system_instruction,
+                repository=self.repository
+            )
         except Exception as e:
             raise AgentExecutionError(agent_name, step_id, e)
 
@@ -301,10 +390,13 @@ class WorkflowEngine:
         self._validate_step_output(agent_name, step_id, current_state, step_doc)
 
         # 7. Update DB
-        self.repository.update_execution(execution_id, {
-            'current_step': agent_name,
-            'last_updated': datetime.now().isoformat()
-        })
+        # HANDLED BY TRACKER UPSTREAM in run_execution loop.
+        # We REMOVE the duplicate log update here to rely on the unified tracker loop.
+        # This prevents "Step X" and "AnalysisAgent" from fighting over status field.
+        # self.repository.update_execution(execution_id, {
+        #     'current_step': agent_name,
+        #     'last_updated': datetime.now().isoformat()
+        # })
 
         # 8. Security Check
         if current_state.step_guard and current_state.step_guard.security_check.uhka_havaittu:
@@ -447,7 +539,22 @@ class WorkflowEngine:
             logger.debug(f"[WorkflowEngine] Executing Hook: {agent.__class__.__name__}.{hook_name}")
             try:
                 hook_method = getattr(agent, hook_name)
-                return hook_method(state)
+                
+                # Inspect signature to see if it needs injection
+                sig = inspect.signature(hook_method)
+                kwargs = {}
+                
+                if 'repository' in sig.parameters:
+                    kwargs['repository'] = self.repository
+                    
+                if 'db_client' in sig.parameters:
+                     # For legacy support, although we try to avoid this
+                    pass
+                
+                if kwargs:
+                    return hook_method(state, **kwargs)
+                else:
+                    return hook_method(state)
             except Exception as e:
                 logger.error(f"[WorkflowEngine] Hook {hook_name} failed: {e}")
                 return state

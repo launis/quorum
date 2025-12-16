@@ -16,7 +16,7 @@ st.markdown(f"**Backend:** `{BACKEND_URL}`")
 
 # Sidebar: Navigation
 st.sidebar.title("Navigation")
-page = st.sidebar.radio("Go to", ["Assessment", "System Info"])
+page = st.sidebar.radio("Go to", ["Assessment", "Admin", "System Info"])
 
 if page == "Assessment":
     # Sidebar: Workflow Selection
@@ -161,6 +161,76 @@ if page == "Assessment":
                 else:
                     st.warning(f"Valittu ajo on tilassa: {selected_run.get('status')}")
                     st.json(selected_run)
+
+elif page == "Admin":
+    st.header("Admin / Knowledge Base")
+    
+    st.subheader("1. Knowledge Base Ingestion")
+    st.markdown("Upload a DOCX file (e.g., `Holistinen Mestaruus.docx`) to ingest it into the Knowledge Base.")
+    st.markdown("This allows the Coach Agent to use its concepts and bibliography.")
+    
+    uploaded_kb = st.file_uploader("Upload Knowledge Base File", type=['docx'])
+    
+    if uploaded_kb:
+        if st.button("Ingest Knowledge Base File"):
+            with st.spinner("Ingesting file..."):
+                try:
+                    import requests
+                    # We need to manually construct the request or extend api_client
+                    # Let's extend api_client properly next time, but for now requests
+                    files = {"file": (uploaded_kb.name, uploaded_kb.getvalue(), "application/vnd.openxmlformats-officedocument.wordprocessingml.document")}
+                    res = requests.post(f"{BACKEND_URL}/admin/knowledge-base/upload", files=files)
+                    
+                    if res.status_code == 200:
+                        data = res.json()
+                        job_id = data.get("job_id")
+                        st.success(f"Ingestion Started! Job ID: {job_id}")
+                        
+                        # Polling Loop
+                        progress_bar = st.progress(0)
+                        status_text = st.empty()
+                        
+                        while True:
+                            try:
+                                status_res = requests.get(f"{BACKEND_URL}/admin/knowledge-base/status/{job_id}")
+                                if status_res.status_code == 200:
+                                    status = status_res.json()
+                                    percent = status.get("percent", 0)
+                                    stage = status.get("stage", "Processing...")
+                                    state = status.get("status", "unknown")
+                                    
+                                    progress_bar.progress(percent)
+                                    status_text.info(f"{state.upper()}: {stage}")
+                                    
+                                    if state in ["completed", "failed"]:
+                                        if state == "completed":
+                                            st.success("Ingestion Completed Successfully!")
+                                            st.json(status.get("result"))
+                                        else:
+                                            st.error(f"Ingestion Failed: {status.get('error')}")
+                                        break
+                                else:
+                                    status_text.warning("Waiting for status...")
+                                    
+                                time.sleep(1)
+                            except Exception as e:
+                                st.error(f"Polling error: {e}")
+                                break
+                    else:
+                        st.error(f"Ingestion Failed: {res.text}")
+                except Exception as e:
+                    st.error(f"Error: {e}")
+
+    st.markdown("---")
+    st.subheader("2. System Maintenance")
+    
+    if st.button("Run Self-Test"):
+        try:
+            import requests
+            res = requests.post(f"{BACKEND_URL}/admin/self-test")
+            st.json(res.json())
+        except Exception as e:
+            st.error(e)
 
 elif page == "System Info":
     st.header("System Configuration & Seed Data")

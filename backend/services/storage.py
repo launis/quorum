@@ -88,19 +88,81 @@ class NoOpStorage(AbstractStorage):
     def exists(self, path: str) -> bool:
         return False
 
+
+# --- Firebase Implementation ---
+
+class FirebaseStorage(AbstractStorage):
+    """
+    Firebase Storage implementation of AbstractStorage.
+    Uses firebase-admin SDK.
+    """
+    def __init__(self, bucket_name: Optional[str] = None):
+        import firebase_admin
+        from firebase_admin import storage
+        
+        # Ensure app is initialized (usually done in database/wrapper.py or main.py)
+        # We check just in case
+        if not firebase_admin._apps:
+             from firebase_admin import credentials
+             cred = credentials.ApplicationDefault()
+             firebase_admin.initialize_app(cred)
+             
+        self.bucket = storage.bucket(name=bucket_name)
+
+    def save(self, path: str, data: Union[bytes, str]) -> str:
+        """
+        Saves file to Firebase Storage bucket.
+        """
+        try:
+            blob = self.bucket.blob(path)
+            
+            if isinstance(data, str):
+                blob.upload_from_string(data, content_type="text/plain")
+            else:
+                blob.upload_from_string(data, content_type="application/octet-stream")
+                
+            # Return a GCS path or Signed URL? 
+            # For strict backend usage, path is enough.
+            # If front-end needs access, we might need signed URL or public URL.
+            # Keeping it simple: return internal reference path
+            return f"gs://{self.bucket.name}/{path}"
+            
+        except Exception as e:
+            logger.error(f"Failed to save file to Firebase {path}: {e}")
+            raise e
+
+    def read(self, path: str) -> bytes:
+        try:
+            blob = self.bucket.blob(path)
+            return blob.download_as_bytes()
+        except Exception as e:
+            logger.error(f"Failed to read file from Firebase {path}: {e}")
+            raise e
+
+    def exists(self, path: str) -> bool:
+        blob = self.bucket.blob(path)
+        return blob.exists()
+
 def get_storage_client() -> AbstractStorage:
     """
     Factory to get the configured storage client.
     """
     from backend.config import STORAGE_BACKEND
     
+    # Simple Logic: LOCAL vs FIREBASE
+    # User requested: Local in Dev, Firebase in Prod.
+    # Controlled by STORAGE_BACKEND env var.
+    
     if STORAGE_BACKEND == "NONE":
         return NoOpStorage()
-    elif STORAGE_BACKEND == "LOCAL":
-        return LocalFileStorage()
-    # Future expansion:
-    # elif STORAGE_BACKEND == "FIRESTORE":
-    #    return FirestoreStorage()
+        
+    elif STORAGE_BACKEND == "FIREBASE":
+        try:
+            return FirebaseStorage()
+        except Exception as e:
+            logger.error(f"Failed to initialize FirebaseStorage: {e}. Fallback to LOCAL.")
+            return LocalFileStorage()
+            
     else:
-        logger.warning(f"Unknown STORAGE_BACKEND '{STORAGE_BACKEND}'. Defaulting to LOCAL.")
+        # Default to LOCAL (Dev)
         return LocalFileStorage()
