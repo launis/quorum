@@ -326,8 +326,26 @@ def get_schemas():
 def get_unified_prompts():
     """
     Generates the Unified Master View text with schema expansion.
+    Refactored to use helper functions for clarity.
     """
-    # 1. Fetch Schemas
+    try:
+        # 1. Fetch Schema Data
+        schema_data = _fetch_schemas()
+
+        # 2. Fetch Components
+        db = get_db()
+        all_components = db.table('components').all()
+        
+        # 3. Build Text
+        unified_text = _build_unified_view(all_components, schema_data)
+        
+        return {"content": unified_text}
+    except Exception as e:
+        logger.error(f"Error generating unified prompts: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+def _fetch_schemas() -> Dict[str, Any]:
+    """Helper to fetch and parse Pydantic schemas."""
     schema_data = {}
     for name, obj in inspect.getmembers(schemas):
         if inspect.isclass(obj) and issubclass(obj, schemas.BaseModel) and obj is not schemas.BaseModel:
@@ -343,70 +361,72 @@ def get_unified_prompts():
                 schema_data[name] = {"schema": json_schema, "example": example}
             except Exception:
                 pass
+    return schema_data
 
-    # 2. Define Expansion Logic
-    def expand_content(text, schemas):
-        if not text: return ""
-        if isinstance(text, list):
-            text = "\n".join(str(x) for x in text)
-        if not isinstance(text, str):
-            text = str(text)
+def _expand_content(text: Any, schemas: Dict[str, Any]) -> str:
+    """Helper to expand placeholders in text with schema examples/definitions."""
+    if not text: return ""
+    
+    # Handle non-string input safely
+    if isinstance(text, list):
+        text = "\n".join(str(x) for x in text)
+    if not isinstance(text, str):
+        text = str(text)
+    
+    def replace_match(match):
+        schema_name = match.group(1)
+        is_example = match.group(2) is not None
         
-        def replace_match(match):
-            schema_name = match.group(1)
-            is_example = match.group(2) is not None
-            
-            if schema_name in schemas:
-                data = schemas[schema_name]
-                if is_example and data.get('example'):
-                    return f"```json\n{json.dumps(data['example'], indent=2, ensure_ascii=False)}\n```"
-                elif not is_example and data.get('schema'):
-                     return f"```json\n{json.dumps(data['schema'], indent=2, ensure_ascii=False)}\n```"
-            return match.group(0)
+        if schema_name in schemas:
+            data = schemas[schema_name]
+            if is_example and data.get('example'):
+                return f"```json\n{json.dumps(data['example'], indent=2, ensure_ascii=False)}\n```"
+            elif not is_example and data.get('schema'):
+                 return f"```json\n{json.dumps(data['schema'], indent=2, ensure_ascii=False)}\n```"
+        return match.group(0)
 
-        pattern = r"\[Ks\. schemas\.py / ([a-zA-Z0-9_]+)( / EXAMPLE)?\]"
-        return re.sub(pattern, replace_match, text)
+    pattern = r"\[Ks\. schemas\.py / ([a-zA-Z0-9_]+)( / EXAMPLE)?\]"
+    return re.sub(pattern, replace_match, text)
 
-    # 3. Fetch Components
-    db = get_db()
-    all_components = db.table('components').all()
+def _build_unified_view(components: list, schema_data: Dict[str, Any]) -> str:
+    """Helper to construct the unified markdown text."""
     
     # Group by type
     grouped = {}
-    for c in all_components:
+    for c in components:
         ctype = c.get('type', 'other')
         if ctype not in grouped:
             grouped[ctype] = []
         grouped[ctype].append(c)
         
-    # Define Type Order
     type_order = ["header", "mandate", "rule", "principle", "protocol", "method", "heuristic", "requirement", "prompt"]
     
-    # 5. Build Text
     unified_text = "# KOGNITIIVINEN KVOORUM - SYSTEM PROMPTS & SCHEMAS\n\n"
     
+    # Helper to process a list of components
+    def process_comp_list(comps):
+        text = ""
+        # Sort by ID
+        sorted_comps = sorted(comps, key=lambda x: str(x.get('id') or ''))
+        for comp in sorted_comps:
+            text += f"### {comp.get('id')} ({comp.get('type')})\n\n"
+            raw_content = comp.get('content', '')
+            expanded_content = _expand_content(raw_content, schema_data)
+            text += f"{expanded_content}\n\n"
+            text += "---\n\n"
+        return text
+
+    # Process ordered types first
     for ctype in type_order:
         if ctype in grouped:
-            comps = sorted(grouped[ctype], key=lambda x: str(x.get('id') or ''))
-            for comp in comps:
-                unified_text += f"### {comp.get('id')} ({comp.get('type')})\n\n"
-                raw_content = comp.get('content', '')
-                expanded_content = expand_content(raw_content, schema_data)
-                unified_text += f"{expanded_content}\n\n"
-                unified_text += "---\n\n"
+            unified_text += process_comp_list(grouped[ctype])
                 
     # Add any remaining types
     for ctype, comps in grouped.items():
         if ctype not in type_order:
-             comps = sorted(comps, key=lambda x: str(x.get('id') or ''))
-             for comp in comps:
-                unified_text += f"### {comp.get('id')} ({comp.get('type')})\n\n"
-                raw_content = comp.get('content', '')
-                expanded_content = expand_content(raw_content, schema_data)
-                unified_text += f"{expanded_content}\n\n"
-                unified_text += "---\n\n"
-
-    return {"content": unified_text}
+            unified_text += process_comp_list(comps)
+            
+    return unified_text
 
 @router.get("/models/registry")
 def get_model_registry():

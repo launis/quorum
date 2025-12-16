@@ -2,7 +2,7 @@ from typing import Optional
 from fastapi import Depends
 import logging
 from backend.database.wrapper import get_db_client, AbstractDatabase
-from backend.database.repository import WorkflowRepository
+from backend.database.repository import AbstractWorkflowRepository, TinyDBRepository
 from backend.services.agent_registry import AgentRegistry
 from backend.services.prompt_builder import PromptBuilder
 from backend.core.engine import WorkflowEngine
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 # Global Singleton Instances
 _db_client_instance: Optional[AbstractDatabase] = None
-_repository_instance: Optional[WorkflowRepository] = None
+_repository_instance: Optional[AbstractWorkflowRepository] = None
 _registry_instance: Optional[AgentRegistry] = None
 _prompt_builder_instance: Optional[PromptBuilder] = None
 _engine_instance: Optional[WorkflowEngine] = None
@@ -31,16 +31,15 @@ def get_db_client_dep() -> AbstractDatabase:
         _db_client_instance = get_db_client()
     return _db_client_instance
 
-def get_repository_dep(db_client: AbstractDatabase = Depends(get_db_client_dep)) -> WorkflowRepository:
+def get_repository_dep(db_client: AbstractDatabase = Depends(get_db_client_dep)) -> AbstractWorkflowRepository:
     global _repository_instance
     if _repository_instance is None:
-         _repository_instance = WorkflowRepository(db_client)
+         # Here we choose the implementation
+         _repository_instance = TinyDBRepository(db_client)
     return _repository_instance
 
 
-    return _repository_instance
-
-def get_agent_registry_dep(repo: WorkflowRepository = Depends(get_repository_dep)) -> AgentRegistry:
+def get_agent_registry_dep(repo: AbstractWorkflowRepository = Depends(get_repository_dep)) -> AgentRegistry:
     global _registry_instance
     if _registry_instance is None:
          _registry_instance = AgentRegistry(repo)
@@ -48,7 +47,7 @@ def get_agent_registry_dep(repo: WorkflowRepository = Depends(get_repository_dep
     return _registry_instance
 
 def get_prompt_builder_dep(
-    repo: WorkflowRepository = Depends(get_repository_dep),
+    repo: AbstractWorkflowRepository = Depends(get_repository_dep),
     registry: AgentRegistry = Depends(get_agent_registry_dep)
 ) -> PromptBuilder:
     global _prompt_builder_instance
@@ -57,7 +56,7 @@ def get_prompt_builder_dep(
     return _prompt_builder_instance
 
 def get_engine(
-    repository: WorkflowRepository = Depends(get_repository_dep),
+    repository: AbstractWorkflowRepository = Depends(get_repository_dep),
     registry: AgentRegistry = Depends(get_agent_registry_dep),
     prompt_builder: PromptBuilder = Depends(get_prompt_builder_dep)
 ) -> WorkflowEngine:

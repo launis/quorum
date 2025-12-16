@@ -11,7 +11,7 @@ from backend.core.engine import WorkflowEngine
 from backend.dependencies import get_engine, get_db_client_dep
 
 from backend.api.tools_router import router as tools_router
-from backend.api.tools_router import router as tools_router
+
 from backend.api.agents_router import router as agents_router
 from backend.api.admin_router import router as admin_router
 from backend.api.llm_router import router as llm_router
@@ -151,8 +151,6 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 @app.get("/db/seed_data")
-@app.get("/db/seed_data")
-@app.get("/db/seed_data")
 async def get_seed_data(engine: WorkflowEngine = Depends(get_engine)):
     """
     Returns the content of seed data from the database.
@@ -172,7 +170,6 @@ async def get_seed_data(engine: WorkflowEngine = Depends(get_engine)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/db/workflows")
-@app.get("/db/workflows")
 async def get_workflows(engine: WorkflowEngine = Depends(get_engine)):
     """
     Returns all workflows from the database.
@@ -183,7 +180,6 @@ async def get_workflows(engine: WorkflowEngine = Depends(get_engine)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/db/preview_prompt/{step_id}")
 @app.get("/db/preview_prompt/{step_id}")
 async def preview_prompt(step_id: str, engine: WorkflowEngine = Depends(get_engine)):
     """
@@ -197,7 +193,6 @@ async def preview_prompt(step_id: str, engine: WorkflowEngine = Depends(get_engi
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/db/preview_full_chain/{workflow_id}")
 @app.get("/db/preview_full_chain/{workflow_id}")
 async def preview_full_chain(workflow_id: str, engine: WorkflowEngine = Depends(get_engine)):
     """

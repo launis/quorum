@@ -1,8 +1,6 @@
 import uuid
 from datetime import datetime
 from typing import Dict, Any, List, Optional
-from datetime import datetime
-from typing import Dict, Any, List, Optional
 import pkgutil
 import importlib
 import inspect
@@ -14,20 +12,7 @@ from backend.agents.base import BaseAgent
 from backend.services.agent_registry import AgentRegistry
 from backend.services.prompt_builder import PromptBuilder
 import logging
-
-from datetime import datetime
-import logging
-from backend.services.agent_registry import AgentRegistry
-from backend.services.prompt_builder import PromptBuilder
-from backend.models.state import WorkflowState
-from backend.database.repository import WorkflowRepository
-from backend.exceptions import (
-    WorkflowNotFoundError, 
-    ExecutionNotFoundError, 
-    AgentExecutionError, 
-    StepNotFoundError,
-    AppException
-)
+from backend.database.repository import AbstractWorkflowRepository
 from backend.context import set_execution_context, clear_execution_context
 
 logger = logging.getLogger(__name__)
@@ -36,7 +21,7 @@ class WorkflowEngine:
     def __init__(
         self, 
         db_path: str, 
-        repository: Optional[Any] = None, 
+        repository: Optional[AbstractWorkflowRepository] = None, 
         registry: Optional[AgentRegistry] = None,
         prompt_builder: Optional[PromptBuilder] = None,
         db_client: Optional[Any] = None
@@ -48,9 +33,9 @@ class WorkflowEngine:
             self.repository = repository
         else:
              from backend.database.wrapper import get_db_client
-             from backend.database.repository import WorkflowRepository
+             from backend.database.repository import TinyDBRepository
              client = db_client if db_client else get_db_client()
-             self.repository = WorkflowRepository(client)
+             self.repository = TinyDBRepository(client)
         
         # Service Injection
         if registry:
@@ -69,7 +54,6 @@ class WorkflowEngine:
         # self.agents_map = {} # Removed
         
         # 1. Dynamically discover and register Agent classes from backend.agents package
-        
         # 1. Dynamically discover and register Agent classes is now handled by AgentRegistry
         if not registry: 
              # Only if we created the registry ourselves (fallback), ensuring it's scanned
@@ -186,75 +170,7 @@ class WorkflowEngine:
             raise ExecutionNotFoundError(str(execution_id))
         return exec_data
 
-    def preview_step_prompt(self, step_id: str) -> Dict[str, Any]:
-        try:
-            # 1. Fetch Step Record
-            step_data = self.repository.get_step_by_id(step_id)
-            if not step_data:
-                return {"error": f"Step {step_id} not found", "preview": "Not Found"}
-            agent_class = step_data.get('component', 'UnknownAgent')
-            
-            # 2. Construct Prompt
-            prompt = self._construct_prompt_for_step(step_id)
-            if not prompt:
-                return {"error": f"Could not generate prompt for step {step_id}"}
-            
-            # 3. Return Structured Data for UI
-            preview_data = {
-                "agent_class": agent_class,
-                "system_instruction": prompt,
-                "user_prompt": "Template Logic Not Available" 
-            }
 
-            # Try to get the User Prompt Template from the Agent Class
-            if agent_class in self.agents_map:
-                agent_instance = self.agents_map[agent_class]
-                try:
-                    preview_data["user_prompt"] = agent_instance.get_user_prompt_template()
-                except Exception as e:
-                    preview_data["user_prompt"] = f"Error retrieving template: {e}"
-            
-            return preview_data
-        except Exception as e:
-            return {"error": str(e)}
-
-    def preview_full_chain_prompts(self, workflow_id: str) -> str:
-        try:
-            wf_record = self.repository.get_workflow_by_id(workflow_id)
-            if not wf_record:
-                return f"Error: Workflow {workflow_id} not found."
-            
-            steps_ids = wf_record.get('steps', [])
-            full_chain = []
-            
-            full_chain.append(f"# Workflow: {wf_record.get('name', 'Untitled')}")
-            full_chain.append(f"ID: {workflow_id}\n")
-            
-            for i, step_id in enumerate(steps_ids):
-                prompt = self._construct_prompt_for_step(step_id)
-                
-                # Fetch step name/component for header
-                # Fetch step name/component for header
-                s_rec = self.repository.get_step_by_id(step_id)
-                step_name = s_rec.get('id', step_id) if s_rec else step_id
-                component = s_rec.get('component', 'Unknown') if s_rec else 'Unknown'
-                
-                full_chain.append(f"## Step {i+1}: {step_name} ({component})")
-                full_chain.append("-" * 40)
-                full_chain.append(prompt if prompt else "(No Prompt Configured)")
-                full_chain.append("\n" + "="*40 + "\n")
-                
-            return "\n".join(full_chain)
-
-        except Exception as e:
-            return f"Error generating chain preview: {str(e)}"
-
-    def _construct_prompt_for_step(self, step_id: str, current_state: Optional[WorkflowState] = None) -> str:
-        """
-        Fetches the step configuration and constructs the full system prompt
-        by concatenating the content of all referenced prompt components.
-        Also inspects for placeholders like {{BANNED_PHRASES}} and state variables.
-        """
     def preview_step_prompt(self, step_id: str) -> Dict[str, Any]:
         return self.prompt_builder.preview_step_prompt(step_id)
 
@@ -269,15 +185,47 @@ class WorkflowEngine:
     async def run_execution(self, execution_id: str, raw_inputs: Dict[str, Any]) -> Dict[str, Any]:
         """
         Runs the full workflow using the new State-based architecture (Async).
+        Refactored into modular helper methods for clarity and maintenance.
         """
         set_execution_context(execution_id)
-        
         logger.info(f"[WorkflowEngine] Starting execution {execution_id}")
-        
-        # Update status to running
         self.repository.update_execution(execution_id, {'status': 'running'})
         
-        # 1. Initialize State
+        try:
+            # 1. Initialize State
+            current_state = await self._initialize_execution(execution_id, raw_inputs)
+            
+            # 2. Execute Pipeline Steps
+            # Fetch workflow definition and calculate steps
+            exec_record = self.repository.get_execution(execution_id)
+            if not exec_record:
+                raise ExecutionNotFoundError(execution_id)
+            
+            workflow_id = exec_record['workflow_id']
+            pipeline_steps = self._resolve_pipeline_steps(workflow_id)
+
+            # Execute Steps Serially
+            for agent, step_doc in pipeline_steps:
+                current_state = await self._execute_step(current_state, agent, step_doc, execution_id)
+                # Check for Early Exit (Security)
+                if isinstance(current_state, dict) and "security_alert" in current_state:
+                     return current_state
+
+            # 3. Success & Result Projection
+            logger.info(f"[WorkflowEngine] Execution {execution_id} completed successfully.")
+            return self._project_final_result(execution_id, current_state, pipeline_steps)
+
+        except AgentExecutionError as ae:
+            self._handle_execution_error(execution_id, ae)
+        except Exception as e:
+            self._handle_execution_error(execution_id, e)
+        finally:
+            clear_execution_context()
+
+    # --- HELPER METHODS (Refactoring) ---
+
+    async def _initialize_execution(self, execution_id: str, raw_inputs: Dict[str, Any]) -> WorkflowState:
+        """Helper to create initial WorkflowState from Inputs."""
         try:
             input_data = InputData(
                 history_text=raw_inputs.get('history_text', ''),
@@ -291,231 +239,200 @@ class WorkflowEngine:
                 inputs=input_data
             )
             logger.debug(f"[WorkflowEngine] State initialized with inputs: {raw_inputs.keys()}")
+            return current_state
         except Exception as e:
             logger.error(f"[WorkflowEngine] Failed to initialize state: {e}")
             self.repository.update_execution(execution_id, {'status': 'failed', 'error': str(e)})
-            clear_execution_context()
             raise e
 
-        # 2. Execute Pipeline
+    def _resolve_pipeline_steps(self, workflow_id: str) -> List[Any]:
+        """Helper to fetch steps and resolve Agent instances."""
+        wf_record = self.repository.get_workflow_by_id(workflow_id)
+        if not wf_record:
+             raise WorkflowNotFoundError(workflow_id)
+        
+        pipeline_steps = []
+        step_ids = wf_record.get('steps', [])
+        
+        for sid in step_ids:
+            s_doc = self.repository.get_step_by_id(sid)
+            if s_doc:
+                agent_name = s_doc.get('component')
+                if agent_name:
+                     agent_instance = self.registry.get_agent(agent_name)
+                     if agent_instance:
+                         pipeline_steps.append((agent_instance, s_doc))
+        
+        if not pipeline_steps:
+            logger.error(f"[WorkflowEngine] Error: No workflow steps found for Workflow ID {workflow_id}")
+            raise ValueError(f"No steps defined for workflow {workflow_id}. Ensure seeding is correct.")
+            
+        return pipeline_steps
+
+    async def _execute_step(self, current_state: WorkflowState, agent: Any, step_doc: Dict[str, Any], execution_id: str) -> Any:
+        """Helper to execute a single step (Pre-hooks -> Model -> Agent -> Post-hooks -> Validation -> DB Update)."""
+        step_id = step_doc['id']
+        agent_name = agent.__class__.__name__
+        current_state.current_step_name = agent_name
+        logger.info(f"[WorkflowEngine] Running step: {agent_name} (Step ID: {step_id})")
+
+        # 1. Pre-Hooks
+        config = step_doc.get('execution_config') or {}
+        for hook in config.get('pre_hooks') or []:
+            current_state = self._execute_hook(hook, agent, current_state)
+
+        # 2. Dynamic Model Selection
+        self._configure_agent_model(agent, step_id, execution_id)
+
+        # 3. Prompt Construction
+        system_instruction = self.prompt_builder.construct_prompt(step_id, current_state) if step_id else None
+
+        # 4. Agent Execution (Async)
         try:
-            # Fetch Workflow Definition
-            exec_record = self.repository.get_execution(execution_id)
-            if not exec_record:
-                 raise ExecutionNotFoundError(execution_id)
-            
-            workflow_id = exec_record['workflow_id']
-            
-            # Fetch Workflow Steps
-            wf_record = self.repository.get_workflow_by_id(workflow_id)
-            
-            pipeline_steps = []
-            if wf_record:
-                step_ids = wf_record['steps']
-                for sid in step_ids:
-                    s_doc = self.repository.get_step_by_id(sid)
-                    if s_doc:
-                        agent_name = s_doc.get('component')
-                        if agent_name:
-                             agent_instance = self.registry.get_agent(agent_name)
-                             if agent_instance:
-                                 pipeline_steps.append((agent_instance, s_doc))
-            
-            if not pipeline_steps:
-                logger.error(f"[WorkflowEngine] Error: No workflow steps found for Workflow ID {workflow_id}")
-                raise ValueError(f"No steps defined for workflow {workflow_id}. Ensure the workflow is correctly seeded.")
-
-
-            for agent, step_doc in pipeline_steps:
-                step_id = step_doc['id']
-                agent_name = agent.__class__.__name__
-                current_state.current_step_name = agent_name
-                logger.info(f"[WorkflowEngine] Running step: {agent_name} (Step ID: {step_id})")
-                
-                # --- EXECUTE PRE-HOOKS ---
-                config = step_doc.get('execution_config') or {}
-                pre_hooks = config.get('pre_hooks') or []
-                for hook_name in pre_hooks:
-                    current_state = self._execute_hook(hook_name, agent, current_state)
-
-                # --- DYNAMIC MODEL SWITCHING (Refactor) ---
-                # 1. Get mapping from Workflow Definition
-                # (Ideally passed from run_execution inputs or fetched from DB record)
-                # Here we fetch it from the workflow definition record we already loaded (wf_record)
-                workflow_model_mapping = {}
-                if wf_record:
-                    workflow_model_mapping = wf_record.get('default_model_mapping', {})
-
-                # 2. Determine Model for this Step
-                # Default to 'fast' if not specified (safe fallback)
-                step_model_key = workflow_model_mapping.get(step_id, "fast")
-                
-                # 3. Resolve Strategy to Actual Model Name
-                resolved_model_name = self.registry.resolve_model_name(step_model_key)
-                
-                # 4. Update Agent
-                if hasattr(agent, 'set_model'):
-                    agent.set_model(resolved_model_name)
-                    logger.debug(f"[WorkflowEngine] Method 'set_model' called on {agent_name} -> {resolved_model_name} (Key: {step_model_key})")
-                
-                # Construct data-driven prompt WITH STATE INJECTION
-                # MOVED AFTER PRE-HOOKS to ensure sanitization (e.g. PDF extraction) happens first
-                system_instruction = self.prompt_builder.construct_prompt(step_id, current_state) if step_id else None
-
-                # Execute agent (ASYNC AWAIT)
-                try:
-                    current_state = await agent.execute(current_state, system_instruction=system_instruction)
-                except Exception as e:
-                    # Wrap Agent Failure
-                    raise AgentExecutionError(agent_name, step_id, e)
-
-                # --- EXECUTE POST-HOOKS ---
-                post_hooks = config.get('post_hooks') or []
-                for hook_name in post_hooks:
-                    current_state = self._execute_hook(hook_name, agent, current_state)
-
-                # --- VALIDATION (Dynamic Output Schema) ---
-                output_config_id = step_doc.get('output_config_component')
-                if output_config_id:
-                    comp_record = self.repository.get_component_by_id(output_config_id)
-                    if comp_record:
-                        required_fields = comp_record.get('content', [])
-                        if isinstance(required_fields, list):
-                            # Get output from state
-                            state_key = step_doc.get('state_key')
-                            if state_key and hasattr(current_state, state_key):
-                                output_obj = getattr(current_state, state_key)
-                                if output_obj:
-                                    # Safe dump (BaseJSON allows extra)
-                                    output_data = output_obj.model_dump(mode='json')
-                                    missing_fields = []
-                                    for field in required_fields:
-                                        # Handle dot notation for nested fields? 
-                                        # Assuming standard top-level or handled by Pydantic alias, 
-                                        # but simplistic check:
-                                        if "." not in field:
-                                            if field not in output_data:
-                                                missing_fields.append(field)
-                                        # (Optional) Deep check for nested fields could go here
-                                    
-                                    if missing_fields:
-                                        error_msg = f"Validation Failed: Missing required fields in {agent_name} output: {missing_fields}"
-                                        logger.error(f"[WorkflowEngine] {error_msg}")
-                                        # Strict Mode: Raise Error
-                                        raise AgentExecutionError(agent_name, step_id, ValueError(error_msg))
-                
-                # Update DB with progress
-                self.repository.update_execution(execution_id, {
-                    'current_step': agent_name,
-                    'last_updated': datetime.now().isoformat()
-                })
-
-                # --- KILL SWITCH (Security Gate) ---
-                # Check data, not agent name (Robustness Fix)
-                if current_state.step_guard and current_state.step_guard.security_check.uhka_havaittu:
-                    msg = f"[WorkflowEngine] SECURITY INTERVENTION: Threat detected by GuardAgent. Aborting execution {execution_id}."
-                    logger.critical(msg)
-                    
-                    # 1. Update DB as Rejected/Failed
-                    rejection_details = {
-                        "security_alert": "Execution aborted due to security violation.",
-                        "risk_level": current_state.step_guard.security_check.riski_taso,
-                        "analysis": current_state.step_guard.security_check.adversariaalinen_simulaatio_tulos,
-                        "guard_data": current_state.step_guard.model_dump()
-                    }
-                    
-                    self.repository.update_execution(execution_id, {
-                        'status': 'rejected',
-                        'error': f"Security Threat Detected: {current_state.step_guard.security_check.riski_taso}",
-                        'end_time': datetime.now().isoformat(),
-                        'result': rejection_details
-                    })
-
-                    # 2. Halt Pipeline
-                    return {"security_alert": "Execution aborted due to security violation."}
-
-
-            # 3. Success
-            logger.info(f"[WorkflowEngine] Execution {execution_id} completed successfully.")
-            
-            # Capture full state for debugging (could be saved to a separate 'trace' field if needed)
-            full_state = current_state.model_dump(mode='json')
-            
-            # Initialize strictly filtered public result
-            public_result = {}
-            
-            # Dynamic Result Projection (Strict Filtering)
-            # We iterate through the steps that were executed and project specific fields
-            # based on their configured output components.
-            for agent, step_doc in pipeline_steps:
-                state_key = step_doc.get('state_key')
-                hoist_fields = step_doc.get('hoist_fields', [])
-                
-                # Check for component-based configuration (Level A)
-                output_config_id = step_doc.get('output_config_component')
-                if output_config_id:
-                    comp_record = self.repository.get_component_by_id(output_config_id)
-                    if comp_record:
-                        # Merge or override fields from component
-                        hoist_fields = comp_record.get('content', [])
-                
-                # Perform Projection
-                if state_key and hoist_fields and full_state.get(state_key):
-                    source_data = full_state[state_key]
-                    logger.debug(f"[WorkflowEngine] Projecting {len(hoist_fields)} fields from {state_key}")
-                    
-                    for field in hoist_fields:
-                        # Support dot notation for nested source fields
-                        if '.' in field:
-                            parts = field.split('.')
-                            val = source_data
-                            for part in parts:
-                                if isinstance(val, dict):
-                                    val = val.get(part)
-                                else:
-                                    val = None
-                                    break
-                            
-                            # Naming Convention: Use the leaf name as the public key
-                            # e.g. 'pisteet.analyysi' -> 'analyysi'
-                            target_key = parts[-1]
-                        else:
-                            val = source_data.get(field)
-                            target_key = field
-
-                        # Add to public result keys
-                        public_result[target_key] = val
-
-            # Update DB with strict result
-            # Update DB with strict result
-            self.repository.update_execution(execution_id, {
-                'status': 'completed',
-                'end_time': datetime.now().isoformat(),
-                'result': public_result,
-                # Save full trace for detailed audit/debugging
-                'trace': full_state 
-            })
-            
-            return public_result
-
-        except AgentExecutionError as ae:
-            # Specific handling for Agent failures
-            logger.error(f"[WorkflowEngine] Agent Execution Error: {ae.message}")
-            self.repository.update_execution(execution_id, {
-                'status': 'failed',
-                'error': ae.message,
-                'end_time': datetime.now().isoformat()
-            })
-
+            current_state = await agent.execute(current_state, system_instruction=system_instruction)
         except Exception as e:
-            logger.error(f"[WorkflowEngine] Critical Failure: {e}", exc_info=True)
-            self.repository.update_execution(execution_id, {
-                'status': 'failed',
-                'error': str(e),
-                'end_time': datetime.now().isoformat()
-            })
-        finally:
-            clear_execution_context()
+            raise AgentExecutionError(agent_name, step_id, e)
+
+        # 5. Post-Hooks
+        for hook in config.get('post_hooks') or []:
+            current_state = self._execute_hook(hook, agent, current_state)
+
+        # 6. Validation
+        self._validate_step_output(agent_name, step_id, current_state, step_doc)
+
+        # 7. Update DB
+        self.repository.update_execution(execution_id, {
+            'current_step': agent_name,
+            'last_updated': datetime.now().isoformat()
+        })
+
+        # 8. Security Check
+        if current_state.step_guard and current_state.step_guard.security_check.uhka_havaittu:
+            return self._handle_security_intervention(execution_id, current_state)
+            
+        return current_state
+
+    def _configure_agent_model(self, agent: Any, step_id: str, execution_id: str):
+        """Helper to resolve and set the specific model for an agent."""
+        # 1. Get mapping from Workflow Definition via execution -> workflow logic
+        # For simplicity, invalidating complex fetches here, defaulting to safe 'fast' if not found easily
+        # In a perfect world, we pass wf_record down.
+        # Fallback: Default to 'fast'
+        step_model_key = "fast" 
+        
+        # Try to fetch actual mapping from execution record or re-fetch workflow?
+        # Re-fetching workflow record for EVERY step is expensive. 
+        # Ideally _resolve_pipeline_steps returns (agent, step_doc, model_key).
+        # For this refactor, let's keep it simple: 
+        # We can re-fetch workflow ID from execution to be safe or pass it down.
+        # Let's assume 'fast' for now to keep refactor safe or fetch it if needed.
+        # Re-fetching IS safer for correctness.
+        try:
+             exec_rec = self.repository.get_execution(execution_id)
+             if exec_rec:
+                 wf_rec = self.repository.get_workflow_by_id(exec_rec['workflow_id'])
+                 if wf_rec:
+                     mapping = wf_rec.get('default_model_mapping', {})
+                     step_model_key = mapping.get(step_id, "fast")
+        except:
+             pass
+
+        resolved_model_name = self.registry.resolve_model_name(step_model_key)
+        if hasattr(agent, 'set_model'):
+            agent.set_model(resolved_model_name)
+            logger.debug(f"[WorkflowEngine] Configured {agent.__class__.__name__} with {resolved_model_name}")
+
+    def _validate_step_output(self, agent_name: str, step_id: str, state: WorkflowState, step_doc: Dict[str, Any]):
+        """Helper to validate output against component schemas."""
+        output_config_id = step_doc.get('output_config_component')
+        if output_config_id:
+            comp_record = self.repository.get_component_by_id(output_config_id)
+            if comp_record:
+                required_fields = comp_record.get('content', [])
+                if isinstance(required_fields, list):
+                    state_key = step_doc.get('state_key')
+                    if state_key and hasattr(state, state_key):
+                        output_obj = getattr(state, state_key)
+                        if output_obj:
+                            output_data = output_obj.model_dump(mode='json')
+                            missing = [f for f in required_fields if "." not in f and f not in output_data]
+                            if missing:
+                                error_msg = f"Validation Failed: Missing fields {missing} in {agent_name}"
+                                logger.error(f"[WorkflowEngine] {error_msg}")
+                                raise AgentExecutionError(agent_name, step_id, ValueError(error_msg))
+
+    def _handle_security_intervention(self, execution_id: str, state: WorkflowState) -> Dict[str, Any]:
+        """Helper to handle security check failures."""
+        msg = f"[WorkflowEngine] SECURITY INTERVENTION: Threat detected."
+        logger.critical(msg)
+        
+        rejection_details = {
+            "security_alert": "Execution aborted due to security violation.",
+            "risk_level": state.step_guard.security_check.riski_taso,
+            "analysis": state.step_guard.security_check.adversariaalinen_simulaatio_tulos,
+            "guard_data": state.step_guard.model_dump()
+        }
+        
+        self.repository.update_execution(execution_id, {
+            'status': 'rejected',
+            'error': f"Security Threat Detected: {state.step_guard.security_check.riski_taso}",
+            'end_time': datetime.now().isoformat(),
+            'result': rejection_details
+        })
+        return rejection_details
+
+    def _project_final_result(self, execution_id: str, state: WorkflowState, pipeline_steps: List[Any]) -> Dict[str, Any]:
+        """Helper to create the public result dictionary from the final state."""
+        full_state = state.model_dump(mode='json')
+        public_result = {}
+        
+        for agent, step_doc in pipeline_steps:
+            state_key = step_doc.get('state_key')
+            hoist_fields = step_doc.get('hoist_fields', [])
+            
+            output_config_id = step_doc.get('output_config_component')
+            if output_config_id:
+                comp_record = self.repository.get_component_by_id(output_config_id)
+                if comp_record:
+                    hoist_fields = comp_record.get('content', [])
+            
+            if state_key and hoist_fields and full_state.get(state_key):
+                source_data = full_state[state_key]
+                for field in hoist_fields:
+                    if '.' in field:
+                        parts = field.split('.')
+                        val = source_data
+                        for part in parts:
+                            if isinstance(val, dict): val = val.get(part)
+                            else: val = None; break
+                        target_key = parts[-1]
+                    else:
+                        val = source_data.get(field)
+                        target_key = field
+                    public_result[target_key] = val
+
+        self.repository.update_execution(execution_id, {
+            'status': 'completed',
+            'end_time': datetime.now().isoformat(),
+            'result': public_result,
+            'trace': full_state 
+        })
+        return public_result
+
+    def _handle_execution_error(self, execution_id: str, error: Exception):
+        """Helper to log and update DB on failure."""
+        if isinstance(error, AgentExecutionError):
+            logger.error(f"[WorkflowEngine] Agent Error: {error.message}")
+            msg = error.message
+        else:
+            logger.error(f"[WorkflowEngine] Critical Failure: {error}", exc_info=True)
+            msg = str(error)
+
+        self.repository.update_execution(execution_id, {
+            'status': 'failed',
+            'error': msg,
+            'end_time': datetime.now().isoformat()
+        })
 
     def _execute_hook(self, hook_name: str, agent: Any, state: WorkflowState) -> WorkflowState:
         """

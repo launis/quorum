@@ -3,14 +3,14 @@ import pkgutil
 import importlib
 import inspect
 from typing import Dict, Any, Optional
-from backend.database.repository import WorkflowRepository
+from backend.database.repository import AbstractWorkflowRepository
 from backend.agents.base import BaseAgent
 from backend.config import INITIAL_MODEL, MODEL_STRATEGIES
 
 logger = logging.getLogger(__name__)
 
 class AgentRegistry:
-    def __init__(self, repository: WorkflowRepository):
+    def __init__(self, repository: AbstractWorkflowRepository):
         self.repository = repository
         self.agents_map: Dict[str, BaseAgent] = {}
 

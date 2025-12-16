@@ -3,7 +3,7 @@ import logging
 from typing import List, Dict, Any, Optional
 from tinydb import Query
 from backend.database.wrapper import get_db_client
-from backend.config import GOOGLE_API_KEY, USE_MOCK_LLM
+from backend.config import GOOGLE_API_KEY, USE_MOCK_LLM, INITIAL_MODEL
 from backend.llm.provider import LLMFactory
 import google.generativeai as genai
 import openai
@@ -113,7 +113,7 @@ class LLMHandler:
         config = self.get_model_config(provider, mode)
         
         # Defaults
-        model_name = "gemini-1.5-flash"
+        model_name = INITIAL_MODEL
         temperature = 0.7
         max_tokens = None
         

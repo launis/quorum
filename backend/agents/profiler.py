@@ -39,8 +39,7 @@ class ProfilerAgent(BaseAgent):
     def get_response_schema(self) -> Optional[Type[BaseModel]]:
         return ProfilerAnalysis
         
-    def get_user_prompt_template(self) -> str:
-        return "Analyze the following text for intent, tone, and cognitive biases."
+
 
     def _update_state(self, state: WorkflowState, response_data: Any) -> WorkflowState:
         # Merge Python-calculated metrics if available (from pre-hook)
