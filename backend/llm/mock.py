@@ -4,7 +4,7 @@ import logging
 import os
 from typing import Dict, Any, Optional
 from backend.config import get_mock_responses_path
-from backend.llm.mock_data import get_fallback_data
+from backend.llm.mock_data import get_fallback_data, AGENT_CLASS_TO_MOCK_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -18,21 +18,8 @@ class MockLLMService:
         self.mock_responses = self._load_mock_responses()
         
         # MAPPING: Agent Class Name -> Mock Key in JSON
-        self.agent_identity_map = {
-            "GuardAgent": "guard_agent",
-            "AnalystAgent": "analyst_agent",
-            "ProfilerAgent": "profiler_agent", # Step 2.5
-            "LogicianAgent": "logician_agent",
-            "FalsifierAgent": "falsifier_agent",
-            "FactualOverseerAgent": "fact_checker_agent",
-            "CausalAnalystAgent": "causal_agent",
-            "PerformativityDetectorAgent": "performativity_agent",
-            "JudgeAgent": "judge_agent",
-            "XAIReporterAgent": "xai_agent",
-            "ArchivistAgent": "archivist_agent", # Step 8.5/8a
-            "CoachAgent": "coach_agent", # Step 8.5/8c
-            "PanelAgent": "panel_agent", # If panel needs specific mock
-        }
+        # Centralized in mock_data.py
+        self.agent_identity_map = AGENT_CLASS_TO_MOCK_KEY
 
     def _load_mock_responses(self) -> Dict[str, Any]:
         """Loads mock responses from the JSON file."""

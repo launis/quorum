@@ -146,7 +146,13 @@ class PromptBuilder:
                 if hasattr(schema_class, 'schema_json'):
                     return schema_class.schema_json(indent=2)
                     
-            return "Error: Agent does not expose get_response_schema()"
+            # 4. Fallback to Mock Data (Automated)
+            from backend.llm.mock_data import get_example_for_agent
+            mock_example = get_example_for_agent(agent_instance.__class__.__name__)
+            if mock_example:
+                 return json.dumps(mock_example, indent=2, ensure_ascii=False)
+            
+            return "Error: Agent does not expose get_response_schema() and No Mock Data found."
         except Exception as e:
             return f"Error generating schema example: {str(e)}"
 

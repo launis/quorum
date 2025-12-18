@@ -62,66 +62,7 @@ class BaseAgent(BaseComponent):
         
         # If no state_field defined, raise error (Subclasses must implement or define field)
         raise NotImplementedError(f"[{self.__class__.__name__}] must define 'state_field' or override '_update_state'.")
-    def _generate_examples_from_schema(self, schema_class: Type[BaseModel]) -> str:
-        """
-        Retrieves the example from the Pydantic model's json_schema_extra.
-        Used to teach the LLM the expected output format and style.
-        IF no example is found, IT FETCHES MOCK DATA from `mock_data.py` as a fallback.
-        """
-        if not schema_class:
-            return ""
-            
-        import json
-        
-        # 1. Try explicit schema examples (Legacy/Override)
-        try:
-            config = schema_class.model_config
-            examples = config.get('json_schema_extra', {}).get('examples')
-            
-            if examples and len(examples) > 0:
-                example_json = json.dumps(examples[0], indent=2, ensure_ascii=False)
-                return f"\n\n=== RESPONSE EXAMPLE (Follow this format and style) ===\n{example_json}\n=====================================================\n"
-        except Exception as e:
-            logger.warning(f"[{self.__class__.__name__}] Failed to get example from schema config: {e}")
 
-        # 2. Smart Fallback: Fetch from Mock Data (Automated)
-        try:
-            from backend.llm.mock_data import get_fallback_data
-            
-            # Map ClassName -> MockKey
-            # Simple heuristic: convert "GuardAgent" -> "guard_agent"
-            # Or use a map if names diverge significantly
-            class_name = self.__class__.__name__
-            mock_key = None
-            
-            mapping = {
-                "GuardAgent": "guard_agent",
-                "AnalystAgent": "analyst_agent",
-                "ProfilerAgent": "profiler_agent",
-                "LogicianAgent": "logician_agent",
-                "FalsifierAgent": "falsifier_agent",
-                "FactualOverseerAgent": "fact_checker_agent",  # Divergent name
-                "CausalAnalystAgent": "causal_agent",
-                "PerformativityDetectorAgent": "performativity_agent",
-                "JudgeAgent": "judge_agent",
-                "XAIReporterAgent": "xai_agent",
-                "ArchivistAgent": "archivist_agent",
-                "CoachAgent": "coach_agent"
-            }
-            
-            mock_key = mapping.get(class_name)
-            
-            if mock_key:
-                fallback_data = get_fallback_data(mock_key)
-                if fallback_data and "error" not in fallback_data:
-                     example_json = json.dumps(fallback_data, indent=2, ensure_ascii=False)
-                     logger.info(f"[{self.__class__.__name__}] Using AUTOMATED MOCK DATA as example.")
-                     return f"\n\n=== RESPONSE EXAMPLE (Follow this format and style) ===\n{example_json}\n=====================================================\n"
-            
-        except Exception as e:
-            logger.warning(f"[{self.__class__.__name__}] Failed to fetch automated mock example: {e}")
-
-        return ""
 
     async def execute(self, state: WorkflowState, system_instruction: Optional[str] = None, **kwargs) -> WorkflowState:
         """
@@ -143,13 +84,6 @@ class BaseAgent(BaseComponent):
             # 3. Determine Output Schema (Subclasses must define this!)
             response_schema = self.get_response_schema()
             
-            # 3.5. Enrich System Instruction with Examples (Few-Shot)
-            if response_schema:
-                examples_text = self._generate_examples_from_schema(response_schema)
-                if examples_text:
-                    system_instruction += examples_text
-                    logger.info(f"[{self.__class__.__name__}] Injected schema examples into system instruction.")
-
             # --- LOGGING EXECUTION CONFIG ---
             # Extract config to show user exactly what is running
             conf_model = self.model

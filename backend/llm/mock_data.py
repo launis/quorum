@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import json
 
 def get_fallback_data(key: str) -> Dict[str, Any]:
@@ -202,3 +202,29 @@ def _clone(base: Dict, agent: str, vaihe: float) -> Dict:
     new_data["metadata"]["agentti"] = agent
     new_data["metadata"]["vaihe"] = vaihe
     return new_data
+
+AGENT_CLASS_TO_MOCK_KEY = {
+    "GuardAgent": "guard_agent",
+    "AnalystAgent": "analyst_agent",
+    "ProfilerAgent": "profiler_agent",
+    "LogicianAgent": "logician_agent",
+    "LogicalFalsifierAgent": "falsifier_agent",
+    "FactualOverseerAgent": "fact_checker_agent",
+    "CausalAnalystAgent": "causal_agent",
+    "PerformativityDetectorAgent": "performativity_agent",
+    "JudgeAgent": "judge_agent",
+    "XAIReporterAgent": "xai_agent",
+    "ArchivistAgent": "archivist_agent",
+    "CoachAgent": "coach_agent",
+    "PanelAgent": "panel_agent" # Fallback if panel needs specific mock
+}
+
+def get_example_for_agent(agent_class_name: str) -> Optional[Dict[str, Any]]:
+    """
+    Retrieves the mock data example for a given agent class name.
+    Used by PromptBuilder to inject few-shot examples.
+    """
+    key = AGENT_CLASS_TO_MOCK_KEY.get(agent_class_name)
+    if key:
+        return get_fallback_data(key)
+    return None

@@ -143,16 +143,7 @@ os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
-# Database setup
-# Robust path resolution for DB
-print(f"DEBUG: ACTIVE DATABASE PATH: {os.path.abspath(DB_PATH)}")
 
-# Ensure data dir exists
-os.makedirs(DATA_DIR, exist_ok=True)
-
-# Ensure data and database dirs exist
-os.makedirs(DATA_DIR, exist_ok=True)
-os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
 # Global Engine REMOVED in favor of DI (backend.dependencies.get_engine)
 
