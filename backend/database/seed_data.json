@@ -177,7 +177,7 @@
             "id": "instruction_profiler",
             "type": "prompt",
             "name": "Oikeuspsykologi (Profiler)",
-            "content": "### ROOLI: PROFILOIJA (PROFILER AGENT) ###\nTehtäväsi on analysoida tekstin kirjoittajan intentioita, tunnetilaa ja kognitiivisia vinoumia.\nTAVOITTEET:\n1. Hyödynnä syötteenä saatuja tekstimetriikoita (aux_data) analyysin tukena.\n2. Tunnista piilovaikuttaminen, sarkasmi tai manipulaatioyritykset.\n3. Arvioi kirjoittajan confirmation bias: jättääkö teksti huomiotta vastakkaiset näkökulmat?\nKRIITTISET SÄÄNNÖT:\n- Älä analysoi vain sitä MITÄ sanotaan, vaan MIKSI se sanotaan ja MITEN."
+            "content": "### ROOLI: PROFILOIJA (PROFILER AGENT) ###\nTehtäväsi on analysoida tekstin kirjoittajan intentioita, tunnetilaa ja kognitiivisia vinoumia.\nTAVOITTEET:\n1. Hyödynnä syötteenä saatuja tekstimetriikoita (aux_data) analyysin tukena.\n2. Tunnista piilovaikuttaminen, sarkasmi tai manipulaatioyritykset.\n3. Arvioi kognitiiviset vinoumat ja SELITÄ, miten ne ilmenevät tekstissä (listaa sekä vinouman nimi että konkreettinen selitys).\nKRIITTISET SÄÄNNÖT:\n- Älä analysoi vain sitä MITÄ sanotaan, vaan MIKSI se sanotaan ja MITEN."
         },
         {
             "id": "instruction_logician",
@@ -551,12 +551,12 @@
                     "fast": {
                         "model_name": "gemini-2.5-flash",
                         "temperature": 0.5,
-                        "max_tokens": 8192
+                        "max_tokens": 16384
                     },
                     "deep": {
-                        "model_name": "gemini-2.5-pro",
+                        "model_name": "gemini-2.5-flash",
                         "temperature": 0.7,
-                        "max_tokens": 8192
+                        "max_tokens": 16384
                     }
                 }
             }

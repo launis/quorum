@@ -27,7 +27,7 @@ class Settings(BaseSettings):
 
     # --- LLM Configuration ---
     initial_model: str = Field(default="gemini-2.5-flash")
-    llm_default_timeout: float = Field(default=30.0)
+    llm_default_timeout: float = Field(default=60.0) # Keep increased timeout
     llm_max_retries: int = Field(default=3)
     llm_retry_delay: float = Field(default=4.0)
     
@@ -85,14 +85,15 @@ class Settings(BaseSettings):
                 "description": "Optimized for speed and cost. Uses lighter models (e.g., Flash).",
                 "model": self.gemini_model_fast,
                 "temperature": 0.7,
-                "max_tokens": 8192
+                # Increased to avoid truncation with large analysis
+                "max_tokens": 16384 
             },
             "deep": {
                 "name": "🧠 Deep Mode",
                 "description": "Optimized for complex reasoning and quality. Uses deep thinking models.",
                 "model": self.gemini_model_deep,
                 "temperature": 0.5,
-                "max_tokens": 8192
+                "max_tokens": 16384
             }
         }
 

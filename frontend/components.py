@@ -120,7 +120,15 @@ def render_dashboard(result):
                     st.markdown("**Tunnistetut Vinoumat:**")
                     if isinstance(p_biases, list):
                         for b in p_biases:
-                            st.write(f"- {b}")
+                            if isinstance(b, dict):
+                                # New Structure: {nimi, selitys}
+                                name = b.get('nimi', 'Tuntematon')
+                                desc = b.get('selitys', '')
+                                with st.expander(f"⚠️ {name}"):
+                                    st.write(desc)
+                            else:
+                                # Legacy: String
+                                st.write(f"- {b}")
                     else:
                         st.write(p_biases)
             st.divider()

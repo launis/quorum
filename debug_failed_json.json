@@ -1,0 +1,149 @@
+// ERROR: Expecting ',' delimiter: line 143 column 6 (char 5513)
+{
+  "metadata": {
+    "luontiaika": "2025-12-17T00:00:00Z",
+    "agentti": "Analyytikko",
+    "vaihe": 2,
+    "versio": "2.0"
+  },
+  "metodologinen_loki": "Extracted claims from Sitra report analysis and reflection document.",
+  "edellisen_vaiheen_validointi": "Input security check completed. No PII, prompt injection, or malicious code detected.",
+  "semanttinen_tarkistussumma": "mock_hash_guard_agent_1",
+  "hypoteesit": [
+    {
+      "id": "H1",
+      "vaite_teksti": "Sitran megatrendien kehitys vuosina 2017-2023 osoittaa fundamentaalisen siirtymän potentiaaleista ja kehityskuluista kohti geopoliittisesti latautuneita kriisejä ja systeemisiä murtumia.",
+      "loytyyko_todisteita": true,
+      "hakusana_ehdotus": null
+    },
+    {
+      "id": "H2",
+      "vaite_teksti": "Yksittäiset megatrendit eivät toimi erillään, vaan kietoutuvat toisiinsa kolmeksi keskeiseksi Supermegatrendiksi.",
+      "loytyyko_todisteita": true,
+      "hakusana_ehdotus": null
+    },
+    {
+      "id": "H3",
+      "vaite_teksti": "Nämä supermegatrendit sanelevat tulevaisuuden markkinaolosuhteet.",
+      "loytyyko_todisteita": true,
+      "hakusana_ehdotus": null
+    },
+    {
+      "id": "H4",
+      "vaite_teksti": "Sitran näkemys on, että paluuta vanhaan normaaliin ei ole.",
+      "loytyyko_todisteita": true,
+      "hakusana_ehdotus": "Sitra paluu vanhaan normaaliin"
+    },
+    {
+      "id": "H5",
+      "vaite_teksti": "Menestyäkseen yritysten on panostettava tulevaisuusresilienssiin.",
+      "loytyyko_todisteita": true,
+      "hakusana_ehdotus": "yritysten tulevaisuusresilienssi Sitra"
+    },
+    {
+      "id": "H6",
+      "vaite_teksti": "Talousjärjestelmän vakauteen vaikuttavat kolme pääasiallista, toisiaan vahvistavaa supermegatrendiä.",
+      "loytyyko_todisteita": true,
+      "hakusana_ehdotus": null
+    },
+    {
+      "id": "H7",
+      "vaite_teksti": "Ekologinen Resilienssikriisi syntyy siitä, että Luonnon kantokyky murenee.",
+      "loytyyko_todisteita": true,
+      "hakusana_ehdotus": null
+    },
+    {
+      "id": "H8",
+      "vaite_teksti": "Luonnon kantokyvyn mureneminen ajaa suoraan siihen, että Talouden perusta rakoilee.",
+      "loytyyko_todisteita": true,
+      "hakusana_ehdotus": null
+    },
+    {
+      "id": "H9",
+      "vaite_teksti": "Ekologinen Resilienssikriisi on evoluutio 2017 trendistä Ymmärrys maapallon kantokyvystä kasvaa.",
+      "loytyyko_todisteita": true,
+      "hakusana_ehdotus": null
+    },
+    {
+      "id": "H10",
+      "vaite_teksti": "Äärimmäiset sääolot ja luonnonvarojen niukkuus nostavat raaka-aineiden hintoja.",
+      "loytyyko_todisteita": true,
+      "hakusana_ehdotus": "äärimmäiset sääolot raaka-aineiden hinnat"
+    },
+    {
+      "id": "H11",
+      "vaite_teksti": "Äärimmäiset sääolot ja luonnonvarojen niukkuus aiheuttavat ennakoimattomia katkoja globaaleihin toimitusketjuihin.",
+      "loytyyko_todisteita": true,
+      "hakusana_ehdotus": "sääilmiöt toimitusketjuhäiriöt"
+    },
+    {
+      "id": "H12",
+      "vaite_teksti": "Investoinnit kiertotalouden ratkaisuihin ja omaan uusiutuvaan energiantuotantoon vähentävät riskejä.",
+      "loytyyko_todisteita": true,
+      "hakusana_ehdotus": "kiertotalous uusiutuva energia riskienhallinta"
+    },
+    {
+      "id": "H13",
+      "vaite_teksti": "Toimitusketjun lyhentäminen ja läpinäkyvyys vähentävät riskejä.",
+      "loytyyko_todisteita": true,
+      "hakusana_ehdotus": "toimitusketjun lyhentäminen läpinäkyvyys riskit"
+    },
+    {
+      "id": "H14",
+      "vaite_teksti": "CSRD-direktiivin ja EU-taksonomian kaltaiset säädökset tekevät kestävyydestä pakollista (compliance).",
+      "loytyyko_todisteita": true,
+      "hakusana_ehdotus": "CSRD EU-taksonomia kestävyys compliance"
+    },
+    {
+      "id": "H15",
+      "vaite_teksti": "CSRD-direktiivin ja EU-taksonomian kaltaiset säädökset rajoittavat ei-kestävää rahoitusta.",
+      "loytyyko_todisteita": true,
+      "hakusana_ehdotus": "CSRD EU-taksonomia ei-kestävä rahoitus"
+    },
+    {
+      "id": "H16",
+      "vaite_teksti": "Decarbonization Roadmap on pakollinen kilpailuvaltti.",
+      "loytyyko_todisteita": true,
+      "hakusana_ehdotus": "Decarbonization Roadmap kilpailuvaltti"
+    },
+    {
+      "id": "H17",
+      "vaite_teksti": "Vain kestävät liiketoimintamallit saavat tulevaisuudessa pääomaa.",
+      "loytyyko_todisteita": true,
+      "hakusana_ehdotus": "kestävät liiketoimintamallit pääoma"
+    },
+    {
+      "id": "H18",
+      "vaite_teksti": "Geoteknologinen Valtaistelu kuvaa Demokratian kamppailun koventumista.",
+      "loytyyko_todisteita": true,
+      "hakusana_ehdotus": null
+    },
+    {
+      "id": "H19",
+      "vaite_teksti": "Demokratian kamppailun koventuminen on kytkeytynyt suoraan Kilpailuun digivallasta kiihtyy.",
+      "loytyyko_todisteita": true,
+      "hakusana_ehdotus": null
+    },
+    {
+      "id": "H20",
+      "vaite_teksti": "Geoteknologinen Valtaistelu on siirtymä vuoden 2017 Datan vallan potentiaalista geopoliittiseen konfliktiin.",
+      "loytyyko_todisteita": true,
+      "hakusana_ehdotus": null
+    },
+    {
+      "id": "H21",
+      "vaite_teksti": "Teknologiasodat (esim. Yhdysvallat vs. Kiina) jakavat markkinoita.",
+      "loytyyko_todisteita": true,
+      "hakusana_ehdotus": "teknologiasodat Yhdysvallat Kiina markkinat"
+    },
+    {
+      "id": "H22",
+      "vaite_teksti": "Data-autonomian vaatimukset (esim. EU:n tietosuojasäädökset) jakavat markkinoita.",
+      "loytyyko_todisteita": true,
+      "hakusana_ehdotus": "data-autonomia EU tietosuojasäädökset markkinat"
+    },
+    {
+      "id": "H23",
+      "vaite_teksti": "Markkinoiden fragmentaatio vaikeuttaa globaalia skaalausta.",
+      "loytyyko_todisteita": true,
+      "hakusana_ehdotus": "markkinoiden fragmentaatio globaali skaalaus"

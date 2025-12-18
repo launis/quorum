@@ -61,7 +61,10 @@ def get_fallback_data(key: str) -> Dict[str, Any]:
         data.update({
             "intentio_analyysi": "Kirjoittajan intentio on vaikuttaa tunteisiin vetoamalla.",
             "tunnetila_ja_savy": "Ahdistunut mutta toiveikas.",
-            "tunnistetut_vinoumat": ["Vahvistusharha (Confirmation Bias)"],
+            "tunnistetut_vinoumat": [
+                {"nimi": "Vahvistusharha (Confirmation Bias)", "selitys": "Analyysi painottaa vain omaa näkökulmaa tukevia havaintoja."},
+                {"nimi": "Kehystämisvaikutus (Framing Effect)", "selitys": "Asiat on kehystetty korostetun negatiivisesti ilman tasapuolisuutta."}
+            ],
             "psykologinen_profiili": "Puolustuskannalla oleva oppija.",
             "manipulaatio_yritykset": "Ei havaittu selkeää manipulaatiota."
         })

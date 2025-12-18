@@ -26,7 +26,8 @@ class WorkflowEngine:
         registry: Optional[AgentRegistry] = None,
         prompt_builder: Optional[PromptBuilder] = None,
         db_client: Optional[Any] = None,
-        storage_client: Optional[Any] = None
+        storage_client: Optional[Any] = None,
+        document_service: Optional[Any] = None
     ):
         self.db_path = db_path
         
@@ -57,6 +58,12 @@ class WorkflowEngine:
         else:
              from backend.services.storage import get_storage_client
              self.storage_client = get_storage_client()
+             
+        if document_service:
+            self.document_service = document_service
+        else:
+            from backend.services.document_service import DocumentService
+            self.document_service = DocumentService(self.storage_client)
         
         # Agents Map is now in Registry
         # self.agents_map = {} # Removed
@@ -101,9 +108,9 @@ class WorkflowEngine:
         # Merge basic inputs
         final_inputs = inputs.copy()
 
-        # Handle Files (Extract & Archive)
+        # Handle Files (Extract & Archive) via Service
         if files:
-            file_updates = await self._ingest_files(execution_id, files)
+            file_updates = await self.document_service.process_evidence_files(execution_id, files)
             final_inputs.update(file_updates)
 
         self.repository.create_execution({
@@ -116,65 +123,7 @@ class WorkflowEngine:
         })
         return execution_id
 
-    async def _ingest_files(self, execution_id: str, files: Dict[str, tuple]) -> Dict[str, str]:
-        """
-        Archives files to storage (if enabled) and extracts text.
-        Returns dictionary of {input_key: extracted_text}
-        files format: { "input_key": ("filename.ext", b"file_bytes") }
-        """
-        import os
-        from backend.services.document_processor import DocumentProcessor
-        from fastapi.concurrency import run_in_threadpool
-        
-        extracted_data = {}
-        storage_client = self.storage_client
-        
-        for input_key, (filename, file_bytes) in files.items():
-            try:
-                # 1. Extract Text (Offload to Threadpool for CPU-bound tasks)
-                lower_name = filename.lower()
-                text = ""
-                if lower_name.endswith(".pdf"):
-                    # Use run_in_threadpool but handle potential errors
-                    try:
-                        text = await run_in_threadpool(DocumentProcessor.extract_text_from_pdf, file_bytes)
-                    except Exception as e:
-                         # Fallback or re-raise? Logging is enough for ingestion partial failure
-                         logger.error(f"PDF extraction failed for {filename}: {e}")
-                         raise FatalInterruption("FileIngestion", f"PDF extraction failed for {filename}: {e}", {"filename": filename})
-
-                elif lower_name.endswith(".docx"):
-                    try:
-                        text = await run_in_threadpool(DocumentProcessor.extract_text_from_docx, file_bytes)
-                    except Exception as e:
-                         logger.error(f"DOCX extraction failed for {filename}: {e}")
-                         raise FatalInterruption("FileIngestion", f"DOCX extraction failed for {filename}: {e}", {"filename": filename})
-                else:
-                    # Treat as text file (fast enough)
-                    text = file_bytes.decode('utf-8', errors='ignore')
-
-                extracted_data[input_key] = text
-                
-                # 2. Save to Storage (Offload to Threadpool for I/O-bound tasks)
-                # LocalStorage expects path relative to its base (backend/files/executions)
-                relative_path = f"{execution_id}/{filename}"
-                saved_path = await run_in_threadpool(storage_client.save, relative_path, file_bytes)
-                
-                logger.info(f"[WorkflowEngine] File {filename} processed. Extracted {len(text)} chars. Storage: {saved_path}")
-                
-                
-            except FatalInterruption as fi:
-                 raise fi
-            except Exception as e:
-                logger.error(f"[WorkflowEngine] Failed to ingest file {filename} ({input_key}): {e}")
-                # FATAL: Raise interruption instead of swallowing
-                raise FatalInterruption(
-                    step_name="FileIngestion",
-                    reason=f"Failed to ingest file {filename}: {str(e)}",
-                    details={"filename": filename, "error": str(e)}
-                )
-                
-        return extracted_data
+    # _ingest_files REMOVED (Moved to FileIngestionService)
 
     def get_execution_status(self, execution_id: Any) -> Optional[Dict[str, Any]]:
         """
@@ -205,68 +154,63 @@ class WorkflowEngine:
         set_execution_context(execution_id)
         logger.info(f"[WorkflowEngine] Starting execution {execution_id}")
         
-        # NOTE: Tracker.start() is called after resolving steps to avoid premature updates,
-        # but we can set initial running state here.
-        # Legacy: self.repository.update_execution(execution_id, {'status': 'running'})
-        # We will let tracker.start() handle it inside the try block.
-        
         try:
             # 1. Initialize State
             current_state = await self._initialize_execution(execution_id, raw_inputs)
             
-            # 2. Execute Pipeline Steps
+            # 2. Get Pipeline Steps
             # Fetch workflow definition and calculate steps
             exec_record = self.repository.get_execution(execution_id)
             if not exec_record:
                 raise ExecutionNotFoundError(execution_id)
             
-            workflow_id = exec_record['workflow_id']
-            pipeline_steps = self._resolve_pipeline_steps(workflow_id)
+            pipeline_steps = self._resolve_pipeline_steps(exec_record['workflow_id'])
 
-            # Unified Progress Tracker
+            # 3. Execute Loop
             from backend.services.progress import DatabaseProgressTracker
             tracker = DatabaseProgressTracker(self.repository, execution_id)
-            tracker.start() # Sets status=started
+            tracker.start() 
 
-            total_steps = len(pipeline_steps)
+            final_state = await self._execute_pipeline_loop(current_state, pipeline_steps, tracker, execution_id)
+            
+            # 4. Check for Halt/Early Exit
+            if isinstance(final_state, dict) and "security_alert" in final_state:
+                 return final_state
 
-            # Execute Steps Serially
-            for index, (agent, step_doc) in enumerate(pipeline_steps):
-                # Calculate unified progress
-                step_num = index + 1
-                percent = int((step_num / total_steps) * 100)
-                stage_name = f"Step {step_num}/{total_steps}: {agent.__class__.__name__}"
-                
-                tracker.update(stage=stage_name, percent=percent)
-
-                current_state = await self._execute_step(current_state, agent, step_doc, execution_id)
-                
-                # Check for Early Exit (Security)
-                if isinstance(current_state, dict) and "security_alert" in current_state:
-                     # Tracker handled by explicit update inside?
-                     # No, we should probably fail() via tracker or just return result?
-                     # Current logic returns dict.
-                     # Let's keep consistent:
-                     # Security intervention sets status='rejected'. 
-                     # Unified tracker focuses on start/run/end. Rejection is a form of end.
-                     return current_state
-
-            # 3. Success & Result Projection
+            # 5. Success
             logger.info(f"[WorkflowEngine] Execution {execution_id} completed successfully.")
-            result = self._project_final_result(execution_id, current_state, pipeline_steps)
+            result = self._project_final_result(execution_id, final_state, pipeline_steps)
             tracker.complete(result)
             return result
 
         except FatalInterruption as fi:
-            # UNIFIED HALT
             return self._create_halt_response(execution_id, fi.step_name, fi)
         except AgentExecutionError as ae:
-            # Treat Agent errors as fatal too? For now, standard handler but maybe future unified?
             self._handle_execution_error(execution_id, ae)
         except Exception as e:
             self._handle_execution_error(execution_id, e)
         finally:
             clear_execution_context()
+
+    async def _execute_pipeline_loop(self, state: WorkflowState, pipeline_steps: List[Any], tracker: Any, execution_id: str) -> Any:
+        """Helper to run the sequential agent loop."""
+        total_steps = len(pipeline_steps)
+        current_state = state
+        
+        for index, (agent, step_doc) in enumerate(pipeline_steps):
+            step_num = index + 1
+            percent = int((step_num / total_steps) * 100)
+            stage_name = f"Step {step_num}/{total_steps}: {agent.__class__.__name__}"
+            
+            tracker.update(stage=stage_name, percent=percent)
+
+            current_state = await self._execute_step(current_state, agent, step_doc, execution_id)
+            
+            # Check for Early Exit (Security)
+            if isinstance(current_state, dict) and "security_alert" in current_state:
+                    return current_state
+                    
+        return current_state
 
     def _create_halt_response(self, execution_id: str, step_name: str, error: FatalInterruption) -> Dict[str, Any]:
         """Helper to create a structured HALT response."""
@@ -274,14 +218,6 @@ class WorkflowEngine:
         logger.error(msg)
         
         halt_result = error.details
-        
-        # Unified Fail via Tracker?
-        # Since this method IS the unified halt responder, we can use tracker inside here if we had instance.
-        # But for now, direct update to ensure fail state matches spec.
-        # Ideally, we pass tracker to this method, but for refactor size, let's keep it atomic.
-        # Or instantiate tracker just for the fail call? 
-        # Using Direct Repo update is effectively what DatabaseProgressTracker.fail() does.
-        # Let's assume Engine owns the "Fail" logic directly in this helper for now.
         
         halt_result.update({
              "status": "failed",
@@ -366,19 +302,25 @@ class WorkflowEngine:
             current_state = self._execute_hook(hook, agent, current_state)
 
         # 2. Dynamic Model Selection
-        self._configure_agent_model(agent, step_id, execution_id)
-
+        model_config = self._configure_agent_model(agent, step_id, execution_id)
+        
         # 3. Prompt Construction
         system_instruction = self.prompt_builder.construct_prompt(step_id, current_state) if step_id else None
 
         # 4. Agent Execution (Async)
         try:
             # Inject repository based on DDD refactoring (CoachAgent needs it)
-            current_state = await agent.execute(
-                current_state, 
-                system_instruction=system_instruction,
-                repository=self.repository
-            )
+            # Pass model configuration (max_tokens, temperature) as kwargs
+            exec_kwargs = {
+                "system_instruction": system_instruction,
+                "repository": self.repository
+            }
+            if model_config:
+                if "max_tokens" in model_config: exec_kwargs["max_tokens"] = model_config["max_tokens"]
+                if "temperature" in model_config: exec_kwargs["temperature"] = model_config["temperature"]
+
+            current_state = await agent.execute(current_state, **exec_kwargs)
+            
         except Exception as e:
             raise AgentExecutionError(agent_name, step_id, e)
 
@@ -391,12 +333,6 @@ class WorkflowEngine:
 
         # 7. Update DB
         # HANDLED BY TRACKER UPSTREAM in run_execution loop.
-        # We REMOVE the duplicate log update here to rely on the unified tracker loop.
-        # This prevents "Step X" and "AnalysisAgent" from fighting over status field.
-        # self.repository.update_execution(execution_id, {
-        #     'current_step': agent_name,
-        #     'last_updated': datetime.now().isoformat()
-        # })
 
         # 8. Security Check
         if current_state.step_guard and current_state.step_guard.security_check.uhka_havaittu:
@@ -404,21 +340,11 @@ class WorkflowEngine:
             
         return current_state
 
-    def _configure_agent_model(self, agent: Any, step_id: str, execution_id: str):
+    def _configure_agent_model(self, agent: Any, step_id: str, execution_id: str) -> Dict[str, Any]:
         """Helper to resolve and set the specific model for an agent."""
         # 1. Get mapping from Workflow Definition via execution -> workflow logic
-        # For simplicity, invalidating complex fetches here, defaulting to safe 'fast' if not found easily
-        # In a perfect world, we pass wf_record down.
-        # Fallback: Default to 'fast'
         step_model_key = "fast" 
         
-        # Try to fetch actual mapping from execution record or re-fetch workflow?
-        # Re-fetching workflow record for EVERY step is expensive. 
-        # Ideally _resolve_pipeline_steps returns (agent, step_doc, model_key).
-        # For this refactor, let's keep it simple: 
-        # We can re-fetch workflow ID from execution to be safe or pass it down.
-        # Let's assume 'fast' for now to keep refactor safe or fetch it if needed.
-        # Re-fetching IS safer for correctness.
         try:
              exec_rec = self.repository.get_execution(execution_id)
              if exec_rec:
@@ -429,10 +355,14 @@ class WorkflowEngine:
         except:
              pass
 
-        resolved_model_name = self.registry.resolve_model_name(step_model_key)
-        if hasattr(agent, 'set_model'):
+        resolved_config = self.registry.resolve_model_config(step_model_key)
+        resolved_model_name = resolved_config.get("model_name")
+        
+        if resolved_model_name and hasattr(agent, 'set_model'):
             agent.set_model(resolved_model_name)
             logger.debug(f"[WorkflowEngine] Configured {agent.__class__.__name__} with {resolved_model_name}")
+            
+        return resolved_config
 
     def _validate_step_output(self, agent_name: str, step_id: str, state: WorkflowState, step_doc: Dict[str, Any]):
         """Helper to validate output against component schemas."""

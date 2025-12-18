@@ -15,7 +15,7 @@ class KnowledgeBaseService:
     """
     
     
-    def __init__(self, repository: AbstractWorkflowRepository, storage_client: Optional[Any] = None):
+    def __init__(self, repository: AbstractWorkflowRepository, storage_client: Optional[Any] = None, document_service: Optional[Any] = None):
         self.repository = repository
         if storage_client:
             self.storage_client = storage_client
@@ -25,6 +25,12 @@ class KnowledgeBaseService:
                 self.storage_client = get_storage_client()
             except:
                 self.storage_client = None
+        
+        if document_service:
+            self.document_service = document_service
+        else:
+            from backend.services.document_service import DocumentService
+            self.document_service = DocumentService(self.storage_client)
 
     
     def ingest_from_bytes(
@@ -45,24 +51,30 @@ class KnowledgeBaseService:
         
         # Unified Start
         tracker.start({"job_id": job_id, "filename": filename})
-        tracker.update(stage="Archiving", percent=10)
+        tracker.update(stage="Archiving & Parsing", percent=10)
         
         try:
-            # 1. Save to Storage (Archive)
-            saved_path = filename
-            if self.storage_client:
-                # Path structure: knowledge_base/{job_id}/{filename}
-                relative_path = f"knowledge_base/{job_id}/{filename}"
-                saved_path = self.storage_client.save(relative_path, file_content)
-                logger.info(f"[KBService] Archived to storage: {saved_path}")
-
-            tracker.update(stage="Parsing", percent=30)
-
-            # 2. Parse (using bytes stream)
-            import io
-            file_stream = io.BytesIO(file_content)
-            parsed_data = KnowledgeBaseParser.parse_docx(file_stream)
+            # 1. Delegate to DocumentService (Async method, but we are in Sync context here?)
+            # Wait, `ingest_from_bytes` is Sync in the current definition, but DocumentService methods are Async.
+            # We need to run it synchronously or change this method to async.
+            # admin_router calls this synchronously inside a threadpool (_run_ingest).
+            # So we can use asyncio.run or loop.run_until_complete? 
+            # OR we make DocumentService synchronous? NO, run_in_threadpool is async friendly.
+            # Actually, `run_in_threadpool` is for calling sync from async.
+            # If we are in a background task thread, we can use asyncio.run()
             
+            import asyncio
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                
+            # If we are already in a loop?
+            # Background tasks in FastAPI run in a threadpool (sync).
+            
+            parsed_data = asyncio.run(self.document_service.process_knowledge_base_file(file_content, filename, job_id))
+
             tracker.update(stage="Storing to DB", percent=60)
             
             # 3. Import to DB

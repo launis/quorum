@@ -19,6 +19,13 @@ class AgentRegistry:
         Resolves a model identifier (e.g., 'fast', 'deep') to an actual model name
         using the global MODEL_STRATEGIES config, prioritizing DB overrides.
         """
+        config = self.resolve_model_config(model_identifier)
+        return config.get("model_name", INITIAL_MODEL)
+
+    def resolve_model_config(self, model_identifier: str) -> Dict[str, Any]:
+        """
+        Resolves a model identifier to a full configuration dictionary (model_name, max_tokens, temperature).
+        """
         # 1. Fetch Dynamic Strategies from Repository
         reg_entry = self.repository.get_model_registry()
         
@@ -29,21 +36,21 @@ class AgentRegistry:
             if 'google' in registry:
                 dynamic_strategies = registry['google']
 
-        # 2. Resolve Strategy Key
+        # 2. Resolve Strategy Key using Dynamic DB config
         if dynamic_strategies and model_identifier in dynamic_strategies:
              strategy = dynamic_strategies[model_identifier]
              if isinstance(strategy, dict):
-                 return strategy.get("model_name", strategy.get("model", INITIAL_MODEL))
-             elif isinstance(strategy, str):
                  return strategy
+             elif isinstance(strategy, str):
+                 return {"model_name": strategy}
         
-        # Fallback to Static Config
+        # 3. Fallback to Static Config
         if model_identifier in MODEL_STRATEGIES:
             strategy = MODEL_STRATEGIES[model_identifier]
-            return strategy.get("model_name", strategy.get("model", INITIAL_MODEL))
+            return strategy
             
-        # 3. Return as-is
-        return model_identifier
+        # 4. Return as-is (assuming identifier is the model name itself)
+        return {"model_name": model_identifier}
 
     def register_component(self, name: str, type: str, class_name: str):
         """

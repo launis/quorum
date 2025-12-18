@@ -19,11 +19,9 @@ class XAIReporterAgent(BaseAgent):
         return XAIReport
 
     async def execute(self, state: WorkflowState, system_instruction: Optional[str] = None, **kwargs) -> WorkflowState:
-        # Override to increase output token limit for large reports
-        # Gemini 1.5 Pro/Flash supports up to 8k output natively usually, 
-        # but let's try pushing it to 16k if the model supports it, 
-        # or at least ensure we are requesting the max safe amount.
-        return await super().execute(state, system_instruction, max_tokens=16384, **kwargs)
+        # Configuration (max_tokens, etc.) must come from the WorkflowEngine/Config.
+        # We strictly forward kwargs without injecting local defaults.
+        return await super().execute(state, system_instruction, **kwargs)
 
     def generate_jinja2_report(self, state: WorkflowState) -> WorkflowState:
         """

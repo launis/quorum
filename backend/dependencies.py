@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Any
 from fastapi import Depends
 import logging
 from backend.database.wrapper import get_db_client, AbstractDatabase
@@ -62,11 +62,19 @@ def get_storage_service_dep() -> AbstractStorage:
     from backend.services.storage import get_storage_client
     return get_storage_client()
 
+def get_document_service_dep(storage_client: AbstractStorage = Depends(get_storage_service_dep)) -> Any:
+    """
+    Dependency to provide DocumentService (Unified Ingestion).
+    """
+    from backend.services.document_service import DocumentService
+    return DocumentService(storage_client)
+
 def get_engine(
     repository: AbstractWorkflowRepository = Depends(get_repository_dep),
     registry: AgentRegistry = Depends(get_agent_registry_dep),
     prompt_builder: PromptBuilder = Depends(get_prompt_builder_dep),
-    storage_service: AbstractStorage = Depends(get_storage_service_dep)
+    storage_service: AbstractStorage = Depends(get_storage_service_dep),
+    document_service: Any = Depends(get_document_service_dep)
 ) -> WorkflowEngine:
     """
     Dependency to provide a Singleton WorkflowEngine, injected with Services.
@@ -87,6 +95,8 @@ def get_engine(
              prompt_builder = get_prompt_builder_dep(repository, registry)
         if isinstance(storage_service, DependsParams):
              storage_service = get_storage_service_dep() # No args needed
+        if isinstance(document_service, DependsParams):
+             document_service = get_document_service_dep(storage_service)
 
         # Inject Services
         _engine_instance = WorkflowEngine(
@@ -94,7 +104,8 @@ def get_engine(
             repository=repository,
             registry=registry,
             prompt_builder=prompt_builder,
-            storage_client=storage_service
+            storage_client=storage_service,
+            document_service=document_service
         )
         
         # Initialize Components - now handled by registry for agents, 
@@ -104,7 +115,6 @@ def get_engine(
         # We should call registry.register_component here.
         registry.register_component("DocumentProcessor", "processor", "DocumentProcessor")
         
-
         # Discovery is already done in get_agent_registry_dep
         
     return _engine_instance

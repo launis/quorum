@@ -217,25 +217,37 @@ class GoogleGeminiProvider(LLMProvider):
             logger.error(f"[GeminiProvider] Error: {e}", exc_info=True)
             raise e
 
+    def _dump_debug_json(self, content: str, error_msg: str):
+        """Helper to dump failed JSON to a file for manual inspection."""
+        try:
+            filename = "debug_failed_json.json"
+            with open(filename, "w", encoding="utf-8") as f:
+                f.write(f"// ERROR: {error_msg}\n")
+                f.write(content)
+            logger.error(f"[GeminiProvider] DUMPED INVALID JSON TO: {os.path.abspath(filename)}")
+        except Exception as e:
+            logger.error(f"[GeminiProvider] Failed to dump debug JSON: {e}")
+
     def _clean_json_response(self, raw_response: str) -> Dict[str, Any]:
         """
         Robustly parses JSON from LLM output, handling markdown blocks and conversational text.
         """
         
+        # 0. Pre-cleaning: Remove // comments (Common in LLM JSON)
+        # Be careful not to match URLs (http://...)
+        import re
+        
+        # Simple attempt to parse directly first
+        json_candidate = raw_response
+        
         try:
-            # 1. Try direct parsing
-            return json.loads(raw_response)
+            # 1. Try stripping markdown code blocks
+            clean_text = raw_response.replace("```json", "").replace("```", "").strip()
+            return json.loads(clean_text)
         except json.JSONDecodeError:
             pass
 
-        # 2. Try removing markdown code blocks
-        clean_text = raw_response.replace("```json", "").replace("```", "").strip()
-        try:
-            return json.loads(clean_text)
-        except json.JSONDecodeError:
-            logger.warning(f"[GeminiProvider] Standard JSON cleaning failed. Attempting fallback regex extraction.")
-
-        # 3. Fallback: Find the first '{' and the last '}'
+        # 2. Try regex extraction of the main JSON object
         try:
             start_index = raw_response.find('{')
             end_index = raw_response.rfind('}')
@@ -244,22 +256,30 @@ class GoogleGeminiProvider(LLMProvider):
                 json_candidate = raw_response[start_index : end_index + 1]
                 return json.loads(json_candidate)
         except json.JSONDecodeError as e:
-            logger.error(f"[GeminiProvider] Fallback extraction failed: {e}")
+            logger.warning(f"[GeminiProvider] Extraction failed: {e}. Attempting repairs...")
             
-            # 4. Last Resort: Heuristic Fix for Missing Commas (Common Gemini Issue)
+            # 3. Repair: Remove single-line comments // that are not inside strings (Approximate)
+            # This regex looks for // not preceded by : (url) and removes until newline
             try:
-                import re
+                # Remove comments // ... 
+                # Note: This is risky for URLs, so we only target obvious text comments
+                # removing lines starting with //
+                repaired = re.sub(r'^\s*//.*$', '', json_candidate, flags=re.MULTILINE)
+                return json.loads(repaired)
+            except Exception:
+                pass
+
+            # 4. Repair: Heuristic Fix for Missing Commas
+            try:
                 logger.warning("[GeminiProvider] Attempting heuristic fix for missing commas...")
-                # Insert comma between value ending (quote, digit, bool, brace) and next key start (quote)
-                # Ensure we don't double-comma
                 fixed_json = re.sub(r'(?<=[}\]"\'0-9lue])\s*(?<!,)\s*\n\s*(?=")', ',\n', json_candidate)
                 return json.loads(fixed_json)
             except Exception as e2:
                 logger.error(f"[GeminiProvider] Heuristic fix failed: {e2}")
 
-            raise ValueError(f"Could not extract valid JSON from response: {raw_response[:200]}...")
-            
-        raise ValueError(f"Could not extract valid JSON from response: {raw_response[:200]}...")
+            # 5. FATAL: Dump to file
+            self._dump_debug_json(raw_response, str(e))
+            raise ValueError(f"Could not extract valid JSON from response. See debug_failed_json.json. Error: {e}")
 
 class OpenAIProvider(LLMProvider):
     def __init__(self, model_name: str = "gpt-4o", api_key: Optional[str] = None):
