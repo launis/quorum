@@ -140,8 +140,17 @@
             "content": [
                 "kannustava_palaute",
                 "kehityskohteet_konkreettisesti",
-                "oppimispolku_viikko",
                 "lopputuloksen_kehitysehdotukset"
+            ]
+        },
+        {
+            "id": "INTERACTION_OUTPUT_CONFIG",
+            "type": "output_config",
+            "name": "Interaction Output Fields",
+            "content": [
+                "tunnistetut_strategiat",
+                "ohjausliikkeet",
+                "driver_classification"
             ]
         },
         {
@@ -228,6 +237,12 @@
             "content": "### ROOLI: VALMENTAJA (COACH AGENT) ###\nTehtäväsi on kääntää Tuomarin kriittinen tuomio pedagogiseksi, eteenpäin katsovaksi ohjaukseksi.\nTAVOITTEET:\n1. Muuta virheet oppimismahdollisuuksiksi ('Growth Mindset').\n2. Luo konkreettinen 'Toimintasuunnitelma' (Action Plan) ensi viikolle.\n3. Ehdota selkeitä lähteitä tai menetelmiä (esim. 'Kokeile Toulminia').\nKRIITTISET SÄÄNNÖT:\n- Älä ole lannistava. Ole vaativa mutta kannustava.\n4. Anna konkreettisia parannusehdotuksia itse lopputuotteeseen (esim. tekstiin) ja kirjaa ne kenttään 'lopputuloksen_kehitysehdotukset'."
         },
         {
+            "id": "instruction_interaction",
+            "type": "prompt",
+            "name": "Vuorovaikutusanalysaattori (Interaction)",
+            "content": "### ROOLI: VUOROVAIKUTUSANALYSAATTORI (INTERACTION ANALYST) ###\nTehtäväsi on analysoida käyttäjän ja tekoälyn välistä yhteistyötä ja 'Prompt Engineering' -kompetenssia.\nTAVOITTEET:\n1. Tunnista käytetyt strategiat (esim. 'Zero-shot', 'Chain-of-Thought', 'Role-play', 'Iterative refinement').\n2. Laske ohjausliikkeet: Kuinka monta kertaa käyttäjä aktiivisesti korjasi tai ohjasi tekoälyä uuteen suuntaan?\n3. Luokittele käyttäjä (Driver Classification):\n   - 'Matkustaja': Hyväksyy kaiken, ei ohjaa.\n   - 'Kartanlukija': Antaa palautetta mutta ei johda.\n   - 'Kuski': Pitää ohjat käsissään ja tekee päätökset.\n   - 'Arkkitehti': Suunnittelee prosessin ja rakentaa sen tietoisesti.\nKRIITTISET SÄÄNNÖT:\n- Perustele luokitus konkreettisilla havainnoilla historiasta."
+        },
+        {
             "id": "instruction_reporter",
             "type": "prompt",
             "name": "XAI Raportointi (Reporter)",
@@ -279,6 +294,29 @@
             "output_schema": "TodistusKartta",
             "output_filename": "2_todistuskartta.json",
             "output_config_component": "ANALYST_OUTPUT_CONFIG"
+        },
+        {
+            "id": "step_interaction",
+            "name": "Vuorovaikutusanalysaattori (Interaction)",
+            "description": "Promptauskompetenssin analyysi (Vaihe 2.2).",
+            "component": "InteractionAnalystAgent",
+            "execution_config": {
+                "llm_prompts": [
+                    "template_context_now",
+                    "common_mandate",
+                    "instruction_interaction",
+                    "INTERACTION_OUTPUT_CONFIG",
+                    "template_output_enforcer"
+                ],
+                "pre_hooks": [],
+                "post_hooks": [
+                    "calculate_control_ratio"
+                ]
+            },
+            "output_schema": "InteractionAnalysis",
+            "output_filename": "2_2_vuorovaikutus.json",
+            "output_config_component": "INTERACTION_OUTPUT_CONFIG",
+            "state_key": "step_interaction"
         },
         {
             "id": "step_profiler",
@@ -461,7 +499,7 @@
         {
             "id": "step_coach",
             "name": "Valmentaja (Coach)",
-            "description": "Pedagoginen palaute ja oppimispolku (Vaihe 8c).",
+            "description": "Pedagoginen palaute (Vaihe 8c).",
             "component": "CoachAgent",
             "execution_config": {
                 "llm_prompts": [
@@ -515,6 +553,7 @@
             "steps": [
                 "step_guard",
                 "step_analyst",
+                "step_interaction",
                 "step_profiler",
                 "step_logician",
                 "step_falsifier",
@@ -529,6 +568,7 @@
             "default_model_mapping": {
                 "step_guard": "fast",
                 "step_analyst": "fast",
+                "step_interaction": "deep",
                 "step_profiler": "deep",
                 "step_logician": "deep",
                 "step_falsifier": "deep",

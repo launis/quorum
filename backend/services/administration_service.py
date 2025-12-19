@@ -12,6 +12,11 @@ from backend.services.progress import ProgressTracker
 from backend.config import DATA_DIR, SCRIPTS_DIR
 
 # Hardcoded rules source from original script
+
+class AdministrationService:
+    def __init__(self, repository: AbstractWorkflowRepository):
+        self.repository = repository
+
     def import_references(self, tracker: ProgressTracker) -> Dict[str, Any]:
         """
         Imports References from data/bibliography.txt

@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field, field_validator, ConfigDict
 class Metadata(BaseModel):
     luontiaika: str = Field(..., description="ISO 8601 format timestamp")
     agentti: str
-    vaihe: int
+    vaihe: float | int
     versio: Literal["1.0", "2.0"] = "2.0"
     suoritus_ymparisto: Literal["Kriitikkoryhma_External", "Internal"] | None = None
 
@@ -309,7 +309,18 @@ class CoachingPlan(BaseJSON):
     kannustava_palaute: str
     kehityskohteet_konkreettisesti: List[ActionGroup] = Field(..., description="Concrete steps grouped by category")
     lopputuloksen_kehitysehdotukset: list[str] = Field(..., description="Concrete suggestions to improve the final product")
-    # oppimispolku_viikko: str = Field(..., description="A 1-week plan to fix the issues") # REMOVED
+
     lahdeluettelo: list[str] = Field(default_factory=list, description="Bibliography references used in this plan")
+
+
+
+# --- Step 10: Interaction Analyst Agent ---
+
+class InteractionAnalysis(BaseJSON):
+    tunnistetut_strategiat: List[str]
+    ohjausliikkeet: int
+    driver_classification: Literal["Matkustaja", "Kartanlukija", "Kuski", "Arkkitehti"]
+    input_control_ratio: Optional[float] = None
+
 
 

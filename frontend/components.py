@@ -133,6 +133,75 @@ def render_dashboard(result):
                         st.write(p_biases)
             st.divider()
 
+    # --- Interaction Analyst Agent ---
+    int_data = result.get('step_interaction') or {}
+    # Fallback for flattened JSON if needed
+    if not int_data and result.get('driver_classification'):
+        int_data = result
+        
+    if int_data:
+        i_driver = int_data.get('driver_classification')
+        i_strategies = int_data.get('tunnistetut_strategiat')
+        i_control = int_data.get('input_control_ratio')
+        i_moves = int_data.get('ohjausliikkeet')
+        
+        if any([i_driver, i_strategies]):
+            st.subheader("🎮 Vuorovaikutus (Interaction)")
+            
+            c1, c2, c3 = st.columns([1, 1, 1])
+            
+            with c1:
+                st.markdown("**Ajotyyli (Driver):**")
+                if i_driver:
+                    # Emoji mapping
+                    emojis = {
+                        "Matkustaja": "🚌",
+                        "Kartanlukija": "🗺️",
+                        "Kuski": "🏎️",
+                        "Arkkitehti": "🏗️"
+                    }
+                    icon = emojis.get(i_driver, "👤")
+                    
+                    role_help = """
+                    **Matkustaja:** Hyväksyy kaiken, ei ohjaa.
+                    **Kartanlukija:** Antaa palautetta mutta ei johda.
+                    **Kuski:** Pitää ohjat käsissään ja tekee päätökset.
+                    **Arkkitehti:** Suunnittelee prosessin ja rakentaa sen tietoisesti.
+                    """
+                    st.metric(label="Rooli", value=i_driver, delta=None, help=role_help)
+                    st.markdown(f"# {icon}")
+            
+            with c2:
+                st.markdown("**Ohjaus (Control Ratio):**")
+                if i_control is not None:
+                    # Display as progress bar
+                    st.progress(min(i_control, 1.0))
+                    st.caption(f"Input Ratio: {i_control:.1%} (Human/Total)")
+                
+                if i_moves is not None:
+                    st.metric("Ohjausliikkeet", i_moves, help="Kuinka monta kertaa käyttäjä aktiivisesti korjasi tai ohjasi tekoälyä uuteen suuntaan.")
+
+            with c3:
+                st.markdown("**Strategiat:**")
+                if i_strategies:
+                    if isinstance(i_strategies, list):
+                        for s in i_strategies:
+                            st.caption(f"🔹 {s}")
+                    else:
+                        st.write(i_strategies)
+                    
+                    with st.expander("ℹ️ Selitteet"):
+                        st.markdown("""
+                        - **Zero-shot:** Suora kysymys ilman esimerkkejä.
+                        - **Iterative refinement:** Vastauksen hiominen usealla kierroksella.
+                        - **Constraint-based:** Reunaehtojen asettaminen (esim. "Ei jargonia").
+                        - **Conceptual synthesis:** Asioiden yhdistäminen uusiksi konsepteiksi.
+                        - **Role-play:** Tekoälyn roolittaminen.
+                        - **Chain-of-Thought:** Päättelyketjun avaaminen.
+                        """)
+            
+            st.divider()
+
     # --- Archivist Agent ---
     arch_data = result.get('step_archivist') or {}
     # Flattened fallback
@@ -158,6 +227,7 @@ def render_dashboard(result):
             with c2:
                 if a_cases:
                     st.markdown("**Viitatut Ennakkotapaukset:**")
+                    st.caption("Aiemmat tapaukset, joihin tätä verrattiin linjakkuuden varmistamiseksi. Lähde: Järjestelmän suoritushistoria (completed executions).")
                     if isinstance(a_cases, list):
                          for case in a_cases:
                              st.caption(f"📄 {case}")
@@ -222,10 +292,7 @@ def render_dashboard(result):
         if coach_data.get('kannustava_palaute'):
             st.info(coach_data['kannustava_palaute'], icon="🌟")
             
-        # 2. Oppimispolku REMOVED
-        # if coach_data.get('oppimispolku_viikko'):
-        #     st.markdown("#### 📅 Viikon Oppimispolku")
-        #     st.info(coach_data['oppimispolku_viikko'])
+
 
         # 3. Kehityskohteet (Konkreettiset) + Resurssit
         groups = coach_data.get('kehityskohteet_konkreettisesti')

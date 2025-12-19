@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "C:\Users\risto\OneDrive\quorum\rebuild_db_manual.py", line 21, in main
+    tracker = InMemoryProgressTracker()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: InMemoryProgressTracker.__init__() missing 1 required positional argument: 'callback'

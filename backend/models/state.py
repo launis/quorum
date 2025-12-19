@@ -13,7 +13,8 @@ from backend.models.domain import (
     XAIReport,
     ProfilerAnalysis,
     CaseLawContext,
-    CoachingPlan
+    CoachingPlan,
+    InteractionAnalysis
 )
 
 class InputData(BaseModel):
@@ -49,12 +50,13 @@ class WorkflowState(BaseModel):
     step_judge: Optional[TuomioJaPisteet] = None
     step_archivist: Optional[CaseLawContext] = None # Step 8.5/8a
     step_coach: Optional[CoachingPlan] = None # Step 8.5/8c
+    step_interaction: Optional[InteractionAnalysis] = None # Step 2.2
     step_reporter: Optional[XAIReport] = None
 
     # Formatted output
     xai_report_formatted: Optional[str] = None
 
-    # Apumuuttujat (esim. hakutulokset, jotka eivät ole skeemassa)
+    # Apumuuttujat
     aux_data: Dict[str, Any] = Field(default_factory=dict)
 
     def get_previous_outputs_summary(self) -> str:
@@ -73,7 +75,8 @@ class WorkflowState(BaseModel):
             ("Tunnistaja", self.step_detector),
             ("Tuomari", self.step_judge),
             ("Arkistonhoitaja", self.step_archivist),
-            ("Valmentaja", self.step_coach)
+            ("Valmentaja", self.step_coach),
+            ("Vuorovaikutusanalysaattori", self.step_interaction)
         ]
         
         for name, data in steps:
