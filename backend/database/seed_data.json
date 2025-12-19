@@ -298,7 +298,7 @@
         {
             "id": "step_interaction",
             "name": "Vuorovaikutusanalysaattori (Interaction)",
-            "description": "Promptauskompetenssin analyysi (Vaihe 2.2).",
+            "description": "Promptauskompetenssin analyysi (Vaihe 3).",
             "component": "InteractionAnalystAgent",
             "execution_config": {
                 "llm_prompts": [
@@ -314,14 +314,14 @@
                 ]
             },
             "output_schema": "InteractionAnalysis",
-            "output_filename": "2_2_vuorovaikutus.json",
+            "output_filename": "3_vuorovaikutus.json",
             "output_config_component": "INTERACTION_OUTPUT_CONFIG",
             "state_key": "step_interaction"
         },
         {
             "id": "step_profiler",
             "name": "Profiloija (Profiler)",
-            "description": "Kirjoittajan intention ja sävyn analyysi (Vaihe 2.5).",
+            "description": "Kirjoittajan intention ja sävyn analyysi (Vaihe 4).",
             "component": "ProfilerAgent",
             "execution_config": {
                 "llm_prompts": [
@@ -337,14 +337,14 @@
                 "post_hooks": []
             },
             "output_schema": "ProfilerAnalysis",
-            "output_filename": "2_5_profiili.json",
+            "output_filename": "4_profiili.json",
             "output_config_component": "PROFILER_OUTPUT_CONFIG",
             "state_key": "step_profiler"
         },
         {
             "id": "step_logician",
             "name": "Loogikko (Logician)",
-            "description": "Argumentaation rakentaminen (Vaihe 3).",
+            "description": "Argumentaation rakentaminen (Vaihe 5).",
             "component": "LogicianAgent",
             "execution_config": {
                 "llm_prompts": [
@@ -360,13 +360,13 @@
                 "post_hooks": []
             },
             "output_schema": "ArgumentaatioAnalyysi",
-            "output_filename": "3_argumentaatioanalyysi.json",
+            "output_filename": "5_argumentaatioanalyysi.json",
             "output_config_component": "LOGICIAN_OUTPUT_CONFIG"
         },
         {
             "id": "step_falsifier",
             "name": "Looginen Falsifioija (Logical Falsifier)",
-            "description": "Argumentaation auditointi (Vaihe 4).",
+            "description": "Argumentaation auditointi (Vaihe 6).",
             "component": "LogicalFalsifierAgent",
             "execution_config": {
                 "llm_prompts": [
@@ -382,13 +382,13 @@
                 "post_hooks": []
             },
             "output_schema": "LogiikkaAuditointi",
-            "output_filename": "4_logiikka_auditointi.json",
+            "output_filename": "6_logiikka_auditointi.json",
             "output_config_component": "FALSIFIER_OUTPUT_CONFIG"
         },
         {
             "id": "step_causal",
             "name": "Kausaalinen Analyytikko (Causal Analyst)",
-            "description": "Kausaalisuuden auditointi (Vaihe 5).",
+            "description": "Kausaalisuuden auditointi (Vaihe 7).",
             "component": "CausalAnalystAgent",
             "execution_config": {
                 "llm_prompts": [
@@ -402,13 +402,13 @@
                 "post_hooks": []
             },
             "output_schema": "KausaalinenAuditointi",
-            "output_filename": "6_kausaalinen_auditointi.json",
+            "output_filename": "7_kausaalinen_auditointi.json",
             "output_config_component": "CAUSAL_OUTPUT_CONFIG"
         },
         {
             "id": "step_detector",
             "name": "Performatiivisuuden Tunnistaja (Performativity Detector)",
-            "description": "Käyttäytymisanalyysi (Vaihe 6).",
+            "description": "Käyttäytymisanalyysi (Vaihe 8).",
             "component": "PerformativityDetectorAgent",
             "execution_config": {
                 "llm_prompts": [
@@ -424,13 +424,13 @@
                 "post_hooks": []
             },
             "output_schema": "PerformatiivisuusAuditointi",
-            "output_filename": "7_performatiivisuus_auditointi.json",
+            "output_filename": "8_performatiivisuus_auditointi.json",
             "output_config_component": "DETECTOR_OUTPUT_CONFIG"
         },
         {
             "id": "step_overseer",
             "name": "Faktuaalinen ja Eettinen Valvoja (Overseer)",
-            "description": "Todisteiden valvoja (Vaihe 7).",
+            "description": "Todisteiden valvoja (Vaihe 9).",
             "component": "FactualOverseerAgent",
             "execution_config": {
                 "llm_prompts": [
@@ -446,13 +446,13 @@
                 "post_hooks": []
             },
             "output_schema": "EtiikkaJaFakta",
-            "output_filename": "5_faktatarkistus.json",
+            "output_filename": "9_faktatarkistus.json",
             "output_config_component": "OVERSEER_OUTPUT_CONFIG"
         },
         {
             "id": "step_archivist",
             "name": "Arkistonhoitaja (Archivist)",
-            "description": "Oikeuskäytännön ja linjakkuuden vartija (Vaihe 8a).",
+            "description": "Oikeuskäytännön ja linjakkuuden vartija (Vaihe 10).",
             "component": "ArchivistAgent",
             "execution_config": {
                 "llm_prompts": [
@@ -468,14 +468,14 @@
                 "post_hooks": []
             },
             "output_schema": "CaseLawContext",
-            "output_filename": "8a_arkisto.json",
+            "output_filename": "10_arkisto.json",
             "output_config_component": "ARCHIVIST_OUTPUT_CONFIG",
             "state_key": "step_archivist"
         },
         {
             "id": "step_judge",
             "name": "Tuomari (Judge)",
-            "description": "Synteesi ja konfliktinratkaisu (Vaihe 8b).",
+            "description": "Synteesi ja konfliktinratkaisu (Vaihe 11).",
             "component": "JudgeAgent",
             "execution_config": {
                 "llm_prompts": [
@@ -492,14 +492,14 @@
                 ]
             },
             "output_schema": "TuomioJaPisteet",
-            "output_filename": "8_tuomio_ja_pisteet.json",
+            "output_filename": "11_tuomio_ja_pisteet.json",
             "output_config_component": "JUDGE_OUTPUT_CONFIG",
             "state_key": "step_judge"
         },
         {
             "id": "step_coach",
             "name": "Valmentaja (Coach)",
-            "description": "Pedagoginen palaute (Vaihe 8c).",
+            "description": "Pedagoginen palaute (Vaihe 12).",
             "component": "CoachAgent",
             "execution_config": {
                 "llm_prompts": [
@@ -515,14 +515,14 @@
                 ]
             },
             "output_schema": "CoachingPlan",
-            "output_filename": "8c_valmennus.json",
+            "output_filename": "12_valmennus.json",
             "output_config_component": "COACH_OUTPUT_CONFIG",
             "state_key": "step_coach"
         },
         {
             "id": "step_xai",
             "name": "XAI-Raportoija (XAI Reporter)",
-            "description": "Selitettävä tekoäly ja raportointi (Vaihe 9).",
+            "description": "Selitettävä tekoäly ja raportointi (Vaihe 13).",
             "component": "XAIReporterAgent",
             "execution_config": {
                 "llm_prompts": [
@@ -540,7 +540,7 @@
                 ]
             },
             "output_schema": "XAIReport",
-            "output_filename": "9_xai_raportti.json",
+            "output_filename": "13_xai_raportti.json",
             "output_config_component": "STANDARD_REPORT_OUTPUT",
             "state_key": "step_reporter"
         }
