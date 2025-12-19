@@ -1,5 +1,6 @@
 import logging
 import json
+import requests
 from typing import Dict, Any, Optional
 from backend.database.repository import AbstractWorkflowRepository
 from backend.services.agent_registry import AgentRegistry
@@ -84,7 +85,30 @@ class PromptBuilder:
     def _inject_global_variables(self, content: str) -> str:
         if "{{CURRENT_DATE}}" in content:
             now_str = datetime.now().strftime("%d.%m.%Y")
-            return content.replace("{{CURRENT_DATE}}", now_str)
+            content = content.replace("{{CURRENT_DATE}}", now_str)
+
+        if "{{DYNAMIC_TIME}}" in content:
+            # Simple server time, e.g. 14:30
+            time_str = datetime.now().strftime("%H:%M")
+            content = content.replace("{{DYNAMIC_TIME}}", time_str)
+
+        if "{{DYNAMIC_LOCATION}}" in content:
+            location_str = ""
+            try:
+                # Short timeout to avoid blocking execution
+                response = requests.get('https://ipapi.co/json/', timeout=2)
+                if response.status_code == 200:
+                    data = response.json()
+                    city = data.get('city')
+                    country = data.get('country_name')
+                    if city and country:
+                        location_str = f"SIJAINTI: {city}, {country}."
+            except Exception as e:
+                # Fail silently/gracefully if no connection or timeout
+                logger.warning(f"Failed to fetch dynamic location: {e}")
+            
+            content = content.replace("{{DYNAMIC_LOCATION}}", location_str)
+
         return content
 
     def _inject_state_variables(self, content: str, state: WorkflowState) -> str:
