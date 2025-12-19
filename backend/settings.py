@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     llm_retry_delay: float = Field(default=4.0)
     
     gemini_model_fast: str = "gemini-2.5-flash"
-    gemini_model_deep: str = "gemini-2.5-flash" # Fallback/Default
+    gemini_model_deep: str = "gemini-2.5-pro" # Pro Model
 
     # --- Storage ---
     storage_backend: str = Field(default="LOCAL", description="LOCAL, NONE, or FIRESTORE")

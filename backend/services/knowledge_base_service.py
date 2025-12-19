@@ -15,8 +15,10 @@ class KnowledgeBaseService:
     """
     
     
-    def __init__(self, repository: AbstractWorkflowRepository, storage_client: Optional[Any] = None, document_service: Optional[Any] = None):
+    def __init__(self, repository: AbstractWorkflowRepository, storage_client: Optional[Any] = None, document_service: Optional[Any] = None, llm_provider: Optional[Any] = None):
         self.repository = repository
+        self.llm_provider = llm_provider
+        
         if storage_client:
             self.storage_client = storage_client
         else:
@@ -33,11 +35,11 @@ class KnowledgeBaseService:
             self.document_service = DocumentService(self.storage_client)
 
     
-    def ingest_from_bytes(
+    async def ingest_from_bytes(
         self, 
         file_content: bytes, 
         filename: str, 
-        tracker: Any, # Typed as ProgressTracker but avoid circular imports if needed
+        tracker: Any, 
         job_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """
@@ -54,26 +56,38 @@ class KnowledgeBaseService:
         tracker.update(stage="Archiving & Parsing", percent=10)
         
         try:
-            # 1. Delegate to DocumentService (Async method, but we are in Sync context here?)
-            # Wait, `ingest_from_bytes` is Sync in the current definition, but DocumentService methods are Async.
-            # We need to run it synchronously or change this method to async.
-            # admin_router calls this synchronously inside a threadpool (_run_ingest).
-            # So we can use asyncio.run or loop.run_until_complete? 
-            # OR we make DocumentService synchronous? NO, run_in_threadpool is async friendly.
-            # Actually, `run_in_threadpool` is for calling sync from async.
-            # If we are in a background task thread, we can use asyncio.run()
-            
-            import asyncio
-            try:
-                loop = asyncio.get_event_loop()
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
+            # If LLM Provider is available, use Smart Ingestion
+            if self.llm_provider:
+                tracker.update(stage="Extracting Text", percent=15)
                 
-            # If we are already in a loop?
-            # Background tasks in FastAPI run in a threadpool (sync).
-            
-            parsed_data = asyncio.run(self.document_service.process_knowledge_base_file(file_content, filename, job_id))
+                # 1. Call standard parsing to get References (and Headers as fallback concepts).
+                parsed_data = await self.document_service.process_knowledge_base_file(file_content, filename, job_id)
+                
+                tracker.update(stage="AI Analysis (Chunking)", percent=20)
+                
+                # 2. Extract Text from the file for LLM
+                from backend.services.document_processor import DocumentProcessor
+                if filename.lower().endswith(".docx"):
+                     text = DocumentProcessor.extract_text_from_docx(file_content)
+                else:
+                     text = file_content.decode("utf-8", errors="ignore")
+                
+                # 3. Process with LLM
+                llm_concepts = await self.extract_concepts_with_llm(text, tracker)
+                
+                # 4. Merge
+                existing_terms = {c['term'].lower() for c in parsed_data.get('concepts', [])}
+                
+                for c in llm_concepts:
+                    if c['term'].lower() not in existing_terms:
+                        parsed_data['concepts'].append(c)
+                    else:
+                        # Update definition?
+                        pass
+                        
+            else:
+                # Legacy / Fallback
+                parsed_data = await self.document_service.process_knowledge_base_file(file_content, filename, job_id)
 
             tracker.update(stage="Storing to DB", percent=60)
             
@@ -88,6 +102,97 @@ class KnowledgeBaseService:
             logger.error(f"[KBService] Ingestion failed: {e}")
             tracker.fail(str(e))
             raise e
+
+            tracker.update(stage="Storing to DB", percent=60)
+            
+            # 3. Import to DB
+            result = self._store_parsed_data(parsed_data, source_name=filename, job_id=job_id, tracker=tracker)
+            
+            # Unified Success
+            tracker.complete(result)
+            return result
+            
+        except Exception as e:
+            logger.error(f"[KBService] Ingestion failed: {e}")
+            tracker.fail(str(e))
+            raise e
+
+    async def extract_concepts_with_llm(self, text: str, tracker: Any = None) -> list:
+        """
+        Chunks text and uses LLM to extract concepts. Publicly accessible.
+        """
+        # 1. Chunking
+        chunk_size = 8000
+        overlap = 500
+        chunks = []
+        start = 0
+        while start < len(text):
+            end = start + chunk_size
+            chunks.append(text[start:end])
+            start = end - overlap
+            
+        total_chunks = len(chunks)
+        extracted_concepts = []
+        
+        logger.info(f"[KBService] Processing {total_chunks} chunks with LLM.")
+        
+        import json
+        
+        for i, chunk in enumerate(chunks):
+            current_pct = 20 + int((i / total_chunks) * 40) # 20% to 60%
+            tracker.update(stage=f"AI Analysis (Chunk {i+1}/{total_chunks})", percent=current_pct)
+            
+            prompt = f"""
+            You are an expert academic research assistant.
+            Analyze the following text chunk. Extract theoretical concepts, models, or frameworks defined in the text.
+            
+            Return a JSON object with a key "concepts" which is a list of objects.
+            Each object must have:
+            - "term": The name of the concept (Capitalized).
+            - "definition": A precise definition or explanation found in the text. Preferably include citations (Author Year) if present in the text.
+            
+            If no concepts are found, return {{"concepts": []}}.
+            
+            TEXT CHUNK:
+            {chunk}
+            """
+            
+            try:
+                # We use the provider directly
+                response = await self.llm_provider.generate(
+                    prompt=prompt,
+                    system_instruction="You are a strict JSON extraction engine. Output valid JSON only."
+                )
+                
+                # Parse JSON
+                cleaned = str(response).strip()
+                if "```json" in cleaned:
+                    cleaned = cleaned.split("```json")[1].split("```")[0].strip()
+                elif "```" in cleaned:
+                     cleaned = cleaned.split("```")[1].split("```")[0].strip()
+                     
+                data = json.loads(cleaned)
+                chunk_concepts = data.get("concepts", [])
+                extracted_concepts.extend(chunk_concepts)
+                
+            except Exception as e:
+                logger.error(f"[KBService] Error calling LLM for chunk {i}: {e}")
+                continue
+                
+        # Deduplicate
+        final_map = {}
+        for c in extracted_concepts:
+            term = c.get("term")
+            defn = c.get("definition")
+            if not term or not defn: continue
+            
+            if term not in final_map:
+                final_map[term] = defn
+            else:
+                if len(defn) > len(final_map[term]):
+                    final_map[term] = defn
+                    
+        return [{"term": t, "definition": d} for t, d in final_map.items()]
 
     def _store_parsed_data(self, parsed_data: Dict[str, Any], source_name: str, job_id: str, tracker: Any = None) -> Dict[str, Any]:
         concepts = parsed_data['concepts']
@@ -140,3 +245,5 @@ class KnowledgeBaseService:
             "concepts_count": count_concepts,
             "references_count": count_refs
         }
+
+

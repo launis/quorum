@@ -18,6 +18,13 @@ class JudgeAgent(BaseAgent):
     def get_response_schema(self) -> Optional[Type[BaseModel]]:
         return TuomioJaPisteet
 
+    def post_process(self, state: WorkflowState) -> WorkflowState:
+        """
+        Lifecycle Hook: Post-Execution.
+        Calculates final scores and applying penalties.
+        """
+        return self.calculate_final_scores(state)
+
     def calculate_final_scores(self, state: WorkflowState) -> WorkflowState:
         """
         HOOK: calculate_final_scores

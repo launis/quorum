@@ -186,10 +186,15 @@ def get_fallback_data(key: str) -> Dict[str, Any]:
         data.update({
             "kannustava_palaute": "Hyvää työtä analyysin kanssa!",
             "kehityskohteet_konkreettisesti": [
-                {"otsikko": "Argumentaation syventäminen", "kuvaus": "Tutustu Toulmin malliin tarkemmin.", "resurssit": []}
+                {
+                    "kategoria": "Argumentaatio ja Logiikka",
+                    "kohdat": [
+                        {"otsikko": "Argumentaation syventäminen", "kuvaus": "Tutustu Toulmin malliin tarkemmin.", "resurssit": ["(vrt. Toulmin 2003)"]}
+                    ]
+                }
             ],
             "lopputuloksen_kehitysehdotukset": ["Parempi jäsentely."],
-            "oppimispolku_viikko": "Maanantai: Lue teoria. Tiistai: Harjoittele."
+            "lahdeluettelo": ["Toulmin, S. (2003). The Uses of Argument."]
         })
         return data
         

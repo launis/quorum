@@ -16,7 +16,7 @@ router = APIRouter()
 
 class LLMRequest(BaseModel):
     prompts: List[Dict[str, Any]] # {"role": "user", "parts": ["..."]}
-    model: str = "gemini-2.5-pro"
+    model: Optional[str] = None
 
 class ModelRegistryUpdate(BaseModel):
     registry: Dict[str, Dict[str, str]]

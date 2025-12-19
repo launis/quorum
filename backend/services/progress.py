@@ -60,6 +60,7 @@ class DatabaseProgressTracker(ProgressTracker):
         payload = {
             'status': STATUS_RUNNING, 
             'current_step': stage, 
+            'progress': percent,
             'last_updated': datetime.now().isoformat()
         }
         if details: payload.update(details)

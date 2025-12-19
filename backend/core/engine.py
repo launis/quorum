@@ -14,7 +14,8 @@ from backend.services.prompt_builder import PromptBuilder
 import logging
 from backend.database.repository import AbstractWorkflowRepository
 from backend.context import set_execution_context, clear_execution_context
-from backend.exceptions import ExecutionNotFoundError, WorkflowNotFoundError, AgentExecutionError, FatalInterruption # Added
+from backend.exceptions import ExecutionNotFoundError, WorkflowNotFoundError, AgentExecutionError, FatalInterruption
+from backend.models.domain import TaintedData # Type checking import
 
 logger = logging.getLogger(__name__)
 
@@ -184,25 +185,173 @@ class WorkflowEngine:
             return result
 
         except FatalInterruption as fi:
-            return self._create_halt_response(execution_id, fi.step_name, fi)
+            return self._create_halt_response(execution_id, fi.step_name, fi, current_state)
         except AgentExecutionError as ae:
-            self._handle_execution_error(execution_id, ae)
+            self._handle_execution_error(execution_id, ae, current_state)
         except Exception as e:
-            self._handle_execution_error(execution_id, e)
+            self._handle_execution_error(execution_id, e, current_state)
         finally:
             clear_execution_context()
 
-    async def _execute_pipeline_loop(self, state: WorkflowState, pipeline_steps: List[Any], tracker: Any, execution_id: str) -> Any:
+    async def resume_execution(self, execution_id: str) -> Dict[str, Any]:
+        """
+        Resumes a failed or interrupted execution from the last successful state.
+        """
+        set_execution_context(execution_id)
+        logger.info(f"[WorkflowEngine] RESUMING execution {execution_id}")
+
+        try:
+            # 1. Load Execution Record & Trace
+            exec_record = self.repository.get_execution(execution_id)
+            if not exec_record:
+                raise ExecutionNotFoundError(execution_id)
+            
+            trace_data = exec_record.get('trace')
+            if not trace_data:
+                logger.warning(f"[WorkflowEngine] No trace found for {execution_id}. Restarting from scratch.")
+                return await self.run_execution(execution_id, exec_record['inputs'])
+
+            # 2. Reconstruct State
+            current_state = WorkflowState.model_validate(trace_data)
+            
+            # 3. Determine Resume Point
+            # We need to see which steps are ALREADY in the state
+            pipeline_steps = self._resolve_pipeline_steps(exec_record['workflow_id'])
+            
+            steps_to_run = []
+            resume_index = 0
+            
+            for i, (agent, step_doc) in enumerate(pipeline_steps):
+                state_key = step_doc.get('state_key')
+                # If state has this key set (not None), we assume step is DONE.
+                # However, if it was the failing step, it might be None or partial.
+                # We simply check if the field is populated.
+                
+                is_done = False
+                if state_key and hasattr(current_state, state_key):
+                    val = getattr(current_state, state_key)
+                    if val is not None:
+                         is_done = True
+                
+                if not is_done:
+                    steps_to_run.append((agent, step_doc))
+                    if resume_index == 0: resume_index = i # Mark start index
+            
+            if not steps_to_run:
+                logger.info("[WorkflowEngine] Execution appears already complete. Returning result.")
+                # Project result again just in case
+                return self._project_final_result(execution_id, current_state, pipeline_steps)
+
+            logger.info(f"[WorkflowEngine] Resuming from step {resume_index + 1}/{len(pipeline_steps)} ({steps_to_run[0][0].__class__.__name__})")
+
+            # 4. Update Status to Running
+            self.repository.update_execution(execution_id, {
+                'status': 'running',
+                'error': None # Clear error
+            })
+            
+            # 5. Execute Remaining Steps
+            from backend.services.progress import DatabaseProgressTracker
+            tracker = DatabaseProgressTracker(self.repository, execution_id)
+            # Retrieve previous progress? Or just start from current % ?
+            # Tracker expects total steps. We can calculate percent based on resume_index.
+            tracker.start() 
+
+            # Custom loop for partial pipeline?
+            # actually _execute_pipeline_loop expects list of steps. We pass the slice `steps_to_run`.
+            # BUT the index verification logic inside `_execute_pipeline_loop` (Tracker) needs to know the absolute index.
+            # We should refactor _execute_pipeline_loop to accept start_index.
+            
+            final_state = await self._execute_pipeline_loop(
+                current_state, 
+                steps_to_run, 
+                tracker, 
+                execution_id, 
+                start_index=resume_index,
+                total_steps_count=len(pipeline_steps)
+            )
+
+            # 6. Check for Halt/Early Exit
+            if isinstance(final_state, dict) and "security_alert" in final_state:
+                 return final_state
+
+            # 7. Success
+            logger.info(f"[WorkflowEngine] Execution {execution_id} completed successfully (RESUMED).")
+            result = self._project_final_result(execution_id, final_state, pipeline_steps)
+            tracker.complete(result)
+            return result
+
+        except Exception as e:
+            # Pass current_state if we have it, else None
+            c_state = locals().get('current_state', None)
+            self._handle_execution_error(execution_id, e, c_state)
+            raise e # Re-raise for API to see? Or swallow? API is async, so swallow.
+        finally:
+            clear_execution_context()
+
+    async def recover_interrupted_jobs(self):
+        """
+        Scans for jobs marked 'running' that are structurally dead (e.g. after server restart).
+        Resumes them automatically.
+        """
+        logger.info("[WorkflowEngine] Scanning for interrupted jobs...")
+        try:
+            # We need a method in repository to find by status.
+            # Assuming we can iterate or filter. Generic TinyDB fetch.
+            all_executions = self.repository.get_all_executions()
+            running_jobs = [j for j in all_executions if j.get('status') == 'running']
+            
+            for job in running_jobs:
+                eid = job['execution_id']
+                logger.warning(f"[WorkflowEngine] Found stale running job {eid}. Auto-resuming...")
+                # Fire and forget? Or await? 
+                # Since we are in startup, better to await or spawn task.
+                # If we await, startup delays. But safe.
+                try:
+                     # Check if trace exists
+                    if not job.get('trace'):
+                        logger.warning(f"[WorkflowEngine] Cannot resume {eid}: No trace data. Marking as failed.")
+                        self.repository.update_execution(eid, {'status': 'failed', 'error': 'System Restart: No trace to resume.'})
+                        continue
+
+                    # Spawn async task to not block startup completely? 
+                    # Actually, for reliability, let's just await it sequentially in startup 
+                    # or better, use asyncio.create_task to let them run in background.
+                    import asyncio
+                    asyncio.create_task(self.resume_execution(eid))
+                    
+                except Exception as e:
+                    logger.error(f"[WorkflowEngine] Failed to recovery job {eid}: {e}")
+                    
+        except Exception as e:
+            logger.error(f"[WorkflowEngine] Recovery scan failed: {e}")
+
+
+    async def _execute_pipeline_loop(
+        self, 
+        state: WorkflowState, 
+        pipeline_steps: List[Any], 
+        tracker: Any, 
+        execution_id: str,
+        start_index: int = 0,
+        total_steps_count: int = 0
+    ) -> Any:
         """Helper to run the sequential agent loop."""
-        total_steps = len(pipeline_steps)
+        total_steps = total_steps_count or len(pipeline_steps)
         current_state = state
         
         for index, (agent, step_doc) in enumerate(pipeline_steps):
-            step_num = index + 1
+            # Absolute step number logic
+            current_abs_index = start_index + index
+            step_num = current_abs_index + 1
+            
             percent = int((step_num / total_steps) * 100)
             stage_name = f"Step {step_num}/{total_steps}: {agent.__class__.__name__}"
             
-            tracker.update(stage=stage_name, percent=percent)
+            
+            # Checkpoint: Save current state to DB (trace) so we can resume if crash occurs during this step.
+            trace_dump = current_state.model_dump(mode='json')
+            tracker.update(stage=stage_name, percent=percent, details={'trace': trace_dump})
 
             current_state = await self._execute_step(current_state, agent, step_doc, execution_id)
             
@@ -212,7 +361,7 @@ class WorkflowEngine:
                     
         return current_state
 
-    def _create_halt_response(self, execution_id: str, step_name: str, error: FatalInterruption) -> Dict[str, Any]:
+    def _create_halt_response(self, execution_id: str, step_name: str, error: FatalInterruption, state: Optional[WorkflowState] = None) -> Dict[str, Any]:
         """Helper to create a structured HALT response."""
         msg = f"[WorkflowEngine] FATAL INTERRUPTION at {step_name}: {error.reason}"
         logger.error(msg)
@@ -226,12 +375,16 @@ class WorkflowEngine:
              "reason": error.reason
         })
 
-        self.repository.update_execution(execution_id, {
+        update_data = {
             'status': 'failed',
             'error': error.reason,
             'end_time': datetime.now().isoformat(),
             'result': halt_result
-        })
+        }
+        if state:
+            update_data['trace'] = state.model_dump(mode='json')
+
+        self.repository.update_execution(execution_id, update_data)
         return halt_result
 
     # --- HELPER METHODS (Refactoring) ---
@@ -441,20 +594,31 @@ class WorkflowEngine:
         })
         return public_result
 
-    def _handle_execution_error(self, execution_id: str, error: Exception):
+    def _handle_execution_error(self, execution_id: str, error: Exception, state: Optional[WorkflowState] = None):
         """Helper to log and update DB on failure."""
         if isinstance(error, AgentExecutionError):
             logger.error(f"[WorkflowEngine] Agent Error: {error.message}")
             msg = error.message
         else:
-            logger.error(f"[WorkflowEngine] Critical Failure: {error}", exc_info=True)
+            logger.error(f"[WorkflowEngine] Critical Failure: {str(error)}", exc_info=True)
             msg = str(error)
 
-        self.repository.update_execution(execution_id, {
+        update_data = {
             'status': 'failed',
             'error': msg,
             'end_time': datetime.now().isoformat()
-        })
+        }
+        
+        # Save trace if available so we can resume later
+        if state:
+            try:
+                # Assuming state is partial but valid Pydantic object
+                update_data['trace'] = state.model_dump(mode='json')
+                logger.info(f"[WorkflowEngine] Saved crash state (Trace) for {execution_id}")
+            except Exception as e:
+                logger.error(f"[WorkflowEngine] Failed to save crash state: {e}")
+
+        self.repository.update_execution(execution_id, update_data)
 
     def _execute_hook(self, hook_name: str, agent: Any, state: WorkflowState) -> WorkflowState:
         """

@@ -111,8 +111,14 @@ async def startup_event():
         pb = get_prompt_builder_dep(repo, registry)
         
         # Initialize Engine with resolved deps
-        get_engine(repository=repo, registry=registry, prompt_builder=pb)
+        engine = get_engine(repository=repo, registry=registry, prompt_builder=pb)
         logger.info("   [INFO] Engine Ready.")
+
+        # --- RECOVERY: Auto-Resume Interrupted Jobs ---
+        # If server restarted while jobs were running, resume them.
+        logger.info("   [INFO] Checking for interrupted jobs...")
+        await engine.recover_interrupted_jobs()
+
         
     except FatalInterruption as fi:
         logger.critical("!"*60)

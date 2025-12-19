@@ -60,6 +60,7 @@ def seed_mock_db():
                      table.insert(item)
             print(f"Inserted {len(seed_data[json_key])} items into '{table_name}'.")
 
+
     print("Mock Database seeded successfully.")
 
 if __name__ == "__main__":

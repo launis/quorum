@@ -301,11 +301,15 @@ class ActionItem(BaseModel):
     kuvaus: str
     resurssit: List[str] = Field(default_factory=list, description="URLs or Book refs")
 
+class ActionGroup(BaseModel):
+    kategoria: str = Field(..., description="Category header (e.g. 'Logic', 'Structure')")
+    kohdat: List[ActionItem] = Field(..., description="Items in this category")
+
 class CoachingPlan(BaseJSON):
     kannustava_palaute: str
-    kehityskohteet_konkreettisesti: list[ActionItem] = Field(..., description="Concrete steps to improve")
+    kehityskohteet_konkreettisesti: List[ActionGroup] = Field(..., description="Concrete steps grouped by category")
     lopputuloksen_kehitysehdotukset: list[str] = Field(..., description="Concrete suggestions to improve the final product")
-    oppimispolku_viikko: str = Field(..., description="A 1-week plan to fix the issues")
+    # oppimispolku_viikko: str = Field(..., description="A 1-week plan to fix the issues") # REMOVED
     lahdeluettelo: list[str] = Field(default_factory=list, description="Bibliography references used in this plan")
 
 

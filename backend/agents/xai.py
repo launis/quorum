@@ -3,6 +3,7 @@ from backend.agents.base import BaseAgent
 from backend.models.state import WorkflowState
 from backend.models.domain import XAIReport
 from pydantic import BaseModel
+from datetime import datetime
 import logging
 
 logger = logging.getLogger(__name__)
@@ -88,7 +89,8 @@ class XAIReporterAgent(BaseAgent):
                 "ethical_issues": [], # Could fetch from Overseer Step 5
                 "audit_questions": [], # Could fetch from Overseer Step 5
                 "uncertainty": {},
-                "scores": scores
+                "scores": scores,
+                "timestamp": datetime.now().strftime("%d.%m.%Y %H:%M")
             }
             
             # Add Overseer Data if available

@@ -131,7 +131,8 @@ class LLMHandler:
             max_tokens = cd.get("max_tokens", max_tokens)
         else:
              # Minimal default if config completely missing
-             if provider == "openai": model_name = "gpt-4o"
+             # if provider == "openai": model_name = "gpt-4o" # Removed to enforce centralized config
+             pass
         
         # Create Provider via Factory (Unified Logic)
         try:

@@ -62,6 +62,12 @@ class AbstractWorkflowRepository(ABC):
     @abstractmethod
     def get_banned_phrases(self) -> List[Dict[str, Any]]: pass
 
+    @abstractmethod
+    def add_banned_phrase(self, phrase: str): pass
+
+    @abstractmethod
+    def remove_banned_phrase(self, phrase: str): pass
+
     # --- Knowledge Base ---
     @abstractmethod
     def get_knowledge_base_items(self) -> List[Dict[str, Any]]: pass
@@ -166,6 +172,16 @@ class TinyDBRepository(AbstractWorkflowRepository):
         
     def clear_knowledge_base(self):
         return self.knowledge_base.truncate()
+
+    # --- Banned Phrases ---
+    def add_banned_phrase(self, phrase: str):
+        # Prevent duplicates
+        existing = self.banned_phrases.search(Query().phrase == phrase)
+        if not existing:
+            return self.banned_phrases.insert({"phrase": phrase})
+            
+    def remove_banned_phrase(self, phrase: str):
+        return self.banned_phrases.remove(Query().phrase == phrase)
 
 # Alias for backward compatibility (optional but safe)
 WorkflowRepository = TinyDBRepository

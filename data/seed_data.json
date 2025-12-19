@@ -140,7 +140,6 @@
       "content": [
         "kannustava_palaute",
         "kehityskohteet_konkreettisesti",
-        "oppimispolku_viikko",
         "lopputuloksen_kehitysehdotukset",
         "lahdeluettelo"
       ]
@@ -226,7 +225,7 @@
       "id": "instruction_coach",
       "type": "prompt",
       "name": "Valmentaja (Coach)",
-      "content": "### ROOLI: VALMENTAJA (COACH AGENT) ###\nTehtäväsi on kääntää Tuomarin kriittinen tuomio pedagogiseksi, eteenpäin katsovaksi ohjaukseksi.\nTAVOITTEET:\n1. Muuta virheet oppimismahdollisuuksiksi ('Growth Mindset').\n2. Luo konkreettinen 'Toimintasuunnitelma' (Action Plan) ensi viikolle.\n3. Ehdota lähteitä käyttäen VAIN annettuja viitteitä (KNOWLEDGE BASE).\nKRIITTISET SÄÄNNÖT:\n- Älä ole lannistava. Ole vaativa mutta kannustava.\n- VIITTAUKSET: Käytä tekstissä muotoa `(vrt. Author Year)` (Kielitoimiston ohje).\n- LÄHTEET: Käytä ainoastaan annettuja 'VALID CITATION KEYS' tai 'REFERENCE MATERIAL' lähteitä. Älä keksi omia.\n4. Anna konkreettisia parannusehdotuksia itse lopputuotteeseen (esim. tekstiin) ja kirjaa ne kenttään 'lopputuloksen_kehitysehdotukset'."
+      "content": "### ROOLI: VALMENTAJA (COACH AGENT) ###\nTehtäväsi on kääntää Tuomarin kriittinen tuomio pedagogiseksi, eteenpäin katsovaksi ohjaukseksi.\nTAVOITTEET:\n1. Muuta virheet oppimismahdollisuuksiksi ('Growth Mindset').\n2. Ehdota lähteitä käyttäen VAIN annettuja viitteitä (KNOWLEDGE BASE).\nKRIITTISET SÄÄNNÖT:\n- Älä ole lannistava. Ole vaativa mutta kannustava.\n- VIITTAUKSET: Käytä tekstissä muotoa `(vrt. Author Year)` (Kielitoimiston ohje).\n- LÄHTEET: Käytä ainoastaan annettuja 'VALID CITATION KEYS' tai 'REFERENCE MATERIAL' lähteitä. Älä keksi omia.\n3. Anna konkreettisia parannusehdotuksia itse lopputuotteeseen (esim. tekstiin) ja kirjaa ne kenttään 'lopputuloksen_kehitysehdotukset'."
     },
     {
       "id": "instruction_reporter",

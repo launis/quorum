@@ -129,3 +129,22 @@ def get_orchestrator_status(execution_id: str, engine: WorkflowEngine = Depends(
     if not status:
         raise HTTPException(status_code=404, detail="Execution not found")
     return status
+
+@router.post("/executions/{execution_id}/retry")
+async def retry_execution(execution_id: str, background_tasks: BackgroundTasks, engine: WorkflowEngine = Depends(get_engine)):
+    """
+    Retries a failed or interrupted execution.
+    Resumes from the last successfully completed step.
+    """
+    # Verify execution exists and is in a failed state
+    status = engine.get_execution_status(execution_id)
+    if not status:
+         raise HTTPException(status_code=404, detail="Execution not found")
+    
+    current_status = status.get('status')
+    if current_status not in ['failed', 'rejected', 'interrupted']:
+         raise HTTPException(status_code=400, detail=f"Cannot retry execution in status '{current_status}'. Only failed/rejected/interrupted executions can be retried.")
+
+    background_tasks.add_task(engine.resume_execution, execution_id)
+    return {"status": "resuming", "execution_id": execution_id}
+

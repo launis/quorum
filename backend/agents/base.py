@@ -16,7 +16,7 @@ class BaseAgent(BaseComponent):
     
     state_field: Optional[str] = None
 
-    def __init__(self, model: str = "gemini-1.5-flash", provider: str = "gemini"):
+    def __init__(self, model: Optional[str] = None, provider: str = "gemini"):
         self.model = model
         self.provider_type = provider
         # Initialize the provider lazily or here
@@ -83,6 +83,14 @@ class BaseAgent(BaseComponent):
 
             # 3. Determine Output Schema (Subclasses must define this!)
             response_schema = self.get_response_schema()
+
+            # 3.5 Lifecycle Hook: Prepare Context
+            # Allow subclasses to inject dynamic context or modify state before execution.
+            logger.info(f"[{self.__class__.__name__}] Lifecycle Hook: prepare_context")
+            additional_context = await self.prepare_context(state, **kwargs)
+            if additional_context:
+                system_instruction = (system_instruction or "") + "\n\n" + additional_context
+                logger.debug(f"[{self.__class__.__name__}] Appended dynamic context.")
             
             # --- LOGGING EXECUTION CONFIG ---
             # Extract config to show user exactly what is running
@@ -109,12 +117,37 @@ class BaseAgent(BaseComponent):
             # 5. Update State
             updated_state = self._update_state(state, response_data)
             
+            # 6. Lifecycle Hook: Post Process
+            # Allow subclasses to refine the state after LLM output (e.g. calculations, enrichment)
+            logger.info(f"[{self.__class__.__name__}] Lifecycle Hook: post_process")
+            updated_state = self.post_process(updated_state)
+
             logger.info(f"[{self.__class__.__name__}] Execution completed.")
             return updated_state
 
         except Exception as e:
             logger.error(f"[{self.__class__.__name__}] Execution failed: {e}", exc_info=True)
             raise e
+
+    async def prepare_context(self, state: WorkflowState, **kwargs) -> Optional[str]:
+        """
+        Lifecycle Hook: Pre-Execution.
+        Override this to:
+        - Fetch external data (DB/Web)
+        - Check inputs (Guard)
+        - Return a string to be appended to the System Instruction.
+        """
+        return None
+
+    def post_process(self, state: WorkflowState) -> WorkflowState:
+        """
+        Lifecycle Hook: Post-Execution.
+        Override this to:
+        - Perform calculations (Judge)
+        - Enrich data (Coach)
+        - Verify constraints
+        """
+        return state
 
     def construct_user_prompt(self, state: WorkflowState) -> str:
         """

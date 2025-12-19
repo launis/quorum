@@ -22,6 +22,27 @@ class GuardAgent(BaseAgent):
         # This tells the LLM Provider (Gemini/OpenAI) exactly what JSON structure to enforce.
         return TaintedData
 
+    async def prepare_context(self, state: WorkflowState, **kwargs) -> Optional[str]:
+        """
+        Lifecycle Hook: Pre-Execution.
+        Performs Python-based banned phrase checks and sanitization.
+        """
+        # 1. Banned Phrase Check (Injects warning into prompt if found)
+        self.check_banned_phrases_python(state)
+        
+        # 2. Input Sanitization (Modifies state inputs in-place)
+        self.sanitize_input(state)
+        
+        return None
+
+    def post_process(self, state: WorkflowState) -> WorkflowState:
+        """
+        Lifecycle Hook: Post-Execution.
+        Ensures tainted data structure is populated and banned phrases are flagged.
+        """
+        return self.ensure_tainted_data(state)
+
+
     def ensure_tainted_data(self, state: WorkflowState) -> WorkflowState:
         """
         HOOK: ensure_tainted_data

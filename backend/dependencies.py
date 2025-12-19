@@ -120,15 +120,17 @@ def get_engine(
     return _engine_instance
 
 def get_llm_provider(
-    model_name: str = "gemini-1.5-flash"
+    model_name: Optional[str] = None
 ):
     """
     Dependency to provide a configured LLM Provider.
-    For more complex usages (switching models dynamically), 
-    requests should use the LLMFactory directly or the Engine's resolution logic.
-    But for simple endpoints (like admin self-test), this suffices.
     """
     from backend.llm.provider import LLMFactory
+    from backend.settings import Settings
+    
+    if not model_name:
+        model_name = Settings().gemini_model_fast
+        
     return LLMFactory.create_provider(model_name=model_name)
 
 def get_llm_handler_dep(db_client: AbstractDatabase = Depends(get_db_client_dep)):

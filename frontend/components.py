@@ -222,27 +222,49 @@ def render_dashboard(result):
         if coach_data.get('kannustava_palaute'):
             st.info(coach_data['kannustava_palaute'], icon="🌟")
             
-        # 2. Oppimispolku
-        if coach_data.get('oppimispolku_viikko'):
-            st.markdown("#### 📅 Viikon Oppimispolku")
-            st.info(coach_data['oppimispolku_viikko'])
+        # 2. Oppimispolku REMOVED
+        # if coach_data.get('oppimispolku_viikko'):
+        #     st.markdown("#### 📅 Viikon Oppimispolku")
+        #     st.info(coach_data['oppimispolku_viikko'])
 
         # 3. Kehityskohteet (Konkreettiset) + Resurssit
-        items = coach_data.get('kehityskohteet_konkreettisesti')
-        if items:
+        groups = coach_data.get('kehityskohteet_konkreettisesti')
+        if groups:
             st.markdown("#### 🚀 Kehityskohteet")
-            for i, item in enumerate(items):
-                # Handle distinct formats (dict vs obj)
-                otsikko = item.get('otsikko', 'Kohde')
-                kuvaus = item.get('kuvaus', '')
-                resurssit = item.get('resurssit', [])
+            
+            # Helper to normalize input (handle if it's still legacy list of items vs new list of groups)
+            # Safe parsing
+            for g_idx, group in enumerate(groups):
+                # Check if this is a Group (has 'kategoria') or Legacy Item (has 'otsikko' directly)
+                if isinstance(group, dict) and 'kategoria' in group:
+                    # New Structure: Group
+                    cat_title = group.get('kategoria', f'Kategoria {g_idx+1}')
+                    st.markdown(f"**{cat_title}**")
+                    
+                    items = group.get('kohdat', [])
+                    for i, item in enumerate(items):
+                         otsikko = item.get('otsikko', 'Kohde')
+                         kuvaus = item.get('kuvaus', '')
+                         resurssit = item.get('resurssit', [])
+                         
+                         with st.expander(f"{otsikko}", expanded=False):
+                            st.write(kuvaus)
+                            if resurssit:
+                                st.caption("📚 Lähteet:")
+                                for res in resurssit:
+                                    st.markdown(f"- {res}")
                 
-                with st.expander(f"{i+1}. {otsikko}", expanded=True):
-                    st.write(kuvaus)
-                    if resurssit:
-                        st.caption("📚 Lähteet & Teoria:")
-                        for res in resurssit:
-                            st.markdown(f"- {res}")
+                else:
+                    # Legacy Fallback (Flat Item)
+                    otsikko = group.get('otsikko', 'Kohde')
+                    kuvaus = group.get('kuvaus', '')
+                    resurssit = group.get('resurssit', [])
+                    
+                    with st.expander(f"{otsikko}", expanded=False):
+                        st.write(kuvaus)
+                        if resurssit:
+                             for res in resurssit:
+                                 st.markdown(f"- {res}")
 
         # 4. Lopputuloksen kehitysehdotukset
         dev_props = coach_data.get('lopputuloksen_kehitysehdotukset')

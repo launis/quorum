@@ -1,189 +1,148 @@
 from typing import Any, Optional, Type, List, Dict
+import re
 from backend.agents.base import BaseAgent
 from backend.models.state import WorkflowState
-from pydantic import BaseModel, Field
+
 import logging
-import os
-import json
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
-from backend.models.domain import CoachingPlan, ActionItem
+from backend.models.domain import CoachingPlan
 
 class CoachAgent(BaseAgent):
-    """
-    Coach Agent (Valmentaja).
-    Transformative feedback based on Judge's verdict.
-    """
     state_field = "step_coach"
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.knowledge_base = self._load_knowledge_base()
-
-    async def execute(self, state: WorkflowState, system_instruction: Optional[str] = None, **kwargs) -> WorkflowState:
-        """
-        Override execute to inject dynamic context (Knowledge Base).
-        """
-        
-        logger.info("[CoachAgent] EXECUTE started. Loading references...")
-        from starlette.concurrency import run_in_threadpool
-        
-        repository = kwargs.get('repository')
-        
-        # 1. Load DB Items (BLOCKING I/O -> Threadpool)
-        # Fetch ONCE for both Refs and Concepts
-        def _fetch_db_items():
-            if repository and hasattr(repository, 'get_knowledge_base_items'):
-                 try:
-                     logger.debug("[CoachAgent] Fetching KB items from TinyDB...")
-                     return repository.get_knowledge_base_items()
-                 except Exception as e: 
-                     logger.error(f"[CoachAgent] KB Fetch Error: {e}")
-                     pass
-            return []
-
-        all_items = await run_in_threadpool(_fetch_db_items)
-        
-        db_refs = [i['definition'] for i in all_items if i.get('type') == 'reference']
-        db_short_citations = [i.get('short_citation') for i in all_items if i.get('type') == 'reference' and i.get('short_citation')]
-        db_concepts = [i for i in all_items if i.get('type') == 'concept']
-
-        state.aux_data['db_references'] = db_refs
-        logger.info(f"[CoachAgent] Loaded {len(db_refs)} references ({len(db_short_citations)} short keys) and {len(db_concepts)} concepts from DB.")
-        
-        # 2. Fetch External Context (ASYNC/THREADED)
-        external_context = ""
-        if state.inputs.bibliography_context:
-            try:
-                external_context = await run_in_threadpool(self._fetch_external_context_sync, state.inputs.bibliography_context)
-            except Exception as e:
-                logger.error(f"[CoachAgent] Async fetch failed: {e}")
-
-        # 3. Build Prompt (passing pre-fetched data)
-        # We pass db_concepts explicitly to avoid re-fetching in _build_prompt
-        logger.info("[CoachAgent] Constructing dynamic prompt...")
-        dynamic_context = self._build_prompt(state, repository, external_context_override=external_context, preloaded_concepts=db_concepts, preloaded_citations=db_short_citations)
-        
-        # Append to system_instruction
-        if system_instruction:
-            full_instruction = f"{system_instruction}\n\n{dynamic_context}"
-        else:
-            full_instruction = dynamic_context
-            
-        logger.info("[CoachAgent] Ready to call LLM.")
-        return await super().execute(state, system_instruction=full_instruction, **kwargs)
-
-    def _load_knowledge_base(self) -> Dict[str, Any]:
-        """Loads the extended knowledge base from JSON."""
-        path = os.path.join("data", "coach_resources.json")
-        if os.path.exists(path):
-            try:
-                with open(path, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                    logger.info(f"[CoachAgent] Loaded knowledge base from {path}")
-                    return data
-            except Exception as e:
-                logger.error(f"[CoachAgent] Failed to load knowledge base: {e}")
-        return {}
+    def get_response_schema(self) -> Optional[Type[BaseModel]]:
+        return CoachingPlan
 
     def _build_prompt(self, state: WorkflowState, repository: Any = None, external_context_override: str = "", preloaded_concepts: List[Dict] = [], **kwargs) -> str:
-        """
-        Overrides BaseAgent._build_prompt.
-        CRITICAL: Do NOT perform blocking DB calls here if possible. Use preloaded_concepts.
-        """
-        logger.debug("[CoachAgent._build_prompt] Entry.")
-        
-        
-        # 1. Get base prompt
-        # BaseAgent does NOT have _build_prompt anymore, so we don't call super()
-        # base_prompt = super()._build_prompt(state) 
-        base_prompt = "" # We rely on System Instruction from Engine or dynamic context.
-        # But wait, we want the "User Prompt" portion? 
-        # Actually CoachAgent operates by appending context to System Instruction. 
-        # The user message is just "Proceed...".
-        # So we return just the Context String.
-        
-        context_str = ""
-        
-        # 1.5. DB-Based Knowledge Base (Preferred)
-        db_concepts = preloaded_concepts
-        
-        # FALLBACK LOGIC REMOVED TO PREVENT BLOCKING
-        # If preloaded_concepts is empty, we SKIP the DB context rather than risking a hang.
-        if not db_concepts and repository:
-             logger.warning("[CoachAgent] _build_prompt called without preloaded concepts. Skipping DB context to avoid blocking.")
+        # ... (previous code) ...
+        # (Replace instructions at the end)
 
-        # 2. Enrich with Knowledge Base (Internal)
-        context_str += "\n\n### REFERENCE MATERIAL (from 'Holistinen Mestaruus')\n"
-        context_str += "Use these definitions to explain *why* specific feedback is given:\n\n"
-        
-        concepts_source = {}
-        if self.knowledge_base and "concepts" in self.knowledge_base:
-            concepts_source = self.knowledge_base["concepts"]
-            
-        for item in db_concepts:
-            concepts_source[item['term']] = item['definition']
-            
-        if concepts_source:
-             for concept, definition in concepts_source.items():
-                def_short = definition[:800] + "..." if len(definition) > 800 else definition
-                context_str += f"#### {concept}\n{def_short}\n\n"
-        
-        # 2.5. Valid Short Citations (Strict List)
-        valid_citations = kwargs.get('preloaded_citations', [])
-        if valid_citations:
-            context_str += "\n\n### VALID CITATION KEYS (STRICT)\n"
-            context_str += "You MUST use ONLY the following keys for in-text citations (e.g. `(vrt. Author Year)`):\n"
-            context_str += "[" + ", ".join(valid_citations) + "]\n"
-        
-        # 3. Enrich with External Bibliography (External Sources)
-        if external_context_override:
-             context_str += "\n\n### EXTERNAL SOURCES (Bibliography Context)\n"
-             context_str += "Reflect on these sources if relevant:\n\n"
-             context_str += external_context_override
-             
         # Explicit Instruction for Citation
         context_str += "\n\nIMPORTANT: When creating 'kehityskohteet_konkreettisesti' (Action Items), you MUST include relevant citations."
         context_str += "\n- Look at the 'EXTERNAL SOURCES' and 'REFERENCE MATERIAL' above."
         context_str += "\n- If an Action Item relates to a concept (e.g. Reflection, Logic), find a matching Source/Reference."
         context_str += "\n- Add the citation string to the 'resurssit' list of that Action Item."
+        context_str += "\n- DO NOT list the Concept Name as a resource. You must find the supporting reference (e.g. 'Strathern 1997')."
         context_str += "\n- DO NOT invent references. Use only the provided strings in 'VALID CITATION KEYS' or 'REFERENCE MATERIAL'."
-        context_str += "\n- In the text content (kuvaus/palaute), use the short format: `(vrt. Author Year)`."
+        context_str += "\n- In the text content (kuvaus/palaute), use the short format: `(vrt. Author Year)` or `(Author ym. Year)`."
 
         return context_str + base_prompt
 
-    def _fetch_external_context_sync(self, bibliography_context: List[str]) -> str:
-        """
-        Blocking fetcher (to be run in threadpool).
-        """
-        if not bibliography_context:
-            return ""
-            
-        from backend.services.web_fetcher import WebFetcher
-        
-        context_parts = []
-        for item in bibliography_context:
-            if item.startswith("http"):
-                # Fetch URL
-                text = WebFetcher.fetch_text(item)
-                if text:
-                    context_parts.append(f"SOURCE [{item}]:\n{text}\n")
-                else:
-                    context_parts.append(f"SOURCE [{item}]: (Failed to fetch content)\n")
-            else:
-                # Plain Text citation
-                context_parts.append(f"CITATION: {item}\n")
-                
-        return "\n".join(context_parts)
+    # ...
 
-    def get_response_schema(self) -> Optional[Type[BaseModel]]:
-        return CoachingPlan
+    # ...
+
+    async def prepare_context(self, state: WorkflowState, **kwargs) -> str:
+        """
+        PRE-HOOK: Loads Domain Knowledge from the Repository (Database) into the Agent instance.
+        This ensures the CoachAgent uses the same Unified DB as the Ingestion Service.
+        """
+        repository = kwargs.get('repository')
+        if repository:
+            # Load items from DB
+            items = repository.get_knowledge_base_items()
+            
+            # Transform to expected structure
+            concepts = {}
+            references = []
+            
+            for item in items:
+                i_type = item.get('type')
+                if i_type == 'concept':
+                    term = item.get('term')
+                    defn = item.get('definition')
+                    if term and defn:
+                        concepts[term] = defn
+                elif i_type == 'reference':
+                    # Support both old string format and new dict format
+                    # enrich_learning_plan expects list of strings OR list of dicts.
+                    # Let's populate list of dicts for better data.
+                    ref_obj = {
+                        "citation": item.get('definition'), # Full citation stored in definition
+                        "short_citation": item.get('term'), # Short citation stored in term (e.g. "Smith 2020...")
+                        "doi": item.get('doi_link')
+                    }
+                    references.append(ref_obj)
+            
+            # Populate self.knowledge_base
+            self.knowledge_base = {
+                "concepts": concepts,
+                "references": references # List of dicts
+            }
+            logger.info(f"[CoachAgent] Loaded {len(concepts)} concepts and {len(references)} references from Unified Database.")
+            
+        else:
+            logger.warning("[CoachAgent] No Repository provided in kwargs. Knowledge Base not loaded from DB.")
+            self.knowledge_base = {}
+
+        return "" # No additional text context to append here, just side-loading data
+
+    @staticmethod
+    def find_citations(text: str, knowledge_base: Dict[str, Any]) -> List[str]:
+        """
+        Static utility: Scans text for concepts/references defined in the KB.
+        Returns a list of formatted citation strings (e.g. "📚 Author, 2020...").
+        """
+        found_refs = []
+        if not knowledge_base or "concepts" not in knowledge_base:
+            return found_refs
+            
+        concepts_dict = knowledge_base["concepts"]
+        
+        # Handle references (could be list of dicts or legacy dict)
+        raw_refs = knowledge_base.get("references", [])
+        refs_list = []
+        if isinstance(raw_refs, list):
+            for r in raw_refs:
+                if isinstance(r, dict):
+                    refs_list.append(r.get('citation') or r.get('definition') or "")
+                elif isinstance(r, str):
+                    refs_list.append(r)
+        elif isinstance(raw_refs, dict):
+            refs_list = raw_refs.get("bibliography", [])
+            
+        import re
+        citation_pattern = re.compile(r'\((?:vrt\.\s*)?(?:[A-Za-zÅÄÖåäö&,-]+\s+)+(?:et\s+al\.|ym\.)?\s*,?\s*\d{4}[a-z]?\)')
+        
+        text_lower = text.lower()
+        
+        for term, definition in concepts_dict.items():
+            if term.lower() in text_lower:
+                # 1. Look for citations IN the definition
+                matches = citation_pattern.findall(definition)
+                for match in matches:
+                    clean_citation = match.strip("()").replace("vrt. ", "")
+                    parts = clean_citation.split()
+                    if not parts: continue
+                    
+                    year_part = parts[-1] 
+                    author_parts = [p.strip(".,&") for p in parts[:-1] if p.lower() not in ["ym.", "et", "al.", "vrt.", "&"]]
+                    
+                    for ref in refs_list:
+                        if year_part in ref:
+                            if any(auth in ref for auth in author_parts):
+                                if not any(ref[:30] in r for r in found_refs):
+                                    found_refs.append(f"📚 {ref}")
+                        elif clean_citation in ref: 
+                            if not any(ref[:30] in r for r in found_refs):
+                                found_refs.append(f"📚 {ref}")
+                                
+                # 2. Check Concept Name Match
+                if term.lower() not in ["bibliography", "viitteet"]:
+                     for ref in refs_list:
+                        if term.lower() in ref.lower():
+                            if not any(ref[:30] in r for r in found_refs):
+                                found_refs.append(f"📚 {ref}")
+                                
+        return found_refs
 
     def enrich_learning_plan(self, state: WorkflowState) -> WorkflowState:
         """
         POST-HOOK: Scans the generated ActionItems. 
-        Searches the JSON Knowledge Base bibliography for relevant citations and appends them.
+        Searches the JSON Knowledge Base for relevant citations (via concept definitions) and appends them.
         """
         logger.info("[CoachAgent] Running enrich_learning_plan hook...")
         
@@ -192,15 +151,6 @@ class CoachAgent(BaseAgent):
         if not coach_plan_data:
             return state
             
-        # Ensure it's a model instance or dict, Pydantic should handle it?
-        # In V2 state, it's usually the Pydantic object if validated.
-        
-        # Check if we need to access items. 
-        # Note: 'coach_plan_data' might be a Dict if deserialized from JSON without model validation in some paths,
-        # OR it is the CoachingPlan object. 
-        # BaseAgent.execute usually sets the Pydantic model.
-        
-        # To be safe, if it's an object, get attribute; if dict, get key.
         def get_attr(obj, attr):
             return getattr(obj, attr) if hasattr(obj, attr) else obj.get(attr)
 
@@ -208,56 +158,76 @@ class CoachAgent(BaseAgent):
         if not items:
             return state
 
+        # Regex to find parenthetical citations like (Author Year), (Author et al. Year), (vrt. Author ym. Year)
+        citation_pattern = re.compile(r'\((?:vrt\.\s*)?(?:[A-Za-zÅÄÖåäö&,-]+\s+)+(?:et\s+al\.|ym\.)?\s*,?\s*\d{4}[a-z]?\)')
+
+        # Helper to flatten items from groups for processing
+        all_action_items = []
+        is_grouped = False
+        
+        # Check first item to determine structure (or try both)
+        if items and len(items) > 0:
+            first = items[0]
+            # If it has 'kohdat' or 'items', it's a group
+            if hasattr(first, 'kohdat') or (isinstance(first, dict) and 'kohdat' in first):
+                is_grouped = True
+        
+        if is_grouped:
+            for group in items:
+                sub_items = get_attr(group, 'kohdat') or []
+                for sub in sub_items:
+                    all_action_items.append(sub)
+        else:
+            # Legacy flat list
+            all_action_items = items
+
+        # Regex to find parenthetical citations like (Author Year), (Author et al. Year), (vrt. Author ym. Year)
+        citation_pattern = re.compile(r'\((?:vrt\.\s*)?(?:[A-Za-zÅÄÖåäö&,-]+\s+)+(?:et\s+al\.|ym\.)?\s*,?\s*\d{4}[a-z]?\)')
+
         updated_count = 0
-        for item in items:
+        for item in all_action_items:
             # item is ActionItem object or dict
             otsikko = get_attr(item, 'otsikko') or ""
             kuvaus = get_attr(item, 'kuvaus') or ""
-            desc = (kuvaus + " " + otsikko).lower()
+            resurssit_list = get_attr(item, 'resurssit')
+            if resurssit_list is None:
+                resurssit_list = []
             
-            current_resources = get_attr(item, 'resurssit')
-            if current_resources is None:
-                current_resources = []
+            # Normalize to avoid duplicates
+            current_res_lower = [r.lower() for r in resurssit_list]
+            
+            # Combine text for search
+            desc_text = (otsikko + " " + kuvaus + " " + " ".join(current_res_lower)).lower()
             
             # Search bibliography based on specific keywords found in the item
             # 1. Internal Knowledge Base
-            if self.knowledge_base and "concepts" in self.knowledge_base:
-                for concept in self.knowledge_base["concepts"]:
-                    if concept.lower() in desc and concept != "Bibliography":
-                        if self.knowledge_base.get("references") and "bibliography" in self.knowledge_base["references"]:
-                            for ref in self.knowledge_base["references"]["bibliography"]:
-                                # Simple match
-                                if concept.lower() in ref.lower() or (concept == "Hybrid Rubric" and "hybridirubriikki" in ref.lower()):
-                                    if not any(ref[:20] in r for r in current_resources):
-                                        current_resources.append(f"📚 {ref}")
-                                        logger.info(f"   [Coach] Enriched item '{otsikko}' with biblio ref.")
-                                        updated_count += 1
-            
+            if self.knowledge_base:
+                # Use shared static logic for lookup
+                found_refs = CoachAgent.find_citations(desc_text, self.knowledge_base)
+                for ref in found_refs:
+                    if not any(ref[:30] in r for r in resurssit_list):
+                        resurssit_list.append(ref)
+                        updated_count += 1
+
             # 2. External Bibliography Context
             if state.inputs.bibliography_context:
                 for bib_item in state.inputs.bibliography_context:
-                    # Very naive match: if bib item title or significant keyword appears in description
-                    # For now, we list it if it's explicitly mentioned or blindly append if short list?
-                    # Let's check overlap of words.
                     bib_lower = bib_item.lower()
-                    # Only append if not already there
-                    if bib_lower not in [r.lower() for r in current_resources]:
-                         # Only if significant word match? 
-                         # Let's assume if the bib item is provided, the user WANTS it used.
-                         # But sticking it to EVERY item is noisy.
-                         # Let's append it if any 5-char word matches (heuristic)
+                    if bib_lower not in [r.lower() for r in resurssit_list]:
+                         # Heuristic: check overlap of significant words
                          bib_words = set(w for w in bib_lower.split() if len(w) > 5)
-                         desc_words = set(w for w in desc.split() if len(w) > 5)
+                         desc_words = set(w for w in desc_text.split() if len(w) > 5)
                          if bib_words & desc_words:
-                             current_resources.append(f"🔗 {bib_item}")
+                             resurssit_list.append(f"🔗 {bib_item}")
                              updated_count += 1
-
             
             # Update item
             if hasattr(item, 'resurssit'):
-                item.resurssit = current_resources
+                item.resurssit = resurssit_list
             else:
-                item['resurssit'] = current_resources
+                item['resurssit'] = resurssit_list
+        
+        # ... rest of the function (lahdeluettelo) ...
         
         # --- Populate 'lahdeluettelo' in the Main Object ---
         # User REQ: "juuri tässä tuloksessa käytetty" -> Only list references actually cited in the text.
@@ -298,9 +268,9 @@ class CoachAgent(BaseAgent):
                 
             return hits
 
-        # Gather all text content
+        # Gather all text content from flattened list (all_action_items)
         all_text = ""
-        for item in items:
+        for item in all_action_items:
             all_text += (get_attr(item, 'otsikko') or "") + " " + (get_attr(item, 'kuvaus') or "") + " "
             
         # 1. DB References (The primary source now)

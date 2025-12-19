@@ -9,7 +9,7 @@ from tinydb import TinyDB, Query
 import uuid
 
 from backend.config import BASE_DIR, SCRIPTS_DIR, INITIAL_MODEL, DB_PATH
-from backend.dependencies import get_db_client_dep, get_llm_provider
+from backend.dependencies import get_db_client_dep, get_llm_provider, get_llm_handler_dep
 from backend.database.wrapper import AbstractDatabase
 from backend.llm.provider import LLMProvider
 
@@ -175,7 +175,8 @@ class IngestRequest(BaseModel):
 def ingest_knowledge_base(
     request: IngestRequest, 
     background_tasks: BackgroundTasks,
-    repository: AbstractDatabase = Depends(get_db_client_dep)
+    repository: AbstractDatabase = Depends(get_db_client_dep),
+    llm_provider: LLMProvider = Depends(get_llm_provider)
 ):
     job_id = str(uuid.uuid4())
     admin_task_status[job_id] = {"status": "starting", "stage": "Initializing", "percent": 0}
@@ -183,9 +184,9 @@ def ingest_knowledge_base(
     from backend.dependencies import get_repository_dep
     repo = get_repository_dep(repository)
     from backend.services.knowledge_base_service import KnowledgeBaseService
-    service = KnowledgeBaseService(repo)
+    service = KnowledgeBaseService(repo, llm_provider=llm_provider)
     
-    def _run_ingest():
+    async def _run_ingest():
         try:
             if not os.path.exists(request.file_path):
                 admin_task_status[job_id] = {"status": "failed", "error": "File not found"}
@@ -198,7 +199,7 @@ def ingest_knowledge_base(
             from backend.services.progress import InMemoryProgressTracker
             tracker = InMemoryProgressTracker(callback=lambda p: admin_task_status.update({job_id: p}))
             
-            service.ingest_from_bytes(content, filename, tracker=tracker, job_id=job_id)
+            await service.ingest_from_bytes(content, filename, tracker=tracker, job_id=job_id)
         except Exception as e:
             logger.error(f"Ingestion failed: {e}")
             admin_task_status[job_id] = {"status": "failed", "error": str(e)}
@@ -212,7 +213,8 @@ from fastapi import UploadFile, File
 async def upload_knowledge_base(
     file: UploadFile = File(...),
     background_tasks: BackgroundTasks = None,
-    db_client: AbstractDatabase = Depends(get_db_client_dep)
+    db_client: AbstractDatabase = Depends(get_db_client_dep),
+    llm_provider: LLMProvider = Depends(get_llm_provider)
 ):
     job_id = str(uuid.uuid4())
     admin_task_status[job_id] = {"status": "starting", "stage": "Reading Upload", "percent": 0}
@@ -223,13 +225,13 @@ async def upload_knowledge_base(
     from backend.dependencies import get_repository_dep
     repo = get_repository_dep(db_client)
     from backend.services.knowledge_base_service import KnowledgeBaseService
-    service = KnowledgeBaseService(repo)
+    service = KnowledgeBaseService(repo, llm_provider=llm_provider)
     
-    def _run_ingest():
+    async def _run_ingest():
         try:
             from backend.services.progress import InMemoryProgressTracker
             tracker = InMemoryProgressTracker(callback=lambda p: admin_task_status.update({job_id: p}))
-            service.ingest_from_bytes(content, filename, tracker=tracker, job_id=job_id)
+            await service.ingest_from_bytes(content, filename, tracker=tracker, job_id=job_id)
         except Exception as e:
             logger.error(f"Upload ingestion failed: {e}")
             admin_task_status[job_id] = {"status": "failed", "error": str(e)}
@@ -237,6 +239,47 @@ async def upload_knowledge_base(
     if background_tasks:
         background_tasks.add_task(_run_ingest)
     else:
-        _run_ingest()
+        await _run_ingest()
         
     return {"status": "started", "job_id": job_id, "filename": filename}
+
+# --- Banned Phrases Management ---
+
+class BannedPhraseRequest(BaseModel):
+    phrase: str
+
+@router.get("/banned-phrases")
+def get_banned_phrases(db: AbstractDatabase = Depends(get_db_client_dep)):
+    """
+    Get all banned phrases.
+    """
+    from backend.dependencies import get_repository_dep
+    repo = get_repository_dep(db)
+    return repo.get_banned_phrases()
+
+@router.post("/banned-phrases")
+def add_banned_phrase(request: BannedPhraseRequest, db: AbstractDatabase = Depends(get_db_client_dep)):
+    """
+    Add a new banned phrase.
+    """
+    from backend.dependencies import get_repository_dep
+    repo = get_repository_dep(db)
+    # Validate
+    if not request.phrase or len(request.phrase.strip()) < 2:
+        raise HTTPException(status_code=400, detail="Phrase too short")
+    
+    repo.add_banned_phrase(request.phrase.strip())
+    return {"status": "added", "phrase": request.phrase}
+
+@router.delete("/banned-phrases/{phrase}")
+def delete_banned_phrase(phrase: str, db: AbstractDatabase = Depends(get_db_client_dep)):
+    """
+    Delete a banned phrase.
+    """
+    from backend.dependencies import get_repository_dep
+    from urllib.parse import unquote
+    repo = get_repository_dep(db)
+    
+    decoded_phrase = unquote(phrase)
+    repo.remove_banned_phrase(decoded_phrase)
+    return {"status": "deleted", "phrase": decoded_phrase}

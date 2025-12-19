@@ -122,37 +122,42 @@ class PromptBuilder:
         return content.replace("{{SCHEMA_EXAMPLE}}", str(schema_example))
 
     def _generate_schema_json(self, agent_instance: Any) -> str:
-        """Helper to safely extract JSON schema example from an agent."""
+        """
+        Extracts JSON schema example from an agent.
+        Standardizes on Pydantic v2 'model_json_schema()'.
+        """
         try:
             if hasattr(agent_instance, 'get_response_schema'):
                 schema_class = agent_instance.get_response_schema()
                 if not schema_class:
                      return "{}"
 
-                # 1. Try Config.json_schema_extra (Pydantic v2 compatible if set manually)
-                if hasattr(schema_class, 'Config') and hasattr(schema_class.Config, 'json_schema_extra'):
-                    examples = schema_class.Config.json_schema_extra.get('examples')
-                    if examples:
-                        return json.dumps(examples[0], indent=2, ensure_ascii=False)
-                
-                # 2. Try Standard Schema Dump
-                if hasattr(schema_class, 'model_json_schema'): # Pydantic v2
-                    schema_json = schema_class.model_json_schema()
-                    if 'examples' in schema_json:
-                         return json.dumps(schema_json['examples'][0], indent=2, ensure_ascii=False)
-                    return json.dumps(schema_json, indent=2, ensure_ascii=False)
-                
-                # 3. Fallback Pydantic v1
-                if hasattr(schema_class, 'schema_json'):
-                    return schema_class.schema_json(indent=2)
-                    
-            # 4. Fallback to Mock Data (Automated)
-            from backend.llm.mock_data import get_example_for_agent
-            mock_example = get_example_for_agent(agent_instance.__class__.__name__)
-            if mock_example:
-                 return json.dumps(mock_example, indent=2, ensure_ascii=False)
+                # Prefer Pydantic v2: model_json_schema()
+                if hasattr(schema_class, 'model_json_schema'):
+                    try:
+                        schema_json = schema_class.model_json_schema()
+                        # Extract example if present in 'examples' list inside schema (standard practice)
+                        if 'examples' in schema_json and isinstance(schema_json['examples'], list) and schema_json['examples']:
+                             return json.dumps(schema_json['examples'][0], indent=2, ensure_ascii=False)
+                        
+                        # Use json_schema_extra if defined (Pydantic v2 Config)
+                        if hasattr(schema_class, 'Config') and hasattr(schema_class.Config, 'json_schema_extra'):
+                            extra = schema_class.Config.json_schema_extra
+                            if isinstance(extra, dict) and 'examples' in extra:
+                                 return json.dumps(extra['examples'][0], indent=2, ensure_ascii=False)
+
+                        # Return full schema if no example found - Cleaned
+                        return json.dumps(schema_json, indent=2, ensure_ascii=False)
+                    except Exception as e:
+                        logger.warning(f"Failed to dump model_json_schema for {agent_instance.__class__.__name__}: {e}")
+
+                # Fallback: Mock Data (Automated)
+                from backend.llm.mock_data import get_example_for_agent
+                mock_example = get_example_for_agent(agent_instance.__class__.__name__)
+                if mock_example:
+                     return json.dumps(mock_example, indent=2, ensure_ascii=False)
             
-            return "Error: Agent does not expose get_response_schema() and No Mock Data found."
+            return "Error: Agent schema extraction failed."
         except Exception as e:
             return f"Error generating schema example: {str(e)}"
 

@@ -41,6 +41,26 @@ if page == "Assessment":
     # Main Area: Inputs
     st.header("1. Syötä Todistusaineisto (Evidence)")
     
+    # --- Auto-Resume Logic ---
+    # Convert 'active_job_id' to persistent check if not in session
+    if 'active_job_id' not in st.session_state:
+        # Check if we have a running job in backend
+        try:
+            recents = api_client.get_recent_runs(limit=1)
+            if recents:
+                last_run = recents[0]
+                status = last_run.get('status', '').lower()
+                # If running or pending, auto-attach explicitly
+                if status in ['running', 'pending']:
+                    st.session_state['active_job_id'] = last_run['execution_id']
+                    st.toast(f"Resumed monitoring active job: {last_run['execution_id']}")
+                    time.sleep(0.5) 
+                    st.rerun()
+                # If failed/rejected recently (e.g. < 5 mins), maybe show notification?
+                # For now just let history handle it, users might want to start new one.
+        except Exception:
+            pass
+
     col1, col2 = st.columns(2)
     with col1:
         history_file = st.file_uploader("Keskusteluhistoria (Chat Logs)", type=['txt', 'pdf', 'docx'])
@@ -57,83 +77,147 @@ if page == "Assessment":
             start_clicked = True
             
     with b_col2:
-        # Resume functionality logic: Fetch last run and display?
-        # The original code just set a flag. Let's make it fetch recent runs.
-        pass
+        # Resume functionality logic
+        if 'active_job_id' in st.session_state:
+             st.info(f"Active Job: {st.session_state['active_job_id']}")
+             if st.button("Clear Active Job"):
+                 del st.session_state['active_job_id']
+                 st.rerun()
 
+    # --- Job Tracking Logic (Robust) ---
+    job_id = st.session_state.get('active_job_id')
+
+    # Start Button Logic
     if start_clicked:
         if not selected_workflow_id:
-            st.error("Please select a workflow.")
+             st.error("Please select a workflow.")
         elif not history_file or not product_file or not reflection_file:
-            st.error("Please upload all 3 files.")
+             st.error("Please upload all 3 files.")
         else:
-            with st.spinner("Starting Workflow..."):
-                try:
-                    # Prepare Multipart Payload
-                    files = {}
-                    inputs_metadata = {} 
+             with st.spinner("Starting Workflow..."):
+                 try:
+                     files = {}
+                     inputs_metadata = {} 
+                     if history_file: files["history_text"] = (history_file.name, history_file.getvalue())
+                     if product_file: files["product_text"] = (product_file.name, product_file.getvalue())
+                     if reflection_file: files["reflection_text"] = (reflection_file.name, reflection_file.getvalue())
+                     
+                     job_data = api_client.start_execution(selected_workflow_id, files, inputs_metadata)
+                     job_id = job_data['execution_id']
+                     st.session_state['active_job_id'] = job_id
+                     st.success(f"Job Started! ID: {job_id}")
+                     st.rerun() # Rerun to enter the tracking loop below
+                 except Exception as e:
+                     st.error(f"Client Error: {e}")
 
-                    if history_file:
-                        files["history_text"] = (history_file.name, history_file.getvalue())
-                    if product_file:
-                        files["product_text"] = (product_file.name, product_file.getvalue())
-                    if reflection_file:
-                        files["reflection_text"] = (reflection_file.name, reflection_file.getvalue())
-                    
-                    job_data = api_client.start_execution(selected_workflow_id, files, inputs_metadata)
-                    job_id = job_data['execution_id']
-                    st.success(f"Job Started! ID: {job_id}")
-                    
-                    # --- Polling Loop ---
-                    # Get Steps for progress bar
-                    dynamic_steps_order = api_client.get_workflow_steps(selected_workflow_id, workflow_options)
-                    
-                    progress_bar = st.progress(0)
-                    status_text = st.empty()
-                    
-                    while True:
-                        status_data = api_client.get_execution_status(job_id)
-                        if not status_data:
-                            time.sleep(2)
-                            continue
-                            
-                        status = status_data.get('status')
-                        
-                        if status and status.upper() == "COMPLETED":
-                            progress_bar.progress(100)
-                            status_text.success("Assessment Completed!")
-                            result = status_data.get('result', {})
-                            render_dashboard(result)
-                            break
-                        
-                        elif status and status.upper() == "FAILED":
-                            status_text.error(f"Job Failed: {status_data.get('error')}")
-                            break
-                        
-                        elif status and status.upper() == "REJECTED":
-                            status_text.error(f"⚠️ Security Intervention (Rejected): {status_data.get('error')}")
-                            # Optional: Render partial result if available
-                            if 'result' in status_data:
-                                with st.expander("Details"):
-                                    st.json(status_data['result'])
-                            break
-                        
-                        else:
-                            current_step = status_data.get('current_step')
-                            if current_step and current_step in dynamic_steps_order:
-                                idx = dynamic_steps_order.index(current_step)
-                                progress = (idx + 1) / len(dynamic_steps_order)
-                                progress_bar.progress(min(progress, 0.95))
-                                status_text.info(f"Vaihe {idx+1}/{len(dynamic_steps_order)}: {current_step} käynnissä...")
-                            elif current_step:
-                                status_text.info(f"Status: {status} - Processing: {current_step}")
-                            else:
-                                status_text.info(f"Status: {status}...")
-                                
-                            time.sleep(2)
-                            
-                except Exception as e:
-                    st.error(f"Client Error: {e}")
+    # Polling / Tracking Loop (Checks session_state job_id)
+    if job_id:
+        st.divider()
+        st.subheader(f"Execution Status: {job_id}")
+        
+        dynamic_steps_order = []
+        # Try to guess steps from selected workflow if possible, otherwise we might just default
+        if selected_workflow_id:
+             dynamic_steps_order = api_client.get_workflow_steps(selected_workflow_id, workflow_options)
+        
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+        result_container = st.container()
+        
+        # We need a loop that keeps running while status is ACTIVE
+        # But we also need to render buttons if FAILED.
+        
+        while True:
+             status_data = api_client.get_execution_status(job_id)
+             if not status_data:
+                 time.sleep(2)
+                 continue
+                 
+             status = status_data.get('status')
+             
+             # Calculate Progress
+             current_step = status_data.get('current_step')
+             pct = status_data.get('progress')
+
+             if pct is not None:
+                 # Use backend-reported percent
+                 progress_bar.progress(min(pct / 100.0, 1.0))
+                 if current_step:
+                     status_text.info(f"{current_step}")
+                 else:
+                     status_text.info(f"Status: {status} ({pct}%)")
+             
+             elif current_step and dynamic_steps_order and current_step in dynamic_steps_order:
+                  idx = dynamic_steps_order.index(current_step)
+                  progress = (idx + 1) / len(dynamic_steps_order)
+                  progress_bar.progress(min(progress, 0.95))
+                  status_text.info(f"Vaihe {idx+1}/{len(dynamic_steps_order)}: {current_step} käynnissä...")
+             else:
+                  # Fallback / Start
+                  progress_bar.progress(0.1) 
+                  if current_step:
+                       status_text.info(f"{current_step}")
+                  else:
+                       status_text.info(f"Status: {status} ...")
+
+             # Handle Terminal States
+             if status and status.upper() == "COMPLETED":
+                 progress_bar.progress(100)
+                 status_text.success("Assessment Completed!")
+                 result = status_data.get('result', {})
+                 with result_container:
+                      render_dashboard(result)
+                 # Allow clearing
+                 if st.button("Start New Assessment"):
+                      del st.session_state['active_job_id']
+                      st.rerun()
+                 break
+             
+             elif status and status.upper() == "FAILED":
+                 status_text.error(f"Job Failed: {status_data.get('error')}")
+                 
+                 col_retry, col_clear = st.columns(2)
+                 with col_retry:
+                      if st.button("🔄 Retry / Resume (From last success)"):
+                           try:
+                               import requests
+                               res = requests.post(f"{BACKEND_URL}/workflows/executions/{job_id}/retry")
+                               if res.status_code == 200:
+                                    st.success("Resuming...")
+                                    time.sleep(1)
+                                    st.rerun()
+                               else:
+                                    st.error(f"Retry failed: {res.text}")
+                           except Exception as e:
+                               st.error(f"Retry Error: {e}")
+                 with col_clear:
+                      if st.button("Cancel & Clear"):
+                           del st.session_state['active_job_id']
+                           st.rerun()
+                 break
+             
+             elif status and status.upper() == "REJECTED":
+                 status_text.error(f"⚠️ Security Intervention (Rejected): {status_data.get('error')}")
+                 if 'result' in status_data:
+                      with st.expander("Details"):
+                          st.json(status_data['result'])
+                 if st.button("Acknowledge & Clear"):
+                      del st.session_state['active_job_id']
+                      st.rerun()
+                 break
+             
+             # If still running
+             time.sleep(2)
+             # Streamlit reruns logic: we are in a loop.
+             # If we want to allow UI interaction (like stop), we rely on Streamlit's "Stop" button or browser refresh.
+             # But st.button inside loop won't work well.
+             # However, since we are BLOCKING here, the user can't click things easily unless they break the loop.
+             # Actually, Streamlit recommends st.empty() and just sleeping. 
+             # But if we want responsiveness we rely on st.rerun() interval?
+             # For now, this blocking loop is fine for "Watching".
+             
+             # To allow breaking out manually, we can check for a stop button outside? No.
+             pass
 
     # History Section
     st.subheader("Historia")
@@ -163,74 +247,178 @@ if page == "Assessment":
                     st.json(selected_run)
 
 elif page == "Admin":
-    st.header("Admin / Knowledge Base")
+    st.header("Admin / Tooling")
     
-    st.subheader("1. Knowledge Base Ingestion")
-    st.markdown("Upload a DOCX file (e.g., `Holistinen Mestaruus.docx`) to ingest it into the Knowledge Base.")
-    st.markdown("This allows the Coach Agent to use its concepts and bibliography.")
+    tabs = st.tabs(["Knowledge Base", "Agent Registry", "Concept Extractor", "Citation Lookup", "Maintenance"])
     
-    uploaded_kb = st.file_uploader("Upload Knowledge Base File", type=['docx'])
-    
-    if uploaded_kb:
-        if st.button("Ingest Knowledge Base File"):
-            with st.spinner("Ingesting file..."):
-                try:
-                    import requests
-                    # We need to manually construct the request or extend api_client
-                    # Let's extend api_client properly next time, but for now requests
-                    files = {"file": (uploaded_kb.name, uploaded_kb.getvalue(), "application/vnd.openxmlformats-officedocument.wordprocessingml.document")}
-                    res = requests.post(f"{BACKEND_URL}/admin/knowledge-base/upload", files=files)
-                    
-                    if res.status_code == 200:
-                        data = res.json()
-                        job_id = data.get("job_id")
-                        st.success(f"Ingestion Started! Job ID: {job_id}")
+    # --- Tab 1: Knowledge Base Ingestion ---
+    with tabs[0]:
+        st.subheader("Knowledge Base Ingestion")
+        st.markdown("Upload a DOCX file (e.g., `Holistinen Mestaruus.docx`) to ingest it into the Knowledge Base.")
+        
+        uploaded_kb = st.file_uploader("Upload Knowledge Base File", type=['docx'])
+        
+        if uploaded_kb:
+            if st.button("Ingest Knowledge Base File"):
+                with st.spinner("Ingesting file..."):
+                    try:
+                        import requests
+                        files = {"file": (uploaded_kb.name, uploaded_kb.getvalue(), "application/vnd.openxmlformats-officedocument.wordprocessingml.document")}
+                        res = requests.post(f"{BACKEND_URL}/admin/knowledge-base/upload", files=files)
                         
-                        # Polling Loop
-                        progress_bar = st.progress(0)
-                        status_text = st.empty()
-                        
-                        while True:
-                            try:
-                                status_res = requests.get(f"{BACKEND_URL}/admin/knowledge-base/status/{job_id}")
-                                if status_res.status_code == 200:
-                                    status = status_res.json()
-                                    percent = status.get("percent", 0)
-                                    stage = status.get("stage", "Processing...")
-                                    state = status.get("status", "unknown")
-                                    
-                                    progress_bar.progress(percent)
-                                    status_text.info(f"{state.upper()}: {stage}")
-                                    
-                                    if state in ["completed", "failed"]:
-                                        if state == "completed":
-                                            st.success("Ingestion Completed Successfully!")
-                                            st.json(status.get("result"))
-                                        else:
-                                            st.error(f"Ingestion Failed: {status.get('error')}")
-                                        break
-                                else:
-                                    status_text.warning("Waiting for status...")
-                                    
-                                time.sleep(1)
-                            except Exception as e:
-                                st.error(f"Polling error: {e}")
-                                break
-                    else:
-                        st.error(f"Ingestion Failed: {res.text}")
-                except Exception as e:
-                    st.error(f"Error: {e}")
+                        if res.status_code == 200:
+                            data = res.json()
+                            job_id = data.get("job_id")
+                            st.success(f"Ingestion Started! Job ID: {job_id}")
+                            
+                            # Polling Loop
+                            progress_bar = st.progress(0)
+                            status_text = st.empty()
+                            
+                            while True:
+                                try:
+                                    status_res = requests.get(f"{BACKEND_URL}/admin/knowledge-base/status/{job_id}")
+                                    if status_res.status_code == 200:
+                                        status = status_res.json()
+                                        percent = status.get("percent", 0)
+                                        stage = status.get("stage", "Processing...")
+                                        state = status.get("status", "unknown")
+                                        
+                                        progress_bar.progress(percent)
+                                        status_text.info(f"{state.upper()}: {stage}")
+                                        
+                                        if state in ["completed", "failed"]:
+                                            if state == "completed":
+                                                st.success("Ingestion Completed Successfully!")
+                                                st.json(status.get("result"))
+                                            else:
+                                                st.error(f"Ingestion Failed: {status.get('error')}")
+                                            break
+                                    else:
+                                        status_text.warning("Waiting for status...")
+                                        
+                                    time.sleep(1)
+                                except Exception as e:
+                                    st.error(f"Polling error: {e}")
+                                    break
+                        else:
+                            st.error(f"Ingestion Failed: {res.text}")
+                    except Exception as e:
+                        st.error(f"Error: {e}")
 
-    st.markdown("---")
-    st.subheader("2. System Maintenance")
-    
-    if st.button("Run Self-Test"):
+    # --- Tab 2: Agent Registry ---
+    with tabs[1]:
+        st.subheader("Agent Registry")
         try:
             import requests
-            res = requests.post(f"{BACKEND_URL}/admin/self-test")
-            st.json(res.json())
+            res = requests.get(f"{BACKEND_URL}/agents/")
+            if res.status_code == 200:
+                agents = res.json()
+                if agents:
+                    # Convert to minimal DataFrame for overview
+                    df_data = []
+                    for a in agents:
+                         df_data.append({
+                             "Name": a.get("name"),
+                             "Model": a.get("model"),
+                             "Description": a.get("description", "").split("\n")[0] # First line only
+                         })
+                    st.dataframe(pd.DataFrame(df_data), use_container_width=True)
+                    
+                    # Detailed View
+                    st.divider()
+                    st.markdown("### Agent Details")
+                    sel_agent = st.selectbox("View Schema for Agent:", [a['name'] for a in agents])
+                    if sel_agent:
+                        agent_data = next((a for a in agents if a['name'] == sel_agent), None)
+                        if agent_data:
+                            c1, c2 = st.columns(2)
+                            with c1:
+                                st.markdown("**Input Schema**")
+                                st.json(agent_data.get('input_schema'))
+                            with c2:
+                                st.markdown("**Full Description**")
+                                st.markdown(agent_data.get('description'))
+                else:
+                    st.info("No agents registered yet.")
+            else:
+                st.error(f"Failed to fetch agents: {res.status_code}")
         except Exception as e:
-            st.error(e)
+            st.error(f"Connection Error: {e}")
+
+    # --- Tab 3: Concept Extractor ---
+    with tabs[2]:
+        st.subheader("LLM Concept Extractor")
+        st.markdown("Test the concept extraction logic without saving to DB.")
+        
+        ex_text = st.text_area("Paste Text to Extract Concepts From:", height=200)
+        
+        if st.button("Extract Concepts"):
+             if not ex_text:
+                 st.warning("Please enter text.")
+             else:
+                 with st.spinner("Analyzing text with LLM..."):
+                     try:
+                         import requests
+                         # Use tool endpoint
+                         res = requests.post(f"{BACKEND_URL}/tools/extract-concepts", json=ex_text) # Body as string? Router expects Body(embed=False) or check definition
+                         # Router: text: str = Body(None) -> Requires JSON body "text" or raw string? 
+                         # Actually my router def: text: str = Body(None). If content-type json, expects match.
+                         # Better to use requests.post(..., json=payload) with payload={"text": ex_text} if model, or just data=ex_text ?
+                         # FastApi Body(embed=False) usually takes raw body if media_type matches.
+                         # Let's check router: text: str = Body(None) implies JSON body key "text" if embed=False default? No, usually body param name implies key unless embed=False.
+                         # Actually simpler: Use multipart/form-data with "text" field, compatible with the UploadFile logic in the same endpoint.
+                         
+                         form_data = {"text": ex_text}
+                         res = requests.post(f"{BACKEND_URL}/tools/extract-concepts", data=form_data)
+                         
+                         if res.status_code == 200:
+                             result = res.json()
+                             concepts = result.get("concepts", [])
+                             st.success(f"Found {len(concepts)} concepts!")
+                             st.json(concepts)
+                         else:
+                             st.error(f"Error: {res.text}")
+                     except Exception as e:
+                         st.error(f"Request failed: {e}")
+
+    # --- Tab 4: Citation Lookup ---
+    with tabs[3]:
+        st.subheader("Citation Lookup")
+        st.markdown("Check if text contains citations known to the Knowledge Base (Coach Logic).")
+        
+        cit_text = st.text_area("Paste Text to Check:", height=200)
+        if st.button("Check Citations"):
+             with st.spinner("Checking..."):
+                 try:
+                     import requests
+                     # Router: text: str = Body(..., embed=True) -> Expects JSON {"text": "..."}
+                     res = requests.post(f"{BACKEND_URL}/tools/citation-lookup", json={"text": cit_text})
+                     
+                     if res.status_code == 200:
+                         data = res.json()
+                         citations = data.get("citations", [])
+                         if citations:
+                             st.success(f"Found {len(citations)} citations!")
+                             for c in citations:
+                                 st.markdown(f"- {c}")
+                         else:
+                             st.info("No citations found.")
+                     else:
+                         st.error(f"Error: {res.text}")
+                 except Exception as e:
+                     st.error(f"Failed: {e}")
+
+    # --- Tab 5: Maintenance ---
+    with tabs[4]:
+        st.subheader("System Maintenance")
+        if st.button("Run Self-Test"):
+            try:
+                import requests
+                res = requests.post(f"{BACKEND_URL}/admin/self-test")
+                st.json(res.json())
+            except Exception as e:
+                st.error(e)
 
 elif page == "System Info":
     st.header("System Configuration & Seed Data")

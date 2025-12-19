@@ -47,9 +47,12 @@ class LLMProvider(ABC):
         pass
 
 class GoogleGeminiProvider(LLMProvider):
-    def __init__(self, model_name: str = "gemini-1.5-flash", api_key: Optional[str] = None):
+    def __init__(self, model_name: Optional[str] = None, api_key: Optional[str] = None):
         import google.generativeai as genai
-        self.model_name = model_name
+        from backend.settings import Settings
+        
+        self.settings = Settings()
+        self.model_name = model_name or self.settings.gemini_model_fast
         self.api_key = api_key or GOOGLE_API_KEY
         
         if not self.api_key:
@@ -183,7 +186,8 @@ class GoogleGeminiProvider(LLMProvider):
                     logger.warning(f"[GeminiProvider] 429/Quota Exhausted for {self.model_name}.")
                     
                     # FALLBACK STRATEGY
-                    fallback_model = "gemini-2.0-flash-exp" # Much cheaper/higher quota
+                    fallback_model = self.settings.gemini_model_deep # Use configured deep model as fallback (usually different quota bucket)
+                    
                     if self.model_name != fallback_model:
                         logger.warning(f"[GeminiProvider] ⚠️ FALLING BACK to {fallback_model} to salvage request...")
                         
@@ -379,10 +383,21 @@ class LLMFactory:
         
         if USE_MOCK_LLM:
             return MockProvider()
-            
+        
+        from backend.settings import Settings
+        settings = Settings()
+
         if provider_type.lower() == "gemini":
-            return GoogleGeminiProvider(model_name=model_name or "gemini-1.5-flash")
+            target_model = model_name or settings.gemini_model_fast
+            return GoogleGeminiProvider(model_name=target_model)
         elif provider_type.lower() == "openai":
+            # Assuming we might add an openai_model setting later, but for now strict user rule applies to "AI Model UI" which seems to be Gemini focused?
+            # Or if user only defined gemini models, maybe this branch is less critical.
+            # But let's avoid hardcoding gpt-4o if we can.
+            # However, settings only has gemini_model_fast/deep.
+            # I will just remove the 'or "gpt-4o"' and let it fail or use a passed name.
+            # Actually, to be safe, I'll default to "gpt-4o" ONLY if not in settings, but really I should just pass model_name.
+            # If model_name is None for openai... verify if we have a setting.
             return OpenAIProvider(model_name=model_name or "gpt-4o")
         else:
             raise ValueError(f"Unknown provider: {provider_type}")

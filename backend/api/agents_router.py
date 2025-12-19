@@ -3,7 +3,8 @@ from typing import Dict, Any, Optional
 import importlib
 
 from backend.database.wrapper import AbstractDatabase, get_db_client
-from backend.dependencies import get_db_client_dep
+from backend.dependencies import get_db_client_dep, get_agent_registry_dep
+from backend.services.agent_registry import AgentRegistry
 from tinydb import Query
 from backend.config import DB_PATH
 import logging
@@ -42,7 +43,7 @@ async def run_agent(
     agent_name: str, 
     inputs: Dict[str, Any] = Body(...),
     system_instruction: Optional[str] = Body(None),
-    model: Optional[str] = Body("gemini-2.5-flash"),
+    model: Optional[str] = Body(None),
     db: AbstractDatabase = Depends(get_db_client_dep)
 ):
     """
@@ -61,3 +62,38 @@ async def run_agent(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/")
+def list_agents(registry: AgentRegistry = Depends(get_agent_registry_dep)):
+    """
+    Lists all available agents and their metadata.
+    """
+    agents_list = []
+    
+    # Force discovery if empty (though dep should handle it)
+    if not registry.agents_map:
+        registry.discover_and_register_agents()
+        
+    for name, agent_instance in registry.agents_map.items():
+        # Clean up name (remove module path if present, though registry keys are usually class names)
+        # Inspect input schema if possible
+        input_schema = None
+        if hasattr(agent_instance, 'get_input_schema'):
+             try:
+                 # It's a method on BaseAgent
+                 # However, get_input_schema might return a Pydantic model class
+                 schema_cls = agent_instance.get_input_schema()
+                 if schema_cls:
+                     input_schema = schema_cls.model_json_schema()
+             except Exception:
+                 pass
+
+        agents_list.append({
+            "name": name,
+            "class": name,
+            "description": agent_instance.__doc__.strip() if agent_instance.__doc__ else "No description.",
+            "model": agent_instance.model,
+            "input_schema": input_schema
+        })
+        
+    return agents_list
