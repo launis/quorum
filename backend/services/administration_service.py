@@ -9,7 +9,7 @@ from datetime import datetime
 
 from backend.database.repository import AbstractWorkflowRepository
 from backend.services.progress import ProgressTracker
-from backend.config import DATA_DIR, SCRIPTS_DIR
+# from backend.config import DATA_DIR, SCRIPTS_DIR # Removed
 
 # Hardcoded rules source from original script
 
@@ -21,8 +21,11 @@ class AdministrationService:
         """
         Imports References from data/bibliography.txt
         """
+        from backend.settings import get_settings
+        settings = get_settings()
+        
         tracker.start({"operation": "Import References"})
-        bib_path = os.path.join(DATA_DIR, 'bibliography.txt')
+        bib_path = os.path.join(settings.data_dir, 'bibliography.txt')
         
         try:
             if not os.path.exists(bib_path):

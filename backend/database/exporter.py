@@ -2,7 +2,7 @@ import json
 import os
 import sys
 from tinydb import TinyDB, Query
-from backend.config import DB_PATH
+# from backend.config import DB_PATH # Removed
 
 # Paths (mirroring seeder.py)
 BASE_DIR = os.path.dirname(__file__)
@@ -14,7 +14,10 @@ def export_db_to_files(source_db_path=None):
     """
     Exports the current state of the database back to `seed_data.json`.
     """
-    db_path_to_use = source_db_path if source_db_path else DB_PATH
+    from backend.settings import get_settings
+    settings = get_settings()
+    
+    db_path_to_use = source_db_path if source_db_path else settings.start_db_path
     print(f"Starting export from DB ({db_path_to_use}) to files...")
     
     db = TinyDB(db_path_to_use, encoding='utf-8')
@@ -29,8 +32,8 @@ def export_db_to_files(source_db_path=None):
     
     try:
         # Read existing seed_data to preserve other fields if any
-        if os.path.exists(SEED_DATA_PATH):
-            with open(SEED_DATA_PATH, 'r', encoding='utf-8') as f:
+        if os.path.exists(settings.seed_data_path):
+            with open(settings.seed_data_path, 'r', encoding='utf-8') as f:
                 seed_data = json.load(f)
         else:
             seed_data = {"components": [], "steps": [], "workflows": []}
@@ -54,9 +57,9 @@ def export_db_to_files(source_db_path=None):
         # So it's safe to write it, but redundant.
         # However, for NON-templated components (if any), we MUST write the content.
         
-        with open(SEED_DATA_PATH, 'w', encoding='utf-8') as f:
+        with open(settings.seed_data_path, 'w', encoding='utf-8') as f:
             json.dump(seed_data, f, indent=2, ensure_ascii=False)
-        print(f"Exported workflows and steps to {SEED_DATA_PATH}")
+        print(f"Exported workflows and steps to {settings.seed_data_path}")
         
     except Exception as e:
         print(f"Error exporting seed data: {e}")

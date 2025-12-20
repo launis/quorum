@@ -9,7 +9,7 @@ import inspect
 
 from backend.database.exporter import export_db_to_files
 from backend.database.seeder import seed_database
-from backend.config import DB_PATH, PROD_DB_PATH, MOCK_DB_PATH, MODEL_STRATEGIES
+# from backend.config import DB_PATH, PROD_DB_PATH, MOCK_DB_PATH, MODEL_STRATEGIES # Removed
 from backend.database.wrapper import get_db_client, AbstractDatabase
 from backend.dependencies import get_db_client_dep
 from backend.models import domain as schemas
@@ -251,12 +251,14 @@ def deploy_mock_to_prod():
     """
     Deploys the current Mock environment configuration to the Production Database.
     """
+    from backend.settings import get_settings
+    settings = get_settings()
     try:
         # 1. Export Mock DB to seed_data.json
-        export_db_to_files(source_db_path=MOCK_DB_PATH)
+        export_db_to_files(source_db_path=settings.mock_db_path)
         
         # 2. Seed Production DB from the updated seed file
-        seed_database(target_db_path=PROD_DB_PATH)
+        seed_database(target_db_path=settings.prod_db_path)
         
         return {"status": "success", "message": "Mock environment deployed to Production DB."}
     except Exception as e:
@@ -267,12 +269,14 @@ def deploy_prod_to_mock():
     """
     Deploys the current Production environment configuration to the Mock Database.
     """
+    from backend.settings import get_settings
+    settings = get_settings()
     try:
         # 1. Export Prod DB to seed_data.json
-        export_db_to_files(source_db_path=PROD_DB_PATH)
+        export_db_to_files(source_db_path=settings.prod_db_path)
         
         # 2. Seed Mock DB from the updated seed file
-        seed_database(target_db_path=MOCK_DB_PATH)
+        seed_database(target_db_path=settings.mock_db_path)
         
         return {"status": "success", "message": "Production environment deployed to Mock DB."}
     except Exception as e:
@@ -471,7 +475,9 @@ def get_model_strategies(db: AbstractDatabase = Depends(get_db_client_dep)):
         logger.error(f"Error fetching strategies from DB: {e}")
 
     # 2. Fallback to static
-    return MODEL_STRATEGIES
+    from backend.settings import get_settings
+    settings = get_settings()
+    return settings.model_strategies
 
 @router.get("/introspection")
 def get_introspection():

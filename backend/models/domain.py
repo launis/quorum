@@ -275,12 +275,19 @@ class XAIReport(BaseJSON):
 
 # --- Step 2.5: Profiler Agent ---
 
+
+class StructuredBias(BaseModel):
+    nimi: str = Field(..., description="Name of the cognitive bias")
+    selitys: str = Field(..., description="Explanation of how this bias appears in the text")
+
+
 class ProfilerAnalysis(BaseJSON):
     intentio_analyysi: str
     tunnetila_ja_savy: str
-    tunnistetut_vinoumat: list[str]
+    tunnistetut_vinoumat: list[StructuredBias]
     psykologinen_profiili: str
     manipulaatio_yritykset: str
+    teksti_metriikka: Optional[Dict[str, Any]] = Field(None, description="Objective metrics calculated by Python hook")
 
 
 

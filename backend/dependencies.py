@@ -7,7 +7,7 @@ from backend.database.repository import AbstractWorkflowRepository, TinyDBReposi
 from backend.services.agent_registry import AgentRegistry
 from backend.services.prompt_builder import PromptBuilder
 from backend.core.engine import WorkflowEngine
-from backend.config import DB_PATH
+# from backend.config import DB_PATH # Removed
 from backend.settings import Settings, get_settings
 
 logger = logging.getLogger(__name__)
@@ -99,8 +99,9 @@ def get_engine(
              document_service = get_document_service_dep(storage_service)
 
         # Inject Services
+        settings = get_settings()
         _engine_instance = WorkflowEngine(
-            db_path=DB_PATH, 
+            db_path=settings.start_db_path, 
             repository=repository,
             registry=registry,
             prompt_builder=prompt_builder,

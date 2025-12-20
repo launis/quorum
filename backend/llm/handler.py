@@ -3,7 +3,8 @@ import logging
 from typing import List, Dict, Any, Optional
 from tinydb import Query
 from backend.database.wrapper import get_db_client
-from backend.config import GOOGLE_API_KEY, USE_MOCK_LLM, INITIAL_MODEL
+from backend.settings import get_settings
+# from backend.config import GOOGLE_API_KEY, USE_MOCK_LLM, INITIAL_MODEL # Removed
 from backend.llm.provider import LLMFactory
 import google.generativeai as genai
 import openai
@@ -23,21 +24,22 @@ class LLMHandler:
         Queries Google GenAI and OpenAI APIs for available models.
         Respects USE_MOCK_LLM.
         """
+        settings = get_settings()
         models = {
             "google": [],
             "openai": []
         }
         
-        if USE_MOCK_LLM:
+        if settings.use_mock_llm:
             models["google"] = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.5-flash", "gemini-2.5-pro"]
             models["openai"] = ["gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo"]
             return models
         
         # 1. Fetch Google Models
         try:
-            logger.info(f"Attempting to fetch Google models using API Key: {'Present' if GOOGLE_API_KEY else 'MISSING'}")
-            if GOOGLE_API_KEY:
-                genai.configure(api_key=GOOGLE_API_KEY)
+            logger.info(f"Attempting to fetch Google models using API Key: {'Present' if settings.google_api_key else 'MISSING'}")
+            if settings.google_api_key:
+                genai.configure(api_key=settings.google_api_key)
                 found_count = 0
                 for m in genai.list_models():
                     logger.debug(f"Found model: {m.name} | Methods: {m.supported_generation_methods}")
@@ -113,7 +115,8 @@ class LLMHandler:
         config = self.get_model_config(provider, mode)
         
         # Defaults
-        model_name = INITIAL_MODEL
+        settings = get_settings()
+        model_name = settings.initial_model
         temperature = 0.7
         max_tokens = None
         

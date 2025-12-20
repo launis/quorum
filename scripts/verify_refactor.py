@@ -1,40 +1,32 @@
 import sys
 import os
-import json
+import importlib
 
-# Add project root to path (one level up)
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(project_root)
+# Add project root to path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from src.engine.orchestrator import Orchestrator
-from src.database.initialization import initialize_database
-import src.components.hooks # Register hooks
-
-def verify_refactor():
-    print("Verifying Refactored Structure (Direct Integration)...")
-    
-    # Initialize DB
-    initialize_database()
-    
-    initial_inputs = {
-        "prompt_text": "Refactor Test Prompt",
-        "history_text": "Refactor Test History",
-        "product_text": "Refactor Test Product",
-        "reflection_text": "Refactor Test Reflection"
-    }
-    
+def verify_import_cleanliness():
+    print("--- Verifying Imports ---")
     try:
-        orchestrator = Orchestrator()
-        result = orchestrator.run_workflow("KVOORUMI_PHASED_A", initial_inputs)
-        
-        print("   Success! Workflow executed.")
-        print("   Final Verdict:", result.get('final_verdict'))
-        print("   XAI Report:", result.get('xai_report')[:50] + "...")
-        
+        import backend.config
+        print("❌ FAILURE: backend.config was imported! It should be deleted.")
+    except ImportError:
+        print("✅ SUCCESS: backend.config could not be imported (as expected).")
     except Exception as e:
-        print(f"   Execution Error: {e}")
-        import traceback
-        traceback.print_exc()
+        print(f"⚠️ Unexpected error importing backend.config: {e}")
+
+def verify_settings_load():
+    print("\n--- Verifying Settings Load ---")
+    try:
+        from backend.settings import get_settings
+        settings = get_settings()
+        print(f"✅ Settings Loaded Successfully.")
+        print(f"   - USE_MOCK_LLM: {settings.use_mock_llm}")
+        print(f"   - USE_MOCK_DB: {settings.use_mock_db}")
+        print(f"   - DB Path: {settings.start_db_path}")
+    except Exception as e:
+        print(f"❌ FAILURE: Could not load settings: {e}")
 
 if __name__ == "__main__":
-    verify_refactor()
+    verify_settings_load()
+    verify_import_cleanliness()

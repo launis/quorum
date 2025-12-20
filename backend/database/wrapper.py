@@ -2,7 +2,8 @@ from abc import ABC, abstractmethod
 from typing import Any, List, Dict, Optional, Union
 import logging
 from tinydb import TinyDB
-from backend.config import USE_MOCK_DB, DB_PATH
+# from backend.config import USE_MOCK_DB, DB_PATH # Removed
+
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -143,15 +144,18 @@ def get_db_client() -> AbstractDatabase:
     """
     Factory to get the appropriate database client based on configuration.
     """
-    if USE_MOCK_DB:
-        return TinyDBClient(DB_PATH)
+    from backend.settings import get_settings
+    settings = get_settings()
+
+    if settings.use_mock_db:
+        return TinyDBClient(settings.start_db_path)
     else:
         if not FIRESTORE_AVAILABLE:
             logger.warning("Firestore requested but not available. Falling back to TinyDB.")
-            return TinyDBClient(DB_PATH)
+            return TinyDBClient(settings.start_db_path)
         
         try:
             return FirestoreClient()
         except Exception as e:
             logger.error(f"Failed to create FirestoreClient: {e}. Falling back to TinyDB.")
-            return TinyDBClient(DB_PATH)
+            return TinyDBClient(settings.start_db_path)

@@ -6,7 +6,7 @@ from backend.database.wrapper import AbstractDatabase, get_db_client
 from backend.dependencies import get_db_client_dep, get_agent_registry_dep
 from backend.services.agent_registry import AgentRegistry
 from tinydb import Query
-from backend.config import DB_PATH
+# from backend.config import DB_PATH # Removed unused import
 import logging
 
 logger = logging.getLogger(__name__)

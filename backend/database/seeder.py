@@ -2,7 +2,7 @@ import json
 import os
 from typing import Optional
 from tinydb import TinyDB, Query
-from backend.config import DB_PATH, SEED_DATA_PATH
+# from backend.config import DB_PATH, SEED_DATA_PATH # Removed
 
 def seed_database(target_db_path: Optional[str] = None):
     """
@@ -11,17 +11,23 @@ def seed_database(target_db_path: Optional[str] = None):
     Args:
         target_db_path (Optional[str]): Path to the database file. Defaults to DB_PATH from config.
     """
-    db_path_to_use = target_db_path if target_db_path else DB_PATH
-    print(f"[Seeder] Seeding database at: {db_path_to_use}")
-    print(f"[Seeder] Using seed data from: {SEED_DATA_PATH}")
+    db_path_to_use = target_db_path if target_db_path else None
+    
+    from backend.settings import get_settings
+    settings = get_settings()
+    
+    final_db_path = db_path_to_use or settings.start_db_path
+    
+    print(f"[Seeder] Seeding database at: {final_db_path}")
+    print(f"[Seeder] Using seed data from: {settings.seed_data_path}")
 
-    if not os.path.exists(SEED_DATA_PATH):
-        print(f"[Seeder] Error: Seed data file not found at {SEED_DATA_PATH}")
+    if not os.path.exists(settings.seed_data_path):
+        print(f"[Seeder] Error: Seed data file not found at {settings.seed_data_path}")
         return
 
     # 1. Load Seed Data
     try:
-        with open(SEED_DATA_PATH, 'r', encoding='utf-8') as f:
+        with open(settings.seed_data_path, 'r', encoding='utf-8') as f:
             seed_data = json.load(f)
     except Exception as e:
         print(f"[Seeder] Error loading seed data: {e}")
@@ -29,7 +35,7 @@ def seed_database(target_db_path: Optional[str] = None):
 
     # 2. Initialize Database
     try:
-        db = TinyDB(db_path_to_use, encoding='utf-8')
+        db = TinyDB(final_db_path, encoding='utf-8')
         db.drop_tables()
         print("[Seeder] Cleared existing tables.")
     except Exception as e:

@@ -5,6 +5,8 @@ from pydantic import BaseModel, Field
 import logging
 import re
 
+
+from backend.models.domain import ProfilerAnalysis
 logger = logging.getLogger(__name__)
 
 class TextMetrics(BaseModel):
@@ -14,23 +16,8 @@ class TextMetrics(BaseModel):
     lexical_diversity: float = Field(..., description="Unique words divided by total words (0-1)")
     capitalization_ratio: float = Field(..., description="Ratio of uppercase letters to total letters")
 
-class StructuredBias(BaseModel):
-    nimi: str = Field(..., description="Name of the cognitive bias")
-    selitys: str = Field(..., description="Explanation of how this bias appears in the text")
 
-class ProfilerAnalysis(BaseModel):
-    """
-    Schema for the Profiler (Psychologist) Agent.
-    Analyzes intent, tone, and biases.
-    """
-    intentio_analyysi: str = Field(..., description="Analysis of the writer's hidden intent/motive")
-    tunnetila_ja_savy: str = Field(..., description="Analysis of emotional state and tone")
-    tunnistetut_vinoumat: list[StructuredBias] = Field(..., description="List of detected cognitive biases with explanations")
-    psykologinen_profiili: str = Field(..., description="Summary of the writer's psychological profile")
-    manipulaatio_yritykset: str = Field(..., description="Detection of any manipulation or sarcasm")
-    
-    # Python-calculated metrics injected here for the LLM to review/explain
-    teksti_metriikka: Optional[Dict[str, Any]] = Field(None, description="Objective metrics calculated by Python hook")
+# StructuredBias and ProfilerAnalysis removed (using domain.py)
 
 class ProfilerAgent(BaseAgent):
     """

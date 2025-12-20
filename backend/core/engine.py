@@ -7,7 +7,7 @@ import inspect
 import backend.agents
 
 from backend.models.state import WorkflowState, InputData
-from backend.config import INITIAL_MODEL
+# from backend.config import INITIAL_MODEL # Removed
 from backend.agents.base import BaseAgent
 from backend.services.agent_registry import AgentRegistry
 from backend.services.prompt_builder import PromptBuilder

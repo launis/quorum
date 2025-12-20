@@ -147,16 +147,17 @@ def get_storage_client() -> AbstractStorage:
     """
     Factory to get the configured storage client.
     """
-    from backend.config import STORAGE_BACKEND
+    from backend.settings import get_settings
+    settings = get_settings()
     
     # Simple Logic: LOCAL vs FIREBASE
     # User requested: Local in Dev, Firebase in Prod.
-    # Controlled by STORAGE_BACKEND env var.
+    # Controlled by storage_backend setting.
     
-    if STORAGE_BACKEND == "NONE":
+    if settings.storage_backend == "NONE":
         return NoOpStorage()
         
-    elif STORAGE_BACKEND == "FIREBASE":
+    elif settings.storage_backend == "FIREBASE":
         try:
             return FirebaseStorage()
         except Exception as e:

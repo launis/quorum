@@ -1,0 +1,52 @@
+sys.path: ['C:\\Users\\risto\\OneDrive\\quorum\\scripts', 'C:\\Users\\risto\\OneDrive\\quorum', 'C:\\Users\\risto\\AppData\\Local\\Programs\\Python\\Python312\\python312.zip', 'C:\\Users\\risto\\AppData\\Local\\Programs\\Python\\Python312\\DLLs', 'C:\\Users\\risto\\AppData\\Local\\Programs\\Python\\Python312\\Lib', 'C:\\Users\\risto\\AppData\\Local\\Programs\\Python\\Python312', 'C:\\Users\\risto\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages']
+backend.agents imported. Path: ['C:\\Users\\risto\\OneDrive\\quorum\\backend\\agents']
+Iterating modules with prefix: backend.agents.
+Found module: backend.agents.analyst (is_pkg=False)
+Found module: backend.agents.archivist (is_pkg=False)
+Found module: backend.agents.base (is_pkg=False)
+Found module: backend.agents.coach (is_pkg=False)
+Found module: backend.agents.critics (is_pkg=False)
+Found module: backend.agents.guard (is_pkg=False)
+Found module: backend.agents.interaction (is_pkg=False)
+Found module: backend.agents.judge (is_pkg=False)
+Found module: backend.agents.logician (is_pkg=False)
+Found module: backend.agents.panel (is_pkg=False)
+Found module: backend.agents.profiler (is_pkg=False)
+Found module: backend.agents.xai (is_pkg=False)
+
+--- Inspecting AnalystAgent ---
+Imported backend.agents.analyst
+Checking Class: AnalystAgent
+  - issubclass(BaseAgent): True
+  - is BaseAgent: False
+  -> SHOULD REGISTER
+Checking Class: Any
+  - issubclass(BaseAgent): False
+  - is BaseAgent: False
+Checking Class: BaseAgent
+  - issubclass(BaseAgent): True
+  - is BaseAgent: True
+Checking Class: BaseModel
+  - issubclass(BaseAgent): False
+  - is BaseAgent: False
+Checking Class: TodistusKartta
+  - issubclass(BaseAgent): False
+  - is BaseAgent: False
+Checking Class: WorkflowState
+  - issubclass(BaseAgent): False
+  - is BaseAgent: False
+
+--- Running Registry ---
+Registry Agents: ['AnalystAgent', 'ArchivistAgent', 'CoachAgent', 'CausalAnalystAgent', 'FactualOverseerAgent', 'LogicalFalsifierAgent', 'PerformativityDetectorAgent', 'GuardAgent', 'InteractionAnalystAgent', 'JudgeAgent', 'LogicianAgent', 'PanelAgent', 'ProfilerAgent', 'XAIReporterAgent']
+
+--- CONSTRUCTING PROMPT FOR: step_xai ---
+
+Prompt constructed (len: 6486)
+FOUND 'executive_summary'/'final_verdict' in prompt (Schema OK)!
+REPLACED '{{SCHEMA_EXAMPLE}}' (Good if content found)!
+Check GLOBAL_CONTEXT: PASS
+Check TASK_XAI: PASS
+Check OP_RULE_4 (Should be MISSING): PASS
+Check METHOD_1 (Should be MISSING): PASS
+Check TOULMIN (Should be MISSING): PASS
+Check Schema Injection: FAIL

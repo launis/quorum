@@ -3,7 +3,8 @@ import random
 import logging
 import os
 from typing import Dict, Any, Optional
-from backend.config import get_mock_responses_path
+from backend.settings import get_settings
+# from backend.config import get_mock_responses_path # Removed
 from backend.llm.mock_data import get_fallback_data, AGENT_CLASS_TO_MOCK_KEY
 
 logger = logging.getLogger(__name__)
@@ -14,7 +15,8 @@ class MockLLMService:
     """
     
     def __init__(self):
-        self.mock_data_path = get_mock_responses_path()
+        settings = get_settings()
+        self.mock_data_path = settings.mock_responses_path
         self.mock_responses = self._load_mock_responses()
         
         # MAPPING: Agent Class Name -> Mock Key in JSON

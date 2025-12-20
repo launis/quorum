@@ -8,24 +8,21 @@ from pydantic import BaseModel
 import tenacity
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from backend.models.state import WorkflowState
-from backend.config import (
-    GOOGLE_API_KEY, 
-    LLM_DEFAULT_TIMEOUT, 
-    LLM_MAX_RETRIES, 
-    LLM_RETRY_DELAY,
-    USE_MOCK_LLM
-)
+from backend.settings import get_settings
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
 # Define retry strategy
 # Valid for both sync and async functions in modern tenacity
+# We fetch retry settings lazily or at module level if they are constants in settings
+_settings = get_settings()
+
 retry_strategy = retry(
-    stop=stop_after_attempt(LLM_MAX_RETRIES),
-    wait=wait_exponential(multiplier=LLM_RETRY_DELAY, min=1, max=10),
+    stop=stop_after_attempt(_settings.llm_max_retries),
+    wait=wait_exponential(multiplier=_settings.llm_retry_delay, min=1, max=10),
     reraise=True,
-    before_sleep=lambda retry_state: logger.warning(f"Retrying LLM call... (Attempt {retry_state.attempt_number}/{LLM_MAX_RETRIES})")
+    before_sleep=lambda retry_state: logger.warning(f"Retrying LLM call... (Attempt {retry_state.attempt_number}/{_settings.llm_max_retries})")
 )
 
 class LLMProvider(ABC):
@@ -49,11 +46,11 @@ class LLMProvider(ABC):
 class GoogleGeminiProvider(LLMProvider):
     def __init__(self, model_name: Optional[str] = None, api_key: Optional[str] = None):
         import google.generativeai as genai
-        from backend.settings import Settings
+        from backend.settings import get_settings
         
-        self.settings = Settings()
+        self.settings = get_settings()
         self.model_name = model_name or self.settings.gemini_model_fast
-        self.api_key = api_key or GOOGLE_API_KEY
+        self.api_key = api_key or self.settings.google_api_key
         
         if not self.api_key:
             raise ValueError("GOOGLE_API_KEY not found.")
@@ -288,8 +285,10 @@ class GoogleGeminiProvider(LLMProvider):
 class OpenAIProvider(LLMProvider):
     def __init__(self, model_name: str = "gpt-4o", api_key: Optional[str] = None):
         from openai import AsyncOpenAI
+        from backend.settings import get_settings
+        self.settings = get_settings()
         self.model_name = model_name
-        self.client = AsyncOpenAI(api_key=api_key or os.getenv("OPENAI_API_KEY"), timeout=LLM_DEFAULT_TIMEOUT)
+        self.client = AsyncOpenAI(api_key=api_key or os.getenv("OPENAI_API_KEY"), timeout=self.settings.llm_default_timeout)
 
     @retry_strategy
     async def generate(
@@ -380,12 +379,11 @@ class MockProvider(LLMProvider):
 class LLMFactory:
     @staticmethod
     def create_provider(provider_type: str = "gemini", model_name: Optional[str] = None) -> LLMProvider:
+        from backend.settings import get_settings
+        settings = get_settings()
         
-        if USE_MOCK_LLM:
+        if settings.use_mock_llm:
             return MockProvider()
-        
-        from backend.settings import Settings
-        settings = Settings()
 
         if provider_type.lower() == "gemini":
             target_model = model_name or settings.gemini_model_fast

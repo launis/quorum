@@ -5,7 +5,7 @@ import inspect
 from typing import Dict, Any, Optional
 from backend.database.repository import AbstractWorkflowRepository
 from backend.agents.base import BaseAgent
-from backend.config import INITIAL_MODEL, MODEL_STRATEGIES
+# from backend.config import INITIAL_MODEL, MODEL_STRATEGIES # Removed
 
 logger = logging.getLogger(__name__)
 
@@ -19,13 +19,18 @@ class AgentRegistry:
         Resolves a model identifier (e.g., 'fast', 'deep') to an actual model name
         using the global MODEL_STRATEGIES config, prioritizing DB overrides.
         """
+        from backend.settings import get_settings
+        settings = get_settings()
         config = self.resolve_model_config(model_identifier)
-        return config.get("model_name", INITIAL_MODEL)
+        return config.get("model_name", settings.initial_model)
 
     def resolve_model_config(self, model_identifier: str) -> Dict[str, Any]:
         """
         Resolves a model identifier to a full configuration dictionary (model_name, max_tokens, temperature).
         """
+        from backend.settings import get_settings
+        settings = get_settings()
+
         # 1. Fetch Dynamic Strategies from Repository
         reg_entry = self.repository.get_model_registry()
         
@@ -45,8 +50,8 @@ class AgentRegistry:
                  return {"model_name": strategy}
         
         # 3. Fallback to Static Config
-        if model_identifier in MODEL_STRATEGIES:
-            strategy = MODEL_STRATEGIES[model_identifier]
+        if model_identifier in settings.model_strategies:
+            strategy = settings.model_strategies[model_identifier]
             return strategy
             
         # 4. Return as-is (assuming identifier is the model name itself)
@@ -77,6 +82,8 @@ class AgentRegistry:
         """
         from datetime import datetime
         import backend.agents
+        from backend.settings import get_settings
+        settings = get_settings()
         
         logger.info(f"[AgentRegistry] discovering agents in {package_path}...")
         
@@ -86,6 +93,7 @@ class AgentRegistry:
         
         count = 0
         for _, name, ispkg in pkgutil.iter_modules(package.__path__, prefix):
+            print(f"REGISTRY DEBUG: Found module {name}")
             if name == "backend.agents.base": continue
             
             try:
@@ -95,7 +103,7 @@ class AgentRegistry:
                         
                         # 1. Instantiate & Store in Map
                         try:
-                            resolved_initial_model = self.resolve_model_name(INITIAL_MODEL)
+                            resolved_initial_model = self.resolve_model_name(settings.initial_model)
                             self.agents_map[cls_name] = obj(model=resolved_initial_model)
                             logger.debug(f"[AgentRegistry] Instantiated {cls_name} with {resolved_initial_model}")
                         except Exception as e:

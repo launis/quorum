@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from tinydb import TinyDB, Query
 import uuid
 
-from backend.config import BASE_DIR, SCRIPTS_DIR, INITIAL_MODEL, DB_PATH
+# from backend.config import BASE_DIR, SCRIPTS_DIR, INITIAL_MODEL, DB_PATH # Removed
 from backend.dependencies import get_db_client_dep, get_llm_provider, get_llm_handler_dep
 from backend.database.wrapper import AbstractDatabase
 from backend.llm.provider import LLMProvider
@@ -22,7 +22,9 @@ def run_script(script_name: str, args: list = []):
     """
     Helper to run a script from the scripts directory.
     """
-    script_path = os.path.join(SCRIPTS_DIR, script_name)
+    from backend.settings import get_settings
+    settings = get_settings()
+    script_path = os.path.join(settings.scripts_dir, script_name)
     if not os.path.exists(script_path):
         raise FileNotFoundError(f"Script not found: {script_path}")
     
@@ -136,9 +138,11 @@ async def run_self_test(
 
     # 2. Test DB
     try:
+         from backend.settings import get_settings
+         settings = get_settings()
          count = len(db_client.table('workflows').all())
          report["db_status"] = "ok"
-         report["details"]["db_path"] = DB_PATH
+         report["details"]["db_path"] = settings.start_db_path
          report["details"]["workflow_count"] = count
               
     except Exception as e:

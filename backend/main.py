@@ -20,7 +20,8 @@ from backend.api.workflows_router import router as workflows_router
 from backend.exceptions import AppException
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
-from backend.config import DB_PATH, DATA_DIR
+from backend.settings import get_settings
+# from backend.config import DB_PATH, DATA_DIR # Removed
 
 # Load environment variables
 load_dotenv()
@@ -64,20 +65,22 @@ async def startup_event():
     setup_logging(log_level=logging.DEBUG) # Set to DEBUG for detailed traces
     logger = logging.getLogger("backend.main")
     
+    settings = get_settings()
+    
     logger.info("="*50)
     logger.info(f"   Cognitive Quorum Backend v0.2.0")
     logger.info(f"   Startup Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     logger.info("="*50)
     
     # DB Path
-    logger.info(f"   [CONFIG] Database Path: {os.path.abspath(DB_PATH)}")
+    logger.info(f"   [CONFIG] Database Path: {os.path.abspath(settings.start_db_path)}")
     
     # LLM Config
     llm_model = os.getenv("GEMINI_MODEL", "Not Set (Using Default)")
-    from backend.config import USE_MOCK_LLM
+    # from backend.config import USE_MOCK_LLM # Removed
     logger.info(f"   [CONFIG] LLM Model: {llm_model}")
     
-    if USE_MOCK_LLM:
+    if settings.use_mock_llm:
         logger.warning("!"*50)
         logger.warning("   [INFO] OPERATING IN MOCK LLM MODE")
         logger.warning("   [INFO] No external API calls will be made.")
@@ -140,14 +143,15 @@ async def startup_event():
 
 # Database setup
 # Robust path resolution for DB
-print(f"DEBUG: ACTIVE DATABASE PATH: {os.path.abspath(DB_PATH)}")
+settings = get_settings()
+print(f"DEBUG: ACTIVE DATABASE PATH: {os.path.abspath(settings.start_db_path)}")
 
 # Ensure data dir exists
-os.makedirs(DATA_DIR, exist_ok=True)
+os.makedirs(settings.data_dir, exist_ok=True)
 
 # Ensure data and database dirs exist
-os.makedirs(DATA_DIR, exist_ok=True)
-os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+os.makedirs(settings.data_dir, exist_ok=True)
+os.makedirs(os.path.dirname(settings.start_db_path), exist_ok=True)
 
 
 
@@ -155,7 +159,7 @@ os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
 # Ensure upload directory exists
 # Ensure upload directory exists
-UPLOAD_DIR = os.path.join(DATA_DIR, "uploads")
+UPLOAD_DIR = os.path.join(settings.data_dir, "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
