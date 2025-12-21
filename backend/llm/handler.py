@@ -37,36 +37,39 @@ class LLMHandler:
         
         # 1. Fetch Google Models
         try:
-            logger.info(f"Attempting to fetch Google models using API Key: {'Present' if settings.google_api_key else 'MISSING'}")
-            if settings.google_api_key:
-                genai.configure(api_key=settings.google_api_key)
-                found_count = 0
-                for m in genai.list_models():
-                    logger.debug(f"Found model: {m.name} | Methods: {m.supported_generation_methods}")
-                    # Flexible check for generation methods
-                    if 'generateContent' in m.supported_generation_methods:
-                        models["google"].append(m.name.replace("models/", ""))
-                        found_count += 1
-                logger.info(f"Successfully fetched {found_count} Google models.")
-            else:
-                 models["google_error"] = "GOOGLE_API_KEY not set in environment."
+             # Use the Provider's caching mechanism (initialized at bootstrap)
+             from backend.llm.provider import GoogleGeminiProvider
+             
+             logger.info(f"Fetching cached Google models from Provider...")
+             # Since it's a static method that checks cache, we can just call it safely.
+             cached_google_models = GoogleGeminiProvider.fetch_available_models(api_key=settings.google_api_key)
+             models["google"] = cached_google_models
+             
         except Exception as e:
             logger.error(f"Error fetching Google models: {e}", exc_info=True)
             models["google_error"] = str(e)
             
-        # 2. Fetch OpenAI Models
+        # 2. Fetch OpenAI Models (Cached)
         try:
-            api_key = os.getenv("OPENAI_API_KEY")
-            if api_key:
-                client = openai.OpenAI(api_key=api_key)
-                # List models
-                for m in client.models.list():
-                    # Filter for likely chat models
-                    if "gpt" in m.id:
-                        models["openai"].append(m.id)
-            else:
-                 # Not an error per se if user only wants Gemini
-                 models["openai_warning"] = "OPENAI_API_KEY not found"
+             # Simple global cache for OpenAI similar to Google
+             if not hasattr(self, '_cached_openai_models'):
+                 self._cached_openai_models = []
+             
+             if self._cached_openai_models:
+                 models["openai"] = self._cached_openai_models
+             else:
+                api_key = os.getenv("OPENAI_API_KEY")
+                if api_key:
+                    client = openai.OpenAI(api_key=api_key)
+                    # List models
+                    for m in client.models.list():
+                        # Filter for likely chat models
+                        if "gpt" in m.id:
+                            self._cached_openai_models.append(m.id)
+                    models["openai"] = self._cached_openai_models
+                else:
+                     # Not an error per se if user only wants Gemini
+                     models["openai_warning"] = "OPENAI_API_KEY not found"
         except Exception as e:
             models["openai_error"] = str(e)
             
@@ -123,7 +126,7 @@ class LLMHandler:
         if config:
             # Handle if config is Pydantic model or dict
             if hasattr(config, "dict"):
-                cd = config.dict()
+                cd = config.model_dump()
             elif hasattr(config, "model_dump"):
                 cd = config.model_dump()
             else:

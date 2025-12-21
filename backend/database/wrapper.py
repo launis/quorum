@@ -44,6 +44,10 @@ class AbstractTable(ABC):
     def upsert(self, document: Dict[str, Any], query: Any) -> List[int]:
         pass
 
+    @abstractmethod
+    def remove(self, query: Any) -> List[int]:
+        pass
+
 class AbstractDatabase(ABC):
     @abstractmethod
     def table(self, name: str) -> AbstractTable:
@@ -76,6 +80,9 @@ class TinyDBTable(AbstractTable):
 
     def upsert(self, document: Dict[str, Any], query: Any) -> List[int]:
          return self._table.upsert(document, query)
+
+    def remove(self, query: Any) -> List[int]:
+        return self._table.remove(query)
 
 class TinyDBClient(AbstractDatabase):
     def __init__(self, path: str):
@@ -117,6 +124,8 @@ class FirestoreTable(AbstractTable):
     def upsert(self, document: Dict[str, Any], query: Any) -> List[int]:
          raise NotImplementedError("Direct upsert query translation to Firestore is not yet implemented.")
 
+    def remove(self, query: Any) -> List[int]:
+         raise NotImplementedError("Direct remove query translation to Firestore is not yet implemented.")
 
 class FirestoreClient(AbstractDatabase):
     def __init__(self):

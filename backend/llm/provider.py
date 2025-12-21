@@ -43,6 +43,10 @@ class LLMProvider(ABC):
     ) -> Union[str, Dict[str, Any]]:
         pass
 
+
+# Global Cache for Models
+_CACHED_MODELS = []
+
 class GoogleGeminiProvider(LLMProvider):
     def __init__(self, model_name: Optional[str] = None, api_key: Optional[str] = None):
         import google.generativeai as genai
@@ -56,6 +60,45 @@ class GoogleGeminiProvider(LLMProvider):
             raise ValueError("GOOGLE_API_KEY not found.")
         
         genai.configure(api_key=self.api_key)
+
+    @staticmethod
+    def fetch_available_models(api_key: Optional[str] = None) -> list:
+        """
+        Fetches available models from Google API that support content generation.
+        Updates the global cache.
+        """
+        global _CACHED_MODELS
+        if _CACHED_MODELS:
+             return _CACHED_MODELS
+
+        import google.generativeai as genai
+        from backend.settings import get_settings
+        
+        settings = get_settings()
+        key = api_key or settings.google_api_key
+        
+        if not key:
+            # Fallback if no key (e.g. CI or Mock)
+            return ["gemini-1.5-flash (Fallback)", "gemini-1.5-pro (Fallback)"]
+
+        try:
+            genai.configure(api_key=key)
+            models = []
+            for m in genai.list_models():
+                if 'generateContent' in m.supported_generation_methods:
+                    # m.name is usually "models/gemini-pro"
+                    name_clean = m.name.replace("models/", "")
+                    models.append(name_clean)
+            
+            logger.info(f"[GeminiProvider] Fetched {len(models)} models from API.")
+            _CACHED_MODELS = sorted(models)
+            return _CACHED_MODELS
+        except Exception as e:
+            logger.error(f"[GeminiProvider] Failed to list models: {e}")
+            # Fallback
+            fallback = ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash"]
+            _CACHED_MODELS = fallback
+            return fallback
 
     def _sanitize_schema(self, schema: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -117,7 +160,7 @@ class GoogleGeminiProvider(LLMProvider):
             elif isinstance(node, list):
                 return [resolve_refs(item) for item in node]
             return node
-
+        
         return resolve_refs(schema)
 
     @retry_strategy

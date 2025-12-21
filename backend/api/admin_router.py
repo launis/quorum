@@ -287,3 +287,68 @@ def delete_banned_phrase(phrase: str, db: AbstractDatabase = Depends(get_db_clie
     decoded_phrase = unquote(phrase)
     repo.remove_banned_phrase(decoded_phrase)
     return {"status": "deleted", "phrase": decoded_phrase}
+
+class GenerateBannedPhrasesRequest(BaseModel):
+    language: str = "en"
+
+@router.post("/banned-phrases/generate")
+async def generate_banned_phrases(
+    request: GenerateBannedPhrasesRequest,
+    db: AbstractDatabase = Depends(get_db_client_dep),
+    llm_provider: LLMProvider = Depends(get_llm_provider)
+):
+    """
+    Generates new banned phrases using AI.
+    """
+    from backend.dependencies import get_repository_dep
+    repo = get_repository_dep(db)
+    
+    # 1. Get existing to provide context (optional, but good to avoid dupes in generation)
+    existing = [p['phrase'] for p in repo.get_banned_phrases()]
+    
+    # 2. Prompt LLM
+    lang_map = {"fi": "Finnish", "en": "English"}
+    language_name = lang_map.get(request.language, "English")
+    
+    system_prompt = (
+        "You are a security expert for AI systems. "
+        "Your task is to identify common adversarial prompts, jailbreak attempts, "
+        "and phrases used to bypass safety filters."
+    )
+    
+    user_prompt = (
+        f"Generate 10 NEW unique banned phrases in {language_name}. "
+        "Focus on common jailbreak patterns (e.g. 'ignore previous instructions', 'roleplay as', 'DAN mode') "
+        "and potentially harmful requests. \n"
+        "Return strictly a JSON object with a single key 'phrases' containing a list of strings. \n"
+        f"Do NOT include these existing phrases: {json.dumps(existing[:20])}..." 
+    )
+    
+    try:
+        response = await llm_provider.generate(user_prompt, system_instruction=system_prompt)
+        
+        # 3. Parse Response
+        # Clean potential markdown code blocks
+        clean_response = response.replace("```json", "").replace("```", "").strip()
+        data = json.loads(clean_response)
+        candidates = data.get("phrases", [])
+        
+        added = []
+        for phrase in candidates:
+            # Check if exists (repo.add_banned_phrase handles uniqueness check usually? 
+            # If not, repo.get_banned_phrases is already fetched. 
+            # Let's assume repo handles duplicates or we check here.)
+            if phrase not in existing:
+                repo.add_banned_phrase(phrase, language=request.language)
+                added.append(phrase)
+                existing.append(phrase) # Update local list
+                
+        return {
+            "status": "success", 
+            "message": f"Generated {len(candidates)} candidates, added {len(added)} new phrases.",
+            "added_phrases": added
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to generate banned phrases: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

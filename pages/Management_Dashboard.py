@@ -415,7 +415,7 @@ with tab2:
                     f_temp = strategies.get("fast", {}).get("temperature", 0.7)
                     f_tok = strategies.get("fast", {}).get("max_tokens", 8192)
                     st.markdown(f"**Using:** `{f_name}` (via Fast)")
-                    st.caption(f"Temp: `{f_temp}` | Max Tokens: `{f_tok}`")
+                    st.caption(f"Temp: `{f_temp}` | Max Tokens: `{f_tok}` (Source: Global Strategy)")
                 else:
                     new_wf_mapping[step_id] = "deep" # STORE STRATEGY KEY
                     d_name = strategies.get("deep", {}).get("model", deep_model)
@@ -443,7 +443,8 @@ with tab2:
     
     if workflows:
         wf_ids = [w.get('id') for w in workflows]
-        selected_wf_id = st.selectbox("Select Workflow", wf_ids)
+        wf_map = {w['id']: w for w in workflows}
+        selected_wf_id = st.selectbox("Select Workflow", wf_ids, format_func=lambda x: wf_map[x].get('name', x))
         
         selected_wf = next((w for w in workflows if w.get('id') == selected_wf_id), None)
         
@@ -527,7 +528,7 @@ with tab2:
                          f_temp = strategies.get("fast", {}).get("temperature", 0.7)
                          f_tok = strategies.get("fast", {}).get("max_tokens", 8192)
                          st.markdown(f"**Using:** `{f_name}` (via Fast)")
-                         st.caption(f"Temp: `{f_temp}` | Max Tokens: `{f_tok}`")
+                         st.caption(f"Temp: `{f_temp}` | Max Tokens: `{f_tok}` (Source: Global Strategy)")
                         
                     else:
                          new_mapping[step_id] = "deep" # STORE STRATEGY KEY
@@ -535,7 +536,7 @@ with tab2:
                          d_temp = strategies.get("deep", {}).get("temperature", 0.7)
                          d_tok = strategies.get("deep", {}).get("max_tokens", 8192)
                          st.markdown(f"**Using:** `{d_name}` (via Deep)")
-                         st.caption(f"Temp: `{d_temp}` | Max Tokens: `{d_tok}`")
+                         st.caption(f"Temp: `{d_temp}` | Max Tokens: `{d_tok}` (Source: Global Strategy)")
                     
                     st.divider()
 
@@ -586,23 +587,32 @@ with tab3:
     st.header("Steps")
 
     # --- Fetch Dynamic Options ---
+    # --- Fetch Dynamic Options ---
+    AVAILABLE_SCHEMAS = ["InputData"] # Fallback
+    AVAILABLE_HOOKS = []
+    AVAILABLE_AGENTS = []
+    
     try:
         res = requests.get(f"{API_URL}/config/introspection")
         if res.status_code == 200:
             introspection_data = res.json()
-            AVAILABLE_SCHEMAS = introspection_data.get('schemas', [])
+            AVAILABLE_SCHEMAS = introspection_data.get('schemas', AVAILABLE_SCHEMAS)
             AVAILABLE_HOOKS = introspection_data.get('hooks', [])
             AVAILABLE_AGENTS = introspection_data.get('agents', [])
         else:
-            st.error(f"Failed to fetch introspection data: {res.text}")
-            AVAILABLE_SCHEMAS = []
-            AVAILABLE_HOOKS = []
-            AVAILABLE_AGENTS = []
+            # Determine if we should show error
+            err_msg = res.text
+            # Identify weird JSON error reported by user
+            if "src property" in err_msg:
+                 st.warning("Introspection endpoint returned an unexpected error. Using default schemas.")
+                 logger.error(f"Introspection 'src property' error: {err_msg}")
+            else:
+                 st.warning(f"Could not fetch dynamic schemas: {res.status_code}")
+                 logger.error(f"Introspection failed: {res.text}")
+
     except Exception as e:
-        st.error(f"Error fetching introspection data: {e}")
-        AVAILABLE_SCHEMAS = []
-        AVAILABLE_HOOKS = []
-        AVAILABLE_AGENTS = []
+        st.warning(f"Introspection connection failed: {e}")
+        logger.error(f"Introspection connection error: {e}")
 
     # Fetch available text components (Prompts, Rules, etc.)
     all_components = get_components()
@@ -895,21 +905,26 @@ with tab4:
     
     # List Phrases
     if banned_phrases:
-        for item in banned_phrases:
+        for i, item in enumerate(banned_phrases):
             col_phrase, col_lang, col_action = st.columns([3, 1, 1])
             with col_phrase:
                 st.write(f"**{item.get('phrase')}**")
             with col_lang:
                 st.caption(f"Kieli: {item.get('language')}")
             with col_action:
-                if st.button("Poista", key=f"del_bp_{item.get('doc_id')}"):
+                # Use index for unique key
+                if st.button("Poista", key=f"del_bp_{i}"):
                     try:
-                        res = requests.delete(f"{API_URL}/admin/banned-phrases/{item.get('doc_id')}")
+                        import urllib.parse
+                        # Backend expects phrase in path
+                        safe_phrase = urllib.parse.quote(item.get('phrase', ''))
+                        res = requests.delete(f"{API_URL}/admin/banned-phrases/{safe_phrase}")
                         if res.status_code == 200:
                             st.success("Poistettu!")
+                            time.sleep(0.5)
                             st.rerun()
                         else:
-                            st.error("Virhe poistettaessa.")
+                            st.error(f"Virhe poistettaessa: {res.text}")
                     except Exception as e:
                         st.error(f"Error: {e}")
     else:

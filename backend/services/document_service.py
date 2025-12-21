@@ -1,8 +1,10 @@
-from typing import Dict, Tuple, Any, Optional
+from typing import Dict, Tuple, Any, Optional, Union
 import logging
 import io
+import os
+import fitz  # PyMuPDF
+import docx
 from fastapi.concurrency import run_in_threadpool
-from backend.services.document_processor import DocumentProcessor
 from backend.services.knowledge_base_parser import KnowledgeBaseParser
 from backend.exceptions import FatalInterruption
 from backend.services.storage import AbstractStorage
@@ -39,14 +41,14 @@ class DocumentService:
                 
                 if lower_name.endswith(".pdf"):
                     try:
-                        text = await run_in_threadpool(DocumentProcessor.extract_text_from_pdf, file_bytes)
+                        text = await run_in_threadpool(self._extract_text_from_pdf, file_bytes)
                     except Exception as e:
                          logger.error(f"PDF extraction failed for {filename}: {e}")
                          raise FatalInterruption("DocumentService", f"PDF extraction failed for {filename}: {e}", {"filename": filename})
 
                 elif lower_name.endswith(".docx"):
                     try:
-                        text = await run_in_threadpool(DocumentProcessor.extract_text_from_docx, file_bytes)
+                        text = await run_in_threadpool(self._extract_text_from_docx, file_bytes)
                     except Exception as e:
                          logger.error(f"DOCX extraction failed for {filename}: {e}")
                          raise FatalInterruption("DocumentService", f"DOCX extraction failed for {filename}: {e}", {"filename": filename})
@@ -95,3 +97,56 @@ class DocumentService:
         except Exception as e:
             logger.error(f"[DocumentService] KB processing failed for {filename}: {e}")
             raise e
+
+    # --- Internal Text Extraction Helpers (Migrated from DocumentProcessor) ---
+
+    @staticmethod
+    def _extract_text_from_pdf(input_data: Union[str, bytes]) -> str:
+        """Extracts text from a PDF file or bytes."""
+        try:
+            doc = None
+            if isinstance(input_data, str):
+                if not os.path.exists(input_data):
+                    raise FileNotFoundError(f"File not found: {input_data}")
+                doc = fitz.open(input_data)
+            elif isinstance(input_data, bytes):
+                doc = fitz.open(stream=input_data, filetype="pdf")
+            else:
+                raise ValueError("Input must be a file path (str) or bytes.")
+
+            text = ""
+            for page in doc:
+                text += page.get_text()
+            
+            return text.strip()
+        except Exception as e:
+            raise Exception(f"Failed to extract PDF text: {str(e)}")
+
+    @staticmethod
+    def _extract_text_from_docx(input_data: Union[str, bytes]) -> str:
+        """Extracts text from a DOCX file or bytes."""
+        try:
+            doc = None
+            if isinstance(input_data, str):
+                if not os.path.exists(input_data):
+                    raise FileNotFoundError(f"File not found: {input_data}")
+                doc = docx.Document(input_data)
+            elif isinstance(input_data, bytes):
+                file_stream = io.BytesIO(input_data)
+                doc = docx.Document(file_stream)
+            else:
+                raise ValueError("Input must be a file path (str) or bytes.")
+
+            text = []
+            for para in doc.paragraphs:
+                text.append(para.text)
+            
+            for table in doc.tables:
+                for row in table.rows:
+                    for cell in row.cells:
+                        for para in cell.paragraphs:
+                            text.append(para.text)
+
+            return "\n".join(text).strip()
+        except Exception as e:
+            raise Exception(f"Failed to extract DOCX text: {str(e)}")

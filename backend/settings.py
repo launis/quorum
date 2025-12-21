@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     google_api_key: Optional[str] = Field(default=None, description="Google Gemini API Key")
 
     # --- LLM Configuration ---
-    initial_model: str = Field(default="gemini-2.5-flash")
+    initial_model: str = Field(default="fast") # Use strategy key, not raw name
     llm_default_timeout: float = Field(default=60.0) # Keep increased timeout
     llm_max_retries: int = Field(default=3)
     llm_retry_delay: float = Field(default=4.0)

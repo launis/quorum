@@ -27,35 +27,32 @@ class AgentRegistry:
     def resolve_model_config(self, model_identifier: str) -> Dict[str, Any]:
         """
         Resolves a model identifier to a full configuration dictionary (model_name, max_tokens, temperature).
+        STRICT MODE: Fetches ONLY from Database. No fallbacks.
         """
-        from backend.settings import get_settings
-        settings = get_settings()
-
         # 1. Fetch Dynamic Strategies from Repository
         reg_entry = self.repository.get_model_registry()
         
-        dynamic_strategies = None
+        dynamic_strategies = {}
         if reg_entry and 'models' in reg_entry:
             registry = reg_entry['models']
-            # Default to google for now
+            # Default to google for now, or merge providers if needed.
+            # Assuming 'google' is the primary provider for strategies
             if 'google' in registry:
                 dynamic_strategies = registry['google']
 
-        # 2. Resolve Strategy Key using Dynamic DB config
-        if dynamic_strategies and model_identifier in dynamic_strategies:
+        # 2. Resolve Strategy Key using strict DB config
+        if model_identifier in dynamic_strategies:
              strategy = dynamic_strategies[model_identifier]
              if isinstance(strategy, dict):
                  return strategy
              elif isinstance(strategy, str):
                  return {"model_name": strategy}
         
-        # 3. Fallback to Static Config
-        if model_identifier in settings.model_strategies:
-            strategy = settings.model_strategies[model_identifier]
-            return strategy
-            
-        # 4. Return as-is (assuming identifier is the model name itself)
-        return {"model_name": model_identifier}
+        # 3. Fail if not found
+        valid_keys = list(dynamic_strategies.keys())
+        err_msg = f"[AgentRegistry] Model Strategy '{model_identifier}' NOT FOUND in Database. Available: {sorted(valid_keys)}. Fallbacks are disabled."
+        logger.error(err_msg)
+        raise ValueError(err_msg)
 
     def register_component(self, name: str, type: str, class_name: str):
         """
@@ -78,72 +75,61 @@ class AgentRegistry:
 
     def discover_and_register_agents(self, package_path: str = 'backend.agents'):
         """
-        Dynamically discovers and registers all Agent classes in the specified package.
+        Loads agents using the static AgentFactory and registers them in the DB.
         """
         from datetime import datetime
-        import backend.agents
         from backend.settings import get_settings
+        from backend.core.factory import AgentFactory
+        
         settings = get_settings()
+        logger.info("[AgentRegistry] Loading agents via AgentFactory...")
         
-        logger.info(f"[AgentRegistry] discovering agents in {package_path}...")
-        
-        # Ensure package is imported
-        package = importlib.import_module(package_path)
-        prefix = package.__name__ + "."
-        
-        count = 0
-        for _, name, ispkg in pkgutil.iter_modules(package.__path__, prefix):
-            print(f"REGISTRY DEBUG: Found module {name}")
-            if name == "backend.agents.base": continue
+        try:
+            # Force usage of 'fast' strategy from DB regardless of env settings
+            resolved_initial_model = self.resolve_model_name("fast")
             
-            try:
-                module = importlib.import_module(name)
-                for cls_name, obj in inspect.getmembers(module):
-                    if inspect.isclass(obj) and issubclass(obj, BaseAgent) and obj is not BaseAgent:
-                        
-                        # 1. Instantiate & Store in Map
-                        try:
-                            resolved_initial_model = self.resolve_model_name(settings.initial_model)
-                            self.agents_map[cls_name] = obj(model=resolved_initial_model)
-                            logger.debug(f"[AgentRegistry] Instantiated {cls_name} with {resolved_initial_model}")
-                        except Exception as e:
-                            logger.error(f"[AgentRegistry] Failed to instantiate {cls_name}: {e}")
-                            # FATAL: Raising interruption here ensures app triggers a clean crash/halt during startup
-                            # However, during startup we might want to skip broken plugins rather than crash whole app?
-                            # User requested strict halts. But registry runs at STARTUP usually. 
-                            # If registry fails, app might crash before API is ready. 
-                            # Let's keep SKIP for startup (to allow other parts to work) but LOG CRITICAL?
-                            # OR RAISE if strictness is required.
-                            # User said "vastaavia keskeytyksiä". If an Agent fails to load, the workflow referencing it will fail later.
-                            # So I will raise FatalInterruption which likely bubbles up to main.py startup logic.
-                            from backend.exceptions import FatalInterruption
-                            raise FatalInterruption(
-                                step_name="AgentDiscovery",
-                                reason=f"Failed to instantiate agent {cls_name}",
-                                details={"agent_class": cls_name, "error": str(e)}
-                            )
-
-
-                        # 2. Register in DB
-                        agent_type = "agent"
-                        if "critic" in cls_name.lower(): agent_type = "critic"
-                        
-                        # Use datetime for consistency
-                        if not self.repository.get_component_by_name(cls_name):
-                             self.repository.register_component({
-                                "name": cls_name,
-                                "type": agent_type,
-                                "class_name": cls_name,
-                                "registered_at": datetime.now().isoformat()
-                            })
-                        
-                        self._update_component_metadata(cls_name, module=name, component_class=cls_name)
-                        count += 1
-                        
-            except Exception as e:
-                logger.error(f"Failed to inspect module {name}: {e}")
-        
-        logger.info(f"[AgentRegistry] Registered {count} agents dynamically.")
+            # 1. Get Agents from Factory
+            agents_map = AgentFactory.create_agents_map(initial_model=resolved_initial_model)
+            self.agents_map = agents_map
+            
+            count = 0
+            for cls_name, agent_instance in self.agents_map.items():
+                try:
+                    # 2. Register in DB
+                    agent_type = "agent"
+                    if "critic" in cls_name.lower(): agent_type = "critic"
+                    
+                    if not self.repository.get_component_by_name(cls_name):
+                        self.repository.register_component({
+                            "name": cls_name,
+                            "type": agent_type,
+                            "class_name": cls_name,
+                            "registered_at": datetime.now().isoformat()
+                        })
+                    
+                    # 3. Update Metadata
+                    # Use __module__ to get the defining module path
+                    module_name = agent_instance.__module__
+                    self._update_component_metadata(cls_name, module=module_name, component_class=cls_name)
+                    
+                    logger.debug(f"[AgentRegistry] Registered {cls_name} (from {module_name})")
+                    count += 1
+                    
+                except Exception as e:
+                    logger.error(f"[AgentRegistry] Failed to register {cls_name}: {e}")
+                    # Allow partial failure during DB registration, but code is loaded.
+            
+            logger.info(f"[AgentRegistry] Successfully loaded and registered {count} agents.")
+            
+        except Exception as e:
+             # Critical failure if Factory fails (e.g. import error)
+             from backend.exceptions import FatalInterruption
+             logger.critical(f"[AgentRegistry] FATAL: AgentFactory failed: {e}")
+             raise FatalInterruption(
+                step_name="AgentDiscovery",
+                reason="AgentFactory Initialization Failed",
+                details={"error": str(e)}
+             )
 
     def get_agent(self, agent_name: str) -> Optional[BaseAgent]:
         return self.agents_map.get(agent_name)

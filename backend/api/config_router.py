@@ -92,7 +92,7 @@ def create_component(comp: ComponentCreate, db: AbstractDatabase = Depends(get_d
     if table.search(Query().id == comp.id):
         raise HTTPException(status_code=400, detail="Component ID already exists")
     
-    new_comp = comp.dict()
+    new_comp = comp.model_dump()
     if 'component_class' in new_comp:
         new_comp['class'] = new_comp.pop('component_class')
         
@@ -215,7 +215,7 @@ def create_workflow(workflow: WorkflowCreate, db: AbstractDatabase = Depends(get
     if table.search(Workflow.id == workflow.id):
         raise HTTPException(status_code=400, detail="Workflow ID already exists")
         
-    new_wf = workflow.dict()
+    new_wf = workflow.model_dump()
     table.insert(new_wf)
     return {"status": "created", "id": workflow.id}
 
@@ -458,25 +458,35 @@ def update_model_registry(config: GlobalModelConfig, db: AbstractDatabase = Depe
 def get_model_strategies(db: AbstractDatabase = Depends(get_db_client_dep)):
     """
     Get the available model strategies (Fast vs Deep).
-    Prioritizes DB config 'model_registry' > 'google' provider.
-    Fallback to static MODEL_STRATEGIES.
+    Prioritizes DB config 'model_registry' > 'google' > 'openai'.
+    Fallback to static MODEL_STRATEGIES from settings.
     """
+    logger.info("Fetching model strategies...")
     # 1. Try fetching from DB
     try:
         table = db.table('system_config')
         Config = Query()
         res = table.search(Config.type == 'model_registry')
+        
         if res and 'models' in res[0]:
             registry = res[0]['models']
-            # Default to google for now as it's the main provider
-            if 'google' in registry:
+            
+            # Prioritize Google, then OpenAI
+            if 'google' in registry and registry['google']:
+                logger.debug(f"Returning Google strategies from DB: {registry['google']}")
                 return registry['google']
+            
+            if 'openai' in registry and registry['openai']:
+                 logger.debug(f"Returning OpenAI strategies from DB: {registry['openai']}")
+                 return registry['openai']
+                 
     except Exception as e:
         logger.error(f"Error fetching strategies from DB: {e}")
 
     # 2. Fallback to static
     from backend.settings import get_settings
     settings = get_settings()
+    logger.debug(f"Returning default settings strategies: {settings.model_strategies}")
     return settings.model_strategies
 
 @router.get("/introspection")

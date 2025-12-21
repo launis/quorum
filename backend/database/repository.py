@@ -63,7 +63,7 @@ class AbstractWorkflowRepository(ABC):
     def get_banned_phrases(self) -> List[Dict[str, Any]]: pass
 
     @abstractmethod
-    def add_banned_phrase(self, phrase: str): pass
+    def add_banned_phrase(self, phrase: str, **kwargs): pass
 
     @abstractmethod
     def remove_banned_phrase(self, phrase: str): pass
@@ -174,11 +174,13 @@ class TinyDBRepository(AbstractWorkflowRepository):
         return self.knowledge_base.truncate()
 
     # --- Banned Phrases ---
-    def add_banned_phrase(self, phrase: str):
+    def add_banned_phrase(self, phrase: str, **kwargs):
         # Prevent duplicates
         existing = self.banned_phrases.search(Query().phrase == phrase)
         if not existing:
-            return self.banned_phrases.insert({"phrase": phrase})
+            data = {"phrase": phrase}
+            data.update(kwargs)
+            return self.banned_phrases.insert(data)
             
     def remove_banned_phrase(self, phrase: str):
         return self.banned_phrases.remove(Query().phrase == phrase)

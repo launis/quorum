@@ -10,6 +10,13 @@ from frontend.components import render_dashboard
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 api_client = APIClient(BACKEND_URL)
 
+def get_workflow_map():
+    """Helper to fetch workflows and return id->dict map for consistent UI."""
+    try:
+        wfs = api_client.get_workflows()
+        return {w['id']: w for w in wfs} if wfs else {}
+    except: return {}
+
 st.set_page_config(page_title="Cognitive Quorum v2", layout="wide")
 st.title("Cognitive Quorum v2 - Dynamic Workflow Engine")
 st.markdown(f"**Backend:** `{BACKEND_URL}`")
@@ -23,17 +30,26 @@ if page == "Assessment":
     st.sidebar.header("Configuration")
     selected_workflow_id = None
     
-    workflows = api_client.get_workflows()
-    if workflows:
-        workflow_options = {wf['id']: wf for wf in workflows}
+    workflow_options = get_workflow_map()
+    if workflow_options:
         selected_workflow_id = st.sidebar.selectbox(
-            "Select Workflow",
-            options=list(workflow_options.keys())
+            "Valitse Työnkulku (Select Workflow)",
+            options=list(workflow_options.keys()),
+            format_func=lambda x: workflow_options[x].get('name', x),
+            key="ui_selected_workflow_id"
         )
         if selected_workflow_id:
             st.sidebar.subheader("Model Mapping")
             wf = workflow_options[selected_workflow_id]
-            st.sidebar.json(wf.get('default_model_mapping', {}))
+            mapping = wf.get('default_model_mapping', {})
+            if mapping:
+                for step, model in mapping.items():
+                    if model in ["fast", "deep"]:
+                        st.sidebar.markdown(f"**{step}**: `{model}` (Global Strategy)")
+                    else:
+                        st.sidebar.markdown(f"**{step}**: `{model}`")
+            else:
+                st.sidebar.caption("No custom model mapping.")
     else:
         st.sidebar.warning("No workflows found or backend unreachable.")
         workflow_options = {}
@@ -309,9 +325,28 @@ elif page == "Admin":
     # --- Tab 2: Agent Registry ---
     with tabs[1]:
         st.subheader("Agent Registry")
+        st.write("---")
+        # Workflow Context Selector (Identical Logic)
+        selected_wf_id = None
+        wf_map = get_workflow_map()
+        if wf_map:
+             # Sync logic
+             def_idx = 0
+             if "ui_selected_workflow_id" in st.session_state and st.session_state["ui_selected_workflow_id"] in wf_map:
+                 def_idx = list(wf_map.keys()).index(st.session_state["ui_selected_workflow_id"])
+             
+             # Using same label as Sidebar for consistency
+             selected_wf_id = st.selectbox(
+                 "Valitse Työnkulku (Select Workflow)", 
+                 options=list(wf_map.keys()),
+                 index=def_idx,
+                 format_func=lambda x: wf_map[x].get('name', x),
+                 key="registry_wf_selector"
+             )
+
         try:
             import requests
-            res = requests.get(f"{BACKEND_URL}/agents/")
+            res = requests.get(f"{BACKEND_URL}/agents", params={"workflow_id": selected_wf_id} if selected_wf_id else None)
             if res.status_code == 200:
                 agents = res.json()
                 if agents:
@@ -323,7 +358,7 @@ elif page == "Admin":
                              "Model": a.get("model"),
                              "Description": a.get("description", "").split("\n")[0] # First line only
                          })
-                    st.dataframe(pd.DataFrame(df_data), use_container_width=True)
+                    st.dataframe(pd.DataFrame(df_data))
                     
                     # Detailed View
                     st.divider()
@@ -334,8 +369,18 @@ elif page == "Admin":
                         if agent_data:
                             c1, c2 = st.columns(2)
                             with c1:
-                                st.markdown("**Input Schema**")
-                                st.json(agent_data.get('input_schema'))
+                                st.markdown("**Output Schema (Response Structure)**")
+                                schema_out = agent_data.get('output_schema')
+                                if schema_out:
+                                    st.json(schema_out)
+                                else:
+                                    st.caption("No output schema defined.")
+                                
+                                schema_in = agent_data.get('input_schema')
+                                if schema_in:
+                                     st.markdown("**Input Schema**")
+                                     st.json(schema_in)
+                            
                             with c2:
                                 st.markdown("**Full Description**")
                                 st.markdown(agent_data.get('description'))

@@ -6,17 +6,17 @@ from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks, R
 from pydantic import BaseModel
 # from tinydb import Query # Removed
 
-from backend.services.document_processor import DocumentProcessor
+
 from backend.core.engine import WorkflowEngine
 from backend.dependencies import get_engine, get_db_client_dep
 
 from backend.api.tools_router import router as tools_router
-
-from backend.api.agents_router import router as agents_router
+# from backend.api.agents_router import router as agents_router # Consolidated
 from backend.api.admin_router import router as admin_router
 from backend.api.llm_router import router as llm_router
 from backend.api.config_router import router as config_router
-from backend.api.workflows_router import router as workflows_router
+from backend.api.execution_router import router as execution_router
+# from backend.api.workflows_router import router as workflows_router # Consolidated
 from backend.exceptions import AppException
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
@@ -41,10 +41,10 @@ async def app_exception_handler(request: Request, exc: AppException):
 
 
 app.include_router(tools_router)
-app.include_router(agents_router)
+app.include_router(execution_router) # Handles workflows and agents
 app.include_router(admin_router)
 app.include_router(config_router)
-app.include_router(workflows_router)
+# app.include_router(workflows_router) # Removed
 app.include_router(llm_router, prefix="/llm", tags=["LLM"])
 
 @app.middleware("http")
@@ -57,88 +57,8 @@ async def add_no_cache_header(request, call_next):
 
 @app.on_event("startup")
 async def startup_event():
-    from datetime import datetime
-    from backend.logging_config import setup_logging
-    import logging
-    
-    # Initialize Logging
-    setup_logging(log_level=logging.DEBUG) # Set to DEBUG for detailed traces
-    logger = logging.getLogger("backend.main")
-    
-    settings = get_settings()
-    
-    logger.info("="*50)
-    logger.info(f"   Cognitive Quorum Backend v0.2.0")
-    logger.info(f"   Startup Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    logger.info("="*50)
-    
-    # DB Path
-    logger.info(f"   [CONFIG] Database Path: {os.path.abspath(settings.start_db_path)}")
-    
-    # LLM Config
-    llm_model = os.getenv("GEMINI_MODEL", "Not Set (Using Default)")
-    # from backend.config import USE_MOCK_LLM # Removed
-    logger.info(f"   [CONFIG] LLM Model: {llm_model}")
-    
-    if settings.use_mock_llm:
-        logger.warning("!"*50)
-        logger.warning("   [INFO] OPERATING IN MOCK LLM MODE")
-        logger.warning("   [INFO] No external API calls will be made.")
-        logger.warning("!"*50)
-    else:
-        logger.info("="*50)
-        logger.info("   [INFO] OPERATING IN REAL LLM MODE")
-        logger.info("   [INFO] External API calls WILL be made.")
-        logger.info("="*50)
-    
-    # Google Search Config
-    search_key = os.getenv("GOOGLE_SEARCH_API_KEY")
-    search_cx = os.getenv("GOOGLE_SEARCH_CX")
-    if search_key and search_cx:
-        logger.info(f"   [CONFIG] Google Search: ENABLED (Key: ...{search_key[-4:]})")
-    else:
-        logger.info(f"   [CONFIG] Google Search: DISABLED (Missing Key or CX)")
-        
-    logger.info("="*50)
-    
-    # Warmup Engine Singleton
-    try:
-        logger.info("   [INFO] Warming up Engine Singleton...")
-        from backend.dependencies import get_db_client_dep, get_repository_dep, get_agent_registry_dep, get_prompt_builder_dep
-        from backend.exceptions import FatalInterruption # Import locally
-        
-        # Manually resolve dependencies to avoid Depends() objects leaking in
-        db = get_db_client_dep()
-        repo = get_repository_dep(db)
-        registry = get_agent_registry_dep(repo)
-        pb = get_prompt_builder_dep(repo, registry)
-        
-        # Initialize Engine with resolved deps
-        engine = get_engine(repository=repo, registry=registry, prompt_builder=pb)
-        logger.info("   [INFO] Engine Ready.")
-
-        # --- RECOVERY: Auto-Resume Interrupted Jobs ---
-        # If server restarted while jobs were running, resume them.
-        logger.info("   [INFO] Checking for interrupted jobs...")
-        await engine.recover_interrupted_jobs()
-
-        
-    except FatalInterruption as fi:
-        logger.critical("!"*60)
-        logger.critical(f"   [CRITICAL STARTUP FAILURE] {fi.step_name}")
-        logger.critical(f"   Reason: {fi.reason}")
-        logger.critical(f"   Details: {json.dumps(fi.details, indent=2)}")
-        logger.critical("!"*60)
-        # We don't exit(1) because Uvicorn manages the process, but we log loud.
-        # Ideally we might raise to crash the pod/service.
-        # Re-raise to let exception handler or Uvicorn see it? 
-        # Actually raising here during startup cancels startup.
-        raise fi
-        
-    except Exception as e:
-        logger.error(f"   [CRITICAL] Engine Warmup Failed: {e}", exc_info=True)
-        # Raise to abort startup
-        raise RuntimeError(f"Startup Failed: {e}")
+    from backend.bootstrap import bootstrap_application
+    await bootstrap_application()
 
 
 # Database setup
