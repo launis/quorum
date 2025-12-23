@@ -12,6 +12,7 @@ class Metadata(BaseModel):
 
 class BaseJSON(BaseModel):
     metadata: Metadata
+    reasoning_trace: Optional[str] = Field(None, description="Chain-of-Thought: Step-by-step reasoning BEFORE the final conclusion.")
     metodologinen_loki: str
     edellisen_vaiheen_validointi: str
     semanttinen_tarkistussumma: str
