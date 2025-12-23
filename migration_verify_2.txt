@@ -1,0 +1,147 @@
+Found 19 executions.
+
+Checking Execution 2...
+  ❌ Hydration FAILED: 2 validation errors for WorkflowState
+inputs.product_text
+  Field required [type=missing, input_value={'history_text': 'Tee tästä hyvä.'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+inputs.reflection_text
+  Field required [type=missing, input_value={'history_text': 'Tee tästä hyvä.'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+
+Checking Execution 3...
+  ❌ Hydration FAILED: 2 validation errors for WorkflowState
+inputs.product_text
+  Field required [type=missing, input_value={'history_text': '\n    R...toinen raportti.\n    '}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+inputs.reflection_text
+  Field required [type=missing, input_value={'history_text': '\n    R...toinen raportti.\n    '}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+
+Checking Execution 4...
+  Hydration: SUCCESS
+  Keys: ['System_Status', 'Scores', 'Reports', 'Raw_Steps', 'execution_id', 'timestamp', 'version', 'uhka_havaittu', 'riski_taso', 'logiikka_validi', 'step_guard', 'step_analyst', 'step_profiler', 'step_logician', 'step_falsifier', 'step_overseer', 'step_causal', 'step_detector', 'step_judge', 'step_archivist', 'step_coach', 'step_interaction', 'step_reporter']
+  ✅ System_Status PRESENT
+     Content Keys: ['execution_id', 'timestamp', 'version', 'uhka_havaittu', 'riski_taso', 'logiikka_validi']
+  ✅ Scores PRESENT
+     ⚠️ Scores is EMPTY dict
+
+Checking Execution 5...
+  Hydration: SUCCESS
+  Keys: ['System_Status', 'Scores', 'Reports', 'Raw_Steps', 'execution_id', 'timestamp', 'version', 'uhka_havaittu', 'riski_taso', 'logiikka_validi', 'step_guard', 'step_analyst', 'step_profiler', 'step_logician', 'step_falsifier', 'step_overseer', 'step_causal', 'step_detector', 'step_judge', 'step_archivist', 'step_coach', 'step_interaction', 'step_reporter']
+  ✅ System_Status PRESENT
+     Content Keys: ['execution_id', 'timestamp', 'version', 'uhka_havaittu', 'riski_taso', 'logiikka_validi']
+  ✅ Scores PRESENT
+     ⚠️ Scores is EMPTY dict
+
+Checking Execution 6...
+  Hydration: SUCCESS
+  Keys: ['System_Status', 'Scores', 'Reports', 'Raw_Steps', 'execution_id', 'timestamp', 'version', 'uhka_havaittu', 'riski_taso', 'logiikka_validi', 'step_guard', 'step_analyst', 'step_profiler', 'step_logician', 'step_falsifier', 'step_overseer', 'step_causal', 'step_detector', 'step_judge', 'step_archivist', 'step_coach', 'step_interaction', 'step_reporter']
+  ✅ System_Status PRESENT
+     Content Keys: ['execution_id', 'timestamp', 'version', 'uhka_havaittu', 'riski_taso', 'logiikka_validi']
+  ✅ Scores PRESENT
+     ⚠️ Scores is EMPTY dict
+
+Checking Execution 7...
+  Hydration: SUCCESS
+  Keys: ['System_Status', 'Scores', 'Reports', 'Raw_Steps', 'execution_id', 'timestamp', 'version', 'uhka_havaittu', 'riski_taso', 'logiikka_validi', 'step_guard', 'step_analyst', 'step_profiler', 'step_logician', 'step_falsifier', 'step_overseer', 'step_causal', 'step_detector', 'step_judge', 'step_archivist', 'step_coach', 'step_interaction', 'step_reporter']
+  ✅ System_Status PRESENT
+     Content Keys: ['execution_id', 'timestamp', 'version', 'uhka_havaittu', 'riski_taso', 'logiikka_validi']
+  ✅ Scores PRESENT
+     ⚠️ Scores is EMPTY dict
+
+Checking Execution 8...
+  Hydration: SUCCESS
+  Keys: ['System_Status', 'Scores', 'Reports', 'Raw_Steps', 'execution_id', 'timestamp', 'version', 'uhka_havaittu', 'riski_taso', 'logiikka_validi', 'step_guard', 'step_analyst', 'step_profiler', 'step_logician', 'step_falsifier', 'step_overseer', 'step_causal', 'step_detector', 'step_judge', 'step_archivist', 'step_coach', 'step_interaction', 'step_reporter']
+  ✅ System_Status PRESENT
+     Content Keys: ['execution_id', 'timestamp', 'version', 'uhka_havaittu', 'riski_taso', 'logiikka_validi']
+  ✅ Scores PRESENT
+     ⚠️ Scores is EMPTY dict
+
+Checking Execution 9...
+  Hydration: SUCCESS
+  Keys: ['System_Status', 'Scores', 'Reports', 'Raw_Steps', 'execution_id', 'timestamp', 'version', 'uhka_havaittu', 'riski_taso', 'logiikka_validi', 'step_guard', 'step_analyst', 'step_profiler', 'step_logician', 'step_falsifier', 'step_overseer', 'step_causal', 'step_detector', 'step_judge', 'step_archivist', 'step_coach', 'step_interaction', 'step_reporter']
+  ✅ System_Status PRESENT
+     Content Keys: ['execution_id', 'timestamp', 'version', 'uhka_havaittu', 'riski_taso', 'logiikka_validi']
+  ✅ Scores PRESENT
+     ⚠️ Scores is EMPTY dict
+
+Checking Execution 10...
+  Hydration: SUCCESS
+  Keys: ['System_Status', 'Scores', 'Reports', 'Raw_Steps', 'execution_id', 'timestamp', 'version', 'uhka_havaittu', 'riski_taso', 'logiikka_validi', 'step_guard', 'step_analyst', 'step_profiler', 'step_logician', 'step_falsifier', 'step_overseer', 'step_causal', 'step_detector', 'step_judge', 'step_archivist', 'step_coach', 'step_interaction', 'step_reporter']
+  ✅ System_Status PRESENT
+     Content Keys: ['execution_id', 'timestamp', 'version', 'uhka_havaittu', 'riski_taso', 'logiikka_validi']
+  ✅ Scores PRESENT
+     ⚠️ Scores is EMPTY dict
+
+Checking Execution 11...
+  Hydration: SUCCESS
+  Keys: ['System_Status', 'Scores', 'Reports', 'Raw_Steps', 'execution_id', 'timestamp', 'version', 'uhka_havaittu', 'riski_taso', 'logiikka_validi', 'step_guard', 'step_analyst', 'step_profiler', 'step_logician', 'step_falsifier', 'step_overseer', 'step_causal', 'step_detector', 'step_judge', 'step_archivist', 'step_coach', 'step_interaction', 'step_reporter']
+  ✅ System_Status PRESENT
+     Content Keys: ['execution_id', 'timestamp', 'version', 'uhka_havaittu', 'riski_taso', 'logiikka_validi']
+  ✅ Scores PRESENT
+     ⚠️ Scores is EMPTY dict
+
+Checking Execution 12...
+  Hydration: SUCCESS
+  Keys: ['System_Status', 'Scores', 'Reports', 'Raw_Steps', 'execution_id', 'timestamp', 'version', 'uhka_havaittu', 'riski_taso', 'logiikka_validi', 'step_guard', 'step_analyst', 'step_profiler', 'step_logician', 'step_falsifier', 'step_overseer', 'step_causal', 'step_detector', 'step_judge', 'step_archivist', 'step_coach', 'step_interaction', 'step_reporter']
+  ✅ System_Status PRESENT
+     Content Keys: ['execution_id', 'timestamp', 'version', 'uhka_havaittu', 'riski_taso', 'logiikka_validi']
+  ✅ Scores PRESENT
+     ⚠️ Scores is EMPTY dict
+
+Checking Execution 13...
+  Hydration: SUCCESS
+  Keys: ['System_Status', 'Scores', 'Reports', 'Raw_Steps', 'execution_id', 'timestamp', 'version', 'uhka_havaittu', 'riski_taso', 'logiikka_validi', 'step_guard', 'step_analyst', 'step_profiler', 'step_logician', 'step_falsifier', 'step_overseer', 'step_causal', 'step_detector', 'step_judge', 'step_archivist', 'step_coach', 'step_interaction', 'step_reporter']
+  ✅ System_Status PRESENT
+     Content Keys: ['execution_id', 'timestamp', 'version', 'uhka_havaittu', 'riski_taso', 'logiikka_validi']
+  ✅ Scores PRESENT
+     ⚠️ Scores is EMPTY dict
+
+Checking Execution 14...
+  Hydration: SUCCESS
+  Keys: ['System_Status', 'Scores', 'Reports', 'Raw_Steps', 'execution_id', 'timestamp', 'version', 'uhka_havaittu', 'riski_taso', 'logiikka_validi', 'step_guard', 'step_analyst', 'step_profiler', 'step_logician', 'step_falsifier', 'step_overseer', 'step_causal', 'step_detector', 'step_judge', 'step_archivist', 'step_coach', 'step_interaction', 'step_reporter']
+  ✅ System_Status PRESENT
+     Content Keys: ['execution_id', 'timestamp', 'version', 'uhka_havaittu', 'riski_taso', 'logiikka_validi']
+  ✅ Scores PRESENT
+     ⚠️ Scores is EMPTY dict
+
+Checking Execution 15...
+  Hydration: SUCCESS
+  Keys: ['System_Status', 'Scores', 'Reports', 'Raw_Steps', 'execution_id', 'timestamp', 'version', 'uhka_havaittu', 'riski_taso', 'logiikka_validi', 'step_guard', 'step_analyst', 'step_profiler', 'step_logician', 'step_falsifier', 'step_overseer', 'step_causal', 'step_detector', 'step_judge', 'step_archivist', 'step_coach', 'step_interaction', 'step_reporter']
+  ✅ System_Status PRESENT
+     Content Keys: ['execution_id', 'timestamp', 'version', 'uhka_havaittu', 'riski_taso', 'logiikka_validi']
+  ✅ Scores PRESENT
+     ⚠️ Scores is EMPTY dict
+
+Checking Execution 16...
+  Hydration: SUCCESS
+  Keys: ['System_Status', 'Scores', 'Reports', 'Raw_Steps', 'execution_id', 'timestamp', 'version', 'uhka_havaittu', 'riski_taso', 'logiikka_validi', 'step_guard', 'step_analyst', 'step_profiler', 'step_logician', 'step_falsifier', 'step_overseer', 'step_causal', 'step_detector', 'step_judge', 'step_archivist', 'step_coach', 'step_interaction', 'step_reporter']
+  ✅ System_Status PRESENT
+     Content Keys: ['execution_id', 'timestamp', 'version', 'uhka_havaittu', 'riski_taso', 'logiikka_validi']
+  ✅ Scores PRESENT
+     ⚠️ Scores is EMPTY dict
+
+Checking Execution 17...
+  Hydration: SUCCESS
+  Keys: ['System_Status', 'Scores', 'Reports', 'Raw_Steps', 'execution_id', 'timestamp', 'version', 'uhka_havaittu', 'riski_taso', 'logiikka_validi', 'step_guard', 'step_analyst', 'step_profiler', 'step_logician', 'step_falsifier', 'step_overseer', 'step_causal', 'step_detector', 'step_judge', 'step_archivist', 'step_coach', 'step_interaction', 'step_reporter']
+  ✅ System_Status PRESENT
+     Content Keys: ['execution_id', 'timestamp', 'version', 'uhka_havaittu', 'riski_taso', 'logiikka_validi']
+  ✅ Scores PRESENT
+     ⚠️ Scores is EMPTY dict
+
+Checking Execution 18...
+  Hydration: SUCCESS
+  Keys: ['System_Status', 'Scores', 'Reports', 'Raw_Steps', 'execution_id', 'timestamp', 'version', 'uhka_havaittu', 'riski_taso', 'logiikka_validi', 'step_guard', 'step_analyst', 'step_profiler', 'step_logician', 'step_falsifier', 'step_overseer', 'step_causal', 'step_detector', 'step_judge', 'step_archivist', 'step_coach', 'step_interaction', 'step_reporter']
+  ✅ System_Status PRESENT
+     Content Keys: ['execution_id', 'timestamp', 'version', 'uhka_havaittu', 'riski_taso', 'logiikka_validi']
+  ✅ Scores PRESENT
+     ⚠️ Scores is EMPTY dict
+
+Checking Execution 19...
+  Hydration: SUCCESS
+  Keys: ['System_Status', 'Scores', 'Reports', 'Raw_Steps', 'execution_id', 'timestamp', 'version', 'uhka_havaittu', 'riski_taso', 'logiikka_validi', 'step_guard', 'step_analyst', 'step_profiler', 'step_logician', 'step_falsifier', 'step_overseer', 'step_causal', 'step_detector', 'step_judge', 'step_archivist', 'step_coach', 'step_interaction', 'step_reporter']
+  ✅ System_Status PRESENT
+     Content Keys: ['execution_id', 'timestamp', 'version', 'uhka_havaittu', 'riski_taso', 'logiikka_validi']
+  ✅ Scores PRESENT
+     ⚠️ Scores is EMPTY dict

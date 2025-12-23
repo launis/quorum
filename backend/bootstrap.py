@@ -31,9 +31,7 @@ async def bootstrap_application():
     
     # 2. Log Configuration
     logger.info(f"   [CONFIG] Database Path: {os.path.abspath(settings.start_db_path)}")
-    
-    llm_model = os.getenv("GEMINI_MODEL", "Not Set (Using Default)")
-    logger.info(f"   [CONFIG] LLM Model: {llm_model}")
+    logger.info(f"   [CONFIG] Model Strategy: Database Controlled")
     
     if settings.use_mock_llm:
         logger.warning("!"*50)
@@ -57,21 +55,22 @@ async def bootstrap_application():
     logger.info("="*50)
     
     # 4. Initialize available models cache
-    from backend.llm.provider import GoogleGeminiProvider
+    # Note: Using generic provider access if possible
+    # from backend.llm.provider import GoogleGeminiProvider
     
     if not settings.use_mock_llm:
-        logger.info("   [INFO] Fetching available models from Google API...")
-        try:
-            models = GoogleGeminiProvider.fetch_available_models()
-            logger.info(f"   [INFO] Models Cached: {models}")
-        except Exception as e:
-            logger.warning(f"   [WARNING] Failed to fetch models on startup (will verify lazily): {e}")
+        logger.info("   [INFO] Fetching available models from API is deferred to lazy access.")
+        # try:
+        #     models = GoogleGeminiProvider.fetch_available_models()
+        #     logger.info(f"   [INFO] Models Cached: {models}")
+        # except Exception as e:
+        #     logger.warning(f"   [WARNING] Failed to fetch models on startup (will verify lazily): {e}")
     else:
          logger.info("   [INFO] Using Mock Models list.")
          # Mock provider doesn't have fetch_availble_models, but we can set the cache manually if we access `backend.llm.provider`
          # Or we can just let UI use fallback.
          # Ideally we inject.
-         # For now, let's just log. The MockProvider is not GoogleGeminiProvider.
+         # For now, let's just log. The MockProvider is not GoogleAIProvider.
          pass
 
     # 5. Warmup Engine Singleton & Dependencies

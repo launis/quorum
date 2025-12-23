@@ -102,6 +102,20 @@ def seed_database(target_db_path: Optional[str] = None):
                 print(f"[Seeder] Failed to upsert banned phrase: {e}")
         print(f"[Seeder] Upserted {phrases_count} banned phrases.")
 
+    # Seed System Config (New)
+    if 'system_config' in seed_data:
+        system_config_table = db.table('system_config')
+        Config = Query()
+        config_count = 0
+        for config_item in seed_data['system_config']:
+            try:
+                # Assuming 'type' is the unique identifier for system config
+                system_config_table.upsert(config_item, Config.type == config_item['type'])
+                config_count += 1
+            except Exception as e:
+                print(f"[Seeder] Failed to upsert system_config item: {e}")
+        print(f"[Seeder] Upserted {config_count} system_config items.")
+
     print("[Seeder] Database seeding completed successfully.")
 
 if __name__ == "__main__":

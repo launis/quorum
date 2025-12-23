@@ -32,25 +32,36 @@ class AgentRegistry:
         # 1. Fetch Dynamic Strategies from Repository
         reg_entry = self.repository.get_model_registry()
         
-        dynamic_strategies = {}
+        dynamic_strategies_map = {}
         if reg_entry and 'models' in reg_entry:
-            registry = reg_entry['models']
-            # Default to google for now, or merge providers if needed.
-            # Assuming 'google' is the primary provider for strategies
-            if 'google' in registry:
-                dynamic_strategies = registry['google']
+            dynamic_strategies_map = reg_entry['models']
 
-        # 2. Resolve Strategy Key using strict DB config
-        if model_identifier in dynamic_strategies:
-             strategy = dynamic_strategies[model_identifier]
-             if isinstance(strategy, dict):
-                 return strategy
-             elif isinstance(strategy, str):
-                 return {"model_name": strategy}
+        # 2. Search for Strategy across all Providers
+        # This makes the code vendor-agnostic.
+        for provider_key, strategies in dynamic_strategies_map.items():
+            if model_identifier in strategies:
+                strategy = strategies[model_identifier]
+                
+                # Normalize result
+                config = {}
+                if isinstance(strategy, dict):
+                    config = strategy.copy()
+                elif isinstance(strategy, str):
+                    config = {"model_name": strategy}
+                
+                # Inject provider if missing (derived from registry structure)
+                if "provider" not in config:
+                    config["provider"] = provider_key
+                    
+                return config
         
         # 3. Fail if not found
-        valid_keys = list(dynamic_strategies.keys())
-        err_msg = f"[AgentRegistry] Model Strategy '{model_identifier}' NOT FOUND in Database. Available: {sorted(valid_keys)}. Fallbacks are disabled."
+        # Collect available strategies for error message
+        available = []
+        for p, s in dynamic_strategies_map.items():
+            available.extend(s.keys())
+            
+        err_msg = f"[AgentRegistry] Model Strategy '{model_identifier}' NOT FOUND in Database. Available: {sorted(list(set(available)))}. Fallbacks are disabled."
         logger.error(err_msg)
         raise ValueError(err_msg)
 

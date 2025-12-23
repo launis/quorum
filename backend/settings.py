@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     use_mock_db: MyBool = Field(default=True, description="Use Mock Database (TinyDB)")
     
     # --- API Keys ---
-    google_api_key: Optional[str] = Field(default=None, description="Google Gemini API Key")
+    google_api_key: Optional[str] = Field(default=None, description="Google AI Provider API Key")
 
     # --- LLM Configuration ---
     initial_model: str = Field(default="fast") # Use strategy key, not raw name
@@ -31,8 +31,8 @@ class Settings(BaseSettings):
     llm_max_retries: int = Field(default=3)
     llm_retry_delay: float = Field(default=4.0)
     
-    gemini_model_fast: str = "gemini-2.5-flash"
-    gemini_model_deep: str = "gemini-2.5-pro" # Pro Model
+    # NOTE: Default models are REMOVED to enforce DB-based configuration.
+    # gemini_model_fast and gemini_model_deep are deprecated.
 
     # --- Storage ---
     storage_backend: str = Field(default="LOCAL", description="LOCAL, NONE, or FIRESTORE")
@@ -79,23 +79,11 @@ class Settings(BaseSettings):
     # --- Complex Configs (Computed) ---
     @computed_field
     def model_strategies(self) -> Dict[str, Dict[str, Any]]:
-        return {
-            "fast": {
-                "name": "⚡ Fast Mode",
-                "description": "Optimized for speed and cost. Uses lighter models (e.g., Flash).",
-                "model": self.gemini_model_fast,
-                "temperature": 0.7,
-                # Increased to avoid truncation with large analysis
-                "max_tokens": 16384 
-            },
-            "deep": {
-                "name": "🧠 Deep Mode",
-                "description": "Optimized for complex reasoning and quality. Uses deep thinking models.",
-                "model": self.gemini_model_deep,
-                "temperature": 0.5,
-                "max_tokens": 16384
-            }
-        }
+        """
+        Returns empty dict by default. 
+        Strategies MUST be loaded from 'system_config' table in database.
+        """
+        return {}
 
     model_config = SettingsConfigDict(
         env_file=".env", 

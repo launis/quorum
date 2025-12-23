@@ -56,6 +56,7 @@ class PipelineRunner:
         total_steps_count: int = 0
     ) -> Any:
         """Runs the sequential agent loop."""
+        print(f"DEBUG: PipelineRunner.execute_loop START. Steps: {len(pipeline_steps)}", flush=True)
         total_steps = total_steps_count or len(pipeline_steps)
         current_state = state
         
@@ -88,7 +89,9 @@ class PipelineRunner:
 
         # 1. Pre-Hooks
         config = step_doc.get('execution_config') or {}
+        print(f"DEBUG: Step {agent_name} Config Hooks: {config.get('pre_hooks')}", flush=True)
         for hook in config.get('pre_hooks') or []:
+            print(f"DEBUG: Executing Pre-Hook {hook}", flush=True)
             current_state = self._execute_hook(hook, agent, current_state)
 
         # 2. Dynamic Model Selection
@@ -127,6 +130,12 @@ class PipelineRunner:
         if current_state.step_guard and current_state.step_guard.security_check.uhka_havaittu:
             return self._handle_security_intervention(execution_id, current_state)
             
+        # DEBUG TRACE
+        try:
+            from backend.core.debug_helper import debug_dump_state
+            debug_dump_state(current_state, agent_name)
+        except: pass
+
         return current_state
 
     def _execute_hook(self, hook_name: str, agent: Any, state: WorkflowState) -> WorkflowState:
@@ -157,7 +166,7 @@ class PipelineRunner:
 
     def _configure_agent_model(self, agent: Any, step_id: str, execution_id: str) -> Dict[str, Any]:
         """Resolves and sets the specific model for an agent."""
-        step_model_key = "fast" 
+        step_model_key = None
         
         try:
              exec_rec = self.repository.get_execution(execution_id)
@@ -165,16 +174,29 @@ class PipelineRunner:
                  wf_rec = self.repository.get_workflow_by_id(exec_rec['workflow_id'])
                  if wf_rec:
                      mapping = wf_rec.get('default_model_mapping', {})
-                     step_model_key = mapping.get(step_id, "fast")
-        except:
-             pass
+                     step_model_key = mapping.get(step_id)
+        except Exception as e:
+             logger.error(f"[PipelineRunner] Model lookup failed: {e}")
+             raise e
+
+        # If still not found (e.g. mapping missing), we could check step_doc
+        if not step_model_key:
+             # Try getting step config directly again
+             step_doc = self.repository.get_step_by_id(step_id)
+             if step_doc:
+                 config = step_doc.get('execution_config', {})
+                 step_model_key = config.get('model_strategy')
+        
+        if not step_model_key:
+             raise ValueError(f"[PipelineRunner] CRITICAL: No model strategy (e.g. 'fast'/'deep') found for step {step_id}. Check Workflow/Step Config.")
 
         resolved_config = self.registry.resolve_model_config(step_model_key)
         resolved_model_name = resolved_config.get("model_name")
+        resolved_provider = resolved_config.get("provider")
         
         if resolved_model_name and hasattr(agent, 'set_model'):
-            agent.set_model(resolved_model_name)
-            logger.debug(f"[PipelineRunner] Configured {agent.__class__.__name__} with {resolved_model_name}")
+            agent.set_model(resolved_model_name, provider=resolved_provider)
+            logger.debug(f"[PipelineRunner] Configured {agent.__class__.__name__} with {resolved_model_name} (Provider: {resolved_provider})")
             
         return resolved_config
 

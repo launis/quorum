@@ -19,7 +19,7 @@ class GuardAgent(BaseAgent):
     state_field = "step_guard"
 
     def get_response_schema(self) -> Optional[Type[BaseModel]]:
-        # This tells the LLM Provider (Gemini/OpenAI) exactly what JSON structure to enforce.
+        # This tells the LLM Provider exactly what JSON structure to enforce.
         return TaintedData
 
     async def prepare_context(self, state: WorkflowState, **kwargs) -> Optional[str]:

@@ -1,65 +1,47 @@
+
 import json
-import os
-import sys
+from backend.database.wrapper import TinyDBClient # Use direct client
+from backend.database.repository import TinyDBRepository
 
-# Define pathts
-MOCK_DB_PATH = os.path.join("backend", "database", "db_mock.json")
-PROD_DB_PATH = os.path.join("backend", "database", "db.json")
-
-def check_db(path, name):
-    print(f"--- Checking {name} ({path}) ---")
-    if not os.path.exists(path):
-        print(f"FILE NOT FOUND: {path}")
+def inspect_latest_execution():
+    client = TinyDBClient("backend/database/db_mock.json") # Positional argument
+    repo = TinyDBRepository(client)
+    
+    # Get all executions directly from table to sort by timestamp if needed, 
+    # but repository might not expose 'get_all'. We'll use a known ID if possible or peek into table.
+    # Since we just ran test_engine.py, let's try to find that specific one or just list the last inserted.
+    
+    print("Reading DB...")
+    table = client.table("executions")
+    all_execs = table.all()
+    
+    if not all_execs:
+        print("No executions found.")
         return
 
-    try:
-        with open(path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-        
-        # Check standard TinyDB structure: "_default": { "1": {...} }
-        # Or custom structure? repository.py uses explicit tables.
-        # usually TinyDB: { "steps": { "1": {...} }, "workflows": ... }
-        
-        steps_table = data.get('steps', {})
-        found = False
-        step_details = None
-        
-        for key, item in steps_table.items():
-            # Item might be wrapped in TinyDB format? usually key is strings "1", "2"
-            # item is the object.
-            if item.get('id') == 'step_interaction':
-                found = True
-                step_details = item
-                break
-                
-        if found:
-            print(f"✅ FOUND 'step_interaction' in {name}")
-            print(f"   Name: {step_details.get('name')}")
-            print(f"   Component: {step_details.get('component')}")
-            exec_config = step_details.get('execution_config', {})
-            prompts = exec_config.get('llm_prompts', [])
-            print(f"   Prompts: {prompts}")
-            
-            # Check prompt existence
-            components_table = data.get('components', {})
-            found_prompt = False
-            for k, c in components_table.items():
-                if c.get('id') == 'instruction_interaction':
-                    found_prompt = True
-                    break
-            
-            if found_prompt:
-                print(f"✅ [SUCCESS] {name}: Found 'step_interaction' and 'instruction_interaction'")
-            else:
-                print(f"❌ [FAILURE] {name}: Found step but MISSING prompt")
-                
-        else:
-            print(f"❌ [FAILURE] {name}: 'step_interaction' NOT FOUND in steps")
+    # Sort by start_time (assuming ISO string)
+    latest = sorted(all_execs, key=lambda x: x.get('start_time', ''), reverse=True)[0]
+    
+    print(f"\nLast Execution ID: {latest['execution_id']}")
+    
+    result = latest.get('result', {})
+    if not result:
+        print("No result stored yet.")
+        return
 
-    except Exception as e:
-        print(f"ERROR reading {name}: {e}")
+    print("\n--- TOP LEVEL KEYS ---")
+    print(list(result.keys()))
+    
+    if "Raw_Steps" in result:
+        print("\n--- RAW STEPS KEYS (Filtered) ---")
+        print(list(result["Raw_Steps"].keys()))
+        
+        # Check depth / nulls for a sample
+        if "step_judge" in result["Raw_Steps"]:
+             print("\n--- SAMPLE: step_judge (No Nulls Check) ---")
+             print(json.dumps(result["Raw_Steps"]["step_judge"], indent=2, ensure_ascii=False)[:500] + "...")
+    else:
+        print("\nWARNING: Raw_Steps missing!")
 
 if __name__ == "__main__":
-    check_db(MOCK_DB_PATH, "MOCK DB")
-    print("\n")
-    check_db(PROD_DB_PATH, "PROD DB")
+    inspect_latest_execution()

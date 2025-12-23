@@ -6,15 +6,10 @@ import logging
 import re
 
 
-from backend.models.domain import ProfilerAnalysis
+from backend.models.domain import ProfilerAnalysis, TextMetrics
 logger = logging.getLogger(__name__)
 
-class TextMetrics(BaseModel):
-    word_count: int = Field(..., description="Total number of words")
-    sentence_count: int = Field(..., description="Total number of sentences")
-    avg_sentence_length: float = Field(..., description="Average words per sentence")
-    lexical_diversity: float = Field(..., description="Unique words divided by total words (0-1)")
-    capitalization_ratio: float = Field(..., description="Ratio of uppercase letters to total letters")
+# TextMetrics moved to backend.models.domain
 
 
 # StructuredBias and ProfilerAnalysis removed (using domain.py)
@@ -45,9 +40,8 @@ class ProfilerAgent(BaseAgent):
     def analyze_text_metrics(self, state: WorkflowState) -> WorkflowState:
         """
         PRE-HOOK: Calculates objective text metrics from the input history/product.
-        Injects these into the system prompt context via aux_data, 
-        so the LLM sees the hard numbers.
         """
+        print(f"DEBUG: INSIDE ProfilerAgent.analyze_text_metrics. State input history len: {len(state.inputs.history_text)}", flush=True)
         logger.info("[ProfilerAgent] Running analyze_text_metrics hook...")
         
         # 1. Get Text to Analyze

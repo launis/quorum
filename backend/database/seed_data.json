@@ -864,13 +864,17 @@
       "models": {
         "google": {
           "fast": {
-            "model_name": "gemini-2.5-flash",
-            "temperature": 0.5,
+            "name": "⚡ Fast Mode (Gemini 3 Flash)",
+            "description": "Our most intelligent model built for speed.",
+            "model_name": "gemini/gemini-3-flash-preview",
+            "temperature": 0.7,
             "max_tokens": 16384
           },
           "deep": {
-            "model_name": "gemini-2.5-pro",
-            "temperature": 0.7,
+            "name": "🧠 Deep Mode (Gemini 3 Pro)",
+            "description": "The best model in the world for multimodal understanding.",
+            "model_name": "gemini/gemini-3-pro-preview",
+            "temperature": 0.5,
             "max_tokens": 16384
           }
         }

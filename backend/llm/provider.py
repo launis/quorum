@@ -5,17 +5,15 @@ import logging
 import json
 import asyncio
 from pydantic import BaseModel
-import tenacity
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from tenacity import retry, stop_after_attempt, wait_exponential
 from backend.models.state import WorkflowState
 from backend.settings import get_settings
+import litellm
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
 # Define retry strategy
-# Valid for both sync and async functions in modern tenacity
-# We fetch retry settings lazily or at module level if they are constants in settings
 _settings = get_settings()
 
 retry_strategy = retry(
@@ -27,10 +25,8 @@ retry_strategy = retry(
 
 class LLMProvider(ABC):
     """
-    Abstract base class for LLM providers (Google, OpenAI, Mock, etc.).
-    This defines the 'mask' interface.
+    Abstract base class for LLM providers.
     """
-    
     @abstractmethod
     async def generate(
         self, 
@@ -43,24 +39,15 @@ class LLMProvider(ABC):
     ) -> Union[str, Dict[str, Any]]:
         pass
 
-
 # Global Cache for Models
 _CACHED_MODELS = []
 
-class GoogleGeminiProvider(LLMProvider):
-    def __init__(self, model_name: Optional[str] = None, api_key: Optional[str] = None):
-        import google.generativeai as genai
-        from backend.settings import get_settings
-        
-        self.settings = get_settings()
-        self.model_name = model_name or self.settings.gemini_model_fast
-        self.api_key = api_key or self.settings.google_api_key
-        
-        if not self.api_key:
-            raise ValueError("GOOGLE_API_KEY not found.")
-        
-        genai.configure(api_key=self.api_key)
-
+class GoogleAIProvider(LLMProvider):
+    """
+    Legacy class kept primarily for fetch_available_models used by LLMHandler.
+    Actual generation logic is now handled by LiteLLMProvider via LLMFactory.
+    """
+    
     @staticmethod
     def fetch_available_models(api_key: Optional[str] = None) -> list:
         """
@@ -78,208 +65,45 @@ class GoogleGeminiProvider(LLMProvider):
         key = api_key or settings.google_api_key
         
         if not key:
-            # Fallback if no key (e.g. CI or Mock)
-            return ["gemini-1.5-flash (Fallback)", "gemini-1.5-pro (Fallback)"]
+            return []
 
         try:
             genai.configure(api_key=key)
             models = []
             for m in genai.list_models():
                 if 'generateContent' in m.supported_generation_methods:
-                    # m.name is usually "models/gemini-pro"
                     name_clean = m.name.replace("models/", "")
                     models.append(name_clean)
             
-            logger.info(f"[GeminiProvider] Fetched {len(models)} models from API.")
+            logger.info(f"[GoogleAIProvider] Fetched {len(models)} models from API.")
             _CACHED_MODELS = sorted(models)
             return _CACHED_MODELS
         except Exception as e:
-            logger.error(f"[GeminiProvider] Failed to list models: {e}")
-            # Fallback
-            fallback = ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash"]
-            _CACHED_MODELS = fallback
-            return fallback
+            logger.error(f"[GoogleAIProvider] Failed to list models: {e}")
+            return []
 
-    def _sanitize_schema(self, schema: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Sanitizes Pydantic JSON schema for Gemini.
-        """
-        import copy
-        schema = copy.deepcopy(schema)
-        defs = schema.pop('$defs', {})
-        defs.update(schema.pop('definitions', {}))
-        
-        def resolve_refs(node):
-            if isinstance(node, dict):
-                # Handle $ref
-                if '$ref' in node:
-                    ref_path = node['$ref']
-                    ref_name = ref_path.split('/')[-1]
-                    if ref_name in defs:
-                        definition = copy.deepcopy(defs[ref_name])
-                        return resolve_refs(definition)
-                
-                # Handle anyOf
-                if 'anyOf' in node:
-                    any_of = node.pop('anyOf')
-                    non_null_types = [t for t in any_of if t.get('type') != 'null']
-                    
-                    if len(non_null_types) == 1:
-                        node.update(resolve_refs(non_null_types[0]))
-                        node['nullable'] = True
-                    elif non_null_types:
-                        node.update(resolve_refs(non_null_types[0]))
+    async def generate(self, *args, **kwargs):
+        raise NotImplementedError("Use LiteLLMProvider via LLMFactory instead.")
 
-                # Clean fields that Gemini rejects
-                node.pop('examples', None)
-                node.pop('title', None)
-                node.pop('default', None) 
-                node.pop('additionalProperties', None)
-                node.pop('maximum', None)
-                node.pop('minimum', None)
-                node.pop('exclusiveMaximum', None)
-                node.pop('exclusiveMinimum', None)
-                node.pop('maxLength', None)
-                node.pop('minLength', None)
-                node.pop('pattern', None)
-                
-                if node.get('type') == 'object' and not node.get('properties'):
-                    node['properties'] = {'_dynamic_content': {'type': 'string', 'nullable': True}}
-
-                # Recursively clean children
-                new_node = {}
-                for k, v in node.items():
-                    if k == 'properties' and isinstance(v, dict):
-                        new_props = {}
-                        for pk, pv in v.items():
-                            new_props[pk] = resolve_refs(pv)
-                        new_node[k] = new_props
-                    else:
-                        new_node[k] = resolve_refs(v)
-                return new_node
-            elif isinstance(node, list):
-                return [resolve_refs(item) for item in node]
-            return node
-        
-        return resolve_refs(schema)
-
-    @retry_strategy
-    async def generate(
-        self, 
-        prompt: str, 
-        system_instruction: Optional[str] = None,
-        response_schema: Optional[Type[BaseModel]] = None,
-        temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
-        **kwargs
-    ) -> Union[str, Dict[str, Any]]:
-        import google.generativeai as genai
-        
-        generation_config = {
-            "temperature": temperature,
-            "max_output_tokens": max_tokens or 8192,
-        }
-
-        # Native Structured Output Support
-        if response_schema:
-            try:
-                raw_schema = response_schema.model_json_schema()
-                sanitized_schema = self._sanitize_schema(raw_schema)
-                
-                logger.info(f"[GeminiProvider] Enabling Structured Output for schema: {response_schema.__name__}")
-                generation_config["response_mime_type"] = "application/json"
-                generation_config["response_schema"] = sanitized_schema
-            except Exception as e:
-                logger.error(f"[GeminiProvider] Schema sanitization failed: {e}. Falling back to raw schema.")
-                generation_config["response_mime_type"] = "application/json"
-                generation_config["response_schema"] = response_schema
-        
-        # ASYNC CHANGE: Using GenerativeModel instance
-        model = genai.GenerativeModel(
-            model_name=self.model_name,
-            generation_config=generation_config,
-            system_instruction=system_instruction
-        )
-
-        try:
-            logger.info(f"[GeminiProvider] Calling {self.model_name} (ASYNC)...")
-            
-            # LOGGING: Detailed Trace
-            logger.debug("--- LLM REQUEST TRACE ---")
-            logger.debug(f"COMMAND: {'Structured Output (JSON)' if response_schema else 'Standard Generation'}")
-            logger.debug(f"MODEL: {self.model_name}")
-            if system_instruction:
-                logger.debug(f"SYSTEM INSTRUCTION (First 200 chars): {system_instruction[:200]}...")
-            else:
-                logger.debug("SYSTEM INSTRUCTION: None")
-            
-            logger.debug(f"PROMPT (First 500 chars): {prompt[:500]}...")
-            logger.debug("---------------------------")
-
-            # ASYNC CHANGE: generate_content_async
-            try:
-                response = await model.generate_content_async(prompt)
-            except Exception as e:
-                # 429 Handling: If tenacity gave up, we catch it here.
-                # Check for resource exhaustion / 429
-                if "429" in str(e) or "ResourceExhausted" in str(e) or "quota" in str(e).lower():
-                    logger.warning(f"[GeminiProvider] 429/Quota Exhausted for {self.model_name}.")
-                    
-                    # FALLBACK STRATEGY
-                    fallback_model = self.settings.gemini_model_deep # Use configured deep model as fallback (usually different quota bucket)
-                    
-                    if self.model_name != fallback_model:
-                        logger.warning(f"[GeminiProvider] ⚠️ FALLING BACK to {fallback_model} to salvage request...")
-                        
-                        fallback_model_instance = genai.GenerativeModel(
-                            model_name=fallback_model,
-                            generation_config=generation_config,
-                            system_instruction=system_instruction
-                        )
-                        # One final attempt with fallback
-                        response = await fallback_model_instance.generate_content_async(prompt)
-                        logger.info(f"[GeminiProvider] Fallback to {fallback_model} SUCCESSFUL.")
-                    else:
-                        raise e # Already on fallback, nothing else to do
-                else:
-                    raise e
-
-            if not response.parts:
-                 finish_reason = response.candidates[0].finish_reason if response.candidates else 'Unknown'
-                 msg = f"Gemini returned no content. Finish reason: {finish_reason}"
-                 logger.error(msg)
-                 raise ValueError(msg)
-
-            text_response = response.text
-            
-            if response_schema:
-                return self._clean_json_response(text_response)
-            
-            return text_response
-
-        except Exception as e:
-            logger.error(f"[GeminiProvider] Error: {e}", exc_info=True)
-            raise e
-
-    def _dump_debug_json(self, content: str, error_msg: str):
-        """Helper to dump failed JSON to a file for manual inspection."""
-        try:
-            filename = "debug_failed_json.json"
-            with open(filename, "w", encoding="utf-8") as f:
-                f.write(f"// ERROR: {error_msg}\n")
-                f.write(content)
-            logger.error(f"[GeminiProvider] DUMPED INVALID JSON TO: {os.path.abspath(filename)}")
-        except Exception as e:
-            logger.error(f"[GeminiProvider] Failed to dump debug JSON: {e}")
+class LiteLLMProvider(LLMProvider):
+    """
+    Unified LLM Provider using LiteLLM to support multiple models (Gemini, OpenAI, etc.)
+    with a consistent interface.
+    """
+    def __init__(self, model_name: str, api_key: Optional[str] = None):
+        self.model_name = model_name
+        self.api_key = api_key
+        # litellm configuration if needed
+        litellm.drop_params = True 
 
     def _clean_json_response(self, raw_response: str) -> Dict[str, Any]:
         """
         Robustly parses JSON from LLM output, handling markdown blocks and conversational text.
         """
+        import re
         
         # 0. Pre-cleaning: Remove // comments (Common in LLM JSON)
         # Be careful not to match URLs (http://...)
-        import re
         
         # Simple attempt to parse directly first
         json_candidate = raw_response
@@ -300,14 +124,10 @@ class GoogleGeminiProvider(LLMProvider):
                 json_candidate = raw_response[start_index : end_index + 1]
                 return json.loads(json_candidate)
         except json.JSONDecodeError as e:
-            logger.warning(f"[GeminiProvider] Extraction failed: {e}. Attempting repairs...")
+            logger.warning(f"[LiteLLM] Extraction failed: {e}. Attempting repairs...")
             
             # 3. Repair: Remove single-line comments // that are not inside strings (Approximate)
-            # This regex looks for // not preceded by : (url) and removes until newline
             try:
-                # Remove comments // ... 
-                # Note: This is risky for URLs, so we only target obvious text comments
-                # removing lines starting with //
                 repaired = re.sub(r'^\s*//.*$', '', json_candidate, flags=re.MULTILINE)
                 return json.loads(repaired)
             except Exception:
@@ -315,23 +135,12 @@ class GoogleGeminiProvider(LLMProvider):
 
             # 4. Repair: Heuristic Fix for Missing Commas
             try:
-                logger.warning("[GeminiProvider] Attempting heuristic fix for missing commas...")
                 fixed_json = re.sub(r'(?<=[}\]"\'0-9lue])\s*(?<!,)\s*\n\s*(?=")', ',\n', json_candidate)
                 return json.loads(fixed_json)
             except Exception as e2:
-                logger.error(f"[GeminiProvider] Heuristic fix failed: {e2}")
+                logger.error(f"[LiteLLM] Heuristic fix failed: {e2}")
 
-            # 5. FATAL: Dump to file
-            self._dump_debug_json(raw_response, str(e))
-            raise ValueError(f"Could not extract valid JSON from response. See debug_failed_json.json. Error: {e}")
-
-class OpenAIProvider(LLMProvider):
-    def __init__(self, model_name: str = "gpt-4o", api_key: Optional[str] = None):
-        from openai import AsyncOpenAI
-        from backend.settings import get_settings
-        self.settings = get_settings()
-        self.model_name = model_name
-        self.client = AsyncOpenAI(api_key=api_key or os.getenv("OPENAI_API_KEY"), timeout=self.settings.llm_default_timeout)
+            raise ValueError(f"Could not extract valid JSON from response. Content: {raw_response[:200]}...")
 
     @retry_strategy
     async def generate(
@@ -348,53 +157,50 @@ class OpenAIProvider(LLMProvider):
         if system_instruction:
             messages.append({"role": "system", "content": system_instruction})
         messages.append({"role": "user", "content": prompt})
-
+        
+        response_format = None
+        if response_schema:
+            try:
+                logger.info(f"[LiteLLM] Enabling Structured Output for schema: {response_schema.__name__}")
+                response_format = response_schema
+            except Exception:
+                pass
+        
         try:
-            logger.info(f"[OpenAIProvider] Calling {self.model_name} (ASYNC)...")
-
-            # LOGGING: Detailed Trace
-            logger.debug("--- LLM REQUEST TRACE ---")
-            logger.debug(f"COMMAND: {'Structured Output (JSON)' if response_schema else 'Standard Generation'}")
-            logger.debug(f"MODEL: {self.model_name}")
-            if system_instruction:
-                logger.debug(f"SYSTEM INSTRUCTION (First 200 chars): {system_instruction[:200]}...")
-            else:
-                logger.debug("SYSTEM INSTRUCTION: None")
+            logger.info(f"[LiteLLM] Calling {self.model_name}...")
             
-            logger.debug(f"PROMPT (First 500 chars): {prompt[:500]}...")
-            logger.debug("---------------------------")
+            # Helper to map custom args if needed
+            
+            response = await litellm.acompletion(
+                model=self.model_name,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                response_format=response_format,
+                api_key=self.api_key,
+                drop_params=True
+            )
+            
+            # Extract content
+            content = response.choices[0].message.content
             
             if response_schema:
-                logger.info(f"[OpenAIProvider] Enforcing schema: {response_schema.__name__} (Structured Outputs)")
-                completion = await self.client.beta.chat.completions.parse(
-                    model=self.model_name,
-                    messages=messages,
-                    response_format=response_schema,
-                    temperature=temperature,
-                    max_tokens=max_tokens
-                )
-                parsed_obj = completion.choices[0].message.parsed
-                if not parsed_obj:
-                     refusal = completion.choices[0].message.refusal
-                     msg = f"OpenAI refused to generate structured output: {refusal}"
-                     logger.error(msg)
-                     raise ValueError(msg)
-                
-                return parsed_obj.model_dump()
-            else:
-                completion = await self.client.chat.completions.create(
-                    model=self.model_name,
-                    messages=messages,
-                    temperature=temperature,
-                    max_tokens=max_tokens
-                )
-                return completion.choices[0].message.content
+                # Check for parsed object (e.g. OpenAI Structured Outputs via LiteLLM)
+                if hasattr(response.choices[0].message, "parsed") and response.choices[0].message.parsed:
+                     return response.choices[0].message.parsed.dict() if hasattr(response.choices[0].message.parsed, "dict") else response.choices[0].message.parsed
+
+                return self._clean_json_response(content)
+            
+            return content
 
         except Exception as e:
-            logger.error(f"[OpenAIProvider] Error: {e}", exc_info=True)
+            logger.error(f"[LiteLLM] Error: {e}", exc_info=True)
             raise e
 
 class MockProvider(LLMProvider):
+    def __init__(self, model_name: str = "mock"):
+        self.model_name = model_name
+
     async def generate(self, prompt: str, system_instruction: Optional[str] = None, response_schema: Optional[Type[BaseModel]] = None, temperature: float = 0.7, max_tokens: Optional[int] = None, **kwargs) -> Union[str, Dict[str, Any]]:
         from backend.llm.mock import MockLLMService
         logger.info(f"[MockProvider] Calling Mock Service (Simulating Async)... {kwargs}")
@@ -421,24 +227,50 @@ class MockProvider(LLMProvider):
 
 class LLMFactory:
     @staticmethod
-    def create_provider(provider_type: str = "gemini", model_name: Optional[str] = None) -> LLMProvider:
-        from backend.settings import get_settings
+    def create_provider(provider_type: str, model_name: str) -> LLMProvider:
         settings = get_settings()
         
         if settings.use_mock_llm:
-            return MockProvider()
+            return MockProvider(model_name=model_name or "mock-default")
 
+        if not provider_type or not model_name:
+             raise ValueError("[LLMFactory] provider_type and model_name MUST be provided from DB config. No defaults allowed.")
+
+        # Simplify logic using LiteLLM
+        # Map provider to model naming convention
+        
+        target_model = model_name
+        api_key = None
+        
         if provider_type.lower() == "gemini":
-            target_model = model_name or settings.gemini_model_fast
-            return GoogleGeminiProvider(model_name=target_model)
+            # STRICT MODE: Model name must come fully formed from DB (e.g. gemini/gemini-1.5-pro)
+            # We do NOT append prefixes blindly unless we trust the DB to store just the suffix.
+            # Assuming DB stores "gemini-1.5-pro", we might still need the liteLLM prefix.
+            # But the User said "no fallbacks... only the value from database".
+            # If the database says "gemini-1.5-flash", we use that. 
+            # If it's missing the prefix, LiteLLM might complain, but that's a data issue.
+            
+            # compromise: check for prefix, if missing, warn but append? 
+            # Or assume DB has full string?
+            # Let's check if user wants us to fix the DB content or just the code?
+            # "Is now the text... of file... included". 
+            # Current request: "No fallbacks... Only value from database."
+            
+            target_model = model_name
+            api_key = settings.google_api_key
+            
         elif provider_type.lower() == "openai":
-            # Assuming we might add an openai_model setting later, but for now strict user rule applies to "AI Model UI" which seems to be Gemini focused?
-            # Or if user only defined gemini models, maybe this branch is less critical.
-            # But let's avoid hardcoding gpt-4o if we can.
-            # However, settings only has gemini_model_fast/deep.
-            # I will just remove the 'or "gpt-4o"' and let it fail or use a passed name.
-            # Actually, to be safe, I'll default to "gpt-4o" ONLY if not in settings, but really I should just pass model_name.
-            # If model_name is None for openai... verify if we have a setting.
-            return OpenAIProvider(model_name=model_name or "gpt-4o")
-        else:
-            raise ValueError(f"Unknown provider: {provider_type}")
+            target_model = model_name
+            api_key = settings.openai_api_key
+            api_key = os.getenv("OPENAI_API_KEY")
+        
+        # Default fallback or pass-through
+        if not target_model:
+             # Should not happen given logic above usually, but safe default
+             # Strict mode: raise error if we somehow got here without a model
+             raise ValueError("[LLMFactory] Failed to resolve target_model. Check logic.") 
+
+        msg_key = "PRESENT" if api_key else "MISSING"
+        logger.info(f"[LLMFactory] Creating Provider: {target_model} (Key: {msg_key})")
+        
+        return LiteLLMProvider(model_name=target_model, api_key=api_key)

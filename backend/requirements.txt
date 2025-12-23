@@ -14,3 +14,4 @@ streamlit
 tenacity
 pydantic-settings
 python-docx
+litellm==1.80.8

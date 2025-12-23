@@ -16,21 +16,42 @@ class BaseAgent(BaseComponent):
     
     state_field: Optional[str] = None
 
-    def __init__(self, model: Optional[str] = None, provider: str = "gemini"):
+    def __init__(self, model: Optional[str] = None, provider: Optional[str] = None):
+        if model and "gemini" in model.lower():
+             logger.warning(f"[BaseAgent] Hardcoded 'gemini' detected in model init: {model}")
+             
         self.model = model
         self.provider_type = provider
+        
         # Initialize the provider lazily or here
-        self.llm_provider: LLMProvider = LLMFactory.create_provider(provider, model)
+        if provider and model:
+            self.llm_provider: LLMProvider = LLMFactory.create_provider(provider, model)
+        else:
+            self.llm_provider = None # Must be set via configure() or similar
 
-    def set_model(self, model_name: str):
+    def set_model(self, model_name: str, provider: Optional[str] = None):
         """
-        Dynamically updates the agent's model preference.
+        Dynamically updates the agent's model preference and ensures LLMProvider is ready.
         """
         self.model = model_name
+        if provider:
+            self.provider_type = provider
+            
+        # If provider type is known (either passed now or in init), ensuring we have a provider instance
+        current_provider_type = self.provider_type or "google" # Default fallback if somehow missing, though Runner should provide it
+        
         if self.llm_provider:
-            self.llm_provider.model_name = model_name
-            # Re-configure provider if necessary (some providers might need re-init)
-            # For GeminiProvider, model_name is public attribute, used in generate()
+             # Update existing provider
+             self.llm_provider.model_name = model_name
+             # If provider type changed, we might need to recreate? 
+             # For now assuming same provider class structure or just updating name.
+             # Ideally we should recreate if provider type differs.
+        else:
+             # Create new provider
+             if current_provider_type:
+                 self.llm_provider = LLMFactory.create_provider(current_provider_type, model_name)
+             else:
+                 logger.error(f"[BaseAgent] Cannot create LLMProvider: Provider type missing for model {model_name}")
 
 
     def _update_state(self, state: WorkflowState, response_data: Any) -> WorkflowState:

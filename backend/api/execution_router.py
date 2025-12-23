@@ -53,7 +53,11 @@ async def execute_workflow(request: Request, background_tasks: BackgroundTasks, 
     
     # Fetch actual text inputs from DB for the runner
     rec = engine.repository.get_execution(execution_id)
-    cleaned_inputs = rec['inputs']
+    cleaned_inputs = rec.get('inputs', {})
+    
+    # DEBUG: Verify inputs made it
+    input_summary = {k: len(str(v)) for k, v in cleaned_inputs.items()}
+    logger.info(f"[Router] Triggering execution {execution_id}. Input sizes: {input_summary}")
     
     background_tasks.add_task(engine.run_execution, execution_id, cleaned_inputs)
     
@@ -84,6 +88,49 @@ async def get_execution_status(execution_id: str, engine: WorkflowEngine = Depen
     """Gets the status of a workflow execution."""
     status = engine.get_execution_status(execution_id)
     if not status: raise HTTPException(status_code=404, detail="Execution not found")
+    
+    # If the workflow is complete and we have a final result state, flatten it for the UI
+    if status.get('status') == 'completed' and 'result' in status:
+        # Check if result is a WorkflowState object or dict
+        res = status['result']
+        
+        if hasattr(res, 'to_flat_dict'):
+             status['result'] = res.to_flat_dict()
+        
+        elif isinstance(res, dict):
+             # CHECK IF ALREADY FLAT (V2 Structure)
+             if "Report" in res or "Raw_Steps" in res:
+                 pass # Already processed, return as is.
+             else:
+                 # MIGRATION LOGIC:
+                 # Even if it's already a dict, it might be the OLD structure (nested steps).
+                 # We want to force it through the new 'to_flat_dict' logic to get the 2-layer structure.
+                 try:
+                     # Need to import WorkflowState here or at top
+                     from backend.models.state import WorkflowState
+                     
+                     # INJECT MISSING REQUIRED FIELDS for hydration
+                     # WorkflowState requires execution_id and inputs, which might be stored 
+                     # at the Execution level in DB, not inside the 'result' dict.
+                     hydration_data = res.copy()
+                     if 'execution_id' not in hydration_data:
+                         hydration_data['execution_id'] = status.get('execution_id', 'unknown')
+                     if 'inputs' not in hydration_data:
+                         hydration_data['inputs'] = status.get('inputs', {})
+                     
+                     # Attempt to hydrate the dict back into a State Object
+                     # This validates it against the schema and allows us to call methods
+                     hydrated_state = WorkflowState(**hydration_data)
+                     status['result'] = hydrated_state.to_flat_dict()
+    
+                 except Exception as e:
+                     # import traceback
+                     # print(f"HYDRATION FAILED for {execution_id}: {e}")
+                     # print(traceback.format_exc())
+                     logger.warning(f"Failed to migrate legacy execution result {execution_id}: {e}")
+                     # Fallback: leave it as is, legacy UI might handle parts of it
+                     pass
+
     return status
 
 @router.post("/executions/{execution_id}/retry")
@@ -184,15 +231,9 @@ def list_agents(workflow_id: Optional[str] = None, registry: AgentRegistry = Dep
                     logger.error(f"DIAGNOSTIC FAULT: {e}")
 
         # Formatting Suffix
-        fast_model = "gemini-3-flash-preview" 
-        deep_model = "gemini-3-pro-preview"
-        # Ideally fetch defaults from settings, but keeping simple for now logic
-        
         model_display = current_model
-        if "flash" in str(model_display).lower():
-             model_display = f"{model_display} (Fast)"
-        elif "pro" in str(model_display).lower():
-             model_display = f"{model_display} (Deep)"
+        # Optional: Ask DB what defined 'fast' vs 'deep' to format correctly
+        # For now, just show the raw model name from DB. No manual suffixing based on strings.
 
         agents_list.append({
             "name": name,

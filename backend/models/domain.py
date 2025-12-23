@@ -40,10 +40,15 @@ class TaintedDataContent(BaseModel):
     lopputuote: str | None = Field(default=None, description="ÄLÄ TULOSTA SISÄLTÖÄ! Käytä VAIN tätä tekstiä: '{{FILE: Lopputuote.pdf}}'")
     reflektiodokumentti: str | None = Field(default=None, description="ÄLÄ TULOSTA SISÄLTÖÄ! Käytä VAIN tätä tekstiä: '{{FILE: Reflektiodokumentti.pdf}}'")
 
+class SafeDataContent(BaseModel):
+    keskusteluhistoria: str | None = None
+    lopputuote: str | None = None
+    reflektiodokumentti: str | None = None
+
 class TaintedData(BaseJSON):
     data: TaintedDataContent
     security_check: SecurityCheck
-    safe_data: dict[str, Any] | None = None
+    safe_data: SafeDataContent | None = None
 
 
 
@@ -281,13 +286,20 @@ class StructuredBias(BaseModel):
     selitys: str = Field(..., description="Explanation of how this bias appears in the text")
 
 
+class TextMetrics(BaseModel):
+    word_count: int = Field(..., description="Total number of words")
+    sentence_count: int = Field(..., description="Total number of sentences")
+    avg_sentence_length: float = Field(..., description="Average words per sentence")
+    lexical_diversity: float = Field(..., description="Unique words divided by total words (0-1)")
+    capitalization_ratio: float = Field(..., description="Ratio of uppercase letters to total letters")
+
 class ProfilerAnalysis(BaseJSON):
     intentio_analyysi: str
     tunnetila_ja_savy: str
     tunnistetut_vinoumat: list[StructuredBias]
     psykologinen_profiili: str
     manipulaatio_yritykset: str
-    teksti_metriikka: Optional[Dict[str, Any]] = Field(None, description="Objective metrics calculated by Python hook")
+    teksti_metriikka: Optional[TextMetrics] = Field(None, description="Objective metrics calculated by Python hook")
 
 
 

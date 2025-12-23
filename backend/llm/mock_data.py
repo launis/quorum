@@ -101,7 +101,11 @@ def _generate_guard_data() -> Dict[str, Any]:
             "adversariaalinen_simulaatio_tulos": "Clean",
             "riski_taso": "MATALA"
         },
-        "safe_data": {"mock_key": "mock_value"}
+        "safe_data": {
+            "keskusteluhistoria": "Puhdistettu historia...",
+            "lopputuote": "Puhdistettu tuotos...",
+            "reflektiodokumentti": "Puhdistettu reflektio..."
+        }
     })
     return data
 
@@ -109,14 +113,15 @@ def _generate_analyst_data() -> Dict[str, Any]:
     data = _clone(_get_common_base(), agent="Analyytikko", vaihe=2)
     data.update({
         "hypoteesit": [
-            {"id": "H1", "vaite_teksti": "Opiskelija osoittaa kriittistä ajattelua.", "loytyyko_todisteita": True}
+            {"id": "H1", "vaite_teksti": "Opiskelija osoittaa kriittistä ajattelua.", "loytyyko_todisteita": True, "hakusana_ehdotus": "kriittinen ajattelu pedagogiikka"},
+            {"id": "H2", "vaite_teksti": "Argumentaatio on puutteellista.", "loytyyko_todisteita": False, "hakusana_ehdotus": None}
         ],
         "rag_todisteet": [
             {
                 "viittaa_hypoteesiin_id": "H1",
                 "perusteet": "Löytyy reflektiosta.",
-                "konteksti_segmentti": "Oivalsin, että...",
-                "relevanssi_score": 9
+                "konteksti_segmentti": "Oivalsin, että argumentaatio vaatii tukea...",
+                "relevanssi_score": 90
             }
         ]
     })
@@ -125,7 +130,7 @@ def _generate_analyst_data() -> Dict[str, Any]:
 def _generate_interaction_data() -> Dict[str, Any]:
     data = _clone(_get_common_base(), agent="Vuorovaikutus", vaihe=2.2)
     data.update({
-        "tunnistetut_strategiat": ["Täsmällinen kontekstointi", "Roolitus"],
+        "tunnistetut_strategiat": ["Iterative refinement", "Constraint-based"],
         "ohjausliikkeet": 3,
         "driver_classification": "Kartanlukija",
         "input_control_ratio": 0.35
@@ -135,13 +140,20 @@ def _generate_interaction_data() -> Dict[str, Any]:
 def _generate_profiler_data() -> Dict[str, Any]:
     data = _clone(_get_common_base(), agent="Profiloija", vaihe=2.5)
     data.update({
-        "intentio_analyysi": "Kirjoittajan intentio on vaikuttaa tunteisiin.",
+        "intentio_analyysi": "Kirjoittajan intentio on vaikuttaa tunteisiin ja vakuuttaa.",
         "tunnetila_ja_savy": "Ahdistunut mutta toiveikas.",
         "tunnistetut_vinoumat": [
-             {"nimi": "Vahvistusharha", "selitys": "Analyysi painottaa vain omaa puolta."}
+             {"nimi": "Vahvistusharha", "selitys": "Analyysi painottaa vain omaa puolta jättäen vasta-argumentit huomiotta."}
         ],
-        "psykologinen_profiili": "Puolustuskannalla oleva oppija.",
-        "manipulaatio_yritykset": "Ei havaittu."
+        "psykologinen_profiili": "Puolustuskannalla oleva oppija, joka hakee hyväksyntää.",
+        "manipulaatio_yritykset": "Ei havaittu.",
+        "teksti_metriikka": {
+            "word_count": 150,
+            "sentence_count": 15,
+            "avg_sentence_length": 10.0,
+            "lexical_diversity": 0.6,
+            "capitalization_ratio": 0.05
+        }
     })
     return data
 
@@ -149,15 +161,15 @@ def _generate_logician_data() -> Dict[str, Any]:
     data = _clone(_get_common_base(), agent="Loogikko", vaihe=3)
     data.update({
         "toulmin_analyysi": [
-            {"vaite_id": "H1", "claim": "Claim text", "data": "Data", "warrant": "Warrant", "backing": "Backing"}
+            {"vaite_id": "H1", "claim": "Tekoäly on hyödyllinen.", "data": "Se nopeuttaa työtä.", "warrant": "Nopeus on hyödyllistä.", "backing": "Tutkimukset osoittavat tehokkuuden kasvun."}
         ],
         "kognitiivinen_taso": {
             "bloom_taso": "Analyze",
             "strateginen_syvyys": "Syvä"
         },
         "walton_skeema": {
-            "tunnistettu_skeema": "Expert Opinion",
-            "kriittiset_kysymykset": ["Q1?"]
+            "tunnistettu_skeema": "Argument from Expert Opinion",
+            "kriittiset_kysymykset": ["Onko asiantuntija luotettava?", "Onko lausunto ristiriidassa muiden kanssa?"]
         }
     })
     return data
@@ -166,11 +178,11 @@ def _generate_falsifier_data() -> Dict[str, Any]:
     data = _clone(_get_common_base(), agent="Falsifioija", vaihe=4)
     data.update({
         "walton_stressitesti_loydokset": [
-            {"kysymys": "Miksi?", "kestiko_todistusaineisto": True, "havainto": "Kesti."}
+            {"kysymys": "Mitä jos oletus X on väärä?", "kestiko_todistusaineisto": True, "havainto": "Perustelu nojaa vahvaan dataan."}
         ],
         "paattelyketjun_uskollisuus_auditointi": {
             "onko_post_hoc_rationalisointia": False,
-            "perustelu": "Ei havaittu.",
+            "perustelu": "Päättely etenee loogisesti premisseistä johtopäätökseen.",
             "uskollisuus_score": "KORKEA"
         }
     })
@@ -180,10 +192,11 @@ def _generate_fact_checker_data() -> Dict[str, Any]:
     data = _clone(_get_common_base(), agent="Valvoja", vaihe=5)
     data.update({
         "faktantarkistus_rfi": [
-            {"vaite": "Maa on pyöreä", "verifiointi_tulos": "Vahvistettu", "lahde_tai_paattely": "Yleistieto"}
+            {"vaite": "Maa on pyöreä.", "verifiointi_tulos": "Vahvistettu", "lahde_tai_paattely": "Yleistieto / NASA"},
+            {"vaite": "Kuu on juustoa.", "verifiointi_tulos": "Kumottu", "lahde_tai_paattely": "Apollo-lennot"}
         ],
         "eettiset_havainnot": [
-             {"tyyppi": "Ei havaittu", "vakavuus": "N/A", "kuvaus": "OK"}
+             {"tyyppi": "Ei havaittu", "vakavuus": "N/A", "kuvaus": "Sisältö noudattaa turvallisuusohjeita."}
         ]
     })
     return data
@@ -193,11 +206,11 @@ def _generate_causal_data() -> Dict[str, Any]:
     data.update({
         "kausaalinen_auditointi": {
             "aikajana_validi": True,
-            "havainnot": "Johdonmukainen."
+            "havainnot": "Syys-seuraussuhteet ovat johdonmukaisia."
         },
         "kontrafaktuaalinen_testi": {
-            "skenaario_A_toteutunut": "X tapahtui",
-            "skenaario_B_simulaatio": "Jos X ei, niin Y",
+            "skenaario_A_toteutunut": "Opiskelija käytti tekoälyä.",
+            "skenaario_B_simulaatio": "Jos opiskelija ei olisi käyttänyt tekoälyä, tulos olisi ollut suppeampi.",
             "uskottavuus_arvio": "Uskottava"
         },
         "abduktiivinen_paatelma": "Aito Oivallus"
@@ -208,67 +221,82 @@ def _generate_performativity_data() -> Dict[str, Any]:
     data = _clone(_get_common_base(), agent="Performatiivisuus", vaihe=7)
     data.update({
         "performatiivisuus_heuristiikat": [
-            {"heuristiikka": "Buzzwords", "lippu_nostettu": False, "kuvaus": "Normaali kieli."}
+            {"heuristiikka": "Buzzwords", "lippu_nostettu": False, "kuvaus": "Kieli on luonnollista."}
         ],
         "pre_mortem_analyysi": {
             "suoritettu": True,
-            "hiljaiset_signaalit": ["Ei signaaleja."]
+            "hiljaiset_signaalit": ["Ei havaittu hälyttäviä signaaleja."]
         },
         "yleisarvio_aitoudesta": "Orgaaninen"
     })
     return data
 
 def _generate_judge_data() -> Dict[str, Any]:
-    data = _clone(_get_common_base(), agent="Tuomari", vaihe=8)
+    data = _clone(_get_common_base(), agent="Tuomari", vaihe=9)
+    # Note: 'viesti_hitl:lle' alias in schema maps to 'viesti_hitl_lle' field.
+    # Providing the ALIAS key is safer for input validation.
     data.update({
-        "konfliktin_ratkaisut": [],
-        "mestaruus_poikkeama": {"tunnistettu": False, "perustelu": "Normaali suoritus."},
+        "konfliktin_ratkaisut": [
+             {"konflikti": "Analyytikko ja Falsifioija eri mieltä.", "ratkaisu_malli": "Synteesi", "perustelu": "Yhdistettiin näkökulmat."}
+        ],
+        "mestaruus_poikkeama": {"tunnistettu": False, "perustelu": "Normaali suoritus tasolla 3."},
         "aitous_epaily": {"automaattinen_lippu": False, "viesti_hitl:lle": "Ei huomautettavaa."},
         "pisteet": {
-            "analyysi": {"arvosana": 3, "perustelu": "Hyvä."},
-            "arviointi": {"arvosana": 3, "perustelu": "Hyvä."},
-            "synteesi": {"arvosana": 3, "perustelu": "Hyvä."}
+            "analyysi": {"arvosana": 3, "perustelu": "Analyysi on kattava ja perusteltu."},
+            "arviointi": {"arvosana": 3, "perustelu": "Arviointi on objektiivista."},
+            "synteesi": {"arvosana": 4, "perustelu": "Synteesi luo uutta tietoa erinomaisesti."}
         },
-        "kriittiset_havainnot_yhteenveto": ["Kaikki ok."]
+        "kriittiset_havainnot_yhteenveto": ["Suoritus on tasalaatuinen.", "Argumentaatio on vahvaa."]
     })
     return data
 
 def _generate_xai_data() -> Dict[str, Any]:
-    data = _clone(_get_common_base(), agent="XAI-Raportoija", vaihe=9)
+    data = _clone(_get_common_base(), agent="XAI-Raportoija", vaihe=13)
     data.update({
-        "executive_summary": "Tämä on automaattinen yhteenveto.",
-        "final_verdict": "Hyväksytty",
+        "executive_summary": "Tämä on MOCK-yhteenveto. Järjestelmä on arvioinut suorituksen hyväksyttäväksi.",
+        "final_verdict": "Hyväksytty (Kuski)",
         "confidence_score": 0.95,
-        "analysis_strengths": "Vahvuudet...",
-        "analysis_weaknesses": "Heikkoudet...",
-        "analysis_opportunities": "Mahdollisuudet...",
-        "analysis_recommendations": "Suositukset..."
+        "analysis_strengths": "Vahva looginen päättely ja hyvä lähdekritiikki.",
+        "analysis_weaknesses": "Hieman toistuvaa kieltä paikoitellen.",
+        "analysis_opportunities": "Voisi syventää kausaalianalyysiä.",
+        "analysis_recommendations": "Jatka samaan malliin, mutta kiinnitä huomiota kielen variaatioon.",
+        "xai_report_formatted": "# XAI Raportti\\n\\n**Päätös:** Hyväksytty.\\n\\nAnalyysi osoittaa vahvaa suoriutumista." 
     })
     return data
 
 def _generate_archivist_data() -> Dict[str, Any]:
-    data = _clone(_get_common_base(), agent="Arkistonhoitaja", vaihe=8.5)
+    data = _clone(_get_common_base(), agent="Arkistonhoitaja", vaihe=10)
     data.update({
-        "linjakkuus_analyysi": "Linjassa.",
-        "poikkeamat_linjasta": "Ei poikkeamia.",
-        "suositus_tuomarille": "Neutraali.",
-        "viitatut_ennakkotapaukset": ["Case-123"]
+        "linjakkuus_analyysi": "Linjassa aiemman oikeuskäytännön kanssa.",
+        "poikkeamat_linjasta": "Ei merkittäviä poikkeamia.",
+        "suositus_tuomarille": "Hyväksy sellaisenaan.",
+        "viitatut_ennakkotapaukset": ["Case-2023-001", "Case-2024-055"]
     })
     return data
 
 def _generate_coach_data() -> Dict[str, Any]:
-    data = _clone(_get_common_base(), agent="Valmentaja", vaihe=10)
+    data = _clone(_get_common_base(), agent="Valmentaja", vaihe=12)
+    # Matches CoachingPlan(BaseJSON)
+    # kehityskohteet_konkreettisesti: List[ActionGroup]
+    # ActionGroup: kategoria, kohdat: List[ActionItem]
     data.update({
-        "kannustava_palaute": "Hyvää työtä!",
+        "kannustava_palaute": "Erinomaista työtä! Olet selvästi nähnyt vaivaa.",
         "kehityskohteet_konkreettisesti": [
             {
-                "kategoria": "Logiikka",
+                "kategoria": "Logiikka & Argumentaatio",
                 "kohdat": [
-                    {"otsikko": "Argumentaatio", "kuvaus": "Syvennä perusteluja.", "resurssit": ["Toulmin 2003"]}
+                    {"otsikko": "Perustelujen syventäminen", "kuvaus": "Pyri avaamaan 'miksi'-kysymyksiä vielä tarkemmin.", "resurssit": ["https://toulmin-model.com"]},
+                    {"otsikko": "Vasta-argumentit", "kuvaus": "Huomioi myös vastakkaiset näkökulmat.", "resurssit": []}
                 ]
+            },
+            {
+                 "kategoria": "Rakenne",
+                 "kohdat": [
+                     {"otsikko": "Kappalejako", "kuvaus": "Tiivistä kappaleita luettavuuden parantamiseksi.", "resurssit": []}
+                 ]
             }
         ],
-        "lopputuloksen_kehitysehdotukset": ["Parempi jäsentely."],
-        "lahdeluettelo": ["Toulmin, S. (2003). The Uses of Argument."]
+        "lopputuloksen_kehitysehdotukset": ["Lisää tiivistelmä alkuun.", "Tarkista viittaukset."],
+        "lahdeluettelo": ["Toulmin, S. (2003). The Uses of Argument.", "Kahneman, D. (2011). Thinking, Fast and Slow."]
     })
     return data

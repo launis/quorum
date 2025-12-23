@@ -134,17 +134,24 @@ class MockLLMService:
             if "archivistagent" in sys_lower: return "archivist_agent"
             if "coachagent" in sys_lower: return "coach_agent"
 
-            # Fallback: Check for specific Phase/Agent headers
+            # Fallback: Check for specific Phase/Agent headers matching db_mock.json
             if "logician agent" in sys_lower: return "logician_agent" 
-            if "vaihe 1: vartija-agentti" in sys_lower: return "guard_agent"
-            if "vaihe 2: analyytikko-agentti" in sys_lower: return "analyst_agent"
-            if "vaihe 3: loogikko-agentti" in sys_lower: return "logician_agent"
-            if "vaihe 4: falsifioija-agentti" in sys_lower: return "falsifier_agent"
-            if "vaihe 5: kausaalinen" in sys_lower: return "causal_agent"
-            if "vaihe 6: performatiivisuus" in sys_lower: return "performativity_agent"
-            if "vaihe 7: faktuaalinen" in sys_lower or "valvoja-agentti" in sys_lower: return "fact_checker_agent"
-            if "vaihe 8: tuomari-agentti" in sys_lower: return "judge_agent"
-            if "vaihe 9: xai-raportoija" in sys_lower: return "xai_agent"
+            if "vaihe 1: vartija" in sys_lower: return "guard_agent"
+            if "vaihe 2: analyytikko" in sys_lower: return "analyst_agent"
+            # Interaction is typically Step 3
+            if "vaihe 3: vuorovaikutus" in sys_lower: return "interaction_agent"
+            if "vaihe 4: profiloija" in sys_lower: return "profiler_agent"
+            if "vaihe 5: loogikko" in sys_lower: return "logician_agent"
+            if "vaihe 6: falsifioija" in sys_lower: return "falsifier_agent"
+            if "vaihe 7: kausaalinen" in sys_lower: return "causal_agent"
+            if "vaihe 8: tunnistaja" in sys_lower: return "performativity_agent"
+            if "vaihe 9: valvoja" in sys_lower: return "fact_checker_agent"
+            # Note: IDs in db_mock might vary, but we match loose keywords
+            if "tuomari (judge)" in sys_lower or "vaihe 9: tuomari" in sys_lower or "vaihe 11: tuomari" in sys_lower: return "judge_agent"
+            if "arkistonhoitaja" in sys_lower: return "archivist_agent"
+            if "valmentaja" in sys_lower: return "coach_agent"
+            if "xai-raportoija" in sys_lower or "vaihe 13" in sys_lower: return "xai_agent"
+
 
         # 2. Check Prompt Content (V2 & V1)
         prompt_lower = prompt.lower()

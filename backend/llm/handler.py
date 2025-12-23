@@ -31,18 +31,18 @@ class LLMHandler:
         }
         
         if settings.use_mock_llm:
-            models["google"] = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.5-flash", "gemini-2.5-pro"]
-            models["openai"] = ["gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo"]
+            models["google"] = ["mock-model-a", "mock-model-b"]
+            models["openai"] = ["mock-gpt-a"]
             return models
         
         # 1. Fetch Google Models
         try:
              # Use the Provider's caching mechanism (initialized at bootstrap)
-             from backend.llm.provider import GoogleGeminiProvider
+             from backend.llm.provider import GoogleAIProvider
              
              logger.info(f"Fetching cached Google models from Provider...")
              # Since it's a static method that checks cache, we can just call it safely.
-             cached_google_models = GoogleGeminiProvider.fetch_available_models(api_key=settings.google_api_key)
+             cached_google_models = GoogleAIProvider.fetch_available_models(api_key=settings.google_api_key)
              models["google"] = cached_google_models
              
         except Exception as e:

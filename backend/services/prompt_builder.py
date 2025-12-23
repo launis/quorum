@@ -129,6 +129,10 @@ class PromptBuilder:
             search_res = state.aux_data.get('google_search_results', '[]')
             content = content.replace("{{GOOGLE_SEARCH_RESULTS}}", str(search_res))
             
+        if "{{PROFILER_METRICS}}" in content:
+            metrics = state.aux_data.get('profiler_metrics', {})
+            content = content.replace("{{PROFILER_METRICS}}", json.dumps(metrics, indent=2))
+            
         return content
 
     def _inject_schema_example(self, content: str, step_data: Dict[str, Any]) -> str:

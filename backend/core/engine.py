@@ -174,6 +174,7 @@ class WorkflowEngine:
             tracker = DatabaseProgressTracker(self.repository, execution_id)
             tracker.start() 
 
+            print(f"DEBUG: Engine calling runner.execute_loop. Runner type: {type(self.runner)}", flush=True)
             final_state = await self.runner.execute_loop(current_state, pipeline_steps, tracker, execution_id)
             
             # 4. Check for Halt/Early Exit
@@ -359,9 +360,12 @@ class WorkflowEngine:
 
     def _project_final_result(self, execution_id: str, state: WorkflowState, pipeline_steps: List[Any]) -> Dict[str, Any]:
         """Helper to create the public result dictionary from the final state."""
+        # 1. Start with the architecturally mandated V2 structure (Scores, Reports, etc.)
+        public_result = state.to_flat_dict()
         full_state = state.model_dump(mode='json')
-        public_result = {}
-        
+
+        # 2. Augment with dynamic steps that might not be in to_flat_dict explicit logic
+        # and apply specific valid hoisting configurations.
         for agent, step_doc in pipeline_steps:
             state_key = step_doc.get('state_key')
             hoist_fields = step_doc.get('hoist_fields', [])
@@ -372,20 +376,25 @@ class WorkflowEngine:
                 if comp_record:
                     hoist_fields = comp_record.get('content', [])
             
-            if state_key and hoist_fields and full_state.get(state_key):
+            if state_key and full_state.get(state_key):
                 source_data = full_state[state_key]
-                for field in hoist_fields:
-                    if '.' in field:
-                        parts = field.split('.')
-                        val = source_data
-                        for part in parts:
-                            if isinstance(val, dict): val = val.get(part)
-                            else: val = None; break
-                        target_key = parts[-1]
-                    else:
-                        val = source_data.get(field)
-                        target_key = field
-                    public_result[target_key] = val
+                
+
+
+                if hoist_fields:
+                    for field in hoist_fields:
+                        if '.' in field:
+                            parts = field.split('.')
+                            val = source_data
+                            for part in parts:
+                                if isinstance(val, dict): val = val.get(part)
+                                else: val = None; break
+                            target_key = parts[-1]
+                        else:
+                            val = source_data.get(field)
+                            target_key = field
+                        # Overwrite/Add specific hoisted fields
+                        public_result[target_key] = val
 
         self.repository.update_execution(execution_id, {
             'status': 'completed',

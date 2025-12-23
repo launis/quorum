@@ -121,18 +121,26 @@ def get_engine(
     return _engine_instance
 
 def get_llm_provider(
-    model_name: Optional[str] = None
+    model_strategy: str = "fast",
+    registry: AgentRegistry = Depends(get_agent_registry_dep)
 ):
     """
     Dependency to provide a configured LLM Provider.
+    By default uses the 'fast' strategy from the DB.
     """
     from backend.llm.provider import LLMFactory
-    from backend.settings import Settings
     
-    if not model_name:
-        model_name = Settings().gemini_model_fast
-        
-    return LLMFactory.create_provider(model_name=model_name)
+    # Resolve strategy from DB
+    config = registry.resolve_model_config(model_strategy)
+    model_name = config.get("model_name")
+    
+    # We need provider too. Registry should store it (injected by resolve_model_config)
+    provider_type = config.get("provider")
+    
+    if not provider_type:
+         raise ValueError(f"[get_llm_provider] 'provider' missing for strategy '{model_strategy}'. DB Config Error.")
+    
+    return LLMFactory.create_provider(provider_type=provider_type, model_name=model_name)
 
 def get_llm_handler_dep(db_client: AbstractDatabase = Depends(get_db_client_dep)):
     from backend.llm.handler import LLMHandler
