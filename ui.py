@@ -23,7 +23,7 @@ st.markdown(f"**Backend:** `{BACKEND_URL}`")
 
 # Sidebar: Navigation
 st.sidebar.title("Navigation")
-page = st.sidebar.radio("Go to", ["Assessment", "Admin", "System Info"])
+page = st.sidebar.radio("Go to", ["Assessment", "Workflow Builder", "Admin", "System Info"])
 
 if page == "Assessment":
     # Sidebar: Workflow Selection
@@ -43,7 +43,21 @@ if page == "Assessment":
             wf = workflow_options[selected_workflow_id]
             mapping = wf.get('default_model_mapping', {})
             if mapping:
-                for step, model in mapping.items():
+                # Sort mapping by execution order
+                execution_order = wf.get('steps', [])
+                # Create a list of (step_id, model_name) tuples sorted by index in execution_order
+                # If a step is in mapping but not in execution steps (unlikely), put it at the end.
+                
+                def get_sort_key(item):
+                    step_id, _ = item
+                    try:
+                        return execution_order.index(step_id)
+                    except ValueError:
+                        return 9999
+                
+                sorted_mapping = sorted(mapping.items(), key=get_sort_key)
+
+                for step, model in sorted_mapping:
                     if model in ["fast", "deep"]:
                         st.sidebar.markdown(f"**{step}**: `{model}` (Global Strategy)")
                     else:
@@ -464,6 +478,10 @@ elif page == "Admin":
                 st.json(res.json())
             except Exception as e:
                 st.error(e)
+
+elif page == "Workflow Builder":
+    from frontend.pages.workflow_builder import render_workflow_builder
+    render_workflow_builder(api_client)
 
 elif page == "System Info":
     st.header("System Configuration & Seed Data")

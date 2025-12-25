@@ -100,9 +100,6 @@ class WorkflowState(BaseModel):
         Groups data by logical domain rather than agent identity.
         """
         # DEBUG TRACE
-        print(f"[State.to_flat_dict] Guard present: {self.step_guard is not None}")
-        print(f"[State.to_flat_dict] Reporter present: {self.step_reporter is not None}")
-        
         flat = {}
         
         # 1. System Status & Safety

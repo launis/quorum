@@ -49,6 +49,8 @@ def get_fallback_data(key: str) -> Dict[str, Any]:
         return _generate_xai_data()
     elif key == "coach_agent":
         return _generate_coach_data()
+    elif key == "panel_agent":
+        return _generate_panel_data()
         
     return {"error": "No mock data available", "mock_key": key}
 
@@ -299,4 +301,23 @@ def _generate_coach_data() -> Dict[str, Any]:
         "lopputuloksen_kehitysehdotukset": ["Lisää tiivistelmä alkuun.", "Tarkista viittaukset."],
         "lahdeluettelo": ["Toulmin, S. (2003). The Uses of Argument.", "Kahneman, D. (2011). Thinking, Fast and Slow."]
     })
+    return data
+
+def _generate_panel_data() -> Dict[str, Any]:
+    """
+    Generates a COMPOSITE response for the PanelAgent.
+    Must match the complex schema of PanelAgent output.
+    """
+    data = _clone(_get_common_base(), agent="Tiedepaneeli", vaihe=6)
+    
+    # We essentially execute the sub-generators and merge them.
+    # The keys must match what PanelAgent parser expects (snake_case of field names)
+    
+    data.update({
+        "logiikka_auditointi": _generate_falsifier_data(),
+        "etiikka_ja_fakta": _generate_fact_checker_data(),
+        "kausaalinen_auditointi": _generate_causal_data(),
+        "performatiivisuus_auditointi": _generate_performativity_data()
+    })
+    
     return data

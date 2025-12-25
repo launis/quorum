@@ -88,6 +88,7 @@ class PanelAgent(BaseAgent):
             prompt=user_content,
             system_instruction=full_system_instruction,
             response_schema=None,
+            mock_identity="PanelAgent",
             **kwargs
         )
         

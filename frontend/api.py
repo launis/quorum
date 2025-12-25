@@ -109,3 +109,100 @@ class APIClient:
             return res.json().get("full_chain_text", "") if res.status_code == 200 else ""
         except Exception:
             return ""
+
+    # --- Builder API ---
+    def get_builder_config_agents(self):
+        try:
+            res = requests.get(f"{self.base_url}/builder/config/agents", timeout=10)
+            return res.json() if res.status_code == 200 else []
+        except Exception as e:
+            logger.error(f"Builder Config Error: {e}")
+            return []
+
+    def get_builder_workflows(self):
+        try:
+            res = requests.get(f"{self.base_url}/builder/workflows", timeout=10)
+            return res.json() if res.status_code == 200 else []
+        except Exception as e:
+            logger.error(f"Builder List Error: {e}")
+            return []
+
+    def get_builder_workflow(self, workflow_id):
+        try:
+            res = requests.get(f"{self.base_url}/builder/workflows/{workflow_id}", timeout=10)
+            return res.json() if res.status_code == 200 else None
+        except Exception as e:
+            logger.error(f"Builder Detail Error: {e}")
+            return None
+
+    def create_builder_workflow(self, payload):
+        try:
+            res = requests.post(f"{self.base_url}/builder/workflows", json=payload, timeout=10)
+            res.raise_for_status()
+            return res.json()
+        except Exception as e:
+           logger.error(f"Builder Create Error: {e}")
+           raise e
+
+    def update_builder_workflow(self, workflow_id, payload):
+        try:
+            res = requests.put(f"{self.base_url}/builder/workflows/{workflow_id}", json=payload, timeout=10)
+            res.raise_for_status()
+            return res.json()
+        except Exception as e:
+           logger.error(f"Builder Update Error: {e}")
+           raise e
+
+    def delete_builder_workflow(self, workflow_id):
+        try:
+            res = requests.delete(f"{self.base_url}/builder/workflows/{workflow_id}", timeout=10)
+            res.raise_for_status()
+            return res.json()
+        except Exception as e:
+           logger.error(f"Builder Delete Error: {e}")
+           raise e
+           
+    def copy_builder_workflow(self, workflow_id: str, new_name: str):
+        try:
+            res = requests.post(f"{self.base_url}/builder/workflows/{workflow_id}/copy", json={"new_name": new_name}, timeout=10)
+            res.raise_for_status()
+            return res.json()
+        except Exception as e:
+            logger.error(f"Builder Copy Error: {e}")
+            raise e
+
+    # --- V2 ---
+    def get_builder_step(self, step_id: str):
+        try:
+            res = requests.get(f"{self.base_url}/builder/steps/{step_id}", timeout=10)
+            return res.json() if res.status_code == 200 else None
+        except Exception as e:
+            logger.error(f"Failed to get builder step {step_id}: {e}")
+            return None
+
+    def update_builder_step(self, step_id: str, payload: dict):
+        try:
+            res = requests.put(f"{self.base_url}/builder/steps/{step_id}", json=payload, timeout=10)
+            res.raise_for_status()
+            return res.json()
+        except Exception as e:
+            logger.error(f"Failed to update step {step_id}: {e}")
+            raise e
+
+    def clone_builder_step(self, source_step_id: str):
+        try:
+            res = requests.post(f"{self.base_url}/builder/steps/clone", json={"source_step_id": source_step_id}, timeout=10)
+            res.raise_for_status()
+            return res.json()
+        except Exception as e:
+            logger.error(f"Failed to clone step {source_step_id}: {e}")
+            raise e
+
+    def compile_fusion(self, workflow_id: str, steps_to_fuse: list):
+        try:
+            res = requests.post(f"{self.base_url}/builder/compile", json={"workflow_id": workflow_id, "steps": steps_to_fuse}, timeout=10)
+            res.raise_for_status()
+            return res.json()
+        except Exception as e:
+            logger.error(f"Failed to compile fuison: {e}")
+            raise e

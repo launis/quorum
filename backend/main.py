@@ -47,6 +47,9 @@ app.include_router(config_router)
 # app.include_router(workflows_router) # Removed
 app.include_router(llm_router, prefix="/llm", tags=["LLM"])
 
+from backend.api.builder_router import router as builder_router
+app.include_router(builder_router)
+
 @app.middleware("http")
 async def add_no_cache_header(request, call_next):
     response = await call_next(request)

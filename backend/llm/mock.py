@@ -151,6 +151,7 @@ class MockLLMService:
             if "arkistonhoitaja" in sys_lower: return "archivist_agent"
             if "valmentaja" in sys_lower: return "coach_agent"
             if "xai-raportoija" in sys_lower or "vaihe 13" in sys_lower: return "xai_agent"
+            if "panel" in sys_lower or "coordinator" in sys_lower or "tiedepaneeli" in sys_lower: return "panel_agent"
 
 
         # 2. Check Prompt Content (V2 & V1)
