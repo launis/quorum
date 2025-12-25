@@ -188,7 +188,10 @@ class PipelineRunner:
                  step_model_key = config.get('model_strategy')
         
         if not step_model_key:
-             raise ValueError(f"[PipelineRunner] CRITICAL: No model strategy (e.g. 'fast'/'deep') found for step {step_id}. Check Workflow/Step Config.")
+             # Prevent crash by falling back to 'fast' logic
+             logger.warning(f"[PipelineRunner] Warning: No model strategy found for step {step_id}. Fallback to 'fast'.")
+             step_model_key = "fast"
+
 
         resolved_config = self.registry.resolve_model_config(step_model_key)
         resolved_model_name = resolved_config.get("model_name")

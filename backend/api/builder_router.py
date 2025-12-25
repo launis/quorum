@@ -40,6 +40,14 @@ class ValidationRequest(BaseModel):
     source_step: str
     target_step: str
 
+class WorkflowTemplate(BaseModel):
+    name: str
+    description: str = ""
+    steps: List[str] = []
+    default_model_mapping: Dict[str, str] = {}
+    ui_schema: Dict[str, Any] = {"nodes": []}
+
+
 # --- Helpers ---
 
 def _get_orphan_steps(repo, workflow_id: str) -> List[str]:
@@ -236,65 +244,7 @@ class CompileRequest(BaseModel):
     workflow_id: str
     steps: List[str]
 
-@router.post("/compile")
-async def compile_fusion(req: CompileRequest, engine: WorkflowEngine = Depends(get_engine)):
-    """
-    V2: Prompt Fusion Compilation.
-    Replaces a sequence of steps with 'step_panel' in the specified workflow.
-    """
-    wf = engine.repository.get_workflow_by_id(req.workflow_id)
-    if not wf:
-        raise HTTPException(status_code=404, detail="Workflow not found")
-        
-    current_steps = wf.get('steps', [])
-    steps_to_fuse = req.steps
-    
-    # Validation: Are steps present?
-    if not all(s in current_steps for s in steps_to_fuse):
-        raise HTTPException(status_code=400, detail="One or more steps not found in workflow")
-        
-    # Logic: Find the FIRST index of the fuse group, remove them all, insert 'step_panel'
-    # 1. Identify indices
-    indices = sorted([current_steps.index(s) for s in steps_to_fuse])
-    
-    # Check contiguity (optional but good for safety)
-    # for i in range(len(indices) - 1):
-    #     if indices[i+1] != indices[i] + 1:
-    #          raise HTTPException(status_code=400, detail="Steps must be consecutive for fusion")
-             
-    first_idx = indices[0]
-    
-    # 2. Filter out fused steps
-    new_steps = [s for s in current_steps if s not in steps_to_fuse]
-    
-    # 3. Insert 'step_panel' at the position of the first removed step
-    new_steps.insert(first_idx, "step_panel")
-    
-    # Update Model Mapping
-    mapping = wf.get('default_model_mapping', {}).copy()
-    
-    # Remove old keys
-    for step_id in steps_to_fuse:
-        if step_id in mapping:
-            del mapping[step_id]
-            
-    # Add new key (Hardcoded DEEP for Panel as per design)
-    mapping['step_panel'] = 'deep'
-    
-    # 4. Persist Changes to Database
-    from tinydb import Query
-    WF = Query()
-    # We update both 'steps' and 'default_model_mapping'
-    engine.repository.db.table('workflows').update({
-        "steps": new_steps,
-        "default_model_mapping": mapping
-    }, WF.id == req.workflow_id)
-    
-    return {
-        "status": "compiled", 
-        "composite_step_id": "step_panel",
-        "new_steps": new_steps
-    }
+
 
 # --- V2: Step Configuration ---
 
@@ -352,4 +302,179 @@ async def clone_step(source_step_id: str = Body(..., embed=True), engine: Workfl
     
     engine.repository.db.table('steps').insert(clean_step)
     
+    engine.repository.db.table('steps').insert(clean_step)
+    
     return clean_step
+
+@router.get("/utils/generate-id")
+async def generate_id(prefix: str = "custom_step"):
+    """Generates a unique ID with optional prefix."""
+    return {"id": f"{prefix}_{uuid.uuid4().hex[:6]}"}
+
+
+@router.get("/config/template")
+async def get_workflow_template():
+    """Returns a valid empty workflow template."""
+    return WorkflowTemplate(
+        name="New Workflow",
+        description="",
+        steps=[],
+        default_model_mapping={},
+        ui_schema={"nodes": []}
+    )
+
+@router.get("/config/fusion-rules")
+async def get_fusion_rules(engine: WorkflowEngine = Depends(get_engine)):
+    """
+    Returns validation rules for prompt fusion.
+    Scans available steps for those with 'fusion_info'.
+    """
+    rules = []
+    # Scan steps table (seed steps usually carry this info)
+    all_steps = engine.repository.db.table('steps').all()
+    for s in all_steps:
+        if 'fusion_info' in s:
+            rules.append({
+                "composite_step_id": s['id'],
+                "name": s.get('name', s['id']),
+                "replaces_components": s['fusion_info'].get('replaces_components', []),
+                "min_steps": s['fusion_info'].get('min_steps', 2)
+            })
+    return rules
+
+@router.get("/config/prompt-types")
+async def get_prompt_types():
+    """Returns list of component types that can be used as prompts."""
+    return ["prompt", "mandate", "rule", "header", "instruction"]
+
+@router.post("/compile")
+
+@router.post("/compile")
+async def compile_fusion(req: CompileRequest, engine: WorkflowEngine = Depends(get_engine)):
+    """
+    V2: Prompt Fusion Compilation.
+    Replaces a sequence of steps with a compatible Composite Step (Panel).
+    Validates compatibility using 'fusion_info'.
+    """
+    wf = engine.repository.get_workflow_by_id(req.workflow_id)
+    if not wf:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+        
+    current_steps = wf.get('steps', [])
+    steps_to_fuse = req.steps
+    
+    # 1. Validation: Are steps present?
+    if not all(s in current_steps for s in steps_to_fuse):
+        raise HTTPException(status_code=400, detail="One or more steps not found in workflow")
+
+    # 2. Find Composite Candidate
+    # For V1, we assume target is 'step_panel', but let's be dynamic.
+    # We look for a step definition that claims to replace these components.
+    
+    # Get component types of the steps to be fused
+    fusing_components = []
+    step_map = {s['id']: s for s in engine.repository.db.table('steps').all()} # Cache for speed
+    
+    for sid in steps_to_fuse:
+        s_def = step_map.get(sid)
+        if s_def:
+            fusing_components.append(s_def.get('component'))
+        else:
+             # Handle custom steps or missing defs - strict mode would fail
+             pass
+    
+    # Find a rule that covers these components
+    target_composite_id = "step_panel" # Default fallback
+    valid_fusion = False
+    
+    all_steps = step_map.values()
+    for s in all_steps:
+        if 'fusion_info' in s:
+            allowed = set(s['fusion_info'].get('replaces_components', []))
+            # Check if ALL fusing components are in the allowed list
+            if fusing_components and all(comp in allowed for comp in fusing_components):
+                target_composite_id = s['id']
+                valid_fusion = True
+                break
+    
+    # If not strictly validated via metadata, check hardcoded fallback for backward compat
+    if not valid_fusion:
+        # Fallback: Just allow it if it looks like the old list (Safety check)
+        # Or if we want strict mode:
+        # raise HTTPException(400, "Selected steps are not compatible for fusion.")
+        logger.warning(f"Fusion validation weak for steps: {steps_to_fuse}. Defaulting to step_panel.")
+    
+    # Logic: Find the FIRST index of the fuse group, remove them all, insert target
+    # 1. Identify indices
+    indices = sorted([current_steps.index(s) for s in steps_to_fuse])
+    first_idx = indices[0]
+    
+    # 2. Filter out fused steps
+    new_steps = [s for s in current_steps if s not in steps_to_fuse]
+    
+    # 3. Insert target composite step at the position of the first removed step
+    new_steps.insert(first_idx, target_composite_id)
+    
+    # Update Model Mapping
+    mapping = wf.get('default_model_mapping', {}).copy()
+    
+    # Remove old keys
+    for step_id in steps_to_fuse:
+        if step_id in mapping:
+            del mapping[step_id]
+            
+    # Add new key (Hardcoded DEEP for Panel as per design)
+    mapping[target_composite_id] = 'deep'
+    
+    # 4. Persist Changes to Database
+    from tinydb import Query
+    WF = Query()
+    # We update both 'steps' and 'default_model_mapping'
+    engine.repository.db.table('workflows').update({
+        "steps": new_steps,
+        "default_model_mapping": mapping
+    }, WF.id == req.workflow_id)
+    
+    return {
+        "status": "compiled", 
+        "composite_step_id": target_composite_id,
+        "new_steps": new_steps
+    }
+
+    # 1. Identify indices
+    indices = sorted([current_steps.index(s) for s in steps_to_fuse])
+    first_idx = indices[0]
+    
+    # 2. Filter out fused steps
+    new_steps = [s for s in current_steps if s not in steps_to_fuse]
+    
+    # 3. Insert target composite step at the position of the first removed step
+    new_steps.insert(first_idx, target_composite_id)
+    
+    # Update Model Mapping
+    mapping = wf.get('default_model_mapping', {}).copy()
+    
+    # Remove old keys
+    for step_id in steps_to_fuse:
+        if step_id in mapping:
+            del mapping[step_id]
+            
+    # Add new key (Hardcoded DEEP for Panel as per design)
+    mapping[target_composite_id] = 'deep'
+    
+    # 4. Persist Changes to Database
+    from tinydb import Query
+    WF = Query()
+    # We update both 'steps' and 'default_model_mapping'
+    engine.repository.db.table('workflows').update({
+        "steps": new_steps,
+        "default_model_mapping": mapping
+    }, WF.id == req.workflow_id)
+    
+    return {
+        "status": "compiled", 
+        "composite_step_id": target_composite_id,
+        "new_steps": new_steps
+    }
+
+

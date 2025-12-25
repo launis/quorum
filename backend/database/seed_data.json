@@ -653,6 +653,16 @@
       "name": "Paneeli (The Panel)",
       "description": "Yhdistetyt Kriitikot (Step 5-9 Fusion).",
       "component": "PanelAgent",
+      "fusion_info": {
+        "replaces_components": [
+          "LogicianAgent",
+          "LogicalFalsifierAgent",
+          "CausalAnalystAgent",
+          "PerformativityDetectorAgent",
+          "FactualOverseerAgent"
+        ],
+        "min_steps": 2
+      },
       "execution_config": {
         "llm_prompts": [
           "GLOBAL_CONTEXT",

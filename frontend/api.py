@@ -47,6 +47,15 @@ class APIClient:
             ]
         return dynamic_steps_order
 
+    def get_available_steps_config(self):
+        """Fetches all available step configurations from the backend."""
+        try:
+            res = requests.get(f"{self.base_url}/config/steps", timeout=10)
+            return res.json() if res.status_code == 200 else []
+        except Exception as e:
+            logger.error(f"Failed to fetch steps config: {e}")
+            return []
+
     def start_execution(self, workflow_id, files, metadata=None):
         if metadata is None:
             metadata = {}
@@ -105,10 +114,20 @@ class APIClient:
 
     def get_full_chain_preview(self, workflow_id):
         try:
-            res = requests.get(f"{self.base_url}/db/preview_full_chain/{workflow_id}", timeout=10)
-            return res.json().get("full_chain_text", "") if res.status_code == 200 else ""
+            res = requests.get(f"{self.base_url}/db/preview_chain/{workflow_id}", timeout=10)
+            return res.json().get("content", "") if res.status_code == 200 else ""
         except Exception:
             return ""
+
+    def get_model_strategies(self):
+        """Fetches available model strategies (e.g. 'fast', 'deep') from the backend."""
+        try:
+            res = requests.get(f"{self.base_url}/config/models/strategies", timeout=10)
+            return list(res.json().keys()) if res.status_code == 200 else []
+        except Exception:
+            return []
+
+
 
     # --- Builder API ---
     def get_builder_config_agents(self):
@@ -206,3 +225,42 @@ class APIClient:
         except Exception as e:
             logger.error(f"Failed to compile fuison: {e}")
             raise e
+
+    def get_workflow_template(self):
+        try:
+            res = requests.get(f"{self.base_url}/builder/config/template", timeout=10)
+            return res.json() if res.status_code == 200 else {}
+        except Exception:
+            return {}
+
+    def generate_id(self, prefix: str = "custom_step"):
+        try:
+            res = requests.get(f"{self.base_url}/builder/utils/generate-id?prefix={prefix}", timeout=10)
+            return res.json().get('id', '')
+        except Exception:
+            # Fallback
+            import uuid
+            return f"{prefix}_{uuid.uuid4().hex[:6]}"
+
+    def create_step(self, payload):
+        try:
+            res = requests.post(f"{self.base_url}/config/steps", json=payload, timeout=10)
+            res.raise_for_status()
+            return res.json()
+        except Exception as e:
+            logger.error(f"Failed to create step: {e}")
+            raise e
+
+    def get_components(self):
+        try:
+            res = requests.get(f"{self.base_url}/config/components", timeout=10)
+            return res.json() if res.status_code == 200 else []
+        except Exception:
+            return []
+
+    def get_prompt_types(self):
+        try:
+            res = requests.get(f"{self.base_url}/builder/config/prompt-types", timeout=10)
+            return res.json() if res.status_code == 200 else []
+        except Exception:
+            return []

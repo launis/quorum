@@ -80,6 +80,10 @@ def render_workflow_builder(api_client):
         target_id = st.session_state.get('builder_wf_id')
         is_new = target_id is None
         
+        # Fetch available strategies
+        available_strategies = api_client.get_model_strategies()
+
+        
         # Load Data if editing
         if 'editor_wf_data' not in st.session_state or st.session_state.get('editor_wf_id_ref') != target_id:
              if not is_new:
@@ -92,14 +96,20 @@ def render_workflow_builder(api_client):
                      if st.button("Back"): st.session_state['builder_mode'] = 'L'; st.rerun()
                      return
              else:
-                 # Default New
-                 st.session_state['editor_wf_data'] = {
-                     "name": "New Workflow",
-                     "description": "",
-                     "steps": [],
-                     "default_model_mapping": {},
-                     "ui_schema": {"nodes": []}
-                 }
+                 # Default New from Backend Template
+                 template = api_client.get_workflow_template()
+                 if template:
+                     st.session_state['editor_wf_data'] = template
+                 else:
+                     # Emergency Fallback
+                     st.session_state['editor_wf_data'] = {
+                         "name": "New Workflow",
+                         "description": "",
+                         "steps": [],
+                         "default_model_mapping": {}, 
+                         "ui_schema": {"nodes": []}
+                     }
+
                  st.session_state['editor_wf_id_ref'] = None
         
         wf_data = st.session_state['editor_wf_data']
@@ -183,7 +193,14 @@ def render_workflow_builder(api_client):
                             # Model Selector
                             current_map = wf_data.get('default_model_mapping', {})
                             current_model = current_map.get(step_id, 'fast')
-                            new_model = st.selectbox("Model", ["fast", "deep"], index=0 if current_model=='fast' else 1, key=f"model_{i}_{step_id}", label_visibility="collapsed")
+                            
+                            # Calculate index safely
+                            try:
+                                sel_idx = available_strategies.index(current_model)
+                            except ValueError:
+                                sel_idx = 0
+                                
+                            new_model = st.selectbox("Model", available_strategies, index=sel_idx, key=f"model_{i}_{step_id}", label_visibility="collapsed")
                             if new_model != current_model:
                                 wf_data['default_model_mapping'][step_id] = new_model
                         with c4:
@@ -203,21 +220,61 @@ def render_workflow_builder(api_client):
                     # Simplify: Add by Agent Type, auto-generate ID
                     sel_agent = st.selectbox("Select Agent to Add", agent_names)
                     
-                    # Hack: Offer standard IDs for demo compatibility
-                    std_ids = ["step_guard", "step_analyst", "step_judge", "step_coach", "step_xai"]
+                    # Dynamic fetching of steps from backend
+                    available_steps_config = api_client.get_available_steps_config()
+                    if available_steps_config:
+                        std_ids = [s['id'] for s in available_steps_config]
+                    else:
+                        std_ids = []
+                        st.error("Could not load standard steps from backend.")
+
                     step_mode = st.radio("Mode", ["Standard Step", "New Custom Step"])
                     
                     if step_mode == "Standard Step":
                         sel_id = st.selectbox("Standard ID", std_ids)
                         if st.button("Add Standard Step"):
                             steps.append(sel_id)
+                            # Ensure default model mapping exists
+                            if "default_model_mapping" not in wf_data:
+                                wf_data["default_model_mapping"] = {}
+                            # Set default to 'fast' if not present
+                            if sel_id not in wf_data["default_model_mapping"]:
+                                wf_data["default_model_mapping"][sel_id] = "fast"
                             st.rerun()
                     else:
-                        st.caption("Custom Step Creation - Backend Support Pending")
-                        cust_id = f"custom_step_{uuid.uuid4().hex[:6]}"
-                        if st.button("Add Custom (Stub)"):
-                            steps.append(cust_id)
-                            st.rerun()
+                        st.caption("Backend-Integrated Custom Step")
+                        # 1. Generate ID
+                        cust_id = api_client.generate_id(prefix=f"custom_{sel_agent.lower()}")
+                        
+                        if st.button("Create & Add Custom Step"):
+                            # 2. Construct Step Payload
+                            new_step_payload = {
+                                "id": cust_id,
+                                "name": f"Custom {sel_agent} Step",
+                                "component": sel_agent, # Using agent name as component ID
+                                "description": "Created via Workflow Builder",
+                                "execution_config": {},
+                                "output_config_component": None,
+                                "output_filename": f"{cust_id}.json"
+                            }
+                            
+                            try:
+                                # 3. Create in Backend
+                                api_client.create_step(new_step_payload)
+                                st.success(f"Created step {cust_id}")
+                                
+                                # 4. Add to Workflow
+                                steps.append(cust_id)
+                                
+                                # 5. Set defaults
+                                if "default_model_mapping" not in wf_data:
+                                    wf_data["default_model_mapping"] = {}
+                                wf_data["default_model_mapping"][cust_id] = "fast"
+                                
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"Failed to create step: {e}")
+
 
             with col_props:
                 st.subheader("Properties")
@@ -272,13 +329,28 @@ def render_workflow_builder(api_client):
                             current_prompts = exec_config.get('llm_prompts', [])
                             
                             st.markdown("**Active Prompts (Hooks):**")
-                            # We need list of ALL available prompts to add new ones. 
-                            # For now, just simple string list editing or fetch from seed if possible.
-                            # Let's assume user knows IDs or we just re-order/remove existing.
-                            # V2+: Fetch all available hooks from backend.
                             
-                            # Simple Re-order / Remove
-                            new_prompts = st.multiselect("Edit Prompt Chain", options=current_prompts + ["HEADER_MANDATES", "MANDATE_1", "RULE_1"], default=current_prompts)
+                            # Fetch available prompts dynamically
+                            all_components = api_client.get_components()
+                            allowed_types = api_client.get_prompt_types()
+                            
+                            # Fallback if no types returned (safety)
+                            if not allowed_types:
+                                allowed_types = ['prompt', 'mandate', 'rule', 'header', 'instruction']
+
+                            prompt_options = []
+                            for c in all_components:
+                                if c.get('type') in allowed_types:
+                                    prompt_options.append(c.get('id'))
+                            
+                            # Fallback if fetch fails or empty
+                            if not prompt_options:
+                                prompt_options = current_prompts # Look only at what we have
+                            
+                            # Ensure current prompts are in options (in case type is weird)
+                            prompt_options = sorted(list(set(prompt_options + current_prompts)))
+
+                            new_prompts = st.multiselect("Edit Prompt Chain", options=prompt_options, default=current_prompts)
                             
                             if new_prompts != current_prompts:
                                 if st.button("Save Prompt Configuration"):
@@ -291,6 +363,7 @@ def render_workflow_builder(api_client):
                                     except Exception as e:
                                         st.error(f"Update failed: {e}")
 
+
                     if st.button("Close Selection"):
                         st.session_state['builder_act_step'] = None
                         st.rerun()
@@ -302,11 +375,12 @@ def render_workflow_builder(api_client):
                 st.markdown("### Prompt Fusion (V2)")
                 st.caption("Select multiple *consecutive* steps to merge into a Panel.")
                 
-                # Filter strictly standard steps eligible for fusion to avoid mess
-                fusion_candidates = ["step_logician", "step_falsifier", "step_causal", "step_detector", "step_overseer"]
+                # Allow any steps to be fused (Backend validates logic)
+                fusion_options = steps
                 
                 # UI Selection
-                selected_fusion = st.multiselect("Steps to Fuse", [s for s in steps if s in fusion_candidates], default=[s for s in steps if s in fusion_candidates])
+                selected_fusion = st.multiselect("Steps to Fuse", fusion_options)
+
                 
                 if len(selected_fusion) > 1:
                     if st.button("🔥 Compile Fused Prompt (Replace with Panel)"):
@@ -325,8 +399,10 @@ def render_workflow_builder(api_client):
                                 if s in wf_data['default_model_mapping']:
                                     del wf_data['default_model_mapping'][s]
                             
-                            # Set Panel to Deep by default
-                            wf_data['default_model_mapping']['step_panel'] = 'deep'
+                            # Set Composite Step to Deep by default (using ID from response)
+                            comp_id = res.get('composite_step_id', 'step_panel')
+                            wf_data['default_model_mapping'][comp_id] = 'deep'
+
                             
                             # Save immediately to persist
                             payload = {

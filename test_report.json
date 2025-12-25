@@ -1,0 +1,44 @@
+[
+  {
+    "name": "Config Steps",
+    "url": "/config/steps",
+    "status": "PASSED",
+    "detail": ""
+  },
+  {
+    "name": "Model Strategies",
+    "url": "/config/models/strategies",
+    "status": "PASSED",
+    "detail": ""
+  },
+  {
+    "name": "Workflow Template",
+    "url": "/builder/config/template",
+    "status": "PASSED",
+    "detail": ""
+  },
+  {
+    "name": "ID Generation",
+    "url": "/builder/utils/generate-id?prefix=test",
+    "status": "PASSED",
+    "detail": ""
+  },
+  {
+    "name": "Fusion Rules",
+    "url": "/builder/config/fusion-rules",
+    "status": "PASSED",
+    "detail": ""
+  },
+  {
+    "name": "Prompt Types",
+    "url": "/builder/config/prompt-types",
+    "status": "PASSED",
+    "detail": ""
+  },
+  {
+    "name": "Agents Config",
+    "url": "/builder/config/agents",
+    "status": "PASSED",
+    "detail": ""
+  }
+]
