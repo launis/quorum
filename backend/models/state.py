@@ -14,7 +14,8 @@ from backend.models.domain import (
     ProfilerAnalysis,
     CaseLawContext,
     CoachingPlan,
-    InteractionAnalysis
+    InteractionAnalysis,
+    PanelAudit
 )
 
 class InputData(BaseModel):
@@ -51,6 +52,7 @@ class WorkflowState(BaseModel):
     step_archivist: Optional[CaseLawContext] = None # Step 8.5/8a
     step_coach: Optional[CoachingPlan] = None # Step 8.5/8c
     step_interaction: Optional[InteractionAnalysis] = None # Step 2.2
+    step_panel: Optional[PanelAudit] = None
     step_reporter: Optional[XAIReport] = None
 
     # Formatted output
@@ -76,7 +78,8 @@ class WorkflowState(BaseModel):
             ("Tuomari", self.step_judge),
             ("Arkistonhoitaja", self.step_archivist),
             ("Valmentaja", self.step_coach),
-            ("Vuorovaikutusanalysaattori", self.step_interaction)
+            ("Vuorovaikutusanalysaattori", self.step_interaction),
+            ("Paneeli", self.step_panel)
         ]
         
         for name, data in steps:
@@ -173,6 +176,23 @@ class WorkflowState(BaseModel):
              if self.step_overseer.eettiset_havainnot:
                  report['etiikka'] = [e.model_dump() for e in self.step_overseer.eettiset_havainnot]
 
+        if self.step_panel:
+            if self.step_panel.logiikka_auditointi:
+                 if self.step_panel.logiikka_auditointi.toulmin_analyysi: report['logiikka_toulmin'] = [t.model_dump() for t in self.step_panel.logiikka_auditointi.toulmin_analyysi]
+                 if self.step_panel.logiikka_auditointi.walton_skeema: report['logiikka_skeema'] = self.step_panel.logiikka_auditointi.walton_skeema.tunnistettu_skeema
+            
+            if self.step_panel.kausaalinen_auditointi and self.step_panel.kausaalinen_auditointi.kausaalinen_auditointi:
+                 report['kausaalisuus_paatelma'] = self.step_panel.kausaalinen_auditointi.abduktiivinen_paatelma
+
+            if self.step_panel.falsifiointi_auditointi and self.step_panel.falsifiointi_auditointi.paattelyketjun_uskollisuus_auditointi:
+                 report['logiikka_uskollisuus'] = self.step_panel.falsifiointi_auditointi.paattelyketjun_uskollisuus_auditointi.uskollisuus_score
+
+            if self.step_panel.etiikka_ja_fakta:
+                 if self.step_panel.etiikka_ja_fakta.faktantarkistus_rfi:
+                     report['faktatarkistus'] = [f.model_dump() for f in self.step_panel.etiikka_ja_fakta.faktantarkistus_rfi]
+                 if self.step_panel.etiikka_ja_fakta.eettiset_havainnot:
+                     report['etiikka'] = [e.model_dump() for e in self.step_panel.etiikka_ja_fakta.eettiset_havainnot]
+
         # 3. Actionable Feedback
         if self.step_coach:
             report["palaute_yhteenveto"] = self.step_coach.kannustava_palaute
@@ -217,6 +237,7 @@ class WorkflowState(BaseModel):
             "step_archivist": self.step_archivist.model_dump(exclude=noise_fields, exclude_none=True) if self.step_archivist else None,
             "step_judge": self.step_judge.model_dump(exclude=noise_fields, exclude_none=True) if self.step_judge else None,
             "step_coach": self.step_coach.model_dump(exclude=noise_fields, exclude_none=True) if self.step_coach else None,
+            "step_panel": self.step_panel.model_dump(exclude=noise_fields, exclude_none=True) if self.step_panel else None,
             "step_reporter": self.step_reporter.model_dump(exclude=noise_fields, exclude_none=True) if self.step_reporter else None,
         }
         

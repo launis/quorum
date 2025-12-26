@@ -488,63 +488,118 @@ elif page == "System Info":
     
     data = api_client.get_seed_data()
     if data:
-        # Unified Master View
-        st.subheader("📚 Komponenttikirjasto")
-        unified_text = api_client.get_unified_prompts()
-        if unified_text:
-            st.text_area("Unified Content", unified_text, height=800)
-            st.download_button("Download Unified View", unified_text, file_name="unified_system_view.md")
-        
-        st.markdown("---")
-        
-        # Components
-        st.subheader("1. Components (Prompts)")
-        all_components = data.get('components', [])
-        relevant_types = ['prompt', 'Mandate', 'Rule', 'instruction', 'header', 'protocol', 'method', 'task']
-        components = [c for c in all_components if c.get('type') in relevant_types]
-        
-        if components:
-            for i, comp in enumerate(components):
-                with st.expander(f"{comp.get('id')} ({comp.get('type')})"):
-                    st.text_area("Content", comp.get('content'), height=300, key=f"comp_{comp.get('id')}_{i}")
-        
-        # Steps
-        st.subheader("2. Steps")
-        steps = data.get('steps', [])
-        if steps:
-            st.dataframe(pd.DataFrame(steps))
-
-        # Workflows
-        st.subheader("3. Workflows")
-        st.json(data.get('workflows', []))
-        
-        # Preview
-        st.subheader("4. Prompt Preview")
-        if steps:
-            step_ids = [s['id'] for s in steps]
-            selected_step = st.selectbox("Select Step to Preview", step_ids)
-            if selected_step:
-                preview_data = api_client.get_prompt_preview(selected_step)
-                if preview_data:
-                    st.markdown(f"**Agent Class:** `{preview_data.get('agent_class')}`")
-                    c1, c2 = st.columns(2)
-                    with c1:
-                        st.markdown("### System Instruction")
-                        st.text_area("System", preview_data.get('system_instruction'), height=500)
-                    with c2:
-                        st.markdown("### User Prompt")
-                        st.text_area("User", preview_data.get('user_prompt'), height=500)
-
-        # Full Chain
-        st.subheader("🎬 Unified Master View (Execution Chain)")
+        # Get Workflows
         workflows = data.get('workflows', [])
-        if workflows:
-            wf_ids = [w['id'] for w in workflows]
-            sel_wf = st.selectbox("Select Workflow for Full Chain", wf_ids, key="full_chain_wf")
-            if st.button("Generate Full Chain Preview"):
-                full_text = api_client.get_full_chain_preview(sel_wf)
-                if full_text:
-                    st.text_area("Full Chain Prompt", full_text, height=800)
-                    st.download_button("Download", full_text, file_name=f"full_chain_{sel_wf}.txt")
+        workflow_options = {w['id']: w for w in workflows}
+        
+        # Workflow Selection
+        st.subheader("Valitse Työnkulku (Select Workflow)")
+        selected_wf_id = st.selectbox(
+            "Workflow", 
+            options=list(workflow_options.keys()),
+            format_func=lambda x: workflow_options[x].get('name', x),
+            key="sys_info_wf_selector"
+        )
+        
+        selected_workflow = workflow_options.get(selected_wf_id)
+        
+        if selected_workflow:
+            st.info(f"Viewing configuration for: **{selected_workflow.get('name')}**")
+            st.markdown(f"_{selected_workflow.get('description')}_")
+            st.markdown("---")
+
+            # Gather Dependencies
+            workflow_steps_ids = selected_workflow.get('steps', [])
+            all_steps = {s['id']: s for s in data.get('steps', []) if 'id' in s}
+            all_components = {c['id']: c for c in data.get('components', []) if 'id' in c}
+             
+            relevant_steps = [all_steps[sid] for sid in workflow_steps_ids if sid in all_steps]
+             
+            used_component_ids = set()
+            for step in relevant_steps:
+                prompts = step.get('execution_config', {}).get('llm_prompts', [])
+                for p_id in prompts:
+                    used_component_ids.add(p_id)
+             
+            used_components = [all_components[cid] for cid in used_component_ids if cid in all_components]
+             
+            # Ordering
+            type_order = ["header", "mandate", "rule", "operational_rule", "protocol", "method", "instruction", "task"]
+             
+            def sort_key(c):
+                t = c.get('type', '').lower()
+                if t in type_order:
+                    return type_order.index(t)
+                return 99
+
+            used_components.sort(key=sort_key)
+
+            # Tabs
+            tab1, tab2, tab3, tab4 = st.tabs(["📚 Komponenttikirjasto", "Workflow Steps", "Prompt Preview", "Full Chain Export"])
+             
+            with tab1:
+                st.markdown(f"### Komponenttikirjasto (Library) - {len(used_components)} items")
+                st.caption("Components used in this workflow's prompts.")
+                 
+                # Optional Type Filter
+                c_types = sorted(list(set(str(c.get('type') or 'unknown') for c in used_components)))
+                if c_types:
+                    sel_types = st.multiselect("Filter by Type", c_types, default=c_types)
+                    filtered_comps = [c for c in used_components if c.get('type') in sel_types]
+                else:
+                    filtered_comps = used_components
+
+                for comp in filtered_comps:
+                    c_type = comp.get('type', 'unknown').upper()
+                    c_id = comp.get('id')
+                    c_desc = comp.get('description', '')
+                     
+                    with st.expander(f"[{c_type}] {c_id} - {c_desc}"):
+                        st.text_area("Content", comp.get('content'), height=200, key=f"lib_{c_id}")
+             
+            with tab2:
+                st.markdown("### Workflow Steps")
+                if relevant_steps:
+                    # Simplify step data for dataframe
+                    step_data_simp = []
+                    for s in relevant_steps:
+                        step_data_simp.append({
+                            "ID": s.get('id'),
+                            "Name": s.get('name'),
+                            "Component": s.get('component'),
+                            "Description": s.get('description')
+                        })
+                    st.dataframe(pd.DataFrame(step_data_simp))
+                else:
+                    st.info("No steps found.")
+
+            with tab3:
+                st.markdown("### Step Prompt Preview")
+                step_ids_ordered = [s['id'] for s in relevant_steps]
+                step_to_preview = st.selectbox("Select Step", step_ids_ordered, format_func=lambda x: f"{x} ({all_steps.get(x, {}).get('name')})")
+                
+                if step_to_preview:
+                    preview_data = api_client.get_prompt_preview(step_to_preview)
+                    if preview_data:
+                        st.markdown(f"**Agent Class:** `{preview_data.get('agent_class')}`")
+                        c1, c2 = st.columns(2)
+                        with c1:
+                            st.markdown("#### System Instruction")
+                            st.text_area("System", preview_data.get('system_instruction'), height=500, key="prev_sys")
+                        with c2:
+                            st.markdown("#### User Prompt")
+                            st.text_area("User", preview_data.get('user_prompt'), height=500, key="prev_usr")
+
+            with tab4:
+                st.markdown("### Full Execution Chain Export")
+                if st.button(f"Generate Chain for {selected_workflow.get('name')}"):
+                    with st.spinner("Generating..."):
+                        full_text = api_client.get_full_chain_preview(selected_wf_id)
+                        if full_text:
+                            st.text_area("Full Chain Content", full_text, height=600, key="full_chain_txt")
+                            st.download_button("Download .md", full_text, file_name=f"{selected_wf_id}_full_chain.md")
+                        else:
+                            st.error("Failed to generate chain preview.")
+        
     else:
         st.error("Failed to load seed data.")

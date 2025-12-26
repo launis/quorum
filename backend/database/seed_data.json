@@ -183,7 +183,7 @@
     {
       "id": "TASK_PANEL",
       "description": "Panel Agent - Unified Critics",
-      "content": "SINÄ TOIMIT SEURAAVANA ASIANTUNTIJAPANEELINA (Jokainen rooli analysoi saman aineiston):\n\nROOLI 1: Logician (Structure Audit)\n1. JÄSENNÄ käyttäjän prompti Toulmin-mallilla (Claim, Data, Warrant).\n2. ARVIOI onko prompti looginen vai pelkkä assosiaatioketju.\nOUTPUT: logiikka_auditointi\n\nROOLI 2: Falsifier (Critical Loop)\n1. ETSI 'Iteraatiosilmukkaa' (Missä käyttäjä korjasi tekoälyä?).\n2. MERKITSE 'uskollisuus_score': 'HEIKKO' jos ei yhtään iteraatiota.\nOUTPUT: paattelyketjun_uskollisuus_auditointi\n\nROOLI 3: Causal Analyst (Impact)\n1. VERTAA versiota 1 ja viimeistä.\n2. MÄÄRITÄ johtuiko muutos käyttäjän EKSPLISIITTISESTÄ ohjeesta.\nOUTPUT: kausaalinen_auditointi\n\nROOLI 4: Performativity Detector (Illusion)\n1. ETSI 'Väsyneitä komentoja' ('Jatkan', 'Lisää').\n2. LIPUTA jos käyttäjä vain näyttelee ohjaavaa roolia.\nOUTPUT: performatiivisuus_auditointi\n\nROOLI 5: Factual Overseer (Hallucination)\n1. TARKISTA onko faktoja keksinyt AI vai Käyttäjä.\nOUTPUT: etiikka_ja_fakta"
+      "content": "SINÄ TOIMIT SEURAAVANA ASIANTUNTIJAPANEELINA (Jokainen rooli analysoi saman aineiston):\n\nROOLI 1: Logician (Structure Audit)\n1. JÄSENNÄ käyttäjän prompti Toulmin-mallilla (Claim, Data, Warrant).\n2. ARVIOI onko prompti looginen vai pelkkä assosiaatioketju.\nOUTPUT: logiikka_auditointi\n\nROOLI 2: Falsifier (Critical Loop)\n1. ETSI 'Iteraatiosilmukkaa' (Missä käyttäjä korjasi tekoälyä?).\n2. MERKITSE 'uskollisuus_score': 'HEIKKO' jos ei yhtään iteraatiota.\nOUTPUT: falsifiointi_auditointi\n\nROOLI 3: Causal Analyst (Impact)\n1. VERTAA versiota 1 ja viimeistä.\n2. MÄÄRITÄ johtuiko muutos käyttäjän EKSPLISIITTISESTÄ ohjeesta.\nOUTPUT: kausaalinen_auditointi\n\nROOLI 4: Performativity Detector (Illusion)\n1. ETSI 'Väsyneitä komentoja' ('Jatkan', 'Lisää').\n2. LIPUTA jos käyttäjä vain näyttelee ohjaavaa roolia.\nOUTPUT: performatiivisuus_auditointi\n\nROOLI 5: Factual Overseer (Hallucination)\n1. TARKISTA onko faktoja keksinyt AI vai Käyttäjä.\nOUTPUT: etiikka_ja_fakta\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (älä muuta kenttien nimiä):\n{{SCHEMA_EXAMPLE}}"
     },
     {
       "id": "TASK_XAI",
@@ -299,6 +299,19 @@
         "analysis_weaknesses",
         "analysis_opportunities",
         "analysis_recommendations"
+      ]
+    },
+    {
+      "id": "PANEL_OUTPUT_CONFIG",
+      "type": "output_config",
+      "name": "Panel Audit Output Schema",
+      "description": "Standard fields to hoist for Panel Audit.",
+      "content": [
+        "logiikka_auditointi",
+        "falsifiointi_auditointi",
+        "kausaalinen_auditointi",
+        "performatiivisuus_auditointi",
+        "etiikka_ja_fakta"
       ]
     }
   ],
@@ -674,8 +687,9 @@
           "TASK_PANEL"
         ]
       },
-      "output_schema": "LogiikkaAuditointi",
+      "output_schema": "PanelAudit",
       "output_filename": "5_panel_output.json",
+      "output_config_component": "PANEL_OUTPUT_CONFIG",
       "state_key": "step_panel"
     },
     {
@@ -761,7 +775,6 @@
         "step_analyst",
         "step_interaction",
         "step_profiler",
-        "step_logician",
         "step_panel",
         "step_archivist",
         "step_judge",

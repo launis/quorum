@@ -1,5 +1,0 @@
-Traceback (most recent call last):
-  File "C:\Users\risto\OneDrive\quorum\reproduce_execution.py", line 99, in reproduce
-    profiler = result.get('step_profiler', {})
-               ^^^^^^^^^^
-AttributeError: 'NoneType' object has no attribute 'get'

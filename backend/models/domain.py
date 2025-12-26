@@ -176,6 +176,8 @@ class LogiikkaAuditointi(BaseJSON):
 
 
 
+
+
 # --- Step 5: Factual & Ethical Overseer ---
 
 class FaktantarkistusRFI(BaseModel):
@@ -301,6 +303,17 @@ class ProfilerAnalysis(BaseJSON):
     psykologinen_profiili: str
     manipulaatio_yritykset: str
     teksti_metriikka: Optional[TextMetrics] = Field(None, description="Objective metrics calculated by Python hook")
+
+
+
+# --- Step 5 (Parallel): Panel Agent ---
+
+class PanelAudit(BaseJSON):
+    logiikka_auditointi: ArgumentaatioAnalyysi
+    falsifiointi_auditointi: LogiikkaAuditointi
+    kausaalinen_auditointi: KausaalinenAuditointi
+    performatiivisuus_auditointi: PerformatiivisuusAuditointi
+    etiikka_ja_fakta: EtiikkaJaFakta
 
 
 

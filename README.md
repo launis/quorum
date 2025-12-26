@@ -41,6 +41,7 @@ Cognitive Quorum is a highly configurable, data-driven engine for creating and e
     *   **Mock Mode**: A cost-free, offline mode that uses pre-recorded responses for testing, development, and debugging.
 *   **Transparent & Auditable**: Generates detailed reports that trace the decision-making process through each agent, providing clear justification for the final verdict.
 *   **Integrated Management UI**: A Streamlit-based user interface for managing prompts, rules, system configuration, and viewing workflow results.
+*   **Fused Critics Workflow (Courtroom 3.0)**: An optimized workflow that fuses multiple critic roles (Logician, Falsifier, Causal Analyst) into a single `PanelAgent` step, reducing latency and cost while maintaining rigorous multi-perspective analysis.
 
 ## 🏛️ Architecture Overview
 
@@ -142,6 +143,25 @@ System behavior is controlled by environment variables in the `.env` file.
 | `GOOGLE_SEARCH_CX`      | **Required for Production.** Your Programmable Search Engine ID.                                         | `None`    |
 | `USE_MOCK_LLM`          | If `True`, the system uses pre-recorded responses from `mock_responses.json` instead of calling the LLM. | `False`   |
 | `USE_MOCK_DB`           | If `True`, the system loads its configuration from `db_mock.json` instead of the primary `db.json`.        | `True`    |
+
+### Database Management
+
+The system uses `TinyDB` for configuration storage. The database file used depends on the `USE_MOCK_DB` setting in `.env`.
+
+*   **Mock DB**: `backend/database/db_mock.json` (Default)
+*   **Production DB**: `data/db.json`
+
+If you modify `backend/database/seed_data.json` to update prompts, workflows, or rules, you **MUST** rebuild the active database for changes to take effect.
+
+**To rebuild the Production Database:**
+```bash
+python rebuild_prod_db.py
+```
+
+**To rebuild the Mock Database:**
+```bash
+python rebuild_mock_db.py
+```
 
 ## 🛠️ Development
 

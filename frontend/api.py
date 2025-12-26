@@ -114,8 +114,8 @@ class APIClient:
 
     def get_full_chain_preview(self, workflow_id):
         try:
-            res = requests.get(f"{self.base_url}/db/preview_chain/{workflow_id}", timeout=10)
-            return res.json().get("content", "") if res.status_code == 200 else ""
+            res = requests.get(f"{self.base_url}/db/preview_full_chain/{workflow_id}", timeout=10)
+            return res.json().get("full_chain_text", "") if res.status_code == 200 else ""
         except Exception:
             return ""
 

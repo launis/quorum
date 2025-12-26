@@ -314,7 +314,8 @@ def _generate_panel_data() -> Dict[str, Any]:
     # The keys must match what PanelAgent parser expects (snake_case of field names)
     
     data.update({
-        "logiikka_auditointi": _generate_falsifier_data(),
+        "logiikka_auditointi": _generate_logician_data(),
+        "falsifiointi_auditointi": _generate_falsifier_data(),
         "etiikka_ja_fakta": _generate_fact_checker_data(),
         "kausaalinen_auditointi": _generate_causal_data(),
         "performatiivisuus_auditointi": _generate_performativity_data()
