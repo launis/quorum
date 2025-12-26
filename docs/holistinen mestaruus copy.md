@@ -16,11 +16,11 @@ Vaikka viitekehyksen prototyyppi on teknisesti toteutettu, siltä puuttuu toista
 
 ---
 
-## Luku 1: Strateginen haaste ja metodologinen perusta {#luku-1}
+## <a id="luku-1"></a>Luku 1: Strateginen haaste ja metodologinen perusta
 
 Tämä luku perustelee, miksi tekoälyosaamisen luotettava mittaaminen on kriittinen strateginen haaste, ja esittelee viitekehyksen metodologisen perustan. Luvussa kuvataan ensin, miten tekoäly aiheuttaa globaalin taitomurroksen ja millaisen haasteen se luo osaamisen todentamiselle. Tämän jälkeen syvennytään psykometriikan perustavanlaatuiseen reliabiliteetin ja validiteetin paradoksiin, joka on perinteisten arviointimallien ydinongelma. Lopuksi luvussa eritellään keskeisten teorioiden tunnetut rajoitukset, jotka uuden ratkaisun on hallittava.
 
-### 1.1 Strateginen konteksti: Tekoäly ja taitomurros {#luku-1-1}
+### <a id="luku-1-1"></a>1.1 Strateginen konteksti: Tekoäly ja taitomurros
 
 Tekoälyn integroituminen liiketoimintaprosesseihin on käynnistänyt perustavanlaatuisen taitomurroksen, joka vaikutuksiltaan vertautuu teolliseen vallankumoukseen ([Acemoglu & Restrepo 2018](#acemoglu2018); [Eloundou ym. 2023](#eloundou2023)). Muutos ei ole vain teknologinen, vaan se muokkaa uudelleen työn taloudellista arvonluontia. Erityisesti suurten kielimallien (LLM) on arvioitu vaikuttavan merkittävästi jopa 80 prosenttiin Yhdysvaltain työvoimasta, kohdistuen nimenomaan korkeaa koulutusta vaativiin asiantuntijatehtäviin ([Eloundou ym. 2023](#eloundou2023)). Tutkimus osoittaa, että vähintään 50 % työtehtävistä saattaa muuttua tekoälyn vaikutuksesta noin 19 %:lla työntekijöistä, mikä viittaa siihen, että kyseessä on yleiskäyttöinen teknologia (General Purpose Technology, GPT), jonka vaikutukset läpäisevät kaikki toimialat ja palkkaluokat.
 
@@ -38,7 +38,7 @@ Tämän uuden mahdollisuuden taustalla on tekninen siirtymä pelkästä tilastol
 
 Viitekehys hyödyntää tätä uutta kapasiteettia ratkaistakseen arvioinnin reliabiliteetin ja validiteetin välisen paradoksin ([Borsboom ym. 2004](#borsboom2004)) ja tarjoaa keinon tunnistaa luotettavasti sekä sääntöjä noudattavan rutiiniosaamisen että säännöt ylittävän, kontekstisidonnaisen mestaruuden ([Dreyfus & Dreyfus 1980](#dreyfus1980)).
 
-### 1.2 Ydinongelma: "Mittaamisen kriisi" ja itsearvioinnin haaste {#luku-1-2}
+### <a id="luku-1-2"></a>1.2 Ydinongelma: "Mittaamisen kriisi" ja itsearvioinnin haaste
 
 Tämä taitomurros on synnyttänyt organisaatioille keskeisen strategisen haasteen, ”mittaamisen kriisin”. Kyseessä on ilmiö, joka on tunnistettu laajalti myös kognitiivisten kykyjen ja tekoälyn arvioinnin yhteydessä (vrt. [Silva ym. 2025](#silva2025); [Cheng 2021](#cheng2021)).
 
@@ -50,7 +50,7 @@ Ongelmaa syventää se, että luotettava itsearviointi on tunnetusti haastavaa. 
 
 Koska organisaatio ei voi luottaa pelkkään itsearviointiin, tarvitaan objektiivista, ulkoiseen todistusaineistoon perustuvaa validointiprosessia. Tämä on välttämätöntä, sillä luotettava arviointikyky edellyttää vertailua ulkoisiin viitepisteisiin ([Sadler 1989](#sadler1989)), mikä auttaa ohittamaan inhimilliset harhat.
 
-### 1.3 Metodologinen perushaaste: Reliabiliteetin ja validiteetin paradoksi {#luku-1-3}
+### <a id="luku-1-3"></a>1.3 Metodologinen perushaaste: Reliabiliteetin ja validiteetin paradoksi
 
 Vaikka tarve objektiiviselle mittaamiselle on ilmeinen, se kohtaa välittömästi psykometriikan perustavanlaatuisen haasteen: arvioinnin reliabiliteetti (luotettavuus, *reliability*) ja validiteetti (pätevyys, *validity*) ovat jännitteisessä suhteessa keskenään (vrt. [Borsboom ym. 2004](#borsboom2004)).
 
@@ -74,22 +74,22 @@ Vaikka kognitiiviset taksonomiat, kuten Bloomin malli ([Anderson & Krathwohl 200
 
 Tämä asettaa seuraavassa luvussa esiteltävälle arkkitehtoniselle ratkaisulle – hybridirubriikille – entistäkin suurempia vaatimuksia. Sen on kyettävä hallitsemaan tätä voimistunutta jännitettä tavalla, joka on sekä teoreettisesti vankka että käytännössä toimiva. Hybridirubriikki ja sen operatiivinen toteutus ”Kognitiivinen Kvoorum” on kehitetty juuri tämän hypoteesin testaamiseksi. On kuitenkin olennaista ymmärtää, että vaikka tämän prototyypin logiikka on toteutettu, empiirinen näyttö sen käytännön toimivuudesta tai kyvystä ratkaista tämä paradoksi puuttuu. Koko viitekehys edustaa tässä vaiheessa ainoastaan testattavaksi ehdotettua, teknisesti toteutettua mutta todentamatonta ratkaisumallia.
 
-### 1.4 Tutkimusote ja -menetelmä {#luku-1-4}
+### <a id="luku-1-4"></a>1.4 Tutkimusote ja -menetelmä
 
 Tämä artikkeli noudattaa konstruktiivista tutkimusotetta, joka asemoituu Design Science Research (DSR) -metodologian piiriin. DSR:n tavoitteena on ratkaista relevantteja käytännön ongelmia kehittämällä ja arvioimalla innovatiivisia IT-artefakteja vakiintuneen tietopohjan (engl. *knowledge base*) pohjalta ([Hevner ym. 2004](#hevner2004)).
 
 Tässä tutkimuksessa keskeinen ongelma on tekoälyosaamisen mittaamisen kriisi ([Luku 1.2](#luku-1-2)), ja kehitetty artefakti on Hybridirubriikki-viitekehys ja sen operatiivinen malli, Kognitiivinen Kvoorum ([Luku 2](#luku-2)). DSR-prosessin mukaisesti ([Peffers ym. 2007](#peffers2007)) tämä artikkeli keskittyy ongelman tunnistamiseen ja motivointiin ([Luku 1](#luku-1)), ratkaisun tavoitteiden määrittelyyn ([Luku 2.1](#luku-2-1)) sekä artefaktin suunnitteluun ja kehittämiseen ([Luvut 2](#luku-2) ja [4](#luku-4)). Tässä vaiheessa artefaktin demonstrointi rajoittuu sen prototyypin kuvaukseen ja teoreettiseen perusteluun. Kuten [Luvussa 6.2](#luku-6-2) todetaan, artefaktin muodollinen arviointi (engl. evaluation) empiirisessä kontekstissa on välttämätön jatkotutkimuksen kohde.
-## Luku 2: Hybridirubriikin Arkkitehtuuri ja Operatiivinen Malli {#luku-2}
+## <a id="luku-2"></a>Luku 2: Hybridirubriikin Arkkitehtuuri ja Operatiivinen Malli
 
 Tämä luku esittelee Hybridirubriikki-viitekehyksen arkkitehtuurin ja sen operatiivisen mallin. Kyseessä on uusi arviointiviitekehys, joka on suunniteltu vastaamaan tekoälyn aikakauden monimutkaisten taitojen mittaamisen haasteisiin.
 
 Luvun rakenne etenee systemaattisesti järjestelmän perustasta sen toimintaan ja hallintaan. Ensin kuvataan järjestelmän taustalla olevat suunnitteluperiaatteet ja arvioinnin kohde. Tämän jälkeen esitellään arkkitehtuurin staattiset komponentit, eli mistä osista järjestelmä koostuu. Seuraavaksi kuvataan järjestelmän dynaaminen toiminta eli operatiivinen prosessimalli vaihe vaiheelta. Lopuksi käsitellään järjestelmän eheyden varmistavaa hallintamallia ja monikerroksista puolustusstrategiaa.
 
-### 2.1 Suunnitteluperiaatteet ja Arkkitehtuurin Yleiskuva {#luku-2-1}
+### <a id="luku-2-1"></a>2.1 Suunnitteluperiaatteet ja Arkkitehtuurin Yleiskuva
 
 Tämä osio luo perustan koko viitekehykselle määrittelemällä sen keskeiset suunnitteluperiaatteet ja arvioinnin kohteen. Aluksi kuvataan arkkitehtuurin filosofinen ydin: tietoinen päätös hallita reliabiliteetin ja validiteetin välistä jännitettä kaksitasoisella rakenteella. Tämän jälkeen määritellään standardoitu, kolmiosainen todistusaineisto, joka toimii syötteenä myöhemmin kuvattaville arkkitehtuurin komponenteille ja operatiiviselle prosessille. Nämä määrittelyt ohjaavat kaikkia seuraavissa osioissa esitettyjä teknisiä ja metodologisia valintoja.
 
-#### 2.1.1 Ratkaisun Periaate: Kaksitasoinen Vastaus Mittaamisen Paradoksiin {#luku-2-1-1}
+#### <a id="luku-2-1-1"></a>2.1.1 Ratkaisun Periaate: Kaksitasoinen Vastaus Mittaamisen Paradoksiin
 
 Viitekehys tarjoaa edellä kuvattuun reliabiliteetin ja validiteetin paradoksiin arkkitehtonisen vastauksen: hybridirubriikin. Sen keskeisenä suunnitteluperiaatteena ei ole pyrkiä ratkaisemaan tätä perustavanlaatuista jännitettä tai löytää täydellistä kompromissia, vaan tunnustaa se ja rakentaa järjestelmä, joka hallitsee jännitettä tietoisesti. Sen sijaan, että arkkitehtuuri olisi yhtenäinen monoliitti, se on tarkoituksellisesti kaksitasoinen.
 
@@ -102,7 +102,7 @@ Tämä kaksitasoinen lähestymistapa on enemmän kuin tekninen ratkaisu; se on m
 
 Viitekehyksen keskeinen hypoteesi on, että järjestelmän älykkyys ei synny kummastakaan tasosta yksinään, vaan niiden hallitusta vuorovaikutuksesta. Ilmiö tunnetaan koneoppimisessa koosteoppimisen (engl. *ensemble learning*) hyötynä, jossa monimuotoisten arviointimekanismien yhdistäminen vähentää kokonaisvirhettä tehokkaammin kuin yksittäinen optimoitu malli (vrt. [Sagi & Rokach 2018](#sagi2018)). [Sagi ja Rokach (2018)](#sagi2018) osoittavat, että yhdistämällä useita malleja – tai tässä tapauksessa useita arviointiagentteja – voidaan kompensoida yksittäisten mallien heikkouksia ja saavuttaa tarkempi ennuste tai arvio. Kognitiivinen Kvoorum soveltaa tätä periaatetta siten, että se jakaa arviointitehtävän erikoistuneille agenteille, jolloin vältetään yksittäisen LLM-mallin vinoumat.
 
-#### 2.1.2 Järjestelmän Episteeminen Nelikenttä (DATA, TULOS, INTENTIO, STANDARDI) {#luku-2-1-2}
+#### <a id="luku-2-1-2"></a>2.1.2 Järjestelmän Episteeminen Nelikenttä (DATA, TULOS, INTENTIO, STANDARDI)
 
 Hybridirubriikki ei arvioi vain lopputulosta, vaan kokonaisvaltaista tietotyöprosessia. Tätä varten se määrittelee neljä erillistä episteemistä ulottuvuutta, jotka muodostavat arvioinnin koordinaatiston:
 
@@ -130,11 +130,11 @@ Tämä nelikenttä mahdollistaa triangulaation: Totuus ei löydy yhdestäkään 
 
 Kuten [Luvussa 1.3](#luku-1-3) todetaan, tämä kokonaisuus rinnastuu metodologisesti portfolioarviointiin ([Paulson ym. 1991](#paulson1991)).
 
-### 2.2 Arkkitehtuurin Komponentit {#luku-2-2}
+### <a id="luku-2-2"></a>2.2 Arkkitehtuurin Komponentit
 
 Kun suunnitteluperiaatteet ja arvioinnin kohde on määritelty, tässä osiossa esitellään Hybridirubriikin kaksi pääkomponenttia, jotka muodostavat sen rakenteellisen perustan (staattinen näkymä). Osio kuvaa ensin Analyyttisen Tason, joka konkretisoituu yksityiskohtaiseksi Kognitiiviseksi Arviointimatriisiksi. Tämän jälkeen esitellään Holistinen Taso, joka on toteutettu Kognitiivinen Kvoorum -moniagenttijärjestelmänä. Nämä komponentit ovat ne mekanismit, jotka aktivoidaan seuraavassa osiossa kuvattavassa operatiivisessa mallissa.
 
-#### 2.2.1 Analyyttinen Taso: Kognitiivinen Arviointimatriisi {#luku-2-2-1}
+#### <a id="luku-2-2-1"></a>2.2.1 Analyyttinen Taso: Kognitiivinen Arviointimatriisi
 
 Hybridirubriikin arkkitehtuurin ensimmäinen taso on sen analyyttinen taso, joka konkretisoituu Kognitiiviseksi Arviointimatriisiksi. Tämä matriisi muodostaa koko arviointiprosessin systemaattisen ja auditoitavan selkärangan. Sen ensisijainen tavoite on varmistaa arvioinnin reliabiliteetti (engl. *reliability*) – mittauksen johdonmukaisuus ja toistettavuus ([AERA, APA & NCME 2014](#aera2014)).
 
@@ -165,7 +165,7 @@ Kognitiivisen Kvoorumin arkkitehtuuri on suunniteltu hallitsemaan tätä lisää
 | **Tekninen Toteutus (Engineering)** | **Insinööri:** Käyttää edistyneitä tekniikoita: Few-Shot, Chain-of-Thought, XML-tagit. Promptit ovat strukturoituja olioita. | **Osaaja:** Käyttää perustekniikoita: Roolitus, selkeät rajoitteet, kontekstin syöttö. Kieli on täsmällistä. | **Keskusteleva:** Käyttää luonnollista puhekieltä ("Voisitko..."). Promptit epätarkkoja. | **Laiska (Lazy):** Kirjoitusvirheitä, "se juttu", pelkkiä avainsanoja. Luottaa tekoälyn "mind reading" -kykyyn. |
 | **Kriittinen Iteraatio (Falsification)** | **Adversariaalinen:** Testaa rajoja ("Etsi virheet"). Spottaa faktavirheet ja pakottaa korjaamaan lähteisiin viitaten. | **Korjaava:** Huomaa selkeät virheet ja pyytää korjausta. | **Hyväksyvä:** Kehuu tekoälyä ("Hyvä!") vaikka vastauksessa olisi puutteita. Korjaukset vain tyylillisiä. | **Sokea:** Sokea luottamus. Kopioi hallusinaatiot suoraan lopputuotteeseen. |
 
-#### 2.2.2 Holistinen Taso: Kognitiivinen Kvoorum ja Paneeli (MAS-arkkitehtuuri) {#luku-2-2-2}
+#### <a id="luku-2-2-2"></a>2.2.2 Holistinen Taso: Kognitiivinen Kvoorum ja Paneeli (MAS-arkkitehtuuri)
 
 Hybridirubriikin toinen arkkitehtoninen taso on holistinen taso. Se on toteutettu Kognitiivinen Kvoorum -moniagenttijärjestelmänä, joka toimii kahdessa moodissa (`seed_data.json` workflows):
 
@@ -179,7 +179,7 @@ Kvoorum koostuu erikoistuneista rooleista:
 *   **Synteesi:** Tuomari ja XAI-Raportoija.
 *   **Ohjaus:** Valmentaja.
 
-### 2.3 Operatiivinen Malli: Sekventiaalinen Auditointiketju {#luku-2-3}
+### <a id="luku-2-3"></a>2.3 Operatiivinen Malli: Sekventiaalinen Auditointiketju
 
 ...
 
@@ -192,7 +192,7 @@ Järjestelmän sääntökantaan (`seed_data.json` -> `OP_RULE_4`) on koodattu eh
 
 Tämä osio siirtää tarkastelun arkkitehtuurin staattisista komponenteista järjestelmän dynaamiseen toimintaan. Se kuvaa yksityiskohtaisesti "Sekventiaalisen Auditointiketjun" – vaiheittaisen prosessin, jonka mukaisesti arviointi suoritetaan. Osio esittää tiukassa ajallisessa järjestyksessä, miten arkkitehtuurin komponentit (agentit ja matriisi) prosessoivat todistusaineistoa. Prosessi koostuu viidestä peräkkäisestä päävaiheesta (1–5), alkaen syötteen esikäsittelystä, edeten analyysiin ja argumentaatioon, jatkuen kriittiseen falsifiointiin ja päättyen lopulliseen synteesiin.
 
-#### 2.3.1 Prosessimallin Kuvaus ja Auditoitavuus {#luku-2-3-1}
+#### <a id="luku-2-3-1"></a>2.3.1 Prosessimallin Kuvaus ja Auditoitavuus
 
 Nykyisessä prototyyppivaiheessa järjestelmä toteuttaa ”sekventiaalisen auditointiketjun” (engl. *Sequential Audit Chain*), jossa agentit prosessoivat informaatiota peräkkäin kumuloituvassa prosessissa. Tämä arkkitehtuuri on itsessään verrattavissa tieteellisen menetelmän soveltamiseen ([Cheng 2001](#cheng2001)):
 
@@ -205,7 +205,7 @@ Tämä vaiheittainen malli on tietoinen arkkitehtuurivalinta, joka priorisoi mak
 
 Operatiivisesti tämä auditoitavuus toteutuu siten, että jokainen agentti tuottaa standardoidun JSON-välitulosteen. Tämä modulaarinen rakenne edellyttää kaikkien välitulosten välittämistä prosessin loppuun. Vaikka tämä lisää datan määrää, se on strateginen valinta: se varmistaa, että lopullinen päätös perustuu koko päättelyketjuun ja mahdollistaa Tuomari-agentin suorittaman hierarkkisen konfliktinratkaisun. Nämä välitulosteet muodostavat yhdessä "kognitiivisen jäljen" koko päättelyprosessista, joka voidaan tallentaa ja tarkastaa jälkikäteen (vrt. [Luku 4.2](#luku-4-2)).
 
-#### 2.3.2 Vartija-agentti: Esikäsittely ja Turvaportti (Vaihe 1) {#luku-2-3-2}
+#### <a id="luku-2-3-2"></a>2.3.2 Vartija-agentti: Esikäsittely ja Turvaportti (Vaihe 1)
 
 Operatiivinen prosessi alkaa syötteen esikäsittelyllä, jonka suorittaa Vartija-agentti. Tämä agentti toteuttaa Teknisen Kontrollikerroksen (ks. [Luku 2.4.2](#luku-2-4-2)) toiminnot: Rakenteellinen Puhdistus, Datan Normalisointi, Datan Anonymisointi ja Aktiivinen Uhkien Luokittelu.
 
@@ -213,19 +213,19 @@ Sen tehtävänä on torjua ulkoisia uhkia, kuten kehotemurtoja ([OWASP Foundatio
 
 Viimeisenä valmisteluvaiheena ja ainoastaan jos turvatarkistukset on läpäisty, Vartija-agentti merkitsee datan (engl. *Input Tainting*) kokoamalla kaiken puhdistetun datan yhteen objektiin. Tämä luo perustan järjestelmän keskeiselle turvallisuussäännölle (ks. [Luku 2.4.2.4](#luku-2-4-2-4), Sääntö 1: Luottamuksen Kehä, vain vartijan hyväksymä data on validia), joka perustuu turvallisen tiedonkulun periaatteisiin ([Denning & Denning 1977](#denning1977)).
 
-#### 2.3.3 Analyytikko-agentti: Todistepohjainen Ankkurointi (Vaihe 2) {#luku-2-3-3}
+#### <a id="luku-2-3-3"></a>2.3.3 Analyytikko-agentti: Todistepohjainen Ankkurointi (Vaihe 2)
 
 Arviointiprosessin analyysivaiheen aloittaa Analyytikko-agentti. Sen ainoa tehtävä on luoda ”todistuskartta” ja varmistaa, että kaikki myöhempi analyysi on ankkuroitu toimitettuun todistusaineistoon noudattaen Sääntöä 1 (ks. [Luku 2.4.2.4](#luku-2-4-2-4)). Se toteuttaa tämän soveltamalla RAG-tyyppistä (engl. *Retrieval-Augmented Generation*) tiedonhakustrategiaa konteksti-ikkunan sisällä ([Lewis ym. 2020](#lewis2020)), joka vähentää merkittävästi kielimallien taipumusta hallusinointiin ([Shuster ym. 2021](#shuster2021)).
 
 RAG-arkkitehtuureilla on kuitenkin tunnettuja heikkouksia ([Ahmad ym. 2024](#ahmad2024)). Yksi merkittävä haaste on ”lost in the middle” -ilmiö, jossa mallit eivät kykene hyödyntämään tehokkaasti tietoa pitkän konteksti-ikkunan keskellä ([Liu, N. F. ym. 2024](#liu2024b)). Prototyyppivaiheessa tätä riskiä ei hallita teknisesti (esim. erillisellä uudelleensijoitusmallilla; vrt. [Ma ym. 2024](#ma2024)). Riskiä pyritään kuitenkin lieventämään operatiivisesti. Analyytikko-agentti on ohjeistettu toteuttamaan kaksivaiheisen prosessin: ensin agentti suorittaa laajan haun, minkä jälkeen se optimoi tulokset sijoittamalla tärkeimmät tulokset kontekstin alkuun ja loppuun. Tämä on kehotepohjainen strategia, joka perustuu [Liu, N. F. ym. (2024)](#liu2024b) havaintoihin. Lisäksi agenttia ohjeistetaan kirjaamaan tämä riski XAI-raportointia varten.
 
-#### 2.3.4 Loogikko-agentti: Argumentaation Rakentaminen (Vaihe 3) {#luku-2-3-4}
+#### <a id="luku-2-3-4"></a>2.3.4 Loogikko-agentti: Argumentaation Rakentaminen (Vaihe 3)
 
 Analyytikko-agentin tuottaman todistuskartan pohjalta Loogikko-agentti rakentaa muodollisen argumentin. Sen tehtävänä on muodostaa hypoteesi käyttäjän osaamistasosta soveltamalla Kognitiivista Arviointimatriisia (Taulukko 1), joka perustuu Bloomin taksonomiaan ([Anderson & Krathwohl 2001](#anderson2001)).
 
 Loogikko-agentti jäsentää analyysinsa systemaattisesti käyttäen Toulminin argumentaatiomallia ([Toulmin 2003](#toulmin2003)). Se esittää selkeän väitteen (osaamistaso), perusteet (viittaukset todistusaineistoon) ja oikeutuksen (päättelysäännöt matriisista). Tämä vaihe muuntaa raakadatan jäsennellyksi ja auditoitavaksi argumentiksi, joka on valmis seuraavan vaiheen kriittiseen tarkasteluun.
 
-#### 2.3.5 Kriitikkoryhmä: Systemaattinen Falsifiointi (Vaihe 4) {#luku-2-3-5}
+#### <a id="luku-2-3-5"></a>2.3.5 Kriitikkoryhmä: Systemaattinen Falsifiointi (Vaihe 4)
 
 Neljännessä vaiheessa Loogikko-agentin tuottama argumentti altistetaan systemaattiselle kumoamisyritykselle. Tämän tehtävän suorittaa Kriitikkoryhmä, joka koostuu neljästä erikoistuneesta agentista (Looginen Falsifioija-agentti, Faktuaalinen ja Eettinen Valvoja-agentti, Kausaalinen Analyytikko-agentti, Performatiivisuuden Tunnistaja-agentti).
 
@@ -290,7 +290,7 @@ Tämä agentti keskittyy tunnistamaan käyttäytymismalleja ja pelistrategioita,
 
 On kuitenkin huomattava, että ilman ulkoista maailmanmallia kielimalli ei kykene muodolliseen kausaaliseen päättelyyn ([Chi ym. 2024](#chi2024)), joten näiden agenttien (Kausaalinen Analyytikko-agentti ja Performatiivisuuden Tunnistaja-agentti) suorittamat testit mittaavat ensisijaisesti narratiivin loogista eheyttä eivätkä sen empiiristä totuusarvoa. Siksi nämä testit ovat "kielellisiä approksimaatioita" – ne ovat parhaita mahdollisia arvauksia, eivät matemaattisen tarkkoja todisteita. Tämä tekee järjestelmästä haavoittuvan taitavalle manipuloinnille.
 
-#### 2.3.6 Tuomari- ja XAI-Raportoija-agentit: Synteesi ja Raportointi (Vaihe 5) {#luku-2-3-6}
+#### <a id="luku-2-3-6"></a>2.3.6 Tuomari- ja XAI-Raportoija-agentit: Synteesi ja Raportointi (Vaihe 5)
 
 Viimeisessä vaiheessa, kun "käräjät" on käyty, Tuomari-agentti kokoaa tulokset. Tämä ei ole pelkkä keskiarvo, vaan hierarkkinen konfliktinratkaisu, joka noudattaa tiukkoja sääntöjä:
 
@@ -314,7 +314,7 @@ Tämän lisäksi Tuomari-agentin päätöksentekoa ohjaa kooditasolle rakennettu
 
 Tämä varmistaa, että järjestelmä ei koskaan palkitse vaarallista tai loogisesti epärehellistä toimintaa, vaikka se olisi retorisesti vakuuttavaa.
 
-#### 2.3.7 Valmentaja-agentti: Oppimispolun Rikastaminen {#luku-2-3-7}
+#### <a id="luku-2-3-7"></a>2.3.7 Valmentaja-agentti: Oppimispolun Rikastaminen
 
 Prosessin viimeisenä vaiheena, arvioinnin (summative assessment) valmistuttua, järjestelmä aktivoi Valmentaja-agentin (Coach Agent). Sen tehtävänä on kääntää Tuomari-agentin tuottama arvio formatiiviseksi oppimissuunnitelmaksi (vrt. [Wiggins 1998](#wiggins1998)). Tämä vaihe ei vaikuta enää arvosanaan, vaan tähtää käyttäjän metakognitiivisten taitojen kehittämiseen (vrt. [Flavell 1979](#flavell1979)).
 
@@ -325,11 +325,11 @@ Valmentaja-agentin toiminta perustuu "rikastetun palautteen" periaatteeseen (eng
 
 Tämä mekanismi varmistaa, että palaute ei ole vain geneeristä kehotusta "parantaa suoritusta", vaan se tarjoaa konkreettiset, tieteellisesti validoidut työkalut (esim. "vrt. Strathern 1997") osaamisen syventämiseen (vrt. [Shavelson 2013](#shavelson2013)). Toiminnallisuus toteuttaa käytännössä Bloom’n taksonomian ylemmän tason tavoitteen tiedon soveltamisesta ja arvioinnista ([Anderson & Krathwohl 2001](#anderson2001)).
 
-### 2.4 Hallintamalli ja Monikerroksinen Puolustusstrategia (DiD) {#luku-2-4}
+### <a id="luku-2-4"></a>2.4 Hallintamalli ja Monikerroksinen Puolustusstrategia (DiD)
 
 Kun arkkitehtuurin rakenne ja operatiivinen prosessi on kuvattu, tämä viimeinen osio keskittyy järjestelmän eheyden, turvallisuuden ja luotettavuuden varmistaviin mekanismeihin. Arkkitehtoniset tasot edellyttävät selkeää hallintamallia, joka muodostaa hierarkkisen kontrollirakenteen. Osio kuvaa hallintamallin, joka on toteutettu monikerroksisena puolustusstrategiana (Defense-in-Depth). Se määrittelee tekniset, behavioraaliset ja hallinnolliset kontrollikerrokset, jotka läpileikkaavat koko arkkitehtuuria ja ohjaavat operatiivista prosessia.
 
-#### 2.4.1 Puolustusstrategian Yleiskuvaus ja Rajoitteet {#luku-2-4-1}
+#### <a id="luku-2-4-1"></a>2.4.1 Puolustusstrategian Yleiskuvaus ja Rajoitteet
 
 Järjestelmän eheyden varmistamiseksi hallintamalli toteutetaan monikerroksisena puolustusstrategiana, joka torjuu kielimalleihin liittyviä uhkia ([OWASP Foundation 2025f](#owasp2025f)). Strategia perustuu monikerroksisen puolustuksen (engl. *Defense in Depth*, DiD) -malliin ([CISA 2016](#cisa2016)) ja koostuu kolmesta toisiaan täydentävästä kontrollikerroksesta:
 
@@ -339,7 +339,7 @@ Järjestelmän eheyden varmistamiseksi hallintamalli toteutetaan monikerroksisen
 
 Prototyypin nykytilassa järjestelmän turvallisuutta ja luotettavuutta rajoittaa useiden kehittyneiden teknisten toimintojen puuttuminen. Näitä ovat "Semanttinen Anonymisointi", "Upotusten Eheyden Tarkistus" ja "Uudelleensijoitusmalli". Lisäksi on kriittistä tunnustaa, että prototyypissä monet kontrollit (erityisesti Teknisessä ja Behavioraalisessa kerroksessa) on toteutettu kehotepohjaisina simulaatioina, jotka emuloivat tuotantoympäristön teknisiä kontrolleja, mutta eivät korvaa niitä (vrt. [Jia ym. 2025](#jia2025)).
 
-#### 2.4.2 Tekninen Kontrollikerros {#luku-2-4-2}
+#### <a id="luku-2-4-2"></a>2.4.2 Tekninen Kontrollikerros
 
 Ensimmäinen puolustuslinja suojaa ulkoisilta teknisiltä uhilta. Tämä kerros toteutetaan operatiivisen prosessin Vartija-agentin toimesta (ks. [Luku 2.3.2](#luku-2-3-2)). Vartija-agentti toimii turvaporttina, joka suorittaa syötteiden validoinnin ja puhdistuksen.
 
@@ -361,7 +361,7 @@ Tämä vaihe on suora vastaus epäsuorien kehotemurrosten uhkaan. Viitekehyksen 
 
 Tämä luo kuitenkin perustavanlaatuisen arkkitehtonisen ristiriidan ja puolustuksellisen paradoksin: järjestelmä pyrkii torjumaan kehotemurtoja (LLM01) käyttämällä menetelmää (kehotepohjainen kontrolli), joka itsessään on haavoittuvin juuri kyseiselle hyökkäykselle. Ilman ulkoista luokittelijaa tämä kontrolli on katsottava 'syvyyspuolustukseksi' eikä täydelliseksi ratkaisuksi. Tämä on tunnistettu merkittävä tekninen rajoite ja haurauden lähde (vrt. [Jia ym. 2025](#jia2025); [Liu, Y. ym. 2023](#liu2023)).
 
-#### 2.4.2.4 Lisäkontrollit ja Rajoitteet {#luku-2-4-2-4}
+#### <a id="luku-2-4-2-4"></a>2.4.2.4 Lisäkontrollit ja Rajoitteet
 
 * **Upotusten Eheyden Tarkistus (OWASP LLM08:2025-Torjunta):** Viitekehyksen visioon kuuluu Vartija-agentin kyky tunnistaa RAG-arkkitehtuuriin kohdistuvia hyökkäyksiä suorittamalla ajonaikainen poikkeamien havaitseminen upotustilassa (vrt. [Zilliz 2024](#zilliz2024); [OWASP Foundation 2025e](#owasp2025e)). Nykyisessä prototyypissä tämä kontrolli on toteutettu ainoastaan protokollalla:
     * **Protokolla 1 (Negatiivinen Lokikirjaus):** Järjestelmä pakottaa Vartija-agentin kirjaamaan puuttuvan teknisen suojauksen eksplisiittiseksi riskiksi ('LLM08-riski hallitsematon'), mikä tekee haavoittuvuudesta läpinäkyvän (XAI) mutta ei poista sitä teknisesti.
@@ -375,7 +375,7 @@ Tämä luo kuitenkin perustavanlaatuisen arkkitehtonisen ristiriidan ja puolustu
     * **Perustuu:** Mallien sokeiden pisteiden välttäminen, ([Ye ym. 2025](#ye2025); [Cemri ym. 2025](#cemri2025)).
     * **Koskee:** Erityisesti Faktuaalinen ja Eettinen Valvoja-agentti (Järjestelmätason vaatimus).
 
-#### 2.4.3 Behavioraalinen Kontrollikerros (Kognitiivinen Palomuuri) {#luku-2-4-3}
+#### <a id="luku-2-4-3"></a>2.4.3 Behavioraalinen Kontrollikerros (Kognitiivinen Palomuuri)
 
 Järjestelmän toinen puolustuslinja on Behavioraalinen Kontrollikerros, joka toimii *Kognitiivisena Palomuurina*. Se on agentteja ohjaava periaatteellinen rajoituskokonaisuus. Tämän kerroksen ensisijaisena tehtävänä on hallita agenttien sisäistä toimintaa, varmistaa prosessin eheys, lieventää kognitiivisia vinoumia ja ohjata holistista arviointia.
 
@@ -458,7 +458,7 @@ Tämä osio kokoaa yhteen järjestelmän käyttämät loogiset ja deduktiiviset 
     * **Perustuu:** Faktojen priorisointi tulkintojen yli (Periaate 1), ([Popper 1934](#popper1934)).
     * **Koskee:** Tuomari-agentti.
 
-#### 2.4.4 Hallinnollinen Kontrollikerros (Ihmisvalvonta, HITL) {#luku-2-4-4}
+#### <a id="luku-2-4-4"></a>2.4.4 Hallinnollinen Kontrollikerros (Ihmisvalvonta, HITL)
 
 Viimeinen kontrollitaso auditoi ja valvoo prosessia. Hallintamallin kulmakivi on pakollinen Ihmisvalvonta (engl. *Human-in-the-Loop*, HITL), joka toimii ylimpänä suojana monimutkaisia uhkia vastaan. Sen toiminta perustuu valvontaohjattuun automaatioon ja heijastelee EU:n tekoälysääntelyn periaatteita (AI Act, Art. 14) ([Euroopan komissio 2024a](#eu2024)). EU:n eettiset ohjeet määrittelevät valvonnan kolmitasoiseksi: "Human-in-the-Loop" (suom. ihminen prosessissa mukana), "Human-on-the-Loop" (suom. ihminen valvomassa prosessia) sekä "Human-in-Command" (suom. ihminen ohjaamassa prosessia) ([Euroopan komission korkean tason asiantuntijaryhmä 2019](#eu2019)). Valvonnan tulee ulottua taktisesta väliintulosta strategiseen hallintaan ([Pfeifer 2025](#pfeifer2025)). Ihmisen rooli on toimia järjestelmän strategisena valvojana ja ylimpänä auktoriteettina.
 
@@ -475,11 +475,11 @@ XAI-raportti pysäyttää päätöksenteon vaatimalla ihmisvahvistusta ennen lop
 **2.4.4.2 Muut Hallinnolliset Kontrollit**
 
 Tämä kerros hallitsee myös muita systeemisiä riskejä hallinnollisilla käytännöillä. Turvaton tuotoksen käsittely (LLM05:2025) torjutaan tulosteen koodauksella ([OWASP Foundation 2025c](#owasp2025c)). Toimitusketjun haavoittuvuuksia (LLM03:2025) hallitaan LLMOps-käytännöillä ([Kreuzberger ym. 2023](#kreuzberger2023)). Opetusdatan myrkyttäminen (LLM04:2025) puolestaan estetään käyttämällä vain ihmisen hyväksymää dataa ([D'Angelo 2025](#dangelo2025)).
-## Luku 3: Viitekehyksen Asemointi: Vertaileva Analyysi Akateemisiin ja Kaupallisiin Ratkaisuihin {#luku-3}
+## <a id="luku-3"></a>Luku 3: Viitekehyksen Asemointi: Vertaileva Analyysi Akateemisiin ja Kaupallisiin Ratkaisuihin
 
 Tämä luku sijoittaa viitekehyksen laajempaan kontekstiin vertaamalla sitä akateemiseen tutkimukseen ja kaupallisiin sovelluksiin. Tavoitteena on tunnistaa viitekehyksen keskeinen innovaatio ja strateginen erottautumistekijä.
 
-### 3.1 Akateeminen maisema: Olemassa olevien osien uusi synteesi {#luku-3-1}
+### <a id="luku-3-1"></a>3.1 Akateeminen maisema: Olemassa olevien osien uusi synteesi
 
 Vaikka kokonaisarkkitehtuuri on uusi, sen komponentit nojaavat vakiintuneisiin tutkimussuuntauksiin. Kognitiivinen Kvoorum on moniagenttijärjestelmä (MAS) ([Guo ym. 2024](#guo2024)). Olennaisia vertailukohtia ovat vastakkainasetteluun perustuvaa dynamiikkaa hyödyntävät järjestelmät, kuten generatiiviset adversarialliset verkot (GAN) ([Goodfellow ym. 2014](#goodfellow2014)) ja agenttien väliset debatit.
 
@@ -489,7 +489,7 @@ Argumentaation laadun analyysille löytyy vastine argumentinlouhinnan (*Argument
 
 Viitekehyksen ensisijainen innovaatio on näiden erillisten tutkimussuuntien – moniagenttiarkkitehtuurien, portfolioarvioinnin ja argumentinlouhinnan – ainutlaatuinen ja integroitu synteesi. Se soveltaa psykometrista teoriaa modernin tekoälyarkkitehtuurin avulla uudella, synteettisellä tavalla. Esimerkiksi Dreyfus-logiikka on koodattu eksplisiittiseksi säännöksi, ei vain filosofiseksi periaatteeksi.
 
-### 3.2 Kaupallinen maisema: Markkinarako laadulliselle arvioinnille {#luku-3-2}
+### <a id="luku-3-2"></a>3.2 Kaupallinen maisema: Markkinarako laadulliselle arvioinnille
 
 Kaupalliset ratkaisut jakautuvat pääosin kahteen kategoriaan. Tämä heijastaa laajempaa suuntausta, jossa tekoälysovellukset eriytyvät kahdentyyppisiin mekanismeihin ([Wisse & Greve 2023](#wisse2023)). Formatiiviset sovellukset tukevat oppimista, kun taas summatiiviset sovellukset keskittyvät osaamisen todentamiseen ja arviointiin:
 
@@ -501,11 +501,11 @@ Viimeaikaiset tutkimukset vahvistavat tämän aukon: nykyiset työkalut laiminly
 Näiden kategorioiden väliin jää markkinarako. Koska laadullinen arviointi on aikaa vievää ([Suskie 2009](#suskie2009)). Markkinoilta myös puuttuu työkalu, joka kykenisi arvioimaan moniosaista todistusaineistoa automaattisesti ja syvällisesti korkean panoksen tilanteissa.
 
 Tämä viitekehys luo uuden markkinakategorian: "automatisoitu korkean panoksen laadullinen arviointi". Sen todellinen kilpailija ei ole toinen ohjelmisto, vaan ihmisasiantuntijoiden suorittamat manuaaliset prosessit, joita se pyrkii tehostamaan.
-## Luku 4: Hybridirubriikin Strateginen Kehitys {#luku-4}
+## <a id="luku-4"></a>Luku 4: Hybridirubriikin Strateginen Kehitys
 
 Tässä luvussa kuvataan viitekehyksen strategista kehitystä kohti syvällisempää ja auditoitavampaa analyysia. Perinteiset mallit kykenevät usein kertomaan, mitä tapahtui, mutta eivät miksi. Tästä syystä viitekehyksen Toulmin-pohjainen analyysi on suunniteltu tekemään päättelyketjusta läpinäkyvän.
 
-### 4.1 Kiihtyvyyden ja Haurauden Paradoksi Strategisena Ajurina {#luku-4-1}
+### <a id="luku-4-1"></a>4.1 Kiihtyvyyden ja Haurauden Paradoksi Strategisena Ajurina
 
 Arkkitehtuurin kehityspolku on sarja strategisia valintoja reliabiliteetin ja validiteetin jännitteen hallitsemiseksi. Kehityksen taustalla on kiihtyvyyden ja haurauden paradoksi. Yleiskäyttöisten tekoälymallien nopea kehitys ([Raisch & Krakowski 2021](#raisch2021)) mahdollistaa monimutkaisemmat arkkitehtuurit, mutta lisääntyvä kompleksisuus paljastaa samalla systeemisen haurauden (vrt. [Brooks 1987](#brooks1987)).
 
@@ -513,7 +513,7 @@ Tutkimus osoittaa, että moniagenttijärjestelmien (MAS) epäonnistumiset johtuv
 
 Ratkaisu ei ole vain komponenttien parantaminen, vaan arkkitehtuurin tulee vahvistaa agenttien välisten suhteiden ja kontrollirakenteiden vahvistamiseen. Tulevaisuuden arkkitehtuuri on dynaaminen ekosysteemi, jossa hidas, auditoitava analyysi (korkea pätevyys) ja nopea, tehokas päättely (korkea reliabiliteetti) täydentävät toisiaan.
 
-### 4.2 Kaksitasoinen Kognitiivinen Arkkitehtuuri: Järjestelmä 1 ja Järjestelmä 2 {#luku-4-2}
+### <a id="luku-4-2"></a>4.2 Kaksitasoinen Kognitiivinen Arkkitehtuuri: Järjestelmä 1 ja Järjestelmä 2
 
 Viitekehyksen strategisen kehityksen periaatteeksi on valittu Daniel Kahnemanin kaksoisprosessiteoria ([Kahneman 2011](#kahneman2011)). Teorian mukaan ajattelu jakautuu kahteen järjestelmään:
 
@@ -527,21 +527,21 @@ Vaikka teoria on osa tieteellistä keskustelua ([Evans & Stanovich 2013](#evans2
 
 Arkkitehtuuri muodostaa itseään vahvistavan kehän, jossa hidas päättelyjärjestelmä (Järjestelmä 2) toimii datan tuotantomoottorina. Se luo korkealaatuisia päättelyketjuja, jotka toimivat strategisena pääomana ([Wang ym. 2022](#wang2022)). Tätä aineistoa hyödynnetään nopean järjestelmän (Järjestelmä 1) kehittämisessä, jolloin raskaaseen prosessointiin tehdyt investoinnit mahdollistavat kevyemmän ratkaisun skaalaamisen.
 
-### 4.3 Kehityspolku: Kaksitasoisen Arkkitehtuurin Rakentaminen {#luku-4-3}
+### <a id="luku-4-3"></a>4.3 Kehityspolku: Kaksitasoisen Arkkitehtuurin Rakentaminen
 
 Kehityspolku on kolmivaiheinen. Se etenee reliabiliteetin maksimoinnista (Järjestelmä 2) kohti tehokkuuden optimointia (Järjestelmä 1).
 
-#### 4.3.1 Auditoitavan "Järjestelmä 2:n" Perusta {#luku-4-3-1}
+#### <a id="luku-4-3-1"></a>4.3.1 Auditoitavan "Järjestelmä 2:n" Perusta
 
 Nykyinen malli perustuu tiukasti vaiheittaiseen työnkulkuun (”tiukasti sekventiaalinen”). Tämä ”Vaihe 1” edustaa nykyistä prototyyppiä. Sen vahvuus on korkea auditoitavuus ja läpinäkyvyys. Se asettaa luotettavuuden etusijalle. Hinta on korkea viive ja kustannukset. Tämä kustannus on strateginen investointi, joka tuottaa korkealaatuista dataa myöhempiä vaiheita varten.
 
-#### 4.3.2 "Järjestelmä 2:n" Tehokkuuden Optimointi {#luku-4-3-2}
+#### <a id="luku-4-3-2"></a>4.3.2 "Järjestelmä 2:n" Tehokkuuden Optimointi
 
 Tavoitteena on nopeuttaa prosessia ja parantaa sen virheensietokykyä siirtymällä jäykästä sekventiaalisesta ketjusta kohti suunnattua asyklistä verkkoa (engl. *Directed Acyclic Graph*, DAG). Tässä arkkitehtuurissa järjestelmä ei etene vain lineaarisesti vaiheesta toiseen, vaan hyödyntää dynaamisia työnkulkuja, jotka mahdollistavat iteratiiviset palautesilmukat ja agenttien kielellisen itsereflektion ([Shinn ym. 2023](#shinn2023); [Zhang ym. 2024](#zhang2024)).
 
 Tämä malli sallii heikkolaatuiseksi todetun analyysin automaattisen palauttamisen uudelleenkäsittelyyn tietyssä solmukohdassa ilman, että koko prosessia on aloitettava alusta. Jotta auditoitavuus ei vaarantuisi tässä monimutkaisemmassa ja rinnakkaisessa rakenteessa, siirtymä edellyttää teknisesti keskitetyn ja muuttumattoman transaktiolokin toteuttamista, joka tallentaa verkon jokaisen tilasiirtymän.
 
-#### 4.3.3 Skaalautuvan "Järjestelmä 1:n" Luominen {#luku-4-3-3}
+#### <a id="luku-4-3-3"></a>4.3.3 Skaalautuvan "Järjestelmä 1:n" Luominen
 
 Pitkän aikavälin visiona on hyödyntää **tiedon tiivistämistä** (tislausta) (engl. *knowledge distillation*) (vrt. [Hinton ym. 2015](#hinton2015)). Tämä vaihe merkitsee Järjestelmä 1:n luomista, jossa hybridirubriikin logiikka ”tiivistetään” yhdeksi malliksi. Aiempien vaiheiden tuottamaa dataa käytetään opetusaineistona yksittäisen mallin hienosäätöön. Kevyempi malli oppii jäljittelemään agenttitiimin päättelymalleja. Tislattu malli on kuitenkin vain niin luotettava kuin opetusdata, jolla se on koulutettu.
 
@@ -553,7 +553,7 @@ Pitkän aikavälin visiona on hyödyntää **tiedon tiivistämistä** (tislausta
 | **Rinnakkainen** | Merkittävästi lyhyempi viive. | Työnkulun ohjauksen kasvanut monimutkaisuus. | Asettaa nopeuden ja tehokkuuden etusijalle. |
 | **Tislattu** | Äärimmäisen matala latenssi ja kustannukset (Koko hybridilogiikka yhdessä mallissa). | Joustamattomuus; suorituskyky riippuu datan laadusta. | Asettaa skaalautuvuuden ja käytettävyyden etusijalle. |
 
-### 4.4 Tulevaisuuden Visio: Systeemisen Resilienssin Vahvistaminen {#luku-4-4}
+### <a id="luku-4-4"></a>4.4 Tulevaisuuden Visio: Systeemisen Resilienssin Vahvistaminen
 
 Järjestelmän pitkän aikavälin menestys edellyttää kehitystä, joka vahvistaa sen kykyä hallita häiriöitä ([Perrow 1984](#perrow1984)). Tämä edellyttää [Luvussa 5.1.1](#luku-5-1-1) tunnistettuihin riskeihin vastaamista. Lisäksi on otettava käyttöön ja validoitava ne kriittiset tekniset kontrollit, jotka on prototyypistä jätetty pois, sekä lisättävä seuraavat välttämättömät tekniset toiminnallisuudet:
 
@@ -563,13 +563,13 @@ Järjestelmän pitkän aikavälin menestys edellyttää kehitystä, joka vahvist
 
 Nämä lisäykset ovat välttämättömiä ennen kuin järjestelmää voidaan pitää tuotantokelpoisena, ja niiden käyttöönotto vaatii huolellista empiiristä testausta. Seuraavat kolme kehityskulkua tähtäävät systeemisen resilienssin lisäämiseen.
 
-#### 4.4.1 "Järjestelmä 2:n" Päättelykyvyn Syventäminen monikierroksisella debatilla {#luku-4-4-1}
+#### <a id="luku-4-4-1"></a>4.4.1 "Järjestelmä 2:n" Päättelykyvyn Syventäminen monikierroksisella debatilla
 
 Nykyinen staattinen rakenne voi vahvistaa systeemisiä virheitä. Tulevaisuuden suunta on dynaaminen ”agenttiekologia”, jossa agentit osallistuvat monikierroksiseen väittelyyn (*debate*) ([Liang ym. 2023](#liang2023)). Tämä mahdollistaisi todellisen debatin Kriitikon ja Loogikon välillä. Vuorovaikutus voi tuottaa syvällisempiä oivalluksia, mutta on altis sosiaalisille vinoumille.
 
 Tutkimus osoittaa, että debatit voivat johtaa virheiden vahvistumiseen, kun agentit suosivat yksimielisyyttä ([Wynn ym. 2025](#wynn2025)). Tämän "konsensuksen tyrannian" vuoksi debatin tavoitteen on oltava jäsennelty erimielisyys. Tuomari-agentin rooli muuttuu aktiiviseksi moderaattoriksi, joka varmistaa älyllisen rehellisyyden ja raportoi vähemmistönäkemykset ihmisvalvojalle.
 
-#### 4.4.2 Siirtymä kohti agenttisuunnittelua (engl. *Agent Engineering*) {#luku-4-4-2}
+#### <a id="luku-4-4-2"></a>4.4.2 Siirtymä kohti agenttisuunnittelua (engl. *Agent Engineering*)
 
 Järjestelmän strateginen jatkokehitys on edellyttänyt siirtymistä hauraasta kehotesuunnittelusta (engl. *prompt engineering*) kohti vankempaa agenttisuunnittelun toimintamallia. Tässä lähestymistavassa turvallisuus ja logiikka eivät nojaa pelkkiin kielellisiin pyyntöihin, vaan ne koodataan suoraan järjestelmän rakenteisiin ([Anthropic 2025c](#anthropic2025c)).
 
@@ -577,7 +577,7 @@ Tämä rakenteellinen muutos tarkoittaa nykyisen, pelkkään kielimalliin nojaav
 
 Järjestelmän pätevyyttä vahvistetaan samalla ulkoistamalla kausaalinen päättely simulaatioista todelliseen koodin suorittamiseen eristetyissä hiekkalaatikoissa, mikä vie kohti autonomisten koneälyjen edellyttämiä maailmanmalleja ([LeCun 2022](#lecun2022)) ja tarjoaa deterministisen keinon todentaa väitteiden paikkansapitävyys ([Turpin ym. 2025](#turpin2025)). Myötäilyvinouman (engl. *sycophancy*) torjunnassa hyödynnetään pakotettua rakenteellista erimielisyyttä käyttämällä heterogeenisia yleiskäyttöisiä tekoälymalleja, mikä estää agentteja vahvistamasta toistensa virheellisiä päätelmiä ([Wynn ym. 2025](#wynn2025)). Lopullinen luottamus automaatioon varmistetaan Tuomari-agentin systemaattisella hienosäädöllä (engl. *fine-tuning*), joka perustuu laajaan ihmiskalibrointiin ja tilastollisen arvioijien välisen yhdenmukaisuuden, kuten Cohenin Kappa -kertoimen, jatkuvaan seurantaan ([McHugh 2012](#mchugh2012)).
 
-#### 4.4.3 Hallintamallin Sisäistäminen {#luku-4-4-3}
+#### <a id="luku-4-4-3"></a>4.4.3 Hallintamallin Sisäistäminen
 
 Nykyinen kehotepohjainen Kognitiivinen Palomuuri on hauras ([Luku 2.5.1](#luku-2-5-1)). Kestävämpi ratkaisu on siirtyä sisäistettyyn hallintaan hyödyntämällä monikerroksista puolustusstrategiaa ([CISA 2016](#cisa2016)). Tämä yhdistää (1) mallin sisäisen linjauksen perustuslaillisen tekoälyn (CAI) avulla ([Bai ym. 2022](#bai2022)) sekä (2) ulkoisen valvonnan perustuslaillisilla luokittelijoilla ([Anthropic 2025a](#anthropic2025a); [Sharma ym. 2025](#sharma2025)).
 
@@ -593,7 +593,7 @@ Nämä kolme kehityskulkua ovat toisistaan riippuvaisia ja muodostavat vision re
 | **Tuleva** | Dynaaminen Agenttiekologia (Debatti) | Perustuslaillinen tekoäly (CAI) | Prosessin uskottavuusanalyysi | Holistisen tason debatin hallinta ja agenttien välinen epäjohdonmukaisuus |
 | **Visio** | Itsesäätelevä Agenttiekologia | Sisäistetty ja jaettu ”perustuslaki” | Kausaalinen auditointi (Maailmanmallit) | Hybridirubriikin täydellinen sisäistäminen ja aidon kausaalisen ymmärryksen saavuttaminen |
 
-### 4.5 Täydentävät tieteelliset menetelmät: Psykometrinen tarkkuus ja muodollinen todentaminen {#luku-4-5}
+### <a id="luku-4-5"></a>4.5 Täydentävät tieteelliset menetelmät: Psykometrinen tarkkuus ja muodollinen todentaminen
 
 Vaikka kaksitasoinen hybridimatriisi tarjoaa arkkitehtonisen ratkaisun reliabiliteetin ja validiteetin paradoksiin ([Borsboom ym. 2004](#borsboom2004)), järjestelmän mittaustarkkuutta on mahdollista parantaa integroimalla siihen vakiintuneita psykometrisia menetelmiä. Nykyinen prototyyppi nojaa arvioitsijoiden väliseen luotettavuuteen (Cohenin kappa) ja BARS-asteikkoon, mutta nämä edustavat klassista testiteoriaa (CTT), joka käsittelee virhettä erittelemättömänä kokonaisuutena.
 
@@ -605,7 +605,7 @@ Sisällöllisen analyysin syvyyttä vahvistetaan ottamalla käyttöön SOLO-taks
 
 Viimeisenä menetelmällisenä lisäyksenä on muodollinen todentaminen. Koska nykyiset kielimallit ovat alttiita hallusinaatiolle ja epäonnistuvat usein monimutkaisessa syysuhteisessa päättelyssä ([Chi ym. 2024](#chi2024)), järjestelmään integroidaan "Logic-to-Code" -moduuli. Tässä lähestymistavassa Loogikko-agentti ei ainoastaan arvioi argumenttia tekstinä, vaan kääntää sen premissit ja johtopäätökset formaaliksi koodiksi (esim. Python tai Prolog). Koodin suorittaminen tarjoaa yksiselitteisen tavan todentaa argumentin looginen eheys (vrt. [Turpin ym. 2025](#turpin2025)), mikä vähentää merkittävästi retorisen uskottavuuden ja totuuden välistä kuilua.
 
-### 4.6 Siirtymä staattisesta lopputuloksen arvioinnista dynaamiseen kognitiivisen rakenteen analyysiin {#luku-4-6}
+### <a id="luku-4-6"></a>4.6 Siirtymä staattisesta lopputuloksen arvioinnista dynaamiseen kognitiivisen rakenteen analyysiin
 
 Mestaruuden tunnistaminen edellyttää siirtymistä muuttumattomasta lopputuotteen pisteytyksestä dynaamiseen kognitiivisen rakenteen analyysiin. Aiemmin [Luvussa 2.4.5](#luku-2-4-5) kuvattu substanssiosaamisen ja kognitiivisten taitojen erottelu vaatii tuekseen menetelmiä, jotka tekevät oppimisprosessin rakenteen näkyväksi.
 
@@ -615,7 +615,7 @@ Koska mestaruus on luonteeltaan usein piilevää ([Polanyi 1966](#polanyi1966)) 
 
 Lopuksi analyysi ulotetaan kielelliseen metatasoon tutkimalla opiskelijan tieto-opillista asemoitumista (engl. *epistemic stance*) ja metadiskurssia ([Hyland 2005](#hyland2005)). Asiantuntijuus ilmenee usein tapana ilmaista varmuutta ja epävarmuutta: mestari tunnistaa tietonsa rajat ja käyttää strategisia varaumia (engl. *hedging*), kun taas noviisi tai tekoälyä kritiikittömästi jäljittelevä toimija sortuu usein perusteettomaan varmuuteen. Tämän metadiskurssin analysointi tarjoaa kognitiiviselle kvoorumille uuden, sisällöstä riippumattoman merkin aidon asiantuntijuuden ja tekoälyn tuottaman tekstin erottamiseksi.
 
-### 4.7 Hallittu kehitys luotettavuuden varmistamiseksi {#luku-4-7}
+### <a id="luku-4-7"></a>4.7 Hallittu kehitys luotettavuuden varmistamiseksi
 
 Tässä luvussa kuvattu kehityskulku vastaa ”kiihtyvyyden ja haurauden paradoksiin” ([Cemri ym. 2025](#cemri2025)) yhdistämällä arkkitehtonisen varovaisuuden metodologiseen tarkkuuteen. Ratkaisun ytimessä on Kahnemanin (2011) kaksoisprosessiteoriaan perustuva symbioosi, jossa hidas ”Järjestelmä 2” (kognitiivinen kvoorum) tuottaa korkealaatuista dataa nopean ”Järjestelmä 1:n” (tiivistetty malli) kouluttamiseksi.
 
@@ -627,13 +627,13 @@ Tämä kokonaisuus tarjoaa yleistettävän mallin vastuullisen tekoälyjärjeste
 2.  **Varmista laatu tieteellisillä menetelmillä:** Ankkuroi arviointi vakiintuneisiin psykometrisiin malleihin (kuten IRT ja G-teoria) ja dynaamiseen rakenneanalyysiin (kuten ENA ja ACJ), jotta järjestelmä mittaa aitoa osaamista eikä vain todennäköisyyksiä.
 3.  **Hyödynnä varmennettua dataa skaalautumiseen (Järjestelmä 1):** Käytä tieteellisesti varmennettua prosessidataa kevyempien mallien opettamiseen, jolloin raskas investointi pätevyyteen muuttuu skaalautuvaksi pääomaksi.
 4.  **Siirry ulkoisesta pakosta sisäistettyyn eheyteen:** Kehitä järjestelmää kohti tilaa, jossa hallintamekanismit ja arvot on koodattu osaksi agenttien sisäistä toimintalogiikkaa (perustuslaillinen tekoäly, Constitution AI).
-## Luku 5: Keskeiset riskit ja niiden hallinta {#luku-5}
+## <a id="luku-5"></a>Luku 5: Keskeiset riskit ja niiden hallinta
 
 Tässä luvussa analysoidaan viitekehykseen liittyviä keskeisiä riskejä ja esitellään niiden hallintamekanismeja. Analyysi kattaa metodologiset ydinriskit ([Luku 5.1](#luku-5-1)), arkkitehtoniset riskit ([Luku 5.2](#luku-5-2)) sekä operatiiviset, eettiset ja teknologiset riskit ([Luku 5.3](#luku-5-3)).
 
-### 5.1 Metodologiset Ydinriskit – Viitekehyksen Tieteellisen Perustan Haasteet {#luku-5-1}
+### <a id="luku-5-1"></a>5.1 Metodologiset Ydinriskit – Viitekehyksen Tieteellisen Perustan Haasteet
 
-#### 5.1.1 Riski: Empiirisen Validoinnin Puute {#luku-5-1-1}
+#### <a id="luku-5-1-1"></a>5.1.1 Riski: Empiirisen Validoinnin Puute
 
 **Riskin kuvaus:** Viitekehyksen keskeisin heikkous on empiirisen näytön puuttuminen. Sen uskottavuus nojaa todentamattomaan hypoteesiin korkean arvioijien välisen luotettavuuden (engl. *inter-rater reliability*, IRR) saavuttamisesta. Tämä on merkittävä haaste, sillä laadullisten arviointien heikkous on juuri matala IRR ([Baume & Yorke 2002](#baume2002); [Koretz ym. 1994](#koretz1994)).
 
@@ -650,7 +650,7 @@ Näiden kehittyneiden kontrollien puuttuminen luo validointivelan, jonka vaikutu
 
 **Jäännösriski:** Riski on merkittävä, kunnes empiirinen tutkimus on suoritettu. Siihen asti viitekehys pysyy puhtaasti teoreettisena konstruktiona.
 
-#### 5.1.2 Riski: Goodhartin Laki ja ”Performatiivinen Reflektio” {#luku-5-1-2}
+#### <a id="luku-5-1-2"></a>5.1.2 Riski: Goodhartin Laki ja ”Performatiivinen Reflektio”
 
 **Riskin kuvaus:** Perustavanlaatuinen uhka on Goodhartin laki ([Strathern 1997](#strathern1997)), jonka mukaisesti käyttäjät voivat oppia manipuloimaan järjestelmää ([Stumborg ym. 2022](#stumborg2022)). Tämä ilmenee ”performatiivisena reflektiona”, joka on tässä viitekehyksessä sovellettu termi kuvaamaan tilannetta, jossa käyttäjä tuottaa vakuuttavan, mutta epäaidon narratiivin (vrt. vaikutelmien hallinta; [Cullen 2020](#cullen2020); [Levashina & Morgeson 2007](#levashina2007)). Nykyinen arkkitehtuuri ei todennäköisesti tunnista tätä.
 
@@ -677,7 +677,7 @@ Tämä jättää kausaalisen aukon, jota performatiivinen reflektio voi hyödynt
 
 Tämä kuilu L3-vision ([Luku 4.4.2](#luku-4-4-2)) ja L1/L2-toteutuksen välillä on keskeisin este viitekehyksen täydelle validiteetille. Nykyiset "Deep Think" -mallitkaan eivät kykene luotettavasti simuloimaan kontrafaktuaaleja ilman ulkoisia kausaalisia malleja tai koodipohjaista suoritusta (vrt. [Turpin ym. 2025](#turpin2025); [Aryan & Liu 2025](#aryan2025)), minkä vuoksi prototyyppi tyytyy heuristiseen uskottavuusarviointiin.
 
-#### 5.1.3 Riski: Hybridirubriikin Sisäinen Jännite {#luku-5-1-3}
+#### <a id="luku-5-1-3"></a>5.1.3 Riski: Hybridirubriikin Sisäinen Jännite
 
 **Riskin kuvaus:** Viitekehys institutionalisoi psykometriikan paradoksin. Jännite syntyy analyyttisen (reliabiliteetti) ja holistisen (pätevyys) tason välille, jotka ovat usein ristiriidassa.
 
@@ -688,9 +688,9 @@ Tämä kuilu L3-vision ([Luku 4.4.2](#luku-4-4-2)) ja L1/L2-toteutuksen välill�
 
 **Jäännösriski:** Jännite on pysyvä. Lopullinen tulkintavastuu jää aina ihmiselle, mikä asettaa korkeat vaatimukset ihmisvalvojan asiantuntemukselle.
 
-### 5.2 Arkkitehtoniset Riskit – Kognitiivisen Kvoorumin Sisäiset Hauraudet {#luku-5-2}
+### <a id="luku-5-2"></a>5.2 Arkkitehtoniset Riskit – Kognitiivisen Kvoorumin Sisäiset Hauraudet
 
-#### 5.2.1 Riski: Päättelyketjujen Epäluotettavuus {#luku-5-2-1}
+#### <a id="luku-5-2-1"></a>5.2.1 Riski: Päättelyketjujen Epäluotettavuus
 
 **Riskin kuvaus:** Auditoitavuus perustuu oletukseen, että agenttien päättelyketjut ovat uskollisia (engl. *faithful*), eli ne heijastavat tarkasti mallin todellista päättelyprosessia ([Jacovi & Goldberg 2020](#jacovi2020)). Viimeaikainen tutkimus on entisestään vahvistanut epäilyjä tästä ja osoittanut, että jopa edistyneimmät mallit tuottavat säännöllisesti epäuskollisia päättelyketjuja ([Arcuschin ym. 2025](#arcuschin2025)).
 
@@ -705,7 +705,7 @@ Tämä mekanismi siirtää valvonnan faktantarkistuksesta päättelyn laadun aud
 
 **Jäännösriski:** Riski on perustavanlaatuinen nykyisille kielimalleille. Lieventämiseksi Kriitikko-agentille on sisällytetty ”Kausaalinen heuristiikka” ([Luku 2.4.3](#luku-2-4-3)), joka pakottaa arvioimaan syy-seuraussuhteen uskottavuutta ([Sgaier ym. 2020](#sgaier2020)).
 
-#### 5.2.2 Riski: Systeeminen Hauraus ja Virheiden Eteneminen {#luku-5-2-2}
+#### <a id="luku-5-2-2"></a>5.2.2 Riski: Systeeminen Hauraus ja Virheiden Eteneminen
 
 **Riskin kuvaus:** Nykyinen vaiheittainen arkkitehtuuri on hauras. Virhe alkuvaiheessa etenee koko ketjun läpi. Tämä on tunnettu MAS-koordinaatio-ongelma ([Cemri ym. 2025](#cemri2025)).
 
@@ -717,7 +717,7 @@ Koska nykyisessä prototyyppiympäristössä (manuaalinen orkestrointi) agentit 
 
 **Jäännösriski:** Homogeeninen ajo lisää merkittävästi systeemisen virheen riskiä - prototyyppi pysyy hauraana. Ratkaisu on siirtyminen rinnakkaiseen arkkitehtuuriin ([Luku 4.3.2](#luku-4-3-2)). Siihen asti luotettavuus riippuu korostetusti ihmisvalvojasta (HITL). Tämän riskin hallinta on konkretisoitu pakottamalla XAI-Raportoija-agentin raportoimaan ihmisvalvojalle vastuun heterogeenisyyden varmentamisesta. Järjestelmän pätevyys edellyttää heterogeenista arkkitehtuuria, sillä homogeeninen ajo lisää riskiä systeemisten virheiden vahvistumisesta ([Cemri ym. 2025](#cemri2025)) ja mitätöi aidon ristiinvarmentamisen (engl. *cross-verification*) hyödyn ([Ye ym. 2025](#ye2025)).
 
-#### 5.2.3 Riski: Debatin degeneraatio ja konsensuksen tyrannia {#luku-5-2-3}
+#### <a id="luku-5-2-3"></a>5.2.3 Riski: Debatin degeneraatio ja konsensuksen tyrannia
 
 **Riskin kuvaus:** Vaikka adversariaalisen debatin on osoitettu parantavan päättelyä ([Du ym. 2023](#du2023)), tuoreempi tutkimus viittaa "konsensuksen tyranniaan" ([Wynn ym. 2025](#wynn2025)). Homogeenisissä ryhmissä agentit saattavat asettaa etusijalle sosiaalista mukautumista totuudenmukaisuuden kustannuksella. Tämä voi johtaa tilanteeseen, jossa virheellinen mutta enemmistön kannattama näkemys syrjäyttää oikean vähemmistönäkemyksen. [Wynn ym. (2025)](#wynn2025) osoittivat, että debatti voi jopa heikentää suoritusta, jos agentit eivät ole riittävän kyvykkäitä tai jos ne ovat taipuvaisia myötäilyvinoumaan.
 
@@ -728,7 +728,7 @@ Koska nykyisessä prototyyppiympäristössä (manuaalinen orkestrointi) agentit 
 
 **Jäännösriski:** Nykyinen prototyyppi on altis vinoumille. Erimielisyyden tulkintavastuu siirtyy ihmiselle.
 
-#### 5.2.4 Riski: Heterogeenisen Arkkitehtuurin Yhteentoimivuus {#luku-5-2-4}
+#### <a id="luku-5-2-4"></a>5.2.4 Riski: Heterogeenisen Arkkitehtuurin Yhteentoimivuus
 
 **Riskin kuvaus:** Suositeltu heterogeeninen arkkitehtuuri ([Luku 5.2.2](#luku-5-2-2)), jossa eri agentit käyttävät eri yleiskäyttöisiä tekoälymalleja (Malli A ja Malli B), tuo mukanaan teknisen yhteen toimivuuden (engl. *interoperability*) riskin. Kun dataa (JSON) siirretään mallien välillä, on riski datan eheyden vaarantumisesta siirron tai tulkinnan aikana (vrt. [ISO/IEC 25010 2023](#iso2023)).
 
@@ -740,7 +740,7 @@ Lisäksi heterogeenisyyden varmentamisen tueksi on otettu käyttöön "Ympärist
 
 **Jäännösriski:** Validointi ja tarkistussummat eivät takaa täydellistä semanttista eheyttä eivätkä tunnista semanttisia tulkintaeroja. Manuaalinen orkestrointi (datan kopiointi ja liittäminen) lisää inhimillisen virheen riskiä ja altistaa datan hienovaraisille merkistö- tai koodausvirheille siirron aikana (vrt. [W3C 2008](#w3c2008)). Nämä virheet voivat muuttaa sisällön merkitystä tunnistamattomasti. Tämän vuoksi Tuomari-agentti ohjeistetaan kirjaamaan tämä riski pysyväksi Systeemiseksi Epävarmuudeksi lopulliseen XAI-raporttiin.
 
-#### 5.2.5 Riski: Agenttien kognitiivinen ylikuormitus ja käyttäytymisen inversio {#luku-5-2-5}
+#### <a id="luku-5-2-5"></a>5.2.5 Riski: Agenttien kognitiivinen ylikuormitus ja käyttäytymisen inversio
 
 **Riskin kuvaus:** Pääarviointikehotteen analyysi tunnistaa kriittisen pullonkaulan, joka johtuu tiettyjen agenttien kohtuuttomasta kognitiivisesta kuormasta. Erityisesti Prosessiauditoija ja Tuomari-agentti ovat arkkitehtonisesti ylikuormitettuja. Niiden on koostettava koko dataketju ja sovellettava subjektiivisia holistisia sääntöjä. Tämä kasvattaa käsiteltävän kontekstin laajuuden (engl. *context width*) ja pituuden äärimmilleen.
 
@@ -756,9 +756,9 @@ Pitkällä aikavälillä ratkaisu edellyttää arkkitehtuurin optimointia ([Luku
 
 **Jäännösriski:** Riski on korkea nykyisessä arkkitehtuurissa ja riippuvainen käytettyjen yleiskäyttöisten tekoälymallien kyvykkyydestä hallita monimutkaisuutta.
 
-### 5.3 Operatiiviset, Eettiset ja Teknologiset Riskit – Järjestelmä Käytännössä {#luku-5-3}
+### <a id="luku-5-3"></a>5.3 Operatiiviset, Eettiset ja Teknologiset Riskit – Järjestelmä Käytännössä
 
-#### 5.3.1 Riski: Automaatioharha ja Ihmisvalvonnan Taakka {#luku-5-3-1}
+#### <a id="luku-5-3-1"></a>5.3.1 Riski: Automaatioharha ja Ihmisvalvonnan Taakka
 
 **Riskin kuvaus:** Ihmisvalvoja (HITL) on altis automaatioharhalle – taipumukselle luottaa epäkriittisesti järjestelmän tuotokseen ([Parasuraman & Riley 1997](#parasuraman1997)). Mitä kehittyneempi järjestelmä, sitä suurempi riski on, että ihmisvalvoja alisuoriutuu.
 
@@ -766,7 +766,7 @@ Pitkällä aikavälillä ratkaisu edellyttää arkkitehtuurin optimointia ([Luku
 
 **Jäännösriski:** Automaatioharha on syvälle juurtunut piirre. Kuormittunut varmistaja voi ohittaa varoitussignaalit ja kysymykset. Ihminen on samanaikaisesti järjestelmän tärkein varmistus ja merkittävin haavoittuvuus.
 
-#### 5.3.2 Riski: Strategiset ja Eettiset Uhat {#luku-5-3-2}
+#### <a id="luku-5-3-2"></a>5.3.2 Riski: Strategiset ja Eettiset Uhat
 
 **Riskin kuvaus (Metodologinen vesittyminen):** Organisaatiot saattavat kustannussyistä jättää holistisen tason pois. Tällainen toteutuksen puutteellisuus ([Durlak & DuPre 2008](#durlak2008)) tuhoaisi järjestelmän validiteetin.
 
@@ -779,7 +779,7 @@ Pitkällä aikavälillä ratkaisu edellyttää arkkitehtuurin optimointia ([Luku
 
 **Jäännösriski:** Teknologia ei estä väärinkäyttöä. Ilman vahvaa hallintamallia organisaatiot voivat käyttää työkalua väärin.
 
-#### 5.3.3 Riski: Teknologiset tietoturvauhat (OWASP Top 10 for LLMs) {#luku-5-3-3}
+#### <a id="luku-5-3-3"></a>5.3.3 Riski: Teknologiset tietoturvauhat (OWASP Top 10 for LLMs)
 
 **Riskin kuvaus:** Järjestelmä on altis yleisille LLM-tietoturvariskeille ([OWASP Foundation 2025f](#owasp2025f)).
 
@@ -805,7 +805,7 @@ Tulevaisuudessa siirrytään perustuslailliseen tekoälyyn (CAI) ([Bai ym. 2022]
 | **LLM08: Vector and Embedding Weaknesses** | "Hyökkääjä manipuloi RAG-arkkitehtuuria. Kuten [Luvussa 5.1.1](#luku-5-1-1) todetaan, tämän kontrollin puuttuminen on merkittävä tekninen ja metodologinen riski." | "Tunnettu rajoite prototyypissä: Vartija-agentin metodologinen lokikirjaus, joka varoittaa puuttuvasta suojauksesta. (Huom: Visiona on aktiivinen ”Upotusten Eheyden Tarkistus”, mutta nykyinen toteutus ei sisällä geometrista poikkeamien havaitsemista, jättäen riskin teknisesti hallitsemattomaksi) ([OWASP Foundation 2025e](#owasp2025e))." |
 | **LLM09: Misinformation** | "Järjestelmä tuottaa virheellistä mutta vakuuttavaa tietoa, johon ihmisvalvoja luottaa (Automaatioharha)." | Ihmisvalvonnan (HITL) prosessi ja Tuomarin XAI-rooli ([Luku 5.3.1](#luku-5-3-1)). |
 | **LLM10: Unbounded Consumption** | Hyökkääjä kuormittaa järjestelmää resurssi-intensiivisillä pyynnöillä. | Teknisen tason käytön rajoittaminen (rate limiting) ([OWASP Foundation 2025g](#owasp2025g)). |
-## Luku 6: Johtopäätökset ja Tutkimusagenda {#luku-6}
+## <a id="luku-6"></a>Luku 6: Johtopäätökset ja Tutkimusagenda
 
 Tässä artikkelissa on esitetty uusi teoreettinen viitekehys, hybridirubriikki, ja sen operatiivinen malli, Kognitiivinen Kvoorum. Esitämme hypoteesin, että tämä kaksitasoinen arkkitehtuuri voi tarjota perinteisiä menetelmiä luotettavamman (korkeampi reliabiliteetti) ja pätevämmän (korkeampi pätevyys) tavan arvioida monimutkaista tekoälyosaamista.
 
@@ -813,7 +813,7 @@ Tämä arkkitehtuuri toteutetaan käytännössä moniagenttisena Kognitiivisena 
 
 Viitekehyksen arvo syntyy sen filosofiasta: luottamus rakennetaan auditoitavan päättelyprosessin kautta, joka hallitsee ”reliabiliteetin ja validiteetin paradoksia” ([Luku 1.3](#luku-1-3)).
 
-### 6.1 Hypoteesin validoinnin ja jatkokehityksen edellytykset {#luku-6-1}
+### <a id="luku-6-1"></a>6.1 Hypoteesin validoinnin ja jatkokehityksen edellytykset
 
 Hypoteesin testaaminen ja jatkokehitys edellyttävät siirtymistä kohti monimutkaisemman, kaksitasoisen järjestelmän hallintaa. Kriittisiä tekijöitä ovat:
 
@@ -821,7 +821,7 @@ Hypoteesin testaaminen ja jatkokehitys edellyttävät siirtymistä kohti monimut
 * **HITL-valvonnan kehittäminen validoinnin ytimenä:** Validiteetin arviointi nojaa ihmisvalvojan (HITL) kykyyn toimia tehokkaana valvojana ja ratkaista sisäiset jännitteet. Tämä edellyttää koulutusta ja työkaluja automaatioharhan tunnistamiseksi ([Parasuraman & Riley 1997](#parasuraman1997)).
 * **Data-strategia ja hybridilogiikan tislauskyky:** Siirtymä (”Järjestelmä 1”) vaiheeseen on kriittistä skaalautuvuuden kannalta. Tämä edellyttää kykyä ”tislata” hybridirubriikin logiikka yhdelle mallille, mikä vaatii korkealaatuisen päättelydatan (”kognitiivisten jälkien”) keräämistä ja datatieteen osaamista.
 
-### 6.2 Tutkimusagenda: Seuraavat vaiheet {#luku-6-2}
+### <a id="luku-6-2"></a>6.2 Tutkimusagenda: Seuraavat vaiheet
 
 Ennen empiirisen tutkimusagendan toteuttamista on ehdottoman välttämätöntä hankkia eettinen ennakkoarviointi ja hyväksyntä asiaankuuluvalta tutkimuseettiseltä toimikunnalta noudattaen Suomessa ihmistieteiden tutkimusta koskevia kansallisia ohjeistuksia ([Tutkimuseettinen neuvottelukunta TENK 2019](#tenk2019)).
 
@@ -839,199 +839,199 @@ Koska viitekehyksen toiminnallinen malli on toteutettu mutta empiirisesti testaa
 
 ---
 
-## Lähdeluettelo {#lahdeluettelo}
+## <a id="lahdeluettelo"></a>Lähdeluettelo
 
-* []{#acemoglu2018} **Acemoglu, Daron & Restrepo, Pascual.** 2018: The race between man and machine: Implications of technology for growth, factor shares, and employment. American Economic Review, 108(6), 1488–1542. DOI: <a href="https://doi.org/10.1257/aer.20160696">10.1257/aer.20160696</a>.
-* []{#adadi2018} **Adadi, Amina & Berrada, Mohammed.** 2018: Peeking inside the black-box: A survey on explainable artificial intelligence (XAI). IEEE Access, 6, 52138–52160. DOI: <a href="https://doi.org/10.1109/ACCESS.2018.2870052">10.1109/ACCESS.2018.2870052</a>.
-* []{#aera2014} **AERA, APA & NCME.** 2014: *Standards for educational and psychological testing*. Washington, DC: American Educational Research Association. [Verkkojulkaisu]. Saatavilla: https://www.testingstandards.net/uploads/7/6/6/4/76643089/standards_2014edition.pdf. [Haettu 14.11.2025].
-* []{#agrawal2022} **Agrawal, Ajay; Gans, Joshua & Goldfarb, Avi.** 2022: *Prediction machines: The simple economics of artificial intelligence*. Boston: Harvard Business Review Press.
-* []{#ahmad2024} **Ahmad, Sultan ym.** 2024: A comprehensive review of retrieval-augmented generation (RAG): Key challenges and future directions. arXiv preprint arXiv:2410.12837. DOI: <a href="https://doi.org/10.48550/arXiv.2410.12837">10.48550/arXiv.2410.12837</a>.
-* []{#ahuna2025} **Ahuna, Kelly & Kiener, Michael.** 2025: Beyond digital literacy: Cultivating “meta AI” skills in students and faculty. Faculty Focus. Julkaistu 6.8.2025. [Verkkojulkaisu]. Saatavilla: https://www.facultyfocus.com/articles/teaching-with-technology-articles/beyond-digital-literacy-cultivating-meta-ai-skills-in-students-and-faculty/. [Haettu 14.11.2025].
-* []{#aimultiple2025} **AIMultiple.** 2025: 15 Security Threats to LLM Agents (with Real-World Examples). Research AIMultiple. [Verkkojulkaisu]. Saatavilla: https://research.aimultiple.com/security-of-ai-agents/. [Haettu 16.11.2025].
-* []{#ainow2021} **AI Now Institute.** 2021: *A New AI Lexicon: Function Creep*. New York: AI Now Institute. [Verkkojulkaisu]. Saatavilla: https://ainowinstitute.org/publications/collection/a-new-ai-lexicon-function-creep. [Haettu 14.11.2025].
-* []{#anderson2001} **Anderson, Lorin W. & Krathwohl, David R. (toim.).** 2001: *A taxonomy for learning, teaching, and assessing: A revision of Bloom’s taxonomy of educational objectives*. New York: Longman.
-* []{#anthropic2025a} **Anthropic.** 2025a: Constitutional classifiers. Anthropic Policy & Research. [Verkkojulkaisu]. Saatavilla: https://www.anthropic.com/research/constitutional-classifiers. [Haettu 14.11.2025].
-* []{#anthropic2025b} **Anthropic.** 2025b: How we built our multi-agent research system. Anthropic Engineering Blog. Julkaistu 13.6.2025. [Verkkojulkaisu]. Saatavilla: https://www.anthropic.com/engineering/multi-agent-research-system. [Haettu 14.11.2025].
-* []{#anthropic2025c} **Anthropic.** 2025c: Building effective agents. Anthropic Research. [Verkkojulkaisu]. Saatavilla: https://www.anthropic.com/research/building-effective-agents. [Haettu 14.11.2025].
-* []{#arcuschin2025} **Arcuschin, Iván ym.** 2025: Chain-of-Thought Reasoning In The Wild Is Not Always Faithful. arXiv preprint arXiv:2503.08679. DOI: <a href="https://doi.org/10.48550/arXiv.2503.08679">10.48550/arXiv.2503.08679</a>.
-* []{#aryan2025} **Aryan, Ali & Liu, Zhi.** 2025: Causal Reflection with Language Models. arXiv preprint arXiv:2508.04495. DOI: <a href="https://doi.org/10.48550/ARXIV.2508.04495">10.48550/ARXIV.2508.04495</a>.
-* []{#auzmor2024} **Auzmor.** 2024: How to measure the ROI of AI training programs. Auzmor. [Verkkojulkaisu]. Saatavilla: https://auzmor.com/blog/measure-the-roi-of-ai-training-programs/. [Haettu 14.11.2025].
-* []{#bai2022} **Bai, Yuntao ym.** 2022: Constitutional AI: Harmlessness from AI feedback. arXiv preprint arXiv:2212.08073. DOI: <a href="https://doi.org/10.48550/arXiv.2212.08073">10.48550/arXiv.2212.08073</a>.
-* []{#bareinboim2022} **Bareinboim, Elias ym.** 2022: On Pearl's hierarchy and the foundations of causal inference. Teoksessa H. Geffner, R. Dechter & J. Halpern (toim.), *Probabilistic and causal inference: The works of Judea Pearl*. New York: Association for Computing Machinery, 507–556. DOI: <a href="https://doi.org/10.1145/3501714.3501743">10.1145/3501714.3501743</a>.
-* []{#baume2002} **Baume, David & Yorke, Mantz.** 2002: The reliability of assessment by portfolio on a course to develop and accredit teachers in higher education. Studies in Higher Education, 27(1), 7–25. DOI: <a href="https://doi.org/10.1080/03075070120099340">10.1080/03075070120099340</a>.
-* []{#bezanilla2019} **Bezanilla, María José ym.** 2019: Methodologies for teaching-learning in higher education and their relationship with student competences: A systematic review. Educational Research Review, 27, 83–98. DOI: <a href="https://doi.org/10.1016/j.edurev.2019.01.004">10.1016/j.edurev.2019.01.004</a>.
-* []{#biggs1982} **Biggs, John B. & Collis, Kevin F.** 1982: *Evaluating the quality of learning: The SOLO taxonomy (Structure of the Observed Learning Outcome)*. New York: Academic Press.
-* []{#borsboom2004} **Borsboom, Denny; Mellenbergh, Gideon J. & van Heerden, Jaap.** 2004: The concept of validity. Psychological Review, 111(4), 1061–1071. DOI: <a href="https://doi.org/10.1037/0033-295X.111.4.1061">10.1037/0033-295X.111.4.1061</a>.
-* []{#boussioux2025} **Boussioux, Leonard.** 2025: Revolutionize quality assurance with AI. Mareana. [Verkkojulkaisu]. Saatavilla: https://mareana.com/whitepaper/qa-playbook/. [Haettu 14.11.2025].
-* []{#brennan2001} **Brennan, Robert L.** 2001: *Generalizability theory*. New York: Springer.
-* []{#brooks1987} **Brooks, Frederick P.** 1987: No silver bullet: Essence and accidents of software engineering. Computer, 20(4), 10–19. DOI: <a href="https://doi.org/10.1109/MC.1987.1663532">10.1109/MC.1987.1663532</a>.
-* []{#bulut2024} **Bulut, Okan ym.** 2024: The Rise of Artificial Intelligence in Educational Measurement: Opportunities and Ethical Challenges. Chinese/English Journal of Educational Measurement and Evaluation, 5(3), Artikla 3. DOI: <a href="https://doi.org/10.59863/MIQL7785">10.59863/MIQL7785</a>.
-* []{#carolus2023} **Carolus, Angela ym.** 2023: MAILS - Meta AI literacy scale: Development and testing of an AI literacy questionnaire based on well-founded competency models and psychological change- and meta-competencies. arXiv preprint arXiv:2302.09319. DOI: <a href="https://doi.org/10.48550/arXiv.2302.09319">10.48550/arXiv.2302.09319</a>.
-* []{#cemri2025} **Cemri, M. ym.** 2025: Why do multi-agent LLM systems fail? arXiv preprint arXiv:2503.13657. DOI: <a href="https://doi.org/10.48550/arXiv.2503.13657">10.48550/arXiv.2503.13657</a>.
-* []{#citl2025} **Center for Innovative Teaching & Learning.** 2025: Authentic assessment. Indiana University Bloomington. [Verkkojulkaisu]. Saatavilla: https://citl.indiana.edu/teaching-resources/assessing-student-learning/authentic-assessment/index.html. [Haettu 14.11.2025].
-* []{#cheng2001} **Cheng, Peter C-H.** 2001: Scientific discovery, computational models of. Teoksessa N. J. Smelser & P. B. Baltes (toim.), *International encyclopedia of the social & behavioral sciences*. Amsterdam: Elsevier, 13783–13787. DOI: <a href="https://doi.org/10.1016/B978-0-08-097086-8.43085-0">10.1016/B978-0-08-097086-8.43085-0</a>.
-* []{#cheng2021} **Cheng, Peter.** 2021: Competence assessment by stimulus matching: an application of GOMS to assess chunks in memory. Teoksessa *Proceedings of the 19th International Conference on Cognitive Modelling (ICCM 2021)*. [Verkkojulkaisu]. Saatavilla: https://cidlab.com/files/smp/pb/pb-2021.pdf. [Haettu 14.11.2025].
-* []{#chi2024} **Chi, Hao ym.** 2024: Unveiling causal reasoning in large language models: Reality or mirage? Advances in Neural Information Processing Systems, 37, 96640–96670. DOI: <a href="https://doi.org/10.48550/arXiv.2506.21215">10.48550/arXiv.2506.21215</a>.
-* []{#cisa2016} **CISA.** 2016: *Defense in depth*. Cybersecurity and Infrastructure Security Agency. [Verkkojulkaisu]. Saatavilla: https://www.cisa.gov/sites/default/files/recommended_practices/NCCIC_ICS-CERT_Defense_in_Depth_2016_S508C.pdf. [Haettu 14.11.2025].
-* []{#cohen1996} **Cohen, Ronald Jay; Swerdlik, Mark E. & Phillips, Sturman M.** 1996: *Psychological testing and assessment: An introduction to tests and measurement*. 3. painos. Mountain View: Mayfield Publishing Company.
-* []{#creswell2024} **Creswell, Antonia ym.** 2024: Reducing post-hoc rationalization in large language models. Findings of the Association for Computational Linguistics: ACL 2024, 14757–14771. DOI: <a href="https://doi.org/10.18653/v1/2024.findings-acl.867">10.18653/v1/2024.findings-acl.867</a>.
-* []{#cullen2020} **Cullen, Michael J.** 2020: Faking in high-stakes selection: A call to integrate empirical research and applied practice. International Journal of Selection and Assessment, 28(3), 223–226. DOI: <a href="https://doi.org/10.1111/ijsa.12289">10.1111/ijsa.12289</a>.
-* []{#dangelo2025} **D'Angelo, Matt.** 2025: AI safety vs AI security in LLM applications: What teams must know. promptfoo. [Verkkojulkaisu]. Saatavilla: https://www.promptfoo.dev/blog/ai-safety-vs-security/. [Haettu 14.11.2025].
-* []{#david2019} **David, Jane L.** 2019: 15 reasons why standardized tests are problematic. ASCD Blog. [Verkkojulkaisu]. Saatavilla: https://www.ascd.org/blogs/15-reasons-why-standardized-tests-are-problematic. [Haettu 14.11.2025].
-* []{#debruin2023} **de Bruin, Anique B. H.; van Merriënboer, Jeroen J. G. & van Gog, Tamara.** 2023: The role of cognitive effort in fostering the acquisition of complex cognitive skills. Teoksessa J. Sweller, J. J. G. van Merriënboer & F. Paas (toim.), *Cognitive load theory: A research-based guide to instructional design*. Cambridge: Cambridge University Press, 237–256. DOI: <a href="https://doi.org/10.1017/9781009403718.011">10.1017/9781009403718.011</a>.
-* []{#denning1977} **Denning, Dorothy E. & Denning, Peter J.** 1977: Certification of programs for secure information flow. Communications of the ACM, 20(7), 504–513. DOI: <a href="https://doi.org/10.1145/359636.359712">10.1145/359636.359712</a>.
-* []{#derkiureghian2009} **Der Kiureghian, Armen & Ditlevsen, Ove.** 2009: Aleatory or epistemic? Does it matter? Structural Safety, 31(2), 105–112. DOI: <a href="https://doi.org/10.1016/j.strusafe.2008.06.020">10.1016/j.strusafe.2008.06.020</a>.
-* []{#disco2024} **Disco.** 2024: How to assess the ROI of AI-driven upskilling initiatives. Disco. [Verkkojulkaisu]. Saatavilla: https://www.disco.co/blog/how-to-assess-the-roi-of-ai-driven-upskilling-initiatives. [Haettu 14.11.2025].
-* []{#displayr2024} **Displayr.** 2024: Discover the 5 best AI tools for qualitative data analysis. Displayr. [Verkkojulkaisu]. Saatavilla: https://www.displayr.com/discover-the-5-best-ai-tools-for-qualitative-data-analysis/. [Haettu 14.11.2025].
-* []{#dreyfus1980} **Dreyfus, Stuart E. & Dreyfus, Hubert L.** 1980: *A Five-Stage Model of the Mental Activities Involved in Directed Skill Acquisition*. California Univ Berkeley Operations Research Center. [Verkkojulkaisu]. Saatavilla: https://apps.dtic.mil/sti/pdfs/ADA084551.pdf. [Haettu 18.11.2025].
-* []{#du2023} **Du, Yilun ym.** 2023: Improving factuality and reasoning in language models through multiagent debate. arXiv preprint arXiv:2305.14325. DOI: 10.48550/arXiv.2305.14325.
-* []{#dufner2019} **Dufner, Michael ym.** 2019: Self-enhancement and psychological adjustment: A meta-analytic review. Personality and Social Psychology Review, 23(1), 48–72. DOI: 10.1177/1088868318756467.
-* []{#duhem1906} **Duhem, Pierre.** 1906: *La théorie physique: son objet et sa structure*. Paris: Chevalier & Rivière.
-* []{#durlak2008} **Durlak, Joseph A. & DuPre, Elizabeth P.** 2008: Implementation matters: A review of research on the influence of implementation on program outcomes and the factors affecting implementation. American Journal of Community Psychology, 41(3–4), 327–350. DOI: <a href="https://doi.org/10.1007/s10464-008-9165-0">10.1007/s10464-008-9165-0</a>.
-* []{#eloundou2023} **Eloundou, Tyna; Manning, Sam; Mishkin, Pamela & Rock, Daniel.** 2023: GPTs are GPTs: An Early Look at the Labor Market Impact Potential of Large Language Models. arXiv preprint arXiv:2303.10130. DOI: <a href="https://doi.org/10.48550/arXiv.2303.10130">10.48550/arXiv.2303.10130</a>.
-* []{#embretson2000} **Embretson, Susan E. & Reise, Steven P.** 2000: *Item response theory for psychologists*. Mahwah: Lawrence Erlbaum Associates.
-* []{#eu2024} **Euroopan parlamentti & Euroopan unionin neuvosto.** 2024: *Euroopan parlamentin ja neuvoston asetus (EU) 2024/1689, annettu 13 päivänä kesäkuuta 2024, tekoälyä koskevista yhdenmukaistetuista säännöistä ja asetusten (EY) N:o 300/2008, (EU) N:o 167/2013, (EU) N:o 168/2013, (EU) 2018/858, (EU) 2018/1139 ja (EU) 2019/2144 sekä direktiivien 2014/90/EU, (EU) 2016/797 ja (EU) 2020/1828 muuttamisesta (tekoälysäädös)*. Euroopan unionin virallinen lehti, L, 2024/1689. https://eur-lex.europa.eu/eli/reg/2024/1689/oj
-* []{#eu2019} **Euroopan komission korkean tason asiantuntijaryhmä.** 2019: *Ethics guidelines for trustworthy AI*. Bryssel: Euroopan komissio. [Verkkojulkaisu]. Saatavilla: https://digital-strategy.ec.europa.eu/en/library/ethics-guidelines-for-trustworthy-ai. [Haettu 14.11.2025].
-* []{#evans2013} **Evans, Jonathan St. B. T. & Stanovich, Keith E.** 2013: Dual-process theories of higher cognition: Advancing the debate. Perspectives on Psychological Science, 8(3), 223–241. DOI: <a href="https://doi.org/10.1177/1745691612460685">10.1177/1745691612460685</a>.
-* []{#fairtest2012} **FairTest.** 2012: The limits of standardized tests for diagnosing and assisting student learning. FairTest: The National Center for Fair & Open Testing. [Verkkojulkaisu]. Saatavilla: https://fairtest.org/limits-standardized-tests-diagnosing-and-assisting/. [Haettu 14.11.2025].
-* []{#federiakin2024} **Federiakin, Denis ym.** 2024: Prompt engineering: A new skill for the future of work. Procedia Computer Science, 231, 401–409. DOI: <a href="https://doi.org/10.1016/j.procs.2023.12.233">10.1016/j.procs.2023.12.233</a>.
-* []{#festinger1957} **Festinger, Leon.** 1957: *A theory of cognitive dissonance*. Stanford: Stanford University Press.
-* []{#flavell1979} **Flavell, John H.** 1979: Metacognition and cognitive monitoring: A new area of cognitive-developmental inquiry. American Psychologist, 34(10), 906–911. DOI: <a href="https://doi.org/10.1037/0003-066X.34.10.906">10.1037/0003-066X.34.10.906</a>.
-* []{#fugener2025} **Fügener, Andreas; Walzner, Daniel D. & Gupta, Alok.** 2025: Roles of Artificial Intelligence in Collaboration with Humans: Automation, Augmentation, and the Future of Work. Management Science. DOI: <a href="https://doi.org/10.1287/mnsc.2024.05684">10.1287/mnsc.2024.05684</a>.
-* []{#ganascia2017} **Ganascia, Jean-Gabriel.** 2017: A Popperian falsification of artificial intelligence - Lighthill. arXiv preprint arXiv:1704.08111. DOI: <a href="https://doi.org/10.48550/arXiv.1704.08111">10.48550/arXiv.1704.08111</a>.
-* []{#ganguli2022} **Ganguli, Deep ym.** 2022: Red teaming language models to reduce harms: Methods, scaling behaviors, and lessons learned. arXiv preprint arXiv:2209.07858. DOI: <a href="https://doi.org/10.48550/arXiv.2209.07858">10.48550/arXiv.2209.07858</a>.
-* []{#gao2022} **Gao, Luyu ym.** 2022: Precise zero-shot dense retrieval without relevance labels. arXiv preprint arXiv:2212.10496. DOI: <a href="https://doi.org/10.48550/arXiv.2212.10496">10.48550/arXiv.2212.10496</a>.
-* []{#goffman1959} **Goffman, Erving.** 1959: *The presentation of self in everyday life*. New York: Doubleday.
-* []{#goodfellow2014} **Goodfellow, Ian J. ym.** 2014: Generative adversarial networks. Advances in Neural Information Processing Systems, 27, 2672–2680. DOI: <a href="https://doi.org/10.48550/arXiv.1406.2661">10.48550/arXiv.1406.2661</a>.
-* []{#google2025a} **Google DeepMind.** 2025a: *Gemini 3 Pro Model Card*. [PDF]. Saatavilla: https://storage.googleapis.com/deepmind-media/Model-Cards/Gemini-3-Pro-Model-Card.pdf. [Haettu 14.11.2025].
-* []{#google2025b} **Google DeepMind.** 2025b: *Gemini 3 Pro Model Evaluation*. [PDF]. Saatavilla: https://storage.googleapis.com/deepmind-media/gemini/gemini_3_pro_model_evaluation.pdf. [Haettu 14.11.2025].
-* []{#google2025c} **Google DeepMind.** 2025c: Gemini 3: A new era of intelligence. Google Blog. Julkaistu 18.11.2025. [Verkkojulkaisu]. Saatavilla: https://blog.google/products/gemini/gemini-3/. [Haettu 14.11.2025].
-* []{#greshake2023} **Greshake, Kai ym.** 2023: Not what you’ve signed up for: Compromising real-world LLM-integrated applications with indirect prompt injection. arXiv preprint arXiv:2302.12173. DOI: <a href="https://doi.org/10.48550/arXiv.2302.12173">10.48550/arXiv.2302.12173</a>.
-* []{#guo2024} **Guo, Taicheng ym.** 2024: Large language model based multi-agents: A survey of progress and challenges. Proceedings of the Thirty-Third International Joint Conference on Artificial Intelligence, 8048–8057. DOI: <a href="https://doi.org/10.24963/ijcai.2024/890">10.24963/ijcai.2024/890</a>.
-* []{#hazan2024} **Hazan, Eric ym.** 2024: A new future of work: The race to deploy AI and raise skills in Europe and beyond. McKinsey Global Institute. [Verkkojulkaisu]. Saatavilla: https://www.mckinsey.com/mgi/our-research/a-new-future-of-work-the-race-to-deploy-ai-and-raise-skills-in-europe-and-beyond. [Haettu 14.11.2025].
-* []{#hevner2004} **Hevner, Alan R.; March, Salvatore T.; Park, Jinsoo & Ram, Sudha.** 2004: Design Science in Information Systems Research. MIS Quarterly, 28(1), 75–105. DOI: <a href="https://doi.org/10.2307/25148625">10.2307/25148625</a>.
-* []{#hinton2015} **Hinton, Geoffrey; Vinyals, Oriol & Dean, Jeffrey.** 2015: Distilling the knowledge in a neural network. arXiv preprint arXiv:1503.02531. DOI: <a href="https://doi.org/10.48550/arXiv.1503.02531">10.48550/arXiv.1503.02531</a>.
-* []{#huang2023} **Huang, Lei ym.** 2023: A Survey on Hallucination in Large Language Models: Principles, Taxonomy, Challenges, and Open Questions. ACM Transactions on Information Systems. DOI: <a href="https://doi.org/10.1145/3703155">10.1145/3703155</a>.
-* []{#hullermeier2021} **Hüllermeier, Eyke & Waegeman, Willem.** 2021: Aleatoric and epistemic uncertainty in machine learning: an introduction to concepts and methods. Machine Learning, 110, 457–506. DOI: <a href="https://doi.org/10.1007/s10994-021-05946-3">10.1007/s10994-021-05946-3</a>.
-* []{#hume1739} **Hume, David.** 1739: *A Treatise of Human Nature: Being an Attempt to Introduce the Experimental Method of Reasoning into Moral Subjects*. Lontoo: John Noon. https://archive.org/details/treatiseofhumann01hume
-* []{#hyland2005} **Hyland, Ken.** 2005: *Metadiscourse: Exploring interaction in writing*. Lontoo: Continuum.
-* []{#inan2023} **Inan, Hakan ym.** 2023: Llama Guard: LLM-based Input-Output Safeguard for Human-AI Conversations. arXiv preprint arXiv:2312.06674. DOI: <a href="https://doi.org/10.48550/arXiv.2312.06674">10.48550/arXiv.2312.06674</a>.
-* []{#isaca2025} **ISACA.** 2025: 2025 Volume 5 How to measure and prove the value of your AI investments. ISACA. [Verkkojulkaisu]. Saatavilla: https://www.isaca.org/resources/news-and-trends/newsletters/atisaca/2025/volume-5/how-to-measure-and-prove-the-value-of-your-ai-investments. [Haettu 14.11.2025].
-* []{#iso2023} **ISO/IEC.** 2023: *Systems and software engineering — Systems and software Quality Requirements and Evaluation (SQuaRE) — System and software quality models (ISO/IEC 25010:2023)*. Geneve: International Organization for Standardization. [Verkkojulkaisu]. Saatavilla: https://www.iso.org/standard/84727.html. [Haettu 14.11.2025].
-* []{#jacobs1980} **Jacobs, Rick; Kafry, Dalia & Zedeck, Sheldon.** 1980: Expectations of behaviorally anchored rating scales. Personnel Psychology, 33(3), 595–640. DOI: <a href="https://doi.org/10.1111/j.1744-6570.1980.tb00486.x">10.1111/j.1744-6570.1980.tb00486.x</a>.
-* []{#jacovi2020} **Jacovi, Alon & Goldberg, Yoav.** 2020: Towards faithfully interpretable NLP systems: How should we define and evaluate faithfulness? Teoksessa *Proceedings of the 58th Annual Meeting of the Association for Computational Linguistics*. Association for Computational Linguistics, 4198–4205. DOI: <a href="https://doi.org/10.18653/v1/2020.acl-main.385">10.18653/v1/2020.acl-main.385</a>.
-* []{#jagerman2023} **Jagerman, Rolf ym.** 2023: Query expansion by prompting large language models. arXiv preprint arXiv:2305.03653. DOI: <a href="https://doi.org/10.48550/arXiv.2305.03653">10.48550/arXiv.2305.03653</a>.
-* []{#jia2025} **Jia, Yihao; Shao, Zenghui; Liu, Yanyi; Jia, Jinyuan; Song, Dawn & Gong, Neil Zhenqiang.** 2025: A Critical Evaluation of Defenses against Prompt Injection Attacks. arXiv preprint arXiv:2505.18333. DOI: <a href="https://doi.org/10.48550/arXiv.2505.18333">10.48550/arXiv.2505.18333</a>.
-* []{#johnson2004} **Johnson, R. Burke & Onwuegbuzie, Anthony J.** 2004: Mixed methods research: A research paradigm whose time has come. Educational Researcher, 33(7), 14–26. DOI: <a href="https://doi.org/10.3102/0013189X033007014">10.3102/0013189X033007014</a>.
-* []{#jonsson2007} **Jonsson, Anders & Svingby, Gunilla.** 2007: The use of scoring rubrics: Reliability, validity and educational consequences. Educational Research Review, 2(2), 130–144. DOI: <a href="https://doi.org/10.1016/j.edurev.2007.05.002">10.1016/j.edurev.2007.05.002</a>.
-* []{#kahneman2011} **Kahneman, Daniel.** 2011: *Thinking, fast and slow*. New York: Farrar, Straus and Giroux.
-* []{#kiciman2023} **Kiciman, Emre ym.** 2023: Causal reasoning and large language models: Opening a new frontier for causality. arXiv preprint arXiv:2305.00050. DOI: <a href="https://doi.org/10.48550/arXiv.2305.00050">10.48550/arXiv.2305.00050</a>.
-* []{#kim2022} **Kim, Dong-Gi ym.** 2022: Assessing non-technical skills in medical students: An evaluation of the inter- and intra-rater reliability of the behaviorally anchored rating scale (BARS). Teaching and Learning in Medicine, 35(3), 310–319. DOI: <a href="https://doi.org/10.1080/10872981.2022.2070940">10.1080/10872981.2022.2070940</a>.
-* []{#kinicki1985} **Kinicki, Angelo J. ym.** 1985: Behaviorally anchored rating scales vs. summated rating scales: Psychometric properties and susceptibility to rating bias. Educational and Psychological Measurement, 45(3), 535–549. DOI: <a href="https://doi.org/10.1177/001316448504500310">10.1177/001316448504500310</a>.
-* []{#kirshner2025} **Kirshner, Stuart; Klaben, Ben & Dobbe, Sam.** 2025: Instruction-Following: The Truth Is In There, But Is It In The Loss? arXiv preprint arXiv:2511.07973. DOI: <a href="https://doi.org/10.48550/arXiv.2511.07973">10.48550/arXiv.2511.07973</a>.
-* []{#klein2007} **Klein, Gary.** 2007: Performing a Project Premortem. Harvard Business Review, 85(9), 18–19.
-* []{#klieger2018} **Klieger, David M. ym.** 2018: Development of the Behaviorally Anchored Rating Scales for the Skills Demonstration and Progression Guide. ETS Research Report Series RR-18-24. Educational Testing Service. DOI: <a href="https://doi.org/10.1002/ets2.12210">10.1002/ets2.12210</a>.
-* []{#koops2021} **Koops, Bert-Jaap.** 2021: The concept of function creep. Law, Innovation and Technology, 13(1), 29–56. DOI: <a href="https://doi.org/10.1080/17579961.2021.1898299">10.1080/17579961.2021.1898299</a>.
-* []{#koretz1994} **Koretz, Daniel M. ym.** 1994: The Vermont portfolio assessment program: Findings and implications. Educational Measurement: Issues and Practice, 13(3), 5–16. DOI: <a href="https://doi.org/10.1111/j.1745-3992.1994.tb00854.x">10.1111/j.1745-3992.1994.tb00854.x</a>.
-* []{#kreuzberger2023} **Kreuzberger, Dominik; Kühl, Niklas & Hirschl, Sebastian.** 2023: Machine learning operations (MLOps): Overview, definition, and architecture. IEEE Access, 11, 31866–31879. DOI: <a href="https://doi.org/10.1109/ACCESS.2023.3262138">10.1109/ACCESS.2023.3262138</a>.
-* []{#kruger1999} **Kruger, Justin & Dunning, David.** 1999: Unskilled and unaware of it: How difficulties in recognizing one's own incompetence lead to inflated self-assessments. Journal of Personality and Social Psychology, 77(6), 1121–1134. DOI: <a href="https://doi.org/10.1037/0022-3514.77.6.1121">10.1037/0022-3514.77.6.1121</a>.
-* []{#lagnado2006} **Lagnado, David A. & Sloman, Steven A.** 2006: Time as a guide to cause. Journal of Experimental Psychology: Learning, Memory & Cognition, 32(3), 451–460. DOI: <a href="https://doi.org/10.1037/0278-7393.32.3.451">10.1037/0278-7393.32.3.451</a>.
-* []{#lane2013} **Lane, Suzanne.** 2013: Validity evidence for assessments of higher-order thinking. Journal of Educational Measurement, 50(4), 399–430. DOI: <a href="https://doi.org/10.1111/jedm.12028">10.1111/jedm.12028</a>.
-* []{#larson2024} **Larson, Barbara Z. ym.** 2024: Critical thinking in the age of generative AI. Academy of Management Learning & Education, 23(3). DOI: <a href="https://doi.org/10.5465/amle.2024.0338">10.5465/amle.2024.0338</a>.
-* []{#lecun2022} **LeCun, Yann.** 2022: A path towards autonomous machine intelligence. OpenReview. [Verkkojulkaisu]. Saatavilla: https://openreview.net/forum?id=BZ5a1r-kVsf. [Haettu 14.11.2025].
-* []{#levashina2007} **Levashina, Julia & Morgeson, Frederick P.** 2007: Applicant faking on personality measures: A coping perspective. Academy of Management Review, 32(4), 1118–1136. DOI: <a href="https://doi.org/10.5465/amr.2007.26586083">10.5465/amr.2007.26586083</a>.
-* []{#levine1988} **Levine, Edward L.; Ash, Ronald A. & Bennett, Nathan.** 1988: The "behavioral consistency" approach to job analysis: A critical reappraisal. Human Resource Management Review, 8(3), 273–293. DOI: <a href="https://doi.org/10.1016/S1053-4822(98)90023-6">10.1016/S1053-4822(98)90023-6</a>.
-* []{#lewis2020} **Lewis, Patrick ym.** 2020: Retrieval-augmented generation for knowledge-intensive NLP tasks. Advances in Neural Information Processing Systems, 33, 9459–9474. DOI: <a href="https://doi.org/10.48550/arXiv.2005.11401">10.48550/arXiv.2005.11401</a>.
-* []{#li2025} **Li, Feng ym.** 2025: An assessment of human–AI interaction capability in the generative AI era: The influence of critical thinking. Journal of Intelligence, 13(6), 62. DOI: <a href="https://doi.org/10.3390/jintelligence13060062">10.3390/jintelligence13060062</a>.
-* []{#li2024} **Li, Zhikun ym.** 2024: PII-Bench: A benchmark for personally identifiable information (PII) detection and anonymization. arXiv preprint arXiv:2404.03893. DOI: <a href="https://doi.org/10.48550/arXiv.2404.03893">10.48550/arXiv.2404.03893</a>.
-* []{#liang2023} **Liang, Tian-Shuo ym.** 2023: Encouraging divergent thinking in large language models through multi-agent debate. arXiv preprint arXiv:2305.19118. DOI: <a href="https://doi.org/10.48550/arXiv.2305.19118">10.48550/arXiv.2305.19118</a>.
-* []{#lippi2016} **Lippi, Marco & Torroni, Paolo.** 2016: Argumentation mining: State of the art and emerging trends. ACM Transactions on Internet Technology, 16(2), 1–25. DOI: <a href="https://doi.org/10.1145/2850417">10.1145/2850417</a>.
-* []{#lison2021} **Lison, Pierre ym.** 2021: Anonymisation models for text data: State of the art, challenges and future directions. arXiv preprint arXiv:2106.04631. DOI: <a href="https://doi.org/10.48550/arXiv.2106.04631">10.48550/arXiv.2106.04631</a>.
-* []{#liu2024} **Liu, Nelson F. ym.** 2024: Lost in the middle: How language models use long contexts. Transactions of the Association for Computational Linguistics, 12, 157–173. DOI: <a href="https://doi.org/10.1162/tacl_a_00638">10.1162/tacl_a_00638</a>.
-* []{#liu2024b} **Liu, Xiaogeng ym.** 2024: Automatic and universal prompt injection attacks against large language models. arXiv preprint arXiv:2403.04957. DOI: <a href="https://doi.org/10.48550/arXiv.2403.04957">10.48550/arXiv.2403.04957</a>.
-* []{#liu2023} **Liu, Yi ym.** 2023: Prompt injection attacks and defenses in large language models: A survey. arXiv preprint arXiv:2310.12815. DOI: <a href="https://doi.org/10.48550/arXiv.2310.12815">10.48550/arXiv.2310.12815</a>.
-* []{#luckin2017} **Luckin, Rosemary ym.** 2017: Towards artificial intelligence-based assessment systems. Nature Human Behaviour, 1(3), 0028. DOI: <a href="https://doi.org/10.1038/s41562-016-0028">10.1038/s41562-016-0028</a>.
-* []{#ma2024} **Ma, Yubo ym.** 2024: Mitigating contextual information loss in RAG models through re-ranking. arXiv preprint arXiv:2401.06427. DOI: <a href="https://doi.org/10.48550/arXiv.2401.06427">10.48550/arXiv.2401.06427</a>.
-* []{#mchugh2012} **McHugh, Mary L.** 2012: Interrater reliability: the kappa statistic. Biochemia Medica, 22(3), 276–282. DOI: <a href="https://doi.org/10.11613/BM.2012.031">10.11613/BM.2012.031</a>.
-* []{#mesenbrink2025} **Mesenbrink, Hanna ym.** 2025: Orchestrated multi agents sustain accuracy under clinical-scale workloads compared to a single agent. medRxiv. DOI: 10.1101/2025.08.22.25334049.
-* []{#messick2003} **Messick, Samuel J.** 2003: Substance and structure in assessment arguments. Law, Probability and Risk, 2(4), 237–258. DOI: <a href="https://doi.org/10.1093/lpr/2.4.237">10.1093/lpr/2.4.237</a>.
-* []{#messick1989} **Messick, Samuel J.** 1989: Validity. Teoksessa R. L. Linn (toim.), *Educational measurement*. 3. painos. New York: Macmillan, 13–103.
-* []{#morgeson2007} **Morgeson, Frederick P.; Delaney-Klinger, Kelly & Hemingway, Monica A.** 2007: The importance of job analysis to the legal defensibility of an organization's selection system. Teoksessa L. L. Koppes (toim.), *Historical perspectives in industrial and organizational psychology*. Mahwah: Lawrence Erlbaum Associates, 301–322.
-* []{#moskal2000} **Moskal, Barbara M.** 2000: Scoring rubrics: What, when and how? Practical Assessment, Research, and Evaluation, 7(3). DOI: <a href="https://doi.org/10.7275/a5vq-7q66">10.7275/a5vq-7q66</a>.
-* []{#nola2014} **Nola, Robert & Sankey, Howard.** 2014: *Theories of scientific method: An introduction*. Lontoo: Routledge. DOI: <a href="https://doi.org/10.4324/9781315728666">10.4324/9781315728666</a>.
-* []{#nold2022} **Nold, Herbert & Michel, Lukas.** 2022: The Dunning-Kruger Effect on Organizational Agility. Academy of Management Proceedings, 2022(1). DOI: <a href="https://doi.org/10.5465/AMBPP.2022.10365abstract">10.5465/AMBPP.2022.10365abstract</a>.
-* []{#oecd2024} **OECD.** 2024: *Artificial intelligence and the changing demand for skills in the labour market*. OECD Artificial Intelligence Papers, No. 14. Paris: OECD Publishing. DOI: <a href="https://doi.org/10.1787/88684e36-en">10.1787/88684e36-en</a>.
-* []{#openai2024} **OpenAI.** 2024: *OpenAI o1 System Card*. OpenAI. [Verkkojulkaisu]. Saatavilla: https://openai.com/index/openai-o1-system-card/. (arXiv preprint arXiv:2412.16720).
-* []{#owasp2025a} **OWASP Foundation.** 2025a: LLM01:2025 Prompt Injection. GenAI OWASP Top 10. [Verkkojulkaisu]. Saatavilla: https://genai.owasp.org/llmrisk/llm01-prompt-injection/. [Haettu 15.11.2025].
-* []{#owasp2025b} **OWASP Foundation.** 2025b: LLM02:2025 Sensitive Information Disclosure. GenAI OWASP Top 10. [Verkkojulkaisu]. Saatavilla: https://genai.owasp.org/llm-top-10/. [Haettu 15.11.2025].
-* []{#owasp2025c} **OWASP Foundation.** 2025c: LLM05:2025 Improper Output Handling. GenAI OWASP Top 10. [Verkkojulkaisu]. Saatavilla: https://genai.owasp.org/llm-top-10/. [Haettu 15.11.2025].
-* []{#owasp2025d} **OWASP Foundation.** 2025d: LLM06:2025 Excessive Agency. GenAI OWASP Top 10. [Verkkojulkaisu]. Saatavilla: https://genai.owasp.org/llm-top-10/. [Haettu 15.11.2025].
-* []{#owasp2025e} **OWASP Foundation.** 2025e: LLM08:2025 Vector and Embedding Weaknesses. GenAI OWASP Top 10. [Verkkojulkaisu]. Saatavilla: https://genai.owasp.org/llmrisk/llm08-vector-and-embedding-weaknesses/. [Haettu 15.11.2025].
-* []{#owasp2025f} **OWASP Foundation.** 2025f: OWASP Top 10 for Gen AI. GenAI OWASP Top 10. [Verkkojulkaisu]. Saatavilla: https://genai.owasp.org/llm-top-10/. [Haettu 15.11.2025].
-* []{#owasp2025g} **OWASP Foundation.** 2025g: LLM10:2025 Unbounded Consumption. GenAI OWASP Top 10. [Verkkojulkaisu]. Saatavilla: https://genai.owasp.org/llm-top-10/. [Haettu 15.11.2025].
-* []{#owaspsa} **OWASP Foundation.** s.a.: Input Validation Cheat Sheet. OWASP Cheat Sheet Series. [Verkkojulkaisu]. Saatavilla: https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html. [Haettu 18.11.2025].
-* []{#parasuraman1997} **Parasuraman, Raja & Riley, Victor.** 1997: Humans and automation: Use, misuse, disuse, abuse. Human Factors, 39(2), 230–253. DOI: 10.1518/001872097778543886.
-* []{#paulson1991} **Paulson, F. Leon; Paulson, Pearl R. & Meyer, Carol A.** 1991: What makes a portfolio a portfolio. Educational Leadership, 48(5), 60–63.
-* []{#pearl2009} **Pearl, Judea.** 2009: *Causality: Models, reasoning, and inference*. 2. painos. Cambridge: Cambridge University Press. DOI: <a href="https://doi.org/10.1017/CBO9780511803161">10.1017/CBO9780511803161</a>.
-* []{#peffers2007} **Peffers, Ken; Tuunanen, Tuure; Rothenberger, Marcus A. & Chatterjee, Samir.** 2007: A Design Science Research Methodology for Information Systems Research. Journal of Management Information Systems, 24(3), 45–77. DOI: <a href="https://doi.org/10.2753/MIS0742-1222240302">10.2753/MIS0742-1222240302</a>.
-* []{#perez2022a} **Perez, Ethan ym.** 2022a: Red Teaming Language Models to Reduce Harms: Methods, Scaling Behaviors, and Lessons Learned. arXiv preprint arXiv:2209.07858. DOI: <a href="https://doi.org/10.48550/arXiv.2209.07858">10.48550/arXiv.2209.07858</a>.
-* []{#perez2022b} **Perez, Ethan ym.** 2022b: Discovering Language Model Behaviors with Model-Written Evaluations. arXiv preprint arXiv:2212.09251. DOI: <a href="https://doi.org/10.48550/arXiv.2212.09251">10.48550/arXiv.2212.09251</a>.
-* []{#perrow1984} **Perrow, Charles.** 1984: *Normal accidents: Living with high-risk technologies*. Princeton: Princeton University Press.
-* []{#pfeifer2025} **Pfeifer, Karen.** 2025: Humanity-in-the-loop: Human AI oversight is an imperative. Medium. Julkaistu 22.10.2025. [Verkkojulkaisu]. Saatavilla: https://medium.com/@karenpfeifer/humanity-in-the-loop-human-ai-oversight-is-an-imperative-50bdcc2688d8. [Haettu 14.11.2025].
-* []{#polanyi1966} **Polanyi, Michael.** 1966: *The tacit dimension*. Chicago: University of Chicago Press.
-* []{#pollitt2012} **Pollitt, Alastair.** 2012: The method of Adaptive Comparative Judgement. Assessment in Education: Principles, Policy & Practice, 19(3), 281–300. DOI: <a href="https://doi.org/10.1080/0969594X.2012.665354">10.1080/0969594X.2012.665354</a>
-* []{#popper1934} **Popper, Karl.** 1934: *Logik der Forschung*. Vienna: Julius Springer.
-* []{#pwc2024} **PwC.** 2024: *AI jobs barometer*. PricewaterhouseCoopers. [Verkkojulkaisu]. Saatavilla: https://www.pwc.com/gx/en/issues/artificial-intelligence/ai-jobs-barometer.html. [Haettu 14.11.2025].
-* []{#quine1951} **Quine, Willard Van Orman.** 1951: Two dogmas of empiricism. The Philosophical Review, 60(1), 20–43. DOI: <a href="https://doi.org/10.2307/2181906">10.2307/2181906</a>.
-* []{#raisch2021} **Raisch, Sebastian & Krakowski, Sebastian.** 2021: Artificial intelligence and management: The automation-augmentation paradox. Academy of Management Review, 46(1), 192–210. DOI: <a href="https://doi.org/10.5465/amr.2018.0072">10.5465/amr.2018.0072</a>.
-* []{#reinecke2014} **Reinecke, Katharina & Gajos, Krzysztof Z.** 2014: Quantifying visual preferences around the world. Proceedings of the SIGCHI Conference on Human Factors in Computing Systems, 717–726. DOI: <a href="https://doi.org/10.1145/2556288.2557076">10.1145/2556288.2557076</a>.
-* []{#sadler1989} **Sadler, D. Royce.** 1989: Formative assessment and the design of instructional systems. Instructional Science, 18(2), 119–144. DOI: <a href="https://doi.org/10.1007/BF00117714">10.1007/BF00117714</a>.
-* []{#sagi2018} **Sagi, Omer & Rokach, Lior.** 2018: Ensemble learning: A survey. Wiley Interdisciplinary Reviews: Data Mining and Knowledge Discovery, 8(4), e1249. DOI: <a href="https://doi.org/10.1002/widm.1249">10.1002/widm.1249</a>.
-* []{#saito2023} **Saito, Keisuke; Wachi, Akifumi & Akimoto, Youhei.** 2023: Verbosity bias in preference labeling by large language models. arXiv preprint arXiv:2310.10864. DOI: <a href="https://doi.org/10.48550/arXiv.2310.10864">10.48550/arXiv.2310.10864</a>.
-* []{#saltzer1975} **Saltzer, Jerome H. & Schroeder, Michael D.** 1975: The protection of information in computer systems. Proceedings of the IEEE, 63(9), 1278–1308. DOI: <a href="https://doi.org/10.1109/PROC.1975.9939">10.1109/PROC.1975.9939</a>.
-* []{#sgaier2020} **Sgaier, Sema K. ym.** 2020: The case for causal AI. Stanford Social Innovation Review, 18(3), 50–55. DOI: <a href="https://doi.org/10.48558/KT81-SN73">10.48558/KT81-SN73</a>.
-* []{#shafiyeva2021} **Shafiyeva, Ulviyya.** 2021: Assessing Students' Minds: Developing Critical Thinking or Fitting into Procrustean Bed. European Journal of Education, 4(2), 78–91. DOI: <a href="https://doi.org/10.26417/452bxv17s">10.26417/452bxv17s</a>.
-* []{#sharma2025} **Sharma, Mrinank ym.** 2025: Constitutional classifiers: Defending against universal jailbreaks across thousands of hours of red teaming. arXiv preprint arXiv:2501.18837. DOI: <a href="https://doi.org/10.48550/arXiv.2501.18837">10.48550/arXiv.2501.18837</a>.
-* []{#shavelson2010} **Shavelson, Richard J.** 2010: On the measurement of competency. Empirical Research in Vocational Education and Training, 2(1), 41–63.
-* []{#shaffer2016} **Shaffer, David Williamson; Collier, Wesley & Ruis, A. R.** 2016: A tutorial on Epistemic Network Analysis: Analyzing the structure of connections in cognitive, social, and interaction data. Journal of Learning Analytics, 3(3), 9–45. DOI: <a href="https://doi.org/10.18608/jla.2016.33.3">10.18608/jla.2016.33.3</a>.
-* []{#shavelson2013} **Shavelson, Richard J.** 2013: On an approach to testing and modeling competence. Educational Psychologist, 48(2), 73–86. DOI: <a href="https://doi.org/10.1080/00461520.2013.779483">10.1080/00461520.2013.779483</a>.
-* []{#shen2023} **Shen, Yongliang ym.** 2023: Large Language Models as Tool Makers. arXiv preprint arXiv:2305.17126. DOI: <a href="https://doi.org/10.48550/arXiv.2305.17126">10.48550/arXiv.2305.17126</a>.
-* []{#shinn2023} **Shinn, Noah ym.** 2023: Reflexion: an autonomous agent with dynamic memory and self-reflection. arXiv preprint arXiv:2303.11366. DOI: <a href="https://doi.org/10.48550/arXiv.2303.11366">10.48550/arXiv.2303.11366</a>.
-* []{#shuster2021} **Shuster, Kurt ym.** 2021: Retrieval augmentation reduces hallucination in conversation. arXiv preprint arXiv:2104.07567. DOI: <a href="https://doi.org/10.48550/arXiv.2104.07567">10.48550/arXiv.2104.07567</a>.
-* []{#silva2025} **Silva, Bruno ym.** 2025: Development of an Adapted Version of the Motor Competence Assessment (MCA) for Older Adults. Journal of Clinical Medicine, 14(21), 7866. DOI: <a href="https://doi.org/10.3390/jcm14217866">10.3390/jcm14217866</a>.
-* []{#smith1963} **Smith, Patricia Cain & Kendall, Lorne M.** 1963: Retranslation of expectations: An approach to the construction of unambiguous anchors for rating scales. Journal of Applied Psychology, 47(2), 149–155. DOI: <a href="https://doi.org/10.1037/h0047060">10.1037/h0047060</a>.
-* []{#strathern1997} **Strathern, Marilyn.** 1997: 'Improving ratings': audit in the British university system. European Review, 5(3), 305–321. DOI: <a href="https://doi.org/10.1002/(SICI)1234-981X(199707)5:3<305::AID-EURO184>3.0.CO;2-4">10.1002/(SICI)1234-981X(199707)5:3<305::AID-EURO184>3.0.CO;2-4</a>.
-* []{#stumborg2022} **Stumborg, Michael F. ym.** 2022: *Goodhart's law: Recognizing and mitigating the manipulation of measures in analysis*. CNA Occasional Paper. [Verkkojulkaisu]. Saatavilla: https://www.cna.org/reports/2022/09/Goodharts-Law-Recognizing-Mitigating-Manipulation-Measures-in-Analysis.pdf. [Haettu 14.11.2025].
-* []{#supianto2023} **Supianto, Arief Andy ym.** 2023: A systematic review of multi-agent systems in educational assessment. Computers & Education: Artificial Intelligence, 4, 100135. DOI: <a href="https://doi.org/10.1016/j.caeai.2023.100135">10.1016/j.caeai.2023.100135</a>.
-* []{#suskie2009} **Suskie, Linda.** 2009: *Assessing student learning: A common sense guide*. 2. painos. San Francisco: Jossey-Bass.
-* []{#talboy2023} **Talboy, Alisha & Fuller, Elizabeth.** 2023: Large language models show humanlike cognitive biases. arXiv preprint arXiv:2308.14343. DOI: <a href="https://doi.org/10.48550/arXiv.2308.14343">10.48550/arXiv.2308.14343</a>.
-* []{#tetard2009} **Tétard, Franck & Collan, Mikael.** 2009: Lazy User Theory: A Dynamic Model to Understand User Selection of Products and Services. Proceedings of the 42nd Hawaii International Conference on System Sciences, 1–10. Waikoloa, HI: IEEE Computer Society. DOI: <a href="https://doi.org/10.1109/HICSS.2009.290">10.1109/HICSS.2009.290</a>
-* []{#toulmin2003} **Toulmin, Stephen E.** 2003: *The uses of argument*. Päivitetty painos. Cambridge: Cambridge University Press. DOI: <a href="https://doi.org/10.1017/CBO9780511802031">10.1017/CBO9780511802031</a>.
-* []{#towardsai2025} **Towards AI.** 2025: AI Sandbox in 2025: How Enterprises and Governments Shape AI's Future. Towards AI. Julkaistu 26.9.2025. [Verkkojulkaisu]. Saatavilla: https://pub.towardsai.net/ai-sandbox-in-2025-how-enterprises-and-governments-shape-ais-future-b41f0d267c4d. [Haettu 14.11.2025].
-* []{#trivedi2024} **Trivedi, Harsh ym.** 2024: Interleaving retrieval with chain-of-thought reasoning for knowledge-intensive multi-step questions. arXiv preprint arXiv:2401.10133. DOI: <a href="https://doi.org/10.48550/arXiv.2401.10133">10.48550/arXiv.2401.10133</a>.
-* []{#turpin2023} **Turpin, Miles ym.** 2023: Language models don't always say what they think: Unfaithful explanations in chain-of-thought prompting. Teoksessa A. Oh, T. Hashimoto & D. Blei (toim.), *Advances in Neural Information Processing Systems 36*. La Jolla: Neural Information Processing Systems Foundation, 21016–21033.
-* []{#turpin2025} **Turpin, Miles ym.** 2025: Executable counterfactuals: Improving LLMs' causal reasoning through code. arXiv preprint arXiv:2510.01539. DOI: <a href="https://doi.org/10.48550/arXiv.2510.01539">10.48550/arXiv.2510.01539</a>.
-* []{#tenk2019} **Tutkimuseettinen neuvottelukunta TENK.** 2019: *Ihmiseen kohdistuvan tutkimuksen eettiset periaatteet ja ihmistieteiden eettinen ennakkoarviointi Suomessa*. Tutkimuseettisen neuvottelukunnan ohje 2019. Tutkimuseettisen neuvottelukunnan julkaisuja 3/2019. Helsinki: TENK. [Verkkojulkaisu]. Saatavilla: https://tenk.fi/sites/default/files/2021-01/Ihmistieteiden_eettisen_ennakkoarvioinnin_ohje_2020.pdf. [Haettu 14.11.2025].
-* []{#tversky1974} **Tversky, Amos & Kahneman, Daniel.** 1974: Judgment under uncertainty: Heuristics and biases. Science, 185(4157), 1124–1131. DOI: <a href="https://doi.org/10.1126/science.185.4157.1124">10.1126/science.185.4157.1124</a>.
-* []{#w3c2008} **W3C.** 2008: Migrating to Unicode. W3C Internationalization (I18n) Activity. [Verkkojulkaisu]. Saatavilla: https://www.w3.org/International/articles/unicode-migration/. [Haettu 14.11.2025].
-* []{#wachsmuth2017} **Wachsmuth, Henning ym.** 2017: Computational argumentation quality assessment in natural language. Proceedings of the 15th Conference of the EACL, 176–187. DOI: <a href="https://doi.org/10.18653/v1/E17-1017">10.18653/v1/E17-1017</a>.
-* []{#walton2008} **Walton, Douglas N.; Reed, Chris & Macagno, Fabrizio.** 2008: *Argumentation schemes*. Cambridge: Cambridge University Press. DOI: <a href="https://doi.org/10.1017/CBO9780511802034">10.1017/CBO9780511802034</a>.
-* []{#wang2023} **Wang, Yuxia ym.** 2023: A survey on an authoritarian bias: The blind spot of large language models. arXiv preprint arXiv:2312.06086. DOI: <a href="https://doi.org/10.48550/arXiv.2312.06086">10.48550/arXiv.2312.06086</a>.
-* []{#wang2022} **Wang, Xuezhi; Wei, Jason; Schuurmans, Dale; Le, Quoc; Chi, Ed; Narang, Sharan; Chowdhery, Aakanksha & Zhou, Denny.** 2022: Self-Consistency Improves Chain of Thought Reasoning in Language Models. arXiv preprint arXiv:2203.11171. DOI: <a href="https://doi.org/10.48550/arXiv.2203.11171">10.48550/arXiv.2203.11171</a>
-* []{#weidinger2021} **Weidinger, Laura ym.** 2021: Ethical and social risks of harm from language models. arXiv preprint arXiv:2112.04359. DOI: <a href="https://doi.org/10.48550/arXiv.2112.04359">10.48550/arXiv.2112.04359</a>.
-* []{#weston2023} **Weston, Jason & Sukhbaatar, Sainbayar.** 2023: System 2 attention (is something you might need too). arXiv preprint arXiv:2311.11829. DOI: <a href="https://doi.org/10.48550/arXiv.2311.11829">10.48550/arXiv.2311.11829</a>.
-* []{#wiggins1998} **Wiggins, Grant.** 1998: *Educative assessment: Designing assessments to inform and improve student performance*. San Francisco: Jossey-Bass.
-* []{#wisse2023} **Wisse, Gerben & Greve, Rutger.** 2023: AI in educational assessment: A systematic review of formative and summative applications. Computers & Education: Artificial Intelligence, 5, 100174. DOI: <a href="https://doi.org/10.1016/j.caeai.2023.100174">10.1016/j.caeai.2023.100174</a>.
-* []{#wolf2007} **Wolf, Kenneth & Stevens, Ellen.** 2007: The role of rubrics in advancing and assessing student learning. The Journal of Effective Teaching, 7(1), 3–14.
-* []{#wolf2023} **Wolf, Yotam ym.** 2023: Fundamental Limitations of Alignment in Large Language Models. arXiv preprint arXiv:2304.11082. DOI: <a href="https://doi.org/10.48550/arXiv.2304.11082">10.48550/arXiv.2304.11082</a>.
-* []{#wolters2024} **Wolters Kluwer.** 2024: *2024 Future ready lawyer survey report*. [Verkkojulkaisu]. Saatavilla: https://www.wolterskluwer.com/en/know/future-ready-lawyer-2024. [Haettu 14.11.2025].
-* []{#wooldridge2009} **Wooldridge, Michael.** 2009: *An introduction to multiagent systems*. 2. painos. Chichester: John Wiley & Sons.
-* []{#wef2023} **World Economic Forum.** 2023: *Future of Jobs Report 2023*. [Verkkojulkaisu]. Saatavilla: https://www.weforum.org/publications/the-future-of-jobs-report-2023/. [Haettu 18.11.2025].
-* []{#wu2024} **Wu, Junjie ym.** 2024: Large Language Models are Challenged by an Abundance of Over-complicated Instructions. arXiv preprint arXiv:2409.07844. DOI: <a href="https://doi.org/10.48550/arXiv.2409.07844">10.48550/arXiv.2409.07844</a>.
-* []{#wynn2025} **Wynn, Alexander; Satija, Harsh & Hadfield, Gillian.** 2025: Talk isn't always cheap: Understanding failure modes in multi-agent debate. Proceedings of the ICML 2025 Workshop on Multi-Agent Systems. arXiv preprint arXiv:2509.05396. DOI: <a href="https://doi.org/10.48550/arXiv.2509.05396">10.48550/arXiv.2509.05396</a>.
-* []{#ye2025} **Ye, Rui ym.** 2025: X-MAS: A comprehensive testbed for evaluating heterogeneous LLM-driven multi-agent systems. arXiv preprint arXiv:2505.16997. DOI: <a href="https://doi.org/10.48550/arXiv.2505.16997">10.48550/arXiv.2505.16997</a>.
-* []{#yeager2023} **Yeager.ai.** 2023: AI Agent Kryptonite - Prompt Saturation and Context Bleeding. Medium. Julkaistu 16.10.2023. [Verkkojulkaisu]. Saatavilla: https://medium.com/yeagerai/ai-agent-kryptonite-prompt-saturation-and-context-bleeding-4db7c4329e4e. [Haettu 16.11.2025].
-* []{#yi2025} **Yi, Zhaoyang ym.** 2025: Benchmarking and defending against indirect prompt injection attacks on large language models. arXiv preprint arXiv:2312.14197. DOI: <a href="https://doi.org/10.48550/arXiv.2312.14197">10.48550/arXiv.2312.14197</a>.
-* []{#zhang2024} **Zhang, Yunhua ym.** 2024: Soar: The Future of AI-Driven Architectures through Directed Acyclic Graph Reasoning. arXiv preprint arXiv:2404.05678. DOI: <a href="https://doi.org/10.48550/arXiv.2404.05678">10.48550/arXiv.2404.05678</a>.
-* []{#zilliz2024} **Zilliz.** 2024: Ensuring Secure and Permission-Aware RAG Deployments. Zilliz Blog. [Verkkojulkaisu]. Saatavilla: https://zilliz.com/blog/ensure-secure-and-permission-aware-rag-deployments. [Haettu 14.11.2025].
-* []{#zou2024} **Zou, Wei; Geng, Runpeng; Wang, Binghui & Jia, Jinyuan.** 2024: PoisonedRAG: Knowledge Corruption Attacks to Retrieval-Augmented Generation of Large Language Models. arXiv preprint arXiv:2402.07867. DOI: <a href="https://doi.org/10.48550/arXiv.2402.07867">10.48550/arXiv.2402.07867</a>.
+* <a id="acemoglu2018"></a>**Acemoglu, Daron & Restrepo, Pascual.** 2018: The race between man and machine: Implications of technology for growth, factor shares, and employment. American Economic Review, 108(6), 1488–1542. DOI: <a href="https://doi.org/10.1257/aer.20160696">10.1257/aer.20160696</a>.
+* <a id="adadi2018"></a>**Adadi, Amina & Berrada, Mohammed.** 2018: Peeking inside the black-box: A survey on explainable artificial intelligence (XAI). IEEE Access, 6, 52138–52160. DOI: <a href="https://doi.org/10.1109/ACCESS.2018.2870052">10.1109/ACCESS.2018.2870052</a>.
+* <a id="aera2014"></a>**AERA, APA & NCME.** 2014: *Standards for educational and psychological testing*. Washington, DC: American Educational Research Association. [Verkkojulkaisu]. Saatavilla: https://www.testingstandards.net/uploads/7/6/6/4/76643089/standards_2014edition.pdf. [Haettu 14.11.2025].
+* <a id="agrawal2022"></a>**Agrawal, Ajay; Gans, Joshua & Goldfarb, Avi.** 2022: *Prediction machines: The simple economics of artificial intelligence*. Boston: Harvard Business Review Press.
+* <a id="ahmad2024"></a>**Ahmad, Sultan ym.** 2024: A comprehensive review of retrieval-augmented generation (RAG): Key challenges and future directions. arXiv preprint arXiv:2410.12837. DOI: <a href="https://doi.org/10.48550/arXiv.2410.12837">10.48550/arXiv.2410.12837</a>.
+* <a id="ahuna2025"></a>**Ahuna, Kelly & Kiener, Michael.** 2025: Beyond digital literacy: Cultivating “meta AI” skills in students and faculty. Faculty Focus. Julkaistu 6.8.2025. [Verkkojulkaisu]. Saatavilla: https://www.facultyfocus.com/articles/teaching-with-technology-articles/beyond-digital-literacy-cultivating-meta-ai-skills-in-students-and-faculty/. [Haettu 14.11.2025].
+* <a id="aimultiple2025"></a>**AIMultiple.** 2025: 15 Security Threats to LLM Agents (with Real-World Examples). Research AIMultiple. [Verkkojulkaisu]. Saatavilla: https://research.aimultiple.com/security-of-ai-agents/. [Haettu 16.11.2025].
+* <a id="ainow2021"></a>**AI Now Institute.** 2021: *A New AI Lexicon: Function Creep*. New York: AI Now Institute. [Verkkojulkaisu]. Saatavilla: https://ainowinstitute.org/publications/collection/a-new-ai-lexicon-function-creep. [Haettu 14.11.2025].
+* <a id="anderson2001"></a>**Anderson, Lorin W. & Krathwohl, David R. (toim.).** 2001: *A taxonomy for learning, teaching, and assessing: A revision of Bloom’s taxonomy of educational objectives*. New York: Longman.
+* <a id="anthropic2025a"></a>**Anthropic.** 2025a: Constitutional classifiers. Anthropic Policy & Research. [Verkkojulkaisu]. Saatavilla: https://www.anthropic.com/research/constitutional-classifiers. [Haettu 14.11.2025].
+* <a id="anthropic2025b"></a>**Anthropic.** 2025b: How we built our multi-agent research system. Anthropic Engineering Blog. Julkaistu 13.6.2025. [Verkkojulkaisu]. Saatavilla: https://www.anthropic.com/engineering/multi-agent-research-system. [Haettu 14.11.2025].
+* <a id="anthropic2025c"></a>**Anthropic.** 2025c: Building effective agents. Anthropic Research. [Verkkojulkaisu]. Saatavilla: https://www.anthropic.com/research/building-effective-agents. [Haettu 14.11.2025].
+* <a id="arcuschin2025"></a>**Arcuschin, Iván ym.** 2025: Chain-of-Thought Reasoning In The Wild Is Not Always Faithful. arXiv preprint arXiv:2503.08679. DOI: <a href="https://doi.org/10.48550/arXiv.2503.08679">10.48550/arXiv.2503.08679</a>.
+* <a id="aryan2025"></a>**Aryan, Ali & Liu, Zhi.** 2025: Causal Reflection with Language Models. arXiv preprint arXiv:2508.04495. DOI: <a href="https://doi.org/10.48550/ARXIV.2508.04495">10.48550/ARXIV.2508.04495</a>.
+* <a id="auzmor2024"></a>**Auzmor.** 2024: How to measure the ROI of AI training programs. Auzmor. [Verkkojulkaisu]. Saatavilla: https://auzmor.com/blog/measure-the-roi-of-ai-training-programs/. [Haettu 14.11.2025].
+* <a id="bai2022"></a>**Bai, Yuntao ym.** 2022: Constitutional AI: Harmlessness from AI feedback. arXiv preprint arXiv:2212.08073. DOI: <a href="https://doi.org/10.48550/arXiv.2212.08073">10.48550/arXiv.2212.08073</a>.
+* <a id="bareinboim2022"></a>**Bareinboim, Elias ym.** 2022: On Pearl's hierarchy and the foundations of causal inference. Teoksessa H. Geffner, R. Dechter & J. Halpern (toim.), *Probabilistic and causal inference: The works of Judea Pearl*. New York: Association for Computing Machinery, 507–556. DOI: <a href="https://doi.org/10.1145/3501714.3501743">10.1145/3501714.3501743</a>.
+* <a id="baume2002"></a>**Baume, David & Yorke, Mantz.** 2002: The reliability of assessment by portfolio on a course to develop and accredit teachers in higher education. Studies in Higher Education, 27(1), 7–25. DOI: <a href="https://doi.org/10.1080/03075070120099340">10.1080/03075070120099340</a>.
+* <a id="bezanilla2019"></a>**Bezanilla, María José ym.** 2019: Methodologies for teaching-learning in higher education and their relationship with student competences: A systematic review. Educational Research Review, 27, 83–98. DOI: <a href="https://doi.org/10.1016/j.edurev.2019.01.004">10.1016/j.edurev.2019.01.004</a>.
+* <a id="biggs1982"></a>**Biggs, John B. & Collis, Kevin F.** 1982: *Evaluating the quality of learning: The SOLO taxonomy (Structure of the Observed Learning Outcome)*. New York: Academic Press.
+* <a id="borsboom2004"></a>**Borsboom, Denny; Mellenbergh, Gideon J. & van Heerden, Jaap.** 2004: The concept of validity. Psychological Review, 111(4), 1061–1071. DOI: <a href="https://doi.org/10.1037/0033-295X.111.4.1061">10.1037/0033-295X.111.4.1061</a>.
+* <a id="boussioux2025"></a>**Boussioux, Leonard.** 2025: Revolutionize quality assurance with AI. Mareana. [Verkkojulkaisu]. Saatavilla: https://mareana.com/whitepaper/qa-playbook/. [Haettu 14.11.2025].
+* <a id="brennan2001"></a>**Brennan, Robert L.** 2001: *Generalizability theory*. New York: Springer.
+* <a id="brooks1987"></a>**Brooks, Frederick P.** 1987: No silver bullet: Essence and accidents of software engineering. Computer, 20(4), 10–19. DOI: <a href="https://doi.org/10.1109/MC.1987.1663532">10.1109/MC.1987.1663532</a>.
+* <a id="bulut2024"></a>**Bulut, Okan ym.** 2024: The Rise of Artificial Intelligence in Educational Measurement: Opportunities and Ethical Challenges. Chinese/English Journal of Educational Measurement and Evaluation, 5(3), Artikla 3. DOI: <a href="https://doi.org/10.59863/MIQL7785">10.59863/MIQL7785</a>.
+* <a id="carolus2023"></a>**Carolus, Angela ym.** 2023: MAILS - Meta AI literacy scale: Development and testing of an AI literacy questionnaire based on well-founded competency models and psychological change- and meta-competencies. arXiv preprint arXiv:2302.09319. DOI: <a href="https://doi.org/10.48550/arXiv.2302.09319">10.48550/arXiv.2302.09319</a>.
+* <a id="cemri2025"></a>**Cemri, M. ym.** 2025: Why do multi-agent LLM systems fail? arXiv preprint arXiv:2503.13657. DOI: <a href="https://doi.org/10.48550/arXiv.2503.13657">10.48550/arXiv.2503.13657</a>.
+* <a id="citl2025"></a>**Center for Innovative Teaching & Learning.** 2025: Authentic assessment. Indiana University Bloomington. [Verkkojulkaisu]. Saatavilla: https://citl.indiana.edu/teaching-resources/assessing-student-learning/authentic-assessment/index.html. [Haettu 14.11.2025].
+* <a id="cheng2001"></a>**Cheng, Peter C-H.** 2001: Scientific discovery, computational models of. Teoksessa N. J. Smelser & P. B. Baltes (toim.), *International encyclopedia of the social & behavioral sciences*. Amsterdam: Elsevier, 13783–13787. DOI: <a href="https://doi.org/10.1016/B978-0-08-097086-8.43085-0">10.1016/B978-0-08-097086-8.43085-0</a>.
+* <a id="cheng2021"></a>**Cheng, Peter.** 2021: Competence assessment by stimulus matching: an application of GOMS to assess chunks in memory. Teoksessa *Proceedings of the 19th International Conference on Cognitive Modelling (ICCM 2021)*. [Verkkojulkaisu]. Saatavilla: https://cidlab.com/files/smp/pb/pb-2021.pdf. [Haettu 14.11.2025].
+* <a id="chi2024"></a>**Chi, Hao ym.** 2024: Unveiling causal reasoning in large language models: Reality or mirage? Advances in Neural Information Processing Systems, 37, 96640–96670. DOI: <a href="https://doi.org/10.48550/arXiv.2506.21215">10.48550/arXiv.2506.21215</a>.
+* <a id="cisa2016"></a>**CISA.** 2016: *Defense in depth*. Cybersecurity and Infrastructure Security Agency. [Verkkojulkaisu]. Saatavilla: https://www.cisa.gov/sites/default/files/recommended_practices/NCCIC_ICS-CERT_Defense_in_Depth_2016_S508C.pdf. [Haettu 14.11.2025].
+* <a id="cohen1996"></a>**Cohen, Ronald Jay; Swerdlik, Mark E. & Phillips, Sturman M.** 1996: *Psychological testing and assessment: An introduction to tests and measurement*. 3. painos. Mountain View: Mayfield Publishing Company.
+* <a id="creswell2024"></a>**Creswell, Antonia ym.** 2024: Reducing post-hoc rationalization in large language models. Findings of the Association for Computational Linguistics: ACL 2024, 14757–14771. DOI: <a href="https://doi.org/10.18653/v1/2024.findings-acl.867">10.18653/v1/2024.findings-acl.867</a>.
+* <a id="cullen2020"></a>**Cullen, Michael J.** 2020: Faking in high-stakes selection: A call to integrate empirical research and applied practice. International Journal of Selection and Assessment, 28(3), 223–226. DOI: <a href="https://doi.org/10.1111/ijsa.12289">10.1111/ijsa.12289</a>.
+* <a id="dangelo2025"></a>**D'Angelo, Matt.** 2025: AI safety vs AI security in LLM applications: What teams must know. promptfoo. [Verkkojulkaisu]. Saatavilla: https://www.promptfoo.dev/blog/ai-safety-vs-security/. [Haettu 14.11.2025].
+* <a id="david2019"></a>**David, Jane L.** 2019: 15 reasons why standardized tests are problematic. ASCD Blog. [Verkkojulkaisu]. Saatavilla: https://www.ascd.org/blogs/15-reasons-why-standardized-tests-are-problematic. [Haettu 14.11.2025].
+* <a id="debruin2023"></a>**de Bruin, Anique B. H.; van Merriënboer, Jeroen J. G. & van Gog, Tamara.** 2023: The role of cognitive effort in fostering the acquisition of complex cognitive skills. Teoksessa J. Sweller, J. J. G. van Merriënboer & F. Paas (toim.), *Cognitive load theory: A research-based guide to instructional design*. Cambridge: Cambridge University Press, 237–256. DOI: <a href="https://doi.org/10.1017/9781009403718.011">10.1017/9781009403718.011</a>.
+* <a id="denning1977"></a>**Denning, Dorothy E. & Denning, Peter J.** 1977: Certification of programs for secure information flow. Communications of the ACM, 20(7), 504–513. DOI: <a href="https://doi.org/10.1145/359636.359712">10.1145/359636.359712</a>.
+* <a id="derkiureghian2009"></a>**Der Kiureghian, Armen & Ditlevsen, Ove.** 2009: Aleatory or epistemic? Does it matter? Structural Safety, 31(2), 105–112. DOI: <a href="https://doi.org/10.1016/j.strusafe.2008.06.020">10.1016/j.strusafe.2008.06.020</a>.
+* <a id="disco2024"></a>**Disco.** 2024: How to assess the ROI of AI-driven upskilling initiatives. Disco. [Verkkojulkaisu]. Saatavilla: https://www.disco.co/blog/how-to-assess-the-roi-of-ai-driven-upskilling-initiatives. [Haettu 14.11.2025].
+* <a id="displayr2024"></a>**Displayr.** 2024: Discover the 5 best AI tools for qualitative data analysis. Displayr. [Verkkojulkaisu]. Saatavilla: https://www.displayr.com/discover-the-5-best-ai-tools-for-qualitative-data-analysis/. [Haettu 14.11.2025].
+* <a id="dreyfus1980"></a>**Dreyfus, Stuart E. & Dreyfus, Hubert L.** 1980: *A Five-Stage Model of the Mental Activities Involved in Directed Skill Acquisition*. California Univ Berkeley Operations Research Center. [Verkkojulkaisu]. Saatavilla: https://apps.dtic.mil/sti/pdfs/ADA084551.pdf. [Haettu 18.11.2025].
+* <a id="du2023"></a>**Du, Yilun ym.** 2023: Improving factuality and reasoning in language models through multiagent debate. arXiv preprint arXiv:2305.14325. DOI: 10.48550/arXiv.2305.14325.
+* <a id="dufner2019"></a>**Dufner, Michael ym.** 2019: Self-enhancement and psychological adjustment: A meta-analytic review. Personality and Social Psychology Review, 23(1), 48–72. DOI: 10.1177/1088868318756467.
+* <a id="duhem1906"></a>**Duhem, Pierre.** 1906: *La théorie physique: son objet et sa structure*. Paris: Chevalier & Rivière.
+* <a id="durlak2008"></a>**Durlak, Joseph A. & DuPre, Elizabeth P.** 2008: Implementation matters: A review of research on the influence of implementation on program outcomes and the factors affecting implementation. American Journal of Community Psychology, 41(3–4), 327–350. DOI: <a href="https://doi.org/10.1007/s10464-008-9165-0">10.1007/s10464-008-9165-0</a>.
+* <a id="eloundou2023"></a>**Eloundou, Tyna; Manning, Sam; Mishkin, Pamela & Rock, Daniel.** 2023: GPTs are GPTs: An Early Look at the Labor Market Impact Potential of Large Language Models. arXiv preprint arXiv:2303.10130. DOI: <a href="https://doi.org/10.48550/arXiv.2303.10130">10.48550/arXiv.2303.10130</a>.
+* <a id="embretson2000"></a>**Embretson, Susan E. & Reise, Steven P.** 2000: *Item response theory for psychologists*. Mahwah: Lawrence Erlbaum Associates.
+* <a id="eu2024"></a>**Euroopan parlamentti & Euroopan unionin neuvosto.** 2024: *Euroopan parlamentin ja neuvoston asetus (EU) 2024/1689, annettu 13 päivänä kesäkuuta 2024, tekoälyä koskevista yhdenmukaistetuista säännöistä ja asetusten (EY) N:o 300/2008, (EU) N:o 167/2013, (EU) N:o 168/2013, (EU) 2018/858, (EU) 2018/1139 ja (EU) 2019/2144 sekä direktiivien 2014/90/EU, (EU) 2016/797 ja (EU) 2020/1828 muuttamisesta (tekoälysäädös)*. Euroopan unionin virallinen lehti, L, 2024/1689. https://eur-lex.europa.eu/eli/reg/2024/1689/oj
+* <a id="eu2019"></a>**Euroopan komission korkean tason asiantuntijaryhmä.** 2019: *Ethics guidelines for trustworthy AI*. Bryssel: Euroopan komissio. [Verkkojulkaisu]. Saatavilla: https://digital-strategy.ec.europa.eu/en/library/ethics-guidelines-for-trustworthy-ai. [Haettu 14.11.2025].
+* <a id="evans2013"></a>**Evans, Jonathan St. B. T. & Stanovich, Keith E.** 2013: Dual-process theories of higher cognition: Advancing the debate. Perspectives on Psychological Science, 8(3), 223–241. DOI: <a href="https://doi.org/10.1177/1745691612460685">10.1177/1745691612460685</a>.
+* <a id="fairtest2012"></a>**FairTest.** 2012: The limits of standardized tests for diagnosing and assisting student learning. FairTest: The National Center for Fair & Open Testing. [Verkkojulkaisu]. Saatavilla: https://fairtest.org/limits-standardized-tests-diagnosing-and-assisting/. [Haettu 14.11.2025].
+* <a id="federiakin2024"></a>**Federiakin, Denis ym.** 2024: Prompt engineering: A new skill for the future of work. Procedia Computer Science, 231, 401–409. DOI: <a href="https://doi.org/10.1016/j.procs.2023.12.233">10.1016/j.procs.2023.12.233</a>.
+* <a id="festinger1957"></a>**Festinger, Leon.** 1957: *A theory of cognitive dissonance*. Stanford: Stanford University Press.
+* <a id="flavell1979"></a>**Flavell, John H.** 1979: Metacognition and cognitive monitoring: A new area of cognitive-developmental inquiry. American Psychologist, 34(10), 906–911. DOI: <a href="https://doi.org/10.1037/0003-066X.34.10.906">10.1037/0003-066X.34.10.906</a>.
+* <a id="fugener2025"></a>**Fügener, Andreas; Walzner, Daniel D. & Gupta, Alok.** 2025: Roles of Artificial Intelligence in Collaboration with Humans: Automation, Augmentation, and the Future of Work. Management Science. DOI: <a href="https://doi.org/10.1287/mnsc.2024.05684">10.1287/mnsc.2024.05684</a>.
+* <a id="ganascia2017"></a>**Ganascia, Jean-Gabriel.** 2017: A Popperian falsification of artificial intelligence - Lighthill. arXiv preprint arXiv:1704.08111. DOI: <a href="https://doi.org/10.48550/arXiv.1704.08111">10.48550/arXiv.1704.08111</a>.
+* <a id="ganguli2022"></a>**Ganguli, Deep ym.** 2022: Red teaming language models to reduce harms: Methods, scaling behaviors, and lessons learned. arXiv preprint arXiv:2209.07858. DOI: <a href="https://doi.org/10.48550/arXiv.2209.07858">10.48550/arXiv.2209.07858</a>.
+* <a id="gao2022"></a>**Gao, Luyu ym.** 2022: Precise zero-shot dense retrieval without relevance labels. arXiv preprint arXiv:2212.10496. DOI: <a href="https://doi.org/10.48550/arXiv.2212.10496">10.48550/arXiv.2212.10496</a>.
+* <a id="goffman1959"></a>**Goffman, Erving.** 1959: *The presentation of self in everyday life*. New York: Doubleday.
+* <a id="goodfellow2014"></a>**Goodfellow, Ian J. ym.** 2014: Generative adversarial networks. Advances in Neural Information Processing Systems, 27, 2672–2680. DOI: <a href="https://doi.org/10.48550/arXiv.1406.2661">10.48550/arXiv.1406.2661</a>.
+* <a id="google2025a"></a>**Google DeepMind.** 2025a: *Gemini 3 Pro Model Card*. [PDF]. Saatavilla: https://storage.googleapis.com/deepmind-media/Model-Cards/Gemini-3-Pro-Model-Card.pdf. [Haettu 14.11.2025].
+* <a id="google2025b"></a>**Google DeepMind.** 2025b: *Gemini 3 Pro Model Evaluation*. [PDF]. Saatavilla: https://storage.googleapis.com/deepmind-media/gemini/gemini_3_pro_model_evaluation.pdf. [Haettu 14.11.2025].
+* <a id="google2025c"></a>**Google DeepMind.** 2025c: Gemini 3: A new era of intelligence. Google Blog. Julkaistu 18.11.2025. [Verkkojulkaisu]. Saatavilla: https://blog.google/products/gemini/gemini-3/. [Haettu 14.11.2025].
+* <a id="greshake2023"></a>**Greshake, Kai ym.** 2023: Not what you’ve signed up for: Compromising real-world LLM-integrated applications with indirect prompt injection. arXiv preprint arXiv:2302.12173. DOI: <a href="https://doi.org/10.48550/arXiv.2302.12173">10.48550/arXiv.2302.12173</a>.
+* <a id="guo2024"></a>**Guo, Taicheng ym.** 2024: Large language model based multi-agents: A survey of progress and challenges. Proceedings of the Thirty-Third International Joint Conference on Artificial Intelligence, 8048–8057. DOI: <a href="https://doi.org/10.24963/ijcai.2024/890">10.24963/ijcai.2024/890</a>.
+* <a id="hazan2024"></a>**Hazan, Eric ym.** 2024: A new future of work: The race to deploy AI and raise skills in Europe and beyond. McKinsey Global Institute. [Verkkojulkaisu]. Saatavilla: https://www.mckinsey.com/mgi/our-research/a-new-future-of-work-the-race-to-deploy-ai-and-raise-skills-in-europe-and-beyond. [Haettu 14.11.2025].
+* <a id="hevner2004"></a>**Hevner, Alan R.; March, Salvatore T.; Park, Jinsoo & Ram, Sudha.** 2004: Design Science in Information Systems Research. MIS Quarterly, 28(1), 75–105. DOI: <a href="https://doi.org/10.2307/25148625">10.2307/25148625</a>.
+* <a id="hinton2015"></a>**Hinton, Geoffrey; Vinyals, Oriol & Dean, Jeffrey.** 2015: Distilling the knowledge in a neural network. arXiv preprint arXiv:1503.02531. DOI: <a href="https://doi.org/10.48550/arXiv.1503.02531">10.48550/arXiv.1503.02531</a>.
+* <a id="huang2023"></a>**Huang, Lei ym.** 2023: A Survey on Hallucination in Large Language Models: Principles, Taxonomy, Challenges, and Open Questions. ACM Transactions on Information Systems. DOI: <a href="https://doi.org/10.1145/3703155">10.1145/3703155</a>.
+* <a id="hullermeier2021"></a>**Hüllermeier, Eyke & Waegeman, Willem.** 2021: Aleatoric and epistemic uncertainty in machine learning: an introduction to concepts and methods. Machine Learning, 110, 457–506. DOI: <a href="https://doi.org/10.1007/s10994-021-05946-3">10.1007/s10994-021-05946-3</a>.
+* <a id="hume1739"></a>**Hume, David.** 1739: *A Treatise of Human Nature: Being an Attempt to Introduce the Experimental Method of Reasoning into Moral Subjects*. Lontoo: John Noon. https://archive.org/details/treatiseofhumann01hume
+* <a id="hyland2005"></a>**Hyland, Ken.** 2005: *Metadiscourse: Exploring interaction in writing*. Lontoo: Continuum.
+* <a id="inan2023"></a>**Inan, Hakan ym.** 2023: Llama Guard: LLM-based Input-Output Safeguard for Human-AI Conversations. arXiv preprint arXiv:2312.06674. DOI: <a href="https://doi.org/10.48550/arXiv.2312.06674">10.48550/arXiv.2312.06674</a>.
+* <a id="isaca2025"></a>**ISACA.** 2025: 2025 Volume 5 How to measure and prove the value of your AI investments. ISACA. [Verkkojulkaisu]. Saatavilla: https://www.isaca.org/resources/news-and-trends/newsletters/atisaca/2025/volume-5/how-to-measure-and-prove-the-value-of-your-ai-investments. [Haettu 14.11.2025].
+* <a id="iso2023"></a>**ISO/IEC.** 2023: *Systems and software engineering — Systems and software Quality Requirements and Evaluation (SQuaRE) — System and software quality models (ISO/IEC 25010:2023)*. Geneve: International Organization for Standardization. [Verkkojulkaisu]. Saatavilla: https://www.iso.org/standard/84727.html. [Haettu 14.11.2025].
+* <a id="jacobs1980"></a>**Jacobs, Rick; Kafry, Dalia & Zedeck, Sheldon.** 1980: Expectations of behaviorally anchored rating scales. Personnel Psychology, 33(3), 595–640. DOI: <a href="https://doi.org/10.1111/j.1744-6570.1980.tb00486.x">10.1111/j.1744-6570.1980.tb00486.x</a>.
+* <a id="jacovi2020"></a>**Jacovi, Alon & Goldberg, Yoav.** 2020: Towards faithfully interpretable NLP systems: How should we define and evaluate faithfulness? Teoksessa *Proceedings of the 58th Annual Meeting of the Association for Computational Linguistics*. Association for Computational Linguistics, 4198–4205. DOI: <a href="https://doi.org/10.18653/v1/2020.acl-main.385">10.18653/v1/2020.acl-main.385</a>.
+* <a id="jagerman2023"></a>**Jagerman, Rolf ym.** 2023: Query expansion by prompting large language models. arXiv preprint arXiv:2305.03653. DOI: <a href="https://doi.org/10.48550/arXiv.2305.03653">10.48550/arXiv.2305.03653</a>.
+* <a id="jia2025"></a>**Jia, Yihao; Shao, Zenghui; Liu, Yanyi; Jia, Jinyuan; Song, Dawn & Gong, Neil Zhenqiang.** 2025: A Critical Evaluation of Defenses against Prompt Injection Attacks. arXiv preprint arXiv:2505.18333. DOI: <a href="https://doi.org/10.48550/arXiv.2505.18333">10.48550/arXiv.2505.18333</a>.
+* <a id="johnson2004"></a>**Johnson, R. Burke & Onwuegbuzie, Anthony J.** 2004: Mixed methods research: A research paradigm whose time has come. Educational Researcher, 33(7), 14–26. DOI: <a href="https://doi.org/10.3102/0013189X033007014">10.3102/0013189X033007014</a>.
+* <a id="jonsson2007"></a>**Jonsson, Anders & Svingby, Gunilla.** 2007: The use of scoring rubrics: Reliability, validity and educational consequences. Educational Research Review, 2(2), 130–144. DOI: <a href="https://doi.org/10.1016/j.edurev.2007.05.002">10.1016/j.edurev.2007.05.002</a>.
+* <a id="kahneman2011"></a>**Kahneman, Daniel.** 2011: *Thinking, fast and slow*. New York: Farrar, Straus and Giroux.
+* <a id="kiciman2023"></a>**Kiciman, Emre ym.** 2023: Causal reasoning and large language models: Opening a new frontier for causality. arXiv preprint arXiv:2305.00050. DOI: <a href="https://doi.org/10.48550/arXiv.2305.00050">10.48550/arXiv.2305.00050</a>.
+* <a id="kim2022"></a>**Kim, Dong-Gi ym.** 2022: Assessing non-technical skills in medical students: An evaluation of the inter- and intra-rater reliability of the behaviorally anchored rating scale (BARS). Teaching and Learning in Medicine, 35(3), 310–319. DOI: <a href="https://doi.org/10.1080/10872981.2022.2070940">10.1080/10872981.2022.2070940</a>.
+* <a id="kinicki1985"></a>**Kinicki, Angelo J. ym.** 1985: Behaviorally anchored rating scales vs. summated rating scales: Psychometric properties and susceptibility to rating bias. Educational and Psychological Measurement, 45(3), 535–549. DOI: <a href="https://doi.org/10.1177/001316448504500310">10.1177/001316448504500310</a>.
+* <a id="kirshner2025"></a>**Kirshner, Stuart; Klaben, Ben & Dobbe, Sam.** 2025: Instruction-Following: The Truth Is In There, But Is It In The Loss? arXiv preprint arXiv:2511.07973. DOI: <a href="https://doi.org/10.48550/arXiv.2511.07973">10.48550/arXiv.2511.07973</a>.
+* <a id="klein2007"></a>**Klein, Gary.** 2007: Performing a Project Premortem. Harvard Business Review, 85(9), 18–19.
+* <a id="klieger2018"></a>**Klieger, David M. ym.** 2018: Development of the Behaviorally Anchored Rating Scales for the Skills Demonstration and Progression Guide. ETS Research Report Series RR-18-24. Educational Testing Service. DOI: <a href="https://doi.org/10.1002/ets2.12210">10.1002/ets2.12210</a>.
+* <a id="koops2021"></a>**Koops, Bert-Jaap.** 2021: The concept of function creep. Law, Innovation and Technology, 13(1), 29–56. DOI: <a href="https://doi.org/10.1080/17579961.2021.1898299">10.1080/17579961.2021.1898299</a>.
+* <a id="koretz1994"></a>**Koretz, Daniel M. ym.** 1994: The Vermont portfolio assessment program: Findings and implications. Educational Measurement: Issues and Practice, 13(3), 5–16. DOI: <a href="https://doi.org/10.1111/j.1745-3992.1994.tb00854.x">10.1111/j.1745-3992.1994.tb00854.x</a>.
+* <a id="kreuzberger2023"></a>**Kreuzberger, Dominik; Kühl, Niklas & Hirschl, Sebastian.** 2023: Machine learning operations (MLOps): Overview, definition, and architecture. IEEE Access, 11, 31866–31879. DOI: <a href="https://doi.org/10.1109/ACCESS.2023.3262138">10.1109/ACCESS.2023.3262138</a>.
+* <a id="kruger1999"></a>**Kruger, Justin & Dunning, David.** 1999: Unskilled and unaware of it: How difficulties in recognizing one's own incompetence lead to inflated self-assessments. Journal of Personality and Social Psychology, 77(6), 1121–1134. DOI: <a href="https://doi.org/10.1037/0022-3514.77.6.1121">10.1037/0022-3514.77.6.1121</a>.
+* <a id="lagnado2006"></a>**Lagnado, David A. & Sloman, Steven A.** 2006: Time as a guide to cause. Journal of Experimental Psychology: Learning, Memory & Cognition, 32(3), 451–460. DOI: <a href="https://doi.org/10.1037/0278-7393.32.3.451">10.1037/0278-7393.32.3.451</a>.
+* <a id="lane2013"></a>**Lane, Suzanne.** 2013: Validity evidence for assessments of higher-order thinking. Journal of Educational Measurement, 50(4), 399–430. DOI: <a href="https://doi.org/10.1111/jedm.12028">10.1111/jedm.12028</a>.
+* <a id="larson2024"></a>**Larson, Barbara Z. ym.** 2024: Critical thinking in the age of generative AI. Academy of Management Learning & Education, 23(3). DOI: <a href="https://doi.org/10.5465/amle.2024.0338">10.5465/amle.2024.0338</a>.
+* <a id="lecun2022"></a>**LeCun, Yann.** 2022: A path towards autonomous machine intelligence. OpenReview. [Verkkojulkaisu]. Saatavilla: https://openreview.net/forum?id=BZ5a1r-kVsf. [Haettu 14.11.2025].
+* <a id="levashina2007"></a>**Levashina, Julia & Morgeson, Frederick P.** 2007: Applicant faking on personality measures: A coping perspective. Academy of Management Review, 32(4), 1118–1136. DOI: <a href="https://doi.org/10.5465/amr.2007.26586083">10.5465/amr.2007.26586083</a>.
+* <a id="levine1988"></a>**Levine, Edward L.; Ash, Ronald A. & Bennett, Nathan.** 1988: The "behavioral consistency" approach to job analysis: A critical reappraisal. Human Resource Management Review, 8(3), 273–293. DOI: <a href="https://doi.org/10.1016/S1053-4822(98)90023-6">10.1016/S1053-4822(98)90023-6</a>.
+* <a id="lewis2020"></a>**Lewis, Patrick ym.** 2020: Retrieval-augmented generation for knowledge-intensive NLP tasks. Advances in Neural Information Processing Systems, 33, 9459–9474. DOI: <a href="https://doi.org/10.48550/arXiv.2005.11401">10.48550/arXiv.2005.11401</a>.
+* <a id="li2025"></a>**Li, Feng ym.** 2025: An assessment of human–AI interaction capability in the generative AI era: The influence of critical thinking. Journal of Intelligence, 13(6), 62. DOI: <a href="https://doi.org/10.3390/jintelligence13060062">10.3390/jintelligence13060062</a>.
+* <a id="li2024"></a>**Li, Zhikun ym.** 2024: PII-Bench: A benchmark for personally identifiable information (PII) detection and anonymization. arXiv preprint arXiv:2404.03893. DOI: <a href="https://doi.org/10.48550/arXiv.2404.03893">10.48550/arXiv.2404.03893</a>.
+* <a id="liang2023"></a>**Liang, Tian-Shuo ym.** 2023: Encouraging divergent thinking in large language models through multi-agent debate. arXiv preprint arXiv:2305.19118. DOI: <a href="https://doi.org/10.48550/arXiv.2305.19118">10.48550/arXiv.2305.19118</a>.
+* <a id="lippi2016"></a>**Lippi, Marco & Torroni, Paolo.** 2016: Argumentation mining: State of the art and emerging trends. ACM Transactions on Internet Technology, 16(2), 1–25. DOI: <a href="https://doi.org/10.1145/2850417">10.1145/2850417</a>.
+* <a id="lison2021"></a>**Lison, Pierre ym.** 2021: Anonymisation models for text data: State of the art, challenges and future directions. arXiv preprint arXiv:2106.04631. DOI: <a href="https://doi.org/10.48550/arXiv.2106.04631">10.48550/arXiv.2106.04631</a>.
+* <a id="liu2024"></a>**Liu, Nelson F. ym.** 2024: Lost in the middle: How language models use long contexts. Transactions of the Association for Computational Linguistics, 12, 157–173. DOI: <a href="https://doi.org/10.1162/tacl_a_00638">10.1162/tacl_a_00638</a>.
+* <a id="liu2024b"></a>**Liu, Xiaogeng ym.** 2024: Automatic and universal prompt injection attacks against large language models. arXiv preprint arXiv:2403.04957. DOI: <a href="https://doi.org/10.48550/arXiv.2403.04957">10.48550/arXiv.2403.04957</a>.
+* <a id="liu2023"></a>**Liu, Yi ym.** 2023: Prompt injection attacks and defenses in large language models: A survey. arXiv preprint arXiv:2310.12815. DOI: <a href="https://doi.org/10.48550/arXiv.2310.12815">10.48550/arXiv.2310.12815</a>.
+* <a id="luckin2017"></a>**Luckin, Rosemary ym.** 2017: Towards artificial intelligence-based assessment systems. Nature Human Behaviour, 1(3), 0028. DOI: <a href="https://doi.org/10.1038/s41562-016-0028">10.1038/s41562-016-0028</a>.
+* <a id="ma2024"></a>**Ma, Yubo ym.** 2024: Mitigating contextual information loss in RAG models through re-ranking. arXiv preprint arXiv:2401.06427. DOI: <a href="https://doi.org/10.48550/arXiv.2401.06427">10.48550/arXiv.2401.06427</a>.
+* <a id="mchugh2012"></a>**McHugh, Mary L.** 2012: Interrater reliability: the kappa statistic. Biochemia Medica, 22(3), 276–282. DOI: <a href="https://doi.org/10.11613/BM.2012.031">10.11613/BM.2012.031</a>.
+* <a id="mesenbrink2025"></a>**Mesenbrink, Hanna ym.** 2025: Orchestrated multi agents sustain accuracy under clinical-scale workloads compared to a single agent. medRxiv. DOI: 10.1101/2025.08.22.25334049.
+* <a id="messick2003"></a>**Messick, Samuel J.** 2003: Substance and structure in assessment arguments. Law, Probability and Risk, 2(4), 237–258. DOI: <a href="https://doi.org/10.1093/lpr/2.4.237">10.1093/lpr/2.4.237</a>.
+* <a id="messick1989"></a>**Messick, Samuel J.** 1989: Validity. Teoksessa R. L. Linn (toim.), *Educational measurement*. 3. painos. New York: Macmillan, 13–103.
+* <a id="morgeson2007"></a>**Morgeson, Frederick P.; Delaney-Klinger, Kelly & Hemingway, Monica A.** 2007: The importance of job analysis to the legal defensibility of an organization's selection system. Teoksessa L. L. Koppes (toim.), *Historical perspectives in industrial and organizational psychology*. Mahwah: Lawrence Erlbaum Associates, 301–322.
+* <a id="moskal2000"></a>**Moskal, Barbara M.** 2000: Scoring rubrics: What, when and how? Practical Assessment, Research, and Evaluation, 7(3). DOI: <a href="https://doi.org/10.7275/a5vq-7q66">10.7275/a5vq-7q66</a>.
+* <a id="nola2014"></a>**Nola, Robert & Sankey, Howard.** 2014: *Theories of scientific method: An introduction*. Lontoo: Routledge. DOI: <a href="https://doi.org/10.4324/9781315728666">10.4324/9781315728666</a>.
+* <a id="nold2022"></a>**Nold, Herbert & Michel, Lukas.** 2022: The Dunning-Kruger Effect on Organizational Agility. Academy of Management Proceedings, 2022(1). DOI: <a href="https://doi.org/10.5465/AMBPP.2022.10365abstract">10.5465/AMBPP.2022.10365abstract</a>.
+* <a id="oecd2024"></a>**OECD.** 2024: *Artificial intelligence and the changing demand for skills in the labour market*. OECD Artificial Intelligence Papers, No. 14. Paris: OECD Publishing. DOI: <a href="https://doi.org/10.1787/88684e36-en">10.1787/88684e36-en</a>.
+* <a id="openai2024"></a>**OpenAI.** 2024: *OpenAI o1 System Card*. OpenAI. [Verkkojulkaisu]. Saatavilla: https://openai.com/index/openai-o1-system-card/. (arXiv preprint arXiv:2412.16720).
+* <a id="owasp2025a"></a>**OWASP Foundation.** 2025a: LLM01:2025 Prompt Injection. GenAI OWASP Top 10. [Verkkojulkaisu]. Saatavilla: https://genai.owasp.org/llmrisk/llm01-prompt-injection/. [Haettu 15.11.2025].
+* <a id="owasp2025b"></a>**OWASP Foundation.** 2025b: LLM02:2025 Sensitive Information Disclosure. GenAI OWASP Top 10. [Verkkojulkaisu]. Saatavilla: https://genai.owasp.org/llm-top-10/. [Haettu 15.11.2025].
+* <a id="owasp2025c"></a>**OWASP Foundation.** 2025c: LLM05:2025 Improper Output Handling. GenAI OWASP Top 10. [Verkkojulkaisu]. Saatavilla: https://genai.owasp.org/llm-top-10/. [Haettu 15.11.2025].
+* <a id="owasp2025d"></a>**OWASP Foundation.** 2025d: LLM06:2025 Excessive Agency. GenAI OWASP Top 10. [Verkkojulkaisu]. Saatavilla: https://genai.owasp.org/llm-top-10/. [Haettu 15.11.2025].
+* <a id="owasp2025e"></a>**OWASP Foundation.** 2025e: LLM08:2025 Vector and Embedding Weaknesses. GenAI OWASP Top 10. [Verkkojulkaisu]. Saatavilla: https://genai.owasp.org/llmrisk/llm08-vector-and-embedding-weaknesses/. [Haettu 15.11.2025].
+* <a id="owasp2025f"></a>**OWASP Foundation.** 2025f: OWASP Top 10 for Gen AI. GenAI OWASP Top 10. [Verkkojulkaisu]. Saatavilla: https://genai.owasp.org/llm-top-10/. [Haettu 15.11.2025].
+* <a id="owasp2025g"></a>**OWASP Foundation.** 2025g: LLM10:2025 Unbounded Consumption. GenAI OWASP Top 10. [Verkkojulkaisu]. Saatavilla: https://genai.owasp.org/llm-top-10/. [Haettu 15.11.2025].
+* <a id="owaspsa"></a>**OWASP Foundation.** s.a.: Input Validation Cheat Sheet. OWASP Cheat Sheet Series. [Verkkojulkaisu]. Saatavilla: https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html. [Haettu 18.11.2025].
+* <a id="parasuraman1997"></a>**Parasuraman, Raja & Riley, Victor.** 1997: Humans and automation: Use, misuse, disuse, abuse. Human Factors, 39(2), 230–253. DOI: 10.1518/001872097778543886.
+* <a id="paulson1991"></a>**Paulson, F. Leon; Paulson, Pearl R. & Meyer, Carol A.** 1991: What makes a portfolio a portfolio. Educational Leadership, 48(5), 60–63.
+* <a id="pearl2009"></a>**Pearl, Judea.** 2009: *Causality: Models, reasoning, and inference*. 2. painos. Cambridge: Cambridge University Press. DOI: <a href="https://doi.org/10.1017/CBO9780511803161">10.1017/CBO9780511803161</a>.
+* <a id="peffers2007"></a>**Peffers, Ken; Tuunanen, Tuure; Rothenberger, Marcus A. & Chatterjee, Samir.** 2007: A Design Science Research Methodology for Information Systems Research. Journal of Management Information Systems, 24(3), 45–77. DOI: <a href="https://doi.org/10.2753/MIS0742-1222240302">10.2753/MIS0742-1222240302</a>.
+* <a id="perez2022a"></a>**Perez, Ethan ym.** 2022a: Red Teaming Language Models to Reduce Harms: Methods, Scaling Behaviors, and Lessons Learned. arXiv preprint arXiv:2209.07858. DOI: <a href="https://doi.org/10.48550/arXiv.2209.07858">10.48550/arXiv.2209.07858</a>.
+* <a id="perez2022b"></a>**Perez, Ethan ym.** 2022b: Discovering Language Model Behaviors with Model-Written Evaluations. arXiv preprint arXiv:2212.09251. DOI: <a href="https://doi.org/10.48550/arXiv.2212.09251">10.48550/arXiv.2212.09251</a>.
+* <a id="perrow1984"></a>**Perrow, Charles.** 1984: *Normal accidents: Living with high-risk technologies*. Princeton: Princeton University Press.
+* <a id="pfeifer2025"></a>**Pfeifer, Karen.** 2025: Humanity-in-the-loop: Human AI oversight is an imperative. Medium. Julkaistu 22.10.2025. [Verkkojulkaisu]. Saatavilla: https://medium.com/@karenpfeifer/humanity-in-the-loop-human-ai-oversight-is-an-imperative-50bdcc2688d8. [Haettu 14.11.2025].
+* <a id="polanyi1966"></a>**Polanyi, Michael.** 1966: *The tacit dimension*. Chicago: University of Chicago Press.
+* <a id="pollitt2012"></a>**Pollitt, Alastair.** 2012: The method of Adaptive Comparative Judgement. Assessment in Education: Principles, Policy & Practice, 19(3), 281–300. DOI: <a href="https://doi.org/10.1080/0969594X.2012.665354">10.1080/0969594X.2012.665354</a>
+* <a id="popper1934"></a>**Popper, Karl.** 1934: *Logik der Forschung*. Vienna: Julius Springer.
+* <a id="pwc2024"></a>**PwC.** 2024: *AI jobs barometer*. PricewaterhouseCoopers. [Verkkojulkaisu]. Saatavilla: https://www.pwc.com/gx/en/issues/artificial-intelligence/ai-jobs-barometer.html. [Haettu 14.11.2025].
+* <a id="quine1951"></a>**Quine, Willard Van Orman.** 1951: Two dogmas of empiricism. The Philosophical Review, 60(1), 20–43. DOI: <a href="https://doi.org/10.2307/2181906">10.2307/2181906</a>.
+* <a id="raisch2021"></a>**Raisch, Sebastian & Krakowski, Sebastian.** 2021: Artificial intelligence and management: The automation-augmentation paradox. Academy of Management Review, 46(1), 192–210. DOI: <a href="https://doi.org/10.5465/amr.2018.0072">10.5465/amr.2018.0072</a>.
+* <a id="reinecke2014"></a>**Reinecke, Katharina & Gajos, Krzysztof Z.** 2014: Quantifying visual preferences around the world. Proceedings of the SIGCHI Conference on Human Factors in Computing Systems, 717–726. DOI: <a href="https://doi.org/10.1145/2556288.2557076">10.1145/2556288.2557076</a>.
+* <a id="sadler1989"></a>**Sadler, D. Royce.** 1989: Formative assessment and the design of instructional systems. Instructional Science, 18(2), 119–144. DOI: <a href="https://doi.org/10.1007/BF00117714">10.1007/BF00117714</a>.
+* <a id="sagi2018"></a>**Sagi, Omer & Rokach, Lior.** 2018: Ensemble learning: A survey. Wiley Interdisciplinary Reviews: Data Mining and Knowledge Discovery, 8(4), e1249. DOI: <a href="https://doi.org/10.1002/widm.1249">10.1002/widm.1249</a>.
+* <a id="saito2023"></a>**Saito, Keisuke; Wachi, Akifumi & Akimoto, Youhei.** 2023: Verbosity bias in preference labeling by large language models. arXiv preprint arXiv:2310.10864. DOI: <a href="https://doi.org/10.48550/arXiv.2310.10864">10.48550/arXiv.2310.10864</a>.
+* <a id="saltzer1975"></a>**Saltzer, Jerome H. & Schroeder, Michael D.** 1975: The protection of information in computer systems. Proceedings of the IEEE, 63(9), 1278–1308. DOI: <a href="https://doi.org/10.1109/PROC.1975.9939">10.1109/PROC.1975.9939</a>.
+* <a id="sgaier2020"></a>**Sgaier, Sema K. ym.** 2020: The case for causal AI. Stanford Social Innovation Review, 18(3), 50–55. DOI: <a href="https://doi.org/10.48558/KT81-SN73">10.48558/KT81-SN73</a>.
+* <a id="shafiyeva2021"></a>**Shafiyeva, Ulviyya.** 2021: Assessing Students' Minds: Developing Critical Thinking or Fitting into Procrustean Bed. European Journal of Education, 4(2), 78–91. DOI: <a href="https://doi.org/10.26417/452bxv17s">10.26417/452bxv17s</a>.
+* <a id="sharma2025"></a>**Sharma, Mrinank ym.** 2025: Constitutional classifiers: Defending against universal jailbreaks across thousands of hours of red teaming. arXiv preprint arXiv:2501.18837. DOI: <a href="https://doi.org/10.48550/arXiv.2501.18837">10.48550/arXiv.2501.18837</a>.
+* <a id="shavelson2010"></a>**Shavelson, Richard J.** 2010: On the measurement of competency. Empirical Research in Vocational Education and Training, 2(1), 41–63.
+* <a id="shaffer2016"></a>**Shaffer, David Williamson; Collier, Wesley & Ruis, A. R.** 2016: A tutorial on Epistemic Network Analysis: Analyzing the structure of connections in cognitive, social, and interaction data. Journal of Learning Analytics, 3(3), 9–45. DOI: <a href="https://doi.org/10.18608/jla.2016.33.3">10.18608/jla.2016.33.3</a>.
+* <a id="shavelson2013"></a>**Shavelson, Richard J.** 2013: On an approach to testing and modeling competence. Educational Psychologist, 48(2), 73–86. DOI: <a href="https://doi.org/10.1080/00461520.2013.779483">10.1080/00461520.2013.779483</a>.
+* <a id="shen2023"></a>**Shen, Yongliang ym.** 2023: Large Language Models as Tool Makers. arXiv preprint arXiv:2305.17126. DOI: <a href="https://doi.org/10.48550/arXiv.2305.17126">10.48550/arXiv.2305.17126</a>.
+* <a id="shinn2023"></a>**Shinn, Noah ym.** 2023: Reflexion: an autonomous agent with dynamic memory and self-reflection. arXiv preprint arXiv:2303.11366. DOI: <a href="https://doi.org/10.48550/arXiv.2303.11366">10.48550/arXiv.2303.11366</a>.
+* <a id="shuster2021"></a>**Shuster, Kurt ym.** 2021: Retrieval augmentation reduces hallucination in conversation. arXiv preprint arXiv:2104.07567. DOI: <a href="https://doi.org/10.48550/arXiv.2104.07567">10.48550/arXiv.2104.07567</a>.
+* <a id="silva2025"></a>**Silva, Bruno ym.** 2025: Development of an Adapted Version of the Motor Competence Assessment (MCA) for Older Adults. Journal of Clinical Medicine, 14(21), 7866. DOI: <a href="https://doi.org/10.3390/jcm14217866">10.3390/jcm14217866</a>.
+* <a id="smith1963"></a>**Smith, Patricia Cain & Kendall, Lorne M.** 1963: Retranslation of expectations: An approach to the construction of unambiguous anchors for rating scales. Journal of Applied Psychology, 47(2), 149–155. DOI: <a href="https://doi.org/10.1037/h0047060">10.1037/h0047060</a>.
+* <a id="strathern1997"></a>**Strathern, Marilyn.** 1997: 'Improving ratings': audit in the British university system. European Review, 5(3), 305–321. DOI: <a href="https://doi.org/10.1002/(SICI)1234-981X(199707)5:3<305::AID-EURO184>3.0.CO;2-4">10.1002/(SICI)1234-981X(199707)5:3<305::AID-EURO184>3.0.CO;2-4</a>.
+* <a id="stumborg2022"></a>**Stumborg, Michael F. ym.** 2022: *Goodhart's law: Recognizing and mitigating the manipulation of measures in analysis*. CNA Occasional Paper. [Verkkojulkaisu]. Saatavilla: https://www.cna.org/reports/2022/09/Goodharts-Law-Recognizing-Mitigating-Manipulation-Measures-in-Analysis.pdf. [Haettu 14.11.2025].
+* <a id="supianto2023"></a>**Supianto, Arief Andy ym.** 2023: A systematic review of multi-agent systems in educational assessment. Computers & Education: Artificial Intelligence, 4, 100135. DOI: <a href="https://doi.org/10.1016/j.caeai.2023.100135">10.1016/j.caeai.2023.100135</a>.
+* <a id="suskie2009"></a>**Suskie, Linda.** 2009: *Assessing student learning: A common sense guide*. 2. painos. San Francisco: Jossey-Bass.
+* <a id="talboy2023"></a>**Talboy, Alisha & Fuller, Elizabeth.** 2023: Large language models show humanlike cognitive biases. arXiv preprint arXiv:2308.14343. DOI: <a href="https://doi.org/10.48550/arXiv.2308.14343">10.48550/arXiv.2308.14343</a>.
+* <a id="tetard2009"></a>**Tétard, Franck & Collan, Mikael.** 2009: Lazy User Theory: A Dynamic Model to Understand User Selection of Products and Services. Proceedings of the 42nd Hawaii International Conference on System Sciences, 1–10. Waikoloa, HI: IEEE Computer Society. DOI: <a href="https://doi.org/10.1109/HICSS.2009.290">10.1109/HICSS.2009.290</a>
+* <a id="toulmin2003"></a>**Toulmin, Stephen E.** 2003: *The uses of argument*. Päivitetty painos. Cambridge: Cambridge University Press. DOI: <a href="https://doi.org/10.1017/CBO9780511802031">10.1017/CBO9780511802031</a>.
+* <a id="towardsai2025"></a>**Towards AI.** 2025: AI Sandbox in 2025: How Enterprises and Governments Shape AI's Future. Towards AI. Julkaistu 26.9.2025. [Verkkojulkaisu]. Saatavilla: https://pub.towardsai.net/ai-sandbox-in-2025-how-enterprises-and-governments-shape-ais-future-b41f0d267c4d. [Haettu 14.11.2025].
+* <a id="trivedi2024"></a>**Trivedi, Harsh ym.** 2024: Interleaving retrieval with chain-of-thought reasoning for knowledge-intensive multi-step questions. arXiv preprint arXiv:2401.10133. DOI: <a href="https://doi.org/10.48550/arXiv.2401.10133">10.48550/arXiv.2401.10133</a>.
+* <a id="turpin2023"></a>**Turpin, Miles ym.** 2023: Language models don't always say what they think: Unfaithful explanations in chain-of-thought prompting. Teoksessa A. Oh, T. Hashimoto & D. Blei (toim.), *Advances in Neural Information Processing Systems 36*. La Jolla: Neural Information Processing Systems Foundation, 21016–21033.
+* <a id="turpin2025"></a>**Turpin, Miles ym.** 2025: Executable counterfactuals: Improving LLMs' causal reasoning through code. arXiv preprint arXiv:2510.01539. DOI: <a href="https://doi.org/10.48550/arXiv.2510.01539">10.48550/arXiv.2510.01539</a>.
+* <a id="tenk2019"></a>**Tutkimuseettinen neuvottelukunta TENK.** 2019: *Ihmiseen kohdistuvan tutkimuksen eettiset periaatteet ja ihmistieteiden eettinen ennakkoarviointi Suomessa*. Tutkimuseettisen neuvottelukunnan ohje 2019. Tutkimuseettisen neuvottelukunnan julkaisuja 3/2019. Helsinki: TENK. [Verkkojulkaisu]. Saatavilla: https://tenk.fi/sites/default/files/2021-01/Ihmistieteiden_eettisen_ennakkoarvioinnin_ohje_2020.pdf. [Haettu 14.11.2025].
+* <a id="tversky1974"></a>**Tversky, Amos & Kahneman, Daniel.** 1974: Judgment under uncertainty: Heuristics and biases. Science, 185(4157), 1124–1131. DOI: <a href="https://doi.org/10.1126/science.185.4157.1124">10.1126/science.185.4157.1124</a>.
+* <a id="w3c2008"></a>**W3C.** 2008: Migrating to Unicode. W3C Internationalization (I18n) Activity. [Verkkojulkaisu]. Saatavilla: https://www.w3.org/International/articles/unicode-migration/. [Haettu 14.11.2025].
+* <a id="wachsmuth2017"></a>**Wachsmuth, Henning ym.** 2017: Computational argumentation quality assessment in natural language. Proceedings of the 15th Conference of the EACL, 176–187. DOI: <a href="https://doi.org/10.18653/v1/E17-1017">10.18653/v1/E17-1017</a>.
+* <a id="walton2008"></a>**Walton, Douglas N.; Reed, Chris & Macagno, Fabrizio.** 2008: *Argumentation schemes*. Cambridge: Cambridge University Press. DOI: <a href="https://doi.org/10.1017/CBO9780511802034">10.1017/CBO9780511802034</a>.
+* <a id="wang2023"></a>**Wang, Yuxia ym.** 2023: A survey on an authoritarian bias: The blind spot of large language models. arXiv preprint arXiv:2312.06086. DOI: <a href="https://doi.org/10.48550/arXiv.2312.06086">10.48550/arXiv.2312.06086</a>.
+* <a id="wang2022"></a>**Wang, Xuezhi; Wei, Jason; Schuurmans, Dale; Le, Quoc; Chi, Ed; Narang, Sharan; Chowdhery, Aakanksha & Zhou, Denny.** 2022: Self-Consistency Improves Chain of Thought Reasoning in Language Models. arXiv preprint arXiv:2203.11171. DOI: <a href="https://doi.org/10.48550/arXiv.2203.11171">10.48550/arXiv.2203.11171</a>
+* <a id="weidinger2021"></a>**Weidinger, Laura ym.** 2021: Ethical and social risks of harm from language models. arXiv preprint arXiv:2112.04359. DOI: <a href="https://doi.org/10.48550/arXiv.2112.04359">10.48550/arXiv.2112.04359</a>.
+* <a id="weston2023"></a>**Weston, Jason & Sukhbaatar, Sainbayar.** 2023: System 2 attention (is something you might need too). arXiv preprint arXiv:2311.11829. DOI: <a href="https://doi.org/10.48550/arXiv.2311.11829">10.48550/arXiv.2311.11829</a>.
+* <a id="wiggins1998"></a>**Wiggins, Grant.** 1998: *Educative assessment: Designing assessments to inform and improve student performance*. San Francisco: Jossey-Bass.
+* <a id="wisse2023"></a>**Wisse, Gerben & Greve, Rutger.** 2023: AI in educational assessment: A systematic review of formative and summative applications. Computers & Education: Artificial Intelligence, 5, 100174. DOI: <a href="https://doi.org/10.1016/j.caeai.2023.100174">10.1016/j.caeai.2023.100174</a>.
+* <a id="wolf2007"></a>**Wolf, Kenneth & Stevens, Ellen.** 2007: The role of rubrics in advancing and assessing student learning. The Journal of Effective Teaching, 7(1), 3–14.
+* <a id="wolf2023"></a>**Wolf, Yotam ym.** 2023: Fundamental Limitations of Alignment in Large Language Models. arXiv preprint arXiv:2304.11082. DOI: <a href="https://doi.org/10.48550/arXiv.2304.11082">10.48550/arXiv.2304.11082</a>.
+* <a id="wolters2024"></a>**Wolters Kluwer.** 2024: *2024 Future ready lawyer survey report*. [Verkkojulkaisu]. Saatavilla: https://www.wolterskluwer.com/en/know/future-ready-lawyer-2024. [Haettu 14.11.2025].
+* <a id="wooldridge2009"></a>**Wooldridge, Michael.** 2009: *An introduction to multiagent systems*. 2. painos. Chichester: John Wiley & Sons.
+* <a id="wef2023"></a>**World Economic Forum.** 2023: *Future of Jobs Report 2023*. [Verkkojulkaisu]. Saatavilla: https://www.weforum.org/publications/the-future-of-jobs-report-2023/. [Haettu 18.11.2025].
+* <a id="wu2024"></a>**Wu, Junjie ym.** 2024: Large Language Models are Challenged by an Abundance of Over-complicated Instructions. arXiv preprint arXiv:2409.07844. DOI: <a href="https://doi.org/10.48550/arXiv.2409.07844">10.48550/arXiv.2409.07844</a>.
+* <a id="wynn2025"></a>**Wynn, Alexander; Satija, Harsh & Hadfield, Gillian.** 2025: Talk isn't always cheap: Understanding failure modes in multi-agent debate. Proceedings of the ICML 2025 Workshop on Multi-Agent Systems. arXiv preprint arXiv:2509.05396. DOI: <a href="https://doi.org/10.48550/arXiv.2509.05396">10.48550/arXiv.2509.05396</a>.
+* <a id="ye2025"></a>**Ye, Rui ym.** 2025: X-MAS: A comprehensive testbed for evaluating heterogeneous LLM-driven multi-agent systems. arXiv preprint arXiv:2505.16997. DOI: <a href="https://doi.org/10.48550/arXiv.2505.16997">10.48550/arXiv.2505.16997</a>.
+* <a id="yeager2023"></a>**Yeager.ai.** 2023: AI Agent Kryptonite - Prompt Saturation and Context Bleeding. Medium. Julkaistu 16.10.2023. [Verkkojulkaisu]. Saatavilla: https://medium.com/yeagerai/ai-agent-kryptonite-prompt-saturation-and-context-bleeding-4db7c4329e4e. [Haettu 16.11.2025].
+* <a id="yi2025"></a>**Yi, Zhaoyang ym.** 2025: Benchmarking and defending against indirect prompt injection attacks on large language models. arXiv preprint arXiv:2312.14197. DOI: <a href="https://doi.org/10.48550/arXiv.2312.14197">10.48550/arXiv.2312.14197</a>.
+* <a id="zhang2024"></a>**Zhang, Yunhua ym.** 2024: Soar: The Future of AI-Driven Architectures through Directed Acyclic Graph Reasoning. arXiv preprint arXiv:2404.05678. DOI: <a href="https://doi.org/10.48550/arXiv.2404.05678">10.48550/arXiv.2404.05678</a>.
+* <a id="zilliz2024"></a>**Zilliz.** 2024: Ensuring Secure and Permission-Aware RAG Deployments. Zilliz Blog. [Verkkojulkaisu]. Saatavilla: https://zilliz.com/blog/ensure-secure-and-permission-aware-rag-deployments. [Haettu 14.11.2025].
+* <a id="zou2024"></a>**Zou, Wei; Geng, Runpeng; Wang, Binghui & Jia, Jinyuan.** 2024: PoisonedRAG: Knowledge Corruption Attacks to Retrieval-Augmented Generation of Large Language Models. arXiv preprint arXiv:2402.07867. DOI: <a href="https://doi.org/10.48550/arXiv.2402.07867">10.48550/arXiv.2402.07867</a>.

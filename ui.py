@@ -288,13 +288,15 @@ elif page == "Admin":
         
         uploaded_kb = st.file_uploader("Upload Knowledge Base File", type=['docx', 'md'])
         
+        reset_db = st.checkbox("Nollaa tietokanta (Reset Knowledge Base)", value=False, help="Delete all existing references and concepts before ingesting this file.")
+        
         if uploaded_kb:
             if st.button("Ingest Knowledge Base File"):
                 with st.spinner("Ingesting file..."):
                     try:
                         import requests
                         files = {"file": (uploaded_kb.name, uploaded_kb.getvalue(), "application/vnd.openxmlformats-officedocument.wordprocessingml.document")}
-                        res = requests.post(f"{BACKEND_URL}/admin/knowledge-base/upload", files=files)
+                        res = requests.post(f"{BACKEND_URL}/admin/knowledge-base/upload", files=files, params={"reset_db": reset_db})
                         
                         if res.status_code == 200:
                             data = res.json()

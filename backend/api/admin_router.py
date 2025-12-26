@@ -174,6 +174,7 @@ def get_ingestion_status(job_id: str):
 
 class IngestRequest(BaseModel):
     file_path: str = "data/Holistinen Mestaruus.docx"
+    reset_db: bool = False
 
 @router.post("/knowledge-base/ingest")
 def ingest_knowledge_base(
@@ -203,19 +204,20 @@ def ingest_knowledge_base(
             from backend.services.progress import InMemoryProgressTracker
             tracker = InMemoryProgressTracker(callback=lambda p: admin_task_status.update({job_id: p}))
             
-            await service.ingest_from_bytes(content, filename, tracker=tracker, job_id=job_id)
+            await service.ingest_from_bytes(content, filename, tracker=tracker, job_id=job_id, reset_db=request.reset_db)
         except Exception as e:
             logger.error(f"Ingestion failed: {e}")
             admin_task_status[job_id] = {"status": "failed", "error": str(e)}
 
     background_tasks.add_task(_run_ingest)
-    return {"status": "started", "job_id": job_id, "message": f"Ingestion started."}
+    return {"status": "started", "job_id": job_id, "message": f"Ingestion started. (Reset: {request.reset_db})"}
 
-from fastapi import UploadFile, File
+from fastapi import UploadFile, File, Form
 
 @router.post("/knowledge-base/upload")
 async def upload_knowledge_base(
     file: UploadFile = File(...),
+    reset_db: bool = False,
     background_tasks: BackgroundTasks = None,
     db_client: AbstractDatabase = Depends(get_db_client_dep),
     llm_provider: LLMProvider = Depends(get_llm_provider)
@@ -235,7 +237,7 @@ async def upload_knowledge_base(
         try:
             from backend.services.progress import InMemoryProgressTracker
             tracker = InMemoryProgressTracker(callback=lambda p: admin_task_status.update({job_id: p}))
-            await service.ingest_from_bytes(content, filename, tracker=tracker, job_id=job_id)
+            await service.ingest_from_bytes(content, filename, tracker=tracker, job_id=job_id, reset_db=reset_db)
         except Exception as e:
             logger.error(f"Upload ingestion failed: {e}")
             admin_task_status[job_id] = {"status": "failed", "error": str(e)}
@@ -245,7 +247,7 @@ async def upload_knowledge_base(
     else:
         await _run_ingest()
         
-    return {"status": "started", "job_id": job_id, "filename": filename}
+    return {"status": "started", "job_id": job_id, "filename": filename, "reset_db": reset_db}
 
 # --- Banned Phrases Management ---
 

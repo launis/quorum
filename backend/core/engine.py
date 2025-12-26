@@ -396,6 +396,42 @@ class WorkflowEngine:
                         # Overwrite/Add specific hoisted fields
                         public_result[target_key] = val
 
+        # 3. Generate Consolidated Bibliography (ReferenceManager)
+        # Scan the FINAL public_result for all used citations
+        try:
+            from backend.services.reference_manager import ReferenceManager
+            
+            # Load KB items for resolution
+            kb_items = self.repository.get_knowledge_base_items()
+            # Transform to expected structure for ReferenceManager
+            # (Similar to CoachAgent prepare_context logic, maybe unify later?)
+            kb_struct = {"references": []}
+            for item in kb_items:
+                if item.get('type') == 'reference':
+                    kb_struct["references"].append({
+                        "citation": item.get('definition'),
+                        "short_citation": item.get('term'),
+                        "doi": item.get('doi_link')
+                    })
+            
+            ref_manager = ReferenceManager(kb_struct)
+            
+            # Scan everything!
+            bibliography = ref_manager.scan_and_collect_references(public_result)
+            
+            if bibliography:
+                # Add to Report section or Root?
+                # User asked for "yksi lähdeluettelo" (one bibliography)
+                # Let's put it in public_result["lahdeluettelo"] (Root level)
+                public_result["lahdeluettelo"] = bibliography
+                
+                # Also ensure it's in Report if Report exists
+                if "Report" in public_result:
+                    public_result["Report"]["lahdeluettelo"] = bibliography
+                    
+        except Exception as e:
+            logger.error(f"[WorkflowEngine] Reference consolidation failed: {e}")
+
         self.repository.update_execution(execution_id, {
             'status': 'completed',
             'end_time': datetime.now().isoformat(),

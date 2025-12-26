@@ -40,7 +40,8 @@ class KnowledgeBaseService:
         file_content: bytes, 
         filename: str, 
         tracker: Any, 
-        job_id: Optional[str] = None
+        job_id: Optional[str] = None,
+        reset_db: bool = False
     ) -> Dict[str, Any]:
         """
         Ingests content from memory (bytes). Archives to storage first.
@@ -49,10 +50,20 @@ class KnowledgeBaseService:
         if not job_id:
             job_id = str(uuid.uuid4())
             
-        logger.info(f"[KBService] Starting ingestion job {job_id} for {filename}")
+        logger.info(f"[KBService] Starting ingestion job {job_id} for {filename} (reset_db={reset_db})")
         
         # Unified Start
         tracker.start({"job_id": job_id, "filename": filename})
+        tracker.update(stage="Archiving & Parsing", percent=5)
+        
+        # 0. optional Reset
+        if reset_db:
+             logger.warning(f"[KBService] Resetting Knowledge Base as requested.")
+             try:
+                 self.repository.clear_knowledge_base()
+             except Exception as e:
+                 logger.error(f"[KBService] Failed to reset KB: {e}")
+                 
         tracker.update(stage="Archiving & Parsing", percent=10)
         
         try:
@@ -184,9 +195,11 @@ class KnowledgeBaseService:
         return [{"term": t, "definition": d} for t, d in final_map.items()]
 
     def _store_parsed_data(self, parsed_data: Dict[str, Any], source_name: str, job_id: str, tracker: Any = None) -> Dict[str, Any]:
-        concepts = parsed_data['concepts']
-        refs = parsed_data['references']
-        total_items = len(concepts) + len(refs)
+        concepts = parsed_data.get('concepts', [])
+        refs = parsed_data.get('references', [])
+        claims = parsed_data.get('claims', [])
+        
+        total_items = len(concepts) + len(refs) + len(claims)
         processed = 0
         
         count_concepts = 0
@@ -214,9 +227,9 @@ class KnowledgeBaseService:
                 "id": str(uuid.uuid4()),
                 "job_id": job_id,
                 "type": "reference",
-                "term": r['citation'][:50] + "...",
+                "term": r.get('short_citation') or (r['citation'][:50] + "..."),
                 "definition": r['citation'], # Full citation as definition
-                "doi_link": r['doi_link'],
+                "doi_link": r.get('doi_link'),
                 "source_file": source_name,
                 "ingested_at": datetime.now().isoformat(),
                 "metadata": {
@@ -229,14 +242,41 @@ class KnowledgeBaseService:
             if tracker and total_items > 0 and processed % 10 == 0:
                 percent = 60 + int((processed / total_items) * 35)
                 tracker.update(stage=f"Storing items ({processed}/{total_items})", percent=percent)
+
+        count_claims = 0
+        for cl in claims:
+            # Claim structure: {claim_text, citation_keys, citation_text, original_markdown...}
+            item = {
+                "id": str(uuid.uuid4()),
+                "job_id": job_id,
+                "type": "claim",
+                "term": cl['citation_text'][:50] + "...", # Use short citation as term or snippet?
+                "definition": cl['claim_text'], # The claim itself is the "definition" or content
+                "source_file": source_name,
+                "ingested_at": datetime.now().isoformat(),
+                "metadata": {
+                    "citation_keys": cl.get('citation_keys'),
+                    "citation_text": cl.get('citation_text'),
+                    "full_reference": cl.get('original_markdown'),
+                    "concept_context": cl.get('concept_context')
+                }
+            }
+            self.repository.add_knowledge_base_item(item)
+            count_claims += 1
+            processed += 1
+            
+            if tracker and total_items > 0 and processed % 10 == 0:
+                percent = 60 + int((processed / total_items) * 35)
+                tracker.update(stage=f"Storing items ({processed}/{total_items})", percent=percent)
         
-        logger.info(f"[KBService] Ingestion complete. Concepts: {count_concepts}, Refs: {count_refs}")
+        logger.info(f"[KBService] Ingestion complete. Concepts: {count_concepts}, Refs: {count_refs}, Claims: {count_claims}")
         
         return {
             "job_id": job_id,
             "status": "completed",
             "concepts_count": count_concepts,
-            "references_count": count_refs
+            "references_count": count_refs,
+            "claims_count": count_claims
         }
 
 
