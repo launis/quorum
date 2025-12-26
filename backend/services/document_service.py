@@ -77,8 +77,11 @@ class DocumentService:
         Archives KB file and parses it into concepts/references.
         Returns structured data (JSON-compatible dict).
         """
-        if not filename.lower().endswith(".docx"):
-             raise ValueError("Knowledge Base must be a DOCX file.")
+        is_docx = filename.lower().endswith(".docx")
+        is_md = filename.lower().endswith(".md")
+        
+        if not (is_docx or is_md):
+             raise ValueError("Knowledge Base must be a DOCX or MD file.")
 
         try:
             # 1. Archive
@@ -86,10 +89,14 @@ class DocumentService:
             saved_path = await run_in_threadpool(self.storage_client.save, relative_path, content)
             
             # 2. Parse (CPU-bound)
-            # Wrap bytes in stream for parser
-            file_stream = io.BytesIO(content)
-            
-            parsed_data = await run_in_threadpool(KnowledgeBaseParser.parse_docx, file_stream)
+            if is_docx:
+                # Wrap bytes in stream for parser
+                file_stream = io.BytesIO(content)
+                parsed_data = await run_in_threadpool(KnowledgeBaseParser.parse_docx, file_stream)
+            elif is_md:
+                # Wrap bytes in stream for parser (parse_md handles extraction)
+                file_stream = io.BytesIO(content)
+                parsed_data = await run_in_threadpool(KnowledgeBaseParser.parse_md, file_stream)
             
             logger.info(f"[DocumentService] KB {filename} processed. Found {len(parsed_data.get('concepts', []))} concepts.")
             return parsed_data

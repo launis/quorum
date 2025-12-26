@@ -286,7 +286,7 @@ elif page == "Admin":
         st.subheader("Knowledge Base Ingestion")
         st.markdown("Upload a DOCX file (e.g., `Holistinen Mestaruus.docx`) to ingest it into the Knowledge Base.")
         
-        uploaded_kb = st.file_uploader("Upload Knowledge Base File", type=['docx'])
+        uploaded_kb = st.file_uploader("Upload Knowledge Base File", type=['docx', 'md'])
         
         if uploaded_kb:
             if st.button("Ingest Knowledge Base File"):

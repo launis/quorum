@@ -66,9 +66,12 @@ class KnowledgeBaseService:
                 tracker.update(stage="AI Analysis (Chunking)", percent=20)
                 
                 # 2. Extract Text from the file for LLM
-                from backend.services.document_processor import DocumentProcessor
+                from backend.services.document_service import DocumentService
+                text = ""
                 if filename.lower().endswith(".docx"):
-                     text = DocumentProcessor.extract_text_from_docx(file_content)
+                     text = DocumentService._extract_text_from_docx(file_content)
+                elif filename.lower().endswith(".md"):
+                     text = file_content.decode("utf-8", errors="ignore")
                 else:
                      text = file_content.decode("utf-8", errors="ignore")
                 
@@ -88,20 +91,6 @@ class KnowledgeBaseService:
             else:
                 # Legacy / Fallback
                 parsed_data = await self.document_service.process_knowledge_base_file(file_content, filename, job_id)
-
-            tracker.update(stage="Storing to DB", percent=60)
-            
-            # 3. Import to DB
-            result = self._store_parsed_data(parsed_data, source_name=filename, job_id=job_id, tracker=tracker)
-            
-            # Unified Success
-            tracker.complete(result)
-            return result
-            
-        except Exception as e:
-            logger.error(f"[KBService] Ingestion failed: {e}")
-            tracker.fail(str(e))
-            raise e
 
             tracker.update(stage="Storing to DB", percent=60)
             
@@ -209,7 +198,8 @@ class KnowledgeBaseService:
                 "term": c['term'],
                 "definition": c['definition'],
                 "source_file": source_name,
-                "ingested_at": datetime.now().isoformat()
+                "ingested_at": datetime.now().isoformat(),
+                "metadata": {}
             }
             self.repository.add_knowledge_base_item(item)
             count_concepts += 1
@@ -228,7 +218,10 @@ class KnowledgeBaseService:
                 "definition": r['citation'], # Full citation as definition
                 "doi_link": r['doi_link'],
                 "source_file": source_name,
-                "ingested_at": datetime.now().isoformat()
+                "ingested_at": datetime.now().isoformat(),
+                "metadata": {
+                    "short_citation": r.get('short_citation')
+                }
             }
             self.repository.add_knowledge_base_item(item)
             count_refs += 1
