@@ -37,14 +37,8 @@ class APIClient:
                 if agent_name:
                     dynamic_steps_order.append(agent_name)
         
-        if not dynamic_steps_order:
-             # Default fallback
-            dynamic_steps_order = [
-                "GuardAgent", "AnalystAgent", "ProfilerAgent", "LogicianAgent", 
-                "LogicalFalsifierAgent", "FactualOverseerAgent", "CausalAnalystAgent", 
-                "PerformativityDetectorAgent", "ArchivistAgent", "JudgeAgent", 
-                "CoachAgent", "XAIReporterAgent"
-            ]
+        # No fallback. If empty, it means workflow is empty or API failed.
+        # This is strictly correct behavior.
         return dynamic_steps_order
 
     def get_available_steps_config(self):
@@ -264,3 +258,17 @@ class APIClient:
             return res.json() if res.status_code == 200 else []
         except Exception:
             return []
+            
+    def validate_flow(self, sequence: list):
+        """Calls the backend to validate data flow continuity."""
+        try:
+            payload = {
+                "id": "validation_temp",
+                "name": "Validation",
+                "sequence": sequence,
+                "description": "Temp"
+            }
+            res = requests.post(f"{self.base_url}/config/validate-flow", json=payload, timeout=10)
+            return res.json() if res.status_code == 200 else {"valid": False, "errors": ["Network Error"]}
+        except Exception as e:
+            return {"valid": False, "errors": [str(e)]}

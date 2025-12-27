@@ -16,6 +16,11 @@ class AnalystAgent(BaseAgent):
     """
 
     state_field = "step_analyst"
+    
+    # Contracts
+    REQUIRES_KEYS = ["history_text", "product_text"] 
+    PRODUCES_KEYS = ["step_analyst"]
+    OUTPUT_SCHEMA = TodistusKartta
 
     def get_response_schema(self) -> Optional[Type[BaseModel]]:
         return TodistusKartta

@@ -168,15 +168,33 @@ def render_workflow_builder(api_client):
                 if not steps:
                     st.info("Chain is empty. Add steps below.")
                 
+                # VALIDATION (Data Flow)
+                validation_res = {"valid": True, "errors": []}
+                if steps:
+                     validation_res = api_client.validate_flow(steps)
+                
+                if not validation_res['valid']:
+                     with st.expander("⚠️ Data Flow Issues Detected", expanded=True):
+                         for err in validation_res['errors']:
+                             st.error(err)
+
                 # Chain Rendering
                 for i, step_id in enumerate(steps):
                     # Highlight selected
                     is_selected = st.session_state.get('builder_act_step') == step_id
-                    border_color = "red" if is_selected else None # Streamlit doesn't support border color param yet directly in container, but visuals help.
+                    
+                    # Check for specific error for this step
+                    step_error = None
+                    for err in validation_res.get('errors', []):
+                         # Naive matching: assumption that error message contains step index or ID
+                         # Backend sends "Step X ..."
+                         if f"Step {i+1}" in err:
+                             step_error = err
                     
                     # Card
                     # Use a different background or emoji if selected
                     prefix = "👉 " if is_selected else ""
+                    if step_error: prefix = "❌ " + prefix
                     
                     card_container = st.container(border=True)
                     with card_container:
@@ -188,6 +206,8 @@ def render_workflow_builder(api_client):
                                 
                         with c2:
                             st.markdown(f"**{prefix}{step_id}**")
+                            if step_error:
+                                st.caption(f":red[{step_error}]")
                             
                         with c3:
                             # Model Selector

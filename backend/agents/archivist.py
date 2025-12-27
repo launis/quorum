@@ -8,12 +8,9 @@ import json
 
 logger = logging.getLogger(__name__)
 
-class Precedents(BaseModel):
-    execution_id: str
-    score_summary: str
-    judge_verdict: Dict[str, Any]
+from backend.models.domain import BaseJSON
 
-class CaseLawContext(BaseModel):
+class CaseLawContext(BaseJSON):
     """
     Schema for the Archivist (Clerk) Agent.
     Ensures consistency with previous rulings.

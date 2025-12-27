@@ -21,6 +21,7 @@ class ProfilerAgent(BaseAgent):
     """
 
     state_field = "step_profiler"
+    REQUIRES_KEYS = ["history_text", "product_text"]
 
     def get_response_schema(self) -> Optional[Type[BaseModel]]:
         return ProfilerAnalysis

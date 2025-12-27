@@ -167,6 +167,9 @@ class WorkflowState(BaseModel):
         if self.step_causal and self.step_causal.abduktiivinen_paatelma:
              report['kausaalisuus_paatelma'] = self.step_causal.abduktiivinen_paatelma
 
+        if self.step_detector and self.step_detector.pre_mortem_analyysi:
+             report['pre_mortem_analyysi'] = self.step_detector.pre_mortem_analyysi.model_dump()
+
         if self.step_falsifier and self.step_falsifier.paattelyketjun_uskollisuus_auditointi:
              report['logiikka_uskollisuus'] = self.step_falsifier.paattelyketjun_uskollisuus_auditointi.uskollisuus_score
 
@@ -177,6 +180,10 @@ class WorkflowState(BaseModel):
                  report['etiikka'] = [e.model_dump() for e in self.step_overseer.eettiset_havainnot]
 
         if self.step_panel:
+            if self.step_panel.performatiivisuus_auditointi and self.step_panel.performatiivisuus_auditointi.pre_mortem_analyysi:
+                 # Override or set if not present (Panel is newer info often)
+                 report['pre_mortem_analyysi'] = self.step_panel.performatiivisuus_auditointi.pre_mortem_analyysi.model_dump()
+
             if self.step_panel.logiikka_auditointi:
                  if self.step_panel.logiikka_auditointi.toulmin_analyysi: report['logiikka_toulmin'] = [t.model_dump() for t in self.step_panel.logiikka_auditointi.toulmin_analyysi]
                  if self.step_panel.logiikka_auditointi.walton_skeema: report['logiikka_skeema'] = self.step_panel.logiikka_auditointi.walton_skeema.tunnistettu_skeema

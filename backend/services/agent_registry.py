@@ -71,6 +71,7 @@ class AgentRegistry:
         """
         if not self.repository.get_component_by_name(name):
             self.repository.register_component({
+                "id": name,
                 "name": name,
                 "type": type,
                 "class_name": class_name,
@@ -112,6 +113,7 @@ class AgentRegistry:
                     
                     if not self.repository.get_component_by_name(cls_name):
                         self.repository.register_component({
+                            "id": cls_name,
                             "name": cls_name,
                             "type": agent_type,
                             "class_name": cls_name,

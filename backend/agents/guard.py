@@ -17,6 +17,13 @@ class GuardAgent(BaseAgent):
     """
 
     state_field = "step_guard"
+    
+    # Contracts
+    REQUIRES_KEYS = ["history_text", "product_text"] # Reflection is optional
+    PRODUCES_KEYS = ["step_guard"]
+    # OUTPUT_SCHEMA is already handled by get_response_schema() logic generally, 
+    # but we can explicit it here if needed for static analysis.
+    OUTPUT_SCHEMA = TaintedData
 
     def get_response_schema(self) -> Optional[Type[BaseModel]]:
         # This tells the LLM Provider exactly what JSON structure to enforce.

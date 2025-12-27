@@ -34,26 +34,9 @@ def run_script(script_name: str, args: list = []):
     result = subprocess.run(cmd, capture_output=True, text=True)
     return result
 
-@router.post("/docs/update")
-def update_documentation(background_tasks: BackgroundTasks, ai_enhanced: bool = False, db: AbstractDatabase = Depends(get_db_client_dep)):
-    """
-    Triggers the documentation update via AdministrationService.
-    """
-    return _start_admin_task(background_tasks, db, "update_documentation", ai_enhanced)
 
-@router.post("/import/rules")
-def import_rules(background_tasks: BackgroundTasks, db: AbstractDatabase = Depends(get_db_client_dep)):
-    """
-    Triggers the rules import via AdministrationService.
-    """
-    return _start_admin_task(background_tasks, db, "import_rules")
 
-@router.post("/import/references")
-def import_references(background_tasks: BackgroundTasks, db: AbstractDatabase = Depends(get_db_client_dep)):
-    """
-    Triggers the references import via AdministrationService.
-    """
-    return _start_admin_task(background_tasks, db, "import_references")
+
 
 @router.post("/export/seed-data")
 def export_seed_data(background_tasks: BackgroundTasks, db: AbstractDatabase = Depends(get_db_client_dep)):

@@ -17,76 +17,25 @@ class AdministrationService:
     def __init__(self, repository: AbstractWorkflowRepository):
         self.repository = repository
 
-    def import_references(self, tracker: ProgressTracker) -> Dict[str, Any]:
+
+
+    def export_seed_data(self, tracker: ProgressTracker) -> Dict[str, Any]:
         """
-        Imports References from data/bibliography.txt
+        Exports the current DB configuration to seed_data.json
         """
-        from backend.settings import get_settings
-        settings = get_settings()
+        from backend.database.exporter import export_db_to_files
         
-        tracker.start({"operation": "Import References"})
-        bib_path = os.path.join(settings.data_dir, 'bibliography.txt')
-        
+        tracker.start({"operation": "Export Seed Data"})
         try:
-            if not os.path.exists(bib_path):
-                raise FileNotFoundError(f"Bibliography file not found: {bib_path}")
-
-            tracker.update("Reading File", 10)
-            with open(bib_path, 'r', encoding='utf-8') as f:
-                lines = f.readlines()
-
-            total_lines = len(lines)
-            processed = 0
-            imported = 0
-
-            for line in lines:
-                line = line.strip()
-                if not line: continue
-                
-                # Simple Parse
-                parts = line.split('. ', 2)
-                if len(parts) >= 2:
-                    author_part = parts[0]
-                    year_match = re.search(r'(\d{4})', line)
-                    year = year_match.group(1) if year_match else "Unknown"
-                    author_slug = author_part.split(',')[0].split(' ')[0].upper()
-                    
-                    ref_id = f"REF_{author_slug}_{year}"
-                    
-                    ref_comp = {
-                        "id": ref_id,
-                        "type": "reference",
-                        "content": line,
-                        "citation": f"({author_part.split(',')[0]} {year})",
-                        "name": f"Ref: {author_part.split(',')[0]} {year}",
-                        "description": "Bibliographic Reference",
-                        "module": "config",
-                        "class": "ConfigComponent"
-                    }
-                    
-                    # Upsert using repository methods
-                    # Check if repository supports add_component (it should)
-                    # Note: Original code used update_component/add_component
-                    if hasattr(self.repository, 'get_component_by_id'):
-                         existing = self.repository.get_component_by_id(ref_id)
-                         if existing:
-                             if hasattr(self.repository, 'update_component'):
-                                self.repository.update_component(ref_id, ref_comp)
-                         else:
-                             if hasattr(self.repository, 'add_component'):
-                                self.repository.add_component(ref_comp)
-                    
-                    imported += 1
-                
-                processed += 1
-                if total_lines > 0 and processed % 10 == 0:
-                    percent = 10 + int((processed / total_lines) * 80)
-                    tracker.update(f"Importing {processed}/{total_lines}", percent)
-            
-            result = {"status": "completed", "imported": imported}
-            tracker.complete(result)
-            return result
-            
+             # Use the exporter module
+             tracker.update("Exporting Workflows & components...", 10)
+             # By default uses settings.start_db_path which is correct for current env
+             result = export_db_to_files() 
+             tracker.update("Export Completed", 100)
+             
+             final_res = {"status": "completed", "message": result.get("message", "Export done")}
+             tracker.complete(final_res)
+             return final_res
         except Exception as e:
             tracker.fail(str(e))
             raise e

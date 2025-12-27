@@ -279,27 +279,32 @@ def _generate_archivist_data() -> Dict[str, Any]:
 def _generate_coach_data() -> Dict[str, Any]:
     data = _clone(_get_common_base(), agent="Valmentaja", vaihe=12)
     # Matches CoachingPlan(BaseJSON)
-    # kehityskohteet_konkreettisesti: List[ActionGroup]
-    # ActionGroup: kategoria, kohdat: List[ActionItem]
     data.update({
-        "kannustava_palaute": "Erinomaista työtä! Olet selvästi nähnyt vaivaa.",
+        "kannustava_palaute": "Erinomaista työtä 'Supermegatrendit'-konseptin kanssa! Tämä oli kriittinen oivallus ('Mestaruus'-hetki), joka pakottaa tekoälyn siirtymään yksinkertaisesta tiivistämisestä korkeamman tason synteesiin. Ilman tätä ohjausta raportti olisi jäänyt geneeriseksi listaukseksi.",
         "kehityskohteet_konkreettisesti": [
             {
-                "kategoria": "Logiikka & Argumentaatio",
+                "kategoria": "Prompt Engineering & Tehokkuus",
                 "kohdat": [
-                    {"otsikko": "Perustelujen syventäminen", "kuvaus": "Pyri avaamaan 'miksi'-kysymyksiä vielä tarkemmin.", "resurssit": ["https://toulmin-model.com"]},
-                    {"otsikko": "Vasta-argumentit", "kuvaus": "Huomioi myös vastakkaiset näkökulmat.", "resurssit": []}
+                    {"otsikko": "Kontekstin Etupainotteisuus", "kuvaus": "Määrittele rooli (neuvonantaja), kohderyhmä (johtoryhmä) ja tavoite heti alussa. Tämä vähentää iteraatioita.", "resurssit": ["Prompt Engineering: The CO-STAR Method"]},
+                    {"otsikko": "Suunniteltu Rakenne", "kuvaus": "Pyydä ensin sisällysluettelo hyväksyttäväksi ennen tekstin generointia.", "resurssit": []}
                 ]
             },
             {
-                 "kategoria": "Rakenne",
-                 "kohdat": [
-                     {"otsikko": "Kappalejako", "kuvaus": "Tiivistä kappaleita luettavuuden parantamiseksi.", "resurssit": []}
-                 ]
+                "kategoria": "Datan Validointi",
+                "kohdat": [
+                    {"otsikko": "Syötedatan Eheystarkistus", "kuvaus": "Tee tarkistuslista (Checklist) syötedatalle. Huomioi puuttuvat raportit.", "resurssit": ["Data Integrity Checklists"]}
+                ]
             }
         ],
-        "lopputuloksen_kehitysehdotukset": ["Lisää tiivistelmä alkuun.", "Tarkista viittaukset."],
-        "lahdeluettelo": ["Toulmin, S. (2003). The Uses of Argument.", "Kahneman, D. (2011). Thinking, Fast and Slow."]
+        "lopputuloksen_kehitysehdotukset": [
+            "Lisää konkreettisia KPI-mittareita 'Kaupalliset Vaikutukset' -osioon.",
+            "Täsmennä 'Supermegatrendien' keskinäisiä ristiriitoja (esim. Resurssiniukkuus vs. Teknologia).",
+            "Erota selkeämmin Sitran virallinen kanta ja oma synteesi."
+        ],
+        "lahdeluettelo": [
+            "Toulmin, Stephen E. 2003: The uses of argument. Päivitetty painos. Cambridge: Cambridge University Press. DOI: 10.1017/CBO9780511802031.",
+            "Kahneman, Daniel. 2011: Thinking, fast and slow. New York: Farrar, Straus and Giroux."
+        ]
     })
     return data
 

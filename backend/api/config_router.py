@@ -31,6 +31,7 @@ class ComponentUpdate(BaseModel):
     description: Optional[str] = None
     citation: Optional[str] = None
     citation_full: Optional[str] = None
+    type: Optional[str] = None
 
 class ModelSettings(BaseModel):
     model_name: str
@@ -118,6 +119,8 @@ def update_component(comp_id: str, update: ComponentUpdate, db: AbstractDatabase
         update_data["citation"] = update.citation
     if update.citation_full:
         update_data["citation_full"] = update.citation_full
+    if update.type:
+        update_data["type"] = update.type
         
     table.update(update_data, (Component.id == comp_id) | (Component.name == comp_id))
     return {"status": "updated", "id": comp_id}
@@ -131,6 +134,27 @@ def delete_component(comp_id: str, db: AbstractDatabase = Depends(get_db_client_
     exists = table.search((Component.id == comp_id) | (Component.name == comp_id))
     if not exists:
         raise HTTPException(status_code=404, detail="Component not found")
+    
+    # Referential Integrity Check
+    steps = db.table('steps').all()
+    used_in = []
+    
+    for s in steps:
+        # Check 1: Is this component the Agent Logic for the step?
+        if s.get('component') == comp_id:
+            used_in.append(s['id'])
+            continue
+            
+        # Check 2: Is this component in the prompt list?
+        prompts = s.get('execution_config', {}).get('llm_prompts', [])
+        if comp_id in prompts:
+            used_in.append(s['id'])
+            
+    if used_in:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Cannot delete component '{comp_id}'. It is used in {len(used_in)} steps: {', '.join(used_in[:3])}..."
+        )
         
     table.remove((Component.id == comp_id) | (Component.name == comp_id))
     return {"status": "deleted", "id": comp_id}
@@ -203,6 +227,25 @@ def update_workflow(wf_id: str, update: WorkflowUpdate, db: AbstractDatabase = D
     if not update_data:
          raise HTTPException(status_code=400, detail="No data to update")
 
+    # Validation: Check if referenced steps exist (if creating/updating sequence)
+    # Note: 'sequence' in JSON model corresponds to 'steps' list in DB logic for some reason, 
+    # but based on seed_data it is 'steps'. Currently the model uses 'sequence'.
+    # Let's check update.sequence or update.steps depending on what Pydantic model uses.
+    # The Pydantic model 'WorkflowUpdate' has 'steps' and 'sequence'. 
+    # In seed_data it is 'steps'. Let's validate whichever list is provided.
+    
+    steps_to_check = update.steps if update.steps else update.sequence
+    
+    if steps_to_check:
+        valid_steps = {s['id'] for s in db.table('steps').all()}
+        # steps_to_check might be a list of strings (IDs) or dicts?
+        # In seed_data 'steps' is a list of strings.
+        for item in steps_to_check:
+            # Handle if item is string or dict (though Config View sends list of strings)
+            sid = item if isinstance(item, str) else item.get('id')
+            if sid and sid not in valid_steps:
+                 raise HTTPException(status_code=400, detail=f"Invalid Step ID: '{sid}' does not exist.")
+
     table.update(update_data, Workflow.id == wf_id)
     return {"status": "updated", "id": wf_id}
 
@@ -216,6 +259,14 @@ def create_workflow(workflow: WorkflowCreate, db: AbstractDatabase = Depends(get
         raise HTTPException(status_code=400, detail="Workflow ID already exists")
         
     new_wf = workflow.model_dump()
+    
+    # Validation: Check if referenced steps exist
+    if workflow.sequence:
+        valid_steps = {s['id'] for s in db.table('steps').all()}
+        for step_id in workflow.sequence:
+            if step_id not in valid_steps:
+                 raise HTTPException(status_code=400, detail=f"Invalid Step ID: '{step_id}' does not exist.")
+
     table.insert(new_wf)
     return {"status": "created", "id": workflow.id}
 
@@ -544,4 +595,87 @@ def get_introspection():
         "schemas": sorted(available_schemas),
         "agents": sorted(available_agents),
         "hooks": sorted(list(available_hooks))
+    }
+
+@router.post("/validate-flow")
+def validate_flow(workflow: WorkflowCreate, db: AbstractDatabase = Depends(get_db_client_dep)):
+    """
+    Performs a Data Flow Validation (Dry Run) on the proposed workflow.
+    CHECKS:
+    1. Do referenced steps exist?
+    2. Does the agent component exist?
+    3. Are REQUIRED_KEYS satisfied by the cumulative state?
+    """
+    from backend.core.factory import AgentFactory
+    
+    # Introspect available agents (lightweight instantiation)
+    # Using 'fast' as dummy model just for instantiation
+    try:
+        agents_map = AgentFactory.create_agents_map(initial_model="gemini-1.5-flash") # Model doesn't matter for contracts
+    except Exception as e:
+        logger.error(f"Validation failed during factory init: {e}")
+        raise HTTPException(status_code=500, detail=f"Agent Factory Error: {e}")
+    
+    # 0. Initial State (Simulated)
+    # We assume standard Inputs are present
+    known_keys = ["history_text", "product_text", "reflection_text", "bibliography_context"]
+    
+    errors = []
+    trace_log = []
+    
+    # Load Steps Config
+    all_steps_config = db.table('steps').all()
+    steps_db_map = {s['id']: s for s in all_steps_config}
+    
+    pseudo_state = list(known_keys)
+
+    for i, step_id in enumerate(workflow.sequence):
+        # 1. Resolve Step
+        if step_id not in steps_db_map:
+            msg = f"Step '{step_id}' references unknown step ID."
+            errors.append(msg)
+            trace_log.append(f"❌ {msg}")
+            continue
+            
+        step_doc = steps_db_map[step_id]
+        agent_name = step_doc.get('component')
+        
+        # 2. Resolve Agent Class
+        if not agent_name or agent_name not in agents_map:
+             msg = f"Step '{step_id}' uses unknown Agent component '{agent_name}'."
+             errors.append(msg)
+             trace_log.append(f"❌ {msg}")
+             continue
+             
+        agent_instance = agents_map[agent_name]
+        
+        # 3. Check Requirements (Level 1)
+        reqs = getattr(agent_instance, 'REQUIRES_KEYS', [])
+        missing = []
+        for req in reqs:
+            if req not in pseudo_state:
+                missing.append(req)
+        
+        if missing:
+             # Critical Error
+             err_msg = f"Step {i+1} ({step_id}/{agent_name}) MISSING INPUTS: {missing}. Available keys: {pseudo_state}"
+             errors.append(err_msg)
+             trace_log.append(f"❌ [Step {i+1}] {err_msg}")
+        else:
+             trace_log.append(f"✅ [Step {i+1}: {step_id}] Inputs OK.")
+
+        # 4. Simulate Production
+        prods = getattr(agent_instance, 'PRODUCES_KEYS', [])
+        for k in prods:
+            if k not in pseudo_state:
+                pseudo_state.append(k)
+        
+        if prods:
+            trace_log.append(f"   -> Produced: {prods}")
+                
+    return {
+        "valid": len(errors) == 0,
+        "errors": errors,
+        "trace": trace_log,
+        "final_state_keys": pseudo_state
     }

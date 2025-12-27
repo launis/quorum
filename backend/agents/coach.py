@@ -13,25 +13,12 @@ from backend.services.reference_manager import ReferenceManager
 
 class CoachAgent(BaseAgent):
     state_field = "step_coach"
+    REQUIRES_KEYS = ["step_judge"]
 
     def get_response_schema(self) -> Optional[Type[BaseModel]]:
         return CoachingPlan
 
-    def _build_prompt(self, state: WorkflowState, repository: Any = None, external_context_override: str = "", preloaded_concepts: List[Dict] = [], **kwargs) -> str:
-        # ... (previous code) ...
-        # (Replace instructions at the end)
 
-        # Explicit Instruction for Citation
-        context_str += "\n\nIMPORTANT: When creating 'kehityskohteet_konkreettisesti' (Action Items), you MUST include relevant citations."
-        context_str += "\n- Look at the 'EXTERNAL SOURCES' and 'REFERENCE MATERIAL' above."
-        context_str += "\n- If an Action Item relates to a concept (e.g. Reflection, Logic), find a matching Source/Reference."
-        context_str += "\n- Add the citation string to the 'resurssit' list of that Action Item."
-        context_str += "\n- CITATION STYLE (Kielitoimisto/Finnish Standard): Use precise parenthetical referencing, e.g., `(Sukunimi 2024)` or `(Sukunimi & Meikäläinen 2024)`."
-        context_str += "\n- EVIDENCE: Support your assessment with proofs (todisteita) from the Knowledge Base. Do not just describe Sitra; explain WHY the user's performance is good/bad based on the Theory."
-        context_str += "\n- CONNECTION: 'Tämä havainto saa tukea tietokannasta (Pfeifer 2025)...'"
-        context_str += "\n- Create validated assertions by linking the Assessment to the Database references."
-
-        return context_str + base_prompt
 
     # ...
 
@@ -70,17 +57,26 @@ class CoachAgent(BaseAgent):
                     references.append(ref_obj)
             
             # Populate self.knowledge_base
+            # Populate self.knowledge_base
             self.knowledge_base = {
                 "concepts": concepts,
                 "references": references # List of dicts
             }
             logger.info(f"[CoachAgent] Loaded {len(concepts)} concepts and {len(references)} references from Unified Database.")
             
+            # Formulate the Context String for the Prompt
+            context_output = "\nEXTERNAL SOURCES (KNOWLEDGE BASE):\n"
+            for ref in references:
+                citation = ref.get('citation', '')
+                if citation:
+                     context_output += f"- {citation}\n"
+            
+            return context_output
+            
         else:
             logger.warning("[CoachAgent] No Repository provided in kwargs. Knowledge Base not loaded from DB.")
             self.knowledge_base = {}
-
-        return "" # No additional text context to append here, just side-loading data
+            return ""
 
     @staticmethod
     def find_citations_with_reasons(text: str, knowledge_base: Dict[str, Any]) -> Dict[str, List[str]]:
@@ -276,7 +272,6 @@ class CoachAgent(BaseAgent):
         formatted_list = []
         for ref in sorted(final_map.keys()):
             reasons = sorted(list(final_map[ref]))
-            # Format: "Citation Text [Konteksti: Syy, Syy]"
             context_str = ", ".join(reasons)
             if context_str:
                 formatted_list.append(f"{ref}  [Konteksti: {context_str}]")
@@ -288,183 +283,4 @@ class CoachAgent(BaseAgent):
              logger.info(f"[CoachAgent] Populated bibliography with {len(formatted_list)} references found in global state.")
 
         return state
-            
-        def get_attr(obj, attr):
-            return getattr(obj, attr) if hasattr(obj, attr) else obj.get(attr)
 
-        items = get_attr(coach_plan_data, 'kehityskohteet_konkreettisesti')
-        if not items:
-            return state
-
-        # Regex to find parenthetical citations like (Author Year), (Author et al. Year), (vrt. Author ym. Year)
-        citation_pattern = re.compile(r'\((?:vrt\.\s*)?(?:[A-Za-zÅÄÖåäö&,-]+\s+)+(?:et\s+al\.|ym\.)?\s*,?\s*\d{4}[a-z]?\)')
-
-        # Helper to flatten items from groups for processing
-        all_action_items = []
-        is_grouped = False
-        
-        # Check first item to determine structure (or try both)
-        if items and len(items) > 0:
-            first = items[0]
-            # If it has 'kohdat' or 'items', it's a group
-            if hasattr(first, 'kohdat') or (isinstance(first, dict) and 'kohdat' in first):
-                is_grouped = True
-        
-        if is_grouped:
-            for group in items:
-                sub_items = get_attr(group, 'kohdat') or []
-                for sub in sub_items:
-                    all_action_items.append(sub)
-        else:
-            # Legacy flat list
-            all_action_items = items
-
-        # Regex to find parenthetical citations like (Author Year), (Author et al. Year), (vrt. Author ym. Year)
-        citation_pattern = re.compile(r'\((?:vrt\.\s*)?(?:[A-Za-zÅÄÖåäö&,-]+\s+)+(?:et\s+al\.|ym\.)?\s*,?\s*\d{4}[a-z]?\)')
-
-        updated_count = 0
-        for item in all_action_items:
-            # item is ActionItem object or dict
-            otsikko = get_attr(item, 'otsikko') or ""
-            kuvaus = get_attr(item, 'kuvaus') or ""
-            resurssit_list = get_attr(item, 'resurssit')
-            if resurssit_list is None:
-                resurssit_list = []
-            
-            # Normalize to avoid duplicates
-            current_res_lower = [r.lower() for r in resurssit_list]
-            
-            # Combine text for search
-            desc_text = (otsikko + " " + kuvaus + " " + " ".join(current_res_lower)).lower()
-            
-            # Search bibliography based on specific keywords found in the item
-            # 1. Internal Knowledge Base
-            if self.knowledge_base:
-                # Use shared static logic for lookup
-                found_refs = CoachAgent.find_citations(desc_text, self.knowledge_base)
-                for ref in found_refs:
-                    if not any(ref[:30] in r for r in resurssit_list):
-                        resurssit_list.append(ref)
-                        updated_count += 1
-
-            # 2. External Bibliography Context
-            if state.inputs.bibliography_context:
-                for bib_item in state.inputs.bibliography_context:
-                    bib_lower = bib_item.lower()
-                    if bib_lower not in [r.lower() for r in resurssit_list]:
-                         # Heuristic: check overlap of significant words
-                         bib_words = set(w for w in bib_lower.split() if len(w) > 5)
-                         desc_words = set(w for w in desc_text.split() if len(w) > 5)
-                         if bib_words & desc_words:
-                             resurssit_list.append(f"🔗 {bib_item}")
-                             updated_count += 1
-            
-            # Update item
-            if hasattr(item, 'resurssit'):
-                item.resurssit = resurssit_list
-            else:
-                item['resurssit'] = resurssit_list
-        
-        # ... rest of the function (lahdeluettelo) ...
-        
-        # --- Populate 'lahdeluettelo' in the Main Object ---
-        # User REQ: "juuri tässä tuloksessa käytetty" -> Only list references actually cited in the text.
-        
-        used_refs = set()
-        
-        # Helper to find used refs
-        def scan_for_citations(text, available_refs):
-            hits = set()
-            if not text: return hits
-            text_lower = text.lower()
-            
-            for ref_obj in available_refs:
-                # available_refs is EXPECTED to be list of dicts with 'citation' and optionally 'short_citation'
-                # But here we might just have strings in self.knowledge_base?
-                # Let's handle both.
-                
-                full_citation = ""
-                short_citation = ""
-                
-                if isinstance(ref_obj, str):
-                    full_citation = ref_obj
-                    # Try execution-time extraction if needed, or just match content
-                elif isinstance(ref_obj, dict):
-                    full_citation = ref_obj.get('definition', '') or ref_obj.get('citation', '')
-                    short_citation = ref_obj.get('short_citation', '')
-                    
-                # Search strategy:
-                # 1. Short citation match (e.g. "Acemoglu & Restrepo 2018")
-                if short_citation and short_citation.lower() in text_lower:
-                    hits.add(full_citation)
-                    continue
-                    
-                # 2. Author/Year heuristic from full citation (fallback)
-                # e.g. "Acemoglu" and "2018" appear near each other? 
-                # Strict mode: Only assume usage if Short Citation is found OR explicit mention.
-                # Let's rely on Short Citation if available.
-                
-            return hits
-
-        # Gather all text content from flattened list (all_action_items)
-        all_text = ""
-        for item in all_action_items:
-            all_text += (get_attr(item, 'otsikko') or "") + " " + (get_attr(item, 'kuvaus') or "") + " "
-            
-        # 1. DB References (The primary source now)
-        # We stored them in state.aux_data['db_references'] as STRINGS (definitions) in execute()
-        # But we need short citations too.
-        # execute() logic: 
-        # db_refs = [i['definition']...] -> Strings
-        # This makes strict matching hard unless we re-extract.
-        # BETTER: Let's fetch retrieval results again or assume the Agent did its job.
-        
-        # Let's try to match against the raw knowledge base properties if available
-        
-        # Get DB items from internal KB if loaded
-        if self.knowledge_base and "references" in self.knowledge_base:
-            # self.knowledge_base["references"] might be list of dicts now (new parser) or list of strings (old parser).
-            # The new parser returns list of {citation, short_citation, doi}.
-            
-            kb_refs = self.knowledge_base["references"] # List of dicts
-            
-            for ref_item in kb_refs:
-                if isinstance(ref_item, dict):
-                     citation = ref_item.get('citation')
-                     short = ref_item.get('short_citation')
-                     
-                     if short and short.lower() in all_text.lower():
-                         used_refs.add(citation)
-                     elif citation and citation[:20].lower() in all_text.lower():
-                         used_refs.add(citation)
-
-        # 2. External Bibliography (fallback)
-        if state.inputs.bibliography_context:
-             for bib in state.inputs.bibliography_context:
-                 # Check if appears in text
-                 # Naive check
-                 if bib[:20].lower() in all_text.lower():
-                     used_refs.add(bib)
-
-
-        # 3. Populate 'lahdeluettelo' strictly from DB references
-        # We use ReferenceManager locally to ensure the Agent's output complies with the schema requirement
-        # "siinä saa käyttää vain db.json:issa olevia ennalta tallennettuja lähteitä"
-        
-        kb_struct = {"references": self.knowledge_base.get("references", []) if self.knowledge_base else []}
-        rm = ReferenceManager(kb_struct)
-        
-        # Scan the entire CoachingPlan object for valid citations
-        # We convert to dict if it's a Pydantic model to be safe, though scan handles objects? 
-        # ReferenceManager expects dict/list/str. Pydantic .dict() or .model_dump() is best.
-        scan_target = coach_plan_data.dict() if hasattr(coach_plan_data, 'dict') else coach_plan_data
-        
-        found_refs = rm.scan_and_collect_references(scan_target)
-        
-        # Overwrite the LLM's hallucinated list with the verified one
-        if hasattr(coach_plan_data, 'lahdeluettelo'):
-             coach_plan_data.lahdeluettelo = found_refs
-        elif isinstance(coach_plan_data, dict):
-             coach_plan_data['lahdeluettelo'] = found_refs
-
-        return state

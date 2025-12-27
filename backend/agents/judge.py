@@ -14,6 +14,11 @@ class JudgeAgent(BaseAgent):
     """
 
     state_field = "step_judge"
+    
+    # Contracts: Depends on Guard for penalties, and Panel for logic checks
+    REQUIRES_KEYS = ["step_guard", "step_falsifier", "step_logician"] 
+    PRODUCES_KEYS = ["step_judge"]
+    OUTPUT_SCHEMA = TuomioJaPisteet
 
     def get_response_schema(self) -> Optional[Type[BaseModel]]:
         return TuomioJaPisteet

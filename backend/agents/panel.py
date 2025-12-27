@@ -14,6 +14,9 @@ class PanelAgent(BaseAgent):
     Paneeli-agentti (Panel Agent).
     Executes multiple critical roles in a single LLM call to save tokens and time.
     """
+    state_field = "step_panel"
+    REQUIRES_KEYS = ["step_analyst", "step_profiler"]
+    PRODUCES_KEYS = ["step_panel", "step_logician", "step_falsifier", "step_causal", "step_detector", "step_overseer"]
     
     def construct_user_prompt(self, state: WorkflowState) -> str:
         # Collect all relevant data for all potential critics from the state

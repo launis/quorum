@@ -19,6 +19,7 @@ class InteractionAnalystAgent(BaseAgent):
     """
     
     state_field = "step_interaction"
+    REQUIRES_KEYS = ["history_text"]
 
     def get_response_schema(self) -> Optional[Type[BaseModel]]:
         return InteractionAnalysis

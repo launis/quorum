@@ -20,7 +20,7 @@ REM Wait a bit for backend to start
 timeout /t 15
 
 REM Start Frontend
-start "Cognitive Quorum Frontend" cmd /k "chcp 65001 && set USE_MOCK_LLM=false && set USE_MOCK_DB=false && streamlit run ui.py"
+start "Cognitive Quorum Frontend" cmd /k "chcp 65001 && set USE_MOCK_LLM=false && set USE_MOCK_DB=false && streamlit run frontend/main.py"
 
 echo.
 echo Services started!

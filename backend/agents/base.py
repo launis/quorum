@@ -15,6 +15,17 @@ class BaseAgent(BaseComponent):
     """
     
     state_field: Optional[str] = None
+    
+    # --- CONTRACTS (Data Flow Validation) ---
+    # List of keys (in state or inputs) that this agent REQUIRES to run.
+    REQUIRES_KEYS: list[str] = []
+    
+    # List of keys (in state) that this agent PRODUCES upon success.
+    PRODUCES_KEYS: list[str] = []
+    
+    # Optional Pydantic Models for Schema Validation
+    INPUT_SCHEMA: Optional[Type[BaseModel]] = None
+    OUTPUT_SCHEMA: Optional[Type[BaseModel]] = None
 
     def __init__(self, model: Optional[str] = None, provider: Optional[str] = None):
         if model and "gemini" in model.lower():

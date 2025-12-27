@@ -13,6 +13,7 @@ class XAIReporterAgent(BaseAgent):
     XAI-Raportoija-agentti (XAI Reporter Agent).
     """
     state_field = "step_reporter"
+    REQUIRES_KEYS = ["step_judge"]
 
     def get_response_schema(self) -> Optional[Type[BaseModel]]:
         # Use the Domain Model directly to ensure strict validation.

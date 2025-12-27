@@ -44,10 +44,26 @@ def export_db_to_files(source_db_path=None):
         # Update steps
         seed_data['steps'] = steps_table.all()
         
-        # Update components list in seed_data (metadata only, content is in templates usually, 
-        # but seed_data might have inline content for non-template components)
-        # For this MVP, we will just update the components list from DB.
+        # Update components
         seed_data['components'] = components_table.all()
+
+        # Update system_config (CRITICAL for Model Mapping and BARS)
+        system_config_table = db.table('system_config')
+        if system_config_table:
+            seed_data['system_config'] = system_config_table.all()
+
+        # Update Knowledge Base
+        kb_table = db.table('knowledge_base')
+        if kb_table:
+            # We filter out claims or concepts? 
+            # CoachAgent loads ALL types (concept + reference).
+            # But seed_data.json usually only needs references if we want to bootstrap Mock.
+            # However, for full state, export EVERYTHING.
+            # But wait: 'claims' are huge and verbose.
+            # CoachAgent prepare_context only looks for 'concept' and 'reference'.
+            # And user specifically wants REFERENCES (bibliography).
+            # Let's export everything.
+            seed_data['knowledge_base'] = kb_table.all()
         
         # Remove 'content' from components in seed_data if it maps to a template?
         # seeder.py logic:

@@ -116,6 +116,25 @@ def seed_database(target_db_path: Optional[str] = None):
                 print(f"[Seeder] Failed to upsert system_config item: {e}")
         print(f"[Seeder] Upserted {config_count} system_config items.")
 
+    # Seed Knowledge Base
+    if 'knowledge_base' in seed_data:
+        kb_table = db.table('knowledge_base')
+        KB = Query()
+        kb_count = 0
+        for item in seed_data['knowledge_base']:
+            try:
+                # Assuming 'term' is unique enough, or 'id' if present?
+                # References usually have 'term' as short citation or ID.
+                # Let's use 'term' as key if present, otherwise just insert.
+                if 'term' in item:
+                    kb_table.upsert(item, KB.term == item['term'])
+                else:
+                    kb_table.insert(item)
+                kb_count += 1
+            except Exception as e:
+                print(f"[Seeder] Failed to upsert knowledge_base item: {e}")
+        print(f"[Seeder] Upserted {kb_count} knowledge_base items.")
+
     print("[Seeder] Database seeding completed successfully.")
 
 if __name__ == "__main__":

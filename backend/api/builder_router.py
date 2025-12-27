@@ -233,12 +233,64 @@ async def copy_workflow(workflow_id: str, request: CopyWorkflowRequest, engine: 
         raise HTTPException(status_code=500, detail=f"Copy failed: {str(e)}")
 
 @router.post("/validate")
-async def validate_connection(request: ValidationRequest):
+async def validate_connection(request: ValidationRequest, engine: WorkflowEngine = Depends(get_engine)):
     """
-    Stub for validating connections between steps.
+    Validates connection between two steps based on Agent I/O contracts.
     """
-    # Logic to fetch steps and check I/O compatibility
-    return {"valid": True, "reason": "Validation not fully implemented yet."}
+    try:
+        # 1. Resolve Steps
+        source_step = engine.repository.get_step_by_id(request.source_step)
+        target_step = engine.repository.get_step_by_id(request.target_step)
+        
+        if not source_step or not target_step:
+             return {"valid": False, "reason": "Step(s) not found."}
+             
+        # 2. Resolve Agents (via Components)
+        # Handle both Name and ID references for robustness
+        src_comp_ref = source_step.get('component')
+        tgt_comp_ref = target_step.get('component')
+        
+        source_comp = engine.repository.get_component_by_id(src_comp_ref) or engine.repository.get_component_by_name(src_comp_ref)
+        target_comp = engine.repository.get_component_by_id(tgt_comp_ref) or engine.repository.get_component_by_name(tgt_comp_ref)
+        
+        if not source_comp or not target_comp:
+             return {"valid": True, "reason": "Component definitions missing, skipping deep check."}
+
+        # Registry stores instances, we need the class to check static properties
+        # (Or we check the instance properties if defined on instance)
+        # We search primarily by class_name
+        src_cls_name = source_comp.get('class_name')
+        tgt_cls_name = target_comp.get('class_name')
+        
+        # Get instances from registry to access metadata
+        # (Assuming registry is populated at startup)
+        src_agent = engine.registry.agents_map.get(src_cls_name)
+        tgt_agent = engine.registry.agents_map.get(tgt_cls_name)
+        
+        if not src_agent or not tgt_agent:
+             return {"valid": True, "reason": "Agent implementation not found in registry."}
+             
+        # 3. Check Contracts
+        # We check the Class attributes, but instances behave same
+        required = getattr(tgt_agent, "REQUIRES_KEYS", [])
+        produced = getattr(src_agent, "PRODUCES_KEYS", [])
+        
+        # Validation Logic:
+        # If Target has Strict Requirements, warn if they are not explicitly produced by Source.
+        # (In a chain A->B, B might rely on A's predecessors, so this is a soft warning).
+        
+        missing = [req for req in required if req not in produced]
+        
+        if missing and required:
+            # Construct a helpful message
+            msg = f"⚠️ Potential Schema Mismatch: Target requires {missing}. Source produces {produced}. Ensure dependencies exist upstream."
+            return {"valid": True, "reason": msg}
+
+        return {"valid": True, "reason": "Connection Compatible."}
+
+    except Exception as e:
+        logger.error(f"Validation failed: {e}")
+        return {"valid": True, "reason": f"Validation error: {str(e)}"}
 
 class CompileRequest(BaseModel):
     workflow_id: str
