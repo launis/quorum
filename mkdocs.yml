@@ -48,5 +48,6 @@ nav:
   - Prompt Engineering: prompt_engineering.md
   - Components: components.md
   - API Reference: reference.md
+  - Models: api_models.md
   - Tietojen Hallinta: data_management.md
   - Interactive API: swagger/index.md

@@ -1,85 +1,86 @@
 # System Architecture
 
-Cognitive Quorum v2 is built on a modern, modular architecture designed for flexibility, scalability, and rigorous process control. The system is a generic, data-driven engine capable of executing complex workflows defined entirely through configuration.
+Cognitive Quorum v2.0 is a **Modular Monolith** built on Python 3.12+, designed for deterministic, verifiable AI workflows. It combines a rigorous Pydantic-based backbone with a flexible, database-driven configuration engine.
 
 ## High-Level Diagram
 
 ```mermaid
 graph TD
-    User[User / Client] -->|HTTP| Streamlit[Streamlit Frontend]
-    Streamlit -->|REST API| FastAPI[FastAPI Backend]
+    User["User / Client"] -->|HTTP| Streamlit["Frontend (Streamlit)"]
+    Streamlit -->|REST API| Backend["Backend (FastAPI)"]
     
     subgraph "Backend Core"
-        FastAPI --> Engine[Generic Workflow Engine]
-        Engine -->|Executes Step| Agent[Agent (as defined in DB)]
-        Engine -->|Reads/Writes State| Context[(Workflow Context)]
+        Backend --> Engine["Workflow Engine"]
+        Engine -->|Load Config| DB[("TinyDB")]
+        Engine -->|Execute Step| Runner["Pipeline Runner"]
         
-        Agent -->|Uses| LLM["LLM Service (Gemini)"]
-        Agent -->|Uses| Hooks[Hybrid Hooks]
+        Runner --> Agent["Agent Instance"]
     end
     
-    subgraph "Data & Configuration (TinyDB)"
-        Engine -- Reads --> WorkflowDef[Workflow Definition]
-        Context -- Stored in --> DB[(Database)]
-        Hooks <-->|Search| Google[Google Search API]
+    subgraph "Agent Architecture"
+        Agent -->|1. Prompt| PromptBuilder["Prompt Builder"]
+        Agent -->|2. Generate| LLM["LLM Provider (Gemini)"]
+        Agent -->|3. Hook| Hooks["Deterministic Hooks"]
+        Agent -->|4. Validate| Schema["Pydantic V2 Schema"]
     end
+    
+    Hooks --> PII["PII Scrubber"]
+    Hooks --> Causal["Causal Engine"]
+    Hooks --> Search["Google Search"]
+    
+    Agent -->|Update State| State[("WorkflowState")]
 ```
 
 ## Core Components
 
-### 1. Frontend (Streamlit)
-*   **Role**: Provides a dynamic user interface for interacting with the backend engine. It acts as the primary client for initiating workflows and managing system configurations.
-*   **Features**:
-    *   **Workflow UI**: A user-friendly interface for selecting a workflow, providing initial inputs (e.g., file uploads), and monitoring its execution in real-time.
-    *   **Management UI**: Configuration editors for creating and modifying Workflows, Steps (Agents), Prompts, and Schemas.
-    *   **Data Inspection**: Tools for viewing the final and intermediate JSON context of any workflow run.
+### 1. Backend (FastAPI)
+The backend is structured as a modular monolith:
 
-### 2. Backend (FastAPI)
-*   **Role**: The system's central API layer. It exposes REST endpoints that allow the frontend (or any other client) to interact with the workflow engine and manage its configuration.
-*   **Key Endpoints**:
-    *   `/workflows/{workflow_id}/start`: Initiates a new run of a specific workflow.
-    *   `/workflows/`, `/steps/`, `/prompts/`: CRUD operations for all system configuration objects stored in the database.
-    *   `/status/{run_id}`: Retrieves the current state and context of a running or completed workflow.
+*   **`backend/api/`**: REST Routers defined using FastAPI. Strictly typed requests/responses.
+*   **`backend/core/`**: The `WorkflowEngine` and `PipelineRunner`. Orchestrates the flow based on DB config.
+*   **`backend/agents/`**: specialized Agent classes (e.g., `GuardAgent`, `JudgeAgent`) inheriting from `BaseAgent`.
+*   **`backend/models/`**: Centralized domain models using Pydantic v2 `Annotated` syntax.
 
-### 3. Generic Workflow Engine
-*   **Role**: The heart of the system. It orchestrates the execution of workflows based on definitions loaded from the database. It is entirely agnostic to the specific logic of the steps it is running.
-*   **Mechanism**:
-    1.  Receives a request to start a specific **Workflow**.
-    2.  Loads the corresponding **Workflow Definition** from the database. This definition is a list of **Steps** to be executed in sequence.
-    3.  Initializes a **Workflow Context**, a JSON object that holds the state for the entire run.
-    4.  Iterates through each **Step (Agent)** in the definition.
-    5.  For each step, it:
-        *   Constructs a **Prompt** by rendering a Jinja2 template with data from the current **Context**.
-        *   Executes the designated **Tool** (e.g., an LLM call or a custom Python hook).
-        *   Validates the tool's output against the step's defined Pydantic **Schema**.
-        *   Merges the validated result back into the **Workflow Context**.
-    6.  Persists the final context to the database upon completion.
+### 2. State Management (WorkflowState)
+Unlike many agent frameworks that pass free-form dictionaries, Quorum uses a strict **`WorkflowState`** Pydantic model (`backend/models/state.py`).
 
-### 4. Database (TinyDB)
-*   **Role**: The single source of truth for all configuration and runtime data. Its file-based, schema-less nature provides flexibility for rapid development.
-*   **Data Stored**:
-    *   **Configuration**: All definitions for Workflows, Steps, Prompts, and Schemas.
-    *   **Runtime Data**: The execution history and final JSON context for every workflow run.
+*   **Atomic Updates:** Each agent writes to a specific field (e.g., `step_guard`, `step_judge`).
+*   **Persisted & Replayable:** The entire state is serialized to JSON after every step, allowing execution resumption.
+*   **Type Safe:** Agents cannot write invalid data to the state; Pydantic validation enforces schema compliance.
 
-## Data-Driven Workflow Execution
+### 3. Agent Architecture (Thin Agents)
+Agents are "thin" wrappers that coordinate three things:
 
-The core principle of v2 is that **logic is data**. Instead of a hardcoded process, the system executes workflows that are defined as documents within the database. This makes the system extremely flexible, allowing operators to create, modify, or combine cognitive processes without changing any code.
+1.  **Prompting:** Constructing context using `PromptBuilder`.
+2.  **Hooks:** Calling deterministic Python code (Hooks) for tasks logical reasoning cannot solve (e.g., math, causal inference, search).
+3.  **Generation:** Calling the LLM via `LLMProvider`.
 
-A **Workflow** is simply a named, ordered list of **Steps**.
+Configurations (Prompts, Model usage) are stored in `seed_data.json` / Database, but the execution logic resides in code.
 
-A **Step** (or "Agent") is a document that defines a single unit of work, containing:
-*   A reference to a **Prompt** template.
-*   The name of the **Tool** to execute (e.g., `llm:gemini-pro` or `hook:google_search`).
-*   A reference to a Pydantic **Schema** used to validate the tool's output.
+### 4. Deterministic Hooks (`backend/hooks/`)
+To prevent "hallucinated logic", complex operations are offloaded to Python code:
 
-This data-driven design transforms the system from a specific application into a general-purpose platform for creating and running structured, multi-step AI processes.
+*   **`archival.py`**: Similarity search via Vector DB.
+*   **`security.py`**: PII masking via Microsoft Presidio.
+*   **`metrics.py`**: Text analytics (lexical diversity, etc.).
+*   **`causal.py`**: Statistical validation via DoWhy.
+
+## Data-Driven Configuration
+
+While the *logic* is in code, the *workflow definition* is data-driven.
+A workflow in `db.json` defines:
+1.  **Sequence:** Which agents run in what order.
+2.  **Configuration:** Which prompt templates and model parameters to use.
+
+This allows changing the *behavior* (prompts, order) without redeploying code, while keeping the *capability* (Python logic) rigorously tested.
 
 ## Technology Stack
 
-*   **Language**: Python 3.10+
-*   **Web Framework**: FastAPI
-*   **UI Framework**: Streamlit
-*   **Database**: TinyDB (JSON-based, file-backed)
-*   **LLM**: Google Gemini (via `google-generativeai`)
-*   **Validation**: Pydantic
-*   **Templating**: Jinja2
+*   **Language:** Python 3.12
+*   **API:** FastAPI + Pydantic v2 (Strict Mode)
+*   **UI:** Streamlit
+*   **Database:** TinyDB (JSON-based, file-backed)
+*   **Vector Search:** ChromaDB
+*   **LLM:** Google Gemini (1.5/2.0)
+*   **PII:** Microsoft Presidio
+*   **Causal Inference:** Microsoft DoWhy
