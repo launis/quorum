@@ -32,8 +32,9 @@ class InteractionAnalystAgent(BaseAgent):
         """
         Lifecycle Hook: Post-Execution.
         Calculates 'input_control_ratio' using Python regex on history_text.
+        Delegates to backend.hooks.metrics.
         """
-        logger.info("[InteractionAnalystAgent] Post-Processing: Calculating Input Control Ratio...")
+        logger.info("[InteractionAnalystAgent] Post-Processing: Calculating Input Control Ratio via Hook...")
         
         if not state.step_interaction:
             return state
@@ -47,7 +48,9 @@ class InteractionAnalystAgent(BaseAgent):
             
         # 2. Calculate Ratio
         try:
-            ratio = self._calculate_control_ratio(history)
+            from backend.hooks.metrics import calculate_control_ratio
+            ratio = calculate_control_ratio(history)
+            
             state.step_interaction.input_control_ratio = ratio
             logger.info(f"[InteractionAnalystAgent] Calculated Ratio: {ratio:.2f}")
         except Exception as e:
@@ -55,56 +58,3 @@ class InteractionAnalystAgent(BaseAgent):
             state.step_interaction.input_control_ratio = 0.0
 
         return state
-
-    def _calculate_control_ratio(self, text: str) -> float:
-        """
-        Calculates ratio of Human Tokens vs Total Tokens (approximation using chars).
-        """
-        if not text:
-            return 0.0
-
-        user_chars = 0
-        ai_chars = 0
-        
-        # Normalize to lines
-        lines = text.split('\n')
-        current_speaker = None # 'user' or 'ai'
-        
-        user_headers = ['user:', 'human:', 'k:', 'käyttäjä:', 'me:', 'minä:']
-        ai_headers = ['ai:', 'assistant:', 't:', 'tekoäly:', 'gpt:', 'bot:']
-        
-        for line in lines:
-            lower_line = line.strip().lower()
-            
-            # Check for header switch
-            started_new_block = False
-            for h in user_headers:
-                if lower_line.startswith(h):
-                    current_speaker = 'user'
-                    line_content = line[len(h):]
-                    user_chars += len(line_content.strip())
-                    started_new_block = True
-                    break
-            
-            if not started_new_block:
-                for h in ai_headers:
-                    if lower_line.startswith(h):
-                        current_speaker = 'ai'
-                        line_content = line[len(h):]
-                        ai_chars += len(line_content.strip())
-                        started_new_block = True
-                        break
-            
-            # If continuation of previous block
-            if not started_new_block and current_speaker:
-                clean_len = len(line.strip())
-                if current_speaker == 'user':
-                    user_chars += clean_len
-                else:
-                    ai_chars += clean_len
-        
-        total_chars = user_chars + ai_chars
-        if total_chars == 0:
-            return 0.0
-            
-        return round(user_chars / total_chars, 4)

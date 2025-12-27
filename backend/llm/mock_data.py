@@ -280,7 +280,7 @@ def _generate_coach_data() -> Dict[str, Any]:
     data = _clone(_get_common_base(), agent="Valmentaja", vaihe=12)
     # Matches CoachingPlan(BaseJSON)
     data.update({
-        "kannustava_palaute": "Erinomaista työtä 'Supermegatrendit'-konseptin kanssa! Tämä oli kriittinen oivallus ('Mestaruus'-hetki), joka pakottaa tekoälyn siirtymään yksinkertaisesta tiivistämisestä korkeamman tason synteesiin. Ilman tätä ohjausta raportti olisi jäänyt geneeriseksi listaukseksi.",
+        "kannustava_palaute": "Erinomaista työtä 'Supermegatrendit'-konseptin kanssa! Tämä oli kriittinen oivallus ('Mestaruus'-hetki), joka pakottaa tekoälyn siirtymään yksinkertaisesta tiivistämisestä korkeamman tason synteesiin (vrt. Toulmin 2003). Ilman tätä ohjausta raportti olisi jäänyt geneeriseksi listaukseksi.",
         "kehityskohteet_konkreettisesti": [
             {
                 "kategoria": "Prompt Engineering & Tehokkuus",
@@ -299,7 +299,7 @@ def _generate_coach_data() -> Dict[str, Any]:
         "lopputuloksen_kehitysehdotukset": [
             "Lisää konkreettisia KPI-mittareita 'Kaupalliset Vaikutukset' -osioon.",
             "Täsmennä 'Supermegatrendien' keskinäisiä ristiriitoja (esim. Resurssiniukkuus vs. Teknologia).",
-            "Erota selkeämmin Sitran virallinen kanta ja oma synteesi."
+            "Huomioi myös kognitiiviset vinoumat (ks. Kahneman 2011) päätöksenteossa."
         ],
         "lahdeluettelo": [
             "Toulmin, Stephen E. 2003: The uses of argument. Päivitetty painos. Cambridge: Cambridge University Press. DOI: 10.1017/CBO9780511802031.",

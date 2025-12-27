@@ -78,149 +78,7 @@ class CoachAgent(BaseAgent):
             self.knowledge_base = {}
             return ""
 
-    @staticmethod
-    def find_citations_with_reasons(text: str, knowledge_base: Dict[str, Any]) -> Dict[str, List[str]]:
-        """
-        Scans text for references and returns them with discovery reasons.
-        Returns: {full_citation: [reason1, reason2]}
-        """
-        found = {} # citation -> list of reasons
-        if not knowledge_base:
-            return {}
-            
-        text_lower = text.lower()
-        
-        # A. Scan References (Loose Author Match)
-        refs = knowledge_base.get("references", [])
-        ref_lookup = {} 
-        for r in refs:
-            if isinstance(r, dict):
-                short = r.get("short_citation", "")
-                full = r.get("citation", "")
-                if short:
-                    ref_lookup[short.lower()] = full
-                    ref_lookup[short.strip("()").lower()] = full
-                
-                # Check Author Match
-                if short and len(short) > 3 and short.lower() in text_lower:
-                    if full not in found: found[full] = []
-                    found[full].append("Kirjoittajan nimi mainittu")
-
-        refs = knowledge_base.get("references", [])
-        ref_lookup = {}
-        
-        # Helper to normalize citation string for matching
-        # "Wang ym. 2023" -> "wang2023", "Acemoglu & Restrepo 2018" -> "acemoglurestrepo2018"
-        def normalize_cit_key(k):
-            k = k.lower()
-            # Remove prefixes first
-            prefixes = ["vrt", "cf", "e.g", "esim", "ks", "see"]
-            for p in prefixes:
-                 if k.startswith(p + ".") or k.startswith(p + " "):
-                     k = k.replace(p + ".", "").replace(p + " ", "")
-            
-            k = re.sub(r'[^a-z0-9]', '', k) # Remove all non-alphanumeric (spaces, &, dots)
-            return k
-
-        # Build lookup table
-        for r in refs:
-             full = r.get("citation", "")
-             short = r.get("short_citation", "")
-             if short:
-                 # Standard lookup
-                 ref_lookup[short.lower()] = full
-                 # Normalized lookup
-                 ref_lookup[normalize_cit_key(short)] = full
-
-        # B. Scan Concepts (Semantic Linking)
-        concepts = knowledge_base.get("concepts", {})
-        cit_pattern = re.compile(r'\((?:[A-Za-zÅÄÖåäö&,.-]+\s+)+\d{4}[a-z]?\)')
-        
-        # Concepts to ignore as "too generic" contexts
-        ignored_concepts = {"abstrakti", "tiivistelmä", "johdanto", "yhteenveto", "lähdeluettelo", "lähteet", "references", "abstract", "summary", "introduction"}
-
-        for term, defn in concepts.items():
-            if not term: continue
-            if term.lower() in ignored_concepts: continue
-            
-            if len(term) > 3 and term.lower() in text_lower:
-                matches = cit_pattern.findall(defn)
-                for m in matches:
-                    # Cleanup parens
-                    raw_key = m.strip("()")
-                    
-                    # 1. Try Exact Match
-                    resolved_ref = ref_lookup.get(raw_key.lower())
-                    
-                    # 2. Try Normalized Match
-                    if not resolved_ref:
-                        resolved_ref = ref_lookup.get(normalize_cit_key(raw_key))
-                    
-                    # 3. Ultra-Loose Match (Name + Year)
-                    # Solves: "Borsboom ym. 2004" vs DB "Borsboom & Mellenbergh 2004"
-                    # 3. Ultra-Loose Match (Name + Year[suffix])
-                    # Solves: "Perez ym. 2022b" should NOT match "Perez 2022a"
-                    if not resolved_ref:
-                        # Extract year AND optional suffix (2022a)
-                        year_match = re.search(r'(\d{4}[a-z]?)', raw_key.lower())
-                        if year_match:
-                            y = year_match.group(1) # e.g. "2022b"
-                            
-                            # Extract author (first word usually)
-                            # cleanup "vrt." etc first
-                            clean_scan = raw_key.lower()
-                            prefixes = ["vrt", "cf", "e.g", "esim", "ks", "see"]
-                            for p in prefixes:
-                                clean_scan = clean_scan.replace(p + ".", "").replace(p + " ", "")
-                            
-                            # Get first significant word (Author)
-                            words = re.findall(r'[a-zåäö]+', clean_scan)
-                            if words:
-                                author = words[0]
-                                # Scan ALL refs
-                                for r_item in refs:
-                                    full_txt = r_item.get("citation", "")
-                                    full_lower = full_txt.lower()
-                                    
-                                    # Must contain Name
-                                    if author not in full_lower:
-                                        continue
-                                        
-                                    # Must contain EXACT Year (e.g. "2022b")
-                                    # Use basic find, but ensure we don't match "2022" inside "2022b" if we searched for "2022"
-                                    # Actually, if we search "2022b", it MUST be in text.
-                                    # If we search "2022", and text has "2022a", strictly it's a mismatch or ambiguous.
-                                    # But for now, ensuring the SEARCH string exists in TARGET is enough to fix 2022b case.
-                                    
-                                    if y in full_lower:
-                                        # One safety check: If y is "2022", we don't want to match "2022b" blindly? 
-                                        # Let's keep it simple: The specific key used by user (2022b) must be found in ref.
-                                        resolved_ref = full_txt
-                                        break
-
-                    # 4. Fallback: Just return cleaned text if no DB match
-                    if not resolved_ref:
-                         # Cleanup prefixes commonly found in Finnish texts
-                         prefixes = ["vrt.", "cf.", "e.g.", "esim.", "ks.", "see"]
-                         clean_raw = raw_key.strip()
-                         for p in prefixes:
-                             if clean_raw.lower().startswith(p + " "):
-                                 clean_raw = clean_raw[len(p)+1:].strip()
-                             elif clean_raw.lower() == p: 
-                                 continue
-                         resolved_ref = clean_raw
-
-                    if resolved_ref and len(resolved_ref) > 4: 
-                        if resolved_ref not in found: found[resolved_ref] = []
-                        found[resolved_ref].append(f"Käsite: '{term}'")
-
-        return found
-
-    @staticmethod
-    def find_citations(text: str, knowledge_base: Dict[str, Any]) -> List[str]:
-        """Wrapper for backward compatibility."""
-        res = CoachAgent.find_citations_with_reasons(text, knowledge_base)
-        return sorted(list(res.keys()))
+    # Legacy code removed
 
     def post_process(self, state: WorkflowState) -> WorkflowState:
         """
@@ -232,7 +90,7 @@ class CoachAgent(BaseAgent):
     def enrich_learning_plan(self, state: WorkflowState) -> WorkflowState:
         """
         POST-HOOK: Scans the ENTIRE Workflow State.
-        Populates bibliography with Context (why the reference was chosen).
+        Populates bibliography using backend.hooks.references.generate_bibliography.
         """
         logger.info("[CoachAgent] Running enrich_learning_plan hook...")
         
@@ -250,37 +108,13 @@ class CoachAgent(BaseAgent):
         except Exception:
             text_dump = str(state.dict())
 
-        # 1. Strict Scan (Explicit citations)
-        kb_struct = {"references": self.knowledge_base.get("references", [])}
-        rm = ReferenceManager(kb_struct)
-        strict_refs = rm.scan_and_collect_references(text_dump)
-        
-        # 2. Loose/Concept Scan (Implicit)
-        loose_map = self.find_citations_with_reasons(text_dump, self.knowledge_base)
-        
-        # 3. Merge and Format
-        final_map = {}
-        
-        for ref in strict_refs:
-            final_map[ref] = {"Suora viittaus"}
-            
-        for ref, reasons in loose_map.items():
-            if ref not in final_map:
-                final_map[ref] = set()
-            final_map[ref].update(reasons)
-            
-        formatted_list = []
-        for ref in sorted(final_map.keys()):
-            reasons = sorted(list(final_map[ref]))
-            context_str = ", ".join(reasons)
-            if context_str:
-                formatted_list.append(f"{ref}  [Konteksti: {context_str}]")
-            else:
-                formatted_list.append(ref)
+        # Delegate to Hook
+        from backend.hooks.references import generate_bibliography
+        formatted_list = generate_bibliography(text_dump, self.knowledge_base)
 
         if hasattr(coach_plan_data, 'lahdeluettelo'):
              coach_plan_data.lahdeluettelo = formatted_list
-             logger.info(f"[CoachAgent] Populated bibliography with {len(formatted_list)} references found in global state.")
+        
+        logger.info(f"[CoachAgent] Populated bibliography with {len(formatted_list)} references found in global state.")
 
         return state
-

@@ -63,36 +63,49 @@ class GuardAgent(BaseAgent):
 
         validated_data = state.step_guard
         
-        # --- Python Banned Phrases Check Overlay ---
+        # --- 1. PII Sanitization Reporting ---
+        sanitization_log = state.aux_data.get('sanitization_log')
+        if sanitization_log and sanitization_log.get("threats_detected"):
+             threats = sanitization_log["threats_detected"]
+             logger.info(f"[GuardAgent] Reporting sanitization actions: {threats}")
+             if validated_data.security_check:
+                 validated_data.security_check.anonymisointi_tehty = True
+                 current_report = validated_data.security_check.tietosuoja_raportti or ""
+                 # Avoid duplicating if already present
+                 msg_part = "Järjestelmä poisti automaattisesti PII-tietoja"
+                 if msg_part not in current_report:
+                     validated_data.security_check.tietosuoja_raportti = (current_report + f"\n{msg_part}: {', '.join(threats)}.").strip()
+
+        # --- 2. Python Banned Phrases Check Overlay ---
         try:
              # Load banned phrases from aux_data (Injected by Engine)
             banned_phrases = state.aux_data.get('banned_phrases', [])
             
-            if not banned_phrases:
-                 return state
-
-            detected = []
-            # Scan all inputs
-            inputs_to_scan = [
-                state.inputs.history_text,
-                state.inputs.product_text,
-                state.inputs.reflection_text
-            ]
-            
-            for text in inputs_to_scan:
-                if not text: continue
-                text_lower = text.lower()
-                for phrase in banned_phrases:
-                    if phrase in text_lower:
-                        detected.append(phrase)
-            
-            if detected:
-                logger.warning(f"[GuardAgent] STRICT CHECK: Found banned phrases: {detected}")
-                validated_data.security_check.uhka_havaittu = True
-                if validated_data.security_check.adversariaalinen_simulaatio_tulos:
-                     validated_data.security_check.adversariaalinen_simulaatio_tulos += f"\n[SYSTEM ALERT] Banned phrases detected by strict filter: {', '.join(detected)}"
-                else:
-                     validated_data.security_check.adversariaalinen_simulaatio_tulos = f"[SYSTEM ALERT] Banned phrases detected by strict filter: {', '.join(detected)}"
+            if banned_phrases:
+                from backend.hooks.security import check_banned_phrases
+                
+                detected = []
+                # Scan all inputs
+                inputs_to_scan = [
+                    state.inputs.history_text,
+                    state.inputs.product_text,
+                    state.inputs.reflection_text
+                ]
+                
+                for text in inputs_to_scan:
+                    if not text: continue
+                    found = check_banned_phrases(text, banned_phrases)
+                    detected.extend(found)
+                
+                if detected:
+                    # Deduplicate
+                    detected = list(set(detected))
+                    logger.warning(f"[GuardAgent] STRICT CHECK: Found banned phrases: {detected}")
+                    validated_data.security_check.uhka_havaittu = True
+                    if validated_data.security_check.adversariaalinen_simulaatio_tulos:
+                         validated_data.security_check.adversariaalinen_simulaatio_tulos += f"\n[SYSTEM ALERT] Banned phrases detected by strict filter: {', '.join(detected)}"
+                    else:
+                         validated_data.security_check.adversariaalinen_simulaatio_tulos = f"[SYSTEM ALERT] Banned phrases detected by strict filter: {', '.join(detected)}"
                 
         except Exception as e:
             logger.error(f"[GuardAgent] Banned phrase check failed: {e}")
@@ -164,24 +177,11 @@ class GuardAgent(BaseAgent):
         """
         HOOK: sanitize_input
         Pre-hook. Sanitizes and anonymizes input data (PII Redaction).
-        Migrated from backend.services.hooks.
+        Delegates to backend.hooks.security.
         """
         logger.info("[GuardAgent] Running sanitize_input (Pre-Hook)...")
-        
-        import re
-        
-        # Define Regex patterns for PII
-        # Using robust patterns from both implementations
-        pii_patterns = {
-            "EMAIL": r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',
-            "PHONE_FI": r'\b(?:\+358|0)[\s-]?\d{2,3}[\s-]?\d{3,4}[\s-]?\d{3,4}\b',
-            "HETU": r'\b\d{6}[+A-]\d{3}[0-9A-Z]\b', # Finnish SSN
-            "CREDIT_CARD": r'\b(?:\d[ -]*?){13,16}\b',
-            "IP_ADDRESS": r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b'
-        }
+        from backend.hooks.security import sanitize_text
 
-        threats_detected = []
-        
         inputs_to_scan = {
             "history_text": state.inputs.history_text,
             "product_text": state.inputs.product_text,
@@ -189,25 +189,19 @@ class GuardAgent(BaseAgent):
         }
         
         updates = {}
+        all_threats = []
 
         for key, value in inputs_to_scan.items():
             if not value: continue
             
-            # 1. Normalize Unicode (Basic)
-            clean_value = "".join(ch for ch in value if ch.isprintable())
+            clean_text, threats = sanitize_text(value)
             
-            # 2. Robust PII Redaction
-            for pii_type, pattern in pii_patterns.items():
-                # Find unique matches for logging
-                matches = re.findall(pattern, clean_value)
-                if matches:
-                    distinct_matches = list(set(matches))
-                    threats_detected.append(f"{pii_type} detected in {key}: {len(distinct_matches)} unique items")
-                    
-                    # Redact
-                    clean_value = re.sub(pattern, f"[REDACTED_{pii_type}]", clean_value)
+            if threats:
+                formatted_threats = [f"{t} ({key})" for t in threats]
+                all_threats.extend(formatted_threats)
             
-            updates[key] = clean_value
+            if clean_text != value:
+                updates[key] = clean_text
             
         # Apply updates in-place
         if 'history_text' in updates: state.inputs.history_text = updates['history_text']
@@ -216,15 +210,11 @@ class GuardAgent(BaseAgent):
         
         # Store metadata about detection in aux_data
         state.aux_data['sanitization_log'] = {
-            "threats_detected": threats_detected,
+            "threats_detected": all_threats,
             "timestamp": "Now" 
         }
         
-        if threats_detected:
-            logger.warning(f"[GuardAgent] PII Sanitization: {threats_detected}")
-            # Update Guard output if available
-            if state.step_guard and state.step_guard.security_check:
-                state.step_guard.security_check.anonymisointi_tehty = True
-                state.step_guard.security_check.tietosuoja_raportti = f"Järjestelmä poisti automaattisesti PII-tietoja: {', '.join(threats_detected)}."
+        if all_threats:
+            logger.warning(f"[GuardAgent] PII Sanitization: {all_threats}")
             
         return state

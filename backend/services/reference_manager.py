@@ -100,3 +100,74 @@ class ReferenceManager:
                         used_refs.add(full_ref)
                         found = True
                         break
+
+    def advanced_scan(self, text_dump: str) -> Dict[str, List[str]]:
+        """
+        Performs a deep scan for citations, including direct matches and concept-based implicit links.
+        Returns: {Full_Reference_String: [List of Reasons/Contexts]}
+        Refactored from CoachAgent.find_citations_with_reasons.
+        """
+        found = {}
+        text_lower = text_dump.lower()
+        
+        # A. Strict Reference Scan
+        # Use existing map
+        for short, full in self.references_map.items():
+            if short in text_lower: # Basic substring match
+                 if full not in found: found[full] = []
+                 found[full].append("Suora viittaus")
+            else:
+                 # Check cleaned keys (no parens)
+                 clean_short = short.replace("(", "").replace(")", "")
+                 if clean_short in text_lower:
+                     if full not in found: found[full] = []
+                     found[full].append("Suora viittaus (ilman sulkeita)")
+
+        # B. Scan Concepts (Semantic Linking)
+        concepts = self.knowledge_base.get("concepts", {})
+        cit_pattern = re.compile(r'\((?:[A-Za-zÅÄÖåäö&,.-]+\s+)+\d{4}[a-z]?\)')
+        
+        ignored_concepts = {"abstrakti", "tiivistelmä", "johdanto", "yhteenveto", "lähdeluettelo", "lähteet", "references", "abstract", "summary", "introduction"}
+
+        for term, defn in concepts.items():
+            if not term: continue
+            if term.lower() in ignored_concepts: continue
+            
+            # If Concept TERM is mentioned in the text...
+            if len(term) > 3 and term.lower() in text_lower:
+                # ... check if the Concept DEFINITION has citations
+                if isinstance(defn, str):
+                    matches = cit_pattern.findall(defn)
+                    for m in matches:
+                        raw_key = m.strip("()")
+                        
+                        # Resolve raw_key to full reference
+                        resolved_ref = None
+                        
+                        # Try map first
+                        if raw_key.lower() in self.references_map:
+                            resolved_ref = self.references_map[raw_key.lower()]
+                        else:
+                            # Try fuzzy match
+                            for short, full in self.references_map.items():
+                                if raw_key.lower() in short or short in raw_key.lower():
+                                    resolved_ref = full
+                                    break
+                        
+                        # If not resolved, use raw key (fallback) but try to clean prefixes
+                        if not resolved_ref:
+                             prefixes = ["vrt.", "cf.", "e.g.", "esim.", "ks.", "see"]
+                             clean_raw = raw_key
+                             for p in prefixes:
+                                 if clean_raw.lower().startswith(p + " "):
+                                     clean_raw = clean_raw[len(p)+1:].strip()
+                             resolved_ref = clean_raw
+
+                        if resolved_ref and len(resolved_ref) > 4:
+                            if resolved_ref not in found: found[resolved_ref] = []
+                            msg = f"Käsite: '{term}'"
+                            if msg not in found[resolved_ref]:
+                                found[resolved_ref].append(msg)
+
+        return found
+

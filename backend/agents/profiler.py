@@ -41,50 +41,26 @@ class ProfilerAgent(BaseAgent):
     def analyze_text_metrics(self, state: WorkflowState) -> WorkflowState:
         """
         PRE-HOOK: Calculates objective text metrics from the input history/product.
+        Delegates to backend.hooks.metrics.
         """
-        print(f"DEBUG: INSIDE ProfilerAgent.analyze_text_metrics. State input history len: {len(state.inputs.history_text)}", flush=True)
-        logger.info("[ProfilerAgent] Running analyze_text_metrics hook...")
+        logger.info("[ProfilerAgent] Delegating to Metrics Hook...")
         
         # 1. Get Text to Analyze
-        text = state.inputs.history_text + "\n" + state.inputs.product_text
+        text = (state.inputs.history_text or "") + "\n" + (state.inputs.product_text or "")
         if not text.strip():
             logger.warning("[ProfilerAgent] No text to analyze.")
             return state
 
-        # 2. Calculate Metrics
-        words = re.findall(r'\b\w+\b', text.lower())
-        word_count = len(words)
+        # 2. Calculate Metrics using Hook
+        from backend.hooks.metrics import calculate_text_metrics
+        raw_metrics = calculate_text_metrics(text)
         
-        sentences = re.split(r'[.!?]+', text)
-        sentences = [s for s in sentences if s.strip()]
-        sentence_count = len(sentences)
-        
-        avg_sent_len = word_count / sentence_count if sentence_count > 0 else 0
-        
-        unique_words = set(words)
-        lex_diversity = len(unique_words) / word_count if word_count > 0 else 0
-        
-        caps = sum(1 for c in text if c.isupper())
-        total_chars = sum(1 for c in text if c.isalpha())
-        cap_ratio = caps / total_chars if total_chars > 0 else 0
-        
-        metrics = TextMetrics(
-            word_count=word_count,
-            sentence_count=sentence_count,
-            avg_sentence_length=round(avg_sent_len, 2),
-            lexical_diversity=round(lex_diversity, 2),
-            capitalization_ratio=round(cap_ratio, 2)
-        )
+        from backend.models.domain import TextMetrics
+        metrics = TextMetrics(**raw_metrics)
         
         logger.info(f"[ProfilerAgent] Metrics calculated: {metrics}")
         
         # 3. Inject into State (aux_data)
-        # The prompt template for Profiler will need to include {{PROFILER_METRICS}} or similar,
-        # OR we rely on the Engine's variable injection if we conform to it.
-        # For now, we store it in aux_data. 
-        # To make the LLM see it, we might need a custom `construct_user_prompt` or 
-        # ensure the prompt template uses {{PROFILER_METRICS}}.
-        
         state.aux_data['profiler_metrics'] = metrics.model_dump()
         
         return state

@@ -1270,7 +1270,7 @@
     {
       "id": "TASK_OVERSEER",
       "description": "Overseer - Hallucination Management",
-      "content": "VAIHE 9: VALVOJA (Hallucination Management)\nTEHTÄVÄT:\n1. TARKISTA faktat ulkoisista lähteistä (Google Search).\n2. JOS virhe löytyy: Tarkista, huomasiko/korjasiko käyttäjä sen?\n3. TUOMIO: Jos käyttäjä jätti virheen lopputuotteeseen -> Kirjaa 'KRIITTINEN LAIMINLYÖNTI'.\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (älä muuta kenttien nimiä):\n{{SCHEMA_EXAMPLE}}",
+      "content": "VAIHE 9: VALVOJA (Hallucination Management)\nTEHTÄVÄT:\n1. ANALYSOI hakutulokset (jotka on toimitettu kontekstissa 'google_search_results'). TARKISTA faktojen paikkansapitävyys.\n2. JOS virhe löytyy: Tarkista, huomasiko/korjasiko käyttäjä sen?\n3. TUOMIO: Jos käyttäjä jätti virheen lopputuotteeseen -> Kirjaa 'KRIITTINEN LAIMINLYÖNTI'.\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (älä muuta kenttien nimiä):\n{{SCHEMA_EXAMPLE}}",
       "type": "task"
     },
     {
@@ -1306,7 +1306,7 @@
     {
       "id": "TASK_INTERACTION",
       "description": "Interaction Analyst - Driver Metrics",
-      "content": "VAIHE 3: VUOROVAIKUTUS (Driver Metrics)\nTEHTÄVÄT:\n1. LASKE 'Input-Control Ratio': (Käyttäjän merkit / AI:n merkit). Jos alle 5%, liputa 'High Dependency'.\n2. TUNNISTA Strategia: Zero-shot (Hylätty), Few-shot (Hyväksytty), Chain-of-Thought (Kiitettävä).\n3. LUOKITTELE Arkkityyppi: 'Matkustaja' (Tilaa), 'Kartanlukija' (Korjaa), 'Kuski' (Ohjaa), 'Arkkitehti' (Suunnittelee).\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (älä muuta kenttien nimiä):\n{{SCHEMA_EXAMPLE}}",
+      "content": "VAIHE 3: VUOROVAIKUTUS (Driver Metrics)\nTEHTÄVÄT:\n1. ARVIOI Riippuvuussuhdetta (Dependency). (Huom: Järjestelmä laskee tarkan Input-Control Ration erikseen). Jos vaikuttaa, että käyttäjä on täysin riippuvainen, liputa 'High Dependency'.\n2. TUNNISTA Strategia: Zero-shot (Hylätty), Few-shot (Hyväksytty), Chain-of-Thought (Kiitettävä).\n3. LUOKITTELE Arkkityyppi: 'Matkustaja' (Tilaa), 'Kartanlukija' (Korjaa), 'Kuski' (Ohjaa), 'Arkkitehti' (Suunnittelee).\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (älä muuta kenttien nimiä):\n{{SCHEMA_EXAMPLE}}",
       "type": "task"
     },
     {
@@ -1403,7 +1403,7 @@
       "id": "INSTRUCTION_COACH_CITATION",
       "type": "instruction",
       "description": "Tiukat ohjeet lähdeluettelon luomiseen (Vain DB).",
-      "content": "CRITICAL: You MUST populate the 'lahdeluettelo' field using ONLY validated Knowledge Base sources.\n- Include references to Methodological Frameworks used in the analysis (e.g. Toulmin, Walton) if they appear in 'EXTERNAL SOURCES'.\n- Use the FULL bibliographic format found in the 'EXTERNAL SOURCES' section.\n- DO NOT list user input data (e.g. Sitra reports, memos) as a Reference Source unless it explicitly appears in the Knowledge Base.\n- If no Knowledge Base sources were used, leave the list empty.\n\nIMPORTANT: When creating 'kehityskohteet_konkreettisesti' (Action Items), you MUST include relevant citations.\n- Look at the 'EXTERNAL SOURCES' and 'REFERENCE MATERIAL' above.\n- If an Action Item relates to a concept (e.g. Reflection, Logic), find a matching Source/Reference.\n- Add the citation string to the 'resurssit' list of that Action Item.\n- CITATION STYLE (Kielitoimisto/Finnish Standard): Use precise parenthetical referencing, e.g., `(Sukunimi 2024)` or `(Sukunimi & Meikäläinen 2024)`."
+      "content": "CRITICAL: Do NOT populate the 'lahdeluettelo' field manually. The system will generate it programmatically based on your inline citations.\n\nYOUR TASK is to use inline citations explicitly in your text (e.g., '(Toulmin 2003)', '(Kahneman 2011)').\nEnsure you refer to the provided EXTERNAL SOURCES.\nLeave 'lahdeluettelo' as an empty list []."
     },
     {
       "id": "HEURISTIC_1",
