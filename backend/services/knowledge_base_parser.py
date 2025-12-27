@@ -177,6 +177,35 @@ class KnowledgeBaseParser:
                     current_concept = text
                     current_definition = []
                 elif "heading" in style_name or (len(text) < 50 and text.isupper()): 
+                     # GENERALIZED LOGIC: Use Heading Levels
+                     # Heading 1 detected via style name?
+                     # Note: python-docx style names are usually "Heading 1", "Heading 2" etc.
+                     
+                     is_structural = False
+                     
+                     # 1. Check Style Level
+                     if "heading 1" in style_name or "title" in style_name:
+                         is_structural = True
+                     
+                     # 2. Numbering Heuristic (Universal)
+                     # Detects "1. Header" vs "1.1. Subheader"
+                     # If it starts with a number and has 0 or 1 dots (e.g. "1" or "1."), it's Level 1 -> Structural.
+                     # If it has more dots (e.g. "1.1" or "1.2."), it's Level 2+ -> Concept.
+                     match_num = re.match(r'^(\d+(\.\d+)*)\.?\s+', text)
+                     if match_num:
+                         numbering = match_num.group(1) # "1" or "1.2"
+                         dot_count = numbering.count(".")
+                         # "1" (0 dots) or "10" -> Structural
+                         # "1.1" (1 dot if formatting is X.Y) -> Concept? 
+                         # Usually: Top level is just "1" or "1."
+                         if dot_count == 0:
+                             is_structural = True
+                     
+                     # 3. Fallback: Structural Keywords
+                     structural_keywords = {"lähdeluettelo", "lähteet", "references", "bibliography", "abstrakti", "tiivistelmä", "abstract", "analyysi", "analysis"}
+                     if any(k == text.lower().strip() or (text.lower().startswith(k) and len(text)<30) for k in structural_keywords):
+                         is_structural = True
+                         
                      if current_concept:
                         def_text = "\n".join(current_definition)
                         knowledge_base["concepts"].append({
@@ -189,7 +218,12 @@ class KnowledgeBaseParser:
                             c['concept_context'] = current_concept
                             knowledge_base["claims"].append(c)
                      
-                     current_concept = text
+                     if is_structural:
+                         logger.info(f"[KBParser] Skipping structural/H1 header: '{text}'")
+                         current_concept = None
+                     else:
+                         current_concept = text
+
                      current_definition = []
                 else:
                     if current_concept:

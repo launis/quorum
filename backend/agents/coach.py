@@ -138,11 +138,16 @@ class CoachAgent(BaseAgent):
 
         # B. Scan Concepts (Semantic Linking)
         concepts = knowledge_base.get("concepts", {})
-        # import re -> Removed, using global
         cit_pattern = re.compile(r'\((?:[A-Za-zÅÄÖåäö&,.-]+\s+)+\d{4}[a-z]?\)')
         
+        # Concepts to ignore as "too generic" contexts
+        ignored_concepts = {"abstrakti", "tiivistelmä", "johdanto", "yhteenveto", "lähdeluettelo", "lähteet", "references", "abstract", "summary", "introduction"}
+
         for term, defn in concepts.items():
-            if term and len(term) > 3 and term.lower() in text_lower:
+            if not term: continue
+            if term.lower() in ignored_concepts: continue
+            
+            if len(term) > 3 and term.lower() in text_lower:
                 matches = cit_pattern.findall(defn)
                 for m in matches:
                     # Cleanup parens
