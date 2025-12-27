@@ -1,108 +1,108 @@
-# Tekninen Arkkitehtuuri ja Analyysi (V2.0 Refactor)
+# Technical Architecture and Analysis (V2.0 Refactor)
 
-Tämä dokumentti kuvaa Cognitive Quorum v2.0 -järjestelmän teknisen arkkitehtuurin ja analysoi sen ydinominaisuuksia joulukuun 2025 refaktoroinnin jälkeen.
+This document describes the technical architecture of the Cognitive Quorum v2.0 system and analyzes its core features following the December 2025 refactoring.
 
 ---
 
-## 1. Ydinarkkitehtuuri: Modulaarinen Monoliitti
+## 1. Core Architecture: Modular Monolith
 
-Järjestelmä on rakennettu moderneilla Python-standardeilla, korostaen staattista tyypitystä ja selkeää rajapintojen erottelua.
+The system is built on modern Python standards, emphasizing static typing and clear interface separation.
 
 ### Backend (FastAPI)
 - **Framework:** FastAPI
-- **Validointi:** Pydantic v2 (Strict Mode) hyödyntäen `typing.Annotated`.
-- **Dokumentaatio:** 100% Google-style docstrings ja automaattisesti generoitu OpenAPI / Swagger.
-- **Rakenne:** Modulaariset reitittimet (`routers`) erotettuna ydinlogiikasta (`engine`, `services`).
+- **Validation:** Pydantic v2 (Strict Mode) utilizing `typing.Annotated`.
+- **Documentation:** 100% Google-style docstrings and automatically generated OpenAPI / Swagger.
+- **Structure:** Modular routers separated from core logic (`engine`, `services`).
 
 ### Frontend (Streamlit)
-- **Rooli:** Kevyt käyttöliittymäkerros, joka visualisoi backendin tilan.
-- **Kommunikaatio:** REST API -kutsut backendin state-endpointteihin.
+- **Role:** Lightweight UI layer that visualizes background state.
+- **Communication:** REST API calls to backend state endpoints.
 
-### Tietokanta (TinyDB Abstraction)
-- **Toteutus:** Tiedostopohjainen JSON-tietokanta (TinyDB) kääritään abstraktiokerroksella (`backend/database/wrapper.py`).
-- **Hyödyt:** Täysin siirrettävä (portable), ei vaadi erillistä tietokantapalvelinta asennuksessa.
-- **Seed Data:** Järjestelmän konfiguraatio ladataan `seed_data.json` -tiedostosta, mikä mahdollistaa "Infrastructure as Data" -mallin.
+### Database (TinyDB Abstraction)
+- **Implementation:** File-based JSON database (TinyDB) wrapped with an abstraction layer (`backend/database/wrapper.py`).
+- **Benefits:** Fully portable, requires no separate database server.
+- **Seed Data:** System configuration is loaded from `seed_data.json`, enabling an "Infrastructure as Data" model.
 
 ---
 
-## 2. Agenttiarkkitehtuuri (Cognitive Assembly Line)
+## 2. Agent Architecture (Cognitive Assembly Line)
 
-Agentit eivät ole itsenäisiä "mustia laatikoita", vaan ne toimivat osana determinististä liukuhihnaa (Workflow Pipeline).
+Agents are not independent "black boxes" but function as part of a deterministic pipeline.
 
-| Agentti | Rooli | Vastuualue |
+| Agent | Role | Responsibility |
 | :--- | :--- | :--- |
-| **GuardAgent** | Portinvartija | Tietoturva, PII-suojaus (Presidio-hook), syötteen sanitointi. |
-| **AnalystAgent** | Analyytikko | Datan esikäsittely ja strukturointi. |
-| **InteractionAnalyst** | Vuorovaikutus | Analysoi käyttäjän ja AI:n välistä dynamiikkaa. |
-| **ProfilerAgent** | Profiloija | Tunnistaa käyttäjän intention ja kognitiiviset vinoumat. |
-| **LogicianAgent** | Loogikko | Rakentaa loogiset argumenttirakenteet (Toulmin). |
-| **FalsifierAgent** | Falsifioija | Yrittää kumota hypoteesit ja testaa päättelyn kestävyyden. |
-| **CausalAgent** | Kausaalisuus | Analysoi syy-seuraussuhteet (DoWhy-hook). |
-| **DetectorAgent** | Detektori | Tunnistaa performatiivisuuden ja teeskentelyn. |
-| **OverseerAgent** | Valvoja | Faktantarkistus ja eettinen valvonta. |
-| **PanelAgent** | Paneeli | "Fan-out" -agentti, joka simuloi usean asiantuntijan paneelia (optimointi). |
-| **ArchivistAgent** | Arkistonhoitaja | Analysoi prosessin ja vertaa sitä aiempiin tapauksiin. |
-| **JudgeAgent** | Tuomari | Antaa lopputuomion (Verdicts) ja pisteyttää suorituksen. |
-| **CoachAgent** | Valmentaja | Tarjoaa kehitysehdotuksia ja pedagogista palautetta. |
-| **XAIReporter** | Raportoija | Tuottaa selitettävän (XAI) loppuraportin. |
+| **GuardAgent** | Gatekeeper | Security, PII protection (Presidio-hook), input sanitization. |
+| **AnalystAgent** | Analyst | Data preprocessing and structuring. |
+| **InteractionAnalyst** | Interaction | Analyzes dynamics between the user and AI. |
+| **ProfilerAgent** | Profiler | Identifies user intent and cognitive biases. |
+| **LogicianAgent** | Logician | Constructs logical argument structures (Toulmin). |
+| **FalsifierAgent** | Falsifier | Attempts to refute hypotheses and tests reasoning durability. |
+| **CausalAgent** | Causal | Analyzes cause-effect relationships (DoWhy-hook). |
+| **DetectorAgent** | Detector | Identifies performativity and pretense. |
+| **OverseerAgent** | Overseer | Fact-checking and ethical oversight. |
+| **PanelAgent** | Panel | "Fan-out" agent simulating a panel of experts (optimization). |
+| **ArchivistAgent** | Archivist | Analyzes the process and compares it to precedents. |
+| **JudgeAgent** | Judge | Delivers final verdict and scores performance. |
+| **CoachAgent** | Coach | Provides development suggestions and pedagogical feedback. |
+| **XAIReporter** | Reporter | Produces an explainable (XAI) final report. |
 
 ---
 
 ## 3. High-Fidelity Sync Loop
 
-Järjestelmä ylläpitää tilaa (`WorkflowState`) keskitetysti.
+The system maintains state (`WorkflowState`) centrally.
 
-1.  **Engine** lataa tilan kannasta.
-2.  **Runner** ajaa yhden askeleen (Agentin).
-3.  **Agentti** kutsuu LLM Provideria (`backend/llm/provider.py`).
-4.  **LLM** palauttaa strukturoidun JSON-vastauksen (Pydantic Schema).
-5.  **Agentti** päivittää tilan (`state.step_X`).
-6.  **Engine** tallentaa tilan kantaan.
+1.  **Engine** loads state from DB.
+2.  **Runner** executes one Step (Agent).
+3.  **Agent** calls LLM Provider (`backend/llm/provider.py`).
+4.  **LLM** returns structured JSON response (Pydantic Schema).
+5.  **Agent** updates state (`state.step_X`).
+6.  **Engine** saves state to DB.
 
-Tämä takaa, että jos prosessi kaatuu, se voidaan jatkaa tismalleen samasta kohdasta (State Persistence).
-
----
-
-## 4. Kehittyneet Ominaisuudet (Hooks)
-
-Agentit hyödyntävät deterministisiä "koukkuja" (Hooks) tehtäviin, jotka vaativat tarkkuutta yli LLM:n kykyjen.
-
-*   **RAG (Retrieval-Augmented Generation):** Semanttinen haku dokumenteista (`backend/services/knowledge_base_service.py`).
-*   **Causal Inference (DoWhy):** Tilastollinen kausaalianalyysi (`backend/hooks/causal.py`).
-*   **PII Protection (Presidio):** Henkilötietojen tunnistus ja maskaus (`backend/hooks/security.py`).
-*   **Google Search:** Reaaliaikainen tiedonhaku (`backend/hooks/search.py`).
+This ensures that if the process crashes, it can resume from exactly the same point (State Persistence).
 
 ---
 
-## 5. Dokumentaatio ja Laadunvarmistus
+## 4. Advanced Features (Hooks)
 
-Refaktoroinnin (Dec 2025) myötä koodikanta noudattaa tiukkoja standardeja:
+Agents utilize deterministic "Hooks" for tasks requiring precision beyond LLM capabilities.
 
-*   **Täydellinen tyypitys:** Kaikki funktiot ja metodit käyttävät Type Hintingia.
-*   **Annotated Pydantic:** Tietomallit käyttävät `Annotated[Type, Field(...)]` -syntaksia.
-*   **Google-Style Docstrings:** Jokainen moduuli, luokka ja funktio on dokumentoitu standardin mukaisesti.
-*   **Englanninkielinen koodi:** Kaikki kommentit ja sisäinen dokumentaatio on englanniksi (käyttäjälle näkyvä sisältö suomeksi/englanniksi).
+*   **RAG (Retrieval-Augmented Generation):** Semantic document search (`backend/services/knowledge_base_service.py`).
+*   **Causal Inference (DoWhy):** Statistical causal analysis (`backend/hooks/causal.py`).
+*   **PII Protection (Presidio):** PII detection and masking (`backend/hooks/security.py`).
+*   **Google Search:** Real-time data retrieval (`backend/hooks/search.py`).
+
+---
+
+## 5. Documentation and Quality Assurance
+
+Following the refactoring, the codebase adheres to strict standards:
+
+*   **Full Typing:** All functions and methods use Type Hinting.
+*   **Annotated Pydantic:** Data models use `Annotated[Type, Field(...)]` syntax.
+*   **Google-Style Docstrings:** Every module, class, and function is documented to standard.
+*   **English Codebase:** All comments and internal documentation are in English (user-facing content in Finnish/English).
 
 ```mermaid
 graph TD
-    User[Käyttäjä] --> FE[Frontend (Streamlit)]
+    User["User"] --> FE["Frontend (Streamlit)"]
     
     subgraph "Backend (FastAPI)"
-        FE -- REST API --> API[Routers]
-        API --> Engine[Workflow Engine]
+        FE -- REST API --> API["Routers"]
+        API --> Engine["Workflow Engine"]
         
-        Engine -- "Load State" --> DB[(TinyDB JSON)]
-        Engine -- "Execute Step" --> Runner[Pipeline Runner]
+        Engine -- "Load State" --> DB[("TinyDB JSON")]
+        Engine -- "Execute Step" --> Runner["Pipeline Runner"]
         
         subgraph "Agent Execution"
-            Runner --> Agent[Base Agent]
-            Agent --> Prompt[Prompt Builder]
-            Agent --> LLM[LLM Provider (Gemini)]
+            Runner --> Agent["Base Agent"]
+            Agent --> Prompt["Prompt Builder"]
+            Agent --> LLM["LLM Provider (Gemini)"]
             
-            Agent -- "Invoke Hook" --> Hooks[Deterministic Hooks]
-            Hooks --> PII[Security/PII]
-            Hooks --> RAG[Knowledge Base]
-            Hooks --> Stats[Causal/Metrics]
+            Agent -- "Invoke Hook" --> Hooks["Deterministic Hooks"]
+            Hooks --> PII["Security/PII"]
+            Hooks --> RAG["Knowledge Base"]
+            Hooks --> Stats["Causal/Metrics"]
         end
         
         Agent -- "Update State" --> Engine

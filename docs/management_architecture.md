@@ -1,27 +1,27 @@
 # Management Architecture
 
-The Management Architecture for Cognitive Quorum v2 is a decoupled system designed for dynamic, real-time configuration of the AI engine. It enables administrators to manage the system's core logic—workflows, prompts, and agent configurations—through a web interface, eliminating the need for code changes or new deployments for logic updates.
+The Management Architecture for Cognitive Quorum v2.0 is a decoupled system designed for dynamic, real-time configuration of the AI engine. It enables administrators to manage the system's core logic—workflows, prompts, and agent configurations—through a web interface, eliminating the need for code changes or new deployments for logic updates.
 
 This architecture separates the system into four key components: a user-facing Frontend, an API-driven Backend, a data-driven Generic Engine, and a Database that acts as the single source of truth for all configuration.
 
 ## System Components
 
-The v2 architecture is composed of distinct, interacting services. This separation of concerns enhances scalability, maintainability, and flexibility.
+The v2.0 architecture is composed of distinct, interacting services. This separation of concerns enhances scalability, maintainability, and flexibility.
 
 ```mermaid
 graph TD
     subgraph "User Interface"
-        A[Management UI (Streamlit)]
+        A["Management UI (Streamlit)"]
     end
     subgraph "Application Layer"
-        B[Backend (FastAPI)]
+        B["Backend (FastAPI)"]
     end
     subgraph "Core Logic"
-        C[Generic Engine]
-        D[Agents]
+        C["Generic Engine"]
+        D["Agents"]
     end
     subgraph "Data Layer"
-        E[Database (db.json)]
+        E["Database (db.json)"]
     end
 
     A -- API Calls (HTTP) --> B
@@ -32,79 +32,66 @@ graph TD
     D -- Uses Config from --> E
 ```
 
-*   **Frontend (Streamlit)**: A web-based user interface for system administrators. It provides tools to edit all system configurations. It communicates exclusively with the Backend via API calls and has no direct access to the database.
-*   **Backend (FastAPI)**: A RESTful API that serves as the system's control plane. It handles all incoming requests from the frontend, validates data, and is the sole component responsible for reading from and writing to the database.
-*   **Generic Engine**: The core processing unit. When a task is initiated by the backend, the Engine reads the corresponding workflow definition from the database. It then executes the defined sequence of steps, invoking the appropriate Agents with their specified configurations.
-*   **Database (JSON)**: The single source of truth for the entire system's configuration. It stores all prompts, rules, agent settings, and the workflow definitions that dictate the engine's behavior.
+### Frontend (Streamlit)
+A web-based user interface (`pages/Management_Dashboard.py`) for system administrators. It provides tools to edit all system configurations. It communicates exclusively with the Backend via API calls and has no direct access to the database.
+
+### Backend (FastAPI)
+A RESTful API that serves as the system's control plane. It handles all incoming requests from the frontend, validates data, and is the sole component responsible for reading from and writing to the database.
+
+### Generic Engine
+The core processing unit. When a task is initiated by the backend, the Engine reads the corresponding workflow definition from the database. It then executes the defined sequence of steps, invoking the appropriate Agents with their specified configurations.
+
+### Database (JSON)
+The single source of truth for the entire system's configuration. It stores all prompts, rules, agent settings, and the workflow definitions that dictate the engine's behavior.
 
 ## The Data-Driven Workflow Engine
 
-Cognitive Quorum v2 operates as a generic, data-driven engine. All processing logic is defined as a **Workflow** within the database, rather than being hardcoded in the application.
+Cognitive Quorum v2.0 operates as a generic, data-driven engine. All processing logic is defined as a Workflow within the database, rather than being hardcoded in the application.
 
-A workflow is an ordered list of **Steps**. Each step is a JSON object that instructs the engine on what to do, defining:
-*   `agent_name`: The specific agent to execute (e.g., `ScoringAgent`, `RefinementAgent`).
-*   `prompt_id`: The ID of the prompt template to load from the database.
-*   `config`: Agent-specific parameters, such as the LLM to use (`gpt-4-turbo`, `gemini-1.5-flash`), output parsing rules, and other settings.
+A **Workflow** is an ordered list of **Steps**. Each step is a JSON object that acts as an instruction, defining:
 
-This data-driven approach means new, complex behaviors and chains of logic can be created, tested, and deployed entirely through the Management UI simply by defining or modifying a workflow in the database.
+*   **`agent_name`**: The specific agent class to execute (e.g., `LogicianAgent`, `JudgeAgent`).
+*   **`prompt_id`**: The ID of the prompt template to load.
+*   **`llm_config`**: Agent-specific parameters, such as the LLM model (e.g., `gemini-1.5-pro`) and temperature.
+*   **`output_schema`**: The Pydantic model name (e.g., `JudgeVerdict`) used for strict validation.
+
+This data-driven approach means new, complex behaviors can be created entirely through the Management UI.
 
 ## Management Data Flow
 
-All configuration changes follow a clear, API-driven pattern. Unlike v1's "deploy to seed" model, changes are persisted immediately and transactionally via the API.
+All configuration changes follow a clear, API-driven pattern. Unlike v1's "deploy to seed" model, changes are persisted immediately via the API.
 
-Here is the flow for a typical change, such as updating a prompt:
 1.  **Edit**: An administrator modifies a prompt in the Streamlit UI.
-2.  **API Request**: Upon saving, the UI sends a `PUT /api/prompts/{prompt_id}` request to the FastAPI backend with the new content.
-3.  **Persistence**: The backend validates the data and updates the corresponding record in the database (`db.json` or `db_mock.json`).
-4.  **Confirmation**: The backend returns a success response (e.g., `200 OK`) to the UI.
-5.  **Live Update**: The change is now live. Any subsequent workflow run initiated by the engine will read the updated prompt directly from the database.
+2.  **API Request**: Upon saving, the UI sends a `PUT /prompts/{id}` request to the FastAPI backend.
+3.  **Persistence**: The backend validates the data and updates the record in the active database (`db.json` or `db_mock.json`).
+4.  **Live Update**: The change is live immediately.
 
-```mermaid
-sequenceDiagram
-    participant User
-    participant StreamlitUI as "Frontend (Streamlit)"
-    participant FastAPI as "Backend (FastAPI)"
-    participant Database
-
-    User->>StreamlitUI: Edits a Prompt and Clicks Save
-    StreamlitUI->>FastAPI: PUT /api/prompts/{id} with new content
-    FastAPI->>Database: UPDATE prompt record
-    Database-->>FastAPI: Success
-    FastAPI-->>StreamlitUI: 200 OK
-    StreamlitUI->>User: Shows "Save Successful" message
-
-    Note right of Database: The change is now live for all future engine runs.
-```
-
-## UI Components (`pages/management.py`)
+## UI Components (`pages/Management_Dashboard.py`)
 
 The Management Dashboard is organized into task-oriented tabs:
 
 ### 1. Workflow Editor
-This is the primary interface for defining the system's behavior.
-*   **Visualizer**: Displays the sequence of agent steps for a selected workflow.
-*   **Step Configuration**: Allows administrators to add, remove, and reorder steps in a workflow. For each step, they can select the agent, assign a prompt, and configure parameters like the model (e.g., `gemini-1.5-flash` vs `gemini-1.5-pro`).
+The primary interface for defining behavior.
+*   **Visualizer**: Displays the sequence of agent steps.
+*   **Step Configuration**: Drag-and-drop interface to add/remove/reorder steps and assign Agents/Prompts.
 
 ### 2. Prompts & Rules Editor
-This area manages the content assets used by the workflows.
-*   **Prompt Editor**: A text editor for creating and modifying prompt templates, with support for Jinja2 syntax.
-*   **Rules/Mandates Editor**: A structured interface for editing sets of rules that can be injected into prompts.
-*   **Previewer**: Shows how a prompt will render after Jinja2 variables are populated with sample data.
+Manages the content assets.
+*   **Prompt Editor**: Jinja2-aware text editor.
+*   **Rules Editor**: Managed list of Mandates and Protocols.
+*   **Previewer**: Real-time rendering of prompts with sample data.
 
 ### 3. System Maintenance
-Tools for managing the system's data and environments.
-*   **Database Seeding**: An API-driven function that resets the active database to a baseline state by loading it from a `seed.json` file.
-*   **Environment Sync**: Tools to promote configurations between the Mock and Production environments via API calls.
-    *   *Deploy Mock to Prod*: Copies the entire validated Mock DB configuration to the Prod DB.
-    *   *Sync Prod to Mock*: Copies the live Prod DB to the Mock DB for safe testing or debugging.
+*   **Database Seeding**: Reset the active database to `seed_data.json` baseline interactively via API.
+*   **Environment Sync**: APIs to promote configurations from Mock to Prod (`Deploy Mock to Prod`) or clone Prod to Mock (`Sync Prod to Mock`).
 
 ## Environments & Data Synchronization
 
-The system maintains two parallel environments to ensure safe development and testing of configuration changes.
+The system maintains two parallel environments:
 
 | Environment | Database File | Purpose |
 | :--- | :--- | :--- |
-| **MOCK** | `data/db_mock.json` | A sandbox for safely creating and testing new prompts, rules, and workflows. |
-| **PROD** | `data/db.json` | The live environment used for production processing. |
+| **MOCK** | `data/db_mock.json` | Sandbox for testing new prompts and workflows. |
+| **PROD** | `data/db.json` | Live production processing. |
 
-The Management UI sends API requests to the active backend (determined by environment variables). The backend is solely responsible for all interactions with the corresponding database file, ensuring a clean separation of concerns and data integrity.
+The Backend determines the active database from the `ENV` environment variable, ensuring isolation.
