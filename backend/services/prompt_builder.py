@@ -11,7 +11,18 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 class PromptBuilder:
+    """
+    Service responsible for constructing, enriching, and formatting LLM prompts.
+    Handles dynamic variables, state injection, and schema exemplars.
+    """
     def __init__(self, repository: AbstractWorkflowRepository, agent_registry: AgentRegistry):
+        """
+        Initializes PromptBuilder.
+
+        Args:
+            repository (AbstractWorkflowRepository): Storage for prompt templates.
+            agent_registry (AgentRegistry): Service to lookup agent schemas.
+        """
         self.repository = repository
         self.registry = agent_registry
 
@@ -19,7 +30,14 @@ class PromptBuilder:
         """
         Fetches the step configuration and constructs the full system prompt
         by concatenating the content of all referenced prompt components.
-        Refactored to use helper methods for component resolution and variable injection.
+        Injects dynamic variables (e.g., {{HISTORY_TEXT}}) if state is provided.
+
+        Args:
+            step_id (str): The ID of the step to build prompt for.
+            current_state (Optional[WorkflowState]): Current context for variable replacement.
+
+        Returns:
+            str: The fully expanded system prompt text.
         """
         try:
             step_data = self.repository.get_step_by_id(step_id)
@@ -58,7 +76,10 @@ class PromptBuilder:
     # --- HELPER METHODS ---
 
     def _resolve_prompt_components(self, step_data: Dict[str, Any]) -> list[str]:
-        """Fetches content from all prompt components linked to the step."""
+        """
+        Fetches content from all prompt components linked to the step.
+        Resolves references stored in 'execution_config.llm_prompts'.
+        """
         exec_config = step_data.get('execution_config', {})
         prompt_ids = exec_config.get('llm_prompts', [])
         parts = []
@@ -76,6 +97,7 @@ class PromptBuilder:
         return parts
 
     def _inject_banned_phrases(self, content: str) -> str:
+        """Injects the list of banned phrases into the {{BANNED_PHRASES}} placeholder."""
         if "{{BANNED_PHRASES}}" in content:
             phrases = [p['phrase'] for p in self.repository.get_banned_phrases()]
             phrases_str = ", ".join([f'"{p}"' for p in phrases]) if phrases else "NONE"
@@ -83,6 +105,7 @@ class PromptBuilder:
         return content
 
     def _inject_global_variables(self, content: str) -> str:
+        """Injects environment data (Date, Time, Location) into placeholders."""
         if "{{CURRENT_DATE}}" in content:
             now_str = datetime.now().strftime("%d.%m.%Y")
             content = content.replace("{{CURRENT_DATE}}", now_str)
@@ -96,7 +119,8 @@ class PromptBuilder:
             location_str = ""
             try:
                 # Short timeout to avoid blocking execution
-                response = requests.get('https://ipapi.co/json/', timeout=2)
+                global_ip_api = 'https://ipapi.co/json/'
+                response = requests.get(global_ip_api, timeout=2)
                 if response.status_code == 200:
                     data = response.json()
                     city = data.get('city')
@@ -112,7 +136,10 @@ class PromptBuilder:
         return content
 
     def _inject_state_variables(self, content: str, state: WorkflowState) -> str:
-        """Injects dynamic state values into the prompt content."""
+        """
+        Injects dynamic values from the WorkflowState.
+        Handles History, Product, Reflection, and previous outputs.
+        """
         replacements = {
             "{{CURRENT_STEP_NAME}}": state.current_step_name or "Unknown",
             "{{HISTORY_TEXT}}": state.inputs.history_text,
@@ -136,6 +163,7 @@ class PromptBuilder:
         return content
 
     def _inject_schema_example(self, content: str, step_data: Dict[str, Any]) -> str:
+        """Injects a JSON schema example for the target agent into {{SCHEMA_EXAMPLE}}."""
         if "{{SCHEMA_EXAMPLE}}" not in content:
             return content
             
@@ -151,8 +179,15 @@ class PromptBuilder:
 
     def _generate_schema_json(self, agent_instance: Any) -> str:
         """
-        Extracts JSON schema example from an agent.
+        Extracts JSON schema example from an agent instance.
         Standardizes on Pydantic v2 'model_json_schema()'.
+        Fallback to mock data if schema generation fails.
+
+        Args:
+            agent_instance (Any): The instantiated agent object.
+
+        Returns:
+            str: JSON string of the schema example.
         """
         try:
             if hasattr(agent_instance, 'get_response_schema'):
@@ -190,6 +225,19 @@ class PromptBuilder:
             return f"Error generating schema example: {str(e)}"
 
     def preview_step_prompt(self, step_id: str) -> Dict[str, Any]:
+        """
+        Generates a preview of the prompt for a specific step.
+        Used by the UI Builder.
+
+        Args:
+            step_id (str): The Step ID.
+
+        Returns:
+            Dict[str, Any]: Preview object containing system instruction and user template.
+
+        Raises:
+            StepNotFoundError: If step does not exist.
+        """
         # 1. Fetch Step Record
         step_data = self.repository.get_step_by_id(step_id)
         if not step_data:
@@ -200,8 +248,6 @@ class PromptBuilder:
         # 2. Construct Prompt
         prompt = self.construct_prompt(step_id)
         if not prompt:
-            # Maybe raise exception or return empty?
-            # prompt construction failing might be app error
             logger.warning(f"Constructed prompt empty for {step_id}")
         
         # 3. Return Structured Data for UI
@@ -222,6 +268,16 @@ class PromptBuilder:
         return preview_data
 
     def preview_full_chain_prompts(self, workflow_id: str) -> str:
+        """
+        Generates a markdown concatenation of ALL prompts in a workflow.
+        Useful for auditing the entire logic chain.
+
+        Args:
+            workflow_id (str): The Workflow ID.
+
+        Returns:
+            str: Markdown textual representation.
+        """
         wf_record = self.repository.get_workflow_by_id(workflow_id)
         if not wf_record:
             raise WorkflowNotFoundError(workflow_id)

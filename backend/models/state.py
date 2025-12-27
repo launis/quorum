@@ -1,4 +1,4 @@
-from typing import Optional, List, Dict, Any, Literal, Union
+from typing import Optional, List, Dict, Any, Literal, Union, Annotated
 from pydantic import BaseModel, Field
 from datetime import datetime
 from backend.models.domain import (
@@ -20,50 +20,55 @@ from backend.models.domain import (
 
 class InputData(BaseModel):
     """Raakadata, joka tulee käyttäjältä."""
-    history_text: str
-    product_text: str
-    reflection_text: str
+    history_text: Annotated[str, Field(description="Historical context (chat logs, previous events).")]
+    product_text: Annotated[str, Field(description="The primary artifact or text to be analyzed.")]
+    reflection_text: Annotated[str, Field(description="Self-reflection or meta-commentary provided by the user.")]
+    
     # Optional bibliography context
-    bibliography_context: Optional[List[str]] = None
+    bibliography_context: Annotated[Optional[List[str]], Field(description="Optional list of reference citations.")] = None
 
 class WorkflowState(BaseModel):
     """
-    Tämä on "Blackboard". Se elää muistissa koko ajon ajan.
+    Tämä on "Blackboard" (Workflow State). Se elää muistissa koko ajon ajan.
     Kaikki agentit lukevat tästä ja kirjoittavat tähän.
     """
     # Metadata
-    execution_id: str
-    start_time: datetime = Field(default_factory=datetime.now)
-    current_step_name: str = "init"
+    execution_id: Annotated[str, Field(description="Unique UUID for this execution instance.")]
+    start_time: Annotated[datetime, Field(default_factory=datetime.now, description="Execution start timestamp.")]
+    current_step_name: Annotated[str, Field(description="Name of the currently executing step/agent.")] = "init"
     
     # Syötteet (Read-only agenteille)
-    inputs: InputData
+    inputs: Annotated[InputData, Field(description="Immutable input data.")]
     
     # Agenttien tulosteet (Alussa None, täyttyvät matkan varrella)
-    step_guard: Optional[TaintedData] = None
-    step_analyst: Optional[TodistusKartta] = None
-    step_profiler: Optional[ProfilerAnalysis] = None # Step 2.5
-    step_logician: Optional[ArgumentaatioAnalyysi] = None
-    step_falsifier: Optional[LogiikkaAuditointi] = None
-    step_overseer: Optional[EtiikkaJaFakta] = None
-    step_causal: Optional[KausaalinenAuditointi] = None
-    step_detector: Optional[PerformatiivisuusAuditointi] = None
-    step_judge: Optional[TuomioJaPisteet] = None
-    step_archivist: Optional[CaseLawContext] = None # Step 8.5/8a
-    step_coach: Optional[CoachingPlan] = None # Step 8.5/8c
-    step_interaction: Optional[InteractionAnalysis] = None # Step 2.2
-    step_panel: Optional[PanelAudit] = None
-    step_reporter: Optional[XAIReport] = None
+    step_guard: Annotated[Optional[TaintedData], Field(description="Agent 1: Security & PII checks.")] = None
+    step_analyst: Annotated[Optional[TodistusKartta], Field(description="Agent 2: Research & Evidence.")] = None
+    step_profiler: Annotated[Optional[ProfilerAnalysis], Field(description="Agent 2.5: Psych/Text Analysis.")] = None
+    step_logician: Annotated[Optional[ArgumentaatioAnalyysi], Field(description="Agent 3: Logical Structure Analysis.")] = None
+    step_falsifier: Annotated[Optional[LogiikkaAuditointi], Field(description="Agent 4: Stress Testing & Falsification.")] = None
+    step_overseer: Annotated[Optional[EtiikkaJaFakta], Field(description="Agent 5: Ethics & Fact Checking.")] = None
+    step_causal: Annotated[Optional[KausaalinenAuditointi], Field(description="Agent 6: Causal & Counterfactual Analysis.")] = None
+    step_detector: Annotated[Optional[PerformatiivisuusAuditointi], Field(description="Agent 7: Performativity & Authenticity.")] = None
+    step_judge: Annotated[Optional[TuomioJaPisteet], Field(description="Agent 9: Scoring & Verdict.")] = None
+    step_archivist: Annotated[Optional[CaseLawContext], Field(description="Agent 8a: Historical alignment.")] = None
+    step_coach: Annotated[Optional[CoachingPlan], Field(description="Agent 8c: Feedback & Action Plan.")] = None
+    step_interaction: Annotated[Optional[InteractionAnalysis], Field(description="Agent 2.2: Interaction Dynamics.")] = None
+    step_panel: Annotated[Optional[PanelAudit], Field(description="Agent 5 (Parallel): Consolidated Audit.")] = None
+    step_reporter: Annotated[Optional[XAIReport], Field(description="Agent 10: Final Executive Report.")] = None
 
     # Formatted output
-    xai_report_formatted: Optional[str] = None
+    xai_report_formatted: Annotated[Optional[str], Field(description="Final markdown report cache.")] = None
 
     # Apumuuttujat
-    aux_data: Dict[str, Any] = Field(default_factory=dict)
+    aux_data: Annotated[Dict[str, Any], Field(default_factory=dict, description="Temporary storage for hooks and side-effects.")]
 
     def get_previous_outputs_summary(self) -> str:
         """
-        Kerää yhteenvedon aiempien vaiheiden tuloksista.
+        Generates a text summary of all previous agent outputs.
+        Used to provide context to subsequent agents.
+
+        Returns:
+            str: Concatenated JSON dumps of visited steps.
         """
         summary = []
         steps = [
@@ -99,8 +104,12 @@ class WorkflowState(BaseModel):
 
     def to_flat_dict(self) -> Dict[str, Any]:
         """
-        Flattens the state into a smart 2-layer structure for UI consumption.
-        Groups data by logical domain rather than agent identity.
+        Projects the complex state into a simplified, flat dictionary.
+        This structured is optimized for frontend UI consumption (React/JSON).
+        Does NOT rely on specific UI code but organizes data logically.
+
+        Returns:
+            Dict[str, Any]: The flattened result object.
         """
         # DEBUG TRACE
         flat = {}
@@ -221,9 +230,6 @@ class WorkflowState(BaseModel):
         # Assign to root
         flat["Report"] = report
         
-        # 6. Raw Data (Legacy/Debug Support)
-        # We include the raw dumps of steps for components that rely on specific internal structures
-        # or for "View Raw JSON" debugging.
         # 6. Raw Data (Legacy/Debug Support)
         # Step 1 Cleanup: Excluding purely technical IDs and hashes.
         noise_fields = {

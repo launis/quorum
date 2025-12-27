@@ -16,16 +16,35 @@ class DocumentService:
     Unified service for handling document ingestion, processing, and archiving.
     Supports:
     - Evidence files (PDF/DOCX -> Text) for WorkflowEngine
-    - Knowledge Base files (DOCX -> Structured JSON) for KnowledgeBaseService
+    - Knowledge Base files (DOCX/MD -> Structured JSON) for KnowledgeBaseService
+    
+    Architecture:
+    - Uses 'run_in_threadpool' for CPU-bound tasks (OCR/Extraction).
+    - Uses AbstractStorage for file persistence.
     """
     def __init__(self, storage_client: AbstractStorage):
+        """
+        Initializes the service.
+
+        Args:
+            storage_client (AbstractStorage): The storage backend.
+        """
         self.storage_client = storage_client
 
     async def process_evidence_files(self, execution_id: str, files: Dict[str, Tuple[str, bytes]]) -> Dict[str, str]:
         """
-        Archives files to storage and extracts text for workflow execution.
-        Returns dictionary of {input_key: extracted_text}
-        files format: { "input_key": ("filename.ext", b"file_bytes") }
+        Archives evidence files to storage and extracts text for workflow execution.
+        Handles PDF and DOCX formats automatically.
+
+        Args:
+            execution_id (str): UUID of the execution context.
+            files (Dict[str, Tuple[str, bytes]]): Map of {input_key: (filename, content)}.
+
+        Returns:
+            Dict[str, str]: Map of {input_key: extracted_text_content}.
+
+        Raises:
+            FatalInterruption: If file processing fails critically.
         """
         extracted_data = {}
         
@@ -74,8 +93,19 @@ class DocumentService:
 
     async def process_knowledge_base_file(self, content: bytes, filename: str, job_id: str) -> Dict[str, Any]:
         """
-        Archives KB file and parses it into concepts/references.
-        Returns structured data (JSON-compatible dict).
+        Archives Knowledge Base file and parses it into concepts/references.
+        Supports both DOCX and Markdown formats.
+
+        Args:
+            content (bytes): File content.
+            filename (str): Name of the file.
+            job_id (str): Background task ID for storage organization.
+
+        Returns:
+            Dict[str, Any]: Structured data (concepts, references) for ingestion.
+
+        Raises:
+            ValueError: If file type is unsupported.
         """
         is_docx = filename.lower().endswith(".docx")
         is_md = filename.lower().endswith(".md")
@@ -109,7 +139,18 @@ class DocumentService:
 
     @staticmethod
     def _extract_text_from_pdf(input_data: Union[str, bytes]) -> str:
-        """Extracts text from a PDF file or bytes."""
+        """
+        Extracts plain text from a PDF file using PyMuPDF (fitz).
+        
+        Args:
+            input_data (Union[str, bytes]): File path or bytes content.
+
+        Returns:
+            str: Extracted text.
+
+        Raises:
+            Exception: If parsing fails.
+        """
         try:
             doc = None
             if isinstance(input_data, str):
@@ -131,7 +172,19 @@ class DocumentService:
 
     @staticmethod
     def _extract_text_from_docx(input_data: Union[str, bytes]) -> str:
-        """Extracts text from a DOCX file or bytes."""
+        """
+        Extracts plain text from a DOCX file using python-docx.
+        Includes text from paragraphs and tables.
+
+        Args:
+            input_data (Union[str, bytes]): File path or bytes content.
+
+        Returns:
+            str: Extracted text.
+
+        Raises:
+            Exception: If parsing fails.
+        """
         try:
             doc = None
             if isinstance(input_data, str):

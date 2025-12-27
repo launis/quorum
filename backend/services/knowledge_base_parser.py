@@ -7,18 +7,28 @@ logger = logging.getLogger(__name__)
 
 class KnowledgeBaseParser:
     """
-    Parses 'Holistinen Mestaruus.docx' into concepts and bibliography.
+    Parses unstructured documents (DOCX, Markdown) into structured Knowledge Base entries.
+    Extracts Concepts, References, and Claims using heuristic detection and ReGex patterns.
     """
 
     @staticmethod
     def extract_claims_from_text(text: str) -> List[Dict[str, Any]]:
         """
-        Extracts sentences containing citations (claims) from text.
+        Extracts sentences containing citations (claims) from text using ReGex.
+        
+        Detection Rules:
+        - Markdown Links: [Context](#anchor)
+        - Academic Citations: (Author 2020) or (Author et al. 2020)
+
+        Args:
+            text (str): The raw text to scan.
+
         Returns:
-            claim_text: Clean text WITHOUT citation
-            citation_text: The internal text representation of the citation (e.g. "Author 2020")
-            citation_keys: Machine ID for matching (e.g. "author2020")
-            original_markdown: Will be populated with Full Bibliography Reference later.
+            List[Dict[str, Any]]: List of claim objects with keys:
+                - claim_text (str): Cleaned sentence without citation markers.
+                - citation_keys (List[str]): Extracted anchor IDs.
+                - citation_text (str): Extracted text markers.
+                - original_markdown (str): Initially empty, filled during resolve phase.
         """
         claims = []
         if not text:
@@ -86,7 +96,17 @@ class KnowledgeBaseParser:
     @staticmethod
     def parse_docx(file_input: Any) -> Dict[str, Any]:
         """
-        Parses DOCX from file path (str) or file-like object (bytes/stream).
+        Parses DOCX document into structured knowledge.
+        Iterates through paragraphs to distinguish between Concepts (Headers + Text) and Bibliography.
+
+        Args:
+            file_input (Any): File path (str) or file-like object (stream).
+
+        Returns:
+            Dict[str, Any]: KB structure with 'concepts', 'references', 'claims'.
+
+        Raises:
+            Exception: If document cannot be opened.
         """
         logger.info(f"[KBParser] Parsing input (Type: {type(file_input)})")
         try:
@@ -251,10 +271,13 @@ class KnowledgeBaseParser:
     @staticmethod
     def clean_text(text: str) -> str:
         """
-        Normalizes text by removing invisible Word artifacts.
-        - Non-breaking spaces (\xa0) -> space
-        - Long dashes (–, —) -> hyphen (-)
-        - Multiple spaces -> single space
+        Normalizes text by removing invisible Word artifacts (non-breaking spaces, dashes).
+
+        Args:
+            text (str): Raw text.
+
+        Returns:
+            str: Normalized text.
         """
         if not text: return ""
         text = text.replace('\xa0', ' ').replace('–', '-').replace('—', '-')
@@ -264,11 +287,18 @@ class KnowledgeBaseParser:
     @staticmethod
     def extract_short_citation(full_entry: str) -> Optional[str]:
         """
-        Extracts 'Author Year' or 'Author & Author Year' from full entry.
-        Supports formats:
+        Extracts concise 'Author Year' or 'Author & Author Year' label from a full bibliographic entry.
+        
+        Supported formats:
         - "Acemoglu, D. & Restrepo, P. 2018:"
         - "Acemoglu (2018)."
         - "Acemoglu, D. 2018."
+
+        Args:
+            full_entry (str): The full bibliography line.
+
+        Returns:
+            Optional[str]: Short citation string or None.
         """
         if not full_entry:
             return None
@@ -329,7 +359,18 @@ class KnowledgeBaseParser:
     @staticmethod
     def parse_md(file_input: Any) -> Dict[str, Any]:
         """
-        Parses Markdown from file path (str) or file-like object (bytes/stream).
+        Parses Markdown content into structured knowledge.
+        
+        Support for:
+        - Headers (# Term) -> Concepts
+        - Lists (- Ref) in Bibliography section -> References
+        - Anchor IDs ({#id}) linking
+
+        Args:
+            file_input (Any): File path (str) or file-like object (stream).
+
+        Returns:
+             Dict[str, Any]: Structured KB dict.
         """
         logger.info(f"[KBParser] Parsing MD input (Type: {type(file_input)})")
         
@@ -366,8 +407,6 @@ class KnowledgeBaseParser:
         # Regex for Concept Header
         concept_header_pattern = re.compile(r'^(#+)\s*(.+)')
         
-        # Regex for DOI
-        doi_pattern = re.compile(r'\b(10.\d{4,9}/[-._;()/:A-Z0-9]+)\b', re.IGNORECASE)
         # Regex for Anchor ID in Bibliography: {#id} or <a id="id">
         anchor_pattern = re.compile(r'(?:\{\#([a-zA-Z0-9_-]+)\}|<a\s+id="([a-zA-Z0-9_-]+)">)')
 
@@ -491,7 +530,9 @@ class KnowledgeBaseParser:
     @staticmethod
     def _resolve_claims(knowledge_base: Dict[str, Any]):
         """
-        Matches claims to references to populate 'original_markdown' (Full Bibliography).
+        Internal Helper: Resolves textual claims to their full bibliographic references.
+        Populates 'original_markdown' field in claims.
+
         Match Logic:
         1. Explicit ID match (claim.citation_keys -> ref.anchor_id)
         2. Short Citation match (claim.citation_text -> ref.short_citation)

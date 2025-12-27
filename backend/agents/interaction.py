@@ -22,17 +22,41 @@ class InteractionAnalystAgent(BaseAgent):
     REQUIRES_KEYS = ["history_text"]
 
     def get_response_schema(self) -> Optional[Type[BaseModel]]:
+        """
+        Returns the expected output schema.
+
+        Returns:
+            Optional[Type[BaseModel]]: InteractionAnalysis schema.
+        """
         return InteractionAnalysis
 
     async def execute(self, state: WorkflowState, system_instruction: Optional[str] = None, **kwargs) -> WorkflowState:
+        """
+        Executes the agent logic.
+        
+        Args:
+            state (WorkflowState): Current workflow state.
+            system_instruction (Optional[str]): System prompt.
+            **kwargs: Extra arguments.
+
+        Returns:
+            WorkflowState: Updated workflow state.
+        """
         # Override but BaseAgent.execute uses generic prompt. 
         return await super().execute(state, system_instruction, **kwargs)
 
     def calculate_control_ratio(self, state: WorkflowState) -> WorkflowState:
         """
         Lifecycle Hook: Post-Execution.
+        
         Calculates 'input_control_ratio' using Python regex on history_text.
-        Delegates to backend.hooks.metrics.
+        Delegates underlying logic to 'backend.hooks.metrics.calculate_control_ratio'.
+
+        Args:
+            state (WorkflowState): Current workflow state.
+
+        Returns:
+            WorkflowState: Updated state with calculated metrics.
         """
         logger.info("[InteractionAnalystAgent] Post-Processing: Calculating Input Control Ratio via Hook...")
         

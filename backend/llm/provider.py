@@ -26,6 +26,7 @@ retry_strategy = retry(
 class LLMProvider(ABC):
     """
     Abstract base class for LLM providers.
+    Defines the contract for text generation and structured data extraction.
     """
     @abstractmethod
     async def generate(
@@ -37,6 +38,20 @@ class LLMProvider(ABC):
         max_tokens: Optional[int] = None,
         **kwargs
     ) -> Union[str, Dict[str, Any]]:
+        """
+        Generates content from the LLM.
+
+        Args:
+            prompt (str): The user prompt.
+            system_instruction (Optional[str]): System prompt/context.
+            response_schema (Optional[Type[BaseModel]]): Pydantic model for structured output validation.
+            temperature (float): Sampling temperature.
+            max_tokens (Optional[int]): Max tokens to generate.
+            **kwargs: Additional provider-specific arguments.
+
+        Returns:
+            Union[str, Dict[str, Any]]: The generated text or parsed JSON dictionary.
+        """
         pass
 
 # Global Cache for Models
@@ -53,6 +68,12 @@ class GoogleAIProvider(LLMProvider):
         """
         Fetches available models from Google API that support content generation.
         Updates the global cache.
+
+        Args:
+            api_key (Optional[str]): API Key to use. Defaults to settings.
+
+        Returns:
+            list: List of model names (e.g. ['gemini-1.5-pro', ...]).
         """
         global _CACHED_MODELS
         if _CACHED_MODELS:
@@ -91,6 +112,13 @@ class LiteLLMProvider(LLMProvider):
     with a consistent interface.
     """
     def __init__(self, model_name: str, api_key: Optional[str] = None):
+        """
+        Initializes the LiteLLM provider.
+
+        Args:
+            model_name (str): The model identifier (e.g. 'gemini/gemini-1.5-pro').
+            api_key (Optional[str]): API Key for the specific provider.
+        """
         self.model_name = model_name
         self.api_key = api_key
         # litellm configuration if needed
@@ -99,6 +127,21 @@ class LiteLLMProvider(LLMProvider):
     def _clean_json_response(self, raw_response: str) -> Dict[str, Any]:
         """
         Robustly parses JSON from LLM output, handling markdown blocks and conversational text.
+        
+        Strategies:
+        1. Parse directly.
+        2. Strip markdown blocks.
+        3. Regex extract JSON object.
+        4. Heuristic repairs (trailing commas, comments).
+
+        Args:
+            raw_response (str): The raw output string from the LLM.
+
+        Returns:
+            Dict[str, Any]: Parsed JSON object.
+
+        Raises:
+            ValueError: If JSON cannot be extracted.
         """
         import re
         
@@ -152,6 +195,23 @@ class LiteLLMProvider(LLMProvider):
         max_tokens: Optional[int] = None,
         **kwargs
     ) -> Union[str, Dict[str, Any]]:
+        """
+        Generates content using LiteLLM.
+
+        Args:
+            prompt (str): User prompt.
+            system_instruction (Optional[str]): System message.
+            response_schema (Optional[Type[BaseModel]]): Pydantic model for structured output.
+            temperature (float): Randomness 0-1.
+            max_tokens (Optional[int]): Max output length.
+            **kwargs: Extra args mapping.
+
+        Returns:
+            Union[str, Dict[str, Any]]: Result text or dictionary.
+
+        Raises:
+            Exception: On API failure after retries.
+        """
         
         messages = []
         if system_instruction:
@@ -192,16 +252,23 @@ class LiteLLMProvider(LLMProvider):
                 return self._clean_json_response(content)
             
             return content
-
+            
         except Exception as e:
             logger.error(f"[LiteLLM] Error: {e}", exc_info=True)
             raise e
 
 class MockProvider(LLMProvider):
+    """
+    Mock LLM Provider for offline testing and development.
+    Uses cached/simulated responses from MockLLMService.
+    """
     def __init__(self, model_name: str = "mock"):
         self.model_name = model_name
 
     async def generate(self, prompt: str, system_instruction: Optional[str] = None, response_schema: Optional[Type[BaseModel]] = None, temperature: float = 0.7, max_tokens: Optional[int] = None, **kwargs) -> Union[str, Dict[str, Any]]:
+        """
+        Simulates generation by invoking the MockLLMService.
+        """
         from backend.llm.mock import MockLLMService
         logger.info(f"[MockProvider] Calling Mock Service (Simulating Async)... {kwargs}")
         
@@ -226,8 +293,24 @@ class MockProvider(LLMProvider):
         return result
 
 class LLMFactory:
+    """
+    Factory class to instantiate the appropriate LLMProvider based on configuration.
+    """
     @staticmethod
     def create_provider(provider_type: str, model_name: str) -> LLMProvider:
+        """
+        Creates an LLM provider instance.
+
+        Args:
+            provider_type (str): Type of provider (e.g., 'gemini', 'openai').
+            model_name (str): Specific model name.
+
+        Returns:
+            LLMProvider: Configured provider instance.
+
+        Raises:
+            ValueError: If configuration is invalid.
+        """
         settings = get_settings()
         
         if settings.use_mock_llm:
@@ -244,18 +327,6 @@ class LLMFactory:
         
         if provider_type.lower() == "gemini":
             # STRICT MODE: Model name must come fully formed from DB (e.g. gemini/gemini-1.5-pro)
-            # We do NOT append prefixes blindly unless we trust the DB to store just the suffix.
-            # Assuming DB stores "gemini-1.5-pro", we might still need the liteLLM prefix.
-            # But the User said "no fallbacks... only the value from database".
-            # If the database says "gemini-1.5-flash", we use that. 
-            # If it's missing the prefix, LiteLLM might complain, but that's a data issue.
-            
-            # compromise: check for prefix, if missing, warn but append? 
-            # Or assume DB has full string?
-            # Let's check if user wants us to fix the DB content or just the code?
-            # "Is now the text... of file... included". 
-            # Current request: "No fallbacks... Only value from database."
-            
             target_model = model_name
             api_key = settings.google_api_key
             

@@ -8,9 +8,16 @@ logger = logging.getLogger(__name__)
 def retrieve_precedent(state: WorkflowState, repository: Any = None) -> WorkflowState:
     """
     HOOK: retrieve_precedent
-    Retrieves the last N completed executions with a valid Judge score.
-    Injects this "Case Law" into aux_data for the prompt.
-    Requires 'repository' to be injected by the Engine.
+    Retrieves the last N completed executions with a valid Judge score (Case Law).
+    Injects a textual summary of these precedents into 'aux_data.archivist_precedents'.
+    Designed to allow agents to learn from past performance.
+
+    Args:
+        state (WorkflowState): Current workflow state.
+        repository (Any, optional): Data access layer. Defaults to None.
+
+    Returns:
+        WorkflowState: Updated state with injected precedents.
     """
     logger.info("[ArchivalHook] Running retrieve_precedent hook...")
     

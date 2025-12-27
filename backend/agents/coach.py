@@ -12,22 +12,37 @@ from backend.models.domain import CoachingPlan
 from backend.services.reference_manager import ReferenceManager
 
 class CoachAgent(BaseAgent):
+    """
+    Coach Agent (Valmentaja).
+
+    Responsible for generating coaching plans and managing the bibliography.
+    Configured to run as 'step_coach' in the workflow.
+    """
     state_field = "step_coach"
     REQUIRES_KEYS = ["step_judge"]
 
     def get_response_schema(self) -> Optional[Type[BaseModel]]:
+        """
+        Returns the Pydantic model for the agent's expected output.
+
+        Returns:
+            Optional[Type[BaseModel]]: The CoachingPlan schema.
+        """
         return CoachingPlan
-
-
-
-    # ...
-
-    # ...
 
     async def prepare_context(self, state: WorkflowState, **kwargs) -> str:
         """
-        PRE-HOOK: Loads Domain Knowledge from the Repository (Database) into the Agent instance.
+        PRE-HOOK: prepare_context.
+        
+        Loads Domain Knowledge from the Repository (Database) into the Agent instance.
         This ensures the CoachAgent uses the same Unified DB as the Ingestion Service.
+
+        Args:
+            state (WorkflowState): The current workflow state.
+            **kwargs: Additional arguments, expected to contain 'repository'.
+
+        Returns:
+            str: The formatted context string containing external sources.
         """
         repository = kwargs.get('repository')
         if repository:
@@ -57,7 +72,6 @@ class CoachAgent(BaseAgent):
                     references.append(ref_obj)
             
             # Populate self.knowledge_base
-            # Populate self.knowledge_base
             self.knowledge_base = {
                 "concepts": concepts,
                 "references": references # List of dicts
@@ -78,19 +92,32 @@ class CoachAgent(BaseAgent):
             self.knowledge_base = {}
             return ""
 
-    # Legacy code removed
-
     def post_process(self, state: WorkflowState) -> WorkflowState:
         """
         Lifecycle Hook: Post-Execution.
-        Triggers bibliography validation and enrichment.
+        
+        Triggers bibliography validation and enrichment by calling enrich_learning_plan.
+
+        Args:
+            state (WorkflowState): The current workflow state.
+
+        Returns:
+            WorkflowState: The updated state.
         """
         return self.enrich_learning_plan(state)
 
     def enrich_learning_plan(self, state: WorkflowState) -> WorkflowState:
         """
-        POST-HOOK: Scans the ENTIRE Workflow State.
-        Populates bibliography using backend.hooks.references.generate_bibliography.
+        POST-HOOK: enrich_learning_plan.
+        
+        Scans the ENTIRE Workflow State and populates bibliography using 
+        backend.hooks.references.generate_bibliography.
+
+        Args:
+            state (WorkflowState): The current workflow state.
+
+        Returns:
+            WorkflowState: The updated state with populated bibliography.
         """
         logger.info("[CoachAgent] Running enrich_learning_plan hook...")
         

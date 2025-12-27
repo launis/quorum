@@ -9,19 +9,30 @@ from datetime import datetime
 
 from backend.database.repository import AbstractWorkflowRepository
 from backend.services.progress import ProgressTracker
-# from backend.config import DATA_DIR, SCRIPTS_DIR # Removed
-
-# Hardcoded rules source from original script
 
 class AdministrationService:
+    """
+    Coordinates administrative tasks like database exporting and rebuilding.
+    """
     def __init__(self, repository: AbstractWorkflowRepository):
+        """
+        Initializes the service with a repository instance.
+
+        Args:
+            repository (AbstractWorkflowRepository): The data access layer.
+        """
         self.repository = repository
-
-
 
     def export_seed_data(self, tracker: ProgressTracker) -> Dict[str, Any]:
         """
-        Exports the current DB configuration to seed_data.json
+        Exports the current database configuration to 'seed_data.json'.
+        Used for persisting changes made in the UI back to source control.
+
+        Args:
+            tracker (ProgressTracker): Tracker for background task progress.
+
+        Returns:
+            Dict[str, Any]: Status and result message.
         """
         from backend.database.exporter import export_db_to_files
         
@@ -42,7 +53,14 @@ class AdministrationService:
 
     def rebuild_database(self, tracker: ProgressTracker) -> Dict[str, Any]:
         """
-        Rebuilds database using the centralized seeder.
+        Rebuilds the database using 'seed_data.json'.
+        Wipes existing data and re-seeds from the JSON source.
+
+        Args:
+            tracker (ProgressTracker): Tracker for background task progress.
+
+        Returns:
+            Dict[str, Any]: Status and result message.
         """
         from backend.database.seeder import seed_database
         

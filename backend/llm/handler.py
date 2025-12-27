@@ -4,7 +4,6 @@ from typing import List, Dict, Any, Optional
 from tinydb import Query
 from backend.database.wrapper import get_db_client
 from backend.settings import get_settings
-# from backend.config import GOOGLE_API_KEY, USE_MOCK_LLM, INITIAL_MODEL # Removed
 from backend.llm.provider import LLMFactory
 import google.generativeai as genai
 import openai
@@ -13,16 +12,25 @@ logger = logging.getLogger(__name__)
 
 class LLMHandler:
     """
-    Handles LLM model retrieval, configuration, and resolution.
-    Delegates actual generation to LLMFactory.
+    Handles higher-level LLM operations including model discovery via APIs,
+    fetching configuration from the database, and delegating execution to the LLMFactory.
     """
     def __init__(self, db_client: Any):
+        """
+        Initializes the handler.
+
+        Args:
+            db_client (Any): Database client for accessing system config.
+        """
         self.db_client = db_client
 
     def fetch_all_available_models(self) -> Dict[str, List[str]]:
         """
-        Queries Google GenAI and OpenAI APIs for available models.
-        Respects USE_MOCK_LLM.
+        Queries External APIs (Google GenAI, OpenAI) for available models.
+        Respects 'use_mock_llm' setting by returning mock data if enabled.
+
+        Returns:
+            Dict[str, List[str]]: Dictionary containing lists of models for 'google' and 'openai'.
         """
         settings = get_settings()
         models = {
@@ -77,8 +85,10 @@ class LLMHandler:
 
     def get_active_model_registry(self) -> Dict[str, str]:
         """
-        Fetches the 'global_model_registry' from the 'system_config' table.
-        Returns a dict mapping Provider/Mode -> Model ID.
+        Fetches the 'global_model_registry' from the 'system_config' table in the database.
+        
+        Returns:
+            Dict[str, str]: configuration mapping (e.g. {'fast': 'gemini-1.5-flash'}).
         """
         try:
             table = self.db_client.table('system_config')
@@ -95,8 +105,14 @@ class LLMHandler:
 
     def get_model_config(self, provider: str, mode: str) -> Optional[Dict[str, Any]]:
         """
-        Retrieves the full model configuration (ModelSettings) for a provider/mode.
-        Returns a dictionary or None.
+        Retrieves a specific model configuration for a provider/mode.
+
+        Args:
+            provider (str): Provider name (e.g., 'openai').
+            mode (str): Mode name (e.g., 'smart').
+
+        Returns:
+            Optional[Dict[str, Any]]: Configuration dictionary if found, else None.
         """
         registry = self.get_active_model_registry()
         
@@ -108,12 +124,19 @@ class LLMHandler:
         if config:
             return config
 
-
-
     async def call_llm(self, provider: str, mode: str, prompt: str, system_instruction: Optional[str] = None) -> str:
         """
-        Calls the LLM based on provider and mode configuration.
-        Delegates to LLMFactory.
+        High-level helper to call an LLM (Ad-hoc usage).
+        Resolves configuration from DB based on provider/mode and delegates to LLMFactory.
+
+        Args:
+            provider (str): 'gemini' or 'openai' or 'mock'.
+            mode (str): 'fast', 'smart', etc.
+            prompt (str): Text prompt.
+            system_instruction (Optional[str]): System context.
+
+        Returns:
+            str: Generated text response.
         """
         config = self.get_model_config(provider, mode)
         

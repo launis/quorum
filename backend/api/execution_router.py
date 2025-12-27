@@ -1,14 +1,12 @@
-from fastapi import APIRouter, HTTPException, BackgroundTasks, Request, UploadFile, File, Depends, Body
-from typing import List, Dict, Any, Optional
-from pydantic import BaseModel
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Request, UploadFile, File, Depends, Body, Path, Query as APIQuery
+from typing import List, Dict, Any, Optional, Annotated
+from pydantic import BaseModel, Field
 import logging
 import json
-from tinydb import Query
 
-from backend.dependencies import get_engine, get_agent_registry_dep, get_db_client_dep
+from backend.dependencies import get_engine
 from backend.core.engine import WorkflowEngine
-from backend.services.agent_registry import AgentRegistry
-from backend.database.wrapper import AbstractDatabase
+from backend.models.state import WorkflowState  # Required for migration/hydration logic
 
 logger = logging.getLogger(__name__)
 
@@ -17,24 +15,72 @@ router = APIRouter(tags=["Orchestration"])
 # --- Request Models ---
 
 class WorkflowCreateRequest(BaseModel):
-    name: str
-    steps: List[Dict[str, Any]]
+    name: Annotated[str, Field(
+        description="The unique, human-readable name for the new workflow."
+    )]
+    steps: Annotated[List[Dict[str, Any]], Field(
+        description="A sequential list of step configurations defining the workflow logic."
+    )]
 
 class WorkflowExecutionRequest(BaseModel):
-    workflow_id: str
-    inputs: Dict[str, Any] = {}
+    workflow_id: Annotated[str, Field(
+        description="The UUID of the workflow definition to instantiate."
+    )]
+    inputs: Annotated[Dict[str, Any], Field(
+        description="Key-value pairs representing the initial input state (e.g., source text, user intent)."
+    )] = {}
 
-# --- Workflows & Executions ---
+# --- Workflows ---
 
-@router.post("/workflows")
-def create_workflow(request: WorkflowCreateRequest, engine: WorkflowEngine = Depends(get_engine)):
-    """Creates a new workflow definition."""
+@router.post(
+    "/workflows", 
+    summary="Create Workflow",
+    response_description="A confirmation object with the new Workflow ID."
+)
+def create_workflow(
+    request: WorkflowCreateRequest, 
+    engine: WorkflowEngine = Depends(get_engine)
+):
+    """
+    Creates a new workflow definition in the database.
+
+    Args:
+        request (WorkflowCreateRequest): The workflow payload containing name and steps.
+        engine (WorkflowEngine): The workflow engine dependency.
+
+    Returns:
+        dict: The status and generated workflow_id.
+    """
     workflow_id = engine.create_workflow(request.name, request.steps)
     return {"status": "created", "workflow_id": workflow_id}
 
-@router.post("/executions")
-async def execute_workflow(request: Request, background_tasks: BackgroundTasks, engine: WorkflowEngine = Depends(get_engine)):
-    """Starts a workflow execution asynchronously (Multipart)."""
+# --- Executions ---
+
+@router.post(
+    "/executions", 
+    summary="Start Execution",
+    response_description="The ID of the newly started execution background job."
+)
+async def execute_workflow(
+    request: Request, 
+    background_tasks: BackgroundTasks, 
+    engine: WorkflowEngine = Depends(get_engine)
+):
+    """
+    Initiates a new workflow execution asynchronously. 
+    Supports Multipart/Form-Data for optional file uploads alongside JSON inputs.
+
+    Args:
+        request (Request): The raw FastAPI request (for parsing form data).
+        background_tasks (BackgroundTasks): Logic for handling async operations.
+        engine (WorkflowEngine): The workflow engine dependency.
+
+    Returns:
+        dict: The status and execution_id.
+
+    Raises:
+        HTTPException: If workflow_id is missing from the form data.
+    """
     form = await request.form()
     
     workflow_id = form.get("workflow_id")
@@ -63,9 +109,27 @@ async def execute_workflow(request: Request, background_tasks: BackgroundTasks, 
     
     return {"status": "started", "execution_id": execution_id}
 
-@router.get("/executions/recent")
-async def get_recent_executions(limit: int = 5, status: Optional[str] = None, engine: WorkflowEngine = Depends(get_engine)):
-    """Returns the most recent executions."""
+@router.get(
+    "/executions/recent", 
+    summary="List Recent Executions",
+    response_description="A list of recent execution records, sorted by time (descending)."
+)
+async def get_recent_executions(
+    limit: int = APIQuery(5, description="Maximum number of executions to return."), 
+    status: Optional[str] = APIQuery(None, description="Filter by execution status (e.g., 'completed', 'failed')."), 
+    engine: WorkflowEngine = Depends(get_engine)
+):
+    """
+    Retrieves a list of the most recent workflow executions.
+
+    Args:
+        limit (int): Max records to return.
+        status (Optional[str]): Optional status filter.
+        engine (WorkflowEngine): Dependency.
+
+    Returns:
+        List[dict]: List of execution summary objects.
+    """
     all_execs = engine.repository.get_all_executions()
     if not all_execs: return []
     
@@ -75,23 +139,59 @@ async def get_recent_executions(limit: int = 5, status: Optional[str] = None, en
     sorted_execs = sorted(all_execs, key=lambda x: x.get('start_time', ''), reverse=True)
     return sorted_execs[:limit]
 
-@router.get("/executions/latest")
-async def get_latest_execution(engine: WorkflowEngine = Depends(get_engine)):
-    """Returns the most recent execution."""
+@router.get(
+    "/executions/latest", 
+    summary="Get Latest Execution",
+    response_description="The single most recent execution record."
+)
+async def get_latest_execution(
+    engine: WorkflowEngine = Depends(get_engine)
+):
+    """
+    Retrieves the absolutely most recent execution record.
+
+    Args:
+        engine (WorkflowEngine): Dependency.
+
+    Returns:
+        dict: The latest execution object.
+
+    Raises:
+        HTTPException: If no executions exist.
+    """
     all_execs = engine.repository.get_all_executions()
     if not all_execs: raise HTTPException(status_code=404, detail="No executions found")
     
     return sorted(all_execs, key=lambda x: x.get('start_time', ''), reverse=True)[0]
 
-@router.get("/executions/{execution_id}")
-async def get_execution_status(execution_id: str, engine: WorkflowEngine = Depends(get_engine)):
-    """Gets the status of a workflow execution."""
+@router.get(
+    "/executions/{execution_id}", 
+    summary="Get Execution Status",
+    response_description="The detailed status, result, and state of a specific execution."
+)
+async def get_execution_status(
+    execution_id: str = Path(..., description="The UUID of the execution to retrieve."), 
+    engine: WorkflowEngine = Depends(get_engine)
+):
+    """
+    Retrieves the full status and result data for a specific execution ID.
+    Performs on-the-fly hydration of legacy result structures if necessary.
+
+    Args:
+        execution_id (str): The execution ID.
+        engine (WorkflowEngine): Dependency.
+
+    Returns:
+        dict: The execution record.
+    
+    Raises:
+        HTTPException: If not found.
+    """
     status = engine.get_execution_status(execution_id)
     if not status: raise HTTPException(status_code=404, detail="Execution not found")
     
     # If the workflow is complete and we have a final result state, flatten it for the UI
     if status.get('status') == 'completed' and 'result' in status:
-        # Check if result is a WorkflowState object or dict
         res = status['result']
         
         if hasattr(res, 'to_flat_dict'):
@@ -106,12 +206,7 @@ async def get_execution_status(execution_id: str, engine: WorkflowEngine = Depen
                  # Even if it's already a dict, it might be the OLD structure (nested steps).
                  # We want to force it through the new 'to_flat_dict' logic to get the 2-layer structure.
                  try:
-                     # Need to import WorkflowState here or at top
-                     from backend.models.state import WorkflowState
-                     
                      # INJECT MISSING REQUIRED FIELDS for hydration
-                     # WorkflowState requires execution_id and inputs, which might be stored 
-                     # at the Execution level in DB, not inside the 'result' dict.
                      hydration_data = res.copy()
                      if 'execution_id' not in hydration_data:
                          hydration_data['execution_id'] = status.get('execution_id', 'unknown')
@@ -119,23 +214,40 @@ async def get_execution_status(execution_id: str, engine: WorkflowEngine = Depen
                          hydration_data['inputs'] = status.get('inputs', {})
                      
                      # Attempt to hydrate the dict back into a State Object
-                     # This validates it against the schema and allows us to call methods
                      hydrated_state = WorkflowState(**hydration_data)
                      status['result'] = hydrated_state.to_flat_dict()
     
                  except Exception as e:
-                     # import traceback
-                     # print(f"HYDRATION FAILED for {execution_id}: {e}")
-                     # print(traceback.format_exc())
                      logger.warning(f"Failed to migrate legacy execution result {execution_id}: {e}")
                      # Fallback: leave it as is, legacy UI might handle parts of it
                      pass
 
     return status
 
-@router.post("/executions/{execution_id}/retry")
-async def retry_execution(execution_id: str, background_tasks: BackgroundTasks, engine: WorkflowEngine = Depends(get_engine)):
-    """Retries a failed or interrupted execution."""
+@router.post(
+    "/executions/{execution_id}/retry", 
+    summary="Retry Execution",
+    response_description="Confirmation that the execution is resuming."
+)
+async def retry_execution(
+    background_tasks: BackgroundTasks, 
+    execution_id: str = Path(..., description="The UUID of the execution to retry."), 
+    engine: WorkflowEngine = Depends(get_engine)
+):
+    """
+    Resumes a failed, rejected, or interrupted execution from its last successful state.
+
+    Args:
+        background_tasks (BackgroundTasks): Background handler.
+        execution_id (str): The ID of the execution.
+        engine (WorkflowEngine): Dependency.
+
+    Returns:
+        dict: Status and execution_id.
+
+    Raises:
+        HTTPException: If execution is not in a retriable state.
+    """
     status = engine.get_execution_status(execution_id)
     if not status: raise HTTPException(status_code=404, detail="Execution not found")
     
@@ -145,150 +257,3 @@ async def retry_execution(execution_id: str, background_tasks: BackgroundTasks, 
 
     background_tasks.add_task(engine.resume_execution, execution_id)
     return {"status": "resuming", "execution_id": execution_id}
-
-# --- Agents Definitions ---
-
-@router.get("/agents")
-def list_agents(workflow_id: Optional[str] = None, registry: AgentRegistry = Depends(get_agent_registry_dep), db: AbstractDatabase = Depends(get_db_client_dep)):
-    """Lists all available agents and their metadata, with Model Mapping."""
-    try:
-        if not registry.agents_map:
-            registry.discover_and_register_agents()
-    except Exception as e:
-        logger.error(f"AGENT DISCOVERY ERROR: {e}")
-
-    # 1. Get Workflow Mapping if ID provided
-    workflow_mapping = {}
-    try:
-        if workflow_id:
-            # DB lookup via repository
-            wf = registry.repository.get_workflow_by_id(workflow_id)
-            if wf:
-                workflow_mapping = wf.get('default_model_mapping', {})
-    except Exception as e:
-        logger.error(f"WORKFLOW FETCH ERROR: {e}")
-
-    # 2. Get Steps for Mapping
-    agent_to_step_id = {}
-    try:
-        steps = registry.repository.get_all_steps()
-        if steps:
-            for s in steps:
-                # 'component' is the field used in seed_data.json/db.json for the Agent Class Name
-                agent_identifier = s.get('agent_id') or s.get('component')
-                if agent_identifier and 'id' in s:
-                    agent_to_step_id[agent_identifier] = s['id']
-    except Exception as e:
-        logger.error(f"STEP FETCH ERROR: {e}")
-        
-    agents_list = []
-    for name, agent_instance in registry.agents_map.items():
-        input_schema = None
-        response_schema = None
-        if hasattr(agent_instance, 'get_input_schema'):
-             try:
-                 schema_cls = agent_instance.get_input_schema()
-                 if schema_cls: input_schema = schema_cls.model_json_schema()
-             except Exception: pass
-
-        output_schema = None
-        if hasattr(agent_instance, 'get_response_schema'):
-             try:
-                 schema_cls = agent_instance.get_response_schema()
-                 if schema_cls: output_schema = schema_cls.model_json_schema()
-             except Exception: pass
-        
-        # Determine Model Name (Workflow > Global Default)
-        current_model = agent_instance.model 
-        
-        # Override with Workflow Mapping (Strict DB Lookup)
-        if name in agent_to_step_id:
-            step_id = agent_to_step_id[name]
-            if step_id in workflow_mapping:
-                strategy_key = workflow_mapping[step_id]
-                
-                # Direct DB Fetch using get_db_client as requested
-                try:
-                    table = db.table('system_config')
-                    Config = Query()
-                    res = table.search(Config.type == 'model_registry')
-                    
-                    db_strategies = {}
-                    if res and 'models' in res[0]:
-                        db_strategies = res[0]['models'].get('google', {})
-                    
-                    if strategy_key in db_strategies:
-                        val = db_strategies[strategy_key]
-                        if isinstance(val, dict):
-                             current_model = val.get('model_name', current_model)
-                        else:
-                             current_model = str(val)
-                    else:
-                        current_model = f"ERROR: Strategy '{strategy_key}' not found in DB"
-                        
-                except Exception as e:
-                    current_model = f"ERROR: DB Query Failed: {str(e)}"
-                    logger.error(f"DIAGNOSTIC FAULT: {e}")
-
-        # Formatting Suffix
-        model_display = current_model
-        # Optional: Ask DB what defined 'fast' vs 'deep' to format correctly
-        # For now, just show the raw model name from DB. No manual suffixing based on strings.
-
-        agents_list.append({
-            "name": name,
-            "description": agent_instance.__doc__.strip() if agent_instance.__doc__ else "No description.",
-            "model": model_display,
-            "input_schema": input_schema,
-            "output_schema": output_schema,
-        })
-        
-    return agents_list
-
-@router.post("/agents/{agent_name}/run")
-async def run_agent_direct(
-    agent_name: str, 
-    inputs: Dict[str, Any] = Body(...),
-    system_instruction: Optional[str] = Body(None),
-    model: Optional[str] = Body(None),
-    registry: AgentRegistry = Depends(get_agent_registry_dep)
-):
-    """Executes a specific agent directly (Bypassing Workflow Engine)."""
-    try:
-        agent = registry.get_agent(agent_name)
-        if not agent:
-             raise ValueError(f"Unknown agent: {agent_name}")
-        
-        # Determine model override if needed
-        # For direct run, we might want to clone the agent to avoiding thread safety issues?
-        # Agents are stateless per request if designed correctly (except self.model), 
-        # but self.model mutation is dangerous in singleton.
-        # Ideally we should pass model to execute(), not set on self.
-        
-        # Warning: This updates the singleton agent's model! 
-        # Only safe if Agents are transient or we accept global change.
-        # Better: Pass model to execute.
-        
-        # NOTE: execute() signature in BaseAgent doesn't accept model override yet, 
-        # but our runners do injected kwargs.
-        
-        logger.info(f"Executing agent {agent_name} direct...")
-        # We need to construct a minimal State?
-        # BaseAgent.execute signature matches: (self, state: WorkflowState, ...)
-        # So we cannot just pass dict. 
-        # The previous agents_router.py implementation was calling agent.execute(**inputs), 
-        # which implies the agent wasn't inheriting BaseAgent OR BaseAgent had different signature?
-        # Let's check BaseAgent...
-        
-        # Checked BaseAgent: execute(self, state: WorkflowState, ...)
-        # So previous agents_router code: `result = await agent.execute(system_instruction=system_instruction, **inputs)`
-        # MUST have been broken for BaseAgents unless they overrode execute to take kwargs.
-        # But BaseAgent definition is `async def execute(self, state: WorkflowState, ...)`.
-        
-        # Thus, the old agents_router endpoint was likely broken or for testing only.
-        # We will disable this endpoint for now or wrap it properly.
-        
-        raise HTTPException(status_code=501, detail="Direct agent execution via API is temporarily disabled pending State refactor.")
-        
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))

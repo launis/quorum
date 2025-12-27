@@ -9,8 +9,15 @@ logger = logging.getLogger(__name__)
 def detect_performative_patterns(state: WorkflowState) -> WorkflowState:
     """
     HOOK: detect_performative_patterns
-    Scans input for performative language patterns using a pre-defined list.
-    Moves logic from PerformativityDetectorAgent to a dedicated hook.
+    Scans input texts (history, product) for performative/filler language patterns.
+    Injects a JSON list of matches into 'aux_data.performative_patterns_detected'.
+    Used to flag potentially generic or low-quality input text.
+
+    Args:
+        state (WorkflowState): Current workflow state.
+
+    Returns:
+        WorkflowState: Updated state with detected pattern metadata.
     """
     logger.info("[LinguisticsHook] Running detect_performative_patterns...")
     

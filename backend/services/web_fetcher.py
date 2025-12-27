@@ -9,13 +9,22 @@ logger = logging.getLogger(__name__)
 class WebFetcher:
     """
     Simple service to fetch text content from URLs.
-    Uses urllib to avoid extra dependencies like requests if not present.
+    Uses generic utilities to avoid heavy dependencies efficiently for metadata fetching.
     """
     
     @staticmethod
     def fetch_text(url: str, timeout: int = 5) -> Optional[str]:
         """
-        Fetches the content of a URL and extracts visible text (naive).
+        Fetches the content of a URL and extracts visible text using naive parsing.
+        Useful for quick checkups or reference validation.
+        Limits output to first 5000 chars.
+
+        Args:
+            url (str): The target URL.
+            timeout (int): Connection timeout in seconds.
+
+        Returns:
+            Optional[str]: Cleaned plain text content or None if failed.
         """
         try:
             headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) CognitiveQuorum/1.0'}

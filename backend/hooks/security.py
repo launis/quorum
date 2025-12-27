@@ -15,8 +15,16 @@ PII_PATTERNS = {
 
 def sanitize_text(text: str) -> Tuple[str, List[str]]:
     """
-    Sanitizes a single string by redacting PII.
-    Returns: (cleaned_text, list_of_detected_threat_types)
+    Sanitizes a single string by redacting Personally Identifiable Information (PII)
+    based on predefined Regex patterns (e.g. Email, SSN, Credit Card).
+
+    Args:
+        text (str): Input text to sanitize.
+
+    Returns:
+        Tuple[str, List[str]]: A tuple containing:
+            1. The sanitized text with PII replaced by [REDACTED_TYPE].
+            2. A list of strings describing what was detected/redacted (e.g. "EMAIL: 2 items").
     """
     if not text:
         return text, []
@@ -30,9 +38,6 @@ def sanitize_text(text: str) -> Tuple[str, List[str]]:
         matches = re.findall(pattern, clean_value)
         if matches:
             distinct_matches = list(set(matches))
-            for m in distinct_matches:
-                 # We log the type and maybe a masked version, but here we just return the count/type
-                 pass
             threats_detected.append(f"{pii_type}: {len(distinct_matches)} items")
             
             # Redact
@@ -42,8 +47,14 @@ def sanitize_text(text: str) -> Tuple[str, List[str]]:
 
 def check_banned_phrases(text: str, phrases: List[str]) -> List[str]:
     """
-    Checks if text contains any banned phrases.
-    Returns a list of detected phrases.
+    Checks if the input text contains any of the specified banned phrases (case-insensitive).
+
+    Args:
+        text (str): The text to scan.
+        phrases (List[str]): List of banned phrases or keywords.
+
+    Returns:
+        List[str]: A list of unique banned phrases found in the text.
     """
     if not text or not phrases:
         return []

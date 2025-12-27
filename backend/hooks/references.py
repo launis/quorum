@@ -6,15 +6,17 @@ logger = logging.getLogger(__name__)
 
 def generate_bibliography(text_dump: str, knowledge_base: Dict[str, Any]) -> List[str]:
     """
-    Agent Hook: Generates a bibliography by scanning the text for explicit and implicit references.
-    Delegates logic to the ReferenceManager service.
-    
+    HOOK: generate_bibliography
+    Scans the provided text dump for references using the ReferenceManager.
+    Supports "advanced scan" which detects both explicit citations (e.g. "Author 2020")
+    and implicit conceptual links.
+
     Args:
         text_dump (str): The full text content to scan (e.g. serialized state).
-        knowledge_base (dict): The knowledge base structure containing references and concepts.
+        knowledge_base (Dict[str, Any]): The knowledge base structure containing references and concepts.
         
     Returns:
-        List[str]: A sorted list of full reference strings found in the text.
+        List[str]: A sorted list of unique, full bibliographic reference strings found in the text.
     """
     if not knowledge_base:
         return []

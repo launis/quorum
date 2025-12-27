@@ -2,26 +2,24 @@ import os
 import shutil
 import json
 from typing import List, Dict, Any, Optional
-from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks, Request, Depends
-from pydantic import BaseModel
-# from tinydb import Query # Removed
-
+from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks, Request, Depends, Query as APIQuery, Path
+from pydantic import BaseModel, Field
 
 from backend.core.engine import WorkflowEngine
 from backend.dependencies import get_engine, get_db_client_dep
 
 from backend.api.tools_router import router as tools_router
-# from backend.api.agents_router import router as agents_router # Consolidated
+from backend.api.agents_router import router as agents_router
 from backend.api.admin_router import router as admin_router
 from backend.api.llm_router import router as llm_router
 from backend.api.config_router import router as config_router
 from backend.api.execution_router import router as execution_router
-# from backend.api.workflows_router import router as workflows_router # Consolidated
+# from backend.api.workflows_router import router as workflows_router # Deprecated/Merged into execution_router
+
 from backend.exceptions import AppException
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
 from backend.settings import get_settings
-# from backend.config import DB_PATH, DATA_DIR # Removed
 
 # Load environment variables
 load_dotenv()
@@ -39,12 +37,11 @@ async def app_exception_handler(request: Request, exc: AppException):
         content={"error": exc.message, "details": exc.details, "status": "error"}
     )
 
-
 app.include_router(tools_router)
-app.include_router(execution_router) # Handles workflows and agents
+app.include_router(execution_router)
+app.include_router(agents_router)
 app.include_router(admin_router)
 app.include_router(config_router)
-# app.include_router(workflows_router) # Removed
 app.include_router(llm_router, prefix="/llm", tags=["LLM"])
 
 from backend.api.builder_router import router as builder_router
@@ -63,36 +60,33 @@ async def startup_event():
     from backend.bootstrap import bootstrap_application
     await bootstrap_application()
 
-
 # Database setup
-# Robust path resolution for DB
 settings = get_settings()
 print(f"DEBUG: ACTIVE DATABASE PATH: {os.path.abspath(settings.start_db_path)}")
 
-# Ensure data dir exists
-os.makedirs(settings.data_dir, exist_ok=True)
-
-# Ensure data and database dirs exist
+# Ensure data dirs exist
 os.makedirs(settings.data_dir, exist_ok=True)
 os.makedirs(os.path.dirname(settings.start_db_path), exist_ok=True)
-
-
-
-# Global Engine REMOVED in favor of DI (backend.dependencies.get_engine)
-
-# Ensure upload directory exists
-# Ensure upload directory exists
 UPLOAD_DIR = os.path.join(settings.data_dir, "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
+# --- Root / DB Endpoints ---
 
-
-
-@app.get("/db/seed_data")
+@app.get(
+    "/db/seed_data", 
+    summary="Get Seed Data", 
+    response_description="Returns the full components, steps, and workflows from the database."
+)
 async def get_seed_data(engine: WorkflowEngine = Depends(get_engine)):
     """
-    Returns the content of seed data from the database.
+    Retrieves the raw seed data configuration (components, steps, workflows).
+
+    Args:
+        engine (WorkflowEngine): Dependency.
+
+    Returns:
+        dict: Object containing lists of components, steps, and workflows.
     """
     try:
         components = engine.repository.get_all_components()
@@ -108,10 +102,20 @@ async def get_seed_data(engine: WorkflowEngine = Depends(get_engine)):
         print(f"DEBUG: Error reading seed data from DB: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/db/workflows")
+@app.get(
+    "/db/workflows", 
+    summary="List Workflows (DB)", 
+    response_description="A list of all workflow definitions."
+)
 async def get_workflows(engine: WorkflowEngine = Depends(get_engine)):
     """
-    Returns all workflows from the database.
+    Retrieves all workflow definitions from the repository.
+
+    Args:
+        engine (WorkflowEngine): Dependency.
+
+    Returns:
+        List[dict]: List of workflow objects.
     """
     try:
         workflows = engine.repository.get_all_workflows()
@@ -119,10 +123,27 @@ async def get_workflows(engine: WorkflowEngine = Depends(get_engine)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/db/preview_prompt/{step_id}")
-async def preview_prompt(step_id: str, engine: WorkflowEngine = Depends(get_engine)):
+@app.get(
+    "/db/preview_prompt/{step_id}", 
+    summary="Preview Step Prompt", 
+    response_description="The constructed prompt segments for a specific step."
+)
+async def preview_prompt(
+    step_id: str = Path(..., description="The ID of the step to preview."), 
+    engine: WorkflowEngine = Depends(get_engine)
+):
     """
-    Returns a preview of the prompt for a given step.
+    Previews the prompt that would be generated for a specific step ID.
+
+    Args:
+        step_id (str): Step Identifier.
+        engine (WorkflowEngine): Dependency.
+
+    Returns:
+        dict: Prompt structure (user, system, parts).
+
+    Raises:
+        HTTPException: If prompt generation fails.
     """
     try:
         preview = engine.preview_step_prompt(step_id)
@@ -132,10 +153,24 @@ async def preview_prompt(step_id: str, engine: WorkflowEngine = Depends(get_engi
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/db/preview_full_chain/{workflow_id}")
-async def preview_full_chain(workflow_id: str, engine: WorkflowEngine = Depends(get_engine)):
+@app.get(
+    "/db/preview_full_chain/{workflow_id}", 
+    summary="Preview Full Chain", 
+    response_description="The concatenated full prompt chain for deep auditing."
+)
+async def preview_full_chain(
+    workflow_id: str = Path(..., description="The ID of the workflow."), 
+    engine: WorkflowEngine = Depends(get_engine)
+):
     """
-    Returns a full chain prompt preview for a given workflow.
+    Generates a full textual preview of the entire sequential audit chain.
+
+    Args:
+        workflow_id (str): Workflow Identifier.
+        engine (WorkflowEngine): Dependency.
+
+    Returns:
+        dict: Object containing 'full_chain_text'.
     """
     try:
         preview_text = engine.preview_full_chain_prompts(workflow_id)
@@ -145,16 +180,17 @@ async def preview_full_chain(workflow_id: str, engine: WorkflowEngine = Depends(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# --- Legacy / Helper Endpoints ---
-
-
-
-
-
-@app.get("/config/introspection")
+@app.get(
+    "/config/introspection", 
+    summary="Introspect Codebase", 
+    response_description="Lists available schemas, hooks, and agents found in code."
+)
 def introspect_codebase():
     """
-    Returns available Schemas and Hooks by inspecting the codebase.
+    Performs runtime introspection of the backend codebase to discover available resources.
+
+    Returns:
+        dict: Lists of schemas, hooks, and agents.
     """
     import inspect
     from backend.models import domain
@@ -168,7 +204,6 @@ def introspect_codebase():
             
     # 2. Inspect Hooks (Legacy - Deprecated/Removed)
     available_hooks = []
-
 
     # 3. Inspect Agents
     available_agents = []
@@ -187,6 +222,13 @@ def introspect_codebase():
         "agents": sorted(list(set(available_agents)))
     }
 
-@app.get("/health")
+@app.get(
+    "/health", 
+    summary="Health Check", 
+    response_description="Simple status indicator."
+)
 def health_check():
+    """
+    Basic liveness probe.
+    """
     return {"status": "ok"}

@@ -8,42 +8,77 @@ logger = logging.getLogger(__name__)
 
 class AbstractStorage(ABC):
     """
-    Abstract base class for storage backends.
+    Abstract base class defining the contract for file storage backends.
     """
     
     @abstractmethod
     def save(self, path: str, data: Union[bytes, str]) -> str:
         """
-        Saves data to the specified path.
-        Returns the saved location (compilable URI or path).
+        Saves data (bytes or string) to the specified path.
+
+        Args:
+            path (str): Relative path/key for the file.
+            data (Union[bytes, str]): Content to save.
+
+        Returns:
+            str: The resolved path or URI of the saved file.
         """
         pass
 
     @abstractmethod
     def read(self, path: str) -> bytes:
         """
-        Reads data from the specified path.
+        Reads raw bytes from the specified path.
+
+        Args:
+            path (str): Relative path/key.
+
+        Returns:
+            bytes: The file content.
         """
         pass
 
     @abstractmethod
     def exists(self, path: str) -> bool:
         """
-        Checks if the path exists.
+        checks existence of the file.
+
+        Args:
+            path (str): Relative path/key.
+
+        Returns:
+            bool: True if exists, else False.
         """
         pass
 
 class LocalFileStorage(AbstractStorage):
     """
     Local file system implementation of AbstractStorage.
+    Stores files in a local directory (e.g., 'backend/files/executions').
     """
     def __init__(self, base_path: str = "backend/files/executions"):
+        """
+        Initializes local storage.
+
+        Args:
+            base_path (str): Root directory for file storage.
+        """
         self.base_path = Path(base_path)
         self.base_path.mkdir(parents=True, exist_ok=True)
 
     def save(self, path: str, data: Union[bytes, str]) -> str:
         """
         Saves file locally. 'path' is treated as relative to base_path.
+
+        Args:
+            path (str): Relative path.
+            data (Union[bytes, str]): Content.
+
+        Returns:
+            str: Absolute path to the saved file.
+
+        Raises:
+            IOError: If write fails.
         """
         try:
             full_path = self.base_path / path
@@ -63,6 +98,15 @@ class LocalFileStorage(AbstractStorage):
             raise e
 
     def read(self, path: str) -> bytes:
+        """
+        Reads file from local system.
+
+        Args:
+            path (str): Relative path.
+
+        Returns:
+            bytes: Content.
+        """
         try:
             full_path = self.base_path / path
             with open(full_path, "rb") as f:
@@ -72,6 +116,15 @@ class LocalFileStorage(AbstractStorage):
             raise e
 
     def exists(self, path: str) -> bool:
+        """
+        Checks if local file exists.
+
+        Args:
+            path (str): Relative path.
+
+        Returns:
+            bool: Existence status.
+        """
         full_path = self.base_path / path
         return full_path.exists()
 
@@ -97,6 +150,12 @@ class FirebaseStorage(AbstractStorage):
     Uses firebase-admin SDK.
     """
     def __init__(self, bucket_name: Optional[str] = None):
+        """
+        Initializes Firebase Storage client.
+
+        Args:
+            bucket_name (Optional[str]): Target bucket name.
+        """
         import firebase_admin
         from firebase_admin import storage
         
@@ -112,6 +171,13 @@ class FirebaseStorage(AbstractStorage):
     def save(self, path: str, data: Union[bytes, str]) -> str:
         """
         Saves file to Firebase Storage bucket.
+
+        Args:
+            path (str): Blob path.
+            data (Union[bytes, str]): Content.
+
+        Returns:
+            str: gs:// URI of the saved blob.
         """
         try:
             blob = self.bucket.blob(path)
@@ -121,10 +187,6 @@ class FirebaseStorage(AbstractStorage):
             else:
                 blob.upload_from_string(data, content_type="application/octet-stream")
                 
-            # Return a GCS path or Signed URL? 
-            # For strict backend usage, path is enough.
-            # If front-end needs access, we might need signed URL or public URL.
-            # Keeping it simple: return internal reference path
             return f"gs://{self.bucket.name}/{path}"
             
         except Exception as e:
@@ -132,6 +194,15 @@ class FirebaseStorage(AbstractStorage):
             raise e
 
     def read(self, path: str) -> bytes:
+        """
+        Reads file from Firebase bucket.
+
+        Args:
+            path (str): Blob path.
+
+        Returns:
+            bytes: Content.
+        """
         try:
             blob = self.bucket.blob(path)
             return blob.download_as_bytes()
@@ -140,12 +211,24 @@ class FirebaseStorage(AbstractStorage):
             raise e
 
     def exists(self, path: str) -> bool:
+        """
+        Checks if blob exists in Firebase.
+
+        Args:
+            path (str): Blob path.
+
+        Returns:
+            bool: Status.
+        """
         blob = self.bucket.blob(path)
         return blob.exists()
 
 def get_storage_client() -> AbstractStorage:
     """
-    Factory to get the configured storage client.
+    Factory to get the configured storage client based on settings.
+
+    Returns:
+        AbstractStorage: The concrete implementation.
     """
     from backend.settings import get_settings
     settings = get_settings()

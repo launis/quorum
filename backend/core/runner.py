@@ -11,14 +11,35 @@ logger = logging.getLogger(__name__)
 class PipelineRunner:
     """
     Responsible for executing the sequential agent loop and individual steps.
+    Managed by the WorkflowEngine.
     """
     def __init__(self, repository, registry, prompt_builder):
+        """
+        Initializes the PipelineRunner.
+
+        Args:
+            repository: Data access layer for executions/workflows.
+            registry: Service for agent discovery and configuration.
+            prompt_builder: Service for dynamic prompt construction.
+        """
         self.repository = repository
         self.registry = registry
         self.prompt_builder = prompt_builder
 
     async def initialize_state(self, execution_id: str, raw_inputs: Dict[str, Any]) -> WorkflowState:
-        """Helper to create initial WorkflowState from Inputs."""
+        """
+        Constructs the initial WorkflowState object from raw input dictionary.
+
+        Args:
+            execution_id (str): The unique ID of the execution.
+            raw_inputs (Dict[str, Any]): Inputs provided by the user/API.
+
+        Returns:
+            WorkflowState: The initialized state object.
+
+        Raises:
+            FatalInterruption: If state cannot be initialized.
+        """
         try:
             input_data = InputData(
                 history_text=raw_inputs.get('history_text', ''),
@@ -55,7 +76,20 @@ class PipelineRunner:
         start_index: int = 0,
         total_steps_count: int = 0
     ) -> Any:
-        """Runs the sequential agent loop."""
+        """
+        Runs the sequential agent loop.
+
+        Args:
+            state (WorkflowState): The current workflow state.
+            pipeline_steps (List[Any]): List of (AgentInstance, StepDocument) tuples.
+            tracker (Any): Progress tracking service instance.
+            execution_id (str): The Execution ID.
+            start_index (int, optional): Index to start from (resuming). Defaults to 0.
+            total_steps_count (int, optional): Total count override. Defaults to 0.
+
+        Returns:
+            Any: The final WorkflowState or a dict (if early exit).
+        """
         print(f"DEBUG: PipelineRunner.execute_loop START. Steps: {len(pipeline_steps)}", flush=True)
         total_steps = total_steps_count or len(pipeline_steps)
         current_state = state
@@ -81,7 +115,21 @@ class PipelineRunner:
         return current_state
 
     async def _execute_step(self, current_state: WorkflowState, agent: Any, step_doc: Dict[str, Any], execution_id: str) -> Any:
-        """Helper to execute a single step (Pre-hooks -> Model -> Agent -> Post-hooks -> Validation)."""
+        """
+        Executes a singe pipeline step: Hooks -> Model Config -> Prompt -> Agent -> Hooks -> Validation.
+
+        Args:
+            current_state (WorkflowState): Current state.
+            agent (Any): The Agent instance.
+            step_doc (Dict[str, Any]): The Step configuration document.
+            execution_id (str): Execution ID.
+
+        Returns:
+            Any: Updated state or early return dict.
+
+        Raises:
+            AgentExecutionError: If execution fails.
+        """
         step_id = step_doc['id']
         agent_name = agent.__class__.__name__
         current_state.current_step_name = agent_name
@@ -139,7 +187,17 @@ class PipelineRunner:
         return current_state
 
     def _execute_hook(self, hook_name: str, agent: Any, state: WorkflowState) -> WorkflowState:
-        """Executes a hook (Agent-method ONLY)."""
+        """
+        Executes a named hook method on the agent instance.
+
+        Args:
+            hook_name (str): Name of the method.
+            agent (Any): Agent instance.
+            state (WorkflowState): Current state.
+
+        Returns:
+            WorkflowState: Updated state.
+        """
         if hasattr(agent, hook_name):
             logger.debug(f"[PipelineRunner] Executing Hook: {agent.__class__.__name__}.{hook_name}")
             try:
@@ -165,7 +223,17 @@ class PipelineRunner:
             return state
 
     def _configure_agent_model(self, agent: Any, step_id: str, execution_id: str) -> Dict[str, Any]:
-        """Resolves and sets the specific model for an agent."""
+        """
+        Resolves the appropriate model strategy for the step and configures the agent.
+
+        Args:
+            agent (Any): The Agent instance.
+            step_id (str): Step ID.
+            execution_id (str): Execution ID.
+
+        Returns:
+            Dict[str, Any]: The resolved model configuration.
+        """
         step_model_key = None
         
         try:
@@ -204,7 +272,18 @@ class PipelineRunner:
         return resolved_config
 
     def _validate_step_output(self, agent_name: str, step_id: str, state: WorkflowState, step_doc: Dict[str, Any]):
-        """Validates output against component schemas."""
+        """
+        Validates the step output against the defined component output schema.
+
+        Args:
+            agent_name (str): Name of the agent.
+            step_id (str): Step ID.
+            state (WorkflowState): Current state.
+            step_doc (Dict[str, Any]): Step configuration.
+
+        Raises:
+            AgentExecutionError: If validation fails.
+        """
         output_config_id = step_doc.get('output_config_component')
         if output_config_id:
             comp_record = self.repository.get_component_by_id(output_config_id)
@@ -223,7 +302,16 @@ class PipelineRunner:
                                 raise AgentExecutionError(agent_name, step_id, ValueError(error_msg))
 
     def _handle_security_intervention(self, execution_id: str, state: WorkflowState) -> Dict[str, Any]:
-        """Handles security check failures."""
+        """
+        Handles a security check failure by creating a rejection result.
+
+        Args:
+            execution_id (str): Execution ID.
+            state (WorkflowState): Current state (with audit warning).
+
+        Returns:
+            Dict[str, Any]: Rejection details object.
+        """
         msg = f"[PipelineRunner] SECURITY INTERVENTION: Threat detected."
         logger.critical(msg)
         

@@ -22,6 +22,12 @@ def get_fallback_data(key: str) -> Dict[str, Any]:
     """
     Returns generic valid JSON for the given proper mock key.
     Used when specific mock responses are missing from data/mock_responses.json.
+
+    Args:
+        key (str): The mock key (e.g. 'analyst_agent').
+
+    Returns:
+        Dict[str, Any]: A dictionary representing the mock response.
     """
     if key == "guard_agent":
         return _generate_guard_data()
@@ -57,6 +63,12 @@ def get_fallback_data(key: str) -> Dict[str, Any]:
 def get_example_for_agent(agent_class_name: str) -> Optional[Dict[str, Any]]:
     """
     Retrieves the mock data example for a given agent class name.
+
+    Args:
+        agent_class_name (str): The class name of the agent.
+
+    Returns:
+        Optional[Dict[str, Any]]: The mock example or None if not found.
     """
     key = AGENT_CLASS_TO_MOCK_KEY.get(agent_class_name)
     if key:
@@ -64,7 +76,17 @@ def get_example_for_agent(agent_class_name: str) -> Optional[Dict[str, Any]]:
     return None
 
 def _clone(base: Dict, agent: str, vaihe: float) -> Dict:
-    """Helper to deep copy and set base metadata"""
+    """
+    Helper to deep copy and set base metadata.
+
+    Args:
+        base (Dict): The base dictionary structure.
+        agent (str): The agent name to inject.
+        vaihe (float): The step number (phase).
+
+    Returns:
+        Dict: cloned and updated dictionary.
+    """
     import copy
     new_data = copy.deepcopy(base)
     new_data["metadata"]["agentti"] = agent
@@ -72,7 +94,12 @@ def _clone(base: Dict, agent: str, vaihe: float) -> Dict:
     return new_data
 
 def _get_common_base() -> Dict[str, Any]:
-    """Helper to get common base data for fallback generators."""
+    """
+    Helper to get common base data for fallback generators.
+
+    Returns:
+        Dict[str, Any]: Common base structure with metadata.
+    """
     common_metadata = {
         "luontiaika": "2024-01-01T00:00:00Z",
         "agentti": "MockAgent",
@@ -312,6 +339,9 @@ def _generate_panel_data() -> Dict[str, Any]:
     """
     Generates a COMPOSITE response for the PanelAgent.
     Must match the complex schema of PanelAgent output.
+    
+    Returns:
+        Dict[str, Any]: Composite panel data.
     """
     data = _clone(_get_common_base(), agent="Tiedepaneeli", vaihe=6)
     

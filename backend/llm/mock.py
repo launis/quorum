@@ -2,9 +2,9 @@ import json
 import random
 import logging
 import os
+import re
 from typing import Dict, Any, Optional
 from backend.settings import get_settings
-# from backend.config import get_mock_responses_path # Removed
 from backend.llm.mock_data import get_fallback_data, AGENT_CLASS_TO_MOCK_KEY
 
 logger = logging.getLogger(__name__)
@@ -12,9 +12,13 @@ logger = logging.getLogger(__name__)
 class MockLLMService:
     """
     Simulates LLM responses for testing and development without API costs.
+    Intercepts calls and returns pre-defined JSON responses based on agent identity or prompt heuristics.
     """
     
     def __init__(self):
+        """
+        Initializes the Mock Service by loading response templates from disk.
+        """
         settings = get_settings()
         self.mock_data_path = settings.mock_responses_path
         self.mock_responses = self._load_mock_responses()
@@ -24,7 +28,12 @@ class MockLLMService:
         self.agent_identity_map = AGENT_CLASS_TO_MOCK_KEY
 
     def _load_mock_responses(self) -> Dict[str, Any]:
-        """Loads mock responses from the JSON file."""
+        """
+        Loads mock responses from the configured JSON file.
+
+        Returns:
+            Dict[str, Any]: The loaded mock response data.
+        """
         if not os.path.exists(self.mock_data_path):
             logger.warning(f"[MockLLM] Mock data file not found at {self.mock_data_path}. Using empty defaults.")
             return {}
@@ -36,7 +45,18 @@ class MockLLMService:
             logger.error(f"[MockLLM] Error loading mock data: {e}")
             return {}
 
-    def generate_content(self, prompt: str, system_instruction: str = None, agent_identity: str = None) -> str:
+    def generate_content(self, prompt: str, system_instruction: Optional[str] = None, agent_identity: Optional[str] = None) -> str:
+        """
+        Generates mocked content based on the input prompt and identity.
+
+        Args:
+            prompt (str): The user prompt.
+            system_instruction (Optional[str]): The system instruction prompting the specific agent persona.
+            agent_identity (Optional[str]): Explicit agent identifier (e.g. 'AnalystAgent') to bypass heuristics.
+
+        Returns:
+            str: JSON string representing the mocked agent output.
+        """
 
         logger.info(f"[MockLLM] Intercepted call. Prompt length: {len(prompt)}")
         
@@ -80,9 +100,19 @@ class MockLLMService:
         logger.info(f"[MockLLM] No specific mock found for '{key}'. Returning generic fallback.")
         return self._generate_fallback(key)
 
-    def _identify_prompt_type(self, prompt: str, system_instruction: str) -> str:
+    def _identify_prompt_type(self, prompt: str, system_instruction: Optional[str]) -> str:
+        """
+        Heuristics to identify the prompt type/agent key.
+        Prioritizes explicit STEP_ID injection, then system instruction keywords, then prompt keywords.
+        
+        Args:
+            prompt (str): User prompt.
+            system_instruction (Optional[str]): System prompt.
+
+        Returns:
+            str: The identified mock key (e.g., 'analyst_agent') or 'unknown'.
+        """
         # 0. Check for explicit STEP_ID injected into prompt
-        import re
         step_id_match = re.search(r"STEP_ID: (\w+)", prompt)
         if step_id_match:
             return step_id_match.group(1)
@@ -93,10 +123,6 @@ class MockLLMService:
             if step_id_match_sys:
                 return step_id_match_sys.group(1)
 
-        """
-        Heuristics to identify the prompt type.
-        Prioritizes system_instruction as it defines the agent's persona.
-        """
         # 1. Check System Instruction First (Most Reliable)
         if system_instruction:
             sys_lower = system_instruction.lower()
@@ -212,6 +238,12 @@ class MockLLMService:
         """
         Generates a minimal valid JSON response for the identified key, strictly matching backend/schemas.py.
         Delegates precise data generation to `mock_data.py`.
+
+        Args:
+            key (str): The mock key identifying the agent/type.
+
+        Returns:
+            str: JSON string of the fallback data.
         """
         data = get_fallback_data(key)
         # Assuming get_fallback_data returns a dict; we need to stringify it for the 'LLM response'

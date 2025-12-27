@@ -26,13 +26,25 @@ class GuardAgent(BaseAgent):
     OUTPUT_SCHEMA = TaintedData
 
     def get_response_schema(self) -> Optional[Type[BaseModel]]:
-        # This tells the LLM Provider exactly what JSON structure to enforce.
+        """
+        Returns the TaintedData schema definition.
+
+        Returns:
+            Type[TaintedData]: The schema class.
+        """
         return TaintedData
 
     async def prepare_context(self, state: WorkflowState, **kwargs) -> Optional[str]:
         """
         Lifecycle Hook: Pre-Execution.
         Performs Python-based banned phrase checks and sanitization.
+
+        Args:
+            state (WorkflowState): Current state.
+            **kwargs: ignored.
+
+        Returns:
+            Optional[str]: None. Only side-effects on state.
         """
         # 1. Banned Phrase Check (Injects warning into prompt if found)
         self.check_banned_phrases_python(state)
@@ -46,6 +58,12 @@ class GuardAgent(BaseAgent):
         """
         Lifecycle Hook: Post-Execution.
         Ensures tainted data structure is populated and banned phrases are flagged.
+
+        Args:
+            state (WorkflowState): Current state.
+
+        Returns:
+            WorkflowState: Processed state.
         """
         return self.ensure_tainted_data(state)
 
@@ -55,6 +73,12 @@ class GuardAgent(BaseAgent):
         HOOK: ensure_tainted_data
         Post-Hook. Ensures that the tainted data structure is correctly populated.
         Also performs strict Python-side banned phrase check.
+
+        Args:
+            state (WorkflowState): Current state.
+
+        Returns:
+            WorkflowState: Validated and potentially updated state.
         """
         logger.info("[GuardAgent] Running ensure_tainted_data...")
         
@@ -117,8 +141,13 @@ class GuardAgent(BaseAgent):
     def extract_text_from_inputs(self, state: WorkflowState) -> WorkflowState:
         """
         Public hook method (Pre-Hook).
-        (Deprecated Logic) PDF extraction is now handled upstream by WorkflowEngine (create_execution).
-        This hook is kept for backward compatibility with step configuration but is effectively a pass-through.
+        Legacy pass-through hook.
+
+        Args:
+            state (WorkflowState): Current state.
+
+        Returns:
+            WorkflowState: The same state.
         """
         logger.info("[GuardAgent] PDF Extraction Pre-Hook: Pass-through (Handled by Engine).")
         return state
@@ -127,7 +156,13 @@ class GuardAgent(BaseAgent):
         """
         Public hook method (Pre-Hook).
         Scans inputs for banned phrases BEFORE the LLM sees them.
-        If found, injects a system alert into the inputs to ensure the LLM flags it.
+        Injects alerts into inputs if necessary.
+
+        Args:
+            state (WorkflowState): Current state.
+
+        Returns:
+            WorkflowState: Updated state.
         """
         logger.info("[GuardAgent] Executing Python-based Banned Phrases Scan (Pre-Hook)...")
         
@@ -136,8 +171,6 @@ class GuardAgent(BaseAgent):
             banned_phrases = state.aux_data.get('banned_phrases', [])
             
             if not banned_phrases:
-                # If missing (e.g. running agent directly without engine init), warn and skip or fetch fallback?
-                # Ideally, we should not fetch here to respect DDD.
                 logger.warning("[GuardAgent] No banned_phrases found in state.aux_data. Skipping scan.")
                 return state
 
@@ -178,6 +211,12 @@ class GuardAgent(BaseAgent):
         HOOK: sanitize_input
         Pre-hook. Sanitizes and anonymizes input data (PII Redaction).
         Delegates to backend.hooks.security.
+
+        Args:
+            state (WorkflowState): Current state.
+
+        Returns:
+            WorkflowState: Updates state (aux_data & inputs).
         """
         logger.info("[GuardAgent] Running sanitize_input (Pre-Hook)...")
         from backend.hooks.security import sanitize_text

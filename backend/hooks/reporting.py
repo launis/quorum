@@ -11,7 +11,17 @@ logger = logging.getLogger(__name__)
 def generate_report(state: WorkflowState) -> WorkflowState:
     """
     HOOK: generate_report
-    Post-Hook. Generates the final human-readable report using Jinja2 templates.
+    Post-execution hook that aggregates results from all agents (Judge, Overseer, Reporter)
+    and renders a human-readable Markdown report using a Jinja2 template.
+
+    Outputs:
+        Populates 'step_reporter.xai_report_formatted' with the rendered Markdown.
+
+    Args:
+        state (WorkflowState): Current workflow state containing all agent outputs.
+
+    Returns:
+        WorkflowState: Updated state with the final report.
     """
     logger.info("[ReportingHook] Generating report...")
     

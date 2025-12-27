@@ -5,10 +5,19 @@ logger = logging.getLogger(__name__)
 
 def apply_scoring_logic(state: WorkflowState) -> WorkflowState:
     """
-    Applies deterministic penalties based on Guard and Falsifier findings,
+    HOOK: apply_scoring_logic
+    Applies deterministic penalties based on Guard (Security) and Falsifier (Logical) findings,
     then calculates final score averages.
     
-    Refatoring Note: Logic moved from JudgeAgent.
+    Rules:
+    1. Security Threat -> All scores capped at 1.
+    2. Post-Hoc Rationalization -> All scores capped at 2.
+
+    Args:
+        state (WorkflowState): Current state containing Judge, Guard, and Falsifier outputs.
+
+    Returns:
+        WorkflowState: State with penalty-adjusted scores and calculated averages in 'aux_data'.
     """
     if not state.step_judge or not state.step_judge.pisteet:
         logger.warning("   [ScoringHook] No scores to calculate.")
@@ -32,12 +41,6 @@ def apply_scoring_logic(state: WorkflowState) -> WorkflowState:
         # Rule 2: Logical Failures (Falsifier) -> Max Score 2/4
         # Check if there are critical logical errors (needs inspection of Falsifier schema/output)
         elif state.step_falsifier:
-                # Check for critical flags (Example logic)
-                # Adjust based on actua Falsifier model structure
-                # Checking generic field 'onko_post_hoc_rationalisointia' or similar?
-                # The model schema for Falsifier (LogicalAudit) has 'paattelyketjun_uskollisuus_auditointi'
-                # which has 'onko_post_hoc_rationalisointia'.
-                
                 audit = getattr(state.step_falsifier, 'paattelyketjun_uskollisuus_auditointi', None)
                 if audit and audit.onko_post_hoc_rationalisointia:
                     logger.warning("[ScoringHook] Post-Hoc Rationalization detected! Capping scores to 2.")

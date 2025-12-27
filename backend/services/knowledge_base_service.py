@@ -1,7 +1,7 @@
 import logging
 import uuid
 import os
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from datetime import datetime
 from backend.services.knowledge_base_parser import KnowledgeBaseParser
 from backend.database.repository import AbstractWorkflowRepository
@@ -11,11 +11,20 @@ logger = logging.getLogger(__name__)
 class KnowledgeBaseService:
     """
     Coordinator for ingesting Knowledge Base files into the database.
-    Now uses Unified ProgressTracker.
+    Integrates Parsing, Storage, and Database Persistence layers.
+    Operates asynchronously and reports status via unified ProgressTracker.
     """
     
-    
     def __init__(self, repository: AbstractWorkflowRepository, storage_client: Optional[Any] = None, document_service: Optional[Any] = None, llm_provider: Optional[Any] = None):
+        """
+        Initializes the service.
+
+        Args:
+            repository (AbstractWorkflowRepository): Database access.
+            storage_client (Optional[Any]): File storage. Defaults to global factory.
+            document_service (Optional[Any]): For parsing/extraction. Defaults to auto-init.
+            llm_provider (Optional[Any]): For AI enrichment (optional).
+        """
         self.repository = repository
         self.llm_provider = llm_provider
         
@@ -44,8 +53,26 @@ class KnowledgeBaseService:
         reset_db: bool = False
     ) -> Dict[str, Any]:
         """
-        Ingests content from memory (bytes). Archives to storage first.
-        Uses Unified ProgressTracker.
+        Ingests content from memory (bytes). Archives to storage, parses structure, and persists to DB.
+        
+        Workflow:
+        1. Archive to Storage.
+        2. Parse (DOCX/MD) to extract Concepts, References, Claims.
+        3. (Optional) Enrich with LLM if provider configured.
+        4. Store extracted items in Database.
+
+        Args:
+            file_content (bytes): Raw file data.
+            filename (str): Original filename.
+            tracker (Any): ProgressTracker instance for status updates.
+            job_id (Optional[str]): Unique ingest job UUID.
+            reset_db (bool): If True, clears existing KB before ingestion.
+
+        Returns:
+            Dict[str, Any]: Summary stats (counts of concepts, refs, claims).
+
+        Raises:
+            Exception: On ingestion failure.
         """
         if not job_id:
             job_id = str(uuid.uuid4())
@@ -117,9 +144,17 @@ class KnowledgeBaseService:
             tracker.fail(str(e))
             raise e
 
-    async def extract_concepts_with_llm(self, text: str, tracker: Any = None) -> list:
+    async def extract_concepts_with_llm(self, text: str, tracker: Any = None) -> List[Dict[str, str]]:
         """
-        Chunks text and uses LLM to extract concepts. Publicly accessible.
+        Chunks text and uses configured LLM to extract theoretical concepts.
+        Publicly accessible for ad-hoc extraction.
+
+        Args:
+            text (str): Input text content.
+            tracker (Any, optional): ProgressTracker for status updates.
+
+        Returns:
+            List[Dict[str, str]]: List of {'term': ..., 'definition': ...}.
         """
         # 1. Chunking
         chunk_size = 8000
@@ -195,6 +230,10 @@ class KnowledgeBaseService:
         return [{"term": t, "definition": d} for t, d in final_map.items()]
 
     def _store_parsed_data(self, parsed_data: Dict[str, Any], source_name: str, job_id: str, tracker: Any = None) -> Dict[str, Any]:
+        """
+        Internal: Converts parsed data structures into Database Records and inserts them using Repository.
+        Reports fine-grained progress.
+        """
         concepts = parsed_data.get('concepts', [])
         refs = parsed_data.get('references', [])
         claims = parsed_data.get('claims', [])
@@ -278,5 +317,3 @@ class KnowledgeBaseService:
             "references_count": count_refs,
             "claims_count": count_claims
         }
-
-

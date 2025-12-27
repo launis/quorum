@@ -6,14 +6,28 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-
-
 router = APIRouter(prefix="/tools", tags=["Tools"])
 
-@router.post("/extract-text")
-async def extract_document_text(file: UploadFile = File(...)):
+@router.post(
+    "/extract-text", 
+    summary="Extract Document Text",
+    response_description="Extracted text and metadata."
+)
+async def extract_document_text(
+    file: UploadFile = File(..., description="The document to parse (PDF, DOCX, TXT). Max 10MB.")
+):
     """
-    Extracts text from an uploaded document (PDF, DOCX, TXT).
+    Parses and extracts plain text from an uploaded document.
+    Supports PDF (`.pdf`), Word (`.docx`), and Plain Text (`.txt`).
+
+    Args:
+        file (UploadFile): The binary file upload.
+
+    Returns:
+        dict: Contains 'filename' and 'text'.
+
+    Raises:
+        HTTPException: If the file is too large (>10MB) or format is unsupported.
     """
     try:
         # Read file into memory
@@ -51,14 +65,30 @@ async def extract_document_text(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/extract-concepts")
+@router.post(
+    "/extract-concepts", 
+    summary="Extract Concepts (Experimental)",
+    response_description="A list of extracted concepts using LLM."
+)
 async def extract_concepts_from_file_or_text(
-    file: UploadFile = File(None),
-    text: str = Body(None),
+    file: UploadFile = File(None, description="Optional source file."),
+    text: str = Body(None, description="Optional raw source text."),
     llm_provider = Depends(get_llm_provider)
 ):
     """
-    Experimental Endpoint: Extracts concepts from text using LLM.
+    Uses the configured LLM to semantically extract concepts from input text or file.
+    Note: This is an experimental tool endpoint.
+
+    Args:
+        file (UploadFile, optional): Binary file source.
+        text (str, optional): Text string source.
+        llm_provider: Dependency.
+
+    Returns:
+        dict: Object containing a list of 'concepts'.
+
+    Raises:
+        HTTPException: If no input is provided or extraction fails.
     """
     if not file and not text:
         raise HTTPException(status_code=400, detail="Must provide either file or text.")
@@ -100,14 +130,25 @@ async def extract_concepts_from_file_or_text(
         logger.error(f"Extraction failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/citation-lookup")
+@router.post(
+    "/citation-lookup", 
+    summary="Lookup Citations",
+    response_description="Matches found in the Knowledge Base."
+)
 async def lookup_citations(
-    text: str = Body(..., embed=True),
+    text: str = Body(..., embed=True, description="The content text to scan for citations."),
     repo: AbstractWorkflowRepository = Depends(get_repository_dep)
 ):
     """
-    Scans text for citations/concepts present in the Knowledge Base.
-    Uses CoachAgent's static find_citations logic.
+    Scans the provided text for key terms or citations present in the system's Knowledge Base.
+    Utilizes the CoachAgent's 2-hop resolution logic.
+
+    Args:
+        text (str): Input text.
+        repo (AbstractWorkflowRepository): Database dependency.
+
+    Returns:
+        dict: List of 'citations' found.
     """
     if not text:
          return {"citations": []}

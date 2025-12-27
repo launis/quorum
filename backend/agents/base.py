@@ -28,6 +28,13 @@ class BaseAgent(BaseComponent):
     OUTPUT_SCHEMA: Optional[Type[BaseModel]] = None
 
     def __init__(self, model: Optional[str] = None, provider: Optional[str] = None):
+        """
+        Initializes the agent with an optional specific model strategy.
+
+        Args:
+            model (Optional[str]): The model identifier (e.g. 'gemini-1.5-pro').
+            provider (Optional[str]): The provider (e.g. 'google').
+        """
         if model and "gemini" in model.lower():
              logger.warning(f"[BaseAgent] Hardcoded 'gemini' detected in model init: {model}")
              
@@ -43,20 +50,20 @@ class BaseAgent(BaseComponent):
     def set_model(self, model_name: str, provider: Optional[str] = None):
         """
         Dynamically updates the agent's model preference and ensures LLMProvider is ready.
+
+        Args:
+            model_name (str): The new model name.
+            provider (Optional[str]): The provider type.
         """
         self.model = model_name
         if provider:
             self.provider_type = provider
             
-        # If provider type is known (either passed now or in init), ensuring we have a provider instance
-        current_provider_type = self.provider_type or "google" # Default fallback if somehow missing, though Runner should provide it
+        current_provider_type = self.provider_type or "google" # Default fallback
         
         if self.llm_provider:
              # Update existing provider
              self.llm_provider.model_name = model_name
-             # If provider type changed, we might need to recreate? 
-             # For now assuming same provider class structure or just updating name.
-             # Ideally we should recreate if provider type differs.
         else:
              # Create new provider
              if current_provider_type:
@@ -64,11 +71,20 @@ class BaseAgent(BaseComponent):
              else:
                  logger.error(f"[BaseAgent] Cannot create LLMProvider: Provider type missing for model {model_name}")
 
-
     def _update_state(self, state: WorkflowState, response_data: Any) -> WorkflowState:
         """
         Updates the WorkflowState with the LLM response.
         Generic implementation: Uses self.state_field and self.get_response_schema().
+
+        Args:
+            state (WorkflowState): Current state.
+            response_data (Any): Raw data dictionary from LLM.
+
+        Returns:
+            WorkflowState: The updated state object.
+
+        Raises:
+            Exception: If schema validation fails.
         """
         if self.state_field and self.get_response_schema():
             try:
@@ -81,9 +97,6 @@ class BaseAgent(BaseComponent):
                     setattr(state, self.state_field, validated_data)
                     logger.info(f"[{self.__class__.__name__}] Updated state.{self.state_field}")
                 else:
-                    # Fallback or Error? 
-                    # If field missing in State model, we can't assign.
-                    # Maybe allow dynamic aux_data fallback?
                     logger.warning(f"[{self.__class__.__name__}] State model missing field '{self.state_field}'. Assigning to aux_data.")
                     state.aux_data[self.state_field] = validated_data.model_dump()
                     
@@ -92,16 +105,23 @@ class BaseAgent(BaseComponent):
                 logger.error(f"[{self.__class__.__name__}] Generic state update failed: {e}")
                 raise e
         
-        # If no state_field defined, raise error (Subclasses must implement or define field)
         raise NotImplementedError(f"[{self.__class__.__name__}] must define 'state_field' or override '_update_state'.")
-
 
     async def execute(self, state: WorkflowState, system_instruction: Optional[str] = None, **kwargs) -> WorkflowState:
         """
         Standard execution entry point.
         Takes the entire WorkflowState, processes it, and returns the updated state.
-        Now accepts an optional system_instruction override (for data-driven prompts).
-        Key Change: Accepts **kwargs to pass parameters like max_tokens to generate.
+
+        Args:
+            state (WorkflowState): The current workflow context.
+            system_instruction (Optional[str]): Prompt override.
+            **kwargs: Additional parameters for LLM (e.g. max_tokens, temperature).
+
+        Returns:
+            WorkflowState: Updated state after execution.
+
+        Raises:
+            Exception: If execution fails.
         """
         logger.info(f"[{self.__class__.__name__}] Starting execution...")
         try:
@@ -110,14 +130,12 @@ class BaseAgent(BaseComponent):
             
             # 2. Get System Instruction
             if not system_instruction:
-                # Fallback if engine didn't provide it (should not happen in new flow)
                 system_instruction = "You are a helpful AI assistant."
 
             # 3. Determine Output Schema (Subclasses must define this!)
             response_schema = self.get_response_schema()
 
             # 3.5 Lifecycle Hook: Prepare Context
-            # Allow subclasses to inject dynamic context or modify state before execution.
             logger.info(f"[{self.__class__.__name__}] Lifecycle Hook: prepare_context")
             additional_context = await self.prepare_context(state, **kwargs)
             if additional_context:
@@ -125,7 +143,6 @@ class BaseAgent(BaseComponent):
                 logger.debug(f"[{self.__class__.__name__}] Appended dynamic context.")
             
             # --- LOGGING EXECUTION CONFIG ---
-            # Extract config to show user exactly what is running
             conf_model = self.model
             conf_temp = kwargs.get('temperature', 'Default')
             conf_tokens = kwargs.get('max_tokens', 'Default')
@@ -135,8 +152,6 @@ class BaseAgent(BaseComponent):
             # --------------------------------
 
             # 4. Call LLM (The "Mask" handles the details) — ASYNC WAIT
-            # Pass kwargs (e.g. max_tokens) here
-            # Inject identity for MockLLM robustness
             kwargs['mock_identity'] = self.__class__.__name__
             
             response_data = await self.llm_provider.generate(
@@ -150,7 +165,6 @@ class BaseAgent(BaseComponent):
             updated_state = self._update_state(state, response_data)
             
             # 6. Lifecycle Hook: Post Process
-            # Allow subclasses to refine the state after LLM output (e.g. calculations, enrichment)
             logger.info(f"[{self.__class__.__name__}] Lifecycle Hook: post_process")
             updated_state = self.post_process(updated_state)
 
@@ -164,52 +178,65 @@ class BaseAgent(BaseComponent):
     async def prepare_context(self, state: WorkflowState, **kwargs) -> Optional[str]:
         """
         Lifecycle Hook: Pre-Execution.
-        Override this to:
-        - Fetch external data (DB/Web)
-        - Check inputs (Guard)
-        - Return a string to be appended to the System Instruction.
+        Override to inject dynamic context.
+
+        Args:
+            state (WorkflowState): Current state.
+            **kwargs: execution arguments.
+
+        Returns:
+            Optional[str]: Text to append to system instruction.
         """
         return None
 
     def post_process(self, state: WorkflowState) -> WorkflowState:
         """
         Lifecycle Hook: Post-Execution.
-        Override this to:
-        - Perform calculations (Judge)
-        - Enrich data (Coach)
-        - Verify constraints
+        Override to refine state or perform calculations.
+
+        Args:
+            state (WorkflowState): Current state.
+
+        Returns:
+            WorkflowState: Processed state.
         """
         return state
 
     def construct_user_prompt(self, state: WorkflowState) -> str:
         """
         Deprecated: User prompts are now generic.
+        
+        Args:
+            state (WorkflowState): Context.
+
+        Returns:
+            str: Prompt text.
         """
         return "Proceed with your task."
-
-
 
     def get_response_schema(self) -> Optional[Type[BaseModel]]:
         """
         Returns the Pydantic model that this agent expects as output.
-        Used for Structured Outputs.
+
+        Returns:
+            Optional[Type[BaseModel]]: The Pydantic output schema class.
         """
         return None
 
     def get_system_instruction(self) -> str:
         """
-        Retrieves the system instruction. 
-        In a real app, this might query the DB. For now, we can return a default or override in subclasses.
+        Retrieves the default system instruction.
+
+        Returns:
+            str: Default instruction text.
         """
-        # Placeholder: In the real app, this comes from the 'Step' configuration.
-        # We might need to inject it or fetch it.
         return "You are a helpful AI assistant."
 
     def get_user_prompt_template(self) -> str:
         """
         Returns a string representation of the user prompt template for UI preview.
-        Subclasses should override this to show their specific template structure.
+
+        Returns:
+            str: Template preview.
         """
         return "Proceed with your task according to the system instructions."
-
-

@@ -1,4 +1,3 @@
-
 import re
 import logging
 from typing import List, Dict, Any, Set, Optional
@@ -7,11 +6,18 @@ logger = logging.getLogger(__name__)
 
 class ReferenceManager:
     """
-    Centralized service for managing citations and generating the master bibliography.
-    Scans text for short citations (e.g. "Author 2023") and resolves them against the Knowledge Base.
+    Centralized service for managing bibliometric citations and generating master bibliographies.
+    Scans text for short citations (e.g. "Acemoglu 2023") and resolves them against the Knowledge Base
+    to produce accurate lists of references used in generated output.
     """
 
     def __init__(self, knowledge_base: Dict[str, Any]):
+        """
+        Initializes the manager with knowledge base content.
+
+        Args:
+            knowledge_base (Dict[str, Any]): The full KB content (concepts, references).
+        """
         self.knowledge_base = knowledge_base
         self.references_map = self._build_reference_map()
         
@@ -21,8 +27,11 @@ class ReferenceManager:
 
     def _build_reference_map(self) -> Dict[str, str]:
         """
-        Builds a lookup map: Short Citation -> Full Reference String.
-        Key is normalized lowercase for matching.
+        Builds a normalized lookup map: Short Citation (lowercase) -> Full Reference String.
+        Used for O(1) resolution of citations found in text.
+
+        Returns:
+            Dict[str, str]: Map of short citation to full bibliography entry.
         """
         ref_map = {}
         refs = self.knowledge_base.get("references", [])
@@ -55,7 +64,13 @@ class ReferenceManager:
     def scan_and_collect_references(self, content: Any) -> List[str]:
         """
         Recursively scans a JSON-like structure (dict/list/str) for citations.
-        Returns a sorted list of unique Full Reference strings used in the content.
+        Extracts all parenthetical citations and resolves them to full references.
+
+        Args:
+            content (Any): The data structure to scan.
+
+        Returns:
+            List[str]: Sorted list of unique Full Reference strings used in the content.
         """
         used_refs: Set[str] = set()
         
@@ -75,7 +90,7 @@ class ReferenceManager:
 
     def _scan_text(self, text: str, used_refs: Set[str]):
         """
-        Scans a single string for citations and updates the set.
+        Scans a single string for citations and updates the set of used references.
         """
         if not text or len(text) < 10: return
         
@@ -103,9 +118,15 @@ class ReferenceManager:
 
     def advanced_scan(self, text_dump: str) -> Dict[str, List[str]]:
         """
-        Performs a deep scan for citations, including direct matches and concept-based implicit links.
-        Returns: {Full_Reference_String: [List of Reasons/Contexts]}
-        Refactored from CoachAgent.find_citations_with_reasons.
+        Performs a deep (2-hop) scan for citation relevance.
+        1. Checks for direct citation in text.
+        2. Checks for theoretical concepts mentioned in text, and includes references defining those concepts.
+
+        Args:
+            text_dump (str): The combined text to analyze.
+
+        Returns:
+            Dict[str, List[str]]: Map of {Full Reference -> [List of Reasons/Contexts]}.
         """
         found = {}
         text_lower = text_dump.lower()
@@ -170,4 +191,3 @@ class ReferenceManager:
                                 found[resolved_ref].append(msg)
 
         return found
-

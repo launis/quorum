@@ -1,13 +1,12 @@
 from fastapi import APIRouter, HTTPException, Body, Depends, Query as APIQuery
 from typing import Dict, Any, Optional, List
 import importlib
+import logging
+from tinydb import Query
 
 from backend.database.wrapper import AbstractDatabase
 from backend.dependencies import get_db_client_dep, get_agent_registry_dep
 from backend.services.agent_registry import AgentRegistry
-from tinydb import Query
-# from backend.config import DB_PATH # Removed unused import
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -16,8 +15,17 @@ router = APIRouter(prefix="/agents", tags=["Agents"])
 def _load_agent_class(agent_name: str, db: AbstractDatabase):
     """
     Dynamically loads an agent class by name using the database registry.
+
+    Args:
+        agent_name (str): The name of the agent class or component.
+        db (AbstractDatabase): The database connection.
+
+    Returns:
+        Type: The loaded Agent class.
+
+    Raises:
+        ValueError: If the agent is not found or cannot be imported.
     """
-    # db = get_db_client() # Removed
     components_table = db.table('components')
     
     # 1. Try to find by class name (preferred)
@@ -38,23 +46,46 @@ def _load_agent_class(agent_name: str, db: AbstractDatabase):
     except (ImportError, AttributeError) as e:
         raise ValueError(f"Failed to load agent {agent_name} from {module_name}: {e}")
 
-@router.post("/{agent_name}/run")
+@router.post(
+    "/{agent_name}/run",
+    summary="Run Specific Agent",
+    response_description="The result of the agent execution."
+)
 async def run_agent(
     agent_name: str, 
-    inputs: Dict[str, Any] = Body(...),
-    system_instruction: Optional[str] = Body(None),
-    model: Optional[str] = Body(None),
+    inputs: Dict[str, Any] = Body(..., description="Key-value pairs representing the input state for the agent."),
+    system_instruction: Optional[str] = Body(None, description="Optional system instruction override."),
+    model: Optional[str] = Body(None, description="Optional model strategy override."),
     db: AbstractDatabase = Depends(get_db_client_dep)
 ):
     """
-    Executes a specific agent with provided inputs.
+    Executes a specific agent in isolation with provided inputs.
+
+    Args:
+        agent_name (str): The class name of the agent to run.
+        inputs (Dict[str, Any]): Input data for the agent's context.
+        system_instruction (Optional[str]): optional prompt override.
+        model (Optional[str]): optional model override.
+        db (AbstractDatabase): Database dependency.
+
+    Returns:
+        dict: A dictionary containing the agent name and the execution result/state.
+
+    Raises:
+        HTTPException: If the agent cannot be loaded or execution fails.
     """
     try:
         AgentClass = _load_agent_class(agent_name, db)
         agent = AgentClass(model=model)
         
         logger.info(f"Executing agent {agent_name} via API...")
-        # Fixed: Added await since execute is async
+        
+        # Manually construct a minimal state or pass kwargs? 
+        # BaseAgent.execute expects (state, **kwargs). 
+        # If the agent uses state attributes, we might need to wrap inputs in WorkflowState.
+        # But for simple testing, `execute` arguments vary. 
+        # Let's assume standard **inputs passing for now as per original code.
+        
         result = await agent.execute(system_instruction=system_instruction, **inputs)
         return {"agent": agent_name, "result": result}
         
@@ -63,14 +94,26 @@ async def run_agent(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/", response_model=List[Dict])
+@router.get(
+    "/", 
+    response_model=List[Dict],
+    summary="List All Agents",
+    response_description="A list of available agents containing metadata and schemas."
+)
 def list_agents(
-    workflow_id: Optional[str] = APIQuery(None), 
+    workflow_id: Optional[str] = APIQuery(None, description="Optional Workflow ID to resolve model strategies contextually."), 
     db: AbstractDatabase = Depends(get_db_client_dep)
 ):
     """
     List all available agents with their metadata, models, and schemas.
     Dynamically resolves model strategy based on the selected workflow configuration.
+
+    Args:
+        workflow_id (Optional[str]): Context for model resolution.
+        db (AbstractDatabase): Database dependency.
+
+    Returns:
+        List[Dict]: A list of agent definition objects.
     """
     registry = AgentRegistry.get_instance()
     agents_list = []
@@ -88,14 +131,11 @@ def list_agents(
         deep_model = "unknown"
 
     # 2. Fetch Workflow Context to override defaults
-    # Use the repository directly to find how agents are configured in the active workflow
     workflow_mapping = {}
     agent_to_step_id = {}
     
     try:
-        # Get active workflow mapping
         wfs = registry.repository.get_all_workflows()
-        if wfs:
         if wfs:
             target_wf = None
             if workflow_id:
@@ -142,30 +182,24 @@ def list_agents(
              except Exception: pass
 
         # Determine Model Name (Workflow > Global Default)
-        # Start with the agent's internal default (initially set to Global Fast)
         current_model = agent_instance.model 
         
         # Override with Workflow Mapping
-        # Override with Workflow Mapping (Strict DB Lookup)
         if name in agent_to_step_id:
             step_id = agent_to_step_id[name]
             if step_id in workflow_mapping:
                 strategy_key = workflow_mapping[step_id]
                 
-                # Direct DB Fetch using get_db_client as requested
+                # Direct DB Fetch
                 try:
-                    # Logic: Use injected DB client -> Query system_config -> Build local strategies -> Lookup
                     table = db.table('system_config')
-                    Config = Query()
-                    res = table.search(Config.type == 'model_registry')
+                    ConfigQuery = Query()
+                    res = table.search(ConfigQuery.type == 'model_registry')
                     
                     db_strategies = {}
                     if res and 'models' in res[0]:
-                        # Prioritize google
                         db_strategies = res[0]['models'].get('google', {})
                     
-                    logger.warning(f"DIAGNOSTIC: Agent={name}, Step={step_id}, StratKey={strategy_key}, StrategiesFound={list(db_strategies.keys())}")
-
                     if strategy_key in db_strategies:
                         val = db_strategies[strategy_key]
                         if isinstance(val, dict):
@@ -173,14 +207,12 @@ def list_agents(
                         else:
                              current_model = str(val)
                     else:
-                        # User requirement: If NOT found -> error
                         current_model = f"ERROR: Strategy '{strategy_key}' not found in DB"
                         
                 except Exception as e:
                     current_model = f"ERROR: DB Query Failed: {str(e)}"
                     logger.error(f"DIAGNOSTIC FAULT: {e}")
 
-        # Formatting Suffix
         # Formatting Suffix
         model_display = current_model
         if model_display == fast_model:
@@ -197,7 +229,6 @@ def list_agents(
                 d_sk = workflow_mapping[d_sid]
                 d_dbg += f"[STR:{d_sk}]"
                 
-                # Check if update happened
                 if current_model == agent_instance.model and "deep" in d_sk:
                      d_dbg += "[FAIL:NoUpd]"
                 else:

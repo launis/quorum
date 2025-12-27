@@ -1,51 +1,60 @@
 from fastapi import APIRouter, Depends, HTTPException, Body
-from typing import List, Dict, Any, Optional
-from pydantic import BaseModel
+from typing import List, Dict, Any, Optional, Annotated
+from pydantic import BaseModel, Field
 import logging
 import uuid
 import copy
 from datetime import datetime
+from tinydb import Query
 
 from backend.dependencies import get_engine
 from backend.core.engine import WorkflowEngine
-from backend.services.agent_registry import AgentRegistry
 
 router = APIRouter(
     prefix="/builder",
     tags=["Builder"],
-    responses={404: {"description": "Not found"}},
+    responses={404: {"description": "Resource Not Found"}},
 )
 
 logger = logging.getLogger(__name__)
 
 # --- Models ---
+
 class WorkflowCreateRequest(BaseModel):
-    name: str
-    description: Optional[str] = None
-    steps: List[str]  # List of step IDs in order
-    ui_schema: Optional[Dict[str, Any]] = None # UI coordinates
-    default_model_mapping: Optional[Dict[str, str]] = None
+    name: Annotated[str, Field(description="The unique name for the new workflow.")]
+    description: Annotated[Optional[str], Field(description="A description of the workflow's purpose.")] = None
+    steps: Annotated[List[str], Field(description="An ordered list of step IDs to include in the workflow.")]
+    ui_schema: Annotated[Optional[Dict[str, Any]], Field(description="Layout coordinates for the frontend canvas.")] = None
+    default_model_mapping: Annotated[Optional[Dict[str, str]], Field(description="Map of Step IDs to Model Strategy keys.")] = None
 
 class WorkflowUpdateRequest(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    steps: Optional[List[str]] = None
-    ui_schema: Optional[Dict[str, Any]] = None
-    default_model_mapping: Optional[Dict[str, str]] = None
+    name: Annotated[Optional[str], Field(description="New name.")] = None
+    description: Annotated[Optional[str], Field(description="New description.")] = None
+    steps: Annotated[Optional[List[str]], Field(description="New ordered list of steps.")] = None
+    ui_schema: Annotated[Optional[Dict[str, Any]], Field(description="New layout data.")] = None
+    default_model_mapping: Annotated[Optional[Dict[str, str]], Field(description="New model mapping.")] = None
 
 class CopyWorkflowRequest(BaseModel):
-    new_name: str
+    new_name: Annotated[str, Field(description="The name for the copied workflow.")]
 
 class ValidationRequest(BaseModel):
-    source_step: str
-    target_step: str
+    source_step: Annotated[str, Field(description="The upstream step ID.")]
+    target_step: Annotated[str, Field(description="The downstream step ID.")]
 
 class WorkflowTemplate(BaseModel):
-    name: str
-    description: str = ""
-    steps: List[str] = []
-    default_model_mapping: Dict[str, str] = {}
-    ui_schema: Dict[str, Any] = {"nodes": []}
+    name: Annotated[str, Field(description="Name of the template.")]
+    description: Annotated[str, Field(description="Description.")] = ""
+    steps: Annotated[List[str], Field(description="Empty step list.")] = []
+    default_model_mapping: Annotated[Dict[str, str], Field(description="Empty map.")] = {}
+    ui_schema: Annotated[Dict[str, Any], Field(description="Default UI schema.")] = {"nodes": []}
+
+class CompileRequest(BaseModel):
+    workflow_id: Annotated[str, Field(description="The ID of the workflow to modifying.")]
+    steps: Annotated[List[str], Field(description="Values of step IDs to fuse.")]
+
+class StepUpdateRequest(BaseModel):
+    name: Annotated[Optional[str], Field(description="New display name.")] = None
+    execution_config: Annotated[Optional[Dict[str, Any]], Field(description="Updated internal config (prompts, etc).")] = None
 
 
 # --- Helpers ---
@@ -71,72 +80,80 @@ def _get_orphan_steps(repo, workflow_id: str) -> List[str]:
 
 # --- Endpoints ---
 
-@router.get("/config/agents")
+@router.get(
+    "/config/agents", 
+    summary="List Agent Class Metadata",
+    response_description="A list of agent definitions including I/O contracts."
+)
 async def get_available_agents(engine: WorkflowEngine = Depends(get_engine)):
     """
-    Discovery: Returns metadata for all registered agents.
-    Used for the Builder Toolbox.
+    Returns metadata for all registered agents, used for the Builder Toolbox.
+
+    Args:
+        engine (WorkflowEngine): Dependency.
+
+    Returns:
+        List[dict]: Agent metadata objects.
     """
     try:
         registry = engine.registry
         agents_meta = []
-        
-        # registry.agents_map is Dict[str, BaseAgent] (Instances)
-        # Use get_all_agents() for safety
         agents = registry.get_all_agents()
         
         for name, agent_inst in agents.items():
-            # Get class docstring
             agent_cls = agent_inst.__class__
-            
             meta = {
                 "name": name,
                 "description": agent_cls.__doc__ or "No description.",
                 "inputs": getattr(agent_cls, "INPUT_REQUIREMENTS", []),
                 "outputs": []
             }
-            
-            # Check for schemas
-            if hasattr(agent_inst, "get_response_schema"):
-                 # We might want serialize
-                 pass
-            
             agents_meta.append(meta)
                 
         return agents_meta
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/workflows")
+@router.get(
+    "/workflows", 
+    summary="List Workflows",
+    response_description="All Workflows."
+)
 async def list_workflows(engine: WorkflowEngine = Depends(get_engine)):
     """List all workflows for the dashboard."""
     return engine.repository.get_all_workflows()
 
-@router.post("/workflows")
+@router.post(
+    "/workflows", 
+    summary="Create Workflow",
+    response_description="Created workflow data."
+)
 async def create_workflow(request: WorkflowCreateRequest, engine: WorkflowEngine = Depends(get_engine)):
-    """Create a new workflow."""
+    """
+    Create a new workflow with a generated short ID.
+    """
     try:
         new_id = str(uuid.uuid4()).split('-')[0] # Short ID
         workflow_data = {
-            "id": f"wf_{new_id}", # custom ID format
+            "id": f"wf_{new_id}", 
             "name": request.name,
             "description": request.description or "",
             "steps": request.steps,
             "default_model_mapping": request.default_model_mapping or {},
-            "ui_schema": request.ui_schema or {}, # Store visual layout
+            "ui_schema": request.ui_schema or {}, 
             "created_at": datetime.now().isoformat()
         }
         
-        # We need a direct method in repository to add workflow with custom ID
-        # The engine.create_workflow returns an ID but might enforce its own logic.
-        # Let's use the repository directly.
         engine.repository.db.table('workflows').insert(workflow_data)
-        
         return workflow_data
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/workflows/{workflow_id}")
+@router.get(
+    "/workflows/{workflow_id}", 
+    summary="Get Workflow",
+    response_description="Workflow details."
+)
 async def get_workflow(workflow_id: str, engine: WorkflowEngine = Depends(get_engine)):
     """Get details of a specific workflow."""
     wf = engine.repository.get_workflow_by_id(workflow_id)
@@ -144,7 +161,11 @@ async def get_workflow(workflow_id: str, engine: WorkflowEngine = Depends(get_en
         raise HTTPException(status_code=404, detail="Workflow not found")
     return wf
 
-@router.put("/workflows/{workflow_id}")
+@router.put(
+    "/workflows/{workflow_id}", 
+    summary="Update Workflow",
+    response_description="Updated workflow."
+)
 async def update_workflow(workflow_id: str, request: WorkflowUpdateRequest, engine: WorkflowEngine = Depends(get_engine)):
     """Update an existing workflow."""
     wf = engine.repository.get_workflow_by_id(workflow_id)
@@ -160,19 +181,16 @@ async def update_workflow(workflow_id: str, request: WorkflowUpdateRequest, engi
     
     update_data['updated_at'] = datetime.now().isoformat()
     
-    # Use repo update
-    # Note: Repository abstract method might be limited, accessing DB directly for custom fields if needed
-    # But let's try standard update if available
-    # engine.repository.update_workflow(workflow_id, update_data) # Does not exist in abstract?
-    
-    # Fallback to direct DB access for generic update
-    from tinydb import Query
     Layout = Query()
     engine.repository.db.table('workflows').update(update_data, Layout.id == workflow_id)
     
     return {**wf, **update_data}
 
-@router.delete("/workflows/{workflow_id}")
+@router.delete(
+    "/workflows/{workflow_id}", 
+    summary="Delete Workflow",
+    response_description="Deletion status and cleaned up orphans."
+)
 async def delete_workflow(workflow_id: str, engine: WorkflowEngine = Depends(get_engine)):
     """
     Delete a workflow AND its orphan steps (Garbage Collection).
@@ -185,7 +203,6 @@ async def delete_workflow(workflow_id: str, engine: WorkflowEngine = Depends(get
     orphans = _get_orphan_steps(engine.repository, workflow_id)
     
     # 2. Delete Workflow
-    from tinydb import Query
     WF = Query()
     engine.repository.db.table('workflows').remove(WF.id == workflow_id)
     
@@ -200,13 +217,14 @@ async def delete_workflow(workflow_id: str, engine: WorkflowEngine = Depends(get
     
     return {"status": "deleted", "deleted_steps": deleted_steps}
 
-@router.post("/workflows/{workflow_id}/copy")
+@router.post(
+    "/workflows/{workflow_id}/copy", 
+    summary="Copy Workflow",
+    response_description="The new workflow object."
+)
 async def copy_workflow(workflow_id: str, request: CopyWorkflowRequest, engine: WorkflowEngine = Depends(get_engine)):
     """
-    Deep Copy a workflow.
-    Currently references the SAME steps (Shallow Step Copy), but ideally should optionaly deep copy steps.
-    For V1: References same steps logic is safer to avoid explosion, 
-    BUT as per requirement we might want 'Copy-on-Write' later.
+    Deep Copy a workflow structure (Shallow copy of steps).
     """
     original = engine.repository.get_workflow_by_id(workflow_id)
     if not original:
@@ -220,19 +238,20 @@ async def copy_workflow(workflow_id: str, request: CopyWorkflowRequest, engine: 
     new_wf['created_at'] = datetime.now().isoformat()
     if 'updated_at' in new_wf: del new_wf['updated_at']
     
-    # Convert to pure dict to detach from TinyDB Document type
-    # This prevents 'Document with ID X already exists' errors if deepcopy preserved metadata
     clean_wf = dict(new_wf)
     
     try:
-        # Insert
         engine.repository.db.table('workflows').insert(clean_wf)
         return clean_wf
     except Exception as e:
         logger.error(f"Copy workflow failed: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Copy failed: {str(e)}")
 
-@router.post("/validate")
+@router.post(
+    "/validate", 
+    summary="Validate Connection",
+    response_description="Validation result."
+)
 async def validate_connection(request: ValidationRequest, engine: WorkflowEngine = Depends(get_engine)):
     """
     Validates connection between two steps based on Agent I/O contracts.
@@ -246,7 +265,6 @@ async def validate_connection(request: ValidationRequest, engine: WorkflowEngine
              return {"valid": False, "reason": "Step(s) not found."}
              
         # 2. Resolve Agents (via Components)
-        # Handle both Name and ID references for robustness
         src_comp_ref = source_step.get('component')
         tgt_comp_ref = target_step.get('component')
         
@@ -256,14 +274,9 @@ async def validate_connection(request: ValidationRequest, engine: WorkflowEngine
         if not source_comp or not target_comp:
              return {"valid": True, "reason": "Component definitions missing, skipping deep check."}
 
-        # Registry stores instances, we need the class to check static properties
-        # (Or we check the instance properties if defined on instance)
-        # We search primarily by class_name
         src_cls_name = source_comp.get('class_name')
         tgt_cls_name = target_comp.get('class_name')
         
-        # Get instances from registry to access metadata
-        # (Assuming registry is populated at startup)
         src_agent = engine.registry.agents_map.get(src_cls_name)
         tgt_agent = engine.registry.agents_map.get(tgt_cls_name)
         
@@ -271,18 +284,12 @@ async def validate_connection(request: ValidationRequest, engine: WorkflowEngine
              return {"valid": True, "reason": "Agent implementation not found in registry."}
              
         # 3. Check Contracts
-        # We check the Class attributes, but instances behave same
         required = getattr(tgt_agent, "REQUIRES_KEYS", [])
         produced = getattr(src_agent, "PRODUCES_KEYS", [])
-        
-        # Validation Logic:
-        # If Target has Strict Requirements, warn if they are not explicitly produced by Source.
-        # (In a chain A->B, B might rely on A's predecessors, so this is a soft warning).
         
         missing = [req for req in required if req not in produced]
         
         if missing and required:
-            # Construct a helpful message
             msg = f"⚠️ Potential Schema Mismatch: Target requires {missing}. Source produces {produced}. Ensure dependencies exist upstream."
             return {"valid": True, "reason": msg}
 
@@ -292,15 +299,14 @@ async def validate_connection(request: ValidationRequest, engine: WorkflowEngine
         logger.error(f"Validation failed: {e}")
         return {"valid": True, "reason": f"Validation error: {str(e)}"}
 
-class CompileRequest(BaseModel):
-    workflow_id: str
-    steps: List[str]
-
-
 
 # --- V2: Step Configuration ---
 
-@router.get("/steps/{step_id}")
+@router.get(
+    "/steps/{step_id}", 
+    summary="Get Step Details",
+    response_description="Step configuration."
+)
 async def get_step_details(step_id: str, engine: WorkflowEngine = Depends(get_engine)):
     """V2: Get full configuration of a step."""
     step = engine.repository.get_step_by_id(step_id)
@@ -308,19 +314,16 @@ async def get_step_details(step_id: str, engine: WorkflowEngine = Depends(get_en
          raise HTTPException(status_code=404, detail="Step not found")
     return step
 
-class StepUpdateRequest(BaseModel):
-    name: Optional[str] = None
-    execution_config: Optional[Dict[str, Any]] = None # {"llm_prompts": [...]}
-
-@router.put("/steps/{step_id}")
+@router.put(
+    "/steps/{step_id}", 
+    summary="Update Step",
+    response_description="Updated step."
+)
 async def update_step(step_id: str, request: StepUpdateRequest, engine: WorkflowEngine = Depends(get_engine)):
     """
     V2: Update a step configuration.
     WARNING: This modifies the global step definition.
-    Use with caution or for Custom Steps only.
     """
-    from tinydb import Query
-    
     step = engine.repository.get_step_by_id(step_id)
     if not step:
          raise HTTPException(status_code=404, detail="Step not found")
@@ -334,11 +337,14 @@ async def update_step(step_id: str, request: StepUpdateRequest, engine: Workflow
     
     return {**step, **update_data}
 
-@router.post("/steps/clone")
+@router.post(
+    "/steps/clone", 
+    summary="Clone Step",
+    response_description="The new custom step config."
+)
 async def clone_step(source_step_id: str = Body(..., embed=True), engine: WorkflowEngine = Depends(get_engine)):
     """
     V2: Clone a step to a new Custom Step (Copy-on-Write).
-    Returns the new step ID.
     """
     step = engine.repository.get_step_by_id(source_step_id)
     if not step:
@@ -349,22 +355,26 @@ async def clone_step(source_step_id: str = Body(..., embed=True), engine: Workfl
     new_step['id'] = new_id
     new_step['name'] = f"{step.get('name')} (Custom)"
     
-    # Convert to pure dict
     clean_step = dict(new_step)
-    
-    engine.repository.db.table('steps').insert(clean_step)
     
     engine.repository.db.table('steps').insert(clean_step)
     
     return clean_step
 
-@router.get("/utils/generate-id")
+@router.get(
+    "/utils/generate-id", 
+    summary="Generate ID",
+    response_description="A unique ID string."
+)
 async def generate_id(prefix: str = "custom_step"):
     """Generates a unique ID with optional prefix."""
     return {"id": f"{prefix}_{uuid.uuid4().hex[:6]}"}
 
-
-@router.get("/config/template")
+@router.get(
+    "/config/template", 
+    summary="Get Template",
+    response_description="Empty workflow template."
+)
 async def get_workflow_template():
     """Returns a valid empty workflow template."""
     return WorkflowTemplate(
@@ -375,14 +385,16 @@ async def get_workflow_template():
         ui_schema={"nodes": []}
     )
 
-@router.get("/config/fusion-rules")
+@router.get(
+    "/config/fusion-rules", 
+    summary="Get Fusion Rules",
+    response_description="List of fusion rules."
+)
 async def get_fusion_rules(engine: WorkflowEngine = Depends(get_engine)):
     """
     Returns validation rules for prompt fusion.
-    Scans available steps for those with 'fusion_info'.
     """
     rules = []
-    # Scan steps table (seed steps usually carry this info)
     all_steps = engine.repository.db.table('steps').all()
     for s in all_steps:
         if 'fusion_info' in s:
@@ -394,19 +406,24 @@ async def get_fusion_rules(engine: WorkflowEngine = Depends(get_engine)):
             })
     return rules
 
-@router.get("/config/prompt-types")
+@router.get(
+    "/config/prompt-types", 
+    summary="Get Prompt Types",
+    response_description="List of allowed types."
+)
 async def get_prompt_types():
     """Returns list of component types that can be used as prompts."""
     return ["prompt", "mandate", "rule", "header", "instruction"]
 
-@router.post("/compile")
-
-@router.post("/compile")
+@router.post(
+    "/compile", 
+    summary="Compile Fusion",
+    response_description="Compilation result."
+)
 async def compile_fusion(req: CompileRequest, engine: WorkflowEngine = Depends(get_engine)):
     """
     V2: Prompt Fusion Compilation.
     Replaces a sequence of steps with a compatible Composite Step (Panel).
-    Validates compatibility using 'fusion_info'.
     """
     wf = engine.repository.get_workflow_by_id(req.workflow_id)
     if not wf:
@@ -415,73 +432,46 @@ async def compile_fusion(req: CompileRequest, engine: WorkflowEngine = Depends(g
     current_steps = wf.get('steps', [])
     steps_to_fuse = req.steps
     
-    # 1. Validation: Are steps present?
     if not all(s in current_steps for s in steps_to_fuse):
         raise HTTPException(status_code=400, detail="One or more steps not found in workflow")
 
-    # 2. Find Composite Candidate
-    # For V1, we assume target is 'step_panel', but let's be dynamic.
-    # We look for a step definition that claims to replace these components.
-    
-    # Get component types of the steps to be fused
     fusing_components = []
-    step_map = {s['id']: s for s in engine.repository.db.table('steps').all()} # Cache for speed
+    step_map = {s['id']: s for s in engine.repository.db.table('steps').all()}
     
     for sid in steps_to_fuse:
         s_def = step_map.get(sid)
         if s_def:
             fusing_components.append(s_def.get('component'))
-        else:
-             # Handle custom steps or missing defs - strict mode would fail
-             pass
     
-    # Find a rule that covers these components
-    target_composite_id = "step_panel" # Default fallback
+    target_composite_id = "step_panel" 
     valid_fusion = False
     
     all_steps = step_map.values()
     for s in all_steps:
         if 'fusion_info' in s:
             allowed = set(s['fusion_info'].get('replaces_components', []))
-            # Check if ALL fusing components are in the allowed list
             if fusing_components and all(comp in allowed for comp in fusing_components):
                 target_composite_id = s['id']
                 valid_fusion = True
                 break
     
-    # If not strictly validated via metadata, check hardcoded fallback for backward compat
     if not valid_fusion:
-        # Fallback: Just allow it if it looks like the old list (Safety check)
-        # Or if we want strict mode:
-        # raise HTTPException(400, "Selected steps are not compatible for fusion.")
         logger.warning(f"Fusion validation weak for steps: {steps_to_fuse}. Defaulting to step_panel.")
     
-    # Logic: Find the FIRST index of the fuse group, remove them all, insert target
-    # 1. Identify indices
     indices = sorted([current_steps.index(s) for s in steps_to_fuse])
     first_idx = indices[0]
     
-    # 2. Filter out fused steps
     new_steps = [s for s in current_steps if s not in steps_to_fuse]
-    
-    # 3. Insert target composite step at the position of the first removed step
     new_steps.insert(first_idx, target_composite_id)
     
-    # Update Model Mapping
     mapping = wf.get('default_model_mapping', {}).copy()
-    
-    # Remove old keys
     for step_id in steps_to_fuse:
         if step_id in mapping:
             del mapping[step_id]
             
-    # Add new key (Hardcoded DEEP for Panel as per design)
     mapping[target_composite_id] = 'deep'
     
-    # 4. Persist Changes to Database
-    from tinydb import Query
     WF = Query()
-    # We update both 'steps' and 'default_model_mapping'
     engine.repository.db.table('workflows').update({
         "steps": new_steps,
         "default_model_mapping": mapping
@@ -492,41 +482,3 @@ async def compile_fusion(req: CompileRequest, engine: WorkflowEngine = Depends(g
         "composite_step_id": target_composite_id,
         "new_steps": new_steps
     }
-
-    # 1. Identify indices
-    indices = sorted([current_steps.index(s) for s in steps_to_fuse])
-    first_idx = indices[0]
-    
-    # 2. Filter out fused steps
-    new_steps = [s for s in current_steps if s not in steps_to_fuse]
-    
-    # 3. Insert target composite step at the position of the first removed step
-    new_steps.insert(first_idx, target_composite_id)
-    
-    # Update Model Mapping
-    mapping = wf.get('default_model_mapping', {}).copy()
-    
-    # Remove old keys
-    for step_id in steps_to_fuse:
-        if step_id in mapping:
-            del mapping[step_id]
-            
-    # Add new key (Hardcoded DEEP for Panel as per design)
-    mapping[target_composite_id] = 'deep'
-    
-    # 4. Persist Changes to Database
-    from tinydb import Query
-    WF = Query()
-    # We update both 'steps' and 'default_model_mapping'
-    engine.repository.db.table('workflows').update({
-        "steps": new_steps,
-        "default_model_mapping": mapping
-    }, WF.id == req.workflow_id)
-    
-    return {
-        "status": "compiled", 
-        "composite_step_id": target_composite_id,
-        "new_steps": new_steps
-    }
-
-

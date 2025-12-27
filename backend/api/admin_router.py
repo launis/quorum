@@ -1,15 +1,14 @@
-from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends, UploadFile, File, Query, Path
 import subprocess
 import logging
 import os
 import sys
 import json
-from pydantic import BaseModel
-from tinydb import TinyDB, Query
 import uuid
+from typing import Dict, Any, List, Annotated
 
-# from backend.config import BASE_DIR, SCRIPTS_DIR, INITIAL_MODEL, DB_PATH # Removed
-from backend.dependencies import get_db_client_dep, get_llm_provider, get_llm_handler_dep
+from pydantic import BaseModel, Field
+from backend.dependencies import get_db_client_dep, get_llm_provider
 from backend.database.wrapper import AbstractDatabase
 from backend.llm.provider import LLMProvider
 
@@ -18,9 +17,42 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
-def run_script(script_name: str, args: list = []):
+# --- Models ---
+
+class IngestRequest(BaseModel):
+    file_path: Annotated[str, Field(
+        description="The relative or absolute file path to the source document for ingestion."
+    )] = "data/Holistinen Mestaruus.docx"
+    
+    reset_db: Annotated[bool, Field(
+        description="If True, the existing knowledge base will be cleared before ingesting the new file."
+    )] = False
+
+class BannedPhraseRequest(BaseModel):
+    phrase: Annotated[str, Field(
+        description="The text phrase that should be banned from user inputs or agent outputs."
+    )]
+
+class GenerateBannedPhrasesRequest(BaseModel):
+    language: Annotated[str, Field(
+        description="The target language for generating banned phrases (e.g., 'en', 'fi')."
+    )] = "en"
+
+# --- Centralized Status ---
+admin_task_status: Dict[str, Dict[str, Any]] = {}
+
+# --- Helper Functions ---
+
+def run_script(script_name: str, args: List[str] = []) -> subprocess.CompletedProcess:
     """
-    Helper to run a script from the scripts directory.
+    Helper to run a script from the scripts directory in a subprocess.
+
+    Args:
+        script_name (str): Name of the script file.
+        args (List[str]): Additional arguments for the script.
+
+    Returns:
+        subprocess.CompletedProcess: The result of the execution.
     """
     from backend.settings import get_settings
     settings = get_settings()
@@ -34,26 +66,19 @@ def run_script(script_name: str, args: list = []):
     result = subprocess.run(cmd, capture_output=True, text=True)
     return result
 
-
-
-
-
-@router.post("/export/seed-data")
-def export_seed_data(background_tasks: BackgroundTasks, db: AbstractDatabase = Depends(get_db_client_dep)):
+def _start_admin_task(background_tasks: BackgroundTasks, db: AbstractDatabase, method_name: str, *args) -> Dict[str, str]:
     """
-    Triggers the seed data export via AdministrationService.
-    """
-    return _start_admin_task(background_tasks, db, "export_seed_data")
+    Starts an administrative task in the background using AdministrationService.
 
-@router.post("/database/rebuild")
-def rebuild_database(background_tasks: BackgroundTasks, db: AbstractDatabase = Depends(get_db_client_dep)):
-    """
-    Triggers database rebuild via AdministrationService.
-    """
-    return _start_admin_task(background_tasks, db, "rebuild_database")
+    Args:
+        background_tasks (BackgroundTasks): FastAPI background task handler.
+        db (AbstractDatabase): Database connection.
+        method_name (str): The method name to call on AdministrationService.
+        *args: Additional arguments for the method.
 
-# --- Helper ---
-def _start_admin_task(background_tasks: BackgroundTasks, db: AbstractDatabase, method_name: str, *args):
+    Returns:
+        Dict[str, str]: A dictionary containing the 'job_id' and 'status'.
+    """
     job_id = str(uuid.uuid4())
     admin_task_status[job_id] = {"status": "starting", "stage": "Initializing", "percent": 0}
     
@@ -71,12 +96,9 @@ def _start_admin_task(background_tasks: BackgroundTasks, db: AbstractDatabase, m
             
         tracker = InMemoryProgressTracker(callback=tracker_callback)
         try:
+            # Execute the method
             if args:
-                # Some methods might take extra args? update_documentation takes none in logic but maybe toggle?
-                # Keeping simple for now, logic didn't show args for service methods yet.
-                # update_docs in scripts had args, but service logic I wrote didn't. 
-                # I'll update service later if needed.
-                res = method(tracker) 
+                 res = method(tracker, *args) 
             else:
                 res = method(tracker)
             logger.info(f"Admin Task {method_name} result: {res}")
@@ -88,14 +110,69 @@ def _start_admin_task(background_tasks: BackgroundTasks, db: AbstractDatabase, m
     return {"status": "started", "job_id": job_id, "task": method_name}
 
 
-@router.post("/self-test")
+# --- Endpoints ---
+
+@router.post(
+    "/export/seed-data",
+    summary="Export Seed Data",
+    response_description="Confirmation that the export task has started."
+)
+def export_seed_data(
+    background_tasks: BackgroundTasks, 
+    db: AbstractDatabase = Depends(get_db_client_dep)
+):
+    """
+    Triggers the seed data export process via AdministrationService in the background.
+
+    Args:
+        background_tasks (BackgroundTasks): FastAPI background task manager.
+        db (AbstractDatabase): The database connection dependency.
+
+    Returns:
+        dict: A dictionary containing the job ID and status.
+    """
+    return _start_admin_task(background_tasks, db, "export_seed_data")
+
+@router.post(
+    "/database/rebuild",
+    summary="Rebuild Database",
+    response_description="Confirmation that the rebuild task has started."
+)
+def rebuild_database(
+    background_tasks: BackgroundTasks, 
+    db: AbstractDatabase = Depends(get_db_client_dep)
+):
+    """
+    Triggers a complete database rebuild (drop and re-seed) in the background.
+
+    Args:
+        background_tasks (BackgroundTasks): FastAPI background task manager.
+        db (AbstractDatabase): The database connection dependency.
+
+    Returns:
+        dict: A dictionary containing the job ID and status.
+    """
+    return _start_admin_task(background_tasks, db, "rebuild_database")
+
+
+@router.post(
+    "/self-test",
+    summary="Run System Self-Test",
+    response_description="A health report detailing LLM and Database connectivity."
+)
 async def run_self_test(
     db_client: AbstractDatabase = Depends(get_db_client_dep),
     llm_provider: LLMProvider = Depends(get_llm_provider)
 ):
     """
-    Runs a quick self-test of the LLM connection and Database.
-    Returns a health report.
+    Executes a quick self-test of the LLM connection and Database state.
+
+    Args:
+        db_client (AbstractDatabase): Database dependency.
+        llm_provider (LLMProvider): LLM provider dependency.
+
+    Returns:
+        dict: A health report with 'llm_status' and 'db_status'.
     """
     report = {
         "llm_status": "unknown",
@@ -123,6 +200,7 @@ async def run_self_test(
     try:
          from backend.settings import get_settings
          settings = get_settings()
+         # Assuming 'workflows' table exists
          count = len(db_client.table('workflows').all())
          report["db_status"] = "ok"
          report["details"]["db_path"] = settings.start_db_path
@@ -135,37 +213,72 @@ async def run_self_test(
     return report
 
 
-# --- centralized task status ---
-admin_task_status = {}
+@router.get(
+    "/status/{job_id}",
+    summary="Get Task Status",
+    response_description="The current status and progress of the background task."
+)
+def get_task_status(job_id: str = Path(..., description="UUID of the background job.")):
+    """
+    Retrieves the progress/status of a specific background task.
 
-@router.get("/status/{job_id}")
-def get_task_status(job_id: str):
+    Args:
+        job_id (str): The unique identifier of the job.
+
+    Returns:
+        dict: The status object (e.g., {'status': 'running', 'percent': 50}).
+
+    Raises:
+        HTTPException: If the job ID is not found.
     """
-    Returns progress of any admin task (including ingestion).
-    """
-    # Check both dicts for backward compatibility or merge them
-    # For now, let's use admin_task_status as the master, and make ingestion endpoints write to it.
     status = admin_task_status.get(job_id)
     if not status:
         raise HTTPException(status_code=404, detail="Job not found")
     return status
 
-# Redirect legacy knowledge-base status to generic
-@router.get("/knowledge-base/status/{job_id}")
-def get_ingestion_status(job_id: str):
+
+@router.get(
+    "/knowledge-base/status/{job_id}",
+    summary="Get Ingestion Status (Legacy)",
+    response_description="The current status of the ingestion task.",
+    deprecated=True
+)
+def get_ingestion_status(job_id: str = Path(..., description="UUID of the background job.")):
+    """
+    Legacy endpoint for checking ingestion status. Redirects to get_task_status.
+
+    Args:
+        job_id (str): The unique identifier of the job.
+
+    Returns:
+        dict: The status object.
+    """
     return get_task_status(job_id)
 
-class IngestRequest(BaseModel):
-    file_path: str = "data/Holistinen Mestaruus.docx"
-    reset_db: bool = False
 
-@router.post("/knowledge-base/ingest")
+@router.post(
+    "/knowledge-base/ingest",
+    summary="Ingest from File (Path)",
+    response_description="Confirmation that ingestion has started."
+)
 def ingest_knowledge_base(
     request: IngestRequest, 
     background_tasks: BackgroundTasks,
     repository: AbstractDatabase = Depends(get_db_client_dep),
     llm_provider: LLMProvider = Depends(get_llm_provider)
 ):
+    """
+    Starts the process of ingesting a document into the knowledge base from a local file path.
+
+    Args:
+        request (IngestRequest): The ingestion configuration.
+        background_tasks (BackgroundTasks): Background task handler.
+        repository (AbstractDatabase): Database dependency.
+        llm_provider (LLMProvider): LLM provider dependency.
+
+    Returns:
+        dict: Job ID and status message.
+    """
     job_id = str(uuid.uuid4())
     admin_task_status[job_id] = {"status": "starting", "stage": "Initializing", "percent": 0}
 
@@ -179,7 +292,8 @@ def ingest_knowledge_base(
             if not os.path.exists(request.file_path):
                 admin_task_status[job_id] = {"status": "failed", "error": "File not found"}
                 return
-
+            
+            # Read file in binary mode
             with open(request.file_path, 'rb') as f:
                 content = f.read()
             filename = os.path.basename(request.file_path)
@@ -195,16 +309,32 @@ def ingest_knowledge_base(
     background_tasks.add_task(_run_ingest)
     return {"status": "started", "job_id": job_id, "message": f"Ingestion started. (Reset: {request.reset_db})"}
 
-from fastapi import UploadFile, File, Form
 
-@router.post("/knowledge-base/upload")
+@router.post(
+    "/knowledge-base/upload",
+    summary="Upload and Ingest File",
+    response_description="Confirmation that upload ingestion has started."
+)
 async def upload_knowledge_base(
-    file: UploadFile = File(...),
-    reset_db: bool = False,
+    file: UploadFile = File(..., description="The file to be uploaded and ingested."),
+    reset_db: bool = Query(False, description="Whether to clear the KB before ingestion."),
     background_tasks: BackgroundTasks = None,
     db_client: AbstractDatabase = Depends(get_db_client_dep),
     llm_provider: LLMProvider = Depends(get_llm_provider)
 ):
+    """
+    Uploads a file and triggers the ingestion process.
+
+    Args:
+        file (UploadFile): The binary file to upload.
+        reset_db (bool): If True, resets the database.
+        background_tasks (BackgroundTasks): Background handler (optional).
+        db_client (AbstractDatabase): Database dependency.
+        llm_provider (LLMProvider): LLM provider dependency.
+
+    Returns:
+        dict: Job ID and file details.
+    """
     job_id = str(uuid.uuid4())
     admin_task_status[job_id] = {"status": "starting", "stage": "Reading Upload", "percent": 0}
     
@@ -228,28 +358,53 @@ async def upload_knowledge_base(
     if background_tasks:
         background_tasks.add_task(_run_ingest)
     else:
+        # If no background tasks context (e.g. testing), await directly
         await _run_ingest()
         
     return {"status": "started", "job_id": job_id, "filename": filename, "reset_db": reset_db}
 
-# --- Banned Phrases Management ---
 
-class BannedPhraseRequest(BaseModel):
-    phrase: str
-
-@router.get("/banned-phrases")
+@router.get(
+    "/banned-phrases",
+    summary="List Banned Phrases",
+    response_description="A list of all currently banned phrases."
+)
 def get_banned_phrases(db: AbstractDatabase = Depends(get_db_client_dep)):
     """
-    Get all banned phrases.
+    Retrieves all banned phrases from the database.
+
+    Args:
+        db (AbstractDatabase): Database dependency.
+
+    Returns:
+        List[Dict]: A list of banned phrase objects.
     """
     from backend.dependencies import get_repository_dep
     repo = get_repository_dep(db)
     return repo.get_banned_phrases()
 
-@router.post("/banned-phrases")
-def add_banned_phrase(request: BannedPhraseRequest, db: AbstractDatabase = Depends(get_db_client_dep)):
+
+@router.post(
+    "/banned-phrases",
+    summary="Add Banned Phrase",
+    response_description="Confirmation of the added phrase."
+)
+def add_banned_phrase(
+    request: BannedPhraseRequest, 
+    db: AbstractDatabase = Depends(get_db_client_dep)
+):
     """
-    Add a new banned phrase.
+    Adds a new phrase to the blocklist.
+
+    Args:
+        request (BannedPhraseRequest): The phrase data.
+        db (AbstractDatabase): Database dependency.
+
+    Returns:
+        dict: Status and the added phrase.
+
+    Raises:
+        HTTPException: If the phrase is too short.
     """
     from backend.dependencies import get_repository_dep
     repo = get_repository_dep(db)
@@ -260,10 +415,25 @@ def add_banned_phrase(request: BannedPhraseRequest, db: AbstractDatabase = Depen
     repo.add_banned_phrase(request.phrase.strip())
     return {"status": "added", "phrase": request.phrase}
 
-@router.delete("/banned-phrases/{phrase}")
-def delete_banned_phrase(phrase: str, db: AbstractDatabase = Depends(get_db_client_dep)):
+
+@router.delete(
+    "/banned-phrases/{phrase}",
+    summary="Delete Banned Phrase",
+    response_description="Confirmation of deletion."
+)
+def delete_banned_phrase(
+    phrase: str = Path(..., description="The URL-encoded phrase to delete."),
+    db: AbstractDatabase = Depends(get_db_client_dep)
+):
     """
-    Delete a banned phrase.
+    Removes a phrase from the blocklist.
+
+    Args:
+        phrase (str): The phrase to remove (URL encoded).
+        db (AbstractDatabase): Database dependency.
+
+    Returns:
+        dict: Status and the deleted phrase.
     """
     from backend.dependencies import get_repository_dep
     from urllib.parse import unquote
@@ -273,22 +443,35 @@ def delete_banned_phrase(phrase: str, db: AbstractDatabase = Depends(get_db_clie
     repo.remove_banned_phrase(decoded_phrase)
     return {"status": "deleted", "phrase": decoded_phrase}
 
-class GenerateBannedPhrasesRequest(BaseModel):
-    language: str = "en"
 
-@router.post("/banned-phrases/generate")
+@router.post(
+    "/banned-phrases/generate",
+    summary="Generate Banned Phrases",
+    response_description="A list of newly generated and added banned phrases."
+)
 async def generate_banned_phrases(
     request: GenerateBannedPhrasesRequest,
     db: AbstractDatabase = Depends(get_db_client_dep),
     llm_provider: LLMProvider = Depends(get_llm_provider)
 ):
     """
-    Generates new banned phrases using AI.
+    Uses the LLM to generate new potential banned phrases based on common adversarial patterns.
+
+    Args:
+        request (GenerateBannedPhrasesRequest): Configuration for generation (e.g. language).
+        db (AbstractDatabase): Database dependency.
+        llm_provider (LLMProvider): LLM provider dependency.
+
+    Returns:
+        dict: Report containing added phrases.
+
+    Raises:
+        HTTPException: If generation fails.
     """
     from backend.dependencies import get_repository_dep
     repo = get_repository_dep(db)
     
-    # 1. Get existing to provide context (optional, but good to avoid dupes in generation)
+    # 1. Get existing to provide context
     existing = [p['phrase'] for p in repo.get_banned_phrases()]
     
     # 2. Prompt LLM
@@ -313,16 +496,12 @@ async def generate_banned_phrases(
         response = await llm_provider.generate(user_prompt, system_instruction=system_prompt)
         
         # 3. Parse Response
-        # Clean potential markdown code blocks
         clean_response = response.replace("```json", "").replace("```", "").strip()
         data = json.loads(clean_response)
         candidates = data.get("phrases", [])
         
         added = []
         for phrase in candidates:
-            # Check if exists (repo.add_banned_phrase handles uniqueness check usually? 
-            # If not, repo.get_banned_phrases is already fetched. 
-            # Let's assume repo handles duplicates or we check here.)
             if phrase not in existing:
                 repo.add_banned_phrase(phrase, language=request.language)
                 added.append(phrase)

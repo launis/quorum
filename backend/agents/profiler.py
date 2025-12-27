@@ -5,18 +5,14 @@ from pydantic import BaseModel, Field
 import logging
 import re
 
-
 from backend.models.domain import ProfilerAnalysis, TextMetrics
+
 logger = logging.getLogger(__name__)
-
-# TextMetrics moved to backend.models.domain
-
-
-# StructuredBias and ProfilerAnalysis removed (using domain.py)
 
 class ProfilerAgent(BaseAgent):
     """
     Profiloija (Psychologist) Agent.
+
     Step 2.5: Analyzes the 'human' side of the input: intent, biases, tone.
     """
 
@@ -24,11 +20,26 @@ class ProfilerAgent(BaseAgent):
     REQUIRES_KEYS = ["history_text", "product_text"]
 
     def get_response_schema(self) -> Optional[Type[BaseModel]]:
-        return ProfilerAnalysis
-        
+        """
+        Returns the expected output schema.
 
+        Returns:
+            Optional[Type[BaseModel]]: ProfilerAnalysis schema.
+        """
+        return ProfilerAnalysis
 
     def _update_state(self, state: WorkflowState, response_data: Any) -> WorkflowState:
+        """
+        Updates the state with the response data.
+        Injects metrics into the response if available in aux_data.
+
+        Args:
+            state (WorkflowState): Current workflow state.
+            response_data (Any): Data returned by the LLM.
+
+        Returns:
+            WorkflowState: Updated state.
+        """
         # Merge Python-calculated metrics if available (from pre-hook)
         if 'profiler_metrics' in state.aux_data and isinstance(response_data, dict):
             # We inject it into the dict so BaseAgent validates it including the metrics
@@ -40,8 +51,16 @@ class ProfilerAgent(BaseAgent):
 
     def analyze_text_metrics(self, state: WorkflowState) -> WorkflowState:
         """
-        PRE-HOOK: Calculates objective text metrics from the input history/product.
-        Delegates to backend.hooks.metrics.
+        PRE-HOOK: analyze_text_metrics.
+        
+        Calculates objective text metrics from the input history/product.
+        Delegates underlying logic to 'backend.hooks.metrics.calculate_text_metrics'.
+
+        Args:
+            state (WorkflowState): Current workflow state.
+
+        Returns:
+            WorkflowState: Updated state with calculated metrics.
         """
         logger.info("[ProfilerAgent] Delegating to Metrics Hook...")
         
@@ -66,5 +85,11 @@ class ProfilerAgent(BaseAgent):
         return state
         
     def get_user_prompt_template(self) -> str:
+        """
+        Returns the user prompt template.
+
+        Returns:
+            str: The template string.
+        """
         # Override to show we use metrics
         return "Analyze the text. Metrics: {{PROFILER_METRICS}}"
