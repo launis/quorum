@@ -1,0 +1,1000 @@
+2025-12-28 16:44:45 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MOCK RESPONSE] Generating response for: analyst_agent
+2025-12-28 16:44:45 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MockLLM] No specific mock found for 'analyst_agent'. Returning generic fallback.
+2025-12-28 16:44:45 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [AnalystAgent] Updated state.step_analyst
+2025-12-28 16:44:45 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [AnalystAgent] Lifecycle Hook: post_process
+2025-12-28 16:44:45 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [AnalystAgent] Execution completed.
+2025-12-28 16:44:45 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.core.runner | [PipelineRunner] Running step: InteractionAnalystAgent (Step ID: step_interaction)
+2025-12-28 16:44:45 | DEBUG | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.core.runner | [PipelineRunner] Configured InteractionAnalystAgent with gemini/gemini-3-pro-preview (Provider: google)
+2025-12-28 16:44:46 | DEBUG | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.services.prompt_builder | [PromptBuilder] Constructed PROMPT for step_interaction (Length: 10 parts)
+2025-12-28 16:44:46 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [InteractionAnalystAgent] Starting execution...
+2025-12-28 16:44:46 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [InteractionAnalystAgent] Lifecycle Hook: prepare_context
+2025-12-28 16:44:46 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [InteractionAnalystAgent] >>> EXECUTION START <<<
+2025-12-28 16:44:46 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [InteractionAnalystAgent] MODEL: gemini/gemini-3-pro-preview | TEMP: 0.5 | TOKENS: 16384
+2025-12-28 16:44:46 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.provider | [MockProvider] Calling Mock Service (Simulating Async)... {'repository': <backend.database.repository.TinyDBRepository object at 0x00000207851F3530>, 'output_key': 'step_interaction', 'mock_identity': 'InteractionAnalystAgent'}
+2025-12-28 16:44:47 | WARNING | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MockLLM] Mock data file not found at C:\Users\risto\OneDrive\quorum\data\mock_responses.json. Using empty defaults.
+2025-12-28 16:44:47 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MockLLM] Intercepted call. Prompt length: 60
+2025-12-28 16:44:47 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MockLLM] Identified agent via explicit identity: 'InteractionAnalystAgent' -> 'interaction_agent'
+2025-12-28 16:44:47 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MOCK RESPONSE] Generating response for: interaction_agent
+2025-12-28 16:44:47 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MockLLM] No specific mock found for 'interaction_agent'. Returning generic fallback.
+2025-12-28 16:44:47 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [InteractionAnalystAgent] Updated state.step_interaction
+2025-12-28 16:44:47 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [InteractionAnalystAgent] Lifecycle Hook: post_process
+2025-12-28 16:44:47 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [InteractionAnalystAgent] Execution completed.
+2025-12-28 16:44:47 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.core.runner | [PipelineRunner] Running step: ProfilerAgent (Step ID: step_profiler)
+2025-12-28 16:44:47 | DEBUG | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.core.runner | [PipelineRunner] Configured ProfilerAgent with gemini/gemini-3-pro-preview (Provider: google)
+2025-12-28 16:44:48 | DEBUG | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.services.prompt_builder | [PromptBuilder] Constructed PROMPT for step_profiler (Length: 8 parts)
+2025-12-28 16:44:48 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [ProfilerAgent] Starting execution...
+2025-12-28 16:44:48 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [ProfilerAgent] Lifecycle Hook: prepare_context
+2025-12-28 16:44:48 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [ProfilerAgent] >>> EXECUTION START <<<
+2025-12-28 16:44:48 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [ProfilerAgent] MODEL: gemini/gemini-3-pro-preview | TEMP: 0.5 | TOKENS: 16384
+2025-12-28 16:44:48 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.provider | [MockProvider] Calling Mock Service (Simulating Async)... {'repository': <backend.database.repository.TinyDBRepository object at 0x00000207851F3530>, 'output_key': 'step_profiler', 'mock_identity': 'ProfilerAgent'}
+2025-12-28 16:44:48 | WARNING | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MockLLM] Mock data file not found at C:\Users\risto\OneDrive\quorum\data\mock_responses.json. Using empty defaults.
+2025-12-28 16:44:48 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MockLLM] Intercepted call. Prompt length: 60
+2025-12-28 16:44:48 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MockLLM] Identified agent via explicit identity: 'ProfilerAgent' -> 'profiler_agent'
+2025-12-28 16:44:48 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MOCK RESPONSE] Generating response for: profiler_agent
+2025-12-28 16:44:48 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MockLLM] No specific mock found for 'profiler_agent'. Returning generic fallback.
+2025-12-28 16:44:48 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [ProfilerAgent] Updated state.step_profiler
+2025-12-28 16:44:48 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [ProfilerAgent] Lifecycle Hook: post_process
+2025-12-28 16:44:48 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [ProfilerAgent] Execution completed.
+2025-12-28 16:44:48 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.core.runner | [PipelineRunner] Running step: PanelAgent (Step ID: step_panel)
+2025-12-28 16:44:48 | DEBUG | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.core.runner | [PipelineRunner] Configured PanelAgent with gemini/gemini-3-pro-preview (Provider: google)
+2025-12-28 16:44:49 | DEBUG | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.services.prompt_builder | [PromptBuilder] Constructed PROMPT for step_panel (Length: 7 parts)
+2025-12-28 16:44:49 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.provider | [MockProvider] Calling Mock Service (Simulating Async)... {'mock_identity': 'PanelAgent', 'repository': <backend.database.repository.TinyDBRepository object at 0x00000207851F3530>, 'output_key': 'step_panel'}
+2025-12-28 16:44:49 | WARNING | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MockLLM] Mock data file not found at C:\Users\risto\OneDrive\quorum\data\mock_responses.json. Using empty defaults.
+2025-12-28 16:44:49 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MockLLM] Intercepted call. Prompt length: 2316
+2025-12-28 16:44:49 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MockLLM] Identified agent via explicit identity: 'PanelAgent' -> 'panel_agent'
+2025-12-28 16:44:49 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MOCK RESPONSE] Generating response for: panel_agent
+2025-12-28 16:44:49 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MockLLM] No specific mock found for 'panel_agent'. Returning generic fallback.
+2025-12-28 16:44:49 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.panel | [PanelAgent] Successfully fanned out PanelAudit to 5 distinct state steps.
+2025-12-28 16:44:49 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.core.runner | [PipelineRunner] Running step: ArchivistAgent (Step ID: step_archivist)
+2025-12-28 16:44:49 | DEBUG | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.core.runner | [PipelineRunner] Configured ArchivistAgent with gemini/gemini-3-pro-preview (Provider: google)
+2025-12-28 16:44:51 | DEBUG | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.services.prompt_builder | [PromptBuilder] Constructed PROMPT for step_archivist (Length: 23 parts)
+2025-12-28 16:44:51 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [ArchivistAgent] Starting execution...
+2025-12-28 16:44:51 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [ArchivistAgent] Lifecycle Hook: prepare_context
+2025-12-28 16:44:51 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [ArchivistAgent] >>> EXECUTION START <<<
+2025-12-28 16:44:51 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [ArchivistAgent] MODEL: gemini/gemini-3-pro-preview | TEMP: 0.5 | TOKENS: 16384
+2025-12-28 16:44:51 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.provider | [MockProvider] Calling Mock Service (Simulating Async)... {'repository': <backend.database.repository.TinyDBRepository object at 0x00000207851F3530>, 'output_key': 'step_archivist', 'mock_identity': 'ArchivistAgent'}
+2025-12-28 16:44:51 | WARNING | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MockLLM] Mock data file not found at C:\Users\risto\OneDrive\quorum\data\mock_responses.json. Using empty defaults.
+2025-12-28 16:44:51 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MockLLM] Intercepted call. Prompt length: 60
+2025-12-28 16:44:51 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MockLLM] Identified agent via explicit identity: 'ArchivistAgent' -> 'archivist_agent'
+2025-12-28 16:44:51 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MOCK RESPONSE] Generating response for: archivist_agent
+2025-12-28 16:44:51 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MockLLM] No specific mock found for 'archivist_agent'. Returning generic fallback.
+2025-12-28 16:44:51 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [ArchivistAgent] Updated state.step_archivist
+2025-12-28 16:44:51 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [ArchivistAgent] Lifecycle Hook: post_process
+2025-12-28 16:44:51 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [ArchivistAgent] Execution completed.
+2025-12-28 16:44:51 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.core.runner | [PipelineRunner] Running step: JudgeAgent (Step ID: step_judge)
+2025-12-28 16:44:51 | DEBUG | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.core.runner | [PipelineRunner] Configured JudgeAgent with gemini/gemini-3-pro-preview (Provider: google)
+2025-12-28 16:44:53 | DEBUG | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.services.prompt_builder | [PromptBuilder] Constructed PROMPT for step_judge (Length: 24 parts)
+2025-12-28 16:44:53 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [JudgeAgent] Starting execution...
+2025-12-28 16:44:53 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [JudgeAgent] Lifecycle Hook: prepare_context
+2025-12-28 16:44:53 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [JudgeAgent] >>> EXECUTION START <<<
+2025-12-28 16:44:53 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [JudgeAgent] MODEL: gemini/gemini-3-pro-preview | TEMP: 0.5 | TOKENS: 16384
+2025-12-28 16:44:53 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.provider | [MockProvider] Calling Mock Service (Simulating Async)... {'repository': <backend.database.repository.TinyDBRepository object at 0x00000207851F3530>, 'output_key': 'step_judge', 'mock_identity': 'JudgeAgent'}
+2025-12-28 16:44:53 | WARNING | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MockLLM] Mock data file not found at C:\Users\risto\OneDrive\quorum\data\mock_responses.json. Using empty defaults.
+2025-12-28 16:44:53 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MockLLM] Intercepted call. Prompt length: 60
+2025-12-28 16:44:53 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MockLLM] Identified agent via explicit identity: 'JudgeAgent' -> 'judge_agent'
+2025-12-28 16:44:53 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MOCK RESPONSE] Generating response for: judge_agent
+2025-12-28 16:44:53 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MockLLM] No specific mock found for 'judge_agent'. Returning generic fallback.
+2025-12-28 16:44:53 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [JudgeAgent] Updated state.step_judge
+2025-12-28 16:44:53 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [JudgeAgent] Lifecycle Hook: post_process
+2025-12-28 16:44:53 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.judge | [JudgeAgent] Running calculate_final_scores...
+2025-12-28 16:44:53 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.hooks.scoring | [ScoringHook] Total Score: 10/12 (Avg: 3.33)
+2025-12-28 16:44:53 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [JudgeAgent] Execution completed.
+2025-12-28 16:44:53 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.core.runner | [PipelineRunner] Running step: JudgeAgent (Step ID: step_judge_cognitive)
+2025-12-28 16:44:53 | DEBUG | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.core.runner | [PipelineRunner] Configured JudgeAgent with gemini/gemini-3-pro-preview (Provider: google)
+2025-12-28 16:44:55 | DEBUG | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.services.prompt_builder | [PromptBuilder] Constructed PROMPT for step_judge_cognitive (Length: 24 parts)
+2025-12-28 16:44:55 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [JudgeAgent] Starting execution...
+2025-12-28 16:44:55 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [JudgeAgent] Lifecycle Hook: prepare_context
+2025-12-28 16:44:55 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [JudgeAgent] >>> EXECUTION START <<<
+2025-12-28 16:44:55 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [JudgeAgent] MODEL: gemini/gemini-3-pro-preview | TEMP: 0.5 | TOKENS: 16384
+2025-12-28 16:44:55 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.provider | [MockProvider] Calling Mock Service (Simulating Async)... {'repository': <backend.database.repository.TinyDBRepository object at 0x00000207851F3530>, 'output_key': 'step_judge_cognitive', 'mock_identity': 'JudgeAgent'}
+2025-12-28 16:44:55 | WARNING | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MockLLM] Mock data file not found at C:\Users\risto\OneDrive\quorum\data\mock_responses.json. Using empty defaults.
+2025-12-28 16:44:55 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MockLLM] Intercepted call. Prompt length: 60
+2025-12-28 16:44:55 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MockLLM] Identified agent via explicit identity: 'JudgeAgent' -> 'judge_agent'
+2025-12-28 16:44:55 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MOCK RESPONSE] Generating response for: judge_agent
+2025-12-28 16:44:55 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MockLLM] No specific mock found for 'judge_agent'. Returning generic fallback.
+2025-12-28 16:44:55 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [JudgeAgent] Updated state.step_judge_cognitive
+2025-12-28 16:44:55 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [JudgeAgent] Lifecycle Hook: post_process
+2025-12-28 16:44:55 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.judge | [JudgeAgent] Running calculate_final_scores...
+2025-12-28 16:44:55 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.hooks.scoring | [ScoringHook] Total Score: 20/24 (Avg: 3.33)
+2025-12-28 16:44:55 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [JudgeAgent] Execution completed.
+2025-12-28 16:44:55 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.core.runner | [PipelineRunner] Running step: CoachAgent (Step ID: step_coach)
+2025-12-28 16:44:55 | DEBUG | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.core.runner | [PipelineRunner] Configured CoachAgent with gemini/gemini-3-pro-preview (Provider: google)
+2025-12-28 16:44:57 | DEBUG | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.services.prompt_builder | [PromptBuilder] Constructed PROMPT for step_coach (Length: 24 parts)
+2025-12-28 16:44:57 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [CoachAgent] Starting execution...
+2025-12-28 16:44:57 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [CoachAgent] Lifecycle Hook: prepare_context
+2025-12-28 16:44:57 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.coach | [CoachAgent] Loaded 335 concepts and 196 references from Unified Database.
+2025-12-28 16:44:57 | DEBUG | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [CoachAgent] Appended dynamic context.
+2025-12-28 16:44:57 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [CoachAgent] >>> EXECUTION START <<<
+2025-12-28 16:44:57 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [CoachAgent] MODEL: gemini/gemini-3-pro-preview | TEMP: 0.5 | TOKENS: 16384
+2025-12-28 16:44:57 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.provider | [MockProvider] Calling Mock Service (Simulating Async)... {'repository': <backend.database.repository.TinyDBRepository object at 0x00000207851F3530>, 'output_key': 'step_coach', 'mock_identity': 'CoachAgent'}
+2025-12-28 16:44:57 | WARNING | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MockLLM] Mock data file not found at C:\Users\risto\OneDrive\quorum\data\mock_responses.json. Using empty defaults.
+2025-12-28 16:44:57 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MockLLM] Intercepted call. Prompt length: 60
+2025-12-28 16:44:57 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MockLLM] Identified agent via explicit identity: 'CoachAgent' -> 'coach_agent'
+2025-12-28 16:44:57 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MOCK RESPONSE] Generating response for: coach_agent
+2025-12-28 16:44:57 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MockLLM] No specific mock found for 'coach_agent'. Returning generic fallback.
+2025-12-28 16:44:57 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [CoachAgent] Updated state.step_coach
+2025-12-28 16:44:57 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [CoachAgent] Lifecycle Hook: post_process
+2025-12-28 16:44:57 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.coach | [CoachAgent] Running enrich_learning_plan hook...
+2025-12-28 16:44:57 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.hooks.references | [ReferenceHook] Scan complete. Found 4 unique references.
+2025-12-28 16:44:57 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.coach | [CoachAgent] Populated bibliography with 4 references found in global state.
+2025-12-28 16:44:57 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [CoachAgent] Execution completed.
+2025-12-28 16:44:57 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.core.runner | [PipelineRunner] Running step: XAIReporterAgent (Step ID: step_xai)
+2025-12-28 16:44:57 | DEBUG | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.core.runner | [PipelineRunner] Configured XAIReporterAgent with gemini/gemini-3-flash-preview (Provider: google)
+2025-12-28 16:44:59 | DEBUG | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.services.prompt_builder | [PromptBuilder] Constructed PROMPT for step_xai (Length: 23 parts)
+2025-12-28 16:44:59 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [XAIReporterAgent] Starting execution...
+2025-12-28 16:44:59 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [XAIReporterAgent] Lifecycle Hook: prepare_context
+2025-12-28 16:44:59 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [XAIReporterAgent] >>> EXECUTION START <<<
+2025-12-28 16:44:59 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [XAIReporterAgent] MODEL: gemini/gemini-3-flash-preview | TEMP: 0.7 | TOKENS: 16384
+2025-12-28 16:44:59 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.provider | [MockProvider] Calling Mock Service (Simulating Async)... {'repository': <backend.database.repository.TinyDBRepository object at 0x00000207851F3530>, 'output_key': 'step_reporter', 'mock_identity': 'XAIReporterAgent'}
+2025-12-28 16:44:59 | WARNING | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MockLLM] Mock data file not found at C:\Users\risto\OneDrive\quorum\data\mock_responses.json. Using empty defaults.
+2025-12-28 16:44:59 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MockLLM] Intercepted call. Prompt length: 60
+2025-12-28 16:44:59 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MockLLM] Identified agent via explicit identity: 'XAIReporterAgent' -> 'xai_agent'
+2025-12-28 16:44:59 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MOCK RESPONSE] Generating response for: xai_agent
+2025-12-28 16:44:59 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.llm.mock | [MockLLM] No specific mock found for 'xai_agent'. Returning generic fallback.
+2025-12-28 16:44:59 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [XAIReporterAgent] Updated state.step_reporter
+2025-12-28 16:44:59 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [XAIReporterAgent] Lifecycle Hook: post_process
+2025-12-28 16:44:59 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.xai | [XAIReporterAgent] Running post_process hook...
+2025-12-28 16:44:59 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.hooks.reporting | [ReportingHook] Generating report...
+2025-12-28 16:44:59 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.hooks.reporting | [ReportingHook] Report generated and saved to step_reporter.xai_report_formatted
+2025-12-28 16:44:59 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.agents.base | [XAIReporterAgent] Execution completed.
+2025-12-28 16:44:59 | INFO | [a2dcb7af-0d21-42d3-8871-2ac218bd996e] | backend.core.engine | [WorkflowEngine] Execution a2dcb7af-0d21-42d3-8871-2ac218bd996e completed successfully.
+2025-12-28 16:45:39 | DEBUG | [SYSTEM] | asyncio | Using proactor: IocpProactor
+2025-12-28 16:45:43 | INFO | [SYSTEM] | root | Logging configured. Writing to: C:\Users\risto\OneDrive\quorum\backend_debug.log
+2025-12-28 16:45:43 | INFO | [SYSTEM] | backend.bootstrap | ==================================================
+2025-12-28 16:45:43 | INFO | [SYSTEM] | backend.bootstrap |    Cognitive Quorum Backend v0.2.0
+2025-12-28 16:45:43 | INFO | [SYSTEM] | backend.bootstrap |    Startup Time: 2025-12-28 16:45:43
+2025-12-28 16:45:43 | INFO | [SYSTEM] | backend.bootstrap | ==================================================
+2025-12-28 16:45:43 | INFO | [SYSTEM] | backend.bootstrap |    [CONFIG] Database Path: C:\Users\risto\OneDrive\quorum\backend\database\db_mock.json
+2025-12-28 16:45:43 | INFO | [SYSTEM] | backend.bootstrap |    [CONFIG] Model Strategy: Database Controlled
+2025-12-28 16:45:43 | WARNING | [SYSTEM] | backend.bootstrap | !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+2025-12-28 16:45:43 | WARNING | [SYSTEM] | backend.bootstrap |    [INFO] OPERATING IN MOCK LLM MODE
+2025-12-28 16:45:43 | WARNING | [SYSTEM] | backend.bootstrap |    [INFO] No external API calls will be made.
+2025-12-28 16:45:43 | WARNING | [SYSTEM] | backend.bootstrap | !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+2025-12-28 16:45:43 | INFO | [SYSTEM] | backend.bootstrap |    [CONFIG] Google Search: ENABLED (Key: ...6-Yc)
+2025-12-28 16:45:43 | INFO | [SYSTEM] | backend.bootstrap | ==================================================
+2025-12-28 16:45:43 | INFO | [SYSTEM] | backend.bootstrap |    [INFO] Using Mock Models list.
+2025-12-28 16:45:43 | INFO | [SYSTEM] | backend.bootstrap |    [INFO] Warming up Engine Singleton...
+2025-12-28 16:45:43 | INFO | [SYSTEM] | backend.dependencies | [Dependencies] Initializing Singleton DB Client...
+2025-12-28 16:45:43 | INFO | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Loading agents via AgentFactory...
+2025-12-28 16:45:43 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:45:43 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:45:43 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:45:43 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:45:43 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:45:43 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:45:43 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:45:43 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:45:43 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:45:43 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:45:43 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:45:43 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:45:43 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:45:43 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:45:43 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered GuardAgent (from backend.agents.guard)
+2025-12-28 16:45:43 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered AnalystAgent (from backend.agents.analyst)
+2025-12-28 16:45:43 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered InteractionAnalystAgent (from backend.agents.interaction)
+2025-12-28 16:45:43 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered ProfilerAgent (from backend.agents.profiler)
+2025-12-28 16:45:43 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered LogicianAgent (from backend.agents.logician)
+2025-12-28 16:45:43 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered LogicalFalsifierAgent (from backend.agents.critics)
+2025-12-28 16:45:43 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered FactualOverseerAgent (from backend.agents.critics)
+2025-12-28 16:45:44 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered CausalAnalystAgent (from backend.agents.critics)
+2025-12-28 16:45:44 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered PerformativityDetectorAgent (from backend.agents.critics)
+2025-12-28 16:45:44 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered ArchivistAgent (from backend.agents.archivist)
+2025-12-28 16:45:44 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered JudgeAgent (from backend.agents.judge)
+2025-12-28 16:45:44 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered CoachAgent (from backend.agents.coach)
+2025-12-28 16:45:44 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered XAIReporterAgent (from backend.agents.xai)
+2025-12-28 16:45:44 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered PanelAgent (from backend.agents.panel)
+2025-12-28 16:45:44 | INFO | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Successfully loaded and registered 14 agents.
+2025-12-28 16:45:44 | INFO | [SYSTEM] | backend.dependencies | [Dependencies] Initializing Singleton WorkflowEngine...
+2025-12-28 16:45:45 | INFO | [SYSTEM] | backend.core.engine | [WorkflowEngine] initialized with DB at C:\Users\risto\OneDrive\quorum\backend\database\db_mock.json
+2025-12-28 16:45:45 | INFO | [SYSTEM] | backend.bootstrap |    [INFO] Engine Ready.
+2025-12-28 16:45:45 | INFO | [SYSTEM] | backend.bootstrap |    [INFO] Checking for interrupted jobs...
+2025-12-28 16:45:45 | INFO | [SYSTEM] | backend.core.engine | [WorkflowEngine] Scanning for interrupted jobs...
+2025-12-28 16:45:58 | DEBUG | [SYSTEM] | asyncio | Using proactor: IocpProactor
+2025-12-28 16:46:02 | INFO | [SYSTEM] | root | Logging configured. Writing to: C:\Users\risto\OneDrive\quorum\backend_debug.log
+2025-12-28 16:46:02 | INFO | [SYSTEM] | backend.bootstrap | ==================================================
+2025-12-28 16:46:02 | INFO | [SYSTEM] | backend.bootstrap |    Cognitive Quorum Backend v0.2.0
+2025-12-28 16:46:02 | INFO | [SYSTEM] | backend.bootstrap |    Startup Time: 2025-12-28 16:46:02
+2025-12-28 16:46:02 | INFO | [SYSTEM] | backend.bootstrap | ==================================================
+2025-12-28 16:46:02 | INFO | [SYSTEM] | backend.bootstrap |    [CONFIG] Database Path: C:\Users\risto\OneDrive\quorum\backend\database\db_mock.json
+2025-12-28 16:46:02 | INFO | [SYSTEM] | backend.bootstrap |    [CONFIG] Model Strategy: Database Controlled
+2025-12-28 16:46:02 | WARNING | [SYSTEM] | backend.bootstrap | !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+2025-12-28 16:46:02 | WARNING | [SYSTEM] | backend.bootstrap |    [INFO] OPERATING IN MOCK LLM MODE
+2025-12-28 16:46:02 | WARNING | [SYSTEM] | backend.bootstrap |    [INFO] No external API calls will be made.
+2025-12-28 16:46:02 | WARNING | [SYSTEM] | backend.bootstrap | !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+2025-12-28 16:46:02 | INFO | [SYSTEM] | backend.bootstrap |    [CONFIG] Google Search: ENABLED (Key: ...6-Yc)
+2025-12-28 16:46:02 | INFO | [SYSTEM] | backend.bootstrap | ==================================================
+2025-12-28 16:46:02 | INFO | [SYSTEM] | backend.bootstrap |    [INFO] Using Mock Models list.
+2025-12-28 16:46:02 | INFO | [SYSTEM] | backend.bootstrap |    [INFO] Warming up Engine Singleton...
+2025-12-28 16:46:02 | INFO | [SYSTEM] | backend.dependencies | [Dependencies] Initializing Singleton DB Client...
+2025-12-28 16:46:02 | INFO | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Loading agents via AgentFactory...
+2025-12-28 16:46:02 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:46:02 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:46:02 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:46:02 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:46:02 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:46:02 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:46:02 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:46:02 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:46:02 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:46:02 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:46:02 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:46:02 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:46:02 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:46:02 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:46:02 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered GuardAgent (from backend.agents.guard)
+2025-12-28 16:46:02 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered AnalystAgent (from backend.agents.analyst)
+2025-12-28 16:46:02 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered InteractionAnalystAgent (from backend.agents.interaction)
+2025-12-28 16:46:02 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered ProfilerAgent (from backend.agents.profiler)
+2025-12-28 16:46:03 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered LogicianAgent (from backend.agents.logician)
+2025-12-28 16:46:03 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered LogicalFalsifierAgent (from backend.agents.critics)
+2025-12-28 16:46:03 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered FactualOverseerAgent (from backend.agents.critics)
+2025-12-28 16:46:03 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered CausalAnalystAgent (from backend.agents.critics)
+2025-12-28 16:46:03 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered PerformativityDetectorAgent (from backend.agents.critics)
+2025-12-28 16:46:03 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered ArchivistAgent (from backend.agents.archivist)
+2025-12-28 16:46:03 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered JudgeAgent (from backend.agents.judge)
+2025-12-28 16:46:03 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered CoachAgent (from backend.agents.coach)
+2025-12-28 16:46:03 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered XAIReporterAgent (from backend.agents.xai)
+2025-12-28 16:46:04 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered PanelAgent (from backend.agents.panel)
+2025-12-28 16:46:04 | INFO | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Successfully loaded and registered 14 agents.
+2025-12-28 16:46:04 | INFO | [SYSTEM] | backend.dependencies | [Dependencies] Initializing Singleton WorkflowEngine...
+2025-12-28 16:46:04 | INFO | [SYSTEM] | backend.core.engine | [WorkflowEngine] initialized with DB at C:\Users\risto\OneDrive\quorum\backend\database\db_mock.json
+2025-12-28 16:46:04 | INFO | [SYSTEM] | backend.bootstrap |    [INFO] Engine Ready.
+2025-12-28 16:46:04 | INFO | [SYSTEM] | backend.bootstrap |    [INFO] Checking for interrupted jobs...
+2025-12-28 16:46:04 | INFO | [SYSTEM] | backend.core.engine | [WorkflowEngine] Scanning for interrupted jobs...
+2025-12-28 16:46:09 | DEBUG | [SYSTEM] | asyncio | Using proactor: IocpProactor
+2025-12-28 16:46:13 | INFO | [SYSTEM] | root | Logging configured. Writing to: C:\Users\risto\OneDrive\quorum\backend_debug.log
+2025-12-28 16:46:13 | INFO | [SYSTEM] | backend.bootstrap | ==================================================
+2025-12-28 16:46:13 | INFO | [SYSTEM] | backend.bootstrap |    Cognitive Quorum Backend v0.2.0
+2025-12-28 16:46:13 | INFO | [SYSTEM] | backend.bootstrap |    Startup Time: 2025-12-28 16:46:13
+2025-12-28 16:46:13 | INFO | [SYSTEM] | backend.bootstrap | ==================================================
+2025-12-28 16:46:13 | INFO | [SYSTEM] | backend.bootstrap |    [CONFIG] Database Path: C:\Users\risto\OneDrive\quorum\backend\database\db_mock.json
+2025-12-28 16:46:13 | INFO | [SYSTEM] | backend.bootstrap |    [CONFIG] Model Strategy: Database Controlled
+2025-12-28 16:46:13 | WARNING | [SYSTEM] | backend.bootstrap | !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+2025-12-28 16:46:13 | WARNING | [SYSTEM] | backend.bootstrap |    [INFO] OPERATING IN MOCK LLM MODE
+2025-12-28 16:46:13 | WARNING | [SYSTEM] | backend.bootstrap |    [INFO] No external API calls will be made.
+2025-12-28 16:46:13 | WARNING | [SYSTEM] | backend.bootstrap | !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+2025-12-28 16:46:13 | INFO | [SYSTEM] | backend.bootstrap |    [CONFIG] Google Search: ENABLED (Key: ...6-Yc)
+2025-12-28 16:46:13 | INFO | [SYSTEM] | backend.bootstrap | ==================================================
+2025-12-28 16:46:13 | INFO | [SYSTEM] | backend.bootstrap |    [INFO] Using Mock Models list.
+2025-12-28 16:46:13 | INFO | [SYSTEM] | backend.bootstrap |    [INFO] Warming up Engine Singleton...
+2025-12-28 16:46:13 | INFO | [SYSTEM] | backend.dependencies | [Dependencies] Initializing Singleton DB Client...
+2025-12-28 16:46:13 | INFO | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Loading agents via AgentFactory...
+2025-12-28 16:46:13 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:46:13 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:46:13 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:46:13 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:46:13 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:46:13 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:46:13 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:46:13 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:46:13 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:46:13 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:46:13 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:46:13 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:46:13 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:46:13 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:46:13 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered GuardAgent (from backend.agents.guard)
+2025-12-28 16:46:13 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered AnalystAgent (from backend.agents.analyst)
+2025-12-28 16:46:13 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered InteractionAnalystAgent (from backend.agents.interaction)
+2025-12-28 16:46:14 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered ProfilerAgent (from backend.agents.profiler)
+2025-12-28 16:46:14 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered LogicianAgent (from backend.agents.logician)
+2025-12-28 16:46:14 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered LogicalFalsifierAgent (from backend.agents.critics)
+2025-12-28 16:46:14 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered FactualOverseerAgent (from backend.agents.critics)
+2025-12-28 16:46:14 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered CausalAnalystAgent (from backend.agents.critics)
+2025-12-28 16:46:14 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered PerformativityDetectorAgent (from backend.agents.critics)
+2025-12-28 16:46:14 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered ArchivistAgent (from backend.agents.archivist)
+2025-12-28 16:46:14 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered JudgeAgent (from backend.agents.judge)
+2025-12-28 16:46:14 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered CoachAgent (from backend.agents.coach)
+2025-12-28 16:46:14 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered XAIReporterAgent (from backend.agents.xai)
+2025-12-28 16:46:15 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered PanelAgent (from backend.agents.panel)
+2025-12-28 16:46:15 | INFO | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Successfully loaded and registered 14 agents.
+2025-12-28 16:46:15 | INFO | [SYSTEM] | backend.dependencies | [Dependencies] Initializing Singleton WorkflowEngine...
+2025-12-28 16:46:15 | INFO | [SYSTEM] | backend.core.engine | [WorkflowEngine] initialized with DB at C:\Users\risto\OneDrive\quorum\backend\database\db_mock.json
+2025-12-28 16:46:15 | INFO | [SYSTEM] | backend.bootstrap |    [INFO] Engine Ready.
+2025-12-28 16:46:15 | INFO | [SYSTEM] | backend.bootstrap |    [INFO] Checking for interrupted jobs...
+2025-12-28 16:46:15 | INFO | [SYSTEM] | backend.core.engine | [WorkflowEngine] Scanning for interrupted jobs...
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_begin with no data
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_field with data[36:55]
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_value with data[57:86]
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_end with no data
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_headers_finished with no data
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_data with data[90:122]
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_end with no data
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_begin with no data
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_field with data[160:179]
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_value with data[181:205]
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_end with no data
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_headers_finished with no data
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_data with data[209:211]
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_end with no data
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_begin with no data
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_field with data[249:268]
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_value with data[270:341]
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_end with no data
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_field with data[343:355]
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_value with data[357:372]
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_end with no data
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_headers_finished with no data
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_data with data[376:261885]
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_data with data[0:262144]
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_data with data[0:262144]
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_data with data[0:262144]
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_data with data[0:262144]
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_data with data[0:115320]
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_end with no data
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_begin with no data
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_field with data[115358:115377]
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_value with data[115379:115442]
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_end with no data
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_field with data[115444:115456]
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_value with data[115458:115473]
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_end with no data
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_headers_finished with no data
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_data with data[115477:195680]
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_end with no data
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_begin with no data
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_field with data[195718:195737]
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_value with data[195739:195814]
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_end with no data
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_field with data[195816:195828]
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_value with data[195830:195845]
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_end with no data
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_headers_finished with no data
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_data with data[195849:262144]
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_data with data[0:27474]
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_end with no data
+2025-12-28 16:46:17 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_end with no data
+2025-12-28 16:46:17 | INFO | [SYSTEM] | backend.services.document_service | [DocumentService] Evidence keskusteluhistoria SITRA.pdf processed. Extracted 41349 chars. Storage: backend\files\executions\3d7f5293-aa0c-4209-9511-189a3782d621\keskusteluhistoria SITRA.pdf
+2025-12-28 16:46:17 | INFO | [SYSTEM] | backend.services.document_service | [DocumentService] Evidence lopputuote sitra.pdf processed. Extracted 4993 chars. Storage: backend\files\executions\3d7f5293-aa0c-4209-9511-189a3782d621\lopputuote sitra.pdf
+2025-12-28 16:46:17 | INFO | [SYSTEM] | backend.services.document_service | [DocumentService] Evidence Reflektiodokumentti sitra.pdf processed. Extracted 1050 chars. Storage: backend\files\executions\3d7f5293-aa0c-4209-9511-189a3782d621\Reflektiodokumentti sitra.pdf
+2025-12-28 16:46:18 | INFO | [SYSTEM] | backend.api.execution_router | [Router] Triggering execution 3d7f5293-aa0c-4209-9511-189a3782d621. Input sizes: {'history_file': 41349, 'product_file': 4993, 'reflection_file': 1050}
+2025-12-28 16:46:18 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.core.engine | [WorkflowEngine] Starting execution 3d7f5293-aa0c-4209-9511-189a3782d621
+2025-12-28 16:46:18 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.core.runner | [PipelineRunner] State initialized with inputs: dict_keys(['history_file', 'product_file', 'reflection_file'])
+2025-12-28 16:46:18 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.core.runner | [PipelineRunner] Running step: GuardAgent (Step ID: step_guard)
+2025-12-28 16:46:18 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.core.runner | [PipelineRunner] Configured GuardAgent with gemini/gemini-3-flash-preview (Provider: google)
+2025-12-28 16:46:19 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.services.prompt_builder | [PromptBuilder] Constructed PROMPT for step_guard (Length: 12 parts)
+2025-12-28 16:46:19 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [GuardAgent] Starting execution...
+2025-12-28 16:46:19 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [GuardAgent] Lifecycle Hook: prepare_context
+2025-12-28 16:46:19 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.guard | [GuardAgent] Executing Python-based Banned Phrases Scan (Pre-Hook)...
+2025-12-28 16:46:19 | WARNING | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.guard | [GuardAgent] No banned_phrases found in state.aux_data. Skipping scan.
+2025-12-28 16:46:19 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.guard | [GuardAgent] Running sanitize_input (Pre-Hook)...
+2025-12-28 16:46:19 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [GuardAgent] >>> EXECUTION START <<<
+2025-12-28 16:46:19 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [GuardAgent] MODEL: gemini/gemini-3-flash-preview | TEMP: 0.7 | TOKENS: 16384
+2025-12-28 16:46:19 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.provider | [MockProvider] Calling Mock Service (Simulating Async)... {'repository': <backend.database.repository.TinyDBRepository object at 0x0000021FE0687200>, 'output_key': None, 'mock_identity': 'GuardAgent'}
+2025-12-28 16:46:20 | WARNING | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Mock data file not found at C:\Users\risto\OneDrive\quorum\data\mock_responses.json. Using empty defaults.
+2025-12-28 16:46:20 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Intercepted call. Prompt length: 60
+2025-12-28 16:46:20 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Identified agent via explicit identity: 'GuardAgent' -> 'guard_agent'
+2025-12-28 16:46:20 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MOCK RESPONSE] Generating response for: guard_agent
+2025-12-28 16:46:20 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] No specific mock found for 'guard_agent'. Returning generic fallback.
+2025-12-28 16:46:20 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | _update_state [id=2335970246432] Setting step_guard
+2025-12-28 16:46:20 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [GuardAgent] Updated state.step_guard
+2025-12-28 16:46:20 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [GuardAgent] Lifecycle Hook: post_process
+2025-12-28 16:46:20 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.guard | [GuardAgent] Running ensure_tainted_data...
+2025-12-28 16:46:20 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [GuardAgent] Execution completed.
+2025-12-28 16:46:20 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.core.runner | [PipelineRunner] Running step: AnalystAgent (Step ID: step_analyst)
+2025-12-28 16:46:20 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.core.runner | [PipelineRunner] Configured AnalystAgent with gemini/gemini-3-flash-preview (Provider: google)
+2025-12-28 16:46:21 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.services.prompt_builder | [PromptBuilder] Constructed PROMPT for step_analyst (Length: 12 parts)
+2025-12-28 16:46:21 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [AnalystAgent] Starting execution...
+2025-12-28 16:46:21 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [AnalystAgent] Lifecycle Hook: prepare_context
+2025-12-28 16:46:21 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [AnalystAgent] >>> EXECUTION START <<<
+2025-12-28 16:46:21 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [AnalystAgent] MODEL: gemini/gemini-3-flash-preview | TEMP: 0.7 | TOKENS: 16384
+2025-12-28 16:46:21 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.provider | [MockProvider] Calling Mock Service (Simulating Async)... {'repository': <backend.database.repository.TinyDBRepository object at 0x0000021FE0687200>, 'output_key': None, 'mock_identity': 'AnalystAgent'}
+2025-12-28 16:46:21 | WARNING | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Mock data file not found at C:\Users\risto\OneDrive\quorum\data\mock_responses.json. Using empty defaults.
+2025-12-28 16:46:21 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Intercepted call. Prompt length: 60
+2025-12-28 16:46:21 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Identified agent via explicit identity: 'AnalystAgent' -> 'analyst_agent'
+2025-12-28 16:46:21 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MOCK RESPONSE] Generating response for: analyst_agent
+2025-12-28 16:46:21 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] No specific mock found for 'analyst_agent'. Returning generic fallback.
+2025-12-28 16:46:21 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | _update_state [id=2335970246432] Setting step_analyst
+2025-12-28 16:46:21 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [AnalystAgent] Updated state.step_analyst
+2025-12-28 16:46:21 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [AnalystAgent] Lifecycle Hook: post_process
+2025-12-28 16:46:21 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [AnalystAgent] Execution completed.
+2025-12-28 16:46:21 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.core.runner | [PipelineRunner] Running step: InteractionAnalystAgent (Step ID: step_interaction)
+2025-12-28 16:46:21 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.core.runner | [PipelineRunner] Configured InteractionAnalystAgent with gemini/gemini-3-pro-preview (Provider: google)
+2025-12-28 16:46:22 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.services.prompt_builder | [PromptBuilder] Constructed PROMPT for step_interaction (Length: 10 parts)
+2025-12-28 16:46:22 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [InteractionAnalystAgent] Starting execution...
+2025-12-28 16:46:22 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [InteractionAnalystAgent] Lifecycle Hook: prepare_context
+2025-12-28 16:46:22 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [InteractionAnalystAgent] >>> EXECUTION START <<<
+2025-12-28 16:46:22 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [InteractionAnalystAgent] MODEL: gemini/gemini-3-pro-preview | TEMP: 0.5 | TOKENS: 16384
+2025-12-28 16:46:22 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.provider | [MockProvider] Calling Mock Service (Simulating Async)... {'repository': <backend.database.repository.TinyDBRepository object at 0x0000021FE0687200>, 'output_key': 'step_interaction', 'mock_identity': 'InteractionAnalystAgent'}
+2025-12-28 16:46:23 | WARNING | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Mock data file not found at C:\Users\risto\OneDrive\quorum\data\mock_responses.json. Using empty defaults.
+2025-12-28 16:46:23 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Intercepted call. Prompt length: 60
+2025-12-28 16:46:23 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Identified agent via explicit identity: 'InteractionAnalystAgent' -> 'interaction_agent'
+2025-12-28 16:46:23 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MOCK RESPONSE] Generating response for: interaction_agent
+2025-12-28 16:46:23 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] No specific mock found for 'interaction_agent'. Returning generic fallback.
+2025-12-28 16:46:23 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | _update_state [id=2335970246432] Setting step_interaction
+2025-12-28 16:46:23 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [InteractionAnalystAgent] Updated state.step_interaction
+2025-12-28 16:46:23 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [InteractionAnalystAgent] Lifecycle Hook: post_process
+2025-12-28 16:46:23 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [InteractionAnalystAgent] Execution completed.
+2025-12-28 16:46:23 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.core.runner | [PipelineRunner] Running step: ProfilerAgent (Step ID: step_profiler)
+2025-12-28 16:46:23 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.core.runner | [PipelineRunner] Configured ProfilerAgent with gemini/gemini-3-pro-preview (Provider: google)
+2025-12-28 16:46:24 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.services.prompt_builder | [PromptBuilder] Constructed PROMPT for step_profiler (Length: 8 parts)
+2025-12-28 16:46:24 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [ProfilerAgent] Starting execution...
+2025-12-28 16:46:24 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [ProfilerAgent] Lifecycle Hook: prepare_context
+2025-12-28 16:46:24 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [ProfilerAgent] >>> EXECUTION START <<<
+2025-12-28 16:46:24 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [ProfilerAgent] MODEL: gemini/gemini-3-pro-preview | TEMP: 0.5 | TOKENS: 16384
+2025-12-28 16:46:24 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.provider | [MockProvider] Calling Mock Service (Simulating Async)... {'repository': <backend.database.repository.TinyDBRepository object at 0x0000021FE0687200>, 'output_key': 'step_profiler', 'mock_identity': 'ProfilerAgent'}
+2025-12-28 16:46:24 | WARNING | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Mock data file not found at C:\Users\risto\OneDrive\quorum\data\mock_responses.json. Using empty defaults.
+2025-12-28 16:46:24 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Intercepted call. Prompt length: 60
+2025-12-28 16:46:24 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Identified agent via explicit identity: 'ProfilerAgent' -> 'profiler_agent'
+2025-12-28 16:46:24 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MOCK RESPONSE] Generating response for: profiler_agent
+2025-12-28 16:46:24 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] No specific mock found for 'profiler_agent'. Returning generic fallback.
+2025-12-28 16:46:24 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | _update_state [id=2335970246432] Setting step_profiler
+2025-12-28 16:46:24 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [ProfilerAgent] Updated state.step_profiler
+2025-12-28 16:46:24 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [ProfilerAgent] Lifecycle Hook: post_process
+2025-12-28 16:46:24 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [ProfilerAgent] Execution completed.
+2025-12-28 16:46:24 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.core.runner | [PipelineRunner] Running step: LogicianAgent (Step ID: step_logician)
+2025-12-28 16:46:24 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.core.runner | [PipelineRunner] Configured LogicianAgent with gemini/gemini-3-pro-preview (Provider: google)
+2025-12-28 16:46:25 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.services.prompt_builder | [PromptBuilder] Constructed PROMPT for step_logician (Length: 9 parts)
+2025-12-28 16:46:25 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [LogicianAgent] Starting execution...
+2025-12-28 16:46:25 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [LogicianAgent] Lifecycle Hook: prepare_context
+2025-12-28 16:46:25 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [LogicianAgent] >>> EXECUTION START <<<
+2025-12-28 16:46:25 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [LogicianAgent] MODEL: gemini/gemini-3-pro-preview | TEMP: 0.5 | TOKENS: 16384
+2025-12-28 16:46:25 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.provider | [MockProvider] Calling Mock Service (Simulating Async)... {'repository': <backend.database.repository.TinyDBRepository object at 0x0000021FE0687200>, 'output_key': None, 'mock_identity': 'LogicianAgent'}
+2025-12-28 16:46:26 | WARNING | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Mock data file not found at C:\Users\risto\OneDrive\quorum\data\mock_responses.json. Using empty defaults.
+2025-12-28 16:46:26 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Intercepted call. Prompt length: 60
+2025-12-28 16:46:26 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Identified agent via explicit identity: 'LogicianAgent' -> 'logician_agent'
+2025-12-28 16:46:26 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MOCK RESPONSE] Generating response for: logician_agent
+2025-12-28 16:46:26 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] No specific mock found for 'logician_agent'. Returning generic fallback.
+2025-12-28 16:46:26 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | _update_state [id=2335970246432] Setting step_logician
+2025-12-28 16:46:26 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [LogicianAgent] Updated state.step_logician
+2025-12-28 16:46:26 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [LogicianAgent] Lifecycle Hook: post_process
+2025-12-28 16:46:26 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [LogicianAgent] Execution completed.
+2025-12-28 16:46:26 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.core.runner | [PipelineRunner] Running step: LogicalFalsifierAgent (Step ID: step_falsifier)
+2025-12-28 16:46:26 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.core.runner | [PipelineRunner] Configured LogicalFalsifierAgent with gemini/gemini-3-pro-preview (Provider: google)
+2025-12-28 16:46:26 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.services.prompt_builder | [PromptBuilder] Constructed PROMPT for step_falsifier (Length: 9 parts)
+2025-12-28 16:46:26 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [LogicalFalsifierAgent] Starting execution...
+2025-12-28 16:46:26 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [LogicalFalsifierAgent] Lifecycle Hook: prepare_context
+2025-12-28 16:46:26 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [LogicalFalsifierAgent] >>> EXECUTION START <<<
+2025-12-28 16:46:26 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [LogicalFalsifierAgent] MODEL: gemini/gemini-3-pro-preview | TEMP: 0.5 | TOKENS: 16384
+2025-12-28 16:46:26 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.provider | [MockProvider] Calling Mock Service (Simulating Async)... {'repository': <backend.database.repository.TinyDBRepository object at 0x0000021FE0687200>, 'output_key': None, 'mock_identity': 'LogicalFalsifierAgent'}
+2025-12-28 16:46:27 | WARNING | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Mock data file not found at C:\Users\risto\OneDrive\quorum\data\mock_responses.json. Using empty defaults.
+2025-12-28 16:46:27 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Intercepted call. Prompt length: 60
+2025-12-28 16:46:27 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Identified agent via explicit identity: 'LogicalFalsifierAgent' -> 'falsifier_agent'
+2025-12-28 16:46:27 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MOCK RESPONSE] Generating response for: falsifier_agent
+2025-12-28 16:46:27 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] No specific mock found for 'falsifier_agent'. Returning generic fallback.
+2025-12-28 16:46:27 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | _update_state [id=2335970246432] Setting step_falsifier
+2025-12-28 16:46:27 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [LogicalFalsifierAgent] Updated state.step_falsifier
+2025-12-28 16:46:27 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [LogicalFalsifierAgent] Lifecycle Hook: post_process
+2025-12-28 16:46:27 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [LogicalFalsifierAgent] Execution completed.
+2025-12-28 16:46:27 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.core.runner | [PipelineRunner] Running step: CausalAnalystAgent (Step ID: step_causal)
+2025-12-28 16:46:27 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.core.runner | [PipelineRunner] Configured CausalAnalystAgent with gemini/gemini-3-pro-preview (Provider: google)
+2025-12-28 16:46:28 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.services.prompt_builder | [PromptBuilder] Constructed PROMPT for step_causal (Length: 8 parts)
+2025-12-28 16:46:28 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [CausalAnalystAgent] Starting execution...
+2025-12-28 16:46:28 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [CausalAnalystAgent] Lifecycle Hook: prepare_context
+2025-12-28 16:46:28 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [CausalAnalystAgent] >>> EXECUTION START <<<
+2025-12-28 16:46:28 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [CausalAnalystAgent] MODEL: gemini/gemini-3-pro-preview | TEMP: 0.5 | TOKENS: 16384
+2025-12-28 16:46:28 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.provider | [MockProvider] Calling Mock Service (Simulating Async)... {'repository': <backend.database.repository.TinyDBRepository object at 0x0000021FE0687200>, 'output_key': None, 'mock_identity': 'CausalAnalystAgent'}
+2025-12-28 16:46:28 | WARNING | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Mock data file not found at C:\Users\risto\OneDrive\quorum\data\mock_responses.json. Using empty defaults.
+2025-12-28 16:46:28 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Intercepted call. Prompt length: 60
+2025-12-28 16:46:28 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Identified agent via explicit identity: 'CausalAnalystAgent' -> 'causal_agent'
+2025-12-28 16:46:28 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MOCK RESPONSE] Generating response for: causal_agent
+2025-12-28 16:46:28 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] No specific mock found for 'causal_agent'. Returning generic fallback.
+2025-12-28 16:46:28 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | _update_state [id=2335970246432] Setting step_causal
+2025-12-28 16:46:28 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [CausalAnalystAgent] Updated state.step_causal
+2025-12-28 16:46:28 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [CausalAnalystAgent] Lifecycle Hook: post_process
+2025-12-28 16:46:28 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [CausalAnalystAgent] Execution completed.
+2025-12-28 16:46:28 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.core.runner | [PipelineRunner] Running step: PerformativityDetectorAgent (Step ID: step_detector)
+2025-12-28 16:46:28 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.core.runner | [PipelineRunner] Configured PerformativityDetectorAgent with gemini/gemini-3-flash-preview (Provider: google)
+2025-12-28 16:46:30 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.services.prompt_builder | [PromptBuilder] Constructed PROMPT for step_detector (Length: 23 parts)
+2025-12-28 16:46:30 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [PerformativityDetectorAgent] Starting execution...
+2025-12-28 16:46:30 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [PerformativityDetectorAgent] Lifecycle Hook: prepare_context
+2025-12-28 16:46:30 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [PerformativityDetectorAgent] >>> EXECUTION START <<<
+2025-12-28 16:46:30 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [PerformativityDetectorAgent] MODEL: gemini/gemini-3-flash-preview | TEMP: 0.7 | TOKENS: 16384
+2025-12-28 16:46:30 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.provider | [MockProvider] Calling Mock Service (Simulating Async)... {'repository': <backend.database.repository.TinyDBRepository object at 0x0000021FE0687200>, 'output_key': None, 'mock_identity': 'PerformativityDetectorAgent'}
+2025-12-28 16:46:30 | WARNING | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Mock data file not found at C:\Users\risto\OneDrive\quorum\data\mock_responses.json. Using empty defaults.
+2025-12-28 16:46:30 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Intercepted call. Prompt length: 60
+2025-12-28 16:46:30 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Identified agent via explicit identity: 'PerformativityDetectorAgent' -> 'performativity_agent'
+2025-12-28 16:46:30 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MOCK RESPONSE] Generating response for: performativity_agent
+2025-12-28 16:46:30 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] No specific mock found for 'performativity_agent'. Returning generic fallback.
+2025-12-28 16:46:30 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | _update_state [id=2335970246432] Setting step_detector
+2025-12-28 16:46:30 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [PerformativityDetectorAgent] Updated state.step_detector
+2025-12-28 16:46:30 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [PerformativityDetectorAgent] Lifecycle Hook: post_process
+2025-12-28 16:46:30 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [PerformativityDetectorAgent] Execution completed.
+2025-12-28 16:46:30 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.core.runner | [PipelineRunner] Running step: FactualOverseerAgent (Step ID: step_overseer)
+2025-12-28 16:46:30 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.core.runner | [PipelineRunner] Configured FactualOverseerAgent with gemini/gemini-3-pro-preview (Provider: google)
+2025-12-28 16:46:32 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.services.prompt_builder | [PromptBuilder] Constructed PROMPT for step_overseer (Length: 23 parts)
+2025-12-28 16:46:32 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [FactualOverseerAgent] Starting execution...
+2025-12-28 16:46:32 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [FactualOverseerAgent] Lifecycle Hook: prepare_context
+2025-12-28 16:46:32 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [FactualOverseerAgent] >>> EXECUTION START <<<
+2025-12-28 16:46:32 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [FactualOverseerAgent] MODEL: gemini/gemini-3-pro-preview | TEMP: 0.5 | TOKENS: 16384
+2025-12-28 16:46:32 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.provider | [MockProvider] Calling Mock Service (Simulating Async)... {'repository': <backend.database.repository.TinyDBRepository object at 0x0000021FE0687200>, 'output_key': None, 'mock_identity': 'FactualOverseerAgent'}
+2025-12-28 16:46:32 | WARNING | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Mock data file not found at C:\Users\risto\OneDrive\quorum\data\mock_responses.json. Using empty defaults.
+2025-12-28 16:46:32 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Intercepted call. Prompt length: 60
+2025-12-28 16:46:32 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Identified agent via explicit identity: 'FactualOverseerAgent' -> 'fact_checker_agent'
+2025-12-28 16:46:32 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MOCK RESPONSE] Generating response for: fact_checker_agent
+2025-12-28 16:46:32 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] No specific mock found for 'fact_checker_agent'. Returning generic fallback.
+2025-12-28 16:46:32 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | _update_state [id=2335970246432] Setting step_overseer
+2025-12-28 16:46:32 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [FactualOverseerAgent] Updated state.step_overseer
+2025-12-28 16:46:32 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [FactualOverseerAgent] Lifecycle Hook: post_process
+2025-12-28 16:46:32 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [FactualOverseerAgent] Execution completed.
+2025-12-28 16:46:32 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.core.runner | [PipelineRunner] Running step: ArchivistAgent (Step ID: step_archivist)
+2025-12-28 16:46:32 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.core.runner | [PipelineRunner] Configured ArchivistAgent with gemini/gemini-3-pro-preview (Provider: google)
+2025-12-28 16:46:34 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.services.prompt_builder | [PromptBuilder] Constructed PROMPT for step_archivist (Length: 23 parts)
+2025-12-28 16:46:34 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [ArchivistAgent] Starting execution...
+2025-12-28 16:46:34 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [ArchivistAgent] Lifecycle Hook: prepare_context
+2025-12-28 16:46:34 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [ArchivistAgent] >>> EXECUTION START <<<
+2025-12-28 16:46:34 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [ArchivistAgent] MODEL: gemini/gemini-3-pro-preview | TEMP: 0.5 | TOKENS: 16384
+2025-12-28 16:46:34 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.provider | [MockProvider] Calling Mock Service (Simulating Async)... {'repository': <backend.database.repository.TinyDBRepository object at 0x0000021FE0687200>, 'output_key': 'step_archivist', 'mock_identity': 'ArchivistAgent'}
+2025-12-28 16:46:34 | WARNING | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Mock data file not found at C:\Users\risto\OneDrive\quorum\data\mock_responses.json. Using empty defaults.
+2025-12-28 16:46:34 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Intercepted call. Prompt length: 60
+2025-12-28 16:46:34 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Identified agent via explicit identity: 'ArchivistAgent' -> 'archivist_agent'
+2025-12-28 16:46:34 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MOCK RESPONSE] Generating response for: archivist_agent
+2025-12-28 16:46:34 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] No specific mock found for 'archivist_agent'. Returning generic fallback.
+2025-12-28 16:46:34 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | _update_state [id=2335970246432] Setting step_archivist
+2025-12-28 16:46:34 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [ArchivistAgent] Updated state.step_archivist
+2025-12-28 16:46:34 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [ArchivistAgent] Lifecycle Hook: post_process
+2025-12-28 16:46:34 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [ArchivistAgent] Execution completed.
+2025-12-28 16:46:34 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.core.runner | [PipelineRunner] Running step: JudgeAgent (Step ID: step_judge_cognitive)
+2025-12-28 16:46:34 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.core.runner | [PipelineRunner] Configured JudgeAgent with gemini/gemini-3-pro-preview (Provider: google)
+2025-12-28 16:46:36 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.services.prompt_builder | [PromptBuilder] Constructed PROMPT for step_judge_cognitive (Length: 24 parts)
+2025-12-28 16:46:36 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [JudgeAgent] Starting execution...
+2025-12-28 16:46:36 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [JudgeAgent] Lifecycle Hook: prepare_context
+2025-12-28 16:46:36 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [JudgeAgent] >>> EXECUTION START <<<
+2025-12-28 16:46:36 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [JudgeAgent] MODEL: gemini/gemini-3-pro-preview | TEMP: 0.5 | TOKENS: 16384
+2025-12-28 16:46:36 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.provider | [MockProvider] Calling Mock Service (Simulating Async)... {'repository': <backend.database.repository.TinyDBRepository object at 0x0000021FE0687200>, 'output_key': 'step_judge_cognitive', 'mock_identity': 'JudgeAgent'}
+2025-12-28 16:46:36 | WARNING | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Mock data file not found at C:\Users\risto\OneDrive\quorum\data\mock_responses.json. Using empty defaults.
+2025-12-28 16:46:36 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Intercepted call. Prompt length: 60
+2025-12-28 16:46:36 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Identified agent via explicit identity: 'JudgeAgent' -> 'judge_agent'
+2025-12-28 16:46:36 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MOCK RESPONSE] Generating response for: judge_agent
+2025-12-28 16:46:36 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] No specific mock found for 'judge_agent'. Returning generic fallback.
+2025-12-28 16:46:36 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | _update_state [id=2335970246432] Setting step_judge_cognitive
+2025-12-28 16:46:36 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [JudgeAgent] Updated state.step_judge_cognitive
+2025-12-28 16:46:36 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [JudgeAgent] Lifecycle Hook: post_process
+2025-12-28 16:46:36 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.judge | [JudgeAgent] Running calculate_final_scores...
+2025-12-28 16:46:36 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.hooks.scoring | [ScoringHook] Total Score: 10/12 (Avg: 3.33)
+2025-12-28 16:46:36 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [JudgeAgent] Execution completed.
+2025-12-28 16:46:36 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.core.runner | [PipelineRunner] Running step: CoachAgent (Step ID: step_coach)
+2025-12-28 16:46:36 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.core.runner | [PipelineRunner] Configured CoachAgent with gemini/gemini-3-pro-preview (Provider: google)
+2025-12-28 16:46:38 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.services.prompt_builder | [PromptBuilder] Constructed PROMPT for step_coach (Length: 24 parts)
+2025-12-28 16:46:38 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [CoachAgent] Starting execution...
+2025-12-28 16:46:38 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [CoachAgent] Lifecycle Hook: prepare_context
+2025-12-28 16:46:38 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.coach | [CoachAgent] Loaded 335 concepts and 196 references from Unified Database.
+2025-12-28 16:46:38 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [CoachAgent] Appended dynamic context.
+2025-12-28 16:46:38 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [CoachAgent] >>> EXECUTION START <<<
+2025-12-28 16:46:38 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [CoachAgent] MODEL: gemini/gemini-3-pro-preview | TEMP: 0.5 | TOKENS: 16384
+2025-12-28 16:46:38 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.provider | [MockProvider] Calling Mock Service (Simulating Async)... {'repository': <backend.database.repository.TinyDBRepository object at 0x0000021FE0687200>, 'output_key': 'step_coach', 'mock_identity': 'CoachAgent'}
+2025-12-28 16:46:38 | WARNING | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Mock data file not found at C:\Users\risto\OneDrive\quorum\data\mock_responses.json. Using empty defaults.
+2025-12-28 16:46:38 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Intercepted call. Prompt length: 60
+2025-12-28 16:46:38 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Identified agent via explicit identity: 'CoachAgent' -> 'coach_agent'
+2025-12-28 16:46:38 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MOCK RESPONSE] Generating response for: coach_agent
+2025-12-28 16:46:38 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] No specific mock found for 'coach_agent'. Returning generic fallback.
+2025-12-28 16:46:38 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | _update_state [id=2335970246432] Setting step_coach
+2025-12-28 16:46:38 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [CoachAgent] Updated state.step_coach
+2025-12-28 16:46:38 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [CoachAgent] Lifecycle Hook: post_process
+2025-12-28 16:46:38 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.coach | [CoachAgent] Running enrich_learning_plan hook...
+2025-12-28 16:46:38 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.models.state | to_flat_dict [id=2335970246432] check - step_judge_cognitive: True
+2025-12-28 16:46:38 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.models.state | to_flat_dict [id=2335970246432] check - step_judge: False
+2025-12-28 16:46:38 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.models.state | to_flat_dict [id=2335970246432] check - aux_data keys: ['banned_phrases', 'sanitization_log', 'score_summary', 'calculated_average', 'penalties_applied']
+2025-12-28 16:46:38 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.hooks.references | [ReferenceHook] Scan complete. Found 4 unique references.
+2025-12-28 16:46:38 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.coach | [CoachAgent] Populated bibliography with 4 references found in global state.
+2025-12-28 16:46:38 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [CoachAgent] Execution completed.
+2025-12-28 16:46:38 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.core.runner | [PipelineRunner] Running step: XAIReporterAgent (Step ID: step_xai)
+2025-12-28 16:46:38 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.core.runner | [PipelineRunner] Configured XAIReporterAgent with gemini/gemini-3-flash-preview (Provider: google)
+2025-12-28 16:46:40 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.services.prompt_builder | [PromptBuilder] Constructed PROMPT for step_xai (Length: 23 parts)
+2025-12-28 16:46:40 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [XAIReporterAgent] Starting execution...
+2025-12-28 16:46:40 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [XAIReporterAgent] Lifecycle Hook: prepare_context
+2025-12-28 16:46:40 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [XAIReporterAgent] >>> EXECUTION START <<<
+2025-12-28 16:46:40 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [XAIReporterAgent] MODEL: gemini/gemini-3-flash-preview | TEMP: 0.7 | TOKENS: 16384
+2025-12-28 16:46:40 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.provider | [MockProvider] Calling Mock Service (Simulating Async)... {'repository': <backend.database.repository.TinyDBRepository object at 0x0000021FE0687200>, 'output_key': 'step_reporter', 'mock_identity': 'XAIReporterAgent'}
+2025-12-28 16:46:40 | WARNING | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Mock data file not found at C:\Users\risto\OneDrive\quorum\data\mock_responses.json. Using empty defaults.
+2025-12-28 16:46:40 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Intercepted call. Prompt length: 60
+2025-12-28 16:46:40 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] Identified agent via explicit identity: 'XAIReporterAgent' -> 'xai_agent'
+2025-12-28 16:46:40 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MOCK RESPONSE] Generating response for: xai_agent
+2025-12-28 16:46:40 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.llm.mock | [MockLLM] No specific mock found for 'xai_agent'. Returning generic fallback.
+2025-12-28 16:46:40 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | _update_state [id=2335970246432] Setting step_reporter
+2025-12-28 16:46:40 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [XAIReporterAgent] Updated state.step_reporter
+2025-12-28 16:46:40 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [XAIReporterAgent] Lifecycle Hook: post_process
+2025-12-28 16:46:40 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.xai | [XAIReporterAgent] Running post_process hook...
+2025-12-28 16:46:40 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.hooks.reporting | [ReportingHook] Generating report...
+2025-12-28 16:46:40 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.hooks.reporting | [ReportingHook] Report generated and saved to step_reporter.xai_report_formatted
+2025-12-28 16:46:40 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.agents.base | [XAIReporterAgent] Execution completed.
+2025-12-28 16:46:40 | INFO | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.core.engine | [WorkflowEngine] Execution 3d7f5293-aa0c-4209-9511-189a3782d621 completed successfully.
+2025-12-28 16:46:40 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.models.state | to_flat_dict [id=2335970246432] check - step_judge_cognitive: True
+2025-12-28 16:46:40 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.models.state | to_flat_dict [id=2335970246432] check - step_judge: False
+2025-12-28 16:46:40 | DEBUG | [3d7f5293-aa0c-4209-9511-189a3782d621] | backend.models.state | to_flat_dict [id=2335970246432] check - aux_data keys: ['banned_phrases', 'sanitization_log', 'score_summary', 'calculated_average', 'penalties_applied']
+2025-12-28 16:47:51 | DEBUG | [SYSTEM] | asyncio | Using proactor: IocpProactor
+2025-12-28 16:47:55 | INFO | [SYSTEM] | root | Logging configured. Writing to: C:\Users\risto\OneDrive\quorum\backend_debug.log
+2025-12-28 16:47:55 | INFO | [SYSTEM] | backend.bootstrap | ==================================================
+2025-12-28 16:47:55 | INFO | [SYSTEM] | backend.bootstrap |    Cognitive Quorum Backend v0.2.0
+2025-12-28 16:47:55 | INFO | [SYSTEM] | backend.bootstrap |    Startup Time: 2025-12-28 16:47:55
+2025-12-28 16:47:55 | INFO | [SYSTEM] | backend.bootstrap | ==================================================
+2025-12-28 16:47:55 | INFO | [SYSTEM] | backend.bootstrap |    [CONFIG] Database Path: C:\Users\risto\OneDrive\quorum\backend\database\db_mock.json
+2025-12-28 16:47:55 | INFO | [SYSTEM] | backend.bootstrap |    [CONFIG] Model Strategy: Database Controlled
+2025-12-28 16:47:55 | WARNING | [SYSTEM] | backend.bootstrap | !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+2025-12-28 16:47:55 | WARNING | [SYSTEM] | backend.bootstrap |    [INFO] OPERATING IN MOCK LLM MODE
+2025-12-28 16:47:55 | WARNING | [SYSTEM] | backend.bootstrap |    [INFO] No external API calls will be made.
+2025-12-28 16:47:55 | WARNING | [SYSTEM] | backend.bootstrap | !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+2025-12-28 16:47:55 | INFO | [SYSTEM] | backend.bootstrap |    [CONFIG] Google Search: ENABLED (Key: ...6-Yc)
+2025-12-28 16:47:55 | INFO | [SYSTEM] | backend.bootstrap | ==================================================
+2025-12-28 16:47:55 | INFO | [SYSTEM] | backend.bootstrap |    [INFO] Using Mock Models list.
+2025-12-28 16:47:55 | INFO | [SYSTEM] | backend.bootstrap |    [INFO] Warming up Engine Singleton...
+2025-12-28 16:47:55 | INFO | [SYSTEM] | backend.dependencies | [Dependencies] Initializing Singleton DB Client...
+2025-12-28 16:47:55 | INFO | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Loading agents via AgentFactory...
+2025-12-28 16:47:55 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:47:55 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:47:55 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:47:55 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:47:55 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:47:55 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:47:55 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:47:55 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:47:55 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:47:55 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:47:55 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:47:55 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:47:55 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:47:55 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:47:55 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered GuardAgent (from backend.agents.guard)
+2025-12-28 16:47:55 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered AnalystAgent (from backend.agents.analyst)
+2025-12-28 16:47:55 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered InteractionAnalystAgent (from backend.agents.interaction)
+2025-12-28 16:47:55 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered ProfilerAgent (from backend.agents.profiler)
+2025-12-28 16:47:56 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered LogicianAgent (from backend.agents.logician)
+2025-12-28 16:47:56 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered LogicalFalsifierAgent (from backend.agents.critics)
+2025-12-28 16:47:56 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered FactualOverseerAgent (from backend.agents.critics)
+2025-12-28 16:47:56 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered CausalAnalystAgent (from backend.agents.critics)
+2025-12-28 16:47:56 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered PerformativityDetectorAgent (from backend.agents.critics)
+2025-12-28 16:47:56 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered ArchivistAgent (from backend.agents.archivist)
+2025-12-28 16:47:56 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered JudgeAgent (from backend.agents.judge)
+2025-12-28 16:47:56 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered CoachAgent (from backend.agents.coach)
+2025-12-28 16:47:56 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered XAIReporterAgent (from backend.agents.xai)
+2025-12-28 16:47:56 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered PanelAgent (from backend.agents.panel)
+2025-12-28 16:47:56 | INFO | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Successfully loaded and registered 14 agents.
+2025-12-28 16:47:56 | INFO | [SYSTEM] | backend.dependencies | [Dependencies] Initializing Singleton WorkflowEngine...
+2025-12-28 16:47:57 | INFO | [SYSTEM] | backend.core.engine | [WorkflowEngine] initialized with DB at C:\Users\risto\OneDrive\quorum\backend\database\db_mock.json
+2025-12-28 16:47:57 | INFO | [SYSTEM] | backend.bootstrap |    [INFO] Engine Ready.
+2025-12-28 16:47:57 | INFO | [SYSTEM] | backend.bootstrap |    [INFO] Checking for interrupted jobs...
+2025-12-28 16:47:57 | INFO | [SYSTEM] | backend.core.engine | [WorkflowEngine] Scanning for interrupted jobs...
+2025-12-28 16:48:15 | DEBUG | [SYSTEM] | asyncio | Using proactor: IocpProactor
+2025-12-28 16:48:19 | INFO | [SYSTEM] | root | Logging configured. Writing to: C:\Users\risto\OneDrive\quorum\backend_debug.log
+2025-12-28 16:48:19 | INFO | [SYSTEM] | backend.bootstrap | ==================================================
+2025-12-28 16:48:19 | INFO | [SYSTEM] | backend.bootstrap |    Cognitive Quorum Backend v0.2.0
+2025-12-28 16:48:19 | INFO | [SYSTEM] | backend.bootstrap |    Startup Time: 2025-12-28 16:48:19
+2025-12-28 16:48:19 | INFO | [SYSTEM] | backend.bootstrap | ==================================================
+2025-12-28 16:48:19 | INFO | [SYSTEM] | backend.bootstrap |    [CONFIG] Database Path: C:\Users\risto\OneDrive\quorum\backend\database\db_mock.json
+2025-12-28 16:48:19 | INFO | [SYSTEM] | backend.bootstrap |    [CONFIG] Model Strategy: Database Controlled
+2025-12-28 16:48:19 | WARNING | [SYSTEM] | backend.bootstrap | !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+2025-12-28 16:48:19 | WARNING | [SYSTEM] | backend.bootstrap |    [INFO] OPERATING IN MOCK LLM MODE
+2025-12-28 16:48:19 | WARNING | [SYSTEM] | backend.bootstrap |    [INFO] No external API calls will be made.
+2025-12-28 16:48:19 | WARNING | [SYSTEM] | backend.bootstrap | !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+2025-12-28 16:48:19 | INFO | [SYSTEM] | backend.bootstrap |    [CONFIG] Google Search: ENABLED (Key: ...6-Yc)
+2025-12-28 16:48:19 | INFO | [SYSTEM] | backend.bootstrap | ==================================================
+2025-12-28 16:48:19 | INFO | [SYSTEM] | backend.bootstrap |    [INFO] Using Mock Models list.
+2025-12-28 16:48:19 | INFO | [SYSTEM] | backend.bootstrap |    [INFO] Warming up Engine Singleton...
+2025-12-28 16:48:19 | INFO | [SYSTEM] | backend.dependencies | [Dependencies] Initializing Singleton DB Client...
+2025-12-28 16:48:19 | INFO | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Loading agents via AgentFactory...
+2025-12-28 16:48:19 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:48:19 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:48:19 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:48:19 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:48:19 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:48:19 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:48:19 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:48:19 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:48:19 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:48:19 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:48:19 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:48:19 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:48:19 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:48:19 | WARNING | [SYSTEM] | backend.agents.base | [BaseAgent] Hardcoded 'gemini' detected in model init: gemini/gemini-3-flash-preview
+2025-12-28 16:48:19 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered GuardAgent (from backend.agents.guard)
+2025-12-28 16:48:19 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered AnalystAgent (from backend.agents.analyst)
+2025-12-28 16:48:19 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered InteractionAnalystAgent (from backend.agents.interaction)
+2025-12-28 16:48:19 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered ProfilerAgent (from backend.agents.profiler)
+2025-12-28 16:48:20 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered LogicianAgent (from backend.agents.logician)
+2025-12-28 16:48:20 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered LogicalFalsifierAgent (from backend.agents.critics)
+2025-12-28 16:48:20 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered FactualOverseerAgent (from backend.agents.critics)
+2025-12-28 16:48:20 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered CausalAnalystAgent (from backend.agents.critics)
+2025-12-28 16:48:20 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered PerformativityDetectorAgent (from backend.agents.critics)
+2025-12-28 16:48:20 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered ArchivistAgent (from backend.agents.archivist)
+2025-12-28 16:48:20 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered JudgeAgent (from backend.agents.judge)
+2025-12-28 16:48:20 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered CoachAgent (from backend.agents.coach)
+2025-12-28 16:48:21 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered XAIReporterAgent (from backend.agents.xai)
+2025-12-28 16:48:21 | DEBUG | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Registered PanelAgent (from backend.agents.panel)
+2025-12-28 16:48:21 | INFO | [SYSTEM] | backend.services.agent_registry | [AgentRegistry] Successfully loaded and registered 14 agents.
+2025-12-28 16:48:21 | INFO | [SYSTEM] | backend.dependencies | [Dependencies] Initializing Singleton WorkflowEngine...
+2025-12-28 16:48:21 | INFO | [SYSTEM] | backend.core.engine | [WorkflowEngine] initialized with DB at C:\Users\risto\OneDrive\quorum\backend\database\db_mock.json
+2025-12-28 16:48:21 | INFO | [SYSTEM] | backend.bootstrap |    [INFO] Engine Ready.
+2025-12-28 16:48:21 | INFO | [SYSTEM] | backend.bootstrap |    [INFO] Checking for interrupted jobs...
+2025-12-28 16:48:21 | INFO | [SYSTEM] | backend.core.engine | [WorkflowEngine] Scanning for interrupted jobs...
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_begin with no data
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_field with data[36:55]
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_value with data[57:86]
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_end with no data
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_headers_finished with no data
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_data with data[90:122]
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_end with no data
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_begin with no data
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_field with data[160:179]
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_value with data[181:205]
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_end with no data
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_headers_finished with no data
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_data with data[209:211]
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_end with no data
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_begin with no data
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_field with data[249:268]
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_value with data[270:341]
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_end with no data
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_field with data[343:355]
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_value with data[357:372]
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_end with no data
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_headers_finished with no data
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_data with data[376:261885]
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_data with data[0:262144]
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_data with data[0:262144]
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_data with data[0:262144]
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_data with data[0:262144]
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_data with data[0:115320]
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_end with no data
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_begin with no data
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_field with data[115358:115377]
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_value with data[115379:115442]
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_end with no data
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_field with data[115444:115456]
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_value with data[115458:115473]
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_end with no data
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_headers_finished with no data
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_data with data[115477:195680]
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_end with no data
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_begin with no data
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_field with data[195718:195737]
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_value with data[195739:195814]
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_end with no data
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_field with data[195816:195828]
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_value with data[195830:195845]
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_header_end with no data
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_headers_finished with no data
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_data with data[195849:262144]
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_data with data[0:27474]
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_part_end with no data
+2025-12-28 16:48:36 | DEBUG | [SYSTEM] | python_multipart.multipart | Calling on_end with no data
+2025-12-28 16:48:36 | INFO | [SYSTEM] | backend.services.document_service | [DocumentService] Evidence keskusteluhistoria SITRA.pdf processed. Extracted 41349 chars. Storage: backend\files\executions\110c165b-4432-4d8b-a2ad-877dddd25c20\keskusteluhistoria SITRA.pdf
+2025-12-28 16:48:36 | INFO | [SYSTEM] | backend.services.document_service | [DocumentService] Evidence lopputuote sitra.pdf processed. Extracted 4993 chars. Storage: backend\files\executions\110c165b-4432-4d8b-a2ad-877dddd25c20\lopputuote sitra.pdf
+2025-12-28 16:48:36 | INFO | [SYSTEM] | backend.services.document_service | [DocumentService] Evidence Reflektiodokumentti sitra.pdf processed. Extracted 1050 chars. Storage: backend\files\executions\110c165b-4432-4d8b-a2ad-877dddd25c20\Reflektiodokumentti sitra.pdf
+2025-12-28 16:48:36 | INFO | [SYSTEM] | backend.api.execution_router | [Router] Triggering execution 110c165b-4432-4d8b-a2ad-877dddd25c20. Input sizes: {'history_file': 41349, 'product_file': 4993, 'reflection_file': 1050}
+2025-12-28 16:48:36 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.core.engine | [WorkflowEngine] Starting execution 110c165b-4432-4d8b-a2ad-877dddd25c20
+2025-12-28 16:48:36 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.core.runner | [PipelineRunner] State initialized with inputs: dict_keys(['history_file', 'product_file', 'reflection_file'])
+2025-12-28 16:48:37 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.core.runner | [PipelineRunner] Running step: GuardAgent (Step ID: step_guard)
+2025-12-28 16:48:37 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.core.runner | [PipelineRunner] Configured GuardAgent with gemini/gemini-3-flash-preview (Provider: google)
+2025-12-28 16:48:38 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.services.prompt_builder | [PromptBuilder] Constructed PROMPT for step_guard (Length: 12 parts)
+2025-12-28 16:48:38 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [GuardAgent] Starting execution...
+2025-12-28 16:48:38 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [GuardAgent] Lifecycle Hook: prepare_context
+2025-12-28 16:48:38 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.guard | [GuardAgent] Executing Python-based Banned Phrases Scan (Pre-Hook)...
+2025-12-28 16:48:38 | WARNING | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.guard | [GuardAgent] No banned_phrases found in state.aux_data. Skipping scan.
+2025-12-28 16:48:38 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.guard | [GuardAgent] Running sanitize_input (Pre-Hook)...
+2025-12-28 16:48:38 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [GuardAgent] >>> EXECUTION START <<<
+2025-12-28 16:48:38 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [GuardAgent] MODEL: gemini/gemini-3-flash-preview | TEMP: 0.7 | TOKENS: 16384
+2025-12-28 16:48:38 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.provider | [MockProvider] Calling Mock Service (Simulating Async)... {'repository': <backend.database.repository.TinyDBRepository object at 0x0000020CB76C37A0>, 'output_key': None, 'mock_identity': 'GuardAgent'}
+2025-12-28 16:48:38 | WARNING | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Mock data file not found at C:\Users\risto\OneDrive\quorum\data\mock_responses.json. Using empty defaults.
+2025-12-28 16:48:38 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Intercepted call. Prompt length: 60
+2025-12-28 16:48:38 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Identified agent via explicit identity: 'GuardAgent' -> 'guard_agent'
+2025-12-28 16:48:38 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MOCK RESPONSE] Generating response for: guard_agent
+2025-12-28 16:48:38 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] No specific mock found for 'guard_agent'. Returning generic fallback.
+2025-12-28 16:48:38 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | _update_state [id=2253676183328] Setting step_guard
+2025-12-28 16:48:38 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [GuardAgent] Updated state.step_guard
+2025-12-28 16:48:38 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [GuardAgent] Lifecycle Hook: post_process
+2025-12-28 16:48:38 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.guard | [GuardAgent] Running ensure_tainted_data...
+2025-12-28 16:48:38 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [GuardAgent] Execution completed.
+2025-12-28 16:48:39 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.core.runner | [PipelineRunner] Running step: AnalystAgent (Step ID: step_analyst)
+2025-12-28 16:48:39 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.core.runner | [PipelineRunner] Configured AnalystAgent with gemini/gemini-3-flash-preview (Provider: google)
+2025-12-28 16:48:40 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.services.prompt_builder | [PromptBuilder] Constructed PROMPT for step_analyst (Length: 12 parts)
+2025-12-28 16:48:40 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [AnalystAgent] Starting execution...
+2025-12-28 16:48:40 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [AnalystAgent] Lifecycle Hook: prepare_context
+2025-12-28 16:48:40 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [AnalystAgent] >>> EXECUTION START <<<
+2025-12-28 16:48:40 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [AnalystAgent] MODEL: gemini/gemini-3-flash-preview | TEMP: 0.7 | TOKENS: 16384
+2025-12-28 16:48:40 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.provider | [MockProvider] Calling Mock Service (Simulating Async)... {'repository': <backend.database.repository.TinyDBRepository object at 0x0000020CB76C37A0>, 'output_key': None, 'mock_identity': 'AnalystAgent'}
+2025-12-28 16:48:40 | WARNING | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Mock data file not found at C:\Users\risto\OneDrive\quorum\data\mock_responses.json. Using empty defaults.
+2025-12-28 16:48:40 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Intercepted call. Prompt length: 60
+2025-12-28 16:48:40 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Identified agent via explicit identity: 'AnalystAgent' -> 'analyst_agent'
+2025-12-28 16:48:40 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MOCK RESPONSE] Generating response for: analyst_agent
+2025-12-28 16:48:40 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] No specific mock found for 'analyst_agent'. Returning generic fallback.
+2025-12-28 16:48:40 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | _update_state [id=2253676183328] Setting step_analyst
+2025-12-28 16:48:40 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [AnalystAgent] Updated state.step_analyst
+2025-12-28 16:48:40 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [AnalystAgent] Lifecycle Hook: post_process
+2025-12-28 16:48:40 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [AnalystAgent] Execution completed.
+2025-12-28 16:48:40 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.core.runner | [PipelineRunner] Running step: InteractionAnalystAgent (Step ID: step_interaction)
+2025-12-28 16:48:40 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.core.runner | [PipelineRunner] Configured InteractionAnalystAgent with gemini/gemini-3-pro-preview (Provider: google)
+2025-12-28 16:48:41 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.services.prompt_builder | [PromptBuilder] Constructed PROMPT for step_interaction (Length: 10 parts)
+2025-12-28 16:48:41 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [InteractionAnalystAgent] Starting execution...
+2025-12-28 16:48:41 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [InteractionAnalystAgent] Lifecycle Hook: prepare_context
+2025-12-28 16:48:41 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [InteractionAnalystAgent] >>> EXECUTION START <<<
+2025-12-28 16:48:41 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [InteractionAnalystAgent] MODEL: gemini/gemini-3-pro-preview | TEMP: 0.5 | TOKENS: 16384
+2025-12-28 16:48:41 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.provider | [MockProvider] Calling Mock Service (Simulating Async)... {'repository': <backend.database.repository.TinyDBRepository object at 0x0000020CB76C37A0>, 'output_key': 'step_interaction', 'mock_identity': 'InteractionAnalystAgent'}
+2025-12-28 16:48:42 | WARNING | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Mock data file not found at C:\Users\risto\OneDrive\quorum\data\mock_responses.json. Using empty defaults.
+2025-12-28 16:48:42 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Intercepted call. Prompt length: 60
+2025-12-28 16:48:42 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Identified agent via explicit identity: 'InteractionAnalystAgent' -> 'interaction_agent'
+2025-12-28 16:48:42 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MOCK RESPONSE] Generating response for: interaction_agent
+2025-12-28 16:48:42 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] No specific mock found for 'interaction_agent'. Returning generic fallback.
+2025-12-28 16:48:42 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | _update_state [id=2253676183328] Setting step_interaction
+2025-12-28 16:48:42 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [InteractionAnalystAgent] Updated state.step_interaction
+2025-12-28 16:48:42 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [InteractionAnalystAgent] Lifecycle Hook: post_process
+2025-12-28 16:48:42 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [InteractionAnalystAgent] Execution completed.
+2025-12-28 16:48:42 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.core.runner | [PipelineRunner] Running step: ProfilerAgent (Step ID: step_profiler)
+2025-12-28 16:48:42 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.core.runner | [PipelineRunner] Configured ProfilerAgent with gemini/gemini-3-pro-preview (Provider: google)
+2025-12-28 16:48:42 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.services.prompt_builder | [PromptBuilder] Constructed PROMPT for step_profiler (Length: 8 parts)
+2025-12-28 16:48:42 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [ProfilerAgent] Starting execution...
+2025-12-28 16:48:42 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [ProfilerAgent] Lifecycle Hook: prepare_context
+2025-12-28 16:48:42 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [ProfilerAgent] >>> EXECUTION START <<<
+2025-12-28 16:48:42 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [ProfilerAgent] MODEL: gemini/gemini-3-pro-preview | TEMP: 0.5 | TOKENS: 16384
+2025-12-28 16:48:42 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.provider | [MockProvider] Calling Mock Service (Simulating Async)... {'repository': <backend.database.repository.TinyDBRepository object at 0x0000020CB76C37A0>, 'output_key': 'step_profiler', 'mock_identity': 'ProfilerAgent'}
+2025-12-28 16:48:43 | WARNING | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Mock data file not found at C:\Users\risto\OneDrive\quorum\data\mock_responses.json. Using empty defaults.
+2025-12-28 16:48:43 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Intercepted call. Prompt length: 60
+2025-12-28 16:48:43 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Identified agent via explicit identity: 'ProfilerAgent' -> 'profiler_agent'
+2025-12-28 16:48:43 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MOCK RESPONSE] Generating response for: profiler_agent
+2025-12-28 16:48:43 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] No specific mock found for 'profiler_agent'. Returning generic fallback.
+2025-12-28 16:48:43 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | _update_state [id=2253676183328] Setting step_profiler
+2025-12-28 16:48:43 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [ProfilerAgent] Updated state.step_profiler
+2025-12-28 16:48:43 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [ProfilerAgent] Lifecycle Hook: post_process
+2025-12-28 16:48:43 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [ProfilerAgent] Execution completed.
+2025-12-28 16:48:43 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.core.runner | [PipelineRunner] Running step: LogicianAgent (Step ID: step_logician)
+2025-12-28 16:48:43 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.core.runner | [PipelineRunner] Configured LogicianAgent with gemini/gemini-3-pro-preview (Provider: google)
+2025-12-28 16:48:44 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.services.prompt_builder | [PromptBuilder] Constructed PROMPT for step_logician (Length: 9 parts)
+2025-12-28 16:48:44 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [LogicianAgent] Starting execution...
+2025-12-28 16:48:44 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [LogicianAgent] Lifecycle Hook: prepare_context
+2025-12-28 16:48:44 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [LogicianAgent] >>> EXECUTION START <<<
+2025-12-28 16:48:44 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [LogicianAgent] MODEL: gemini/gemini-3-pro-preview | TEMP: 0.5 | TOKENS: 16384
+2025-12-28 16:48:44 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.provider | [MockProvider] Calling Mock Service (Simulating Async)... {'repository': <backend.database.repository.TinyDBRepository object at 0x0000020CB76C37A0>, 'output_key': None, 'mock_identity': 'LogicianAgent'}
+2025-12-28 16:48:44 | WARNING | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Mock data file not found at C:\Users\risto\OneDrive\quorum\data\mock_responses.json. Using empty defaults.
+2025-12-28 16:48:44 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Intercepted call. Prompt length: 60
+2025-12-28 16:48:44 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Identified agent via explicit identity: 'LogicianAgent' -> 'logician_agent'
+2025-12-28 16:48:44 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MOCK RESPONSE] Generating response for: logician_agent
+2025-12-28 16:48:44 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] No specific mock found for 'logician_agent'. Returning generic fallback.
+2025-12-28 16:48:44 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | _update_state [id=2253676183328] Setting step_logician
+2025-12-28 16:48:44 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [LogicianAgent] Updated state.step_logician
+2025-12-28 16:48:44 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [LogicianAgent] Lifecycle Hook: post_process
+2025-12-28 16:48:44 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [LogicianAgent] Execution completed.
+2025-12-28 16:48:44 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.core.runner | [PipelineRunner] Running step: LogicalFalsifierAgent (Step ID: step_falsifier)
+2025-12-28 16:48:44 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.core.runner | [PipelineRunner] Configured LogicalFalsifierAgent with gemini/gemini-3-pro-preview (Provider: google)
+2025-12-28 16:48:45 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.services.prompt_builder | [PromptBuilder] Constructed PROMPT for step_falsifier (Length: 9 parts)
+2025-12-28 16:48:45 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [LogicalFalsifierAgent] Starting execution...
+2025-12-28 16:48:45 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [LogicalFalsifierAgent] Lifecycle Hook: prepare_context
+2025-12-28 16:48:45 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [LogicalFalsifierAgent] >>> EXECUTION START <<<
+2025-12-28 16:48:45 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [LogicalFalsifierAgent] MODEL: gemini/gemini-3-pro-preview | TEMP: 0.5 | TOKENS: 16384
+2025-12-28 16:48:45 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.provider | [MockProvider] Calling Mock Service (Simulating Async)... {'repository': <backend.database.repository.TinyDBRepository object at 0x0000020CB76C37A0>, 'output_key': None, 'mock_identity': 'LogicalFalsifierAgent'}
+2025-12-28 16:48:46 | WARNING | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Mock data file not found at C:\Users\risto\OneDrive\quorum\data\mock_responses.json. Using empty defaults.
+2025-12-28 16:48:46 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Intercepted call. Prompt length: 60
+2025-12-28 16:48:46 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Identified agent via explicit identity: 'LogicalFalsifierAgent' -> 'falsifier_agent'
+2025-12-28 16:48:46 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MOCK RESPONSE] Generating response for: falsifier_agent
+2025-12-28 16:48:46 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] No specific mock found for 'falsifier_agent'. Returning generic fallback.
+2025-12-28 16:48:46 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | _update_state [id=2253676183328] Setting step_falsifier
+2025-12-28 16:48:46 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [LogicalFalsifierAgent] Updated state.step_falsifier
+2025-12-28 16:48:46 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [LogicalFalsifierAgent] Lifecycle Hook: post_process
+2025-12-28 16:48:46 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [LogicalFalsifierAgent] Execution completed.
+2025-12-28 16:48:46 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.core.runner | [PipelineRunner] Running step: CausalAnalystAgent (Step ID: step_causal)
+2025-12-28 16:48:46 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.core.runner | [PipelineRunner] Configured CausalAnalystAgent with gemini/gemini-3-pro-preview (Provider: google)
+2025-12-28 16:48:46 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.services.prompt_builder | [PromptBuilder] Constructed PROMPT for step_causal (Length: 8 parts)
+2025-12-28 16:48:46 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [CausalAnalystAgent] Starting execution...
+2025-12-28 16:48:46 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [CausalAnalystAgent] Lifecycle Hook: prepare_context
+2025-12-28 16:48:46 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [CausalAnalystAgent] >>> EXECUTION START <<<
+2025-12-28 16:48:46 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [CausalAnalystAgent] MODEL: gemini/gemini-3-pro-preview | TEMP: 0.5 | TOKENS: 16384
+2025-12-28 16:48:46 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.provider | [MockProvider] Calling Mock Service (Simulating Async)... {'repository': <backend.database.repository.TinyDBRepository object at 0x0000020CB76C37A0>, 'output_key': None, 'mock_identity': 'CausalAnalystAgent'}
+2025-12-28 16:48:47 | WARNING | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Mock data file not found at C:\Users\risto\OneDrive\quorum\data\mock_responses.json. Using empty defaults.
+2025-12-28 16:48:47 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Intercepted call. Prompt length: 60
+2025-12-28 16:48:47 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Identified agent via explicit identity: 'CausalAnalystAgent' -> 'causal_agent'
+2025-12-28 16:48:47 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MOCK RESPONSE] Generating response for: causal_agent
+2025-12-28 16:48:47 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] No specific mock found for 'causal_agent'. Returning generic fallback.
+2025-12-28 16:48:47 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | _update_state [id=2253676183328] Setting step_causal
+2025-12-28 16:48:47 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [CausalAnalystAgent] Updated state.step_causal
+2025-12-28 16:48:47 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [CausalAnalystAgent] Lifecycle Hook: post_process
+2025-12-28 16:48:47 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [CausalAnalystAgent] Execution completed.
+2025-12-28 16:48:47 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.core.runner | [PipelineRunner] Running step: PerformativityDetectorAgent (Step ID: step_detector)
+2025-12-28 16:48:47 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.core.runner | [PipelineRunner] Configured PerformativityDetectorAgent with gemini/gemini-3-flash-preview (Provider: google)
+2025-12-28 16:48:48 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.services.prompt_builder | [PromptBuilder] Constructed PROMPT for step_detector (Length: 23 parts)
+2025-12-28 16:48:48 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [PerformativityDetectorAgent] Starting execution...
+2025-12-28 16:48:48 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [PerformativityDetectorAgent] Lifecycle Hook: prepare_context
+2025-12-28 16:48:48 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [PerformativityDetectorAgent] >>> EXECUTION START <<<
+2025-12-28 16:48:48 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [PerformativityDetectorAgent] MODEL: gemini/gemini-3-flash-preview | TEMP: 0.7 | TOKENS: 16384
+2025-12-28 16:48:48 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.provider | [MockProvider] Calling Mock Service (Simulating Async)... {'repository': <backend.database.repository.TinyDBRepository object at 0x0000020CB76C37A0>, 'output_key': None, 'mock_identity': 'PerformativityDetectorAgent'}
+2025-12-28 16:48:49 | WARNING | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Mock data file not found at C:\Users\risto\OneDrive\quorum\data\mock_responses.json. Using empty defaults.
+2025-12-28 16:48:49 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Intercepted call. Prompt length: 60
+2025-12-28 16:48:49 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Identified agent via explicit identity: 'PerformativityDetectorAgent' -> 'performativity_agent'
+2025-12-28 16:48:49 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MOCK RESPONSE] Generating response for: performativity_agent
+2025-12-28 16:48:49 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] No specific mock found for 'performativity_agent'. Returning generic fallback.
+2025-12-28 16:48:49 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | _update_state [id=2253676183328] Setting step_detector
+2025-12-28 16:48:49 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [PerformativityDetectorAgent] Updated state.step_detector
+2025-12-28 16:48:49 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [PerformativityDetectorAgent] Lifecycle Hook: post_process
+2025-12-28 16:48:49 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [PerformativityDetectorAgent] Execution completed.
+2025-12-28 16:48:49 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.core.runner | [PipelineRunner] Running step: FactualOverseerAgent (Step ID: step_overseer)
+2025-12-28 16:48:49 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.core.runner | [PipelineRunner] Configured FactualOverseerAgent with gemini/gemini-3-pro-preview (Provider: google)
+2025-12-28 16:48:51 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.services.prompt_builder | [PromptBuilder] Constructed PROMPT for step_overseer (Length: 23 parts)
+2025-12-28 16:48:51 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [FactualOverseerAgent] Starting execution...
+2025-12-28 16:48:51 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [FactualOverseerAgent] Lifecycle Hook: prepare_context
+2025-12-28 16:48:51 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [FactualOverseerAgent] >>> EXECUTION START <<<
+2025-12-28 16:48:51 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [FactualOverseerAgent] MODEL: gemini/gemini-3-pro-preview | TEMP: 0.5 | TOKENS: 16384
+2025-12-28 16:48:51 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.provider | [MockProvider] Calling Mock Service (Simulating Async)... {'repository': <backend.database.repository.TinyDBRepository object at 0x0000020CB76C37A0>, 'output_key': None, 'mock_identity': 'FactualOverseerAgent'}
+2025-12-28 16:48:51 | WARNING | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Mock data file not found at C:\Users\risto\OneDrive\quorum\data\mock_responses.json. Using empty defaults.
+2025-12-28 16:48:51 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Intercepted call. Prompt length: 60
+2025-12-28 16:48:51 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Identified agent via explicit identity: 'FactualOverseerAgent' -> 'fact_checker_agent'
+2025-12-28 16:48:51 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MOCK RESPONSE] Generating response for: fact_checker_agent
+2025-12-28 16:48:51 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] No specific mock found for 'fact_checker_agent'. Returning generic fallback.
+2025-12-28 16:48:51 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | _update_state [id=2253676183328] Setting step_overseer
+2025-12-28 16:48:51 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [FactualOverseerAgent] Updated state.step_overseer
+2025-12-28 16:48:51 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [FactualOverseerAgent] Lifecycle Hook: post_process
+2025-12-28 16:48:51 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [FactualOverseerAgent] Execution completed.
+2025-12-28 16:48:51 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.core.runner | [PipelineRunner] Running step: ArchivistAgent (Step ID: step_archivist)
+2025-12-28 16:48:51 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.core.runner | [PipelineRunner] Configured ArchivistAgent with gemini/gemini-3-pro-preview (Provider: google)
+2025-12-28 16:48:53 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.services.prompt_builder | [PromptBuilder] Constructed PROMPT for step_archivist (Length: 23 parts)
+2025-12-28 16:48:53 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [ArchivistAgent] Starting execution...
+2025-12-28 16:48:53 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [ArchivistAgent] Lifecycle Hook: prepare_context
+2025-12-28 16:48:53 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [ArchivistAgent] >>> EXECUTION START <<<
+2025-12-28 16:48:53 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [ArchivistAgent] MODEL: gemini/gemini-3-pro-preview | TEMP: 0.5 | TOKENS: 16384
+2025-12-28 16:48:53 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.provider | [MockProvider] Calling Mock Service (Simulating Async)... {'repository': <backend.database.repository.TinyDBRepository object at 0x0000020CB76C37A0>, 'output_key': 'step_archivist', 'mock_identity': 'ArchivistAgent'}
+2025-12-28 16:48:53 | WARNING | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Mock data file not found at C:\Users\risto\OneDrive\quorum\data\mock_responses.json. Using empty defaults.
+2025-12-28 16:48:53 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Intercepted call. Prompt length: 60
+2025-12-28 16:48:53 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Identified agent via explicit identity: 'ArchivistAgent' -> 'archivist_agent'
+2025-12-28 16:48:53 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MOCK RESPONSE] Generating response for: archivist_agent
+2025-12-28 16:48:53 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] No specific mock found for 'archivist_agent'. Returning generic fallback.
+2025-12-28 16:48:53 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | _update_state [id=2253676183328] Setting step_archivist
+2025-12-28 16:48:53 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [ArchivistAgent] Updated state.step_archivist
+2025-12-28 16:48:53 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [ArchivistAgent] Lifecycle Hook: post_process
+2025-12-28 16:48:53 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [ArchivistAgent] Execution completed.
+2025-12-28 16:48:53 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.core.runner | [PipelineRunner] Running step: JudgeAgent (Step ID: step_judge_cognitive)
+2025-12-28 16:48:53 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.core.runner | [PipelineRunner] Configured JudgeAgent with gemini/gemini-3-pro-preview (Provider: google)
+2025-12-28 16:48:55 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.services.prompt_builder | [PromptBuilder] Constructed PROMPT for step_judge_cognitive (Length: 24 parts)
+2025-12-28 16:48:55 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [JudgeAgent] Starting execution...
+2025-12-28 16:48:55 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [JudgeAgent] Lifecycle Hook: prepare_context
+2025-12-28 16:48:55 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [JudgeAgent] >>> EXECUTION START <<<
+2025-12-28 16:48:55 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [JudgeAgent] MODEL: gemini/gemini-3-pro-preview | TEMP: 0.5 | TOKENS: 16384
+2025-12-28 16:48:55 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.provider | [MockProvider] Calling Mock Service (Simulating Async)... {'repository': <backend.database.repository.TinyDBRepository object at 0x0000020CB76C37A0>, 'output_key': 'step_judge_cognitive', 'mock_identity': 'JudgeAgent'}
+2025-12-28 16:48:55 | WARNING | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Mock data file not found at C:\Users\risto\OneDrive\quorum\data\mock_responses.json. Using empty defaults.
+2025-12-28 16:48:55 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Intercepted call. Prompt length: 60
+2025-12-28 16:48:55 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Identified agent via explicit identity: 'JudgeAgent' -> 'judge_agent'
+2025-12-28 16:48:55 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MOCK RESPONSE] Generating response for: judge_agent
+2025-12-28 16:48:55 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] No specific mock found for 'judge_agent'. Returning generic fallback.
+2025-12-28 16:48:55 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | _update_state [id=2253676183328] Setting step_judge_cognitive
+2025-12-28 16:48:55 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [JudgeAgent] Updated state.step_judge_cognitive
+2025-12-28 16:48:55 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [JudgeAgent] Lifecycle Hook: post_process
+2025-12-28 16:48:55 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.judge | [JudgeAgent] Running calculate_final_scores...
+2025-12-28 16:48:55 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.hooks.scoring | [ScoringHook] Total Score: 10/12 (Avg: 3.33)
+2025-12-28 16:48:55 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [JudgeAgent] Execution completed.
+2025-12-28 16:48:55 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.core.runner | [PipelineRunner] Running step: CoachAgent (Step ID: step_coach)
+2025-12-28 16:48:55 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.core.runner | [PipelineRunner] Configured CoachAgent with gemini/gemini-3-pro-preview (Provider: google)
+2025-12-28 16:48:57 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.services.prompt_builder | [PromptBuilder] Constructed PROMPT for step_coach (Length: 24 parts)
+2025-12-28 16:48:57 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [CoachAgent] Starting execution...
+2025-12-28 16:48:57 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [CoachAgent] Lifecycle Hook: prepare_context
+2025-12-28 16:48:57 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.coach | [CoachAgent] Loaded 335 concepts and 196 references from Unified Database.
+2025-12-28 16:48:57 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [CoachAgent] Appended dynamic context.
+2025-12-28 16:48:57 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [CoachAgent] >>> EXECUTION START <<<
+2025-12-28 16:48:57 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [CoachAgent] MODEL: gemini/gemini-3-pro-preview | TEMP: 0.5 | TOKENS: 16384
+2025-12-28 16:48:57 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.provider | [MockProvider] Calling Mock Service (Simulating Async)... {'repository': <backend.database.repository.TinyDBRepository object at 0x0000020CB76C37A0>, 'output_key': 'step_coach', 'mock_identity': 'CoachAgent'}
+2025-12-28 16:48:57 | WARNING | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Mock data file not found at C:\Users\risto\OneDrive\quorum\data\mock_responses.json. Using empty defaults.
+2025-12-28 16:48:57 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Intercepted call. Prompt length: 60
+2025-12-28 16:48:57 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Identified agent via explicit identity: 'CoachAgent' -> 'coach_agent'
+2025-12-28 16:48:57 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MOCK RESPONSE] Generating response for: coach_agent
+2025-12-28 16:48:57 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] No specific mock found for 'coach_agent'. Returning generic fallback.
+2025-12-28 16:48:57 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | _update_state [id=2253676183328] Setting step_coach
+2025-12-28 16:48:57 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [CoachAgent] Updated state.step_coach
+2025-12-28 16:48:57 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [CoachAgent] Lifecycle Hook: post_process
+2025-12-28 16:48:57 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.coach | [CoachAgent] Running enrich_learning_plan hook...
+2025-12-28 16:48:57 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.models.state | to_flat_dict [id=2253676183328] check - step_judge_cognitive: True
+2025-12-28 16:48:57 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.models.state | to_flat_dict [id=2253676183328] check - step_judge: False
+2025-12-28 16:48:57 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.models.state | to_flat_dict [id=2253676183328] check - aux_data keys: ['banned_phrases', 'sanitization_log', 'score_summary', 'calculated_average', 'penalties_applied']
+2025-12-28 16:48:57 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.models.state | to_flat_dict [id=2253676183328] FINAL Raw_Steps keys: ['step_guard', 'step_analyst', 'step_interaction', 'step_profiler', 'step_logician', 'step_falsifier', 'step_causal', 'step_detector', 'step_overseer', 'step_archivist', 'step_judge_cognitive', 'step_coach']
+2025-12-28 16:48:57 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.hooks.references | [ReferenceHook] Scan complete. Found 4 unique references.
+2025-12-28 16:48:57 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.coach | [CoachAgent] Populated bibliography with 4 references found in global state.
+2025-12-28 16:48:57 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [CoachAgent] Execution completed.
+2025-12-28 16:48:58 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.core.runner | [PipelineRunner] Running step: XAIReporterAgent (Step ID: step_xai)
+2025-12-28 16:48:58 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.core.runner | [PipelineRunner] Configured XAIReporterAgent with gemini/gemini-3-flash-preview (Provider: google)
+2025-12-28 16:48:59 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.services.prompt_builder | [PromptBuilder] Constructed PROMPT for step_xai (Length: 23 parts)
+2025-12-28 16:48:59 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [XAIReporterAgent] Starting execution...
+2025-12-28 16:48:59 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [XAIReporterAgent] Lifecycle Hook: prepare_context
+2025-12-28 16:48:59 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [XAIReporterAgent] >>> EXECUTION START <<<
+2025-12-28 16:48:59 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [XAIReporterAgent] MODEL: gemini/gemini-3-flash-preview | TEMP: 0.7 | TOKENS: 16384
+2025-12-28 16:48:59 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.provider | [MockProvider] Calling Mock Service (Simulating Async)... {'repository': <backend.database.repository.TinyDBRepository object at 0x0000020CB76C37A0>, 'output_key': 'step_reporter', 'mock_identity': 'XAIReporterAgent'}
+2025-12-28 16:49:00 | WARNING | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Mock data file not found at C:\Users\risto\OneDrive\quorum\data\mock_responses.json. Using empty defaults.
+2025-12-28 16:49:00 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Intercepted call. Prompt length: 60
+2025-12-28 16:49:00 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] Identified agent via explicit identity: 'XAIReporterAgent' -> 'xai_agent'
+2025-12-28 16:49:00 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MOCK RESPONSE] Generating response for: xai_agent
+2025-12-28 16:49:00 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.llm.mock | [MockLLM] No specific mock found for 'xai_agent'. Returning generic fallback.
+2025-12-28 16:49:00 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | _update_state [id=2253676183328] Setting step_reporter
+2025-12-28 16:49:00 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [XAIReporterAgent] Updated state.step_reporter
+2025-12-28 16:49:00 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [XAIReporterAgent] Lifecycle Hook: post_process
+2025-12-28 16:49:00 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.xai | [XAIReporterAgent] Running post_process hook...
+2025-12-28 16:49:00 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.hooks.reporting | [ReportingHook] Generating report...
+2025-12-28 16:49:00 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.hooks.reporting | [ReportingHook] Report generated and saved to step_reporter.xai_report_formatted
+2025-12-28 16:49:00 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.agents.base | [XAIReporterAgent] Execution completed.
+2025-12-28 16:49:00 | INFO | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.core.engine | [WorkflowEngine] Execution 110c165b-4432-4d8b-a2ad-877dddd25c20 completed successfully.
+2025-12-28 16:49:00 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.models.state | to_flat_dict [id=2253676183328] check - step_judge_cognitive: True
+2025-12-28 16:49:00 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.models.state | to_flat_dict [id=2253676183328] check - step_judge: False
+2025-12-28 16:49:00 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.models.state | to_flat_dict [id=2253676183328] check - aux_data keys: ['banned_phrases', 'sanitization_log', 'score_summary', 'calculated_average', 'penalties_applied']
+2025-12-28 16:49:00 | DEBUG | [110c165b-4432-4d8b-a2ad-877dddd25c20] | backend.models.state | to_flat_dict [id=2253676183328] FINAL Raw_Steps keys: ['step_guard', 'step_analyst', 'step_interaction', 'step_profiler', 'step_logician', 'step_falsifier', 'step_causal', 'step_detector', 'step_overseer', 'step_archivist', 'step_judge_cognitive', 'step_coach', 'step_reporter']

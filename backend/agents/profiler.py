@@ -18,6 +18,7 @@ class ProfilerAgent(BaseAgent):
 
     state_field = "step_profiler"
     REQUIRES_KEYS = ["history_text", "product_text"]
+    PRODUCES_KEYS = ["step_profiler"]
 
     def get_response_schema(self) -> Optional[Type[BaseModel]]:
         """
@@ -28,7 +29,7 @@ class ProfilerAgent(BaseAgent):
         """
         return ProfilerAnalysis
 
-    def _update_state(self, state: WorkflowState, response_data: Any) -> WorkflowState:
+    def _update_state(self, state: WorkflowState, response_data: Any, output_key: Optional[str] = None) -> WorkflowState:
         """
         Updates the state with the response data.
         Injects metrics into the response if available in aux_data.
@@ -36,6 +37,7 @@ class ProfilerAgent(BaseAgent):
         Args:
             state (WorkflowState): Current workflow state.
             response_data (Any): Data returned by the LLM.
+            output_key (Optional[str]): Override for output directory.
 
         Returns:
             WorkflowState: Updated state.
@@ -45,7 +47,7 @@ class ProfilerAgent(BaseAgent):
             # We inject it into the dict so BaseAgent validates it including the metrics
             response_data['teksti_metriikka'] = state.aux_data['profiler_metrics']
             
-        return super()._update_state(state, response_data)
+        return super()._update_state(state, response_data, output_key=output_key)
 
     # --- PYTHON HOOKS ---
 

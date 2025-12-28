@@ -220,15 +220,19 @@ class WorkflowEngine:
         logger.info(f"[WorkflowEngine] Starting execution {execution_id}")
         
         try:
-            # 1. Initialize State via Runner
-            current_state = await self.runner.initialize_state(execution_id, raw_inputs)
-            
-            # 2. Get Pipeline Steps
+            # 1. Get Execution Record first to identify Workflow
             exec_record = self.repository.get_execution(execution_id)
             if not exec_record:
                 raise ExecutionNotFoundError(execution_id)
             
-            pipeline_steps = self._resolve_pipeline_steps(exec_record['workflow_id'])
+            wf_id = exec_record['workflow_id']
+            wf_record = self.repository.get_workflow_by_id(wf_id)
+            wf_name = wf_record['name'] if wf_record else "Unknown"
+
+            # 2. Initialize State via Runner
+            current_state = await self.runner.initialize_state(execution_id, raw_inputs, wf_id, wf_name)
+            
+            pipeline_steps = self._resolve_pipeline_steps(wf_id)
 
             # 3. Execute Loop via Runner
             from backend.services.progress import DatabaseProgressTracker

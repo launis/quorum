@@ -1113,6 +1113,136 @@
         "step_coach": "deep",
         "step_xai": "fast"
       }
+    },
+    {
+      "id": "sequential_audit_chain_cognitive",
+      "name": "Courtroom 2.0 (Cognitive Audit)",
+      "description": "Sequential audit using the new Cognitive BARS Matrix.",
+      "steps": [
+        "step_guard",
+        "step_analyst",
+        "step_interaction",
+        "step_profiler",
+        "step_logician",
+        "step_falsifier",
+        "step_causal",
+        "step_detector",
+        "step_overseer",
+        "step_archivist",
+        "step_judge_cognitive",
+        "step_coach",
+        "step_xai"
+      ],
+      "default_model_mapping": {
+        "step_guard": "fast",
+        "step_analyst": "fast",
+        "step_interaction": "deep",
+        "step_profiler": "deep",
+        "step_logician": "deep",
+        "step_falsifier": "deep",
+        "step_causal": "deep",
+        "step_detector": "fast",
+        "step_overseer": "deep",
+        "step_archivist": "deep",
+        "step_judge_cognitive": "deep",
+        "step_coach": "deep",
+        "step_xai": "fast"
+      }
+    },
+    {
+      "id": "fused_audit_chain_cognitive",
+      "name": "Courtroom 3.0 (Fused Cognitive)",
+      "description": "Fused workflow using the new Cognitive BARS Matrix.",
+      "steps": [
+        "step_guard",
+        "step_analyst",
+        "step_interaction",
+        "step_profiler",
+        "step_panel",
+        "step_archivist",
+        "step_judge_cognitive",
+        "step_coach",
+        "step_xai"
+      ],
+      "default_model_mapping": {
+        "step_guard": "fast",
+        "step_analyst": "fast",
+        "step_interaction": "deep",
+        "step_profiler": "deep",
+        "step_logician": "deep",
+        "step_panel": "deep",
+        "step_archivist": "deep",
+        "step_judge_cognitive": "deep",
+        "step_coach": "deep",
+        "step_xai": "fast"
+      }
+    },
+    {
+      "id": "sequential_audit_chain_dual",
+      "name": "Courtroom 2.0 (Dual Matrix)",
+      "description": "Sequential audit using BOTH Process and Cognitive BARS Matrices.",
+      "steps": [
+        "step_guard",
+        "step_analyst",
+        "step_interaction",
+        "step_profiler",
+        "step_logician",
+        "step_falsifier",
+        "step_causal",
+        "step_detector",
+        "step_overseer",
+        "step_archivist",
+        "step_judge",
+        "step_judge_cognitive",
+        "step_coach",
+        "step_xai"
+      ],
+      "default_model_mapping": {
+        "step_guard": "fast",
+        "step_analyst": "fast",
+        "step_interaction": "deep",
+        "step_profiler": "deep",
+        "step_logician": "deep",
+        "step_falsifier": "deep",
+        "step_causal": "deep",
+        "step_detector": "fast",
+        "step_overseer": "deep",
+        "step_archivist": "deep",
+        "step_judge": "deep",
+        "step_judge_cognitive": "deep",
+        "step_coach": "deep",
+        "step_xai": "fast"
+      }
+    },
+    {
+      "id": "fused_audit_chain_dual",
+      "name": "Courtroom 3.0 (Fused Dual)",
+      "description": "Fused workflow using BOTH Process and Cognitive BARS Matrices.",
+      "steps": [
+        "step_guard",
+        "step_analyst",
+        "step_interaction",
+        "step_profiler",
+        "step_panel",
+        "step_archivist",
+        "step_judge",
+        "step_judge_cognitive",
+        "step_coach",
+        "step_xai"
+      ],
+      "default_model_mapping": {
+        "step_guard": "fast",
+        "step_analyst": "fast",
+        "step_interaction": "deep",
+        "step_profiler": "deep",
+        "step_logician": "deep",
+        "step_panel": "deep",
+        "step_archivist": "deep",
+        "step_judge": "deep",
+        "step_judge_cognitive": "deep",
+        "step_coach": "deep",
+        "step_xai": "fast"
+      }
     }
   ],
   "components": [
@@ -1212,6 +1342,12 @@
       "description": "Strict Driver Model Matrix",
       "content": "OSA 4: AI-KOMPETENSSIN ARVIOINTIMATRIISI (STRICT DRIVER MODEL)\nKÄSKE: Tämä on NORMATIIVINEN ja RANKAISEVA matriisi. Arvioi VAIN käyttäjän ohjausliikkeitä (Input & Process), älä tekoälyn tuurilla tuottamaa lopputulosta. Default-arvosana on 1.\n\nSANKTIOSÄÄNTÖ: Jos käyttäjä saa mistään kriteeristä tason 1 (Passiivinen/Laiska), kokonaisarvosana ei voi ylittää tasoa 2, vaikka muut osa-alueet olisivat kunnossa.\n\nKRITEERI 1: STRATEGINEN OHJAUS (AGENCY)\nMittaa: Onko käyttäjällä suunnitelma vai reagoiko hän vain?\n- TASO 4 (Arkkitehti): Käyttäjä on purkanut ongelman osiin (Decomposition) ENNEN ensimmäistä promptia. Prosessi on suunniteltu ketju, jossa käyttäjä syöttää tekoälylle roolin, tavoitteen ja kontekstin (Grounding) proaktiivisesti.\n- TASO 3 (Kuski): Käyttäjä tietää mitä haluaa ja asettaa selkeät reunaehdot (pituus, formatointi, tyyli). Käyttäjä korjaa suuntaa aktiivisesti, jos tekoäly poikkeaa.\n- TASO 2 (Kartanlukija): Reaktiivinen toiminta. Käyttäjä antaa epämääräisen aloituksen ('Kirjoita blogi') ja yrittää korjata lopputulosta jälkikäteen ('Ei noin, vaan näin'). Prosessi on 'trial-and-error' -haahuilua.\n- TASO 1 (Matkustaja): Passiivinen tilaaja. Promptit ovat yhden lauseen toiveita ('Tee essee aiheesta X'). Käyttäjä hyväksyy ensimmäisen version sellaisenaan. Ulkoistaa ajattelun kokonaan.\n\nKRITEERI 2: TEKNINEN TOTEUTUS (ENGINEERING)\nMittaa: Osaako käyttäjä ohjelmoida tekoälyä?\n- TASO 4 (Insinööri): Käyttää edistyneitä tekniikoita perustellusti: Few-Shot Prompting (antaa esimerkkejä), Chain-of-Thought (pyytää vaiheistamaan päättelyn), XML-tagit erotteluun tai selkeä skeema-ohjaus. Promptit ovat strukturoituja olioita.\n- TASO 3 (Osaaja): Käyttää perustekniikoita: Roolitus ('Olet asiantuntija...'), selkeät rajoitteet ('Älä käytä sanaa X') ja kontekstin syöttö. Kieli on täsmällistä.\n- TASO 2 (Keskusteleva): Käyttää luonnollista puhekieltä ('Voisitko tehdä...', 'Mielestäni...'). Promptit ovat epätarkkoja ja jättävät tekoälylle liikaa tulkinnanvaraa.\n- TASO 1 (Laiska): 'Lazy Prompting'. Kirjoitusvirheitä, epämääräisiä viittauksia ('se juttu') tai pelkkiä avainsanoja. Luottaa tekoälyn 'mind reading' -kykyyn.\n\nKRITEERI 3: KRIITTINEN ITERAATIO (FALSIFICATION)\nMittaa: Miten käyttäjä reagoi virheisiin?\n- TASO 4 (Adversariaalinen): Käyttäjä testaa tekoälyn rajoja ('Etsi virheet tästä', 'Miksi väität näin?'). Spottaa faktavirheet ja pakottaa tekoälyn korjaamaan ne lähteisiin viitaten. Ei hyväksy 'uskottavan kuuloista' puppua.\n- TASO 3 (Korjaava): Käyttäjä huomaa selkeät virheet ja pyytää korjausta. Tarkistaa faktat, mutta saattaa missata nyanssit.\n- TASO 2 (Hyväksyvä): Käyttäjä kehuu tekoälyä ('Hyvä, kiitos!') vaikka vastauksessa olisi puutteita. Korjaukset ovat vain tyylillisiä.\n- TASO 1 (Sokea): Sokea luottamus. Käyttäjä kopioi hallusinaatiot suoraan lopputuotteeseen. Ei kyseenalaista mitään.",
       "type": "bars"
+    },
+    {
+      "id": "BARS_MATRIX_COGNITIVE",
+      "type": "bars",
+      "description": "Kognitiivinen Arviointimatriisi",
+      "content": "KOGNITIIVINEN ARVIOINTIMATRIISI (COGNITIVE ASSESSMENT MATRIX)\n\nKRITEERI 1: Analyysi ja Prosessin Tehokkuus (Bloom: Analyze)\n- TASO 4 (Erinomainen / Strateginen): Prosessi on strateginen ja ennakoiva. Käyttäjä on purkanut ongelman osiin ja ohjannut tekoälyä ennaltaehkäisevästi (esim. roolilla, analyysipakolla, rajoitteilla) minimoiden turhat iteraatiot. TAI Prosessi osoittaa poikkeuksellista strategista ketteryyttä. Käyttäjä on tehnyt prosessin aikana merkittävän oivalluksen, joka on perustavanlaatuisesti ja todistettavasti muuttanut tehtävän suuntaa tai laatua. Reflektio perustelee tämän käännekohdan strategisen merkityksen.\n- TASO 3 (Hyvä / Omaperäinen): Prosessi on tehokas ja systemaattinen. Käyttäjä on tunnistanut ongelman ja ohjannut tekoälyä reaktiivisesti mutta johdonmukaisesti (esim. pyytämällä parannuksia). Reflektio analysoi käännekohdat.\n- TASO 2 (Kohtalainen / Reaktiivinen): Prosessi on hajanainen tai puhtaasti reaktiivinen. Käyttäjä on reagoinut tekoälyn vastauksiin, mutta selkeä analyyttinen strategia puuttuu tai on heikko. Iteraatioita voi olla useita ilman merkittävää laadullista parannusta. Reflektio on pääosin kuvaileva.\n- TASO 1 (Heikko / Puutteellinen): Prosessi on tehoton ja epälooginen. Käyttäjä ei ole kyennyt ohjaamaan tekoälyä kohti tavoitetta. Reflektio on puutteellinen tai puuttuu kokonaan.\n\nKRITEERI 2: Arviointi ja Argumentaatio (Anderson & Krathwohl 2001: Evaluate; Toulmin 2003)\n- TASO 4 (Erinomainen / Strateginen): Suoritus osoittaa poikkeuksellista arviointikykyä. Käyttäjä on haastanut tekoälyn päättelyä (esim. eettisesti tai loogisesti). TAI (Asiantuntijan Hyväksyntä): Käyttäjä osoittaa poikkeuksellista arviointikykyä perustelemalla reflektiossa vankasti, miksi lyhyt prosessi ja tekoälyn tuotoksen suora hyväksyntä oli strategisesti optimaalinen valinta. Molemmissa tapauksissa Toulmin: Reflektio sisältää vankan, itsekriittisen argumentin, joka on täysin virheetön.\n- TASO 3 (Hyvä / Omaperäinen): Suoritus osoittaa korkeaa arviointikykyä. Käyttäjä on korjannut tekoälyn tuotoksia. Toulmin: Reflektio sisältää vahvan argumentin: Selkeä Väite, Vankat Perusteet (viittaukset Keskusteluhistoriaan) ja Eksplisiittinen Oikeutus. (Tämä sisältää myös tapaukset, joissa lyhyt prosessi perustellaan reflektiossa vahvalla asiantuntija-argumentilla.)\n- TASO 2 (Kohtalainen / Reaktiivinen): Suoritus osoittaa perustason arviointikykyä. Käyttäjä on tehnyt pieniä korjauksia. Toulmin: Reflektio sisältää argumentin aihion: Väite on esitetty, mutta Perusteet ovat yleisiä ja/tai Oikeutus on implisiittinen tai heikko.\n- TASO 1 (Heikko / Puutteellinen): Suoritus ei osoita arviointikykyä. Tekoälyn tuotoksia on käytetty sellaisenaan. Toulmin: Reflektio ei sisällä tunnistettavaa, pätevää argumenttia ja/tai se on kokonaisuudessaan faktuaalisesti virheellinen tai harhaanjohtava.\n\nKRITEERI 3: Synteesi ja Luovuus (Bloom: Create)\n- TASO 4 (Erinomainen / Strateginen): Lopputuote osoittaa strategista synteesiä. Käyttäjä on luonut kokonaan uutta, omaperäistä lisäarvoa, jota tekoäly ei ehdottanut (esim. lisännyt uuden vastuullisuusosion). Reflektio perustelee tämän strategisen lisäarvon.\n- TASO 3 (Hyvä / Omaperäinen): Lopputuote on omaperäinen synteesi. Käyttäjä on parannellut ja viimeistellyt tekoälyn tuotosta omalla perustellulla panoksellaan (esim. lisännyt hyötyjä, vaihtanut otsikon). Reflektio perustelee muutokset.\n- TASO 2 (Kohtalainen / Reaktiivinen): Lopputuote on pääosin kooste tekoälyn tuottamasta materiaalista. Muutokset ovat kielellistä viimeistelyä tai pieniä lisäyksiä. Reflektio kuvaa tehdyt muutokset pinnallisesti.\n- TASO 1 (Heikko / Puutteellinen): Lopputuote on suora kopio tekoälyn tuottamasta materiaalista ilman omaa panosta. Reflektio on puutteellinen tai puuttuu."
     },
     {
       "id": "OP_RULE_1",
@@ -1901,6 +2037,44 @@
       "output_filename": "11_tuomio_ja_pisteet.json",
       "output_config_component": "JUDGE_OUTPUT_CONFIG",
       "state_key": "step_judge"
+    },
+    {
+      "id": "step_judge_cognitive",
+      "name": "Kognitiivinen Tuomari (Cognitive Judge)",
+      "description": "Kognitiivinen arviointi BARS-matriisilla.",
+      "component": "JudgeAgent",
+      "execution_config": {
+        "llm_prompts": [
+          "GLOBAL_CONTEXT",
+          "HEADER_MANDATES",
+          "MANDATE_1",
+          "MANDATE_2",
+          "MANDATE_3",
+          "MANDATE_4",
+          "HEADER_RULES",
+          "RULE_1",
+          "RULE_2",
+          "RULE_3",
+          "RULE_4",
+          "RULE_5",
+          "RULE_6",
+          "OP_RULE_1",
+          "OP_RULE_2",
+          "OP_RULE_3",
+          "PRINCIPLE_1",
+          "REQUIREMENT_1",
+          "HEURISTIC_1",
+          "HEURISTIC_2",
+          "HEURISTIC_3",
+          "HEADER_INSTRUCTIONS",
+          "BARS_MATRIX_COGNITIVE",
+          "TASK_JUDGE"
+        ]
+      },
+      "output_schema": "TuomioJaPisteet",
+      "output_filename": "11b_tuomio_ja_pisteet_kognitiivinen.json",
+      "output_config_component": "JUDGE_OUTPUT_CONFIG",
+      "state_key": "step_judge_cognitive"
     },
     {
       "id": "step_coach",

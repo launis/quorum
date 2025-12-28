@@ -49,10 +49,14 @@ def generate_report(state: WorkflowState) -> WorkflowState:
             
         xai_data = state.step_reporter # This is a Pydantic Model (XAIReport)
         
-        # Extract scores (Preferably from Judge Step 8, fallback to XAI data)
+        # Extract scores (Preferably from Cognitive Judge, then Standard Judge)
+        # We apply priority: Cognitive Judge > Standard Judge
+        # This aligns with the new dual-workflow architecture where cognitive evaluation is preferred when available.
+        judge_step = state.step_judge_cognitive or state.step_judge
+
         scores = {}
-        if state.step_judge and state.step_judge.pisteet:
-            p = state.step_judge.pisteet
+        if judge_step and judge_step.pisteet:
+            p = judge_step.pisteet
             scores = {
                 "analysis": {"score": p.analyysi.arvosana if p.analyysi else 'N/A', "reasoning": p.analyysi.perustelu if p.analyysi else ''},
                 "evaluation": {"score": p.arviointi.arvosana if p.arviointi else 'N/A', "reasoning": p.arviointi.perustelu if p.arviointi else ''},
@@ -62,10 +66,10 @@ def generate_report(state: WorkflowState) -> WorkflowState:
         # Helper to safely get list or empty list
         def get_list(val): return val if isinstance(val, list) else []
         
-        # Extract critical findings from Judge Step 8
+        # Extract critical findings from Judge Step
         critical_findings = []
-        if state.step_judge and state.step_judge.kriittiset_havainnot_yhteenveto:
-            critical_findings = get_list(state.step_judge.kriittiset_havainnot_yhteenveto)
+        if judge_step and judge_step.kriittiset_havainnot_yhteenveto:
+            critical_findings = get_list(judge_step.kriittiset_havainnot_yhteenveto)
 
         report_data = {
             "summary": xai_data.executive_summary or "Yhteenveto puuttuu.",

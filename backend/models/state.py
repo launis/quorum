@@ -1,6 +1,10 @@
 from typing import Optional, List, Dict, Any, Literal, Union, Annotated
 from pydantic import BaseModel, Field
 from datetime import datetime
+import logging
+
+logger = logging.getLogger(__name__)
+
 from backend.models.domain import (
     TaintedData, 
     TodistusKartta, 
@@ -19,7 +23,7 @@ from backend.models.domain import (
 )
 
 class InputData(BaseModel):
-    """Raakadata, joka tulee käyttäjältä."""
+    """Raw input data received from the user/API."""
     history_text: Annotated[str, Field(description="Historical context (chat logs, previous events).")]
     product_text: Annotated[str, Field(description="The primary artifact or text to be analyzed.")]
     reflection_text: Annotated[str, Field(description="Self-reflection or meta-commentary provided by the user.")]
@@ -29,18 +33,31 @@ class InputData(BaseModel):
 
 class WorkflowState(BaseModel):
     """
-    Tämä on "Blackboard" (Workflow State). Se elää muistissa koko ajon ajan.
-    Kaikki agentit lukevat tästä ja kirjoittavat tähän.
+    Represents the central "Blackboard" state for a workflow execution.
+    
+    This state object persists in memory throughout the lifecycle of an execution,
+    serving as the shared data repository for all agents. It contains input data,
+    metadata, and the cumulative outputs of all executed steps.
+
+    Attributes:
+        execution_id (str): Unique UUID for this execution instance.
+        workflow_id (Optional[str]): ID of the workflow definition being executed.
+        workflow_name (Optional[str]): Human-readable name of the workflow.
+        start_time (datetime): Timestamp when the execution began.
+        current_step_name (str): The identifier of the currently active step/agent.
+        inputs (InputData): Immutable input data provided at initialization.
     """
     # Metadata
     execution_id: Annotated[str, Field(description="Unique UUID for this execution instance.")]
+    workflow_id: Annotated[Optional[str], Field(description="ID of the workflow being executed.")] = None
+    workflow_name: Annotated[Optional[str], Field(description="Name of the workflow being executed.")] = None
     start_time: Annotated[datetime, Field(default_factory=datetime.now, description="Execution start timestamp.")]
     current_step_name: Annotated[str, Field(description="Name of the currently executing step/agent.")] = "init"
     
-    # Syötteet (Read-only agenteille)
+    # Inputs (Read-only for agents)
     inputs: Annotated[InputData, Field(description="Immutable input data.")]
     
-    # Agenttien tulosteet (Alussa None, täyttyvät matkan varrella)
+    # Agent Outputs (Initially None, populated during execution)
     step_guard: Annotated[Optional[TaintedData], Field(description="Agent 1: Security & PII checks.")] = None
     step_analyst: Annotated[Optional[TodistusKartta], Field(description="Agent 2: Research & Evidence.")] = None
     step_profiler: Annotated[Optional[ProfilerAnalysis], Field(description="Agent 2.5: Psych/Text Analysis.")] = None
@@ -50,7 +67,56 @@ class WorkflowState(BaseModel):
     step_causal: Annotated[Optional[KausaalinenAuditointi], Field(description="Agent 6: Causal & Counterfactual Analysis.")] = None
     step_detector: Annotated[Optional[PerformatiivisuusAuditointi], Field(description="Agent 7: Performativity & Authenticity.")] = None
     step_judge: Annotated[Optional[TuomioJaPisteet], Field(description="Agent 9: Scoring & Verdict.")] = None
+    step_judge_cognitive: Annotated[Optional[TuomioJaPisteet], Field(description="Agent 9b: Cognitive BARS Scoring.")] = None
     step_archivist: Annotated[Optional[CaseLawContext], Field(description="Agent 8a: Historical alignment.")] = None
+    step_coach: Annotated[Optional[CoachingPlan], Field(description="Agent 8c: Feedback & Action Plan.")] = None
+    step_interaction: Annotated[Optional[InteractionAnalysis], Field(description="Agent 2.2: Interaction Dynamics.")] = None
+    step_panel: Annotated[Optional[PanelAudit], Field(description="Agent 5 (Parallel): Consolidated Audit.")] = None
+    step_reporter: Annotated[Optional[XAIReport], Field(description="Agent 10: Final Executive Report.")] = None
+
+    # Formatted output
+    xai_report_formatted: Annotated[Optional[str], Field(description="Final markdown report cache.")] = None
+
+    # Auxiliary Data
+    aux_data: Annotated[Dict[str, Any], Field(default_factory=dict, description="Temporary storage for hooks and side-effects.")]
+
+    def to_flat_dict(self) -> Dict[str, Any]:
+        # ... (lines 106-154)
+
+        # 1. High-Level Verdict
+        if self.step_reporter:
+            report["final_verdict"] = self.step_reporter.final_verdict
+            report["confidence"] = self.step_reporter.confidence_score
+        
+        # Priority: Cognitive Judge > Standard Judge
+        active_judge = self.step_judge_cognitive or self.step_judge
+        
+        if active_judge and active_judge.pisteet:
+            p = active_judge.pisteet
+            report["scores"] = {
+                "analyysi": p.analyysi.arvosana if p.analyysi else 0,
+                "analyysi_selitys": p.analyysi.perustelu if p.analyysi else "",
+                "arviointi": p.arviointi.arvosana if p.arviointi else 0,
+                "arviointi_selitys": p.arviointi.perustelu if p.arviointi else "",
+                "synteesi": p.synteesi.arvosana if p.synteesi else 0,
+                "synteesi_selitys": p.synteesi.perustelu if p.synteesi else ""
+            }
+            report["kritiikki"] = active_judge.kriittiset_havainnot_yhteenveto
+            
+            # If dual mode, we could potentially hoist both? 
+            # For simplicity, we stick to the "Best Available" logic for the summary report.
+
+        # ... (lines 168-240)
+
+        raw_steps_dict = {
+            "step_guard": self.step_guard.model_dump(exclude=noise_fields, exclude_none=True) if self.step_guard else None,
+            "step_analyst": self.step_analyst.model_dump(exclude=noise_fields, exclude_none=True) if self.step_analyst else None,
+            # ...
+            "step_judge": self.step_judge.model_dump(exclude=noise_fields, exclude_none=True) if self.step_judge else None,
+            "step_judge_cognitive": self.step_judge_cognitive.model_dump(exclude=noise_fields, exclude_none=True) if self.step_judge_cognitive else None,
+            "step_coach": self.step_coach.model_dump(exclude=noise_fields, exclude_none=True) if self.step_coach else None,
+            # ...
+        }
     step_coach: Annotated[Optional[CoachingPlan], Field(description="Agent 8c: Feedback & Action Plan.")] = None
     step_interaction: Annotated[Optional[InteractionAnalysis], Field(description="Agent 2.2: Interaction Dynamics.")] = None
     step_panel: Annotated[Optional[PanelAudit], Field(description="Agent 5 (Parallel): Consolidated Audit.")] = None
@@ -117,6 +183,8 @@ class WorkflowState(BaseModel):
         # 1. System Status & Safety
         flat["System_Status"] = {
             "execution_id": self.execution_id,
+            "workflow_id": self.workflow_id,
+            "workflow_name": self.workflow_name,
             "timestamp": self.start_time.isoformat() if self.start_time else None,
             "version": "2.0",
             "uhka_havaittu": self.step_guard.security_check.uhka_havaittu if (self.step_guard and self.step_guard.security_check) else None,
@@ -152,8 +220,12 @@ class WorkflowState(BaseModel):
             report["final_verdict"] = self.step_reporter.final_verdict
             report["confidence"] = self.step_reporter.confidence_score
         
-        if self.step_judge and self.step_judge.pisteet:
-            p = self.step_judge.pisteet
+        # Determine source of judgement (standard or cognitive)
+        # Priority: Cognitive Judge > Standard Judge (Fixed)
+        judge_source = self.step_judge_cognitive or self.step_judge
+        
+        if judge_source and judge_source.pisteet:
+            p = judge_source.pisteet
             report["scores"] = {
                 "analyysi": p.analyysi.arvosana if p.analyysi else 0,
                 "analyysi_selitys": p.analyysi.perustelu if p.analyysi else "",
@@ -162,7 +234,7 @@ class WorkflowState(BaseModel):
                 "synteesi": p.synteesi.arvosana if p.synteesi else 0,
                 "synteesi_selitys": p.synteesi.perustelu if p.synteesi else ""
             }
-            report["kritiikki"] = self.step_judge.kriittiset_havainnot_yhteenveto
+            report["kritiikki"] = judge_source.kriittiset_havainnot_yhteenveto
 
         # 2. Key Analysis Findings
         if self.step_analyst:
@@ -236,7 +308,7 @@ class WorkflowState(BaseModel):
             'log_id', 'execution_id', 'input_text_hash', 
             'semanttinen_tarkistussumma', 'system_prompt_version'
         }
-
+        
         raw_steps_dict = {
             "step_guard": self.step_guard.model_dump(exclude=noise_fields, exclude_none=True) if self.step_guard else None,
             "step_analyst": self.step_analyst.model_dump(exclude=noise_fields, exclude_none=True) if self.step_analyst else None,
@@ -249,6 +321,7 @@ class WorkflowState(BaseModel):
             "step_overseer": self.step_overseer.model_dump(exclude=noise_fields, exclude_none=True) if self.step_overseer else None,
             "step_archivist": self.step_archivist.model_dump(exclude=noise_fields, exclude_none=True) if self.step_archivist else None,
             "step_judge": self.step_judge.model_dump(exclude=noise_fields, exclude_none=True) if self.step_judge else None,
+            "step_judge_cognitive": self.step_judge_cognitive.model_dump(exclude=noise_fields, exclude_none=True) if self.step_judge_cognitive else None,
             "step_coach": self.step_coach.model_dump(exclude=noise_fields, exclude_none=True) if self.step_coach else None,
             "step_panel": self.step_panel.model_dump(exclude=noise_fields, exclude_none=True) if self.step_panel else None,
             "step_reporter": self.step_reporter.model_dump(exclude=noise_fields, exclude_none=True) if self.step_reporter else None,

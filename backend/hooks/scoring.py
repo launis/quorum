@@ -19,52 +19,59 @@ def apply_scoring_logic(state: WorkflowState) -> WorkflowState:
     Returns:
         WorkflowState: State with penalty-adjusted scores and calculated averages in 'aux_data'.
     """
-    if not state.step_judge or not state.step_judge.pisteet:
-        logger.warning("   [ScoringHook] No scores to calculate.")
+    target_steps = []
+    if state.step_judge and state.step_judge.pisteet:
+        target_steps.append(state.step_judge)
+    
+    if state.step_judge_cognitive and state.step_judge_cognitive.pisteet:
+        target_steps.append(state.step_judge_cognitive)
+
+    if not target_steps:
+        logger.warning("   [ScoringHook] No scores to calculate (checked step_judge and step_judge_cognitive).")
         return state
         
     try:
-        p = state.step_judge.pisteet
-        
-        # --- DETERMINISTIC RULE ENFORCEMENT ---
+        total_global = 0
+        count_global = 0
         penalties_applied = []
-        
+
+        # --- DETERMINISTIC RULE ENFORCEMENT & CALC ---
         # Rule 1: Security Threat (Guard) -> Auto Fail (1/4)
+        security_threat = False
         if state.step_guard and state.step_guard.security_check and state.step_guard.security_check.uhka_havaittu:
-            logger.warning("[ScoringHook] Security Threat detected by Guard! Capping scores to 1.")
-            for comp in [p.analyysi, p.arviointi, p.synteesi]:
-                if comp: 
-                    comp.arvosana = 1
-                    comp.perustelu += " [AUTOMATIC PENALTY: Security Threat Detected]"
+            security_threat = True
             penalties_applied.append("Security Threat (Score capped at 1)")
 
         # Rule 2: Logical Failures (Falsifier) -> Max Score 2/4
-        # Check if there are critical logical errors (needs inspection of Falsifier schema/output)
-        elif state.step_falsifier:
-                audit = getattr(state.step_falsifier, 'paattelyketjun_uskollisuus_auditointi', None)
-                if audit and audit.onko_post_hoc_rationalisointia:
-                    logger.warning("[ScoringHook] Post-Hoc Rationalization detected! Capping scores to 2.")
-                    for comp in [p.analyysi, p.arviointi, p.synteesi]:
-                        if comp and comp.arvosana > 2:
-                            comp.arvosana = 2
-                            comp.perustelu += " [AUTOMATIC PENALTY: Logical Fallacies Detected]"
-                    penalties_applied.append("Logical Fallacies (Score capped at 2)")
-        
-        # --- End Rules ---
+        logical_failure = False
+        if not security_threat and state.step_falsifier:
+             audit = getattr(state.step_falsifier, 'paattelyketjun_uskollisuus_auditointi', None)
+             if audit and audit.onko_post_hoc_rationalisointia:
+                 logical_failure = True
+                 penalties_applied.append("Logical Fallacies (Score capped at 2)")
 
-        total = 0
-        count = 0
-        
-        # Check each component dynamically
-        for comp in [p.analyysi, p.arviointi, p.synteesi]:
-            if comp and comp.arvosana is not None:
-                total += comp.arvosana
-                count += 1
+        # Apply to ALL found judge outputs
+        for judge_output in target_steps:
+            p = judge_output.pisteet
+            
+            for comp in [p.analyysi, p.arviointi, p.synteesi]:
+                if comp:
+                    if security_threat:
+                        comp.arvosana = 1
+                        comp.perustelu += " [AUTOMATIC PENALTY: Security Threat Detected]"
+                    elif logical_failure and comp.arvosana > 2:
+                        comp.arvosana = 2
+                        comp.perustelu += " [AUTOMATIC PENALTY: Logical Fallacies Detected]"
+                    
+                    if comp.arvosana is not None:
+                        total_global += comp.arvosana
+                        count_global += 1
+
         
         # Calculate average
-        average = (total / count) if count > 0 else 0.0
+        average = (total_global / count_global) if count_global > 0 else 0.0
         
-        summary = f"Total Score: {total}/{count*4} (Avg: {average:.2f})"
+        summary = f"Total Score: {total_global}/{count_global*4} (Avg: {average:.2f})"
         if penalties_applied:
             summary += f" | Penalties: {', '.join(penalties_applied)}"
             

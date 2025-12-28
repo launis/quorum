@@ -1,0 +1,13 @@
+🚀 STARTING INTEGRATION TEST: Dual & Cognitive Workflows
+Backend: http://localhost:8000
+------------------------------------------------------------
+Testing sequential_audit_chain... PASS ✅
+Testing fused_audit_chain... PASS ✅
+Testing sequential_audit_chain_cognitive... FAIL ❌
+  - Missing scores in Report
+Testing fused_audit_chain_cognitive... FAIL ❌
+  - Missing scores in Report
+Testing sequential_audit_chain_dual... PASS ✅
+Testing fused_audit_chain_dual... PASS ✅
+------------------------------------------------------------
+⚠️ SOME TESTS FAILED.

@@ -26,13 +26,15 @@ class PipelineRunner:
         self.registry = registry
         self.prompt_builder = prompt_builder
 
-    async def initialize_state(self, execution_id: str, raw_inputs: Dict[str, Any]) -> WorkflowState:
+    async def initialize_state(self, execution_id: str, raw_inputs: Dict[str, Any], workflow_id: Optional[str] = None, workflow_name: Optional[str] = None) -> WorkflowState:
         """
         Constructs the initial WorkflowState object from raw input dictionary.
 
         Args:
             execution_id (str): The unique ID of the execution.
             raw_inputs (Dict[str, Any]): Inputs provided by the user/API.
+            workflow_id (Optional[str]): The workflow ID.
+            workflow_name (Optional[str]): The workflow Name.
 
         Returns:
             WorkflowState: The initialized state object.
@@ -50,6 +52,8 @@ class PipelineRunner:
             
             current_state = WorkflowState(
                 execution_id=execution_id,
+                workflow_id=workflow_id,    # NEW
+                workflow_name=workflow_name, # NEW
                 inputs=input_data
             )
             
@@ -154,8 +158,12 @@ class PipelineRunner:
             # Pass model configuration (max_tokens, temperature) as kwargs
             exec_kwargs = {
                 "system_instruction": system_instruction,
-                "repository": self.repository
+                "repository": self.repository,
+                "output_key": step_doc.get('state_key') # Pass destination override
             }
+            if exec_kwargs['output_key']:
+                 print(f"DEBUG: EXEC_STEP {step_id} Output Key -> {exec_kwargs['output_key']}", flush=True)
+
             if model_config:
                 if "max_tokens" in model_config: exec_kwargs["max_tokens"] = model_config["max_tokens"]
                 if "temperature" in model_config: exec_kwargs["temperature"] = model_config["temperature"]

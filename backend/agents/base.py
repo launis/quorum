@@ -71,7 +71,7 @@ class BaseAgent(BaseComponent):
              else:
                  logger.error(f"[BaseAgent] Cannot create LLMProvider: Provider type missing for model {model_name}")
 
-    def _update_state(self, state: WorkflowState, response_data: Any) -> WorkflowState:
+    def _update_state(self, state: WorkflowState, response_data: Any, output_key: Optional[str] = None) -> WorkflowState:
         """
         Updates the WorkflowState with the LLM response.
         Generic implementation: Uses self.state_field and self.get_response_schema().
@@ -79,6 +79,7 @@ class BaseAgent(BaseComponent):
         Args:
             state (WorkflowState): Current state.
             response_data (Any): Raw data dictionary from LLM.
+            output_key (Optional[str]): Override for self.state_field.
 
         Returns:
             WorkflowState: The updated state object.
@@ -86,19 +87,22 @@ class BaseAgent(BaseComponent):
         Raises:
             Exception: If schema validation fails.
         """
-        if self.state_field and self.get_response_schema():
+        target_field = output_key or self.state_field
+        
+        if target_field and self.get_response_schema():
             try:
                 SchemaClass = self.get_response_schema()
                 # Validate and create Pydantic model
                 validated_data = SchemaClass(**response_data)
                 
                 # Check if state has this field
-                if hasattr(state, self.state_field):
-                    setattr(state, self.state_field, validated_data)
-                    logger.info(f"[{self.__class__.__name__}] Updated state.{self.state_field}")
+                if hasattr(state, target_field):
+                    logger.debug(f"_update_state [id={id(state)}] Setting {target_field}")
+                    setattr(state, target_field, validated_data)
+                    logger.info(f"[{self.__class__.__name__}] Updated state.{target_field}")
                 else:
-                    logger.warning(f"[{self.__class__.__name__}] State model missing field '{self.state_field}'. Assigning to aux_data.")
-                    state.aux_data[self.state_field] = validated_data.model_dump()
+                    logger.warning(f"[{self.__class__.__name__}] State model missing field '{target_field}'. Assigning to aux_data.")
+                    state.aux_data[target_field] = validated_data.model_dump()
                     
                 return state
             except Exception as e:
@@ -115,7 +119,7 @@ class BaseAgent(BaseComponent):
         Args:
             state (WorkflowState): The current workflow context.
             system_instruction (Optional[str]): Prompt override.
-            **kwargs: Additional parameters for LLM (e.g. max_tokens, temperature).
+            **kwargs: Additional parameters for LLM (e.g. max_tokens, temperature, output_key).
 
         Returns:
             WorkflowState: Updated state after execution.
@@ -162,7 +166,8 @@ class BaseAgent(BaseComponent):
             )
 
             # 5. Update State
-            updated_state = self._update_state(state, response_data)
+            output_key = kwargs.get('output_key')
+            updated_state = self._update_state(state, response_data, output_key=output_key)
             
             # 6. Lifecycle Hook: Post Process
             logger.info(f"[{self.__class__.__name__}] Lifecycle Hook: post_process")
