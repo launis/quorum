@@ -7,6 +7,8 @@ import asyncio
 from pydantic import BaseModel
 from tenacity import retry, stop_after_attempt, wait_exponential
 from backend.models.state import WorkflowState
+from backend.models.state import WorkflowState
+from backend.models.llm import LLMResponse
 from backend.settings import get_settings
 import litellm
 
@@ -36,8 +38,9 @@ class LLMProvider(ABC):
         response_schema: Optional[Type[BaseModel]] = None,
         temperature: float = 0.7,
         max_tokens: Optional[int] = None,
+        pass_reasoning_token: Optional[str] = None,
         **kwargs
-    ) -> Union[str, Dict[str, Any]]:
+    ) -> LLMResponse:
         """
         Generates content from the LLM.
 
@@ -47,10 +50,11 @@ class LLMProvider(ABC):
             response_schema (Optional[Type[BaseModel]]): Pydantic model for structured output validation.
             temperature (float): Sampling temperature.
             max_tokens (Optional[int]): Max tokens to generate.
+            pass_reasoning_token (Optional[str]): Encrypted state blob from previous turn.
             **kwargs: Additional provider-specific arguments.
 
         Returns:
-            Union[str, Dict[str, Any]]: The generated text or parsed JSON dictionary.
+            LLMResponse: The generated response object.
         """
         pass
 
@@ -193,29 +197,24 @@ class LiteLLMProvider(LLMProvider):
         response_schema: Optional[Type[BaseModel]] = None,
         temperature: float = 0.7,
         max_tokens: Optional[int] = None,
+        pass_reasoning_token: Optional[str] = None,
         **kwargs
-    ) -> Union[str, Dict[str, Any]]:
+    ) -> LLMResponse:
         """
         Generates content using LiteLLM.
-
-        Args:
-            prompt (str): User prompt.
-            system_instruction (Optional[str]): System message.
-            response_schema (Optional[Type[BaseModel]]): Pydantic model for structured output.
-            temperature (float): Randomness 0-1.
-            max_tokens (Optional[int]): Max output length.
-            **kwargs: Extra args mapping.
-
-        Returns:
-            Union[str, Dict[str, Any]]: Result text or dictionary.
-
-        Raises:
-            Exception: On API failure after retries.
+        Returns unified LLMResponse with content and reasoning state.
         """
         
         messages = []
         if system_instruction:
             messages.append({"role": "system", "content": system_instruction})
+            
+        # Context Continuity (Stateless Reasoning Blob)
+        if pass_reasoning_token:
+            # Abstraction: We pass it as a developer hint for now.
+            # Real implementation would use provider-specific params in `litellm.acompletion`
+            messages.append({"role": "system", "content": f"[SYSTEM: RESUME_THOUGHT_PROCESS] PREVIOUS_STATE_BLOB: {pass_reasoning_token}"})
+
         messages.append({"role": "user", "content": prompt})
         
         response_format = None
@@ -229,8 +228,6 @@ class LiteLLMProvider(LLMProvider):
         try:
             logger.info(f"[LiteLLM] Calling {self.model_name}...")
             
-            # Helper to map custom args if needed
-            
             response = await litellm.acompletion(
                 model=self.model_name,
                 messages=messages,
@@ -241,17 +238,54 @@ class LiteLLMProvider(LLMProvider):
                 drop_params=True
             )
             
-            # Extract content
-            content = response.choices[0].message.content
+            # Extract basic content
+            choice = response.choices[0]
+            message = choice.message
+            raw_content = message.content or ""
             
-            if response_schema:
-                # Check for parsed object (e.g. OpenAI Structured Outputs via LiteLLM)
-                if hasattr(response.choices[0].message, "parsed") and response.choices[0].message.parsed:
-                     return response.choices[0].message.parsed.dict() if hasattr(response.choices[0].message.parsed, "dict") else response.choices[0].message.parsed
+            # Extract Reasoning Token (Gemini 3 / GPT-5.1)
+            reasoning_token = None
+            
+            # Check standard LiteLLM extra fields
+            if hasattr(message, "provider_specific_fields") and message.provider_specific_fields:
+                 reasoning_token = message.provider_specific_fields.get("thought_signature") or \
+                                   message.provider_specific_fields.get("reasoning_blob")
+                                   
+            # Fallback: Check top level attributes
+            if not reasoning_token and hasattr(response, "model_extra"):
+                 reasoning_token = response.model_extra.get("thought_signature")
 
-                return self._clean_json_response(content)
+            # Extract Usage
+            usage = {}
+            if hasattr(response, "usage"):
+                 usage = {
+                     "prompt_tokens": response.usage.prompt_tokens,
+                     "completion_tokens": response.usage.completion_tokens,
+                     "total_tokens": response.usage.total_tokens
+                 }
+
+            # Handle Schema Parsing (Validation)
+            # If schema was requested, we return the JSON string in 'content' 
+            # OR we populate 'tool_calls' if that mechanism was used.
+            # For simplicity in this unified response, we ensure 'content' is the stringent result.
             
-            return content
+            final_content = raw_content
+            if response_schema:
+                 if hasattr(message, "parsed") and message.parsed:
+                      # If LiteLLM parsed it, dump back to JSON string for consistency
+                      obj = message.parsed.dict() if hasattr(message.parsed, "dict") else message.parsed
+                      final_content = json.dumps(obj, ensure_ascii=False)
+                 else:
+                      # Clean manually
+                      obj = self._clean_json_response(raw_content)
+                      final_content = json.dumps(obj, ensure_ascii=False)
+
+            return LLMResponse(
+                content=final_content,
+                reasoning_token=reasoning_token,
+                token_usage=usage,
+                provider_metadata=response.model_dump() if hasattr(response, "model_dump") else {}
+            )
             
         except Exception as e:
             logger.error(f"[LiteLLM] Error: {e}", exc_info=True)
@@ -265,7 +299,7 @@ class MockProvider(LLMProvider):
     def __init__(self, model_name: str = "mock"):
         self.model_name = model_name
 
-    async def generate(self, prompt: str, system_instruction: Optional[str] = None, response_schema: Optional[Type[BaseModel]] = None, temperature: float = 0.7, max_tokens: Optional[int] = None, **kwargs) -> Union[str, Dict[str, Any]]:
+    async def generate(self, prompt: str, system_instruction: Optional[str] = None, response_schema: Optional[Type[BaseModel]] = None, temperature: float = 0.7, max_tokens: Optional[int] = None, pass_reasoning_token: Optional[str] = None, **kwargs) -> LLMResponse:
         """
         Simulates generation by invoking the MockLLMService.
         """
@@ -282,15 +316,18 @@ class MockProvider(LLMProvider):
         
         result = mock.generate_content(prompt, system_instruction, agent_identity=agent_identity)
         
-        if response_schema:
-            try:
-                if isinstance(result, dict):
-                    return result
-                return json.loads(result)
-            except Exception as e:
-                logger.warning(f"Mock provider returned non-JSON text when schema was requested: {e}. Returning empty dict.")
-                return {} 
-        return result
+        # Determine content string
+        content_str = ""
+        if isinstance(result, dict):
+            content_str = json.dumps(result, ensure_ascii=False)
+        else:
+            content_str = str(result)
+            
+        return LLMResponse(
+            content=content_str,
+            reasoning_token="mock_thought_signature_123456",
+            token_usage={"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150}
+        )
 
 class LLMFactory:
     """

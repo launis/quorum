@@ -146,6 +146,22 @@ class BaseAgent(BaseComponent):
                 system_instruction = (system_instruction or "") + "\n\n" + additional_context
                 logger.debug(f"[{self.__class__.__name__}] Appended dynamic context.")
             
+            # 3.6 Context Continuity Check (Stateless Reasoning)
+            try:
+                latest_meta = state.get_latest_reasoning_metadata()
+                if latest_meta and latest_meta.get('token'):
+                    prev_provider = latest_meta.get('provider')
+                    curr_provider = self.provider_type or "google" # Default
+                    
+                    # Compatibility Check (Simple Exact Match for now)
+                    if prev_provider and curr_provider and prev_provider.lower() == curr_provider.lower():
+                        logger.info(f"[{self.__class__.__name__}] Chain of Thought: Injecting token from {latest_meta.get('model')} (Provider match: {curr_provider})")
+                        kwargs['pass_reasoning_token'] = latest_meta['token']
+                    else:
+                        logger.info(f"[{self.__class__.__name__}] Chain of Thought: Skipping token (Provider mismatch: {prev_provider} != {curr_provider})")
+            except Exception as e:
+                logger.warning(f"Error in context continuity check: {e}")
+
             # --- LOGGING EXECUTION CONFIG ---
             conf_model = self.model
             conf_temp = kwargs.get('temperature', 'Default')
@@ -154,16 +170,38 @@ class BaseAgent(BaseComponent):
             logger.info(f"[{self.__class__.__name__}] >>> EXECUTION START <<<")
             logger.info(f"[{self.__class__.__name__}] MODEL: {conf_model} | TEMP: {conf_temp} | TOKENS: {conf_tokens}")
             # --------------------------------
-
+            
             # 4. Call LLM (The "Mask" handles the details) — ASYNC WAIT
             kwargs['mock_identity'] = self.__class__.__name__
             
-            response_data = await self.llm_provider.generate(
+            response_obj = await self.llm_provider.generate(
                 prompt=user_prompt,
                 system_instruction=system_instruction,
                 response_schema=response_schema,
                 **kwargs
             )
+
+            # Handle Response Content
+            if response_schema:
+                 # Provider ensures content is valid JSON string if schema was used
+                import json
+                try:
+                    response_data = json.loads(response_obj.content)
+                except:
+                    # Fallback if provider failed to ensure robust JSON (should generally be handled in provider)
+                    response_data = response_obj.content 
+            else:
+                response_data = response_obj.content
+
+            # Store reasoning_token if captured
+            if response_obj.reasoning_token:
+                logger.info(f"[{self.__class__.__name__}] Reasoning Token captured (Size: {len(response_obj.reasoning_token)})")
+                target_key = kwargs.get('output_key') or self.state_field or self.__class__.__name__
+                state.reasoning_context[target_key] = {
+                    "token": response_obj.reasoning_token,
+                    "model": self.model or "unknown",
+                    "provider": self.provider_type or "google"
+                }
 
             # 5. Update State
             output_key = kwargs.get('output_key')

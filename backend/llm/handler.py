@@ -175,11 +175,12 @@ class LLMHandler:
                 max_tokens=max_tokens # Now validating this argument exists in provider
             )
             
-            # Helper handles return type (str or dict) -> We expect Str for pure text generation endpoints
-            if isinstance(response, dict):
-                import json
-                return json.dumps(response, ensure_ascii=False)
-            return str(response)
+            # Response is now LLMResponse object
+            if response.reasoning_token:
+                logger.info(f"[LLMHandler] Captured Reasoning Token: {response.reasoning_token[:20]}...")
+                
+            # Return content string to maintain backward compatibility for this ad-hoc method
+            return response.content
             
         except Exception as e:
             logger.error(f"[LLMHandler] Unified Call Failed: {e}", exc_info=True)

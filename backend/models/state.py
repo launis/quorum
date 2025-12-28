@@ -82,12 +82,17 @@ class WorkflowState(BaseModel):
     # Key = Step ID (e.g. "step_judge_cognitive")
     # Value = EvaluationResult object
     audit_results: Annotated[Dict[str, EvaluationResult], Field(default_factory=dict, description="Dynamic container for matrix-based evaluations.")]
+    
+    # Reasoning Context (Stateless Blob Storage for Gemini 3 / GPT-5.1)
+    # Key = Step ID
+    # Value = { "token": "...", "model": "gemini-1.5-pro", "provider": "google" }
+    reasoning_context: Annotated[Dict[str, Dict[str, str]], Field(default_factory=dict, description="Storage for encrypted reasoning blobs with metadata.")]
 
     # Auxiliary Data
     aux_data: Annotated[Dict[str, Any], Field(default_factory=dict, description="Temporary storage for hooks and side-effects.")]
 
     def to_flat_dict(self) -> Dict[str, Any]:
-        # ... (lines 106-154)
+        # ... (unchanged)
 
         # 1. High-Level Verdict
         if self.step_reporter:
@@ -172,17 +177,42 @@ class WorkflowState(BaseModel):
         if not summary:
             return "(Ei aiempia tuloksia)"
             
+        if not summary:
+            return "(Ei aiempia tuloksia)"
+            
         return "\n".join(summary)
+
+    def get_latest_reasoning_metadata(self) -> Optional[Dict[str, str]]:
+        """
+        Retrieves the reasoning metadata (token + model) from the most recently executed relevant step.
+        """
+        priority_steps = ["step_panel", "step_coach", "step_judge", "step_judge_cognitive", "step_analyst"]
+        for step_id in priority_steps:
+            if step_id in self.reasoning_context:
+                return self.reasoning_context[step_id]
+        return None
 
     def to_flat_dict(self) -> Dict[str, Any]:
         """
         Projects the complex state into a simplified, flat dictionary.
         This structured is optimized for frontend UI consumption (React/JSON).
         Does NOT rely on specific UI code but organizes data logically.
-
+        
         Returns:
             Dict[str, Any]: The flattened result object.
         """
+        from backend.settings import get_settings
+        settings = get_settings()
+        
+        # Determine DB Source Label
+        db_source = "unknown"
+        if "mock" in settings.start_db_path.lower():
+            db_source = "mock_json"
+        elif "firebase" in settings.start_db_path.lower():
+             db_source = "firebase"
+        else:
+             db_source = "local_json"
+
         # DEBUG TRACE
         flat = {}
         
@@ -193,6 +223,12 @@ class WorkflowState(BaseModel):
             "workflow_name": self.workflow_name,
             "timestamp": self.start_time.isoformat() if self.start_time else None,
             "version": "2.0",
+            
+            # New Audit Metadata
+            "reasoning_chain_active": bool(self.reasoning_context),
+            "database_source": db_source,
+            "environment": os.getenv("ENV", "development"),
+            
             "uhka_havaittu": self.step_guard.security_check.uhka_havaittu if (self.step_guard and self.step_guard.security_check) else None,
             "riski_taso": self.step_guard.security_check.riski_taso if (self.step_guard and self.step_guard.security_check) else None,
             "logiikka_validi": not (self.step_falsifier.paattelyketjun_uskollisuus_auditointi.onko_post_hoc_rationalisointia) if (self.step_falsifier and self.step_falsifier.paattelyketjun_uskollisuus_auditointi) else None
