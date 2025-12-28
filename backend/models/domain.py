@@ -233,7 +233,7 @@ class AitousEpaily(BaseModel):
     viesti_hitl_lle: Annotated[str, Field(alias="viesti_hitl:lle", description="Message for human reviewer.")]
 
 class PisteetKriteeri(BaseModel):
-    arvosana: Annotated[int, Field(ge=1, le=4, description="Grade (1-4).")]
+    arvosana: Annotated[Union[int, float], Field(description="Grade (typically 1-4, but allows dynamic scales).")]
     perustelu: Annotated[str, Field(description="Justification.")]
 
 class Pisteet(BaseModel):
@@ -247,6 +247,42 @@ class TuomioJaPisteet(BaseJSON):
     aitous_epaily: Annotated[AitousEpaily, Field(description="Authenticity suspicion.")]
     pisteet: Annotated[Pisteet, Field(description="Scoring breakdown.")]
     kriittiset_havainnot_yhteenveto: Annotated[List[str], Field(description="Critical observations summary.")]
+    # Back-ported fields for Dynamic Matrix visibility in legacy views
+    matrix_id: Annotated[Optional[str], Field(default=None, description="Matrix ID used (injected).")]
+    scale_min: Annotated[Optional[int], Field(default=None, description="Minimum scale score.")]
+    scale_max: Annotated[Optional[int], Field(default=None, description="Maximum scale score.")]
+
+# --- DYNAMIC EVALUATION SYSTEM DOIMAIN MODELS ---
+
+class EvaluationCriterion(BaseModel):
+    """Defines a single dimension of evaluation (e.g., 'Analysis')."""
+    id: Annotated[str, Field(description="Unique key for the criterion.")]
+    label: Annotated[str, Field(description="Human readable label.")]
+    instruction: Annotated[str, Field(description="Prompt instruction for the LLM.")]
+    anchors: Annotated[Dict[str, str], Field(description="Scoring anchors (e.g., {'1': 'Bad', '4': 'Good'}).")]
+
+class EvaluationMatrixConfig(BaseModel):
+    """Configuration for a dynamic evaluation matrix."""
+    name: Annotated[str, Field(description="Name of the matrix.")]
+    description: Annotated[str, Field(description="Description of purpose.")]
+    scale: Annotated[Dict[str, int], Field(description="Min and Max scale.")]
+    role_description: Annotated[Optional[str], Field(description="Optional role persona.")] = None
+    criteria: Annotated[List[EvaluationCriterion], Field(description="List of criteria.")]
+
+class DimensionResultItem(BaseModel):
+    """Result for a single dimension."""
+    dimension_id: Annotated[str, Field(description="ID of the dimension (e.g., 'analysis').")]
+    score: Annotated[Union[int, float], Field(description="Numerical score.")]
+    reasoning: Annotated[str, Field(description="Justification for the score.")]
+    
+class EvaluationResult(BaseJSON):  # Inherits metadata from BaseJSON
+    """Result of a dynamic evaluation."""
+    matrix_id: Annotated[str, Field(description="ID of the matrix used.")]
+    scale_min: Annotated[int, Field(default=1, description="Minimum score of the scale.")]
+    scale_max: Annotated[int, Field(default=5, description="Maximum score of the scale.")]
+    total_score: Annotated[Union[int, float], Field(description="Calculated total/average score.")]
+    dimensions: Annotated[List[DimensionResultItem], Field(description="Breakdown by dimension.")]
+    critical_findings: Annotated[List[str], Field(default_factory=list, description="Critical observations.")]
 
 # --- Step 9: XAI Reporter ---
 

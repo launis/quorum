@@ -71,7 +71,7 @@ class BaseAgent(BaseComponent):
              else:
                  logger.error(f"[BaseAgent] Cannot create LLMProvider: Provider type missing for model {model_name}")
 
-    def _update_state(self, state: WorkflowState, response_data: Any, output_key: Optional[str] = None) -> WorkflowState:
+    def _update_state(self, state: WorkflowState, response_data: Any, output_key: Optional[str] = None, **kwargs) -> WorkflowState:
         """
         Updates the WorkflowState with the LLM response.
         Generic implementation: Uses self.state_field and self.get_response_schema().
@@ -167,7 +167,9 @@ class BaseAgent(BaseComponent):
 
             # 5. Update State
             output_key = kwargs.get('output_key')
-            updated_state = self._update_state(state, response_data, output_key=output_key)
+            # Remove output_key from kwargs to avoid "multiple values" error when passing both explicit arg and **kwargs
+            update_kwargs = {k: v for k, v in kwargs.items() if k != 'output_key'}
+            updated_state = self._update_state(state, response_data, output_key=output_key, **update_kwargs)
             
             # 6. Lifecycle Hook: Post Process
             logger.info(f"[{self.__class__.__name__}] Lifecycle Hook: post_process")

@@ -18,6 +18,7 @@ from frontend.views.admin_view import render_admin_view
 from frontend.views.system_view import render_system_view
 from frontend.views.builder_view import render_workflow_builder
 from frontend.views.config_view import render_config_view # New View
+from frontend.views.matrix_view import render_matrix_view # New View
 
 # Config
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
@@ -45,7 +46,7 @@ def main():
         st.divider()
         
         st.markdown("### Navigation")
-        page = st.radio("Go to", ["Assessment", "Workflow Builder", "Global Config", "Admin", "System Info"], label_visibility="collapsed")
+        page = st.radio("Go to", ["Assessment", "Workflow Builder", "Global Config", "Audit Matrix Library", "Admin", "System Info"], label_visibility="collapsed")
         
         st.divider()
         st.caption(f"Backend: `{BACKEND_URL}`")
@@ -64,6 +65,9 @@ def main():
 
     elif page == "Global Config":
         render_config_view(api_client, BACKEND_URL)
+
+    elif page == "Audit Matrix Library":
+        render_matrix_view(api_client, BACKEND_URL)
         
     elif page == "Admin":
         render_admin_view(api_client, BACKEND_URL, workflow_options)

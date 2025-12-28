@@ -444,6 +444,13 @@ class WorkflowEngine:
             logger.error(f"[WorkflowEngine] Error: No workflow steps found for Workflow ID {workflow_id}")
             raise ValueError(f"No steps defined for workflow {workflow_id}. Ensure seeding is correct.")
             
+        # VALIDATION: Enforce Maximum 2 BARS Matrices per Workflow
+        # This ensures the Stereoscopic Audit does not become a 'cacophony'.
+        matrix_count = sum(1 for _, doc in pipeline_steps if doc.get('component') == 'JudgeAgent' or doc.get('matrix_id'))
+        if matrix_count > 2:
+            logger.error(f"[WorkflowEngine] Configuration Error: Workflow {workflow_id} has {matrix_count} matrices (Max 2 allowed).")
+            raise ValueError(f"Workflow '{workflow_id}' violates constraint: Maximum of 2 BARS Matrices allowed (found {matrix_count}).")
+
         return pipeline_steps
 
     def _project_final_result(self, execution_id: str, state: WorkflowState, pipeline_steps: List[Any]) -> Dict[str, Any]:
@@ -521,6 +528,17 @@ class WorkflowEngine:
                     
         except Exception as e:
             logger.error(f"[WorkflowEngine] Reference consolidation failed: {e}")
+
+        # 4. Inject Matrix Metadata for UI (Stereoscopic Vision Support)
+        # This allows the Frontend to decide whether to show 'Combined Verdict' (Dual) or standard view.
+        matrix_count = sum(1 for _, doc in pipeline_steps if doc.get('component') == 'JudgeAgent' or doc.get('matrix_id'))
+        public_result["_meta"] = {
+            "matrix_count": matrix_count,
+            "matrix_mode": "dual" if matrix_count == 2 else "single"
+        }
+        # Backward compatibility for direct access if needed
+        public_result["matrix_count"] = matrix_count
+        public_result["matrix_mode"] = "dual" if matrix_count == 2 else "single" 
 
         self.repository.update_execution(execution_id, {
             'status': 'completed',

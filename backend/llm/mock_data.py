@@ -262,20 +262,18 @@ def _generate_performativity_data() -> Dict[str, Any]:
 
 def _generate_judge_data() -> Dict[str, Any]:
     data = _clone(_get_common_base(), agent="Tuomari", vaihe=9)
-    # Note: 'viesti_hitl:lle' alias in schema maps to 'viesti_hitl_lle' field.
-    # Providing the ALIAS key is safer for input validation.
+    # UPDATED: Matches EvaluationResult schema (Dynamic Matrix) with explicit scale
     data.update({
-        "konfliktin_ratkaisut": [
-             {"konflikti": "Analyytikko ja Falsifioija eri mieltä.", "ratkaisu_malli": "Synteesi", "perustelu": "Yhdistettiin näkökulmat."}
+        "matrix_id": "matrix_standard_v1",
+        "scale_min": 1, 
+        "scale_max": 5,
+        "total_score": 3.3,
+        "dimensions": [
+             {"dimension_id": "analyysi", "score": 3, "reasoning": "Analyysi on kattava ja perusteltu."},
+             {"dimension_id": "arviointi", "score": 3, "reasoning": "Arviointi on objektiivista."},
+             {"dimension_id": "synteesi", "score": 4, "reasoning": "Synteesi luo uutta tietoa erinomaisesti."}
         ],
-        "mestaruus_poikkeama": {"tunnistettu": False, "perustelu": "Normaali suoritus tasolla 3."},
-        "aitous_epaily": {"automaattinen_lippu": False, "viesti_hitl:lle": "Ei huomautettavaa."},
-        "pisteet": {
-            "analyysi": {"arvosana": 3, "perustelu": "Analyysi on kattava ja perusteltu."},
-            "arviointi": {"arvosana": 3, "perustelu": "Arviointi on objektiivista."},
-            "synteesi": {"arvosana": 4, "perustelu": "Synteesi luo uutta tietoa erinomaisesti."}
-        },
-        "kriittiset_havainnot_yhteenveto": ["Suoritus on tasalaatuinen.", "Argumentaatio on vahvaa."]
+        "critical_findings": ["Suoritus on tasalaatuinen.", "Argumentaatio on vahvaa."]
     })
     return data
 

@@ -159,7 +159,9 @@ class PipelineRunner:
             exec_kwargs = {
                 "system_instruction": system_instruction,
                 "repository": self.repository,
-                "output_key": step_doc.get('state_key') # Pass destination override
+                "output_key": step_doc.get('state_key'), # Pass destination override
+                "execution_config": config,
+                "step_id": step_id
             }
             if exec_kwargs['output_key']:
                  print(f"DEBUG: EXEC_STEP {step_id} Output Key -> {exec_kwargs['output_key']}", flush=True)

@@ -22,6 +22,7 @@ class LogicalFalsifierAgent(BaseAgent):
     Responsible for identifying logical fallacies and structural weaknesses.
     """
     state_field = "step_falsifier"
+    PRODUCES_KEYS = ["step_falsifier"]
     
     def get_response_schema(self) -> Optional[Type[BaseModel]]:
         """
@@ -41,6 +42,7 @@ class FactualOverseerAgent(BaseAgent):
     Responsible for fact-checking and ethical oversight.
     """
     state_field = "step_overseer"
+    PRODUCES_KEYS = ["step_overseer"]
 
     def get_response_schema(self) -> Optional[Type[BaseModel]]:
         """
@@ -76,6 +78,7 @@ class CausalAnalystAgent(BaseAgent):
     Responsible for analyzing causal relationships and correlations.
     """
     state_field = "step_causal"
+    PRODUCES_KEYS = ["step_causal"]
 
     def get_response_schema(self) -> Optional[Type[BaseModel]]:
         """
@@ -94,6 +97,7 @@ class PerformativityDetectorAgent(BaseAgent):
     Responsible for detecting performative language and rhetorical devices.
     """
     state_field = "step_detector"
+    PRODUCES_KEYS = ["step_detector"]
 
     def get_response_schema(self) -> Optional[Type[BaseModel]]:
         """

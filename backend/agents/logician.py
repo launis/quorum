@@ -17,6 +17,7 @@ class LogicianAgent(BaseAgent):
     """
 
     state_field = "step_logician"
+    PRODUCES_KEYS = ["step_logician"]
 
     def get_response_schema(self) -> Optional[Type[BaseModel]]:
         """

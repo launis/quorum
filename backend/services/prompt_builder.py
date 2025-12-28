@@ -92,7 +92,14 @@ class PromptBuilder:
                     if isinstance(content, list):
                         content = "\n".join(str(x) for x in content)
                     elif isinstance(content, dict):
-                        content = json.dumps(content, indent=2, ensure_ascii=False)
+                        if 'text' in content:
+                            ct = content['text']
+                            if 'scale' in content:
+                                s = content['scale']
+                                ct += "\n(SCORING SCALE: " + str(s.get('min', 1)) + " - " + str(s.get('max', 5)) + ")"
+                            content = ct
+                        else:
+                            content = json.dumps(content, indent=2, ensure_ascii=False)
                     parts.append(content)
         return parts
 

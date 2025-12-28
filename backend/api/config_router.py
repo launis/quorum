@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends, Path, Query as APIQuery
 from tinydb import Query
-from typing import List, Dict, Any, Optional, Annotated
+from typing import List, Dict, Any, Optional, Annotated, Union
 from pydantic import BaseModel, Field
 import json
 import re
@@ -23,11 +23,11 @@ router = APIRouter(
 # --- Models ---
 
 class ComponentUpdate(BaseModel):
-    content: Annotated[str, Field(description="The template content (prompt text, rule text).")]
+    content: Annotated[Union[str, Dict[str, Any], List[Any]], Field(description="The template content (prompt text, rule text, or config object).")]
     description: Annotated[Optional[str], Field(description="Metadata description.")] = None
     citation: Annotated[Optional[str], Field(description="Short citation anchor.")] = None
     citation_full: Annotated[Optional[str], Field(description="Complete bibliographic reference.")] = None
-    type: Annotated[Optional[str], Field(description="Component categorization (e.g. 'mandate', 'prompt').")] = None
+    type: Annotated[Optional[str], Field(description="Component categorization (e.g. 'mandate', 'prompt', 'evaluation_matrix').")] = None
 
 class ModelSettings(BaseModel):
     model_name: Annotated[str, Field(description="The concrete model identifier (e.g. 'gemini-1.5-pro').")]
@@ -49,8 +49,8 @@ class WorkflowUpdate(BaseModel):
 class ComponentCreate(BaseModel):
     id: Annotated[str, Field(description="Unique Identifier for the component.")]
     name: Annotated[str, Field(description="Human readable name.")]
-    type: Annotated[str, Field(description="Component Type (header, prompt, etc).")]
-    content: Annotated[str, Field(description="The raw text content.")]
+    type: Annotated[str, Field(description="Component Type (header, prompt, evaluation_matrix, etc).")]
+    content: Annotated[Union[str, Dict[str, Any], List[Any]], Field(description="The content (text or JSON object).")]
     description: Annotated[Optional[str], Field(description="Description of purpose.")] = None
     citation: Annotated[Optional[str], Field(description="Short citation.")] = None
     citation_full: Annotated[Optional[str], Field(description="Full citation.")] = None

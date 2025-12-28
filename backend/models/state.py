@@ -19,7 +19,8 @@ from backend.models.domain import (
     CaseLawContext,
     CoachingPlan,
     InteractionAnalysis,
-    PanelAudit
+    PanelAudit,
+    EvaluationResult
 )
 
 class InputData(BaseModel):
@@ -76,6 +77,11 @@ class WorkflowState(BaseModel):
 
     # Formatted output
     xai_report_formatted: Annotated[Optional[str], Field(description="Final markdown report cache.")] = None
+
+    # Dynamic Evaluation Results (New Multi-Matrix System)
+    # Key = Step ID (e.g. "step_judge_cognitive")
+    # Value = EvaluationResult object
+    audit_results: Annotated[Dict[str, EvaluationResult], Field(default_factory=dict, description="Dynamic container for matrix-based evaluations.")]
 
     # Auxiliary Data
     aux_data: Annotated[Dict[str, Any], Field(default_factory=dict, description="Temporary storage for hooks and side-effects.")]

@@ -17,33 +17,11 @@ class MockLLMService:
     
     def __init__(self):
         """
-        Initializes the Mock Service by loading response templates from disk.
+        Initializes the Mock Service.
         """
-        settings = get_settings()
-        self.mock_data_path = settings.mock_responses_path
-        self.mock_responses = self._load_mock_responses()
-        
-        # MAPPING: Agent Class Name -> Mock Key in JSON
+        # MAPPING: Agent Class Name -> Mock Key
         # Centralized in mock_data.py
         self.agent_identity_map = AGENT_CLASS_TO_MOCK_KEY
-
-    def _load_mock_responses(self) -> Dict[str, Any]:
-        """
-        Loads mock responses from the configured JSON file.
-
-        Returns:
-            Dict[str, Any]: The loaded mock response data.
-        """
-        if not os.path.exists(self.mock_data_path):
-            logger.warning(f"[MockLLM] Mock data file not found at {self.mock_data_path}. Using empty defaults.")
-            return {}
-        
-        try:
-            with open(self.mock_data_path, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except Exception as e:
-            logger.error(f"[MockLLM] Error loading mock data: {e}")
-            return {}
 
     def generate_content(self, prompt: str, system_instruction: Optional[str] = None, agent_identity: Optional[str] = None) -> str:
         """
@@ -83,21 +61,7 @@ class MockLLMService:
             
         logger.info(f"[MOCK RESPONSE] Generating response for: {key}")
         
-        # 2. Retrieve mock response
-        response_template = self.mock_responses.get(key)
-        
-        if response_template:
-            # If it's a list, pick a random variation
-            if isinstance(response_template, list):
-                return json.dumps(random.choice(response_template), ensure_ascii=False)
-            # If it's a dict (JSON object), return as string
-            elif isinstance(response_template, dict):
-                return json.dumps(response_template, ensure_ascii=False)
-            # If it's a string, return as is
-            return str(response_template)
-            
-        # 3. Fallback: Generate generic valid JSON if possible
-        logger.info(f"[MockLLM] No specific mock found for '{key}'. Returning generic fallback.")
+        # 2. Generate Data Programmatically
         return self._generate_fallback(key)
 
     def _identify_prompt_type(self, prompt: str, system_instruction: Optional[str]) -> str:

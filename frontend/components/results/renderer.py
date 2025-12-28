@@ -1,6 +1,146 @@
 import streamlit as st
 import pandas as pd
 
+def render_dual_matrix_view(data: dict):
+    """
+    Renders a comparative view of two Judge matrices dynamically.
+    Scans Raw_Steps for any steps containing 'pisteet' and 'judge'/'tuomari' in metadata/key.
+    """
+    raw = data.get("Raw_Steps", {})
+    
+    # 1. Dynamic Discovery
+    judge_steps = []
+    for step_id, step_data in raw.items():
+        # Check if it looks like a scored step
+        if isinstance(step_data, dict) and "pisteet" in step_data:
+            # Check keywords in ID or Agent Name to confirm it's a Judge
+            agent_name = step_data.get("metadata", {}).get("agentti", "").lower()
+            sid = step_id.lower()
+            if "judge" in sid or "tuomari" in sid or "judge" in agent_name or "tuomari" in agent_name:
+                judge_steps.append((step_id, step_data))
+
+    if len(judge_steps) != 2:
+        st.warning(f"⚠️ Dual Mode active, but found {len(judge_steps)} judge matrices (Expected 2). Showing available raw data.")
+        if len(judge_steps) == 1:
+             # Fallback to single view for the one found?
+             pass
+        return
+
+    # 2. Strict Dynamic Identification (No Heuristics)
+    # Sort by Step ID to ensure deterministic order (e.g. step_judge comes before step_judge_cognitive)
+    judge_steps.sort(key=lambda x: x[0])
+
+    s_left_id, s_left_data = judge_steps[0]
+    s_right_id, s_right_data = judge_steps[1]
+
+    # Labels strictly from Metadata
+    left_label = s_left_data.get("metadata", {}).get("agentti", s_left_id)
+    right_label = s_right_data.get("metadata", {}).get("agentti", s_right_id)
+
+    # Sanity check for identical names
+    if left_label == right_label:
+        left_label = f"{left_label} ({s_left_id})"
+        right_label = f"{right_label} ({s_right_id})"
+
+    pts_l = s_left_data.get("pisteet", {})
+    pts_r = s_right_data.get("pisteet", {})
+    
+    # Common keys
+    keys_l = set(pts_l.keys())
+    keys_r = set(pts_r.keys())
+    common_keys = list(keys_l.intersection(keys_r))
+    
+    if not common_keys:
+         # If no intersection, we can't compare. Just take Left keys to show something.
+         common_keys = list(keys_l)
+
+    # Simple alphabetical sort for keys
+    common_keys.sort()
+
+    # Header
+    cols = st.columns([2, 2, 2, 1, 2])
+    cols[0].markdown("**Ulottuvuus**")
+    cols[1].markdown(f"**{left_label}**")
+    cols[2].markdown(f"**{right_label}**")
+    cols[3].markdown("**Delta**")
+    cols[4].markdown("**Johtopäätös**")
+    st.divider()
+
+    total_l, total_r, count = 0, 0, 0
+
+    def get_val_str(item):
+        if isinstance(item, dict): return item.get("arvosana", 0), item.get("perustelu", "")
+        return (float(item), "") if isinstance(item, (int, float, str)) and str(item).replace('.','',1).isdigit() else (0, str(item))
+
+    # Helper for formatted score
+    def fmt_score_dual(score, s_max=None):
+        try:
+             s = float(score)
+             # integer check
+             val_str = f"{s:.0f}" if s.is_integer() else f"{s:.1f}"
+             
+             if s_max:
+                 return f"{val_str}/{s_max}"
+             return val_str
+        except:
+            return str(score)
+
+    for key in common_keys:
+        val_l, reason_l = get_val_str(pts_l.get(key))
+        val_r, reason_r = get_val_str(pts_r.get(key))
+        
+        # Get scale max for specific steps
+        max_l = s_left_data.get("scale_max")
+        max_r = s_right_data.get("scale_max")
+        
+        try:
+             num_l = float(val_l)
+             num_r = float(val_r)
+        except:
+             num_l, num_r = 0, 0
+
+        total_l += num_l
+        total_r += num_r
+        count += 1
+        
+        delta = num_r - num_l
+        delta_str = f"+{delta:.0f}" if delta > 0 else f"{delta:.0f}"
+        if delta == 0: delta_str = "="
+        
+        # Generic Verdict Logic
+        verdict = ""
+        if delta > 0:
+            verdict = f"📈 {right_label} (+)"
+        elif delta < 0:
+            verdict = f"📉 {left_label} (+)"
+        else:
+            verdict = "⚖️ Tasan"
+        
+        # Color coding delta
+        delta_color = "green" if delta > 0 else "red" if delta < 0 else "gray"
+
+        c = st.columns([2, 2, 2, 1, 2])
+        c[0].markdown(f"### {key.capitalize()}")
+        # Display raw score with scale denominator if available
+        c[1].metric(left_label, fmt_score_dual(num_l, max_l), label_visibility="collapsed")
+        c[2].metric(right_label, fmt_score_dual(num_r, max_r), label_visibility="collapsed")
+        c[3].markdown(f":{delta_color}[**{delta_str}**]")
+        c[4].caption(verdict)
+        
+        with c[0].expander("Perustelut"):
+            st.markdown(f"**{left_label}:** {reason_l}")
+            st.divider()
+            st.markdown(f"**{right_label}:** {reason_r}")
+        
+        st.divider()
+
+    # Averages
+    if count > 0:
+        avg_l = round(total_l / count, 1)
+        avg_r = round(total_r / count, 1)
+        st.markdown(f"**Keskiarvo:** {avg_l} vs. {avg_r}")
+
+
 def render_dashboard(data: dict):
     """
     Renders the complete audit dashboard based on the result dictionary.
@@ -25,19 +165,60 @@ def render_dashboard(data: dict):
         st.metric("Risk Level", sys_status.get("riski_taso", "N/A"))
 
     # 2. Scores
-    scores = report.get("scores", {})
-    if scores:
-        st.subheader("Arviointi (Scores)")
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            st.metric("Analyysi", f"{scores.get('analyysi', 0)}/4")
-            st.caption(scores.get('analyysi_selitys', ''))
-        with c2:
-            st.metric("Arviointi", f"{scores.get('arviointi', 0)}/4")
-            st.caption(scores.get('arviointi_selitys', ''))
-        with c3:
-            st.metric("Synteesi", f"{scores.get('synteesi', 0)}/4")
-            st.caption(scores.get('synteesi_selitys', ''))
+    # 2. Scores (Dual or Single)
+    # Check for Dual Mode metadata or infer from steps
+    matrix_mode = data.get("matrix_mode") or data.get("_meta", {}).get("matrix_mode")
+    
+    # Fallback inference if metadata missing
+    if not matrix_mode:
+        raw = data.get("Raw_Steps", {})
+        if "step_judge" in raw and "step_judge_cognitive" in raw:
+            matrix_mode = "dual"
+
+    # Helper for formatted score
+    def fmt_score(score, s_max=None):
+        try:
+             s = float(score)
+             # integer check
+             val_str = f"{s:.0f}" if s.is_integer() else f"{s:.1f}"
+             
+             if s_max:
+                 return f"{val_str}/{s_max}"
+             # Heuristic: If > 5, assume it's NOT a small Likert
+             return val_str
+        except:
+            return str(score)
+
+    if matrix_mode == "dual":
+        render_dual_matrix_view(data)
+    else:
+        # Standard Single View
+        scores = report.get("scores", {})
+        
+        # Try to find scale_max from Raw Data
+        s_max = None
+        raw = data.get("Raw_Steps", {})
+        for _, val in raw.items():
+             if "scale_max" in val:
+                 s_max = val["scale_max"]
+                 break
+        # Fallback: check nested results
+        if not s_max:
+             # Check if any step has 'audit_results' style data
+             pass
+
+        if scores:
+            st.subheader(f"Arviointi (Scores)")
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                st.metric("Analyysi", fmt_score(scores.get('analyysi', 0), s_max))
+                st.caption(scores.get('analyysi_selitys', ''))
+            with c2:
+                st.metric("Arviointi", fmt_score(scores.get('arviointi', 0), s_max))
+                st.caption(scores.get('arviointi_selitys', ''))
+            with c3:
+                st.metric("Synteesi", fmt_score(scores.get('synteesi', 0), s_max))
+                st.caption(scores.get('synteesi_selitys', ''))
 
     # 3. Feedback
     st.subheader("Palaute (Feedback)")
@@ -229,6 +410,13 @@ def render_dashboard(data: dict):
                  reasoning = step_data.get('reasoning_trace')
                  
                  st.markdown(f"**{agent}** (v{ver}) - *{time}*")
+                 
+                 # Show Scale if available (Judge Steps)
+                 s_min = step_data.get('scale_min')
+                 s_max = step_data.get('scale_max')
+                 if s_max:
+                     st.caption(f"📏 *Scale:* {s_min}-{s_max}")
+
                  if reasoning:
                      st.caption(f"🧠 *Reasoning:* {reasoning}")
                  if log:
