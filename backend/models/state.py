@@ -88,6 +88,9 @@ class WorkflowState(BaseModel):
     # Key = Step ID
     # Value = { "token": "...", "model": "gemini-1.5-pro", "provider": "google" }
     reasoning_context: Annotated[Dict[str, Dict[str, str]], Field(default_factory=dict, description="Storage for encrypted reasoning blobs with metadata.")]
+    
+    # Transient Reasoning Trace (The "Hot Potato" token for next step)
+    last_reasoning_trace: Annotated[Optional[str], Field(default=None, description="The encrypted reasoning token from the immediately preceding step.")]
 
     # Auxiliary Data
     aux_data: Annotated[Dict[str, Any], Field(default_factory=dict, description="Temporary storage for hooks and side-effects.")]

@@ -89,9 +89,9 @@ async def get_seed_data(engine: WorkflowEngine = Depends(get_engine)):
         dict: Object containing lists of components, steps, and workflows.
     """
     try:
-        components = engine.repository.get_all_components()
-        steps = engine.repository.get_all_steps()
-        workflows = engine.repository.get_all_workflows()
+        components = await engine.repository.get_all_components()
+        steps = await engine.repository.get_all_steps()
+        workflows = await engine.repository.get_all_workflows()
         
         return {
             "components": components,
@@ -118,7 +118,7 @@ async def get_workflows(engine: WorkflowEngine = Depends(get_engine)):
         List[dict]: List of workflow objects.
     """
     try:
-        workflows = engine.repository.get_all_workflows()
+        workflows = await engine.repository.get_all_workflows()
         return workflows
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -146,7 +146,7 @@ async def preview_prompt(
         HTTPException: If prompt generation fails.
     """
     try:
-        preview = engine.preview_step_prompt(step_id)
+        preview = await engine.preview_step_prompt(step_id)
         if "error" in preview:
             raise HTTPException(status_code=400, detail=preview["error"])
         return preview
@@ -173,7 +173,7 @@ async def preview_full_chain(
         dict: Object containing 'full_chain_text'.
     """
     try:
-        preview_text = engine.preview_full_chain_prompts(workflow_id)
+        preview_text = await engine.preview_full_chain_prompts(workflow_id)
         if preview_text.startswith("Error"):
             raise HTTPException(status_code=404, detail=preview_text)
         return {"full_chain_text": preview_text}

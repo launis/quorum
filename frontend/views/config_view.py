@@ -53,7 +53,7 @@ def render_config_view(api_client, backend_url):
                  # Enable selection
                  event = st.dataframe(
                      df[cols], 
-                     use_container_width=True, 
+                     width="stretch", 
                      on_select="rerun", 
                      selection_mode="single-row",
                      key="comp_list_selection"
@@ -170,7 +170,7 @@ def render_config_view(api_client, backend_url):
                 for col in s_cols:
                     if col not in s_df.columns:
                         s_df[col] = ""
-                st.dataframe(s_df[s_cols], use_container_width=True)
+                st.dataframe(s_df[s_cols], width="stretch")
 
     # --- Step Manager (GUI) ---
     with tabs[1]:

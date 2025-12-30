@@ -48,21 +48,10 @@ class WorkflowEngine:
         if repository:
             self.repository = repository
         else:
-             from backend.database.wrapper import get_db_client
-             from backend.database.repository import TinyDBRepository
-             
-             client = db_client if db_client else get_db_client()
-             
-             # Fallback: Dynamic Selection
-             if type(client).__name__ == 'FirestoreClient':
-                 try:
-                     from backend.database.firestore_repo import FirestoreWorkflowRepository
-                     self.repository = FirestoreWorkflowRepository(client)
-                 except ImportError:
-                     logger.error("FirestoreWorkflowRepository not available. Using TinyDBRepository (Mock/Local).")
-                     self.repository = TinyDBRepository(client)
-             else:
-                 self.repository = TinyDBRepository(client)
+             # AUTO-WIRING:
+             # If no repo is provided, we create one using the new Async-First Dependency.
+             from backend.dependencies import get_async_repository, get_db_client_dep
+             self.repository = get_async_repository(get_db_client_dep())
         
         # Service Injection
         if registry:
@@ -97,30 +86,18 @@ class WorkflowEngine:
         logger.info(f"[WorkflowEngine] initialized with DB at {db_path}")
 
     # --- DELEGATED METHODS (Services) ---
-    def resolve_model_name(self, model_identifier: str) -> str:
+    # --- DELEGATED METHODS (Services) ---
+    async def resolve_model_name(self, model_identifier: str) -> str:
         """
         Resolves a high-level model strategy to a concrete model name.
-
-        Args:
-            model_identifier (str): The strategy key (e.g., 'fast').
-
-        Returns:
-            str: The concrete model name (e.g., 'gemini-1.5-flash').
         """
-        return self.registry.resolve_model_name(model_identifier)
+        return await self.registry.resolve_model_name(model_identifier)
 
-    def create_workflow(self, name: str, steps: List[Dict[str, Any]]) -> int:
+    async def create_workflow(self, name: str, steps: List[Dict[str, Any]]) -> int:
         """
         Creates a new workflow definition in the repository.
-
-        Args:
-            name (str): The name of the workflow.
-            steps (List[Dict[str, Any]]): A list of step configuration objects.
-
-        Returns:
-            int: The ID of the created workflow.
         """
-        workflow_id = self.repository.create_workflow({
+        workflow_id = await self.repository.create_workflow({
             "name": name,
             "steps": steps,
             "created_at": datetime.now().isoformat()
@@ -130,14 +107,6 @@ class WorkflowEngine:
     async def create_execution(self, workflow_id: Any, inputs: Dict[str, Any], files: Optional[Dict[str, tuple]] = None) -> str:
         """
         Initializes a new execution record with processed inputs and files.
-
-        Args:
-            workflow_id (Any): The ID of the workflow to execute.
-            inputs (Dict[str, Any]): Initial input parameters.
-            files (Optional[Dict[str, tuple]]): Uploaded files map (filename, bytes).
-
-        Returns:
-            str: The generated Execution ID (UUID).
         """
         execution_id = str(uuid.uuid4())
         
@@ -149,7 +118,9 @@ class WorkflowEngine:
             file_updates = await self.document_service.process_evidence_files(execution_id, files)
             final_inputs.update(file_updates)
 
-        self.repository.create_execution({
+            final_inputs.update(file_updates)
+
+        await self.repository.create_execution({
             "execution_id": execution_id,
             "workflow_id": workflow_id,
             "status": "pending",
@@ -159,60 +130,32 @@ class WorkflowEngine:
         })
         return execution_id
 
-    def get_execution_status(self, execution_id: Any) -> Optional[Dict[str, Any]]:
+    async def get_execution_status(self, execution_id: Any) -> Optional[Dict[str, Any]]:
         """
         Retrieves the current status and data for a given execution.
-
-        Args:
-            execution_id (Any): The Execution UUID.
-
-        Returns:
-            Optional[Dict[str, Any]]: The execution record or None if not found.
-
-        Raises:
-            ExecutionNotFoundError: If execution ID does not exist.
         """
-        exec_data = self.repository.get_execution(str(execution_id))
+        exec_data = await self.repository.get_execution(str(execution_id))
         if not exec_data:
             raise ExecutionNotFoundError(str(execution_id))
         return exec_data
 
-    def preview_step_prompt(self, step_id: str) -> Dict[str, Any]:
+    async def preview_step_prompt(self, step_id: str) -> Dict[str, Any]:
         """
         Previews the prompt for a specific step.
-
-        Args:
-            step_id (str): The Step ID.
-
-        Returns:
-            Dict[str, Any]: Prompt structure.
         """
-        return self.prompt_builder.preview_step_prompt(step_id)
+        return await self.prompt_builder.preview_step_prompt(step_id)
 
-    def preview_full_chain_prompts(self, workflow_id: str) -> str:
+    async def preview_full_chain_prompts(self, workflow_id: str) -> str:
         """
         Generates a full textual preview of all prompts in the validation chain.
-
-        Args:
-            workflow_id (str): The Workflow ID.
-
-        Returns:
-            str: Markdown formatted string of all prompts.
         """
-        return self.prompt_builder.preview_full_chain_prompts(workflow_id)
+        return await self.prompt_builder.preview_full_chain_prompts(workflow_id)
 
-    def _construct_prompt_for_step(self, step_id: str, current_state: Optional[WorkflowState] = None) -> str:
+    async def _construct_prompt_for_step(self, step_id: str, current_state: Optional[WorkflowState] = None) -> str:
         """
         Helper to construct a prompt for a single step with current state.
-
-        Args:
-            step_id (str): The Step ID.
-            current_state (Optional[WorkflowState]): The current workflow context.
-
-        Returns:
-            str: The constructed prompt text.
         """
-        return self.prompt_builder.construct_prompt(step_id, current_state)
+        return await self.prompt_builder.construct_prompt(step_id, current_state)
 
     # --- CORE EXECUTION LOGIC (V2) ---
 
@@ -232,23 +175,23 @@ class WorkflowEngine:
         
         try:
             # 1. Get Execution Record first to identify Workflow
-            exec_record = self.repository.get_execution(execution_id)
+            exec_record = await self.repository.get_execution(execution_id)
             if not exec_record:
                 raise ExecutionNotFoundError(execution_id)
             
             wf_id = exec_record['workflow_id']
-            wf_record = self.repository.get_workflow_by_id(wf_id)
+            wf_record = await self.repository.get_workflow_by_id(wf_id)
             wf_name = wf_record['name'] if wf_record else "Unknown"
 
             # 2. Initialize State via Runner
             current_state = await self.runner.initialize_state(execution_id, raw_inputs, wf_id, wf_name)
             
-            pipeline_steps = self._resolve_pipeline_steps(wf_id)
+            pipeline_steps = await self._resolve_pipeline_steps(wf_id)
 
             # 3. Execute Loop via Runner
             from backend.services.progress import DatabaseProgressTracker
             tracker = DatabaseProgressTracker(self.repository, execution_id)
-            tracker.start() 
+            await tracker.start() 
 
             print(f"DEBUG: Engine calling runner.execute_loop. Runner type: {type(self.runner)}", flush=True)
             final_state = await self.runner.execute_loop(current_state, pipeline_steps, tracker, execution_id)
@@ -259,16 +202,16 @@ class WorkflowEngine:
 
             # 5. Success
             logger.info(f"[WorkflowEngine] Execution {execution_id} completed successfully.")
-            result = self._project_final_result(execution_id, final_state, pipeline_steps)
-            tracker.complete(result)
+            result = await self._project_final_result(execution_id, final_state, pipeline_steps)
+            await tracker.complete(result)
             return result
 
         except FatalInterruption as fi:
-            return self._create_halt_response(execution_id, fi.step_name, fi, current_state)
+            return await self._create_halt_response(execution_id, fi.step_name, fi, current_state)
         except AgentExecutionError as ae:
-            self._handle_execution_error(execution_id, ae, current_state)
+            await self._handle_execution_error(execution_id, ae, current_state)
         except Exception as e:
-            self._handle_execution_error(execution_id, e, current_state)
+            await self._handle_execution_error(execution_id, e, current_state)
         finally:
             clear_execution_context()
 
@@ -287,7 +230,7 @@ class WorkflowEngine:
 
         try:
             # 1. Load Execution Record & Trace
-            exec_record = self.repository.get_execution(execution_id)
+            exec_record = await self.repository.get_execution(execution_id)
             if not exec_record:
                 raise ExecutionNotFoundError(execution_id)
             
@@ -300,7 +243,7 @@ class WorkflowEngine:
             current_state = WorkflowState.model_validate(trace_data)
             
             # 3. Determine Resume Point
-            pipeline_steps = self._resolve_pipeline_steps(exec_record['workflow_id'])
+            pipeline_steps = await self._resolve_pipeline_steps(exec_record['workflow_id'])
             
             steps_to_run = []
             resume_index = 0
@@ -320,12 +263,12 @@ class WorkflowEngine:
             
             if not steps_to_run:
                 logger.info("[WorkflowEngine] Execution appears already complete. Returning result.")
-                return self._project_final_result(execution_id, current_state, pipeline_steps)
+                return await self._project_final_result(execution_id, current_state, pipeline_steps)
 
             logger.info(f"[WorkflowEngine] Resuming from step {resume_index + 1}/{len(pipeline_steps)} ({steps_to_run[0][0].__class__.__name__})")
 
             # 4. Update Status to Running
-            self.repository.update_execution(execution_id, {
+            await self.repository.update_execution(execution_id, {
                 'status': 'running',
                 'error': None
             })
@@ -333,7 +276,7 @@ class WorkflowEngine:
             # 5. Execute Remaining Steps via Runner
             from backend.services.progress import DatabaseProgressTracker
             tracker = DatabaseProgressTracker(self.repository, execution_id)
-            tracker.start() 
+            await tracker.start() 
 
             final_state = await self.runner.execute_loop(
                 current_state, 
@@ -350,13 +293,13 @@ class WorkflowEngine:
 
             # 7. Success
             logger.info(f"[WorkflowEngine] Execution {execution_id} completed successfully (RESUMED).")
-            result = self._project_final_result(execution_id, final_state, pipeline_steps)
-            tracker.complete(result)
+            result = await self._project_final_result(execution_id, final_state, pipeline_steps)
+            await tracker.complete(result)
             return result
             
         except Exception as e:
             c_state = locals().get('current_state', None)
-            self._handle_execution_error(execution_id, e, c_state)
+            await self._handle_execution_error(execution_id, e, c_state)
             raise e
         finally:
             clear_execution_context()
@@ -367,7 +310,7 @@ class WorkflowEngine:
         """
         logger.info("[WorkflowEngine] Scanning for interrupted jobs...")
         try:
-            all_executions = self.repository.get_all_executions()
+            all_executions = await self.repository.get_all_executions()
             running_jobs = [j for j in all_executions if j.get('status') == 'running']
             
             for job in running_jobs:
@@ -376,7 +319,7 @@ class WorkflowEngine:
                 try:
                     if not job.get('trace'):
                         logger.warning(f"[WorkflowEngine] Cannot resume {eid}: No trace data. Marking as failed.")
-                        self.repository.update_execution(eid, {'status': 'failed', 'error': 'System Restart: No trace to resume.'})
+                        await self.repository.update_execution(eid, {'status': 'failed', 'error': 'System Restart: No trace to resume.'})
                         continue
 
                     import asyncio
@@ -388,7 +331,7 @@ class WorkflowEngine:
         except Exception as e:
             logger.error(f"[WorkflowEngine] Recovery scan failed: {e}")
 
-    def _create_halt_response(self, execution_id: str, step_name: str, error: FatalInterruption, state: Optional[WorkflowState] = None) -> Dict[str, Any]:
+    async def _create_halt_response(self, execution_id: str, step_name: str, error: FatalInterruption, state: Optional[WorkflowState] = None) -> Dict[str, Any]:
         """
         Helper to construct a structured response when execution is fatally halted.
 
@@ -422,10 +365,10 @@ class WorkflowEngine:
         if state:
             update_data['trace'] = state.model_dump(mode='json')
 
-        self.repository.update_execution(execution_id, update_data)
+        await self.repository.update_execution(execution_id, update_data)
         return halt_result
 
-    def _resolve_pipeline_steps(self, workflow_id: str) -> List[Any]:
+    async def _resolve_pipeline_steps(self, workflow_id: str) -> List[Any]:
         """
         Resolves the sequential list of execution steps for a workflow.
 
@@ -435,7 +378,7 @@ class WorkflowEngine:
         Returns:
             List[Any]: List of (AgentInstance, StepDocument) tuples.
         """
-        wf_record = self.repository.get_workflow_by_id(workflow_id)
+        wf_record = await self.repository.get_workflow_by_id(workflow_id)
         if not wf_record:
              raise WorkflowNotFoundError(workflow_id)
         
@@ -443,7 +386,7 @@ class WorkflowEngine:
         step_ids = wf_record.get('steps', [])
         
         for sid in step_ids:
-            s_doc = self.repository.get_step_by_id(sid)
+            s_doc = await self.repository.get_step_by_id(sid)
             if s_doc:
                 agent_name = s_doc.get('component')
                 if agent_name:
@@ -464,7 +407,7 @@ class WorkflowEngine:
 
         return pipeline_steps
 
-    def _project_final_result(self, execution_id: str, state: WorkflowState, pipeline_steps: List[Any]) -> Dict[str, Any]:
+    async def _project_final_result(self, execution_id: str, state: WorkflowState, pipeline_steps: List[Any]) -> Dict[str, Any]:
         """
         Transforms the final internal state into the public result dictionary.
         Applies logic for field hoisting and Reference Manager scanning.
@@ -488,7 +431,7 @@ class WorkflowEngine:
             
             output_config_id = step_doc.get('output_config_component')
             if output_config_id:
-                comp_record = self.repository.get_component_by_id(output_config_id)
+                comp_record = await self.repository.get_component_by_id(output_config_id)
                 if comp_record:
                     hoist_fields = comp_record.get('content', [])
             
@@ -514,7 +457,7 @@ class WorkflowEngine:
         try:
             from backend.services.reference_manager import ReferenceManager
             
-            kb_items = self.repository.get_knowledge_base_items()
+            kb_items = await self.repository.get_knowledge_base_items()
             kb_struct = {"references": []}
             for item in kb_items:
                 if item.get('type') == 'reference':
@@ -551,7 +494,7 @@ class WorkflowEngine:
         public_result["matrix_count"] = matrix_count
         public_result["matrix_mode"] = "dual" if matrix_count == 2 else "single" 
 
-        self.repository.update_execution(execution_id, {
+        await self.repository.update_execution(execution_id, {
             'status': 'completed',
             'end_time': datetime.now().isoformat(),
             'result': public_result,
@@ -559,7 +502,7 @@ class WorkflowEngine:
         })
         return public_result
 
-    def _handle_execution_error(self, execution_id: str, error: Exception, state: Optional[WorkflowState] = None):
+    async def _handle_execution_error(self, execution_id: str, error: Exception, state: Optional[WorkflowState] = None):
         """
         Handles exception logging and state persistence during failure.
 
@@ -590,4 +533,4 @@ class WorkflowEngine:
             except Exception as e:
                 logger.error(f"[WorkflowEngine] Failed to save crash state: {e}")
 
-        self.repository.update_execution(execution_id, update_data)
+        await self.repository.update_execution(execution_id, update_data)

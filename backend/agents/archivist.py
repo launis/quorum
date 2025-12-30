@@ -40,7 +40,7 @@ class ArchivistAgent(BaseAgent):
 
     # --- PYTHON HOOKS ---
 
-    def retrieve_precedent(self, state: WorkflowState, repository: Any = None) -> WorkflowState:
+    async def retrieve_precedent(self, state: WorkflowState, repository: Any = None) -> WorkflowState:
         """
         PRE-HOOK: retrieve_precedent.
         
@@ -56,4 +56,4 @@ class ArchivistAgent(BaseAgent):
         """
         logger.info("[ArchivistAgent] Delegating to Archival Hook...")
         from backend.hooks.archival import retrieve_precedent
-        return retrieve_precedent(state, repository)
+        return await retrieve_precedent(state, repository)

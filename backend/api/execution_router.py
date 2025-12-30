@@ -37,7 +37,7 @@ class WorkflowExecutionRequest(BaseModel):
     summary="Create Workflow",
     response_description="A confirmation object with the new Workflow ID."
 )
-def create_workflow(
+async def create_workflow(
     request: WorkflowCreateRequest, 
     engine: WorkflowEngine = Depends(get_engine)
 ):
@@ -51,7 +51,7 @@ def create_workflow(
     Returns:
         dict: The status and generated workflow_id.
     """
-    workflow_id = engine.create_workflow(request.name, request.steps)
+    workflow_id = await engine.create_workflow(request.name, request.steps)
     return {"status": "created", "workflow_id": workflow_id}
 
 # --- Executions ---
@@ -98,7 +98,7 @@ async def execute_workflow(
     execution_id = await engine.create_execution(workflow_id, inputs, files=files_map)
     
     # Fetch actual text inputs from DB for the runner
-    rec = engine.repository.get_execution(execution_id)
+    rec = await engine.repository.get_execution(execution_id)
     cleaned_inputs = rec.get('inputs', {})
     
     # DEBUG: Verify inputs made it
@@ -130,7 +130,7 @@ async def get_recent_executions(
     Returns:
         List[dict]: List of execution summary objects.
     """
-    all_execs = engine.repository.get_all_executions()
+    all_execs = await engine.repository.get_all_executions()
     if not all_execs: return []
     
     if status:
@@ -159,7 +159,7 @@ async def get_latest_execution(
     Raises:
         HTTPException: If no executions exist.
     """
-    all_execs = engine.repository.get_all_executions()
+    all_execs = await engine.repository.get_all_executions()
     if not all_execs: raise HTTPException(status_code=404, detail="No executions found")
     
     return sorted(all_execs, key=lambda x: x.get('start_time', ''), reverse=True)[0]
@@ -187,7 +187,7 @@ async def get_execution_status(
     Raises:
         HTTPException: If not found.
     """
-    status = engine.get_execution_status(execution_id)
+    status = await engine.get_execution_status(execution_id)
     if not status: raise HTTPException(status_code=404, detail="Execution not found")
     
     # If the workflow is complete and we have a final result state, flatten it for the UI
@@ -248,7 +248,7 @@ async def retry_execution(
     Raises:
         HTTPException: If execution is not in a retriable state.
     """
-    status = engine.get_execution_status(execution_id)
+    status = await engine.get_execution_status(execution_id)
     if not status: raise HTTPException(status_code=404, detail="Execution not found")
     
     current_status = status.get('status')

@@ -24,11 +24,11 @@ class AgentRegistry:
         self.repository = repository
         self.agents_map: Dict[str, BaseAgent] = {}
 
-    def resolve_model_name(self, model_identifier: str) -> str:
+    async def resolve_model_name(self, model_identifier: str) -> str:
         """
         Resolves a high-level model key (e.g. 'fast', 'smart') to a concrete model name.
         Prioritizes database configuration over any hardcoded defaults.
-
+        
         Args:
             model_identifier (str): The strategy key.
 
@@ -37,10 +37,10 @@ class AgentRegistry:
         """
         from backend.settings import get_settings
         settings = get_settings()
-        config = self.resolve_model_config(model_identifier)
+        config = await self.resolve_model_config(model_identifier)
         return config.get("model_name", settings.initial_model)
 
-    def resolve_model_config(self, model_identifier: str) -> Dict[str, Any]:
+    async def resolve_model_config(self, model_identifier: str) -> Dict[str, Any]:
         """
         Resolves a model identifier to a full configuration dictionary (name, tokens, temp, provider).
         STRICT MODE: Fetches ONLY from Database. No fallbacks.
@@ -55,7 +55,7 @@ class AgentRegistry:
             ValueError: If strategy not found in DB.
         """
         # 1. Fetch Dynamic Strategies from Repository
-        reg_entry = self.repository.get_model_registry()
+        reg_entry = await self.repository.get_model_registry()
         
         dynamic_strategies_map = {}
         if reg_entry and 'models' in reg_entry:
@@ -90,7 +90,7 @@ class AgentRegistry:
         logger.error(err_msg)
         raise ValueError(err_msg)
 
-    def register_component(self, name: str, type: str, class_name: str):
+    async def register_component(self, name: str, type: str, class_name: str):
         """
         Registers a new component definition in the database.
 
@@ -99,8 +99,8 @@ class AgentRegistry:
             type (str): Type category (e.g. 'agent', 'tool').
             class_name (str): Python class name.
         """
-        if not self.repository.get_component_by_name(name):
-            self.repository.register_component({
+        if not await self.repository.get_component_by_name(name):
+            await self.repository.register_component({
                 "id": name,
                 "name": name,
                 "type": type,
@@ -108,14 +108,14 @@ class AgentRegistry:
                 "registered_at": datetime.now().isoformat()
             })
 
-    def _update_component_metadata(self, name, module, component_class):
+    async def _update_component_metadata(self, name, module, component_class):
          """
          Helper to add module/class info for dynamic router loading.
          Updates existing component records with runtime metadata.
          """
-         self.repository.update_component_metadata(name, module, component_class)
+         await self.repository.update_component_metadata(name, module, component_class)
 
-    def discover_and_register_agents(self, package_path: str = 'backend.agents'):
+    async def discover_and_register_agents(self, package_path: str = 'backend.agents'):
         """
         Loads agents using the static AgentFactory and registers them in the DB.
         This bootstraps the system with available code components.
@@ -133,11 +133,9 @@ class AgentRegistry:
         logger.info("[AgentRegistry] Loading agents via AgentFactory...")
         
         try:
-            # Force usage of 'fast' strategy from DB regardless of env settings
-            resolved_initial_model = self.resolve_model_name("fast")
-            
-            # 1. Get Agents from Factory
-            agents_map = AgentFactory.create_agents_map(initial_model=resolved_initial_model)
+            # Agents are initialized without a pre-set model. 
+            # The PipelineRunner handles dynamic configuration per step.
+            agents_map = AgentFactory.create_agents_map(initial_model=None)
             self.agents_map = agents_map
             
             count = 0
@@ -147,8 +145,8 @@ class AgentRegistry:
                     agent_type = "agent"
                     if "critic" in cls_name.lower(): agent_type = "critic"
                     
-                    if not self.repository.get_component_by_name(cls_name):
-                        self.repository.register_component({
+                    if not await self.repository.get_component_by_name(cls_name):
+                        await self.repository.register_component({
                             "id": cls_name,
                             "name": cls_name,
                             "type": agent_type,
@@ -159,7 +157,7 @@ class AgentRegistry:
                     # 3. Update Metadata
                     # Use __module__ to get the defining module path
                     module_name = agent_instance.__module__
-                    self._update_component_metadata(cls_name, module=module_name, component_class=cls_name)
+                    await self._update_component_metadata(cls_name, module=module_name, component_class=cls_name)
                     
                     logger.debug(f"[AgentRegistry] Registered {cls_name} (from {module_name})")
                     count += 1

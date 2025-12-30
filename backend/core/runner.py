@@ -59,7 +59,7 @@ class PipelineRunner:
             
             # Inject Global Configuration
             try:
-                banned_raw = self.repository.get_banned_phrases()
+                banned_raw = await self.repository.get_banned_phrases()
                 current_state.aux_data['banned_phrases'] = [r['phrase'].lower() for r in banned_raw] if banned_raw else []
             except Exception as e:
                 logger.error(f"[PipelineRunner] Failed to load banned phrases: {e}")
@@ -108,7 +108,7 @@ class PipelineRunner:
             
             # Checkpoint: Save current state to DB (trace)
             trace_dump = current_state.model_dump(mode='json')
-            tracker.update(stage=stage_name, percent=percent, details={'trace': trace_dump})
+            await tracker.update(stage=stage_name, percent=percent, details={'trace': trace_dump})
 
             current_state = await self._execute_step(current_state, agent, step_doc, execution_id)
             
@@ -144,13 +144,13 @@ class PipelineRunner:
         print(f"DEBUG: Step {agent_name} Config Hooks: {config.get('pre_hooks')}", flush=True)
         for hook in config.get('pre_hooks') or []:
             print(f"DEBUG: Executing Pre-Hook {hook}", flush=True)
-            current_state = self._execute_hook(hook, agent, current_state)
+            current_state = await self._execute_hook(hook, agent, current_state)
 
         # 2. Dynamic Model Selection
-        model_config = self._configure_agent_model(agent, step_id, execution_id)
+        model_config = await self._configure_agent_model(agent, step_id, execution_id)
         
         # 3. Prompt Construction
-        system_instruction = self.prompt_builder.construct_prompt(step_id, current_state) if step_id else None
+        system_instruction = await self.prompt_builder.construct_prompt(step_id, current_state) if step_id else None
 
         # 4. Agent Execution (Async)
         try:
@@ -177,16 +177,16 @@ class PipelineRunner:
 
         # 5. Post-Hooks
         for hook in config.get('post_hooks') or []:
-            current_state = self._execute_hook(hook, agent, current_state)
+            current_state = await self._execute_hook(hook, agent, current_state)
 
         # 6. Validation
-        self._validate_step_output(agent_name, step_id, current_state, step_doc)
+        await self._validate_step_output(agent_name, step_id, current_state, step_doc)
 
         # 7. Update DB - HANDLED BY TRACKER UPSTREAM
 
         # 8. Security Check
         if current_state.step_guard and current_state.step_guard.security_check.uhka_havaittu:
-            return self._handle_security_intervention(execution_id, current_state)
+            return await self._handle_security_intervention(execution_id, current_state)
             
         # DEBUG TRACE
         try:
@@ -196,7 +196,7 @@ class PipelineRunner:
 
         return current_state
 
-    def _execute_hook(self, hook_name: str, agent: Any, state: WorkflowState) -> WorkflowState:
+    async def _execute_hook(self, hook_name: str, agent: Any, state: WorkflowState) -> WorkflowState:
         """
         Executes a named hook method on the agent instance.
 
@@ -220,10 +220,18 @@ class PipelineRunner:
                 if 'repository' in sig.parameters:
                     kwargs['repository'] = self.repository
                 
-                if kwargs:
-                    return hook_method(state, **kwargs)
+                # Check if hook_method is a coroutine function
+                if inspect.iscoroutinefunction(hook_method):
+                    if kwargs:
+                         return await hook_method(state, **kwargs)
+                    else:
+                         return await hook_method(state)
                 else:
-                    return hook_method(state)
+                    # Run sync method
+                    if kwargs:
+                        return hook_method(state, **kwargs)
+                    else:
+                        return hook_method(state)
             except Exception as e:
                 logger.error(f"[PipelineRunner] Hook {hook_name} failed: {e}")
                 return state
@@ -232,7 +240,7 @@ class PipelineRunner:
                 logger.warning(f"[PipelineRunner] Warning: Hook '{hook_name}' not found on Agent {agent.__class__.__name__}. Skipping.")
             return state
 
-    def _configure_agent_model(self, agent: Any, step_id: str, execution_id: str) -> Dict[str, Any]:
+    async def _configure_agent_model(self, agent: Any, step_id: str, execution_id: str) -> Dict[str, Any]:
         """
         Resolves the appropriate model strategy for the step and configures the agent.
 
@@ -247,9 +255,9 @@ class PipelineRunner:
         step_model_key = None
         
         try:
-             exec_rec = self.repository.get_execution(execution_id)
+             exec_rec = await self.repository.get_execution(execution_id)
              if exec_rec:
-                 wf_rec = self.repository.get_workflow_by_id(exec_rec['workflow_id'])
+                 wf_rec = await self.repository.get_workflow_by_id(exec_rec['workflow_id'])
                  if wf_rec:
                      mapping = wf_rec.get('default_model_mapping', {})
                      step_model_key = mapping.get(step_id)
@@ -260,7 +268,7 @@ class PipelineRunner:
         # If still not found (e.g. mapping missing), we could check step_doc
         if not step_model_key:
              # Try getting step config directly again
-             step_doc = self.repository.get_step_by_id(step_id)
+             step_doc = await self.repository.get_step_by_id(step_id)
              if step_doc:
                  config = step_doc.get('execution_config', {})
                  step_model_key = config.get('model_strategy')
@@ -271,7 +279,7 @@ class PipelineRunner:
              step_model_key = "fast"
 
 
-        resolved_config = self.registry.resolve_model_config(step_model_key)
+        resolved_config = await self.registry.resolve_model_config(step_model_key)
         resolved_model_name = resolved_config.get("model_name")
         resolved_provider = resolved_config.get("provider")
         
@@ -281,7 +289,7 @@ class PipelineRunner:
             
         return resolved_config
 
-    def _validate_step_output(self, agent_name: str, step_id: str, state: WorkflowState, step_doc: Dict[str, Any]):
+    async def _validate_step_output(self, agent_name: str, step_id: str, state: WorkflowState, step_doc: Dict[str, Any]):
         """
         Validates the step output against the defined component output schema.
 
@@ -296,7 +304,7 @@ class PipelineRunner:
         """
         output_config_id = step_doc.get('output_config_component')
         if output_config_id:
-            comp_record = self.repository.get_component_by_id(output_config_id)
+            comp_record = await self.repository.get_component_by_id(output_config_id)
             if comp_record:
                 required_fields = comp_record.get('content', [])
                 if isinstance(required_fields, list):
@@ -311,7 +319,7 @@ class PipelineRunner:
                                 logger.error(f"[PipelineRunner] {error_msg}")
                                 raise AgentExecutionError(agent_name, step_id, ValueError(error_msg))
 
-    def _handle_security_intervention(self, execution_id: str, state: WorkflowState) -> Dict[str, Any]:
+    async def _handle_security_intervention(self, execution_id: str, state: WorkflowState) -> Dict[str, Any]:
         """
         Handles a security check failure by creating a rejection result.
 
@@ -332,7 +340,7 @@ class PipelineRunner:
             "guard_data": state.step_guard.model_dump()
         }
         
-        self.repository.update_execution(execution_id, {
+        await self.repository.update_execution(execution_id, {
             'status': 'rejected',
             'error': f"Security Threat Detected: {state.step_guard.security_check.riski_taso}",
             'end_time': datetime.now().isoformat(),

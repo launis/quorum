@@ -71,7 +71,7 @@ class BaseAgent(BaseComponent):
              else:
                  logger.error(f"[BaseAgent] Cannot create LLMProvider: Provider type missing for model {model_name}")
 
-    def _update_state(self, state: WorkflowState, response_data: Any, output_key: Optional[str] = None, **kwargs) -> WorkflowState:
+    async def _update_state(self, state: WorkflowState, response_data: Any, output_key: Optional[str] = None, **kwargs) -> WorkflowState:
         """
         Updates the WorkflowState with the LLM response.
         Generic implementation: Uses self.state_field and self.get_response_schema().
@@ -146,21 +146,12 @@ class BaseAgent(BaseComponent):
                 system_instruction = (system_instruction or "") + "\n\n" + additional_context
                 logger.debug(f"[{self.__class__.__name__}] Appended dynamic context.")
             
-            # 3.6 Context Continuity Check (Stateless Reasoning)
-            try:
-                latest_meta = state.get_latest_reasoning_metadata()
-                if latest_meta and latest_meta.get('token'):
-                    prev_provider = latest_meta.get('provider')
-                    curr_provider = self.provider_type or "google" # Default
-                    
-                    # Compatibility Check (Simple Exact Match for now)
-                    if prev_provider and curr_provider and prev_provider.lower() == curr_provider.lower():
-                        logger.info(f"[{self.__class__.__name__}] Chain of Thought: Injecting token from {latest_meta.get('model')} (Provider match: {curr_provider})")
-                        kwargs['pass_reasoning_token'] = latest_meta['token']
-                    else:
-                        logger.info(f"[{self.__class__.__name__}] Chain of Thought: Skipping token (Provider mismatch: {prev_provider} != {curr_provider})")
-            except Exception as e:
-                logger.warning(f"Error in context continuity check: {e}")
+            # 3.6 Context Continuity Check (Transient Reasoning Trace)
+            if state.last_reasoning_trace:
+                logger.info(f"[{self.__class__.__name__}] Chain of Thought: Injecting previous reasoning trace.")
+                kwargs['pass_reasoning_token'] = state.last_reasoning_trace
+            else:
+                logger.debug(f"[{self.__class__.__name__}] No previous reasoning trace available.")
 
             # --- LOGGING EXECUTION CONFIG ---
             conf_model = self.model
@@ -193,12 +184,23 @@ class BaseAgent(BaseComponent):
             else:
                 response_data = response_obj.content
 
-            # Store reasoning_token if captured
+            # Store reasoning_token if captured (Hot Potato Update)
+            reasoning_source = None
             if response_obj.reasoning_token:
                 logger.info(f"[{self.__class__.__name__}] Reasoning Token captured (Size: {len(response_obj.reasoning_token)})")
+                state.last_reasoning_trace = response_obj.reasoning_token
+                reasoning_source = response_obj.reasoning_token
+            # Fallback: Check if structured output contains the trace (Common in Gemini/OpenAI Pydantic mode)
+            elif isinstance(response_data, dict) and response_data.get('reasoning_trace'):
+                logger.info(f"[{self.__class__.__name__}] Reasoning extracted from Structured Output JSON.")
+                state.last_reasoning_trace = response_data['reasoning_trace']
+                reasoning_source = response_data['reasoning_trace']
+
+            if reasoning_source:
+                # Also store in historical context for debugging
                 target_key = kwargs.get('output_key') or self.state_field or self.__class__.__name__
                 state.reasoning_context[target_key] = {
-                    "token": response_obj.reasoning_token,
+                    "token": reasoning_source,
                     "model": self.model or "unknown",
                     "provider": self.provider_type or "google"
                 }
@@ -207,7 +209,7 @@ class BaseAgent(BaseComponent):
             output_key = kwargs.get('output_key')
             # Remove output_key from kwargs to avoid "multiple values" error when passing both explicit arg and **kwargs
             update_kwargs = {k: v for k, v in kwargs.items() if k != 'output_key'}
-            updated_state = self._update_state(state, response_data, output_key=output_key, **update_kwargs)
+            updated_state = await self._update_state(state, response_data, output_key=output_key, **update_kwargs)
             
             # 6. Lifecycle Hook: Post Process
             logger.info(f"[{self.__class__.__name__}] Lifecycle Hook: post_process")

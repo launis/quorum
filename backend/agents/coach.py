@@ -47,7 +47,7 @@ class CoachAgent(BaseAgent):
         repository = kwargs.get('repository')
         if repository:
             # Load items from DB
-            items = repository.get_knowledge_base_items()
+            items = await repository.get_knowledge_base_items()
             
             # Transform to expected structure
             concepts = {}

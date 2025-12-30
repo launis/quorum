@@ -10,7 +10,10 @@ from backend.dependencies import (
     get_repository_dep,
     get_agent_registry_dep,
     get_prompt_builder_dep,
-    get_engine
+    get_engine,
+    get_async_repository,
+    get_storage_service_dep,
+    get_document_service_dep
 )
 
 async def bootstrap_application():
@@ -70,10 +73,6 @@ async def bootstrap_application():
         #     logger.warning(f"   [WARNING] Failed to fetch models on startup (will verify lazily): {e}")
     else:
          logger.info("   [INFO] Using Mock Models list.")
-         # Mock provider doesn't have fetch_availble_models, but we can set the cache manually if we access `backend.llm.provider`
-         # Or we can just let UI use fallback.
-         # Ideally we inject.
-         # For now, let's just log. The MockProvider is not GoogleAIProvider.
          pass
 
     # 5. Warmup Engine Singleton & Dependencies
@@ -82,12 +81,25 @@ async def bootstrap_application():
         
         # Manually resolve dependencies to avoid FastAPI Depends() leakage
         db = get_db_client_dep()
-        repo = get_repository_dep(db)
-        registry = get_agent_registry_dep(repo)
-        pb = get_prompt_builder_dep(repo, registry)
         
-        # Initialize Engine
-        engine = get_engine(repository=repo, registry=registry, prompt_builder=pb)
+        # In Async-First, we get the repo directly from DB client
+        repo = get_async_repository(db)
+        
+        # Registry and PromptBuilder use the repo
+        registry = await get_agent_registry_dep(repo)
+        pb = await get_prompt_builder_dep(repo, registry)
+        
+        storage_service = get_storage_service_dep()
+        document_service = get_document_service_dep(storage_service)
+        
+        # Initialize Engine 
+        engine = await get_engine(
+            repository=repo, 
+            registry=registry, 
+            prompt_builder=pb,
+            storage_service=storage_service,
+            document_service=document_service
+        )
         logger.info("   [INFO] Engine Ready.")
 
         # 6. Recovery: Auto-Resume Interrupted Jobs

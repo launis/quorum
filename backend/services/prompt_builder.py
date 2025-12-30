@@ -26,32 +26,25 @@ class PromptBuilder:
         self.repository = repository
         self.registry = agent_registry
 
-    def construct_prompt(self, step_id: str, current_state: Optional[WorkflowState] = None) -> str:
+    async def construct_prompt(self, step_id: str, current_state: Optional[WorkflowState] = None) -> str:
         """
         Fetches the step configuration and constructs the full system prompt
         by concatenating the content of all referenced prompt components.
         Injects dynamic variables (e.g., {{HISTORY_TEXT}}) if state is provided.
-
-        Args:
-            step_id (str): The ID of the step to build prompt for.
-            current_state (Optional[WorkflowState]): Current context for variable replacement.
-
-        Returns:
-            str: The fully expanded system prompt text.
         """
         try:
-            step_data = self.repository.get_step_by_id(step_id)
+            step_data = await self.repository.get_step_by_id(step_id)
             if not step_data:
                 return ""
             
             # 1. Resolve Components
-            prompt_parts = self._resolve_prompt_components(step_data)
+            prompt_parts = await self._resolve_prompt_components(step_data)
             
             # 2. Process Placeholders
             processed_parts = []
             for content in prompt_parts:
                 # Banned Phrases
-                content = self._inject_banned_phrases(content)
+                content = await self._inject_banned_phrases(content)
                 
                 # State Variables
                 if current_state:
@@ -75,7 +68,7 @@ class PromptBuilder:
 
     # --- HELPER METHODS ---
 
-    def _resolve_prompt_components(self, step_data: Dict[str, Any]) -> list[str]:
+    async def _resolve_prompt_components(self, step_data: Dict[str, Any]) -> list[str]:
         """
         Fetches content from all prompt components linked to the step.
         Resolves references stored in 'execution_config.llm_prompts'.
@@ -85,7 +78,7 @@ class PromptBuilder:
         parts = []
         
         for pid in prompt_ids:
-            comp = self.repository.get_component_by_id(pid)
+            comp = await self.repository.get_component_by_id(pid)
             if comp:
                 content = comp.get('content', '')
                 if content:
@@ -103,10 +96,10 @@ class PromptBuilder:
                     parts.append(content)
         return parts
 
-    def _inject_banned_phrases(self, content: str) -> str:
+    async def _inject_banned_phrases(self, content: str) -> str:
         """Injects the list of banned phrases into the {{BANNED_PHRASES}} placeholder."""
         if "{{BANNED_PHRASES}}" in content:
-            phrases = [p['phrase'] for p in self.repository.get_banned_phrases()]
+            phrases = [p['phrase'] for p in await self.repository.get_banned_phrases()]
             phrases_str = ", ".join([f'"{p}"' for p in phrases]) if phrases else "NONE"
             return content.replace("{{BANNED_PHRASES}}", phrases_str)
         return content
@@ -187,14 +180,6 @@ class PromptBuilder:
     def _generate_schema_json(self, agent_instance: Any) -> str:
         """
         Extracts JSON schema example from an agent instance.
-        Standardizes on Pydantic v2 'model_json_schema()'.
-        Fallback to mock data if schema generation fails.
-
-        Args:
-            agent_instance (Any): The instantiated agent object.
-
-        Returns:
-            str: JSON string of the schema example.
         """
         try:
             if hasattr(agent_instance, 'get_response_schema'):
@@ -206,22 +191,18 @@ class PromptBuilder:
                 if hasattr(schema_class, 'model_json_schema'):
                     try:
                         schema_json = schema_class.model_json_schema()
-                        # Extract example if present in 'examples' list inside schema (standard practice)
                         if 'examples' in schema_json and isinstance(schema_json['examples'], list) and schema_json['examples']:
                              return json.dumps(schema_json['examples'][0], indent=2, ensure_ascii=False)
                         
-                        # Use json_schema_extra if defined (Pydantic v2 Config)
                         if hasattr(schema_class, 'Config') and hasattr(schema_class.Config, 'json_schema_extra'):
                             extra = schema_class.Config.json_schema_extra
                             if isinstance(extra, dict) and 'examples' in extra:
                                  return json.dumps(extra['examples'][0], indent=2, ensure_ascii=False)
 
-                        # Return full schema if no example found - Cleaned
                         return json.dumps(schema_json, indent=2, ensure_ascii=False)
                     except Exception as e:
                         logger.warning(f"Failed to dump model_json_schema for {agent_instance.__class__.__name__}: {e}")
 
-                # Fallback: Mock Data (Automated)
                 from backend.llm.mock_data import get_example_for_agent
                 mock_example = get_example_for_agent(agent_instance.__class__.__name__)
                 if mock_example:
@@ -231,29 +212,19 @@ class PromptBuilder:
         except Exception as e:
             return f"Error generating schema example: {str(e)}"
 
-    def preview_step_prompt(self, step_id: str) -> Dict[str, Any]:
+    async def preview_step_prompt(self, step_id: str) -> Dict[str, Any]:
         """
         Generates a preview of the prompt for a specific step.
-        Used by the UI Builder.
-
-        Args:
-            step_id (str): The Step ID.
-
-        Returns:
-            Dict[str, Any]: Preview object containing system instruction and user template.
-
-        Raises:
-            StepNotFoundError: If step does not exist.
         """
         # 1. Fetch Step Record
-        step_data = self.repository.get_step_by_id(step_id)
+        step_data = await self.repository.get_step_by_id(step_id)
         if not step_data:
             raise StepNotFoundError(step_id)
             
         agent_class = step_data.get('component', 'UnknownAgent')
         
         # 2. Construct Prompt
-        prompt = self.construct_prompt(step_id)
+        prompt = await self.construct_prompt(step_id)
         if not prompt:
             logger.warning(f"Constructed prompt empty for {step_id}")
         
@@ -274,18 +245,11 @@ class PromptBuilder:
         
         return preview_data
 
-    def preview_full_chain_prompts(self, workflow_id: str) -> str:
+    async def preview_full_chain_prompts(self, workflow_id: str) -> str:
         """
         Generates a markdown concatenation of ALL prompts in a workflow.
-        Useful for auditing the entire logic chain.
-
-        Args:
-            workflow_id (str): The Workflow ID.
-
-        Returns:
-            str: Markdown textual representation.
         """
-        wf_record = self.repository.get_workflow_by_id(workflow_id)
+        wf_record = await self.repository.get_workflow_by_id(workflow_id)
         if not wf_record:
             raise WorkflowNotFoundError(workflow_id)
         
@@ -296,10 +260,10 @@ class PromptBuilder:
         full_chain.append(f"ID: {workflow_id}\n")
         
         for i, step_id in enumerate(steps_ids):
-            prompt = self.construct_prompt(step_id)
+            prompt = await self.construct_prompt(step_id)
             
             # Fetch step name/component for header
-            s_rec = self.repository.get_step_by_id(step_id)
+            s_rec = await self.repository.get_step_by_id(step_id)
             step_name = s_rec.get('id', step_id) if s_rec else step_id
             component = s_rec.get('component', 'Unknown') if s_rec else 'Unknown'
             

@@ -19,7 +19,7 @@ class GuardAgent(BaseAgent):
     state_field = "step_guard"
     
     # Contracts
-    REQUIRES_KEYS = ["history_text", "product_text"] # Reflection is optional
+    REQUIRES_KEYS = ["history_text", "product_text", "reflection_text"] # Reflection is optional
     PRODUCES_KEYS = ["step_guard"]
     # OUTPUT_SCHEMA is already handled by get_response_schema() logic generally, 
     # but we can explicit it here if needed for static analysis.
@@ -257,3 +257,6 @@ class GuardAgent(BaseAgent):
             logger.warning(f"[GuardAgent] PII Sanitization: {all_threats}")
             
         return state
+
+    async def _update_state(self, state: WorkflowState, response_data: Any, output_key: Optional[str] = None, **kwargs) -> WorkflowState:
+        return await super()._update_state(state, response_data, output_key=output_key, **kwargs)

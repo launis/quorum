@@ -19,7 +19,7 @@ class AnalystAgent(BaseAgent):
     state_field = "step_analyst"
     
     # Contracts
-    REQUIRES_KEYS = ["history_text", "product_text"] 
+    REQUIRES_KEYS = ["history_text", "product_text", "reflection_text"] 
     PRODUCES_KEYS = ["step_analyst"]
     OUTPUT_SCHEMA = TodistusKartta
 

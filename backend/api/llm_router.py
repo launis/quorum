@@ -6,7 +6,7 @@ from tinydb import Query
 from backend.agents.base import BaseAgent
 from backend.llm.provider import LLMFactory
 from backend.database.wrapper import AbstractDatabase, get_db_client
-from backend.dependencies import get_llm_handler_dep, get_db_client_dep, get_llm_factory_dep
+from backend.dependencies import get_llm_handler_dep, get_db_client_dep, get_llm_factory_dep, get_agent_registry_dep
 import logging
 
 logger = logging.getLogger(__name__)
@@ -19,9 +19,10 @@ class LLMRequest(BaseModel):
     prompts: Annotated[List[Dict[str, Any]], Field(
         description="A list of conversation turn objects (e.g., [{'role': 'user', 'parts': ['Hello']}])"
     )]
-    model: Annotated[Optional[str], Field(
-        description="The specific model identifier (e.g. 'gemini-1.5-pro') to use for generation."
-    )] = None
+    strategy: Annotated[str, Field(
+        default="fast",
+        description="The strategy identifier (e.g. 'fast', 'deep') to resolve from the Model Registry."
+    )]
 
 class ModelRegistryUpdate(BaseModel):
     registry: Annotated[Dict[str, Dict[str, str]], Field(
@@ -37,14 +38,16 @@ class ModelRegistryUpdate(BaseModel):
 )
 async def generate_text(
     request: LLMRequest, 
-    factory: LLMFactory = Depends(get_llm_factory_dep)
+    # We need the registry to resolve the strategy dynamically based on the request body
+    registry = Depends(get_agent_registry_dep)
 ):
     """
     Generates text using the configured LLM provider based on the prompts.
+    Resolves the model via the 'strategy' field in the request.
 
     Args:
-        request (LLMRequest): The prompt and configuration.
-        factory (LLMFactory): Dependency for creating LLM providers.
+        request (LLMRequest): The prompt and strategy configuration.
+        registry (AgentRegistry): Dependency for model resolution.
 
     Returns:
         dict: The generated text inside a wrapper object.
@@ -58,8 +61,15 @@ async def generate_text(
             
         prompt_text = request.prompts[0]["parts"][0]
         
-        # Use Factory from dependency
-        provider = factory.create_provider(model_name=request.model)
+        # 1. Resolve Configuration from DB using Request Strategy
+        # This enforces that only valid, database-configured strategies can be used.
+        config = await registry.resolve_model_config(request.strategy)
+        
+        # 2. Create Provider using the resolved config
+        provider = LLMFactory.create_provider(
+            provider_type=config['provider'], 
+            model_name=config['model_name']
+        )
         
         response_text = await provider.generate(
             prompt=prompt_text,

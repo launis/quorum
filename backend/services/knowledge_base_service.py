@@ -83,11 +83,11 @@ class KnowledgeBaseService:
         tracker.start({"job_id": job_id, "filename": filename})
         tracker.update(stage="Archiving & Parsing", percent=5)
         
-        # 0. optional Reset
+            # 0. optional Reset
         if reset_db:
              logger.warning(f"[KBService] Resetting Knowledge Base as requested.")
              try:
-                 self.repository.clear_knowledge_base()
+                 await self.repository.clear_knowledge_base()
              except Exception as e:
                  logger.error(f"[KBService] Failed to reset KB: {e}")
                  
@@ -133,7 +133,7 @@ class KnowledgeBaseService:
             tracker.update(stage="Storing to DB", percent=60)
             
             # 3. Import to DB
-            result = self._store_parsed_data(parsed_data, source_name=filename, job_id=job_id, tracker=tracker)
+            result = await self._store_parsed_data(parsed_data, source_name=filename, job_id=job_id, tracker=tracker)
             
             # Unified Success
             tracker.complete(result)
@@ -229,7 +229,7 @@ class KnowledgeBaseService:
                     
         return [{"term": t, "definition": d} for t, d in final_map.items()]
 
-    def _store_parsed_data(self, parsed_data: Dict[str, Any], source_name: str, job_id: str, tracker: Any = None) -> Dict[str, Any]:
+    async def _store_parsed_data(self, parsed_data: Dict[str, Any], source_name: str, job_id: str, tracker: Any = None) -> Dict[str, Any]:
         """
         Internal: Converts parsed data structures into Database Records and inserts them using Repository.
         Reports fine-grained progress.
@@ -253,7 +253,7 @@ class KnowledgeBaseService:
                 "ingested_at": datetime.now().isoformat(),
                 "metadata": {}
             }
-            self.repository.add_knowledge_base_item(item)
+            await self.repository.add_knowledge_base_item(item)
             count_concepts += 1
             processed += 1
             if tracker and total_items > 0 and processed % 10 == 0:
@@ -275,7 +275,7 @@ class KnowledgeBaseService:
                     "short_citation": r.get('short_citation')
                 }
             }
-            self.repository.add_knowledge_base_item(item)
+            await self.repository.add_knowledge_base_item(item)
             count_refs += 1
             processed += 1
             if tracker and total_items > 0 and processed % 10 == 0:
@@ -300,7 +300,7 @@ class KnowledgeBaseService:
                     "concept_context": cl.get('concept_context')
                 }
             }
-            self.repository.add_knowledge_base_item(item)
+            await self.repository.add_knowledge_base_item(item)
             count_claims += 1
             processed += 1
             

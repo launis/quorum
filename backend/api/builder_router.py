@@ -127,7 +127,7 @@ async def get_available_agents(engine: WorkflowEngine = Depends(get_engine)):
 )
 async def list_workflows(engine: WorkflowEngine = Depends(get_engine)):
     """List all workflows for the dashboard."""
-    return engine.repository.get_all_workflows()
+    return await engine.repository.get_all_workflows()
 
 @router.post(
     "/workflows", 
@@ -150,7 +150,8 @@ async def create_workflow(request: WorkflowCreateRequest, engine: WorkflowEngine
             "created_at": datetime.now().isoformat()
         }
         
-        engine.repository.db.table('workflows').insert(workflow_data)
+        
+        await engine.repository.create_workflow(workflow_data)
         return workflow_data
     except Exception as e:
         logger.error(f"Failed to create workflow: {e}", exc_info=True)
@@ -163,7 +164,7 @@ async def create_workflow(request: WorkflowCreateRequest, engine: WorkflowEngine
 )
 async def get_workflow(workflow_id: str, engine: WorkflowEngine = Depends(get_engine)):
     """Get details of a specific workflow."""
-    wf = engine.repository.get_workflow_by_id(workflow_id)
+    wf = await engine.repository.get_workflow_by_id(workflow_id)
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
     return wf
@@ -175,7 +176,7 @@ async def get_workflow(workflow_id: str, engine: WorkflowEngine = Depends(get_en
 )
 async def update_workflow(workflow_id: str, request: WorkflowUpdateRequest, engine: WorkflowEngine = Depends(get_engine)):
     """Update an existing workflow."""
-    wf = engine.repository.get_workflow_by_id(workflow_id)
+    wf = await engine.repository.get_workflow_by_id(workflow_id)
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
     
@@ -202,8 +203,8 @@ async def update_workflow(workflow_id: str, request: WorkflowUpdateRequest, engi
         # If input didn't provide mapping but we modified it based on steps, save it.
         update_data['default_model_mapping'] = final_mapping
 
-    Layout = Query()
-    engine.repository.db.table('workflows').update(update_data, Layout.id == workflow_id)
+
+    await engine.repository.update_workflow(workflow_id, update_data)
     
     return {**wf, **update_data}
 
@@ -216,22 +217,34 @@ async def delete_workflow(workflow_id: str, engine: WorkflowEngine = Depends(get
     """
     Delete a workflow AND its orphan steps (Garbage Collection).
     """
-    wf = engine.repository.get_workflow_by_id(workflow_id)
+    wf = await engine.repository.get_workflow_by_id(workflow_id)
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
     
     # 1. Identify Orphan Steps
-    orphans = _get_orphan_steps(engine.repository, workflow_id)
+    # 1. Identify Orphan Steps
+    # Helper must be updated to await or we fetch data here
+    # _get_orphan_steps is sync in helper. We should inline logic or make helper async.
+    # For now, let's fetch all workflows here to pass to helper logic (refactoring helper is safer)
     
+    # Actually, let's make a local async helper or just fetch data
+    orphans = []
+    all_wfs = await engine.repository.get_all_workflows()
+    
+    target_steps = set(wf.get('steps', []))
+    used_elsewhere = set()
+    for w in all_wfs:
+        if w['id'] == workflow_id: continue
+        for s in w.get('steps', []): used_elsewhere.add(s)
+    orphans = list(target_steps - used_elsewhere)
+
     # 2. Delete Workflow
-    WF = Query()
-    engine.repository.db.table('workflows').remove(WF.id == workflow_id)
+    await engine.repository.delete_workflow(workflow_id)
     
     # 3. Delete Orphans
-    Step = Query()
     deleted_steps = []
     for step_id in orphans:
-        engine.repository.db.table('steps').remove(Step.id == step_id)
+        await engine.repository.delete_step(step_id)
         deleted_steps.append(step_id)
         
     logger.info(f"Deleted workflow {workflow_id} and orphan steps: {deleted_steps}")
@@ -247,7 +260,7 @@ async def copy_workflow(workflow_id: str, request: CopyWorkflowRequest, engine: 
     """
     Deep Copy a workflow structure (Shallow copy of steps).
     """
-    original = engine.repository.get_workflow_by_id(workflow_id)
+    original = await engine.repository.get_workflow_by_id(workflow_id)
     if not original:
         raise HTTPException(status_code=404, detail="Workflow not found")
     
@@ -261,8 +274,9 @@ async def copy_workflow(workflow_id: str, request: CopyWorkflowRequest, engine: 
     
     clean_wf = dict(new_wf)
     
+    
     try:
-        engine.repository.db.table('workflows').insert(clean_wf)
+        await engine.repository.create_workflow(clean_wf)
         return clean_wf
     except Exception as e:
         logger.error(f"Copy workflow failed: {e}", exc_info=True)
@@ -279,8 +293,8 @@ async def validate_connection(request: ValidationRequest, engine: WorkflowEngine
     """
     try:
         # 1. Resolve Steps
-        source_step = engine.repository.get_step_by_id(request.source_step)
-        target_step = engine.repository.get_step_by_id(request.target_step)
+        source_step = await engine.repository.get_step_by_id(request.source_step)
+        target_step = await engine.repository.get_step_by_id(request.target_step)
         
         if not source_step or not target_step:
              return {"valid": False, "reason": "Step(s) not found."}
@@ -289,8 +303,12 @@ async def validate_connection(request: ValidationRequest, engine: WorkflowEngine
         src_comp_ref = source_step.get('component')
         tgt_comp_ref = target_step.get('component')
         
-        source_comp = engine.repository.get_component_by_id(src_comp_ref) or engine.repository.get_component_by_name(src_comp_ref)
-        target_comp = engine.repository.get_component_by_id(tgt_comp_ref) or engine.repository.get_component_by_name(tgt_comp_ref)
+        # Note: get_component needs await
+        source_comp = await engine.repository.get_component_by_id(src_comp_ref)
+        if not source_comp: source_comp = await engine.repository.get_component_by_name(src_comp_ref)
+        
+        target_comp = await engine.repository.get_component_by_id(tgt_comp_ref)
+        if not target_comp: target_comp = await engine.repository.get_component_by_name(tgt_comp_ref)
         
         if not source_comp or not target_comp:
              return {"valid": True, "reason": "Component definitions missing, skipping deep check."}
@@ -330,7 +348,7 @@ async def validate_connection(request: ValidationRequest, engine: WorkflowEngine
 )
 async def get_step_details(step_id: str, engine: WorkflowEngine = Depends(get_engine)):
     """V2: Get full configuration of a step."""
-    step = engine.repository.get_step_by_id(step_id)
+    step = await engine.repository.get_step_by_id(step_id)
     if not step:
          raise HTTPException(status_code=404, detail="Step not found")
     return step
@@ -345,7 +363,7 @@ async def update_step(step_id: str, request: StepUpdateRequest, engine: Workflow
     V2: Update a step configuration.
     WARNING: This modifies the global step definition.
     """
-    step = engine.repository.get_step_by_id(step_id)
+    step = await engine.repository.get_step_by_id(step_id)
     if not step:
          raise HTTPException(status_code=404, detail="Step not found")
          
@@ -353,8 +371,9 @@ async def update_step(step_id: str, request: StepUpdateRequest, engine: Workflow
     if request.name is not None: update_data['name'] = request.name
     if request.execution_config is not None: update_data['execution_config'] = request.execution_config
     
-    Step = Query()
-    engine.repository.db.table('steps').update(update_data, Step.id == step_id)
+    if request.execution_config is not None: update_data['execution_config'] = request.execution_config
+    
+    await engine.repository.update_step(step_id, update_data)
     
     return {**step, **update_data}
 
@@ -367,7 +386,7 @@ async def clone_step(source_step_id: str = Body(..., embed=True), engine: Workfl
     """
     V2: Clone a step to a new Custom Step (Copy-on-Write).
     """
-    step = engine.repository.get_step_by_id(source_step_id)
+    step = await engine.repository.get_step_by_id(source_step_id)
     if not step:
         raise HTTPException(status_code=404, detail="Source step not found")
         
@@ -378,7 +397,7 @@ async def clone_step(source_step_id: str = Body(..., embed=True), engine: Workfl
     
     clean_step = dict(new_step)
     
-    engine.repository.db.table('steps').insert(clean_step)
+    await engine.repository.create_step(clean_step)
     
     return clean_step
 
@@ -423,7 +442,7 @@ async def create_custom_step(req: CustomStepCreateRequest, engine: WorkflowEngin
     
     # 4. Save
     try:
-        engine.repository.db.table('steps').insert(new_step)
+        await engine.repository.create_step(new_step)
         return new_step
     except Exception as e:
         logger.error(f"Failed to create custom step: {e}", exc_info=True)
@@ -463,7 +482,7 @@ async def get_fusion_rules(engine: WorkflowEngine = Depends(get_engine)):
     Returns validation rules for prompt fusion.
     """
     rules = []
-    all_steps = engine.repository.db.table('steps').all()
+    all_steps = await engine.repository.get_all_steps()
     for s in all_steps:
         if 'fusion_info' in s:
             rules.append({
@@ -493,7 +512,7 @@ async def compile_fusion(req: CompileRequest, engine: WorkflowEngine = Depends(g
     V2: Prompt Fusion Compilation.
     Replaces a sequence of steps with a compatible Composite Step (Panel).
     """
-    wf = engine.repository.get_workflow_by_id(req.workflow_id)
+    wf = await engine.repository.get_workflow_by_id(req.workflow_id)
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
         
@@ -504,7 +523,8 @@ async def compile_fusion(req: CompileRequest, engine: WorkflowEngine = Depends(g
         raise HTTPException(status_code=400, detail="One or more steps not found in workflow")
 
     fusing_components = []
-    step_map = {s['id']: s for s in engine.repository.db.table('steps').all()}
+    all_step_list = await engine.repository.get_all_steps()
+    step_map = {s['id']: s for s in all_step_list}
     
     for sid in steps_to_fuse:
         s_def = step_map.get(sid)
@@ -539,11 +559,11 @@ async def compile_fusion(req: CompileRequest, engine: WorkflowEngine = Depends(g
             
     mapping[target_composite_id] = 'deep'
     
-    WF = Query()
-    engine.repository.db.table('workflows').update({
+
+    await engine.repository.update_workflow(req.workflow_id, {
         "steps": new_steps,
         "default_model_mapping": mapping
-    }, WF.id == req.workflow_id)
+    })
     
     return {
         "status": "compiled", 

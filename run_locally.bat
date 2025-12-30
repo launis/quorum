@@ -3,7 +3,7 @@ echo Starting Cognitive Quorum v2 (Real LLM / Connects to APIs)...
 echo.
 echo [INFO] MODE: REAL LLM (Local Database)
 echo [INFO] This mode WILL make real API calls to Google/OpenAI.
-echo [INFO] Data is saved LOCALLY to 'data/db.json'.
+echo [INFO] Data storage determined by .env (Firestore or Local JSON).
 echo [INFO] Costs may apply for LLM usage.
 echo.
 echo [TIP]  If you see "[MOCK RESPONSE]" in the logs, you are in the wrong mode.

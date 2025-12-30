@@ -68,6 +68,31 @@ Provides actionable advice to the user on improving their reasoning.
 **Role:** Transparency.
 Generates a human-readable, explainable report documenting the entire decision chain.
 
+## Reasoning Continuity Architecture
+
+To maintain high-level cognitive coherence across multiple agent turns, the system implements a **Reasoning Trace** mechanism.
+
+### The Challenge: Statelessness vs. Context
+LLMs are inherently stateless. When `AnalystAgent` finishes and `JudgeAgent` begins, the specific "train of thought" that led to the analysis is typically lost, leaving only the final JSON output. This "Information Loss" degrades the quality of subsequent judgments.
+
+### Solution: Explicit Chain-of-Thought (CoT) Transfer
+Cognitive Quorum implements a **Hot Potato** state mechanism for reasoning:
+
+1.  **Generation:** Every agent is instructed to produce a `reasoning_trace` (a step-by-step internal monologue) *before* generating its final structured output.
+2.  **Capture:** The `BaseAgent` infrastructure automatically extracts this trace from either:
+    *   **Native Metadata:** Provider-specific fields (e.g., `reasoning_token` for reasoning models).
+    *   **Structured Payload:** The `reasoning_trace` field within the JSON response (for standard models like Gemini 1.5/3).
+3.  **Transient Storage:** The trace is stored in `state.last_reasoning_trace`.
+4.  **Injection:** The next agent in the pipeline receives this trace in its system prompt: *"The previous agent's internal reasoning was: [TRACE]"*.
+
+### Trade-off: Explicit Trace vs. Native Thought Signatures
+While models like Gemini 3 offer "Thought Signatures" (encrypted opaque tokens representing internal state), Cognitive Quorum prioritizes **Explicit Textual Traces** because:
+*   **Model Agnostic:** Works across OpenAI, Google, and Anthropic models seamlessly.
+*   **Auditable:** The reasoning is human-readable and logged for XAI purposes.
+*   **Cross-Role Compatible:** `AnalystAgent` (Gemini) can pass reasoning to `JudgeAgent` (GPT-4) without compatibility issues.
+
+This explicit mechanism ensures that the "Mind" of the system maintains a coherent stream of consciousness throughout the "Assembly Line".
+
 ## Verification & Self-Correction
 
 The system employs a **Monolithic Validation Loop**:

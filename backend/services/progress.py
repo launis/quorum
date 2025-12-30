@@ -19,7 +19,7 @@ class ProgressTracker(ABC):
     """
     
     @abstractmethod
-    def start(self, details: Dict[str, Any] = None):
+    async def start(self, details: Dict[str, Any] = None):
         """
         Signals the process has started.
         
@@ -29,7 +29,7 @@ class ProgressTracker(ABC):
         pass
 
     @abstractmethod
-    def update(self, stage: str, percent: int, details: Dict[str, Any] = None):
+    async def update(self, stage: str, percent: int, details: Dict[str, Any] = None):
         """
         Updates progress with current stage and percentage.
         
@@ -41,7 +41,7 @@ class ProgressTracker(ABC):
         pass
 
     @abstractmethod
-    def complete(self, result: Dict[str, Any] = None):
+    async def complete(self, result: Dict[str, Any] = None):
         """
         Signals successful completion.
         
@@ -51,7 +51,7 @@ class ProgressTracker(ABC):
         pass
 
     @abstractmethod
-    def fail(self, error: str, details: Dict[str, Any] = None):
+    async def fail(self, error: str, details: Dict[str, Any] = None):
         """
         Signals failure/halt.
         
@@ -78,15 +78,15 @@ class DatabaseProgressTracker(ProgressTracker):
         self.repository = repository
         self.execution_id = execution_id
 
-    def start(self, details: Dict[str, Any] = None):
+    async def start(self, details: Dict[str, Any] = None):
         """
         Sets status to 'started'.
         """
         payload = {'status': STATUS_STARTED, 'start_time': datetime.now().isoformat()}
         if details: payload.update(details)
-        self.repository.update_execution(self.execution_id, payload)
+        await self.repository.update_execution(self.execution_id, payload)
 
-    def update(self, stage: str, percent: int, details: Dict[str, Any] = None):
+    async def update(self, stage: str, percent: int, details: Dict[str, Any] = None):
         """
         Updates 'current_step' and 'progress' fields in DB.
         """
@@ -100,9 +100,9 @@ class DatabaseProgressTracker(ProgressTracker):
             'last_updated': datetime.now().isoformat()
         }
         if details: payload.update(details)
-        self.repository.update_execution(self.execution_id, payload)
+        await self.repository.update_execution(self.execution_id, payload)
 
-    def complete(self, result: Dict[str, Any] = None):
+    async def complete(self, result: Dict[str, Any] = None):
         """
         Sets status to 'completed' and saves final result.
         """
@@ -111,9 +111,9 @@ class DatabaseProgressTracker(ProgressTracker):
             'end_time': datetime.now().isoformat()
         }
         if result: payload['result'] = result
-        self.repository.update_execution(self.execution_id, payload)
+        await self.repository.update_execution(self.execution_id, payload)
 
-    def fail(self, error: str, details: Dict[str, Any] = None):
+    async def fail(self, error: str, details: Dict[str, Any] = None):
         """
         Sets status to 'failed' and saves error message.
         """
@@ -123,7 +123,7 @@ class DatabaseProgressTracker(ProgressTracker):
             'end_time': datetime.now().isoformat()
         }
         if details: payload['result'] = details # Halt details often go to result
-        self.repository.update_execution(self.execution_id, payload)
+        await self.repository.update_execution(self.execution_id, payload)
 
 
 class InMemoryProgressTracker(ProgressTracker):
@@ -149,23 +149,23 @@ class InMemoryProgressTracker(ProgressTracker):
         # Pass the simplified view expected by API consumers
         self.callback(base)
 
-    def start(self, details: Dict[str, Any] = None):
+    async def start(self, details: Dict[str, Any] = None):
         """Signals start."""
         self._emit(STATUS_STARTED, details or {})
 
-    def update(self, stage: str, percent: int, details: Dict[str, Any] = None):
+    async def update(self, stage: str, percent: int, details: Dict[str, Any] = None):
         """Signals update."""
         data = {"stage": stage, "percent": percent}
         if details: data.update(details)
         self._emit(STATUS_RUNNING, data)
 
-    def complete(self, result: Dict[str, Any] = None):
+    async def complete(self, result: Dict[str, Any] = None):
         """Signals completion."""
         data = {"percent": 100}
         if result: data["result"] = result
         self._emit(STATUS_COMPLETED, data)
 
-    def fail(self, error: str, details: Dict[str, Any] = None):
+    async def fail(self, error: str, details: Dict[str, Any] = None):
         """Signals failure."""
         data = {"error": error}
         if details: data.update(details)

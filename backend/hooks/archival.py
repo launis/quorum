@@ -5,7 +5,7 @@ from backend.models.state import WorkflowState
 
 logger = logging.getLogger(__name__)
 
-def retrieve_precedent(state: WorkflowState, repository: Any = None) -> WorkflowState:
+async def retrieve_precedent(state: WorkflowState, repository: Any = None) -> WorkflowState:
     """
     HOOK: retrieve_precedent
     Retrieves the last N completed executions with a valid Judge score (Case Law).
@@ -27,7 +27,7 @@ def retrieve_precedent(state: WorkflowState, repository: Any = None) -> Workflow
 
     try:
         # 1. Use Repository to get executions
-        all_executions = repository.get_all_executions()
+        all_executions = await repository.get_all_executions()
         
         # 2. Query Completed Executions (Memory Filter)
         results = [x for x in all_executions if x.get('status') == 'completed']

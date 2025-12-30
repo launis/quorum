@@ -35,7 +35,7 @@ class JudgeAgent(BaseAgent):
         if not repo:
              return None
 
-        component = repo.get_component_by_id(matrix_id)
+        component = await repo.get_component_by_id(matrix_id)
         if not component:
             return f"ERROR: Matrix '{matrix_id}' not found."
             
@@ -103,7 +103,7 @@ class JudgeAgent(BaseAgent):
             
         return "\n".join(prompt_lines)
 
-    def _update_state(self, state: WorkflowState, response_data: Any, output_key: Optional[str] = None, **kwargs) -> WorkflowState:
+    async def _update_state(self, state: WorkflowState, response_data: Any, output_key: Optional[str] = None, **kwargs) -> WorkflowState:
         step_id = kwargs.get('step_id', output_key or self.state_field or 'unknown_step')
         
         try:
@@ -120,7 +120,7 @@ class JudgeAgent(BaseAgent):
                 repo = kwargs.get('repository')
                 if repo:
                     mat_id = response_data.get('matrix_id')
-                    comp = repo.get_component_by_id(mat_id)
+                    comp = await repo.get_component_by_id(mat_id)
                     if comp:
                         content = comp.get('content', {})
                         if isinstance(content, str):

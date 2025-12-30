@@ -1,3 +1,4 @@
+import asyncio
 from abc import ABC, abstractmethod
 from typing import List, Optional, Dict, Any, Union
 from backend.database.wrapper import AbstractDatabase
@@ -5,83 +6,101 @@ from tinydb import Query
 
 class AbstractWorkflowRepository(ABC):
     """
-    Abstract interface for Workflow data access.
-    Decouples the Engine from specific database implementations (TinyDB, Firestore, etc).
+    Universal Async Interface for Workflow Data Access.
+    
+    This replaces the old Sync/Async split. All repositories are now Async First.
+    TinyDB implementations must use asyncio.to_thread internally.
     """
     
     # --- Components ---
     @abstractmethod
-    def get_component_by_id(self, component_id: str) -> Optional[Dict[str, Any]]: pass
+    async def get_component_by_id(self, component_id: str) -> Optional[Dict[str, Any]]: pass
 
     @abstractmethod
-    def get_component_by_name(self, name: str) -> Optional[Dict[str, Any]]: pass
+    async def get_component_by_name(self, name: str) -> Optional[Dict[str, Any]]: pass
 
     @abstractmethod
-    def register_component(self, component_data: Dict[str, Any]): pass
+    async def register_component(self, component_data: Dict[str, Any]): pass
 
     @abstractmethod
-    def update_component_metadata(self, name: str, module: str, component_class: str): pass
+    async def update_component_metadata(self, name: str, module: str, component_class: str): pass
 
     @abstractmethod
-    def get_all_components(self) -> List[Dict[str, Any]]: pass
+    async def get_all_components(self) -> List[Dict[str, Any]]: pass
 
     # --- Steps ---
     @abstractmethod
-    def get_step_by_id(self, step_id: str) -> Optional[Dict[str, Any]]: pass
+    async def get_step_by_id(self, step_id: str) -> Optional[Dict[str, Any]]: pass
 
     @abstractmethod
-    def get_all_steps(self) -> List[Dict[str, Any]]: pass
+    async def get_all_steps(self) -> List[Dict[str, Any]]: pass
+
+    @abstractmethod
+    async def create_step(self, step_data: Dict[str, Any]) -> str: pass
+
+    @abstractmethod
+    async def update_step(self, step_id: str, updates: Dict[str, Any]): pass
+
+    @abstractmethod
+    async def delete_step(self, step_id: str): pass
 
     # --- Workflows ---
     @abstractmethod
-    def get_workflow_by_id(self, workflow_id: str) -> Optional[Dict[str, Any]]: pass
+    async def get_workflow_by_id(self, workflow_id: str) -> Optional[Dict[str, Any]]: pass
 
     @abstractmethod
-    def create_workflow(self, workflow_data: Dict[str, Any]) -> Union[int, str]: pass
+    async def create_workflow(self, workflow_data: Dict[str, Any]) -> Union[int, str]: pass
 
     @abstractmethod
-    def get_all_workflows(self) -> List[Dict[str, Any]]: pass
+    async def get_all_workflows(self) -> List[Dict[str, Any]]: pass
+
+    @abstractmethod
+    async def update_workflow(self, workflow_id: str, updates: Dict[str, Any]): pass
+
+    @abstractmethod
+    async def delete_workflow(self, workflow_id: str): pass
 
     # --- Executions ---
     @abstractmethod
-    def create_execution(self, execution_data: Dict[str, Any]) -> Union[int, str]: pass
+    async def create_execution(self, execution_data: Dict[str, Any]) -> Union[int, str]: pass
 
     @abstractmethod
-    def get_execution(self, execution_id: str) -> Optional[Dict[str, Any]]: pass
+    async def get_execution(self, execution_id: str) -> Optional[Dict[str, Any]]: pass
 
     @abstractmethod
-    def update_execution(self, execution_id: str, updates: Dict[str, Any]): pass
+    async def update_execution(self, execution_id: str, updates: Dict[str, Any]): pass
 
     @abstractmethod
-    def get_all_executions(self) -> List[Dict[str, Any]]: pass
+    async def get_all_executions(self) -> List[Dict[str, Any]]: pass
 
     # --- Config ---
     @abstractmethod
-    def get_model_registry(self) -> Optional[Dict[str, Any]]: pass
+    async def get_model_registry(self) -> Optional[Dict[str, Any]]: pass
 
     @abstractmethod
-    def get_banned_phrases(self) -> List[Dict[str, Any]]: pass
+    async def get_banned_phrases(self) -> List[Dict[str, Any]]: pass
 
     @abstractmethod
-    def add_banned_phrase(self, phrase: str, **kwargs): pass
+    async def add_banned_phrase(self, phrase: str, **kwargs): pass
 
     @abstractmethod
-    def remove_banned_phrase(self, phrase: str): pass
+    async def remove_banned_phrase(self, phrase: str): pass
 
     # --- Knowledge Base ---
     @abstractmethod
-    def get_knowledge_base_items(self) -> List[Dict[str, Any]]: pass
+    async def get_knowledge_base_items(self) -> List[Dict[str, Any]]: pass
 
     @abstractmethod
-    def add_knowledge_base_item(self, item_data: Dict[str, Any]): pass
+    async def add_knowledge_base_item(self, item_data: Dict[str, Any]): pass
     
     @abstractmethod
-    def clear_knowledge_base(self): pass
+    async def clear_knowledge_base(self): pass
 
 
 class TinyDBRepository(AbstractWorkflowRepository):
     """
-    TinyDB Implementation of the Workflow Repository.
+    Async-First TinyDB Repository.
+    Wraps synchronous TinyDB calls in asyncio.to_thread.
     """
     def __init__(self, db_client: AbstractDatabase):
         self.db = db_client
@@ -93,97 +112,148 @@ class TinyDBRepository(AbstractWorkflowRepository):
         self.knowledge_base = self.db.table('knowledge_base')
         self.system_config = self.db.table('system_config')
 
+    async def _run(self, func, *args, **kwargs):
+        """Helper to run sync DB calls in thread."""
+        return await asyncio.to_thread(func, *args, **kwargs)
+
     # --- Components ---
-    def get_component_by_id(self, component_id: str) -> Optional[Dict[str, Any]]:
-        Q = Query()
-        res = self.components.search(Q.id == component_id)
-        return res[0] if res else None
+    async def get_component_by_id(self, component_id: str) -> Optional[Dict[str, Any]]:
+        def _get():
+            Q = Query()
+            res = self.components.search(Q.id == component_id)
+            return res[0] if res else None
+        return await self._run(_get)
 
-    def get_component_by_name(self, name: str) -> Optional[Dict[str, Any]]:
-        Q = Query()
-        res = self.components.search(Q.name == name)
-        return res[0] if res else None
-    
-    def register_component(self, component_data: Dict[str, Any]):
-        self.components.insert(component_data)
+    async def get_component_by_name(self, name: str) -> Optional[Dict[str, Any]]:
+        def _get():
+            Q = Query()
+            res = self.components.search(Q.name == name)
+            return res[0] if res else None
+        return await self._run(_get)
 
-    def update_component_metadata(self, name: str, module: str, component_class: str):
-        Q = Query()
-        self.components.update({
-             "module": module,
-             "class": component_class
-        }, Q.name == name)
-    
-    def get_all_components(self) -> List[Dict[str, Any]]:
-        return self.components.all()
+    async def register_component(self, component_data: Dict[str, Any]):
+        await self._run(self.components.insert, component_data)
+
+    async def update_component_metadata(self, name: str, module: str, component_class: str):
+        def _update():
+            Q = Query()
+            self.components.update({
+                 "module": module,
+                 "class": component_class
+            }, Q.name == name)
+        await self._run(_update)
+
+    async def get_all_components(self) -> List[Dict[str, Any]]:
+        return await self._run(self.components.all)
 
     # --- Steps ---
-    def get_step_by_id(self, step_id: str) -> Optional[Dict[str, Any]]:
-        Q = Query()
-        res = self.steps.search(Q.id == step_id)
-        return res[0] if res else None
+    async def get_step_by_id(self, step_id: str) -> Optional[Dict[str, Any]]:
+        def _get():
+            Q = Query()
+            res = self.steps.search(Q.id == step_id)
+            return res[0] if res else None
+        return await self._run(_get)
 
-    def get_all_steps(self) -> List[Dict[str, Any]]:
-        return self.steps.all()
+    async def get_all_steps(self) -> List[Dict[str, Any]]:
+        return await self._run(self.steps.all)
+
+    async def create_step(self, step_data: Dict[str, Any]) -> str:
+        # TinyDB insert returns document ID (int), we convert to str/int
+        res = await self._run(self.steps.insert, step_data)
+        return str(res)
+
+    async def update_step(self, step_id: str, updates: Dict[str, Any]):
+        def _update():
+            Q = Query()
+            self.steps.update(updates, Q.id == step_id)
+        await self._run(_update)
+
+    async def delete_step(self, step_id: str):
+        def _delete():
+            Q = Query()
+            self.steps.remove(Q.id == step_id)
+        await self._run(_delete)
 
     # --- Workflows ---
-    def get_workflow_by_id(self, workflow_id: str) -> Optional[Dict[str, Any]]:
-        Q = Query()
-        res = self.workflows.search(Q.id == workflow_id)
-        return res[0] if res else None
+    async def get_workflow_by_id(self, workflow_id: str) -> Optional[Dict[str, Any]]:
+        def _get():
+            Q = Query()
+            res = self.workflows.search(Q.id == workflow_id)
+            return res[0] if res else None
+        return await self._run(_get)
 
-    def create_workflow(self, workflow_data: Dict[str, Any]) -> int:
-        return self.workflows.insert(workflow_data)
+    async def create_workflow(self, workflow_data: Dict[str, Any]) -> Union[int, str]:
+        return await self._run(self.workflows.insert, workflow_data)
 
-    def get_all_workflows(self) -> List[Dict[str, Any]]:
-        return self.workflows.all()
+    async def get_all_workflows(self) -> List[Dict[str, Any]]:
+        return await self._run(self.workflows.all)
+
+    async def update_workflow(self, workflow_id: str, updates: Dict[str, Any]):
+        def _update():
+             Q = Query()
+             self.workflows.update(updates, Q.id == workflow_id)
+        await self._run(_update)
+
+    async def delete_workflow(self, workflow_id: str):
+        def _delete():
+             Q = Query()
+             self.workflows.remove(Q.id == workflow_id)
+        await self._run(_delete)
 
     # --- Executions ---
-    def create_execution(self, execution_data: Dict[str, Any]) -> int:
-        return self.executions.insert(execution_data)
-        
-    def get_execution(self, execution_id: str) -> Optional[Dict[str, Any]]:
-        Q = Query()
-        res = self.executions.search(Q.execution_id == str(execution_id))
-        return res[0] if res else None
+    async def create_execution(self, execution_data: Dict[str, Any]) -> Union[int, str]:
+        return await self._run(self.executions.insert, execution_data)
 
-    def update_execution(self, execution_id: str, updates: Dict[str, Any]):
-        Q = Query()
-        self.executions.update(updates, Q.execution_id == str(execution_id))
+    async def get_execution(self, execution_id: str) -> Optional[Dict[str, Any]]:
+        def _get():
+            Q = Query()
+            res = self.executions.search(Q.execution_id == str(execution_id))
+            return res[0] if res else None
+        return await self._run(_get)
 
-    def get_all_executions(self) -> List[Dict[str, Any]]:
-        return self.executions.all()
+    async def update_execution(self, execution_id: str, updates: Dict[str, Any]):
+        def _update():
+            Q = Query()
+            self.executions.update(updates, Q.execution_id == str(execution_id))
+        await self._run(_update)
+
+    async def get_all_executions(self) -> List[Dict[str, Any]]:
+        return await self._run(self.executions.all)
 
     # --- Config ---
-    def get_model_registry(self) -> Optional[Dict[str, Any]]:
-        Q = Query()
-        res = self.system_config.search(Q.type == 'model_registry')
-        return res[0] if res else None
-    
-    def get_banned_phrases(self) -> List[Dict[str, Any]]:
-        return self.banned_phrases.all()
+    async def get_model_registry(self) -> Optional[Dict[str, Any]]:
+        def _get():
+            Q = Query()
+            res = self.system_config.search(Q.type == 'model_registry')
+            return res[0] if res else None
+        return await self._run(_get)
+
+    async def get_banned_phrases(self) -> List[Dict[str, Any]]:
+        return await self._run(self.banned_phrases.all)
+
+    async def add_banned_phrase(self, phrase: str, **kwargs):
+        def _add():
+            existing = self.banned_phrases.search(Query().phrase == phrase)
+            if not existing:
+                data = {"phrase": phrase}
+                data.update(kwargs)
+                return self.banned_phrases.insert(data)
+        await self._run(_add)
+
+    async def remove_banned_phrase(self, phrase: str):
+        def _remove():
+            self.banned_phrases.remove(Query().phrase == phrase)
+        await self._run(_remove)
 
     # --- Knowledge Base ---
-    def get_knowledge_base_items(self) -> List[Dict[str, Any]]:
-        return self.knowledge_base.all()
+    async def get_knowledge_base_items(self) -> List[Dict[str, Any]]:
+        return await self._run(self.knowledge_base.all)
 
-    def add_knowledge_base_item(self, item_data: Dict[str, Any]):
-        return self.knowledge_base.insert(item_data)
+    async def add_knowledge_base_item(self, item_data: Dict[str, Any]):
+        await self._run(self.knowledge_base.insert, item_data)
         
-    def clear_knowledge_base(self):
-        return self.knowledge_base.truncate()
+    async def clear_knowledge_base(self):
+        await self._run(self.knowledge_base.truncate)
 
-    # --- Banned Phrases ---
-    def add_banned_phrase(self, phrase: str, **kwargs):
-        # Prevent duplicates
-        existing = self.banned_phrases.search(Query().phrase == phrase)
-        if not existing:
-            data = {"phrase": phrase}
-            data.update(kwargs)
-            return self.banned_phrases.insert(data)
-            
-    def remove_banned_phrase(self, phrase: str):
-        return self.banned_phrases.remove(Query().phrase == phrase)
-
-# Alias for backward compatibility (optional but safe)
+# Backward compatibility alias
 WorkflowRepository = TinyDBRepository

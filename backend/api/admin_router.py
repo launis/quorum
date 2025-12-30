@@ -69,38 +69,40 @@ def run_script(script_name: str, args: List[str] = []) -> subprocess.CompletedPr
 def _start_admin_task(background_tasks: BackgroundTasks, db: AbstractDatabase, method_name: str, *args) -> Dict[str, str]:
     """
     Starts an administrative task in the background using AdministrationService.
-
-    Args:
-        background_tasks (BackgroundTasks): FastAPI background task handler.
-        db (AbstractDatabase): Database connection.
-        method_name (str): The method name to call on AdministrationService.
-        *args: Additional arguments for the method.
-
-    Returns:
-        Dict[str, str]: A dictionary containing the 'job_id' and 'status'.
     """
     job_id = str(uuid.uuid4())
     admin_task_status[job_id] = {"status": "starting", "stage": "Initializing", "percent": 0}
     
-    from backend.dependencies import get_repository_dep
-    repo = get_repository_dep(db)
+    from backend.dependencies import get_async_repository
+    repo = get_async_repository(db)
     from backend.services.administration_service import AdministrationService
     from backend.services.progress import InMemoryProgressTracker
+    import asyncio
     
     service = AdministrationService(repo)
     method = getattr(service, method_name)
     
-    def _run_task():
+    async def _run_task():
         def tracker_callback(payload):
             admin_task_status[job_id] = payload
             
         tracker = InMemoryProgressTracker(callback=tracker_callback)
         try:
-            # Execute the method
-            if args:
-                 res = method(tracker, *args) 
+            # Execute the method (Assuming AdminService methods are async or wrapped)
+            if asyncio.iscoroutinefunction(method):
+                 if args:
+                      res = await method(tracker, *args) 
+                 else:
+                     res = await method(tracker)
             else:
-                res = method(tracker)
+                # Run sync method in threadpool to avoid blocking loop
+                loop = asyncio.get_running_loop()
+                # Use lambda or functools.partial could be cleaner, but straight args work with run_in_executor in recent python
+                # Note: run_in_executor(None, func, *args)
+                if args:
+                     res = await loop.run_in_executor(None, method, tracker, *args)
+                else:
+                    res = await loop.run_in_executor(None, method, tracker)
             logger.info(f"Admin Task {method_name} result: {res}")
         except Exception as e:
             logger.error(f"Admin Task {method_name} failed: {e}")
@@ -316,21 +318,12 @@ def ingest_knowledge_base(
 ):
     """
     Starts the process of ingesting a document into the knowledge base from a local file path.
-
-    Args:
-        request (IngestRequest): The ingestion configuration.
-        background_tasks (BackgroundTasks): Background task handler.
-        repository (AbstractDatabase): Database dependency.
-        llm_provider (LLMProvider): LLM provider dependency.
-
-    Returns:
-        dict: Job ID and status message.
     """
     job_id = str(uuid.uuid4())
     admin_task_status[job_id] = {"status": "starting", "stage": "Initializing", "percent": 0}
 
-    from backend.dependencies import get_repository_dep
-    repo = get_repository_dep(repository)
+    from backend.dependencies import get_async_repository
+    repo = get_async_repository(repository)
     from backend.services.knowledge_base_service import KnowledgeBaseService
     service = KnowledgeBaseService(repo, llm_provider=llm_provider)
     
@@ -371,16 +364,6 @@ async def upload_knowledge_base(
 ):
     """
     Uploads a file and triggers the ingestion process.
-
-    Args:
-        file (UploadFile): The binary file to upload.
-        reset_db (bool): If True, resets the database.
-        background_tasks (BackgroundTasks): Background handler (optional).
-        db_client (AbstractDatabase): Database dependency.
-        llm_provider (LLMProvider): LLM provider dependency.
-
-    Returns:
-        dict: Job ID and file details.
     """
     job_id = str(uuid.uuid4())
     admin_task_status[job_id] = {"status": "starting", "stage": "Reading Upload", "percent": 0}
@@ -388,8 +371,8 @@ async def upload_knowledge_base(
     content = await file.read()
     filename = file.filename
     
-    from backend.dependencies import get_repository_dep
-    repo = get_repository_dep(db_client)
+    from backend.dependencies import get_async_repository
+    repo = get_async_repository(db_client)
     from backend.services.knowledge_base_service import KnowledgeBaseService
     service = KnowledgeBaseService(repo, llm_provider=llm_provider)
     
@@ -416,19 +399,13 @@ async def upload_knowledge_base(
     summary="List Banned Phrases",
     response_description="A list of all currently banned phrases."
 )
-def get_banned_phrases(db: AbstractDatabase = Depends(get_db_client_dep)):
+async def get_banned_phrases(db: AbstractDatabase = Depends(get_db_client_dep)):
     """
     Retrieves all banned phrases from the database.
-
-    Args:
-        db (AbstractDatabase): Database dependency.
-
-    Returns:
-        List[Dict]: A list of banned phrase objects.
     """
-    from backend.dependencies import get_repository_dep
-    repo = get_repository_dep(db)
-    return repo.get_banned_phrases()
+    from backend.dependencies import get_async_repository
+    repo = get_async_repository(db)
+    return await repo.get_banned_phrases()
 
 
 @router.post(
@@ -436,30 +413,20 @@ def get_banned_phrases(db: AbstractDatabase = Depends(get_db_client_dep)):
     summary="Add Banned Phrase",
     response_description="Confirmation of the added phrase."
 )
-def add_banned_phrase(
+async def add_banned_phrase(
     request: BannedPhraseRequest, 
     db: AbstractDatabase = Depends(get_db_client_dep)
 ):
     """
     Adds a new phrase to the blocklist.
-
-    Args:
-        request (BannedPhraseRequest): The phrase data.
-        db (AbstractDatabase): Database dependency.
-
-    Returns:
-        dict: Status and the added phrase.
-
-    Raises:
-        HTTPException: If the phrase is too short.
     """
-    from backend.dependencies import get_repository_dep
-    repo = get_repository_dep(db)
+    from backend.dependencies import get_async_repository
+    repo = get_async_repository(db)
     # Validate
     if not request.phrase or len(request.phrase.strip()) < 2:
         raise HTTPException(status_code=400, detail="Phrase too short")
     
-    repo.add_banned_phrase(request.phrase.strip())
+    await repo.add_banned_phrase(request.phrase.strip())
     return {"status": "added", "phrase": request.phrase}
 
 
@@ -468,26 +435,19 @@ def add_banned_phrase(
     summary="Delete Banned Phrase",
     response_description="Confirmation of deletion."
 )
-def delete_banned_phrase(
+async def delete_banned_phrase(
     phrase: str = Path(..., description="The URL-encoded phrase to delete."),
     db: AbstractDatabase = Depends(get_db_client_dep)
 ):
     """
     Removes a phrase from the blocklist.
-
-    Args:
-        phrase (str): The phrase to remove (URL encoded).
-        db (AbstractDatabase): Database dependency.
-
-    Returns:
-        dict: Status and the deleted phrase.
     """
-    from backend.dependencies import get_repository_dep
+    from backend.dependencies import get_async_repository
     from urllib.parse import unquote
-    repo = get_repository_dep(db)
+    repo = get_async_repository(db)
     
     decoded_phrase = unquote(phrase)
-    repo.remove_banned_phrase(decoded_phrase)
+    await repo.remove_banned_phrase(decoded_phrase)
     return {"status": "deleted", "phrase": decoded_phrase}
 
 
@@ -515,11 +475,12 @@ async def generate_banned_phrases(
     Raises:
         HTTPException: If generation fails.
     """
-    from backend.dependencies import get_repository_dep
-    repo = get_repository_dep(db)
+    from backend.dependencies import get_async_repository
+    repo = get_async_repository(db)
     
     # 1. Get existing to provide context
-    existing = [p['phrase'] for p in repo.get_banned_phrases()]
+    existing_records = await repo.get_banned_phrases()
+    existing = [p['phrase'] for p in existing_records]
     
     # 2. Prompt LLM
     lang_map = {"fi": "Finnish", "en": "English"}
@@ -550,7 +511,7 @@ async def generate_banned_phrases(
         added = []
         for phrase in candidates:
             if phrase not in existing:
-                repo.add_banned_phrase(phrase, language=request.language)
+                await repo.add_banned_phrase(phrase, language=request.language)
                 added.append(phrase)
                 existing.append(phrase) # Update local list
                 

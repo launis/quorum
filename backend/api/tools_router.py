@@ -1,5 +1,6 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, Body, Depends
-from backend.dependencies import get_llm_provider, get_repository_dep
+from typing import Any
+from backend.dependencies import get_llm_provider_factory, get_db_client_dep, LLMProviderFast
 from backend.database.repository import AbstractWorkflowRepository
 from backend.agents.coach import CoachAgent
 import logging
@@ -71,9 +72,9 @@ async def extract_document_text(
     response_description="A list of extracted concepts using LLM."
 )
 async def extract_concepts_from_file_or_text(
+    llm_provider: LLMProviderFast,
     file: UploadFile = File(None, description="Optional source file."),
-    text: str = Body(None, description="Optional raw source text."),
-    llm_provider = Depends(get_llm_provider)
+    text: str = Body(None, description="Optional raw source text.")
 ):
     """
     Uses the configured LLM to semantically extract concepts from input text or file.
@@ -137,25 +138,22 @@ async def extract_concepts_from_file_or_text(
 )
 async def lookup_citations(
     text: str = Body(..., embed=True, description="The content text to scan for citations."),
-    repo: AbstractWorkflowRepository = Depends(get_repository_dep)
+    db: Any = Depends(get_db_client_dep)
 ):
     """
     Scans the provided text for key terms or citations present in the system's Knowledge Base.
     Utilizes the CoachAgent's 2-hop resolution logic.
-
-    Args:
-        text (str): Input text.
-        repo (AbstractWorkflowRepository): Database dependency.
-
-    Returns:
-        dict: List of 'citations' found.
     """
     if not text:
          return {"citations": []}
          
     try:
-        # Load KB (Replicating CoachAgent.prepare_context logic)
-        items = repo.get_knowledge_base_items()
+        from backend.dependencies import get_async_repository, get_db_client_dep
+        # Manually resolving for clarity or change sig
+        repo = get_async_repository(db)
+        
+        # Load KB
+        items = await repo.get_knowledge_base_items()
         
         concepts = {}
         references = []
