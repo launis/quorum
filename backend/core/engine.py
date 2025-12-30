@@ -50,8 +50,19 @@ class WorkflowEngine:
         else:
              from backend.database.wrapper import get_db_client
              from backend.database.repository import TinyDBRepository
+             
              client = db_client if db_client else get_db_client()
-             self.repository = TinyDBRepository(client)
+             
+             # Fallback: Dynamic Selection
+             if type(client).__name__ == 'FirestoreClient':
+                 try:
+                     from backend.database.firestore_repo import FirestoreWorkflowRepository
+                     self.repository = FirestoreWorkflowRepository(client)
+                 except ImportError:
+                     logger.error("FirestoreWorkflowRepository not available. Using TinyDBRepository (Mock/Local).")
+                     self.repository = TinyDBRepository(client)
+             else:
+                 self.repository = TinyDBRepository(client)
         
         # Service Injection
         if registry:

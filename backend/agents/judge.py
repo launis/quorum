@@ -145,11 +145,27 @@ class JudgeAgent(BaseAgent):
                     return PisteetKriteeri(arvosana=s.score, perustelu=s.reasoning)
             return default_crit
             
+        # Default handling for standard fields
+        analyysi=get_crit(['analyysi', 'agency'])
+        arviointi=get_crit(['arviointi', 'engineering'])
+        synteesi=get_crit(['synteesi', 'falsification'])
+        
+        # Create base Pisteet object
         pisteet = Pisteet(
-            analyysi=get_crit(['analyysi', 'agency']),
-            arviointi=get_crit(['arviointi', 'engineering']),
-            synteesi=get_crit(['synteesi', 'falsification'])
+            analyysi=analyysi,
+            arviointi=arviointi,
+            synteesi=synteesi
         )
+
+        # Inject ALL dynamic keys not already covered
+        standard_keys = ['analyysi', 'agency', 'arviointi', 'engineering', 'synteesi', 'falsification']
+        for dim_id, dim_res in scores_map.items():
+            if dim_id not in standard_keys:
+                # Add as dynamic field
+                setattr(pisteet, dim_id, PisteetKriteeri(
+                    arvosana=dim_res.score, 
+                    perustelu=dim_res.reasoning
+                ))
         
         hits = "; ".join(result.critical_findings) if result.critical_findings else "Ei kriittisiä havaintoja."
         

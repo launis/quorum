@@ -61,8 +61,7 @@ class MockLLMService:
             
         logger.info(f"[MOCK RESPONSE] Generating response for: {key}")
         
-        # 2. Generate Data Programmatically
-        return self._generate_fallback(key)
+        return self._generate_fallback(key, prompt, system_instruction)
 
     def _identify_prompt_type(self, prompt: str, system_instruction: Optional[str]) -> str:
         """
@@ -198,17 +197,49 @@ class MockLLMService:
         
         return "unknown"
 
-    def _generate_fallback(self, key: str) -> str:
+    def _generate_fallback(self, key: str, prompt: str = "", system_instruction: Optional[str] = None) -> str:
         """
         Generates a minimal valid JSON response for the identified key, strictly matching backend/schemas.py.
         Delegates precise data generation to `mock_data.py`.
 
         Args:
             key (str): The mock key identifying the agent/type.
+            prompt (str): The original prompt, used for dynamic value extraction (e.g. Judge dimensions).
+            system_instruction (Optional[str]): System prompt, often containing schema/context.
 
         Returns:
             str: JSON string of the fallback data.
         """
         data = get_fallback_data(key)
+
+        # --- DYNAMIC JUDGE HYDRATION ---
+        # If we are mocking the Judge, we try to detect which dimensions were requested in the JSON schema or text.
+        # We scan BOTH prompt and system_instruction.
+        scan_text = (prompt or "") + "\n" + (system_instruction or "")
+
+        if key == "judge_agent" and scan_text.strip():
+            try:
+                # Strategy A: Extract from Human Text (JudgeAgent prompt format: "- Label (ID: key):")
+                keys_found = re.findall(r'\(ID:\s*([a-zA-Z0-9_]+)\)', scan_text)
+
+                # Strategy B: Extract from JSON Schema (Backup)
+                if not keys_found:
+                     match = re.search(r'"scores"\s*:\s*\{.*?"properties"\s*:\s*\{(.*?)\}\s*,', scan_text, re.DOTALL)
+                     if match:
+                        props_inner = match.group(1)
+                        keys_found = re.findall(r'"([a-z0-9_]+)"\s*:\s*\{', props_inner)
+
+                if keys_found:
+                    logger.info(f"[MockLLM] Dynamic Judge Keys Found: {keys_found}")
+                    dynamic_scores = {}
+                    for k in keys_found:
+                        dynamic_scores[k] = {
+                            "arvosana": random.randint(2, 4),
+                            "perustelu": f"[MOCK] Dynamic evaluation for '{k}'."
+                        }
+                    data["pisteet"] = dynamic_scores
+            except Exception as e:
+                logger.warning(f"[MockLLM] Failed hydration: {e}")
+
         # Assuming get_fallback_data returns a dict; we need to stringify it for the 'LLM response'
         return json.dumps(data, ensure_ascii=False)

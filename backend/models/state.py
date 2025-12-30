@@ -2,6 +2,7 @@ from typing import Optional, List, Dict, Any, Literal, Union, Annotated
 from pydantic import BaseModel, Field
 from datetime import datetime
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -205,13 +206,12 @@ class WorkflowState(BaseModel):
         settings = get_settings()
         
         # Determine DB Source Label
-        db_source = "unknown"
-        if "mock" in settings.start_db_path.lower():
+        if settings.use_mock_db:
             db_source = "mock_json"
-        elif "firebase" in settings.start_db_path.lower():
-             db_source = "firebase"
+        elif settings.storage_backend.strip().upper() == "FIRESTORE":
+            db_source = "firebase_firestore"
         else:
-             db_source = "local_json"
+            db_source = "local_json"
 
         # DEBUG TRACE
         flat = {}
@@ -261,22 +261,62 @@ class WorkflowState(BaseModel):
         if self.step_reporter:
             report["final_verdict"] = self.step_reporter.final_verdict
             report["confidence"] = self.step_reporter.confidence_score
+
+        # Dynamic Score Flattening
+        # We iterate through all stored audit results (e.g., standard, cognitive, etc.)
+        # and merge them into the flat 'scores' dictionary.
         
-        # Determine source of judgement (standard or cognitive)
-        # Priority: Cognitive Judge > Standard Judge (Fixed)
-        judge_source = self.step_judge_cognitive or self.step_judge
+        all_scores = {}
+        all_critique = []
         
-        if judge_source and judge_source.pisteet:
-            p = judge_source.pisteet
-            report["scores"] = {
-                "analyysi": p.analyysi.arvosana if p.analyysi else 0,
-                "analyysi_selitys": p.analyysi.perustelu if p.analyysi else "",
-                "arviointi": p.arviointi.arvosana if p.arviointi else 0,
-                "arviointi_selitys": p.arviointi.perustelu if p.arviointi else "",
-                "synteesi": p.synteesi.arvosana if p.synteesi else 0,
-                "synteesi_selitys": p.synteesi.perustelu if p.synteesi else ""
-            }
-            report["kritiikki"] = judge_source.kriittiset_havainnot_yhteenveto
+        # Sources to check: 1. Dynamic Audit Results (New), 2. Legacy Fields (Old)
+        sources_to_process = []
+        
+        # 1. Prefer Dynamic Storage
+        if self.audit_results:
+             for step_id, res in self.audit_results.items():
+                 sources_to_process.append(res)
+        
+        # 2. Fallback to Legacy Fields if Dynamic Store is empty
+        if not sources_to_process:
+            if self.step_judge: sources_to_process.append(self.step_judge)
+            if self.step_judge_cognitive: sources_to_process.append(self.step_judge_cognitive)
+
+        visited_keys = set()
+        
+        for res_obj in sources_to_process:
+            # Handle EvaluationResult (Dynamic)
+            if hasattr(res_obj, 'dimensions') and res_obj.dimensions:
+                for dim in res_obj.dimensions:
+                    key = dim.dimension_id
+                    # Prevent overwriting if multiple matrices evaluate same thing (first wins? or merge?)
+                    # For now, let's allow overwrite or use unique keys if possible.
+                    # ideally keys are unique per matrix logic.
+                    all_scores[key] = dim.score
+                    all_scores[f"{key}_selitys"] = dim.reasoning
+            
+            # Handle TuomioJaPisteet (Legacy Adapter Object)
+            elif hasattr(res_obj, 'pisteet') and res_obj.pisteet:
+                 p = res_obj.pisteet
+                 # Map the legacy 3 fixed fields
+                 if p.analyysi:
+                     all_scores['analyysi'] = p.analyysi.arvosana
+                     all_scores['analyysi_selitys'] = p.analyysi.perustelu
+                 if p.arviointi:
+                     all_scores['arviointi'] = p.arviointi.arvosana
+                     all_scores['arviointi_selitys'] = p.arviointi.perustelu
+                 if p.synteesi:
+                     all_scores['synteesi'] = p.synteesi.arvosana
+                     all_scores['synteesi_selitys'] = p.synteesi.perustelu
+
+            # Collect Critiques
+            if hasattr(res_obj, 'critical_findings') and res_obj.critical_findings:
+                all_critique.extend(res_obj.critical_findings)
+            elif hasattr(res_obj, 'kriittiset_havainnot_yhteenveto') and res_obj.kriittiset_havainnot_yhteenveto:
+                all_critique.extend(res_obj.kriittiset_havainnot_yhteenveto)
+
+        report["scores"] = all_scores
+        report["kritiikki"] = list(set(all_critique)) # Dedupe
 
         # 2. Key Analysis Findings
         if self.step_analyst:

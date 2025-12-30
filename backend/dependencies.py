@@ -35,8 +35,24 @@ def get_db_client_dep() -> AbstractDatabase:
 def get_repository_dep(db_client: AbstractDatabase = Depends(get_db_client_dep)) -> AbstractWorkflowRepository:
     global _repository_instance
     if _repository_instance is None:
-         # Here we choose the implementation
-         _repository_instance = TinyDBRepository(db_client)
+         # Choose implementation based on Client Type
+         client_name = type(db_client).__name__
+         
+         if client_name == "FirestoreClient":
+             try:
+                 from backend.database.firestore_repo import FirestoreWorkflowRepository
+                 logger.info("[Dependencies] Using FirestoreWorkflowRepository")
+                 _repository_instance = FirestoreWorkflowRepository(db_client)
+             except ImportError as e:
+                 logger.error(f"Could not import FirestoreWorkflowRepository: {e}. Falling back to TinyDB.")
+                 from backend.database.repository import TinyDBRepository
+                 _repository_instance = TinyDBRepository(db_client)
+         else:
+             # Default / TinyDB
+             from backend.database.repository import TinyDBRepository
+             logger.info("[Dependencies] Using TinyDBRepository")
+             _repository_instance = TinyDBRepository(db_client)
+             
     return _repository_instance
 
 

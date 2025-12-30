@@ -208,3 +208,6 @@ __marimo__/
 
 # Execution Files
 backend/files/executions/
+
+# Firebase Credentials
+service-account.json

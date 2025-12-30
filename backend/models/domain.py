@@ -237,9 +237,11 @@ class PisteetKriteeri(BaseModel):
     perustelu: Annotated[str, Field(description="Justification.")]
 
 class Pisteet(BaseModel):
-    analyysi: Annotated[PisteetKriteeri, Field(description="Score for Analysis.")]
-    arviointi: Annotated[PisteetKriteeri, Field(description="Score for Evaluation.")]
-    synteesi: Annotated[PisteetKriteeri, Field(description="Score for Synthesis.")]
+    analyysi: Annotated[Optional[PisteetKriteeri], Field(description="Score for Analysis.")] = None
+    arviointi: Annotated[Optional[PisteetKriteeri], Field(description="Score for Evaluation.")] = None
+    synteesi: Annotated[Optional[PisteetKriteeri], Field(description="Score for Synthesis.")] = None
+
+    model_config = ConfigDict(extra='allow')
 
 class TuomioJaPisteet(BaseJSON):
     konfliktin_ratkaisut: Annotated[List[KonfliktinRatkaisu], Field(description="Conflict resolutions.")]

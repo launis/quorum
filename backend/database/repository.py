@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Union
 from backend.database.wrapper import AbstractDatabase
 from tinydb import Query
 
@@ -37,14 +37,14 @@ class AbstractWorkflowRepository(ABC):
     def get_workflow_by_id(self, workflow_id: str) -> Optional[Dict[str, Any]]: pass
 
     @abstractmethod
-    def create_workflow(self, workflow_data: Dict[str, Any]) -> int: pass
+    def create_workflow(self, workflow_data: Dict[str, Any]) -> Union[int, str]: pass
 
     @abstractmethod
     def get_all_workflows(self) -> List[Dict[str, Any]]: pass
 
     # --- Executions ---
     @abstractmethod
-    def create_execution(self, execution_data: Dict[str, Any]) -> int: pass
+    def create_execution(self, execution_data: Dict[str, Any]) -> Union[int, str]: pass
 
     @abstractmethod
     def get_execution(self, execution_id: str) -> Optional[Dict[str, Any]]: pass

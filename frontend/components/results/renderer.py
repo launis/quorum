@@ -175,6 +175,13 @@ def render_dashboard(data: dict):
         if "step_judge" in raw and "step_judge_cognitive" in raw:
             matrix_mode = "dual"
 
+    scores = report.get("scores") or report.get("pisteet")
+    s_max = report.get("scale_max")
+
+    if matrix_mode == "dual":
+        render_dual_matrix_view(data)
+        scores = None
+
     # Helper for formatted score
     def fmt_score(score, s_max=None):
         try:
@@ -189,36 +196,39 @@ def render_dashboard(data: dict):
         except:
             return str(score)
 
-    if matrix_mode == "dual":
-        render_dual_matrix_view(data)
-    else:
-        # Standard Single View
-        scores = report.get("scores", {})
+    if scores:
+        st.subheader(f"Arviointi (Dynamic Scores)")
         
-        # Try to find scale_max from Raw Data
-        s_max = None
-        raw = data.get("Raw_Steps", {})
-        for _, val in raw.items():
-             if "scale_max" in val:
-                 s_max = val["scale_max"]
-                 break
-        # Fallback: check nested results
-        if not s_max:
-             # Check if any step has 'audit_results' style data
-             pass
+        # Convert scores dict to list of items for rendering
+        score_items = list(scores.items())
+        
+        # Create rows of 3 columns
+        for i in range(0, len(score_items), 3):
+            cols = st.columns(3)
+            for j in range(3):
+                if i + j < len(score_items):
+                    key, val = score_items[i + j]
+                    label = key.replace('_', ' ').capitalize()
+                    
+                    # Handle value if it's complex (e.g. dict with reasoning) or simple
+                    score_val = val
+                    selitys = ""
+                    
+                    # If the flattened report puts explanation in a separate key (e.g. "analyysi_selitys")
+                    # we try to find it.
+                    possible_selitys_key = f"{key}_selitys"
+                    if possible_selitys_key in scores:
+                        selitys = scores[possible_selitys_key]
+                    
+                    # If val is dict (JudgeAgent standard output often has {arvosana: X, perustelu: Y})
+                    if isinstance(val, dict):
+                        score_val = val.get("arvosana")
+                        selitys = val.get("perustelu") or selitys
 
-        if scores:
-            st.subheader(f"Arviointi (Scores)")
-            c1, c2, c3 = st.columns(3)
-            with c1:
-                st.metric("Analyysi", fmt_score(scores.get('analyysi', 0), s_max))
-                st.caption(scores.get('analyysi_selitys', ''))
-            with c2:
-                st.metric("Arviointi", fmt_score(scores.get('arviointi', 0), s_max))
-                st.caption(scores.get('arviointi_selitys', ''))
-            with c3:
-                st.metric("Synteesi", fmt_score(scores.get('synteesi', 0), s_max))
-                st.caption(scores.get('synteesi_selitys', ''))
+                    with cols[j]:
+                         st.metric(label, fmt_score(score_val, s_max))
+                         if selitys:
+                             st.caption(selitys)
 
     # 3. Feedback
     st.subheader("Palaute (Feedback)")

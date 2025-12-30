@@ -1,6 +1,5 @@
 import os
 from functools import lru_cache
-from functools import lru_cache
 from typing import Dict, Any, Optional
 from pydantic import Field, computed_field, BeforeValidator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -19,23 +18,23 @@ class Settings(BaseSettings):
     Reads from environment variables and .env file.
     """
     # --- Feature Flags ---
-    use_mock_llm: MyBool = Field(default=False, description="Use Mock LLM Service")
-    use_mock_db: MyBool = Field(default=True, description="Use Mock Database (TinyDB)")
+    use_mock_llm: Annotated[bool, BeforeValidator(strip_whitespace), Field(description="Use Mock LLM Service")] = False
+    use_mock_db: Annotated[bool, BeforeValidator(strip_whitespace), Field(description="Use Mock Database (TinyDB)")] = True
     
     # --- API Keys ---
-    google_api_key: Optional[str] = Field(default=None, description="Google AI Provider API Key")
+    google_api_key: Annotated[Optional[str], Field(description="Google AI Provider API Key")] = None
 
     # --- LLM Configuration ---
-    initial_model: str = Field(default="fast") # Use strategy key, not raw name
-    llm_default_timeout: float = Field(default=60.0) # Keep increased timeout
-    llm_max_retries: int = Field(default=3)
-    llm_retry_delay: float = Field(default=4.0)
+    initial_model: Annotated[str, Field(description="Initial Model Strategy")] = "fast"
+    llm_default_timeout: Annotated[float, Field(description="LLM Timeout in seconds")] = 60.0
+    llm_max_retries: Annotated[int, Field(description="Max retries for LLM calls")] = 3
+    llm_retry_delay: Annotated[float, Field(description="Delay between retries in seconds")] = 4.0
     
     # NOTE: Default models are REMOVED to enforce DB-based configuration.
     # gemini_model_fast and gemini_model_deep are deprecated.
 
     # --- Storage ---
-    storage_backend: str = Field(default="LOCAL", description="LOCAL, NONE, or FIRESTORE")
+    storage_backend: Annotated[str, Field(description="LOCAL, NONE, or FIRESTORE")] = "LOCAL"
 
     # --- Paths ---
     # We define base_dir relative to this file (backend/settings.py)

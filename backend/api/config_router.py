@@ -589,6 +589,96 @@ def get_introspection():
         except Exception: continue
     return {"schemas": sorted(available_schemas), "agents": sorted(available_agents), "hooks": sorted(list(available_hooks))}
 
+class DimensionDefinition(BaseModel):
+    id: Annotated[str, Field(description="Unique dimension ID (e.g. 'analyysi').")]
+    label: Annotated[str, Field(description="Human readable default label.")]
+    description: Annotated[Optional[str], Field(description="Explanation of what this measures.")] = None
+    is_system: Annotated[bool, Field(description="If true, is a core system dimension.")] = False
+
+@router.get(
+    "/ontology/dimensions", 
+    summary="Get Known Dimensions",
+    response_description="List of unique evaluation dimension IDs."
+)
+def get_known_dimensions(db: AbstractDatabase = Depends(get_db_client_dep)):
+    """
+    Returns specific allowed dimension IDs from the ontology table.
+    Auto-seeds defaults if table is empty.
+    """
+    table = db.table('dimensions')
+    all_dims = table.all()
+    
+    if not all_dims:
+        # Seeding defaults
+        defaults = [
+            {"id": "analyysi", "label": "Analyysi", "description": "Ymmärryksen syvyys ja ongelman rajaus.", "is_system": True},
+            {"id": "arviointi", "label": "Arviointi", "description": "Ratkaisun validointi ja perustelu.", "is_system": True},
+            {"id": "synteesi", "label": "Synteesi", "description": "Uuden luominen ja yhdistely", "is_system": True},
+            {"id": "agency", "label": "Agency", "description": "Toimijuus ja prosessin hallinta.", "is_system": True},
+            {"id": "engineering", "label": "Engineering", "description": "Tekninen toteutus ja promptaus.", "is_system": True},
+            {"id": "falsification", "label": "Falsification", "description": "Kriittinen iteraatio ja virheiden etsintä.", "is_system": True}
+        ]
+        for d in defaults:
+            table.insert(d)
+        all_dims = defaults
+
+    return sorted([d['id'] for d in all_dims])
+
+@router.get(
+    "/ontology/dimensions/full", 
+    summary="Get Full Ontology",
+    response_description="Full dimension objects."
+)
+def get_full_ontology(db: AbstractDatabase = Depends(get_db_client_dep)):
+    get_known_dimensions(db) # Ensure seed
+    return db.table('dimensions').all()
+
+@router.post(
+    "/ontology/dimensions", 
+    summary="Create Dimension",
+    response_description="Created Dimension."
+)
+def create_dimension(dim: DimensionDefinition, db: AbstractDatabase = Depends(get_db_client_dep)):
+    table = db.table('dimensions')
+    if table.search(Query().id == dim.id):
+        raise HTTPException(status_code=400, detail=f"Dimension '{dim.id}' already exists.")
+    table.insert(dim.model_dump())
+    return {"status": "created", "id": dim.id}
+
+@router.delete(
+    "/ontology/dimensions/{dim_id}", 
+    summary="Delete Dimension",
+    response_description="Status."
+)
+def delete_dimension(dim_id: str, db: AbstractDatabase = Depends(get_db_client_dep)):
+    # 1. Check Usage
+    comp_table = db.table('components')
+    Component = Query()
+    matrices = comp_table.search(Component.type == 'evaluation_matrix')
+    
+    used_in = []
+    for m in matrices:
+        content = m.get('content', {})
+        if isinstance(content, str):
+            try: content = json.loads(content)
+            except: continue
+        criteria = content.get('criteria', [])
+        for c in criteria:
+            if c.get('id') == dim_id:
+                used_in.append(m.get('name', m['id']))
+                break
+    
+    if used_in:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Cannot delete dimension '{dim_id}'. It is used in {len(used_in)} matrices: {', '.join(used_in)}."
+        )
+
+    # 2. Delete
+    table = db.table('dimensions')
+    table.remove(Query().id == dim_id)
+    return {"status": "deleted", "id": dim_id}
+
 @router.post(
     "/validate-flow", 
     summary="Validate Flow",
