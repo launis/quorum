@@ -99,6 +99,12 @@ class WorkflowState(BaseModel):
         if self.step_reporter:
             report["final_verdict"] = self.step_reporter.final_verdict
             report["confidence"] = self.step_reporter.confidence_score
+            
+            # Hoist Legacy Comparison Data if present (via extra='allow')
+            if hasattr(self.step_reporter, 'comparison_data'):
+                report["comparison_data"] = self.step_reporter.comparison_data
+            elif getattr(self.step_reporter, "__pydantic_extra__", None) and "comparison_data" in self.step_reporter.__pydantic_extra__:
+                report["comparison_data"] = self.step_reporter.__pydantic_extra__["comparison_data"]
         
         # Priority: Cognitive Judge > Standard Judge
         active_judge = self.step_judge_cognitive or self.step_judge

@@ -32,7 +32,7 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
         return None
 
     def _find_one_by_field(self, collection: str, field: str, value: Any) -> Optional[Dict[str, Any]]:
-        docs = self.client.collection(collection).where(field, "==", value).limit(1).stream()
+        docs = self.client.collection(collection).where(field_path=field, op_string="==", value=value).limit(1).stream()
         for doc in docs:
             return doc.to_dict()
         return None
@@ -60,7 +60,7 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
 
     def update_component_metadata(self, name: str, module: str, component_class: str):
         # First find the document
-        docs = self.client.collection('components').where('name', '==', name).limit(1).stream()
+        docs = self.client.collection('components').where(field_path='name', op_string='==', value=name).limit(1).stream()
         for doc in docs:
             doc.reference.update({
                 "module": module,
@@ -120,7 +120,7 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
             doc_ref.update(updates)
         else:
             # Fallback search
-            docs = self.client.collection('executions').where('execution_id', '==', str(execution_id)).limit(1).stream()
+            docs = self.client.collection('executions').where(field_path='execution_id', op_string='==', value=str(execution_id)).limit(1).stream()
             for doc in docs:
                 doc.reference.update(updates)
 
@@ -136,14 +136,14 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
 
     def add_banned_phrase(self, phrase: str, **kwargs):
         # Check specific existence
-        existing = self.client.collection('banned_phrases').where('phrase', '==', phrase).limit(1).get()
+        existing = self.client.collection('banned_phrases').where(field_path='phrase', op_string='==', value=phrase).limit(1).get()
         if not existing:
             data = {"phrase": phrase}
             data.update(kwargs)
             self.client.collection('banned_phrases').add(data)
 
     def remove_banned_phrase(self, phrase: str):
-         docs = self.client.collection('banned_phrases').where('phrase', '==', phrase).stream()
+         docs = self.client.collection('banned_phrases').where(field_path='phrase', op_string='==', value=phrase).stream()
          for doc in docs:
              doc.reference.delete()
 

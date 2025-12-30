@@ -80,7 +80,11 @@ def render_matrix_view(api_client, backend_url):
     # === TAB 1: MATRIX EDITOR ===
     with sb_tabs[0]:
         st.subheader("Matrix Selection")
-        c_mode = st.radio("Mode", ["Edit Existing", "Create New"], key="mode_select")
+        
+        def reset_selection():
+            st.session_state.selected_matrix_id = None
+            
+        c_mode = st.radio("Mode", ["Edit Existing", "Create New"], key="mode_select", on_change=reset_selection)
 
         existing_matrices = []
         try:
@@ -119,6 +123,7 @@ def render_matrix_view(api_client, backend_url):
                 # Force init if needed
                 if st.session_state.selected_matrix_id not in keys:
                      st.session_state.selected_matrix_id = keys[0]
+                     st.rerun()
             else:
                 st.info("No existing matrices found. Create a new one!")
                 c_mode = "Create New"

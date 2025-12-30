@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, List, Dict, Optional, Union
 import logging
+import os
 from tinydb import TinyDB
 # from backend.config import USE_MOCK_DB, DB_PATH # Removed
 
@@ -171,6 +172,32 @@ class FirestoreTable(AbstractTable):
 
     def close(self):
         pass
+
+class FirestoreClient(AbstractDatabase):
+    def __init__(self):
+        # Lazy import settings to avoid circular deps if any
+        from backend.settings import get_settings
+        settings = get_settings()
+        
+        if not firebase_admin._apps:
+            # Locate service-account.json in project root
+            root_dir = os.path.dirname(settings.base_dir)
+            sa_path = os.path.join(root_dir, "service-account.json")
+            
+            if not os.path.exists(sa_path):
+                # Fallback check or error
+                logger.error(f"Service Account not found at {sa_path}")
+            
+            cred = credentials.Certificate(sa_path)
+            firebase_admin.initialize_app(cred)
+            
+        self.db = firestore.client()
+
+    def table(self, name: str) -> AbstractTable:
+        return FirestoreTable(self.db.collection(name))
+
+    def close(self):
+        pass 
 
 # --- Factory Function ---
 

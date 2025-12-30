@@ -156,6 +156,53 @@ def rebuild_database(
 
 
 @router.post(
+    "/database/reset/mock",
+    summary="Reset Mock Database",
+    response_description="Confirmation that the Mock DB reset task has started."
+)
+def reset_mock_db(
+    background_tasks: BackgroundTasks, 
+    db: AbstractDatabase = Depends(get_db_client_dep)
+):
+    """
+    Triggers 'rebuild_mock_db.py' in the background.
+    """
+    return _start_admin_task(background_tasks, db, "reset_mock_db")
+
+
+@router.post(
+    "/database/reset/prod",
+    summary="Reset Production Database (Local)",
+    response_description="Confirmation that the Prod (TinyDB) reset task has started."
+)
+def reset_prod_db(
+    background_tasks: BackgroundTasks, 
+    db: AbstractDatabase = Depends(get_db_client_dep)
+):
+    """
+    Triggers 'rebuild_prod_db.py' in the background.
+    WARNING: This wipes the local production database.
+    """
+    return _start_admin_task(background_tasks, db, "reset_prod_db")
+
+
+@router.post(
+    "/database/reset/firestore",
+    summary="Reset Firestore Database",
+    response_description="Confirmation that the Firestore reset task has started."
+)
+def reset_firestore_db(
+    background_tasks: BackgroundTasks, 
+    db: AbstractDatabase = Depends(get_db_client_dep)
+):
+    """
+    Triggers 'seed_firestore.py' in the background.
+    WARNING: This wipes the Firestore database!
+    """
+    return _start_admin_task(background_tasks, db, "reset_firestore")
+
+
+@router.post(
     "/self-test",
     summary="Run System Self-Test",
     response_description="A health report detailing LLM and Database connectivity."

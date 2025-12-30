@@ -14,9 +14,9 @@
 
 | Kategoria | Arvosana | Perustelu |
 | :--- | :---: | :--- |
-| **Analyysi ja Prosessi** | {{ report_content.scores.analysis.score }} | {{ report_content.scores.analysis.reasoning }} |
-| **Arviointi ja Argumentaatio** | {{ report_content.scores.evaluation.score }} | {{ report_content.scores.evaluation.reasoning }} |
-| **Synteesi ja Luovuus** | {{ report_content.scores.synthesis.score }} | {{ report_content.scores.synthesis.reasoning }} |
+{% for key, val in report_content.scores.items() %}
+| **{{ key | capitalize }}** | {{ val.score }} | {{ val.reasoning }} |
+{% endfor %}
 
 ---
 

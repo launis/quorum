@@ -236,6 +236,18 @@ class APIClient:
             import uuid
             return f"{prefix}_{uuid.uuid4().hex[:6]}"
 
+    def create_custom_step_v2(self, component_type: str, name_hint: str = None):
+        try:
+            payload = {"component_type": component_type}
+            if name_hint: payload["name_hint"] = name_hint
+            
+            res = requests.post(f"{self.base_url}/builder/steps/create-custom", json=payload, timeout=10)
+            res.raise_for_status()
+            return res.json()
+        except Exception as e:
+            logger.error(f"Failed to create custom step v2: {e}")
+            raise e
+
     def create_step(self, payload):
         try:
             res = requests.post(f"{self.base_url}/config/steps", json=payload, timeout=10)

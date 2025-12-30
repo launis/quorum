@@ -74,11 +74,21 @@ def shared_engine():
     
     # Teardown
     db.close()
-    time.sleep(0.1)
-    try:
-        shutil.rmtree(base_dir, ignore_errors=True)
-    except:
-        pass
+    # Wait for file handle release
+    time.sleep(1.0)
+    
+    max_retries = 3
+    for i in range(max_retries):
+        try:
+            shutil.rmtree(base_dir, ignore_errors=False)
+            break
+        except OSError:
+            if i < max_retries - 1:
+                time.sleep(1.0)
+            else:
+                print(f"[Warning] Could not remove temp dir {base_dir} after retries.")
+                # Final attempt mostly to suppress error
+                shutil.rmtree(base_dir, ignore_errors=True)
 
 def test_compile_fusion_flow(shared_engine):
     # Override the dependency to use our shared_engine

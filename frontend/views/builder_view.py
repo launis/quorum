@@ -262,34 +262,18 @@ def render_workflow_builder(api_client):
                                 wf_data["default_model_mapping"][sel_id] = "fast"
                             st.rerun()
                     else:
-                        st.caption("Backend-Integrated Custom Step")
-                        # 1. Generate ID
-                        cust_id = api_client.generate_id(prefix=f"custom_{sel_agent.lower()}")
+                        st.caption("Backend-Integrated Custom Step (V2)")
                         
                         if st.button("Create & Add Custom Step"):
-                            # 2. Construct Step Payload
-                            new_step_payload = {
-                                "id": cust_id,
-                                "name": f"Custom {sel_agent} Step",
-                                "component": sel_agent, # Using agent name as component ID
-                                "description": "Created via Workflow Builder",
-                                "execution_config": {},
-                                "output_config_component": None,
-                                "output_filename": f"{cust_id}.json"
-                            }
-                            
                             try:
-                                # 3. Create in Backend
-                                api_client.create_step(new_step_payload)
+                                # 1. Delegate Logic to Backend
+                                new_step = api_client.create_custom_step_v2(sel_agent)
+                                cust_id = new_step['id']
+                                
                                 st.success(f"Created step {cust_id}")
                                 
-                                # 4. Add to Workflow
+                                # 2. Add to Workflow Sequence
                                 steps.append(cust_id)
-                                
-                                # 5. Set defaults
-                                if "default_model_mapping" not in wf_data:
-                                    wf_data["default_model_mapping"] = {}
-                                wf_data["default_model_mapping"][cust_id] = "fast"
                                 
                                 st.rerun()
                             except Exception as e:

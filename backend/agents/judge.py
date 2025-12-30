@@ -39,7 +39,26 @@ class JudgeAgent(BaseAgent):
         if not component:
             return f"ERROR: Matrix '{matrix_id}' not found."
             
-        return self._format_matrix_prompt(component)
+        base_prompt = self._format_matrix_prompt(component)
+        
+        # Inject Context/Inputs to be evaluated
+        eval_ctx = []
+        try:
+            if hasattr(state, 'inputs') and state.inputs:
+                if getattr(state.inputs, 'history_text', None):
+                    eval_ctx.append(f"### CHAT HISTORY TO EVALUATE:\n{state.inputs.history_text}")
+                if getattr(state.inputs, 'product_text', None):
+                    eval_ctx.append(f"### PRODUCT TO EVALUATE:\n{state.inputs.product_text}")
+                if getattr(state.inputs, 'reflection_text', None):
+                    eval_ctx.append(f"### STUDENT REFLECTION:\n{state.inputs.reflection_text}")
+        except Exception:
+            # Tolerated failure in prompt decoration
+            pass
+
+        if eval_ctx:
+             return base_prompt + "\n\n" + "\n\n".join(eval_ctx)
+             
+        return base_prompt
 
     def _format_matrix_prompt(self, component: dict) -> str:
         content = component.get('content', {})
@@ -85,7 +104,7 @@ class JudgeAgent(BaseAgent):
         return "\n".join(prompt_lines)
 
     def _update_state(self, state: WorkflowState, response_data: Any, output_key: Optional[str] = None, **kwargs) -> WorkflowState:
-        step_id = kwargs.get('step_id', output_key or 'unknown_step')
+        step_id = kwargs.get('step_id', output_key or self.state_field or 'unknown_step')
         
         try:
             if isinstance(response_data, dict):

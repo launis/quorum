@@ -4,142 +4,73 @@ import pandas as pd
 def render_dual_matrix_view(data: dict):
     """
     Renders a comparative view of two Judge matrices dynamically.
-    Scans Raw_Steps for any steps containing 'pisteet' and 'judge'/'tuomari' in metadata/key.
+    Preferentially uses pre-computed 'comparison_data' from Backend (V2).
+    Falls back to heuristic scanning for legacy reports.
     """
-    raw = data.get("Raw_Steps", {})
-    
-    # 1. Dynamic Discovery
-    judge_steps = []
-    for step_id, step_data in raw.items():
-        # Check if it looks like a scored step
-        if isinstance(step_data, dict) and "pisteet" in step_data:
-            # Check keywords in ID or Agent Name to confirm it's a Judge
-            agent_name = step_data.get("metadata", {}).get("agentti", "").lower()
-            sid = step_id.lower()
-            if "judge" in sid or "tuomari" in sid or "judge" in agent_name or "tuomari" in agent_name:
-                judge_steps.append((step_id, step_data))
+    report = data.get("Report", {})
+    comp_data = report.get("comparison_data")
 
-    if len(judge_steps) != 2:
-        st.warning(f"⚠️ Dual Mode active, but found {len(judge_steps)} judge matrices (Expected 2). Showing available raw data.")
-        if len(judge_steps) == 1:
-             # Fallback to single view for the one found?
-             pass
+    # Fallback: Look in Raw_Steps if hoisting failed
+    if not comp_data:
+        raw_steps = data.get("Raw_Steps", {})
+        step_rep = raw_steps.get("step_reporter", {})
+        comp_data = step_rep.get("comparison_data")
+
+    # --- V2: Backend Driven Path ---
+    if comp_data:
+        left_label = comp_data.get('left_label', 'Judge A')
+        right_label = comp_data.get('right_label', 'Judge B')
+        rows = comp_data.get('rows', [])
+        
+        # Header
+        cols = st.columns([2, 2, 2, 1, 2])
+        cols[0].markdown("**Ulottuvuus**")
+        cols[1].markdown(f"**{left_label}**")
+        cols[2].markdown(f"**{right_label}**")
+        cols[3].markdown("**Delta**")
+        cols[4].markdown("**Johtopäätös**")
+        st.divider()
+        
+        for r in rows:
+            key = r.get('dimension', 'N/A')
+            l_det = r.get('left', {})
+            r_det = r.get('right', {})
+            delta = r.get('delta', 0)
+            
+            # Format values
+            val_l = l_det.get('score', 0)
+            val_r = r_det.get('score', 0)
+            reason_l = l_det.get('reasoning', '')
+            reason_r = r_det.get('reasoning', '')
+            
+            delta_str = f"+{delta:.1f}" if delta > 0 else f"{delta:.1f}"
+            if delta == 0: delta_str = "="
+            delta_color = "green" if delta > 0 else "red" if delta < 0 else "gray"
+            
+            # Verdict Logic (Purely UI presentation here, data is fixed)
+            verdict = "⚖️ Tasan"
+            if delta > 0: verdict = f"📈 {right_label} (+)"
+            elif delta < 0: verdict = f"📉 {left_label} (+)"
+
+            c = st.columns([2, 2, 2, 1, 2])
+            c[0].markdown(f"### {key.capitalize()}")
+            c[1].metric(left_label, val_l, label_visibility="collapsed")
+            c[2].metric(right_label, val_r, label_visibility="collapsed")
+            c[3].markdown(f":{delta_color}[**{delta_str}**]")
+            c[4].caption(verdict)
+            
+            with c[0].expander("Perustelut"):
+                st.markdown(f"**{left_label}:** {reason_l}")
+                st.divider()
+                st.markdown(f"**{right_label}:** {reason_r}")
+            st.divider()
         return
 
-    # 2. Strict Dynamic Identification (No Heuristics)
-    # Sort by Step ID to ensure deterministic order (e.g. step_judge comes before step_judge_cognitive)
-    judge_steps.sort(key=lambda x: x[0])
-
-    s_left_id, s_left_data = judge_steps[0]
-    s_right_id, s_right_data = judge_steps[1]
-
-    # Labels strictly from Metadata
-    left_label = s_left_data.get("metadata", {}).get("agentti", s_left_id)
-    right_label = s_right_data.get("metadata", {}).get("agentti", s_right_id)
-
-    # Sanity check for identical names
-    if left_label == right_label:
-        left_label = f"{left_label} ({s_left_id})"
-        right_label = f"{right_label} ({s_right_id})"
-
-    pts_l = s_left_data.get("pisteet", {})
-    pts_r = s_right_data.get("pisteet", {})
-    
-    # Common keys
-    keys_l = set(pts_l.keys())
-    keys_r = set(pts_r.keys())
-    common_keys = list(keys_l.intersection(keys_r))
-    
-    if not common_keys:
-         # If no intersection, we can't compare. Just take Left keys to show something.
-         common_keys = list(keys_l)
-
-    # Simple alphabetical sort for keys
-    common_keys.sort()
-
-    # Header
-    cols = st.columns([2, 2, 2, 1, 2])
-    cols[0].markdown("**Ulottuvuus**")
-    cols[1].markdown(f"**{left_label}**")
-    cols[2].markdown(f"**{right_label}**")
-    cols[3].markdown("**Delta**")
-    cols[4].markdown("**Johtopäätös**")
-    st.divider()
-
-    total_l, total_r, count = 0, 0, 0
-
-    def get_val_str(item):
-        if isinstance(item, dict): return item.get("arvosana", 0), item.get("perustelu", "")
-        return (float(item), "") if isinstance(item, (int, float, str)) and str(item).replace('.','',1).isdigit() else (0, str(item))
-
-    # Helper for formatted score
-    def fmt_score_dual(score, s_max=None):
-        try:
-             s = float(score)
-             # integer check
-             val_str = f"{s:.0f}" if s.is_integer() else f"{s:.1f}"
-             
-             if s_max:
-                 return f"{val_str}/{s_max}"
-             return val_str
-        except:
-            return str(score)
-
-    for key in common_keys:
-        val_l, reason_l = get_val_str(pts_l.get(key))
-        val_r, reason_r = get_val_str(pts_r.get(key))
-        
-        # Get scale max for specific steps
-        max_l = s_left_data.get("scale_max")
-        max_r = s_right_data.get("scale_max")
-        
-        try:
-             num_l = float(val_l)
-             num_r = float(val_r)
-        except:
-             num_l, num_r = 0, 0
-
-        total_l += num_l
-        total_r += num_r
-        count += 1
-        
-        delta = num_r - num_l
-        delta_str = f"+{delta:.0f}" if delta > 0 else f"{delta:.0f}"
-        if delta == 0: delta_str = "="
-        
-        # Generic Verdict Logic
-        verdict = ""
-        if delta > 0:
-            verdict = f"📈 {right_label} (+)"
-        elif delta < 0:
-            verdict = f"📉 {left_label} (+)"
-        else:
-            verdict = "⚖️ Tasan"
-        
-        # Color coding delta
-        delta_color = "green" if delta > 0 else "red" if delta < 0 else "gray"
-
-        c = st.columns([2, 2, 2, 1, 2])
-        c[0].markdown(f"### {key.capitalize()}")
-        # Display raw score with scale denominator if available
-        c[1].metric(left_label, fmt_score_dual(num_l, max_l), label_visibility="collapsed")
-        c[2].metric(right_label, fmt_score_dual(num_r, max_r), label_visibility="collapsed")
-        c[3].markdown(f":{delta_color}[**{delta_str}**]")
-        c[4].caption(verdict)
-        
-        with c[0].expander("Perustelut"):
-            st.markdown(f"**{left_label}:** {reason_l}")
-            st.divider()
-            st.markdown(f"**{right_label}:** {reason_r}")
-        
-        st.divider()
-
-    # Averages
-    if count > 0:
-        avg_l = round(total_l / count, 1)
-        avg_r = round(total_r / count, 1)
-        st.markdown(f"**Keskiarvo:** {avg_l} vs. {avg_r}")
-
+    # --- STRICT V2 ONLY ---
+    if not comp_data:
+        # No pre-computed data found. Since we operate in strict mode, we do not guess.
+        st.warning("⚠️ Vertailumatriisi puuttuu (Backend ei tuottanut comparison_data-objektia).")
+        return
 
 def render_dashboard(data: dict):
     """
@@ -166,14 +97,11 @@ def render_dashboard(data: dict):
 
     # 2. Scores
     # 2. Scores (Dual or Single)
-    # Check for Dual Mode metadata or infer from steps
+    # Check for Dual Mode metadata or infer from comparison_data availability
     matrix_mode = data.get("matrix_mode") or data.get("_meta", {}).get("matrix_mode")
     
-    # Fallback inference if metadata missing
-    if not matrix_mode:
-        raw = data.get("Raw_Steps", {})
-        if "step_judge" in raw and "step_judge_cognitive" in raw:
-            matrix_mode = "dual"
+    if not matrix_mode and report.get("comparison_data"):
+        matrix_mode = "dual"
 
     scores = report.get("scores") or report.get("pisteet")
     s_max = report.get("scale_max")
@@ -200,7 +128,10 @@ def render_dashboard(data: dict):
         st.subheader(f"Arviointi (Dynamic Scores)")
         
         # Convert scores dict to list of items for rendering
-        score_items = list(scores.items())
+        score_items = [
+            (k, v) for k, v in scores.items() 
+            if not k.endswith('_selitys')
+        ]
         
         # Create rows of 3 columns
         for i in range(0, len(score_items), 3):

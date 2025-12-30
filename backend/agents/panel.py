@@ -87,10 +87,23 @@ class PanelAgent(BaseAgent):
             **kwargs
         )
         
+        # Extract content from LLMResponse
+        raw_content = response.content if hasattr(response, 'content') else response
+
+        # Try parsing JSON if string
+        if isinstance(raw_content, str):
+            try:
+                # Remove markdown code blocks if present
+                clean_content = raw_content.replace('```json', '').replace('```', '').strip()
+                raw_content = json.loads(clean_content)
+            except json.JSONDecodeError:
+                logger.warning(f"[PanelAgent] Could not parse JSON string: {raw_content[:50]}...")
+                pass
+
         # 3. Process Response
-        if isinstance(response, PanelAudit) or (isinstance(response, dict) and "logiikka_auditointi" in response):
+        if isinstance(raw_content, PanelAudit) or (isinstance(raw_content, dict) and "logiikka_auditointi" in raw_content):
             # Verify and parse if it's a raw dict
-            panel_data = response if isinstance(response, PanelAudit) else PanelAudit(**response)
+            panel_data = raw_content if isinstance(raw_content, PanelAudit) else PanelAudit(**raw_content)
 
             # 4. Fan-Out: Populate individual state fields for compatibility with Judge/Coach
             state.step_logician = panel_data.logiikka_auditointi
@@ -105,6 +118,6 @@ class PanelAgent(BaseAgent):
             logger.info("[PanelAgent] Successfully fanned out PanelAudit to 5 distinct state steps.")
 
         else:
-            logger.error(f"[PanelAgent] unexpected response type: {type(response)}")
+            logger.error(f"[PanelAgent] unexpected response content type: {type(raw_content)}. Content: {str(raw_content)[:100]}")
 
         return state

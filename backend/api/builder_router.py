@@ -56,6 +56,11 @@ class StepUpdateRequest(BaseModel):
     name: Annotated[Optional[str], Field(description="New display name.")] = None
     execution_config: Annotated[Optional[Dict[str, Any]], Field(description="Updated internal config (prompts, etc).")] = None
 
+class CustomStepCreateRequest(BaseModel):
+    component_type: Annotated[str, Field(description="The Agent Component ID (e.g. 'JudgeAgent').")]
+    name_hint: Annotated[Optional[str], Field(description="Optional name hint.")] = None
+    workflow_id: Annotated[Optional[str], Field(description="If provided, logic can infer specific defaults.")] = None
+
 
 # --- Helpers ---
 
@@ -112,6 +117,7 @@ async def get_available_agents(engine: WorkflowEngine = Depends(get_engine)):
                 
         return agents_meta
     except Exception as e:
+        logger.error(f"Failed to list agents: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get(
@@ -147,6 +153,7 @@ async def create_workflow(request: WorkflowCreateRequest, engine: WorkflowEngine
         engine.repository.db.table('workflows').insert(workflow_data)
         return workflow_data
     except Exception as e:
+        logger.error(f"Failed to create workflow: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get(
@@ -181,6 +188,20 @@ async def update_workflow(workflow_id: str, request: WorkflowUpdateRequest, engi
     
     update_data['updated_at'] = datetime.now().isoformat()
     
+    # Ensure Model Mapping Integrity
+    final_steps = update_data.get('steps', wf.get('steps', []))
+    final_mapping = update_data.get('default_model_mapping', wf.get('default_model_mapping', {})).copy()
+    
+    mapping_modified = False
+    for s in final_steps:
+        if s not in final_mapping:
+             final_mapping[s] = 'fast'
+             mapping_modified = True
+    
+    if mapping_modified:
+        # If input didn't provide mapping but we modified it based on steps, save it.
+        update_data['default_model_mapping'] = final_mapping
+
     Layout = Query()
     engine.repository.db.table('workflows').update(update_data, Layout.id == workflow_id)
     
@@ -296,7 +317,7 @@ async def validate_connection(request: ValidationRequest, engine: WorkflowEngine
         return {"valid": True, "reason": "Connection Compatible."}
 
     except Exception as e:
-        logger.error(f"Validation failed: {e}")
+        logger.error(f"Validation failed: {e}", exc_info=True)
         return {"valid": True, "reason": f"Validation error: {str(e)}"}
 
 
@@ -360,6 +381,53 @@ async def clone_step(source_step_id: str = Body(..., embed=True), engine: Workfl
     engine.repository.db.table('steps').insert(clean_step)
     
     return clean_step
+
+@router.post(
+    "/steps/create-custom",
+    summary="Create Custom Step",
+    response_description="The newly created custom step."
+)
+async def create_custom_step(req: CustomStepCreateRequest, engine: WorkflowEngine = Depends(get_engine)):
+    """
+    Creates a new custom step definition server-side with proper defaults.
+    """
+    # 1. Generate ID
+    prefix = f"custom_{req.component_type.lower()}"
+    new_id = f"{prefix}_{uuid.uuid4().hex[:6]}"
+    
+    # 2. Determine Defaults based on Component Type
+    # Heuristic defaults for known agents
+    prompts = []
+    if "Judge" in req.component_type:
+        prompts = ["TASK_JUDGE", "GLOBAL_CONTEXT"] 
+    elif "Reporter" in req.component_type:
+        prompts = ["TASK_REPORT"]
+        
+    execution_config = {
+        "llm_prompts": prompts
+    }
+    
+    # 3. Construct Payload
+    name = req.name_hint or f"Custom {req.component_type} Step"
+    
+    new_step = {
+        "id": new_id,
+        "name": name,
+        "component": req.component_type,
+        "description": "Created via Workflow Builder",
+        "execution_config": execution_config,
+        "output_config_component": None,
+        "output_filename": f"{new_id}.json",
+        "is_custom": True
+    }
+    
+    # 4. Save
+    try:
+        engine.repository.db.table('steps').insert(new_step)
+        return new_step
+    except Exception as e:
+        logger.error(f"Failed to create custom step: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get(
     "/utils/generate-id", 

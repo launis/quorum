@@ -297,6 +297,9 @@ class XAIReport(BaseJSON):
     final_verdict: Annotated[str, Field(description="Final conclusion.")]
     confidence_score: Annotated[float, Field(description="Confidence score (0.0-1.0).")]
     xai_report_formatted: Annotated[Optional[str], Field(description="Markdown formatted report.")] = None
+    # comparison_data removed from schema to avoid LLM validation errors (handled dynamically)
+
+    model_config = ConfigDict(extra='allow')
 
 # --- Step 2.5: Profiler Agent ---
 

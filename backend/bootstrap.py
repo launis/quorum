@@ -30,7 +30,10 @@ async def bootstrap_application():
     logger.info("="*50)
     
     # 2. Log Configuration
-    logger.info(f"   [CONFIG] Database Path: {os.path.abspath(settings.start_db_path)}")
+    if settings.storage_backend.upper() == "FIRESTORE" and not settings.use_mock_db:
+        logger.info(f"   [CONFIG] Database Mode: FIRESTORE (Cloud Defaults)")
+    else:
+        logger.info(f"   [CONFIG] Database Path: {os.path.abspath(settings.start_db_path)}")
     logger.info(f"   [CONFIG] Model Strategy: Database Controlled")
     
     if settings.use_mock_llm:

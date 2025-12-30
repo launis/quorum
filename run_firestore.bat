@@ -17,7 +17,7 @@ REM Start Backend
 start "Cognitive Quorum Backend (FIRESTORE)" cmd /k "chcp 65001 && set USE_MOCK_LLM=false && set USE_MOCK_DB=false && set STORAGE_BACKEND=FIRESTORE&& echo [CHECK] BACKEND: %STORAGE_BACKEND% && uvicorn backend.main:app --reload --port 8000"
 
 REM Wait a bit for backend to start
-timeout /t 5
+timeout /t 15
 
 REM Start Frontend
 start "Cognitive Quorum Frontend (FIRESTORE)" cmd /k "chcp 65001 && set USE_MOCK_LLM=false && set USE_MOCK_DB=false && set STORAGE_BACKEND=FIRESTORE&& streamlit run frontend/main.py"
