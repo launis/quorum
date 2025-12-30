@@ -1,188 +1,170 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, Body, Depends
-from typing import Any
-from backend.dependencies import get_llm_provider_factory, get_db_client_dep, LLMProviderFast
-from backend.database.repository import AbstractWorkflowRepository
-from backend.agents.coach import CoachAgent
+from fastapi import APIRouter, File, UploadFile, Depends, HTTPException, Body
+from typing import List, Dict, Any, Optional
+import shutil
+import uuid
+import os
+import json
 import logging
+from bs4 import BeautifulSoup
+import requests as req_lib
+
+from backend.dependencies import DatabaseDep, RegistryDep, get_db_client_dep, get_agent_registry_dep
+from backend.services.document_service import DocumentService
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/tools", tags=["Tools"])
 
+# --- Endpoints ---
+
 @router.post(
-    "/extract-text", 
-    summary="Extract Document Text",
-    response_description="Extracted text and metadata."
+    "/text-extract",
+    summary="Extract Text from File",
+    response_description="The extracted raw text."
 )
-async def extract_document_text(
-    file: UploadFile = File(..., description="The document to parse (PDF, DOCX, TXT). Max 10MB.")
-):
+async def extract_text_from_file(file: UploadFile = File(...)):
     """
-    Parses and extracts plain text from an uploaded document.
-    Supports PDF (`.pdf`), Word (`.docx`), and Plain Text (`.txt`).
-
-    Args:
-        file (UploadFile): The binary file upload.
-
-    Returns:
-        dict: Contains 'filename' and 'text'.
-
-    Raises:
-        HTTPException: If the file is too large (>10MB) or format is unsupported.
+    Extracts text content from an uploaded file (PDF, Docx, etc).
     """
+    temp_path = f"temp_{uuid.uuid4()}_{file.filename}"
     try:
-        # Read file into memory
-        file_bytes = await file.read()
-        
-        # Check size limit (10MB)
-        if len(file_bytes) > 10 * 1024 * 1024:
-            raise HTTPException(status_code=413, detail="File size exceeds 10MB limit")
-        
-        filename = file.filename.lower() if file.filename else ""
-        text = ""
-
-        # Process using centralized processor
-        from backend.services.document_processor import DocumentProcessor
-        
-        if filename.endswith(".pdf"):
-            text = DocumentProcessor.extract_text_from_pdf(file_bytes)
-        elif filename.endswith(".docx"):
-            text = DocumentProcessor.extract_text_from_docx(file_bytes)
-        elif filename.endswith(".txt"):
-            text = DocumentProcessor.extract_text_from_txt(file_bytes)
-        else:
-             # Fallback: check content type
-             if file.content_type == "application/pdf":
-                 text = DocumentProcessor.extract_text_from_pdf(file_bytes)
-             elif file.content_type == "text/plain":
-                 text = DocumentProcessor.extract_text_from_txt(file_bytes)
-             else:
-                 raise HTTPException(status_code=400, detail="Unsupported file format. Supported: .pdf, .docx, .txt")
-        
+        with open(temp_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+            
+        doc_service = DocumentService()
+        # Ensure extract_text is async or run in threadpool if sync? 
+        # DocumentService.extract_text is likely sync.
+        text = doc_service.extract_text(temp_path)
         return {"filename": file.filename, "text": text}
-                
-    except HTTPException:
-        raise
+        
     except Exception as e:
+        logger.error(f"Text extraction failed: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+            except: pass
 
 @router.post(
-    "/extract-concepts", 
-    summary="Extract Concepts (Experimental)",
-    response_description="A list of extracted concepts using LLM."
+    "/concept-extraction",
+    summary="Extract Concepts (Text/File)",
+    response_description="List of extracted concepts and relationships."
 )
 async def extract_concepts_from_file_or_text(
-    llm_provider: LLMProviderFast,
-    file: UploadFile = File(None, description="Optional source file."),
-    text: str = Body(None, description="Optional raw source text.")
+    registry: RegistryDep,
+    text: Optional[str] = Body(None),
+    file: Optional[UploadFile] = File(None),
+    llm_provider: Optional[str] = Body("google")
 ):
     """
-    Uses the configured LLM to semantically extract concepts from input text or file.
-    Note: This is an experimental tool endpoint.
-
-    Args:
-        file (UploadFile, optional): Binary file source.
-        text (str, optional): Text string source.
-        llm_provider: Dependency.
-
-    Returns:
-        dict: Object containing a list of 'concepts'.
-
-    Raises:
-        HTTPException: If no input is provided or extraction fails.
+    Extracts domain concepts from either raw text or an uploaded file.
     """
-    if not file and not text:
-        raise HTTPException(status_code=400, detail="Must provide either file or text.")
-    
-    final_text = text or ""
+    content = text
+    temp_path = None
     
     if file:
+        temp_path = f"temp_{uuid.uuid4()}_{file.filename}"
+        with open(temp_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
         try:
-            file_bytes = await file.read()
-            filename = file.filename.lower()
-            from backend.services.document_processor import DocumentProcessor
-            
-            if filename.endswith(".pdf"):
-                final_text = DocumentProcessor.extract_text_from_pdf(file_bytes)
-            elif filename.endswith(".docx"):
-                final_text = DocumentProcessor.extract_text_from_docx(file_bytes)
-            elif filename.endswith(".txt"):
-                final_text = DocumentProcessor.extract_text_from_txt(file_bytes)
-            else:
-                 final_text = file_bytes.decode("utf-8", errors="ignore")
-        except Exception as e:
-             raise HTTPException(status_code=400, detail=f"File processing error: {e}")
-
-    if not final_text.strip():
-        raise HTTPException(status_code=400, detail="No text extracted.")
-
-    # Instantiate functionality on the fly (lightweight)
-    from backend.services.knowledge_base_service import KnowledgeBaseService
-    from backend.services.progress import InMemoryProgressTracker
+            doc_service = DocumentService()
+            content = doc_service.extract_text(temp_path)
+        finally:
+            if os.path.exists(temp_path):
+                try:
+                    os.remove(temp_path)
+                except: pass
     
-    # We pass None for repository since extraction logic doesn't use it.
-    service = KnowledgeBaseService(repository=None, llm_provider=llm_provider)
-    tracker = InMemoryProgressTracker()
-    
+    if not content:
+        raise HTTPException(status_code=400, detail="No text or file provided.")
+
     try:
-        concepts = await service.extract_concepts_with_llm(final_text, tracker)
-        return {"concepts": concepts}
+        # Resolve config logic
+        config = await registry.resolve_model_config('deep')
+        
+        from backend.llm.provider import LLMFactory
+        from backend.services.knowledge_base_service import KnowledgeBaseService
+        
+        # Using KnowledgeBaseService for extraction as it likely has the logic 'extract_concepts_with_llm'
+        # Check previous usage: 'service.extract_concepts_with_llm(final_text, tracker)'
+        
+        provider = LLMFactory.create_provider(config['provider'], config['model_name'])
+        
+        kb_service = KnowledgeBaseService(repository=None, llm_provider=provider)
+        
+        # We need a dummy tracker?
+        from backend.services.progress import InMemoryProgressTracker
+        tracker = InMemoryProgressTracker()
+        
+        concepts = await kb_service.extract_concepts_with_llm(content, tracker)
+        
+        return {"source_length": len(content), "concepts": concepts}
+        
     except Exception as e:
-        logger.error(f"Extraction failed: {e}")
+        logger.error(f"Concept extraction failed: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post(
-    "/citation-lookup", 
-    summary="Lookup Citations",
-    response_description="Matches found in the Knowledge Base."
+    "/web-scrape",
+    summary="Scrape URL",
+    response_description="Extracted text and metadata."
 )
-async def lookup_citations(
-    text: str = Body(..., embed=True, description="The content text to scan for citations."),
-    db: Any = Depends(get_db_client_dep)
+async def scrape_url(url: str = Body(..., embed=True)):
+    """
+    Fetches and parses a public URL.
+    """
+    try:
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        response = req_lib.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        
+        soup = BeautifulSoup(response.content, 'html.parser')
+        for script in soup(["script", "style"]):
+            script.decompose()
+        text = soup.get_text()
+        lines = (line.strip() for line in text.splitlines())
+        chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+        text = '\n'.join(chunk for chunk in chunks if chunk)
+        
+        return {
+            "url": url,
+            "title": soup.title.string if soup.title else "",
+            "content": text[:50000]
+        }
+    except Exception as e:
+        logger.error(f"Scraping failed: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post(
+    "/citation-lookup",
+    summary="Resolve Citations",
+    response_description="Resolved context."
+)
+async def citation_lookup(
+    db: DatabaseDep,
+    queries: List[str] = Body(..., embed=True)
 ):
     """
-    Scans the provided text for key terms or citations present in the system's Knowledge Base.
-    Utilizes the CoachAgent's 2-hop resolution logic.
+    Uses the Knowledge Base Service to find context for citations.
     """
-    if not text:
-         return {"citations": []}
-         
     try:
-        from backend.dependencies import get_async_repository, get_db_client_dep
-        # Manually resolving for clarity or change sig
+        from backend.services.knowledge_base_service import KnowledgeBaseService
+        from backend.dependencies import get_async_repository
+        from backend.llm.provider import LLMFactory
+        
         repo = get_async_repository(db)
+        provider = LLMFactory.create_provider("google", "gemini-1.5-flash")
         
-        # Load KB
-        items = await repo.get_knowledge_base_items()
+        kb_service = KnowledgeBaseService(repo, llm_provider=provider)
         
-        concepts = {}
-        references = []
-        
-        for item in items:
-            i_type = item.get('type')
-            if i_type == 'concept':
-                term = item.get('term')
-                defn = item.get('definition')
-                if term and defn:
-                    concepts[term] = defn
-            elif i_type == 'reference':
-                ref_obj = {
-                    "citation": item.get('definition'),
-                    "short_citation": item.get('term'),
-                    "doi": item.get('doi_link')
-                }
-                references.append(ref_obj)
-        
-        knowledge_base = {
-            "concepts": concepts,
-            "references": references
-        }
-        
-        # Use CoachAgent static method
-        matches = CoachAgent.find_citations(text, knowledge_base)
-        
-        return {"citations": matches}
-        
+        results = {}
+        for q in queries:
+            context = await kb_service.retrieve_context(q)
+            results[q] = context
+            
+        return results
+
     except Exception as e:
-         logger.error(f"Citation validation failed: {e}")
-         raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Citation lookup failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))

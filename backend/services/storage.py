@@ -223,30 +223,4 @@ class FirebaseStorage(AbstractStorage):
         blob = self.bucket.blob(path)
         return blob.exists()
 
-def get_storage_client() -> AbstractStorage:
-    """
-    Factory to get the configured storage client based on settings.
 
-    Returns:
-        AbstractStorage: The concrete implementation.
-    """
-    from backend.settings import get_settings
-    settings = get_settings()
-    
-    # Simple Logic: LOCAL vs FIREBASE
-    # User requested: Local in Dev, Firebase in Prod.
-    # Controlled by storage_backend setting.
-    
-    if settings.storage_backend == "NONE":
-        return NoOpStorage()
-        
-    elif settings.storage_backend == "FIREBASE":
-        try:
-            return FirebaseStorage()
-        except Exception as e:
-            logger.error(f"Failed to initialize FirebaseStorage: {e}. Fallback to LOCAL.")
-            return LocalFileStorage()
-            
-    else:
-        # Default to LOCAL (Dev)
-        return LocalFileStorage()

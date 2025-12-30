@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 import logging
 import json
 
-from backend.dependencies import get_engine
+from backend.dependencies import get_engine, EngineDep
 from backend.core.engine import WorkflowEngine
 from backend.models.state import WorkflowState  # Required for migration/hydration logic
 
@@ -39,7 +39,7 @@ class WorkflowExecutionRequest(BaseModel):
 )
 async def create_workflow(
     request: WorkflowCreateRequest, 
-    engine: WorkflowEngine = Depends(get_engine)
+    engine: EngineDep
 ):
     """
     Creates a new workflow definition in the database.
@@ -64,7 +64,7 @@ async def create_workflow(
 async def execute_workflow(
     request: Request, 
     background_tasks: BackgroundTasks, 
-    engine: WorkflowEngine = Depends(get_engine)
+    engine: EngineDep
 ):
     """
     Initiates a new workflow execution asynchronously. 
@@ -115,20 +115,12 @@ async def execute_workflow(
     response_description="A list of recent execution records, sorted by time (descending)."
 )
 async def get_recent_executions(
+    engine: EngineDep,
     limit: int = APIQuery(5, description="Maximum number of executions to return."), 
-    status: Optional[str] = APIQuery(None, description="Filter by execution status (e.g., 'completed', 'failed')."), 
-    engine: WorkflowEngine = Depends(get_engine)
+    status: Optional[str] = APIQuery(None, description="Filter by execution status (e.g., 'completed', 'failed').")
 ):
     """
     Retrieves a list of the most recent workflow executions.
-
-    Args:
-        limit (int): Max records to return.
-        status (Optional[str]): Optional status filter.
-        engine (WorkflowEngine): Dependency.
-
-    Returns:
-        List[dict]: List of execution summary objects.
     """
     all_execs = await engine.repository.get_all_executions()
     if not all_execs: return []
@@ -145,19 +137,10 @@ async def get_recent_executions(
     response_description="The single most recent execution record."
 )
 async def get_latest_execution(
-    engine: WorkflowEngine = Depends(get_engine)
+    engine: EngineDep
 ):
     """
     Retrieves the absolutely most recent execution record.
-
-    Args:
-        engine (WorkflowEngine): Dependency.
-
-    Returns:
-        dict: The latest execution object.
-
-    Raises:
-        HTTPException: If no executions exist.
     """
     all_execs = await engine.repository.get_all_executions()
     if not all_execs: raise HTTPException(status_code=404, detail="No executions found")
@@ -170,22 +153,12 @@ async def get_latest_execution(
     response_description="The detailed status, result, and state of a specific execution."
 )
 async def get_execution_status(
-    execution_id: str = Path(..., description="The UUID of the execution to retrieve."), 
-    engine: WorkflowEngine = Depends(get_engine)
+    engine: EngineDep,
+    execution_id: str = Path(..., description="The UUID of the execution to retrieve.")
 ):
     """
     Retrieves the full status and result data for a specific execution ID.
     Performs on-the-fly hydration of legacy result structures if necessary.
-
-    Args:
-        execution_id (str): The execution ID.
-        engine (WorkflowEngine): Dependency.
-
-    Returns:
-        dict: The execution record.
-    
-    Raises:
-        HTTPException: If not found.
     """
     status = await engine.get_execution_status(execution_id)
     if not status: raise HTTPException(status_code=404, detail="Execution not found")
@@ -231,22 +204,11 @@ async def get_execution_status(
 )
 async def retry_execution(
     background_tasks: BackgroundTasks, 
-    execution_id: str = Path(..., description="The UUID of the execution to retry."), 
-    engine: WorkflowEngine = Depends(get_engine)
+    engine: EngineDep,
+    execution_id: str = Path(..., description="The UUID of the execution to retry.")
 ):
     """
     Resumes a failed, rejected, or interrupted execution from its last successful state.
-
-    Args:
-        background_tasks (BackgroundTasks): Background handler.
-        execution_id (str): The ID of the execution.
-        engine (WorkflowEngine): Dependency.
-
-    Returns:
-        dict: Status and execution_id.
-
-    Raises:
-        HTTPException: If execution is not in a retriable state.
     """
     status = await engine.get_execution_status(execution_id)
     if not status: raise HTTPException(status_code=404, detail="Execution not found")

@@ -1,3 +1,12 @@
+"""
+Core Dependency Injection Module.
+
+Implements Singleton patterns for infrastructure services (DB, Engine, Registry) 
+using FastAPI's `Depends` system. Validates configurations and abstracts 
+storage backends (Local vs. Firestore) and Async Repositories.
+
+Exports `Annotated` type aliases (e.g., `EngineDep`) for clean router injection.
+"""
 from typing import Optional, Any, Annotated
 from fastapi import Depends
 import logging
@@ -17,6 +26,7 @@ _db_client_instance: Optional[AbstractDatabase] = None
 _repository_instance: Optional[AbstractWorkflowRepository] = None
 _registry_instance: Optional[AgentRegistry] = None
 _prompt_builder_instance: Optional[PromptBuilder] = None
+_storage_service_instance: Optional[AbstractStorage] = None
 _engine_instance: Optional[WorkflowEngine] = None
 
 def get_settings_dep() -> Settings:
@@ -81,8 +91,37 @@ async def get_prompt_builder_dep(
     return _prompt_builder_instance
 
 def get_storage_service_dep() -> AbstractStorage:
-    from backend.services.storage import get_storage_client
-    return get_storage_client()
+    """
+    Dependency to provide a Singleton Storage Service.
+    Selects FirebaseStorage if STORAGE_BACKEND is 'FIRESTORE', otherwise LocalFileStorage.
+    """
+    global _storage_service_instance
+    
+    if _storage_service_instance is not None:
+        return _storage_service_instance
+        
+    settings = get_settings()
+    from backend.services.storage import LocalFileStorage, FirebaseStorage, NoOpStorage
+    
+    if settings.storage_backend == "NONE":
+        logger.info("[Dependencies] Storage disabled (NoOp).")
+        _storage_service_instance = NoOpStorage()
+        
+    # Logic matched with repository selection: FIRESTORE means Cloud
+    elif settings.storage_backend.upper() == "FIRESTORE" and not settings.use_mock_db:
+        try:
+            logger.info("[Dependencies] Initializing Firebase Cloud Storage.")
+            # Bucket name can be fetched from settings if needed, defaulting to None (default bucket)
+            _storage_service_instance = FirebaseStorage()
+        except Exception as e:
+            logger.error(f"[Dependencies] Failed to initialize FirebaseStorage: {e}. Falling back to LOCAL.")
+            _storage_service_instance = LocalFileStorage()
+            
+    else:
+        logger.info("[Dependencies] Initializing Local File Storage.")
+        _storage_service_instance = LocalFileStorage()
+        
+    return _storage_service_instance
 
 def get_document_service_dep(storage_client: AbstractStorage = Depends(get_storage_service_dep)) -> Any:
     from backend.services.document_service import DocumentService
@@ -167,6 +206,45 @@ def get_llm_factory_dep():
     from backend.llm.provider import LLMFactory
     return LLMFactory
 
-# --- Type Aliases for Clean Injection ---
+# --- Type Aliases for Clean Injection (Dependency Injection Standards) ---
+# These aliases facilitate cleaner function signatures in FastAPI router endpoints.
+# Instead of `engine: WorkflowEngine = Depends(get_engine)`, use `engine: EngineDep`.
+
+# Provides a configured LLM Provider for 'fast' tasks (low latency).
 LLMProviderFast = Annotated[LLMProvider, Depends(get_llm_provider_factory("fast"))]
+
+# Provides a configured LLM Provider for 'deep' tasks (reasoning/complex).
 LLMProviderDeep = Annotated[LLMProvider, Depends(get_llm_provider_factory("deep"))]
+
+# --- Standard Infrastructure Dependencies ---
+
+# Provides the global application settings (loaded from env/pydantic).
+SettingsDep = Annotated[Settings, Depends(get_settings_dep)]
+
+# Provides the active database client (TinyDB or Firestore).
+DatabaseDep = Annotated[AbstractDatabase, Depends(get_db_client_dep)]
+
+# Provides the Async Repository layer (abstracts DB operations).
+RepositoryDep = Annotated[AbstractWorkflowRepository, Depends(get_async_repository)]
+
+# Provides the Agent Registry service (manages agent discovery and config).
+RegistryDep = Annotated[AgentRegistry, Depends(get_agent_registry_dep)]
+
+# Provides the Prompt Builder service (renders templates).
+PromptBuilderDep = Annotated[PromptBuilder, Depends(get_prompt_builder_dep)]
+
+# Provides the Storage Service (Local File System or Firebase Cloud Storage).
+StorageDep = Annotated[AbstractStorage, Depends(get_storage_service_dep)]
+
+# Provides the Document Service (handles text extraction and ingestion).
+DocumentServiceDep = Annotated[Any, Depends(get_document_service_dep)]
+
+# Provides the central Workflow Engine (orchestrates agents and execution).
+EngineDep = Annotated[WorkflowEngine, Depends(get_engine)]
+
+# Provides the LLM Handler (manages conversational state and high-level LLM interactions).
+# Note: Requires importing LLMHandler inside the file or using TYPE_CHECKING to avoid circular imports if lazily loaded.
+# But get_llm_handler_dep returns the instance.
+from backend.llm.handler import LLMHandler
+LLMHandlerDep = Annotated[LLMHandler, Depends(get_llm_handler_dep)]
+

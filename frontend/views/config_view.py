@@ -231,6 +231,22 @@ def render_config_view(api_client, backend_url):
                  
                  s_prompts = st.multiselect("Prompts", prompt_options, default=curr_prompts)
                  
+                 # Matrix Selection (Specific to JudgeAgent)
+                 selected_matrix_id = None
+                 if s_agent == "JudgeAgent":
+                     st.divider()
+                     st.markdown("**Judge Configuration**")
+                     matrices = [c for c in all_components if c.get('type') == 'evaluation_matrix']
+                     matrix_opts = [m['id'] for m in matrices]
+                     
+                     curr_matrix = step_data.get('execution_config', {}).get('matrix_id')
+                     try:
+                         idx = matrix_opts.index(curr_matrix) if curr_matrix in matrix_opts else 0
+                     except ValueError:
+                         idx = 0
+                         
+                     selected_matrix_id = st.selectbox("Evaluation Matrix", matrix_opts, index=idx)
+
                  if st.form_submit_button("Save Step Configuration"):
                      # Construct Payload
                      payload = step_data.copy()
@@ -240,6 +256,9 @@ def render_config_view(api_client, backend_url):
                      payload['description'] = s_desc
                      if 'execution_config' not in payload: payload['execution_config'] = {}
                      payload['execution_config']['llm_prompts'] = s_prompts
+                     
+                     if selected_matrix_id:
+                         payload['execution_config']['matrix_id'] = selected_matrix_id
                      
                      try:
                          if s_mode == "Create New":

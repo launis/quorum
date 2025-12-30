@@ -6,7 +6,7 @@ from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks, R
 from pydantic import BaseModel, Field
 
 from backend.core.engine import WorkflowEngine
-from backend.dependencies import get_engine, get_db_client_dep
+from backend.dependencies import EngineDep, DatabaseDep, get_engine, get_db_client_dep
 
 from backend.api.tools_router import router as tools_router
 from backend.api.agents_router import router as agents_router
@@ -14,7 +14,6 @@ from backend.api.admin_router import router as admin_router
 from backend.api.llm_router import router as llm_router
 from backend.api.config_router import router as config_router
 from backend.api.execution_router import router as execution_router
-# from backend.api.workflows_router import router as workflows_router # Deprecated/Merged into execution_router
 
 from backend.exceptions import AppException
 from fastapi.responses import JSONResponse
@@ -78,12 +77,12 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
     summary="Get Seed Data", 
     response_description="Returns the full components, steps, and workflows from the database."
 )
-async def get_seed_data(engine: WorkflowEngine = Depends(get_engine)):
+async def get_seed_data(engine: EngineDep):
     """
     Retrieves the raw seed data configuration (components, steps, workflows).
 
     Args:
-        engine (WorkflowEngine): Dependency.
+        engine (EngineDep): Dependency.
 
     Returns:
         dict: Object containing lists of components, steps, and workflows.
@@ -107,12 +106,12 @@ async def get_seed_data(engine: WorkflowEngine = Depends(get_engine)):
     summary="List Workflows (DB)", 
     response_description="A list of all workflow definitions."
 )
-async def get_workflows(engine: WorkflowEngine = Depends(get_engine)):
+async def get_workflows(engine: EngineDep):
     """
     Retrieves all workflow definitions from the repository.
 
     Args:
-        engine (WorkflowEngine): Dependency.
+        engine (EngineDep): Dependency.
 
     Returns:
         List[dict]: List of workflow objects.
@@ -122,6 +121,11 @@ async def get_workflows(engine: WorkflowEngine = Depends(get_engine)):
         return workflows
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+        
+@app.post("/db/reset", deprecated=True)
+def reset_db_legacy(db: DatabaseDep):
+    """Legacy stub, functionality moved to Admin Router."""
+    return {"message": "Use /admin/database/reset/* endpoints."}
 
 @app.get(
     "/db/preview_prompt/{step_id}", 
@@ -129,11 +133,12 @@ async def get_workflows(engine: WorkflowEngine = Depends(get_engine)):
     response_description="The constructed prompt segments for a specific step."
 )
 async def preview_prompt(
-    step_id: str = Path(..., description="The ID of the step to preview."), 
-    engine: WorkflowEngine = Depends(get_engine)
+    engine: EngineDep,
+    step_id: str = Path(..., description="The ID of the step to preview.")
 ):
     """
     Previews the prompt that would be generated for a specific step ID.
+
 
     Args:
         step_id (str): Step Identifier.
@@ -159,8 +164,8 @@ async def preview_prompt(
     response_description="The concatenated full prompt chain for deep auditing."
 )
 async def preview_full_chain(
-    workflow_id: str = Path(..., description="The ID of the workflow."), 
-    engine: WorkflowEngine = Depends(get_engine)
+    engine: EngineDep,
+    workflow_id: str = Path(..., description="The ID of the workflow.")
 ):
     """
     Generates a full textual preview of the entire sequential audit chain.

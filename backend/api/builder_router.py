@@ -7,7 +7,7 @@ import copy
 from datetime import datetime
 from tinydb import Query
 
-from backend.dependencies import get_engine
+from backend.dependencies import EngineDep, get_engine
 from backend.core.engine import WorkflowEngine
 
 router = APIRouter(
@@ -18,70 +18,45 @@ router = APIRouter(
 
 logger = logging.getLogger(__name__)
 
-# --- Models ---
-
 class WorkflowCreateRequest(BaseModel):
-    name: Annotated[str, Field(description="The unique name for the new workflow.")]
-    description: Annotated[Optional[str], Field(description="A description of the workflow's purpose.")] = None
-    steps: Annotated[List[str], Field(description="An ordered list of step IDs to include in the workflow.")]
-    ui_schema: Annotated[Optional[Dict[str, Any]], Field(description="Layout coordinates for the frontend canvas.")] = None
-    default_model_mapping: Annotated[Optional[Dict[str, str]], Field(description="Map of Step IDs to Model Strategy keys.")] = None
+    name: Annotated[str, Field(description="Name of the new workflow.")]
+    description: Annotated[Optional[str], Field(description="Optional description.")] = None
+    steps: Annotated[List[str], Field(description="List of step IDs.")] = []
+    default_model_mapping: Annotated[Optional[Dict[str, str]], Field(description="Initial model mapping.")] = {}
+    ui_schema: Annotated[Optional[Dict[str, Any]], Field(description="UI Layout metadata.")] = {}
 
 class WorkflowUpdateRequest(BaseModel):
     name: Annotated[Optional[str], Field(description="New name.")] = None
     description: Annotated[Optional[str], Field(description="New description.")] = None
-    steps: Annotated[Optional[List[str]], Field(description="New ordered list of steps.")] = None
-    ui_schema: Annotated[Optional[Dict[str, Any]], Field(description="New layout data.")] = None
-    default_model_mapping: Annotated[Optional[Dict[str, str]], Field(description="New model mapping.")] = None
-
-class CopyWorkflowRequest(BaseModel):
-    new_name: Annotated[str, Field(description="The name for the copied workflow.")]
-
-class ValidationRequest(BaseModel):
-    source_step: Annotated[str, Field(description="The upstream step ID.")]
-    target_step: Annotated[str, Field(description="The downstream step ID.")]
-
-class WorkflowTemplate(BaseModel):
-    name: Annotated[str, Field(description="Name of the template.")]
-    description: Annotated[str, Field(description="Description.")] = ""
-    steps: Annotated[List[str], Field(description="Empty step list.")] = []
-    default_model_mapping: Annotated[Dict[str, str], Field(description="Empty map.")] = {}
-    ui_schema: Annotated[Dict[str, Any], Field(description="Default UI schema.")] = {"nodes": []}
-
-class CompileRequest(BaseModel):
-    workflow_id: Annotated[str, Field(description="The ID of the workflow to modifying.")]
-    steps: Annotated[List[str], Field(description="Values of step IDs to fuse.")]
+    steps: Annotated[Optional[List[str]], Field(description="New step sequence.")] = None
+    ui_schema: Annotated[Optional[Dict[str, Any]], Field(description="New UI metadata.")] = None
+    default_model_mapping: Annotated[Optional[Dict[str, str]], Field(description="Updated model mapping.")] = None
 
 class StepUpdateRequest(BaseModel):
-    name: Annotated[Optional[str], Field(description="New display name.")] = None
-    execution_config: Annotated[Optional[Dict[str, Any]], Field(description="Updated internal config (prompts, etc).")] = None
+    name: Annotated[Optional[str], Field(description="New step name.")] = None
+    execution_config: Annotated[Optional[Dict[str, Any]], Field(description="Updated execution config.")] = None
+
+class CopyWorkflowRequest(BaseModel):
+    new_name: Annotated[str, Field(description="Name for the copy.")]
 
 class CustomStepCreateRequest(BaseModel):
-    component_type: Annotated[str, Field(description="The Agent Component ID (e.g. 'JudgeAgent').")]
-    name_hint: Annotated[Optional[str], Field(description="Optional name hint.")] = None
-    workflow_id: Annotated[Optional[str], Field(description="If provided, logic can infer specific defaults.")] = None
+    component_type: Annotated[str, Field(description="Base component type (e.g. 'Judge', 'Analyst').")]
+    name_hint: Annotated[Optional[str], Field(description="Optional name override.")] = None
 
+class CompileRequest(BaseModel):
+    workflow_id: Annotated[str, Field(description="Target workflow ID.")]
+    steps: Annotated[List[str], Field(description="List of step IDs to fuse.")]
 
-# --- Helpers ---
+class WorkflowTemplate(BaseModel):
+    name: str
+    description: str
+    steps: List[str]
+    default_model_mapping: Dict[str, str]
+    ui_schema: Dict[str, Any]
 
-def _get_orphan_steps(repo, workflow_id: str) -> List[str]:
-    """Identify steps used ONLY by the given workflow."""
-    target_wf = repo.get_workflow_by_id(workflow_id)
-    if not target_wf:
-        return []
-    
-    target_steps = set(target_wf.get('steps', []))
-    used_elsewhere = set()
-    
-    all_wfs = repo.get_all_workflows()
-    for wf in all_wfs:
-        if wf['id'] == workflow_id:
-            continue
-        for step_id in wf.get('steps', []):
-            used_elsewhere.add(step_id)
-            
-    orphans = target_steps - used_elsewhere
-    return list(orphans)
+class ValidationRequest(BaseModel):
+    source_step: Annotated[str, Field(description="ID of the source step.")]
+    target_step: Annotated[str, Field(description="ID of the target step.")]
 
 # --- Endpoints ---
 
@@ -90,12 +65,12 @@ def _get_orphan_steps(repo, workflow_id: str) -> List[str]:
     summary="List Agent Class Metadata",
     response_description="A list of agent definitions including I/O contracts."
 )
-async def get_available_agents(engine: WorkflowEngine = Depends(get_engine)):
+async def get_available_agents(engine: EngineDep):
     """
     Returns metadata for all registered agents, used for the Builder Toolbox.
 
     Args:
-        engine (WorkflowEngine): Dependency.
+        engine (EngineDep): Dependency.
 
     Returns:
         List[dict]: Agent metadata objects.
@@ -125,7 +100,7 @@ async def get_available_agents(engine: WorkflowEngine = Depends(get_engine)):
     summary="List Workflows",
     response_description="All Workflows."
 )
-async def list_workflows(engine: WorkflowEngine = Depends(get_engine)):
+async def list_workflows(engine: EngineDep):
     """List all workflows for the dashboard."""
     return await engine.repository.get_all_workflows()
 
@@ -134,7 +109,7 @@ async def list_workflows(engine: WorkflowEngine = Depends(get_engine)):
     summary="Create Workflow",
     response_description="Created workflow data."
 )
-async def create_workflow(request: WorkflowCreateRequest, engine: WorkflowEngine = Depends(get_engine)):
+async def create_workflow(request: WorkflowCreateRequest, engine: EngineDep):
     """
     Create a new workflow with a generated short ID.
     """
@@ -162,7 +137,7 @@ async def create_workflow(request: WorkflowCreateRequest, engine: WorkflowEngine
     summary="Get Workflow",
     response_description="Workflow details."
 )
-async def get_workflow(workflow_id: str, engine: WorkflowEngine = Depends(get_engine)):
+async def get_workflow(workflow_id: str, engine: EngineDep):
     """Get details of a specific workflow."""
     wf = await engine.repository.get_workflow_by_id(workflow_id)
     if not wf:
@@ -174,7 +149,7 @@ async def get_workflow(workflow_id: str, engine: WorkflowEngine = Depends(get_en
     summary="Update Workflow",
     response_description="Updated workflow."
 )
-async def update_workflow(workflow_id: str, request: WorkflowUpdateRequest, engine: WorkflowEngine = Depends(get_engine)):
+async def update_workflow(workflow_id: str, request: WorkflowUpdateRequest, engine: EngineDep):
     """Update an existing workflow."""
     wf = await engine.repository.get_workflow_by_id(workflow_id)
     if not wf:
@@ -213,7 +188,7 @@ async def update_workflow(workflow_id: str, request: WorkflowUpdateRequest, engi
     summary="Delete Workflow",
     response_description="Deletion status and cleaned up orphans."
 )
-async def delete_workflow(workflow_id: str, engine: WorkflowEngine = Depends(get_engine)):
+async def delete_workflow(workflow_id: str, engine: EngineDep):
     """
     Delete a workflow AND its orphan steps (Garbage Collection).
     """
@@ -256,7 +231,7 @@ async def delete_workflow(workflow_id: str, engine: WorkflowEngine = Depends(get
     summary="Copy Workflow",
     response_description="The new workflow object."
 )
-async def copy_workflow(workflow_id: str, request: CopyWorkflowRequest, engine: WorkflowEngine = Depends(get_engine)):
+async def copy_workflow(workflow_id: str, request: CopyWorkflowRequest, engine: EngineDep):
     """
     Deep Copy a workflow structure (Shallow copy of steps).
     """
@@ -287,7 +262,7 @@ async def copy_workflow(workflow_id: str, request: CopyWorkflowRequest, engine: 
     summary="Validate Connection",
     response_description="Validation result."
 )
-async def validate_connection(request: ValidationRequest, engine: WorkflowEngine = Depends(get_engine)):
+async def validate_connection(request: ValidationRequest, engine: EngineDep):
     """
     Validates connection between two steps based on Agent I/O contracts.
     """
@@ -346,7 +321,7 @@ async def validate_connection(request: ValidationRequest, engine: WorkflowEngine
     summary="Get Step Details",
     response_description="Step configuration."
 )
-async def get_step_details(step_id: str, engine: WorkflowEngine = Depends(get_engine)):
+async def get_step_details(step_id: str, engine: EngineDep):
     """V2: Get full configuration of a step."""
     step = await engine.repository.get_step_by_id(step_id)
     if not step:
@@ -358,7 +333,7 @@ async def get_step_details(step_id: str, engine: WorkflowEngine = Depends(get_en
     summary="Update Step",
     response_description="Updated step."
 )
-async def update_step(step_id: str, request: StepUpdateRequest, engine: WorkflowEngine = Depends(get_engine)):
+async def update_step(step_id: str, request: StepUpdateRequest, engine: EngineDep):
     """
     V2: Update a step configuration.
     WARNING: This modifies the global step definition.
@@ -382,7 +357,7 @@ async def update_step(step_id: str, request: StepUpdateRequest, engine: Workflow
     summary="Clone Step",
     response_description="The new custom step config."
 )
-async def clone_step(source_step_id: str = Body(..., embed=True), engine: WorkflowEngine = Depends(get_engine)):
+async def clone_step(engine: EngineDep, source_step_id: str = Body(..., embed=True)):
     """
     V2: Clone a step to a new Custom Step (Copy-on-Write).
     """
@@ -406,7 +381,7 @@ async def clone_step(source_step_id: str = Body(..., embed=True), engine: Workfl
     summary="Create Custom Step",
     response_description="The newly created custom step."
 )
-async def create_custom_step(req: CustomStepCreateRequest, engine: WorkflowEngine = Depends(get_engine)):
+async def create_custom_step(req: CustomStepCreateRequest, engine: EngineDep):
     """
     Creates a new custom step definition server-side with proper defaults.
     """
@@ -477,7 +452,7 @@ async def get_workflow_template():
     summary="Get Fusion Rules",
     response_description="List of fusion rules."
 )
-async def get_fusion_rules(engine: WorkflowEngine = Depends(get_engine)):
+async def get_fusion_rules(engine: EngineDep):
     """
     Returns validation rules for prompt fusion.
     """
@@ -507,7 +482,7 @@ async def get_prompt_types():
     summary="Compile Fusion",
     response_description="Compilation result."
 )
-async def compile_fusion(req: CompileRequest, engine: WorkflowEngine = Depends(get_engine)):
+async def compile_fusion(req: CompileRequest, engine: EngineDep):
     """
     V2: Prompt Fusion Compilation.
     Replaces a sequence of steps with a compatible Composite Step (Panel).

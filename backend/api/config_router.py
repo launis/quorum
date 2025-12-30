@@ -10,7 +10,7 @@ import logging
 from backend.database.exporter import export_db_to_files
 from backend.database.seeder import seed_database
 from backend.database.wrapper import AbstractDatabase
-from backend.dependencies import get_db_client_dep
+from backend.dependencies import DatabaseDep, get_db_client_dep
 from backend.models import domain as schemas
 
 logger = logging.getLogger(__name__)
@@ -20,7 +20,8 @@ router = APIRouter(
     tags=["Configuration"]
 )
 
-# --- Models ---
+# ... Models (ComponentUpdate, etc) omitted for brevity as they don't change ...
+# (Kept in actual edit but abbreviated here for display)
 
 class ComponentUpdate(BaseModel):
     content: Annotated[Union[str, Dict[str, Any], List[Any]], Field(description="The template content (prompt text, rule text, or config object).")]
@@ -72,7 +73,7 @@ class WorkflowCreate(BaseModel):
     summary="List Components",
     response_description="All configuration components."
 )
-def get_components(db: AbstractDatabase = Depends(get_db_client_dep)):
+def get_components(db: DatabaseDep):
     """
     Retrieves all defined configuration components (Prompts, Mandates, Rules, etc).
     """
@@ -85,11 +86,15 @@ def get_components(db: AbstractDatabase = Depends(get_db_client_dep)):
 )
 def get_component(
     comp_id: str = Path(..., description="Component ID or Name"), 
-    db: AbstractDatabase = Depends(get_db_client_dep)
+    db: DatabaseDep = None
 ):
     """
     Retrieves a single component by ID or Name.
     """
+    if db is None: # Should be injected
+        from backend.dependencies import get_db_client_dep
+        db = get_db_client_dep()
+
     Component = Query()
     res = db.table('components').search(Component.id == comp_id)
     if not res:
@@ -106,7 +111,7 @@ def get_component(
 )
 def create_component(
     comp: ComponentCreate, 
-    db: AbstractDatabase = Depends(get_db_client_dep)
+    db: DatabaseDep
 ):
     """
     Creates a new configuration component.
@@ -130,7 +135,7 @@ def create_component(
 def update_component(
     comp_id: str, 
     update: ComponentUpdate, 
-    db: AbstractDatabase = Depends(get_db_client_dep)
+    db: DatabaseDep
 ):
     """
     Updates an existing component's content and metadata.
@@ -158,7 +163,7 @@ def update_component(
 )
 def delete_component(
     comp_id: str, 
-    db: AbstractDatabase = Depends(get_db_client_dep)
+    db: DatabaseDep
 ):
     """
     Deletes a component if it is not referenced by any existing steps.
@@ -195,7 +200,7 @@ def delete_component(
     summary="List Steps",
     response_description="All steps."
 )
-def get_steps(db: AbstractDatabase = Depends(get_db_client_dep)):
+def get_steps(db: DatabaseDep):
     """List all steps."""
     return db.table('steps').all()
 
@@ -206,7 +211,7 @@ def get_steps(db: AbstractDatabase = Depends(get_db_client_dep)):
 )
 def create_step(
     step: Dict[str, Any], 
-    db: AbstractDatabase = Depends(get_db_client_dep)
+    db: DatabaseDep
 ):
     """Create a new step configuration."""
     table = db.table('steps')
@@ -223,7 +228,7 @@ def create_step(
 def update_step(
     step_id: str, 
     step: Dict[str, Any], 
-    db: AbstractDatabase = Depends(get_db_client_dep)
+    db: DatabaseDep
 ):
     """Update a step configuration."""
     table = db.table('steps')
@@ -239,7 +244,7 @@ def update_step(
 )
 def delete_step(
     step_id: str, 
-    db: AbstractDatabase = Depends(get_db_client_dep)
+    db: DatabaseDep
 ):
     """Delete a step."""
     table = db.table('steps')
@@ -253,7 +258,7 @@ def delete_step(
     summary="List Workflows",
     response_description="All workflows."
 )
-def get_workflows(db: AbstractDatabase = Depends(get_db_client_dep)):
+def get_workflows(db: DatabaseDep):
     """List all workflows."""
     return db.table('workflows').all()
 
@@ -264,7 +269,7 @@ def get_workflows(db: AbstractDatabase = Depends(get_db_client_dep)):
 )
 def get_workflow(
     wf_id: str, 
-    db: AbstractDatabase = Depends(get_db_client_dep)
+    db: DatabaseDep
 ):
     """Get a specific workflow."""
     Workflow = Query()
@@ -281,7 +286,7 @@ def get_workflow(
 def update_workflow(
     wf_id: str, 
     update: WorkflowUpdate, 
-    db: AbstractDatabase = Depends(get_db_client_dep)
+    db: DatabaseDep
 ):
     """Update a workflow definition."""
     Workflow = Query()
@@ -317,7 +322,7 @@ def update_workflow(
 )
 def create_workflow(
     workflow: WorkflowCreate, 
-    db: AbstractDatabase = Depends(get_db_client_dep)
+    db: DatabaseDep
 ):
     """Create a new workflow."""
     Workflow = Query()
@@ -343,7 +348,7 @@ def create_workflow(
 )
 def delete_workflow(
     wf_id: str, 
-    db: AbstractDatabase = Depends(get_db_client_dep)
+    db: DatabaseDep
 ):
     """Delete a workflow."""
     Workflow = Query()
@@ -437,7 +442,7 @@ def get_schemas():
     summary="Get Unified Prompts",
     response_description="Full Markdown text."
 )
-def get_unified_prompts(db: AbstractDatabase = Depends(get_db_client_dep)):
+def get_unified_prompts(db: DatabaseDep):
     """Generate the Unified Master View."""
     try:
         schema_data = _fetch_schemas()
@@ -511,7 +516,7 @@ def _build_unified_view(components: list, schema_data: Dict[str, Any]) -> str:
     summary="Get Model Registry",
     response_description="Registry Dict."
 )
-def get_model_registry(db: AbstractDatabase = Depends(get_db_client_dep)):
+def get_model_registry(db: DatabaseDep):
     """Get global model registry."""
     table = db.table('system_config')
     Config = Query()
@@ -524,7 +529,7 @@ def get_model_registry(db: AbstractDatabase = Depends(get_db_client_dep)):
     summary="Update Registry",
     response_description="Updated registry."
 )
-def update_model_registry(config: GlobalModelConfig, db: AbstractDatabase = Depends(get_db_client_dep)):
+def update_model_registry(config: GlobalModelConfig, db: DatabaseDep):
     """Update global model registry."""
     table = db.table('system_config')
     Config = Query()
@@ -539,7 +544,7 @@ def update_model_registry(config: GlobalModelConfig, db: AbstractDatabase = Depe
     summary="Get Strategies",
     response_description="Active strategy map."
 )
-def get_model_strategies(db: AbstractDatabase = Depends(get_db_client_dep)):
+def get_model_strategies(db: DatabaseDep):
     """Get active model strategies."""
     logger.info("Fetching model strategies...")
     try:
@@ -562,7 +567,11 @@ def get_model_strategies(db: AbstractDatabase = Depends(get_db_client_dep)):
 )
 def get_introspection():
     """Discover agents and schemas."""
+    # (Implementation details omitted for brevity as they use no DB or LLM deps)
     available_schemas = []
+    # ... (rest of implementation)
+    
+    # Needs to be same as before
     for name, obj in inspect.getmembers(schemas):
         if inspect.isclass(obj) and issubclass(obj, schemas.BaseModel) and obj is not schemas.BaseModel:
             available_schemas.append(name)
@@ -600,7 +609,7 @@ class DimensionDefinition(BaseModel):
     summary="Get Known Dimensions",
     response_description="List of unique evaluation dimension IDs."
 )
-def get_known_dimensions(db: AbstractDatabase = Depends(get_db_client_dep)):
+def get_known_dimensions(db: DatabaseDep):
     """
     Returns specific allowed dimension IDs from the ontology table.
     Auto-seeds defaults if table is empty.
@@ -629,7 +638,7 @@ def get_known_dimensions(db: AbstractDatabase = Depends(get_db_client_dep)):
     summary="Get Full Ontology",
     response_description="Full dimension objects."
 )
-def get_full_ontology(db: AbstractDatabase = Depends(get_db_client_dep)):
+def get_full_ontology(db: DatabaseDep):
     get_known_dimensions(db) # Ensure seed
     return db.table('dimensions').all()
 
@@ -638,7 +647,7 @@ def get_full_ontology(db: AbstractDatabase = Depends(get_db_client_dep)):
     summary="Create Dimension",
     response_description="Created Dimension."
 )
-def create_dimension(dim: DimensionDefinition, db: AbstractDatabase = Depends(get_db_client_dep)):
+def create_dimension(dim: DimensionDefinition, db: DatabaseDep):
     table = db.table('dimensions')
     if table.search(Query().id == dim.id):
         raise HTTPException(status_code=400, detail=f"Dimension '{dim.id}' already exists.")
@@ -650,7 +659,7 @@ def create_dimension(dim: DimensionDefinition, db: AbstractDatabase = Depends(ge
     summary="Delete Dimension",
     response_description="Status."
 )
-def delete_dimension(dim_id: str, db: AbstractDatabase = Depends(get_db_client_dep)):
+def delete_dimension(dim_id: str, db: DatabaseDep):
     # 1. Check Usage
     comp_table = db.table('components')
     Component = Query()
@@ -684,7 +693,7 @@ def delete_dimension(dim_id: str, db: AbstractDatabase = Depends(get_db_client_d
     summary="Validate Flow",
     response_description="Validation Report."
 )
-def validate_flow(workflow: WorkflowCreate, db: AbstractDatabase = Depends(get_db_client_dep)):
+def validate_flow(workflow: WorkflowCreate, db: DatabaseDep):
     """Dry run validation."""
     from backend.core.factory import AgentFactory
     try:

@@ -5,7 +5,7 @@ import logging
 from tinydb import Query
 
 from backend.database.wrapper import AbstractDatabase
-from backend.dependencies import get_db_client_dep, get_agent_registry_dep
+from backend.dependencies import DatabaseDep, RegistryDep, get_agent_registry_dep
 from backend.services.agent_registry import AgentRegistry
 
 logger = logging.getLogger(__name__)
@@ -56,7 +56,7 @@ async def run_agent(
     inputs: Dict[str, Any] = Body(..., description="Key-value pairs representing the input state for the agent."),
     system_instruction: Optional[str] = Body(None, description="Optional system instruction override."),
     model: Optional[str] = Body(None, description="Optional model strategy override."),
-    db: AbstractDatabase = Depends(get_db_client_dep)
+    db: DatabaseDep = None # Injected
 ):
     """
     Executes a specific agent in isolation with provided inputs.
@@ -66,7 +66,7 @@ async def run_agent(
         inputs (Dict[str, Any]): Input data for the agent's context.
         system_instruction (Optional[str]): optional prompt override.
         model (Optional[str]): optional model override.
-        db (AbstractDatabase): Database dependency.
+        db (DatabaseDep): Database dependency.
 
     Returns:
         dict: A dictionary containing the agent name and the execution result/state.
@@ -74,6 +74,11 @@ async def run_agent(
     Raises:
         HTTPException: If the agent cannot be loaded or execution fails.
     """
+    # Defensive fix for explicit None default to satisfy linter if needed, though Depends handles it.
+    if db is None: 
+         from backend.dependencies import get_db_client_dep
+         db = get_db_client_dep()
+
     try:
         AgentClass = _load_agent_class(agent_name, db)
         agent = AgentClass(model=model)
@@ -102,8 +107,8 @@ async def run_agent(
 )
 def list_agents(
     workflow_id: Optional[str] = APIQuery(None, description="Optional Workflow ID to resolve model strategies contextually."), 
-    db: AbstractDatabase = Depends(get_db_client_dep),
-    registry: AgentRegistry = Depends(get_agent_registry_dep)
+    db: DatabaseDep = None,
+    registry: RegistryDep = None
 ):
     """
     List all available agents with their metadata, models, and schemas.
@@ -111,12 +116,16 @@ def list_agents(
 
     Args:
         workflow_id (Optional[str]): Context for model resolution.
-        db (AbstractDatabase): Database dependency.
-        registry (AgentRegistry): Injected registry service.
+        db (DatabaseDep): Database dependency.
+        registry (RegistryDep): Injected registry service.
 
     Returns:
         List[Dict]: A list of agent definition objects.
     """
+    if db is None:
+         from backend.dependencies import get_db_client_dep
+         db = get_db_client_dep()
+         
     # Debug wrapper removed, proper DI used.
     import traceback
     try:
