@@ -300,7 +300,7 @@ def render_matrix_view(api_client, backend_url):
                     val = st.session_state[f"c_id_custom_{idx}"]
                     st.session_state.editor_criteria[idx]['id'] = val
                     
-                cc1.text_input("Custom ID", value=curr_id if curr_id not in KNOWN_DIMENSIONS else "", key=f"c_id_custom_{i}", on_change=update_id_custom, args=(i,), label_visibility="collapsed", placeholder="Enter ID...")
+                cc1.text_input("Custom ID", value=curr_id if curr_id not in KNOWN_DIMENSIONS_MAP else "", key=f"c_id_custom_{i}", on_change=update_id_custom, args=(i,), label_visibility="collapsed", placeholder="Enter ID...")
 
             # Contextual Help for ID
             help_map = {

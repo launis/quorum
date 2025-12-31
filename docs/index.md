@@ -6,12 +6,13 @@
 
 Cognitive Quorum v2.0 is a Modular Monolith designed for **Auditable AI**. It orchestrates a pipeline of 12 specialized agents to perform rigorous cognitive labor, from logical mapping to causal inference.
 
-## Key Features (V2.0)
+## Key Features (V2.2 - "Enterprise Core")
 
+*   **Vertex AI (Hamina):** 100% Data Residency in `europe-north1`. No data leaves the EU.
+*   **Gemini 2.5 Integration:** High-fidelity reasoning with **Heuristic JSON Repair** layer.
+*   **3-Tier Database:** Consistent `Mock -> Local Prod -> Cloud Prod` environment synchronization.
 *   **12-Agent Assembly Line:** Detailed pipeline including Archivist, Coach, and Panel agents.
 *   **Strict Typing:** Powered by Pydantic V2 `Annotated` models and generic state management.
-*   **Hybrid Intelligence:** Blends LLM reasoning (Gemini) with deterministic checks (DoWhy, Presidio).
-*   **100% Documentation:** Precise, Google-style docstrings for every module.
 
 ## Navigation
 

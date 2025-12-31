@@ -20,7 +20,7 @@ _settings = get_settings()
 
 retry_strategy = retry(
     stop=stop_after_attempt(_settings.llm_max_retries),
-    wait=wait_exponential(multiplier=_settings.llm_retry_delay, min=1, max=10),
+    wait=wait_exponential(multiplier=_settings.llm_retry_delay, min=1, max=60),
     reraise=True,
     before_sleep=lambda retry_state: logger.warning(f"Retrying LLM call... (Attempt {retry_state.attempt_number}/{_settings.llm_max_retries})")
 )
@@ -68,48 +68,95 @@ class GoogleAIProvider(LLMProvider):
     """
     
     @staticmethod
+    def _fetch_vertex_models(project_id: str, location: str) -> list:
+        
+        def fetch_from_loc(fetch_loc):
+            try:
+                # Use v1beta1 for latest models
+                from google.cloud import aiplatform_v1beta1
+                from google.api_core.client_options import ClientOptions
+                
+                api_endpoint = f"{fetch_loc}-aiplatform.googleapis.com"
+                client_options = ClientOptions(api_endpoint=api_endpoint)
+                
+                # Create Client (Beta)
+                client = aiplatform_v1beta1.ModelGardenServiceClient(client_options=client_options)
+                    
+                parent = "publishers/google"
+                found = []
+                
+                # Call list_publisher_models
+                response = client.list_publisher_models(parent=parent)
+                for model in response:
+                    # Model name format: publishers/google/models/gemini-1.5-pro
+                    model_id = model.name.split('/')[-1]
+                    if "gemini" in model_id.lower():
+                        found.append(f"vertex_ai/{model_id}")
+                return found
+            except Exception as e:
+                logger.debug(f"[GoogleAIProvider] Fetch from {fetch_loc} failed/empty: {e}")
+                return []
+
+        # 1. Try user location ONLY
+        models = fetch_from_loc(location)
+        
+        # 2. Fallback to us-central1 (Global Metadata Hub)
+        # Europe endpoints might not list all preview models
+        if not models and location != "us-central1":
+             logger.info(f"[GoogleAIProvider] No models in {location}, fetching metadata from us-central1...")
+             models = fetch_from_loc("us-central1")
+             
+        return models
+
+    @staticmethod
     def fetch_available_models(api_key: Optional[str] = None) -> list:
         """
-        Fetches available models from Google API using the new google.genai V2 SDK.
+        Fetches available models from Google API (V2) AND Vertex AI.
         Updates the global cache.
         """
         global _CACHED_MODELS
         if _CACHED_MODELS:
              return _CACHED_MODELS
 
-        # V2 SDK Import
+        models = []
+        
+        # 1. Google AI Studio (V2 GenAI)
         try:
             from google import genai
-        except ImportError:
-            logger.error("[GoogleAIProvider] google-genai package not found.")
-            return []
-
-        from backend.settings import get_settings
-        
-        settings = get_settings()
-        key = api_key or settings.google_api_key
-        
-        if not key:
-            return []
-
-        try:
-            client = genai.Client(api_key=key)
-            models = []
-            # Use V2 API to list models
-            pager = client.models.list()
-            for m in pager:
-                # Basic filtering for Gemini models
-                # In V2, most models listed are usable. We focus on gemini versions.
-                if "gemini" in m.name.lower():
-                    name_clean = m.name.replace("models/", "")
-                    models.append(name_clean)
+            from backend.settings import get_settings
+            settings = get_settings()
+            key = api_key or settings.google_api_key
             
-            logger.info(f"[GoogleAIProvider] Fetched {len(models)} models from API (v2).")
-            _CACHED_MODELS = sorted(models)
-            return _CACHED_MODELS
+            if key:
+                client = genai.Client(api_key=key)
+                pager = client.models.list()
+                for m in pager:
+                    if "gemini" in m.name.lower():
+                        name_clean = m.name.replace("models/", "")
+                        models.append(name_clean)
+        except ImportError:
+            pass
         except Exception as e:
-            logger.error(f"[GoogleAIProvider] Failed to list models: {e}")
-            return []
+            logger.warning(f"[GoogleAIProvider] GenAI V2 List failed: {e}")
+
+        # 2. Vertex AI
+        try:
+             # Read env vars for Vertex
+             from backend.settings import get_settings
+             settings = get_settings() # Re-fetch to be safe
+             project = os.getenv("VERTEX_PROJECT") or "cognitive-quorum"
+             location = os.getenv("VERTEX_LOCATION") or "europe-north1"
+             
+             # Only attempt if we have credentials (env var or default)
+             if os.getenv("GOOGLE_APPLICATION_CREDENTIALS") or os.getenv("VERTEX_PROJECT"):
+                 vertex_models = GoogleAIProvider._fetch_vertex_models(project, location)
+                 models.extend(vertex_models)
+        except Exception as e:
+             logger.warning(f"[GoogleAIProvider] Vertex fetch wrapper failed: {e}")
+
+        logger.info(f"[GoogleAIProvider] Fetched {len(models)} models total.")
+        _CACHED_MODELS = sorted(list(set(models)))
+        return _CACHED_MODELS
 
     async def generate(self, *args, **kwargs):
         raise NotImplementedError("Use LiteLLMProvider via LLMFactory instead.")
@@ -119,16 +166,18 @@ class LiteLLMProvider(LLMProvider):
     Unified LLM Provider using LiteLLM to support multiple models (Gemini, OpenAI, etc.)
     with a consistent interface.
     """
-    def __init__(self, model_name: str, api_key: Optional[str] = None):
+    def __init__(self, model_name: str, api_key: Optional[str] = None, settings: Any = None):
         """
         Initializes the LiteLLM provider.
 
         Args:
-            model_name (str): The model identifier (e.g. 'gemini/gemini-1.5-pro').
-            api_key (Optional[str]): API Key for the specific provider.
+            model_name (str): The model identifier.
+            api_key (Optional[str]): API Key.
+            settings (Any): System settings object (containing vertex_location etc).
         """
         self.model_name = model_name
         self.api_key = api_key
+        self.settings = settings
         # litellm configuration if needed
         litellm.drop_params = True 
 
@@ -162,7 +211,7 @@ class LiteLLMProvider(LLMProvider):
         try:
             # 1. Try stripping markdown code blocks
             clean_text = raw_response.replace("```json", "").replace("```", "").strip()
-            return json.loads(clean_text)
+            return json.loads(clean_text, strict=False)
         except json.JSONDecodeError:
             pass
 
@@ -173,25 +222,76 @@ class LiteLLMProvider(LLMProvider):
             
             if start_index != -1 and end_index != -1 and end_index > start_index:
                 json_candidate = raw_response[start_index : end_index + 1]
-                return json.loads(json_candidate)
+                return json.loads(json_candidate, strict=False)
         except json.JSONDecodeError as e:
             logger.warning(f"[LiteLLM] Extraction failed: {e}. Attempting repairs...")
             
             # 3. Repair: Remove single-line comments // that are not inside strings (Approximate)
             try:
                 repaired = re.sub(r'^\s*//.*$', '', json_candidate, flags=re.MULTILINE)
-                return json.loads(repaired)
+                return json.loads(repaired, strict=False)
             except Exception:
                 pass
 
             # 4. Repair: Heuristic Fix for Missing Commas
             try:
+                # Add comma after quote if followed by newline and quote/brace
                 fixed_json = re.sub(r'(?<=[}\]"\'0-9lue])\s*(?<!,)\s*\n\s*(?=")', ',\n', json_candidate)
-                return json.loads(fixed_json)
+                return json.loads(fixed_json, strict=False)
             except Exception as e2:
                 logger.error(f"[LiteLLM] Heuristic fix failed: {e2}")
 
-            raise ValueError(f"Could not extract valid JSON from response. Content: {raw_response[:200]}...")
+            # 5. Repair: Advanced regex to escape quotes strictly inside values
+            try:
+                # Escape " that are NOT structural JSON quotes
+                # Structure quotes are surrounded by delimiters like { [ : ,
+                # We target quotes that are NOT preceded/followed by these delimiters (ignoring whitespace)
+                fixed_quotes = re.sub(r'(?<![\{\[,:]\s{0,5})"(?!\s{0,5}[:,\}\]])', r'\"', json_candidate)
+                return json.loads(fixed_quotes, strict=False)
+            except Exception:
+                pass
+
+            # 6. Repair: Try ast.literal_eval (Handles Python dict syntax / single quotes)
+            try:
+                import ast
+                # Only if it looks like a dict/list
+                if json_candidate.strip().startswith("{") or json_candidate.strip().startswith("["):
+                     # ast.literal_eval requires valid python syntax. 
+                     # Often LLM produces { 'key': 'value' } which is valid python but invalid json.
+                     return ast.literal_eval(json_candidate)
+            except Exception:
+                pass
+
+            # 7. Repair: Truncated JSON (Token limit hit)
+            try:
+                # If the string ends abruptly, try closing it.
+                repaired = json_candidate
+                # 1. Close open string if odd number of quotes
+                if repaired.count('"') % 2 != 0:
+                     repaired += '"'
+                
+                # 2. Close open objects/arrays (Simple heuristic)
+                open_braces = repaired.count('{') - repaired.count('}')
+                open_brackets = repaired.count('[') - repaired.count(']')
+                
+                if open_braces > 0: repaired += '}' * open_braces
+                if open_brackets > 0: repaired += ']' * open_brackets
+                
+                return json.loads(repaired, strict=False)
+            except Exception:
+                pass
+
+            # DEBUG: Dump failed JSON to file
+            try:
+                import time
+                timestamp = int(time.time())
+                with open(f"FAILED_JSON_DEBUG_{timestamp}.txt", "w", encoding="utf-8") as f:
+                    f.write(raw_response)
+                logger.error(f"Failed JSON dumped to FAILED_JSON_DEBUG_{timestamp}.txt")
+            except Exception:
+                pass
+
+            raise ValueError(f"Could not extract valid JSON. See FAILED_JSON_DEBUG_*.txt. Start: {raw_response[:100]}...")
 
     @retry_strategy
     async def generate(
@@ -232,15 +332,47 @@ class LiteLLMProvider(LLMProvider):
         try:
             logger.info(f"[LiteLLM] Calling {self.model_name}...")
             
-            response = await litellm.acompletion(
-                model=self.model_name,
-                messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens,
-                response_format=response_format,
-                api_key=self.api_key,
-                drop_params=True
-            )
+            # Prepare arguments
+            call_kwargs = {
+                "model": self.model_name,
+                "messages": messages,
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+                "response_format": response_format,
+                "api_key": self.api_key,
+                "drop_params": True
+            }
+
+            # Explicitly force Vertex Location (Fixes 403 default-to-us-central1 issue)
+            # Robustly resolve location (Settings attr or Env Var)
+            
+            # Ensure env is loaded from project root
+            from dotenv import load_dotenv
+            from pathlib import Path
+            
+            # provider.py is at backend/llm/provider.py
+            # Go up 3 levels to reach project root
+            root_dir = Path(__file__).resolve().parent.parent.parent
+            env_path = root_dir / ".env"
+            
+            load_dotenv(dotenv_path=env_path)
+            
+            v_loc = None
+            if self.settings and hasattr(self.settings, "vertex_location"):
+                v_loc = self.settings.vertex_location
+            
+            if not v_loc:
+                v_loc = os.getenv("VERTEX_LOCATION")
+                
+            # STRICT MODE: No defaults. Fail if missing.
+            if not v_loc:
+                 logger.error(f"[LiteLLMProvider] Env load failed. Tried path: {env_path}, Exists: {env_path.exists()}")
+                 raise ValueError(f"[LiteLLMProvider] Critical Error: VERTEX_LOCATION not found in settings or .env ({env_path}). Cannot proceed.")
+            
+            logger.info(f"[LiteLLMProvider] Using Vertex Location: {v_loc}")
+            call_kwargs["vertex_location"] = v_loc
+
+            response = await litellm.acompletion(**call_kwargs)
             
             # Extract basic content
             choice = response.choices[0]
@@ -385,4 +517,4 @@ class LLMFactory:
         msg_key = "PRESENT" if api_key else "MISSING"
         logger.info(f"[LLMFactory] Creating Provider: {target_model} (Key: {msg_key})")
         
-        return LiteLLMProvider(model_name=target_model, api_key=api_key)
+        return LiteLLMProvider(model_name=target_model, api_key=api_key, settings=settings)

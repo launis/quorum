@@ -161,7 +161,9 @@ class JudgeAgent(BaseAgent):
             for k in keys:
                 if k in scores_map:
                     s = scores_map[k]
-                    return PisteetKriteeri(arvosana=s.score, perustelu=s.reasoning)
+                    # Strict BARS enforcement: Round to nearest int
+                    val = int(round(s.score)) if isinstance(s.score, (int, float)) else 1
+                    return PisteetKriteeri(arvosana=val, perustelu=s.reasoning)
             return default_crit
             
         # Default handling for standard fields
@@ -181,8 +183,9 @@ class JudgeAgent(BaseAgent):
         for dim_id, dim_res in scores_map.items():
             if dim_id not in standard_keys:
                 # Add as dynamic field
+                val = int(round(dim_res.score)) if isinstance(dim_res.score, (int, float)) else 1
                 setattr(pisteet, dim_id, PisteetKriteeri(
-                    arvosana=dim_res.score, 
+                    arvosana=val, 
                     perustelu=dim_res.reasoning
                 ))
         

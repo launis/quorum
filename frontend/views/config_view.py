@@ -363,37 +363,64 @@ def render_config_view(api_client, backend_url):
         if not registry:
             st.warning("No DB registry found. Using system defaults (read-only).")
         
+
+        
         # We allow editing the registry for 'google' or 'openai'
         provider = st.selectbox("Provider", ["google", "openai"])
         
+        # LIVE FETCH AVAILABLE MODELS
+        avail_models = []
+        try:
+            avail_models = requests.get(f"{backend_url}/config/models/available").json()
+        except Exception:
+            pass
+
         if provider:
             current_prov_config = registry.get(provider, {})
             
             st.markdown(f"#### {provider.upper()} Configuration")
-            
+            if avail_models:
+                 st.success(f"Discovered {len(avail_models)} models from provider.")
+            else:
+                 st.info("No models discovered automatically. You can type manual names.")
+
             col_f, col_d = st.columns(2)
             
+            def model_selector(label, curr, key_suffix):
+                 if not avail_models:
+                      return st.text_input(label, curr, key=f"txt_{key_suffix}")
+                 
+                 # Smart options
+                 options = list(avail_models)
+                 if curr and curr not in options:
+                      options.insert(0, curr)
+                 
+                 return st.selectbox(label, options, index=options.index(curr), key=f"sel_{key_suffix}")
+
             # Fast
             with col_f:
                 st.markdown("⚡ **FAST Strategy**")
                 f_conf = current_prov_config.get('fast', {})
-                f_name = st.text_input("Model Name", f_conf.get('model_name', 'gemini-1.5-flash'), key="f_name")
-                f_temp = st.number_input("Temperature", 0.0, 1.0, f_conf.get('temperature', 0.0), key="f_temp")
+                strict_def = avail_models[0] if avail_models else ""
+                f_name = model_selector("Model Name", f_conf.get('model_name', strict_def), "fast")
+                f_temp = st.number_input("Temperature", 0.0, 1.0, f_conf.get('temperature', 0.5), 0.1, key="f_temp")
+                f_tokens = st.number_input("Max Tokens", 1024, 32000, f_conf.get('max_tokens', 8192), 1024, key="f_tok")
             
             # Deep
             with col_d:
                 st.markdown("🧠 **DEEP Strategy**")
                 d_conf = current_prov_config.get('deep', {})
-                d_name = st.text_input("Model Name", d_conf.get('model_name', 'gemini-1.5-pro'), key="d_name")
+                d_name = model_selector("Model Name", d_conf.get('model_name', strict_def), "deep")
                 d_temp = st.number_input("Temperature", 0.0, 1.0, d_conf.get('temperature', 0.2), key="d_temp")
+                d_tokens = st.number_input("Max Tokens", 1, 1000000, d_conf.get('max_tokens', 16384), key="d_tokens")
                 
             if st.button("Save Model Strategy"):
                 # Construct updates
                 new_reg = registry.copy()
                 if provider not in new_reg: new_reg[provider] = {}
                 
-                new_reg[provider]['fast'] = {"model_name": f_name, "temperature": f_temp}
-                new_reg[provider]['deep'] = {"model_name": d_name, "temperature": d_temp}
+                new_reg[provider]['fast'] = {"model_name": f_name, "temperature": f_temp, "max_tokens": f_tokens}
+                new_reg[provider]['deep'] = {"model_name": d_name, "temperature": d_temp, "max_tokens": d_tokens}
                 
                 payload = {"registry": new_reg}
                 try:

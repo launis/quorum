@@ -9,13 +9,14 @@ set USE_MOCK_DB=true
 set STORAGE_BACKEND=LOCAL
 
 REM Start Backend
-start "Cognitive Quorum Backend (MOCK)" cmd /k "chcp 65001 > nul && set USE_MOCK_LLM=true && set USE_MOCK_DB=true && set STORAGE_BACKEND=LOCAL && uvicorn backend.main:app --reload --port 8000"
+REM Start Backend
+start "Cognitive Quorum Backend (MOCK)" cmd /k "chcp 65001 > nul && set USE_MOCK_LLM=true && set USE_MOCK_DB=true && set STORAGE_BACKEND=LOCAL && .venv314\Scripts\python -m uvicorn backend.main:app --reload --port 8000"
 
 REM Wait for backend warmup
 timeout /t 5 > nul
 
 REM Start Frontend
-start "Cognitive Quorum Frontend (MOCK)" cmd /k "chcp 65001 > nul && set USE_MOCK_LLM=true && set USE_MOCK_DB=true && set STORAGE_BACKEND=LOCAL && streamlit run frontend/main.py"
+start "Cognitive Quorum Frontend (MOCK)" cmd /k "chcp 65001 > nul && set USE_MOCK_LLM=true && set USE_MOCK_DB=true && set STORAGE_BACKEND=LOCAL && .venv314\Scripts\python -m streamlit run frontend/main.py"
 
 echo.
 echo [LAUNCHER] MOCK ENV starting... check the Backend window for system status.

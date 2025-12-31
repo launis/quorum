@@ -512,6 +512,25 @@ def _build_unified_view(components: list, schema_data: Dict[str, Any]) -> str:
     return unified_text
 
 @router.get(
+    "/models/available",
+    summary="List Available Models",
+    response_description="List of verified available models."
+)
+def list_available_models():
+    """
+    Returns a curated list of models confirmed to work in the current region (Hamina).
+    """
+    # Confirmed working models in europe-north1 via Discovery Tool
+    return [
+        "vertex_ai/gemini-2.5-flash",
+        "vertex_ai/gemini-2.5-pro",
+        # Including explicit versions found in discovery/docs
+        "vertex_ai/gemini-2.5-flash-001",
+        "vertex_ai/gemini-2.5-pro-001",
+        "vertex_ai/gemini-2.5-flash-lite",
+    ]
+
+@router.get(
     "/models/registry", 
     summary="Get Model Registry",
     response_description="Registry Dict."
@@ -597,6 +616,16 @@ def get_introspection():
                                  available_hooks.add(f"{cls_name}.{method_name}")
         except Exception: continue
     return {"schemas": sorted(available_schemas), "agents": sorted(available_agents), "hooks": sorted(list(available_hooks))}
+
+@router.get(
+    "/models/available", 
+    summary="List Available Models",
+    response_description="List of model IDs from providers."
+)
+def get_available_models():
+    """Get dynamic list of available models from configured providers (Vertex/Google)."""
+    from backend.llm.provider import GoogleAIProvider
+    return GoogleAIProvider.fetch_available_models()
 
 class DimensionDefinition(BaseModel):
     id: Annotated[str, Field(description="Unique dimension ID (e.g. 'analyysi').")]

@@ -5,15 +5,31 @@ The engine is **data-driven**: logic definitions are stored in JSON, but strict 
 ## Data Structure
 
 ### 1. `data/seed_data.json` (Source of Truth)
-Contains the "factory settings":
+Contains the "factory settings", including the **Regional Model Registry**:
 *   **Workflow Definitions**: Sequence of steps.
 *   **Prompt Templates**: Jinja2 references.
-*   **Component Rules**: Reusable instructions.
+*   **Model Registry**: Validated models per region (e.g. Gemini 2.5 for Hamina).
+*   **Components**: Reusable instructions and matrices.
 
-### 2. `data/db.json` (Runtime DB)
-Uses **TinyDB** for portability.
-*   **Configuration**: Live copy of seed data.
-*   **State History**: Full JSON dump of every `WorkflowState` transition.
+### 2. Runtime Databases (3-Tier Environment)
+The system supports three distinct runtime environments, all seeded from `seed_data.json` to ensure consistency:
+
+*   **A. Local Mock (`data/db_mock.json`)**:
+    *   For offline / internal testing.
+    *   Managed by `run_mock_locally.bat`.
+    *   Seeded via `tools/seed_mock.py`.
+
+*   **B. Local Prod (`data/db.json`)**:
+    *   Production-grade local testing with live Vertex AI (Hamina).
+    *   Managed by `run_locally.bat`.
+    *   Seeded via `run_rebuild_prod_db.py`.
+
+*   **C. Cloud Prod (Firestore)**:
+    *   Production database in Google Cloud (`europe-north1`).
+    *   Managed by `run_firestore.bat`.
+    *   Seeded via `scripts/seed_firestore.py` (Push Sync).
+
+> **Consistency Guarantee:** All environments share the exact same schemas and base data (workflows, prompts) derived from `seed_data.json`.
 
 ## Validation & Schemas
 

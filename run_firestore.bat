@@ -9,13 +9,14 @@ set USE_MOCK_DB=false
 set STORAGE_BACKEND=FIRESTORE
 
 REM Start Backend
-start "Cognitive Quorum Backend (PROD)" cmd /k "chcp 65001 > nul && set USE_MOCK_LLM=false && set USE_MOCK_DB=false && set STORAGE_BACKEND=FIRESTORE && uvicorn backend.main:app --reload --port 8000"
+REM Start Backend
+start "Cognitive Quorum Backend (PROD)" cmd /k "chcp 65001 > nul && set USE_MOCK_LLM=false && set USE_MOCK_DB=false && set STORAGE_BACKEND=FIRESTORE && .venv314\Scripts\python -m uvicorn backend.main:app --reload --port 8000"
 
 REM Wait for backend warmup
 timeout /t 10 > nul
 
 REM Start Frontend
-start "Cognitive Quorum Frontend (PROD)" cmd /k "chcp 65001 > nul && set USE_MOCK_LLM=false && set USE_MOCK_DB=false && set STORAGE_BACKEND=FIRESTORE && streamlit run frontend/main.py"
+start "Cognitive Quorum Frontend (PROD)" cmd /k "chcp 65001 > nul && set USE_MOCK_LLM=false && set USE_MOCK_DB=false && set STORAGE_BACKEND=FIRESTORE && .venv314\Scripts\python -m streamlit run frontend/main.py"
 
 echo.
 echo [LAUNCHER] PRODUCTION ENV (Firestore) starting... check the Backend window for system status.

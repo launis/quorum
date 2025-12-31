@@ -150,7 +150,18 @@ def _seed_tinydb(db_path: str, seed_data: dict):
                     kb_table.insert(item)
                 count += 1
             except Exception: pass
-        print(f"[Seeder] Upserted {count} knowledge_base items.")
+    # Seed Model Registry
+    if 'model_registry' in seed_data:
+        Model = Query()
+        count = 0
+        for item in seed_data['model_registry']:
+            try:
+                model_registry_table.upsert(item, Model.id == item['id'])
+                count += 1
+            except Exception: pass
+        print(f"[Seeder] Upserted {count} model_registry items.")
+
+    print(f"[Seeder] Upserted {count} knowledge_base items.")
         
     print("[Seeder] TinyDB seeding completed.")
 
@@ -176,7 +187,7 @@ def _seed_firestore(seed_data: dict):
     
     # 0. Clear existing collections (like drop_tables)
     print("[Seeder] Clearing existing Firestore collections...")
-    collections_to_clear = ['components', 'steps', 'workflows', 'system_config', 'banned_phrases', 'knowledge_base']
+    collections_to_clear = ['components', 'steps', 'workflows', 'system_config', 'banned_phrases', 'knowledge_base', 'model_registry']
     
     def delete_collection(coll_ref, batch_size=400):
         docs = list(coll_ref.limit(batch_size).stream())
@@ -271,9 +282,14 @@ def _seed_firestore(seed_data: dict):
         op_count += 1
         commit_batch_if_full()
 
-    # Final Commit
-    if op_count > 0:
-        batch.commit()
+    # 7. Model Registry
+    for item in seed_data.get('model_registry', []):
+        doc_id = item.get('id')
+        if doc_id:
+            ref = db.collection('model_registry').document(doc_id)
+            batch.set(ref, item, merge=True)
+            op_count += 1
+            commit_batch_if_full()
 
     print("[Seeder] Firestore seeding completed successfully.")
 

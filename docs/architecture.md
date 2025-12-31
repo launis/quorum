@@ -36,10 +36,11 @@ graph TD
 ### 1. Backend (FastAPI)
 The backend is structured as a modular monolith:
 
-*   **`backend/api/`**: REST Routers defined using FastAPI. Strictly typed requests/responses.
+*   **`backend/api/`**: REST Routers defined using FastAPI. Strictly typed requests/responses. Includes **Dynamic Availability API** (`/config/models/available`) for regional model discovery.
 *   **`backend/core/`**: The `WorkflowEngine` and `PipelineRunner`. Orchestrates the flow based on DB config.
 *   **`backend/agents/`**: specialized Agent classes (e.g., `GuardAgent`, `JudgeAgent`) inheriting from `BaseAgent`.
 *   **`backend/models/`**: Centralized domain models using Pydantic v2 `Annotated` syntax.
+*   **`backend/llm/`**: **Provider Layer** with specialized **JSON Heuristic Repair Engine** (regex + ast fallback) to handle truncated or malformed responses from high-intelligence models (e.g. Gemini 2.5).
 
 ### 2. State Management (WorkflowState)
 Unlike many agent frameworks that pass free-form dictionaries, Quorum uses a strict **`WorkflowState`** Pydantic model (`backend/models/state.py`).
@@ -53,7 +54,7 @@ Agents are "thin" wrappers that coordinate three things:
 
 1.  **Prompting:** Constructing context using `PromptBuilder`.
 2.  **Hooks:** Calling deterministic Python code (Hooks) for tasks logical reasoning cannot solve (e.g., math, causal inference, search).
-3.  **Generation:** Calling the LLM via `LLMProvider`.
+3.  **Generation:** Calling the LLM via `LLMProvider` (Vertex AI).
 
 Configurations (Prompts, Model usage) are stored in `seed_data.json` / Database, but the execution logic resides in code.
 
@@ -71,16 +72,18 @@ While the *logic* is in code, the *workflow definition* is data-driven.
 A workflow in `db.json` defines:
 1.  **Sequence:** Which agents run in what order.
 2.  **Configuration:** Which prompt templates and model parameters to use.
+3.  **Model Strategy:** Dynamic mapping (Fast/Deep) resolved against **Regional Model Registry** (Hamina).
 
 This allows changing the *behavior* (prompts, order) without redeploying code, while keeping the *capability* (Python logic) rigorously tested.
 
 ## Technology Stack
 
-*   **Language:** Python 3.12
+*   **Language:** Python 3.12+
 *   **API:** FastAPI + Pydantic v2 (Strict Mode)
-*   **UI:** Streamlit
-*   **Database:** TinyDB (JSON-based, file-backed)
+*   **UI:** Streamlit (Thin Client - No Business Logic)
+*   **Database:** TinyDB (Local) / Firestore (Cloud) - **3-Tier Env** (Mock/Local/Prod)
 *   **Vector Search:** ChromaDB
-*   **LLM:** Google Gemini (1.5/2.0)
+*   **LLM:** **Google Cloud Vertex AI** (Region: `europe-north1` / Hamina) - Strict Data Residency
+*   **Models:** Gemini 2.5 (Flash/Pro) - Validated for Hamina
 *   **PII:** Microsoft Presidio
 *   **Causal Inference:** Microsoft DoWhy

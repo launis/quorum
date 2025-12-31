@@ -77,6 +77,7 @@ class DocumentService:
 
                 extracted_data[input_key] = text
                 
+                
                 logger.info(f"[DocumentService] Evidence {filename} processed. Extracted {len(text)} chars. Storage: {saved_path}")
                 
             except FatalInterruption as fi:
