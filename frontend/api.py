@@ -50,7 +50,7 @@ class APIClient:
             logger.error(f"Failed to fetch steps config: {e}")
             return []
 
-    def start_execution(self, workflow_id, files, metadata=None):
+    def start_execution(self, workflow_id, files, metadata=None, token=None):
         if metadata is None:
             metadata = {}
             
@@ -59,11 +59,16 @@ class APIClient:
             "inputs": json.dumps(metadata) 
         }
         
+        headers = {}
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        
         try:
             response = requests.post(
                 f"{self.base_url}/executions",
                 data=form_data,
                 files=files,
+                headers=headers,
                 timeout=30 # Longer timeout for upload
             )
             response.raise_for_status()
@@ -78,9 +83,12 @@ class APIClient:
         except Exception:
             return None
 
-    def get_recent_runs(self, limit=5):
+    def get_recent_runs(self, limit=5, token=None):
         try:
-            res = requests.get(f"{self.base_url}/executions/recent?limit={limit}", timeout=10)
+            headers = {}
+            if token:
+                headers["Authorization"] = f"Bearer {token}"
+            res = requests.get(f"{self.base_url}/executions/recent?limit={limit}", headers=headers, timeout=10)
             return res.json() if res.status_code == 200 else []
         except Exception:
             return []
@@ -182,6 +190,56 @@ class APIClient:
             return res.json()
         except Exception as e:
             logger.error(f"Builder Copy Error: {e}")
+            raise e
+
+    # --- Authentication (Hybrid) ---
+
+    def login_with_token(self, token: str):
+        """
+        Exchanges a token (Firebase or Mock) for user details.
+        """
+        try:
+            res = requests.post(f"{self.base_url}/auth/verify", json={"token": token}, timeout=10)
+            if res.status_code == 200:
+                data = res.json()
+                if data.get("token_valid"):
+                    return data["user"]
+            logger.warning(f"Login failed: {res.text}")
+            return None
+        except Exception as e:
+            logger.error(f"Auth Network Error: {e}")
+            return None
+
+    def get_my_profile(self, token: str):
+        """Fetches current user profile."""
+        try:
+            headers = {"Authorization": f"Bearer {token}"}
+            res = requests.get(f"{self.base_url}/auth/me", headers=headers, timeout=10)
+            return res.json() if res.status_code == 200 else None
+        except Exception:
+            return None
+
+        except Exception:
+            return None
+
+    def list_users(self, token: str):
+        """Fetches list of managed users."""
+        try:
+            headers = {"Authorization": f"Bearer {token}"}
+            res = requests.get(f"{self.base_url}/auth/users", headers=headers, timeout=10)
+            return res.json() if res.status_code == 200 else []
+        except Exception:
+            return []
+
+    def create_user(self, token: str, payload: dict):
+        """Creates a new user."""
+        try:
+            headers = {"Authorization": f"Bearer {token}"}
+            res = requests.post(f"{self.base_url}/auth/users", json=payload, headers=headers, timeout=10)
+            res.raise_for_status()
+            return res.json()
+        except Exception as e:
+            logger.error(f"Create User Error: {e}")
             raise e
 
     # --- V2 ---

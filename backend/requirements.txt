@@ -1,7 +1,7 @@
 fastapi
 uvicorn
 tinydb
-pydantic
+pydantic[email]
 python-multipart
 pymupdf
 jinja2
@@ -14,3 +14,5 @@ tenacity
 pydantic-settings
 python-docx
 litellm
+firebase-admin
+email-validator

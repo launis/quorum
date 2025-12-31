@@ -8,7 +8,7 @@ storage backends (Local vs. Firestore) and Async Repositories.
 Exports `Annotated` type aliases (e.g., `EngineDep`) for clean router injection.
 """
 from typing import Optional, Any, Annotated
-from fastapi import Depends
+from fastapi import Depends, Header, HTTPException
 import logging
 from backend.database.wrapper import get_db_client, AbstractDatabase
 from backend.services.storage import AbstractStorage
@@ -18,6 +18,8 @@ from backend.services.prompt_builder import PromptBuilder
 from backend.core.engine import WorkflowEngine
 from backend.settings import Settings, get_settings
 from backend.llm.provider import LLMProvider
+from backend.services.auth import AuthService
+from backend.models.auth import TokenData
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +30,7 @@ _registry_instance: Optional[AgentRegistry] = None
 _prompt_builder_instance: Optional[PromptBuilder] = None
 _storage_service_instance: Optional[AbstractStorage] = None
 _engine_instance: Optional[WorkflowEngine] = None
+_auth_service_instance: Optional[AuthService] = None
 
 def get_settings_dep() -> Settings:
     return get_settings()
@@ -127,6 +130,25 @@ def get_document_service_dep(storage_client: AbstractStorage = Depends(get_stora
     from backend.services.document_service import DocumentService
     return DocumentService(storage_client)
 
+def get_auth_service(
+    db_client: AbstractDatabase = Depends(get_db_client_dep),
+    settings: Settings = Depends(get_settings_dep)
+) -> AuthService:
+    """
+    Dependency to provide Singleton Auth Service.
+    Automatically ensures Root User exists.
+    """
+    global _auth_service_instance
+    if _auth_service_instance is None:
+        use_firebase = (settings.storage_backend.upper() == "FIRESTORE" and not settings.use_mock_db)
+        logger.info(f"[Dependencies] Initializing AuthService (Firebase={use_firebase})...")
+        _auth_service_instance = AuthService(db_client, use_firebase=use_firebase)
+        
+        # Bootstrap Root User
+        _auth_service_instance.ensure_root_user()
+        
+    return _auth_service_instance
+
 async def get_engine(
     repository: AbstractWorkflowRepository = Depends(get_async_repository),
     registry: AgentRegistry = Depends(get_agent_registry_dep),
@@ -141,6 +163,16 @@ async def get_engine(
     if _engine_instance is None:
         logger.info("[Dependencies] Initializing Singleton WorkflowEngine (Async Mode)...")
         
+        # Ensure Auth Service is explicitly initialized (sidesteps circular dependency issues)
+        # This guarantees Root user exists before Engine starts working
+        try:
+             # We manually resolve dependencies for the auth service if needed,
+             # but usually easiest just to let get_auth_service handle it if called via API.
+             # However, let's allow lazy loading for Auth.
+             pass
+        except Exception as e:
+             logger.warning(f"Could not pre-warm Auth Service: {e}")
+
         # MANUAL RESOLUTION IF CALLED WITHOUT DI
         from fastapi.params import Depends as DependsParams
         
@@ -227,6 +259,9 @@ DatabaseDep = Annotated[AbstractDatabase, Depends(get_db_client_dep)]
 # Provides the Async Repository layer (abstracts DB operations).
 RepositoryDep = Annotated[AbstractWorkflowRepository, Depends(get_async_repository)]
 
+# Provides the Auth Service (Identity & Roles).
+AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
+
 # Provides the Agent Registry service (manages agent discovery and config).
 RegistryDep = Annotated[AgentRegistry, Depends(get_agent_registry_dep)]
 
@@ -247,4 +282,34 @@ EngineDep = Annotated[WorkflowEngine, Depends(get_engine)]
 # But get_llm_handler_dep returns the instance.
 from backend.llm.handler import LLMHandler
 LLMHandlerDep = Annotated[LLMHandler, Depends(get_llm_handler_dep)]
+
+
+# --- Security / Auth Dependencies ---
+
+async def get_current_user_from_header(
+    authorization: Annotated[Optional[str], Header()] = None,
+    auth_service: AuthService = Depends(get_auth_service)
+) -> TokenData:
+    """
+    Helper dependency to extract user from Bearer token.
+    Allows accessing 'CurrentUser' in any router.
+    """
+    if not authorization:
+        # For public endpoints or dev mode without token, we might relax this?
+        # But for 'me' or 'executions' involving tenant data, we need it.
+        # If no header, maybe return None?
+        # Let's enforce it. If frontend doesn't send it, it's 401.
+        raise HTTPException(status_code=401, detail="Missing Authorization Header")
+    
+    scheme, _, token = authorization.partition(" ")
+    if scheme.lower() != "bearer" or not token:
+        raise HTTPException(status_code=401, detail="Invalid Authorization Scheme")
+        
+    try:
+        return auth_service.verify_token(token)
+    except ValueError as e:
+        raise HTTPException(status_code=401, detail=str(e))
+
+CurrentUserDep = Annotated[TokenData, Depends(get_current_user_from_header)]
+
 

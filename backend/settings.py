@@ -98,11 +98,11 @@ class Settings(BaseSettings):
             self.use_mock_llm = True
             
         if self.use_mock_db:
-             print(f"CONFIG: Using MOCK DB at {self.mock_db_path}")
-        elif self.storage_backend and self.storage_backend.upper() == "FIRESTORE":
-             print(f"CONFIG: Using CLOUD DB (Firestore)")
+             pass 
+        elif self.storage_backend == "FIRESTORE":
+             pass
         else:
-             print(f"CONFIG: Using REAL DB at {self.prod_db_path}")
+             pass
 
 @lru_cache
 def get_settings() -> Settings:

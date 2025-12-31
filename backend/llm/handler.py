@@ -5,7 +5,7 @@ from tinydb import Query
 from backend.database.wrapper import get_db_client
 from backend.settings import get_settings
 from backend.llm.provider import LLMFactory
-import google.generativeai as genai
+# Removed unused import for google.generativeai
 import openai
 
 logger = logging.getLogger(__name__)

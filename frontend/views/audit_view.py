@@ -46,7 +46,8 @@ def render_audit_view(api_client, backend_url, workflow_options):
     st.subheader("Historia")
     with st.expander("Selaa aiempia ajoja", expanded=False):
         if st.button("Hae viimeiset 5 ajoa"):
-            runs = api_client.get_recent_runs()
+            token = st.session_state.get('auth_token')
+            runs = api_client.get_recent_runs(token=token)
             if runs:
                 st.session_state['recent_runs'] = runs
             else:

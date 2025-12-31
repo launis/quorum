@@ -13,8 +13,16 @@ from backend.database.wrapper import AbstractDatabase
 
 logger = logging.getLogger(__name__)
 
+from backend.dependencies import CurrentUserDep
+from backend.models.auth import TokenData, UserRole
 
-router = APIRouter(prefix="/admin", tags=["Admin"])
+def require_root(user: CurrentUserDep):
+    if user.role != UserRole.ROOT:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return user
+
+
+router = APIRouter(prefix="/admin", tags=["Admin"], dependencies=[Depends(require_root)])
 
 # --- Models ---
 

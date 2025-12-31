@@ -4,9 +4,10 @@ from pydantic import BaseModel, Field
 import logging
 import json
 
-from backend.dependencies import get_engine, EngineDep
+from backend.dependencies import get_engine, EngineDep, CurrentUserDep
 from backend.core.engine import WorkflowEngine
 from backend.models.state import WorkflowState  # Required for migration/hydration logic
+from backend.models.auth import UserRole # Required for role check
 
 logger = logging.getLogger(__name__)
 
@@ -116,13 +117,17 @@ async def execute_workflow(
 )
 async def get_recent_executions(
     engine: EngineDep,
+    current_user: CurrentUserDep,
     limit: int = APIQuery(5, description="Maximum number of executions to return."), 
     status: Optional[str] = APIQuery(None, description="Filter by execution status (e.g., 'completed', 'failed').")
 ):
     """
-    Retrieves a list of the most recent workflow executions.
+    Retrieves a list of the most recent workflow executions (Scoped by Org).
     """
-    all_execs = await engine.repository.get_all_executions()
+    # Root sees all (pass None), others see scoped
+    scope_id = current_user.organization_id if current_user.role != UserRole.ROOT else None
+    
+    all_execs = await engine.repository.get_all_executions(organization_id=scope_id)
     if not all_execs: return []
     
     if status:

@@ -1,32 +1,99 @@
 import os
 import shutil
 import json
+import logging
+from contextlib import asynccontextmanager
 from typing import List, Dict, Any, Optional
+
+from dotenv import load_dotenv
 from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks, Request, Depends, Query as APIQuery, Path
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
+from backend.settings import get_settings
+from backend.exceptions import AppException
+
+# Dependencies
 from backend.core.engine import WorkflowEngine
 from backend.dependencies import EngineDep, DatabaseDep, get_engine, get_db_client_dep
 
+# Routers
 from backend.api.tools_router import router as tools_router
 from backend.api.agents_router import router as agents_router
 from backend.api.admin_router import router as admin_router
 from backend.api.llm_router import router as llm_router
 from backend.api.config_router import router as config_router
 from backend.api.execution_router import router as execution_router
+from backend.api.auth_router import router as auth_router
+from backend.api.builder_router import router as builder_router
 
-from backend.exceptions import AppException
-from fastapi.responses import JSONResponse
-from dotenv import load_dotenv
-from backend.settings import get_settings
+logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
 
+def _print_startup_banner():
+    settings = get_settings()
+    print("\n" + "="*60)
+    print(f" 🧠  COGNITIVE QUORUM v2.2 - SYSTEM STATUS")
+    print("="*60)
+    
+    # 1. Database Mode
+    db_mode = "☁️  FIRESTORE (Cloud)" if settings.storage_backend == "FIRESTORE" else "📂  TINYDB (Local JSON)"
+    print(f" 💾  DATABASE:    {db_mode}")
+    
+    # 2. LLM Configuration
+    llm_mode = "🤖  REAL AI (Live APIs)" if not settings.use_mock_llm else "🎭  MOCK LLM (Simulation)"
+    print(f" 🧠  INTELLIGENCE: {llm_mode}")
+    
+    # 3. Environment
+    env = "🚀  PRODUCTION" if settings.storage_backend == "FIRESTORE" else "🛠️  DEVELOPMENT"
+    print(f" 🌍  ENVIRONMENT:  {env}")
+    
+    print("-" * 60)
+    # 4. Data Source info
+    data_source = "Mock DB (db_mock.json)" if settings.use_mock_db else "Prod DB (db.json)"
+    if settings.storage_backend == "FIRESTORE":
+         data_source = "Firestore (Cloud)"
+    print(f" 📂  DATA SOURCE:  {data_source}")
+    print("="*60 + "\n")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    logger.info("Starting up Cognitive Quorum Backend...")
+    _print_startup_banner()
+    
+    # Ensure Auth Root User Exists
+    try:
+        # Manual Bootstrap to avoid Depends() issues outside of request context
+        from backend.dependencies import get_db_client_dep, get_settings_dep
+        from backend.services.auth import AuthService
+        
+        db_client = get_db_client_dep()
+        settings = get_settings_dep()
+        
+        use_firebase = (settings.storage_backend.upper() == "FIRESTORE" and not settings.use_mock_db)
+        
+        logger.info("[Bootstrap] Verifying Root User...")
+        auth_service = AuthService(db_client, use_firebase=use_firebase)
+        auth_service.ensure_root_user() # This now also seeds DEMO users
+        
+        logger.info("[Bootstrap] Auth System ready.")
+    except Exception as e:
+        logger.error(f"Auth System Bootstrap Failed: {e}")
+
+    # Note: Engine is lazy-loaded on first request to avoid complex manual DI here.
+    yield
+    # Shutdown
+    logger.info("Shutting down...")
+
 app = FastAPI(
     title="Cognitive Quorum API",
     description="Backend for Cognitive Quorum application.",
-    version="0.2.0"
+    version="2.1.0",
+    lifespan=lifespan
 )
 
 @app.exception_handler(AppException)
@@ -36,14 +103,23 @@ async def app_exception_handler(request: Request, exc: AppException):
         content={"error": exc.message, "details": exc.details, "status": "error"}
     )
 
+# --- CORS Configuration ---
+# Allows frontend (Flutter/Streamlit) on different domains to talk to this backend.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, restrict this to your specific domains
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.include_router(tools_router)
 app.include_router(execution_router)
 app.include_router(agents_router)
 app.include_router(admin_router)
 app.include_router(config_router)
+app.include_router(auth_router)
 app.include_router(llm_router, prefix="/llm", tags=["LLM"])
-
-from backend.api.builder_router import router as builder_router
 app.include_router(builder_router)
 
 @app.middleware("http")
@@ -61,7 +137,7 @@ async def startup_event():
 
 # Database setup
 settings = get_settings()
-print(f"DEBUG: ACTIVE DATABASE PATH: {os.path.abspath(settings.start_db_path)}")
+# print(f"DEBUG: ACTIVE DATABASE PATH: {os.path.abspath(settings.start_db_path)}")
 
 # Ensure data dirs exist
 os.makedirs(settings.data_dir, exist_ok=True)
@@ -137,8 +213,7 @@ async def preview_prompt(
     step_id: str = Path(..., description="The ID of the step to preview.")
 ):
     """
-    Previews the prompt that would be generated for a specific step ID.
-
+    Previews the prompt that would be generated for a specific step identifier.
 
     Args:
         step_id (str): Step Identifier.

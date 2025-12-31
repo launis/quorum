@@ -70,20 +70,20 @@ class GoogleAIProvider(LLMProvider):
     @staticmethod
     def fetch_available_models(api_key: Optional[str] = None) -> list:
         """
-        Fetches available models from Google API that support content generation.
+        Fetches available models from Google API using the new google.genai V2 SDK.
         Updates the global cache.
-
-        Args:
-            api_key (Optional[str]): API Key to use. Defaults to settings.
-
-        Returns:
-            list: List of model names (e.g. ['gemini-1.5-pro', ...]).
         """
         global _CACHED_MODELS
         if _CACHED_MODELS:
              return _CACHED_MODELS
 
-        import google.generativeai as genai
+        # V2 SDK Import
+        try:
+            from google import genai
+        except ImportError:
+            logger.error("[GoogleAIProvider] google-genai package not found.")
+            return []
+
         from backend.settings import get_settings
         
         settings = get_settings()
@@ -93,14 +93,18 @@ class GoogleAIProvider(LLMProvider):
             return []
 
         try:
-            genai.configure(api_key=key)
+            client = genai.Client(api_key=key)
             models = []
-            for m in genai.list_models():
-                if 'generateContent' in m.supported_generation_methods:
+            # Use V2 API to list models
+            pager = client.models.list()
+            for m in pager:
+                # Basic filtering for Gemini models
+                # In V2, most models listed are usable. We focus on gemini versions.
+                if "gemini" in m.name.lower():
                     name_clean = m.name.replace("models/", "")
                     models.append(name_clean)
             
-            logger.info(f"[GoogleAIProvider] Fetched {len(models)} models from API.")
+            logger.info(f"[GoogleAIProvider] Fetched {len(models)} models from API (v2).")
             _CACHED_MODELS = sorted(models)
             return _CACHED_MODELS
         except Exception as e:
