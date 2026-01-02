@@ -27,21 +27,22 @@ class AgentFactory:
         """
         Returns a dictionary of {ClassName: AgentInstance}.
         """
-        # Explicitly map ClassName -> Instance
-        # This ensures that if a class is renamed or deleted, this file breaks immediately (good).
+        # Explicitly pass provider="vertex_ai" to ensure robust initialization
+        default_provider = "vertex_ai"
+        
         return {
-            "GuardAgent": GuardAgent(model=initial_model),
-            "AnalystAgent": AnalystAgent(model=initial_model),
-            "InteractionAnalystAgent": InteractionAnalystAgent(model=initial_model),
-            "ProfilerAgent": ProfilerAgent(model=initial_model),
-            "LogicianAgent": LogicianAgent(model=initial_model),
-            "LogicalFalsifierAgent": LogicalFalsifierAgent(model=initial_model),
-            "FactualOverseerAgent": FactualOverseerAgent(model=initial_model),
-            "CausalAnalystAgent": CausalAnalystAgent(model=initial_model),
-            "PerformativityDetectorAgent": PerformativityDetectorAgent(model=initial_model),
-            "ArchivistAgent": ArchivistAgent(model=initial_model),
-            "JudgeAgent": JudgeAgent(model=initial_model),
-            "CoachAgent": CoachAgent(model=initial_model),
-            "XAIReporterAgent": XAIReporterAgent(model=initial_model),
-            "PanelAgent": PanelAgent(model=initial_model)
+            "GuardAgent": GuardAgent(model=initial_model, provider=default_provider),
+            "AnalystAgent": AnalystAgent(model=initial_model, provider=default_provider),
+            "InteractionAnalystAgent": InteractionAnalystAgent(model=initial_model, provider=default_provider),
+            "ProfilerAgent": ProfilerAgent(model=initial_model, provider=default_provider),
+            "LogicianAgent": LogicianAgent(model=initial_model, provider=default_provider),
+            "LogicalFalsifierAgent": LogicalFalsifierAgent(model=initial_model, provider=default_provider),
+            "FactualOverseerAgent": FactualOverseerAgent(model=initial_model, provider=default_provider),
+            "CausalAnalystAgent": CausalAnalystAgent(model=initial_model, provider=default_provider),
+            "PerformativityDetectorAgent": PerformativityDetectorAgent(model=initial_model, provider=default_provider),
+            "ArchivistAgent": ArchivistAgent(model=initial_model, provider=default_provider),
+            "JudgeAgent": JudgeAgent(model=initial_model, provider=default_provider),
+            "CoachAgent": CoachAgent(model=initial_model, provider=default_provider),
+            "XAIReporterAgent": XAIReporterAgent(model=initial_model, provider=default_provider),
+            "PanelAgent": PanelAgent(model=initial_model, provider=default_provider)
         }

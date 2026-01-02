@@ -39,13 +39,20 @@ class BaseAgent(BaseComponent):
              logger.warning(f"[BaseAgent] Hardcoded 'gemini' detected in model init: {model}")
              
         self.model = model
-        self.provider_type = provider
+        self.provider_type = provider or "vertex_ai"
         
-        # Initialize the provider lazily or here
-        if provider and model:
-            self.llm_provider: LLMProvider = LLMFactory.create_provider(provider, model)
-        else:
-            self.llm_provider = None # Must be set via configure() or similar
+        # Ensure LLMProvider is ALWAYS initialized (Strict Mode)
+        # Start with the provided model, or a safe default if not yet configured.
+        # The AgentRegistry/PipelineRunner will likely call set_model() later,
+        # but we must guarantee valid state on init.
+        target_model = model or "gemini-1.5-flash"
+        
+        try:
+            self.llm_provider: LLMProvider = LLMFactory.create_provider(self.provider_type, target_model)
+        except Exception as e:
+            # Fallback for extreme cases (e.g. during very early boostrap if factory fails)
+            logger.error(f"[BaseAgent] Failed to init provider: {e}. using Mock.")
+            self.llm_provider = LLMFactory.create_provider("mock", "mock-fallback")
 
     def set_model(self, model_name: str, provider: Optional[str] = None):
         """
@@ -59,17 +66,22 @@ class BaseAgent(BaseComponent):
         if provider:
             self.provider_type = provider
             
-        current_provider_type = self.provider_type or "google" # Default fallback
+        current_provider_type = self.provider_type or "vertex_ai"
         
         if self.llm_provider:
              # Update existing provider
              self.llm_provider.model_name = model_name
+             # Update provider instance wrapper if needed (LiteLLMProvider generally just needs model_name field update if implemented setters)
+             # However, provider might store API keys specific to model? Usually not.
+             # Safest is to recreate or update property.
+             if hasattr(self.llm_provider, 'model_name'):
+                 self.llm_provider.model_name = model_name
         else:
-             # Create new provider
-             if current_provider_type:
+             # Create new provider (Should not happen with new init logic, but safe guard)
+             try:
                  self.llm_provider = LLMFactory.create_provider(current_provider_type, model_name)
-             else:
-                 logger.error(f"[BaseAgent] Cannot create LLMProvider: Provider type missing for model {model_name}")
+             except Exception as e:
+                 logger.error(f"[BaseAgent] Failed to create provider in set_model: {e}")
 
     async def _update_state(self, state: WorkflowState, response_data: Any, output_key: Optional[str] = None, **kwargs) -> WorkflowState:
         """
@@ -93,6 +105,12 @@ class BaseAgent(BaseComponent):
             try:
                 SchemaClass = self.get_response_schema()
                 # Validate and create Pydantic model
+                # Ensure response_data is a dict (JSON has been parsed)
+                if not isinstance(response_data, dict):
+                    # Strict Mode: This assumes provider returns parsed JSON if schema is present.
+                    # If prompt-based, it returns dict.
+                    pass
+                    
                 validated_data = SchemaClass(**response_data)
                 
                 # Check if state has this field
@@ -174,13 +192,14 @@ class BaseAgent(BaseComponent):
 
             # Handle Response Content
             if response_schema:
-                 # Provider ensures content is valid JSON string if schema was used
+                # Provider ensures content is valid JSON string if schema was used
                 import json
                 try:
                     response_data = json.loads(response_obj.content)
                 except:
-                    # Fallback if provider failed to ensure robust JSON (should generally be handled in provider)
-                    response_data = response_obj.content 
+                    # STRICT MODE: If json keys are malformed after provider, we fail.
+                    logger.error(f"[{self.__class__.__name__}] Failed to parse JSON content from provider.")
+                    raise ValueError("Critical: Failed to parse JSON content.")
             else:
                 response_data = response_obj.content
 

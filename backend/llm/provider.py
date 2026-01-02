@@ -7,7 +7,6 @@ import asyncio
 from pydantic import BaseModel
 from tenacity import retry, stop_after_attempt, wait_exponential
 from backend.models.state import WorkflowState
-from backend.models.state import WorkflowState
 from backend.models.llm import LLMResponse
 from backend.settings import get_settings
 import litellm
@@ -58,108 +57,8 @@ class LLMProvider(ABC):
         """
         pass
 
-# Global Cache for Models
+# Global Cache for Models (Simplified)
 _CACHED_MODELS = []
-
-class GoogleAIProvider(LLMProvider):
-    """
-    Legacy class kept primarily for fetch_available_models used by LLMHandler.
-    Actual generation logic is now handled by LiteLLMProvider via LLMFactory.
-    """
-    
-    @staticmethod
-    def _fetch_vertex_models(project_id: str, location: str) -> list:
-        
-        def fetch_from_loc(fetch_loc):
-            try:
-                # Use v1beta1 for latest models
-                from google.cloud import aiplatform_v1beta1
-                from google.api_core.client_options import ClientOptions
-                
-                api_endpoint = f"{fetch_loc}-aiplatform.googleapis.com"
-                client_options = ClientOptions(api_endpoint=api_endpoint)
-                
-                # Create Client (Beta)
-                client = aiplatform_v1beta1.ModelGardenServiceClient(client_options=client_options)
-                    
-                parent = "publishers/google"
-                found = []
-                
-                # Call list_publisher_models
-                response = client.list_publisher_models(parent=parent)
-                for model in response:
-                    # Model name format: publishers/google/models/gemini-1.5-pro
-                    model_id = model.name.split('/')[-1]
-                    if "gemini" in model_id.lower():
-                        found.append(f"vertex_ai/{model_id}")
-                return found
-            except Exception as e:
-                logger.debug(f"[GoogleAIProvider] Fetch from {fetch_loc} failed/empty: {e}")
-                return []
-
-        # 1. Try user location ONLY
-        models = fetch_from_loc(location)
-        
-        # 2. Fallback to us-central1 (Global Metadata Hub)
-        # Europe endpoints might not list all preview models
-        if not models and location != "us-central1":
-             logger.info(f"[GoogleAIProvider] No models in {location}, fetching metadata from us-central1...")
-             models = fetch_from_loc("us-central1")
-             
-        return models
-
-    @staticmethod
-    def fetch_available_models(api_key: Optional[str] = None) -> list:
-        """
-        Fetches available models from Google API (V2) AND Vertex AI.
-        Updates the global cache.
-        """
-        global _CACHED_MODELS
-        if _CACHED_MODELS:
-             return _CACHED_MODELS
-
-        models = []
-        
-        # 1. Google AI Studio (V2 GenAI)
-        try:
-            from google import genai
-            from backend.settings import get_settings
-            settings = get_settings()
-            key = api_key or settings.google_api_key
-            
-            if key:
-                client = genai.Client(api_key=key)
-                pager = client.models.list()
-                for m in pager:
-                    if "gemini" in m.name.lower():
-                        name_clean = m.name.replace("models/", "")
-                        models.append(name_clean)
-        except ImportError:
-            pass
-        except Exception as e:
-            logger.warning(f"[GoogleAIProvider] GenAI V2 List failed: {e}")
-
-        # 2. Vertex AI
-        try:
-             # Read env vars for Vertex
-             from backend.settings import get_settings
-             settings = get_settings() # Re-fetch to be safe
-             project = os.getenv("VERTEX_PROJECT") or "cognitive-quorum"
-             location = os.getenv("VERTEX_LOCATION") or "europe-north1"
-             
-             # Only attempt if we have credentials (env var or default)
-             if os.getenv("GOOGLE_APPLICATION_CREDENTIALS") or os.getenv("VERTEX_PROJECT"):
-                 vertex_models = GoogleAIProvider._fetch_vertex_models(project, location)
-                 models.extend(vertex_models)
-        except Exception as e:
-             logger.warning(f"[GoogleAIProvider] Vertex fetch wrapper failed: {e}")
-
-        logger.info(f"[GoogleAIProvider] Fetched {len(models)} models total.")
-        _CACHED_MODELS = sorted(list(set(models)))
-        return _CACHED_MODELS
-
-    async def generate(self, *args, **kwargs):
-        raise NotImplementedError("Use LiteLLMProvider via LLMFactory instead.")
 
 class LiteLLMProvider(LLMProvider):
     """
@@ -180,118 +79,6 @@ class LiteLLMProvider(LLMProvider):
         self.settings = settings
         # litellm configuration if needed
         litellm.drop_params = True 
-
-    def _clean_json_response(self, raw_response: str) -> Dict[str, Any]:
-        """
-        Robustly parses JSON from LLM output, handling markdown blocks and conversational text.
-        
-        Strategies:
-        1. Parse directly.
-        2. Strip markdown blocks.
-        3. Regex extract JSON object.
-        4. Heuristic repairs (trailing commas, comments).
-
-        Args:
-            raw_response (str): The raw output string from the LLM.
-
-        Returns:
-            Dict[str, Any]: Parsed JSON object.
-
-        Raises:
-            ValueError: If JSON cannot be extracted.
-        """
-        import re
-        
-        # 0. Pre-cleaning: Remove // comments (Common in LLM JSON)
-        # Be careful not to match URLs (http://...)
-        
-        # Simple attempt to parse directly first
-        json_candidate = raw_response
-        
-        try:
-            # 1. Try stripping markdown code blocks
-            clean_text = raw_response.replace("```json", "").replace("```", "").strip()
-            return json.loads(clean_text, strict=False)
-        except json.JSONDecodeError:
-            pass
-
-        # 2. Try regex extraction of the main JSON object
-        try:
-            start_index = raw_response.find('{')
-            end_index = raw_response.rfind('}')
-            
-            if start_index != -1 and end_index != -1 and end_index > start_index:
-                json_candidate = raw_response[start_index : end_index + 1]
-                return json.loads(json_candidate, strict=False)
-        except json.JSONDecodeError as e:
-            logger.warning(f"[LiteLLM] Extraction failed: {e}. Attempting repairs...")
-            
-            # 3. Repair: Remove single-line comments // that are not inside strings (Approximate)
-            try:
-                repaired = re.sub(r'^\s*//.*$', '', json_candidate, flags=re.MULTILINE)
-                return json.loads(repaired, strict=False)
-            except Exception:
-                pass
-
-            # 4. Repair: Heuristic Fix for Missing Commas
-            try:
-                # Add comma after quote if followed by newline and quote/brace
-                fixed_json = re.sub(r'(?<=[}\]"\'0-9lue])\s*(?<!,)\s*\n\s*(?=")', ',\n', json_candidate)
-                return json.loads(fixed_json, strict=False)
-            except Exception as e2:
-                logger.error(f"[LiteLLM] Heuristic fix failed: {e2}")
-
-            # 5. Repair: Advanced regex to escape quotes strictly inside values
-            try:
-                # Escape " that are NOT structural JSON quotes
-                # Structure quotes are surrounded by delimiters like { [ : ,
-                # We target quotes that are NOT preceded/followed by these delimiters (ignoring whitespace)
-                fixed_quotes = re.sub(r'(?<![\{\[,:]\s{0,5})"(?!\s{0,5}[:,\}\]])', r'\"', json_candidate)
-                return json.loads(fixed_quotes, strict=False)
-            except Exception:
-                pass
-
-            # 6. Repair: Try ast.literal_eval (Handles Python dict syntax / single quotes)
-            try:
-                import ast
-                # Only if it looks like a dict/list
-                if json_candidate.strip().startswith("{") or json_candidate.strip().startswith("["):
-                     # ast.literal_eval requires valid python syntax. 
-                     # Often LLM produces { 'key': 'value' } which is valid python but invalid json.
-                     return ast.literal_eval(json_candidate)
-            except Exception:
-                pass
-
-            # 7. Repair: Truncated JSON (Token limit hit)
-            try:
-                # If the string ends abruptly, try closing it.
-                repaired = json_candidate
-                # 1. Close open string if odd number of quotes
-                if repaired.count('"') % 2 != 0:
-                     repaired += '"'
-                
-                # 2. Close open objects/arrays (Simple heuristic)
-                open_braces = repaired.count('{') - repaired.count('}')
-                open_brackets = repaired.count('[') - repaired.count(']')
-                
-                if open_braces > 0: repaired += '}' * open_braces
-                if open_brackets > 0: repaired += ']' * open_brackets
-                
-                return json.loads(repaired, strict=False)
-            except Exception:
-                pass
-
-            # DEBUG: Dump failed JSON to file
-            try:
-                import time
-                timestamp = int(time.time())
-                with open(f"FAILED_JSON_DEBUG_{timestamp}.txt", "w", encoding="utf-8") as f:
-                    f.write(raw_response)
-                logger.error(f"Failed JSON dumped to FAILED_JSON_DEBUG_{timestamp}.txt")
-            except Exception:
-                pass
-
-            raise ValueError(f"Could not extract valid JSON. See FAILED_JSON_DEBUG_*.txt. Start: {raw_response[:100]}...")
 
     @retry_strategy
     async def generate(
@@ -412,9 +199,23 @@ class LiteLLMProvider(LLMProvider):
                       obj = message.parsed.dict() if hasattr(message.parsed, "dict") else message.parsed
                       final_content = json.dumps(obj, ensure_ascii=False)
                  else:
-                      # Clean manually
-                      obj = self._clean_json_response(raw_content)
-                      final_content = json.dumps(obj, ensure_ascii=False)
+                      # STRICT MODE: Fail Fast if not valid JSON
+                      try:
+                          # Attempt standard parsing
+                          # Note: Some models return Markdown ```json ... ``` even with strict mode
+                          # We do minimal stripping of code blocks only, no heuristic repair.
+                          clean_text = raw_content
+                          if "```" in raw_content:
+                                clean_text = raw_content.replace("```json", "").replace("```", "").strip()
+                          
+                          obj = json.loads(clean_text)
+                          final_content = json.dumps(obj, ensure_ascii=False)
+                      except json.JSONDecodeError as e:
+                          logger.error(f"[LiteLLM] Strict JSON Parse Failed: {e}")
+                          # Dump for debug
+                          with open("FAILED_JSON_STRICT.txt", "w", encoding="utf-8") as f:
+                               f.write(raw_content)
+                          raise ValueError(f"Strict JSON parsing failed. Content dumped to FAILED_JSON_STRICT.txt")
 
             return LLMResponse(
                 content=final_content,
@@ -492,13 +293,10 @@ class LLMFactory:
         if not provider_type or not model_name:
              raise ValueError("[LLMFactory] provider_type and model_name MUST be provided from DB config. No defaults allowed.")
 
-        # Simplify logic using LiteLLM
-        # Map provider to model naming convention
-        
         target_model = model_name
         api_key = None
         
-        if provider_type.lower() == "gemini":
+        if provider_type.lower() == "gemini" or provider_type.lower() == "vertex_ai":
             # STRICT MODE: Model name must come fully formed from DB (e.g. gemini/gemini-1.5-pro)
             target_model = model_name
             api_key = settings.google_api_key
@@ -506,12 +304,10 @@ class LLMFactory:
         elif provider_type.lower() == "openai":
             target_model = model_name
             api_key = settings.openai_api_key
-            api_key = os.getenv("OPENAI_API_KEY")
+            if not api_key:
+                api_key = os.getenv("OPENAI_API_KEY")
         
-        # Default fallback or pass-through
         if not target_model:
-             # Should not happen given logic above usually, but safe default
-             # Strict mode: raise error if we somehow got here without a model
              raise ValueError("[LLMFactory] Failed to resolve target_model. Check logic.") 
 
         msg_key = "PRESENT" if api_key else "MISSING"

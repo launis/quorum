@@ -5,7 +5,6 @@ from tinydb import Query
 from backend.database.wrapper import get_db_client
 from backend.settings import get_settings
 from backend.llm.provider import LLMFactory
-# Removed unused import for google.generativeai
 import openai
 
 logger = logging.getLogger(__name__)
@@ -43,30 +42,41 @@ class LLMHandler:
             models["openai"] = ["mock-gpt-a"]
             return models
         
-        # 1. Fetch Google Models
+        # 1. Fetch Google Models (Unified Logic)
         try:
-             # Use the Provider's caching mechanism (initialized at bootstrap)
-             from backend.llm.provider import GoogleAIProvider
-             
-             logger.info(f"Fetching cached Google models from Provider...")
-             # Since it's a static method that checks cache, we can just call it safely.
-             cached_google_models = GoogleAIProvider.fetch_available_models(api_key=settings.google_api_key)
-             models["google"] = cached_google_models
-             
+             # Check cache first
+             if hasattr(self, '_cached_google_models') and self._cached_google_models:
+                 models["google"] = self._cached_google_models
+             else:
+                 import google.generativeai as genai
+                 key = settings.google_api_key
+                 if key:
+                     genai.configure(api_key=key)
+                     pager = genai.list_models()
+                     found = []
+                     for m in pager:
+                         if "gemini" in m.name.lower():
+                             # Cleanup name: models/gemini-pro -> gemini-pro
+                             name_clean = m.name.replace("models/", "")
+                             found.append(name_clean)
+                     
+                     # Simple cache
+                     self._cached_google_models = sorted(list(set(found)))
+                     models["google"] = self._cached_google_models
+                 
         except Exception as e:
-            logger.error(f"Error fetching Google models: {e}", exc_info=True)
+            logger.error(f"Error fetching Google models: {e}")
             models["google_error"] = str(e)
             
         # 2. Fetch OpenAI Models (Cached)
         try:
-             # Simple global cache for OpenAI similar to Google
              if not hasattr(self, '_cached_openai_models'):
                  self._cached_openai_models = []
              
              if self._cached_openai_models:
                  models["openai"] = self._cached_openai_models
              else:
-                api_key = os.getenv("OPENAI_API_KEY")
+                api_key = os.getenv("OPENAI_API_KEY") or settings.openai_api_key
                 if api_key:
                     client = openai.OpenAI(api_key=api_key)
                     # List models
@@ -76,7 +86,6 @@ class LLMHandler:
                             self._cached_openai_models.append(m.id)
                     models["openai"] = self._cached_openai_models
                 else:
-                     # Not an error per se if user only wants Gemini
                      models["openai_warning"] = "OPENAI_API_KEY not found"
         except Exception as e:
             models["openai_error"] = str(e)
@@ -159,8 +168,6 @@ class LLMHandler:
             temperature = cd.get("temperature", temperature)
             max_tokens = cd.get("max_tokens", max_tokens)
         else:
-             # Minimal default if config completely missing
-             # if provider == "openai": model_name = "gpt-4o" # Removed to enforce centralized config
              pass
         
         # Create Provider via Factory (Unified Logic)
