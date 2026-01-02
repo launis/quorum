@@ -19,6 +19,8 @@ class OrganizationRepository:
         # TinyDB simulation for get
         result = self.table.get(lambda x: x.get('id') == org_id)
         if result: 
+            # Robustness: existing data might miss 'tier'
+            if 'tier' not in result: result['tier'] = 'standard'
             return Organization(**result)
         return None
         
@@ -27,7 +29,11 @@ class OrganizationRepository:
         return org
         
     def list_all(self) -> List[Organization]:
-        return [Organization(**o) for o in self.table.all()]
+        results = []
+        for o in self.table.all():
+            if 'tier' not in o: o['tier'] = 'standard'
+            results.append(Organization(**o))
+        return results
 
 # --- Repository Layer (User) ---
 
@@ -264,6 +270,17 @@ class AuthService:
 
     def ensure_root_user(self, email: str = "root@example.com") -> User:
         """Bootstraps a root user and Development Scenario (Demo Corp) if needed."""
+        
+        # 0. Ensure SYSTEM Org exists (Container for Root)
+        if not self.org_repo.get_by_id("system"):
+            logger.info("[AuthService] Creating 'system' Organization.")
+            self.org_repo.create(Organization(
+                id="system",
+                name="System Administration",
+                created_at=str(time.time()),
+                tier="enterprise"
+            ))
+
         # 1. ROOT
         root = self.repo.get_by_uid("root_master")
         if not root:
@@ -272,67 +289,53 @@ class AuthService:
                 uid="root_master",
                 email=email,
                 role=UserRole.ROOT,
-                organization_id="SYSTEM",
+                organization_id="system",
                 display_name="System Root",
                 created_at=str(time.time())
             )
             self.repo.create(root)
+        elif root.organization_id != "system":
+            # Fix casing or drift if it was "SYSTEM" or None
+            logger.info(f"Fixing root_master organization_id from '{root.organization_id}' to 'system'")
+            self.repo.update("root_master", UserUpdate(organization_id="system"))
+            root = self.repo.get_by_uid("root_master") # Refresh
 
-        # 2. DEMO CORP (For local dev buttons to work)
-        # We only do this if we are not in Firebase mode (i.e. Local Dev)
-        if not self.use_firebase:
-            demo_org = self.org_repo.get_by_id("demo_corp_id")
-            if not demo_org:
-                demo_org = Organization(
-                    id="demo_corp_id",
-                    name="Demo Corp (Dev)",
-                    created_at=str(time.time()),
-                    is_active=True
-                )
-                self.org_repo.create(demo_org)
-                
-            # 3. Admin (User Manager)
-            if not self.repo.get_by_uid("admin_1"):
-                self.repo.create(User(
-                    uid="admin_1",
-                    email="admin@demo.com",
-                    role=UserRole.ADMIN,
-                    organization_id="demo_corp_id",
-                    display_name="Demo Admin",
-                    created_at=str(time.time())
-                ))
-
-            # 4. Manager (Tech Lead)
-            if not self.repo.get_by_uid("manager_1"):
-                self.repo.create(User(
-                    uid="manager_1",
-                    email="manager@demo.com",
-                    role=UserRole.MANAGER,
-                    organization_id="demo_corp_id",
-                    display_name="Demo Manager",
-                    created_at=str(time.time())
-                ))
-                
-            # 5. Member (Was Tester)
-            if not self.repo.get_by_uid("member_1"):
-                self.repo.create(User(
-                    uid="member_1",
-                    email="member@demo.com",
-                    role=UserRole.MEMBER,
-                    organization_id="demo_corp_id",
-                    display_name="Demo Member",
-                    created_at=str(time.time())
-                ))
-
-            # 6. Viewer
-            if not self.repo.get_by_uid("viewer_1"):
-                self.repo.create(User(
-                    uid="viewer_1",
-                    email="viewer@demo.com",
-                    role=UserRole.VIEWER,
-                    organization_id="demo_corp_id",
-                    display_name="Demo Viewer",
-                    created_at=str(time.time())
-                ))
+            self.repo.update("root_master", UserUpdate(organization_id="system"))
+            root = self.repo.get_by_uid("root_master") # Refresh
 
         return root
+
+    # --- Dependency Injection Helpers (Static) ---
+    @staticmethod
+    def require_role(required_role: UserRole):
+        """
+        Returns a dependency that validates the user has the required role.
+        Implicitly allows ROOT for everything.
+        """
+        from fastapi import Depends, HTTPException
+        from backend.dependencies import get_current_user_from_header # Lazy import
+        
+        async def _role_checker(user: TokenData = Depends(get_current_user_from_header)):
+            if user.role == UserRole.ROOT:
+                return user
+            
+            if user.role != required_role:
+                 raise HTTPException(status_code=403, detail=f"Insufficient privileges. Required: {required_role.value}")
+            return user
+            
+        return _role_checker
+
+    @staticmethod
+    def get_current_user(
+        from_header=None # Placeholder to match Depends signature if needed, but we delegate
+    ):
+        """
+        Dependency alias for getting current user via header.
+        Intended usage: user: TokenData = Depends(AuthService.get_current_user)
+        """
+        from fastapi import Depends
+        from backend.dependencies import get_current_user_from_header
+        
+        # This one is tricky because Depends() needs a callable.
+        # If we return a callable that Depends uses...
+        return get_current_user_from_header

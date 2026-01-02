@@ -30,10 +30,11 @@ def sync():
         "agents", 
         "workflows", 
         "components", 
-        "concepts", 
-        "references", 
-        "claims",
-        "steps" 
+        "steps", 
+        "organizations",        # Added
+        "knowledge_base",       # Added
+        "banned_phrases",       # Added
+        "model_registry"        # Added
     ]
     
     new_seed = {}

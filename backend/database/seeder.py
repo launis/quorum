@@ -79,6 +79,9 @@ def _seed_tinydb(db_path: str, seed_data: dict):
     banned_phrases_table = db.table('banned_phrases')
     system_config_table = db.table('system_config')
     kb_table = db.table('knowledge_base')
+    organizations_table = db.table('organizations')
+    users_table = db.table('users')
+    model_registry_table = db.table('model_registry')
 
     # Seed Components
     Component = Query()
@@ -161,6 +164,28 @@ def _seed_tinydb(db_path: str, seed_data: dict):
             except Exception: pass
         print(f"[Seeder] Upserted {count} model_registry items.")
 
+    # Seed Organizations
+    if 'organizations' in seed_data:
+        Org = Query()
+        count = 0
+        for item in seed_data['organizations']:
+            try:
+                organizations_table.upsert(item, Org.id == item['id'])
+                count += 1
+            except Exception: pass
+        print(f"[Seeder] Upserted {count} organizations.")
+
+    # Seed Users
+    if 'users' in seed_data:
+        User = Query()
+        count = 0
+        for item in seed_data['users']:
+            try:
+                users_table.upsert(item, User.uid == item['uid'])
+                count += 1
+            except Exception: pass
+        print(f"[Seeder] Upserted {count} users.")
+
     print(f"[Seeder] Upserted {count} knowledge_base items.")
         
     print("[Seeder] TinyDB seeding completed.")
@@ -187,7 +212,7 @@ def _seed_firestore(seed_data: dict):
     
     # 0. Clear existing collections (like drop_tables)
     print("[Seeder] Clearing existing Firestore collections...")
-    collections_to_clear = ['components', 'steps', 'workflows', 'system_config', 'banned_phrases', 'knowledge_base', 'model_registry']
+    collections_to_clear = ['components', 'steps', 'workflows', 'system_config', 'banned_phrases', 'knowledge_base', 'model_registry', 'organizations', 'users']
     
     def delete_collection(coll_ref, batch_size=400):
         docs = list(coll_ref.limit(batch_size).stream())
@@ -218,6 +243,9 @@ def _seed_firestore(seed_data: dict):
 
     # 1. Components
     for item in seed_data.get('components', []):
+        if not isinstance(item, dict):
+             print(f"[Seeder] Warning: Skipping non-dict item in components: {str(item)[:50]}")
+             continue
         doc_id = item.get('id') or item.get('name')
         if doc_id:
             ref = db.collection('components').document(doc_id)
@@ -227,6 +255,7 @@ def _seed_firestore(seed_data: dict):
 
     # 2. Steps
     for item in seed_data.get('steps', []):
+        if not isinstance(item, dict): continue
         doc_id = item.get('id')
         if doc_id:
             ref = db.collection('steps').document(doc_id)
@@ -236,6 +265,7 @@ def _seed_firestore(seed_data: dict):
 
     # 3. Workflows
     for item in seed_data.get('workflows', []):
+        if not isinstance(item, dict): continue
         doc_id = item.get('id')
         if doc_id:
             ref = db.collection('workflows').document(doc_id)
@@ -245,6 +275,7 @@ def _seed_firestore(seed_data: dict):
 
     # 4. System Config
     for item in seed_data.get('system_config', []):
+        if not isinstance(item, dict): continue
         doc_id = item.get('type')
         if doc_id:
             ref = db.collection('system_config').document(doc_id)
@@ -253,11 +284,10 @@ def _seed_firestore(seed_data: dict):
             commit_batch_if_full()
 
     # 5. Banned Phrases
-    # These often don't have unique IDs, but we can make one hash or use phrase
     for item in seed_data.get('banned_phrases', []):
+        if not isinstance(item, dict): continue
         phrase = item.get('phrase')
         if phrase:
-            # Sanitize for ID or just use hash
             import hashlib
             doc_id = hashlib.md5(phrase.encode()).hexdigest()
             ref = db.collection('banned_phrases').document(doc_id)
@@ -267,16 +297,15 @@ def _seed_firestore(seed_data: dict):
 
     # 6. Knowledge Base
     for item in seed_data.get('knowledge_base', []):
-        # Prefer term, then id, then hash
+        if not isinstance(item, dict): 
+            print(f"[Seeder] Warning: Skipping non-dict item in KB: {str(item)[:50]}")
+            continue
         doc_id = item.get('term') or item.get('id')
         if not doc_id:
              import json
              doc_id = hashlib.md5(json.dumps(item, sort_keys=True).encode()).hexdigest()
         
-        # Sanitize ID (slashes not allowed in IDs usually, but Firestore handles some path chars differently)
-        # Safer to replace slashes if term contains them
         doc_id = str(doc_id).replace('/', '_')
-        
         ref = db.collection('knowledge_base').document(doc_id)
         batch.set(ref, item, merge=True)
         op_count += 1
@@ -284,6 +313,7 @@ def _seed_firestore(seed_data: dict):
 
     # 7. Model Registry
     for item in seed_data.get('model_registry', []):
+        if not isinstance(item, dict): continue
         doc_id = item.get('id')
         if doc_id:
             ref = db.collection('model_registry').document(doc_id)
@@ -291,10 +321,27 @@ def _seed_firestore(seed_data: dict):
             op_count += 1
             commit_batch_if_full()
 
-    print("[Seeder] Firestore seeding completed successfully.")
+    # 8. Organizations
+    for item in seed_data.get('organizations', []):
+        if not isinstance(item, dict): continue
+        doc_id = item.get('id')
+        if doc_id:
+            ref = db.collection('organizations').document(doc_id)
+            batch.set(ref, item, merge=True)
+            op_count += 1
+            commit_batch_if_full()
 
-if __name__ == "__main__":
-    seed_database()
+    # 9. Users
+    for item in seed_data.get('users', []):
+        if not isinstance(item, dict): continue
+        doc_id = item.get('uid')
+        if doc_id:
+            ref = db.collection('users').document(doc_id)
+            batch.set(ref, item, merge=True)
+            op_count += 1
+            commit_batch_if_full()
+
+    print("[Seeder] Firestore seeding completed successfully.")
 
 if __name__ == "__main__":
     seed_database()

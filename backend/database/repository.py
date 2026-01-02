@@ -96,6 +96,22 @@ class AbstractWorkflowRepository(ABC):
     @abstractmethod
     async def clear_knowledge_base(self): pass
 
+    # --- Organization Management ---
+    @abstractmethod
+    async def create_organization(self, org_data: Dict[str, Any]) -> str: pass
+
+    @abstractmethod
+    async def get_organization(self, org_id: str) -> Optional[Dict[str, Any]]: pass
+
+    @abstractmethod
+    async def update_organization(self, org_id: str, updates: Dict[str, Any]): pass
+
+    @abstractmethod
+    async def list_organizations(self) -> List[Dict[str, Any]]: pass
+
+    @abstractmethod
+    async def delete_organization(self, org_id: str): pass
+
 
 class TinyDBRepository(AbstractWorkflowRepository):
     """
@@ -111,6 +127,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
         self.banned_phrases = self.db.table('banned_phrases')
         self.knowledge_base = self.db.table('knowledge_base')
         self.system_config = self.db.table('system_config')
+        self.organizations = self.db.table('organizations')
 
     async def _run(self, func, *args, **kwargs):
         """Helper to run sync DB calls in thread."""
@@ -280,6 +297,35 @@ class TinyDBRepository(AbstractWorkflowRepository):
         
     async def clear_knowledge_base(self):
         await self._run(self.knowledge_base.truncate)
+
+    # --- Organization Management ---
+    async def create_organization(self, org_data: Dict[str, Any]) -> str:
+        # For simplicity, we assume org_data already has 'id' or we let TinyDB trigger one.
+        # But our ABC expects a string return ID.
+        result = await self._run(self.organizations.insert, org_data)
+        return str(result)
+
+    async def get_organization(self, org_id: str) -> Optional[Dict[str, Any]]:
+        def _get():
+            Q = Query()
+            res = self.organizations.search(Q.id == org_id)
+            return res[0] if res else None
+        return await self._run(_get)
+
+    async def update_organization(self, org_id: str, updates: Dict[str, Any]):
+        def _update():
+            Q = Query()
+            self.organizations.update(updates, Q.id == org_id)
+        await self._run(_update)
+
+    async def list_organizations(self) -> List[Dict[str, Any]]:
+        return await self._run(self.organizations.all)
+
+    async def delete_organization(self, org_id: str):
+        def _delete():
+            Q = Query()
+            self.organizations.remove(Q.id == org_id)
+        await self._run(_delete)
 
 # Backward compatibility alias
 WorkflowRepository = TinyDBRepository

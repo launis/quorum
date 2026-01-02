@@ -342,3 +342,34 @@ class APIClient:
             return res.json() if res.status_code == 200 else {"valid": False, "errors": ["Network Error"]}
         except Exception as e:
             return {"valid": False, "errors": [str(e)]}
+
+    def get_available_models(self, providers: list = None, location: str = "us-central1"):
+        """Fetches available models from backend with filtering."""
+        try:
+            params = {"location": location}
+            if providers:
+                # requests handles list properly as providers=mock&providers=google
+                params["providers"] = providers
+            
+            res = requests.get(f"{self.base_url}/config/models/available", params=params, timeout=15)
+            # The backend now returns Dict[str, List]
+            return res.json() if res.status_code == 200 else {}
+        except Exception as e:
+            logger.error(f"Failed to fetch available models: {e}")
+            return {}
+
+    def call_llm_adhoc(self, provider: str, mode: str, prompt: str, system_instruction: str = None):
+        """Calls the ad-hoc LLM endpoint."""
+        try:
+            payload = {
+                "provider": provider,
+                "mode": mode,
+                "prompt": prompt,
+                "system_instruction": system_instruction
+            }
+            res = requests.post(f"{self.base_url}/config/models/call", json=payload, timeout=60)
+            res.raise_for_status()
+            return res.json().get("content", "")
+        except Exception as e:
+            logger.error(f"Ad-hoc LLM call failed: {e}")
+            return f"Error: {str(e)}"

@@ -44,10 +44,10 @@ def get_steps():
 
 def get_available_models():
     """
-    Fetches available models. Returns a dict {"google": [], "openai": [], ...} or a flat list for fallback legacy support.
+    Fetches available models. Relies on Backend API (which handles Mock/Live logic).
     """
     try:
-        # Try new structured endpoint first
+        # Try new structured endpoint
         res = requests.get(f"{API_URL}/llm/available-models")
         if res.status_code == 200:
             return res.json()
@@ -59,7 +59,8 @@ def get_available_models():
             
     except Exception as e:
         st.error(f"Error fetching models: {e}")
-    return {"google": ["gemini-1.5-pro"], "openai": ["gpt-4o"]} # Fallback
+        # Return empty structure to avoid UI crash, but do NOT fake data.
+        return {}
 
 def get_model_strategies():
     """

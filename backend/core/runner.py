@@ -274,9 +274,10 @@ class PipelineRunner:
                  step_model_key = config.get('model_strategy')
         
         if not step_model_key:
-             # Prevent crash by falling back to 'fast' logic
-             logger.warning(f"[PipelineRunner] Warning: No model strategy found for step {step_id}. Fallback to 'fast'.")
-             step_model_key = "fast"
+             # STRICT MODE: No implicit fallbacks
+             msg = f"[PipelineRunner] Critical: No model strategy/mapping found for step '{step_id}'. Explicit configuration required."
+             logger.error(msg)
+             raise ValueError(msg)
 
 
         resolved_config = await self.registry.resolve_model_config(step_model_key)

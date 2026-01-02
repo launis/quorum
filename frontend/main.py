@@ -21,6 +21,8 @@ from frontend.views.matrix_view import render_matrix_view
 from frontend.views.user_view import render_user_view
 from frontend.views.builder_view import render_workflow_builder
 from frontend.views.dashboard_view import render_dashboard # New View
+from frontend.views.system_admin_view import render_system_admin_view
+from frontend.views.org_admin_view import render_org_admin_view
 
 # Config
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
@@ -117,11 +119,11 @@ def main():
         
         # ROOT: Everything
         if user_role == "root":
-            nav_options.extend(["Workflow Builder", "Global Config", "Audit Matrix Library", "User Management", "System Info"])
+            nav_options.extend(["Workflow Builder", "Global Config", "Audit Matrix Library", "User Management", "System Info", "🛡️ System Admin", "🏢 Organization Settings"])
             
         # ADMIN: Users (Team) - Org Level User Management
         elif user_role == "admin":
-             nav_options.extend(["User Management"])
+             nav_options.extend(["User Management", "🏢 Organization Settings"])
              
         # MANAGER: Workflow Config - Technical Lead
         elif user_role == "manager":
@@ -172,6 +174,12 @@ def main():
         
     elif page == "System Info":
         render_system_view(api_client)
+
+    elif page == "🛡️ System Admin":
+        render_system_admin_view(BACKEND_URL)
+
+    elif page == "🏢 Organization Settings":
+        render_org_admin_view(BACKEND_URL)
 
 if __name__ == "__main__":
     main()

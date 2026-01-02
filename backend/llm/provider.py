@@ -271,13 +271,20 @@ class LLMFactory:
     Factory class to instantiate the appropriate LLMProvider based on configuration.
     """
     @staticmethod
-    def create_provider(provider_type: str, model_name: str) -> LLMProvider:
+    def create_provider(
+        provider_type: str, 
+        model_name: str,
+        context: Optional[Union[Dict[str, Any], Any]] = None,
+        organization_id: Optional[str] = None
+    ) -> LLMProvider:
         """
         Creates an LLM provider instance.
 
         Args:
             provider_type (str): Type of provider (e.g., 'gemini', 'openai').
             model_name (str): Specific model name.
+            context (Optional[Union[Dict[str, Any], Any]]): Workflow context or state object.
+            organization_id (Optional[str]): Explicit tenant/organization ID.
 
         Returns:
             LLMProvider: Configured provider instance.
@@ -286,6 +293,25 @@ class LLMFactory:
             ValueError: If configuration is invalid.
         """
         settings = get_settings()
+        
+        # Resolve Organization ID
+        org_id = organization_id
+        if not org_id and context:
+            if isinstance(context, dict):
+                org_id = context.get('organization_id')
+            elif hasattr(context, 'organization_id'):
+                org_id = getattr(context, 'organization_id', None)
+        
+        # Placeholder for BYOK (Bring Your Own Key) Logic
+        tenant_api_key = None
+        if org_id:
+            # In a future iteration, checking for tenant-specific overrides happens here.
+            # Example:
+            # tenant_config = get_tenant_config(org_id)
+            # if tenant_config.has_custom_key(provider_type):
+            #     tenant_api_key = tenant_config.get_key(provider_type)
+            logger.info(f"[LLMFactory] Organization Context Found: {org_id}. Checking for BYOK credentials... (Using Global Fallback for now)")
+            pass
         
         if settings.use_mock_llm:
             return MockProvider(model_name=model_name or "mock-default")
@@ -299,18 +325,20 @@ class LLMFactory:
         if provider_type.lower() == "gemini" or provider_type.lower() == "vertex_ai":
             # STRICT MODE: Model name must come fully formed from DB (e.g. gemini/gemini-1.5-pro)
             target_model = model_name
-            api_key = settings.google_api_key
+            api_key = tenant_api_key or settings.google_api_key
             
         elif provider_type.lower() == "openai":
             target_model = model_name
-            api_key = settings.openai_api_key
-            if not api_key:
+            api_key = tenant_api_key or settings.openai_api_key
+            if not api_key and not tenant_api_key:
                 api_key = os.getenv("OPENAI_API_KEY")
         
         if not target_model:
              raise ValueError("[LLMFactory] Failed to resolve target_model. Check logic.") 
 
         msg_key = "PRESENT" if api_key else "MISSING"
-        logger.info(f"[LLMFactory] Creating Provider: {target_model} (Key: {msg_key})")
+        source_label = f"Tenant-{org_id}" if (org_id and tenant_api_key) else "Global"
+        
+        logger.info(f"[LLMFactory] Creating Provider: {target_model} (Key: {msg_key}, Source: {source_label})")
         
         return LiteLLMProvider(model_name=target_model, api_key=api_key, settings=settings)

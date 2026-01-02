@@ -1,0 +1,569 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.0, pytest-9.0.2, pluggy-1.6.0 -- c:\Users\risto\OneDrive\quorum\.venv314\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\risto\OneDrive\quorum
+configfile: pytest.ini
+plugins: anyio-4.12.0
+collecting ... collected 7 items
+
+tests/test_iam.py::test_root_can_list_organizations FAILED               [ 14%]
+tests/test_iam.py::test_admin_cannot_list_all_organizations PASSED       [ 28%]
+tests/test_iam.py::test_root_can_create_organization FAILED              [ 42%]
+tests/test_iam.py::test_create_duplicate_organization_fails PASSED       [ 57%]
+tests/test_iam.py::test_member_cannot_create_organization PASSED         [ 71%]
+tests/test_iam.py::test_get_my_organization_admin FAILED                 [ 85%]
+tests/test_iam.py::test_fetch_nonexistent_organization FAILED            [100%]
+
+================================== FAILURES ===================================
+______________________ test_root_can_list_organizations _______________________
+
+    def test_root_can_list_organizations():
+        """
+        Verify ROOT user can fetch the organization list.
+        """
+>       response = client.get("/organizations/", headers=get_headers(ROOT_TOKEN))
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_iam.py:32: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+.venv314\Lib\site-packages\starlette\testclient.py:473: in get
+    return super().get(
+.venv314\Lib\site-packages\httpx\_client.py:1053: in get
+    return self.request(
+.venv314\Lib\site-packages\starlette\testclient.py:445: in request
+    return super().request(
+.venv314\Lib\site-packages\httpx\_client.py:825: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv314\Lib\site-packages\httpx\_client.py:914: in send
+    response = self._send_handling_auth(
+.venv314\Lib\site-packages\httpx\_client.py:942: in _send_handling_auth
+    response = self._send_handling_redirects(
+.venv314\Lib\site-packages\httpx\_client.py:979: in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv314\Lib\site-packages\httpx\_client.py:1014: in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv314\Lib\site-packages\starlette\testclient.py:348: in handle_request
+    raise exc
+.venv314\Lib\site-packages\starlette\testclient.py:345: in handle_request
+    portal.call(self.app, scope, receive, send)
+.venv314\Lib\site-packages\anyio\from_thread.py:326: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\_base.py:450: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\_base.py:395: in __get_result
+    raise self._exception
+.venv314\Lib\site-packages\anyio\from_thread.py:257: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv314\Lib\site-packages\fastapi\applications.py:1135: in __call__
+    await super().__call__(scope, receive, send)
+.venv314\Lib\site-packages\starlette\applications.py:107: in __call__
+    await self.middleware_stack(scope, receive, send)
+.venv314\Lib\site-packages\starlette\middleware\errors.py:186: in __call__
+    raise exc
+.venv314\Lib\site-packages\starlette\middleware\errors.py:164: in __call__
+    await self.app(scope, receive, _send)
+.venv314\Lib\site-packages\starlette\middleware\base.py:191: in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+                                   ^^^^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\contextlib.py:162: in __exit__
+    self.gen.throw(value)
+.venv314\Lib\site-packages\starlette\_utils.py:85: in collapse_excgroups
+    raise exc
+.venv314\Lib\site-packages\starlette\middleware\base.py:193: in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\main.py:129: in add_no_cache_header
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+.venv314\Lib\site-packages\starlette\middleware\base.py:168: in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+.venv314\Lib\site-packages\starlette\middleware\base.py:144: in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+.venv314\Lib\site-packages\starlette\middleware\cors.py:85: in __call__
+    await self.app(scope, receive, send)
+.venv314\Lib\site-packages\starlette\middleware\exceptions.py:63: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+.venv314\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+.venv314\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+.venv314\Lib\site-packages\fastapi\middleware\asyncexitstack.py:18: in __call__
+    await self.app(scope, receive, send)
+.venv314\Lib\site-packages\starlette\routing.py:716: in __call__
+    await self.middleware_stack(scope, receive, send)
+.venv314\Lib\site-packages\starlette\routing.py:736: in app
+    await route.handle(scope, receive, send)
+.venv314\Lib\site-packages\starlette\routing.py:290: in handle
+    await self.app(scope, receive, send)
+.venv314\Lib\site-packages\fastapi\routing.py:115: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+.venv314\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+.venv314\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+.venv314\Lib\site-packages\fastapi\routing.py:101: in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+.venv314\Lib\site-packages\fastapi\routing.py:355: in app
+    raw_response = await run_endpoint_function(
+.venv314\Lib\site-packages\fastapi\routing.py:243: in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+user = TokenData(uid='root_master', role=<UserRole.ROOT: 'ROOT'>, organization_id='SYSTEM', email='root@example.com')
+repo = <backend.database.repository.TinyDBRepository object at 0x0000020B36DE2660>
+
+    @router.get("/", response_model=List[OrganizationResponse])
+    async def list_organizations(
+        user: TokenData = Depends(AuthService.require_role(UserRole.ROOT)),
+        repo: AbstractWorkflowRepository = Depends(get_async_repository)
+    ):
+        """
+        List all organizations.
+        ROOT Only.
+        """
+        items = await repo.list_organizations()
+        # Fix: items are Organization objects, need to dump to dict or use model_validate
+>       return [OrganizationResponse(**i.model_dump()) for i in items]
+                                       ^^^^^^^^^^^^
+E       AttributeError: 'Document' object has no attribute 'model_dump'
+
+backend\api\organization_router.py:72: AttributeError
+______________________ test_root_can_create_organization ______________________
+
+    def test_root_can_create_organization():
+        """
+        Verify ROOT can create a new organization/tenant.
+        """
+        new_org_id = "test-org-pytest"
+        payload = {
+            "id": new_org_id,
+            "name": "Pytest Automated Org",
+            "tier": "standard",
+            "contact_email": "test@example.com"
+        }
+    
+        # 1. Create
+        response = client.post("/organizations/", json=payload, headers=get_headers(ROOT_TOKEN))
+        # It might already exist from previous runs if DB persists
+        if response.status_code == 409:
+            # Cleanup (Delete) then Retry logic would be ideal, but for now we accept 409 or 201
+            assert response.status_code == 409
+        else:
+            assert response.status_code == 201
+            data = response.json()
+            assert data['id'] == new_org_id
+            assert data['name'] == payload['name']
+    
+        # 2. Verify Existence
+>       get_res = client.get(f"/organizations/{new_org_id}", headers=get_headers(ROOT_TOKEN))
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_iam.py:78: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+.venv314\Lib\site-packages\starlette\testclient.py:473: in get
+    return super().get(
+.venv314\Lib\site-packages\httpx\_client.py:1053: in get
+    return self.request(
+.venv314\Lib\site-packages\starlette\testclient.py:445: in request
+    return super().request(
+.venv314\Lib\site-packages\httpx\_client.py:825: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv314\Lib\site-packages\httpx\_client.py:914: in send
+    response = self._send_handling_auth(
+.venv314\Lib\site-packages\httpx\_client.py:942: in _send_handling_auth
+    response = self._send_handling_redirects(
+.venv314\Lib\site-packages\httpx\_client.py:979: in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv314\Lib\site-packages\httpx\_client.py:1014: in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv314\Lib\site-packages\starlette\testclient.py:348: in handle_request
+    raise exc
+.venv314\Lib\site-packages\starlette\testclient.py:345: in handle_request
+    portal.call(self.app, scope, receive, send)
+.venv314\Lib\site-packages\anyio\from_thread.py:326: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\_base.py:450: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\_base.py:395: in __get_result
+    raise self._exception
+.venv314\Lib\site-packages\anyio\from_thread.py:257: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv314\Lib\site-packages\fastapi\applications.py:1135: in __call__
+    await super().__call__(scope, receive, send)
+.venv314\Lib\site-packages\starlette\applications.py:107: in __call__
+    await self.middleware_stack(scope, receive, send)
+.venv314\Lib\site-packages\starlette\middleware\errors.py:186: in __call__
+    raise exc
+.venv314\Lib\site-packages\starlette\middleware\errors.py:164: in __call__
+    await self.app(scope, receive, _send)
+.venv314\Lib\site-packages\starlette\middleware\base.py:191: in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+                                   ^^^^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\contextlib.py:162: in __exit__
+    self.gen.throw(value)
+.venv314\Lib\site-packages\starlette\_utils.py:85: in collapse_excgroups
+    raise exc
+.venv314\Lib\site-packages\starlette\middleware\base.py:193: in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\main.py:129: in add_no_cache_header
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+.venv314\Lib\site-packages\starlette\middleware\base.py:168: in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+.venv314\Lib\site-packages\starlette\middleware\base.py:144: in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+.venv314\Lib\site-packages\starlette\middleware\cors.py:85: in __call__
+    await self.app(scope, receive, send)
+.venv314\Lib\site-packages\starlette\middleware\exceptions.py:63: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+.venv314\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+.venv314\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+.venv314\Lib\site-packages\fastapi\middleware\asyncexitstack.py:18: in __call__
+    await self.app(scope, receive, send)
+.venv314\Lib\site-packages\starlette\routing.py:716: in __call__
+    await self.middleware_stack(scope, receive, send)
+.venv314\Lib\site-packages\starlette\routing.py:736: in app
+    await route.handle(scope, receive, send)
+.venv314\Lib\site-packages\starlette\routing.py:290: in handle
+    await self.app(scope, receive, send)
+.venv314\Lib\site-packages\fastapi\routing.py:115: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+.venv314\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+.venv314\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+.venv314\Lib\site-packages\fastapi\routing.py:101: in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+.venv314\Lib\site-packages\fastapi\routing.py:355: in app
+    raw_response = await run_endpoint_function(
+.venv314\Lib\site-packages\fastapi\routing.py:243: in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\api\organization_router.py:108: in get_organization
+    if user.role != UserRole.ROOT:
+       ^^^^^^^^^
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\typing.py:2176: in __getattr__
+    return super().__getattr__(attr)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\typing.py:1269: in __getattr__
+    return getattr(self.__origin__, attr)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <class 'backend.models.auth.TokenData'>, item = 'role'
+
+    def __getattr__(self, item: str) -> Any:
+        """This is necessary to keep attribute access working for class attribute access."""
+        private_attributes = self.__dict__.get('__private_attributes__')
+        if private_attributes and item in private_attributes:
+            return private_attributes[item]
+>       raise AttributeError(item)
+E       AttributeError: role
+
+.venv314\Lib\site-packages\pydantic\_internal\_model_construction.py:289: AttributeError
+_______________________ test_get_my_organization_admin ________________________
+
+    def test_get_my_organization_admin():
+        """
+        Verify '/organizations/me' resolves correctly for an ADMIN.
+        """
+>       response = client.get("/organizations/me", headers=get_headers(ADMIN_TOKEN))
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_iam.py:115: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+.venv314\Lib\site-packages\starlette\testclient.py:473: in get
+    return super().get(
+.venv314\Lib\site-packages\httpx\_client.py:1053: in get
+    return self.request(
+.venv314\Lib\site-packages\starlette\testclient.py:445: in request
+    return super().request(
+.venv314\Lib\site-packages\httpx\_client.py:825: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv314\Lib\site-packages\httpx\_client.py:914: in send
+    response = self._send_handling_auth(
+.venv314\Lib\site-packages\httpx\_client.py:942: in _send_handling_auth
+    response = self._send_handling_redirects(
+.venv314\Lib\site-packages\httpx\_client.py:979: in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv314\Lib\site-packages\httpx\_client.py:1014: in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv314\Lib\site-packages\starlette\testclient.py:348: in handle_request
+    raise exc
+.venv314\Lib\site-packages\starlette\testclient.py:345: in handle_request
+    portal.call(self.app, scope, receive, send)
+.venv314\Lib\site-packages\anyio\from_thread.py:326: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\_base.py:450: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\_base.py:395: in __get_result
+    raise self._exception
+.venv314\Lib\site-packages\anyio\from_thread.py:257: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv314\Lib\site-packages\fastapi\applications.py:1135: in __call__
+    await super().__call__(scope, receive, send)
+.venv314\Lib\site-packages\starlette\applications.py:107: in __call__
+    await self.middleware_stack(scope, receive, send)
+.venv314\Lib\site-packages\starlette\middleware\errors.py:186: in __call__
+    raise exc
+.venv314\Lib\site-packages\starlette\middleware\errors.py:164: in __call__
+    await self.app(scope, receive, _send)
+.venv314\Lib\site-packages\starlette\middleware\base.py:191: in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+                                   ^^^^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\contextlib.py:162: in __exit__
+    self.gen.throw(value)
+.venv314\Lib\site-packages\starlette\_utils.py:85: in collapse_excgroups
+    raise exc
+.venv314\Lib\site-packages\starlette\middleware\base.py:193: in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\main.py:129: in add_no_cache_header
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+.venv314\Lib\site-packages\starlette\middleware\base.py:168: in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+.venv314\Lib\site-packages\starlette\middleware\base.py:144: in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+.venv314\Lib\site-packages\starlette\middleware\cors.py:85: in __call__
+    await self.app(scope, receive, send)
+.venv314\Lib\site-packages\starlette\middleware\exceptions.py:63: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+.venv314\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+.venv314\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+.venv314\Lib\site-packages\fastapi\middleware\asyncexitstack.py:18: in __call__
+    await self.app(scope, receive, send)
+.venv314\Lib\site-packages\starlette\routing.py:716: in __call__
+    await self.middleware_stack(scope, receive, send)
+.venv314\Lib\site-packages\starlette\routing.py:736: in app
+    await route.handle(scope, receive, send)
+.venv314\Lib\site-packages\starlette\routing.py:290: in handle
+    await self.app(scope, receive, send)
+.venv314\Lib\site-packages\fastapi\routing.py:115: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+.venv314\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+.venv314\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+.venv314\Lib\site-packages\fastapi\routing.py:101: in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+.venv314\Lib\site-packages\fastapi\routing.py:355: in app
+    raw_response = await run_endpoint_function(
+.venv314\Lib\site-packages\fastapi\routing.py:243: in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\api\organization_router.py:86: in get_my_organization
+    if not user.organization_id:
+           ^^^^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\typing.py:2176: in __getattr__
+    return super().__getattr__(attr)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\typing.py:1269: in __getattr__
+    return getattr(self.__origin__, attr)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <class 'backend.models.auth.TokenData'>, item = 'organization_id'
+
+    def __getattr__(self, item: str) -> Any:
+        """This is necessary to keep attribute access working for class attribute access."""
+        private_attributes = self.__dict__.get('__private_attributes__')
+        if private_attributes and item in private_attributes:
+            return private_attributes[item]
+>       raise AttributeError(item)
+E       AttributeError: organization_id
+
+.venv314\Lib\site-packages\pydantic\_internal\_model_construction.py:289: AttributeError
+_____________________ test_fetch_nonexistent_organization _____________________
+
+    def test_fetch_nonexistent_organization():
+        """
+        Verify 404 for unknown Org ID.
+        """
+>       response = client.get("/organizations/non-existent-12345", headers=get_headers(ROOT_TOKEN))
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_iam.py:125: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+.venv314\Lib\site-packages\starlette\testclient.py:473: in get
+    return super().get(
+.venv314\Lib\site-packages\httpx\_client.py:1053: in get
+    return self.request(
+.venv314\Lib\site-packages\starlette\testclient.py:445: in request
+    return super().request(
+.venv314\Lib\site-packages\httpx\_client.py:825: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv314\Lib\site-packages\httpx\_client.py:914: in send
+    response = self._send_handling_auth(
+.venv314\Lib\site-packages\httpx\_client.py:942: in _send_handling_auth
+    response = self._send_handling_redirects(
+.venv314\Lib\site-packages\httpx\_client.py:979: in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv314\Lib\site-packages\httpx\_client.py:1014: in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv314\Lib\site-packages\starlette\testclient.py:348: in handle_request
+    raise exc
+.venv314\Lib\site-packages\starlette\testclient.py:345: in handle_request
+    portal.call(self.app, scope, receive, send)
+.venv314\Lib\site-packages\anyio\from_thread.py:326: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\_base.py:450: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\_base.py:395: in __get_result
+    raise self._exception
+.venv314\Lib\site-packages\anyio\from_thread.py:257: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv314\Lib\site-packages\fastapi\applications.py:1135: in __call__
+    await super().__call__(scope, receive, send)
+.venv314\Lib\site-packages\starlette\applications.py:107: in __call__
+    await self.middleware_stack(scope, receive, send)
+.venv314\Lib\site-packages\starlette\middleware\errors.py:186: in __call__
+    raise exc
+.venv314\Lib\site-packages\starlette\middleware\errors.py:164: in __call__
+    await self.app(scope, receive, _send)
+.venv314\Lib\site-packages\starlette\middleware\base.py:191: in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+                                   ^^^^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\contextlib.py:162: in __exit__
+    self.gen.throw(value)
+.venv314\Lib\site-packages\starlette\_utils.py:85: in collapse_excgroups
+    raise exc
+.venv314\Lib\site-packages\starlette\middleware\base.py:193: in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\main.py:129: in add_no_cache_header
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+.venv314\Lib\site-packages\starlette\middleware\base.py:168: in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+.venv314\Lib\site-packages\starlette\middleware\base.py:144: in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+.venv314\Lib\site-packages\starlette\middleware\cors.py:85: in __call__
+    await self.app(scope, receive, send)
+.venv314\Lib\site-packages\starlette\middleware\exceptions.py:63: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+.venv314\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+.venv314\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+.venv314\Lib\site-packages\fastapi\middleware\asyncexitstack.py:18: in __call__
+    await self.app(scope, receive, send)
+.venv314\Lib\site-packages\starlette\routing.py:716: in __call__
+    await self.middleware_stack(scope, receive, send)
+.venv314\Lib\site-packages\starlette\routing.py:736: in app
+    await route.handle(scope, receive, send)
+.venv314\Lib\site-packages\starlette\routing.py:290: in handle
+    await self.app(scope, receive, send)
+.venv314\Lib\site-packages\fastapi\routing.py:115: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+.venv314\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+.venv314\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+.venv314\Lib\site-packages\fastapi\routing.py:101: in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+.venv314\Lib\site-packages\fastapi\routing.py:355: in app
+    raw_response = await run_endpoint_function(
+.venv314\Lib\site-packages\fastapi\routing.py:243: in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\api\organization_router.py:108: in get_organization
+    if user.role != UserRole.ROOT:
+       ^^^^^^^^^
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\typing.py:2176: in __getattr__
+    return super().__getattr__(attr)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Python\pythoncore-3.14-64\Lib\typing.py:1269: in __getattr__
+    return getattr(self.__origin__, attr)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <class 'backend.models.auth.TokenData'>, item = 'role'
+
+    def __getattr__(self, item: str) -> Any:
+        """This is necessary to keep attribute access working for class attribute access."""
+        private_attributes = self.__dict__.get('__private_attributes__')
+        if private_attributes and item in private_attributes:
+            return private_attributes[item]
+>       raise AttributeError(item)
+E       AttributeError: role
+
+.venv314\Lib\site-packages\pydantic\_internal\_model_construction.py:289: AttributeError
+============================== warnings summary ===============================
+.venv314\Lib\site-packages\_pytest\config\__init__.py:1428
+  c:\Users\risto\OneDrive\quorum\.venv314\Lib\site-packages\_pytest\config\__init__.py:1428: PytestConfigWarning: Unknown config option: asyncio_default_fixture_loop_scope
+  
+    self._warn_or_fail_if_strict(f"Unknown config option: {key}\n")
+
+.venv314\Lib\site-packages\_pytest\config\__init__.py:1428
+  c:\Users\risto\OneDrive\quorum\.venv314\Lib\site-packages\_pytest\config\__init__.py:1428: PytestConfigWarning: Unknown config option: asyncio_mode
+  
+    self._warn_or_fail_if_strict(f"Unknown config option: {key}\n")
+
+backend\models\llm.py:4
+  C:\Users\risto\OneDrive\quorum\backend\models\llm.py:4: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class LLMResponse(BaseModel):
+
+.venv314\Lib\site-packages\litellm\litellm_core_utils\logging_utils.py:273: 17 warnings
+  c:\Users\risto\OneDrive\quorum\.venv314\Lib\site-packages\litellm\litellm_core_utils\logging_utils.py:273: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+backend\main.py:135
+  C:\Users\risto\OneDrive\quorum\backend\main.py:135: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+.venv314\Lib\site-packages\fastapi\applications.py:4576
+  c:\Users\risto\OneDrive\quorum\.venv314\Lib\site-packages\fastapi\applications.py:4576: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_iam.py::test_root_can_list_organizations - AttributeError: 'Document' object has no attribute 'model_dump'
+FAILED tests/test_iam.py::test_root_can_create_organization - AttributeError: role
+FAILED tests/test_iam.py::test_get_my_organization_admin - AttributeError: organization_id
+FAILED tests/test_iam.py::test_fetch_nonexistent_organization - AttributeError: role
+================== 4 failed, 3 passed, 22 warnings in 7.12s ===================

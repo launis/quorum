@@ -43,19 +43,28 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **RBAC Implementation**: Defined Roles (`ROOT`, `ADMIN`, `MANAGER`, `MEMBER`, `VIEWER`).
 - [x] **Organization Entity**: Implemented `Organization` model to support Multi-tenancy.
 - [x] **User Management API**: Endpoints to create and list users within scope.
-- [ ] **Last Admin Protection**: Prevent deletion/demotion of the last ADMIN in an organization to avoid lockout.
+- [x] **System Admin UI**: Dashboard for ROOT to list/create organizations.
+- [x] **Org Admin UI**: Dashboard for ADMIN to manage organization settings.
+- [ ] **Organization Deletion**: Deliberately omitted from API/UI for safety (Manual DB intervention required).
+- [ ] **Last Admin Protection**: Prevent deletion/demotion of the last ADMIN in an organization.
 
 ### 1.2 Data Isolation & Security (✅ Completed)
 - [x] **Repository Scoping**: Update `AbstractWorkflowRepository` to filter data by `organization_id`.
     - *System Workflows*: Visible to all (Read-Only).
     - *Tenant Workflows*: Visible only to owning Organization.
-- [x] **API Versioning**: Prefix all endpoints with `/api/v1` to prevent future breaking changes. (Note: Implemented via router logic, global prefix pending frontend refactor).
-- [ ] **Rate Limiting**: Implement `slowapi` to protect key endpoints (Login, Heavy Execution) from abuse.
-- [ ] **CORS Configuration**: Finalize CORSMiddleware settings for production domains.
+- [x] **API Versioning**: Prefix all endpoints with `/api/v1` to prevent future breaking changes.
+- [ ] **Rate Limiting**: Implement `slowapi` to protect key endpoints.
+- [ ] **CORS Configuration**: Finalize CORSMiddleware settings.
 
 ### 1.3 Infrastructure Readiness
 - [x] **Storage Abstraction**: Support for switching between Local File System and Firebase Storage.
 - [x] **Database Abstraction**: Support for switching between TinyDB (Local) and Firestore (Cloud).
+- [x] **Regional Compliance**: Implemented strict Regional Model Validation (Model Garden Master List -> Regional Intersection).
+
+### 1.4 Scalability Architecture (Future)
+- [ ] **Distributed Task Queue**: Transition from in-process `BackgroundTasks` to Redis/Celery for durable job execution.
+- [ ] **Decoupled Workers**: Separate API (Job Submission) and Worker (Job Execution) processes.
+- [ ] **Hook Strategies**: Maintain Python-based Direct Call hooks for performance until microservice decoupling is strictly required.
 
 ---
 

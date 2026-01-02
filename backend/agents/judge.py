@@ -138,78 +138,12 @@ class JudgeAgent(BaseAgent):
                 state.audit_results[step_id] = res_obj
                 logger.info(f"[JudgeAgent] Saved EvaluationResult to state.audit_results['{step_id}'] (Scale: {res_obj.scale_min}-{res_obj.scale_max})")
                 
-                # 2. Update Legacy Fields (if output_key matches legacy slots)
-                if output_key in ["step_judge", "step_judge_cognitive"]:
-                    legacy_obj = self._adapt_to_legacy(res_obj)
-                    setattr(state, output_key, legacy_obj)
-                    logger.info(f"[JudgeAgent] Populated legacy field '{output_key}'")
-                
             return state
 
         except Exception as e:
             logger.error(f"[JudgeAgent] Error updating state: {e}")
             raise e
 
-    def _adapt_to_legacy(self, result: EvaluationResult) -> TuomioJaPisteet:
-        """Best-effort mapping to legacy TuomioJaPisteet structure."""
-        
-        default_crit = PisteetKriteeri(arvosana=1, perustelu="Ei arvioitu (Mappaus puuttuu)")
-        # Convert List[DimensionResultItem] to Dict for legacy lookup
-        scores_map = {d.dimension_id: d for d in result.dimensions} if result.dimensions else {}
-        
-        def get_crit(keys):
-            for k in keys:
-                if k in scores_map:
-                    s = scores_map[k]
-                    # Strict BARS enforcement: Round to nearest int
-                    val = int(round(s.score)) if isinstance(s.score, (int, float)) else 1
-                    return PisteetKriteeri(arvosana=val, perustelu=s.reasoning)
-            return default_crit
-            
-        # Default handling for standard fields
-        analyysi=get_crit(['analyysi', 'agency'])
-        arviointi=get_crit(['arviointi', 'engineering'])
-        synteesi=get_crit(['synteesi', 'falsification'])
-        
-        # Create base Pisteet object
-        pisteet = Pisteet(
-            analyysi=analyysi,
-            arviointi=arviointi,
-            synteesi=synteesi
-        )
-
-        # Inject ALL dynamic keys not already covered
-        standard_keys = ['analyysi', 'agency', 'arviointi', 'engineering', 'synteesi', 'falsification']
-        for dim_id, dim_res in scores_map.items():
-            if dim_id not in standard_keys:
-                # Add as dynamic field
-                val = int(round(dim_res.score)) if isinstance(dim_res.score, (int, float)) else 1
-                setattr(pisteet, dim_id, PisteetKriteeri(
-                    arvosana=val, 
-                    perustelu=dim_res.reasoning
-                ))
-        
-        hits = "; ".join(result.critical_findings) if result.critical_findings else "Ei kriittisiä havaintoja."
-        
-        return TuomioJaPisteet(
-            metadata=result.metadata,
-            metodologinen_loki=result.metodologinen_loki,
-            edellisen_vaiheen_validointi=result.edellisen_vaiheen_validointi,
-            semanttinen_tarkistussumma=result.semanttinen_tarkistussumma,
-            konfliktin_ratkaisut=[],
-            mestaruus_poikkeama=MestaruusPoikkeama(tunnistettu=False, perustelu=""),
-            aitous_epaily=AitousEpaily(automaattinen_lippu=False, **{"viesti_hitl:lle": hits}),
-            pisteet=pisteet,
-            kriittiset_havainnot_yhteenveto=[hits],
-            # Back-ported dynamic fields
-            matrix_id=result.matrix_id,
-            scale_min=result.scale_min,
-            scale_max=result.scale_max
-        )
-
     def post_process(self, state: WorkflowState) -> WorkflowState:
         # We rely on _update_state for population.
-        # Legacy hook execution is skipped here to avoid double calculation issues, 
-        # unless 'calculate_final_scores' is absolutely needed for other side effects.
-        # Given we populate 'step_judge', downstream hooks should work.
         return state

@@ -4,6 +4,7 @@ import traceback
 
 # Add current directory to path
 sys.path.append(os.getcwd())
+os.environ["USE_MOCK_LLM"] = "true" # Bypass LLM checks
 
 def main():
     try:

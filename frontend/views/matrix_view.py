@@ -219,14 +219,18 @@ def render_matrix_view(api_client, backend_url):
     
     # Helper callbacks
     def update_crit_field(idx, field):
-        val = st.session_state[f"c_{field}_{idx}"]
-        st.session_state.editor_criteria[idx][field] = val
+        if "editor_criteria" not in st.session_state: return
+        val = st.session_state.get(f"c_{field}_{idx}")
+        if val is not None:
+             st.session_state.editor_criteria[idx][field] = val
         
     def update_anchor_field(idx, level):
-            val = st.session_state[f"c_a{level}_{idx}"]
-            if 'anchors' not in st.session_state.editor_criteria[idx]:
-                st.session_state.editor_criteria[idx]['anchors'] = {}
-            st.session_state.editor_criteria[idx]['anchors'][str(level)] = val
+            if "editor_criteria" not in st.session_state: return
+            val = st.session_state.get(f"c_a{level}_{idx}")
+            if val is not None:
+                if 'anchors' not in st.session_state.editor_criteria[idx]:
+                    st.session_state.editor_criteria[idx]['anchors'] = {}
+                st.session_state.editor_criteria[idx]['anchors'][str(level)] = val
 
     # Fetch Ontology from API (Dynamic)
     KNOWN_DIMENSIONS_MAP = {}
@@ -262,8 +266,10 @@ def render_matrix_view(api_client, backend_url):
                 sel_index = options.index(curr_id)
             
             def update_id_from_select(idx):
-                val = st.session_state[f"c_id_sel_{idx}"]
-                if val != "Custom...":
+                if "editor_criteria" not in st.session_state:
+                    return
+                val = st.session_state.get(f"c_id_sel_{idx}")
+                if val and val != "Custom...":
                     st.session_state.editor_criteria[idx]['id'] = val
                     # Auto-fill Label/Instruction if empty and we picked a system dimension
                     dim_data = KNOWN_DIMENSIONS_MAP.get(val)
@@ -297,8 +303,10 @@ def render_matrix_view(api_client, backend_url):
             
             if sel_val == "Custom...":
                 def update_id_custom(idx):
-                    val = st.session_state[f"c_id_custom_{idx}"]
-                    st.session_state.editor_criteria[idx]['id'] = val
+                    if "editor_criteria" not in st.session_state: return
+                    val = st.session_state.get(f"c_id_custom_{idx}")
+                    if val is not None:
+                        st.session_state.editor_criteria[idx]['id'] = val
                     
                 cc1.text_input("Custom ID", value=curr_id if curr_id not in KNOWN_DIMENSIONS_MAP else "", key=f"c_id_custom_{i}", on_change=update_id_custom, args=(i,), label_visibility="collapsed", placeholder="Enter ID...")
 

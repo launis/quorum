@@ -27,6 +27,7 @@ from backend.api.config_router import router as config_router
 from backend.api.execution_router import router as execution_router
 from backend.api.auth_router import router as auth_router
 from backend.api.builder_router import router as builder_router
+from backend.api.organization_router import router as organization_router
 
 logger = logging.getLogger(__name__)
 
@@ -121,6 +122,7 @@ app.include_router(config_router)
 app.include_router(auth_router)
 app.include_router(llm_router, prefix="/llm", tags=["LLM"])
 app.include_router(builder_router)
+app.include_router(organization_router)
 
 @app.middleware("http")
 async def add_no_cache_header(request, call_next):

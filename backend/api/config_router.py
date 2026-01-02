@@ -10,7 +10,7 @@ import logging
 from backend.database.exporter import export_db_to_files
 from backend.database.seeder import seed_database
 from backend.database.wrapper import AbstractDatabase
-from backend.dependencies import DatabaseDep, get_db_client_dep
+from backend.dependencies import DatabaseDep, get_db_client_dep, LLMHandlerDep
 from backend.models import domain as schemas
 
 logger = logging.getLogger(__name__)
@@ -64,6 +64,12 @@ class WorkflowCreate(BaseModel):
     sequence: Annotated[List[str], Field(description="List of Step IDs.")] = []
     description: Annotated[Optional[str], Field(description="Description.")] = None
     default_model_mapping: Annotated[Optional[Dict[str, str]], Field(description="Step-Model map.")] = {}
+
+class LLMCallRequest(BaseModel):
+    provider: Annotated[str, Field(description="Provider key (google, openai, mock).")]
+    mode: Annotated[str, Field(description="Strategy mode (fast, smart, etc).")]
+    prompt: Annotated[str, Field(description="Input prompt text.")]
+    system_instruction: Annotated[Optional[str], Field(description="Optional system context.")] = None
 
 
 # --- Endpoints ---
@@ -514,34 +520,31 @@ def _build_unified_view(components: list, schema_data: Dict[str, Any]) -> str:
 @router.get(
     "/models/available",
     summary="List Available Models",
-    response_description="List of verified available models."
+    response_description="Dictionary of verified available models from Providers."
 )
-def list_available_models():
+def list_available_models(
+    handler: LLMHandlerDep,
+    providers: Annotated[Optional[List[str]], APIQuery(description="List of providers (google, openai, mock)")] = None,
+    location: Annotated[Optional[str], APIQuery(description="Region for Google Cloud (defaults to env config)")] = None
+):
     """
-    Returns a curated list of models confirmed to work in the current region (Hamina).
+    Returns a dynamic dictionary of models found via provider APIs.
+    Supports filtering by provider and specifying Google Cloud region.
     """
-    # Confirmed working models in europe-north1 via Discovery Tool
-    return [
-        "vertex_ai/gemini-2.5-flash",
-        "vertex_ai/gemini-2.5-pro",
-        # Including explicit versions found in discovery/docs
-        "vertex_ai/gemini-2.5-flash-001",
-        "vertex_ai/gemini-2.5-pro-001",
-        "vertex_ai/gemini-2.5-flash-lite",
-    ]
+    # Map 'moc' to 'mock' if user sends it (as requested)
+    if providers:
+        providers = [p if p != 'moc' else 'mock' for p in providers]
+
+    return handler.fetch_all_available_models(providers=providers, location=location)
 
 @router.get(
     "/models/registry", 
     summary="Get Model Registry",
     response_description="Registry Dict."
 )
-def get_model_registry(db: DatabaseDep):
-    """Get global model registry."""
-    table = db.table('system_config')
-    Config = Query()
-    res = table.search(Config.type == 'model_registry')
-    if res: return res[0].get('models', {})
-    return {}
+def get_model_registry(handler: LLMHandlerDep):
+    """Get global model registry via Handler."""
+    return handler.get_active_model_registry()
 
 @router.post(
     "/models/registry", 
@@ -557,6 +560,30 @@ def update_model_registry(config: GlobalModelConfig, db: DatabaseDep):
     registry_data = json.loads(raw_json)['registry']
     table.upsert({'type': 'model_registry', 'models': registry_data}, Config.type == 'model_registry')
     return {"status": "updated", "registry": registry_data}
+
+@router.post(
+    "/models/call", 
+    summary="Call LLM (Ad-hoc)",
+    response_description="Generated text response."
+)
+async def call_llm_adhoc(
+    request: LLMCallRequest,
+    handler: LLMHandlerDep
+):
+    """
+    Execute a direct LLM call using the Handler's logic (resolving config from registry).
+    """
+    try:
+        response_text = await handler.call_llm(
+            provider=request.provider,
+            mode=request.mode,
+            prompt=request.prompt,
+            system_instruction=request.system_instruction
+        )
+        return {"content": response_text}
+    except Exception as e:
+        logger.error(f"Ad-hoc LLM Call Failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get(
     "/models/strategies", 
@@ -617,15 +644,7 @@ def get_introspection():
         except Exception: continue
     return {"schemas": sorted(available_schemas), "agents": sorted(available_agents), "hooks": sorted(list(available_hooks))}
 
-@router.get(
-    "/models/available", 
-    summary="List Available Models",
-    response_description="List of model IDs from providers."
-)
-def get_available_models():
-    """Get dynamic list of available models from configured providers (Vertex/Google)."""
-    from backend.llm.provider import GoogleAIProvider
-    return GoogleAIProvider.fetch_available_models()
+# Duplicate endpoint removed. Use list_available_models above.
 
 class DimensionDefinition(BaseModel):
     id: Annotated[str, Field(description="Unique dimension ID (e.g. 'analyysi').")]

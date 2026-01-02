@@ -120,7 +120,10 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
             _, doc_ref = await self.db.collection('workflows').add(workflow_data)
             return doc_ref.id
 
-    async def get_all_workflows(self) -> List[Dict[str, Any]]:
+    async def get_all_workflows(self, organization_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        if organization_id:
+            docs = self.db.collection('workflows').where('organization_id', '==', organization_id).stream()
+            return [doc.to_dict() async for doc in docs]
         return await self._get_all('workflows')
     
     async def update_workflow(self, workflow_id: str, updates: Dict[str, Any]):
@@ -153,7 +156,10 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
          else:
              await self._update_doc('executions', 'execution_id', str(execution_id), updates)
 
-    async def get_all_executions(self) -> List[Dict[str, Any]]:
+    async def get_all_executions(self, organization_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        if organization_id:
+            docs = self.db.collection('executions').where('organization_id', '==', organization_id).stream()
+            return [doc.to_dict() async for doc in docs]
         return await self._get_all('executions')
 
     # --- Config ---
@@ -184,3 +190,22 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
         docs = self.db.collection('knowledge_base').limit(500).stream()
         async for doc in docs:
             await doc.reference.delete()
+
+    # --- Organization Management ---
+    async def create_organization(self, org_data: Dict[str, Any]) -> str:
+        org_id = org_data.get('id')
+        if org_id:
+            await self.db.collection('organizations').document(str(org_id)).set(org_data)
+            return org_id
+        else:
+            _, doc_ref = await self.db.collection('organizations').add(org_data)
+            return doc_ref.id
+
+    async def get_organization(self, org_id: str) -> Optional[Dict[str, Any]]:
+        return await self._get_doc('organizations', org_id)
+
+    async def update_organization(self, org_id: str, updates: Dict[str, Any]):
+        await self.db.collection('organizations').document(str(org_id)).update(updates)
+
+    async def list_organizations(self) -> List[Dict[str, Any]]:
+        return await self._get_all('organizations')

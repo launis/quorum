@@ -17,8 +17,10 @@ class UserRole(str, Enum):
 class Organization(BaseModel):
     id: Annotated[str, Field(description="Unique Organization ID (e.g. 'nokia-v1')")]
     name: Annotated[str, Field(description="Display Name")]
-    created_at: Annotated[str, Field(description="ISO Timestamp")]
+    created_at: Annotated[Optional[str], Field(description="ISO Timestamp")] = None
     is_active: Annotated[bool, Field(description="Subscription status")] = True
+    tier: Annotated[str, Field(description="Service Tier")] = "standard"
+    contact_email: Annotated[Optional[str], Field(description="Admin Contact")] = None
 
 class UserBase(BaseModel):
     email: Annotated[EmailStr, Field(description="User email address")]

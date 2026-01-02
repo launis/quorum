@@ -16,6 +16,29 @@ class LLMHandler:
     Handles higher-level LLM operations including model discovery via APIs,
     fetching configuration from the database, and delegating execution to the LLMFactory.
     """
+    def _check_model_availability(self, model_id: str, location: str) -> bool:
+        """
+        Validates if a specific model_id (e.g., 'vertex_ai/gemini-1.5-pro') 
+        is available in the target location by attempting to fetch its metadata.
+        """
+        try:
+            api_endpoint = f"{location}-aiplatform.googleapis.com"
+            client_options = {"api_endpoint": api_endpoint}
+            client = aiplatform_v1beta1.ModelGardenServiceClient(client_options=client_options)
+            
+            # The name format for retrieving is "publishers/google/models/{model_name}"
+            # model_id input is usually "vertex_ai/{model_name}" or just "{model_name}" logic
+            # My current logic stores "vertex_ai/gemini-..."
+            clean_name = model_id.split('/')[-1]
+            resource_name = f"publishers/google/models/{clean_name}"
+            
+            # We use get_publisher_model to check existence
+            client.get_publisher_model(name=resource_name)
+            return True
+        except Exception:
+            # If it fails (404 or other error), we assume unavailable
+            return False
+
     def __init__(self, db_client: Any):
         """
         Initializes the handler.
@@ -25,103 +48,118 @@ class LLMHandler:
         """
         self.db_client = db_client
 
-    def fetch_all_available_models(self) -> Dict[str, List[str]]:
+    def fetch_all_available_models(self, providers: Optional[List[str]] = None, location: Optional[str] = None) -> Dict[str, List[str]]:
         """
         Queries External APIs (Vertex AI, OpenAI) for available models.
         Respects 'use_mock_llm' setting by returning mock data if enabled.
-
-        Returns:
-            Dict[str, List[str]]: Dictionary containing lists of models for 'google' and 'openai'.
+        
+        Args:
+            providers (List[str]): List of providers to query ('google', 'openai', 'mock'). Defaults to all.
+        
+        Logic for Google:
+        1. Fetch Master List from 'us-central1' (Model Garden root).
+        2. Iterate and Validate against Target Location (if different from us-central1).
         """
         settings = get_settings()
-        models = {
-            "google": [],
-            "openai": []
-        }
+        models = {}
         
-        if settings.use_mock_llm:
-            models["google"] = ["mock-model-a", "mock-model-b"]
-            models["openai"] = ["mock-gpt-a"]
-            return models
+        # Resolve Target Location
+        target_location = location if location else os.getenv("VERTEX_LOCATION", "us-central1")
         
-        # 1. Fetch Google Models (Pure Vertex SDK - Model Garden is in us-central1)
-        try:
-             # Check cache first
-             if hasattr(self, '_cached_google_models') and self._cached_google_models:
-                 models["google"] = self._cached_google_models
-             else:
-                 # Resolve Project ID (Good for auth context)
-                 project_id = os.getenv("VERTEX_PROJECT_ID")
-                 if not project_id:
-                     try:
-                        _, project_id = google.auth.default()
-                     except:
-                        pass
-                 
-                 if not project_id:
-                      project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
+        # Normalize providers list
+        if not providers:
+            providers = ["google", "openai"]
+        
+        providers = [p.lower() for p in providers]
+        if "moc" in providers: providers.append("mock")
 
-                 # CRITICAL: Model Garden metadata is hosted in us-central1
-                 location = "us-central1"
-                 api_endpoint = f"{location}-aiplatform.googleapis.com"
-                 
-                 # Initialize Model Garden Client (v1beta1)
-                 client_options = {"api_endpoint": api_endpoint}
-                 client = aiplatform_v1beta1.ModelGardenServiceClient(client_options=client_options)
-                 
-                 # CORRECT PARENT for Publisher Models: "publishers/google"
-                 # DO NOT use "projects/{id}/locations/..." for the public catalog!
-                 parent = "publishers/google"
-                 
-                 logger.info(f"[LLMHandler] Listing Publisher Models via SDK (v1beta1) @ {api_endpoint}...")
-                 
-                 # Call API
-                 response = client.list_publisher_models(parent=parent)
-                 
-                 found = []
-                 for m in response.publisher_models:
-                      # Name format: publishers/google/models/gemini-1.5-pro-001
-                      mid = m.name.split('/')[-1]
-                      
-                      # Filter: Only Gemini models
-                      if 'gemini' in mid.lower():
-                          # Add prefix so the system knows it's Vertex
-                          found.append(f"vertex_ai/{mid}")
-                          
-                 # Sort and Cache
-                 self._cached_google_models = sorted(list(set(found)))
-                 models["google"] = self._cached_google_models
-                 
-                 logger.info(f"[LLMHandler] Successfully cataloged {len(models['google'])} Gemini models.")
-                 
-        except ImportError:
-             logger.error("google-cloud-aiplatform not installed.")
-             models["google_error"] = "Missing google-cloud-aiplatform library"
-        except Exception as e:
-            logger.error(f"Error fetching Google models (Vertex SDK): {e}")
-            models["google_error"] = str(e)
+        # --- MOCK ---
+        if settings.use_mock_llm or "mock" in providers:
+            if "google" in providers or "mock" in providers:
+                models["google"] = ["mock-model-a", "mock-model-b"]
+            if "openai" in providers or "mock" in providers:
+                models["openai"] = ["mock-gpt-a"]
             
-        # 2. Fetch OpenAI Models (Cached)
-        try:
-             if not hasattr(self, '_cached_openai_models'):
-                 self._cached_openai_models = []
-             
-             if self._cached_openai_models:
-                 models["openai"] = self._cached_openai_models
-             else:
-                api_key = os.getenv("OPENAI_API_KEY") or settings.openai_api_key
-                if api_key:
-                    client = openai.OpenAI(api_key=api_key)
-                    # List models
-                    for m in client.models.list():
-                        # Filter for likely chat models
-                        if "gpt" in m.id:
-                            self._cached_openai_models.append(m.id)
-                    models["openai"] = self._cached_openai_models
-                else:
-                     models["openai_warning"] = "OPENAI_API_KEY not found"
-        except Exception as e:
-            models["openai_error"] = str(e)
+            # Return early logic
+            if settings.use_mock_llm and "mock" not in providers:
+                 return models # Should matching mock logic, but simplifying
+            
+            if len(providers) == 1 and "mock" in providers:
+                return models
+        
+        # --- GOOGLE (Vertex AI) ---
+        if "google" in providers:
+            try:
+                 # Check cache for the *Target Location* (validated list)
+                 if hasattr(self, '_cached_google_models') and self._cached_google_models:
+                     # Simple cache assumption: Environment doesn't change runtime
+                     models["google"] = self._cached_google_models
+                 else:
+                     # 1. Master List (us-central1) - Always works for listing Catalog
+                     # We inline the list call here for simplicity or could use helper if reused.
+                     # Using us-central1 explicitly.
+                     discovery_ep = "us-central1-aiplatform.googleapis.com"
+                     client = aiplatform_v1beta1.ModelGardenServiceClient(
+                         client_options={"api_endpoint": discovery_ep}
+                     )
+                     
+                     # Listing
+                     # logger.info("Fetching Master Catalog from us-central1...")
+                     response = client.list_publisher_models(parent="publishers/google")
+                     
+                     master_list = []
+                     for m in response.publisher_models:
+                          mid = m.name.split('/')[-1]
+                          if 'gemini' in mid.lower():
+                              master_list.append(f"vertex_ai/{mid}")
+                     master_list = sorted(list(set(master_list)))
+                     
+                     final_list = []
+                     
+                     # 2. Validation
+                     if target_location == "us-central1":
+                         final_list = master_list
+                     else:
+                         # VALIDATING REGIONALLY
+                         logger.info(f"[LLMHandler] Validating {len(master_list)} models in '{target_location}'...")
+                         for m in master_list:
+                             if self._check_model_availability(m, target_location):
+                                 final_list.append(m)
+                             else:
+                                 # logger.debug(f"Model {m} not available in {target_location}")
+                                 pass
+                         logger.info(f"[LLMHandler] Validation complete. Found {len(final_list)} valid models.")
+
+                     models["google"] = final_list
+                     self._cached_google_models = final_list
+                     
+            except ImportError:
+                 logger.error("google-cloud-aiplatform not installed.")
+                 models["google_error"] = "Missing google-cloud-aiplatform library"
+            except Exception as e:
+                logger.error(f"Error fetching Google models: {e}")
+                models["google_error"] = str(e)
+            
+        # --- OPENAI ---
+        if "openai" in providers:
+            try:
+                 if not hasattr(self, '_cached_openai_models'):
+                     self._cached_openai_models = []
+                 
+                 if self._cached_openai_models:
+                     models["openai"] = self._cached_openai_models
+                 else:
+                    api_key = os.getenv("OPENAI_API_KEY") or settings.openai_api_key
+                    if api_key:
+                        client = openai.OpenAI(api_key=api_key)
+                        for m in client.models.list():
+                            if "gpt" in m.id:
+                                self._cached_openai_models.append(m.id)
+                        models["openai"] = self._cached_openai_models
+                    else:
+                         models["openai_warning"] = "OPENAI_API_KEY not found"
+            except Exception as e:
+                models["openai_error"] = str(e)
             
         return models
 
@@ -142,7 +180,7 @@ class LLMHandler:
                 return results[0].get('models', {})
             return {}
         except Exception as e:
-            print(f"[LLMHandler] Failed to get model registry: {e}")
+            logger.error(f"Failed to get registry: {e}")
             return {}
 
     def get_model_config(self, provider: str, mode: str) -> Optional[Dict[str, Any]]:

@@ -20,6 +20,7 @@ def main():
     # These override whatever is currently set in the shell for this subprocess
     env = os.environ.copy()
     env["USE_MOCK_DB"] = "false"
+    env["USE_MOCK_LLM"] = "true" # Bypass LLM access check during seeding
     env["STORAGE_BACKEND"] = "FIRESTORE"
     # Assumes service-account.json is in project root
     env["GOOGLE_APPLICATION_CREDENTIALS"] = str(project_root / "service-account.json")

@@ -356,31 +356,46 @@ def render_config_view(api_client, backend_url):
         st.markdown("Define which physical models correspond to the logical 'Fast' and 'Deep' strategies.")
         
         # Fetch current
-        strategies = requests.get(f"{backend_url}/config/models/strategies").json()
-        
-        registry = requests.get(f"{backend_url}/config/models/registry").json()
+        strategies = api_client.get_model_strategies() # Use client method if available, else requests
+        if not strategies:
+             # Fallback
+             try:
+                 strategies = requests.get(f"{backend_url}/config/models/strategies").json()
+             except: pass
+
+        registry = {}
+        try:
+             registry = requests.get(f"{backend_url}/config/models/registry").json()
+        except: pass
         
         if not registry:
             st.warning("No DB registry found. Using system defaults (read-only).")
         
+        # 1. Config Controls
+        # Only Provider selector now (Location via ENV)
+        provider = st.selectbox("Provider", ["google", "openai", "mock"])
 
-        
-        # We allow editing the registry for 'google' or 'openai'
-        provider = st.selectbox("Provider", ["google", "openai"])
-        
-        # LIVE FETCH AVAILABLE MODELS
+        # 2. Live Discovery
+        avail_models_dict = {}
         avail_models = []
         try:
-            avail_models = requests.get(f"{backend_url}/config/models/available").json()
-        except Exception:
-            pass
+            # Call new API (Location handled by backend env)
+            st.caption(f"Searching for {provider} models...")
+            avail_models_dict = api_client.get_available_models(providers=[provider])
+            # Extract list for current provider
+            avail_models = avail_models_dict.get(provider, [])
+            # Also check for error keys
+            if f"{provider}_error" in avail_models_dict:
+                 st.error(f"Discovery Error: {avail_models_dict[f'{provider}_error']}")
+        except Exception as e:
+            st.warning(f"Discovery Failed: {e}")
 
         if provider:
             current_prov_config = registry.get(provider, {})
             
             st.markdown(f"#### {provider.upper()} Configuration")
             if avail_models:
-                 st.success(f"Discovered {len(avail_models)} models from provider.")
+                 st.success(f"Discovered {len(avail_models)} models.")
             else:
                  st.info("No models discovered automatically. You can type manual names.")
 
@@ -395,7 +410,11 @@ def render_config_view(api_client, backend_url):
                  if curr and curr not in options:
                       options.insert(0, curr)
                  
-                 return st.selectbox(label, options, index=options.index(curr), key=f"sel_{key_suffix}")
+                 # Safely determine index
+                 idx = 0
+                 if curr in options: idx = options.index(curr)
+                 
+                 return st.selectbox(label, options, index=idx, key=f"sel_{key_suffix}")
 
             # Fast
             with col_f:
@@ -404,15 +423,15 @@ def render_config_view(api_client, backend_url):
                 strict_def = avail_models[0] if avail_models else ""
                 f_name = model_selector("Model Name", f_conf.get('model_name', strict_def), "fast")
                 f_temp = st.number_input("Temperature", 0.0, 1.0, f_conf.get('temperature', 0.5), 0.1, key="f_temp")
-                f_tokens = st.number_input("Max Tokens", 1024, 32000, f_conf.get('max_tokens', 8192), 1024, key="f_tok")
+                f_tokens = st.number_input("Max Tokens", 1024, 32000, int(f_conf.get('max_tokens', 8192)), 1024, key="f_tok")
             
             # Deep
             with col_d:
                 st.markdown("🧠 **DEEP Strategy**")
                 d_conf = current_prov_config.get('deep', {})
                 d_name = model_selector("Model Name", d_conf.get('model_name', strict_def), "deep")
-                d_temp = st.number_input("Temperature", 0.0, 1.0, d_conf.get('temperature', 0.2), key="d_temp")
-                d_tokens = st.number_input("Max Tokens", 1, 1000000, d_conf.get('max_tokens', 16384), key="d_tokens")
+                d_temp = st.number_input("Temperature", 0.0, 1.0, d_conf.get('temperature', 0.2), 0.05, key="d_temp")
+                d_tokens = st.number_input("Max Tokens", 1, 1000000, int(d_conf.get('max_tokens', 16384)), 1024, key="d_tokens")
                 
             if st.button("Save Model Strategy"):
                 # Construct updates
@@ -426,5 +445,36 @@ def render_config_view(api_client, backend_url):
                 try:
                     requests.post(f"{backend_url}/config/models/registry", json=payload).raise_for_status()
                     st.success("Model Registry Updated!")
+                    st.rerun()
                 except Exception as e:
                     st.error(f"Failed to update registry: {e}")
+
+        # 3. Test Ad-Hoc (Requested Feature)
+        st.divider()
+        with st.expander("🧪 Test Strategy (Ad-Hoc)", expanded=False):
+            st.markdown("Test the configured strategy directly via `handler.call_llm` API.")
+            
+            t_col1, t_col2 = st.columns(2)
+            with t_col1:
+                t_mode = st.radio("Strategy Mode", ["fast", "deep"], horizontal=True)
+            with t_col2:
+                # Reuse provider from selection above
+                st.info(f"Using Provider: **{provider}**")
+            
+            t_sys = st.text_area("System Instruction (Optional)", "", height=70)
+            t_prompt = st.text_area("User Prompt", "Hello, who are you?", height=100)
+            
+            if st.button("Run Test Generation", type="primary"):
+                with st.spinner("Generating..."):
+                    result = api_client.call_llm_adhoc(
+                        provider=provider,
+                        mode=t_mode,
+                        prompt=t_prompt,
+                        system_instruction=t_sys if t_sys.strip() else None
+                    )
+                    
+                    if "Error:" in result:
+                        st.error(result)
+                    else:
+                        st.success("Generation Complete")
+                        st.markdown(result)
