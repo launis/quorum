@@ -92,10 +92,13 @@ class Settings(BaseSettings):
     )
 
     def model_post_init(self, __context: Any) -> None:
-        # Logic to force mock mode if API Key is missing
-        if not self.google_api_key and not self.use_mock_llm:
-            print("WARNING: GOOGLE_API_KEY not found. Forcing Mock LLM Mode.")
-            self.use_mock_llm = True
+        # Check for EITHER Google AI Studio Key OR Vertex AI Credentials
+        has_vertex = os.getenv("VERTEX_PROJECT_ID") or os.getenv("GOOGLE_APPLICATION_CREDENTIALS") or os.getenv("GOOGLE_CLOUD_PROJECT")
+        
+        # STRICT: If not in mock mode, require credentials.
+        if not self.use_mock_llm:
+             if not self.google_api_key and not has_vertex:
+                  raise ValueError("CRITICAL: No LLM Credentials found (GOOGLE_API_KEY or VERTEX_PROJECT_ID/Credentials). Cannot proceed in Production Mode.")
             
         if self.use_mock_db:
              pass 

@@ -1,0 +1,37 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\risto\OneDrive\quorum\backend\database\seeder.py", line 297, in <module>
+    seed_database()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\risto\OneDrive\quorum\backend\database\seeder.py", line 60, in seed_database
+    _seed_firestore(seed_data)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "C:\Users\risto\OneDrive\quorum\backend\database\seeder.py", line 221, in _seed_firestore
+    doc_id = item.get('id') or item.get('name')
+             ^^^^^^^^
+AttributeError: 'str' object has no attribute 'get'
+[Seeder] Loading seed data from: C:\Users\risto\OneDrive\quorum\backend\database\seed_data.json
+[Seeder] Warning: could not import backend.config.matrices
+[Seeder] Target: FIRESTORE (Cloud)
+[Seeder] Clearing existing Firestore collections...
+[Seeder] ...clearing components
+[Seeder] ...clearing steps
+[Seeder] ...clearing workflows
+[Seeder] ...clearing system_config
+[Seeder] ...clearing banned_phrases
+[Seeder] ...clearing knowledge_base
+[Seeder] ...clearing model_registry
+==========================================
+  SEED FIRESTORE DATABASE (Python Script) 
+==========================================
+
+[INFO] Root Path: C:\Users\risto\OneDrive\quorum
+[INFO] Backend: FIRESTORE
+[INFO] Credential: C:\Users\risto\OneDrive\quorum\service-account.json
+
+[WARNING] This will WIPE and RE-POPULATE the Firestore database.
+[ACTION] Running backend.database.seeder...
+
+
+[ERROR] Seeding failed with exit code 1.

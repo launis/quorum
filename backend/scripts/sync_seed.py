@@ -32,7 +32,8 @@ def sync():
         "components", 
         "concepts", 
         "references", 
-        "claims" 
+        "claims",
+        "steps" 
     ]
     
     new_seed = {}
@@ -40,7 +41,11 @@ def sync():
     for table in seed_tables:
         if table in full_db:
             table_data = full_db[table]
-            new_seed[table] = table_data
+            # Flatten dict-of-dicts to list-of-dicts for compatibility with Seeder
+            if isinstance(table_data, dict):
+                new_seed[table] = list(table_data.values())
+            else:
+                new_seed[table] = table_data
             # Count items (TinyDB tables are dicts of id->item)
             count = len(table_data)
             print(f" - Preserved {count} items for table '{table}'")

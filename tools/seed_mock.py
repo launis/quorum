@@ -7,6 +7,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Set Mock env vars BEFORE importing seeder options or running logic
 os.environ["USE_MOCK_DB"] = "true"
+os.environ["USE_MOCK_LLM"] = "true"
 os.environ["STORAGE_BACKEND"] = "LOCAL"
 
 from backend.database.seeder import seed_database

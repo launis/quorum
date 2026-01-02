@@ -5,7 +5,7 @@ pydantic[email]
 python-multipart
 pymupdf
 jinja2
-google-generativeai
+google-cloud-aiplatform
 openai
 python-dotenv
 google-api-python-client

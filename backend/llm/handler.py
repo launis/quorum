@@ -6,6 +6,8 @@ from backend.database.wrapper import get_db_client
 from backend.settings import get_settings
 from backend.llm.provider import LLMFactory
 import openai
+import google.auth
+from google.cloud import aiplatform_v1beta1
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +27,7 @@ class LLMHandler:
 
     def fetch_all_available_models(self) -> Dict[str, List[str]]:
         """
-        Queries External APIs (Google GenAI, OpenAI) for available models.
+        Queries External APIs (Vertex AI, OpenAI) for available models.
         Respects 'use_mock_llm' setting by returning mock data if enabled.
 
         Returns:
@@ -42,30 +44,61 @@ class LLMHandler:
             models["openai"] = ["mock-gpt-a"]
             return models
         
-        # 1. Fetch Google Models (Unified Logic)
+        # 1. Fetch Google Models (Pure Vertex SDK - Model Garden is in us-central1)
         try:
              # Check cache first
              if hasattr(self, '_cached_google_models') and self._cached_google_models:
                  models["google"] = self._cached_google_models
              else:
-                 import google.generativeai as genai
-                 key = settings.google_api_key
-                 if key:
-                     genai.configure(api_key=key)
-                     pager = genai.list_models()
-                     found = []
-                     for m in pager:
-                         if "gemini" in m.name.lower():
-                             # Cleanup name: models/gemini-pro -> gemini-pro
-                             name_clean = m.name.replace("models/", "")
-                             found.append(name_clean)
-                     
-                     # Simple cache
-                     self._cached_google_models = sorted(list(set(found)))
-                     models["google"] = self._cached_google_models
+                 # Resolve Project ID (Good for auth context)
+                 project_id = os.getenv("VERTEX_PROJECT_ID")
+                 if not project_id:
+                     try:
+                        _, project_id = google.auth.default()
+                     except:
+                        pass
                  
+                 if not project_id:
+                      project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
+
+                 # CRITICAL: Model Garden metadata is hosted in us-central1
+                 location = "us-central1"
+                 api_endpoint = f"{location}-aiplatform.googleapis.com"
+                 
+                 # Initialize Model Garden Client (v1beta1)
+                 client_options = {"api_endpoint": api_endpoint}
+                 client = aiplatform_v1beta1.ModelGardenServiceClient(client_options=client_options)
+                 
+                 # CORRECT PARENT for Publisher Models: "publishers/google"
+                 # DO NOT use "projects/{id}/locations/..." for the public catalog!
+                 parent = "publishers/google"
+                 
+                 logger.info(f"[LLMHandler] Listing Publisher Models via SDK (v1beta1) @ {api_endpoint}...")
+                 
+                 # Call API
+                 response = client.list_publisher_models(parent=parent)
+                 
+                 found = []
+                 for m in response.publisher_models:
+                      # Name format: publishers/google/models/gemini-1.5-pro-001
+                      mid = m.name.split('/')[-1]
+                      
+                      # Filter: Only Gemini models
+                      if 'gemini' in mid.lower():
+                          # Add prefix so the system knows it's Vertex
+                          found.append(f"vertex_ai/{mid}")
+                          
+                 # Sort and Cache
+                 self._cached_google_models = sorted(list(set(found)))
+                 models["google"] = self._cached_google_models
+                 
+                 logger.info(f"[LLMHandler] Successfully cataloged {len(models['google'])} Gemini models.")
+                 
+        except ImportError:
+             logger.error("google-cloud-aiplatform not installed.")
+             models["google_error"] = "Missing google-cloud-aiplatform library"
         except Exception as e:
-            logger.error(f"Error fetching Google models: {e}")
+            logger.error(f"Error fetching Google models (Vertex SDK): {e}")
             models["google_error"] = str(e)
             
         # 2. Fetch OpenAI Models (Cached)
