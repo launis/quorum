@@ -269,11 +269,11 @@ def _generate_judge_data() -> Dict[str, Any]:
         "scale_max": 5,
         "total_score": 3.3,
         "dimensions": [
-             {"dimension_id": "agency", "score": 3, "reasoning": "Käyttäjä ajoi prosessia (Kuski), mutta korjaukset olivat reaktiivisia."},
-             {"dimension_id": "synteesi", "score": 4, "reasoning": "Synteesi on vahva ja luo uutta tietoa ('Supermegatrendit')."},
-             {"dimension_id": "falsification", "score": 3, "reasoning": "Käyttäjä haastoi tekoälyä kohtuullisesti."}
+             {"dimension_id": "analyysi", "score": 3, "reasoning": "Analyysi on kattava ja perusteltu."},
+             {"dimension_id": "arviointi", "score": 3, "reasoning": "Arviointi on objektiivista."},
+             {"dimension_id": "synteesi", "score": 4, "reasoning": "Synteesi luo uutta tietoa erinomaisesti."}
         ],
-        "critical_findings": ["Prosessin hallinta parani lopussa.", "Argumentaatio on vahvaa."]
+        "critical_findings": ["Suoritus on tasalaatuinen.", "Argumentaatio on vahvaa."]
     })
     return data
 
