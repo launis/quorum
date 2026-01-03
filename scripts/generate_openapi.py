@@ -5,6 +5,10 @@ import json
 # Add the current directory to sys.path so we can import the backend module
 sys.path.append(os.getcwd())
 
+# FORCE MOCK MODE to bypass credential checks in Settings
+os.environ["USE_MOCK_LLM"] = "True"
+os.environ["USE_MOCK_DB"] = "True"
+
 try:
     from backend.main import app
 except Exception as e:
