@@ -3,22 +3,101 @@
   "info": {
     "title": "Cognitive Quorum API",
     "description": "Backend for Cognitive Quorum application.",
-    "version": "0.2.0"
+    "version": "2.1.0"
   },
   "paths": {
-    "/tools/extract-text": {
+    "/tools/text-extract": {
       "post": {
         "tags": [
           "Tools"
         ],
-        "summary": "Extract Document Text",
-        "description": "Parses and extracts plain text from an uploaded document.\nSupports PDF (`.pdf`), Word (`.docx`), and Plain Text (`.txt`).\n\nArgs:\n    file (UploadFile): The binary file upload.\n\nReturns:\n    dict: Contains 'filename' and 'text'.\n\nRaises:\n    HTTPException: If the file is too large (>10MB) or format is unsupported.",
-        "operationId": "extract_document_text_tools_extract_text_post",
+        "summary": "Extract Text from File",
+        "description": "Extracts text content from an uploaded file (PDF, Docx, etc).",
+        "operationId": "extract_text_from_file_tools_text_extract_post",
         "requestBody": {
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_extract_document_text_tools_extract_text_post"
+                "$ref": "#/components/schemas/Body_extract_text_from_file_tools_text_extract_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The extracted raw text.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tools/concept-extraction": {
+      "post": {
+        "tags": [
+          "Tools"
+        ],
+        "summary": "Extract Concepts (Text/File)",
+        "description": "Extracts domain concepts from either raw text or an uploaded file.",
+        "operationId": "extract_concepts_from_file_or_text_tools_concept_extraction_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_extract_concepts_from_file_or_text_tools_concept_extraction_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "List of extracted concepts and relationships.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tools/web-scrape": {
+      "post": {
+        "tags": [
+          "Tools"
+        ],
+        "summary": "Scrape URL",
+        "description": "Fetches and parses a public URL.",
+        "operationId": "scrape_url_tools_web_scrape_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_scrape_url_tools_web_scrape_post"
               }
             }
           },
@@ -46,70 +125,19 @@
         }
       }
     },
-    "/tools/extract-concepts": {
-      "post": {
-        "tags": [
-          "Tools"
-        ],
-        "summary": "Extract Concepts (Experimental)",
-        "description": "Uses the configured LLM to semantically extract concepts from input text or file.\nNote: This is an experimental tool endpoint.\n\nArgs:\n    file (UploadFile, optional): Binary file source.\n    text (str, optional): Text string source.\n    llm_provider: Dependency.\n\nReturns:\n    dict: Object containing a list of 'concepts'.\n\nRaises:\n    HTTPException: If no input is provided or extraction fails.",
-        "operationId": "extract_concepts_from_file_or_text_tools_extract_concepts_post",
-        "parameters": [
-          {
-            "name": "model_strategy",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "default": "fast",
-              "title": "Model Strategy"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/Body_extract_concepts_from_file_or_text_tools_extract_concepts_post"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "A list of extracted concepts using LLM.",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/tools/citation-lookup": {
       "post": {
         "tags": [
           "Tools"
         ],
-        "summary": "Lookup Citations",
-        "description": "Scans the provided text for key terms or citations present in the system's Knowledge Base.\nUtilizes the CoachAgent's 2-hop resolution logic.\n\nArgs:\n    text (str): Input text.\n    repo (AbstractWorkflowRepository): Database dependency.\n\nReturns:\n    dict: List of 'citations' found.",
-        "operationId": "lookup_citations_tools_citation_lookup_post",
+        "summary": "Resolve Citations",
+        "description": "Uses the Knowledge Base Service to find context for citations.",
+        "operationId": "citation_lookup_tools_citation_lookup_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Body_lookup_citations_tools_citation_lookup_post"
+                "$ref": "#/components/schemas/Body_citation_lookup_tools_citation_lookup_post"
               }
             }
           },
@@ -117,7 +145,7 @@
         },
         "responses": {
           "200": {
-            "description": "Matches found in the Knowledge Base.",
+            "description": "Resolved context.",
             "content": {
               "application/json": {
                 "schema": {}
@@ -149,7 +177,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/backend__api__execution_router__WorkflowCreateRequest"
+                "$ref": "#/components/schemas/WorkflowCreateRequest"
               }
             }
           },
@@ -203,7 +231,7 @@
           "Orchestration"
         ],
         "summary": "List Recent Executions",
-        "description": "Retrieves a list of the most recent workflow executions.\n\nArgs:\n    limit (int): Max records to return.\n    status (Optional[str]): Optional status filter.\n    engine (WorkflowEngine): Dependency.\n\nReturns:\n    List[dict]: List of execution summary objects.",
+        "description": "Retrieves a list of the most recent workflow executions (Scoped by Org).",
         "operationId": "get_recent_executions_executions_recent_get",
         "parameters": [
           {
@@ -235,6 +263,22 @@
               "title": "Status"
             },
             "description": "Filter by execution status (e.g., 'completed', 'failed')."
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
           }
         ],
         "responses": {
@@ -265,7 +309,7 @@
           "Orchestration"
         ],
         "summary": "Get Latest Execution",
-        "description": "Retrieves the absolutely most recent execution record.\n\nArgs:\n    engine (WorkflowEngine): Dependency.\n\nReturns:\n    dict: The latest execution object.\n\nRaises:\n    HTTPException: If no executions exist.",
+        "description": "Retrieves the absolutely most recent execution record.",
         "operationId": "get_latest_execution_executions_latest_get",
         "responses": {
           "200": {
@@ -285,7 +329,7 @@
           "Orchestration"
         ],
         "summary": "Get Execution Status",
-        "description": "Retrieves the full status and result data for a specific execution ID.\nPerforms on-the-fly hydration of legacy result structures if necessary.\n\nArgs:\n    execution_id (str): The execution ID.\n    engine (WorkflowEngine): Dependency.\n\nReturns:\n    dict: The execution record.\n\nRaises:\n    HTTPException: If not found.",
+        "description": "Retrieves the full status and result data for a specific execution ID.\nPerforms on-the-fly hydration of legacy result structures if necessary.",
         "operationId": "get_execution_status_executions__execution_id__get",
         "parameters": [
           {
@@ -328,7 +372,7 @@
           "Orchestration"
         ],
         "summary": "Retry Execution",
-        "description": "Resumes a failed, rejected, or interrupted execution from its last successful state.\n\nArgs:\n    background_tasks (BackgroundTasks): Background handler.\n    execution_id (str): The ID of the execution.\n    engine (WorkflowEngine): Dependency.\n\nReturns:\n    dict: Status and execution_id.\n\nRaises:\n    HTTPException: If execution is not in a retriable state.",
+        "description": "Resumes a failed, rejected, or interrupted execution from its last successful state.",
         "operationId": "retry_execution_executions__execution_id__retry_post",
         "parameters": [
           {
@@ -371,7 +415,7 @@
           "Agents"
         ],
         "summary": "Run Specific Agent",
-        "description": "Executes a specific agent in isolation with provided inputs.\n\nArgs:\n    agent_name (str): The class name of the agent to run.\n    inputs (Dict[str, Any]): Input data for the agent's context.\n    system_instruction (Optional[str]): optional prompt override.\n    model (Optional[str]): optional model override.\n    db (AbstractDatabase): Database dependency.\n\nReturns:\n    dict: A dictionary containing the agent name and the execution result/state.\n\nRaises:\n    HTTPException: If the agent cannot be loaded or execution fails.",
+        "description": "Executes a specific agent in isolation with provided inputs.\n\nArgs:\n    agent_name (str): The class name of the agent to run.\n    inputs (Dict[str, Any]): Input data for the agent's context.\n    system_instruction (Optional[str]): optional prompt override.\n    model (Optional[str]): optional model override.\n    db (DatabaseDep): Database dependency.\n\nReturns:\n    dict: A dictionary containing the agent name and the execution result/state.\n\nRaises:\n    HTTPException: If the agent cannot be loaded or execution fails.",
         "operationId": "run_agent_agents__agent_name__run_post",
         "parameters": [
           {
@@ -422,7 +466,7 @@
           "Agents"
         ],
         "summary": "List All Agents",
-        "description": "List all available agents with their metadata, models, and schemas.\nDynamically resolves model strategy based on the selected workflow configuration.\n\nArgs:\n    workflow_id (Optional[str]): Context for model resolution.\n    db (AbstractDatabase): Database dependency.\n\nReturns:\n    List[Dict]: A list of agent definition objects.",
+        "description": "List all available agents with their metadata, models, and schemas.\nDynamically resolves model strategy based on the selected workflow configuration.\n\nArgs:\n    workflow_id (Optional[str]): Context for model resolution.\n    db (DatabaseDep): Database dependency.\n    registry (RegistryDep): Injected registry service.\n\nReturns:\n    List[Dict]: A list of agent definition objects.",
         "operationId": "list_agents_agents__get",
         "parameters": [
           {
@@ -479,14 +523,42 @@
           "Admin"
         ],
         "summary": "Export Seed Data",
-        "description": "Triggers the seed data export process via AdministrationService in the background.\n\nArgs:\n    background_tasks (BackgroundTasks): FastAPI background task manager.\n    db (AbstractDatabase): The database connection dependency.\n\nReturns:\n    dict: A dictionary containing the job ID and status.",
+        "description": "Triggers the seed data export process via AdministrationService in the background.\n\nArgs:\n    background_tasks (BackgroundTasks): FastAPI background task manager.\n    db (DatabaseDep): The database connection dependency.\n\nReturns:\n    dict: A dictionary containing the job ID and status.",
         "operationId": "export_seed_data_admin_export_seed_data_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Confirmation that the export task has started.",
             "content": {
               "application/json": {
                 "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
               }
             }
           }
@@ -499,14 +571,186 @@
           "Admin"
         ],
         "summary": "Rebuild Database",
-        "description": "Triggers a complete database rebuild (drop and re-seed) in the background.\n\nArgs:\n    background_tasks (BackgroundTasks): FastAPI background task manager.\n    db (AbstractDatabase): The database connection dependency.\n\nReturns:\n    dict: A dictionary containing the job ID and status.",
+        "description": "Triggers a complete database rebuild (drop and re-seed) in the background.\n\nArgs:\n    background_tasks (BackgroundTasks): FastAPI background task manager.\n    db (DatabaseDep): The database connection dependency.\n\nReturns:\n    dict: A dictionary containing the job ID and status.",
         "operationId": "rebuild_database_admin_database_rebuild_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Confirmation that the rebuild task has started.",
             "content": {
               "application/json": {
                 "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/database/reset/mock": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Reset Mock Database",
+        "description": "Triggers 'rebuild_mock_db.py' in the background.",
+        "operationId": "reset_mock_db_admin_database_reset_mock_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Confirmation that the Mock DB reset task has started.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/database/reset/prod": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Reset Production Database (Local)",
+        "description": "Triggers 'rebuild_prod_db.py' in the background.\nWARNING: This wipes the local production database.",
+        "operationId": "reset_prod_db_admin_database_reset_prod_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Confirmation that the Prod (TinyDB) reset task has started.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/database/reset/firestore": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Reset Firestore Database",
+        "description": "Triggers 'seed_firestore.py' in the background.\nWARNING: This wipes the Firestore database!",
+        "operationId": "reset_firestore_db_admin_database_reset_firestore_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Confirmation that the Firestore reset task has started.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
               }
             }
           }
@@ -519,17 +763,32 @@
           "Admin"
         ],
         "summary": "Run System Self-Test",
-        "description": "Executes a quick self-test of the LLM connection and Database state.\n\nArgs:\n    db_client (AbstractDatabase): Database dependency.\n    llm_provider (LLMProvider): LLM provider dependency.\n\nReturns:\n    dict: A health report with 'llm_status' and 'db_status'.",
+        "description": "Executes a quick self-test of the LLM connection and Database state.\n\nArgs:\n    db_client (DatabaseDep): Database dependency.\n    llm_provider (LLMProvider): LLM provider dependency.\n\nReturns:\n    dict: A health report with 'llm_status' and 'db_status'.",
         "operationId": "run_self_test_admin_self_test_post",
         "parameters": [
           {
             "name": "model_strategy",
             "in": "query",
-            "required": false,
+            "required": true,
             "schema": {
               "type": "string",
-              "default": "fast",
               "title": "Model Strategy"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
             }
           }
         ],
@@ -574,6 +833,22 @@
               "title": "Job Id"
             },
             "description": "UUID of the background job."
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
           }
         ],
         "responses": {
@@ -618,6 +893,22 @@
               "title": "Job Id"
             },
             "description": "UUID of the background job."
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
           }
         ],
         "responses": {
@@ -648,17 +939,32 @@
           "Admin"
         ],
         "summary": "Ingest from File (Path)",
-        "description": "Starts the process of ingesting a document into the knowledge base from a local file path.\n\nArgs:\n    request (IngestRequest): The ingestion configuration.\n    background_tasks (BackgroundTasks): Background task handler.\n    repository (AbstractDatabase): Database dependency.\n    llm_provider (LLMProvider): LLM provider dependency.\n\nReturns:\n    dict: Job ID and status message.",
+        "description": "Starts the process of ingesting a document into the knowledge base from a local file path.",
         "operationId": "ingest_knowledge_base_admin_knowledge_base_ingest_post",
         "parameters": [
           {
             "name": "model_strategy",
             "in": "query",
-            "required": false,
+            "required": true,
             "schema": {
               "type": "string",
-              "default": "fast",
               "title": "Model Strategy"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
             }
           }
         ],
@@ -700,7 +1006,7 @@
           "Admin"
         ],
         "summary": "Upload and Ingest File",
-        "description": "Uploads a file and triggers the ingestion process.\n\nArgs:\n    file (UploadFile): The binary file to upload.\n    reset_db (bool): If True, resets the database.\n    background_tasks (BackgroundTasks): Background handler (optional).\n    db_client (AbstractDatabase): Database dependency.\n    llm_provider (LLMProvider): LLM provider dependency.\n\nReturns:\n    dict: Job ID and file details.",
+        "description": "Uploads a file and triggers the ingestion process.",
         "operationId": "upload_knowledge_base_admin_knowledge_base_upload_post",
         "parameters": [
           {
@@ -718,11 +1024,26 @@
           {
             "name": "model_strategy",
             "in": "query",
-            "required": false,
+            "required": true,
             "schema": {
               "type": "string",
-              "default": "fast",
               "title": "Model Strategy"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
             }
           }
         ],
@@ -764,14 +1085,42 @@
           "Admin"
         ],
         "summary": "List Banned Phrases",
-        "description": "Retrieves all banned phrases from the database.\n\nArgs:\n    db (AbstractDatabase): Database dependency.\n\nReturns:\n    List[Dict]: A list of banned phrase objects.",
+        "description": "Retrieves all banned phrases from the database.",
         "operationId": "get_banned_phrases_admin_banned_phrases_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "A list of all currently banned phrases.",
             "content": {
               "application/json": {
                 "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
               }
             }
           }
@@ -782,17 +1131,35 @@
           "Admin"
         ],
         "summary": "Add Banned Phrase",
-        "description": "Adds a new phrase to the blocklist.\n\nArgs:\n    request (BannedPhraseRequest): The phrase data.\n    db (AbstractDatabase): Database dependency.\n\nReturns:\n    dict: Status and the added phrase.\n\nRaises:\n    HTTPException: If the phrase is too short.",
+        "description": "Adds a new phrase to the blocklist.",
         "operationId": "add_banned_phrase_admin_banned_phrases_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/BannedPhraseRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -821,8 +1188,8 @@
         "tags": [
           "Admin"
         ],
-        "summary": "Delete Banned Phrase",
-        "description": "Removes a phrase from the blocklist.\n\nArgs:\n    phrase (str): The phrase to remove (URL encoded).\n    db (AbstractDatabase): Database dependency.\n\nReturns:\n    dict: Status and the deleted phrase.",
+        "summary": "Remove Banned Phrase",
+        "description": "Remove a phrase from the banned list.",
         "operationId": "delete_banned_phrase_admin_banned_phrases__phrase__delete",
         "parameters": [
           {
@@ -835,11 +1202,27 @@
               "title": "Phrase"
             },
             "description": "The URL-encoded phrase to delete."
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Confirmation of deletion.",
+            "description": "Confirmation of removal.",
             "content": {
               "application/json": {
                 "schema": {}
@@ -865,17 +1248,32 @@
           "Admin"
         ],
         "summary": "Generate Banned Phrases",
-        "description": "Uses the LLM to generate new potential banned phrases based on common adversarial patterns.\n\nArgs:\n    request (GenerateBannedPhrasesRequest): Configuration for generation (e.g. language).\n    db (AbstractDatabase): Database dependency.\n    llm_provider (LLMProvider): LLM provider dependency.\n\nReturns:\n    dict: Report containing added phrases.\n\nRaises:\n    HTTPException: If generation fails.",
+        "description": "Uses the LLM to generate new potential banned phrases based on common adversarial patterns.\n\nArgs:\n    request (GenerateBannedPhrasesRequest): Configuration for generation (e.g. language).\n    db (DatabaseDep): Database dependency.\n    llm_provider (LLMProvider): LLM provider dependency.\n\nReturns:\n    dict: Report containing added phrases.\n\nRaises:\n    HTTPException: If generation fails.",
         "operationId": "generate_banned_phrases_admin_banned_phrases_generate_post",
         "parameters": [
           {
             "name": "model_strategy",
             "in": "query",
-            "required": false,
+            "required": true,
             "schema": {
               "type": "string",
-              "default": "fast",
               "title": "Model Strategy"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
             }
           }
         ],
@@ -1559,13 +1957,84 @@
         }
       }
     },
+    "/config/models/available": {
+      "get": {
+        "tags": [
+          "Configuration"
+        ],
+        "summary": "List Available Models",
+        "description": "Returns a dynamic dictionary of models found via provider APIs.\nSupports filtering by provider and specifying Google Cloud region.",
+        "operationId": "list_available_models_config_models_available_get",
+        "parameters": [
+          {
+            "name": "providers",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "List of providers (google, openai, mock)",
+              "title": "Providers"
+            },
+            "description": "List of providers (google, openai, mock)"
+          },
+          {
+            "name": "location",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Region for Google Cloud (defaults to env config)",
+              "title": "Location"
+            },
+            "description": "Region for Google Cloud (defaults to env config)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dictionary of verified available models from Providers.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/config/models/registry": {
       "get": {
         "tags": [
           "Configuration"
         ],
         "summary": "Get Model Registry",
-        "description": "Get global model registry.",
+        "description": "Get global model registry via Handler.",
         "operationId": "get_model_registry_config_models_registry_get",
         "responses": {
           "200": {
@@ -1598,6 +2067,46 @@
         "responses": {
           "200": {
             "description": "Updated registry.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/config/models/call": {
+      "post": {
+        "tags": [
+          "Configuration"
+        ],
+        "summary": "Call LLM (Ad-hoc)",
+        "description": "Execute a direct LLM call using the Handler's logic (resolving config from registry).",
+        "operationId": "call_llm_adhoc_config_models_call_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LLMCallRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Generated text response.",
             "content": {
               "application/json": {
                 "schema": {}
@@ -1654,6 +2163,122 @@
         }
       }
     },
+    "/config/ontology/dimensions": {
+      "get": {
+        "tags": [
+          "Configuration"
+        ],
+        "summary": "Get Known Dimensions",
+        "description": "Returns specific allowed dimension IDs from the ontology table.\nAuto-seeds defaults if table is empty.",
+        "operationId": "get_known_dimensions_config_ontology_dimensions_get",
+        "responses": {
+          "200": {
+            "description": "List of unique evaluation dimension IDs.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Configuration"
+        ],
+        "summary": "Create Dimension",
+        "operationId": "create_dimension_config_ontology_dimensions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DimensionDefinition"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Created Dimension.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/config/ontology/dimensions/full": {
+      "get": {
+        "tags": [
+          "Configuration"
+        ],
+        "summary": "Get Full Ontology",
+        "operationId": "get_full_ontology_config_ontology_dimensions_full_get",
+        "responses": {
+          "200": {
+            "description": "Full dimension objects.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/config/ontology/dimensions/{dim_id}": {
+      "delete": {
+        "tags": [
+          "Configuration"
+        ],
+        "summary": "Delete Dimension",
+        "operationId": "delete_dimension_config_ontology_dimensions__dim_id__delete",
+        "parameters": [
+          {
+            "name": "dim_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Dim Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Status.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/config/validate-flow": {
       "post": {
         "tags": [
@@ -1694,20 +2319,19 @@
         }
       }
     },
-    "/llm/llm/generate": {
+    "/auth/verify": {
       "post": {
         "tags": [
-          "LLM",
-          "LLM"
+          "Authentication & Users"
         ],
-        "summary": "Generate Text",
-        "description": "Generates text using the configured LLM provider based on the prompts.\n\nArgs:\n    request (LLMRequest): The prompt and configuration.\n    factory (LLMFactory): Dependency for creating LLM providers.\n\nReturns:\n    dict: The generated text inside a wrapper object.\n\nRaises:\n    HTTPException: If the prompt is invalid or generation fails.",
-        "operationId": "generate_text_llm_llm_generate_post",
+        "summary": "Verify User Token",
+        "description": "Exchanges a Firebase ID Token (or mock token) for the Backend User Profile (Role, etc).\nCall this immediately after Firebase Login on the client.",
+        "operationId": "verify_user_token_auth_verify_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/LLMRequest"
+                "$ref": "#/components/schemas/TokenPayload"
               }
             }
           },
@@ -1715,7 +2339,271 @@
         },
         "responses": {
           "200": {
-            "description": "The generated text response.",
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/users": {
+      "post": {
+        "tags": [
+          "Authentication & Users"
+        ],
+        "summary": "Create User",
+        "description": "Create a new user.\nRequires Role: ROOT, ADMIN, or MANAGER.",
+        "operationId": "create_user_auth_users_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Authentication & Users"
+        ],
+        "summary": "List Users",
+        "description": "List users visible to the current user (scoped by Organization).",
+        "operationId": "list_users_auth_users_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/User"
+                  },
+                  "title": "Response List Users Auth Users Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/organizations": {
+      "post": {
+        "tags": [
+          "Authentication & Users"
+        ],
+        "summary": "Create Organization",
+        "description": "Create a new Tenant Organization.\nRequires Role: ROOT.",
+        "operationId": "create_organization_auth_organizations_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/backend__models__auth__OrganizationCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Organization"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "tags": [
+          "Authentication & Users"
+        ],
+        "summary": "Get My Profile",
+        "operationId": "get_my_profile_auth_me_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/llm/llm/completion": {
+      "post": {
+        "tags": [
+          "LLM",
+          "LLM"
+        ],
+        "summary": "Direct Completion",
+        "description": "Directly invokes the LLM using the specified strategy.\nSupports structured output if schema is provided.",
+        "operationId": "generate_completion_llm_llm_completion_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompletionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The generated text or structured object.",
             "content": {
               "application/json": {
                 "schema": {}
@@ -1735,18 +2623,59 @@
         }
       }
     },
-    "/llm/llm/available-models": {
+    "/llm/llm/batch-completion": {
+      "post": {
+        "tags": [
+          "LLM",
+          "LLM"
+        ],
+        "summary": "Batch Completion",
+        "description": "Processes multiple completion requests in parallel.",
+        "operationId": "batch_completion_llm_llm_batch_completion_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchCompletionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "List of results.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/llm/llm/providers": {
       "get": {
         "tags": [
           "LLM",
           "LLM"
         ],
-        "summary": "List External Models",
-        "description": "Fetches the list of available models from external APIs (e.g., Google Gemini, OpenAI).\n\nArgs:\n    llm_handler: Dependency for LLM management.\n\nReturns:\n    List[str]: A list of model names.",
-        "operationId": "get_available_models_llm_llm_available_models_get",
+        "summary": "List Providers",
+        "description": "Returns information about active LLM providers and availability.",
+        "operationId": "list_providers_llm_llm_providers_get",
         "responses": {
           "200": {
-            "description": "A list of model identifiers available from the providers.",
+            "description": "Active providers configuration.",
             "content": {
               "application/json": {
                 "schema": {}
@@ -1763,7 +2692,7 @@
           "LLM"
         ],
         "summary": "Get Model Registry",
-        "description": "Retrieves the active model registry, which maps abstract strategies (e.g., 'fast') to concrete models.\n\nArgs:\n    llm_handler: Dependency.\n\nReturns:\n    dict: The registry configuration object.",
+        "description": "Retrieves the active model registry, which maps abstract strategies (e.g., 'fast') to concrete models.\n\nArgs:\n    handler: Dependency.\n\nReturns:\n    dict: The registry configuration object.",
         "operationId": "get_model_config_llm_llm_config_get",
         "responses": {
           "200": {
@@ -1822,7 +2751,7 @@
           "Builder"
         ],
         "summary": "List Agent Class Metadata",
-        "description": "Returns metadata for all registered agents, used for the Builder Toolbox.\n\nArgs:\n    engine (WorkflowEngine): Dependency.\n\nReturns:\n    List[dict]: Agent metadata objects.",
+        "description": "Returns metadata for all registered agents, used for the Builder Toolbox.\n\nArgs:\n    engine (EngineDep): Dependency.\n\nReturns:\n    List[dict]: Agent metadata objects.",
         "operationId": "get_available_agents_builder_config_agents_get",
         "responses": {
           "200": {
@@ -2277,6 +3206,49 @@
         }
       }
     },
+    "/builder/steps/create-custom": {
+      "post": {
+        "tags": [
+          "Builder"
+        ],
+        "summary": "Create Custom Step",
+        "description": "Creates a new custom step definition server-side with proper defaults.",
+        "operationId": "create_custom_step_builder_steps_create_custom_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomStepCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The newly created custom step.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/builder/utils/generate-id": {
       "get": {
         "tags": [
@@ -2434,10 +3406,348 @@
         }
       }
     },
+    "/organizations/": {
+      "post": {
+        "tags": [
+          "Organizations"
+        ],
+        "summary": "Create Organization",
+        "description": "Create a new Tenant Organization.\nROOT Only.",
+        "operationId": "create_organization_organizations__post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Organizations"
+        ],
+        "summary": "List Organizations",
+        "description": "List all organizations.\nROOT Only.",
+        "operationId": "list_organizations_organizations__get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OrganizationResponse"
+                  },
+                  "title": "Response List Organizations Organizations  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/me": {
+      "get": {
+        "tags": [
+          "Organizations"
+        ],
+        "summary": "Get My Organization",
+        "description": "Get the currently logged-in user's organization metadata.\nAccessible to: ROOT, ADMIN, MEMBER (Read-Only own org)\n\nNote: ROOT does not belong to an org primarily, but if they want to see 'an' org, \nthey should use get_organization_by_id logic. This endpoint is for Tenant Context.",
+        "operationId": "get_my_organization_organizations_me_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{org_id}": {
+      "get": {
+        "tags": [
+          "Organizations"
+        ],
+        "summary": "Get Organization",
+        "description": "Get specific organization details.\nROOT: Can access any.\nADMIN: Can access OWN org only.",
+        "operationId": "get_organization_organizations__org_id__get",
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Org Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Organizations"
+        ],
+        "summary": "Update Organization",
+        "description": "Update Organization settings.\nROOT: Can update any.\nADMIN: Can update OWN org only.",
+        "operationId": "update_organization_organizations__org_id__put",
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Org Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Organizations"
+        ],
+        "summary": "Delete Organization",
+        "description": "Delete an organization.\nROOT Only.\nProtected: Cannot delete 'system' org.",
+        "operationId": "delete_organization_organizations__org_id__delete",
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Org Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/db/seed_data": {
       "get": {
         "summary": "Get Seed Data",
-        "description": "Retrieves the raw seed data configuration (components, steps, workflows).\n\nArgs:\n    engine (WorkflowEngine): Dependency.\n\nReturns:\n    dict: Object containing lists of components, steps, and workflows.",
+        "description": "Retrieves the raw seed data configuration (components, steps, workflows).\n\nArgs:\n    engine (EngineDep): Dependency.\n\nReturns:\n    dict: Object containing lists of components, steps, and workflows.",
         "operationId": "get_seed_data_db_seed_data_get",
         "responses": {
           "200": {
@@ -2454,7 +3764,7 @@
     "/db/workflows": {
       "get": {
         "summary": "List Workflows (DB)",
-        "description": "Retrieves all workflow definitions from the repository.\n\nArgs:\n    engine (WorkflowEngine): Dependency.\n\nReturns:\n    List[dict]: List of workflow objects.",
+        "description": "Retrieves all workflow definitions from the repository.\n\nArgs:\n    engine (EngineDep): Dependency.\n\nReturns:\n    List[dict]: List of workflow objects.",
         "operationId": "get_workflows_db_workflows_get",
         "responses": {
           "200": {
@@ -2468,10 +3778,28 @@
         }
       }
     },
+    "/db/reset": {
+      "post": {
+        "summary": "Reset Db Legacy",
+        "description": "Legacy stub, functionality moved to Admin Router.",
+        "operationId": "reset_db_legacy_db_reset_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "deprecated": true
+      }
+    },
     "/db/preview_prompt/{step_id}": {
       "get": {
         "summary": "Preview Step Prompt",
-        "description": "Previews the prompt that would be generated for a specific step ID.\n\nArgs:\n    step_id (str): Step Identifier.\n    engine (WorkflowEngine): Dependency.\n\nReturns:\n    dict: Prompt structure (user, system, parts).\n\nRaises:\n    HTTPException: If prompt generation fails.",
+        "description": "Previews the prompt that would be generated for a specific step identifier.\n\nArgs:\n    step_id (str): Step Identifier.\n    engine (WorkflowEngine): Dependency.\n\nReturns:\n    dict: Prompt structure (user, system, parts).\n\nRaises:\n    HTTPException: If prompt generation fails.",
         "operationId": "preview_prompt_db_preview_prompt__step_id__get",
         "parameters": [
           {
@@ -2582,6 +3910,39 @@
         ],
         "title": "BannedPhraseRequest"
       },
+      "BatchCompletionRequest": {
+        "properties": {
+          "requests": {
+            "items": {
+              "$ref": "#/components/schemas/CompletionRequest"
+            },
+            "type": "array",
+            "title": "Requests",
+            "description": "List of requests to process in parallel."
+          }
+        },
+        "type": "object",
+        "required": [
+          "requests"
+        ],
+        "title": "BatchCompletionRequest"
+      },
+      "Body_citation_lookup_tools_citation_lookup_post": {
+        "properties": {
+          "queries": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Queries"
+          }
+        },
+        "type": "object",
+        "required": [
+          "queries"
+        ],
+        "title": "Body_citation_lookup_tools_citation_lookup_post"
+      },
       "Body_clone_step_builder_steps_clone_post": {
         "properties": {
           "source_step_id": {
@@ -2595,51 +3956,60 @@
         ],
         "title": "Body_clone_step_builder_steps_clone_post"
       },
-      "Body_extract_concepts_from_file_or_text_tools_extract_concepts_post": {
+      "Body_extract_concepts_from_file_or_text_tools_concept_extraction_post": {
         "properties": {
-          "file": {
-            "type": "string",
-            "format": "binary",
-            "title": "File",
-            "description": "Optional source file."
-          },
           "text": {
-            "type": "string",
-            "title": "Text",
-            "description": "Optional raw source text."
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          },
+          "file": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "binary"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File"
+          },
+          "llm_provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Llm Provider",
+            "default": "google"
           }
         },
         "type": "object",
-        "title": "Body_extract_concepts_from_file_or_text_tools_extract_concepts_post"
+        "title": "Body_extract_concepts_from_file_or_text_tools_concept_extraction_post"
       },
-      "Body_extract_document_text_tools_extract_text_post": {
+      "Body_extract_text_from_file_tools_text_extract_post": {
         "properties": {
           "file": {
             "type": "string",
             "format": "binary",
-            "title": "File",
-            "description": "The document to parse (PDF, DOCX, TXT). Max 10MB."
+            "title": "File"
           }
         },
         "type": "object",
         "required": [
           "file"
         ],
-        "title": "Body_extract_document_text_tools_extract_text_post"
-      },
-      "Body_lookup_citations_tools_citation_lookup_post": {
-        "properties": {
-          "text": {
-            "type": "string",
-            "title": "Text",
-            "description": "The content text to scan for citations."
-          }
-        },
-        "type": "object",
-        "required": [
-          "text"
-        ],
-        "title": "Body_lookup_citations_tools_citation_lookup_post"
+        "title": "Body_extract_text_from_file_tools_text_extract_post"
       },
       "Body_run_agent_agents__agent_name__run_post": {
         "properties": {
@@ -2680,6 +4050,19 @@
         ],
         "title": "Body_run_agent_agents__agent_name__run_post"
       },
+      "Body_scrape_url_tools_web_scrape_post": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "title": "Body_scrape_url_tools_web_scrape_post"
+      },
       "Body_upload_knowledge_base_admin_knowledge_base_upload_post": {
         "properties": {
           "file": {
@@ -2700,7 +4083,7 @@
           "workflow_id": {
             "type": "string",
             "title": "Workflow Id",
-            "description": "The ID of the workflow to modifying."
+            "description": "Target workflow ID."
           },
           "steps": {
             "items": {
@@ -2708,7 +4091,7 @@
             },
             "type": "array",
             "title": "Steps",
-            "description": "Values of step IDs to fuse."
+            "description": "List of step IDs to fuse."
           }
         },
         "type": "object",
@@ -2717,6 +4100,51 @@
           "steps"
         ],
         "title": "CompileRequest"
+      },
+      "CompletionRequest": {
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "title": "Prompt",
+            "description": "The primary prompt text."
+          },
+          "system_instruction": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "System Instruction",
+            "description": "Optional system instruction."
+          },
+          "model_strategy": {
+            "type": "string",
+            "title": "Model Strategy",
+            "description": "Strategy key (fast, deep, etc) or direct model name.",
+            "default": "fast"
+          },
+          "response_schema": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Response Schema",
+            "description": "Optional JSON Schema for structured output."
+          }
+        },
+        "type": "object",
+        "required": [
+          "prompt"
+        ],
+        "title": "CompletionRequest"
       },
       "ComponentCreate": {
         "properties": {
@@ -2903,7 +4331,7 @@
           "new_name": {
             "type": "string",
             "title": "New Name",
-            "description": "The name for the copied workflow."
+            "description": "Name for the copy."
           }
         },
         "type": "object",
@@ -2911,6 +4339,70 @@
           "new_name"
         ],
         "title": "CopyWorkflowRequest"
+      },
+      "CustomStepCreateRequest": {
+        "properties": {
+          "component_type": {
+            "type": "string",
+            "title": "Component Type",
+            "description": "Base component type (e.g. 'Judge', 'Analyst')."
+          },
+          "name_hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name Hint",
+            "description": "Optional name override."
+          }
+        },
+        "type": "object",
+        "required": [
+          "component_type"
+        ],
+        "title": "CustomStepCreateRequest"
+      },
+      "DimensionDefinition": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Unique dimension ID (e.g. 'analyysi')."
+          },
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "description": "Human readable default label."
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Explanation of what this measures."
+          },
+          "is_system": {
+            "type": "boolean",
+            "title": "Is System",
+            "description": "If true, is a core system dimension.",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "label"
+        ],
+        "title": "DimensionDefinition"
       },
       "GenerateBannedPhrasesRequest": {
         "properties": {
@@ -2975,18 +4467,24 @@
         "type": "object",
         "title": "IngestRequest"
       },
-      "LLMRequest": {
+      "LLMCallRequest": {
         "properties": {
-          "prompts": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "type": "array",
-            "title": "Prompts",
-            "description": "A list of conversation turn objects (e.g., [{'role': 'user', 'parts': ['Hello']}])"
+          "provider": {
+            "type": "string",
+            "title": "Provider",
+            "description": "Provider key (google, openai, mock)."
           },
-          "model": {
+          "mode": {
+            "type": "string",
+            "title": "Mode",
+            "description": "Strategy mode (fast, smart, etc)."
+          },
+          "prompt": {
+            "type": "string",
+            "title": "Prompt",
+            "description": "Input prompt text."
+          },
+          "system_instruction": {
             "anyOf": [
               {
                 "type": "string"
@@ -2995,15 +4493,45 @@
                 "type": "null"
               }
             ],
-            "title": "Model",
-            "description": "The specific model identifier (e.g. 'gemini-1.5-pro') to use for generation."
+            "title": "System Instruction",
+            "description": "Optional system context."
           }
         },
         "type": "object",
         "required": [
-          "prompts"
+          "provider",
+          "mode",
+          "prompt"
         ],
-        "title": "LLMRequest"
+        "title": "LLMCallRequest"
+      },
+      "LoginResponse": {
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/User"
+          },
+          "token_valid": {
+            "type": "boolean",
+            "title": "Token Valid"
+          },
+          "debug_msg": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Debug Msg"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user",
+          "token_valid"
+        ],
+        "title": "LoginResponse"
       },
       "ModelRegistryUpdate": {
         "properties": {
@@ -3075,6 +4603,210 @@
         ],
         "title": "ModelSettings"
       },
+      "Organization": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Unique Organization ID (e.g. 'nokia-v1')"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Display Name"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At",
+            "description": "ISO Timestamp"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "description": "Subscription status",
+            "default": true
+          },
+          "tier": {
+            "type": "string",
+            "title": "Tier",
+            "description": "Service Tier",
+            "default": "standard"
+          },
+          "contact_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Email",
+            "description": "Admin Contact"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "Organization"
+      },
+      "OrganizationCreate": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "tier": {
+            "type": "string",
+            "title": "Tier",
+            "default": "standard"
+          },
+          "contact_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Email"
+          },
+          "settings_override": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Settings Override"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "OrganizationCreate"
+      },
+      "OrganizationResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "tier": {
+            "type": "string",
+            "title": "Tier"
+          },
+          "contact_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Email"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "tier"
+        ],
+        "title": "OrganizationResponse"
+      },
+      "OrganizationUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "tier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tier"
+          },
+          "contact_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Email"
+          },
+          "settings_override": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Settings Override"
+          }
+        },
+        "type": "object",
+        "title": "OrganizationUpdate"
+      },
       "StepUpdateRequest": {
         "properties": {
           "name": {
@@ -3087,7 +4819,7 @@
               }
             ],
             "title": "Name",
-            "description": "New display name."
+            "description": "New step name."
           },
           "execution_config": {
             "anyOf": [
@@ -3100,11 +4832,185 @@
               }
             ],
             "title": "Execution Config",
-            "description": "Updated internal config (prompts, etc)."
+            "description": "Updated execution config."
           }
         },
         "type": "object",
         "title": "StepUpdateRequest"
+      },
+      "TokenPayload": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "title": "Token"
+          }
+        },
+        "type": "object",
+        "required": [
+          "token"
+        ],
+        "title": "TokenPayload"
+      },
+      "User": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email",
+            "description": "User email address"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name",
+            "description": "User display name"
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole",
+            "description": "Assigned permission role",
+            "default": "MEMBER"
+          },
+          "organization_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organization Id",
+            "description": "ID of the organization this user belongs to"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "description": "Is the account active?",
+            "default": true
+          },
+          "uid": {
+            "type": "string",
+            "title": "Uid",
+            "description": "Unique ID (matches Firebase UID if used)"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At",
+            "description": "ISO 8601 Timestamp"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By",
+            "description": "UID of the creator"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "uid",
+          "created_at"
+        ],
+        "title": "User"
+      },
+      "UserCreate": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email",
+            "description": "User email address"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name",
+            "description": "User display name"
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole",
+            "description": "Assigned permission role",
+            "default": "MEMBER"
+          },
+          "organization_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organization Id",
+            "description": "ID of the organization this user belongs to"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "description": "Is the account active?",
+            "default": true
+          },
+          "password": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 6
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Password",
+            "description": "Initial password"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By",
+            "description": "UID of the admin creating this user"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "title": "UserCreate",
+        "description": "Payload for creating a new user. \norganization_id is optional: if missing, inherits from creator."
+      },
+      "UserRole": {
+        "type": "string",
+        "enum": [
+          "ROOT",
+          "ADMIN",
+          "MANAGER",
+          "MEMBER",
+          "VIEWER"
+        ],
+        "title": "UserRole"
       },
       "ValidationError": {
         "properties": {
@@ -3144,12 +5050,12 @@
           "source_step": {
             "type": "string",
             "title": "Source Step",
-            "description": "The upstream step ID."
+            "description": "ID of the source step."
           },
           "target_step": {
             "type": "string",
             "title": "Target Step",
-            "description": "The downstream step ID."
+            "description": "ID of the target step."
           }
         },
         "type": "object",
@@ -3215,6 +5121,30 @@
           "name"
         ],
         "title": "WorkflowCreate"
+      },
+      "WorkflowCreateRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "The unique, human-readable name for the new workflow."
+          },
+          "steps": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Steps",
+            "description": "A sequential list of step configurations defining the workflow logic."
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "steps"
+        ],
+        "title": "WorkflowCreateRequest"
       },
       "WorkflowUpdate": {
         "properties": {
@@ -3319,7 +5249,7 @@
               }
             ],
             "title": "Steps",
-            "description": "New ordered list of steps."
+            "description": "New step sequence."
           },
           "ui_schema": {
             "anyOf": [
@@ -3332,7 +5262,7 @@
               }
             ],
             "title": "Ui Schema",
-            "description": "New layout data."
+            "description": "New UI metadata."
           },
           "default_model_mapping": {
             "anyOf": [
@@ -3347,7 +5277,7 @@
               }
             ],
             "title": "Default Model Mapping",
-            "description": "New model mapping."
+            "description": "Updated model mapping."
           }
         },
         "type": "object",
@@ -3358,7 +5288,7 @@
           "name": {
             "type": "string",
             "title": "Name",
-            "description": "The unique name for the new workflow."
+            "description": "Name of the new workflow."
           },
           "description": {
             "anyOf": [
@@ -3370,7 +5300,7 @@
               }
             ],
             "title": "Description",
-            "description": "A description of the workflow's purpose."
+            "description": "Optional description."
           },
           "steps": {
             "items": {
@@ -3378,20 +5308,8 @@
             },
             "type": "array",
             "title": "Steps",
-            "description": "An ordered list of step IDs to include in the workflow."
-          },
-          "ui_schema": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Ui Schema",
-            "description": "Layout coordinates for the frontend canvas."
+            "description": "List of step IDs.",
+            "default": []
           },
           "default_model_mapping": {
             "anyOf": [
@@ -3406,39 +5324,58 @@
               }
             ],
             "title": "Default Model Mapping",
-            "description": "Map of Step IDs to Model Strategy keys."
+            "description": "Initial model mapping.",
+            "default": {}
+          },
+          "ui_schema": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ui Schema",
+            "description": "UI Layout metadata.",
+            "default": {}
           }
         },
         "type": "object",
         "required": [
-          "name",
-          "steps"
+          "name"
         ],
         "title": "WorkflowCreateRequest"
       },
-      "backend__api__execution_router__WorkflowCreateRequest": {
+      "backend__models__auth__OrganizationCreate": {
         "properties": {
           "name": {
             "type": "string",
-            "title": "Name",
-            "description": "The unique, human-readable name for the new workflow."
+            "title": "Name"
           },
-          "steps": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "type": "array",
-            "title": "Steps",
-            "description": "A sequential list of step configurations defining the workflow logic."
+          "admin_email": {
+            "type": "string",
+            "format": "email",
+            "title": "Admin Email"
+          },
+          "admin_password": {
+            "type": "string",
+            "title": "Admin Password"
+          },
+          "admin_name": {
+            "type": "string",
+            "title": "Admin Name"
           }
         },
         "type": "object",
         "required": [
           "name",
-          "steps"
+          "admin_email",
+          "admin_password",
+          "admin_name"
         ],
-        "title": "WorkflowCreateRequest"
+        "title": "OrganizationCreate"
       }
     }
   }
