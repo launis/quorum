@@ -101,6 +101,11 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 ### 3.3 Audit Logs
 - [ ] **Audit Trail**: Record critical actions (Settings change, User creation) to `audit_logs` table.
 
+### 3.4 Enterprise Architecture (Best Practices)
+- [ ] **Invitation Flow**: Replace direct user creation with Email Invitation + Password Set flow.
+- [ ] **Soft Deletes**: Implement `deleted_at` timestamps instead of hard deletions for data recovery.
+- [ ] **Billing Limits**: Enforce User/Workflow quotas based on Organization Tier.
+
 ---
 
 ## 📍 Phase 4: Power Users (Platform Features)

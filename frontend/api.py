@@ -8,9 +8,12 @@ class APIClient:
     def __init__(self, base_url: str):
         self.base_url = base_url
 
-    def get_workflows(self):
+    def get_workflows(self, token=None):
         try:
-            response = requests.get(f"{self.base_url}/db/workflows", timeout=10)
+            headers = {}
+            if token:
+                headers["Authorization"] = f"Bearer {token}"
+            response = requests.get(f"{self.base_url}/builder/workflows", headers=headers, timeout=10)
             response.raise_for_status()
             return response.json()
         except Exception as e:
@@ -140,52 +143,58 @@ class APIClient:
             logger.error(f"Builder Config Error: {e}")
             return []
 
-    def get_builder_workflows(self):
+    def get_builder_workflows(self, token: str):
         try:
-            res = requests.get(f"{self.base_url}/builder/workflows", timeout=10)
+            headers = {"Authorization": f"Bearer {token}"}
+            res = requests.get(f"{self.base_url}/builder/workflows", headers=headers, timeout=10)
             return res.json() if res.status_code == 200 else []
         except Exception as e:
             logger.error(f"Builder List Error: {e}")
             return []
 
-    def get_builder_workflow(self, workflow_id):
+    def get_builder_workflow(self, workflow_id, token: str):
         try:
-            res = requests.get(f"{self.base_url}/builder/workflows/{workflow_id}", timeout=10)
+            headers = {"Authorization": f"Bearer {token}"}
+            res = requests.get(f"{self.base_url}/builder/workflows/{workflow_id}", headers=headers, timeout=10)
             return res.json() if res.status_code == 200 else None
         except Exception as e:
             logger.error(f"Builder Detail Error: {e}")
             return None
 
-    def create_builder_workflow(self, payload):
+    def create_builder_workflow(self, payload, token: str):
         try:
-            res = requests.post(f"{self.base_url}/builder/workflows", json=payload, timeout=10)
+            headers = {"Authorization": f"Bearer {token}"}
+            res = requests.post(f"{self.base_url}/builder/workflows", json=payload, headers=headers, timeout=10)
             res.raise_for_status()
             return res.json()
         except Exception as e:
            logger.error(f"Builder Create Error: {e}")
            raise e
 
-    def update_builder_workflow(self, workflow_id, payload):
+    def update_builder_workflow(self, workflow_id, payload, token: str):
         try:
-            res = requests.put(f"{self.base_url}/builder/workflows/{workflow_id}", json=payload, timeout=10)
+            headers = {"Authorization": f"Bearer {token}"}
+            res = requests.put(f"{self.base_url}/builder/workflows/{workflow_id}", json=payload, headers=headers, timeout=10)
             res.raise_for_status()
             return res.json()
         except Exception as e:
            logger.error(f"Builder Update Error: {e}")
            raise e
 
-    def delete_builder_workflow(self, workflow_id):
+    def delete_builder_workflow(self, workflow_id, token: str):
         try:
-            res = requests.delete(f"{self.base_url}/builder/workflows/{workflow_id}", timeout=10)
+            headers = {"Authorization": f"Bearer {token}"}
+            res = requests.delete(f"{self.base_url}/builder/workflows/{workflow_id}", headers=headers, timeout=10)
             res.raise_for_status()
             return res.json()
         except Exception as e:
            logger.error(f"Builder Delete Error: {e}")
            raise e
            
-    def copy_builder_workflow(self, workflow_id: str, new_name: str):
+    def copy_builder_workflow(self, workflow_id: str, new_name: str, token: str):
         try:
-            res = requests.post(f"{self.base_url}/builder/workflows/{workflow_id}/copy", json={"new_name": new_name}, timeout=10)
+            headers = {"Authorization": f"Bearer {token}"}
+            res = requests.post(f"{self.base_url}/builder/workflows/{workflow_id}/copy", json={"new_name": new_name}, headers=headers, timeout=10)
             res.raise_for_status()
             return res.json()
         except Exception as e:

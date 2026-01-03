@@ -28,9 +28,9 @@ from frontend.views.org_admin_view import render_org_admin_view
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 api_client = APIClient(BACKEND_URL)
 
-def get_workflow_map():
+def get_workflow_map(token=None):
     try:
-        wfs = api_client.get_workflows()
+        wfs = api_client.get_workflows(token=token)
         return {w['id']: w for w in wfs} if wfs else {}
     except: return {}
 
@@ -135,26 +135,20 @@ def main():
         
         st.divider()
         if st.button("Logout"):
-            st.session_state.user = None
+            # Clear all session state to prevent data bleeding between users
+            st.session_state.clear()
             st.rerun()
 
         st.caption(f"Session: `{st.session_state.get('session_id', '???')[:8]}...`")
     
-    # Fetch Data
-    workflow_options = get_workflow_map()
+    # Fetch Data with Token
+    workflow_options = get_workflow_map(token=st.session_state.get('auth_token'))
 
     # Routing
     if page == "Dashboard":
          render_dashboard(api_client)
     elif page == "Assessment":
         # Pass backend_url if needed by view, though we are moving away from it.
-        # Checking audit_view signature: render_audit_view(api_client, backend_url, workflow_options)
-        # Wait, audit_view signature might still require backend_url? 
-        # Let's check imports.
-        # Assuming audit_view uses render_audit_view(api_client) based on previous context.
-        # But if it fails, I will fix.
-        # The file viewed previously (Step 138) showed: render_audit_view(api_client, backend_url, workflow_options)
-        # So I will pass them.
         render_audit_view(api_client, BACKEND_URL, workflow_options)
         
     elif page == "Workflow Builder":

@@ -3,7 +3,7 @@ from typing import List, Annotated, Optional
 from pydantic import BaseModel
 
 from backend.dependencies import AuthServiceDep, CurrentUserDep
-from backend.models.auth import User, UserCreate, TokenData, UserRole, Organization, OrganizationCreate
+from backend.models.auth import User, UserCreate, UserUpdate, TokenData, UserRole, Organization, OrganizationCreate
 
 router = APIRouter(prefix="/auth", tags=["Authentication & Users"])
 
@@ -116,10 +116,50 @@ async def list_users(
         # Managers see Users they created OR just all in org?
         # Often easier if they see all testers/viewers in Org, but let's stick to created_by for strictness OR strict hierarchy
         # Simpler SaaS Model: Manager sees all Testers/Viewers in their Org.
-        return [u for u in org_users if u.role in [UserRole.TESTER, UserRole.VIEWER, UserRole.MANAGER]]
+        return [u for u in org_users if u.role in [UserRole.MEMBER, UserRole.VIEWER, UserRole.MANAGER]]
         
     # Testers/Viewers see nobody
     return [requester]
+
+@router.delete("/users/{uid}")
+async def delete_user(
+    uid: str,
+    current_user: CurrentUserDep,
+    auth_service: AuthServiceDep
+):
+    """
+    Delete a user.
+    Requires Role: ROOT or ADMIN (within Org).
+    Enforces Last Admin Protection.
+    """
+    try:
+        auth_service.delete_user(current_user.uid, uid)
+        return {"status": "deleted", "uid": uid}
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except ValueError as e:
+        # Business logic errors (Last Admin) usually 400
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.patch("/users/{uid}", response_model=User)
+async def update_user(
+    uid: str,
+    user_update: UserUpdate,
+    current_user: CurrentUserDep,
+    auth_service: AuthServiceDep
+):
+    """
+    Update a user (Role, Display Name, etc).
+    Requires Role: ROOT or ADMIN (within Org).
+    Enforces Last Admin Protection if demoting an Admin.
+    """
+    try:
+        updated_user = auth_service.update_user(current_user.uid, uid, user_update)
+        return updated_user
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/me", response_model=User)
 async def get_my_profile(

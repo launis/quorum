@@ -143,6 +143,7 @@ async def scrape_url(url: str = Body(..., embed=True)):
 )
 async def citation_lookup(
     db: DatabaseDep,
+    registry: RegistryDep,
     queries: List[str] = Body(..., embed=True)
 ):
     """
@@ -153,8 +154,11 @@ async def citation_lookup(
         from backend.dependencies import get_async_repository
         from backend.llm.provider import LLMFactory
         
+        # Strict Resolution: Use 'smart' strategy for citation analysis
+        config = await registry.resolve_model_config('smart')
+        
         repo = get_async_repository(db)
-        provider = LLMFactory.create_provider("google", "gemini-1.5-flash")
+        provider = LLMFactory.create_provider("google", config['model_name'])
         
         kb_service = KnowledgeBaseService(repo, llm_provider=provider)
         

@@ -2,9 +2,10 @@ from typing import Any, Optional, Type
 import os
 from backend.core.component import BaseComponent
 from backend.models.state import WorkflowState
-from backend.llm.provider import LLMFactory, LLMProvider
+from backend.llm.provider import LLMFactory, LLMProvider, UnconfiguredProvider
 from pydantic import BaseModel
 import logging
+
 
 logger = logging.getLogger(__name__)
 
@@ -35,22 +36,18 @@ class BaseAgent(BaseComponent):
             model (Optional[str]): The model identifier (e.g. 'gemini-1.5-pro').
             provider (Optional[str]): The provider (e.g. 'google').
         """
-        if model and "gemini" in model.lower():
-             logger.warning(f"[BaseAgent] Hardcoded 'gemini' detected in model init: {model}")
-             
         self.model = model
         self.provider_type = provider or "vertex_ai"
         
         # Ensure LLMProvider is ALWAYS initialized (Strict Mode)
-        # Start with the provided model, or a safe default if not yet configured.
-        # The AgentRegistry/PipelineRunner will likely call set_model() later,
-        # but we must guarantee valid state on init.
-        target_model = model or "gemini-1.5-flash"
+        # If no model provided, Factory returns UnconfiguredProvider (Execution Trap).
+        # The AgentRegistry/PipelineRunner MUST call set_model() before execution.
+        target_model = model
         
         try:
             self.llm_provider: LLMProvider = LLMFactory.create_provider(self.provider_type, target_model)
         except Exception as e:
-            # Fallback for extreme cases (e.g. during very early boostrap if factory fails)
+            # Fallback for extreme cases (should be caught by UnconfiguredProvider logic now)
             logger.error(f"[BaseAgent] Failed to init provider: {e}. using Mock.")
             self.llm_provider = LLMFactory.create_provider("mock", "mock-fallback")
 
@@ -68,20 +65,27 @@ class BaseAgent(BaseComponent):
             
         current_provider_type = self.provider_type or "vertex_ai"
         
-        if self.llm_provider:
+        # TRAP CHECK: If current is Unconfigured, we MUST replace it.
+        is_unconfigured = isinstance(self.llm_provider, UnconfiguredProvider)
+        
+        if self.llm_provider and not is_unconfigured:
              # Update existing provider
-             self.llm_provider.model_name = model_name
-             # Update provider instance wrapper if needed (LiteLLMProvider generally just needs model_name field update if implemented setters)
-             # However, provider might store API keys specific to model? Usually not.
-             # Safest is to recreate or update property.
              if hasattr(self.llm_provider, 'model_name'):
                  self.llm_provider.model_name = model_name
+             else:
+                 # Provider doesn't support dynamic update, recreate
+                 logger.debug("[BaseAgent] Provider immutable, recreating...")
+                 self._create_provider(current_provider_type, model_name)
         else:
-             # Create new provider (Should not happen with new init logic, but safe guard)
-             try:
-                 self.llm_provider = LLMFactory.create_provider(current_provider_type, model_name)
-             except Exception as e:
-                 logger.error(f"[BaseAgent] Failed to create provider in set_model: {e}")
+             # Create new provider (Replaces UnconfiguredProvider)
+             self._create_provider(current_provider_type, model_name)
+
+    def _create_provider(self, provider_type: str, model_name: str):
+        try:
+             self.llm_provider = LLMFactory.create_provider(provider_type, model_name)
+             logger.debug(f"[BaseAgent] Provider initialized with {model_name} (Type: {provider_type})")
+        except Exception as e:
+             logger.error(f"[BaseAgent] Failed to create provider in set_model: {e}")
 
     async def _update_state(self, state: WorkflowState, response_data: Any, output_key: Optional[str] = None, **kwargs) -> WorkflowState:
         """

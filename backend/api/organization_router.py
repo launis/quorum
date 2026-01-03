@@ -6,7 +6,7 @@ from pydantic import BaseModel
 # Correct Service Imports
 from backend.services.auth import AuthService 
 from backend.models.auth import UserRole, TokenData, Organization 
-from backend.dependencies import get_async_repository, CurrentUserDep 
+from backend.dependencies import get_async_repository, CurrentUserDep, AuthServiceDep
 from backend.database.repository import AbstractWorkflowRepository
 
 # --- Pydantic Models ---
@@ -170,7 +170,8 @@ async def update_organization(
 async def delete_organization(
     org_id: str,
     user: TokenData = Depends(AuthService.require_role(UserRole.ROOT)),
-    repo: AbstractWorkflowRepository = Depends(get_async_repository)
+    repo: AbstractWorkflowRepository = Depends(get_async_repository),
+    auth_service: AuthService = Depends(AuthServiceDep)
 ):
     """
     Delete an organization.
@@ -183,9 +184,21 @@ async def delete_organization(
             detail="Cannot delete System Organization."
         )
 
+    # 1. Check Existence
     existing = await repo.get_organization(org_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Organization not found.")
 
-    await repo.delete_organization(org_id)
+    # 2. Delete Users & Org Entity (AuthService)
+    # This also enforces constraints like checking if org is system (redundant but safe)
+    try:
+        auth_service.delete_organization(user.uid, org_id)
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    # 3. Cascade Delete Data (Workflows/Executions - Clean up orphan data)
+    await repo.delete_org_data(org_id)
+    
     return None

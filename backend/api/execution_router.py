@@ -65,7 +65,8 @@ async def create_workflow(
 async def execute_workflow(
     request: Request, 
     background_tasks: BackgroundTasks, 
-    engine: EngineDep
+    engine: EngineDep,
+    current_user: CurrentUserDep
 ):
     """
     Initiates a new workflow execution asynchronously. 
@@ -75,6 +76,7 @@ async def execute_workflow(
         request (Request): The raw FastAPI request (for parsing form data).
         background_tasks (BackgroundTasks): Logic for handling async operations.
         engine (WorkflowEngine): The workflow engine dependency.
+        current_user (CurrentUserDep): The authenticated user initiating the run.
 
     Returns:
         dict: The status and execution_id.
@@ -96,7 +98,14 @@ async def execute_workflow(
             content = await value.read()
             files_map[key] = (value.filename, content)
 
-    execution_id = await engine.create_execution(workflow_id, inputs, files=files_map)
+    # Inject User Identity into Execution Record
+    execution_id = await engine.create_execution(
+        workflow_id=workflow_id, 
+        inputs=inputs, 
+        files=files_map,
+        organization_id=current_user.organization_id,
+        user_id=current_user.uid
+    )
     
     # Fetch actual text inputs from DB for the runner
     rec = await engine.repository.get_execution(execution_id)
@@ -104,7 +113,7 @@ async def execute_workflow(
     
     # DEBUG: Verify inputs made it
     input_summary = {k: len(str(v)) for k, v in cleaned_inputs.items()}
-    logger.info(f"[Router] Triggering execution {execution_id}. Input sizes: {input_summary}")
+    logger.info(f"[Router] Triggering execution {execution_id} for User {current_user.uid} (Org: {current_user.organization_id}). Input sizes: {input_summary}")
     
     background_tasks.add_task(engine.run_execution, execution_id, cleaned_inputs)
     
@@ -124,10 +133,18 @@ async def get_recent_executions(
     """
     Retrieves a list of the most recent workflow executions (Scoped by Org).
     """
-    # Root sees all (pass None), others see scoped
-    scope_id = current_user.organization_id if current_user.role != UserRole.ROOT else None
+    # 1. Tenant Scope (Root sees all, others confined to Org)
+    scope_org_id = current_user.organization_id if current_user.role != UserRole.ROOT else None
     
-    all_execs = await engine.repository.get_all_executions(organization_id=scope_id)
+    # 2. User Scope (Members see only own, Managers/Admins see all in Org)
+    scope_user_id = None
+    if current_user.role == UserRole.MEMBER:
+        scope_user_id = current_user.uid
+    
+    all_execs = await engine.repository.get_all_executions(
+        organization_id=scope_org_id,
+        user_id=scope_user_id
+    )
     if not all_execs: return []
     
     if status:

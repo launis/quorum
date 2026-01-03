@@ -104,7 +104,7 @@ class WorkflowEngine:
         })
         return workflow_id
 
-    async def create_execution(self, workflow_id: Any, inputs: Dict[str, Any], files: Optional[Dict[str, tuple]] = None, organization_id: Optional[str] = None) -> str:
+    async def create_execution(self, workflow_id: Any, inputs: Dict[str, Any], files: Optional[Dict[str, tuple]] = None, organization_id: Optional[str] = None, user_id: Optional[str] = None) -> str:
         """
         Initializes a new execution record with processed inputs and files.
         """
@@ -128,7 +128,8 @@ class WorkflowEngine:
             "inputs": final_inputs,
             "inputs": final_inputs,
             "logs": [],
-            "organization_id": organization_id
+            "organization_id": organization_id,
+            "user_id": user_id
         })
         return execution_id
 

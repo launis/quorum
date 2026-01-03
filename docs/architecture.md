@@ -87,3 +87,26 @@ This allows changing the *behavior* (prompts, order) without redeploying code, w
 *   **Models:** Gemini 2.5 (Flash/Pro) - Validated for Hamina
 *   **PII:** Microsoft Presidio
 *   **Causal Inference:** Microsoft DoWhy
+
+## Identity & Security Architecture
+
+### 1. Multi-Tenancy Model
+The system uses a **Strictly Scoped Multi-Tenancy** model where every user and resource belongs to a specific `organization_id`.
+
+*   **Tenant Isolation**: Data access is filtered at the Repository layer by `organization_id`.
+*   **System Organization**: A special "God Tenant" (`id="system"`) exists solely for Platform Administration.
+
+### 2. System Organization Logic
+To maintain architectural simplicity and strict security boundaries:
+
+*   **Exclusivity**: The "System" organization is reserved **strictly** for users with the `ROOT` role.
+*   **No "System Roles"**: There are no separate `SYSTEM_ADMIN` or `SYSTEM_MEMBER` roles. Platform authority is derived from the `ROOT` role itself, not the organization membership.
+*   **Immutability**: The System Organization and the primary Seeded Root user cannot be deleted.
+
+### 3. Role Hierarchy
+Permissions are hierarchical:
+1.  **ROOT**: Platform Owner. Can manage all Organizations, Users, and System Config.
+2.  **ADMIN**: Organization Owner. Can manage Users and Workflows within their own Organization.
+3.  **MANAGER**: Technical Lead. Can configure Workflows/Prompts but cannot manage Users.
+4.  **MEMBER**: Standard User. Can execute Workflows.
+5.  **VIEWER**: Read-Only access.

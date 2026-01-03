@@ -52,7 +52,7 @@ class AbstractWorkflowRepository(ABC):
     async def create_workflow(self, workflow_data: Dict[str, Any]) -> Union[int, str]: pass
 
     @abstractmethod
-    async def get_all_workflows(self, organization_id: Optional[str] = None) -> List[Dict[str, Any]]: pass
+    async def get_all_workflows(self, organization_id: Optional[str] = None, role: Optional[str] = None) -> List[Dict[str, Any]]: pass
 
     @abstractmethod
     async def update_workflow(self, workflow_id: str, updates: Dict[str, Any]): pass
@@ -111,6 +111,9 @@ class AbstractWorkflowRepository(ABC):
 
     @abstractmethod
     async def delete_organization(self, org_id: str): pass
+
+    @abstractmethod
+    async def delete_org_data(self, org_id: str): pass
 
 
 class TinyDBRepository(AbstractWorkflowRepository):
@@ -202,24 +205,29 @@ class TinyDBRepository(AbstractWorkflowRepository):
     async def create_workflow(self, workflow_data: Dict[str, Any]) -> Union[int, str]:
         return await self._run(self.workflows.insert, workflow_data)
 
-    async def get_all_workflows(self, organization_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    async def get_all_workflows(self, organization_id: Optional[str] = None, role: Optional[str] = None) -> List[Dict[str, Any]]:
         def _get():
             all_wfs = self.workflows.all()
-            if not organization_id:
-                # If no org specified (e.g. public endpoint logic or strict system view), 
-                # currently we return all for backward compatibility or just system ones.
-                # BETTER SAAS LOGIC: If no org_id, return ONLY System workflows (org_id is None)
-                # But to keep current code working (which assumes getting seed data), we might need to return all?
-                # Let's pivot: If org_id is None, return ALL (Root view).
-                # If org_id provided, filter.
-                return all_wfs
             
-            # Filter: System Workflows (None) + Specific Tenant Workflows
+            # Root View: See EVERYTHING if filtering by system/root
+            if role == "ROOT":
+                 return all_wfs
+
+            # Tenant View
             filtered = []
             for wf in all_wfs:
                 wf_org = wf.get('organization_id')
-                if wf_org is None or wf_org == "SYSTEM" or wf_org == organization_id:
+                is_system = (wf_org is None or wf_org == "system")
+                is_public = wf.get('is_public', False)
+                
+                # 1. Own Org Workflows
+                if organization_id and wf_org == organization_id:
                     filtered.append(wf)
+                
+                # 2. System Workflows (Public Only, unless Root handled above)
+                elif is_system and is_public:
+                    filtered.append(wf)
+                    
             return filtered
             
         return await self._run(_get)
@@ -253,14 +261,19 @@ class TinyDBRepository(AbstractWorkflowRepository):
             self.executions.update(updates, Q.execution_id == str(execution_id))
         await self._run(_update)
 
-    async def get_all_executions(self, organization_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    async def get_all_executions(self, organization_id: Optional[str] = None, user_id: Optional[str] = None) -> List[Dict[str, Any]]:
         def _get():
             all_execs = self.executions.all()
-            if not organization_id:
-                return all_execs # Root view
             
-            # Tenant view: Only their executions
-            return [e for e in all_execs if e.get('organization_id') == organization_id]
+            # 1. Tenant Filter
+            if organization_id:
+                all_execs = [e for e in all_execs if e.get('organization_id') == organization_id]
+            
+            # 2. User Filter (Member Role)
+            if user_id:
+                all_execs = [e for e in all_execs if e.get('user_id') == user_id]
+                
+            return all_execs
         return await self._run(_get)
 
     # --- Config ---
@@ -326,6 +339,17 @@ class TinyDBRepository(AbstractWorkflowRepository):
             Q = Query()
             self.organizations.remove(Q.id == org_id)
         await self._run(_delete)
+
+    async def delete_org_data(self, org_id: str):
+        """
+        Cascading delete for organization data (Workflows, Executions).
+        """
+        def _delete_data():
+            # 1. Delete Workflows
+            self.workflows.remove(Query().organization_id == org_id)
+            # 2. Delete Executions
+            self.executions.remove(Query().organization_id == org_id)
+        await self._run(_delete_data)
 
 # Backward compatibility alias
 WorkflowRepository = TinyDBRepository

@@ -26,8 +26,10 @@ def render_workflow_builder(api_client):
             st.session_state['builder_mode'] = 'E'
             st.rerun()
 
+        token = st.session_state.get('auth_token')
+        
         # Fetch Workflows
-        wfs = api_client.get_builder_workflows()
+        wfs = api_client.get_builder_workflows(token=token)
         
         if wfs:
             # Table Layout
@@ -35,7 +37,9 @@ def render_workflow_builder(api_client):
                 with st.container():
                      c1, c2, c3, c4 = st.columns([4, 1, 1, 1])
                      with c1:
-                         st.markdown(f"**{wf.get('name', 'Untitled')}** (`{wf.get('id')}`)")
+                         # Append Visibility Badge
+                         vis_icon = "🌍" if wf.get('is_public') else "🔒"
+                         st.markdown(f"**{wf.get('name', 'Untitled')}** {vis_icon} (`{wf.get('id')}`)")
                          st.caption(f"{len(wf.get('steps', []))} steps")
                      with c2:
                          if st.button("Edit", key=f"edit_{wf['id']}"):
@@ -49,7 +53,7 @@ def render_workflow_builder(api_client):
                      with c4:
                           if st.button("Delete", key=f"del_{wf['id']}"):
                                try:
-                                   api_client.delete_builder_workflow(wf['id'])
+                                   api_client.delete_builder_workflow(wf['id'], token=token)
                                    st.success("Deleted!")
                                    st.rerun()
                                except Exception as e:
@@ -62,7 +66,7 @@ def render_workflow_builder(api_client):
                         col_conf, col_cancel = st.columns(2)
                         if col_conf.button("Confirm Copy", key=f"conf_copy_{wf['id']}"):
                             try:
-                                api_client.copy_builder_workflow(wf['id'], new_name)
+                                api_client.copy_builder_workflow(wf['id'], new_name, token=token)
                                 st.success("Copied!")
                                 st.session_state[f'show_copy_{wf["id"]}'] = False
                                 st.rerun()
@@ -79,6 +83,7 @@ def render_workflow_builder(api_client):
     elif st.session_state['builder_mode'] == 'E':
         target_id = st.session_state.get('builder_wf_id')
         is_new = target_id is None
+        token = st.session_state.get('auth_token')
         
         # Fetch available strategies
         available_strategies = api_client.get_model_strategies()
@@ -87,7 +92,7 @@ def render_workflow_builder(api_client):
         # Load Data if editing
         if 'editor_wf_data' not in st.session_state or st.session_state.get('editor_wf_id_ref') != target_id:
              if not is_new:
-                 wf = api_client.get_builder_workflow(target_id)
+                 wf = api_client.get_builder_workflow(target_id, token=token)
                  if wf:
                      st.session_state['editor_wf_data'] = wf
                      st.session_state['editor_wf_id_ref'] = target_id
@@ -126,20 +131,30 @@ def render_workflow_builder(api_client):
         with c_head_2:
              if st.button("Save Changes", type="primary"):
                  try:
+                     chk_key = f"chk_public_{wf_data.get('id', 'new')}"
+                     # Use widget state directly if available (handles pre-render update lag)
+                     is_public_val = st.session_state.get(chk_key, wf_data.get('is_public', False))
+                     
                      payload = {
                          "name": wf_data['name'],
                          "description": wf_data.get('description', ''),
                          "steps": wf_data['steps'],
                          "default_model_mapping": wf_data['default_model_mapping'],
-                         "ui_schema": wf_data.get('ui_schema', {})
+                         "ui_schema": wf_data.get('ui_schema', {}),
+                         "is_public": is_public_val
                      }
                      if is_new:
-                         res = api_client.create_builder_workflow(payload)
+                         res = api_client.create_builder_workflow(payload, token=token)
                          target_id = res['id']
                          st.session_state['builder_wf_id'] = target_id
+                         # Update Cache for new WF
+                         st.session_state['editor_wf_data'] = res
+                         st.session_state['editor_wf_id_ref'] = target_id
                          st.success(f"Created {target_id}!")
                      else:
-                         api_client.update_builder_workflow(target_id, payload)
+                         api_client.update_builder_workflow(target_id, payload, token=token)
+                         # Update Cache for existing WF to reflect changes immediately
+                         st.session_state['editor_wf_data'].update(payload)
                          st.success("Saved!")
                      st.rerun()
                  except Exception as e:
@@ -151,6 +166,17 @@ def render_workflow_builder(api_client):
         with meta_tab:
             wf_data['name'] = st.text_input("Name", wf_data.get('name', ''))
             wf_data['description'] = st.text_area("Description", wf_data.get('description', ''))
+            
+            # Root Only: Public Toggle
+            user = st.session_state.get('user', {})
+            if user and user.get('role') == "ROOT":
+                # Use dynamic key to prevent state bleeding between workflows
+                chk_key = f"chk_public_{wf_data.get('id', 'new')}"
+                wf_data['is_public'] = st.checkbox("Public (System Template)", value=wf_data.get('is_public', False), key=chk_key)
+            else:
+                 # Read only view if set
+                 if wf_data.get('is_public', False):
+                     st.info("🌍 Public System Template")
 
         with edit_tab:
             # Fetch Available Agents
@@ -409,14 +435,16 @@ def render_workflow_builder(api_client):
 
                             
                             # Save immediately to persist
+                            # Save immediately to persist
                             payload = {
                                 "name": wf_data['name'],
                                 "description": wf_data.get('description', ''),
                                 "steps": wf_data['steps'],
                                 "default_model_mapping": wf_data['default_model_mapping'],
-                                "ui_schema": wf_data.get('ui_schema', {})
+                                "ui_schema": wf_data.get('ui_schema', {}),
+                                "is_public": wf_data.get('is_public', False)
                             }
-                            api_client.update_builder_workflow(target_id, payload)
+                            api_client.update_builder_workflow(target_id, payload, token=token)
                             
                             st.success(f"Fusion Complete! Replaced {len(selected_fusion)} steps with 'step_panel'.")
                             time.sleep(1)

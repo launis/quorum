@@ -266,6 +266,18 @@ class MockProvider(LLMProvider):
             token_usage={"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150}
         )
 
+class UnconfiguredProvider(LLMProvider):
+    """
+    Placeholder provider for agents initialized without a specific model configuration.
+    Raises a strict runtime error if execution is attempted before configuration.
+    """
+    def generate(self, *args, **kwargs) -> LLMResponse:
+        raise RuntimeError(
+            "CRITICAL: Agent attempted execution with an UNCONFIGURED model. "
+            "The system requires Strategy Resolution (DB Config) before execution. "
+            "Check PipelineRunner or AgentRegistry model injection."
+        )
+
 class LLMFactory:
     """
     Factory class to instantiate the appropriate LLMProvider based on configuration.
@@ -305,19 +317,16 @@ class LLMFactory:
         # Placeholder for BYOK (Bring Your Own Key) Logic
         tenant_api_key = None
         if org_id:
-            # In a future iteration, checking for tenant-specific overrides happens here.
-            # Example:
-            # tenant_config = get_tenant_config(org_id)
-            # if tenant_config.has_custom_key(provider_type):
-            #     tenant_api_key = tenant_config.get_key(provider_type)
             logger.info(f"[LLMFactory] Organization Context Found: {org_id}. Checking for BYOK credentials... (Using Global Fallback for now)")
             pass
         
         if settings.use_mock_llm:
             return MockProvider(model_name=model_name or "mock-default")
 
-        if not provider_type or not model_name:
-             raise ValueError("[LLMFactory] provider_type and model_name MUST be provided from DB config. No defaults allowed.")
+        # STRICT CONFIGURATION: If no model provided, return Unconfigured (Trap).
+        if not model_name:
+             logger.warning("[LLMFactory] No model_name provided. Returning UnconfiguredProvider (Execution Trap).")
+             return UnconfiguredProvider()
 
         target_model = model_name
         api_key = None
@@ -334,7 +343,8 @@ class LLMFactory:
                 api_key = os.getenv("OPENAI_API_KEY")
         
         if not target_model:
-             raise ValueError("[LLMFactory] Failed to resolve target_model. Check logic.") 
+             # Should be caught by top check, but safe guard
+             return UnconfiguredProvider()
 
         msg_key = "PRESENT" if api_key else "MISSING"
         source_label = f"Tenant-{org_id}" if (org_id and tenant_api_key) else "Global"

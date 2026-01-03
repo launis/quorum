@@ -1,0 +1,27 @@
+import json
+import os
+
+db_path = r'c:\Users\risto\OneDrive\quorum\data\db_mock.json'
+
+if not os.path.exists(db_path):
+    print(f"Error: {db_path} not found")
+    exit(1)
+
+try:
+    with open(db_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    
+    users = data.get('users', {})
+    if isinstance(users, dict):
+        print(f"Found {len(users)} users (dict)")
+        for key, user in users.items():
+            print(f"User: {user.get('uid', 'unknown')} | Org: {user.get('organization_id', 'unknown')} | Role: {user.get('role', 'unknown')}")
+    elif isinstance(users, list):
+        print(f"Found {len(users)} users (list)")
+        for user in users:
+            print(f"User: {user.get('uid', 'unknown')} | Org: {user.get('organization_id', 'unknown')} | Role: {user.get('role', 'unknown')}")
+    else:
+        print("Users key not found or empty")
+
+except Exception as e:
+    print(f"Error reading DB: {e}")

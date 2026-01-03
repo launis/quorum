@@ -10,7 +10,7 @@ import logging
 from backend.database.exporter import export_db_to_files
 from backend.database.seeder import seed_database
 from backend.database.wrapper import AbstractDatabase
-from backend.dependencies import DatabaseDep, get_db_client_dep, LLMHandlerDep
+from backend.dependencies import DatabaseDep, get_db_client_dep, LLMHandlerDep, get_agent_registry_dep
 from backend.models import domain as schemas
 
 logger = logging.getLogger(__name__)
@@ -741,11 +741,18 @@ def delete_dimension(dim_id: str, db: DatabaseDep):
     summary="Validate Flow",
     response_description="Validation Report."
 )
-def validate_flow(workflow: WorkflowCreate, db: DatabaseDep):
+async def validate_flow(
+    workflow: WorkflowCreate, 
+    db: DatabaseDep,
+    registry: Annotated[Any, Depends(get_agent_registry_dep)]
+):
     """Dry run validation."""
     from backend.core.factory import AgentFactory
+    
+    # Strict Resolution: Use 'fast' strategy for validation dry-run
     try:
-        agents_map = AgentFactory.create_agents_map(initial_model="gemini-1.5-flash")
+        config = await registry.resolve_model_config('fast')
+        agents_map = AgentFactory.create_agents_map(initial_model=config['model_name'])
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Factory Error: {e}")
     

@@ -7,7 +7,8 @@ import copy
 from datetime import datetime
 from tinydb import Query
 
-from backend.dependencies import EngineDep, get_engine
+from backend.dependencies import EngineDep, get_engine, CurrentUserDep, AuthServiceDep
+from backend.models.auth import UserRole
 from backend.core.engine import WorkflowEngine
 
 router = APIRouter(
@@ -24,6 +25,7 @@ class WorkflowCreateRequest(BaseModel):
     steps: Annotated[List[str], Field(description="List of step IDs.")] = []
     default_model_mapping: Annotated[Optional[Dict[str, str]], Field(description="Initial model mapping.")] = {}
     ui_schema: Annotated[Optional[Dict[str, Any]], Field(description="UI Layout metadata.")] = {}
+    is_public: Annotated[bool, Field(description="If True, visible to all tenants (System Only).")] = False
 
 class WorkflowUpdateRequest(BaseModel):
     name: Annotated[Optional[str], Field(description="New name.")] = None
@@ -31,6 +33,7 @@ class WorkflowUpdateRequest(BaseModel):
     steps: Annotated[Optional[List[str]], Field(description="New step sequence.")] = None
     ui_schema: Annotated[Optional[Dict[str, Any]], Field(description="New UI metadata.")] = None
     default_model_mapping: Annotated[Optional[Dict[str, str]], Field(description="Updated model mapping.")] = None
+    is_public: Annotated[Optional[bool], Field(description="Update visibility.")] = None
 
 class StepUpdateRequest(BaseModel):
     name: Annotated[Optional[str], Field(description="New step name.")] = None
@@ -100,19 +103,46 @@ async def get_available_agents(engine: EngineDep):
     summary="List Workflows",
     response_description="All Workflows."
 )
-async def list_workflows(engine: EngineDep):
-    """List all workflows for the dashboard."""
-    return await engine.repository.get_all_workflows()
+async def list_workflows(
+    engine: EngineDep,
+    current_user: CurrentUserDep
+):
+    """List all workflows visible to the current user."""
+    return await engine.repository.get_all_workflows(
+        organization_id=current_user.organization_id, 
+        role=current_user.role
+    )
 
 @router.post(
     "/workflows", 
     summary="Create Workflow",
     response_description="Created workflow data."
 )
-async def create_workflow(request: WorkflowCreateRequest, engine: EngineDep):
+async def create_workflow(
+    request: WorkflowCreateRequest, 
+    engine: EngineDep,
+    current_user: CurrentUserDep
+):
     """
-    Create a new workflow with a generated short ID.
+    Create a new workflow.
+    Protected: ROOT or MANAGER only.
     """
+    # 1. RBAC Check
+    if current_user.role not in [UserRole.ROOT, UserRole.MANAGER]:
+        raise HTTPException(status_code=403, detail="Only ROOT or MANAGER can create workflows.")
+        
+    # 2. Org Assignment
+    # If ROOT, they "own" the system org (usually).
+    # If MANAGER, forced to their org.
+    target_org = current_user.organization_id or "system" # Default to system if root has None
+    
+    # 3. Visibility Check
+    is_public_val = False
+    if request.is_public:
+        if current_user.role != UserRole.ROOT:
+            raise HTTPException(status_code=403, detail="Only ROOT can make workflows public.")
+        is_public_val = True
+    
     try:
         new_id = str(uuid.uuid4()).split('-')[0] # Short ID
         workflow_data = {
@@ -122,7 +152,9 @@ async def create_workflow(request: WorkflowCreateRequest, engine: EngineDep):
             "steps": request.steps,
             "default_model_mapping": request.default_model_mapping or {},
             "ui_schema": request.ui_schema or {}, 
-            "created_at": datetime.now().isoformat()
+            "created_at": datetime.now().isoformat(),
+            "organization_id": target_org,
+            "is_public": is_public_val
         }
         
         
@@ -149,11 +181,35 @@ async def get_workflow(workflow_id: str, engine: EngineDep):
     summary="Update Workflow",
     response_description="Updated workflow."
 )
-async def update_workflow(workflow_id: str, request: WorkflowUpdateRequest, engine: EngineDep):
+async def update_workflow(
+    workflow_id: str, 
+    request: WorkflowUpdateRequest, 
+    engine: EngineDep,
+    current_user: CurrentUserDep
+):
     """Update an existing workflow."""
     wf = await engine.repository.get_workflow_by_id(workflow_id)
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
+        
+    # Permission Check
+    wf_org = wf.get('organization_id')
+    is_system_wf = (wf_org is None or wf_org == "system")
+    
+    if is_system_wf:
+        if current_user.role != UserRole.ROOT:
+            raise HTTPException(status_code=403, detail="Only ROOT can modify System Workflows.")
+    else:
+        # Tenant Workflow
+        if current_user.role not in [UserRole.ROOT, UserRole.MANAGER]:
+             raise HTTPException(status_code=403, detail="Insufficient role to modify workflow.")
+        if wf_org != current_user.organization_id and current_user.role != UserRole.ROOT:
+             raise HTTPException(status_code=403, detail="Cannot modify other organization's workflow.")
+             
+    # Public Check
+    if request.is_public is not None and request.is_public != wf.get('is_public'):
+        if current_user.role != UserRole.ROOT:
+             raise HTTPException(status_code=403, detail="Only ROOT can change visibility.")
     
     update_data = {}
     if request.name is not None: update_data['name'] = request.name
@@ -161,6 +217,7 @@ async def update_workflow(workflow_id: str, request: WorkflowUpdateRequest, engi
     if request.steps is not None: update_data['steps'] = request.steps
     if request.ui_schema is not None: update_data['ui_schema'] = request.ui_schema
     if request.default_model_mapping is not None: update_data['default_model_mapping'] = request.default_model_mapping
+    if request.is_public is not None: update_data['is_public'] = request.is_public
     
     update_data['updated_at'] = datetime.now().isoformat()
     
@@ -188,13 +245,30 @@ async def update_workflow(workflow_id: str, request: WorkflowUpdateRequest, engi
     summary="Delete Workflow",
     response_description="Deletion status and cleaned up orphans."
 )
-async def delete_workflow(workflow_id: str, engine: EngineDep):
+async def delete_workflow(
+    workflow_id: str, 
+    engine: EngineDep,
+    current_user: CurrentUserDep
+):
     """
     Delete a workflow AND its orphan steps (Garbage Collection).
     """
     wf = await engine.repository.get_workflow_by_id(workflow_id)
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
+
+    # Permission Check
+    wf_org = wf.get('organization_id')
+    is_system_wf = (wf_org is None or wf_org == "system")
+    
+    if is_system_wf:
+        if current_user.role != UserRole.ROOT:
+            raise HTTPException(status_code=403, detail="Only ROOT can delete System Workflows.")
+    else:
+        if current_user.role not in [UserRole.ROOT, UserRole.MANAGER]:
+             raise HTTPException(status_code=403, detail="Insufficient role to delete workflow.")
+        if wf_org != current_user.organization_id and current_user.role != UserRole.ROOT:
+             raise HTTPException(status_code=403, detail="Cannot delete other organization's workflow.")
     
     # 1. Identify Orphan Steps
     # 1. Identify Orphan Steps

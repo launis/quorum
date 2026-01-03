@@ -82,6 +82,14 @@ class UserRepository:
         raw_users = self.table.all()
         return [User(**u) for u in raw_users]
 
+    def delete(self, uid: str) -> bool:
+        """
+        Hard delete user from DB.
+        """
+        # TinyDB remove
+        ids = self.table.remove(Query().uid == uid)
+        return len(ids) > 0
+
 # --- Service Layer ---
 
 class AuthService:
@@ -199,14 +207,21 @@ class AuthService:
              raise ValueError("Creator not found")
              
         # Resolve Org ID
-        target_org_id = force_org_id if force_org_id else creator.organization_id
-        
-        # If creator is ROOT, they can set any org ID (or none), but usually they use create_organization.
-        # If creator is ADMIN, they MUST inherit org ID.
-        if creator.role != UserRole.ROOT:
+        # Resolve Org ID
+        if force_org_id:
+            target_org_id = force_org_id
+        elif creator.role == UserRole.ROOT:
+            # ROOT can specify target Org (or default to None/System)
+            target_org_id = user_data.organization_id or creator.organization_id
+        else:
+            # Non-ROOT users must create within their own Org
             if user_data.organization_id and user_data.organization_id != creator.organization_id:
-                raise PermissionError("Cannot creating users in other organizations.")
+                raise PermissionError("Cannot create users in other organizations.")
             target_org_id = creator.organization_id
+
+        # RULE: Any new ROOT user must belong to System Org
+        if user_data.role == UserRole.ROOT:
+            target_org_id = "system"
             
         # Enforce Role Hierarchy
         self._enforce_hierarchy(creator, user_data.role)
@@ -267,6 +282,122 @@ class AuthService:
         raise PermissionError("This user role cannot create users")
             
         raise PermissionError("This user role cannot create users")
+
+    def _count_org_admins(self, org_id: str) -> int:
+        """
+        Counts how many ADMINs exist in a given Organization.
+        """
+        if not org_id:
+            return 0
+        all_users = self.repo.list_all()
+        return sum(1 for u in all_users if u.organization_id == org_id and u.role == UserRole.ADMIN)
+
+    def delete_user(self, initiator_uid: str, target_uid: str) -> bool:
+        """
+        Delete a user, with Last Admin Protection.
+        """
+        initiator = self.repo.get_by_uid(initiator_uid)
+        target = self.repo.get_by_uid(target_uid)
+        
+        if not initiator or not target:
+            raise ValueError("User not found")
+            
+        # Permission Check
+        if initiator.role != UserRole.ROOT:
+            # Org Admin Check
+            if initiator.role == UserRole.ADMIN:
+                if target.organization_id != initiator.organization_id:
+                    raise PermissionError("Cannot delete users from other organizations")
+            else:
+                 raise PermissionError("Insufficient permissions to delete users")
+        
+        # ROOT PROTECTION
+        # This user (root_master) is seeded via environment/code and must not be deleted.
+        if target_uid == "root_master":
+             raise PermissionError("The primary Root account cannot be deleted.")
+
+        # LAST ADMIN PROTECTION
+
+        # LAST ADMIN PROTECTION
+        if target.role == UserRole.ADMIN and target.organization_id:
+            admin_count = self._count_org_admins(target.organization_id)
+            if admin_count <= 1:
+                raise ValueError("Cannot delete the last Administrator of an Organization. Promote another user first.")
+
+        # Execute
+        # 1. Firebase (if enabled)
+        if self.use_firebase:
+            try:
+                # Note: This might fail if mock user is passed but flag is True. 
+                # Ideally we check if uid is firebase-like, but for now try/except
+                self.firebase_auth.delete_user(target.uid)
+            except Exception as e:
+                logger.warning(f"Firebase delete failed (might be local user): {e}")
+        
+        # 2. Local DB
+        return self.repo.delete(target_uid)
+
+    def delete_organization(self, initiator_uid: str, target_org_id: str) -> None:
+        """
+        Deletes an Organization and ALL its users.
+        Bypasses Last Admin Protection because the Org itself is dying.
+        """
+        initiator = self.repo.get_by_uid(initiator_uid)
+        
+        # 1. Permission Check (ROOT ONLY)
+        if not initiator or initiator.role != UserRole.ROOT:
+            raise PermissionError("Only ROOT can delete organizations.")
+            
+        if target_org_id == "system":
+            raise PermissionError("Cannot delete System Organization.")
+
+        # 2. Delete All Users in Org
+        org_users = [u for u in self.repo.list_all() if u.organization_id == target_org_id]
+        for user in org_users:
+            # Delete without calling self.delete_user to bypass Last Admin check
+            if self.use_firebase:
+                try:
+                    self.firebase_auth.delete_user(user.uid)
+                except Exception:
+                    pass
+            self.repo.delete(user.uid)
+
+        # 3. Delete Org Entity
+        self.org_repo.table.remove(Query().id == target_org_id)
+        # Note: Data cleanup (Workflows/Executions) should be handled by the caller (Router) 
+        # using repo.delete_org_data(org_id) as AuthService doesn't access WorkflowRepo directly.
+
+    def update_user(self, initiator_uid: str, target_uid: str, updates: UserUpdate) -> User:
+        """
+        General update method. 
+        If 'role' is being changed, we must enforce Last Admin Protection.
+        """
+        initiator = self.repo.get_by_uid(initiator_uid)
+        target = self.repo.get_by_uid(target_uid)
+        
+        if not initiator or not target:
+            raise ValueError("User not found")
+            
+        # Permission Check
+        if initiator.role != UserRole.ROOT:
+            # Org Admin Check
+            if initiator.role == UserRole.ADMIN:
+                if target.organization_id != initiator.organization_id:
+                    raise PermissionError("Cannot update users from other organizations")
+                # Admin cannot change their own role to something else (demotion) check below covers it
+            else:
+                 raise PermissionError("Insufficient permissions to update users")
+
+        # LAST ADMIN PROTECTION (Role Change)
+        if updates.role is not None and target.role == UserRole.ADMIN:
+             # If we are changing FROM Admin TO something else
+             if updates.role != UserRole.ADMIN:
+                if target.organization_id:
+                    admin_count = self._count_org_admins(target.organization_id)
+                    if admin_count <= 1:
+                        raise ValueError("Cannot demote the last Administrator of an Organization.")
+
+        return self.repo.update(target_uid, updates)
 
     def ensure_root_user(self, email: str = "root@example.com") -> User:
         """Bootstraps a root user and Development Scenario (Demo Corp) if needed."""
