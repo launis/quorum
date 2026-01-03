@@ -38,14 +38,18 @@ def render_dual_matrix_view(data: dict):
             delta = r.get('delta', 0)
             
             # Format values
-            val_l = l_det.get('score', 0)
-            val_r = r_det.get('score', 0)
-            reason_l = l_det.get('reasoning', '')
-            reason_r = r_det.get('reasoning', '')
+            val_l = l_det.get('score', 0) if l_det else None
+            val_r = r_det.get('score', 0) if r_det else None
+            reason_l = l_det.get('reasoning', '') if l_det else ''
+            reason_r = r_det.get('reasoning', '') if r_det else ''
             
-            delta_str = f"+{delta:.1f}" if delta > 0 else f"{delta:.1f}"
-            if delta == 0: delta_str = "="
-            delta_color = "green" if delta > 0 else "red" if delta < 0 else "gray"
+            if delta is not None:
+                delta_str = f"+{delta:.1f}" if delta > 0 else f"{delta:.1f}"
+                if delta == 0: delta_str = "="
+                delta_color = "green" if delta > 0 else "red" if delta < 0 else "gray"
+            else:
+                delta_str = "-"
+                delta_color = "gray"
             
             # Verdict Logic (Purely UI presentation here, data is fixed)
             verdict = "⚖️ Tasan"

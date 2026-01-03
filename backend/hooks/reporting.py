@@ -57,15 +57,21 @@ def generate_report(state: WorkflowState) -> WorkflowState:
         
         # --- DYNAMIC EVALUATION DISCOVERY ---
         eval_steps = []
-        # Introspect state for any steps that look like EvaluationResult (have 'pisteet')
+        
+        # 1. V1 Legacy Discovery (Attributes on State)
         for attr_name in dir(state):
             if attr_name.startswith('step_'):
                 val = getattr(state, attr_name)
-                # Check for Pydantic model with 'pisteet' field that is not None
-                # Handle dict case:
                 pisteet = safe_get(val, 'pisteet')
                 if val and pisteet:
-                    eval_steps.append((attr_name, val))
+                    # Prevent duplicates if V2 system also populated this (unlikely but safe)
+                    if attr_name not in state.audit_results:
+                        eval_steps.append((attr_name, val))
+
+        # 2. V2 Dynamic Discovery (audit_results dict)
+        if state.audit_results:
+            for step_id, res in state.audit_results.items():
+                eval_steps.append((step_id, res))
         
         # Sort by step ID to ensure deterministic comparison
         eval_steps.sort(key=lambda x: x[0])
@@ -73,21 +79,30 @@ def generate_report(state: WorkflowState) -> WorkflowState:
         comparison_data = None
         scores = {}
         
+        # --- COMPARISON MATRIX LOGIC ---
         # If we have multiple judges, we build the comparison matrix
         if len(eval_steps) >= 2:
             left_id, left_data = eval_steps[0]
             right_id, right_data = eval_steps[1]
             
-            # Extract common keys
-            l_pisteet = safe_get(left_data, 'pisteet')
-            r_pisteet = safe_get(right_data, 'pisteet')
+            # Helper to normalize data to Dict[dimension_key, {arvosana, perustelu}]
+            def normalize_to_dict(data):
+                # V2 EvaluationResult
+                if hasattr(data, 'dimensions') and isinstance(data.dimensions, list):
+                    return {
+                        d.dimension_id: {"arvosana": d.score, "perustelu": d.reasoning}
+                        for d in data.dimensions
+                    }
+                # V1 TuomioJaPisteet
+                p = safe_get(data, 'pisteet')
+                if p:
+                    p_dict = p.model_dump() if hasattr(p, 'model_dump') else (p if isinstance(p, dict) else p.__dict__)
+                    # Filter out None keys
+                    return {k: v for k, v in p_dict.items() if v}
+                return {}
 
-            l_dict = l_pisteet.model_dump() if hasattr(l_pisteet, 'model_dump') else (l_pisteet if isinstance(l_pisteet, dict) else l_pisteet.__dict__)
-            r_dict = r_pisteet.model_dump() if hasattr(r_pisteet, 'model_dump') else (r_pisteet if isinstance(r_pisteet, dict) else r_pisteet.__dict__)
-            
-            # Filter out None/Empty values
-            l_dict = {k: v for k, v in l_dict.items() if v}
-            r_dict = {k: v for k, v in r_dict.items() if v}
+            l_dict = normalize_to_dict(left_data)
+            r_dict = normalize_to_dict(right_data)
             
             common_keys = sorted(list(set(l_dict.keys()) | set(r_dict.keys()))) # Union of keys
             
@@ -96,7 +111,7 @@ def generate_report(state: WorkflowState) -> WorkflowState:
                 # Helper to extract score/reasoning
                 def get_details(d, key):
                     item = d.get(key)
-                    if not item: return {"score": 0, "reasoning": ""}
+                    if not item: return None # Distinct from 0
                     # Handle Pydantic object or dict
                     score = safe_get(item, 'arvosana', 0)
                     reasoning = safe_get(item, 'perustelu', "")
@@ -105,11 +120,24 @@ def generate_report(state: WorkflowState) -> WorkflowState:
                 l_det = get_details(l_dict, k)
                 r_det = get_details(r_dict, k)
                 
+                delta = 0
+                if l_det and r_det:
+                    try:
+                        delta = float(r_det['score']) - float(l_det['score'])
+                    except (ValueError, TypeError):
+                        pass
+                elif l_det:
+                     # Only Left exists
+                     delta = None
+                elif r_det:
+                     # Only Right exists
+                     delta = None
+
                 rows.append({
                     "dimension": k,
-                    "left": l_det,
-                    "right": r_det,
-                    "delta": float(r_det['score']) - float(l_det['score'])
+                    "left": l_det, # Can be None
+                    "right": r_det, # Can be None
+                    "delta": delta
                 })
                 
             comparison_data = {
@@ -123,30 +151,40 @@ def generate_report(state: WorkflowState) -> WorkflowState:
             if isinstance(xai_data, dict):
                 xai_data['comparison_data'] = comparison_data
             else:
-                xai_data.comparison_data = comparison_data  # Removed field from schema but might exist dynamically? No, handled by extra='allow'
+                # Use setattr for Pydantic model with extra='allow'
+                try:
+                    setattr(xai_data, 'comparison_data', comparison_data)
+                except:
+                    pass
 
         # Populate Standard Score Summary
         # We take the primary (latest) evaluation for the high-level summary.
         primary_eval = eval_steps[-1][1] if eval_steps else None 
         judge_step = primary_eval # Reference for critical findings logic
         
-        p = safe_get(primary_eval, 'pisteet')
-        if primary_eval and p:
-            # Generic loop for all attributes in Pisteet
-            # This supports dynamic keys (analyysi, ethics, code_quality etc)
-            p_dict = p.model_dump() if hasattr(p, 'model_dump') else (p if isinstance(p, dict) else p.__dict__)
-            
-            for k, v in p_dict.items():
-                if v:
-                    if isinstance(v, dict):
-                        val = v.get('arvosana')
-                        reason = v.get('perustelu')
-                    else:
-                        val = getattr(v, 'arvosana', None)
-                        reason = getattr(v, 'perustelu', None)
+        if primary_eval:
+            # Normalize again for scores dict
+            def normalize_scores(data):
+                # V2
+                if hasattr(data, 'dimensions') and isinstance(data.dimensions, list):
+                     for d in data.dimensions:
+                         scores[d.dimension_id] = {"score": d.score, "reasoning": d.reasoning}
+                     return
+                # V1
+                p = safe_get(data, 'pisteet')
+                if p:
+                    p_dict = p.model_dump() if hasattr(p, 'model_dump') else (p if isinstance(p, dict) else p.__dict__)
+                    for k, v in p_dict.items():
+                        if v:
+                            val = safe_get(v, 'arvosana')
+                            reason = safe_get(v, 'perustelu')
+                            if val is not None:
+                                scores[k] = {"score": val, "reasoning": reason or ""}
 
-                    if val is not None:
-                         scores[k] = {"score": val, "reasoning": reason or ""}
+            try:
+                normalize_scores(primary_eval)
+            except Exception as e:
+                logger.warning(f"[ReportingHook] Failed to normalize scores: {e}")
         
         # Helper to safely get list or empty list
         def get_list(val): return val if isinstance(val, list) else []
@@ -156,6 +194,8 @@ def generate_report(state: WorkflowState) -> WorkflowState:
         findings = safe_get(judge_step, 'kriittiset_havainnot_yhteenveto')
         if judge_step and findings:
             critical_findings = get_list(findings)
+        elif hasattr(judge_step, 'critical_findings'): # V2
+            critical_findings = judge_step.critical_findings
 
         exec_summary = safe_get(xai_data, 'executive_summary') or "Yhteenveto puuttuu."
         

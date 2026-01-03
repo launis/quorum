@@ -1382,7 +1382,7 @@
         {
             "id": "TASK_GUARD",
             "description": "Vartija - Input Hygiene Audit",
-            "content": "VAIHE 1: VARTIJA (Input Hygiene Audit)\nTEHTÄVÄT:\n1. SUORITA TEKNINEN TARKASTUS: Onko syöte 'roskaa' (epämääräistä) vai 'koodia' (strukturoitua)?\n2. TÄYTÄ 'SecurityCheck':\n   - 'uhka_havaittu': Aseta FALSE (älä keskeytä ajoa osaamattomuuden takia).\n   - 'riski_taso': Aseta 'KORKEA', jos havaitset 'Lazy Prompting' (alle 5 sanaa, ei kontekstia).\n   - 'adversariaalinen_simulaatio_tulos': Luokittele käyttäjä: 'Passiivinen Matkustaja' vs 'Aktiivinen Arkkitehti'.\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (älä muuta kenttien nimiä):\n{{SCHEMA_EXAMPLE}}",
+            "content": "VAIHE 1: VARTIJA (Input Hygiene Audit)\nTEHTÄVÄT:\n1. SUORITA TEKNINEN TARKASTUS: Onko syöte 'roskaa' (epämääräistä) vai 'koodia' (strukturoitua)?\n2. TÄYTÄ 'SecurityCheck':\n   - 'uhka_havaittu': Aseta FALSE (älä keskeytä ajoa osaamattomuuden takia).\n   - 'riski_taso': Aseta 'KORKEA', jos havaitset 'Lazy Prompting' (alle 5 sanaa, ei kontekstia).\n   - 'adversariaalinen_simulaatio_tulos': Luokittele käyttäjä: 'Passiivinen Matkustaja' vs 'Aktiivinen Arkkitehti'.\n3. TÄYTÄ 'safe_data' (TÄRKEÄ - CRITICAL):\n   - ÄLÄ KOSKAAN KOPIOI ALKUPERÄISTÄ TEKSTIÄ TÄHÄN.\n   - Aseta tähän kenttään VAIN teksti: 'DATA_CHECKED_AND_SECURED'.\n   - Syy: JSON-rakenne hajoaa, jos yrität tulostaa 50 sivun raportin tähän.\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (älä muuta kenttien nimiä):\n{{SCHEMA_EXAMPLE}}",
             "type": "task"
         },
         {
@@ -1729,15 +1729,15 @@
         {
             "id": "matrix_standard_v1",
             "type": "evaluation_matrix",
-            "name": "Strategisen Ohjauksen Matriisi (Agency)",
-            "description": "Arvioi käyttäjän strategista ohjausta, teknistä toteutusta ja kriittistä iteraatiota (Driver vs Passenger).",
+            "name": "Kognitiivinen Quorum Unified Matrix",
+            "description": "Yhdistetty matriisi: Agency (Prosessi), Synteesi (Lopputulos), Falsification (Laatu).",
             "content": {
-                "name": "Strategisen Ohjauksen Matriisi (Agency)",
-                "description": "Arvioi käyttäjän strategista ohjausta, teknistä toteutusta ja kriittistä iteraatiota (Driver vs Passenger).",
-                "role_description": "Toimit Järjestelmän Tuomarina. Arvioi Promptauskompetenssia (Driver vs. Passenger).",
+                "name": "Kognitiivinen Quorum Unified Matrix",
+                "description": "Yhdistetty matriisi: Agency (Prosessi), Synteesi (Lopputulos), Falsification (Laatu).",
+                "role_description": "Toimit Järjestelmän Tuomarina. Arvioi sekä prosessia että lopputulosta.",
                 "scale": {
                     "min": 1,
-                    "max": 10
+                    "max": 4
                 },
                 "criteria": [
                     {
@@ -1752,20 +1752,20 @@
                         }
                     },
                     {
-                        "id": "engineering",
-                        "label": "Tekninen Toteutus (Engineering)",
-                        "instruction": "Osaako käyttäjä ohjelmoida tekoälyä?",
+                        "id": "synteesi",
+                        "label": "Uuden Tiedon Luominen (Synteesi)",
+                        "instruction": "Luoako käyttäjä uutta tietoa tekoälyn avulla vai vain kierrättääkö vanhaa?",
                         "anchors": {
-                            "1": "Laiska (Lazy): Kirjoitusvirheitä, 'se juttu', pelkkiä avainsanoja. Luottaa tekoälyn 'mind reading' -kykyyn.",
-                            "2": "Keskusteleva: Käyttää luonnollista puhekieltä ('Voisitko...'). Promptit epätarkkoja.",
-                            "3": "Osaaja: Käyttää perustekniikoita: Roolitus, selkeät rajoitteet, kontekstin syöttö. Kieli on täsmällistä.",
-                            "4": "Insinööri: Käyttää edistyneitä tekniikoita: Few-Shot, Chain-of-Thought, XML-tagit. Promptit ovat strukturoituja olioita."
+                            "1": "Ei uutta tietoa. Lopputuote on vain tiivistelmä tai kopio lähdemateriaalista ilman omaa panosta.",
+                            "2": "Heikko synteesi. Yhdistelee asioita mekaanisesti. Ei uusia oivalluksia tai käsitteitä.",
+                            "3": "Vahva synteesi. Tekoäly on tuottanut uudenlaisen kokonaisuuden käyttäjän ohjauksessa. Selkeä lisäarvo.",
+                            "4": "Transformatiivinen. 'Supermegatrendi'-tason oivallus. Lopputulos on enemmän kuin osiensa summa ja aidosti uutta tietoa."
                         }
                     },
                     {
                         "id": "falsification",
                         "label": "Kriittinen Iteraatio (Falsification)",
-                        "instruction": "Miten käyttäjä reagoi virheisiin?",
+                        "instruction": "Miten käyttäjä reagoi virheisiin ja haastaako hän tekoälyä?",
                         "anchors": {
                             "1": "Sokea: Sokea luottamus. Kopioi hallusinaatiot suoraan lopputuotteeseen.",
                             "2": "Hyväksyvä: Kehuu tekoälyä ('Hyvä!') vaikka vastauksessa olisi puutteita. Korjaukset vain tyylillisiä.",
@@ -1779,11 +1779,11 @@
         {
             "id": "matrix_cognitive_v2",
             "type": "evaluation_matrix",
-            "name": "Kognitiivinen Arviointimatriisi (Bloom & Toulmin)",
-            "description": "Syvällinen kognitiivinen arviointi perustuen Bloomin taksonomiaan ja Toulminin argumentaatiomalliin.",
+            "name": "Kognitiivinen Quorum Unified Matrix",
+            "description": "Yhdistetty matriisi: Agency (Prosessi), Synteesi (Lopputulos), Falsification (Laatu).",
             "content": {
-                "name": "Kognitiivinen Arviointimatriisi",
-                "description": "Bloomin taksonomiaan (Analyze, Evaluate, Create) perustuva syväarviointi.",
+                "name": "Kognitiivinen Quorum Unified Matrix",
+                "description": "Yhdistetty matriisi: Agency (Prosessi), Synteesi (Lopputulos), Falsification (Laatu).",
                 "scale": {
                     "min": 1,
                     "max": 4
@@ -1791,36 +1791,36 @@
                 "role_description": "Toimit Kognitiivisena Päätuomarina.",
                 "criteria": [
                     {
-                        "id": "analyysi",
-                        "label": "Analyysi ja Prosessin Tehokkuus (Bloom: Analyze)",
-                        "instruction": "Arvioi prosessin strategista syvyyttä ja tehokkuutta.",
+                        "id": "agency",
+                        "label": "Strateginen Ohjaus (Agency)",
+                        "instruction": "Onko käyttäjällä suunnitelma vai reagoiko hän vain?",
                         "anchors": {
-                            "1": "Prosessi on tehoton. Käyttäjä ei ole kyennyt ohjaamaan tekoälyä kohti tavoitetta.",
-                            "2": "Prosessi on reaktiivinen. Käyttäjä reagoi vastauksiin ilman selkeää strategiaa. Iteraatioita ilman laadullista parannusta.",
-                            "3": "Prosessi on tehokas. Käyttäjä on tunnistanut ongelman ja ohjannut tekoälyä reaktiivisesti mutta johdonmukaisesti.",
-                            "4": "Prosessi on strateginen. Käyttäjä on purkanut ongelman osiin ja ohjannut tekoälyä ennaltaehkäisevästi. TAI Prosessi osoittaa poikkeuksellista ketteryyttä merkittävän oivalluksen kautta."
-                        }
-                    },
-                    {
-                        "id": "arviointi",
-                        "label": "Arviointi ja Argumentaatio (Bloom: Evaluate; Toulmin)",
-                        "instruction": "Arvioi argumentaation ja itsekritiikin laatua.",
-                        "anchors": {
-                            "1": "Ei arviointikykyä. Tekoälyn tuotokset käytetty sellaisenaan. Reflektio virheellinen tai harhaanjohtava.",
-                            "2": "Perustason arviointikyky. Pieniä korjauksia. Reflektio sisältää argumentin aihion (Väite esitetty, perusteet heikkoja).",
-                            "3": "Korkea arviointikyky. Käyttäjä on korjannut tuotoksia. Reflektio sisältää vahvan argumentin: Väite, Perusteet ja Oikeutus.",
-                            "4": "Poikkeuksellinen arviointikyky. Käyttäjä on haastanut tekoälyn päättelyä. Reflektio sisältää virheettömän argumentin."
+                            "1": "Matkustaja (Tilaa): Passiivinen tilaaja. 'Tee essee aiheesta X'. Hyväksyy ensimmäisen version. Ulkoistaa ajattelun.",
+                            "2": "Kartanlukija (Korjaa): Reaktiivinen toiminta. Epämääräinen aloitus, korjaa vasta jälkikäteen ('Ei noin, vaan näin').",
+                            "3": "Kuski (Ohjaa): Käyttäjä tietää mitä haluaa ja asettaa reunaehdot. Korjaa suuntaa aktiivisesti, jos tekoäly poikkeaa.",
+                            "4": "Arkkitehti (Suunnittelee): Käyttäjä on purkanut ongelman osiin (Decomposition) ENNEN ensimmäistä promptia. Prosessi on suunniteltu ketju."
                         }
                     },
                     {
                         "id": "synteesi",
-                        "label": "Synteesi ja Luovuus (Bloom: Create)",
-                        "instruction": "Arvioi uutuusarvoa ja luovuutta.",
+                        "label": "Uuden Tiedon Luominen (Synteesi)",
+                        "instruction": "Luoako käyttäjä uutta tietoa tekoälyn avulla vai vain kierrättääkö vanhaa?",
                         "anchors": {
-                            "1": "Kopio. Suora kopio tekoälyn tuottamasta materiaalista ilman omaa panosta.",
-                            "2": "Kooste. Lopputuote on pääosin kooste tekoälyn materiaalista. Muutokset kielellisiä.",
-                            "3": "Omaperäinen synteesi. Käyttäjä on parannellut tekoälyn tuotosta omalla perustellulla panoksellaan.",
-                            "4": "Strateginen synteesi. Käyttäjä on luonut uutta, omaperäistä lisäarvoa, jota tekoäly ei ehdottanut."
+                            "1": "Ei uutta tietoa. Lopputuote on vain tiivistelmä tai kopio lähdemateriaalista ilman omaa panosta.",
+                            "2": "Heikko synteesi. Yhdistelee asioita mekaanisesti. Ei uusia oivalluksia tai käsitteitä.",
+                            "3": "Vahva synteesi. Tekoäly on tuottanut uudenlaisen kokonaisuuden käyttäjän ohjauksessa. Selkeä lisäarvo.",
+                            "4": "Transformatiivinen. 'Supermegatrendi'-tason oivallus. Lopputulos on enemmän kuin osiensa summa ja aidosti uutta tietoa."
+                        }
+                    },
+                    {
+                        "id": "falsification",
+                        "label": "Kriittinen Iteraatio (Falsification)",
+                        "instruction": "Miten käyttäjä reagoi virheisiin ja haastaako hän tekoälyä?",
+                        "anchors": {
+                            "1": "Sokea: Sokea luottamus. Kopioi hallusinaatiot suoraan lopputuotteeseen.",
+                            "2": "Hyväksyvä: Kehuu tekoälyä ('Hyvä!') vaikka vastauksessa olisi puutteita. Korjaukset vain tyylillisiä.",
+                            "3": "Korjaava: Huomaa selkeät virheet ja pyytää korjausta.",
+                            "4": "Adversariaalinen: Testaa rajoja ('Etsi virheet'). Spottaa faktavirheet ja pakottaa korjaamaan lähteisiin viitaten."
                         }
                     }
                 ]

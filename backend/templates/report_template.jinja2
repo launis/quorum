@@ -15,7 +15,7 @@
 | Kategoria | Arvosana | Perustelu |
 | :--- | :---: | :--- |
 {% for key, val in report_content.scores.items() %}
-| **{{ key | capitalize }}** | {{ val.score }} | {{ val.reasoning }} |
+| **{{ key | capitalize }}** | {{ val.score if val.score is not none else "-" }} | {{ val.reasoning }} |
 {% endfor %}
 
 ---
