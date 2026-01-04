@@ -10,7 +10,7 @@ from tinydb import TinyDB
 
 from backend.main import app
 # Import from builder_router to ensure we override the exact dependency used there
-from backend.api.builder_router import get_engine 
+from backend.dependencies import get_engine 
 
 from backend.core.engine import WorkflowEngine
 from backend.models.state import WorkflowState, InputData
@@ -51,7 +51,7 @@ def shared_engine():
     # 2. Seed Data
     try:
         # Assuming run from root
-        with open("backend/database/seed_data.json", "r", encoding="utf-8") as f:
+        with open("backend/seed/seed_data.json", "r", encoding="utf-8") as f:
             seed = json.load(f)
         
         repo.db.drop_tables()

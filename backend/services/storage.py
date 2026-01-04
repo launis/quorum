@@ -229,3 +229,17 @@ class FirebaseStorage(AbstractStorage):
         """
         blob = self.bucket.blob(path)
         return blob.exists()
+
+
+def get_storage_client() -> AbstractStorage:
+    """
+    Factory function to return the configured storage client.
+    Defaults to LocalFileStorage in development.
+    """
+    from backend.settings import get_settings
+    settings = get_settings()
+
+    if settings.environment == "production" and settings.storage_bucket_name:
+         return FirebaseStorage(bucket_name=settings.storage_bucket_name)
+    else:
+         return LocalFileStorage()

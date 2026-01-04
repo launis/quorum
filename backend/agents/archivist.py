@@ -4,22 +4,7 @@ from typing import Annotated, Any, List, Optional, Type
 from pydantic import BaseModel, Field
 
 from backend.agents.base import BaseAgent
-from backend.models.domain import BaseJSON
-from backend.models.state import WorkflowState
-
-logger = logging.getLogger(__name__)
-
-
-class CaseLawContext(BaseJSON):
-    """
-    Schema for the Archivist (Clerk) Agent.
-    Ensures consistency with previous rulings.
-    """
-
-    linjakkuus_analyysi: Annotated[str, Field(description="Analysis of how this case compares to precedents")]
-    poikkeamat_linjasta: Annotated[str, Field(description="Notable deviations from established consistency")]
-    suositus_tuomarille: Annotated[str, Field(description="Recommendation to the Judge regarding severity/leniency")]
-    viitatut_ennakkotapaukset: Annotated[List[str], Field(description="IDs of cases referenced")]
+from backend.models.domain import BaseJSON, CaseLawContext
 
 
 class ArchivistAgent(BaseAgent):

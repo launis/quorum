@@ -13,7 +13,7 @@ REM Start Backend
 start "Cognitive Quorum Backend (MOCK)" cmd /k "chcp 65001 > nul && set USE_MOCK_LLM=true && set USE_MOCK_DB=true && set STORAGE_BACKEND=LOCAL && .venv\Scripts\python -m uvicorn backend.main:app --reload --port 8000"
 
 REM Wait for backend warmup
-timeout /t 5 > nul
+timeout /t 10 > nul
 
 REM Start Frontend
 start "Cognitive Quorum Frontend (MOCK)" cmd /k "chcp 65001 > nul && set USE_MOCK_LLM=true && set USE_MOCK_DB=true && set STORAGE_BACKEND=LOCAL && .venv\Scripts\python -m streamlit run frontend/main.py"

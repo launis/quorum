@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 from tinydb import TinyDB
 
 from backend.main import app
-from backend.api.builder_router import get_engine 
+from backend.dependencies import get_engine 
 
 from backend.core.engine import WorkflowEngine
 from backend.models.state import WorkflowState, InputData
@@ -28,7 +28,7 @@ def shared_engine_safe():
     
     try:
         # Load Seeds
-        with open("backend/database/seed_data.json", "r", encoding="utf-8") as f:
+        with open("backend/seed/seed_data.json", "r", encoding="utf-8") as f:
             seed = json.load(f)
         repo.db.drop_tables()
         if 'workflows' in seed: repo.db.table('workflows').insert_multiple(seed['workflows'])

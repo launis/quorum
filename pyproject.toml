@@ -26,10 +26,16 @@ dependencies = [
     "requests>=2.32.5",
     "beautifulsoup4>=4.14.3",
     "logfire[fastapi,pydantic]>=4.16.0",
+    "arq>=0.26.3",
+    "redis>=5.3.1",
+    "watchfiles>=1.1.1",
+    "fakeredis>=2.33.0",
 ]
 
 [dependency-groups]
 dev = [
+    "pytest>=9.0.2",
+    "pytest-asyncio>=0.25.0",
     "ruff",
 ]
 

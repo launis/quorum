@@ -2,6 +2,8 @@ import logging
 import os
 from contextlib import asynccontextmanager
 
+from arq import create_pool
+from arq.connections import RedisSettings
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Path, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -82,10 +84,131 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Auth System Bootstrap Failed: {e}")
 
+    # Initialize Arq (Background Tasks)
+    try:
+        # 1. Attempt Real Redis
+        redis_settings = RedisSettings(host=settings.redis_host, port=settings.redis_port)
+        redis_pool = await create_pool(redis_settings)
+        app.state.arq_pool = redis_pool
+        logger.info(f"Arq Redis connection established at {settings.redis_host}:{settings.redis_port}")
+
+    except (OSError, ConnectionError, TimeoutError, Exception) as e:
+        # 2. Fallback to In-Memory Redis (fakeredis)
+        logger.warning(f"Real Redis connection failed ({type(e).__name__}: {e}). Switching to In-Memory Mode.")
+        
+        try:
+            from fakeredis.aioredis import FakeRedis
+            from arq.connections import ArqRedis
+            from arq.worker import Worker
+            from backend.worker import WorkerSettings
+
+            # Initialize FakeRedis
+            # Arq expects a pool-like object, FakeRedis works as one, but needs 'connection_kwargs' for Arq logging
+            fake_redis = FakeRedis()
+            fake_redis.connection_kwargs = {"host": "localhost", "port": 6379} # Mock for Arq compatibility
+
+            # PATCH: Arq 0.26+ calls .get_connection() on the pool, which FakeRedis lacks
+            if not hasattr(fake_redis, "get_connection"):
+                async def _get_conn():
+                    return fake_redis
+                fake_redis.get_connection = _get_conn
+
+            # PATCH: Arq also calls .release(conn)
+            if not hasattr(fake_redis, "release"):
+                async def _release(conn):
+                    pass
+                fake_redis.release = _release
+                
+            # PATCH: Arq calls .disconnect() on the pool? No, on connection. FakeRedis has close() but Arq might call something else.
+            # But the specific error is AttributeError: 'FakeRedis' object has no attribute 'retry' in await conn.retry.call_with_retry
+            # Wait, 'conn' IS 'fake_redis' because _get_conn returns self.
+            # So fake_redis needs a .retry attribute which has a .call_with_retry method.
+            
+            class MockRetry:
+                async def call_with_retry(self, func, on_error):
+                    return await func()
+            
+            if not hasattr(fake_redis, "retry"):
+                fake_redis.retry = MockRetry()
+
+            # PATCH: Arq tries to log Redis info on startup, which crashes on FakeRedis
+            # We patch the logging function itself to be a no-op
+            import arq.connections
+            async def _no_op_log(*args, **kwargs):
+                pass
+            arq.connections.log_redis_info = _no_op_log
+
+            # PATCH: Arq 0.26+ uses connection.pack_commands(cmds) for pipelining optimization
+            if not hasattr(fake_redis, "pack_commands"):
+                def _pack(cmds):
+                    return cmds # Pass through for fake redis
+                fake_redis.pack_commands = _pack
+            
+            if not hasattr(fake_redis, "send_packed_command"):
+                async def _send_packed(cmds):
+                     pass 
+                fake_redis.send_packed_command = _send_packed
+
+            # PATCH: Arq 0.26+ uses send_command(*args)
+            if not hasattr(fake_redis, "send_command"):
+                async def _send_command(*args, **kwargs):
+                    pass 
+                fake_redis.send_command = _send_command
+            
+            # ArqRedis wrapper needed for Arq features
+            arq_redis = ArqRedis(fake_redis)
+            
+            app.state.arq_pool = arq_redis
+            logger.info("In-Memory Redis pool initialized.")
+
+            # Start Embedded Worker
+            # We must override the redis_pool in settings to use our shared fake instance
+            class EmbeddedWorkerSettings(WorkerSettings):
+                redis_pool = arq_redis
+                # Disable signal handling since we run in thread/task
+                handle_signals = False 
+
+            if os.environ.get("TESTING", "").lower() != "true":
+                worker = Worker(
+                    functions=WorkerSettings.functions,
+                    redis_pool=arq_redis,
+                    on_startup=WorkerSettings.on_startup,
+                    on_shutdown=WorkerSettings.on_shutdown,
+                )
+                
+                # Run worker in background task
+                import asyncio
+                worker_task = asyncio.create_task(worker.async_run())
+                app.state.worker_task = worker_task
+                logger.info("Embedded Arq Worker started in background task.")
+            else:
+                logger.info("Embedded Arq Worker SKIPPED (TESTING mode).")
+
+        except ImportError:
+            logger.error("Failed to start In-Memory Redis: 'fakeredis' not installed.")
+            logger.warning("Background tasks will be unavailable.")
+        except Exception as ex:
+            logger.error(f"In-Memory Worker startup failed: {ex}")
+
     # Note: Engine is lazy-loaded on first request to avoid complex manual DI here.
     yield
     # Shutdown
     logger.info("Shutting down...")
+
+    if hasattr(app.state, "worker_task"):
+        logger.info("Stopping embedded worker...")
+        app.state.worker_task.cancel()
+        try:
+            await app.state.worker_task
+        except asyncio.CancelledError:
+            pass
+
+    if hasattr(app.state, "arq_pool"):
+        pool = app.state.arq_pool
+        # Check if it's a real pool or fake
+        if hasattr(pool, "close"):
+            await pool.close()
+        logger.info("Arq Redis connection closed.")
 
 
 app = FastAPI(
@@ -96,6 +219,7 @@ app = FastAPI(
 )
 
 import logfire  # noqa: E402
+
 from backend.logging_config import configure_logfire  # noqa: E402
 
 configure_logfire()

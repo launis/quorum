@@ -14,6 +14,8 @@ class Metadata(BaseModel):
         Optional[Literal["Kriitikkoryhma_External", "Internal"]], Field(description="Execution environment context.")
     ] = None
 
+    model_config = ConfigDict(validate_assignment=True)
+
 
 class BaseJSON(BaseModel):
     metadata: Annotated[Metadata, Field(description="Execution metadata.")]
@@ -24,7 +26,7 @@ class BaseJSON(BaseModel):
     edellisen_vaiheen_validointi: Annotated[str, Field(description="Validation result of the previous step's output.")]
     semanttinen_tarkistussumma: Annotated[str, Field(description="Checksum or integrity hash of the content.")]
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="allow", validate_assignment=True)
 
 
 # --- Step 1: Guard Agent ---
@@ -36,6 +38,8 @@ class SecurityCheck(BaseModel):
     riski_taso: Annotated[Literal["MATALA", "KESKITASO", "KORKEA"], Field(description="Assessed risk level.")]
     anonymisointi_tehty: Annotated[Optional[bool], Field(description="True if PII redaction was performed.")] = False
     tietosuoja_raportti: Annotated[Optional[str], Field(description="Report on what PII was removed.")] = None
+
+    model_config = ConfigDict(validate_assignment=True)
 
     @field_validator("uhka_havaittu", mode="before")
     @classmethod
@@ -61,11 +65,15 @@ class TaintedDataContent(BaseModel):
         Field(description="ÄLÄ TULOSTA SISÄLTÖÄ! Käytä VAIN tätä tekstiä: '{{FILE: Reflektiodokumentti.pdf}}'"),
     ] = None
 
+    model_config = ConfigDict(validate_assignment=True)
+
 
 class SafeDataContent(BaseModel):
     keskusteluhistoria: Annotated[Optional[str], Field(description="Sanitized history.")] = None
     lopputuote: Annotated[Optional[str], Field(description="Sanitized product.")] = None
     reflektiodokumentti: Annotated[Optional[str], Field(description="Sanitized reflection.")] = None
+
+    model_config = ConfigDict(validate_assignment=True)
 
 
 class TaintedData(BaseJSON):
@@ -83,6 +91,8 @@ class Hypoteesi(BaseModel):
     loytyyko_todisteita: Annotated[bool, Field(description="Whether evidence was found.")]
     hakusana_ehdotus: Annotated[Optional[str], Field(description="Suggested Google search query.")] = None
 
+    model_config = ConfigDict(validate_assignment=True)
+
 
 class RagTodiste(BaseModel):
     viittaa_hypoteesiin_id: Annotated[
@@ -91,6 +101,8 @@ class RagTodiste(BaseModel):
     perusteet: Annotated[str, Field(description="Reasoning why this evidence is relevant.")]
     konteksti_segmentti: Annotated[str, Field(description="The concise text excerpt (quote).")]
     relevanssi_score: Annotated[int, Field(ge=1, le=100, description="Relevance score (1-100).")]
+
+    model_config = ConfigDict(validate_assignment=True)
 
     @field_validator("viittaa_hypoteesiin_id", mode="before")
     @classmethod
@@ -157,6 +169,35 @@ class TodistusKartta(BaseJSON):
         return v
 
 
+# --- Step 2.5: Profiler Agent ---
+
+
+class StructuredBias(BaseModel):
+    nimi: Annotated[str, Field(description="Name of the cognitive bias")]
+    selitys: Annotated[str, Field(description="Explanation of how this bias appears in the text")]
+
+    model_config = ConfigDict(validate_assignment=True)
+
+
+class TextMetrics(BaseModel):
+    word_count: Annotated[int, Field(description="Total number of words")]
+    sentence_count: Annotated[int, Field(description="Total number of sentences")]
+    avg_sentence_length: Annotated[float, Field(description="Average words per sentence")]
+    lexical_diversity: Annotated[float, Field(description="Unique words divided by total words (0-1)")]
+    capitalization_ratio: Annotated[float, Field(description="Ratio of uppercase letters to total letters")]
+
+    model_config = ConfigDict(validate_assignment=True)
+
+
+class ProfilerAnalysis(BaseJSON):
+    intentio_analyysi: Annotated[str, Field(description="Analysis of intent.")]
+    tunnetila_ja_savy: Annotated[str, Field(description="Tone and sentiment.")]
+    tunnistetut_vinoumat: Annotated[List[StructuredBias], Field(description="List of biases.")]
+    psykologinen_profiili: Annotated[str, Field(description="Psychological profile.")]
+    manipulaatio_yritykset: Annotated[str, Field(description="Manipulation attempts.")]
+    teksti_metriikka: Annotated[Optional[TextMetrics], Field(description="Objective metrics.")] = None
+
+
 # --- Step 3: Logician Agent ---
 
 
@@ -167,15 +208,21 @@ class ToulminKomponentti(BaseModel):
     warrant: Annotated[str, Field(description="The logical bridge.")]
     backing: Annotated[str, Field(description="Support for the warrant.")]
 
+    model_config = ConfigDict(validate_assignment=True)
+
 
 class KognitiivinenTaso(BaseModel):
     bloom_taso: Annotated[str, Field(description="Bloom's Taxonomy Level.")]
     strateginen_syvyys: Annotated[str, Field(description="Strategic depth analysis.")]
 
+    model_config = ConfigDict(validate_assignment=True)
+
 
 class WaltonSkeema(BaseModel):
     tunnistettu_skeema: Annotated[str, Field(description="Identified Argumentation Scheme.")]
     kriittiset_kysymykset: Annotated[List[str], Field(description="Critical Questions posed.")]
+
+    model_config = ConfigDict(validate_assignment=True)
 
 
 class ArgumentaatioAnalyysi(BaseJSON):
@@ -192,11 +239,15 @@ class WaltonStressitesti(BaseModel):
     kestiko_todistusaineisto: Annotated[bool, Field(description="Did the evidence hold up?")]
     havainto: Annotated[str, Field(description="Observation notes.")]
 
+    model_config = ConfigDict(validate_assignment=True)
+
 
 class PaattelyketjunUskollisuus(BaseModel):
     onko_post_hoc_rationalisointia: Annotated[bool, Field(description="True if post-hoc rationalization detected.")]
     perustelu: Annotated[str, Field(description="Reasoning.")]
     uskollisuus_score: Annotated[Literal["KORKEA", "EPÄVARMA", "HEIKKO"], Field(description="Fidelity score.")]
+
+    model_config = ConfigDict(validate_assignment=True)
 
 
 class LogiikkaAuditointi(BaseJSON):
@@ -212,6 +263,8 @@ class FaktantarkistusRFI(BaseModel):
     verifiointi_tulos: Annotated[Literal["Vahvistettu", "Kumottu", "Ei voitu vahvistaa"], Field(description="Result.")]
     lahde_tai_paattely: Annotated[str, Field(description="Source or reasoning.")]
 
+    model_config = ConfigDict(validate_assignment=True)
+
 
 class EettinenHavainto(BaseModel):
     tyyppi: Annotated[
@@ -219,6 +272,8 @@ class EettinenHavainto(BaseModel):
     ]
     vakavuus: Annotated[Literal["Kriittinen", "Varoitus", "N/A"], Field(description="Severity.")]
     kuvaus: Annotated[str, Field(description="Description.")]
+
+    model_config = ConfigDict(validate_assignment=True)
 
 
 class EtiikkaJaFakta(BaseJSON):
@@ -237,11 +292,15 @@ class KausaalinenAuditointiData(BaseModel):
     aikajana_validi: Annotated[bool, Field(description="Is the timeline valid?")]
     havainnot: Annotated[str, Field(description="General observations.")]
 
+    model_config = ConfigDict(validate_assignment=True)
+
 
 class KontrafaktuaalinenTesti(BaseModel):
     skenaario_A_toteutunut: Annotated[str, Field(description="Actual scenario.")]
     skenaario_B_simulaatio: Annotated[str, Field(description="Counterfactual simulation.")]
     uskottavuus_arvio: Annotated[str, Field(description="Plausibility assessment.")]
+
+    model_config = ConfigDict(validate_assignment=True)
 
 
 class KausaalinenAuditointi(BaseJSON):
@@ -260,10 +319,14 @@ class PerformatiivisuusHeuristiikka(BaseModel):
     lippu_nostettu: Annotated[bool, Field(description="Flag raised?")]
     kuvaus: Annotated[str, Field(description="Description.")]
 
+    model_config = ConfigDict(validate_assignment=True)
+
 
 class PreMortemAnalyysi(BaseModel):
     suoritettu: Annotated[bool, Field(description="Was Pre-Mortem performed?")]
     hiljaiset_signaalit: Annotated[List[str], Field(description="Detected weak signals.")]
+
+    model_config = ConfigDict(validate_assignment=True)
 
 
 class PerformatiivisuusAuditointi(BaseJSON):
@@ -284,20 +347,28 @@ class KonfliktinRatkaisu(BaseModel):
     ratkaisu_malli: Annotated[str, Field(description="Resolution model applied.")]
     perustelu: Annotated[str, Field(description="Justification.")]
 
+    model_config = ConfigDict(validate_assignment=True)
+
 
 class MestaruusPoikkeama(BaseModel):
     tunnistettu: Annotated[bool, Field(description="Is anomaly detected?")]
     perustelu: Annotated[str, Field(description="Reasoning.")]
+
+    model_config = ConfigDict(validate_assignment=True)
 
 
 class AitousEpaily(BaseModel):
     automaattinen_lippu: Annotated[bool, Field(description="Automatic flag?")]
     viesti_hitl_lle: Annotated[str, Field(alias="viesti_hitl:lle", description="Message for human reviewer.")]
 
+    model_config = ConfigDict(validate_assignment=True)
+
 
 class PisteetKriteeri(BaseModel):
     arvosana: Annotated[Union[int, float], Field(description="Grade (typically 1-4, but allows dynamic scales).")]
     perustelu: Annotated[str, Field(description="Justification.")]
+
+    model_config = ConfigDict(validate_assignment=True)
 
 
 class Pisteet(BaseModel):
@@ -305,7 +376,7 @@ class Pisteet(BaseModel):
     arviointi: Annotated[Optional[PisteetKriteeri], Field(description="Score for Evaluation.")] = None
     synteesi: Annotated[Optional[PisteetKriteeri], Field(description="Score for Synthesis.")] = None
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="allow", validate_assignment=True)
 
 
 class TuomioJaPisteet(BaseJSON):
@@ -318,102 +389,6 @@ class TuomioJaPisteet(BaseJSON):
     matrix_id: Annotated[Optional[str], Field(default=None, description="Matrix ID used (injected).")]
     scale_min: Annotated[Optional[int], Field(default=None, description="Minimum scale score.")]
     scale_max: Annotated[Optional[int], Field(default=None, description="Maximum scale score.")]
-
-
-# --- DYNAMIC EVALUATION SYSTEM DOIMAIN MODELS ---
-
-
-class EvaluationCriterion(BaseModel):
-    """Defines a single dimension of evaluation (e.g., 'Analysis')."""
-
-    id: Annotated[str, Field(description="Unique key for the criterion.")]
-    label: Annotated[str, Field(description="Human readable label.")]
-    instruction: Annotated[str, Field(description="Prompt instruction for the LLM.")]
-    anchors: Annotated[Dict[str, str], Field(description="Scoring anchors (e.g., {'1': 'Bad', '4': 'Good'}).")]
-
-
-class EvaluationMatrixConfig(BaseModel):
-    """Configuration for a dynamic evaluation matrix."""
-
-    name: Annotated[str, Field(description="Name of the matrix.")]
-    description: Annotated[str, Field(description="Description of purpose.")]
-    scale: Annotated[Dict[str, int], Field(description="Min and Max scale.")]
-    role_description: Annotated[Optional[str], Field(description="Optional role persona.")] = None
-    criteria: Annotated[List[EvaluationCriterion], Field(description="List of criteria.")]
-
-
-class DimensionResultItem(BaseModel):
-    """Result for a single dimension."""
-
-    dimension_id: Annotated[str, Field(description="ID of the dimension (e.g., 'analysis').")]
-    score: Annotated[Union[int, float], Field(description="Numerical score.")]
-    reasoning: Annotated[str, Field(description="Justification for the score.")]
-
-
-class EvaluationResult(BaseJSON):  # Inherits metadata from BaseJSON
-    """Result of a dynamic evaluation."""
-
-    matrix_id: Annotated[str, Field(description="ID of the matrix used.")]
-    scale_min: Annotated[int, Field(default=1, description="Minimum score of the scale.")]
-    scale_max: Annotated[int, Field(default=5, description="Maximum score of the scale.")]
-    total_score: Annotated[Union[int, float], Field(description="Calculated total/average score.")]
-    dimensions: Annotated[List[DimensionResultItem], Field(description="Breakdown by dimension.")]
-    critical_findings: Annotated[List[str], Field(default_factory=list, description="Critical observations.")]
-
-
-# --- Step 9: XAI Reporter ---
-
-
-class XAIReport(BaseJSON):
-    executive_summary: Annotated[str, Field(description="High-level summary.")]
-    analysis_strengths: Annotated[str, Field(description="Strengths identified.")]
-    analysis_weaknesses: Annotated[str, Field(description="Weaknesses identified.")]
-    analysis_opportunities: Annotated[str, Field(description="Opportunities identified.")]
-    analysis_recommendations: Annotated[str, Field(description="Recommendations.")]
-    final_verdict: Annotated[str, Field(description="Final conclusion.")]
-    confidence_score: Annotated[float, Field(description="Confidence score (0.0-1.0).")]
-    xai_report_formatted: Annotated[Optional[str], Field(description="Markdown formatted report.")] = None
-    # comparison_data removed from schema to avoid LLM validation errors (handled dynamically)
-
-    model_config = ConfigDict(extra="allow")
-
-
-# --- Step 2.5: Profiler Agent ---
-
-
-class StructuredBias(BaseModel):
-    nimi: Annotated[str, Field(description="Name of the cognitive bias")]
-    selitys: Annotated[str, Field(description="Explanation of how this bias appears in the text")]
-
-
-class TextMetrics(BaseModel):
-    word_count: Annotated[int, Field(description="Total number of words")]
-    sentence_count: Annotated[int, Field(description="Total number of sentences")]
-    avg_sentence_length: Annotated[float, Field(description="Average words per sentence")]
-    lexical_diversity: Annotated[float, Field(description="Unique words divided by total words (0-1)")]
-    capitalization_ratio: Annotated[float, Field(description="Ratio of uppercase letters to total letters")]
-
-
-class ProfilerAnalysis(BaseJSON):
-    intentio_analyysi: Annotated[str, Field(description="Analysis of intent.")]
-    tunnetila_ja_savy: Annotated[str, Field(description="Tone and sentiment.")]
-    tunnistetut_vinoumat: Annotated[List[StructuredBias], Field(description="List of biases.")]
-    psykologinen_profiili: Annotated[str, Field(description="Psychological profile.")]
-    manipulaatio_yritykset: Annotated[str, Field(description="Manipulation attempts.")]
-    teksti_metriikka: Annotated[Optional[TextMetrics], Field(description="Objective metrics.")] = None
-
-
-# --- Step 5 (Parallel): Panel Agent ---
-
-
-class PanelAudit(BaseJSON):
-    logiikka_auditointi: Annotated[ArgumentaatioAnalyysi, Field(description="Logic audit result.")]
-    falsifiointi_auditointi: Annotated[LogiikkaAuditointi, Field(description="Falsification audit result.")]
-    kausaalinen_auditointi: Annotated[KausaalinenAuditointi, Field(description="Causal audit result.")]
-    performatiivisuus_auditointi: Annotated[
-        PerformatiivisuusAuditointi, Field(description="Performativity audit result.")
-    ]
-    etiikka_ja_fakta: Annotated[EtiikkaJaFakta, Field(description="Ethics audit result.")]
 
 
 # --- Step 8a: Archivist Agent ---
@@ -434,10 +409,14 @@ class ActionItem(BaseModel):
     kuvaus: Annotated[str, Field(description="Description.")]
     resurssit: Annotated[List[str], Field(default_factory=list, description="URLs or Book refs")]
 
+    model_config = ConfigDict(validate_assignment=True)
+
 
 class ActionGroup(BaseModel):
     kategoria: Annotated[str, Field(description="Category header (e.g. 'Logic', 'Structure')")]
     kohdat: Annotated[List[ActionItem], Field(description="Items in this category")]
+
+    model_config = ConfigDict(validate_assignment=True)
 
 
 class CoachingPlan(BaseJSON):
@@ -453,6 +432,23 @@ class CoachingPlan(BaseJSON):
     ]
 
 
+# --- Step 9: XAI Reporter ---
+
+
+class XAIReport(BaseJSON):
+    executive_summary: Annotated[str, Field(description="High-level summary.")]
+    analysis_strengths: Annotated[str, Field(description="Strengths identified.")]
+    analysis_weaknesses: Annotated[str, Field(description="Weaknesses identified.")]
+    analysis_opportunities: Annotated[str, Field(description="Opportunities identified.")]
+    analysis_recommendations: Annotated[str, Field(description="Recommendations.")]
+    final_verdict: Annotated[str, Field(description="Final conclusion.")]
+    confidence_score: Annotated[float, Field(description="Confidence score (0.0-1.0).")]
+    xai_report_formatted: Annotated[Optional[str], Field(description="Markdown formatted report.")] = None
+    # comparison_data removed from schema to avoid LLM validation errors (handled dynamically)
+
+    model_config = ConfigDict(extra="allow", validate_assignment=True)
+
+
 # --- Step 10: Interaction Analyst Agent ---
 
 
@@ -464,3 +460,64 @@ class InteractionAnalysis(BaseJSON):
         Field(description="Driver profile classification."),
     ]
     input_control_ratio: Annotated[Optional[float], Field(description="Control ratio.")] = None
+
+
+# --- Step 5 (Parallel): Panel Agent ---
+# Defined last because it depends on almost everything else
+
+
+class PanelAudit(BaseJSON):
+    logiikka_auditointi: Annotated[ArgumentaatioAnalyysi, Field(description="Logic audit result.")]
+    falsifiointi_auditointi: Annotated[LogiikkaAuditointi, Field(description="Falsification audit result.")]
+    kausaalinen_auditointi: Annotated[KausaalinenAuditointi, Field(description="Causal audit result.")]
+    performatiivisuus_auditointi: Annotated[
+        PerformatiivisuusAuditointi, Field(description="Performativity audit result.")
+    ]
+    etiikka_ja_fakta: Annotated[EtiikkaJaFakta, Field(description="Ethics audit result.")]
+
+
+# --- DYNAMIC EVALUATION SYSTEM DOIMAIN MODELS ---
+
+
+class EvaluationCriterion(BaseModel):
+    """Defines a single dimension of evaluation (e.g., 'Analysis')."""
+
+    id: Annotated[str, Field(description="Unique key for the criterion.")]
+    label: Annotated[str, Field(description="Human readable label.")]
+    instruction: Annotated[str, Field(description="Prompt instruction for the LLM.")]
+    anchors: Annotated[Dict[str, str], Field(description="Scoring anchors (e.g., {'1': 'Bad', '4': 'Good'}).")]
+
+    model_config = ConfigDict(validate_assignment=True)
+
+
+class EvaluationMatrixConfig(BaseModel):
+    """Configuration for a dynamic evaluation matrix."""
+
+    name: Annotated[str, Field(description="Name of the matrix.")]
+    description: Annotated[str, Field(description="Description of purpose.")]
+    scale: Annotated[Dict[str, int], Field(description="Min and Max scale.")]
+    role_description: Annotated[Optional[str], Field(description="Optional role persona.")] = None
+    criteria: Annotated[List[EvaluationCriterion], Field(description="List of criteria.")]
+
+    model_config = ConfigDict(validate_assignment=True)
+
+
+class DimensionResultItem(BaseModel):
+    """Result for a single dimension."""
+
+    dimension_id: Annotated[str, Field(description="ID of the dimension (e.g., 'analysis').")]
+    score: Annotated[Union[int, float], Field(description="Numerical score.")]
+    reasoning: Annotated[str, Field(description="Justification for the score.")]
+
+    model_config = ConfigDict(validate_assignment=True)
+
+
+class EvaluationResult(BaseJSON):  # Inherits metadata from BaseJSON
+    """Result of a dynamic evaluation."""
+
+    matrix_id: Annotated[str, Field(description="ID of the matrix used.")]
+    scale_min: Annotated[int, Field(default=1, description="Minimum score of the scale.")]
+    scale_max: Annotated[int, Field(default=5, description="Maximum score of the scale.")]
+    total_score: Annotated[Union[int, float], Field(description="Calculated total/average score.")]
+    dimensions: Annotated[List[DimensionResultItem], Field(description="Breakdown by dimension.")]
+    critical_findings: Annotated[List[str], Field(default_factory=list, description="Critical observations.")]

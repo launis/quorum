@@ -21,8 +21,12 @@ class TestSystemResilienceAsync(unittest.IsolatedAsyncioTestCase):
         
         req = WorkflowCreateRequest(name="Fail Workflow", steps=[])
         
+        # Mock User
+        mock_user = MagicMock()
+        mock_user.uid = "test_user"
+        
         with self.assertRaises(HTTPException) as cm:
-            await create_workflow(req, mock_engine)
+            await create_workflow(req, mock_engine, current_user=mock_user)
         
         exc = cm.exception
         assert exc.status_code == 500

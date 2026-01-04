@@ -64,9 +64,9 @@ class TestJudgeSanity(unittest.IsolatedAsyncioTestCase):
         
         # 4. Execute
         mock_repo = MagicMock()
-        mock_repo.get_component_by_id.return_value = {
+        mock_repo.get_component_by_id = AsyncMock(return_value={
             "content": {"name": "Sanity Matrix", "criteria": []}
-        }
+        })
         
         await agent.execute(
             state, 

@@ -166,16 +166,22 @@ class WorkflowEngine:
 
     # --- CORE EXECUTION LOGIC (V2) ---
 
-    async def run_execution(self, execution_id: str, raw_inputs: Dict[str, Any]) -> Dict[str, Any]:
+    async def run_execution(
+        self, execution_id: str, raw_inputs: Dict[str, Any], arq_pool: Optional[Any] = None
+    ) -> Dict[str, Any]:
         """
         Executes a workflow state-machine asynchronously.
+        
+        If 'arq_pool' is provided, the job is enqueued to Redis (Async/Distributed).
+        Otherwise, it runs locally/inline (Blocking/Legacy).
 
         Args:
             execution_id (str): The Execution UUID.
             raw_inputs (Dict[str, Any]): Initial input data.
+            arq_pool (Optional[Any]): Arq Redis pool for background tasks.
 
         Returns:
-            Dict[str, Any]: The final results object.
+            Dict[str, Any]: The initial state (if queued) or final results.
         """
         set_execution_context(execution_id)
         logger.info(f"[WorkflowEngine] Starting execution {execution_id}")
@@ -189,6 +195,36 @@ class WorkflowEngine:
             wf_id = exec_record["workflow_id"]
             wf_record = await self.repository.get_workflow_by_id(wf_id)
             wf_name = wf_record["name"] if wf_record else "Unknown"
+            
+            # 2. Distributed Execution (Preferred)
+            if arq_pool:
+                logger.info(f"[WorkflowEngine] Enqueuing execution {execution_id} to Arq/Redis.")
+                
+                # Enqueue the job defined in backend/worker.py
+                await arq_pool.enqueue_job(
+                    "execute_workflow_task",
+                    execution_id=execution_id,
+                    workflow_id=wf_id,
+                    inputs=raw_inputs
+                )
+                
+                # Initialize state stub so we return a valid structure (even if empty)
+                # The worker will re-initialize or hydrate it.
+                # Ideally, we verify initialization first, but for speed we assume worker handles it.
+                # However, returning a proper initial state is good for UI immediate feedback.
+                current_state = await self.runner.initialize_state(
+                    execution_id,
+                    raw_inputs,
+                    wf_id,
+                    wf_name,
+                    organization_id=exec_record.get("organization_id"),
+                    user_id=exec_record.get("user_id"),
+                )
+                
+                return current_state.model_dump()
+
+            # 3. Local Execution (Fallback)
+            logger.warning(f"[WorkflowEngine] No Arq pool provided. Running execution {execution_id} LOCALLY (Inline).")
 
             # 2. Initialize State via Runner
             current_state = await self.runner.initialize_state(
@@ -459,8 +495,11 @@ class WorkflowEngine:
         Returns:
             Dict[str, Any]: The public facing result object.
         """
-        # 1. Start with the architecturally mandated V2 structure (Scores, Reports, etc.)
-        public_result = state.to_flat_dict()
+        # 1. Start with the architecturally mandated V2 structure via StatePresenter
+        from backend.services.state_presenter import StatePresenter
+        
+        # We start with the flattened representation
+        public_result = StatePresenter.flatten_state(state)
         full_state = state.model_dump(mode="json")
 
         # 2. Augment with dynamic steps that might not be in to_flat_dict explicit logic

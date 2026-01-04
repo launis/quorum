@@ -14,8 +14,8 @@ def test_env_mock_db_default():
     """
     Test Default Behavior: Should use Mock DB (Visualized as run_mock_locally.bat)
     """
-    # Clear env vars to allow defaults to take over
-    with patch.dict(os.environ, {}, clear=True):
+    # Clear env vars to allow defaults to take over, BUT Keep LLM Mocked
+    with patch.dict(os.environ, {"USE_MOCK_LLM": "true"}, clear=True):
         client = get_db_client()
         assert isinstance(client, TinyDBClient)
         # Verify it points to db_mock.json
@@ -33,7 +33,8 @@ def test_env_local_production():
     """
     env = {
         "USE_MOCK_DB": "false",
-        "STORAGE_BACKEND": "LOCAL"
+        "STORAGE_BACKEND": "LOCAL",
+        "USE_MOCK_LLM": "true"
     }
     with patch.dict(os.environ, env, clear=True):
         client = get_db_client()

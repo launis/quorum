@@ -42,11 +42,17 @@ class Settings(BaseSettings):
     llm_max_retries: Annotated[int, Field(description="Max retries for LLM calls")] = 3
     llm_retry_delay: Annotated[float, Field(description="Delay between retries in seconds")] = 4.0
 
+    # --- Redis & Arq ---
+    redis_host: Annotated[str, Field(description="Redis Host")] = "localhost"
+    redis_port: Annotated[int, Field(description="Redis Port")] = 6379
+
     # NOTE: Default models are REMOVED to enforce DB-based configuration.
     # gemini_model_fast and gemini_model_deep are deprecated.
 
     # --- Storage ---
     storage_backend: Annotated[str, Field(description="LOCAL, NONE, or FIRESTORE")] = "LOCAL"
+    environment: Annotated[str, Field(description="development, staging, or production")] = "development"
+    storage_bucket_name: Annotated[Optional[str], Field(description="Firebase Storage Bucket Name")] = None
 
     # --- Paths ---
     # We define base_dir relative to this file (backend/settings.py)

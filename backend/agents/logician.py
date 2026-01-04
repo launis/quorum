@@ -1,10 +1,13 @@
 import logging
-from typing import Optional, Type
+from typing import Optional, Type, TYPE_CHECKING
 
 from pydantic import BaseModel
 
 from backend.agents.base import BaseAgent
 from backend.models.domain import ArgumentaatioAnalyysi
+
+if TYPE_CHECKING:
+    from backend.models.state import WorkflowState
 
 logger = logging.getLogger(__name__)
 

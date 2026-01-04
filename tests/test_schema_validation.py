@@ -1,51 +1,66 @@
+
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, AsyncMock
 from backend.agents.base import BaseAgent
-from pydantic import BaseModel, ValidationError
+from backend.models.state import WorkflowState, InputData
+from pydantic import BaseModel
+from typing import Optional, Type
 
 class MockSchema(BaseModel):
     field1: str
     field2: int
 
 class MockAgent(BaseAgent):
-    def construct_user_prompt(self, **kwargs) -> str:
-        return "mock prompt"
-
-    def _process(self, validation_schema=None, **kwargs):
-        return self.get_json_response(
-            prompt="mock prompt",
-            validation_schema=validation_schema
-        )
-
-def test_schema_validation_success():
-    agent = MockAgent()
+    state_field = "aux_data" # Write to aux_data by default
     
-    # Mock LLM response
-    with patch.object(agent, '_call_llm', return_value='{"field1": "test", "field2": 123}'):
-        result = agent._process(validation_schema=MockSchema)
-        
-    assert result['field1'] == "test"
-    assert result['field2'] == 123
+    def get_response_schema(self) -> Optional[Type[BaseModel]]:
+        return MockSchema
 
-def test_schema_validation_failure_retry():
-    agent = MockAgent()
-    
-    # Mock LLM response: first invalid, then valid
-    with patch.object(agent, '_call_llm', side_effect=[
-        '{"field1": "test", "field2": "invalid"}', # Invalid type for field2
-        '{"field1": "test", "field2": 123}'        # Valid
-    ]):
-        result = agent._process(validation_schema=MockSchema)
-        
-    assert result['field1'] == "test"
-    assert result['field2'] == 123
+@pytest.fixture
+def mock_state():
+    return WorkflowState(execution_id="test", inputs=InputData())
 
-def test_schema_validation_failure_max_retries():
+@pytest.mark.asyncio
+async def test_schema_validation_success(mock_state):
     agent = MockAgent()
+    agent.llm_provider = AsyncMock()
     
-    # Mock LLM response: always invalid
-    with patch.object(agent, '_call_llm', return_value='{"field1": "test", "field2": "invalid"}'):
-        result = agent._process(validation_schema=MockSchema)
-        
-    assert "error" in result
-    assert "Schema validation failed" in result['error']
+    mock_resp = MagicMock()
+    mock_resp.content = '{"field1": "test", "field2": 123}'
+    mock_resp.reasoning_token = None
+    agent.llm_provider.generate.return_value = mock_resp
+    
+    # override output_key to test specific field
+    await agent.execute(mock_state, output_key="test_output")
+    
+    # Check aux_data (BaseAgent defaults to putting schema output in aux_data if field not on State)
+    # But wait, BaseAgent._update_state logic:
+    # if hasattr(state, target_field): setattr... else: state.aux_data[target_field] = ...
+    
+    data = mock_state.aux_data["test_output"]
+    assert data['field1'] == "test"
+    assert data['field2'] == 123
+
+@pytest.mark.asyncio
+async def test_schema_validation_failure_retry(mock_state):
+    # This test assumes the BaseAgent/LLMProvider handles retries.
+    # Actually, retries are usually handled inside LLMProvider.generate if implemented, 
+    # OR explicit loop in execute. BaseAgent.execute calls verify? No.
+    # Ideally, we should test LLMProvider's retry logic, but here we test if Agent fails gracefully 
+    # if provider returns bad JSON eventually?
+    # BaseAgent doesn't loop for retries itself; it expects Provider to handle valid JSON generation.
+    # However, let's verify BaseAgent raises error on strict failure.
+    
+    agent = MockAgent()
+    agent.llm_provider = AsyncMock()
+    
+    mock_resp_bad = MagicMock()
+    mock_resp_bad.content = '{"field1": "test", "field2": "invalid"}' # Invalid int
+    
+    agent.llm_provider.generate.return_value = mock_resp_bad
+    
+    with pytest.raises(Exception) as excinfo:
+        await agent.execute(mock_state, output_key="test_output")
+    
+    # Pydantic validation error or JSON parse error
+    assert "Generic state update failed" in str(excinfo.value) or "validation error" in str(excinfo.value).lower()

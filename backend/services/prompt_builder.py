@@ -1,14 +1,16 @@
 import json
 import logging
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 import requests
 
 from backend.database.repository import AbstractWorkflowRepository
 from backend.exceptions import StepNotFoundError, WorkflowNotFoundError
-from backend.models.state import WorkflowState
 from backend.services.agent_registry import AgentRegistry
+
+if TYPE_CHECKING:
+    from backend.models.state import WorkflowState
 
 logger = logging.getLogger(__name__)
 

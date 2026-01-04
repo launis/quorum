@@ -1,11 +1,13 @@
 import logging
-from typing import Any, Optional, Type
+from typing import Any, Optional, Type, TYPE_CHECKING
 
 from pydantic import BaseModel
 
 from backend.core.component import BaseComponent
 from backend.llm.provider import LLMFactory, LLMProvider, UnconfiguredProvider
-from backend.models.state import WorkflowState
+
+if TYPE_CHECKING:
+    from backend.models.state import WorkflowState
 
 logger = logging.getLogger(__name__)
 

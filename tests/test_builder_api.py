@@ -18,27 +18,43 @@ def client_fixture():
     dependencies._db_client_instance = None
     dependencies._repository_instance = None
     dependencies._engine_instance = None
+    dependencies._registry_instance = None
+    dependencies._prompt_builder_instance = None
+    dependencies._auth_service_instance = None
+    dependencies._storage_service_instance = None
     
     # 1. Create Temp DB File
     fd, path = tempfile.mkstemp(suffix=".json")
     os.close(fd) 
     
     # 2. Define Override
-    # 2. Define Override
     db_ref = []
     from backend.database.wrapper import TinyDBClient
+    from backend.dependencies import get_current_user_from_header
+    from backend.models.auth import TokenData, UserRole
+
+    class DBHolder:
+        client = None
+
     def get_test_db():
-        client = TinyDBClient(path)
-        db_ref.append(client)
-        # SEED
-        client.table('system_config').insert({
-            "type": "model_registry",
-            "models": {"stub": {"fast": "stub", "deep": "stub"}}
-        })
-        return client
-    
+        if DBHolder.client is None:
+            client = TinyDBClient(path)
+            DBHolder.client = client
+            db_ref.append(client)
+            # SEED
+            client.table('system_config').insert({
+                "type": "model_registry",
+                "models": {"stub": {"fast": "stub", "deep": "stub"}}
+            })
+        return DBHolder.client
+
+    # Mock Auth Identity for Builder
+    def mock_user():
+        return TokenData(uid="builder_user", email="builder@example.com", role=UserRole.ROOT, organization_id="org_builder")
+
     # 3. Apply Override
     app.dependency_overrides[get_db_client_dep] = get_test_db
+    app.dependency_overrides[get_current_user_from_header] = mock_user
     
     # 4. Return Client
     with TestClient(app) as c:
@@ -47,7 +63,12 @@ def client_fixture():
     # 5. Cleanup
     app.dependency_overrides.clear()
     dependencies._db_client_instance = None # Reset again
+    dependencies._repository_instance = None
     dependencies._engine_instance = None
+    dependencies._registry_instance = None
+    dependencies._prompt_builder_instance = None
+    dependencies._auth_service_instance = None
+    dependencies._storage_service_instance = None
     
     for db in db_ref:
         try: db.close()

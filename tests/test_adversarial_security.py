@@ -60,7 +60,7 @@ class TestAdversarialSecurity(unittest.IsolatedAsyncioTestCase):
         )
         
         repo = MagicMock()
-        repo.get_component_by_id.return_value = {"content": {"name": "Mock"}}
+        repo.get_component_by_id = AsyncMock(return_value={"content": {"name": "Mock"}})
         
         # 3. Execute
         await agent.execute(state, execution_config={"matrix_id": "mock_matrix"}, repository=repo)
@@ -127,7 +127,7 @@ class TestAdversarialSecurity(unittest.IsolatedAsyncioTestCase):
         )
         
         repo = MagicMock()
-        repo.get_component_by_id.return_value = {"content": {"name": "Mock"}}
+        repo.get_component_by_id = AsyncMock(return_value={"content": {"name": "Mock"}})
         
         await agent.execute(state, execution_config={"matrix_id": "mock_matrix"}, repository=repo)
         

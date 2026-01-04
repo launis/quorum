@@ -11,14 +11,49 @@ ADMIN_TOKEN = "mock-token:admin_1"  # Belongs to 'org-1'
 MEMBER_TOKEN = "mock-token:member_1" # Belongs to 'org-1'
 
 @pytest.fixture(autouse=True)
-def setup_auth():
-    from backend.dependencies import get_db_client_dep, get_settings_dep
-    from backend.services.auth import AuthService
+def setup_auth_override():
+    from backend.dependencies import get_current_user_from_header, get_db_client_dep
+    from backend.models.auth import TokenData, UserRole, Organization
+    from fastapi import Request, HTTPException
+
+    from tinydb import Query
     
-    # Bootstrap DB with users
-    db = get_db_client_dep()
-    svc = AuthService(db, use_firebase=False)
-    svc.ensure_root_user()
+    # 1. Seed DB with required Orgs (Mock DB persistence)
+    try:
+        db = get_db_client_dep()
+        org_table = db.table("organizations")
+        Q = Query()
+        org_table.upsert({"id": "org-1", "name": "Test Org 1", "tier": "standard"}, Q.id == 'org-1')
+        org_table.upsert({"id": "system", "name": "System", "tier": "root"}, Q.id == 'system')
+    except Exception as e:
+        print(f"Fixture DB Error: {e}")
+        pass
+
+    async def mock_user_resolver(request: Request):
+        auth_header = request.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer mock-token:"):
+             raise HTTPException(status_code=401, detail="Missing mock token")
+        
+        token_val = auth_header.split("Bearer ")[1]
+        uid = token_val.split(":")[1]
+
+        if uid == "root_master":
+            return TokenData(uid="root_master", email="root@example.com", role=UserRole.ROOT, organization_id="system")
+        elif uid == "admin_1":
+            return TokenData(uid="admin_1", email="admin@example.com", role=UserRole.ADMIN, organization_id="org-1")
+        elif uid == "member_1":
+            return TokenData(uid="member_1", email="member@example.com", role=UserRole.MEMBER, organization_id="org-1")
+        
+        raise HTTPException(status_code=401, detail="Unknown mock user")
+
+    # Clear AuthService singleton to force reload with potentially new DB/Config
+    from backend import dependencies
+    dependencies._auth_service_instance = None
+    
+    app.dependency_overrides[get_current_user_from_header] = mock_user_resolver
+    yield
+    app.dependency_overrides.clear()
+    dependencies._auth_service_instance = None
 
 def get_headers(token):
     return {"Authorization": f"Bearer {token}"}

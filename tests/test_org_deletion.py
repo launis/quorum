@@ -32,9 +32,8 @@ def setup_root_and_org():
     )
     
     # Cleanup if exists
-    existing = svc.org_repo.table.search(lambda x: x['name'] == "Doomed Corp")
-    if existing:
-        svc.org_repo.table.remove(doc_ids=[e.doc_id for e in existing])
+    # Cleanup if exists
+    svc.org_repo.table.remove(lambda x: x['name'] == "Doomed Corp")
         
     try:
         new_org = svc.create_organization(root.uid, org_create)

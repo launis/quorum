@@ -9,7 +9,7 @@ load_dotenv()
 
 # Configuration
 API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
-WORKFLOW_ID = "fused_audit_chain_dual"
+WORKFLOW_ID = "default_audit_chain"
 SCENARIOS_DIR = os.path.join(os.path.dirname(__file__), "scenarios", "workflow")
 
 def wait_for_backend(base_url: str, timeout: int = 60):
@@ -59,12 +59,13 @@ def test_full_workflow_execution():
     # 2. Start Workflow
     start_url = f"{API_BASE_URL}/executions"
     data_payload = {"workflow_id": WORKFLOW_ID}
+    headers = {"Authorization": "Bearer mock-token:root_master"}
     
     print(f"[TEST] Sending request to {start_url}...")
     try:
         # Note: 'data' sends form fields, 'files' sends multipart files. 
         # API expects workflow_id in form data, not query params.
-        response = requests.post(start_url, data=data_payload, files=files)
+        response = requests.post(start_url, data=data_payload, files=files, headers=headers)
         response.raise_for_status()
         data = response.json()
         execution_id = data.get("execution_id")

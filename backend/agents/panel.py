@@ -1,10 +1,12 @@
 import json
 import logging
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from backend.agents.base import BaseAgent
 from backend.models.domain import PanelAudit
-from backend.models.state import WorkflowState
+
+if TYPE_CHECKING:
+    from backend.models.state import WorkflowState
 
 logger = logging.getLogger(__name__)
 
