@@ -95,6 +95,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+import logfire  # noqa: E402
+from backend.logging_config import configure_logfire  # noqa: E402
+
+configure_logfire()
+logfire.instrument_fastapi(app)
+
 
 @app.exception_handler(AppException)
 async def app_exception_handler(request: Request, exc: AppException):

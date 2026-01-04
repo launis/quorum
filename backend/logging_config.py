@@ -2,6 +2,7 @@ import logging
 import os
 import sys
 
+import logfire
 from backend.context import get_execution_context
 
 
@@ -16,6 +17,19 @@ class ContextFilter(logging.Filter):
         return True
 
 
+
+
+
+def configure_logfire():
+    """
+    Configures Logfire for observability.
+    Should be called early in the application lifecycle.
+    """
+
+    logfire.configure()
+    logfire.instrument_pydantic()
+
+
 def setup_logging(log_level=logging.INFO):
     """
     Configures the root logger to write to a file and the console.
@@ -23,6 +37,10 @@ def setup_logging(log_level=logging.INFO):
     Log File: backend_debug.log (in the project root)
     Format: timestamp | level | logger_name | message
     """
+    # Configure Logfire (Observability) - Ensuring it's configured if not already
+    # But ideally called explicitly early.
+    configure_logfire()
+
     # Determine path to log file in project root
     # backend/logging_config.py -> backend/ -> root/
     current_dir = os.path.dirname(os.path.abspath(__file__))
