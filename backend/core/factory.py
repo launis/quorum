@@ -1,27 +1,30 @@
 from typing import Dict
-from backend.agents.base import BaseAgent
-from backend.agents.guard import GuardAgent
+
 from backend.agents.analyst import AnalystAgent
-from backend.agents.interaction import InteractionAnalystAgent
-from backend.agents.profiler import ProfilerAgent
-from backend.agents.logician import LogicianAgent
-from backend.agents.critics import (
-    LogicalFalsifierAgent,
-    FactualOverseerAgent,
-    CausalAnalystAgent,
-    PerformativityDetectorAgent
-)
 from backend.agents.archivist import ArchivistAgent
-from backend.agents.judge import JudgeAgent
+from backend.agents.base import BaseAgent
 from backend.agents.coach import CoachAgent
-from backend.agents.xai import XAIReporterAgent
+from backend.agents.critics import (
+    CausalAnalystAgent,
+    FactualOverseerAgent,
+    LogicalFalsifierAgent,
+    PerformativityDetectorAgent,
+)
+from backend.agents.guard import GuardAgent
+from backend.agents.interaction import InteractionAnalystAgent
+from backend.agents.judge import JudgeAgent
+from backend.agents.logician import LogicianAgent
 from backend.agents.panel import PanelAgent
+from backend.agents.profiler import ProfilerAgent
+from backend.agents.xai import XAIReporterAgent
+
 
 class AgentFactory:
     """
     Static Factory to explicitly instantiate all available Agents.
     Replaces dynamic discovery to ensure compile-time safety and explicit dependencies.
     """
+
     @staticmethod
     def create_agents_map(initial_model: str = None) -> Dict[str, BaseAgent]:
         """
@@ -29,7 +32,7 @@ class AgentFactory:
         """
         # Explicitly pass provider="vertex_ai" to ensure robust initialization
         default_provider = "vertex_ai"
-        
+
         return {
             "GuardAgent": GuardAgent(model=initial_model, provider=default_provider),
             "AnalystAgent": AnalystAgent(model=initial_model, provider=default_provider),
@@ -44,5 +47,5 @@ class AgentFactory:
             "JudgeAgent": JudgeAgent(model=initial_model, provider=default_provider),
             "CoachAgent": CoachAgent(model=initial_model, provider=default_provider),
             "XAIReporterAgent": XAIReporterAgent(model=initial_model, provider=default_provider),
-            "PanelAgent": PanelAgent(model=initial_model, provider=default_provider)
+            "PanelAgent": PanelAgent(model=initial_model, provider=default_provider),
         }

@@ -4,20 +4,20 @@ if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
     exit 1
 }
 
-# Create virtual environment if it doesn't exist
-if (-not (Test-Path ".venv")) {
-    Write-Host "Creating virtual environment..."
-    python -m venv .venv
+# Check version
+uv version | Out-Null
+if ($LastExitCode -ne 0) {
+    Write-Host "Installing uv..."
+    pip install uv
 }
 
-# Activate virtual environment
-Write-Host "Activating virtual environment..."
-& .\.venv\Scripts\Activate.ps1
+# Sync and install dependencies
+Write-Host "Syncing environment..."
+uv sync
 
 # Install dependencies
-Write-Host "Installing dependencies..."
-pip install -r backend/requirements.txt
-pip install -r frontend/requirements.txt
+Write-Host "Syncing dependencies with uv..."
+uv sync
 
 # Start Backend in background
 Write-Host "Starting Backend..."

@@ -1,16 +1,16 @@
-from abc import ABC, abstractmethod
-from typing import Union, Optional
-import os
 import logging
+from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import Optional, Union
 
 logger = logging.getLogger(__name__)
+
 
 class AbstractStorage(ABC):
     """
     Abstract base class defining the contract for file storage backends.
     """
-    
+
     @abstractmethod
     def save(self, path: str, data: Union[bytes, str]) -> str:
         """
@@ -51,11 +51,13 @@ class AbstractStorage(ABC):
         """
         pass
 
+
 class LocalFileStorage(AbstractStorage):
     """
     Local file system implementation of AbstractStorage.
     Stores files in a local directory (e.g., 'backend/files/executions').
     """
+
     def __init__(self, base_path: str = "backend/files/executions"):
         """
         Initializes local storage.
@@ -82,16 +84,16 @@ class LocalFileStorage(AbstractStorage):
         """
         try:
             full_path = self.base_path / path
-            
+
             # Ensure parent dir exists
             full_path.parent.mkdir(parents=True, exist_ok=True)
-            
+
             mode = "wb" if isinstance(data, bytes) else "w"
             encoding = None if isinstance(data, bytes) else "utf-8"
-            
+
             with open(full_path, mode, encoding=encoding) as f:
                 f.write(data)
-                
+
             return str(full_path)
         except Exception as e:
             logger.error(f"Failed to save file to {path}: {e}")
@@ -128,10 +130,12 @@ class LocalFileStorage(AbstractStorage):
         full_path = self.base_path / path
         return full_path.exists()
 
+
 class NoOpStorage(AbstractStorage):
     """
     Storage implementation that does nothing (for when storage is disabled).
     """
+
     def save(self, path: str, data: Union[bytes, str]) -> str:
         return f"NOT_SAVED (NoOp): {path}"
 
@@ -144,11 +148,13 @@ class NoOpStorage(AbstractStorage):
 
 # --- Firebase Implementation ---
 
+
 class FirebaseStorage(AbstractStorage):
     """
     Firebase Storage implementation of AbstractStorage.
     Uses firebase-admin SDK.
     """
+
     def __init__(self, bucket_name: Optional[str] = None):
         """
         Initializes Firebase Storage client.
@@ -158,14 +164,15 @@ class FirebaseStorage(AbstractStorage):
         """
         import firebase_admin
         from firebase_admin import storage
-        
+
         # Ensure app is initialized (usually done in database/wrapper.py or main.py)
         # We check just in case
         if not firebase_admin._apps:
-             from firebase_admin import credentials
-             cred = credentials.ApplicationDefault()
-             firebase_admin.initialize_app(cred)
-             
+            from firebase_admin import credentials
+
+            cred = credentials.ApplicationDefault()
+            firebase_admin.initialize_app(cred)
+
         self.bucket = storage.bucket(name=bucket_name)
 
     def save(self, path: str, data: Union[bytes, str]) -> str:
@@ -181,14 +188,14 @@ class FirebaseStorage(AbstractStorage):
         """
         try:
             blob = self.bucket.blob(path)
-            
+
             if isinstance(data, str):
                 blob.upload_from_string(data, content_type="text/plain")
             else:
                 blob.upload_from_string(data, content_type="application/octet-stream")
-                
+
             return f"gs://{self.bucket.name}/{path}"
-            
+
         except Exception as e:
             logger.error(f"Failed to save file to Firebase {path}: {e}")
             raise e
@@ -222,5 +229,3 @@ class FirebaseStorage(AbstractStorage):
         """
         blob = self.bucket.blob(path)
         return blob.exists()
-
-

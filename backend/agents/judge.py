@@ -1,12 +1,17 @@
-from typing import Any, Optional, Type, List, Dict
-from backend.agents.base import BaseAgent
-from backend.models.state import WorkflowState
-from backend.models.domain import TuomioJaPisteet, EvaluationResult, DimensionResultItem, Pisteet, PisteetKriteeri, Metadata, MestaruusPoikkeama, AitousEpaily, KonfliktinRatkaisu
-from pydantic import BaseModel
-import logging
 import json
+import logging
+from typing import Any, Optional, Type
+
+from pydantic import BaseModel
+
+from backend.agents.base import BaseAgent
+from backend.models.domain import (
+    EvaluationResult,
+)
+from backend.models.state import WorkflowState
 
 logger = logging.getLogger(__name__)
+
 
 class JudgeAgent(BaseAgent):
     """
@@ -14,66 +19,66 @@ class JudgeAgent(BaseAgent):
     Refactored to support dynamic Evaluation Matrix configurations with legacy fallback.
     """
 
-    state_field = "step_judge" 
-    
-    REQUIRES_KEYS = ["step_guard", "step_falsifier", "step_logician"] 
+    state_field = "step_judge"
+
+    REQUIRES_KEYS = ["step_guard", "step_falsifier", "step_logician"]
     PRODUCES_KEYS = ["step_judge", "audit_results"]
-    OUTPUT_SCHEMA = EvaluationResult 
+    OUTPUT_SCHEMA = EvaluationResult
 
     def get_response_schema(self) -> Optional[Type[BaseModel]]:
         return EvaluationResult
 
     async def prepare_context(self, state: WorkflowState, **kwargs) -> Optional[str]:
-        config = kwargs.get('execution_config', {})
-        matrix_id = config.get('matrix_id')
-        repo = kwargs.get('repository')
-        
+        config = kwargs.get("execution_config", {})
+        matrix_id = config.get("matrix_id")
+        repo = kwargs.get("repository")
+
         if not matrix_id:
             logger.warning("[JudgeAgent] No matrix_id configured.")
             return None
-        
+
         if not repo:
-             return None
+            return None
 
         component = await repo.get_component_by_id(matrix_id)
         if not component:
             return f"ERROR: Matrix '{matrix_id}' not found."
-            
+
         base_prompt = self._format_matrix_prompt(component)
-        
+
         # Inject Context/Inputs to be evaluated
         eval_ctx = []
         try:
-            if hasattr(state, 'inputs') and state.inputs:
-                if getattr(state.inputs, 'history_text', None):
+            if hasattr(state, "inputs") and state.inputs:
+                if getattr(state.inputs, "history_text", None):
                     eval_ctx.append(f"### CHAT HISTORY TO EVALUATE:\n{state.inputs.history_text}")
-                if getattr(state.inputs, 'product_text', None):
+                if getattr(state.inputs, "product_text", None):
                     eval_ctx.append(f"### PRODUCT TO EVALUATE:\n{state.inputs.product_text}")
-                if getattr(state.inputs, 'reflection_text', None):
+                if getattr(state.inputs, "reflection_text", None):
                     eval_ctx.append(f"### STUDENT REFLECTION:\n{state.inputs.reflection_text}")
         except Exception:
             # Tolerated failure in prompt decoration
             pass
 
         if eval_ctx:
-             return base_prompt + "\n\n" + "\n\n".join(eval_ctx)
-             
+            return base_prompt + "\n\n" + "\n\n".join(eval_ctx)
+
         return base_prompt
 
     def _format_matrix_prompt(self, component: dict) -> str:
-        content = component.get('content', {})
+        content = component.get("content", {})
         if isinstance(content, str):
             try:
                 content = json.loads(content)
             except Exception:
                 return "Error parsing matrix."
-        
-        name = content.get('name', 'Audit Matrix')
-        desc = content.get('description', '')
-        role = content.get('role_description', 'You are the Evaluator.')
-        criteria = content.get('criteria', [])
-        scale = content.get('scale', {'min': 1, 'max': 4})
-        
+
+        name = content.get("name", "Audit Matrix")
+        desc = content.get("description", "")
+        role = content.get("role_description", "You are the Evaluator.")
+        criteria = content.get("criteria", [])
+        scale = content.get("scale", {"min": 1, "max": 4})
+
         prompt_lines = [
             f"### ROLE: {role}",
             f"### EVALUATION MATRIX: {name}",
@@ -82,62 +87,66 @@ class JudgeAgent(BaseAgent):
             "",
             "### CRITERIA FOR EVALUATION:",
         ]
-        
+
         for crit in criteria:
-            c_label = crit.get('label', 'Unknown')
-            c_instr = crit.get('instruction', '')
-            c_id = crit.get('id', 'unknown')
-            c_anchors = crit.get('anchors', {})
-            
+            c_label = crit.get("label", "Unknown")
+            c_instr = crit.get("instruction", "")
+            c_id = crit.get("id", "unknown")
+            c_anchors = crit.get("anchors", {})
+
             prompt_lines.append(f"#### Dimension: {c_label} (ID: {c_id})")
             prompt_lines.append(f"Instruction: {c_instr}")
             prompt_lines.append("Proficiency Levels (Anchors):")
             try:
                 sorted_anchors = sorted(c_anchors.items(), key=lambda x: int(x[0]))
-            except:
+            except Exception:
                 sorted_anchors = c_anchors.items()
-                
+
             for lvl, text in sorted_anchors:
                 prompt_lines.append(f"  - Level {lvl}: {text}")
             prompt_lines.append("")
-            
+
         return "\n".join(prompt_lines)
 
-    async def _update_state(self, state: WorkflowState, response_data: Any, output_key: Optional[str] = None, **kwargs) -> WorkflowState:
-        step_id = kwargs.get('step_id', output_key or self.state_field or 'unknown_step')
-        
+    async def _update_state(
+        self, state: WorkflowState, response_data: Any, output_key: Optional[str] = None, **kwargs
+    ) -> WorkflowState:
+        step_id = kwargs.get("step_id", output_key or self.state_field or "unknown_step")
+
         try:
             if isinstance(response_data, dict):
                 # Force matrix_id from config if available (trust config over LLM hallucination)
-                config = kwargs.get('execution_config', {})
-                forced_id = config.get('matrix_id')
+                config = kwargs.get("execution_config", {})
+                forced_id = config.get("matrix_id")
                 if forced_id:
-                    response_data['matrix_id'] = forced_id
-                elif 'matrix_id' not in response_data or not response_data['matrix_id']:
-                     response_data['matrix_id'] = config.get('matrix_id', 'unknown')
+                    response_data["matrix_id"] = forced_id
+                elif "matrix_id" not in response_data or not response_data["matrix_id"]:
+                    response_data["matrix_id"] = config.get("matrix_id", "unknown")
 
                 # Inject Scale Metadata if available
-                repo = kwargs.get('repository')
+                repo = kwargs.get("repository")
                 if repo:
-                    mat_id = response_data.get('matrix_id')
+                    mat_id = response_data.get("matrix_id")
                     comp = await repo.get_component_by_id(mat_id)
                     if comp:
-                        content = comp.get('content', {})
+                        content = comp.get("content", {})
                         if isinstance(content, str):
                             try:
                                 content = json.loads(content)
-                            except:
+                            except Exception:
                                 content = {}
-                        scale = content.get('scale', {})
-                        response_data['scale_min'] = scale.get('min', 1)
-                        response_data['scale_max'] = scale.get('max', 5)
+                        scale = content.get("scale", {})
+                        response_data["scale_min"] = scale.get("min", 1)
+                        response_data["scale_max"] = scale.get("max", 5)
 
                 res_obj = EvaluationResult(**response_data)
-                
+
                 # 1. Update Dynamic Store
                 state.audit_results[step_id] = res_obj
-                logger.info(f"[JudgeAgent] Saved EvaluationResult to state.audit_results['{step_id}'] (Scale: {res_obj.scale_min}-{res_obj.scale_max})")
-                
+                logger.info(
+                    f"[JudgeAgent] Saved EvaluationResult to state.audit_results['{step_id}'] (Scale: {res_obj.scale_min}-{res_obj.scale_max})"
+                )
+
             return state
 
         except Exception as e:

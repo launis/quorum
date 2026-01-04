@@ -1,11 +1,14 @@
-from typing import Any, Optional, Type
-from backend.agents.base import BaseAgent
-from backend.models.state import WorkflowState
-from backend.models.domain import TodistusKartta
-from pydantic import BaseModel
 import logging
+from typing import Optional, Type
+
+from pydantic import BaseModel
+
+from backend.agents.base import BaseAgent
+from backend.models.domain import TodistusKartta
+from backend.models.state import WorkflowState
 
 logger = logging.getLogger(__name__)
+
 
 class AnalystAgent(BaseAgent):
     """
@@ -17,9 +20,9 @@ class AnalystAgent(BaseAgent):
     """
 
     state_field = "step_analyst"
-    
+
     # Contracts
-    REQUIRES_KEYS = ["history_text", "product_text", "reflection_text"] 
+    REQUIRES_KEYS = ["history_text", "product_text", "reflection_text"]
     PRODUCES_KEYS = ["step_analyst"]
     OUTPUT_SCHEMA = TodistusKartta
 
@@ -35,7 +38,7 @@ class AnalystAgent(BaseAgent):
     def verify_structure(self, state: WorkflowState) -> WorkflowState:
         """
         HOOK: verify_structure.
-        
+
         Pre-hook that validates whether the inputs have sufficient content for analysis.
         Delegates the actual check to the 'backend.hooks.validation' module.
 
@@ -47,4 +50,5 @@ class AnalystAgent(BaseAgent):
         """
         logger.info("[AnalystAgent] Delegating to Validation Hook...")
         from backend.hooks.validation import verify_structure
+
         return verify_structure(state)

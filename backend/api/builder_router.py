@@ -1,15 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException, Body
-from typing import List, Dict, Any, Optional, Annotated
-from pydantic import BaseModel, Field
+import copy
 import logging
 import uuid
-import copy
 from datetime import datetime
-from tinydb import Query
+from typing import Annotated, Any, Dict, List, Optional
 
-from backend.dependencies import EngineDep, get_engine, CurrentUserDep, AuthServiceDep
+from fastapi import APIRouter, Body, HTTPException
+from pydantic import BaseModel, Field
+
+from backend.dependencies import CurrentUserDep, EngineDep
 from backend.models.auth import UserRole
-from backend.core.engine import WorkflowEngine
 
 router = APIRouter(
     prefix="/builder",
@@ -19,6 +18,7 @@ router = APIRouter(
 
 logger = logging.getLogger(__name__)
 
+
 class WorkflowCreateRequest(BaseModel):
     name: Annotated[str, Field(description="Name of the new workflow.")]
     description: Annotated[Optional[str], Field(description="Optional description.")] = None
@@ -26,6 +26,7 @@ class WorkflowCreateRequest(BaseModel):
     default_model_mapping: Annotated[Optional[Dict[str, str]], Field(description="Initial model mapping.")] = {}
     ui_schema: Annotated[Optional[Dict[str, Any]], Field(description="UI Layout metadata.")] = {}
     is_public: Annotated[bool, Field(description="If True, visible to all tenants (System Only).")] = False
+
 
 class WorkflowUpdateRequest(BaseModel):
     name: Annotated[Optional[str], Field(description="New name.")] = None
@@ -35,20 +36,25 @@ class WorkflowUpdateRequest(BaseModel):
     default_model_mapping: Annotated[Optional[Dict[str, str]], Field(description="Updated model mapping.")] = None
     is_public: Annotated[Optional[bool], Field(description="Update visibility.")] = None
 
+
 class StepUpdateRequest(BaseModel):
     name: Annotated[Optional[str], Field(description="New step name.")] = None
     execution_config: Annotated[Optional[Dict[str, Any]], Field(description="Updated execution config.")] = None
 
+
 class CopyWorkflowRequest(BaseModel):
     new_name: Annotated[str, Field(description="Name for the copy.")]
+
 
 class CustomStepCreateRequest(BaseModel):
     component_type: Annotated[str, Field(description="Base component type (e.g. 'Judge', 'Analyst').")]
     name_hint: Annotated[Optional[str], Field(description="Optional name override.")] = None
 
+
 class CompileRequest(BaseModel):
     workflow_id: Annotated[str, Field(description="Target workflow ID.")]
     steps: Annotated[List[str], Field(description="List of step IDs to fuse.")]
+
 
 class WorkflowTemplate(BaseModel):
     name: str
@@ -57,16 +63,19 @@ class WorkflowTemplate(BaseModel):
     default_model_mapping: Dict[str, str]
     ui_schema: Dict[str, Any]
 
+
 class ValidationRequest(BaseModel):
     source_step: Annotated[str, Field(description="ID of the source step.")]
     target_step: Annotated[str, Field(description="ID of the target step.")]
 
+
 # --- Endpoints ---
 
+
 @router.get(
-    "/config/agents", 
+    "/config/agents",
     summary="List Agent Class Metadata",
-    response_description="A list of agent definitions including I/O contracts."
+    response_description="A list of agent definitions including I/O contracts.",
 )
 async def get_available_agents(engine: EngineDep):
     """
@@ -82,47 +91,33 @@ async def get_available_agents(engine: EngineDep):
         registry = engine.registry
         agents_meta = []
         agents = registry.get_all_agents()
-        
+
         for name, agent_inst in agents.items():
             agent_cls = agent_inst.__class__
             meta = {
                 "name": name,
                 "description": agent_cls.__doc__ or "No description.",
                 "inputs": getattr(agent_cls, "INPUT_REQUIREMENTS", []),
-                "outputs": []
+                "outputs": [],
             }
             agents_meta.append(meta)
-                
+
         return agents_meta
     except Exception as e:
         logger.error(f"Failed to list agents: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get(
-    "/workflows", 
-    summary="List Workflows",
-    response_description="All Workflows."
-)
-async def list_workflows(
-    engine: EngineDep,
-    current_user: CurrentUserDep
-):
+
+@router.get("/workflows", summary="List Workflows", response_description="All Workflows.")
+async def list_workflows(engine: EngineDep, current_user: CurrentUserDep):
     """List all workflows visible to the current user."""
     return await engine.repository.get_all_workflows(
-        organization_id=current_user.organization_id, 
-        role=current_user.role
+        organization_id=current_user.organization_id, role=current_user.role
     )
 
-@router.post(
-    "/workflows", 
-    summary="Create Workflow",
-    response_description="Created workflow data."
-)
-async def create_workflow(
-    request: WorkflowCreateRequest, 
-    engine: EngineDep,
-    current_user: CurrentUserDep
-):
+
+@router.post("/workflows", summary="Create Workflow", response_description="Created workflow data.")
+async def create_workflow(request: WorkflowCreateRequest, engine: EngineDep, current_user: CurrentUserDep):
     """
     Create a new workflow.
     Protected: ROOT or MANAGER only.
@@ -130,45 +125,41 @@ async def create_workflow(
     # 1. RBAC Check
     if current_user.role not in [UserRole.ROOT, UserRole.MANAGER]:
         raise HTTPException(status_code=403, detail="Only ROOT or MANAGER can create workflows.")
-        
+
     # 2. Org Assignment
     # If ROOT, they "own" the system org (usually).
     # If MANAGER, forced to their org.
-    target_org = current_user.organization_id or "system" # Default to system if root has None
-    
+    target_org = current_user.organization_id or "system"  # Default to system if root has None
+
     # 3. Visibility Check
     is_public_val = False
     if request.is_public:
         if current_user.role != UserRole.ROOT:
             raise HTTPException(status_code=403, detail="Only ROOT can make workflows public.")
         is_public_val = True
-    
+
     try:
-        new_id = str(uuid.uuid4()).split('-')[0] # Short ID
+        new_id = str(uuid.uuid4()).split("-")[0]  # Short ID
         workflow_data = {
-            "id": f"wf_{new_id}", 
+            "id": f"wf_{new_id}",
             "name": request.name,
             "description": request.description or "",
             "steps": request.steps,
             "default_model_mapping": request.default_model_mapping or {},
-            "ui_schema": request.ui_schema or {}, 
+            "ui_schema": request.ui_schema or {},
             "created_at": datetime.now().isoformat(),
             "organization_id": target_org,
-            "is_public": is_public_val
+            "is_public": is_public_val,
         }
-        
-        
+
         await engine.repository.create_workflow(workflow_data)
         return workflow_data
     except Exception as e:
         logger.error(f"Failed to create workflow: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get(
-    "/workflows/{workflow_id}", 
-    summary="Get Workflow",
-    response_description="Workflow details."
-)
+
+@router.get("/workflows/{workflow_id}", summary="Get Workflow", response_description="Workflow details.")
 async def get_workflow(workflow_id: str, engine: EngineDep):
     """Get details of a specific workflow."""
     wf = await engine.repository.get_workflow_by_id(workflow_id)
@@ -176,80 +167,76 @@ async def get_workflow(workflow_id: str, engine: EngineDep):
         raise HTTPException(status_code=404, detail="Workflow not found")
     return wf
 
-@router.put(
-    "/workflows/{workflow_id}", 
-    summary="Update Workflow",
-    response_description="Updated workflow."
-)
+
+@router.put("/workflows/{workflow_id}", summary="Update Workflow", response_description="Updated workflow.")
 async def update_workflow(
-    workflow_id: str, 
-    request: WorkflowUpdateRequest, 
-    engine: EngineDep,
-    current_user: CurrentUserDep
+    workflow_id: str, request: WorkflowUpdateRequest, engine: EngineDep, current_user: CurrentUserDep
 ):
     """Update an existing workflow."""
     wf = await engine.repository.get_workflow_by_id(workflow_id)
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
-        
+
     # Permission Check
-    wf_org = wf.get('organization_id')
-    is_system_wf = (wf_org is None or wf_org == "system")
-    
+    wf_org = wf.get("organization_id")
+    is_system_wf = wf_org is None or wf_org == "system"
+
     if is_system_wf:
         if current_user.role != UserRole.ROOT:
             raise HTTPException(status_code=403, detail="Only ROOT can modify System Workflows.")
     else:
         # Tenant Workflow
         if current_user.role not in [UserRole.ROOT, UserRole.MANAGER]:
-             raise HTTPException(status_code=403, detail="Insufficient role to modify workflow.")
+            raise HTTPException(status_code=403, detail="Insufficient role to modify workflow.")
         if wf_org != current_user.organization_id and current_user.role != UserRole.ROOT:
-             raise HTTPException(status_code=403, detail="Cannot modify other organization's workflow.")
-             
+            raise HTTPException(status_code=403, detail="Cannot modify other organization's workflow.")
+
     # Public Check
-    if request.is_public is not None and request.is_public != wf.get('is_public'):
+    if request.is_public is not None and request.is_public != wf.get("is_public"):
         if current_user.role != UserRole.ROOT:
-             raise HTTPException(status_code=403, detail="Only ROOT can change visibility.")
-    
+            raise HTTPException(status_code=403, detail="Only ROOT can change visibility.")
+
     update_data = {}
-    if request.name is not None: update_data['name'] = request.name
-    if request.description is not None: update_data['description'] = request.description
-    if request.steps is not None: update_data['steps'] = request.steps
-    if request.ui_schema is not None: update_data['ui_schema'] = request.ui_schema
-    if request.default_model_mapping is not None: update_data['default_model_mapping'] = request.default_model_mapping
-    if request.is_public is not None: update_data['is_public'] = request.is_public
-    
-    update_data['updated_at'] = datetime.now().isoformat()
-    
+    if request.name is not None:
+        update_data["name"] = request.name
+    if request.description is not None:
+        update_data["description"] = request.description
+    if request.steps is not None:
+        update_data["steps"] = request.steps
+    if request.ui_schema is not None:
+        update_data["ui_schema"] = request.ui_schema
+    if request.default_model_mapping is not None:
+        update_data["default_model_mapping"] = request.default_model_mapping
+    if request.is_public is not None:
+        update_data["is_public"] = request.is_public
+
+    update_data["updated_at"] = datetime.now().isoformat()
+
     # Ensure Model Mapping Integrity
-    final_steps = update_data.get('steps', wf.get('steps', []))
-    final_mapping = update_data.get('default_model_mapping', wf.get('default_model_mapping', {})).copy()
-    
+    final_steps = update_data.get("steps", wf.get("steps", []))
+    final_mapping = update_data.get("default_model_mapping", wf.get("default_model_mapping", {})).copy()
+
     mapping_modified = False
     for s in final_steps:
         if s not in final_mapping:
-             final_mapping[s] = 'fast'
-             mapping_modified = True
-    
+            final_mapping[s] = "fast"
+            mapping_modified = True
+
     if mapping_modified:
         # If input didn't provide mapping but we modified it based on steps, save it.
-        update_data['default_model_mapping'] = final_mapping
-
+        update_data["default_model_mapping"] = final_mapping
 
     await engine.repository.update_workflow(workflow_id, update_data)
-    
+
     return {**wf, **update_data}
 
+
 @router.delete(
-    "/workflows/{workflow_id}", 
+    "/workflows/{workflow_id}",
     summary="Delete Workflow",
-    response_description="Deletion status and cleaned up orphans."
+    response_description="Deletion status and cleaned up orphans.",
 )
-async def delete_workflow(
-    workflow_id: str, 
-    engine: EngineDep,
-    current_user: CurrentUserDep
-):
+async def delete_workflow(workflow_id: str, engine: EngineDep, current_user: CurrentUserDep):
     """
     Delete a workflow AND its orphan steps (Garbage Collection).
     """
@@ -258,53 +245,52 @@ async def delete_workflow(
         raise HTTPException(status_code=404, detail="Workflow not found")
 
     # Permission Check
-    wf_org = wf.get('organization_id')
-    is_system_wf = (wf_org is None or wf_org == "system")
-    
+    wf_org = wf.get("organization_id")
+    is_system_wf = wf_org is None or wf_org == "system"
+
     if is_system_wf:
         if current_user.role != UserRole.ROOT:
             raise HTTPException(status_code=403, detail="Only ROOT can delete System Workflows.")
     else:
         if current_user.role not in [UserRole.ROOT, UserRole.MANAGER]:
-             raise HTTPException(status_code=403, detail="Insufficient role to delete workflow.")
+            raise HTTPException(status_code=403, detail="Insufficient role to delete workflow.")
         if wf_org != current_user.organization_id and current_user.role != UserRole.ROOT:
-             raise HTTPException(status_code=403, detail="Cannot delete other organization's workflow.")
-    
+            raise HTTPException(status_code=403, detail="Cannot delete other organization's workflow.")
+
     # 1. Identify Orphan Steps
     # 1. Identify Orphan Steps
     # Helper must be updated to await or we fetch data here
     # _get_orphan_steps is sync in helper. We should inline logic or make helper async.
     # For now, let's fetch all workflows here to pass to helper logic (refactoring helper is safer)
-    
+
     # Actually, let's make a local async helper or just fetch data
     orphans = []
     all_wfs = await engine.repository.get_all_workflows()
-    
-    target_steps = set(wf.get('steps', []))
+
+    target_steps = set(wf.get("steps", []))
     used_elsewhere = set()
     for w in all_wfs:
-        if w['id'] == workflow_id: continue
-        for s in w.get('steps', []): used_elsewhere.add(s)
+        if w["id"] == workflow_id:
+            continue
+        for s in w.get("steps", []):
+            used_elsewhere.add(s)
     orphans = list(target_steps - used_elsewhere)
 
     # 2. Delete Workflow
     await engine.repository.delete_workflow(workflow_id)
-    
+
     # 3. Delete Orphans
     deleted_steps = []
     for step_id in orphans:
         await engine.repository.delete_step(step_id)
         deleted_steps.append(step_id)
-        
+
     logger.info(f"Deleted workflow {workflow_id} and orphan steps: {deleted_steps}")
-    
+
     return {"status": "deleted", "deleted_steps": deleted_steps}
 
-@router.post(
-    "/workflows/{workflow_id}/copy", 
-    summary="Copy Workflow",
-    response_description="The new workflow object."
-)
+
+@router.post("/workflows/{workflow_id}/copy", summary="Copy Workflow", response_description="The new workflow object.")
 async def copy_workflow(workflow_id: str, request: CopyWorkflowRequest, engine: EngineDep):
     """
     Deep Copy a workflow structure (Shallow copy of steps).
@@ -312,18 +298,18 @@ async def copy_workflow(workflow_id: str, request: CopyWorkflowRequest, engine: 
     original = await engine.repository.get_workflow_by_id(workflow_id)
     if not original:
         raise HTTPException(status_code=404, detail="Workflow not found")
-    
+
     new_id = f"{original['id']}_copy_{uuid.uuid4().hex[:4]}"
-    
+
     new_wf = copy.deepcopy(original)
-    new_wf['id'] = new_id
-    new_wf['name'] = request.new_name
-    new_wf['created_at'] = datetime.now().isoformat()
-    if 'updated_at' in new_wf: del new_wf['updated_at']
-    
+    new_wf["id"] = new_id
+    new_wf["name"] = request.new_name
+    new_wf["created_at"] = datetime.now().isoformat()
+    if "updated_at" in new_wf:
+        del new_wf["updated_at"]
+
     clean_wf = dict(new_wf)
-    
-    
+
     try:
         await engine.repository.create_workflow(clean_wf)
         return clean_wf
@@ -331,11 +317,8 @@ async def copy_workflow(workflow_id: str, request: CopyWorkflowRequest, engine: 
         logger.error(f"Copy workflow failed: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Copy failed: {str(e)}")
 
-@router.post(
-    "/validate", 
-    summary="Validate Connection",
-    response_description="Validation result."
-)
+
+@router.post("/validate", summary="Validate Connection", response_description="Validation result.")
 async def validate_connection(request: ValidationRequest, engine: EngineDep):
     """
     Validates connection between two steps based on Agent I/O contracts.
@@ -344,39 +327,41 @@ async def validate_connection(request: ValidationRequest, engine: EngineDep):
         # 1. Resolve Steps
         source_step = await engine.repository.get_step_by_id(request.source_step)
         target_step = await engine.repository.get_step_by_id(request.target_step)
-        
+
         if not source_step or not target_step:
-             return {"valid": False, "reason": "Step(s) not found."}
-             
+            return {"valid": False, "reason": "Step(s) not found."}
+
         # 2. Resolve Agents (via Components)
-        src_comp_ref = source_step.get('component')
-        tgt_comp_ref = target_step.get('component')
-        
+        src_comp_ref = source_step.get("component")
+        tgt_comp_ref = target_step.get("component")
+
         # Note: get_component needs await
         source_comp = await engine.repository.get_component_by_id(src_comp_ref)
-        if not source_comp: source_comp = await engine.repository.get_component_by_name(src_comp_ref)
-        
-        target_comp = await engine.repository.get_component_by_id(tgt_comp_ref)
-        if not target_comp: target_comp = await engine.repository.get_component_by_name(tgt_comp_ref)
-        
-        if not source_comp or not target_comp:
-             return {"valid": True, "reason": "Component definitions missing, skipping deep check."}
+        if not source_comp:
+            source_comp = await engine.repository.get_component_by_name(src_comp_ref)
 
-        src_cls_name = source_comp.get('class_name')
-        tgt_cls_name = target_comp.get('class_name')
-        
+        target_comp = await engine.repository.get_component_by_id(tgt_comp_ref)
+        if not target_comp:
+            target_comp = await engine.repository.get_component_by_name(tgt_comp_ref)
+
+        if not source_comp or not target_comp:
+            return {"valid": True, "reason": "Component definitions missing, skipping deep check."}
+
+        src_cls_name = source_comp.get("class_name")
+        tgt_cls_name = target_comp.get("class_name")
+
         src_agent = engine.registry.agents_map.get(src_cls_name)
         tgt_agent = engine.registry.agents_map.get(tgt_cls_name)
-        
+
         if not src_agent or not tgt_agent:
-             return {"valid": True, "reason": "Agent implementation not found in registry."}
-             
+            return {"valid": True, "reason": "Agent implementation not found in registry."}
+
         # 3. Check Contracts
         required = getattr(tgt_agent, "REQUIRES_KEYS", [])
         produced = getattr(src_agent, "PRODUCES_KEYS", [])
-        
+
         missing = [req for req in required if req not in produced]
-        
+
         if missing and required:
             msg = f"⚠️ Potential Schema Mismatch: Target requires {missing}. Source produces {produced}. Ensure dependencies exist upstream."
             return {"valid": True, "reason": msg}
@@ -390,23 +375,17 @@ async def validate_connection(request: ValidationRequest, engine: EngineDep):
 
 # --- V2: Step Configuration ---
 
-@router.get(
-    "/steps/{step_id}", 
-    summary="Get Step Details",
-    response_description="Step configuration."
-)
+
+@router.get("/steps/{step_id}", summary="Get Step Details", response_description="Step configuration.")
 async def get_step_details(step_id: str, engine: EngineDep):
     """V2: Get full configuration of a step."""
     step = await engine.repository.get_step_by_id(step_id)
     if not step:
-         raise HTTPException(status_code=404, detail="Step not found")
+        raise HTTPException(status_code=404, detail="Step not found")
     return step
 
-@router.put(
-    "/steps/{step_id}", 
-    summary="Update Step",
-    response_description="Updated step."
-)
+
+@router.put("/steps/{step_id}", summary="Update Step", response_description="Updated step.")
 async def update_step(step_id: str, request: StepUpdateRequest, engine: EngineDep):
     """
     V2: Update a step configuration.
@@ -414,23 +393,23 @@ async def update_step(step_id: str, request: StepUpdateRequest, engine: EngineDe
     """
     step = await engine.repository.get_step_by_id(step_id)
     if not step:
-         raise HTTPException(status_code=404, detail="Step not found")
-         
+        raise HTTPException(status_code=404, detail="Step not found")
+
     update_data = {}
-    if request.name is not None: update_data['name'] = request.name
-    if request.execution_config is not None: update_data['execution_config'] = request.execution_config
-    
-    if request.execution_config is not None: update_data['execution_config'] = request.execution_config
-    
+    if request.name is not None:
+        update_data["name"] = request.name
+    if request.execution_config is not None:
+        update_data["execution_config"] = request.execution_config
+
+    if request.execution_config is not None:
+        update_data["execution_config"] = request.execution_config
+
     await engine.repository.update_step(step_id, update_data)
-    
+
     return {**step, **update_data}
 
-@router.post(
-    "/steps/clone", 
-    summary="Clone Step",
-    response_description="The new custom step config."
-)
+
+@router.post("/steps/clone", summary="Clone Step", response_description="The new custom step config.")
 async def clone_step(engine: EngineDep, source_step_id: str = Body(..., embed=True)):
     """
     V2: Clone a step to a new Custom Step (Copy-on-Write).
@@ -438,22 +417,21 @@ async def clone_step(engine: EngineDep, source_step_id: str = Body(..., embed=Tr
     step = await engine.repository.get_step_by_id(source_step_id)
     if not step:
         raise HTTPException(status_code=404, detail="Source step not found")
-        
+
     new_id = f"{source_step_id}_custom_{uuid.uuid4().hex[:6]}"
     new_step = copy.deepcopy(step)
-    new_step['id'] = new_id
-    new_step['name'] = f"{step.get('name')} (Custom)"
-    
+    new_step["id"] = new_id
+    new_step["name"] = f"{step.get('name')} (Custom)"
+
     clean_step = dict(new_step)
-    
+
     await engine.repository.create_step(clean_step)
-    
+
     return clean_step
 
+
 @router.post(
-    "/steps/create-custom",
-    summary="Create Custom Step",
-    response_description="The newly created custom step."
+    "/steps/create-custom", summary="Create Custom Step", response_description="The newly created custom step."
 )
 async def create_custom_step(req: CustomStepCreateRequest, engine: EngineDep):
     """
@@ -462,22 +440,20 @@ async def create_custom_step(req: CustomStepCreateRequest, engine: EngineDep):
     # 1. Generate ID
     prefix = f"custom_{req.component_type.lower()}"
     new_id = f"{prefix}_{uuid.uuid4().hex[:6]}"
-    
+
     # 2. Determine Defaults based on Component Type
     # Heuristic defaults for known agents
     prompts = []
     if "Judge" in req.component_type:
-        prompts = ["TASK_JUDGE", "GLOBAL_CONTEXT"] 
+        prompts = ["TASK_JUDGE", "GLOBAL_CONTEXT"]
     elif "Reporter" in req.component_type:
         prompts = ["TASK_REPORT"]
-        
-    execution_config = {
-        "llm_prompts": prompts
-    }
-    
+
+    execution_config = {"llm_prompts": prompts}
+
     # 3. Construct Payload
     name = req.name_hint or f"Custom {req.component_type} Step"
-    
+
     new_step = {
         "id": new_id,
         "name": name,
@@ -486,9 +462,9 @@ async def create_custom_step(req: CustomStepCreateRequest, engine: EngineDep):
         "execution_config": execution_config,
         "output_config_component": None,
         "output_filename": f"{new_id}.json",
-        "is_custom": True
+        "is_custom": True,
     }
-    
+
     # 4. Save
     try:
         await engine.repository.create_step(new_step)
@@ -497,35 +473,22 @@ async def create_custom_step(req: CustomStepCreateRequest, engine: EngineDep):
         logger.error(f"Failed to create custom step: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get(
-    "/utils/generate-id", 
-    summary="Generate ID",
-    response_description="A unique ID string."
-)
+
+@router.get("/utils/generate-id", summary="Generate ID", response_description="A unique ID string.")
 async def generate_id(prefix: str = "custom_step"):
     """Generates a unique ID with optional prefix."""
     return {"id": f"{prefix}_{uuid.uuid4().hex[:6]}"}
 
-@router.get(
-    "/config/template", 
-    summary="Get Template",
-    response_description="Empty workflow template."
-)
+
+@router.get("/config/template", summary="Get Template", response_description="Empty workflow template.")
 async def get_workflow_template():
     """Returns a valid empty workflow template."""
     return WorkflowTemplate(
-        name="New Workflow",
-        description="",
-        steps=[],
-        default_model_mapping={},
-        ui_schema={"nodes": []}
+        name="New Workflow", description="", steps=[], default_model_mapping={}, ui_schema={"nodes": []}
     )
 
-@router.get(
-    "/config/fusion-rules", 
-    summary="Get Fusion Rules",
-    response_description="List of fusion rules."
-)
+
+@router.get("/config/fusion-rules", summary="Get Fusion Rules", response_description="List of fusion rules.")
 async def get_fusion_rules(engine: EngineDep):
     """
     Returns validation rules for prompt fusion.
@@ -533,29 +496,25 @@ async def get_fusion_rules(engine: EngineDep):
     rules = []
     all_steps = await engine.repository.get_all_steps()
     for s in all_steps:
-        if 'fusion_info' in s:
-            rules.append({
-                "composite_step_id": s['id'],
-                "name": s.get('name', s['id']),
-                "replaces_components": s['fusion_info'].get('replaces_components', []),
-                "min_steps": s['fusion_info'].get('min_steps', 2)
-            })
+        if "fusion_info" in s:
+            rules.append(
+                {
+                    "composite_step_id": s["id"],
+                    "name": s.get("name", s["id"]),
+                    "replaces_components": s["fusion_info"].get("replaces_components", []),
+                    "min_steps": s["fusion_info"].get("min_steps", 2),
+                }
+            )
     return rules
 
-@router.get(
-    "/config/prompt-types", 
-    summary="Get Prompt Types",
-    response_description="List of allowed types."
-)
+
+@router.get("/config/prompt-types", summary="Get Prompt Types", response_description="List of allowed types.")
 async def get_prompt_types():
     """Returns list of component types that can be used as prompts."""
     return ["prompt", "mandate", "rule", "header", "instruction"]
 
-@router.post(
-    "/compile", 
-    summary="Compile Fusion",
-    response_description="Compilation result."
-)
+
+@router.post("/compile", summary="Compile Fusion", response_description="Compilation result.")
 async def compile_fusion(req: CompileRequest, engine: EngineDep):
     """
     V2: Prompt Fusion Compilation.
@@ -564,58 +523,50 @@ async def compile_fusion(req: CompileRequest, engine: EngineDep):
     wf = await engine.repository.get_workflow_by_id(req.workflow_id)
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
-        
-    current_steps = wf.get('steps', [])
+
+    current_steps = wf.get("steps", [])
     steps_to_fuse = req.steps
-    
+
     if not all(s in current_steps for s in steps_to_fuse):
         raise HTTPException(status_code=400, detail="One or more steps not found in workflow")
 
     fusing_components = []
     all_step_list = await engine.repository.get_all_steps()
-    step_map = {s['id']: s for s in all_step_list}
-    
+    step_map = {s["id"]: s for s in all_step_list}
+
     for sid in steps_to_fuse:
         s_def = step_map.get(sid)
         if s_def:
-            fusing_components.append(s_def.get('component'))
-    
-    target_composite_id = "step_panel" 
+            fusing_components.append(s_def.get("component"))
+
+    target_composite_id = "step_panel"
     valid_fusion = False
-    
+
     all_steps = step_map.values()
     for s in all_steps:
-        if 'fusion_info' in s:
-            allowed = set(s['fusion_info'].get('replaces_components', []))
+        if "fusion_info" in s:
+            allowed = set(s["fusion_info"].get("replaces_components", []))
             if fusing_components and all(comp in allowed for comp in fusing_components):
-                target_composite_id = s['id']
+                target_composite_id = s["id"]
                 valid_fusion = True
                 break
-    
+
     if not valid_fusion:
         logger.warning(f"Fusion validation weak for steps: {steps_to_fuse}. Defaulting to step_panel.")
-    
+
     indices = sorted([current_steps.index(s) for s in steps_to_fuse])
     first_idx = indices[0]
-    
+
     new_steps = [s for s in current_steps if s not in steps_to_fuse]
     new_steps.insert(first_idx, target_composite_id)
-    
-    mapping = wf.get('default_model_mapping', {}).copy()
+
+    mapping = wf.get("default_model_mapping", {}).copy()
     for step_id in steps_to_fuse:
         if step_id in mapping:
             del mapping[step_id]
-            
-    mapping[target_composite_id] = 'deep'
-    
 
-    await engine.repository.update_workflow(req.workflow_id, {
-        "steps": new_steps,
-        "default_model_mapping": mapping
-    })
-    
-    return {
-        "status": "compiled", 
-        "composite_step_id": target_composite_id,
-        "new_steps": new_steps
-    }
+    mapping[target_composite_id] = "deep"
+
+    await engine.repository.update_workflow(req.workflow_id, {"steps": new_steps, "default_model_mapping": mapping})
+
+    return {"status": "compiled", "composite_step_id": target_composite_id, "new_steps": new_steps}

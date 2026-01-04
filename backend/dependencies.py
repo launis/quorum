@@ -1,25 +1,28 @@
 """
 Core Dependency Injection Module.
 
-Implements Singleton patterns for infrastructure services (DB, Engine, Registry) 
-using FastAPI's `Depends` system. Validates configurations and abstracts 
+Implements Singleton patterns for infrastructure services (DB, Engine, Registry)
+using FastAPI's `Depends` system. Validates configurations and abstracts
 storage backends (Local vs. Firestore) and Async Repositories.
 
 Exports `Annotated` type aliases (e.g., `EngineDep`) for clean router injection.
 """
-from typing import Optional, Any, Annotated
-from fastapi import Depends, Header, HTTPException
+
 import logging
-from backend.database.wrapper import get_db_client, AbstractDatabase
-from backend.services.storage import AbstractStorage
-from backend.database.repository import AbstractWorkflowRepository, TinyDBRepository
-from backend.services.agent_registry import AgentRegistry
-from backend.services.prompt_builder import PromptBuilder
+from typing import Annotated, Any, Optional
+
+from fastapi import Depends, Header, HTTPException
+
 from backend.core.engine import WorkflowEngine
-from backend.settings import Settings, get_settings
+from backend.database.repository import AbstractWorkflowRepository, TinyDBRepository
+from backend.database.wrapper import AbstractDatabase, get_db_client
 from backend.llm.provider import LLMProvider
-from backend.services.auth import AuthService
 from backend.models.auth import TokenData
+from backend.services.agent_registry import AgentRegistry
+from backend.services.auth import AuthService
+from backend.services.prompt_builder import PromptBuilder
+from backend.services.storage import AbstractStorage
+from backend.settings import Settings, get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +35,10 @@ _storage_service_instance: Optional[AbstractStorage] = None
 _engine_instance: Optional[WorkflowEngine] = None
 _auth_service_instance: Optional[AuthService] = None
 
+
 def get_settings_dep() -> Settings:
     return get_settings()
+
 
 def get_db_client_dep() -> AbstractDatabase:
     """Dependency to provide a Singleton Database Client."""
@@ -43,14 +48,13 @@ def get_db_client_dep() -> AbstractDatabase:
         _db_client_instance = get_db_client()
     return _db_client_instance
 
-def get_async_repository(
-     db_client: AbstractDatabase = Depends(get_db_client_dep)
-) -> AbstractWorkflowRepository:
+
+def get_async_repository(db_client: AbstractDatabase = Depends(get_db_client_dep)) -> AbstractWorkflowRepository:
     """
     Factory that returns the appropriate ASYNC-FIRST Repository implementation.
     """
     global _repository_instance
-    
+
     if _repository_instance is not None:
         return _repository_instance
 
@@ -60,11 +64,12 @@ def get_async_repository(
     if settings.storage_backend.upper() == "FIRESTORE" and not settings.use_mock_db:
         try:
             from backend.database.firestore_repo import FirestoreWorkflowRepository
+
             logger.info("[Dependencies] Initializing Native Async Firestore.")
             _repository_instance = FirestoreWorkflowRepository(db_client)
         except ImportError as e:
-             logger.warning(f"[Dependencies] Native Async Firestore failed to import: {e}. Falling back to TinyDB.")
-             _repository_instance = TinyDBRepository(db_client)
+            logger.warning(f"[Dependencies] Native Async Firestore failed to import: {e}. Falling back to TinyDB.")
+            _repository_instance = TinyDBRepository(db_client)
     else:
         # 2. Async TinyDB (Dev)
         logger.info("[Dependencies] Initializing Async-First TinyDB.")
@@ -72,26 +77,30 @@ def get_async_repository(
 
     return _repository_instance
 
+
 # Alias for compatibility if needed, but get_async_repository is the main entry point
 get_repository_dep = get_async_repository
+
 
 async def get_agent_registry_dep(repo: AbstractWorkflowRepository = Depends(get_async_repository)) -> AgentRegistry:
     global _registry_instance
     if _registry_instance is None:
-         # AgentRegistry expects a repo to do recursive updates.
-         _registry_instance = AgentRegistry(repo)
-         # Now we await discovery
-         await _registry_instance.discover_and_register_agents()
+        # AgentRegistry expects a repo to do recursive updates.
+        _registry_instance = AgentRegistry(repo)
+        # Now we await discovery
+        await _registry_instance.discover_and_register_agents()
     return _registry_instance
+
 
 async def get_prompt_builder_dep(
     repo: AbstractWorkflowRepository = Depends(get_async_repository),
-    registry: AgentRegistry = Depends(get_agent_registry_dep)
+    registry: AgentRegistry = Depends(get_agent_registry_dep),
 ) -> PromptBuilder:
     global _prompt_builder_instance
     if _prompt_builder_instance is None:
-         _prompt_builder_instance = PromptBuilder(repo, registry)
+        _prompt_builder_instance = PromptBuilder(repo, registry)
     return _prompt_builder_instance
+
 
 def get_storage_service_dep() -> AbstractStorage:
     """
@@ -99,17 +108,17 @@ def get_storage_service_dep() -> AbstractStorage:
     Selects FirebaseStorage if STORAGE_BACKEND is 'FIRESTORE', otherwise LocalFileStorage.
     """
     global _storage_service_instance
-    
+
     if _storage_service_instance is not None:
         return _storage_service_instance
-        
+
     settings = get_settings()
-    from backend.services.storage import LocalFileStorage, FirebaseStorage, NoOpStorage
-    
+    from backend.services.storage import FirebaseStorage, LocalFileStorage, NoOpStorage
+
     if settings.storage_backend == "NONE":
         logger.info("[Dependencies] Storage disabled (NoOp).")
         _storage_service_instance = NoOpStorage()
-        
+
     # Logic matched with repository selection: FIRESTORE means Cloud
     elif settings.storage_backend.upper() == "FIRESTORE" and not settings.use_mock_db:
         try:
@@ -119,20 +128,22 @@ def get_storage_service_dep() -> AbstractStorage:
         except Exception as e:
             logger.error(f"[Dependencies] Failed to initialize FirebaseStorage: {e}. Falling back to LOCAL.")
             _storage_service_instance = LocalFileStorage()
-            
+
     else:
         logger.info("[Dependencies] Initializing Local File Storage.")
         _storage_service_instance = LocalFileStorage()
-        
+
     return _storage_service_instance
+
 
 def get_document_service_dep(storage_client: AbstractStorage = Depends(get_storage_service_dep)) -> Any:
     from backend.services.document_service import DocumentService
+
     return DocumentService(storage_client)
 
+
 def get_auth_service(
-    db_client: AbstractDatabase = Depends(get_db_client_dep),
-    settings: Settings = Depends(get_settings_dep)
+    db_client: AbstractDatabase = Depends(get_db_client_dep), settings: Settings = Depends(get_settings_dep)
 ) -> AuthService:
     """
     Dependency to provide Singleton Auth Service.
@@ -140,21 +151,22 @@ def get_auth_service(
     """
     global _auth_service_instance
     if _auth_service_instance is None:
-        use_firebase = (settings.storage_backend.upper() == "FIRESTORE" and not settings.use_mock_db)
+        use_firebase = settings.storage_backend.upper() == "FIRESTORE" and not settings.use_mock_db
         logger.info(f"[Dependencies] Initializing AuthService (Firebase={use_firebase})...")
         _auth_service_instance = AuthService(db_client, use_firebase=use_firebase)
-        
+
         # Bootstrap Root User
         _auth_service_instance.ensure_root_user()
-        
+
     return _auth_service_instance
+
 
 async def get_engine(
     repository: AbstractWorkflowRepository = Depends(get_async_repository),
     registry: AgentRegistry = Depends(get_agent_registry_dep),
     prompt_builder: PromptBuilder = Depends(get_prompt_builder_dep),
     storage_service: AbstractStorage = Depends(get_storage_service_dep),
-    document_service: Any = Depends(get_document_service_dep)
+    document_service: Any = Depends(get_document_service_dep),
 ) -> WorkflowEngine:
     """
     Dependency to provide a Singleton WorkflowEngine.
@@ -162,81 +174,88 @@ async def get_engine(
     global _engine_instance
     if _engine_instance is None:
         logger.info("[Dependencies] Initializing Singleton WorkflowEngine (Async Mode)...")
-        
+
         # Ensure Auth Service is explicitly initialized (sidesteps circular dependency issues)
         # This guarantees Root user exists before Engine starts working
         try:
-             # We manually resolve dependencies for the auth service if needed,
-             # but usually easiest just to let get_auth_service handle it if called via API.
-             # However, let's allow lazy loading for Auth.
-             pass
+            # We manually resolve dependencies for the auth service if needed,
+            # but usually easiest just to let get_auth_service handle it if called via API.
+            # However, let's allow lazy loading for Auth.
+            pass
         except Exception as e:
-             logger.warning(f"Could not pre-warm Auth Service: {e}")
+            logger.warning(f"Could not pre-warm Auth Service: {e}")
 
         # MANUAL RESOLUTION IF CALLED WITHOUT DI
         from fastapi.params import Depends as DependsParams
-        
+
         if isinstance(repository, DependsParams):
             repository = get_async_repository(get_db_client_dep())
-            
+
         if isinstance(registry, DependsParams):
-             registry = await get_agent_registry_dep(repository)
-             
+            registry = await get_agent_registry_dep(repository)
+
         if isinstance(prompt_builder, DependsParams):
-             prompt_builder = await get_prompt_builder_dep(repository, registry)
-             
+            prompt_builder = await get_prompt_builder_dep(repository, registry)
+
         if isinstance(storage_service, DependsParams):
-             storage_service = get_storage_service_dep()
-             
+            storage_service = get_storage_service_dep()
+
         if isinstance(document_service, DependsParams):
-             document_service = get_document_service_dep(storage_service)
+            document_service = get_document_service_dep(storage_service)
 
         settings = get_settings()
-        
+
         # Inject Services
         _engine_instance = WorkflowEngine(
-            db_path=settings.start_db_path, 
-            repository=repository, 
+            db_path=settings.start_db_path,
+            repository=repository,
             registry=registry,
             prompt_builder=prompt_builder,
             storage_client=storage_service,
-            document_service=document_service
+            document_service=document_service,
         )
-        
+
         await registry.register_component("DocumentProcessor", "processor", "DocumentProcessor")
-        
+
     return _engine_instance
 
-async def get_llm_provider(
-    model_strategy: str,
-    registry: AgentRegistry = Depends(get_agent_registry_dep)
-):
+
+async def get_llm_provider(model_strategy: str, registry: AgentRegistry = Depends(get_agent_registry_dep)):
     from backend.llm.provider import LLMFactory
+
     config = await registry.resolve_model_config(model_strategy)
     model_name = config.get("model_name")
     provider_type = config.get("provider")
-    
+
     if not provider_type:
-         raise ValueError(f"[get_llm_provider] 'provider' missing for strategy '{model_strategy}'.")
-    
+        raise ValueError(f"[get_llm_provider] 'provider' missing for strategy '{model_strategy}'.")
+
     return LLMFactory.create_provider(provider_type=provider_type, model_name=model_name)
+
 
 def get_llm_provider_factory(strategy: str):
     """
     Returns a dependency callable that provides an LLMProvider configured with the specified strategy.
     Enforces that the strategy must exist in the database configuration.
     """
+
     async def _provider_dependency(registry: AgentRegistry = Depends(get_agent_registry_dep)):
         return await get_llm_provider(strategy, registry)
+
     return _provider_dependency
+
 
 def get_llm_handler_dep(db_client: AbstractDatabase = Depends(get_db_client_dep)):
     from backend.llm.handler import LLMHandler
+
     return LLMHandler(db_client)
+
 
 def get_llm_factory_dep():
     from backend.llm.provider import LLMFactory
+
     return LLMFactory
+
 
 # --- Type Aliases for Clean Injection (Dependency Injection Standards) ---
 # These aliases facilitate cleaner function signatures in FastAPI router endpoints.
@@ -281,14 +300,15 @@ EngineDep = Annotated[WorkflowEngine, Depends(get_engine)]
 # Note: Requires importing LLMHandler inside the file or using TYPE_CHECKING to avoid circular imports if lazily loaded.
 # But get_llm_handler_dep returns the instance.
 from backend.llm.handler import LLMHandler
+
 LLMHandlerDep = Annotated[LLMHandler, Depends(get_llm_handler_dep)]
 
 
 # --- Security / Auth Dependencies ---
 
+
 async def get_current_user_from_header(
-    authorization: Annotated[Optional[str], Header()] = None,
-    auth_service: AuthService = Depends(get_auth_service)
+    authorization: Annotated[Optional[str], Header()] = None, auth_service: AuthService = Depends(get_auth_service)
 ) -> TokenData:
     """
     Helper dependency to extract user from Bearer token.
@@ -300,16 +320,15 @@ async def get_current_user_from_header(
         # If no header, maybe return None?
         # Let's enforce it. If frontend doesn't send it, it's 401.
         raise HTTPException(status_code=401, detail="Missing Authorization Header")
-    
+
     scheme, _, token = authorization.partition(" ")
     if scheme.lower() != "bearer" or not token:
         raise HTTPException(status_code=401, detail="Invalid Authorization Scheme")
-        
+
     try:
         return auth_service.verify_token(token)
     except ValueError as e:
         raise HTTPException(status_code=401, detail=str(e))
 
+
 CurrentUserDep = Annotated[TokenData, Depends(get_current_user_from_header)]
-
-

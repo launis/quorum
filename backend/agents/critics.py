@@ -1,29 +1,25 @@
-from typing import Any, Optional, Type
-import os
-import json
+import logging
+from typing import Optional, Type
+
+from pydantic import BaseModel
 
 from backend.agents.base import BaseAgent
+from backend.models.domain import EtiikkaJaFakta, KausaalinenAuditointi, LogiikkaAuditointi, PerformatiivisuusAuditointi
 from backend.models.state import WorkflowState
-from backend.models.domain import (
-    LogiikkaAuditointi, 
-    EtiikkaJaFakta, 
-    KausaalinenAuditointi, 
-    PerformatiivisuusAuditointi
-)
-from pydantic import BaseModel
-import logging
 
 logger = logging.getLogger(__name__)
+
 
 class LogicalFalsifierAgent(BaseAgent):
     """
     Looginen Falsifioija-agentti (Logical Falsifier).
-    
+
     Responsible for identifying logical fallacies and structural weaknesses.
     """
+
     state_field = "step_falsifier"
     PRODUCES_KEYS = ["step_falsifier"]
-    
+
     def get_response_schema(self) -> Optional[Type[BaseModel]]:
         """
         Returns the expected output schema.
@@ -34,13 +30,13 @@ class LogicalFalsifierAgent(BaseAgent):
         return LogiikkaAuditointi
 
 
-
 class FactualOverseerAgent(BaseAgent):
     """
     Faktuaalinen ja Eettinen Valvoja-agentti (Factual & Ethical Overseer).
 
     Responsible for fact-checking and ethical oversight.
     """
+
     state_field = "step_overseer"
     PRODUCES_KEYS = ["step_overseer"]
 
@@ -56,7 +52,7 @@ class FactualOverseerAgent(BaseAgent):
     def execute_google_search(self, state: WorkflowState) -> WorkflowState:
         """
         HOOK: execute_google_search.
-        
+
         Executes Google Search based on hypotheses generated during the oversight process.
         Delegates underlying logic to 'backend.hooks.search.execute_google_search'.
 
@@ -68,6 +64,7 @@ class FactualOverseerAgent(BaseAgent):
         """
         logger.info("[FactualOverseerAgent] Delegating to Search Hook...")
         from backend.hooks.search import execute_google_search
+
         return execute_google_search(state)
 
 
@@ -77,6 +74,7 @@ class CausalAnalystAgent(BaseAgent):
 
     Responsible for analyzing causal relationships and correlations.
     """
+
     state_field = "step_causal"
     PRODUCES_KEYS = ["step_causal"]
 
@@ -96,6 +94,7 @@ class PerformativityDetectorAgent(BaseAgent):
 
     Responsible for detecting performative language and rhetorical devices.
     """
+
     state_field = "step_detector"
     PRODUCES_KEYS = ["step_detector"]
 
@@ -111,7 +110,7 @@ class PerformativityDetectorAgent(BaseAgent):
     def detect_performative_patterns(self, state: WorkflowState) -> WorkflowState:
         """
         HOOK: detect_performative_patterns.
-        
+
         Scans input for performative language patterns using linguistic analysis.
         Delegates underlying logic to 'backend.hooks.linguistics.detect_performative_patterns'.
 
@@ -123,4 +122,5 @@ class PerformativityDetectorAgent(BaseAgent):
         """
         logger.info("[PerformativityDetectorAgent] Delegating to Linguistics Hook...")
         from backend.hooks.linguistics import detect_performative_patterns
+
         return detect_performative_patterns(state)

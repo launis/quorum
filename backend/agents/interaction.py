@@ -1,23 +1,25 @@
-from typing import Optional, Type, List
-from backend.agents.base import BaseAgent
-from backend.models.state import WorkflowState
-from backend.models.domain import InteractionAnalysis
-from pydantic import BaseModel
 import logging
-import re
+from typing import Optional, Type
+
+from pydantic import BaseModel
+
+from backend.agents.base import BaseAgent
+from backend.models.domain import InteractionAnalysis
+from backend.models.state import WorkflowState
 
 logger = logging.getLogger(__name__)
+
 
 class InteractionAnalystAgent(BaseAgent):
     """
     InteractionAnalystAgent (Vuorovaikutusanalysaattori).
-    
+
     Analyses the 'history_text' to evaluate Prompt Engineering competence.
     Hybrid logic:
     - AI: Qualitative analysis (Strategies, Driver Classification).
     - Python: Quantitative analysis (Input Control Ratio).
     """
-    
+
     state_field = "step_interaction"
     REQUIRES_KEYS = ["history_text"]
 
@@ -33,7 +35,7 @@ class InteractionAnalystAgent(BaseAgent):
     async def execute(self, state: WorkflowState, system_instruction: Optional[str] = None, **kwargs) -> WorkflowState:
         """
         Executes the agent logic.
-        
+
         Args:
             state (WorkflowState): Current workflow state.
             system_instruction (Optional[str]): System prompt.
@@ -42,13 +44,13 @@ class InteractionAnalystAgent(BaseAgent):
         Returns:
             WorkflowState: Updated workflow state.
         """
-        # Override but BaseAgent.execute uses generic prompt. 
+        # Override but BaseAgent.execute uses generic prompt.
         return await super().execute(state, system_instruction, **kwargs)
 
     def calculate_control_ratio(self, state: WorkflowState) -> WorkflowState:
         """
         Lifecycle Hook: Post-Execution.
-        
+
         Calculates 'input_control_ratio' using Python regex on history_text.
         Delegates underlying logic to 'backend.hooks.metrics.calculate_control_ratio'.
 
@@ -59,7 +61,7 @@ class InteractionAnalystAgent(BaseAgent):
             WorkflowState: Updated state with calculated metrics.
         """
         logger.info("[InteractionAnalystAgent] Post-Processing: Calculating Input Control Ratio via Hook...")
-        
+
         if not state.step_interaction:
             return state
 
@@ -69,12 +71,13 @@ class InteractionAnalystAgent(BaseAgent):
             logger.warning("[InteractionAnalystAgent] No history_text found for ratio calculation.")
             state.step_interaction.input_control_ratio = 0.0
             return state
-            
+
         # 2. Calculate Ratio
         try:
             from backend.hooks.metrics import calculate_control_ratio
+
             ratio = calculate_control_ratio(history)
-            
+
             state.step_interaction.input_control_ratio = ratio
             logger.info(f"[InteractionAnalystAgent] Calculated Ratio: {ratio:.2f}")
         except Exception as e:

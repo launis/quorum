@@ -1,16 +1,18 @@
-from fastapi import APIRouter, HTTPException, Body, Depends, Query as APIQuery
-from typing import Dict, Any, Optional, List
 import importlib
 import logging
+from typing import Any, Dict, List, Optional
+
+from fastapi import APIRouter, Body, HTTPException
+from fastapi import Query as APIQuery
 from tinydb import Query
 
 from backend.database.wrapper import AbstractDatabase
-from backend.dependencies import DatabaseDep, RegistryDep, get_agent_registry_dep
-from backend.services.agent_registry import AgentRegistry
+from backend.dependencies import DatabaseDep, RegistryDep
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/agents", tags=["Agents"])
+
 
 def _load_agent_class(agent_name: str, db: AbstractDatabase):
     """
@@ -26,37 +28,36 @@ def _load_agent_class(agent_name: str, db: AbstractDatabase):
     Raises:
         ValueError: If the agent is not found or cannot be imported.
     """
-    components_table = db.table('components')
-    
+    components_table = db.table("components")
+
     # 1. Try to find by class name (preferred)
-    comp_record = components_table.get(Query()['class'] == agent_name)
-    
+    comp_record = components_table.get(Query()["class"] == agent_name)
+
     # 2. If not found by class, try by name (fallback)
     if not comp_record:
-         comp_record = components_table.get(Query()['name'] == agent_name)
+        comp_record = components_table.get(Query()["name"] == agent_name)
 
     if not comp_record:
-         raise ValueError(f"Unknown agent: {agent_name} (not found in registry)")
+        raise ValueError(f"Unknown agent: {agent_name} (not found in registry)")
     else:
-        module_name = comp_record.get('module')
-        
+        module_name = comp_record.get("module")
+
     try:
         module = importlib.import_module(module_name)
         return getattr(module, agent_name)
     except (ImportError, AttributeError) as e:
         raise ValueError(f"Failed to load agent {agent_name} from {module_name}: {e}")
 
+
 @router.post(
-    "/{agent_name}/run",
-    summary="Run Specific Agent",
-    response_description="The result of the agent execution."
+    "/{agent_name}/run", summary="Run Specific Agent", response_description="The result of the agent execution."
 )
 async def run_agent(
-    agent_name: str, 
+    agent_name: str,
     inputs: Dict[str, Any] = Body(..., description="Key-value pairs representing the input state for the agent."),
     system_instruction: Optional[str] = Body(None, description="Optional system instruction override."),
     model: Optional[str] = Body(None, description="Optional model strategy override."),
-    db: DatabaseDep = None # Injected
+    db: DatabaseDep = None,  # Injected
 ):
     """
     Executes a specific agent in isolation with provided inputs.
@@ -75,40 +76,44 @@ async def run_agent(
         HTTPException: If the agent cannot be loaded or execution fails.
     """
     # Defensive fix for explicit None default to satisfy linter if needed, though Depends handles it.
-    if db is None: 
-         from backend.dependencies import get_db_client_dep
-         db = get_db_client_dep()
+    if db is None:
+        from backend.dependencies import get_db_client_dep
+
+        db = get_db_client_dep()
 
     try:
         AgentClass = _load_agent_class(agent_name, db)
         agent = AgentClass(model=model)
-        
+
         logger.info(f"Executing agent {agent_name} via API...")
-        
-        # Manually construct a minimal state or pass kwargs? 
-        # BaseAgent.execute expects (state, **kwargs). 
+
+        # Manually construct a minimal state or pass kwargs?
+        # BaseAgent.execute expects (state, **kwargs).
         # If the agent uses state attributes, we might need to wrap inputs in WorkflowState.
-        # But for simple testing, `execute` arguments vary. 
+        # But for simple testing, `execute` arguments vary.
         # Let's assume standard **inputs passing for now as per original code.
-        
+
         result = await agent.execute(system_instruction=system_instruction, **inputs)
         return {"agent": agent_name, "result": result}
-        
+
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get(
-    "/", 
+    "/",
     response_model=List[Dict],
     summary="List All Agents",
-    response_description="A list of available agents containing metadata and schemas."
+    response_description="A list of available agents containing metadata and schemas.",
 )
 def list_agents(
-    workflow_id: Optional[str] = APIQuery(None, description="Optional Workflow ID to resolve model strategies contextually."), 
+    workflow_id: Optional[str] = APIQuery(
+        None, description="Optional Workflow ID to resolve model strategies contextually."
+    ),
     db: DatabaseDep = None,
-    registry: RegistryDep = None
+    registry: RegistryDep = None,
 ):
     """
     List all available agents with their metadata, models, and schemas.
@@ -123,18 +128,20 @@ def list_agents(
         List[Dict]: A list of agent definition objects.
     """
     if db is None:
-         from backend.dependencies import get_db_client_dep
-         db = get_db_client_dep()
-         
+        from backend.dependencies import get_db_client_dep
+
+        db = get_db_client_dep()
+
     # Debug wrapper removed, proper DI used.
     import traceback
+
     try:
         agents_list = []
-        
+
         # Force discovery if empty
         if not registry.agents_map:
             registry.discover_and_register_agents()
-            
+
         # 1. Resolve Global Strategies (for display suffixes)
         try:
             fast_model = registry.resolve_model_name("fast")
@@ -146,29 +153,29 @@ def list_agents(
         # 2. Fetch Workflow Context to override defaults
         workflow_mapping = {}
         agent_to_step_id = {}
-        
+
         try:
             wfs = registry.repository.get_all_workflows()
             if wfs:
                 target_wf = None
                 if workflow_id:
-                    target_wf = next((w for w in wfs if w.get('id') == workflow_id), None)
-                
+                    target_wf = next((w for w in wfs if w.get("id") == workflow_id), None)
+
                 if not target_wf:
                     # Fallback to first if explicit ID not found or not provided
                     target_wf = wfs[0]
 
                 if target_wf:
-                    workflow_mapping = target_wf.get('default_model_mapping', {})
-                
+                    workflow_mapping = target_wf.get("default_model_mapping", {})
+
             # Map Agent Class Name -> Step ID
             steps = registry.repository.get_all_steps()
             for s in steps:
-                comp = s.get('component') # e.g. "GuardAgent"
-                sid = s.get('id')         # e.g. "step_guard"
+                comp = s.get("component")  # e.g. "GuardAgent"
+                sid = s.get("id")  # e.g. "step_guard"
                 if comp and sid:
                     agent_to_step_id[comp] = sid
-                    
+
         except Exception as e:
             logger.warning(f"Failed to resolve workflow mapping for agent list: {e}")
 
@@ -176,52 +183,54 @@ def list_agents(
         for name, agent_instance in registry.agents_map.items():
             # Schema Extraction
             input_schema = None
-            if hasattr(agent_instance, 'get_input_schema'):
-                 try:
-                     schema_cls = agent_instance.get_input_schema()
-                     if schema_cls and hasattr(schema_cls, 'model_json_schema'):
-                         input_schema = schema_cls.model_json_schema()
-                 except Exception: pass
+            if hasattr(agent_instance, "get_input_schema"):
+                try:
+                    schema_cls = agent_instance.get_input_schema()
+                    if schema_cls and hasattr(schema_cls, "model_json_schema"):
+                        input_schema = schema_cls.model_json_schema()
+                except Exception:
+                    pass
 
             response_schema = None
-            if hasattr(agent_instance, 'get_response_schema'):
-                 try:
-                     schema_cls = agent_instance.get_response_schema()
-                     if schema_cls:
-                         if hasattr(schema_cls, 'model_json_schema'):
-                             response_schema = schema_cls.model_json_schema()
-                         elif hasattr(schema_cls, 'schema'):
-                             response_schema = schema_cls.schema()
-                 except Exception: pass
+            if hasattr(agent_instance, "get_response_schema"):
+                try:
+                    schema_cls = agent_instance.get_response_schema()
+                    if schema_cls:
+                        if hasattr(schema_cls, "model_json_schema"):
+                            response_schema = schema_cls.model_json_schema()
+                        elif hasattr(schema_cls, "schema"):
+                            response_schema = schema_cls.schema()
+                except Exception:
+                    pass
 
             # Determine Model Name (Workflow > Global Default)
-            current_model = agent_instance.model 
-            
+            current_model = agent_instance.model
+
             # Override with Workflow Mapping
             if name in agent_to_step_id:
                 step_id = agent_to_step_id[name]
                 if step_id in workflow_mapping:
                     strategy_key = workflow_mapping[step_id]
-                    
+
                     # Direct DB Fetch
                     try:
-                        table = db.table('system_config')
+                        table = db.table("system_config")
                         ConfigQuery = Query()
-                        res = table.search(ConfigQuery.type == 'model_registry')
-                        
+                        res = table.search(ConfigQuery.type == "model_registry")
+
                         db_strategies = {}
-                        if res and 'models' in res[0]:
-                            db_strategies = res[0]['models'].get('google', {})
-                        
+                        if res and "models" in res[0]:
+                            db_strategies = res[0]["models"].get("google", {})
+
                         if strategy_key in db_strategies:
                             val = db_strategies[strategy_key]
                             if isinstance(val, dict):
-                                 current_model = val.get('model_name', current_model)
+                                current_model = val.get("model_name", current_model)
                             else:
-                                 current_model = str(val)
+                                current_model = str(val)
                         else:
                             current_model = f"ERROR: Strategy '{strategy_key}' not found in DB"
-                            
+
                     except Exception as e:
                         current_model = f"ERROR: DB Query Failed: {str(e)}"
                         logger.error(f"DIAGNOSTIC FAULT: {e}")
@@ -229,9 +238,9 @@ def list_agents(
             # Formatting Suffix
             model_display = current_model
             if model_display == fast_model:
-                 model_display = f"{model_display} (Fast)"
+                model_display = f"{model_display} (Fast)"
             elif model_display == deep_model:
-                 model_display = f"{model_display} (Deep)"
+                model_display = f"{model_display} (Deep)"
 
             # DEBUG DIAGNOSTICS for UI
             d_dbg = "[-]"
@@ -241,12 +250,14 @@ def list_agents(
                 if d_sid in workflow_mapping:
                     d_sk = workflow_mapping[d_sid]
                     d_dbg += f"[STR:{d_sk}]"
-                    
+
                     if current_model == agent_instance.model and "deep" in d_sk:
-                         d_dbg += "[FAIL:NoUpd]"
+                        d_dbg += "[FAIL:NoUpd]"
                     else:
-                         if "deep" in d_sk: d_dbg += "[UPDATED]"
-                         else: d_dbg += "[OK]"
+                        if "deep" in d_sk:
+                            d_dbg += "[UPDATED]"
+                        else:
+                            d_dbg += "[OK]"
                 else:
                     d_dbg += "[NoMap]"
             else:
@@ -254,17 +265,21 @@ def list_agents(
 
             desc_base = agent_instance.__doc__.strip() if agent_instance.__doc__ else "No description."
 
-            agents_list.append({
-                "name": name,
-                "class": name,
-                "description": f"{d_dbg} {desc_base}",
-                "model": model_display,
-                "input_schema": input_schema,
-                "output_schema": response_schema
-            })
-            
+            agents_list.append(
+                {
+                    "name": name,
+                    "class": name,
+                    "description": f"{d_dbg} {desc_base}",
+                    "model": model_display,
+                    "input_schema": input_schema,
+                    "output_schema": response_schema,
+                }
+            )
+
         return agents_list
 
     except Exception as e:
         logger.error(f"List Agents Failed: {e}\n{traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=f"Internal Error in list_agents: {str(e)} | TRACE: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=500, detail=f"Internal Error in list_agents: {str(e)} | TRACE: {traceback.format_exc()}"
+        )

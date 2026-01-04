@@ -1,11 +1,13 @@
-from typing import Any, Optional, Type
-from backend.agents.base import BaseAgent
-from backend.models.state import WorkflowState
-from backend.models.domain import ArgumentaatioAnalyysi
-from pydantic import BaseModel
 import logging
+from typing import Optional, Type
+
+from pydantic import BaseModel
+
+from backend.agents.base import BaseAgent
+from backend.models.domain import ArgumentaatioAnalyysi
 
 logger = logging.getLogger(__name__)
+
 
 class LogicianAgent(BaseAgent):
     """

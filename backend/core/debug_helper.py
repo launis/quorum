@@ -1,7 +1,3 @@
-
-import os
-import json
-
 def debug_dump_state(state, step_name):
     try:
         dump_path = "debug_state_trace.txt"
@@ -12,11 +8,11 @@ def debug_dump_state(state, step_name):
                 f.write(f"Guard: {state.step_guard.model_dump_json(exclude_none=True)}\n")
             else:
                 f.write("Guard: None\n")
-            
+
             if state.step_reporter:
-                 f.write(f"Reporter: {state.step_reporter.model_dump_json(exclude_none=True)}\n")
+                f.write(f"Reporter: {state.step_reporter.model_dump_json(exclude_none=True)}\n")
             else:
-                 f.write("Reporter: None\n")
+                f.write("Reporter: None\n")
 
     except Exception:
         pass

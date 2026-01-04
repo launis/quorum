@@ -51,7 +51,7 @@ def render_system_admin_view(api_url: str):
                     
                     st.dataframe(
                         df[cols], 
-                        use_container_width=True, 
+                        width="stretch", 
                         hide_index=True,
                         column_config={
                             "id": st.column_config.TextColumn("Org ID", help="Unique system identifier"),

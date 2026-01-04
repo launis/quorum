@@ -1,13 +1,14 @@
-from typing import Any, Optional, Type, Dict
-from backend.agents.base import BaseAgent
-from backend.models.state import WorkflowState
-from pydantic import BaseModel, Field
 import logging
-import re
+from typing import Any, Optional, Type
 
+from pydantic import BaseModel
+
+from backend.agents.base import BaseAgent
 from backend.models.domain import ProfilerAnalysis, TextMetrics
+from backend.models.state import WorkflowState
 
 logger = logging.getLogger(__name__)
+
 
 class ProfilerAgent(BaseAgent):
     """
@@ -29,7 +30,9 @@ class ProfilerAgent(BaseAgent):
         """
         return ProfilerAnalysis
 
-    async def _update_state(self, state: WorkflowState, response_data: Any, output_key: Optional[str] = None, **kwargs) -> WorkflowState:
+    async def _update_state(
+        self, state: WorkflowState, response_data: Any, output_key: Optional[str] = None, **kwargs
+    ) -> WorkflowState:
         """
         Updates the state with the response data.
         Injects metrics into the response if available in aux_data.
@@ -44,10 +47,10 @@ class ProfilerAgent(BaseAgent):
             WorkflowState: Updated state.
         """
         # Merge Python-calculated metrics if available (from pre-hook)
-        if 'profiler_metrics' in state.aux_data and isinstance(response_data, dict):
+        if "profiler_metrics" in state.aux_data and isinstance(response_data, dict):
             # We inject it into the dict so BaseAgent validates it including the metrics
-            response_data['teksti_metriikka'] = state.aux_data['profiler_metrics']
-            
+            response_data["teksti_metriikka"] = state.aux_data["profiler_metrics"]
+
         return await super()._update_state(state, response_data, output_key=output_key, **kwargs)
 
     # --- PYTHON HOOKS ---
@@ -55,7 +58,7 @@ class ProfilerAgent(BaseAgent):
     def analyze_text_metrics(self, state: WorkflowState) -> WorkflowState:
         """
         PRE-HOOK: analyze_text_metrics.
-        
+
         Calculates objective text metrics from the input history/product.
         Delegates underlying logic to 'backend.hooks.metrics.calculate_text_metrics'.
 
@@ -66,7 +69,7 @@ class ProfilerAgent(BaseAgent):
             WorkflowState: Updated state with calculated metrics.
         """
         logger.info("[ProfilerAgent] Delegating to Metrics Hook...")
-        
+
         # 1. Get Text to Analyze
         text = (state.inputs.history_text or "") + "\n" + (state.inputs.product_text or "")
         if not text.strip():
@@ -75,18 +78,18 @@ class ProfilerAgent(BaseAgent):
 
         # 2. Calculate Metrics using Hook
         from backend.hooks.metrics import calculate_text_metrics
+
         raw_metrics = calculate_text_metrics(text)
-        
-        from backend.models.domain import TextMetrics
+
         metrics = TextMetrics(**raw_metrics)
-        
+
         logger.info(f"[ProfilerAgent] Metrics calculated: {metrics}")
-        
+
         # 3. Inject into State (aux_data)
-        state.aux_data['profiler_metrics'] = metrics.model_dump()
-        
+        state.aux_data["profiler_metrics"] = metrics.model_dump()
+
         return state
-        
+
     def get_user_prompt_template(self) -> str:
         """
         Returns the user prompt template.
