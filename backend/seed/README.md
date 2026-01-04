@@ -47,4 +47,44 @@ These scripts update `seed_data.json` from a database source.
     1. Syncs Mock DB -> `seed_data.json`.
     2. Seeds `seed_data.json` -> Production DB.
   - **Usage:** Run this to promote changes tested in Mock mode directly to local Production mode.
+  - **Usage:** Run this to promote changes tested in Mock mode directly to local Production mode.
   - **Command:** `python backend/seed/deploy_mock_to_prod.py`
+
+### Verification (Checking Sync Status)
+
+These scripts **read** the databases and compare them to `seed_data.json` to verify everything is in sync. They are **read-only** and safe to run at any time.
+
+- **`verify_sync.py`**
+  - **Action:** Compares `seed_data.json` against:
+    1. Local Production DB (`data/db.json`)
+    2. Mock DB (`backend/database/db_mock.json`)
+    3. Firestore DB (if `service-account.json` is present)
+  - **Intelligence:** Uses **Normalization Logic** to handle differences in storage formats (e.g., matching User `uid` to Firestore `id`, or Knowledge Base `term` labels) to ensure meaningful comparison.
+  - **Usage:** Run to check if your databases are up-to-date with the latest configurations.
+  - **Command:** `python backend/seed/verify_sync.py`
+  - **Goal:** Output should read **"ALL SYSTEMS SYNCED"**.
+
+
+## Database Hierarchy & Roles
+
+Understanding the specific role of each data location is critical for the "Source of Truth" workflow.
+
+### 1. The Source of Truth (`backend/seed/seed_data.json`)
+*   **Role:** The **Golden Master**. This Git-committed file contains the definitive initial state for the system (Agents, Models, Prompts, Configs).
+*   **Workflow:** All databases are seeded *from* this file. When you make stable changes in the UI that should be permanent, you sync them back *to* this file.
+
+### 2. The Mock Database (`backend/database/db_mock.json`)
+*   **Role:** **Transient / Experimental**. Used when running the backend in `MOCK_DB=true` mode.
+*   **Purpose:** Allows rapid iteration and testing without affecting your main local database. You can trash this database freely and re-seed it in seconds.
+*   **Zero-Cost Mocking:** When running in this mode, **NO real LLM calls are made**. The system is completely disconnected from Vertex AI / OpenAI.
+    *   **`backend/llm/mock.py`**: This service intercepts every request that would normally go to an LLM.
+    *   **`backend/llm/mock_data.py`**: This file contains pre-fabricated "perfect" JSON responses for every agent type.
+    *   **Result:** You get instant, deterministic, and free responses for testing complex workflows.
+
+### 3. The Local Production Database (`data/db.json`)
+*   **Role:** **Local Persistence**. Used when running the backend in standard mode.
+*   **Purpose:** Represents the "real" state of your local application. This is where your actual work and history live when running locally. It isolates your persistent local data from the experimental mock data.
+
+### 4. Firestore DB (Google Cloud)
+*   **Role:** **Live Production**. The actual cloud database used by the deployed application.
+*   **Purpose:** Serves real users. It is updated only via the `seed_firestore.py` script (for config) or by actual user usage.

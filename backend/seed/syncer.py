@@ -47,7 +47,8 @@ def sync_db_to_seed():
         'workflows', 
         'knowledge_base',
         'banned_phrases',
-        'model_registry'
+        'model_registry',
+        'dimensions'
     ]
     
     # Check what tables seeder supports. Seeder supports:

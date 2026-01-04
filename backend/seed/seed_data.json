@@ -9215,5 +9215,43 @@
                 "concept_context": "6.2 Tutkimusagenda: Seuraavat vaiheet"
             }
         }
+    ],
+    "dimensions": [
+        {
+            "id": "analyysi",
+            "label": "Analyysi",
+            "description": "Ymmärryksen syvyys ja ongelman rajaus.",
+            "is_system": true
+        },
+        {
+            "id": "arviointi",
+            "label": "Arviointi",
+            "description": "Ratkaisun validointi ja perustelu.",
+            "is_system": true
+        },
+        {
+            "id": "synteesi",
+            "label": "Synteesi",
+            "description": "Uuden luominen ja yhdistely",
+            "is_system": true
+        },
+        {
+            "id": "agency",
+            "label": "Agency",
+            "description": "Toimijuus ja prosessin hallinta.",
+            "is_system": true
+        },
+        {
+            "id": "engineering",
+            "label": "Engineering",
+            "description": "Tekninen toteutus ja promptaus.",
+            "is_system": true
+        },
+        {
+            "id": "falsification",
+            "label": "Falsification",
+            "description": "Kriittinen iteraatio ja virheiden etsintä.",
+            "is_system": true
+        }
     ]
 }

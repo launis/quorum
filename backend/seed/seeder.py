@@ -80,7 +80,10 @@ def _seed_tinydb(db_path: str, seed_data: dict):
     kb_table = db.table('knowledge_base')
     organizations_table = db.table('organizations')
     users_table = db.table('users')
+    organizations_table = db.table('organizations')
+    users_table = db.table('users')
     model_registry_table = db.table('model_registry')
+    dimensions_table = db.table('dimensions')
 
     # Seed Components
     Component = Query()
@@ -183,7 +186,25 @@ def _seed_tinydb(db_path: str, seed_data: dict):
                 users_table.upsert(item, User.uid == item['uid'])
                 count += 1
             except Exception: pass
-        print(f"[Seeder] Upserted {count} users.")
+    print(f"[Seeder] Upserted {count} users.")
+
+    # Seed Dimensions
+    if 'dimensions' in seed_data:
+        Dim = Query()
+        count = 0
+        for item in seed_data['dimensions']:
+            try:
+                # Dimensions seem to lack ID in some dumps, using generated key logic or name if possible?
+                # Based on db.json they are keyed by ID string in TinyDB.
+                # In seed_data list, they should have IDs.
+                # If they are just dicts inside a list, we need an ID.
+                # Re-using the logic:
+                dim_id = item.get('id')
+                if dim_id:
+                     dimensions_table.upsert(item, Dim.id == dim_id)
+                     count += 1
+            except Exception: pass
+    print(f"[Seeder] Upserted {count} dimensions.")
 
     print(f"[Seeder] Upserted {count} knowledge_base items.")
         
@@ -211,7 +232,7 @@ def _seed_firestore(seed_data: dict):
     
     # 0. Clear existing collections (like drop_tables)
     print("[Seeder] Clearing existing Firestore collections...")
-    collections_to_clear = ['components', 'steps', 'workflows', 'system_config', 'banned_phrases', 'knowledge_base', 'model_registry', 'organizations', 'users']
+    collections_to_clear = ['components', 'steps', 'workflows', 'system_config', 'banned_phrases', 'knowledge_base', 'model_registry', 'organizations', 'users', 'dimensions']
     
     def delete_collection(coll_ref, batch_size=400):
         docs = list(coll_ref.limit(batch_size).stream())
@@ -340,6 +361,20 @@ def _seed_firestore(seed_data: dict):
             op_count += 1
             commit_batch_if_full()
 
+    # 10. Dimensions
+    for item in seed_data.get('dimensions', []):
+        if not isinstance(item, dict): continue
+        doc_id = item.get('id')
+        if doc_id:
+            ref = db.collection('dimensions').document(doc_id)
+            batch.set(ref, item, merge=True)
+            op_count += 1
+            commit_batch_if_full()
+            
+    # Commit any remaining operations
+    if op_count > 0:
+        batch.commit()
+    
     print("[Seeder] Firestore seeding completed successfully.")
 
 if __name__ == "__main__":
