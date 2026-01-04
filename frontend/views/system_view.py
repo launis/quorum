@@ -7,7 +7,8 @@ def render_system_view(api_client):
     """
     st.header("System Configuration & Seed Data")
     
-    data = api_client.get_seed_data()
+    token = st.session_state.get('auth_token')
+    data = api_client.get_seed_data(token=token)
     if data:
         # Get Workflows
         workflows = data.get('workflows', [])

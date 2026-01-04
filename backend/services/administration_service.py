@@ -62,7 +62,7 @@ class AdministrationService:
         Returns:
             Dict[str, Any]: Status and result message.
         """
-        from backend.database.seeder import seed_database
+        from backend.seed.seeder import seed_database
         
         tracker.start({"operation": "Rebuild Database"})
         try:

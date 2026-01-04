@@ -63,8 +63,8 @@ class LLMHandler:
         settings = get_settings()
         models = {}
         
-        # Resolve Target Location
-        target_location = location if location else os.getenv("VERTEX_LOCATION", "us-central1")
+        # Resolve Target Location from Settings (Robust .env loading)
+        target_location = location if location else settings.vertex_location
         
         # Normalize providers list
         if not providers:
@@ -220,27 +220,46 @@ class LLMHandler:
         """
         config = self.get_model_config(provider, mode)
         
-        # Defaults
-        settings = get_settings()
-        model_name = settings.initial_model
-        temperature = 0.7
-        max_tokens = None
-        
-        if config:
-            # Handle if config is Pydantic model or dict
-            if hasattr(config, "dict"):
-                cd = config.model_dump()
-            elif hasattr(config, "model_dump"):
-                cd = config.model_dump()
-            else:
-                cd = config
-                
-            model_name = cd.get("model_name", model_name)
-            temperature = cd.get("temperature", temperature)
-            max_tokens = cd.get("max_tokens", max_tokens)
+        if not config:
+            raise ValueError(f"STRICT CONFIG ERROR: No configuration found for strategy '{provider}/{mode}' in System Registry. Fallbacks are PROHIBITED.")
+            
+        # Handle if config is Pydantic model or dict
+        if hasattr(config, "dict"):
+            cd = config.model_dump()
+        elif hasattr(config, "model_dump"):
+            cd = config.model_dump()
         else:
-             pass
+            cd = config
+            
+        model_name = cd.get("model_name")
+        if not model_name:
+             raise ValueError(f"STRICT CONFIG ERROR: Strategy '{provider}/{mode}' exists but describes no 'model_name'.")
+             
+        temperature = cd.get("temperature", 0.7) # Parameter defaults are acceptable/necessary? Assuming yes for float/int, but MODEL must be explicit.
+        max_tokens = cd.get("max_tokens", None)
         
+        # STRICT VALIDATION (Jan 2026 Decree):
+        # Ensure the configured model name actually exists in the target region.
+        # This prevents "blind" 404s from the provider.
+        if provider == "google" and mode != "mock":
+             available_models_map = self.fetch_all_available_models(providers=[provider])
+             valid_models = available_models_map.get(provider, [])
+             
+             # DB stores "vertex_ai/foo", discovery returns "vertex_ai/foo"
+             if model_name not in valid_models:
+                  # Force refresh once if not found, just in case cache is stale? 
+                  # No, "Strict Strictness" implies we trust our validator.
+                  # But maybe we should warn logic.
+                  # Actually, checking if it is a "mock" environment or not.
+                  if "mock" not in model_name.lower(): 
+                       error_msg = (
+                           f"STRICT VALIDATION ERROR: Model '{model_name}' configured for strategy '{mode}' "
+                           f"is NOT available in the current region ('{settings.vertex_location}'). "
+                           f"Available models: {valid_models[:5]}..."
+                       )
+                       logger.error(error_msg)
+                       raise ValueError(error_msg)
+
         # Create Provider via Factory (Unified Logic)
         try:
             logger.info(f"[LLM Execution] Strategy: {provider}/{mode} -> Model: {model_name} (Temp: {temperature}, MaxTokens: {max_tokens})")
@@ -250,7 +269,7 @@ class LLMHandler:
                 prompt=prompt,
                 system_instruction=system_instruction,
                 temperature=temperature,
-                max_tokens=max_tokens # Now validating this argument exists in provider
+                max_tokens=max_tokens 
             )
             
             # Response is now LLMResponse object
@@ -260,6 +279,8 @@ class LLMHandler:
             # Return content string to maintain backward compatibility for this ad-hoc method
             return response.content
             
+        except ValueError as ve:
+             raise ve # Re-raise strict validation errors
         except Exception as e:
             logger.error(f"[LLMHandler] Unified Call Failed: {e}", exc_info=True)
             return f"Error calling LLM: {str(e)}"

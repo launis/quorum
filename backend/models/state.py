@@ -56,6 +56,10 @@ class WorkflowState(BaseModel):
     start_time: Annotated[datetime, Field(default_factory=datetime.now, description="Execution start timestamp.")]
     current_step_name: Annotated[str, Field(description="Name of the currently executing step/agent.")] = "init"
     
+    # Identity Context (New Jan 2026)
+    organization_id: Annotated[Optional[str], Field(description="Organization ID executing this workflow.")] = None
+    user_id: Annotated[Optional[str], Field(description="User ID initiating this workflow.")] = None
+    
     # Inputs (Read-only for agents)
     inputs: Annotated[InputData, Field(description="Immutable input data.")]
     
@@ -240,7 +244,11 @@ class WorkflowState(BaseModel):
             
             "uhka_havaittu": self.step_guard.security_check.uhka_havaittu if (self.step_guard and self.step_guard.security_check) else None,
             "riski_taso": self.step_guard.security_check.riski_taso if (self.step_guard and self.step_guard.security_check) else None,
-            "logiikka_validi": not (self.step_falsifier.paattelyketjun_uskollisuus_auditointi.onko_post_hoc_rationalisointia) if (self.step_falsifier and self.step_falsifier.paattelyketjun_uskollisuus_auditointi) else None
+            "logiikka_validi": not (self.step_falsifier.paattelyketjun_uskollisuus_auditointi.onko_post_hoc_rationalisointia) if (self.step_falsifier and self.step_falsifier.paattelyketjun_uskollisuus_auditointi) else None,
+            
+            # Identity Context
+            "organization_id": self.organization_id,
+            "user_id": self.user_id
         }
 
         # MERGED REPORT (Max Simplicity)

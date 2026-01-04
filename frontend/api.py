@@ -20,6 +20,19 @@ class APIClient:
             logger.error(f"Failed to fetch workflows: {e}")
             return []
 
+    def get_system_workflows(self, token=None):
+        """Fetches raw workflow definitions from DB (Root View)."""
+        try:
+            headers = {}
+            if token:
+                headers["Authorization"] = f"Bearer {token}"
+            response = requests.get(f"{self.base_url}/db/workflows", headers=headers, timeout=10)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            logger.error(f"Failed to fetch system workflows: {e}")
+            return []
+
     def get_workflow_steps(self, workflow_id, workflow_options):
         """Helper to get step definitions for a workflow."""
         steps_lookup = {}
@@ -96,9 +109,12 @@ class APIClient:
         except Exception:
             return []
 
-    def get_seed_data(self):
+    def get_seed_data(self, token=None):
         try:
-            response = requests.get(f"{self.base_url}/db/seed_data", timeout=10)
+            headers = {}
+            if token:
+                headers["Authorization"] = f"Bearer {token}"
+            response = requests.get(f"{self.base_url}/db/seed_data", headers=headers, timeout=10)
             return response.json() if response.status_code == 200 else {}
         except Exception:
             return {}
@@ -352,10 +368,13 @@ class APIClient:
         except Exception as e:
             return {"valid": False, "errors": [str(e)]}
 
-    def get_available_models(self, providers: list = None, location: str = "us-central1"):
+    def get_available_models(self, providers: list = None, location: str = None):
         """Fetches available models from backend with filtering."""
         try:
-            params = {"location": location}
+            params = {}
+            if location:
+                params["location"] = location
+                
             if providers:
                 # requests handles list properly as providers=mock&providers=google
                 params["providers"] = providers

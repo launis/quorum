@@ -1,38 +1,33 @@
 import json
 import os
 
-DB_PATH = r"c:\Users\risto\OneDrive\quorum\backend\database\db_mock.json"
+db_path = r'c:\Users\risto\OneDrive\quorum\data\db.json'
+
+if not os.path.exists(db_path):
+    print(f"Error: {db_path} not found")
+    exit(1)
 
 try:
-    with open(DB_PATH, 'r', encoding='utf-8') as f:
+    with open(db_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
-        
-    executions = data.get('executions', {})
-    print(f"Total executions: {len(executions)}")
     
-    # Get latest
-    keys = list(executions.keys())
-    if not keys:
-        print("No executions found.")
-        exit()
-        
-    last_id = keys[-1]
-    last_exec = executions[last_id]
-    
-    print(f"Latest Execution: {last_id}")
-    res = last_exec.get('result', {})
-    
-    print("Keys in 'result':")
-    print(list(res.keys()))
-    
-    raw = res.get('Raw_Steps', {})
-    print("Keys in 'result.Raw_Steps':")
-    print(list(raw.keys()))
-
-    if 'step_judge_cognitive' in raw:
-        print("✅ step_judge_cognitive FOUND in 'Raw_Steps'")
+    users = data.get('users', {})
+    # TinyDB might store as dict of dicts or list
+    if isinstance(users, dict):
+        print(f"Found {len(users)} users (dict)")
+        for key, user in users.items():
+            print(f"User: {user.get('uid', 'unknown')} | Org: {user.get('organization_id', 'unknown')} | Role: {user.get('role', 'unknown')}")
+    elif isinstance(users, list):
+        print(f"Found {len(users)} users (list)")
+        for user in users:
+            print(f"User: {user.get('uid', 'unknown')} | Org: {user.get('organization_id', 'unknown')} | Role: {user.get('role', 'unknown')}")
     else:
-        print("❌ step_judge_cognitive NOT FOUND in 'Raw_Steps'")
-        
+        print("Users key not found or empty")
+        # Check if it is nested in '_default' standard TinyDB format
+        default = data.get('_default', {})
+        if default:
+            print("Found _default table, checking contents...")
+            # This would be complex to parse if mixed types, assuming separation by table names in root
+            
 except Exception as e:
-    print(f"Error: {e}")
+    print(f"Error reading DB: {e}")

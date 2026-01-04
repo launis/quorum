@@ -187,7 +187,14 @@ class WorkflowEngine:
             wf_name = wf_record['name'] if wf_record else "Unknown"
 
             # 2. Initialize State via Runner
-            current_state = await self.runner.initialize_state(execution_id, raw_inputs, wf_id, wf_name)
+            current_state = await self.runner.initialize_state(
+                execution_id, 
+                raw_inputs, 
+                wf_id, 
+                wf_name,
+                organization_id=exec_record.get('organization_id'),
+                user_id=exec_record.get('user_id')
+            )
             
             pipeline_steps = await self._resolve_pipeline_steps(wf_id)
 
@@ -244,6 +251,12 @@ class WorkflowEngine:
 
             # 2. Reconstruct State
             current_state = WorkflowState.model_validate(trace_data)
+            
+            # Identity Injection (Resume Logic)
+            if not current_state.organization_id:
+                current_state.organization_id = exec_record.get('organization_id')
+            if not current_state.user_id:
+                current_state.user_id = exec_record.get('user_id')
             
             # 3. Determine Resume Point
             pipeline_steps = await self._resolve_pipeline_steps(exec_record['workflow_id'])

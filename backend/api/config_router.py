@@ -8,7 +8,7 @@ import inspect
 import logging
 
 from backend.database.exporter import export_db_to_files
-from backend.database.seeder import seed_database
+from backend.seed.seeder import seed_database
 from backend.database.wrapper import AbstractDatabase
 from backend.dependencies import DatabaseDep, get_db_client_dep, LLMHandlerDep, get_agent_registry_dep
 from backend.models import domain as schemas

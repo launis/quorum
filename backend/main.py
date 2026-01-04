@@ -16,7 +16,8 @@ from backend.exceptions import AppException
 
 # Dependencies
 from backend.core.engine import WorkflowEngine
-from backend.dependencies import EngineDep, DatabaseDep, get_engine, get_db_client_dep
+from backend.dependencies import EngineDep, DatabaseDep, get_engine, get_db_client_dep, CurrentUserDep
+from backend.models.auth import UserRole
 
 # Routers
 from backend.api.tools_router import router as tools_router
@@ -150,17 +151,27 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # --- Root / DB Endpoints ---
 
+from backend.dependencies import EngineDep, DatabaseDep, get_engine, get_db_client_dep, CurrentUserDep
+from backend.models.auth import UserRole
+
+# ... imports ...
+
 @app.get(
     "/db/seed_data", 
     summary="Get Seed Data", 
     response_description="Returns the full components, steps, and workflows from the database."
 )
-async def get_seed_data(engine: EngineDep):
+async def get_seed_data(
+    engine: EngineDep,
+    current_user: CurrentUserDep
+):
     """
     Retrieves the raw seed data configuration (components, steps, workflows).
+    Now scoped by User Role (Root sees all).
 
     Args:
         engine (EngineDep): Dependency.
+        current_user (CurrentUserDep): Authenticated User.
 
     Returns:
         dict: Object containing lists of components, steps, and workflows.
@@ -168,7 +179,12 @@ async def get_seed_data(engine: EngineDep):
     try:
         components = await engine.repository.get_all_components()
         steps = await engine.repository.get_all_steps()
-        workflows = await engine.repository.get_all_workflows()
+        
+        # Pass Role/Org for filtering
+        workflows = await engine.repository.get_all_workflows(
+            organization_id=current_user.organization_id, 
+            role=current_user.role
+        )
         
         return {
             "components": components,
@@ -184,18 +200,26 @@ async def get_seed_data(engine: EngineDep):
     summary="List Workflows (DB)", 
     response_description="A list of all workflow definitions."
 )
-async def get_workflows(engine: EngineDep):
+async def get_workflows(
+    engine: EngineDep,
+    current_user: CurrentUserDep
+):
     """
     Retrieves all workflow definitions from the repository.
+    Scoped by User Role.
 
     Args:
         engine (EngineDep): Dependency.
+        current_user (CurrentUserDep): Authenticated User.
 
     Returns:
         List[dict]: List of workflow objects.
     """
     try:
-        workflows = await engine.repository.get_all_workflows()
+        workflows = await engine.repository.get_all_workflows(
+            organization_id=current_user.organization_id,
+            role=current_user.role
+        )
         return workflows
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

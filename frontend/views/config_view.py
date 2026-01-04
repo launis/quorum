@@ -280,7 +280,8 @@ def render_config_view(api_client, backend_url):
         - **Workflow Builder:** Use the visual **Builder** (in main menu) for designing flow logic, adding steps, and Prompt Fusion.
         """)
         
-        workflows = requests.get(f"{backend_url}/db/workflows").json()
+        token = st.session_state.get('auth_token')
+        workflows = api_client.get_system_workflows(token=token)
         # Refresh steps for the list
         all_steps = requests.get(f"{backend_url}/config/steps").json()
         step_ids = [s['id'] for s in all_steps]

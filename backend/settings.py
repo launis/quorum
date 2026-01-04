@@ -4,6 +4,11 @@ from typing import Dict, Any, Optional
 from pydantic import Field, computed_field, BeforeValidator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Annotated
+from dotenv import load_dotenv
+
+# Explicitly load .env to ensure environment variables are populated
+# independent of Pydantic's internal loader (which seems brittle here)
+load_dotenv()
 
 def strip_whitespace(v: Any) -> Any:
     if isinstance(v, str):
@@ -23,6 +28,7 @@ class Settings(BaseSettings):
     
     # --- API Keys ---
     google_api_key: Annotated[Optional[str], Field(description="Google AI Provider API Key")] = None
+    vertex_location: Annotated[str, Field(description="Google Cloud Region (e.g. europe-north1)")] = "us-central1"
 
     # --- LLM Configuration ---
     initial_model: Annotated[str, Field(description="Initial Model Strategy")] = "fast"
@@ -69,7 +75,7 @@ class Settings(BaseSettings):
 
     @computed_field
     def seed_data_path(self) -> str:
-        return os.path.join(self.db_dir, "seed_data.json")
+        return os.path.join(self.base_dir, "seed", "seed_data.json")
 
     @computed_field
     def mock_responses_path(self) -> str:

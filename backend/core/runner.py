@@ -26,7 +26,7 @@ class PipelineRunner:
         self.registry = registry
         self.prompt_builder = prompt_builder
 
-    async def initialize_state(self, execution_id: str, raw_inputs: Dict[str, Any], workflow_id: Optional[str] = None, workflow_name: Optional[str] = None) -> WorkflowState:
+    async def initialize_state(self, execution_id: str, raw_inputs: Dict[str, Any], workflow_id: Optional[str] = None, workflow_name: Optional[str] = None, organization_id: Optional[str] = None, user_id: Optional[str] = None) -> WorkflowState:
         """
         Constructs the initial WorkflowState object from raw input dictionary.
 
@@ -35,6 +35,8 @@ class PipelineRunner:
             raw_inputs (Dict[str, Any]): Inputs provided by the user/API.
             workflow_id (Optional[str]): The workflow ID.
             workflow_name (Optional[str]): The workflow Name.
+            organization_id (Optional[str]): The Organization ID.
+            user_id (Optional[str]): The User ID.
 
         Returns:
             WorkflowState: The initialized state object.
@@ -52,8 +54,10 @@ class PipelineRunner:
             
             current_state = WorkflowState(
                 execution_id=execution_id,
-                workflow_id=workflow_id,    # NEW
-                workflow_name=workflow_name, # NEW
+                workflow_id=workflow_id,
+                workflow_name=workflow_name,
+                organization_id=organization_id,  # Populated from Exec Record
+                user_id=user_id,                  # Populated from Exec Record
                 inputs=input_data
             )
             
