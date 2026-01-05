@@ -1,5 +1,6 @@
 site_name: Cognitive Quorum Documentation
 repo_url: https://github.com/launis/quorum
+dev_addr: 127.0.0.1:8001
 repo_name: launis/quorum
 theme:
   name: material

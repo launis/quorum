@@ -32,6 +32,7 @@ Quorum is an "Anti-Hallucination" engine.
 *   **Pydantic V2**: Every agent output is validated against a strict schema (`typing.Annotated`).
 *   **Self-Correction**: If an LLM generates invalid JSON, the engine catches it and forces a retry with error feedback.
 *   **State Management**: A monolithic `WorkflowState` object ensures data integrity across the pipeline.
+*   **Cognitive Continuity**: Captures **Reasoning Tokens** ("Show Your Work") to maintain context between agent turns.
 
 ---
 
@@ -57,14 +58,14 @@ graph LR
 *   **Async Processing**: **Arq** (Task Queue), **Redis** (Broker).
 *   **Observability**: **Logfire** (Distributed Tracing).
 *   **Database**: **TinyDB** (JSON-based, portable) + Firestore (Production).
-*   **AI Model**: Google **Gemini 1.5 Pro** / **Gemini 2.0 Flash**.
+*   **AI Model**: Google **Gemini 2.5** (Flash/Pro) + **Reasoning Models**.
 
 ---
 
 ## 📦 Getting Started
 
 ### Prerequisites
-*   Python 3.12+ (managed via `uv`)
+*   Python 3.14 (managed via `uv`)
 *   Google Gemini API Key
 *   Docker (for Redis)
 
@@ -123,6 +124,7 @@ Detailed documentation is available in the `docs/` directory or via the built si
 To build the docs site locally:
 ```bash
 uv run mkdocs serve
+# Access: http://localhost:8001
 ```
 
 ---

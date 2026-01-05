@@ -352,7 +352,7 @@ class LLMFactory:
 
         # STRICT CONFIGURATION: If no model provided, return Unconfigured (Trap).
         if not model_name:
-            logger.warning("[LLMFactory] No model_name provided. Returning UnconfiguredProvider (Execution Trap).")
+            logger.debug("[LLMFactory] No model_name provided. Returning UnconfiguredProvider (Execution Trap).")
             return UnconfiguredProvider()
 
         target_model = model_name

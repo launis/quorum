@@ -1,6 +1,6 @@
 # API Models & Data Schemas
 
-This document details the strict **Pydantic V2** data models used throughout the Cognitive Quorum system. All agent outputs are validated against these schemas to ensure strictly typed, hallucinaton-free execution.
+This document details the strict **Pydantic V2** data models used throughout the Cognitive Quorum system. All agent outputs are validated against these schemas to ensure strictly typed, hallucination-free execution, with support for **Reasoning Token Extraction**.
 
 ---
 
@@ -18,7 +18,7 @@ The central, persistent state object passed between all agents.
 | `organization_id` | `str` | Tenant ID. |
 | `inputs` | `InputData` | Immutable user inputs. |
 | `audit_results` | `dict[str, EvaluationResult]` | Dynamic container for matrix-based evaluations. |
-| `reasoning_context` | `dict` | Encrypted reasoning blobs (Gemini "Thinking" tokens). |
+| `reasoning_context` | `dict` | "Show Your Work" traces (Gemini "Thinking" tokens). |
 
 ### `InputData`
 Raw inputs provided by the user.
@@ -151,3 +151,4 @@ Included in every agent output.
 | `agentti` | `str` | Name of the producing agent. |
 | `vaihe` | `float` | Workflow step number. |
 | `luontiaika` | `str` | ISO 8601 Timestamp. |
+| `thought` | `str` | **Reasoning Token** trace (Show Your Work). |

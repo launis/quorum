@@ -8,13 +8,13 @@ This document provides a reference for the application's V2.5 directory structur
 
 ```text
 quorum/
-├── backend/                # Modular Async Monolith Core
+├── backend/                # Modular Async Monolith Core (Python 3.14)
 │   ├── agents/             # Specialized Agent Classes (BaseAgent implementations)
 │   ├── api/                # FastAPI Routers (Control Plane)
 │   ├── core/               # Workflow Engine & Pipeline Runner (Logic)
 │   ├── database/           # Abstracted DB Wrapper (TinyDB / Firestore)
 │   ├── hooks/              # Deterministic Logic (PII, Causal, Search)
-│   ├── llm/                # LLM Provider Adapters (Gemini, Vertex AI)
+│   ├── llm/                # LLM Provider Adapters (Gemini 2.5, Vertex AI)
 │   ├── models/             # Pydantic V2 Data Models (State, Domain)
 │   ├── services/           # Business Logic Services (Auth, IAM, PromptBuilder)
 │   ├── config.py           # Configuration (Settings, Env Vars)
@@ -27,7 +27,9 @@ quorum/
 │   └── uploads/            # User Uploads
 ├── docs/                   # MkDocs Documentation
 ├── frontend/               # Streamlit Interface (Thin Client)
-└── scripts/                # Utility Scripts (Seeding, OpenAPI Gen)
+├── scripts/                # Utility Scripts (Seeding, OpenAPI Gen)
+├── pyproject.toml          # Project Metadata & Dependnecies
+└── uv.lock                 # Strict Dependency Lockfile
 ```
 
 ---

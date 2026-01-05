@@ -61,7 +61,7 @@ The system maintains state (`WorkflowState`) centrally, efficiently managed acro
 2.  **Worker**: Pulls Job (`backend/worker.py`).
 3.  **Engine**: Loads `WorkflowState` from DB (TinyDB/Firestore).
 4.  **Runner**: Executes one Step (Agent).
-5.  **Agent**: Calls LLM Provider (`backend/llm/provider.py`).
+5.  **Agent**: Calls LLM Provider (`backend/llm/provider.py`) - Extracts **Reasoning Tokens**.
 6.  **Agent**: Updates State (e.g. `state.step_analyst`).
 7.  **Engine**: Persists State to DB (incrementing `version`).
 
@@ -105,7 +105,7 @@ graph TD
         subgraph "Agent Execution"
             Runner --> Agent["Base Agent"]
             Agent --> Prompt["Prompt Builder"]
-            Agent --> LLM["LLM Provider (Gemini)"]
+            Agent --> LLM["LLM Provider (Gemini 2.5)"]
             
             Agent -- "Invoke Hook" --> Hooks["Deterministic Hooks"]
             Hooks --> PII["Security/PII"]

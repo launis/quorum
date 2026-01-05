@@ -144,6 +144,10 @@ async def lifespan(app: FastAPI):
                 pass
 
             arq.connections.log_redis_info = _no_op_log
+            
+            # PATCH: We must also patch the reference in arq.worker, as it likely imported the function already
+            import arq.worker
+            arq.worker.log_redis_info = _no_op_log
 
             # PATCH: Arq 0.26+ uses connection.pack_commands(cmds) for pipelining optimization
             if not hasattr(fake_redis, "pack_commands"):

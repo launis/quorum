@@ -1,6 +1,6 @@
 # System Architecture
 
-Cognitive Quorum v2.0 is a **Modular Monolith** built on Python 3.12+, designed for deterministic, verifiable AI workflows. It combines a rigorous Pydantic-based backbone with a flexible, database-driven configuration engine.
+Cognitive Quorum v2.5 is a **Modular Monolith** built on Python 3.14, designed for deterministic, verifiable AI workflows. It combines a rigorous Pydantic-based backbone with a flexible, database-driven configuration engine.
 
 ## High-Level Diagram
 
@@ -24,7 +24,7 @@ graph TD
         Agent -->|1. Prompt| PromptBuilder["Prompt Builder"]
         Agent -->|2. Generate| LLM["LLM Provider (Gemini)"]
         Agent -->|3. Hook| Hooks["Deterministic Hooks"]
-        Agent -->|4. Validate| Schema["Pydantic V2 Schema"]
+        Agent -->|4. Validate| Schema["Pydantic V2 Schema (Strict JSON)"]
     end
     
     Hooks --> PII["PII Scrubber"]
@@ -46,7 +46,7 @@ The backend is split into two primary runtime components:
 *   **`backend/core/`**: The `WorkflowEngine` and `PipelineRunner`. Orchestrates the flow based on DB config.
 *   **`backend/agents/`**: specialized Agent classes (e.g., `GuardAgent`, `JudgeAgent`) inheriting from `BaseAgent`.
 *   **`backend/models/`**: Centralized domain models using Pydantic v2 `Annotated` syntax.
-*   **`backend/llm/`**: **Provider Layer** with specialized **JSON Heuristic Repair Engine** (regex + ast fallback) to handle truncated or malformed responses from high-intelligence models (e.g. Gemini 2.5).
+*   **`backend/llm/`**: **Provider Layer** with specialized **JSON Heuristic Repair Engine** (regex + ast fallback) and **Reasoning Token Extraction** to handle high-intelligence models (e.g. Gemini 2.5) with 'thought' traces.
 
 ### 2. State Management (WorkflowState)
 Unlike many agent frameworks that pass free-form dictionaries, Quorum uses a strict **`WorkflowState`** Pydantic model (`backend/models/state.py`).
@@ -61,7 +61,7 @@ Agents are "thin" wrappers that coordinate three things:
 
 1.  **Prompting:** Constructing context using `PromptBuilder`.
 2.  **Hooks:** Calling deterministic Python code (Hooks) for tasks logical reasoning cannot solve (e.g., math, causal inference, search).
-3.  **Generation:** Calling the LLM via `LLMProvider` (Vertex AI).
+3.  **Generation:** Calling the LLM via `LLMProvider`. Supports **Reasoning Tokens** for "Show Your Work" transparency and **Strict JSON** enforcement.
 
 Configurations (Prompts, Model usage) are stored in `seed_data.json` / Database, but the execution logic resides in code.
 
@@ -85,12 +85,15 @@ This allows changing the *behavior* (prompts, order) without redeploying code, w
 
 ## Technology Stack
 
-*   **Language:** Python 3.12+
+*   **Language:** Python 3.14
+*   **Dependency Management:** uv
+*   **Observability:** Logfire (Distributed Tracing & Structured Logging)
 *   **API:** FastAPI + Pydantic v2 (Strict Mode)
 *   **UI:** Streamlit (Thin Client - No Business Logic)
 *   **Database:** TinyDB (Local) / Firestore (Cloud) - **3-Tier Env** (Mock/Local/Prod)
 *   **Vector Search:** ChromaDB
 *   **LLM:** **Google Cloud Vertex AI** (Region: `europe-north1` / Hamina) - Strict Data Residency
+*   **Task Queue:** Redis + Arq (Distributed Workers)
 *   **Models:** Gemini 2.5 (Flash/Pro) - Validated for Hamina
 *   **PII:** Microsoft Presidio
 *   **Causal Inference:** Microsoft DoWhy

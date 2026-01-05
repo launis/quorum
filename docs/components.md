@@ -1,10 +1,10 @@
-# Workflow Components (V2.0 Refactor)
+# Workflow Components (V2.5)
 
 The system is composed of **Specialized Agents** (Python Classes) and **Deterministic Hooks** (helper modules).
 
 ## 1. Specialized Agents (`backend/agents/`)
 
-Unlike V1, which used generic agents, V2.0 involves specialized classes inheriting from `BaseAgent`.
+Unlike V1, which used generic agents, V2.5 involves specialized classes inheriting from `BaseAgent`.
 
 | Agent Class | File | Responsibility | Schema |
 | :--- | :--- | :--- | :--- |
@@ -44,9 +44,9 @@ Hooks are pure Python functions invoked by agents to perform tasks outside the L
 
 ## 3. Worker Service (`backend/worker.py`)
 
-The **Worker Service** is the heavy-lifting engine of Quorum V2.0.
+The **Worker Service** (Execution Plane) is the heavy-lifting engine of Quorum V2.5.
 
-*   **Technology**: Built on **Arq** (Async Redis Queue).
+*   **Technology**: Built on **Arq** (Async Redis Queue) and monitored via **Logfire**.
 *   **Role**: Executes the `execute_workflow_task` function.
 *   **Resilience**: Handles retries, timeout management, and graceful shutdowns.
 *   **Scalability**: Multiple worker instances can consume from the same Redis queue (Horizontal Scaling).
@@ -55,11 +55,11 @@ The **Worker Service** is the heavy-lifting engine of Quorum V2.0.
 
 All components communicate using **Pydantic V2** models.
 
-*   **`WorkflowState`**: The monolithic state object passed between agents.
+*   **`WorkflowState`**: The monolithic state object passed between agents. Implements **Optimistic Locking** (`version` field) for safe concurrent updates.
 *   **`Domain Models`**: Specialized schemas (e.g., `JudgeVerdict`, `PanelAudit`) used for LLM structured output.
 
 ## 5. LLM Provider (`backend/llm/`)
 
 A centralized adapter pattern for model access.
-*   **Supported Models:** Google Gemini 1.5 Pro/Flash, Gemini 2.0 Flash.
-*   **Features:** JSON Mode enforcement, exponential backoff retries.
+*   **Supported Models:** Google Gemini 2.5 (Flash/Pro) via **Regional Discovery** (Hamina / europe-north1).
+*   **Features:** **Strict JSON Mode** enforcement, **Reasoning Token** extraction ("Show Your Work"), and exponential backoff retries.

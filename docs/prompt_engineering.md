@@ -22,7 +22,7 @@ graph LR
     Schema["Pydantic Model"] --> Builder
     
     Builder -- Render --> Final["Final Prompt String"]
-    Final --> LLM["LLM (Gemini)"]
+    Final --> LLM["LLM (Gemini 2.5)"]
 ```
 
 ---
@@ -34,7 +34,7 @@ We do not rely on "vibes" for output formatting. We use **Type-Driven Prompting*
 1.  **Schema Definition**: Every agent output is defined as a Pydantic V2 model in `backend/models/domain.py`.
 2.  **Schema Injection**: The `PromptBuilder` automatically generates the JSON Schema of the target model using `model.model_json_schema()`.
 3.  **Instruction**: The prompt includes a standardized block:
-    > "You MUST output valid JSON adhering to this schema: {json_schema}"
+    > "You MUST output valid JSON adhering to this schema: {json_schema}. You MUST include a 'thought' field to show your reasoning."
 
 This ensures 99.9% structural reliability. If validation fails, the `WorkflowEngine` triggers a **Heuristic Repair** attempt or a retry loop.
 
@@ -42,7 +42,7 @@ This ensures 99.9% structural reliability. If validation fails, the `WorkflowEng
 
 ## 3. Reasoning Tokens (Chain-of-Thought)
 
-V2.5 introduces support for **Encrypted Reasoning Tokens** (e.g., Gemini 2.0 Flash Thinking).
+V2.5 introduces support for **Reasoning Token Extraction** (e.g., Gemini 2.5 Thinking models).
 
 *   **The Problem**: Standard LLM outputs lose the "hidden thought process" between turns.
 *   **The Solution**: Agents generate a `reasoning_trace` (CoT) alongside their structured JSON.

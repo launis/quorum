@@ -103,7 +103,7 @@ async def startup(ctx: Any) -> None:
     repository = get_async_repository(db_client)
 
     registry = AgentRegistry(repository)
-    registry.discover_and_register_agents()
+    await registry.discover_and_register_agents()
 
     prompt_builder = PromptBuilder(repository, registry)
 

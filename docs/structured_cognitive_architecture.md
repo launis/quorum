@@ -14,7 +14,7 @@ This document outlines the **Cognitive Quorum**, a structured cognitive architec
 ### The Spine (Static Layer)
 *   **Source:** Python Code (`backend/agents/`, `backend/models/`).
 *   **Components:** Agent Classes, Pydantic V2 Models (`typing.Annotated`), Arq Workers.
-*   **Role:** Defines the *structure* of data and execution. Enforces type safety and manages async concurrency.
+*   **Role:** Defines the *structure* of data and execution. Enforces type safety, manages async concurrency, and provides observability via **Logfire**.
 
 ## The Cognitive Assembly Line (`sequential_audit_chain`)
 
@@ -81,17 +81,17 @@ LLMs are inherently stateless. When `AnalystAgent` finishes and `JudgeAgent` beg
 
 ### Solution: Thinking Tokens & Explicit Traces
 
-1.  **Thinking Models (Gemini Flash)**: 
-    *   **Mechanism**: The model generates a hidden "Encrypted Reasoning Blob" representing its internal state.
-    *   **Persistence**: We capture this blob and store it in `WorkflowState.reasoning_context`.
-    *   **Transfer**: It is passed to the next compatible agent, allowing it to "resume" the thought process natively.
+1.  **Reasoning Models (Gemini 2.5 Thinking)**: 
+    *   **Mechanism**: The model generates a "Show Your Work" trace (`thought` signature) alongside the JSON.
+    *   **Persistence**: We capture this trace and store it in `WorkflowState.reasoning_context`.
+    *   **Transfer**: It is passed to the next agent, allowing it to "see" the logic that led to the conclusion.
 
-2.  **Standard Models (Gemini Pro)**:
-    *   **Mechanism**: Explicit Chain-of-Thought (CoT) text generation.
+2.  **Standard Models (Gemini Flash/Pro)**:
+    *   **Mechanism**: Explicit Chain-of-Thought (CoT) text generation via `thought` field in JSON.
     *   **Persistence**: Stored in `state.last_reasoning_trace`.
     *   **Transfer**: Injected into the next prompt as text.
 
-This hybrid approach ensures high-fidelity reasoning transfer regardless of the underlying model capability.
+This approach ensures transparency and high-fidelity reasoning transfer regardless of the underlying model capability.
 
 ## Verification & Self-Correction
 

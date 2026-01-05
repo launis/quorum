@@ -45,7 +45,7 @@ A web-based user interface (`pages/Management_Dashboard.py`) for system administ
 The Control Plane. It handles incoming HTTP requests, validates configuration changes via Pydantic V2 schemas, and serves as the gateway for enqueuing execution jobs.
 
 ### Worker Service (Arq + Redis)
-The Execution Plane. A distributed background service that pulls jobs from Redis. This allows the system to scale horizontally and handle tasks that exceed standard HTTP timeout limits (e.g., 60s+ LLM reasoning chains).
+The Execution Plane. A distributed background service that pulls jobs from Redis. This allows the system to scale horizontally and handle tasks that exceed standard HTTP timeout limits (e.g., 60s+ LLM reasoning chains). Monitoring and traces are exported to **Logfire**.
 
 ### Generic Engine
 The core processing unit running inside the Worker. It reads the `WorkflowState` and `WorkflowDefinition` from the database, initializes the required Agents using Dependency Injection, and executes the pipeline.
@@ -87,9 +87,12 @@ Manages the content assets.
 
 ## Environments & Data Synchronization
 
-The system maintains two parallel environments, determined by the `ENV` variable:
+## Environments & Data Synchronization
 
-| Environment | Database (Local) | Database (Cloud) | Purpose |
+The system maintains a **3-Tier Environment** model to ensure safe promotion of configuration:
+
+| Environment | Database | Purpose | Seeding Command |
 | :--- | :--- | :--- | :--- |
-| **MOCK** | `data/db_mock.json` | `firestore/mock` | Sandbox for testing new prompts and workflows. |
-| **PROD** | `data/db.json` | `firestore/prod` | Live production processing. |
+| **Local Mock** | `data/db_mock.json` | Sandbox for offline testing and development. | `tools/seed_mock.py` |
+| **Local Prod** | `data/db.json` | Local testing with Live LLMs (Vertex AI). | `run_rebuild_prod_db.py` |
+| **Cloud Prod** | Firestore (GCP) | Production traffic in `europe-north1`. | `scripts/seed_firestore.py` |

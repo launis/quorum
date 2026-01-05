@@ -1,6 +1,6 @@
 # Backend Refactoring Status - Docstrings & Standards
 
-**Last Updated:** 2025-12-27 (Final V2.0 Audit)
+**Last Updated:** 2026-01-05 (Final V2.5 Audit)
 
 ## Objective
 Enforce strict Google-style docstrings, Pydantic `Annotated` schemas, and English-only comments.
@@ -27,10 +27,12 @@ Enforce strict Google-style docstrings, Pydantic `Annotated` schemas, and Englis
 - [x] `domain.py` (Strict `Annotated`)
 - [x] `state.py` (Strict `Annotated`)
 
-### 7. V2.0 Architecture Upgrade - [COMPLETED]
+### 7. V2.5 Architecture Upgrade - [COMPLETED]
 - [x] **Deferred Annotations (PEP 649)**: Python 3.14 compatibility.
 - [x] **Dependency Injection**: Strict separation of concerns in `WorkflowEngine`.
 - [x] **Distributed Queue**: Arq + Redis implementation.
+- [x] **Observability**: Logfire distributed tracing.
+- [x] **Cognitive Continuity**: Reasoning Token Extraction (Gemini 2.5).
 - [x] **Optimistic Locking**: State integrity protection.
 
 ## Validation
