@@ -177,7 +177,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/backend__api__execution_router__WorkflowCreateRequest"
+                "$ref": "#/components/schemas/WorkflowCreateRequest"
               }
             }
           },
@@ -1607,7 +1607,7 @@
           "Configuration"
         ],
         "summary": "Delete Step",
-        "description": "Delete a step.",
+        "description": "Delete a step.\nRefactored to enforce Integrity: Cannot delete step if used in Workflows.",
         "operationId": "delete_step_config_steps__step_id__delete",
         "parameters": [
           {
@@ -2353,6 +2353,92 @@
         }
       }
     },
+    "/auth/impersonate": {
+      "post": {
+        "tags": [
+          "Authentication & Users"
+        ],
+        "summary": "Impersonate User",
+        "description": "Generates an impersonation token for the target user. Requires ROOT.\n\nArgs:\n    request (ImpersonationRequest): Payload containing target_uid.\n    current_user (CurrentUserDep): The requesting user (must be ROOT).\n    auth_service (AuthServiceDep): Auth service.\n\nReturns:\n    ImpersonationResponse: The access token.\n\nRaises:\n    HTTPException: If permission denied (403) or target not found (404).",
+        "operationId": "impersonate_user_auth_impersonate_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImpersonationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImpersonationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/roles": {
+      "get": {
+        "tags": [
+          "Authentication & Users"
+        ],
+        "summary": "List Available Roles",
+        "description": "List all valid User Roles.\n\nUsed by frontend for dynamic dropdowns (Zero Hardcoding).",
+        "operationId": "list_available_roles_auth_roles_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array",
+                  "title": "Response List Available Roles Auth Roles Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/auth/users": {
       "post": {
         "tags": [
@@ -2496,7 +2582,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/backend__models__auth__OrganizationCreate"
+                "$ref": "#/components/schemas/OrganizationCreate"
               }
             }
           }
@@ -2682,6 +2768,126 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/audit/logs": {
+      "get": {
+        "tags": [
+          "Audit"
+        ],
+        "summary": "Get Audit Logs",
+        "description": "Retrieve audit logs.\n\nRole Rules:\n- ROOT: Can see logs for ANY organization or system-wide (if org_id is None).\n- ADMIN: Can ONLY see logs for THEIR OWN organization.\n- MEMBER: Cannot see audit logs (403).",
+        "operationId": "get_audit_logs_audit_logs_get",
+        "parameters": [
+          {
+            "name": "organization_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by Organization ID",
+              "title": "Organization Id"
+            },
+            "description": "Filter by Organization ID"
+          },
+          {
+            "name": "actor_uid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by Actor UID",
+              "title": "Actor Uid"
+            },
+            "description": "Filter by Actor UID"
+          },
+          {
+            "name": "action",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by Action type",
+              "title": "Action"
+            },
+            "description": "Filter by Action type"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuditEvent"
+                  },
+                  "title": "Response Get Audit Logs Audit Logs Get"
                 }
               }
             }
@@ -2965,7 +3171,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/WorkflowCreateRequest"
+                "$ref": "#/components/schemas/backend__api__builder_router__WorkflowCreateRequest"
               }
             }
           }
@@ -2991,6 +3197,29 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/builder/steps": {
+      "get": {
+        "tags": [
+          "Builder"
+        ],
+        "summary": "List Steps",
+        "description": "List all available steps.\n\nReturns:\n    list[dict]: A list of step definitions.",
+        "operationId": "list_steps_builder_steps_get",
+        "responses": {
+          "200": {
+            "description": "All Steps.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found"
           }
         }
       }
@@ -3607,7 +3836,7 @@
           "Organizations"
         ],
         "summary": "Create Organization",
-        "description": "Create a new Tenant Organization.\n\nArgs:\n    org (OrganizationCreate): Organization details.\n    user (TokenData): Requesting user (must be ROOT).\n    repo (RepositoryDep): Repository dependency.\n\nReturns:\n    OrganizationResponse: The created organization.\n\nRaises:\n    HTTPException: If ID conflict (409).",
+        "description": "Create a new Tenant Organization.\n\nArgs:\n    org (OrganizationCreateRequest): Organization details.\n    user (TokenData): Requesting user (must be ROOT).\n    repo (RepositoryDep): Repository dependency.\n\nReturns:\n    OrganizationResponse: The created organization.\n\nRaises:\n    HTTPException: If ID conflict (409).",
         "operationId": "create_organization_organizations__post",
         "parameters": [
           {
@@ -3632,7 +3861,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/OrganizationCreate"
+                "$ref": "#/components/schemas/OrganizationCreateRequest"
               }
             }
           }
@@ -3906,19 +4135,193 @@
             }
           },
           {
-            "name": "args",
-            "in": "query",
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{org_id}/users": {
+      "get": {
+        "tags": [
+          "Organizations"
+        ],
+        "summary": "List Organization Users",
+        "description": "List users within an organization.\n\nArgs:\n    org_id (str): Organization ID.\n    user (CurrentUserDep): Requesting user.\n    repo (RepositoryDep): Repository.\n\nReturns:\n    list[dict]: List of users (serialized).",
+        "operationId": "list_organization_users_organizations__org_id__users_get",
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
             "required": true,
             "schema": {
-              "title": "Args"
+              "type": "string",
+              "title": "Org Id"
             }
           },
           {
-            "name": "kwargs",
-            "in": "query",
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response List Organization Users Organizations  Org Id  Users Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Organizations"
+        ],
+        "summary": "Create Organization User",
+        "description": "Create a user within an organization.\n\nEnforces strict typing and no defaults.",
+        "operationId": "create_organization_user_organizations__org_id__users_post",
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
             "required": true,
             "schema": {
-              "title": "Kwargs"
+              "type": "string",
+              "title": "Org Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationUserCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{org_id}/users/{target_uid}": {
+      "delete": {
+        "tags": [
+          "Organizations"
+        ],
+        "summary": "Delete Organization User",
+        "description": "Delete a user from an organization.",
+        "operationId": "delete_organization_user_organizations__org_id__users__target_uid__delete",
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Org Id"
+            }
+          },
+          {
+            "name": "target_uid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Target Uid"
             }
           },
           {
@@ -3941,6 +4344,86 @@
         "responses": {
           "204": {
             "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/settings": {
+      "get": {
+        "tags": [
+          "Global Settings"
+        ],
+        "summary": "Get Settings",
+        "description": "Retrieves the current global system connection settings.",
+        "operationId": "get_settings_settings_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemSettings"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Global Settings"
+        ],
+        "summary": "Update Settings",
+        "description": "Updates global system settings. Requires ROOT.",
+        "operationId": "update_settings_settings_patch",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SystemSettings"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemSettings"
+                }
+              }
+            }
           },
           "422": {
             "description": "Validation Error",
@@ -4163,6 +4646,62 @@
   },
   "components": {
     "schemas": {
+      "AuditEvent": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp"
+          },
+          "actor_uid": {
+            "type": "string",
+            "title": "Actor Uid"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "organization_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organization Id"
+          },
+          "target_uid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Uid"
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Details"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "timestamp",
+          "actor_uid",
+          "action"
+        ],
+        "title": "AuditEvent",
+        "description": "Structured Audit Log Event."
+      },
       "BannedPhraseRequest": {
         "properties": {
           "phrase": {
@@ -4718,6 +5257,39 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "ImpersonationRequest": {
+        "properties": {
+          "target_uid": {
+            "type": "string",
+            "title": "Target Uid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "target_uid"
+        ],
+        "title": "ImpersonationRequest",
+        "description": "Request payload for impersonation."
+      },
+      "ImpersonationResponse": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "default": "bearer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token"
+        ],
+        "title": "ImpersonationResponse",
+        "description": "Response containing the impersonation token."
+      },
       "IngestRequest": {
         "properties": {
           "file_path": {
@@ -4920,6 +5492,30 @@
             ],
             "title": "Contact Email",
             "description": "Admin Contact"
+          },
+          "billing_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Billing Id",
+            "description": "External Billing ID (Stripe/etc)"
+          },
+          "subscription_status": {
+            "$ref": "#/components/schemas/SubscriptionStatus",
+            "description": "Current billing status",
+            "default": "trial"
+          },
+          "quota_limit": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Quota Limit",
+            "description": "Monthly API call quota (USD)",
+            "default": 10.0
           }
         },
         "type": "object",
@@ -4928,9 +5524,39 @@
           "name"
         ],
         "title": "Organization",
-        "description": "Represents a tenant or customer organization.\n\nAttributes:\n    id (str): Unique Organization ID (e.g. 'nokia-v1').\n    name (str): Display Name.\n    created_at (Optional[str]): ISO Timestamp.\n    is_active (bool): Subscription status.\n    tier (str): Service Tier.\n    contact_email (Optional[str]): Admin Contact."
+        "description": "Represents a tenant or customer organization.\n\nAttributes:\n    id (str): Unique Organization ID (e.g. 'nokia-v1').\n    name (str): Display Name.\n    created_at (Optional[str]): ISO Timestamp.\n    is_active (bool): Subscription status.\n    tier (str): Service Tier.\n    contact_email (Optional[str]): Admin Contact.\n    billing_id (Optional[str]): External Billing ID (Stripe/etc).\n    subscription_status (SubscriptionStatus): Current billing status.\n    quota_limit (int): Monthly API call quota."
       },
       "OrganizationCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "admin_email": {
+            "type": "string",
+            "format": "email",
+            "title": "Admin Email"
+          },
+          "admin_password": {
+            "type": "string",
+            "title": "Admin Password"
+          },
+          "admin_name": {
+            "type": "string",
+            "title": "Admin Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "admin_email",
+          "admin_password",
+          "admin_name"
+        ],
+        "title": "OrganizationCreate",
+        "description": "Payload for creating a new organization.\n\nAttributes:\n    name (str): Organization display name.\n    admin_email (EmailStr): Email for the initial admin user.\n    admin_password (str): Password for the initial admin user.\n    admin_name (str): Display name for the initial admin user."
+      },
+      "OrganizationCreateRequest": {
         "properties": {
           "id": {
             "anyOf": [
@@ -4963,6 +5589,26 @@
             ],
             "title": "Contact Email"
           },
+          "billing_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Billing Id"
+          },
+          "subscription_status": {
+            "$ref": "#/components/schemas/SubscriptionStatus",
+            "default": "trial"
+          },
+          "quota_limit": {
+            "type": "number",
+            "title": "Quota Limit",
+            "default": 10.0
+          },
           "settings_override": {
             "anyOf": [
               {
@@ -4980,7 +5626,7 @@
         "required": [
           "name"
         ],
-        "title": "OrganizationCreate"
+        "title": "OrganizationCreateRequest"
       },
       "OrganizationResponse": {
         "properties": {
@@ -5017,6 +5663,26 @@
               }
             ],
             "title": "Created At"
+          },
+          "billing_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Billing Id"
+          },
+          "subscription_status": {
+            "$ref": "#/components/schemas/SubscriptionStatus",
+            "default": "trial"
+          },
+          "quota_limit": {
+            "type": "number",
+            "title": "Quota Limit",
+            "default": 10.0
           }
         },
         "type": "object",
@@ -5062,6 +5728,38 @@
             ],
             "title": "Contact Email"
           },
+          "billing_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Billing Id"
+          },
+          "subscription_status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SubscriptionStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "quota_limit": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quota Limit"
+          },
           "settings_override": {
             "anyOf": [
               {
@@ -5077,6 +5775,40 @@
         },
         "type": "object",
         "title": "OrganizationUpdate"
+      },
+      "OrganizationUserCreate": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole"
+          },
+          "password": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "display_name",
+          "role"
+        ],
+        "title": "OrganizationUserCreate",
+        "description": "Payload for creating a user within an organization.\nStrictly forbids default values for role and email."
       },
       "StepUpdateRequest": {
         "properties": {
@@ -5108,6 +5840,66 @@
         },
         "type": "object",
         "title": "StepUpdateRequest"
+      },
+      "SubscriptionStatus": {
+        "type": "string",
+        "enum": [
+          "active",
+          "past_due",
+          "canceled",
+          "trial"
+        ],
+        "title": "SubscriptionStatus",
+        "description": "SaaS Subscription Status."
+      },
+      "SystemSettings": {
+        "properties": {
+          "maintenance_mode": {
+            "type": "boolean",
+            "title": "Maintenance Mode",
+            "description": "If True, only ROOT can login/act.",
+            "default": false
+          },
+          "allow_signups": {
+            "type": "boolean",
+            "title": "Allow Signups",
+            "description": "If True, new users can register.",
+            "default": true
+          },
+          "global_banner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Global Banner",
+            "description": "Message displayed to all users."
+          },
+          "default_model_strategy": {
+            "type": "string",
+            "title": "Default Model Strategy",
+            "description": "Default LLM strategy for new agents.",
+            "default": "fast"
+          },
+          "enable_beta_features": {
+            "type": "boolean",
+            "title": "Enable Beta Features",
+            "description": "Toggle experimental features.",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "SystemSettings",
+        "description": "Global System Configuration.\n\nPersisted as a singleton in the 'system_settings' table.",
+        "example": {
+          "allow_signups": true,
+          "default_model_strategy": "fast",
+          "global_banner": "Scheduled maintenance at 02:00 UTC",
+          "maintenance_mode": false
+        }
       },
       "TokenPayload": {
         "properties": {
@@ -5451,72 +6243,25 @@
           "name": {
             "type": "string",
             "title": "Name",
-            "description": "Name of the new workflow."
-          },
-          "description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description",
-            "description": "Optional description."
+            "description": "The unique, human-readable name for the new workflow."
           },
           "steps": {
             "items": {
-              "type": "string"
+              "additionalProperties": true,
+              "type": "object"
             },
             "type": "array",
             "title": "Steps",
-            "description": "List of step IDs.",
-            "default": []
-          },
-          "default_model_mapping": {
-            "anyOf": [
-              {
-                "additionalProperties": {
-                  "type": "string"
-                },
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Default Model Mapping",
-            "description": "Initial model mapping.",
-            "default": {}
-          },
-          "ui_schema": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Ui Schema",
-            "description": "UI Layout metadata.",
-            "default": {}
-          },
-          "is_public": {
-            "type": "boolean",
-            "title": "Is Public",
-            "description": "If True, visible to all tenants (System Only).",
-            "default": false
+            "description": "A sequential list of step configurations defining the workflow logic."
           }
         },
         "type": "object",
         "required": [
-          "name"
+          "name",
+          "steps"
         ],
         "title": "WorkflowCreateRequest",
-        "description": "Payload for creating a new workflow.\n\nAttributes:\n    name (str): The name of the workflow.\n    description (Optional[str]): Detailed description.\n    steps (list[str]): List of step IDs to include.\n    default_model_mapping (Optional[dict]): Map of step IDs to model strategies.\n    ui_schema (Optional[dict]): Frontend layout metadata.\n    is_public (bool): Visibility flag (System Root only)."
+        "description": "Payload for creating a new workflow definition.\n\nAttributes:\n    name (str): Human-readable name.\n    steps (list[dict]): List of step configurations."
       },
       "WorkflowUpdate": {
         "properties": {
@@ -5667,60 +6412,77 @@
         "type": "object",
         "title": "WorkflowUpdateRequest"
       },
-      "backend__api__execution_router__WorkflowCreateRequest": {
+      "backend__api__builder_router__WorkflowCreateRequest": {
         "properties": {
           "name": {
             "type": "string",
             "title": "Name",
-            "description": "The unique, human-readable name for the new workflow."
+            "description": "Name of the new workflow."
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Optional description."
           },
           "steps": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "type": "string"
             },
             "type": "array",
             "title": "Steps",
-            "description": "A sequential list of step configurations defining the workflow logic."
+            "description": "List of step IDs.",
+            "default": []
+          },
+          "default_model_mapping": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Model Mapping",
+            "description": "Initial model mapping.",
+            "default": {}
+          },
+          "ui_schema": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ui Schema",
+            "description": "UI Layout metadata.",
+            "default": {}
+          },
+          "is_public": {
+            "type": "boolean",
+            "title": "Is Public",
+            "description": "If True, visible to all tenants (System Only).",
+            "default": false
           }
         },
         "type": "object",
         "required": [
-          "name",
-          "steps"
+          "name"
         ],
         "title": "WorkflowCreateRequest",
-        "description": "Payload for creating a new workflow definition.\n\nAttributes:\n    name (str): Human-readable name.\n    steps (list[dict]): List of step configurations."
-      },
-      "backend__models__auth__OrganizationCreate": {
-        "properties": {
-          "name": {
-            "type": "string",
-            "title": "Name"
-          },
-          "admin_email": {
-            "type": "string",
-            "format": "email",
-            "title": "Admin Email"
-          },
-          "admin_password": {
-            "type": "string",
-            "title": "Admin Password"
-          },
-          "admin_name": {
-            "type": "string",
-            "title": "Admin Name"
-          }
-        },
-        "type": "object",
-        "required": [
-          "name",
-          "admin_email",
-          "admin_password",
-          "admin_name"
-        ],
-        "title": "OrganizationCreate",
-        "description": "Payload for creating a new organization.\n\nAttributes:\n    name (str): Organization display name.\n    admin_email (EmailStr): Email for the initial admin user.\n    admin_password (str): Password for the initial admin user.\n    admin_name (str): Display name for the initial admin user."
+        "description": "Payload for creating a new workflow.\n\nAttributes:\n    name (str): The name of the workflow.\n    description (Optional[str]): Detailed description.\n    steps (list[str]): List of step IDs to include.\n    default_model_mapping (Optional[dict]): Map of step IDs to model strategies.\n    ui_schema (Optional[dict]): Frontend layout metadata.\n    is_public (bool): Visibility flag (System Root only)."
       }
     }
   }
