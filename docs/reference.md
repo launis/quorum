@@ -73,3 +73,32 @@ The system is configured via environment variables (see `.env.example`).
 *   `ENV`: `MOCK` or `PROD`
 *   `REDIS_URL`: Connection string for the job queue.
 *   `FIRESTORE_CREDENTIALS`: Path to GCP Service Account JSON (Prod only).
+
+---
+
+## Development Standards & CI/CD
+
+### Dependency Management (uv)
+This project uses **uv** for strict dependency management. `requirements.txt` is deprecated.
+
+*   **Install Dependencies**: `uv sync`
+*   **Add Package**: `uv add package_name`
+*   **Run Commands**: `uv run cmd_name`
+
+### CI Pipelines (GitHub Actions)
+Pipelines are defined in `.github/workflows/` and use `uv` for consistent environments.
+
+1.  **OpenAPI Sync (`api-sync.yml`)**:
+    *   Runs on every push.
+    *   Generates `docs/swagger/openapi.json`.
+    *   Fails if the generated file differs from git (ensures API specs are up-to-date).
+
+2.  **Documentation Deploy (`docs.yml`)**:
+    *   Runs on push to `main`.
+    *   Installs dependencies via `uv`.
+    *   Builds site with `mkdocs build`.
+    *   Deploys to **GitHub Pages**.
+
+### Code Quality
+*   **Linting**: `uv run ruff check .`
+*   **Formatting**: `uv run ruff format .`
