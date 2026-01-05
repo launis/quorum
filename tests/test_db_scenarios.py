@@ -14,7 +14,30 @@ def engine(test_db_path):
     client = TinyDBClient(test_db_path)
     repo = TinyDBRepository(client)
     # Initialize Engine with explicit repository (bypassing auto-wiring)
-    return WorkflowEngine(test_db_path, repository=repo)
+    # Initialize Engine with explicit repository (bypassing auto-wiring)
+    from backend.services.agent_registry import AgentRegistry
+    from backend.services.prompt_builder import PromptBuilder
+    from backend.services.storage import LocalFileStorage
+    from backend.services.document_service import DocumentService
+
+    storage = LocalFileStorage()
+    registry = AgentRegistry(repo)
+    # We must explicitly discover agents for the test scenarios to work
+    # Since registry.discover() is async, and this is a sync fixture, we might have issues.
+    # However, tests use 'mock_agent_instance' injected directly into registry.agents_map later.
+    # So skip automated discovery for now or rely on manual injection.
+    
+    prompt_builder = PromptBuilder(repo, registry)
+    doc_service = DocumentService(storage)
+
+    return WorkflowEngine(
+        db_path=test_db_path,
+        repository=repo,
+        registry=registry,
+        prompt_builder=prompt_builder,
+        storage_client=storage,
+        document_service=doc_service
+    )
 
 def test_missing_step_definition(engine):
     """

@@ -68,7 +68,25 @@ def shared_engine():
         raise e
         
     # 3. Create Engine
-    engine = WorkflowEngine(db_path, repository=repo)
+    from backend.services.agent_registry import AgentRegistry
+    from backend.services.prompt_builder import PromptBuilder
+    from backend.services.storage import LocalFileStorage
+    from backend.services.document_service import DocumentService
+
+    storage = LocalFileStorage()
+    registry = AgentRegistry(repo)
+    
+    prompt_builder = PromptBuilder(repo, registry)
+    doc_service = DocumentService(storage)
+
+    engine = WorkflowEngine(
+        db_path=db_path,
+        repository=repo,
+        registry=registry,
+        prompt_builder=prompt_builder,
+        storage_client=storage,
+        document_service=doc_service
+    )
     
     yield engine
     

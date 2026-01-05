@@ -209,12 +209,7 @@ class PipelineRunner:
             return await self._handle_security_intervention(execution_id, current_state)
 
         # DEBUG TRACE
-        try:
-            from backend.core.debug_helper import debug_dump_state
 
-            debug_dump_state(current_state, agent_name)
-        except Exception:
-            pass
 
         return current_state
 

@@ -18,70 +18,35 @@ class WorkflowEngine:
     def __init__(
         self,
         db_path: str,
-        repository: Optional[AbstractWorkflowRepository] = None,
-        registry: Optional[AgentRegistry] = None,
-        prompt_builder: Optional[PromptBuilder] = None,
-        db_client: Optional[Any] = None,
-        storage_client: Optional[Any] = None,
-        document_service: Optional[Any] = None,
+        repository: AbstractWorkflowRepository,
+        registry: AgentRegistry,
+        prompt_builder: PromptBuilder,
+        storage_client: Any, 
+        document_service: Any,
     ):
         """
         Initializes the Workflow Engine with necessary dependencies.
+        Strict Dependency Injection is enforced; no auto-wiring allowed.
 
         Args:
-            db_path (str): Path to the database file.
-            repository (Optional[AbstractWorkflowRepository]): Data access layer.
-            registry (Optional[AgentRegistry]): Agent management service.
-            prompt_builder (Optional[PromptBuilder]): Prompt generation service.
-            db_client (Optional[Any]): DB connection instance.
-            storage_client (Optional[Any]): Storage connection instance.
-            document_service (Optional[Any]): Document processing service.
+            db_path (str): Path to the database file (for logging purposes).
+            repository (AbstractWorkflowRepository): Data access layer.
+            registry (AgentRegistry): Agent management service.
+            prompt_builder (PromptBuilder): Prompt generation service.
+            storage_client (Any): Storage connection instance.
+            document_service (Any): Document processing service.
         """
         self.db_path = db_path
-
-        # Repository Injection (Preferred)
-        if repository:
-            self.repository = repository
-        else:
-            # AUTO-WIRING:
-            # If no repo is provided, we create one using the new Async-First Dependency.
-            from backend.dependencies import get_async_repository, get_db_client_dep
-
-            self.repository = get_async_repository(get_db_client_dep())
-
-        # Service Injection
-        if registry:
-            self.registry = registry
-        else:
-            self.registry = AgentRegistry(self.repository)
-            self.registry.discover_and_register_agents()
-
-        if prompt_builder:
-            self.prompt_builder = prompt_builder
-        else:
-            self.prompt_builder = PromptBuilder(self.repository, self.registry)
-
-        if storage_client:
-            self.storage_client = storage_client
-        else:
-            from backend.services.storage import get_storage_client
-
-            self.storage_client = get_storage_client()
-
-        if document_service:
-            self.document_service = document_service
-        else:
-            from backend.services.document_service import DocumentService
-
-            self.document_service = DocumentService(self.storage_client)
+        self.repository = repository
+        self.registry = registry
+        self.prompt_builder = prompt_builder
+        self.storage_client = storage_client
+        self.document_service = document_service
 
         # Initialize Runner
         self.runner = PipelineRunner(self.repository, self.registry, self.prompt_builder)
 
-        if not registry:
-            pass
-
-        logger.info(f"[WorkflowEngine] initialized with DB at {db_path}")
+        logger.info(f"[WorkflowEngine] initialized with DB at {db_path} (Strict DI)")
 
     # --- DELEGATED METHODS (Services) ---
     # --- DELEGATED METHODS (Services) ---

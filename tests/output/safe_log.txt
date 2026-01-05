@@ -1,0 +1,415 @@
+--- STDOUT ---
+============================= test session starts =============================
+platform win32 -- Python 3.14.2, pytest-9.0.2, pluggy-1.6.0 -- C:\Users\risto\OneDrive\quorum\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\risto\OneDrive\quorum
+configfile: pytest.ini
+testpaths: tests
+plugins: anyio-4.12.0, logfire-4.16.0, asyncio-1.3.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collecting ... collected 57 items
+
+tests/test_adversarial_security.py::TestAdversarialSecurity::test_adversarial_chat_history_masquerade PASSED [  1%]
+tests/test_adversarial_security.py::TestAdversarialSecurity::test_adversarial_reflection_injection PASSED [  3%]
+tests/test_api.py::test_extract_pdf PASSED                               [  5%]
+tests/test_api.py::test_render_template PASSED                           [  7%]
+tests/test_api.py::test_run_agent_mock PASSED                            [  8%]
+tests/test_api.py::test_admin_reset PASSED                               [ 10%]
+tests/test_api_new_endpoints.py::test_get_models PASSED                  [ 12%]
+tests/test_api_new_endpoints.py::test_self_test PASSED                   [ 14%]
+tests/test_api_new_endpoints.py::test_docs_update PASSED                 [ 15%]
+tests/test_architecture_v2.py::test_reporting_dual_comparison PASSED     [ 17%]
+tests/test_architecture_v2.py::test_reporting_single_judge_fallback PASSED [ 19%]
+tests/test_banned_phrases_api.py::test_banned_phrases_crud PASSED        [ 21%]
+tests/test_banned_phrases_api.py::test_duplicate_phrase PASSED           [ 22%]
+tests/test_builder_api.py::test_list_agents_config PASSED                [ 24%]
+tests/test_builder_api.py::test_workflow_crud_lifecycle FAILED           [ 26%]
+tests/test_builder_api.py::test_orphan_step_deletion PASSED              [ 28%]
+tests/test_db_scenarios.py::test_missing_step_definition PASSED          [ 29%]
+tests/test_db_scenarios.py::test_empty_prompt_content PASSED             [ 31%]
+tests/test_db_scenarios.py::test_missing_prompt_component PASSED         [ 33%]
+tests/test_e2e_api.py::test_e2e_api_mock_db FAILED                       [ 35%]
+tests/test_e2e_api.py::test_e2e_api_firestore_db PASSED                  [ 36%]
+tests/test_environments.py::test_env_mock_db_default FAILED              [ 38%]
+tests/test_environments.py::test_env_local_production FAILED             [ 40%]
+tests/test_environments.py::test_firestore_client_instantiation PASSED   [ 42%]
+tests/test_fusion_deep.py::test_compile_fusion_flow FAILED               [ 43%]
+tests/test_fusion_deep.py::test_panel_agent_fan_out FAILED               [ 45%]
+tests/test_guard_hybrid.py::test_hybrid_guard_triggers_english FAILED    [ 47%]
+tests/test_guard_hybrid.py::test_hybrid_guard_triggers_finnish FAILED    [ 49%]
+tests/test_guard_hybrid.py::test_hybrid_guard_clean_input FAILED         [ 50%]
+tests/test_iam.py::test_root_can_list_organizations PASSED               [ 52%]
+tests/test_iam.py::test_admin_cannot_list_all_organizations PASSED       [ 54%]
+tests/test_iam.py::test_root_can_create_organization PASSED              [ 56%]
+tests/test_iam.py::test_create_duplicate_organization_fails PASSED       [ 57%]
+tests/test_iam.py::test_member_cannot_create_organization PASSED         [ 59%]
+tests/test_iam.py::test_get_my_organization_admin FAILED                 [ 61%]
+tests/test_iam.py::test_fetch_nonexistent_organization PASSED            [ 63%]
+tests/test_judge_sanity.py::TestJudgeSanity::test_judge_sanity_execution PASSED [ 64%]
+tests/test_last_admin_protection.py::test_last_admin_cannot_delete_self PASSED [ 66%]
+tests/test_last_admin_protection.py::test_last_admin_cannot_be_demoted PASSED [ 68%]
+tests/test_last_admin_protection.py::test_second_admin_allows_deletion PASSED [ 70%]
+tests/test_last_admin_protection.py::test_root_can_bypass_checks_if_orphan_org_logic_not_strict PASSED [ 71%]
+tests/test_live_llm.py::TestLiveLLM::test_live_critical_schemas_validity PASSED [ 73%]
+tests/test_live_llm.py::TestLiveLLM::test_live_gemini_connectivity FAILED [ 75%]
+tests/test_org_deletion.py::test_root_cannot_be_deleted PASSED           [ 77%]
+tests/test_org_deletion.py::test_org_deletion_cascades FAILED            [ 78%]
+tests/test_safety_and_hooks.py::test_fork_step_safety PASSED             [ 80%]
+tests/test_safety_and_hooks.py::test_python_hooks_execution FAILED       [ 82%]
+tests/test_schema_validation.py::test_schema_validation_success ERROR    [ 84%]
+tests/test_schema_validation.py::test_schema_validation_failure_retry ERROR [ 85%]
+tests/test_security_hooks.py::test_pii_sanitization PASSED               [ 87%]
+tests/test_security_hooks.py::test_banned_phrases_detection PASSED       [ 89%]
+tests/test_security_hooks.py::test_banned_phrases_empty PASSED           [ 91%]
+tests/test_system_resilience.py::TestSystemResilienceAsync::test_create_workflow_db_failure FAILED [ 92%]
+tests/test_system_resilience.py::test_reporting_hook_catches_exceptions PASSED [ 94%]
+tests/test_system_resilience.py::test_reporting_hook_handles_mixed_data_types PASSED [ 96%]
+tests/test_workflow_construction.py::test_workflow_construction PASSED   [ 98%]
+tests/test_workflow_integration.py::test_full_workflow_execution FAILED  [100%]
+
+=================================== ERRORS ====================================
+______________ ERROR at setup of test_schema_validation_success _______________
+tests\test_schema_validation.py:21: in mock_state
+    return WorkflowState(execution_id="test", inputs=InputData())
+                                                     ^^^^^^^^^^^
+E   pydantic_core._pydantic_core.ValidationError: 3 validation errors for InputData
+E   history_text
+E     Field required [type=missing, input_value={}, input_type=dict]
+E       For further information visit https://errors.pydantic.dev/2.12/v/missing
+E   product_text
+E     Field required [type=missing, input_value={}, input_type=dict]
+E       For further information visit https://errors.pydantic.dev/2.12/v/missing
+E   reflection_text
+E     Field required [type=missing, input_value={}, input_type=dict]
+E       For further information visit https://errors.pydantic.dev/2.12/v/missing
+___________ ERROR at setup of test_schema_validation_failure_retry ____________
+tests\test_schema_validation.py:21: in mock_state
+    return WorkflowState(execution_id="test", inputs=InputData())
+                                                     ^^^^^^^^^^^
+E   pydantic_core._pydantic_core.ValidationError: 3 validation errors for InputData
+E   history_text
+E     Field required [type=missing, input_value={}, input_type=dict]
+E       For further information visit https://errors.pydantic.dev/2.12/v/missing
+E   product_text
+E     Field required [type=missing, input_value={}, input_type=dict]
+E       For further information visit https://errors.pydantic.dev/2.12/v/missing
+E   reflection_text
+E     Field required [type=missing, input_value={}, input_type=dict]
+E       For further information visit https://errors.pydantic.dev/2.12/v/missing
+================================== FAILURES ===================================
+________________________ test_workflow_crud_lifecycle _________________________
+tests\test_builder_api.py:165: in test_workflow_crud_lifecycle
+    assert "step_guard" not in data['deleted_steps']
+E   AssertionError: assert 'step_guard' not in ['step_guard', 'step_analyst']
+---------------------------- Captured stdout setup ----------------------------
+\n============================================================\n \U0001f9e0  COGNITIVE QUORUM v2.2 - SYSTEM STATUS\n============================================================\n \U0001f4be  DATABASE:    \U0001f4c2  TINYDB (Local JSON)\n \U0001f9e0  INTELLIGENCE: \U0001f3ad  MOCK LLM (Simulation)\n \U0001f30d  ENVIRONMENT:  \U0001f6e0\ufe0f  DEVELOPMENT\n------------------------------------------------------------\n \U0001f4c2  DATA SOURCE:  Mock DB (db_mock.json)\n============================================================\n
+---------------------------- Captured stdout call -----------------------------
+DEBUG: Creating Protector...
+02:09:53.470 POST /builder/workflows
+DEBUG: Creating Test Workflow...
+02:09:53.511 POST /builder/workflows
+02:09:53.516 GET /builder/workflows
+02:09:53.520 GET /builder/workflows/wf_ad434337
+02:09:53.523 PUT /builder/workflows/wf_ad434337
+02:09:53.531 POST /builder/workflows/wf_ad434337/copy
+02:09:53.537 DELETE /builder/workflows/wf_ad434337
+____________________________ test_e2e_api_mock_db _____________________________
+tests\test_e2e_api.py:47: in test_e2e_api_mock_db
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+
+During handling of the above exception, another exception occurred:
+tests\test_e2e_api.py:50: in test_e2e_api_mock_db
+    pytest.fail(f"Mock DB E2E Failed: {e}")
+E   Failed: Mock DB E2E Failed: assert 401 == 200
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+---------------------------- Captured stdout call -----------------------------
+
+[E2E] Starting Mock DB Test...
+02:10:05.781 GET /config/components
+02:10:05.792 GET /db/workflows
+__________________________ test_env_mock_db_default ___________________________
+tests\test_environments.py:20: in test_env_mock_db_default
+    assert isinstance(client, TinyDBClient)
+E   assert False
+E    +  where False = isinstance(<backend.database.wrapper.TinyDBClient object at 0x000001AF5A017770>, TinyDBClient)
+__________________________ test_env_local_production __________________________
+tests\test_environments.py:41: in test_env_local_production
+    assert isinstance(client, TinyDBClient)
+E   assert False
+E    +  where False = isinstance(<backend.database.wrapper.TinyDBClient object at 0x000001AF38A62350>, TinyDBClient)
+__________________________ test_compile_fusion_flow ___________________________
+tests\test_fusion_deep.py:120: in test_compile_fusion_flow
+    assert wfs_res.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+---------------------------- Captured stdout call -----------------------------
+02:10:06.558 GET /builder/workflows
+__________________________ test_panel_agent_fan_out ___________________________
+tests\test_fusion_deep.py:168: in test_panel_agent_fan_out
+    agent = PanelAgent(model_config={"model_name": "test"}, llm_provider=MockProvider())
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   TypeError: BaseAgent.__init__() got an unexpected keyword argument 'model_config'
+_____________________ test_hybrid_guard_triggers_english ______________________
+tests\test_guard_hybrid.py:30: in test_hybrid_guard_triggers_english
+    result_state = await agent.execute(mock_state)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\agents\base.py:253: in execute
+    raise e
+backend\agents\base.py:242: in execute
+    updated_state = await self._update_state(state, response_data, output_key=output_key, **update_kwargs)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\agents\guard.py:275: in _update_state
+    return await super()._update_state(state, response_data, output_key=output_key, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\agents\base.py:139: in _update_state
+    raise e
+backend\agents\base.py:123: in _update_state
+    validated_data = SchemaClass(**response_data)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   pydantic_core._pydantic_core.ValidationError: 4 validation errors for TaintedData
+E   metadata
+E     Field required [type=missing, input_value={'security_check': {'uhka...: 'Clean.'}, 'data': {}}, input_type=dict]
+E       For further information visit https://errors.pydantic.dev/2.12/v/missing
+E   metodologinen_loki
+E     Field required [type=missing, input_value={'security_check': {'uhka...: 'Clean.'}, 'data': {}}, input_type=dict]
+E       For further information visit https://errors.pydantic.dev/2.12/v/missing
+E   edellisen_vaiheen_validointi
+E     Field required [type=missing, input_value={'security_check': {'uhka...: 'Clean.'}, 'data': {}}, input_type=dict]
+E       For further information visit https://errors.pydantic.dev/2.12/v/missing
+E   semanttinen_tarkistussumma
+E     Field required [type=missing, input_value={'security_check': {'uhka...: 'Clean.'}, 'data': {}}, input_type=dict]
+E       For further information visit https://errors.pydantic.dev/2.12/v/missing
+_____________________ test_hybrid_guard_triggers_finnish ______________________
+tests\test_guard_hybrid.py:52: in test_hybrid_guard_triggers_finnish
+    result_state = await agent.execute(mock_state)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\agents\base.py:253: in execute
+    raise e
+backend\agents\base.py:242: in execute
+    updated_state = await self._update_state(state, response_data, output_key=output_key, **update_kwargs)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\agents\guard.py:275: in _update_state
+    return await super()._update_state(state, response_data, output_key=output_key, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\agents\base.py:139: in _update_state
+    raise e
+backend\agents\base.py:123: in _update_state
+    validated_data = SchemaClass(**response_data)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   pydantic_core._pydantic_core.ValidationError: 4 validation errors for TaintedData
+E   metadata
+E     Field required [type=missing, input_value={'security_check': {'uhka... 'Puhdas.'}, 'data': {}}, input_type=dict]
+E       For further information visit https://errors.pydantic.dev/2.12/v/missing
+E   metodologinen_loki
+E     Field required [type=missing, input_value={'security_check': {'uhka... 'Puhdas.'}, 'data': {}}, input_type=dict]
+E       For further information visit https://errors.pydantic.dev/2.12/v/missing
+E   edellisen_vaiheen_validointi
+E     Field required [type=missing, input_value={'security_check': {'uhka... 'Puhdas.'}, 'data': {}}, input_type=dict]
+E       For further information visit https://errors.pydantic.dev/2.12/v/missing
+E   semanttinen_tarkistussumma
+E     Field required [type=missing, input_value={'security_check': {'uhka... 'Puhdas.'}, 'data': {}}, input_type=dict]
+E       For further information visit https://errors.pydantic.dev/2.12/v/missing
+________________________ test_hybrid_guard_clean_input ________________________
+tests\test_guard_hybrid.py:83: in test_hybrid_guard_clean_input
+    result_state = await agent.execute(mock_state)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\agents\base.py:253: in execute
+    raise e
+backend\agents\base.py:242: in execute
+    updated_state = await self._update_state(state, response_data, output_key=output_key, **update_kwargs)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\agents\guard.py:275: in _update_state
+    return await super()._update_state(state, response_data, output_key=output_key, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\agents\base.py:139: in _update_state
+    raise e
+backend\agents\base.py:123: in _update_state
+    validated_data = SchemaClass(**response_data)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   pydantic_core._pydantic_core.ValidationError: 5 validation errors for TaintedData
+E   metadata
+E     Field required [type=missing, input_value={'security_check': {'uhka...'anonymization_log': {}}, input_type=dict]
+E       For further information visit https://errors.pydantic.dev/2.12/v/missing
+E   metodologinen_loki
+E     Field required [type=missing, input_value={'security_check': {'uhka...'anonymization_log': {}}, input_type=dict]
+E       For further information visit https://errors.pydantic.dev/2.12/v/missing
+E   edellisen_vaiheen_validointi
+E     Field required [type=missing, input_value={'security_check': {'uhka...'anonymization_log': {}}, input_type=dict]
+E       For further information visit https://errors.pydantic.dev/2.12/v/missing
+E   semanttinen_tarkistussumma
+E     Field required [type=missing, input_value={'security_check': {'uhka...'anonymization_log': {}}, input_type=dict]
+E       For further information visit https://errors.pydantic.dev/2.12/v/missing
+E   data
+E     Field required [type=missing, input_value={'security_check': {'uhka...'anonymization_log': {}}, input_type=dict]
+E       For further information visit https://errors.pydantic.dev/2.12/v/missing
+_______________________ test_get_my_organization_admin ________________________
+tests\test_iam.py:151: in test_get_my_organization_admin
+    assert response.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+---------------------------- Captured stdout call -----------------------------
+02:10:09.456 GET /organizations/me
+__________________ TestLiveLLM.test_live_gemini_connectivity __________________
+tests\test_live_llm.py:49: in test_live_gemini_connectivity
+    self.assertTrue("hello" in content_lower or "hi" in content_lower)
+E   AssertionError: False is not true
+
+During handling of the above exception, another exception occurred:
+tests\test_live_llm.py:51: in test_live_gemini_connectivity
+    pytest.fail(f"Live API Call to Gemini Failed: {str(e)}")
+E   Failed: Live API Call to Gemini Failed: False is not true
+---------------------------- Captured stdout call -----------------------------
+DEBUG GEMINI RESPONSE: '{"error": "No mock data available", "mock_key": "unknown"}'
+_________________________ test_org_deletion_cascades __________________________
+tests\test_org_deletion.py:69: in test_org_deletion_cascades
+    assert response.status_code == 204
+E   assert 422 == 204
+E    +  where 422 = <Response [422 Unprocessable Entity]>.status_code
+---------------------------- Captured stdout call -----------------------------
+02:10:18.934 DELETE /organizations/548f8fbc
+_________________________ test_python_hooks_execution _________________________
+tests\test_safety_and_hooks.py:137: in test_python_hooks_execution
+    agent = ProfilerAgent(model_config={"model_name": "test"}, llm_provider=MockProvider())
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   TypeError: BaseAgent.__init__() got an unexpected keyword argument 'model_config'
+__________ TestSystemResilienceAsync.test_create_workflow_db_failure __________
+tests\test_system_resilience.py:32: in test_create_workflow_db_failure
+    assert exc.status_code == 500
+E   AssertionError: assert 403 == 500
+E    +  where 403 = HTTPException(status_code=403, detail='Only ROOT or MANAGER can create workflows.').status_code
+________________________ test_full_workflow_execution _________________________
+tests\test_workflow_integration.py:38: in test_full_workflow_execution
+    wait_for_backend(API_BASE_URL)
+tests\test_workflow_integration.py:29: in wait_for_backend
+    pytest.fail(f"Backend not ready at {base_url} after {timeout} seconds.")
+E   Failed: Backend not ready at http://localhost:8000 after 60 seconds.
+---------------------------- Captured stdout call -----------------------------
+[TEST] Waiting for backend at http://localhost:8000/health...
+============================== warnings summary ===============================
+.venv\Lib\site-packages\litellm\litellm_core_utils\logging_utils.py:273: 17 warnings
+  C:\Users\risto\OneDrive\quorum\.venv\Lib\site-packages\litellm\litellm_core_utils\logging_utils.py:273: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+backend\models\llm.py:6
+  C:\Users\risto\OneDrive\quorum\backend\models\llm.py:6: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class LLMResponse(BaseModel):
+
+backend\main.py:266
+tests/test_e2e_api.py::test_e2e_api_mock_db
+tests/test_e2e_api.py::test_e2e_api_firestore_db
+  C:\Users\risto\OneDrive\quorum\backend\main.py:266: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+.venv\Lib\site-packages\fastapi\applications.py:4576
+tests/test_e2e_api.py::test_e2e_api_mock_db
+tests/test_e2e_api.py::test_e2e_api_firestore_db
+  C:\Users\risto\OneDrive\quorum\.venv\Lib\site-packages\fastapi\applications.py:4576: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)
+
+tests/test_banned_phrases_api.py::test_banned_phrases_crud
+tests/test_banned_phrases_api.py::test_duplicate_phrase
+tests/test_builder_api.py::test_list_agents_config
+tests/test_builder_api.py::test_workflow_crud_lifecycle
+tests/test_builder_api.py::test_orphan_step_deletion
+  C:\Users\risto\OneDrive\quorum\backend\main.py:210: DeprecationWarning: Call to deprecated close. (Use aclose() instead) -- Deprecated since version 5.0.1.
+    await pool.close()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_builder_api.py::test_workflow_crud_lifecycle - AssertionError: assert 'step_guard' not in ['step_guard', 'step_analyst']
+FAILED tests/test_e2e_api.py::test_e2e_api_mock_db - Failed: Mock DB E2E Failed: assert 401 == 200
+ +  where 401 = <Response [401 Unauthorized]>.status_code
+FAILED tests/test_environments.py::test_env_mock_db_default - assert False
+ +  where False = isinstance(<backend.database.wrapper.TinyDBClient object at 0x000001AF5A017770>, TinyDBClient)
+FAILED tests/test_environments.py::test_env_local_production - assert False
+ +  where False = isinstance(<backend.database.wrapper.TinyDBClient object at 0x000001AF38A62350>, TinyDBClient)
+FAILED tests/test_fusion_deep.py::test_compile_fusion_flow - assert 401 == 200
+ +  where 401 = <Response [401 Unauthorized]>.status_code
+FAILED tests/test_fusion_deep.py::test_panel_agent_fan_out - TypeError: BaseAgent.__init__() got an unexpected keyword argument 'model_config'
+FAILED tests/test_guard_hybrid.py::test_hybrid_guard_triggers_english - pydantic_core._pydantic_core.ValidationError: 4 validation errors for TaintedData
+metadata
+  Field required [type=missing, input_value={'security_check': {'uhka...: 'Clean.'}, 'data': {}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+metodologinen_loki
+  Field required [type=missing, input_value={'security_check': {'uhka...: 'Clean.'}, 'data': {}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+edellisen_vaiheen_validointi
+  Field required [type=missing, input_value={'security_check': {'uhka...: 'Clean.'}, 'data': {}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+semanttinen_tarkistussumma
+  Field required [type=missing, input_value={'security_check': {'uhka...: 'Clean.'}, 'data': {}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+FAILED tests/test_guard_hybrid.py::test_hybrid_guard_triggers_finnish - pydantic_core._pydantic_core.ValidationError: 4 validation errors for TaintedData
+metadata
+  Field required [type=missing, input_value={'security_check': {'uhka... 'Puhdas.'}, 'data': {}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+metodologinen_loki
+  Field required [type=missing, input_value={'security_check': {'uhka... 'Puhdas.'}, 'data': {}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+edellisen_vaiheen_validointi
+  Field required [type=missing, input_value={'security_check': {'uhka... 'Puhdas.'}, 'data': {}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+semanttinen_tarkistussumma
+  Field required [type=missing, input_value={'security_check': {'uhka... 'Puhdas.'}, 'data': {}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+FAILED tests/test_guard_hybrid.py::test_hybrid_guard_clean_input - pydantic_core._pydantic_core.ValidationError: 5 validation errors for TaintedData
+metadata
+  Field required [type=missing, input_value={'security_check': {'uhka...'anonymization_log': {}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+metodologinen_loki
+  Field required [type=missing, input_value={'security_check': {'uhka...'anonymization_log': {}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+edellisen_vaiheen_validointi
+  Field required [type=missing, input_value={'security_check': {'uhka...'anonymization_log': {}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+semanttinen_tarkistussumma
+  Field required [type=missing, input_value={'security_check': {'uhka...'anonymization_log': {}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+data
+  Field required [type=missing, input_value={'security_check': {'uhka...'anonymization_log': {}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+FAILED tests/test_iam.py::test_get_my_organization_admin - assert 404 == 200
+ +  where 404 = <Response [404 Not Found]>.status_code
+FAILED tests/test_live_llm.py::TestLiveLLM::test_live_gemini_connectivity - Failed: Live API Call to Gemini Failed: False is not true
+FAILED tests/test_org_deletion.py::test_org_deletion_cascades - assert 422 == 204
+ +  where 422 = <Response [422 Unprocessable Entity]>.status_code
+FAILED tests/test_safety_and_hooks.py::test_python_hooks_execution - TypeError: BaseAgent.__init__() got an unexpected keyword argument 'model_config'
+FAILED tests/test_system_resilience.py::TestSystemResilienceAsync::test_create_workflow_db_failure - AssertionError: assert 403 == 500
+ +  where 403 = HTTPException(status_code=403, detail='Only ROOT or MANAGER can create workflows.').status_code
+FAILED tests/test_workflow_integration.py::test_full_workflow_execution - Failed: Backend not ready at http://localhost:8000 after 60 seconds.
+ERROR tests/test_schema_validation.py::test_schema_validation_success - pydantic_core._pydantic_core.ValidationError: 3 validation errors for InputData
+history_text
+  Field required [type=missing, input_value={}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+product_text
+  Field required [type=missing, input_value={}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+reflection_text
+  Field required [type=missing, input_value={}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+ERROR tests/test_schema_validation.py::test_schema_validation_failure_retry - pydantic_core._pydantic_core.ValidationError: 3 validation errors for InputData
+history_text
+  Field required [type=missing, input_value={}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+product_text
+  Field required [type=missing, input_value={}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+reflection_text
+  Field required [type=missing, input_value={}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+====== 15 failed, 40 passed, 29 warnings, 2 errors in 148.92s (0:02:28) =======
+
+
+--- STDERR ---

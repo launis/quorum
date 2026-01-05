@@ -51,7 +51,26 @@ def shared_engine_safe():
         shutil.rmtree(base_dir, ignore_errors=True)
         raise e
         
-    engine = WorkflowEngine(db_path, repository=repo)
+    from backend.services.agent_registry import AgentRegistry
+    from backend.services.prompt_builder import PromptBuilder
+    from backend.services.storage import LocalFileStorage
+    from backend.services.document_service import DocumentService
+
+    storage = LocalFileStorage()
+    registry = AgentRegistry(repo)
+    # No async discovery in sync fixture, but tests seem to inject mocks later or use db state.
+    
+    prompt_builder = PromptBuilder(repo, registry)
+    doc_service = DocumentService(storage)
+
+    engine = WorkflowEngine(
+        db_path=db_path,
+        repository=repo,
+        registry=registry,
+        prompt_builder=prompt_builder,
+        storage_client=storage,
+        document_service=doc_service
+    )
     yield engine
     db.close()
     time.sleep(0.1)

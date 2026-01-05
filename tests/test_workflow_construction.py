@@ -16,9 +16,30 @@ async def test_workflow_construction():
         pass
 
     # Manually wire to ensure we are reading from the file we expect
+    from backend.services.agent_registry import AgentRegistry
+    from backend.services.prompt_builder import PromptBuilder
+    from backend.services.storage import LocalFileStorage
+    from backend.services.document_service import DocumentService
+
     client = TinyDBClient(db_path)
     repo = TinyDBRepository(client)
-    engine = WorkflowEngine(db_path, repository=repo)
+    
+    storage = LocalFileStorage()
+    registry = AgentRegistry(repo)
+    # Discovery usually needed for steps to resolve components
+    await registry.discover_and_register_agents()
+    
+    prompt_builder = PromptBuilder(repo, registry)
+    doc_service = DocumentService(storage)
+
+    engine = WorkflowEngine(
+        db_path=db_path,
+        repository=repo,
+        registry=registry,
+        prompt_builder=prompt_builder,
+        storage_client=storage,
+        document_service=doc_service
+    )
 
     # Check if steps load
     # In V2, we access steps via repo
