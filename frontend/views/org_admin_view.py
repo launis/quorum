@@ -99,7 +99,16 @@ def render_org_admin_view(api_url: str):
             
             # Read-only fields
             st.text_input("Organization ID", value=org_data.get('id'), disabled=True, help="Cannot be changed.")
-            st.selectbox("Tier", ["standard", "premium", "enterprise"], index=["standard", "premium", "enterprise"].index(org_data.get('tier', 'standard')), disabled=True, help="Contact Sales to upgrade.")
+            # Tier selection with fallback
+            available_tiers = ["standard", "premium", "enterprise"]
+            current_tier = org_data.get('tier', 'standard').lower()
+            
+            try:
+                tier_index = available_tiers.index(current_tier)
+            except ValueError:
+                tier_index = 0 # Default to standard if unknown value
+                
+            st.selectbox("Tier", available_tiers, index=tier_index, disabled=True, help="Contact Sales to upgrade.")
             
             if st.form_submit_button("Save Changes"):
                 update_payload = {
