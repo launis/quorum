@@ -17,7 +17,7 @@ from backend.services.auth import AuthService
 
 
 # --- Pydantic Models ---
-class OrganizationCreate(BaseModel):
+class OrganizationCreateRequest(BaseModel):
     id: str | None = None  # Auto-generated if empty
     name: str
     tier: str = "standard"  # standard, premium, enterprise
@@ -47,14 +47,14 @@ router = APIRouter(prefix="/organizations", tags=["Organizations"])
 
 @router.post("/", response_model=OrganizationResponse, status_code=status.HTTP_201_CREATED)
 async def create_organization(
-    org: OrganizationCreate,
+    org: OrganizationCreateRequest,
     user: TokenData = Depends(AuthService.require_role(UserRole.ROOT)),
     repo: RepositoryDep = None,  # Injected
 ):
     """Create a new Tenant Organization.
 
     Args:
-        org (OrganizationCreate): Organization details.
+        org (OrganizationCreateRequest): Organization details.
         user (TokenData): Requesting user (must be ROOT).
         repo (RepositoryDep): Repository dependency.
 
