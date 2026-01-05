@@ -1,5 +1,6 @@
 import requests
 import streamlit as st
+from frontend.api import APIClient
 
 
 def render_org_admin_view(api_url: str):
@@ -129,10 +130,112 @@ def render_org_admin_view(api_url: str):
                 except Exception as e:
                     st.error(f"Error saving: {e}")
 
-    # TAB 2: User Management (Placeholder)
+    # TAB 2: User Management
     with tabs[1]:
-        st.info("User Management module coming soon. (Invite/Remove members)")
-        # Future: List users filtering by org_id, show roles.
+        st.subheader("👥 User Management")
+        
+        # Initialize Client
+        client = APIClient(api_url)
+        token = st.session_state.get('auth_token')
+
+        # 1. Fetch roles dynamically (Zero Hardcoding)
+        available_roles = client.get_available_roles()
+        if not available_roles:
+            st.error("Could not load roles from backend. Configuring users is disabled.")
+            available_roles = []
+
+        # 2. Add User Form
+        with st.expander("➕ Add New User", expanded=False):
+            with st.form("add_user_form"):
+                c_add1, c_add2 = st.columns(2)
+                display_name = c_add1.text_input("Display Name")
+                email = c_add2.text_input("Email Address")
+                
+                # Organization Selector (ROOT Only)
+                target_org_id = org_id
+                if role == 'ROOT':
+                    c_add5, c_add6 = st.columns(2)
+                    # Fetch Orgs
+                    all_orgs = client.list_organizations(token)
+                    org_options = {o['name']: o['id'] for o in all_orgs}
+                    
+                    # Logic: If we are in "system" view, default to blank or system?
+                    # User requested "list of all OTHER organizations".
+                    # Let's provide a dropdown. Default to current org.
+                    selected_org_name = c_add5.selectbox(
+                        "Target Organization", 
+                        options=list(org_options.keys()), 
+                        index=list(org_options.values()).index(org_id) if org_id in org_options.values() else 0
+                    )
+                    target_org_id = org_options[selected_org_name]
+                
+                # Filter out ROOT from selection if not in System Org OR if acting user is not ROOT
+                # Dynamic check: If target_org_id is system, allow ROOT.
+                can_assign_root = (role == 'ROOT' and target_org_id == 'system')
+                
+                c_add3, c_add4 = st.columns(2)
+
+                # STRICT Filtering:
+                if can_assign_root:
+                    selectable_roles = available_roles # [ROOT, ADMIN, ...]
+                else:
+                    selectable_roles = [r for r in available_roles if r != 'ROOT']
+
+                # Enforce valid index to prevent UI errors
+                # If ROOT was previously selected but now invalid, Strealit might error or reset.
+                # We can't easily control the 'previous' state here without session_state helper,
+                # but defining the list correctly usually works.
+                user_role = c_add3.selectbox("Role", selectable_roles)
+                
+                # Feedback to user if they are confused
+                if role == 'ROOT' and target_org_id != 'system':
+                     c_add3.caption("ℹ️ Root role is only available in 'system' organization.")
+
+                password = c_add4.text_input("Password (Optional)", type="password", help="Leave blank for auto-generated.")
+
+                if st.form_submit_button("Create User"):
+                    if not email or not display_name:
+                        st.error("Display Name and Email are required.")
+                    else:
+                        payload = {
+                            "email": email,
+                            "display_name": display_name,
+                            "role": user_role,
+                            "password": password if password else None # Explicit None to satisfy Pydantic Optional
+                        }
+                        
+                        try:
+                            # Use target_org_id
+                            client.create_organization_user(target_org_id, payload, token)
+                            st.success(f"User '{display_name}' created in '{selected_org_name if role == 'ROOT' else 'Organization'}'!")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Failed to create user: {e}")
+
+
+        # 3. List Users
+        st.markdown("### Existing Users")
+        users = client.get_organization_users(org_id, token)
+        
+        if not users:
+            st.info("No users found in this organization.")
+        else:
+            # Display as a clean table with actions
+            for u in users:
+                with st.container(border=True):
+                    uc1, uc2, uc3, uc4 = st.columns([2, 3, 2, 2])
+                    uc1.markdown(f"**{u.get('display_name')}**")
+                    uc2.caption(u.get('email'))
+                    uc3.badge(u.get('role', 'UNKNOWN'))
+                    
+                    # Actions
+                    if uc4.button("🗑️ Delete", key=f"del_{u['uid']}"):
+                        try:
+                            client.delete_organization_user(org_id, u['uid'], token)
+                            st.success("User deleted.")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Delete failed: {e}")
 
     # TAB 3: Billing (Placeholder)
     with tabs[2]:

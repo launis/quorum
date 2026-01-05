@@ -148,7 +148,50 @@ class AbstractWorkflowRepository(ABC):
         pass
 
     @abstractmethod
-    async def delete_org_data(self, org_id: str):
+    async def log_usage(self, record: Any):
+        pass
+
+    # --- System Settings (Phase 2) ---
+    @abstractmethod
+    async def get_system_settings(self) -> dict[str, Any]:
+        """Retrieves global system settings singleton."""
+        pass
+
+    @abstractmethod
+    async def update_system_settings(self, updates: dict[str, Any]):
+        """Updates global system settings."""
+        pass
+
+    # --- Audit Logs ---
+    @abstractmethod
+    async def log_audit_event(self, entry: dict[str, Any]):
+        """Persists a structured audit log entry."""
+        pass
+
+    @abstractmethod
+    async def get_audit_logs(
+        self,
+        organization_id: str | None = None,
+        actor_uid: str | None = None,
+        action: str | None = None,
+        limit: int = 100
+    ) -> list[dict[str, Any]]:
+        """Retrieves audit logs with optional filtering."""
+        pass
+
+    # --- User Management (Organization Context) ---
+    @abstractmethod
+    async def get_user(self, uid: str) -> dict[str, Any] | None:
+        pass
+
+    @abstractmethod
+    async def list_users(self, organization_id: str | None = None) -> list[dict[str, Any]]:
+        pass
+
+    # --- Quota Management (Phase 5) ---
+    @abstractmethod
+    async def get_org_usage_total(self, org_id: str, since: str | None = None) -> float:
+        """Calculates total cost_usd for an organization, optionally filtered by start date (ISO)."""
         pass
 
 
@@ -167,6 +210,12 @@ class TinyDBRepository(AbstractWorkflowRepository):
         self.knowledge_base = self.db.table("knowledge_base")
         self.system_config = self.db.table("system_config")
         self.organizations = self.db.table("organizations")
+        self.usage_logs = self.db.table("usage_logs")
+        self.organizations = self.db.table("organizations")
+        self.usage_logs = self.db.table("usage_logs")
+        self.settings = self.db.table("settings")
+        self.users = self.db.table("users")
+        self.audit_logs = self.db.table("audit_logs")
 
     async def _run(self, func, *args, **kwargs):
         """Helper to run sync DB calls in thread."""
@@ -406,6 +455,106 @@ class TinyDBRepository(AbstractWorkflowRepository):
             self.executions.remove(Query().organization_id == org_id)
 
         await self._run(_delete_data)
+
+    async def get_org_usage_total(self, org_id: str, since: str | None = None) -> float:
+        def _calc():
+            # Filter by Org
+            logs = self.usage_logs.search(Query().org_id == org_id)
+            total = 0.0
+            for log in logs:
+                if since:
+                    if log.get("timestamp", "") < since:
+                        continue
+                total += float(log.get("cost_usd", 0.0))
+            return total
+        return await self._run(_calc)
+
+    async def log_usage(self, record: Any):
+        """Logs usage record to the database."""
+        # TinyDB stores dicts, so we dump the model.
+        # record is expected to be a Pydantic model (UsageRecord)
+        data = record.model_dump()
+        await self._run(self.usage_logs.insert, data)
+
+    # --- System Settings ---
+    async def get_system_settings(self) -> dict[str, Any]:
+        def _get():
+            # Singleton: ID=1 or just the first record
+            res = self.settings.all()
+            if res:
+                return res[0]
+            # Default empty, caller handles defaults
+            return {}
+
+        return await self._run(_get)
+
+    async def update_system_settings(self, updates: dict[str, Any]):
+        def _update():
+            # Check existence
+            existing = self.settings.all()
+            if not existing:
+                self.settings.insert(updates)
+            else:
+                # Update the first one
+                doc_id = existing[0].doc_id
+                self.settings.update(updates, doc_ids=[doc_id])
+
+        await self._run(_update)
+
+    # --- Audit Logs ---
+    async def log_audit_event(self, entry: dict[str, Any]):
+        with open("backend_debug.log", "a") as f:
+            f.write(f"REPO: log_audit_event called with {entry}\n")
+        await self._run(self.audit_logs.insert, entry)
+
+    async def get_audit_logs(
+        self,
+        organization_id: str | None = None,
+        actor_uid: str | None = None,
+        action: str | None = None,
+        limit: int = 100
+    ) -> list[dict[str, Any]]:
+        def _get():
+            # TinyDB doesn't do complex querying efficiently, so we filter in Python for now.
+            # In a real DB we'd index this.
+            all_logs = self.audit_logs.all()
+            with open("backend_debug.log", "a") as f:
+                f.write(f"REPO: get_audit_logs found {len(all_logs)} entries. Requested: org={organization_id}, action={action}\n")
+                if len(all_logs) > 0:
+                     f.write(f"REPO: last log: {all_logs[-1]}\n")
+
+            # Filter
+            filtered = []
+            for log in all_logs:
+                if organization_id and log.get("organization_id") != organization_id:
+                    continue
+                if actor_uid and log.get("actor_uid") != actor_uid:
+                    continue
+                if action and log.get("action") != action:
+                    continue
+                filtered.append(log)
+
+            # Sort by timestamp desc (newest first)
+            filtered.sort(key=lambda x: x.get("timestamp", 0), reverse=True)
+            return filtered[:limit]
+
+        return await self._run(_get)
+
+    # --- User Management ---
+    async def get_user(self, uid: str) -> dict[str, Any] | None:
+        def _get():
+            Q = Query()
+            # Assuming 'uid' is the key in users table
+            res = self.users.search(Q.uid == uid)
+            return res[0] if res else None
+        return await self._run(_get)
+
+    async def list_users(self, organization_id: str | None = None) -> list[dict[str, Any]]:
+        def _list():
+            if organization_id:
+                return self.users.search(Query().organization_id == organization_id)
+            return self.users.all()
+        return await self._run(_list)
 
 
 # Backward compatibility alias

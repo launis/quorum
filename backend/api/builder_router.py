@@ -140,6 +140,16 @@ async def list_workflows(engine: EngineDep, current_user: CurrentUserDep):
     )
 
 
+@router.get("/steps", summary="List Steps", response_description="All Steps.")
+async def list_steps(engine: EngineDep):
+    """List all available steps.
+    
+    Returns:
+        list[dict]: A list of step definitions.
+    """
+    return await engine.repository.get_all_steps()
+
+
 @router.post("/workflows", summary="Create Workflow", response_description="Created workflow data.")
 async def create_workflow(request: WorkflowCreateRequest, engine: EngineDep, current_user: CurrentUserDep):
     """Create a new workflow.
@@ -323,6 +333,17 @@ async def delete_workflow(workflow_id: str, engine: EngineDep, current_user: Cur
             raise HTTPException(status_code=403, detail="Insufficient role to delete workflow.")
         if wf_org != current_user.organization_id and current_user.role != UserRole.ROOT:
             raise HTTPException(status_code=403, detail="Cannot delete other organization's workflow.")
+
+    # 0. Integrity Check: Execution History
+    # Prevent deleting workflows that have audit history.
+    all_execs = await engine.repository.get_all_executions()
+    related_execs = [e for e in all_execs if e.get("workflow_id") == workflow_id]
+    
+    if related_execs:
+        raise HTTPException(
+            status_code=409, 
+            detail=f"Cannot delete workflow '{workflow_id}' because it has {len(related_execs)} execution record(s). Archive it or delete executions first."
+        )
 
     # 1. Identify Orphan Steps
     # 1. Identify Orphan Steps

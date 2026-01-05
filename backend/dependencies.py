@@ -19,8 +19,10 @@ from backend.llm.provider import LLMProvider
 from backend.models.auth import TokenData
 from backend.services.agent_registry import AgentRegistry
 from backend.services.auth import AuthService
+from backend.services.audit_service import AuditService
 from backend.services.prompt_builder import PromptBuilder
 from backend.services.storage import AbstractStorage
+from backend.services.usage_service import UsageService
 from backend.settings import Settings, get_settings
 
 logger = logging.getLogger(__name__)
@@ -33,6 +35,8 @@ _prompt_builder_instance: PromptBuilder | None = None
 _storage_service_instance: AbstractStorage | None = None
 _engine_instance: WorkflowEngine | None = None
 _auth_service_instance: AuthService | None = None
+_usage_service_instance: UsageService | None = None
+_audit_service_instance: AuditService | None = None
 
 
 def get_settings_dep() -> Settings:
@@ -139,8 +143,21 @@ def get_document_service_dep(storage_client: AbstractStorage = Depends(get_stora
     return DocumentService(storage_client)
 
 
+def get_audit_service(
+    repo: AbstractWorkflowRepository = Depends(get_async_repository),
+) -> AuditService:
+    """Dependency to provide Singleton Audit Service."""
+    global _audit_service_instance
+    if _audit_service_instance is None:
+        _audit_service_instance = AuditService(repo)
+    return _audit_service_instance
+
+
+
 def get_auth_service(
-    db_client: AbstractDatabase = Depends(get_db_client_dep), settings: Settings = Depends(get_settings_dep)
+    db_client: AbstractDatabase = Depends(get_db_client_dep),
+    settings: Settings = Depends(get_settings_dep),
+    audit_service: AuditService = Depends(get_audit_service),
 ) -> AuthService:
     """Dependency to provide Singleton Auth Service.
     Automatically ensures Root User exists.
@@ -149,12 +166,25 @@ def get_auth_service(
     if _auth_service_instance is None:
         use_firebase = settings.storage_backend.upper() == "FIRESTORE" and not settings.use_mock_db
         logger.info(f"[Dependencies] Initializing AuthService (Firebase={use_firebase})...")
-        _auth_service_instance = AuthService(db_client, use_firebase=use_firebase)
+        _auth_service_instance = AuthService(db_client, use_firebase=use_firebase, audit_service=audit_service)
 
         # Bootstrap Root User
         _auth_service_instance.ensure_root_user()
 
     return _auth_service_instance
+
+
+
+def get_usage_service(
+    repo: AbstractWorkflowRepository = Depends(get_async_repository),
+) -> UsageService:
+    """Dependency to provide Singleton Usage Service."""
+    global _usage_service_instance
+    if _usage_service_instance is None:
+        _usage_service_instance = UsageService(repo)
+    return _usage_service_instance
+
+
 
 
 async def get_engine(
@@ -215,7 +245,11 @@ async def get_engine(
     return _engine_instance
 
 
-async def get_llm_provider(model_strategy: str, registry: AgentRegistry = Depends(get_agent_registry_dep)):
+async def get_llm_provider(
+    model_strategy: str,
+    registry: AgentRegistry = Depends(get_agent_registry_dep),
+    usage_service: UsageService = Depends(get_usage_service),
+):
     from backend.llm.provider import LLMFactory
 
     config = await registry.resolve_model_config(model_strategy)
@@ -225,7 +259,9 @@ async def get_llm_provider(model_strategy: str, registry: AgentRegistry = Depend
     if not provider_type:
         raise ValueError(f"[get_llm_provider] 'provider' missing for strategy '{model_strategy}'.")
 
-    return LLMFactory.create_provider(provider_type=provider_type, model_name=model_name)
+    return LLMFactory.create_provider(
+        provider_type=provider_type, model_name=model_name, usage_service=usage_service
+    )
 
 
 def get_llm_provider_factory(strategy: str):
@@ -233,8 +269,11 @@ def get_llm_provider_factory(strategy: str):
     Enforces that the strategy must exist in the database configuration.
     """
 
-    async def _provider_dependency(registry: AgentRegistry = Depends(get_agent_registry_dep)):
-        return await get_llm_provider(strategy, registry)
+    async def _provider_dependency(
+        registry: AgentRegistry = Depends(get_agent_registry_dep),
+        usage_service: UsageService = Depends(get_usage_service),
+    ):
+        return await get_llm_provider(strategy, registry, usage_service)
 
     return _provider_dependency
 
@@ -277,6 +316,10 @@ AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
 
 # Provides the Agent Registry service (manages agent discovery and config).
 RegistryDep = Annotated[AgentRegistry, Depends(get_agent_registry_dep)]
+
+UsageServiceDep = Annotated[UsageService, Depends(get_usage_service)]
+
+AuditServiceDep = Annotated[AuditService, Depends(get_audit_service)]
 
 # Provides the Prompt Builder service (renders templates).
 PromptBuilderDep = Annotated[PromptBuilder, Depends(get_prompt_builder_dep)]

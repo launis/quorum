@@ -32,3 +32,78 @@ def global_setup():
     Global setup for all tests.
     """
     pass
+
+@pytest.fixture
+def anyio_backend():
+    return "asyncio"
+
+from httpx import AsyncClient, ASGITransport
+from backend.main import app
+from backend.models.auth import User, UserRole
+from backend.dependencies import get_current_user_from_header
+
+@pytest.fixture
+async def client():
+    """Async Client with Auth overrides."""
+    # Override Auth to return ROOT user always
+    from datetime import datetime
+    root_user = User(
+        uid="root_master",
+        email="root@example.com",
+        role=UserRole.ROOT,
+        organization_id="system",
+        display_name="Root User",
+        created_at=datetime.utcnow().isoformat()
+    )
+    
+    app.dependency_overrides[get_current_user_from_header] = lambda: root_user
+    
+    # Override Database to use Temp File (Isolated Tests)
+    from tinydb import TinyDB
+    import tempfile
+    import os
+    
+    # Create temp DB file
+    fd, temp_db_path = tempfile.mkstemp(suffix=".json")
+    os.close(fd)
+    
+    # Initialize with schema if needed, or rely on code to create tables.
+    # We need to make sure 'settings' says we are using LOCAL storage.
+    from backend.settings import Settings
+    def override_settings():
+        return Settings(
+            storage_backend="LOCAL",
+            start_db_path=temp_db_path,
+            use_mock_db=False,
+            use_mock_llm=True # Use Mock LLM for speed/safety
+        )
+    
+    from backend.dependencies import get_settings_dep, get_db_client_dep, _db_client_instance
+    
+    # Reset singleton to ensure fresh init if it was already created (though dependencies usually create new if function called, but we have global singleton in dependencies.py)
+    # We can't easily reset the global variable in dependencies.py from here without accessing it. 
+    # But overriding the dependency avoids calling the original function.
+    
+    # We construct a fresh DB client
+    from backend.database.wrapper import TinyDBClient
+    test_db = TinyDBClient(temp_db_path)
+    
+    app.dependency_overrides[get_settings_dep] = override_settings
+    app.dependency_overrides[get_db_client_dep] = lambda: test_db
+    
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        yield c
+    
+    app.dependency_overrides = {}
+    
+    # Cleanup
+    try:
+        os.remove(temp_db_path)
+    except:
+        pass
+
+@pytest.fixture
+def admin_token_headers():
+    """Mock headers (Auth is overridden, so this is dummy)."""
+    return {"Authorization": "Bearer mock_token"}
+

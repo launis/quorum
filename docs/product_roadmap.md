@@ -48,8 +48,9 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **User Management API**: Endpoints to create and list users within scope.
 - [x] **System Admin UI**: Dashboard for ROOT to list/create organizations.
 - [x] **Org Admin UI**: Dashboard for ADMIN to manage organization settings.
-- [ ] **Organization Deletion**: Deliberately omitted from API/UI for safety (Manual DB intervention required).
-- [ ] **Last Admin Protection**: Prevent deletion/demotion of the last ADMIN in an organization.
+- [x] **Organization Deletion**: Implemented in API with safety checks for active jobs (Manual UI trigger pending).
+- [x] **Last Admin Protection**: Prevent deletion/demotion of the last ADMIN in an organization (Implemented in `AuthService`).
+- [x] **Primary Root Protection**: Prevent deletion of the `root_master` system account (Implemented in `AuthService`).
 
 ### 1.2 Data Isolation & Security (✅ Completed)
 - [x] **Repository Scoping**: Update `AbstractWorkflowRepository` to filter data by `organization_id`.
@@ -57,17 +58,19 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
     - *Tenant Workflows*: Visible only to owning Organization.
 - [x] **API Versioning**: Prefix all endpoints with `/api/v1` to prevent future breaking changes.
 - [ ] **Rate Limiting**: Implement `slowapi` to protect key endpoints.
-- [ ] **CORS Configuration**: Finalize CORSMiddleware settings.
+- [x] **CORS Configuration**: Finalize CORSMiddleware settings (Enabled for all origins in `main.py`).
 
 ### 1.3 Infrastructure Readiness
 - [x] **Storage Abstraction**: Support for switching between Local File System and Firebase Storage.
 - [x] **Database Abstraction**: Support for switching between TinyDB (Local) and Firestore (Cloud).
 - [x] **Regional Compliance**: Implemented strict Regional Model Validation (Model Garden Master List -> Regional Intersection).
+- [x] **Operational Hardening**: Implemented URL Safety (SSRF), Quota Checks, and Integrity Audits.
+- [x] **Crash Recovery**: Established standardized DB Reset protocols (`seed_prod.py`) and Integrity Checks.
 
 ### 1.4 Scalability Architecture (Future)
 - [ ] **Parallel Execution**: Implement DAG-based concurrent step execution (utilizing `execute_workflow_task` separation).
-- [ ] **Distributed Task Queue**: Transition from in-process `BackgroundTasks` to Redis/Celery for durable job execution.
-- [ ] **Decoupled Workers**: Separate API (Job Submission) and Worker (Job Execution) processes.
+- [x] **Distributed Task Queue**: `Arq` with Redis implementation (`backend/worker.py`) for durable job execution.
+- [x] **Decoupled Workers**: Initial separation of `execute_workflow_task` accessible via `worker.py`.
 - [ ] **Hook Strategies**: Maintain Python-based Direct Call hooks for performance until microservice decoupling is strictly required.
 
 ---
@@ -93,17 +96,20 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 ## 📍 Phase 3: The Business Layer (Billing & Compliance)
 **Objective:** Turn usage into revenue and ensure enterprise compliance.
 
-### 3.1 Usage Tracking & Cost Attribution
-- [ ] **Usage Service**: Track Token Usage (Input/Output) per Execution.
-- [ ] **Cost Calculation**: Associate costs with `organization_id`.
-- [ ] **Visual Reporting**: Admin API to fetch usage stats per month.
+### 3.1 Usage Tracking & Cost Attribution (✅ Completed)
+- [x] **Usage Service**: Track Token Usage (Input/Output) per Execution.
+- [x] **Cost Calculation**: Real-time cost checking via LiteLLM.
+- [x] **Quota Management**: Enforce Organization-level spend limits.
+- [ ] **Visual Reporting**: Admin API to fetch usage stats per month (Backend Ready).
 
 ### 3.2 BYOK (Bring Your Own Key)
 - [ ] **Secret Management**: Encrypted storage for Tenant API Keys.
 - [ ] **LLM Provider Update**: Update `LLMFactory` to check Tenant Context before falling back to System Key.
 
-### 3.3 Audit Logs
-- [ ] **Audit Trail**: Record critical actions (Settings change, User creation) to `audit_logs` table.
+### 3.3 Audit Logs (✅ Completed)
+- [x] **Audit Service**: Standardized logging for critical actions (Org/User lifecycle, Settings).
+- [x] **RBAC Enforcement**: Strict visibility rules (Root=All, Admin=Org, Member=None).
+- [ ] **Audit UI**: Dedicated frontend view for filtering and export (Basic table exists).
 
 ### 3.4 Enterprise Architecture (Best Practices)
 - [ ] **Invitation Flow**: Replace direct user creation with Email Invitation + Password Set flow.
@@ -123,3 +129,21 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 ### 4.2 Advanced Collaboration
 - [ ] **Comments & Flagging**: Allow Viewers to comment on specific parts of a report.
 - [ ] **Approval Flow**: Manager must "Approve" an audit result before it is finalized.
+
+---
+
+## 🔮 Future Findings (Q1 2026)
+**New requirements identified during Phase 1-3 implementation:**
+
+1.  **Recovery UI**:
+    *   Current recovery relies on CLI tools (`reset_db_from_seed.py`).
+    *   **Need**: A "Factory Reset" button in the Root Admin Dashboard for non-technical recovery.
+2.  **SaaS Billing Integration**:
+    *   Backend has `billing_id` and `subscription_status`, but no payment gateway connection.
+    *   **Need**: Stripe/Paddle integration to automate status updates via Webhooks.
+3.  **Strict Environment Management**:
+    *   Dependency drifts (e.g., missing `arq`) cause startup crashes.
+    *   **Need**: Dockerize the application to guarantee environment consistency across dev/prod.
+4.  **Test Data Management**:
+    *   `seed_data.json` is the source of truth but fragile.
+    *   **Need**: A dedicated Test Data Factory or Fixture system to generate comprehensive scenarios without manual JSON editing.

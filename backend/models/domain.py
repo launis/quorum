@@ -720,3 +720,24 @@ class EvaluationResult(BaseJSON):  # Inherits metadata from BaseJSON
     total_score: Annotated[int | float, Field(description="Calculated total/average score.")]
     dimensions: Annotated[list[DimensionResultItem], Field(description="Breakdown by dimension.")]
     critical_findings: Annotated[list[str], Field(default_factory=list, description="Critical observations.")]
+
+
+# --- USAGE TRACKING ---
+
+
+class UsageRecord(BaseModel):
+    """Immutable record of LLM token consumption and cost.
+
+    Aligned with LiteLLM response metadata.
+    """
+
+    id: Annotated[str, Field(description="Unique UUID for the usage record.")]
+    org_id: Annotated[str, Field(description="Organization ID context.")]
+    user_id: Annotated[str, Field(description="User ID who initiated the request.")]
+    model: Annotated[str, Field(description="Model name used (e.g. 'gemini-1.5-pro').")]
+    input_tokens: Annotated[int, Field(description="Number of input tokens.")]
+    output_tokens: Annotated[int, Field(description="Number of generated tokens.")]
+    cost_usd: Annotated[float, Field(description="Calculated cost in USD (from LiteLLM).")]
+    timestamp: Annotated[str, Field(description="ISO 8601 timestamp of the event.")]
+
+    model_config = ConfigDict(frozen=True, validate_assignment=True)

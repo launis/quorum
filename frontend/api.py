@@ -173,23 +173,8 @@ class APIClient:
         except Exception:
             return []
 
-    def get_seed_data(self, token=None):
-        """Fetches system seed data (DB export).
-
-        Args:
-            token (str, optional): Authentication token. Defaults to None.
-
-        Returns:
-            dict: The seed data dictionary.
-        """
-        try:
-            headers = {}
-            if token:
-                headers["Authorization"] = f"Bearer {token}"
-            response = requests.get(f"{self.base_url}/db/seed_data", headers=headers, timeout=10)
-            return response.json() if response.status_code == 200 else {}
-        except Exception:
-            return {}
+    # get_seed_data removed (Refactor Step 3418)
+    # System View now uses get_workflows/get_steps/get_components directly.
 
     def get_unified_prompts(self):
         """Fetches the unified prompt content.
@@ -233,7 +218,24 @@ class APIClient:
         except Exception:
             return ""
 
+    def list_organizations(self, token: str):
+        """Fetches list of all organizations (ROOT only).
+
+        Args:
+            token (str): Authentication token.
+
+        Returns:
+            list: List of organization dictionaries.
+        """
+        try:
+            headers = {"Authorization": f"Bearer {token}"}
+            res = requests.get(f"{self.base_url}/organizations/", headers=headers, timeout=10)
+            return res.json() if res.status_code == 200 else []
+        except Exception:
+            return []
+
     def get_model_strategies(self):
+
         """Fetches available model strategies (e.g. 'fast', 'deep') from the backend.
 
         Returns:
@@ -246,6 +248,41 @@ class APIClient:
             return []
 
 
+
+    def get_components(self):
+        """Fetches all configuration components.
+
+        Returns:
+            list: A list of component dictionaries.
+        """
+        try:
+            res = requests.get(f"{self.base_url}/config/components", timeout=10)
+            return res.json() if res.status_code == 200 else []
+        except Exception as e:
+            logger.error(f"Failed to fetch components: {e}")
+            return []
+
+    def get_steps(self):
+        """Fetches all workflow steps.
+
+        Returns:
+            list: A list of step definition dictionaries.
+        """
+        try:
+            res = requests.get(f"{self.base_url}/builder/steps", timeout=10)
+            return res.json() if res.status_code == 200 else []
+        except Exception as e:
+            logger.error(f"Failed to fetch steps: {e}")
+            return []
+
+    def get_prompt_types(self):
+        """Fetches allowed prompt component types.
+
+        Returns:
+            list: A list of type strings (e.g. 'prompt', 'mandate').
+        """
+        # Currently no backend endpoint, return empty to trigger view fallback
+        return []
 
     # --- Builder API ---
     def get_builder_config_agents(self):
@@ -425,8 +462,56 @@ class APIClient:
         except Exception:
             return None
 
+    def fetch_system_audit_logs(self, token: str, filters: dict = None):
+        """Fetches system audit logs.
+
+        Args:
+            token (str): Authentication token.
+            filters (dict, optional): Filtering parameters (limit, org_id, etc).
+
+        Returns:
+            list: List of audit log entries.
+        """
+        try:
+            headers = {"Authorization": f"Bearer {token}"}
+            res = requests.get(f"{self.base_url}/audit/logs", params=filters, headers=headers, timeout=10)
+            return res.json() if res.status_code == 200 else []
+        except Exception as e:
+            logger.error(f"Audit Log Fetch Error: {e}")
+            return []
+
+    def get_global_settings(self, token: str):
+        """Fetches global system settings.
+        
+        Args:
+            token (str): Authentication token.
+        
+        Returns:
+            dict: Settings dictionary.
+        """
+        try:
+             headers = {"Authorization": f"Bearer {token}"}
+             res = requests.get(f"{self.base_url}/settings", headers=headers, timeout=5)
+             return res.json() if res.status_code == 200 else {}
         except Exception:
-            return None
+             return {}
+
+    def update_global_settings(self, payload: dict, token: str):
+        """Updates global system settings.
+        
+        Args:
+            payload (dict): Settings to update.
+            token (str): Authentication token.
+            
+        Returns:
+            bool: True if successful, False otherwise.
+        """
+        try:
+            headers = {"Authorization": f"Bearer {token}"}
+            res = requests.patch(f"{self.base_url}/settings", json=payload, headers=headers, timeout=5)
+            return res.status_code == 200
+        except Exception:
+            return False
 
     def list_users(self, token: str):
         """Fetches list of managed users.
@@ -466,7 +551,115 @@ class APIClient:
             logger.error(f"Create User Error: {e}")
             raise e
 
-    # --- V2 ---
+    def update_user(self, token: str, uid: str, payload: dict):
+        """Updates a user.
+        """
+        try:
+            headers = {"Authorization": f"Bearer {token}"}
+            res = requests.patch(f"{self.base_url}/auth/users/{uid}", json=payload, headers=headers, timeout=10)
+            res.raise_for_status()
+            return res.json()
+        except Exception as e:
+            logger.error(f"Update User Error: {e}")
+            raise e
+
+    def delete_user(self, token: str, uid: str):
+        """Deletes a user.
+        """
+        try:
+            headers = {"Authorization": f"Bearer {token}"}
+            res = requests.delete(f"{self.base_url}/auth/users/{uid}", headers=headers, timeout=10)
+            res.raise_for_status()
+            return res.json()
+        except Exception as e:
+            logger.error(f"Delete User Error: {e}")
+            raise e
+
+    def impersonate_user(self, token: str, target_uid: str):
+        """Generates an impersonation token.
+        """
+        try:
+            headers = {"Authorization": f"Bearer {token}"}
+            payload = {"target_uid": target_uid}
+            res = requests.post(f"{self.base_url}/auth/impersonate", json=payload, headers=headers, timeout=10)
+            res.raise_for_status()
+            return res.json().get("access_token")
+        except Exception as e:
+            logger.error(f"Impersonate Error: {e}")
+            raise e
+
+            logger.error(f"Impersonate Error: {e}")
+            raise e
+
+    def get_available_roles(self):
+        """Fetches list of available roles from backend.
+        
+        Returns:
+            list[str]: e.g. ['admin', 'member', 'viewer']
+        """
+        try:
+            res = requests.get(f"{self.base_url}/auth/roles", timeout=5)
+            return res.json() if res.status_code == 200 else []
+        except Exception:
+            return []
+
+    # --- Organization User Management (V2.5) ---
+    def get_organization_users(self, org_id: str, token: str):
+        """Fetches users for a specific organization.
+        
+        Args:
+            org_id (str): Organization ID.
+            token (str): Auth token.
+        """
+        try:
+            headers = {"Authorization": f"Bearer {token}"}
+            res = requests.get(f"{self.base_url}/organizations/{org_id}/users", headers=headers, timeout=10)
+            return res.json() if res.status_code == 200 else []
+        except Exception as e:
+            logger.error(f"List Org Users Error: {e}")
+            return []
+
+    def create_organization_user(self, org_id: str, payload: dict, token: str):
+        """Creates a user in an organization.
+        """
+        try:
+            headers = {"Authorization": f"Bearer {token}"}
+            res = requests.post(f"{self.base_url}/organizations/{org_id}/users", json=payload, headers=headers, timeout=10)
+            res.raise_for_status()
+            return res.json()
+        except Exception as e:
+            logger.error(f"Create Org User Error: {e}")
+            raise e
+
+    def delete_organization_user(self, org_id: str, target_uid: str, token: str):
+        """Deletes a user from an organization.
+        """
+        try:
+            headers = {"Authorization": f"Bearer {token}"}
+            res = requests.delete(f"{self.base_url}/organizations/{org_id}/users/{target_uid}", headers=headers, timeout=10)
+            res.raise_for_status()
+            return True
+        except Exception as e:
+            logger.error(f"Delete Org User Error: {e}")
+            raise e
+
+    # --- Audit Logs ---
+    def get_audit_logs(self, token: str, organization_id: str = None, actor_uid: str = None, action: str = None, limit: int = 100):
+        """Fetches audit logs with optional filters.
+        """
+        try:
+            params = {"limit": limit}
+            if organization_id: params["organization_id"] = organization_id
+            if actor_uid: params["actor_uid"] = actor_uid
+            if action: params["action"] = action
+            
+            headers = {"Authorization": f"Bearer {token}"}
+            res = requests.get(f"{self.base_url}/audit/logs", params=params, headers=headers, timeout=10)
+            return res.json() if res.status_code == 200 else []
+        except Exception as e:
+            logger.error(f"Audit Log Error: {e}")
+            return []
+
     def get_builder_step(self, step_id: str):
         """Fetches a specific step for the Builder.
 

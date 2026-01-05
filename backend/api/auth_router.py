@@ -37,6 +37,17 @@ class LoginResponse(BaseModel):
     debug_msg: str | None = None
 
 
+class ImpersonationRequest(BaseModel):
+    """Request payload for impersonation."""
+    target_uid: str
+
+
+class ImpersonationResponse(BaseModel):
+    """Response containing the impersonation token."""
+    access_token: str
+    token_type: str = "bearer"
+
+
 # CurrentUserDep imported from dependencies now
 
 
@@ -75,6 +86,42 @@ async def verify_user_token(payload: TokenPayload, auth_service: AuthServiceDep)
         raise HTTPException(status_code=401, detail=str(e))
 
 
+@router.post("/impersonate", response_model=ImpersonationResponse)
+async def impersonate_user(request: ImpersonationRequest, current_user: CurrentUserDep, auth_service: AuthServiceDep):
+    """Generates an impersonation token for the target user. Requires ROOT.
+
+    Args:
+        request (ImpersonationRequest): Payload containing target_uid.
+        current_user (CurrentUserDep): The requesting user (must be ROOT).
+        auth_service (AuthServiceDep): Auth service.
+
+    Returns:
+        ImpersonationResponse: The access token.
+
+    Raises:
+        HTTPException: If permission denied (403) or target not found (404).
+    """
+    requester = auth_service.repo.get_by_uid(current_user.uid)
+    if not requester or requester.role != UserRole.ROOT:
+        raise HTTPException(status_code=403, detail="Only ROOT can impersonate users.")
+
+    target = auth_service.repo.get_by_uid(request.target_uid)
+    if not target:
+        raise HTTPException(status_code=404, detail="Target user not found.")
+
+    token = auth_service.create_impersonation_token(target.uid)
+    return ImpersonationResponse(access_token=token)
+
+
+@router.get("/roles", response_model=list[str])
+async def list_available_roles():
+    """List all valid User Roles.
+
+    Used by frontend for dynamic dropdowns (Zero Hardcoding).
+    """
+    return [r.value for r in UserRole]
+
+
 @router.post("/users", response_model=User)
 async def create_user(user_data: UserCreate, current_user: CurrentUserDep, auth_service: AuthServiceDep):
     """Create a new user.
@@ -97,7 +144,7 @@ async def create_user(user_data: UserCreate, current_user: CurrentUserDep, auth_
         raise HTTPException(status_code=401, detail="Creator not found")
 
     try:
-        new_user = auth_service.create_user(creator_full.uid, user_data)
+        new_user = await auth_service.create_user(creator_full.uid, user_data)
         return new_user
     except PermissionError as e:
         raise HTTPException(status_code=403, detail=str(e))
@@ -125,7 +172,7 @@ async def create_organization(org_data: OrganizationCreate, current_user: Curren
         raise HTTPException(status_code=403, detail="Only Root can create Organizations.")
 
     try:
-        return auth_service.create_organization(creator.uid, org_data)
+        return await auth_service.create_organization(creator.uid, org_data)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -185,7 +232,7 @@ async def delete_user(uid: str, current_user: CurrentUserDep, auth_service: Auth
         HTTPException: Permission denied (403) or business logic error (400).
     """
     try:
-        auth_service.delete_user(current_user.uid, uid)
+        await auth_service.delete_user(current_user.uid, uid)
         return {"status": "deleted", "uid": uid}
     except PermissionError as e:
         raise HTTPException(status_code=403, detail=str(e))
@@ -208,7 +255,7 @@ async def update_user(uid: str, user_update: UserUpdate, current_user: CurrentUs
         User: The updated user profile.
     """
     try:
-        updated_user = auth_service.update_user(current_user.uid, uid, user_update)
+        updated_user = await auth_service.update_user(current_user.uid, uid, user_update)
         return updated_user
     except PermissionError as e:
         raise HTTPException(status_code=403, detail=str(e))

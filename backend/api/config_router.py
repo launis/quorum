@@ -244,11 +244,29 @@ def update_step(step_id: str, step: dict[str, Any], db: DatabaseDep):
 
 
 @router.delete("/steps/{step_id}", summary="Delete Step", response_description="Delete status.")
-def delete_step(step_id: str, db: DatabaseDep):
-    """Delete a step."""
+async def delete_step(step_id: str, db: DatabaseDep):
+    """Delete a step.
+    Refactored to enforce Integrity: Cannot delete step if used in Workflows.
+    """
+    # 1. Check Existence
     table = db.table("steps")
     if not table.search(Query().id == step_id):
         raise HTTPException(status_code=404, detail="Step not found")
+
+    # 2. Integrity Check: Workflow Usage
+    workflows = db.table("workflows").all()
+    used_in = []
+    for wf in workflows:
+        if step_id in wf.get("steps", []) or step_id in wf.get("sequence", []):
+            used_in.append(wf.get("name", wf["id"]))
+    
+    if used_in:
+        raise HTTPException(
+            status_code=409, 
+            detail=f"Cannot delete step '{step_id}'. Used in workflows: {', '.join(used_in[:3])}..."
+        )
+
+    # 3. Delete
     table.remove(Query().id == step_id)
     return {"status": "deleted", "id": step_id}
 

@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from backend.models.llm import LLMResponse
+from backend.services.usage_service import UsageService
 from backend.settings import get_settings
 
 # Configure logging
@@ -62,8 +63,6 @@ class LLMProvider(ABC):
         pass
 
 
-# Global Cache for Models (Simplified)
-_CACHED_MODELS = []
 
 
 class LiteLLMProvider(LLMProvider):
@@ -71,19 +70,29 @@ class LiteLLMProvider(LLMProvider):
     with a consistent interface.
     """
 
-    def __init__(self, model_name: str, api_key: str | None = None, settings: Any = None):
+    def __init__(
+        self,
+        model_name: str,
+        api_key: str | None = None,
+        settings: Any = None,
+        usage_service: UsageService | None = None,
+        organization_id: str | None = None,
+    ):
         """Initializes the LiteLLM provider.
 
         Args:
             model_name (str): The model identifier.
             api_key (Optional[str]): API Key.
-            settings (Any): System settings object (containing vertex_location etc).
-
+            settings (Any): System settings object.
+            usage_service (Optional[UsageService]): Service for cost tracking.
+            organization_id (Optional[str]): Context organization ID.
         """
         self.model_name = model_name
         self.api_key = api_key
         self.settings = settings
-        # litellm configuration if needed
+        self.usage_service = usage_service
+        self.organization_id = organization_id or "UNKNOWN_ORG"
+        # litellm configuration
         litellm.drop_params = True
 
     @retry_strategy
@@ -225,10 +234,26 @@ class LiteLLMProvider(LLMProvider):
                         final_content = json.dumps(obj, ensure_ascii=False)
                     except json.JSONDecodeError as e:
                         logger.error(f"[LiteLLM] Strict JSON Parse Failed: {e}")
-                        # Dump for debug
-                        with open("FAILED_JSON_STRICT.txt", "w", encoding="utf-8") as f:
-                            f.write(raw_content)
-                        raise ValueError("Strict JSON parsing failed. Content dumped to FAILED_JSON_STRICT.txt")
+                        raise ValueError("Strict JSON parsing failed.")
+
+            # --- COST TRACKING ---
+            if self.usage_service:
+                try:
+                    # Calculate cost using LiteLLM
+                    cost = litellm.completion_cost(completion_response=response)
+                    
+                    # Track usage asynchronously (fire and forget for now, or await)
+                    # For strict async correctness, we await it.
+                    await self.usage_service.track_usage(
+                        org_id=self.organization_id,
+                        user_id=kwargs.get("user_id", "system_agent"),
+                        model=self.model_name,
+                        input_tokens=usage.get("prompt_tokens", 0),
+                        output_tokens=usage.get("completion_tokens", 0),
+                        cost_usd=cost
+                    )
+                except Exception as e:
+                    logger.warning(f"[LiteLLMProvider] Usage Tracking Failed: {e}")
 
             return LLMResponse(
                 content=final_content,
@@ -313,6 +338,7 @@ class LLMFactory:
         model_name: str,
         context: dict[str, Any] | Any | None = None,
         organization_id: str | None = None,
+        usage_service: UsageService | None = None,
     ) -> LLMProvider:
         """Creates an LLM provider instance.
 
@@ -378,4 +404,10 @@ class LLMFactory:
 
         logger.info(f"[LLMFactory] Creating Provider: {target_model} (Key: {msg_key}, Source: {source_label})")
 
-        return LiteLLMProvider(model_name=target_model, api_key=api_key, settings=settings)
+        return LiteLLMProvider(
+            model_name=target_model,
+            api_key=api_key,
+            settings=settings,
+            usage_service=usage_service,
+            organization_id=org_id
+        )

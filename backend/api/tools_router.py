@@ -144,9 +144,16 @@ async def scrape_url(url: str = Body(..., embed=True)):
         HTTPException: If connection fails (400).
     """
     try:
+        # SSRF Protection
+        _validate_url_safety(url)
+
         headers = {"User-Agent": "Mozilla/5.0"}
         response = req_lib.get(url, headers=headers, timeout=10)
         response.raise_for_status()
+
+        # Size Limit Enforcement (5MB)
+        if len(response.content) > 5 * 1024 * 1024:
+            raise ValueError("Response too large (exceeds 5MB limit).")
 
         soup = BeautifulSoup(response.content, "html.parser")
         for script in soup(["script", "style"]):
@@ -160,6 +167,45 @@ async def scrape_url(url: str = Body(..., embed=True)):
     except Exception as e:
         logger.error(f"Scraping failed: {e}")
         raise HTTPException(status_code=400, detail=str(e))
+
+def _validate_url_safety(url: str):
+    """Validates URL to prevent SSRF and unsafe usage.
+
+    Checks:
+    1. Scheme is http/https.
+    2. Hostname is not private/local (localhost, 127.0.0.1, 10.x, 192.168.x, 172.16.x).
+    """
+    from urllib.parse import urlparse
+    import socket
+    import ipaddress
+
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        raise ValueError("Invalid URL scheme. Only http/https allowed.")
+    
+    hostname = parsed.hostname
+    if not hostname:
+        raise ValueError("Invalid URL: no hostname.")
+
+    # Check for direct loopback/private usage
+    if hostname.lower() in ("localhost", "0.0.0.0"):
+         raise ValueError("Access to local network resources is forbidden.")
+
+    try:
+        # Resolve to IP to check against private ranges
+        ip_str = socket.gethostbyname(hostname)
+        ip = ipaddress.ip_address(ip_str)
+
+        if ip.is_loopback or ip.is_private or ip.is_reserved:
+             raise ValueError(f"Access to private IP {ip_str} is forbidden.")
+    except Exception as e:
+        # If we can't resolve, it might be an internal name or invalid. Block to be safe?
+        # Or if it's a ValueError from above, re-raise.
+        if isinstance(e, ValueError):
+            raise e
+        # If DNS resolution fails, we probably can't scrape it anyway, but let req_lib handle connection error
+        # unless we want to be strict.
+        pass
 
 
 @router.post("/citation-lookup", summary="Resolve Citations", response_description="Resolved context.")

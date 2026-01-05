@@ -11,12 +11,14 @@ from fastapi.responses import JSONResponse
 
 from backend.api.admin_router import router as admin_router
 from backend.api.agents_router import router as agents_router
+from backend.api.audit_router import router as audit_router
 from backend.api.auth_router import router as auth_router
 from backend.api.builder_router import router as builder_router
 from backend.api.config_router import router as config_router
 from backend.api.execution_router import router as execution_router
 from backend.api.llm_router import router as llm_router
 from backend.api.organization_router import router as organization_router
+from backend.api.settings_router import router as settings_router
 
 # Routers
 from backend.api.tools_router import router as tools_router
@@ -172,6 +174,16 @@ async def lifespan(app: FastAPI):
 
                 fake_redis.send_command = _send_command
 
+            # PATCH: Redis-py (via Arq) calls read_response() to await result
+            if not hasattr(fake_redis, "read_response"):
+                async def _read_response():
+                     # In a real connection, this reads bytes. 
+                     # Here, we do nothing because fakeredis executes immediately.
+                     # Returning None might cause parse_response to fail if it expects data.
+                     # However, for many operations, the result is already returned by execute_command.
+                     pass
+                fake_redis.read_response = _read_response
+
             # ArqRedis wrapper needed for Arq features
             arq_redis = ArqRedis(fake_redis)
 
@@ -271,9 +283,12 @@ app.include_router(agents_router)
 app.include_router(admin_router)
 app.include_router(config_router)
 app.include_router(auth_router)
+app.include_router(audit_router)
 app.include_router(llm_router, prefix="/llm", tags=["LLM"])
 app.include_router(builder_router)
+app.include_router(builder_router)
 app.include_router(organization_router)
+app.include_router(settings_router)
 
 
 @app.middleware("http")

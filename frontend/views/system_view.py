@@ -13,10 +13,21 @@ def render_system_view(api_client):
     st.header("System Configuration & Seed Data")
 
     token = st.session_state.get('auth_token')
-    data = api_client.get_seed_data(token=token)
+    # data = api_client.get_seed_data(token=token)
+    # Refactored to fetch live data
+    workflows_list = api_client.get_workflows(token=token)
+    steps_list = api_client.get_steps()
+    components_list = api_client.get_components()
+    
+    if workflows_list and components_list:
+        data = True # Dummy flag for indentation preservation if needed, or just flatten.
+        # But for minimal diff, we adapt variables.
+    else:
+        data = False
+        
     if data:
         # Get Workflows
-        workflows = data.get('workflows', [])
+        workflows = workflows_list
         workflow_options = {w['id']: w for w in workflows}
 
         # Workflow Selection
@@ -37,8 +48,8 @@ def render_system_view(api_client):
 
             # Gather Dependencies
             workflow_steps_ids = selected_workflow.get('steps', [])
-            all_steps = {s['id']: s for s in data.get('steps', []) if 'id' in s}
-            all_components = {c['id']: c for c in data.get('components', []) if 'id' in c}
+            all_steps = {s['id']: s for s in steps_list if 'id' in s}
+            all_components = {c['id']: c for c in components_list if 'id' in c}
 
             relevant_steps = [all_steps[sid] for sid in workflow_steps_ids if sid in all_steps]
 

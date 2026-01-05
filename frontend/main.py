@@ -26,7 +26,7 @@ from frontend.views.system_view import render_system_view
 from frontend.views.user_view import render_user_view
 
 # Config
-BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
+BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
 api_client = APIClient(BACKEND_URL)
 
 def get_workflow_map(token=None):
@@ -171,7 +171,7 @@ def main():
         render_system_view(api_client)
 
     elif page == "🛡️ System Admin":
-        render_system_admin_view(BACKEND_URL)
+        render_system_admin_view(api_client)
 
     elif page == "🏢 Organization Settings":
         render_org_admin_view(BACKEND_URL)

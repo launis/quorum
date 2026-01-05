@@ -210,3 +210,29 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
 
     async def list_organizations(self) -> list[dict[str, Any]]:
         return await self._get_all("organizations")
+
+    async def delete_organization(self, org_id: str):
+        await self._delete_doc("organizations", "id", org_id)
+
+    async def delete_org_data(self, org_id: str):
+        # 1. Workflows
+        await self._delete_doc("workflows", "organization_id", org_id)
+        # 2. Executions
+        await self._delete_doc("executions", "organization_id", org_id)
+
+    async def log_usage(self, record: Any):
+        data = record.model_dump()
+        await self.db.collection("usage_logs").add(data)
+
+    async def get_org_usage_total(self, org_id: str, since: str | None = None) -> float:
+        coll = self.db.collection("usage_logs")
+        query = coll.where("org_id", "==", org_id)
+        if since:
+            query = query.where("timestamp", ">=", since)
+        
+        docs = query.stream()
+        total = 0.0
+        async for doc in docs:
+            d = doc.to_dict()
+            total += float(d.get("cost_usd", 0.0))
+        return total

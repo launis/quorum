@@ -42,7 +42,7 @@ class AbstractTable(ABC):
         pass
 
     @abstractmethod
-    def update(self, fields: dict[str, Any], query: Any) -> list[int]:
+    def update(self, fields: dict[str, Any], query: Any = None, doc_ids: list[int] | None = None) -> list[int]:
         pass
 
     @abstractmethod
@@ -83,8 +83,8 @@ class TinyDBTable(AbstractTable):
     def get(self, query: Any) -> dict[str, Any] | None:
         return self._table.get(query)
 
-    def update(self, fields: dict[str, Any], query: Any) -> list[int]:
-        return self._table.update(fields, query)
+    def update(self, fields: dict[str, Any], query: Any = None, doc_ids: list[int] | None = None) -> list[int]:
+        return self._table.update(fields, cond=query, doc_ids=doc_ids)
 
     def upsert(self, document: dict[str, Any], query: Any) -> list[int]:
         return self._table.upsert(document, query)
@@ -142,12 +142,16 @@ class FirestoreTable(AbstractTable):
                 return data
         return None
 
-    def update(self, fields: dict[str, Any], query: Any) -> list[int]:
+    def update(self, fields: dict[str, Any], query: Any = None, doc_ids: list[int] | None = None) -> list[int]:
+        # Firestore implementation ignores doc_ids (int) as it uses string IDs.
+        # Ideally, repository should use Query for compatibility.
         docs = self._collection.stream()
         updated_count = 0
         for doc in docs:
             data = doc.to_dict()
-            if query(data):
+            # If query is None and we intend to update all or singleton?
+            # Existing implementation required query.
+            if query and query(data):
                 doc.reference.update(fields)
                 updated_count += 1
         return [1] * updated_count

@@ -29,6 +29,14 @@ class UserRole(str, Enum):
     VIEWER = "VIEWER"  # Read-Only Stakeholder
 
 
+class SubscriptionStatus(str, Enum):
+    """SaaS Subscription Status."""
+    ACTIVE = "active"
+    PAST_DUE = "past_due"
+    CANCELED = "canceled"
+    TRIAL = "trial"
+
+
 # --- Base Models ---
 
 
@@ -42,6 +50,9 @@ class Organization(BaseModel):
         is_active (bool): Subscription status.
         tier (str): Service Tier.
         contact_email (Optional[str]): Admin Contact.
+        billing_id (Optional[str]): External Billing ID (Stripe/etc).
+        subscription_status (SubscriptionStatus): Current billing status.
+        quota_limit (int): Monthly API call quota.
     """
 
     id: Annotated[str, Field(description="Unique Organization ID (e.g. 'nokia-v1')")]
@@ -50,6 +61,11 @@ class Organization(BaseModel):
     is_active: Annotated[bool, Field(description="Subscription status")] = True
     tier: Annotated[str, Field(description="Service Tier")] = "standard"
     contact_email: Annotated[str | None, Field(description="Admin Contact")] = None
+    
+    # Billing & SaaS Fields (Phase 4)
+    billing_id: Annotated[str | None, Field(description="External Billing ID (Stripe/etc)")] = None
+    subscription_status: Annotated[SubscriptionStatus, Field(description="Current billing status")] = SubscriptionStatus.TRIAL
+    quota_limit: Annotated[float, Field(ge=0.0, description="Monthly API call quota (USD)")] = 10.0
 
 
 class UserBase(BaseModel):

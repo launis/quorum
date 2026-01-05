@@ -21,6 +21,11 @@ def configure_logfire():
     """Configures Logfire for observability.
     Should be called early in the application lifecycle.
     """
+    # Idempotency check to prevent double initialization/logging
+    if getattr(configure_logfire, "_called", False):
+        return
+    configure_logfire._called = True
+
     if os.getenv("DISABLE_LOGFIRE", "").lower() == "true":
         logging.getLogger(__name__).info("Logfire disabled via DISABLE_LOGFIRE environment variable.")
         return

@@ -1,6 +1,12 @@
 import logging
+import jwt
 import time
 import uuid
+
+# Secure Secret for Local Tokens (Impersonation)
+# In production, this MUST be set via environment variable.
+JWT_SECRET = "cognitive-quorum-internal-secret-change-me"
+JWT_ALGORITHM = "HS256"
 
 from tinydb import Query
 
@@ -126,10 +132,11 @@ class AuthService:
     """Hybrid Auth Service with Multi-Tenancy (SaaS).
     """
 
-    def __init__(self, db_client: AbstractDatabase, use_firebase: bool = False):
+    def __init__(self, db_client: AbstractDatabase, use_firebase: bool = False, audit_service: Any = None):
         self.repo = UserRepository(db_client)
         self.org_repo = OrganizationRepository(db_client)
         self.use_firebase = use_firebase
+        self.audit_service = audit_service  # Typed as Any to avoid circular import if strict
         self._initialized_firebase = False
 
         if self.use_firebase:
@@ -147,18 +154,53 @@ class AuthService:
             logger.warning("[AuthService] Firebase SDK not installed. Falling back to Mock mode.")
             self.use_firebase = False
 
+    def create_impersonation_token(self, target_uid: str, duration_seconds: int = 3600) -> str:
+        """Generates a signed JWT for impersonating a user.
+
+        Args:
+            target_uid (str): The UID of the user to impersonate.
+            duration_seconds (int): Token validity duration.
+
+        Returns:
+            str: Signed JWT string.
+        """
+        payload = {
+            "sub": target_uid,
+            "exp": time.time() + duration_seconds,
+            "iat": time.time(),
+            "type": "impersonation"
+        }
+        token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+        return token
+
     def verify_token(self, token: str) -> TokenData:
         """Verifies a Bearer token.
         Returns TokenData (uid, role, organization_id).
         """
-        # 1. Mock/Dev Mode check
+        # 1. Local Signed Token (Impersonation / Internal)
+        try:
+            # We enforce the secret check here.
+            payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+            uid = payload.get("sub")
+            if uid:
+                user = self.repo.get_by_uid(uid)
+                if not user:
+                    raise ValueError(f"Impersonated User not found: {uid}")
+                return TokenData(uid=user.uid, role=user.role, email=user.email, organization_id=user.organization_id)
+        except jwt.ExpiredSignatureError:
+            raise ValueError("Token expired")
+        except jwt.PyJWTError:
+            # Not a local JWT, proceed to other methods
+            pass
+
+        # 2. Mock/Dev Mode check
         if not self.use_firebase or token.startswith("mock-token:"):
             # Expect format "mock-token:<uid>"
             if token.startswith("mock-token:"):
                 uid = token.split(":")[1]
             else:
                 uid = token
-
+            
             # Check if user exists in our DB
             user = self.repo.get_by_uid(uid)
             if not user:
@@ -195,27 +237,19 @@ class AuthService:
             logger.error(f"Token verification failed: {e}")
             raise ValueError("Invalid credentials")
 
-    def create_organization(self, creator_uid: str, org_create: OrganizationCreate) -> Organization:
+    async def create_organization(self, creator_uid: str, org_create: OrganizationCreate) -> Organization:
         """Creates a new Tenant Organization and an initial Admin user for it.
-
-        Only ROOT can do this.
-
-        Args:
-            creator_uid (str): User ID of the creator (must be ROOT).
-            org_create (OrganizationCreate): Config for new org.
-
-        Returns:
-            Organization: The created organization.
-
-        Raises:
-            PermissionError: If creator is not ROOT.
+        Strictly Async.
         """
+        import asyncio
+
         creator = self.repo.get_by_uid(creator_uid)
         if not creator or creator.role != UserRole.ROOT:
             raise PermissionError("Only ROOT can create organizations.")
 
-        # 1. Create Organization
-        org_id = uuid.uuid4().hex[:8]  # or derive from name
+        # 1. Create Organization (Sync DB call in thread? Or just sync for now)
+        # We'll run it sync as TinyDB is fast, but logically the method is async.
+        org_id = uuid.uuid4().hex[:8]
         new_org = Organization(id=org_id, name=org_create.name, created_at=str(time.time()), is_active=True)
         self.org_repo.create(new_org)
 
@@ -229,47 +263,59 @@ class AuthService:
         )
 
         # Bypass hierarchy check since we are ROOT acting explicitly
-        self._create_user_internal(creator.uid, admin_payload, force_org_id=org_id)
+        await self._create_user_internal(creator.uid, admin_payload, force_org_id=org_id)
+
+        # Audit
+        if self.audit_service:
+            await self.audit_service.log_event(
+                actor_uid=creator_uid,
+                action="ORG_CREATED",
+                organization_id=org_id,
+                target_uid=org_id,
+                details={"name": new_org.name, "tier": new_org.tier}
+            )
 
         return new_org
 
-    def create_user(self, creator_uid: str, user_data: UserCreate) -> User:
+    async def create_user(self, creator_uid: str, user_data: UserCreate) -> User:
         """Creates a new user, enforcing hierarchy and tenancy.
-
-        Args:
-            creator_uid (str): The requesting user.
-            user_data (UserCreate): New user data.
-
-        Returns:
-            User: Created user.
-
-        Raises:
-            PermissionError: If role hierarchy validation fails.
-            ValueError: If creator context invalid.
         """
-        return self._create_user_internal(creator_uid, user_data)
+        return await self._create_user_internal(creator_uid, user_data)
 
-    def _create_user_internal(self, creator_uid: str, user_data: UserCreate, force_org_id: str = None) -> User:
+    async def _create_user_internal(self, creator_uid: str, user_data: UserCreate, force_org_id: str = None) -> User:
         creator = self.repo.get_by_uid(creator_uid)
         if not creator:
             raise ValueError("Creator not found")
 
         # Resolve Org ID
-        # Resolve Org ID
         if force_org_id:
             target_org_id = force_org_id
         elif creator.role == UserRole.ROOT:
-            # ROOT can specify target Org (or default to None/System)
             target_org_id = user_data.organization_id or creator.organization_id
         else:
-            # Non-ROOT users must create within their own Org
             if user_data.organization_id and user_data.organization_id != creator.organization_id:
                 raise PermissionError("Cannot create users in other organizations.")
             target_org_id = creator.organization_id
 
-        # RULE: Any new ROOT user must belong to System Org
         if user_data.role == UserRole.ROOT:
-            target_org_id = "system"
+            if target_org_id != "system":
+                raise ValueError("Root users can only be created within the System Organization.")
+            target_org_id = "system" # Redundant safety, but ensures it matches
+
+        # RULE: Organization MUST exist
+        if target_org_id:
+             if target_org_id == "system":
+                 # System org acts as a special bootstrap case, but usually should exist.
+                 # We'll allow it specifically if we are bootstrapping, otherwise check valid.
+                 # Given ensure_root_user creates it, we can enforce check or just pass for resilience.
+                 # Let's check it strictly.
+                 pass
+             
+             org_exists = self.org_repo.get_by_id(target_org_id)
+             if not org_exists:
+                 raise ValueError(f"Target Organization '{target_org_id}' does not exist.")
+
+
 
         # Enforce Role Hierarchy
         self._enforce_hierarchy(creator, user_data.role)
@@ -300,44 +346,46 @@ class AuthService:
             email=user_data.email,
             display_name=user_data.display_name,
             role=user_data.role,
-            organization_id=target_org_id,  # Tenant ID
+            organization_id=target_org_id,
             created_at=str(time.time()),
             created_by=creator.uid,
         )
 
         saved_user = self.repo.create(new_user)
+
+        # Audit
+        if self.audit_service:
+            await self.audit_service.log_event(
+                actor_uid=creator_uid,
+                action="USER_CREATED",
+                organization_id=target_org_id,
+                target_uid=new_uid,
+                details={"email": new_user.email, "role": new_user.role.value}
+            )
+
         return saved_user
 
     def _enforce_hierarchy(self, creator: User, target_role: UserRole):
-        # Root can do anything
         if creator.role == UserRole.ROOT:
             return
-
-        # Org Admin can create: Admins (Co-Admins), Managers, Members, Viewers
         if creator.role == UserRole.ADMIN:
             if target_role == UserRole.ROOT:
                 raise PermissionError("Admins cannot create Roots.")
-            # Admin CAN create another ADMIN (new rule)
             return
-
-        # Manager is now Technical Lead (Workflow Config), NOT User Manager.
-        # So Manager cannot create users.
         if creator.role == UserRole.MANAGER:
             raise PermissionError("Managers are Technical Leads and cannot manage users. Ask an Admin.")
-
-        raise PermissionError("This user role cannot create users")
+        if creator.role == UserRole.MEMBER:
+             raise PermissionError("This user role cannot create users")
 
         raise PermissionError("This user role cannot create users")
 
     def _count_org_admins(self, org_id: str) -> int:
-        """Counts how many ADMINs exist in a given Organization.
-        """
         if not org_id:
             return 0
         all_users = self.repo.list_all()
         return sum(1 for u in all_users if u.organization_id == org_id and u.role == UserRole.ADMIN)
 
-    def delete_user(self, initiator_uid: str, target_uid: str) -> bool:
+    async def delete_user(self, initiator_uid: str, target_uid: str) -> bool:
         """Delete a user, with Last Admin Protection.
         """
         initiator = self.repo.get_by_uid(initiator_uid)
@@ -348,7 +396,6 @@ class AuthService:
 
         # Permission Check
         if initiator.role != UserRole.ROOT:
-            # Org Admin Check
             if initiator.role == UserRole.ADMIN:
                 if target.organization_id != initiator.organization_id:
                     raise PermissionError("Cannot delete users from other organizations")
@@ -356,11 +403,8 @@ class AuthService:
                 raise PermissionError("Insufficient permissions to delete users")
 
         # ROOT PROTECTION
-        # This user (root_master) is seeded via environment/code and must not be deleted.
         if target_uid == "root_master":
             raise PermissionError("The primary Root account cannot be deleted.")
-
-        # LAST ADMIN PROTECTION
 
         # LAST ADMIN PROTECTION
         if target.role == UserRole.ADMIN and target.organization_id:
@@ -372,22 +416,30 @@ class AuthService:
         # 1. Firebase (if enabled)
         if self.use_firebase:
             try:
-                # Note: This might fail if mock user is passed but flag is True.
-                # Ideally we check if uid is firebase-like, but for now try/except
                 self.firebase_auth.delete_user(target.uid)
             except Exception as e:
                 logger.warning(f"Firebase delete failed (might be local user): {e}")
 
         # 2. Local DB
-        return self.repo.delete(target_uid)
+        self.repo.delete(target_uid)
 
-    def delete_organization(self, initiator_uid: str, target_org_id: str) -> None:
+        # Audit
+        if self.audit_service:
+            await self.audit_service.log_event(
+                actor_uid=initiator_uid,
+                action="USER_DELETED",
+                organization_id=target.organization_id,
+                target_uid=target_uid,
+                details={"email": target.email}
+            )
+
+        return True
+
+    async def delete_organization(self, initiator_uid: str, target_org_id: str) -> None:
         """Deletes an Organization and ALL its users.
-        Bypasses Last Admin Protection because the Org itself is dying.
         """
         initiator = self.repo.get_by_uid(initiator_uid)
 
-        # 1. Permission Check (ROOT ONLY)
         if not initiator or initiator.role != UserRole.ROOT:
             raise PermissionError("Only ROOT can delete organizations.")
 
@@ -397,7 +449,6 @@ class AuthService:
         # 2. Delete All Users in Org
         org_users = [u for u in self.repo.list_all() if u.organization_id == target_org_id]
         for user in org_users:
-            # Delete without calling self.delete_user to bypass Last Admin check
             if self.use_firebase:
                 try:
                     self.firebase_auth.delete_user(user.uid)
@@ -407,10 +458,19 @@ class AuthService:
 
         # 3. Delete Org Entity
         self.org_repo.table.remove(Query().id == target_org_id)
-        # Note: Data cleanup (Workflows/Executions) should be handled by the caller (Router)
-        # using repo.delete_org_data(org_id) as AuthService doesn't access WorkflowRepo directly.
+        
+        # Audit
+        if self.audit_service:
+            await self.audit_service.log_event(
+                actor_uid=initiator_uid,
+                action="ORG_DELETED",
+                organization_id=target_org_id,
+                target_uid=target_org_id,
+                details={"users_deleted": len(org_users)}
+            )
 
-    def update_user(self, initiator_uid: str, target_uid: str, updates: UserUpdate) -> User:
+
+    async def update_user(self, initiator_uid: str, target_uid: str, updates: UserUpdate) -> User:
         """General update method.
         If 'role' is being changed, we must enforce Last Admin Protection.
         """
@@ -439,7 +499,21 @@ class AuthService:
                     if admin_count <= 1:
                         raise ValueError("Cannot demote the last Administrator of an Organization.")
 
-        return self.repo.update(target_uid, updates)
+        updated_user = self.repo.update(target_uid, updates)
+
+        # Audit
+        if self.audit_service:
+            # Determine what changed for details
+            changed_fields = updates.dict(exclude_unset=True)
+            await self.audit_service.log_event(
+                actor_uid=initiator_uid,
+                action="USER_UPDATED",
+                organization_id=target.organization_id,  # Log under target's org
+                target_uid=target_uid,
+                details=changed_fields
+            )
+
+        return updated_user
 
     def ensure_root_user(self, email: str = "root@example.com") -> User:
         """Bootstraps a root user and Development Scenario (Demo Corp) if needed."""

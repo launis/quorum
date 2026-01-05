@@ -107,6 +107,13 @@ async def execute_workflow(
         HTTPException: If workflow_id is missing from the form data.
 
     """
+    # Quota Enforcement (Phase 5)
+    from backend.services.usage_service import UsageService
+    
+    usage_service = UsageService(engine.repository)
+    if not await usage_service.check_quota(current_user.organization_id):
+        raise HTTPException(status_code=402, detail="Organization Quota Exceeded. Please upgrade your tier.")
+
     form = await request.form()
 
     workflow_id = form.get("workflow_id")
