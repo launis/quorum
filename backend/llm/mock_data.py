@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any
 
 AGENT_CLASS_TO_MOCK_KEY = {
     "GuardAgent": "guard_agent",
@@ -18,9 +18,8 @@ AGENT_CLASS_TO_MOCK_KEY = {
 }
 
 
-def get_fallback_data(key: str) -> Dict[str, Any]:
-    """
-    Returns generic valid JSON for the given proper mock key.
+def get_fallback_data(key: str) -> dict[str, Any]:
+    """Returns generic valid JSON for the given proper mock key.
     Used when specific mock responses are missing from data/mock_responses.json.
 
     Args:
@@ -28,6 +27,7 @@ def get_fallback_data(key: str) -> Dict[str, Any]:
 
     Returns:
         Dict[str, Any]: A dictionary representing the mock response.
+
     """
     if key == "guard_agent":
         return _generate_guard_data()
@@ -61,15 +61,15 @@ def get_fallback_data(key: str) -> Dict[str, Any]:
     return {"error": "No mock data available", "mock_key": key}
 
 
-def get_example_for_agent(agent_class_name: str) -> Optional[Dict[str, Any]]:
-    """
-    Retrieves the mock data example for a given agent class name.
+def get_example_for_agent(agent_class_name: str) -> dict[str, Any] | None:
+    """Retrieves the mock data example for a given agent class name.
 
     Args:
         agent_class_name (str): The class name of the agent.
 
     Returns:
         Optional[Dict[str, Any]]: The mock example or None if not found.
+
     """
     key = AGENT_CLASS_TO_MOCK_KEY.get(agent_class_name)
     if key:
@@ -77,9 +77,8 @@ def get_example_for_agent(agent_class_name: str) -> Optional[Dict[str, Any]]:
     return None
 
 
-def _clone(base: Dict, agent: str, vaihe: float) -> Dict:
-    """
-    Helper to deep copy and set base metadata.
+def _clone(base: dict, agent: str, vaihe: float) -> dict:
+    """Helper to deep copy and set base metadata.
 
     Args:
         base (Dict): The base dictionary structure.
@@ -88,6 +87,7 @@ def _clone(base: Dict, agent: str, vaihe: float) -> Dict:
 
     Returns:
         Dict: cloned and updated dictionary.
+
     """
     import copy
 
@@ -97,12 +97,12 @@ def _clone(base: Dict, agent: str, vaihe: float) -> Dict:
     return new_data
 
 
-def _get_common_base() -> Dict[str, Any]:
-    """
-    Helper to get common base data for fallback generators.
+def _get_common_base() -> dict[str, Any]:
+    """Helper to get common base data for fallback generators.
 
     Returns:
         Dict[str, Any]: Common base structure with metadata.
+
     """
     common_metadata = {
         "luontiaika": "2024-01-01T00:00:00Z",
@@ -123,7 +123,7 @@ def _get_common_base() -> Dict[str, Any]:
 # --- Generator Functions ---
 
 
-def _generate_guard_data() -> Dict[str, Any]:
+def _generate_guard_data() -> dict[str, Any]:
     data = _clone(_get_common_base(), agent="Vartija", vaihe=1)
     data.update(
         {
@@ -147,7 +147,7 @@ def _generate_guard_data() -> Dict[str, Any]:
     return data
 
 
-def _generate_analyst_data() -> Dict[str, Any]:
+def _generate_analyst_data() -> dict[str, Any]:
     data = _clone(_get_common_base(), agent="Analyytikko", vaihe=2)
     data.update(
         {
@@ -178,7 +178,7 @@ def _generate_analyst_data() -> Dict[str, Any]:
     return data
 
 
-def _generate_interaction_data() -> Dict[str, Any]:
+def _generate_interaction_data() -> dict[str, Any]:
     data = _clone(_get_common_base(), agent="Vuorovaikutus", vaihe=2.2)
     data.update(
         {
@@ -191,7 +191,7 @@ def _generate_interaction_data() -> Dict[str, Any]:
     return data
 
 
-def _generate_profiler_data() -> Dict[str, Any]:
+def _generate_profiler_data() -> dict[str, Any]:
     data = _clone(_get_common_base(), agent="Profiloija", vaihe=2.5)
     data.update(
         {
@@ -217,7 +217,7 @@ def _generate_profiler_data() -> Dict[str, Any]:
     return data
 
 
-def _generate_logician_data() -> Dict[str, Any]:
+def _generate_logician_data() -> dict[str, Any]:
     data = _clone(_get_common_base(), agent="Loogikko", vaihe=3)
     data.update(
         {
@@ -243,7 +243,7 @@ def _generate_logician_data() -> Dict[str, Any]:
     return data
 
 
-def _generate_falsifier_data() -> Dict[str, Any]:
+def _generate_falsifier_data() -> dict[str, Any]:
     data = _clone(_get_common_base(), agent="Falsifioija", vaihe=4)
     data.update(
         {
@@ -264,7 +264,7 @@ def _generate_falsifier_data() -> Dict[str, Any]:
     return data
 
 
-def _generate_fact_checker_data() -> Dict[str, Any]:
+def _generate_fact_checker_data() -> dict[str, Any]:
     data = _clone(_get_common_base(), agent="Valvoja", vaihe=5)
     data.update(
         {
@@ -284,7 +284,7 @@ def _generate_fact_checker_data() -> Dict[str, Any]:
     return data
 
 
-def _generate_causal_data() -> Dict[str, Any]:
+def _generate_causal_data() -> dict[str, Any]:
     data = _clone(_get_common_base(), agent="Kausaalinen", vaihe=6)
     data.update(
         {
@@ -303,7 +303,7 @@ def _generate_causal_data() -> Dict[str, Any]:
     return data
 
 
-def _generate_performativity_data() -> Dict[str, Any]:
+def _generate_performativity_data() -> dict[str, Any]:
     data = _clone(_get_common_base(), agent="Performatiivisuus", vaihe=7)
     data.update(
         {
@@ -317,7 +317,7 @@ def _generate_performativity_data() -> Dict[str, Any]:
     return data
 
 
-def _generate_judge_data() -> Dict[str, Any]:
+def _generate_judge_data() -> dict[str, Any]:
     data = _clone(_get_common_base(), agent="Tuomari", vaihe=9)
     # UPDATED: Matches EvaluationResult schema (Dynamic Matrix) with explicit scale
     data.update(
@@ -345,7 +345,7 @@ def _generate_judge_data() -> Dict[str, Any]:
     return data
 
 
-def _generate_xai_data() -> Dict[str, Any]:
+def _generate_xai_data() -> dict[str, Any]:
     data = _clone(_get_common_base(), agent="XAI-Raportoija", vaihe=13)
     data.update(
         {
@@ -364,7 +364,7 @@ def _generate_xai_data() -> Dict[str, Any]:
     return data
 
 
-def _generate_archivist_data() -> Dict[str, Any]:
+def _generate_archivist_data() -> dict[str, Any]:
     data = _clone(_get_common_base(), agent="Arkistonhoitaja", vaihe=10)
     data.update(
         {
@@ -377,7 +377,7 @@ def _generate_archivist_data() -> Dict[str, Any]:
     return data
 
 
-def _generate_coach_data() -> Dict[str, Any]:
+def _generate_coach_data() -> dict[str, Any]:
     data = _clone(_get_common_base(), agent="Valmentaja", vaihe=12)
     # Matches CoachingPlan(BaseJSON)
     data.update(
@@ -429,13 +429,13 @@ def _generate_coach_data() -> Dict[str, Any]:
     return data
 
 
-def _generate_panel_data() -> Dict[str, Any]:
-    """
-    Generates a COMPOSITE response for the PanelAgent.
+def _generate_panel_data() -> dict[str, Any]:
+    """Generates a COMPOSITE response for the PanelAgent.
     Must match the complex schema of PanelAgent output.
 
     Returns:
         Dict[str, Any]: Composite panel data.
+
     """
     data = _clone(_get_common_base(), agent="Tiedepaneeli", vaihe=6)
 

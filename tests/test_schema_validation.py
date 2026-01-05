@@ -18,7 +18,7 @@ class MockAgent(BaseAgent):
 
 @pytest.fixture
 def mock_state():
-    return WorkflowState(execution_id="test", inputs=InputData())
+    return WorkflowState(execution_id="test", inputs=InputData(history_text="H", product_text="P", reflection_text="R"))
 
 @pytest.mark.asyncio
 async def test_schema_validation_success(mock_state):

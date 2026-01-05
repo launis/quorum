@@ -31,6 +31,9 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 
 ### 0.3 Backend Consolidation
 - [x] **Router Refactoring**: Standardized API with `Annotated` dependencies (`EngineDep`, `DatabaseDep`).
+- [x] **Strict DI**: Refactored `WorkflowEngine` to enforce manual dependency injection (Removed auto-wiring).
+- [x] **Engine Generalization**: Removed business logic (Matrix limit, Bibliographies) from core Engine.
+- [x] **Execution Separation**: Extracted `execute_workflow_task` from `run_execution` to prepare for Workers.
 - [x] **Legacy Cleanup**: Removed deprecated synchronous routes and V2 artifacts.
 
 ---
@@ -62,6 +65,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **Regional Compliance**: Implemented strict Regional Model Validation (Model Garden Master List -> Regional Intersection).
 
 ### 1.4 Scalability Architecture (Future)
+- [ ] **Parallel Execution**: Implement DAG-based concurrent step execution (utilizing `execute_workflow_task` separation).
 - [ ] **Distributed Task Queue**: Transition from in-process `BackgroundTasks` to Redis/Celery for durable job execution.
 - [ ] **Decoupled Workers**: Separate API (Job Submission) and Worker (Job Execution) processes.
 - [ ] **Hook Strategies**: Maintain Python-based Direct Call hooks for performance until microservice decoupling is strictly required.

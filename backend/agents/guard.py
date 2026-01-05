@@ -1,5 +1,6 @@
+"""Guard Agent implementation."""
 import logging
-from typing import Any, Optional, Type, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
@@ -13,8 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class GuardAgent(BaseAgent):
-    """
-    Vartija-agentti (Guard Agent).
+    """Vartija-agentti (Guard Agent).
     Responsible for:
     1. Input Sanitization (Syötteen puhdistus)
     2. Security Check (Tietoturvatarkistus)
@@ -30,18 +30,36 @@ class GuardAgent(BaseAgent):
     # but we can explicit it here if needed for static analysis.
     OUTPUT_SCHEMA = TaintedData
 
-    def get_response_schema(self) -> Optional[Type[BaseModel]]:
-        """
-        Returns the TaintedData schema definition.
+    def get_response_schema(self) -> type[BaseModel] | None:
+        """Returns the TaintedData schema definition.
 
         Returns:
             Type[TaintedData]: The schema class.
+
         """
         return TaintedData
 
-    async def prepare_context(self, state: WorkflowState, **kwargs) -> Optional[str]:
+    async def execute(self, state: WorkflowState, system_instruction: str | None = None, **kwargs) -> WorkflowState:
+        """Executes the security analysis and sanitization logic.
+
+        Input State:
+            - state.inputs.history_text
+            - state.inputs.product_text
+            - state.inputs.reflection_text
+            - state.aux_data.banned_phrases (checked via hooks)
+
+        Output State:
+            - state.step_guard (TaintedData): Security report and PII/Phrase status.
+            - state.inputs (Modified in place if PII redacted via hooks).
+
+        Exceptions:
+            - AgentExecutionError: If LLM fails or schema validation fails.
+            - FatalInterruption: If strict banned phrases are detected (raises immediately).
         """
-        Lifecycle Hook: Pre-Execution.
+        return await super().execute(state, system_instruction, **kwargs)
+
+    async def prepare_context(self, state: WorkflowState, **kwargs) -> str | None:
+        """Lifecycle Hook: Pre-Execution.
         Performs Python-based banned phrase checks and sanitization.
 
         Args:
@@ -50,6 +68,7 @@ class GuardAgent(BaseAgent):
 
         Returns:
             Optional[str]: None. Only side-effects on state.
+
         """
         # 1. Banned Phrase Check (Injects warning into prompt if found)
         self.check_banned_phrases_python(state)
@@ -60,8 +79,7 @@ class GuardAgent(BaseAgent):
         return None
 
     def post_process(self, state: WorkflowState) -> WorkflowState:
-        """
-        Lifecycle Hook: Post-Execution.
+        """Lifecycle Hook: Post-Execution.
         Ensures tainted data structure is populated and banned phrases are flagged.
 
         Args:
@@ -69,13 +87,13 @@ class GuardAgent(BaseAgent):
 
         Returns:
             WorkflowState: Processed state.
+
         """
         return self.ensure_tainted_data(state)
 
     def ensure_tainted_data(self, state: WorkflowState) -> WorkflowState:
-        """
-        HOOK: ensure_tainted_data
-        Post-Hook. Ensures that the tainted data structure is correctly populated.
+        """Post-Hook: Ensures that the tainted data structure is correctly populated.
+
         Also performs strict Python-side banned phrase check.
 
         Args:
@@ -147,8 +165,7 @@ class GuardAgent(BaseAgent):
         return state
 
     def extract_text_from_inputs(self, state: WorkflowState) -> WorkflowState:
-        """
-        Public hook method (Pre-Hook).
+        """Public hook method (Pre-Hook).
         Legacy pass-through hook.
 
         Args:
@@ -156,13 +173,13 @@ class GuardAgent(BaseAgent):
 
         Returns:
             WorkflowState: The same state.
+
         """
         logger.info("[GuardAgent] PDF Extraction Pre-Hook: Pass-through (Handled by Engine).")
         return state
 
     def check_banned_phrases_python(self, state: WorkflowState) -> WorkflowState:
-        """
-        Public hook method (Pre-Hook).
+        """Public hook method (Pre-Hook).
         Scans inputs for banned phrases BEFORE the LLM sees them.
         Injects alerts into inputs if necessary.
 
@@ -171,6 +188,7 @@ class GuardAgent(BaseAgent):
 
         Returns:
             WorkflowState: Updated state.
+
         """
         logger.info("[GuardAgent] Executing Python-based Banned Phrases Scan (Pre-Hook)...")
 
@@ -217,9 +235,8 @@ class GuardAgent(BaseAgent):
         return state
 
     def sanitize_input(self, state: WorkflowState) -> WorkflowState:
-        """
-        HOOK: sanitize_input
-        Pre-hook. Sanitizes and anonymizes input data (PII Redaction).
+        """Pre-hook: Sanitizes and anonymizes input data (PII Redaction).
+
         Delegates to backend.hooks.security.
 
         Args:
@@ -270,6 +287,6 @@ class GuardAgent(BaseAgent):
         return state
 
     async def _update_state(
-        self, state: WorkflowState, response_data: Any, output_key: Optional[str] = None, **kwargs
+        self, state: WorkflowState, response_data: Any, output_key: str | None = None, **kwargs
     ) -> WorkflowState:
         return await super()._update_state(state, response_data, output_key=output_key, **kwargs)

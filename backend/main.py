@@ -95,69 +95,82 @@ async def lifespan(app: FastAPI):
     except (OSError, ConnectionError, TimeoutError, Exception) as e:
         # 2. Fallback to In-Memory Redis (fakeredis)
         logger.warning(f"Real Redis connection failed ({type(e).__name__}: {e}). Switching to In-Memory Mode.")
-        
+
         try:
-            from fakeredis.aioredis import FakeRedis
             from arq.connections import ArqRedis
             from arq.worker import Worker
+            from fakeredis.aioredis import FakeRedis
+
             from backend.worker import WorkerSettings
 
             # Initialize FakeRedis
             # Arq expects a pool-like object, FakeRedis works as one, but needs 'connection_kwargs' for Arq logging
             fake_redis = FakeRedis()
-            fake_redis.connection_kwargs = {"host": "localhost", "port": 6379} # Mock for Arq compatibility
+            fake_redis.connection_kwargs = {"host": "localhost", "port": 6379}  # Mock for Arq compatibility
 
             # PATCH: Arq 0.26+ calls .get_connection() on the pool, which FakeRedis lacks
             if not hasattr(fake_redis, "get_connection"):
+
                 async def _get_conn():
                     return fake_redis
+
                 fake_redis.get_connection = _get_conn
 
             # PATCH: Arq also calls .release(conn)
             if not hasattr(fake_redis, "release"):
+
                 async def _release(conn):
                     pass
+
                 fake_redis.release = _release
-                
+
             # PATCH: Arq calls .disconnect() on the pool? No, on connection. FakeRedis has close() but Arq might call something else.
             # But the specific error is AttributeError: 'FakeRedis' object has no attribute 'retry' in await conn.retry.call_with_retry
             # Wait, 'conn' IS 'fake_redis' because _get_conn returns self.
             # So fake_redis needs a .retry attribute which has a .call_with_retry method.
-            
+
             class MockRetry:
                 async def call_with_retry(self, func, on_error):
                     return await func()
-            
+
             if not hasattr(fake_redis, "retry"):
                 fake_redis.retry = MockRetry()
 
             # PATCH: Arq tries to log Redis info on startup, which crashes on FakeRedis
             # We patch the logging function itself to be a no-op
             import arq.connections
+
             async def _no_op_log(*args, **kwargs):
                 pass
+
             arq.connections.log_redis_info = _no_op_log
 
             # PATCH: Arq 0.26+ uses connection.pack_commands(cmds) for pipelining optimization
             if not hasattr(fake_redis, "pack_commands"):
+
                 def _pack(cmds):
-                    return cmds # Pass through for fake redis
+                    return cmds  # Pass through for fake redis
+
                 fake_redis.pack_commands = _pack
-            
+
             if not hasattr(fake_redis, "send_packed_command"):
+
                 async def _send_packed(cmds):
-                     pass 
+                    pass
+
                 fake_redis.send_packed_command = _send_packed
 
             # PATCH: Arq 0.26+ uses send_command(*args)
             if not hasattr(fake_redis, "send_command"):
+
                 async def _send_command(*args, **kwargs):
-                    pass 
+                    pass
+
                 fake_redis.send_command = _send_command
-            
+
             # ArqRedis wrapper needed for Arq features
             arq_redis = ArqRedis(fake_redis)
-            
+
             app.state.arq_pool = arq_redis
             logger.info("In-Memory Redis pool initialized.")
 
@@ -166,7 +179,7 @@ async def lifespan(app: FastAPI):
             class EmbeddedWorkerSettings(WorkerSettings):
                 redis_pool = arq_redis
                 # Disable signal handling since we run in thread/task
-                handle_signals = False 
+                handle_signals = False
 
             if os.environ.get("TESTING", "").lower() != "true":
                 worker = Worker(
@@ -175,9 +188,10 @@ async def lifespan(app: FastAPI):
                     on_startup=WorkerSettings.on_startup,
                     on_shutdown=WorkerSettings.on_shutdown,
                 )
-                
+
                 # Run worker in background task
                 import asyncio
+
                 worker_task = asyncio.create_task(worker.async_run())
                 app.state.worker_task = worker_task
                 logger.info("Embedded Arq Worker started in background task.")
@@ -293,8 +307,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
     response_description="Returns the full components, steps, and workflows from the database.",
 )
 async def get_seed_data(engine: EngineDep, current_user: CurrentUserDep):
-    """
-    Retrieves the raw seed data configuration (components, steps, workflows).
+    """Retrieves the raw seed data configuration (components, steps, workflows).
     Now scoped by User Role (Root sees all).
 
     Args:
@@ -303,6 +316,7 @@ async def get_seed_data(engine: EngineDep, current_user: CurrentUserDep):
 
     Returns:
         dict: Object containing lists of components, steps, and workflows.
+
     """
     try:
         components = await engine.repository.get_all_components()
@@ -321,8 +335,7 @@ async def get_seed_data(engine: EngineDep, current_user: CurrentUserDep):
 
 @app.get("/db/workflows", summary="List Workflows (DB)", response_description="A list of all workflow definitions.")
 async def get_workflows(engine: EngineDep, current_user: CurrentUserDep):
-    """
-    Retrieves all workflow definitions from the repository.
+    """Retrieves all workflow definitions from the repository.
     Scoped by User Role.
 
     Args:
@@ -331,6 +344,7 @@ async def get_workflows(engine: EngineDep, current_user: CurrentUserDep):
 
     Returns:
         List[dict]: List of workflow objects.
+
     """
     try:
         workflows = await engine.repository.get_all_workflows(
@@ -353,8 +367,7 @@ def reset_db_legacy(db: DatabaseDep):
     response_description="The constructed prompt segments for a specific step.",
 )
 async def preview_prompt(engine: EngineDep, step_id: str = Path(..., description="The ID of the step to preview.")):
-    """
-    Previews the prompt that would be generated for a specific step identifier.
+    """Previews the prompt that would be generated for a specific step identifier.
 
     Args:
         step_id (str): Step Identifier.
@@ -365,6 +378,7 @@ async def preview_prompt(engine: EngineDep, step_id: str = Path(..., description
 
     Raises:
         HTTPException: If prompt generation fails.
+
     """
     try:
         preview = await engine.preview_step_prompt(step_id)
@@ -381,8 +395,7 @@ async def preview_prompt(engine: EngineDep, step_id: str = Path(..., description
     response_description="The concatenated full prompt chain for deep auditing.",
 )
 async def preview_full_chain(engine: EngineDep, workflow_id: str = Path(..., description="The ID of the workflow.")):
-    """
-    Generates a full textual preview of the entire sequential audit chain.
+    """Generates a full textual preview of the entire sequential audit chain.
 
     Args:
         workflow_id (str): Workflow Identifier.
@@ -390,6 +403,7 @@ async def preview_full_chain(engine: EngineDep, workflow_id: str = Path(..., des
 
     Returns:
         dict: Object containing 'full_chain_text'.
+
     """
     try:
         preview_text = await engine.preview_full_chain_prompts(workflow_id)
@@ -406,11 +420,11 @@ async def preview_full_chain(engine: EngineDep, workflow_id: str = Path(..., des
     response_description="Lists available schemas, hooks, and agents found in code.",
 )
 def introspect_codebase():
-    """
-    Performs runtime introspection of the backend codebase to discover available resources.
+    """Performs runtime introspection of the backend codebase to discover available resources.
 
     Returns:
         dict: Lists of schemas, hooks, and agents.
+
     """
     import inspect
 
@@ -441,7 +455,6 @@ def introspect_codebase():
 
 @app.get("/health", summary="Health Check", response_description="Simple status indicator.")
 def health_check():
-    """
-    Basic liveness probe.
+    """Basic liveness probe.
     """
     return {"status": "ok"}

@@ -24,8 +24,15 @@ def generate_openapi():
     print("Generating OpenAPI spec...")
     openapi_schema = app.openapi()
     
-    output_path = os.path.join("docs", "openapi.json")
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    output_dir = os.path.join("docs", "swagger")
+    output_path = os.path.join(output_dir, "openapi.json")
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Consolidate: Remove legacy docs/openapi.json if it exists
+    legacy_path = os.path.join("docs", "openapi.json")
+    if os.path.exists(legacy_path):
+        print(f"Removing legacy file: {legacy_path}")
+        os.remove(legacy_path)
     
     with open(output_path, "w") as f:
         json.dump(openapi_schema, f, indent=2)

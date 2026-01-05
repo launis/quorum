@@ -9,9 +9,12 @@ graph TD
     User["User / Client"] -->|HTTP| Streamlit["Frontend (Streamlit)"]
     Streamlit -->|REST API| Backend["Backend (FastAPI)"]
     
+    Backend -->|Enqueue Job| Redis[(Redis / Arq)]
+    Redis -->|Pull Job| Worker["Async Worker Service"]
+    
     subgraph "Backend Core"
-        Backend --> Engine["Workflow Engine"]
-        Engine -->|Load Config| DB[("TinyDB")]
+        Worker --> Engine["Workflow Engine"]
+        Engine -->|Load Config| DB[("TinyDB / Firestore")]
         Engine -->|Execute Step| Runner["Pipeline Runner"]
         
         Runner --> Agent["Agent Instance"]
@@ -33,8 +36,11 @@ graph TD
 
 ## Core Components
 
-### 1. Backend (FastAPI)
-The backend is structured as a modular monolith:
+### 1. Backend & Worker
+The backend is split into two primary runtime components:
+
+*   **API Service (`backend/api/`)**: Handle HTTP requests and enqueues jobs to Redis.
+*   **Worker Service (`backend/worker.py`)**: A distributed execution engine powered by **Arq**. It pulls jobs from Redis and executes them using the `WorkflowEngine`. This allows for long-running agents (e.g., Deep Research) without blocking HTTP threads.
 
 *   **`backend/api/`**: REST Routers defined using FastAPI. Strictly typed requests/responses. Includes **Dynamic Availability API** (`/config/models/available`) for regional model discovery.
 *   **`backend/core/`**: The `WorkflowEngine` and `PipelineRunner`. Orchestrates the flow based on DB config.
@@ -48,6 +54,7 @@ Unlike many agent frameworks that pass free-form dictionaries, Quorum uses a str
 *   **Atomic Updates:** Each agent writes to a specific field (e.g., `step_guard`, `step_judge`).
 *   **Persisted & Replayable:** The entire state is serialized to JSON after every step, allowing execution resumption.
 *   **Type Safe:** Agents cannot write invalid data to the state; Pydantic validation enforces schema compliance.
+*   **Optimistic Locking:** The `WorkflowState` includes a `version` field (UUID/Timestamp) to prevent race conditions during distributed execution. Workers compare the version before writing to the database.
 
 ### 3. Agent Architecture (Thin Agents)
 Agents are "thin" wrappers that coordinate three things:

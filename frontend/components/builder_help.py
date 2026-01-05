@@ -1,7 +1,9 @@
 
 import streamlit as st
 
+
 def show_help_sidebar():
+    """Renders the 'Workflow Builder Guide' in the sidebar."""
     with st.sidebar:
         with st.expander("📘 Workflow Builder Guide", expanded=False):
             st.markdown("""

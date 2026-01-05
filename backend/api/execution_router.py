@@ -1,6 +1,11 @@
+"""API Router for Orchestration and Workflow Execution.
+
+This module provides endpoints for creating workflows, starting executions,
+monitoring progress, and retrieving results.
+"""
 import json
 import logging
-from typing import Annotated, Any, Dict, List, Optional
+from typing import Annotated, Any
 
 from fastapi import (
     APIRouter,
@@ -26,16 +31,30 @@ router = APIRouter(tags=["Orchestration"])
 
 
 class WorkflowCreateRequest(BaseModel):
+    """Payload for creating a new workflow definition.
+
+    Attributes:
+        name (str): Human-readable name.
+        steps (list[dict]): List of step configurations.
+    """
+
     name: Annotated[str, Field(description="The unique, human-readable name for the new workflow.")]
     steps: Annotated[
-        List[Dict[str, Any]], Field(description="A sequential list of step configurations defining the workflow logic.")
+        list[dict[str, Any]], Field(description="A sequential list of step configurations defining the workflow logic.")
     ]
 
 
 class WorkflowExecutionRequest(BaseModel):
+    """Payload for starting a new execution.
+
+    Attributes:
+        workflow_id (str): The UUID of the workflow to run.
+        inputs (dict): Initial input state.
+    """
+
     workflow_id: Annotated[str, Field(description="The UUID of the workflow definition to instantiate.")]
     inputs: Annotated[
-        Dict[str, Any],
+        dict[str, Any],
         Field(description="Key-value pairs representing the initial input state (e.g., source text, user intent)."),
     ] = {}
 
@@ -47,8 +66,7 @@ class WorkflowExecutionRequest(BaseModel):
     "/workflows", summary="Create Workflow", response_description="A confirmation object with the new Workflow ID."
 )
 async def create_workflow(request: WorkflowCreateRequest, engine: EngineDep):
-    """
-    Creates a new workflow definition in the database.
+    """Creates a new workflow definition in the database.
 
     Args:
         request (WorkflowCreateRequest): The workflow payload containing name and steps.
@@ -56,6 +74,7 @@ async def create_workflow(request: WorkflowCreateRequest, engine: EngineDep):
 
     Returns:
         dict: The status and generated workflow_id.
+
     """
     workflow_id = await engine.create_workflow(request.name, request.steps)
     return {"status": "created", "workflow_id": workflow_id}
@@ -72,8 +91,7 @@ async def create_workflow(request: WorkflowCreateRequest, engine: EngineDep):
 async def execute_workflow(
     request: Request, background_tasks: BackgroundTasks, engine: EngineDep, current_user: CurrentUserDep
 ):
-    """
-    Initiates a new workflow execution asynchronously.
+    """Initiates a new workflow execution asynchronously.
     Supports Multipart/Form-Data for optional file uploads alongside JSON inputs.
 
     Args:
@@ -87,6 +105,7 @@ async def execute_workflow(
 
     Raises:
         HTTPException: If workflow_id is missing from the form data.
+
     """
     form = await request.form()
 
@@ -136,10 +155,9 @@ async def get_recent_executions(
     engine: EngineDep,
     current_user: CurrentUserDep,
     limit: int = APIQuery(5, description="Maximum number of executions to return."),
-    status: Optional[str] = APIQuery(None, description="Filter by execution status (e.g., 'completed', 'failed')."),
+    status: str | None = APIQuery(None, description="Filter by execution status (e.g., 'completed', 'failed')."),
 ):
-    """
-    Retrieves a list of the most recent workflow executions (Scoped by Org).
+    """Retrieves a list of the most recent workflow executions (Scoped by Org).
     """
     # 1. Tenant Scope (Root sees all, others confined to Org)
     scope_org_id = current_user.organization_id if current_user.role != UserRole.ROOT else None
@@ -166,8 +184,7 @@ async def get_recent_executions(
     response_description="The single most recent execution record.",
 )
 async def get_latest_execution(engine: EngineDep):
-    """
-    Retrieves the absolutely most recent execution record.
+    """Retrieves the absolutely most recent execution record.
     """
     all_execs = await engine.repository.get_all_executions()
     if not all_execs:
@@ -184,8 +201,7 @@ async def get_latest_execution(engine: EngineDep):
 async def get_execution_status(
     engine: EngineDep, execution_id: str = Path(..., description="The UUID of the execution to retrieve.")
 ):
-    """
-    Retrieves the full status and result data for a specific execution ID.
+    """Retrieves the full status and result data for a specific execution ID.
     Performs on-the-fly hydration of legacy result structures if necessary.
     """
     status = await engine.get_execution_status(execution_id)
@@ -237,8 +253,7 @@ async def retry_execution(
     engine: EngineDep,
     execution_id: str = Path(..., description="The UUID of the execution to retry."),
 ):
-    """
-    Resumes a failed, rejected, or interrupted execution from its last successful state.
+    """Resumes a failed, rejected, or interrupted execution from its last successful state.
     """
     status = await engine.get_execution_status(execution_id)
     if not status:

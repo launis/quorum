@@ -1,65 +1,71 @@
-# Technical Architecture and Analysis (V2.0 Refactor)
+# Technical Architecture and Analysis (V2.5 Refactor)
 
-This document describes the technical architecture of the Cognitive Quorum v2.0 system and analyzes its core features following the December 2025 refactoring.
+This document describes the technical architecture of the Cognitive Quorum v2.5 system and analyzes its core features following the January 2026 refactoring (Async Modernization).
 
 ---
 
-## 1. Core Architecture: Modular Monolith
+## 1. Core Architecture: Modular Async Monolith
 
-The system is built on modern Python standards, emphasizing static typing and clear interface separation.
+The system is built on modern Python standards (3.14+), emphasizing static typing, async concurrency, and distributed execution.
 
-### Backend (FastAPI)
-- **Framework:** FastAPI
-- **Validation:** Pydantic v2 (Strict Mode) utilizing `typing.Annotated`.
+### Backend (FastAPI + Arq)
+- **Framework:** FastAPI (HTTP) + Arq (Redis-based Async Workers).
+- **Validation:** Pydantic V2 (Strict Mode) utilizing `typing.Annotated`.
 - **Documentation:** 100% Google-style docstrings and automatically generated OpenAPI / Swagger.
-- **Structure:** Modular routers separated from core logic (`engine`, `services`).
+- **Structure:**
+    - `backend/api/`: Lightweight HTTP routers (enqueue jobs).
+    - `backend/worker.py`: Heavy-lifting background worker (processes jobs).
+    - `backend/core/engine.py`: Core orchestration logic (Dependency Injection).
 
 ### Frontend (Streamlit)
-- **Role:** Lightweight UI layer that visualizes background state.
+- **Role:** Lightweight "Thin Client" UI layer.
 - **Communication:** REST API calls to backend state endpoints.
+- **Rendering:** Polling-based UI aimed at real-time progress tracking.
 
-### Database (TinyDB Abstraction)
-- **Implementation:** File-based JSON database (TinyDB) wrapped with an abstraction layer (`backend/database/wrapper.py`).
-- **Benefits:** Fully portable, requires no separate database server.
-- **Seed Data:** System configuration is loaded from `seed_data.json`, enabling an "Infrastructure as Data" model.
+### Resilience & Observability
+- **Logfire:** Distributed tracing across API and Workers.
+- **Optimistic Locking:** `WorkflowState.version` ensures data integrity during concurrent writes.
+- **Redis Broker:** Decouples ingestion from processing, allowing the API to remain responsive under load.
 
 ---
 
 ## 2. Agent Architecture (Cognitive Assembly Line)
 
 Agents are not independent "black boxes" but function as part of a deterministic pipeline.
+All agents inherit from `BaseAgent` and enforce strict Input/Output state contracts (`WorkflowState`).
 
 | Agent | Role | Responsibility |
 | :--- | :--- | :--- |
 | **GuardAgent** | Gatekeeper | Security, PII protection (Presidio-hook), input sanitization. |
-| **AnalystAgent** | Analyst | Data preprocessing and structuring. |
-| **InteractionAnalyst** | Interaction | Analyzes dynamics between the user and AI. |
+| **AnalystAgent** | Analyst | Data preprocessing, hypothesis generation, and evidence gathering (RAG). |
+| **InteractionAnalyst** | Interaction | Analyzes dynamics between the user and AI (Driver/Passenger). |
 | **ProfilerAgent** | Profiler | Identifies user intent and cognitive biases. |
 | **LogicianAgent** | Logician | Constructs logical argument structures (Toulmin). |
 | **FalsifierAgent** | Falsifier | Attempts to refute hypotheses and tests reasoning durability. |
 | **CausalAgent** | Causal | Analyzes cause-effect relationships (DoWhy-hook). |
 | **DetectorAgent** | Detector | Identifies performativity and pretense. |
-| **OverseerAgent** | Overseer | Fact-checking and ethical oversight. |
-| **PanelAgent** | Panel | "Fan-out" agent simulating a panel of experts (optimization). |
-| **ArchivistAgent** | Archivist | Analyzes the process and compares it to precedents. |
-| **JudgeAgent** | Judge | Delivers final verdict and scores performance. |
+| **OverseerAgent** | Overseer | Fact-checking (Google Search) and ethical oversight. |
+| **PanelAgent** | Panel | "Fan-out" agent simulating a panel of experts. |
+| **ArchivistAgent** | Archivist | Analyzes the process and compares it to precedents (Case Law). |
+| **JudgeAgent** | Judge | Delivers final verdict and scores performance (Dynamic Matrices). |
 | **CoachAgent** | Coach | Provides development suggestions and pedagogical feedback. |
 | **XAIReporter** | Reporter | Produces an explainable (XAI) final report. |
 
 ---
 
-## 3. High-Fidelity Sync Loop
+## 3. Distributed Sync Loop
 
-The system maintains state (`WorkflowState`) centrally.
+The system maintains state (`WorkflowState`) centrally, efficiently managed across distributed components.
 
-1.  **Engine** loads state from DB.
-2.  **Runner** executes one Step (Agent).
-3.  **Agent** calls LLM Provider (`backend/llm/provider.py`).
-4.  **LLM** returns structured JSON response (Pydantic Schema).
-5.  **Agent** updates state (`state.step_X`).
-6.  **Engine** saves state to DB.
+1.  **API**: Enqueues a Job ID to Redis (`backend/api/execution_router.py`).
+2.  **Worker**: Pulls Job (`backend/worker.py`).
+3.  **Engine**: Loads `WorkflowState` from DB (TinyDB/Firestore).
+4.  **Runner**: Executes one Step (Agent).
+5.  **Agent**: Calls LLM Provider (`backend/llm/provider.py`).
+6.  **Agent**: Updates State (e.g. `state.step_analyst`).
+7.  **Engine**: Persists State to DB (incrementing `version`).
 
-This ensures that if the process crashes, it can resume from exactly the same point (State Persistence).
+This ensures that if a Worker crashes, the job can be retried or resumed from the last checkpoint.
 
 ---
 
@@ -78,20 +84,22 @@ Agents utilize deterministic "Hooks" for tasks requiring precision beyond LLM ca
 
 Following the refactoring, the codebase adheres to strict standards:
 
-*   **Full Typing:** All functions and methods use Type Hinting.
-*   **Annotated Pydantic:** Data models use `Annotated[Type, Field(...)]` syntax.
-*   **Google-Style Docstrings:** Every module, class, and function is documented to standard.
-*   **English Codebase:** All comments and internal documentation are in English (user-facing content in Finnish/English).
+*   **Python 3.14:** Compliant with PEP 649 (Deferred Annotations).
+*   **Full Typing:** 100% Type Hinting coverage.
+*   **Google-Style Docstrings:** Monitored via Ruff (`D100-D106`).
+*   **English Codebase:** Internal docs are English; User-facing content supports localisation.
 
 ```mermaid
 graph TD
     User["User"] --> FE["Frontend (Streamlit)"]
     
-    subgraph "Backend (FastAPI)"
-        FE -- REST API --> API["Routers"]
-        API --> Engine["Workflow Engine"]
-        
-        Engine -- "Load State" --> DB[("TinyDB JSON")]
+    FE -- REST API --> API["API Service (FastAPI)"]
+    API -- Enqueue --> Redis[(Redis)]
+    Redis -- Pull --> Worker["Async Worker (Arq)"]
+    
+    subgraph "Execution Core"
+        Worker --> Engine["Workflow Engine"]
+        Engine -- "Load State" --> DB[("TinyDB / Firestore")]
         Engine -- "Execute Step" --> Runner["Pipeline Runner"]
         
         subgraph "Agent Execution"

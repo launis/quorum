@@ -18,8 +18,7 @@ from backend.settings import get_settings
 
 
 async def bootstrap_application():
-    """
-    Centralized initialization logic for the backend.
+    """Centralized initialization logic for the backend.
     Handles logging, configuration checks, and Engine warmup.
     """
     # 1. Initialize Logging

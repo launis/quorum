@@ -1,10 +1,14 @@
-from typing import Any, Dict, List, Optional
+"""API Router for Organization Management.
+
+This module provides multitenancy endpoints for creating, updating, and
+retrieving organization details.
+"""
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
-from backend.database.repository import AbstractWorkflowRepository
-from backend.dependencies import AuthServiceDep, CurrentUserDep, get_async_repository
+from backend.dependencies import AuthServiceDep, CurrentUserDep, RepositoryDep
 from backend.models.auth import Organization, TokenData, UserRole
 
 # Correct Service Imports
@@ -14,26 +18,26 @@ from backend.services.auth import AuthService
 
 # --- Pydantic Models ---
 class OrganizationCreate(BaseModel):
-    id: Optional[str] = None  # Auto-generated if empty
+    id: str | None = None  # Auto-generated if empty
     name: str
     tier: str = "standard"  # standard, premium, enterprise
-    contact_email: Optional[str] = None
-    settings_override: Optional[Dict[str, Any]] = None
+    contact_email: str | None = None
+    settings_override: dict[str, Any] | None = None
 
 
 class OrganizationUpdate(BaseModel):
-    name: Optional[str] = None
-    tier: Optional[str] = None
-    contact_email: Optional[str] = None
-    settings_override: Optional[Dict[str, Any]] = None
+    name: str | None = None
+    tier: str | None = None
+    contact_email: str | None = None
+    settings_override: dict[str, Any] | None = None
 
 
 class OrganizationResponse(BaseModel):
     id: str
     name: str
     tier: str
-    contact_email: Optional[str] = None
-    created_at: Optional[str] = None
+    contact_email: str | None = None
+    created_at: str | None = None
 
 
 router = APIRouter(prefix="/organizations", tags=["Organizations"])
@@ -45,11 +49,20 @@ router = APIRouter(prefix="/organizations", tags=["Organizations"])
 async def create_organization(
     org: OrganizationCreate,
     user: TokenData = Depends(AuthService.require_role(UserRole.ROOT)),
-    repo: AbstractWorkflowRepository = Depends(get_async_repository),
+    repo: RepositoryDep = None,  # Injected
 ):
-    """
-    Create a new Tenant Organization.
-    ROOT Only.
+    """Create a new Tenant Organization.
+
+    Args:
+        org (OrganizationCreate): Organization details.
+        user (TokenData): Requesting user (must be ROOT).
+        repo (RepositoryDep): Repository dependency.
+
+    Returns:
+        OrganizationResponse: The created organization.
+
+    Raises:
+        HTTPException: If ID conflict (409).
     """
     import backend.utils.identifiers as id_gen
 
@@ -81,14 +94,19 @@ async def create_organization(
     return OrganizationResponse(**item)
 
 
-@router.get("/", response_model=List[OrganizationResponse])
+@router.get("/", response_model=list[OrganizationResponse])
 async def list_organizations(
     user: TokenData = Depends(AuthService.require_role(UserRole.ROOT)),
-    repo: AbstractWorkflowRepository = Depends(get_async_repository),
+    repo: RepositoryDep = None,
 ):
-    """
-    List all organizations.
-    ROOT Only.
+    """List all organizations.
+
+    Args:
+        user (TokenData): Requesting user (must be ROOT).
+        repo (RepositoryDep): Repository dependency.
+
+    Returns:
+        list[OrganizationResponse]: List of all organizations.
     """
     items = await repo.list_organizations()
     # Items are raw dicts (Documents). Wrap in Organization to apply defaults, then dump.
@@ -96,13 +114,23 @@ async def list_organizations(
 
 
 @router.get("/me", response_model=OrganizationResponse)
-async def get_my_organization(user: CurrentUserDep, repo: AbstractWorkflowRepository = Depends(get_async_repository)):
-    """
-    Get the currently logged-in user's organization metadata.
+async def get_my_organization(user: CurrentUserDep, repo: RepositoryDep):
+    """Get the currently logged-in user's organization metadata.
+
     Accessible to: ROOT, ADMIN, MEMBER (Read-Only own org)
 
     Note: ROOT does not belong to an org primarily, but if they want to see 'an' org,
     they should use get_organization_by_id logic. This endpoint is for Tenant Context.
+
+    Args:
+        user (CurrentUserDep): The authenticated user.
+        repo (RepositoryDep): Repository dependency.
+
+    Returns:
+        OrganizationResponse: The user's organization details.
+
+    Raises:
+        HTTPException: If not assigned (404).
     """
     if not user.organization_id:
         raise HTTPException(status_code=404, detail="User is not assigned to any organization.")
@@ -116,13 +144,22 @@ async def get_my_organization(user: CurrentUserDep, repo: AbstractWorkflowReposi
 
 
 @router.get("/{org_id}", response_model=OrganizationResponse)
-async def get_organization(
-    org_id: str, user: CurrentUserDep, repo: AbstractWorkflowRepository = Depends(get_async_repository)
-):
-    """
-    Get specific organization details.
+async def get_organization(org_id: str, user: CurrentUserDep, repo: RepositoryDep):
+    """Get specific organization details.
+
     ROOT: Can access any.
     ADMIN: Can access OWN org only.
+
+    Args:
+        org_id (str): Organization ID.
+        user (CurrentUserDep): Requesting user.
+        repo (RepositoryDep): Repository.
+
+    Returns:
+        OrganizationResponse: The organization details.
+
+    Raises:
+        HTTPException: If access denied (403) or not found (404).
     """
     # 1. Access Control
     if user.role != UserRole.ROOT:
@@ -142,12 +179,24 @@ async def update_organization(
     org_id: str,
     updates: OrganizationUpdate,
     user: CurrentUserDep,
-    repo: AbstractWorkflowRepository = Depends(get_async_repository),
+    repo: RepositoryDep,
 ):
-    """
-    Update Organization settings.
+    """Update Organization settings.
+
     ROOT: Can update any.
     ADMIN: Can update OWN org only.
+
+    Args:
+        org_id (str): Organization ID.
+        updates (OrganizationUpdate): Fields to update.
+        user (CurrentUserDep): Requesting user.
+        repo (RepositoryDep): Repository.
+
+    Returns:
+        OrganizationResponse: Updated organization.
+
+    Raises:
+        HTTPException: If permission denied (403) or not found (404).
     """
     # 1. Access Control
     if user.role != UserRole.ROOT:
@@ -175,13 +224,22 @@ async def update_organization(
 async def delete_organization(
     org_id: str,
     user: TokenData = Depends(AuthService.require_role(UserRole.ROOT)),
-    repo: AbstractWorkflowRepository = Depends(get_async_repository),
+    repo: RepositoryDep = None,
     auth_service: AuthService = Depends(AuthServiceDep),
 ):
-    """
-    Delete an organization.
-    ROOT Only.
-    Protected: Cannot delete 'system' org.
+    """Delete an organization.
+
+    Args:
+        org_id (str): Organization ID.
+        user (TokenData): Requesting user (must be ROOT).
+        repo (RepositoryDep): Repository.
+        auth_service (AuthService): Auth service for user deletion.
+
+    Returns:
+        None
+
+    Raises:
+        HTTPException: If system org (403) or not found (404).
     """
     if org_id == "system":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot delete System Organization.")

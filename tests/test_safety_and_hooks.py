@@ -134,10 +134,10 @@ async def test_python_hooks_execution():
             } 
             
     # Initialize Agent 
-    agent = ProfilerAgent(model_config={"model_name": "test"}, llm_provider=MockProvider())
+    agent = ProfilerAgent(model="test", provider="mock")
     
     # State
-    state = WorkflowState(inputs=InputData(history_text="This is a simple test sentence.", product_text="", reflection_text=""))
+    state = WorkflowState(execution_id="test_hook", inputs=InputData(history_text="This is a simple test sentence.", product_text="", reflection_text=""))
     if not hasattr(state, 'aux_data') or state.aux_data is None:
         state.aux_data = {}
 

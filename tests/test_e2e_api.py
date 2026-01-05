@@ -35,15 +35,17 @@ def test_e2e_api_mock_db():
     try:
         client = get_reloaded_client(env)
         
+        headers = {"Authorization": "Bearer mock-token:root_master"}
+        
         # 1. Check Configuration Endpoint (Read)
-        response = client.get("/config/components")
+        response = client.get("/config/components", headers=headers)
         assert response.status_code == 200, f"Failed to get components: {response.text}"
         data = response.json()
         assert isinstance(data, list)
         assert len(data) > 0, "Mock DB should have seed data components"
         
         # 2. Check Workflows Endpoint
-        response = client.get("/db/workflows")
+        response = client.get("/db/workflows", headers=headers)
         assert response.status_code == 200
         
     except Exception as e:
@@ -74,7 +76,8 @@ def test_e2e_api_firestore_db():
         
         # 1. READ ONLY Operation (Safe)
         # Fetching components verifies connection without writing data
-        response = client.get("/config/components")
+        headers = {"Authorization": "Bearer mock-token:root_master"}
+        response = client.get("/config/components", headers=headers)
         
         if response.status_code == 500:
             # If server error, it might be the Auth error

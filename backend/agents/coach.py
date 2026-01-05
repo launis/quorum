@@ -1,5 +1,6 @@
+"""Coach Agent implementation."""
 import logging
-from typing import Optional, Type, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
 
@@ -13,8 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class CoachAgent(BaseAgent):
-    """
-    Coach Agent (Valmentaja).
+    """Coach Agent (Valmentaja).
 
     Responsible for generating coaching plans and managing the bibliography.
     Configured to run as 'step_coach' in the workflow.
@@ -23,18 +23,34 @@ class CoachAgent(BaseAgent):
     state_field = "step_coach"
     REQUIRES_KEYS = ["step_judge"]
 
-    def get_response_schema(self) -> Optional[Type[BaseModel]]:
-        """
-        Returns the Pydantic model for the agent's expected output.
+    def get_response_schema(self) -> type[BaseModel] | None:
+        """Returns the Pydantic model for the agent's expected output.
 
         Returns:
             Optional[Type[BaseModel]]: The CoachingPlan schema.
+
         """
         return CoachingPlan
 
-    async def prepare_context(self, state: WorkflowState, **kwargs) -> str:
+    async def execute(self, state: WorkflowState, system_instruction: str | None = None, **kwargs) -> WorkflowState:
+        """Executes the coaching plan generation.
+
+        Input State:
+            - state.step_judge (Required context).
+            - state.inputs (Product, Reflection).
+            - External knowledge base via `prepare_context`.
+
+        Output State:
+            - state.step_coach (CoachingPlan): The generated actionable plan.
+            - state.step_coach.lahdeluettelo (Populated via post-hook).
+
+        Exceptions:
+            - AgentExecutionError: If LLM fails or schema validation fails.
         """
-        PRE-HOOK: prepare_context.
+        return await super().execute(state, system_instruction, **kwargs)
+
+    async def prepare_context(self, state: WorkflowState, **kwargs) -> str:
+        """PRE-HOOK: prepare_context.
 
         Loads Domain Knowledge from the Repository (Database) into the Agent instance.
         This ensures the CoachAgent uses the same Unified DB as the Ingestion Service.
@@ -45,6 +61,7 @@ class CoachAgent(BaseAgent):
 
         Returns:
             str: The formatted context string containing external sources.
+
         """
         repository = kwargs.get("repository")
         if repository:
@@ -97,8 +114,7 @@ class CoachAgent(BaseAgent):
             return ""
 
     def post_process(self, state: WorkflowState) -> WorkflowState:
-        """
-        Lifecycle Hook: Post-Execution.
+        """Lifecycle Hook: Post-Execution.
 
         Triggers bibliography validation and enrichment by calling enrich_learning_plan.
 
@@ -107,12 +123,12 @@ class CoachAgent(BaseAgent):
 
         Returns:
             WorkflowState: The updated state.
+
         """
         return self.enrich_learning_plan(state)
 
     def enrich_learning_plan(self, state: WorkflowState) -> WorkflowState:
-        """
-        POST-HOOK: enrich_learning_plan.
+        """POST-HOOK: enrich_learning_plan.
 
         Scans the ENTIRE Workflow State and populates bibliography using
         backend.hooks.references.generate_bibliography.
@@ -122,6 +138,7 @@ class CoachAgent(BaseAgent):
 
         Returns:
             WorkflowState: The updated state with populated bibliography.
+
         """
         logger.info("[CoachAgent] Running enrich_learning_plan hook...")
 

@@ -1,8 +1,12 @@
+"""API Router for Utility Tools.
+
+This module provides endpoints for file processing (text extraction),
+web scraping, and concept extraction.
+"""
 import logging
 import os
 import shutil
 import uuid
-from typing import List, Optional
 
 import requests as req_lib
 from bs4 import BeautifulSoup
@@ -20,8 +24,16 @@ router = APIRouter(prefix="/tools", tags=["Tools"])
 
 @router.post("/text-extract", summary="Extract Text from File", response_description="The extracted raw text.")
 async def extract_text_from_file(file: UploadFile = File(...)):
-    """
-    Extracts text content from an uploaded file (PDF, Docx, etc).
+    """Extracts text content from an uploaded file (PDF, Docx, etc).
+
+    Args:
+        file (UploadFile): The binary file to process.
+
+    Returns:
+        dict: Filename and extracted text.
+
+    Raises:
+        HTTPException: If extraction fails (500).
     """
     temp_path = f"temp_{uuid.uuid4()}_{file.filename}"
     try:
@@ -52,12 +64,23 @@ async def extract_text_from_file(file: UploadFile = File(...)):
 )
 async def extract_concepts_from_file_or_text(
     registry: RegistryDep,
-    text: Optional[str] = Body(None),
-    file: Optional[UploadFile] = File(None),
-    llm_provider: Optional[str] = Body("google"),
+    text: str | None = Body(None),
+    file: UploadFile | None = File(None),
+    llm_provider: str | None = Body("google"),
 ):
-    """
-    Extracts domain concepts from either raw text or an uploaded file.
+    """Extracts domain concepts from either raw text or an uploaded file.
+
+    Args:
+        registry (RegistryDep): Registry for LLM config.
+        text (str): Raw text input.
+        file (UploadFile): File input.
+        llm_provider (str): Preferred provider (deprecated, uses registry).
+
+    Returns:
+        dict: Extracted concepts.
+
+    Raises:
+        HTTPException: If no input provided (400) or extraction errors (500).
     """
     content = text
     temp_path = None
@@ -109,8 +132,16 @@ async def extract_concepts_from_file_or_text(
 
 @router.post("/web-scrape", summary="Scrape URL", response_description="Extracted text and metadata.")
 async def scrape_url(url: str = Body(..., embed=True)):
-    """
-    Fetches and parses a public URL.
+    """Fetches and parses a public URL.
+
+    Args:
+        url (str): The URL to scrape.
+
+    Returns:
+        dict: Title, content, and metadata.
+
+    Raises:
+        HTTPException: If connection fails (400).
     """
     try:
         headers = {"User-Agent": "Mozilla/5.0"}
@@ -132,9 +163,16 @@ async def scrape_url(url: str = Body(..., embed=True)):
 
 
 @router.post("/citation-lookup", summary="Resolve Citations", response_description="Resolved context.")
-async def citation_lookup(db: DatabaseDep, registry: RegistryDep, queries: List[str] = Body(..., embed=True)):
-    """
-    Uses the Knowledge Base Service to find context for citations.
+async def citation_lookup(db: DatabaseDep, registry: RegistryDep, queries: list[str] = Body(..., embed=True)):
+    """Uses the Knowledge Base Service to find context for citations.
+
+    Args:
+        db (DatabaseDep): Database dependency.
+        registry (RegistryDep): Registry dependency.
+        queries (list[str]): List of citation keys or queries.
+
+    Returns:
+        dict: Map of query to resolved context.
     """
     try:
         from backend.dependencies import get_async_repository

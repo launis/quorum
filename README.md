@@ -1,10 +1,10 @@
-# Cognitive Quorum V2.0
+# Cognitive Quorum V2.5
 
 **Structured, Auditable, and Deterministic AI Orchestration.**
 
 Cognitive Quorum is a Modular Monolith architecture designed to perform complex cognitive labor—such as scientific peer review, legal auditing, or strategic analysis—with a level of rigor that generic "chatbots" cannot achieve.
 
-V2.0 resolves the "Black Box" problem of Agentic AI by separating **Cognitive Strategy** (defined in a database) from **Execution Structure** (enforced by strict Python code).
+V2.5 resolves the "Black Box" problem of Agentic AI by separating **Cognitive Strategy** (defined in a database) from **Execution Structure** (enforced by strict Python code).
 
 ---
 
@@ -35,11 +35,28 @@ Quorum is an "Anti-Hallucination" engine.
 
 ---
 
+## 🏗️ System Architecture
+
+```mermaid
+graph LR
+    User[User / Frontend] -->|HTTP Request| API[FastAPI Gateway]
+    API -->|Enqueue Job| Redis[(Redis / Arq)]
+    Redis -->|Pull Job| Worker[Async Worker]
+    Worker -->|Execute| Engine[Workflow Engine]
+    Engine -->|Orchestrate| Agents[Agent Pipeline]
+    Engine -->|Persist| DB[(TinyDB / Firestore)]
+```
+
+---
+
 ## 🛠️ Technology Stack
 
-*   **Backend**: Python 3.12, **FastAPI**, Pydantic V2.
-*   **Frontend**: **Streamlit** (Real-time monitoring).
-*   **Database**: **TinyDB** (JSON-based, portable) + ChromaDB (Vectors).
+*   **Language**: Python 3.14 (PEP 649 Compliant).
+*   **Core**: **FastAPI**, Pydantic V2.
+*   **Tooling**: **uv** (Package Management), **Ruff** (Linting/Style).
+*   **Async Processing**: **Arq** (Task Queue), **Redis** (Broker).
+*   **Observability**: **Logfire** (Distributed Tracing).
+*   **Database**: **TinyDB** (JSON-based, portable) + Firestore (Production).
 *   **AI Model**: Google **Gemini 1.5 Pro** / **Gemini 2.0 Flash**.
 
 ---
@@ -47,8 +64,9 @@ Quorum is an "Anti-Hallucination" engine.
 ## 📦 Getting Started
 
 ### Prerequisites
-*   Python 3.10+
+*   Python 3.12+ (managed via `uv`)
 *   Google Gemini API Key
+*   Docker (for Redis)
 
 ### Installation
 
@@ -58,22 +76,39 @@ Quorum is an "Anti-Hallucination" engine.
     cd quorum
     ```
 
-2.  Create a `.env` file:
+2.  Install dependencies (using **uv**):
+    ```bash
+    uv sync
+    ```
+
+3.  Create a `.env` file:
     ```env
     GOOGLE_API_KEY=your_key_here
     GOOGLE_SEARCH_API_KEY=optional
     GOOGLE_SEARCH_CX=optional
+    LOGFIRE_TOKEN=optional
     ```
 
-3.  Run the application locally:
+### Running the System
+
+1.  **Start Infrastructure** (Redis):
     ```bash
-    .\run_locally.bat
+    docker-compose up -d redis
+    ```
+
+2.  **Start the API**:
+    ```bash
+    uv run uvicorn backend.main:app --reload
+    ```
+
+3.  **Start the Async Worker**:
+    ```bash
+    uv run backend/worker.py
     ```
 
 4.  **Access the System**:
     *   **Frontend UI**: [http://localhost:8501](http://localhost:8501)
     *   **API Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
-    *   **Project Docs**: [http://localhost:8000/redoc](http://localhost:8000/redoc) (or build locally)
 
 ---
 
@@ -87,7 +122,7 @@ Detailed documentation is available in the `docs/` directory or via the built si
 
 To build the docs site locally:
 ```bash
-mkdocs serve
+uv run mkdocs serve
 ```
 
 ---
@@ -95,4 +130,4 @@ mkdocs serve
 ## 🛡️ License
 
 Private / Proprietary.
-(C) 2025 Risto Launis / Cognitive Quorum Team.
+(C) 2025-2026 Risto Launis / Cognitive Quorum Team.

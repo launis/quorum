@@ -1,7 +1,7 @@
 import logging
 import os
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from tinydb import TinyDB
 
@@ -26,31 +26,31 @@ except ImportError:
 
 class AbstractTable(ABC):
     @abstractmethod
-    def insert(self, document: Dict[str, Any]) -> Any:
+    def insert(self, document: dict[str, Any]) -> Any:
         pass
 
     @abstractmethod
-    def all(self) -> List[Dict[str, Any]]:
+    def all(self) -> list[dict[str, Any]]:
         pass
 
     @abstractmethod
-    def search(self, query: Any) -> List[Dict[str, Any]]:
+    def search(self, query: Any) -> list[dict[str, Any]]:
         pass
 
     @abstractmethod
-    def get(self, query: Any) -> Optional[Dict[str, Any]]:
+    def get(self, query: Any) -> dict[str, Any] | None:
         pass
 
     @abstractmethod
-    def update(self, fields: Dict[str, Any], query: Any) -> List[int]:
+    def update(self, fields: dict[str, Any], query: Any) -> list[int]:
         pass
 
     @abstractmethod
-    def upsert(self, document: Dict[str, Any], query: Any) -> List[int]:
+    def upsert(self, document: dict[str, Any], query: Any) -> list[int]:
         pass
 
     @abstractmethod
-    def remove(self, query: Any) -> List[int]:
+    def remove(self, query: Any) -> list[int]:
         pass
 
 
@@ -71,25 +71,25 @@ class TinyDBTable(AbstractTable):
     def __init__(self, table):
         self._table = table
 
-    def insert(self, document: Dict[str, Any]) -> int:
+    def insert(self, document: dict[str, Any]) -> int:
         return self._table.insert(document)
 
-    def all(self) -> List[Dict[str, Any]]:
+    def all(self) -> list[dict[str, Any]]:
         return self._table.all()
 
-    def search(self, query: Any) -> List[Dict[str, Any]]:
+    def search(self, query: Any) -> list[dict[str, Any]]:
         return self._table.search(query)
 
-    def get(self, query: Any) -> Optional[Dict[str, Any]]:
+    def get(self, query: Any) -> dict[str, Any] | None:
         return self._table.get(query)
 
-    def update(self, fields: Dict[str, Any], query: Any) -> List[int]:
+    def update(self, fields: dict[str, Any], query: Any) -> list[int]:
         return self._table.update(fields, query)
 
-    def upsert(self, document: Dict[str, Any], query: Any) -> List[int]:
+    def upsert(self, document: dict[str, Any], query: Any) -> list[int]:
         return self._table.upsert(document, query)
 
-    def remove(self, query: Any) -> List[int]:
+    def remove(self, query: Any) -> list[int]:
         return self._table.remove(query)
 
 
@@ -114,15 +114,15 @@ class FirestoreTable(AbstractTable):
     def __init__(self, collection_ref):
         self._collection = collection_ref
 
-    def insert(self, document: Dict[str, Any]) -> Any:
+    def insert(self, document: dict[str, Any]) -> Any:
         _, doc_ref = self._collection.add(document)
         return doc_ref.id
 
-    def all(self) -> List[Dict[str, Any]]:
+    def all(self) -> list[dict[str, Any]]:
         docs = self._collection.stream()
         return [doc.to_dict() for doc in docs]
 
-    def search(self, query: Any) -> List[Dict[str, Any]]:
+    def search(self, query: Any) -> list[dict[str, Any]]:
         # Fetch all and filter in memory using TinyDB query evaluation
         # This is inefficient for large datasets but acceptable for configuration tables.
         docs = self._collection.stream()
@@ -133,7 +133,7 @@ class FirestoreTable(AbstractTable):
                 results.append(data)
         return results
 
-    def get(self, query: Any) -> Optional[Dict[str, Any]]:
+    def get(self, query: Any) -> dict[str, Any] | None:
         # Return the first match
         docs = self._collection.stream()
         for doc in docs:
@@ -142,7 +142,7 @@ class FirestoreTable(AbstractTable):
                 return data
         return None
 
-    def update(self, fields: Dict[str, Any], query: Any) -> List[int]:
+    def update(self, fields: dict[str, Any], query: Any) -> list[int]:
         docs = self._collection.stream()
         updated_count = 0
         for doc in docs:
@@ -152,7 +152,7 @@ class FirestoreTable(AbstractTable):
                 updated_count += 1
         return [1] * updated_count
 
-    def upsert(self, document: Dict[str, Any], query: Any) -> List[int]:
+    def upsert(self, document: dict[str, Any], query: Any) -> list[int]:
         docs = self._collection.stream()
         matches = []
         for doc in docs:
@@ -172,7 +172,7 @@ class FirestoreTable(AbstractTable):
                 self._collection.add(document)
             return [1]
 
-    def remove(self, query: Any) -> List[int]:
+    def remove(self, query: Any) -> list[int]:
         docs = self._collection.stream()
         removed_count = 0
         for doc in docs:
@@ -217,8 +217,7 @@ class FirestoreClient(AbstractDatabase):
 
 
 def get_db_client() -> AbstractDatabase:
-    """
-    Factory to get the appropriate database client based on configuration.
+    """Factory to get the appropriate database client based on configuration.
     """
     from backend.settings import get_settings
 

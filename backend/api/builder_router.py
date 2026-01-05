@@ -1,8 +1,13 @@
+"""API Router for Workflow Builder and Management.
+
+This module provides endpoints for creating, updating, copying, and validating
+workflows and steps, including the Builder UI toolbox and fusion logic.
+"""
 import copy
 import logging
 import uuid
 from datetime import datetime
-from typing import Annotated, Any, Dict, List, Optional
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Body, HTTPException
 from pydantic import BaseModel, Field
@@ -20,26 +25,37 @@ logger = logging.getLogger(__name__)
 
 
 class WorkflowCreateRequest(BaseModel):
+    """Payload for creating a new workflow.
+
+    Attributes:
+        name (str): The name of the workflow.
+        description (Optional[str]): Detailed description.
+        steps (list[str]): List of step IDs to include.
+        default_model_mapping (Optional[dict]): Map of step IDs to model strategies.
+        ui_schema (Optional[dict]): Frontend layout metadata.
+        is_public (bool): Visibility flag (System Root only).
+    """
+
     name: Annotated[str, Field(description="Name of the new workflow.")]
-    description: Annotated[Optional[str], Field(description="Optional description.")] = None
-    steps: Annotated[List[str], Field(description="List of step IDs.")] = []
-    default_model_mapping: Annotated[Optional[Dict[str, str]], Field(description="Initial model mapping.")] = {}
-    ui_schema: Annotated[Optional[Dict[str, Any]], Field(description="UI Layout metadata.")] = {}
+    description: Annotated[str | None, Field(description="Optional description.")] = None
+    steps: Annotated[list[str], Field(description="List of step IDs.")] = []
+    default_model_mapping: Annotated[dict[str, str] | None, Field(description="Initial model mapping.")] = {}
+    ui_schema: Annotated[dict[str, Any] | None, Field(description="UI Layout metadata.")] = {}
     is_public: Annotated[bool, Field(description="If True, visible to all tenants (System Only).")] = False
 
 
 class WorkflowUpdateRequest(BaseModel):
-    name: Annotated[Optional[str], Field(description="New name.")] = None
-    description: Annotated[Optional[str], Field(description="New description.")] = None
-    steps: Annotated[Optional[List[str]], Field(description="New step sequence.")] = None
-    ui_schema: Annotated[Optional[Dict[str, Any]], Field(description="New UI metadata.")] = None
-    default_model_mapping: Annotated[Optional[Dict[str, str]], Field(description="Updated model mapping.")] = None
-    is_public: Annotated[Optional[bool], Field(description="Update visibility.")] = None
+    name: Annotated[str | None, Field(description="New name.")] = None
+    description: Annotated[str | None, Field(description="New description.")] = None
+    steps: Annotated[list[str] | None, Field(description="New step sequence.")] = None
+    ui_schema: Annotated[dict[str, Any] | None, Field(description="New UI metadata.")] = None
+    default_model_mapping: Annotated[dict[str, str] | None, Field(description="Updated model mapping.")] = None
+    is_public: Annotated[bool | None, Field(description="Update visibility.")] = None
 
 
 class StepUpdateRequest(BaseModel):
-    name: Annotated[Optional[str], Field(description="New step name.")] = None
-    execution_config: Annotated[Optional[Dict[str, Any]], Field(description="Updated execution config.")] = None
+    name: Annotated[str | None, Field(description="New step name.")] = None
+    execution_config: Annotated[dict[str, Any] | None, Field(description="Updated execution config.")] = None
 
 
 class CopyWorkflowRequest(BaseModel):
@@ -48,20 +64,20 @@ class CopyWorkflowRequest(BaseModel):
 
 class CustomStepCreateRequest(BaseModel):
     component_type: Annotated[str, Field(description="Base component type (e.g. 'Judge', 'Analyst').")]
-    name_hint: Annotated[Optional[str], Field(description="Optional name override.")] = None
+    name_hint: Annotated[str | None, Field(description="Optional name override.")] = None
 
 
 class CompileRequest(BaseModel):
     workflow_id: Annotated[str, Field(description="Target workflow ID.")]
-    steps: Annotated[List[str], Field(description="List of step IDs to fuse.")]
+    steps: Annotated[list[str], Field(description="List of step IDs to fuse.")]
 
 
 class WorkflowTemplate(BaseModel):
     name: str
     description: str
-    steps: List[str]
-    default_model_mapping: Dict[str, str]
-    ui_schema: Dict[str, Any]
+    steps: list[str]
+    default_model_mapping: dict[str, str]
+    ui_schema: dict[str, Any]
 
 
 class ValidationRequest(BaseModel):
@@ -78,14 +94,14 @@ class ValidationRequest(BaseModel):
     response_description="A list of agent definitions including I/O contracts.",
 )
 async def get_available_agents(engine: EngineDep):
-    """
-    Returns metadata for all registered agents, used for the Builder Toolbox.
+    """Returns metadata for all registered agents, used for the Builder Toolbox.
 
     Args:
         engine (EngineDep): Dependency.
 
     Returns:
         List[dict]: Agent metadata objects.
+
     """
     try:
         registry = engine.registry
@@ -110,7 +126,15 @@ async def get_available_agents(engine: EngineDep):
 
 @router.get("/workflows", summary="List Workflows", response_description="All Workflows.")
 async def list_workflows(engine: EngineDep, current_user: CurrentUserDep):
-    """List all workflows visible to the current user."""
+    """List all workflows visible to the current user.
+
+    Args:
+        engine (EngineDep): Workflow engine dependency.
+        current_user (CurrentUserDep): The requesting user.
+
+    Returns:
+        list[dict]: A list of workflow definitions.
+    """
     return await engine.repository.get_all_workflows(
         organization_id=current_user.organization_id, role=current_user.role
     )
@@ -118,9 +142,18 @@ async def list_workflows(engine: EngineDep, current_user: CurrentUserDep):
 
 @router.post("/workflows", summary="Create Workflow", response_description="Created workflow data.")
 async def create_workflow(request: WorkflowCreateRequest, engine: EngineDep, current_user: CurrentUserDep):
-    """
-    Create a new workflow.
-    Protected: ROOT or MANAGER only.
+    """Create a new workflow.
+
+    Args:
+        request (WorkflowCreateRequest): Workflow definition.
+        engine (EngineDep): Engine dependency.
+        current_user (CurrentUserDep): Requesting user (ROOT/MANAGER).
+
+    Returns:
+        dict: The created workflow object.
+
+    Raises:
+        HTTPException: If permission denied (403) or creation fails (500).
     """
     # 1. RBAC Check
     if current_user.role not in [UserRole.ROOT, UserRole.MANAGER]:
@@ -161,7 +194,18 @@ async def create_workflow(request: WorkflowCreateRequest, engine: EngineDep, cur
 
 @router.get("/workflows/{workflow_id}", summary="Get Workflow", response_description="Workflow details.")
 async def get_workflow(workflow_id: str, engine: EngineDep):
-    """Get details of a specific workflow."""
+    """Get details of a specific workflow.
+
+    Args:
+        workflow_id (str): The UUID of the workflow.
+        engine (EngineDep): Engine dependency.
+
+    Returns:
+        dict: The workflow definition.
+
+    Raises:
+        HTTPException: If not found (404).
+    """
     wf = await engine.repository.get_workflow_by_id(workflow_id)
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
@@ -172,7 +216,20 @@ async def get_workflow(workflow_id: str, engine: EngineDep):
 async def update_workflow(
     workflow_id: str, request: WorkflowUpdateRequest, engine: EngineDep, current_user: CurrentUserDep
 ):
-    """Update an existing workflow."""
+    """Update an existing workflow.
+
+    Args:
+        workflow_id (str): The UUID of the workflow to update.
+        request (WorkflowUpdateRequest): Fields to update.
+        engine (EngineDep): Engine dependency.
+        current_user (CurrentUserDep): Requesting user.
+
+    Returns:
+        dict: The updated workflow object.
+
+    Raises:
+        HTTPException: If not found (404) or permission denied (403).
+    """
     wf = await engine.repository.get_workflow_by_id(workflow_id)
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
@@ -237,8 +294,18 @@ async def update_workflow(
     response_description="Deletion status and cleaned up orphans.",
 )
 async def delete_workflow(workflow_id: str, engine: EngineDep, current_user: CurrentUserDep):
-    """
-    Delete a workflow AND its orphan steps (Garbage Collection).
+    """Delete a workflow AND its orphan steps (Garbage Collection).
+
+    Args:
+        workflow_id (str): UUID of the workflow.
+        engine (EngineDep): Engine dependency.
+        current_user (CurrentUserDep): Requesting user.
+
+    Returns:
+        dict: Status and list of deleted orphan steps.
+
+    Raises:
+        HTTPException: If permission denied (403).
     """
     wf = await engine.repository.get_workflow_by_id(workflow_id)
     if not wf:
@@ -292,8 +359,7 @@ async def delete_workflow(workflow_id: str, engine: EngineDep, current_user: Cur
 
 @router.post("/workflows/{workflow_id}/copy", summary="Copy Workflow", response_description="The new workflow object.")
 async def copy_workflow(workflow_id: str, request: CopyWorkflowRequest, engine: EngineDep):
-    """
-    Deep Copy a workflow structure (Shallow copy of steps).
+    """Deep Copy a workflow structure (Shallow copy of steps).
     """
     original = await engine.repository.get_workflow_by_id(workflow_id)
     if not original:
@@ -320,8 +386,14 @@ async def copy_workflow(workflow_id: str, request: CopyWorkflowRequest, engine: 
 
 @router.post("/validate", summary="Validate Connection", response_description="Validation result.")
 async def validate_connection(request: ValidationRequest, engine: EngineDep):
-    """
-    Validates connection between two steps based on Agent I/O contracts.
+    """Validates connection between two steps based on Agent I/O contracts.
+
+    Args:
+        request (ValidationRequest): Source and Target step IDs.
+        engine (EngineDep): Engine dependency.
+
+    Returns:
+        dict: Validation result (valid: bool, reason: str).
     """
     try:
         # 1. Resolve Steps
@@ -378,7 +450,15 @@ async def validate_connection(request: ValidationRequest, engine: EngineDep):
 
 @router.get("/steps/{step_id}", summary="Get Step Details", response_description="Step configuration.")
 async def get_step_details(step_id: str, engine: EngineDep):
-    """V2: Get full configuration of a step."""
+    """V2: Get full configuration of a step.
+
+    Args:
+        step_id (str): The UUID of the step.
+        engine (EngineDep): Engine dependency.
+
+    Returns:
+        dict: The step configuration.
+    """
     step = await engine.repository.get_step_by_id(step_id)
     if not step:
         raise HTTPException(status_code=404, detail="Step not found")
@@ -387,8 +467,7 @@ async def get_step_details(step_id: str, engine: EngineDep):
 
 @router.put("/steps/{step_id}", summary="Update Step", response_description="Updated step.")
 async def update_step(step_id: str, request: StepUpdateRequest, engine: EngineDep):
-    """
-    V2: Update a step configuration.
+    """V2: Update a step configuration.
     WARNING: This modifies the global step definition.
     """
     step = await engine.repository.get_step_by_id(step_id)
@@ -411,8 +490,7 @@ async def update_step(step_id: str, request: StepUpdateRequest, engine: EngineDe
 
 @router.post("/steps/clone", summary="Clone Step", response_description="The new custom step config.")
 async def clone_step(engine: EngineDep, source_step_id: str = Body(..., embed=True)):
-    """
-    V2: Clone a step to a new Custom Step (Copy-on-Write).
+    """V2: Clone a step to a new Custom Step (Copy-on-Write).
     """
     step = await engine.repository.get_step_by_id(source_step_id)
     if not step:
@@ -434,8 +512,7 @@ async def clone_step(engine: EngineDep, source_step_id: str = Body(..., embed=Tr
     "/steps/create-custom", summary="Create Custom Step", response_description="The newly created custom step."
 )
 async def create_custom_step(req: CustomStepCreateRequest, engine: EngineDep):
-    """
-    Creates a new custom step definition server-side with proper defaults.
+    """Creates a new custom step definition server-side with proper defaults.
     """
     # 1. Generate ID
     prefix = f"custom_{req.component_type.lower()}"
@@ -490,8 +567,7 @@ async def get_workflow_template():
 
 @router.get("/config/fusion-rules", summary="Get Fusion Rules", response_description="List of fusion rules.")
 async def get_fusion_rules(engine: EngineDep):
-    """
-    Returns validation rules for prompt fusion.
+    """Returns validation rules for prompt fusion.
     """
     rules = []
     all_steps = await engine.repository.get_all_steps()
@@ -516,8 +592,7 @@ async def get_prompt_types():
 
 @router.post("/compile", summary="Compile Fusion", response_description="Compilation result.")
 async def compile_fusion(req: CompileRequest, engine: EngineDep):
-    """
-    V2: Prompt Fusion Compilation.
+    """V2: Prompt Fusion Compilation.
     Replaces a sequence of steps with a compatible Composite Step (Panel).
     """
     wf = await engine.repository.get_workflow_by_id(req.workflow_id)

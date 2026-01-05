@@ -1,17 +1,16 @@
 import json
 import os
-from typing import Optional
 
 from tinydb import Query, TinyDB
 
 
-def seed_database(target_db_path: Optional[str] = None):
-    """
-    Seeds the database with initial data from seed_data.json.
+def seed_database(target_db_path: str | None = None):
+    """Seeds the database with initial data from seed_data.json.
     Supports both TinyDB (local) and Firestore (cloud) based on settings.
 
     Args:
         target_db_path (Optional[str]): Path to the database file (TinyDB only).
+
     """
     from backend.settings import get_settings
 
@@ -24,7 +23,7 @@ def seed_database(target_db_path: Optional[str] = None):
         return
 
     try:
-        with open(settings.seed_data_path, "r", encoding="utf-8") as f:
+        with open(settings.seed_data_path, encoding="utf-8") as f:
             seed_data = json.load(f)
     except Exception as e:
         print(f"[Seeder] Error loading seed data: {e}")

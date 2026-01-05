@@ -1,6 +1,7 @@
+"""Agent implementations for the Cognitive Quorum backend."""
 import json
 import logging
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from backend.agents.base import BaseAgent
 from backend.models.domain import PanelAudit
@@ -12,8 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class PanelAgent(BaseAgent):
-    """
-    Paneeli-agentti (Panel Agent).
+    """Paneeli-agentti (Panel Agent).
 
     Executes multiple critical roles in a single LLM call to save tokens and time.
     Acts as a composite agent that performs fan-out of results to individual state fields.
@@ -24,14 +24,14 @@ class PanelAgent(BaseAgent):
     PRODUCES_KEYS = ["step_panel", "step_logician", "step_falsifier", "step_causal", "step_detector", "step_overseer"]
 
     def construct_user_prompt(self, state: WorkflowState) -> str:
-        """
-        Constructs the user prompt for the Panel Agent by aggregating input data and prior step results.
+        """Constructs the user prompt for the Panel Agent by aggregating input data and prior step results.
 
         Args:
             state (WorkflowState): The current workflow state.
 
         Returns:
             str: The constructed user prompt string.
+
         """
         # Collect all relevant data for all potential critics from the state
         # Utilizing previous steps' outputs if available
@@ -62,21 +62,28 @@ class PanelAgent(BaseAgent):
         ---
         """
 
-    async def execute(self, state: WorkflowState, system_instruction: Optional[str] = None, **kwargs) -> WorkflowState:
-        """
-        Executes the Panel Agent logic.
+    async def execute(self, state: WorkflowState, system_instruction: str | None = None, **kwargs) -> WorkflowState:
+        """Executes the Panel Agent logic.
 
         1. Constructs the user prompt.
         2. Calls the LLM provider with the PanelAudit schema.
         3. Fans out the results to specific state fields (logician, falsifier, etc.).
 
-        Args:
-            state (WorkflowState): The current workflow state.
-            system_instruction (Optional[str]): The system prompt instruction.
-            **kwargs: Additional keyword arguments.
+        Input State:
+            - state.inputs (History, Product, Reflection).
+            - state.step_analyst (Evidence Map) [Optional].
+            - state.step_profiler (Psychological Profile) [Optional].
 
-        Returns:
-            WorkflowState: The updated workflow state.
+        Output State:
+            - state.step_panel (PanelAudit): The composite audit.
+            - state.step_logician (Populated from PanelAudit).
+            - state.step_falsifier (Populated from PanelAudit).
+            - state.step_causal (Populated from PanelAudit).
+            - state.step_detector (Populated from PanelAudit).
+            - state.step_overseer (Populated from PanelAudit).
+
+        Exceptions:
+            - AgentExecutionError: If LLM fails or schema validation fails.
         """
         # 1. Construct User Prompt
         user_content = self.construct_user_prompt(state)

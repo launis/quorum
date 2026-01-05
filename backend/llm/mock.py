@@ -2,7 +2,6 @@ import json
 import logging
 import random
 import re
-from typing import Optional
 
 from backend.llm.mock_data import AGENT_CLASS_TO_MOCK_KEY, get_fallback_data
 
@@ -10,24 +9,21 @@ logger = logging.getLogger(__name__)
 
 
 class MockLLMService:
-    """
-    Simulates LLM responses for testing and development without API costs.
+    """Simulates LLM responses for testing and development without API costs.
     Intercepts calls and returns pre-defined JSON responses based on agent identity or prompt heuristics.
     """
 
     def __init__(self):
-        """
-        Initializes the Mock Service.
+        """Initializes the Mock Service.
         """
         # MAPPING: Agent Class Name -> Mock Key
         # Centralized in mock_data.py
         self.agent_identity_map = AGENT_CLASS_TO_MOCK_KEY
 
     def generate_content(
-        self, prompt: str, system_instruction: Optional[str] = None, agent_identity: Optional[str] = None
+        self, prompt: str, system_instruction: str | None = None, agent_identity: str | None = None
     ) -> str:
-        """
-        Generates mocked content based on the input prompt and identity.
+        """Generates mocked content based on the input prompt and identity.
 
         Args:
             prompt (str): The user prompt.
@@ -36,8 +32,8 @@ class MockLLMService:
 
         Returns:
             str: JSON string representing the mocked agent output.
-        """
 
+        """
         logger.info(f"[MockLLM] Intercepted call. Prompt length: {len(prompt)}")
 
         # 1. Determine Identity
@@ -67,9 +63,8 @@ class MockLLMService:
 
         return self._generate_fallback(key, prompt, system_instruction)
 
-    def _identify_prompt_type(self, prompt: str, system_instruction: Optional[str]) -> str:
-        """
-        Heuristics to identify the prompt type/agent key.
+    def _identify_prompt_type(self, prompt: str, system_instruction: str | None) -> str:
+        """Heuristics to identify the prompt type/agent key.
         Prioritizes explicit STEP_ID injection, then system instruction keywords, then prompt keywords.
 
         Args:
@@ -78,6 +73,7 @@ class MockLLMService:
 
         Returns:
             str: The identified mock key (e.g., 'analyst_agent') or 'unknown'.
+
         """
         # 0. Check for explicit STEP_ID injected into prompt
         step_id_match = re.search(r"STEP_ID: (\w+)", prompt)
@@ -271,9 +267,8 @@ class MockLLMService:
 
         return "unknown"
 
-    def _generate_fallback(self, key: str, prompt: str = "", system_instruction: Optional[str] = None) -> str:
-        """
-        Generates a minimal valid JSON response for the identified key, strictly matching backend/schemas.py.
+    def _generate_fallback(self, key: str, prompt: str = "", system_instruction: str | None = None) -> str:
+        """Generates a minimal valid JSON response for the identified key, strictly matching backend/schemas.py.
         Delegates precise data generation to `mock_data.py`.
 
         Args:
@@ -283,6 +278,7 @@ class MockLLMService:
 
         Returns:
             str: JSON string of the fallback data.
+
         """
         data = get_fallback_data(key)
 

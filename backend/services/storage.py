@@ -1,20 +1,17 @@
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Optional, Union
 
 logger = logging.getLogger(__name__)
 
 
 class AbstractStorage(ABC):
-    """
-    Abstract base class defining the contract for file storage backends.
+    """Abstract base class defining the contract for file storage backends.
     """
 
     @abstractmethod
-    def save(self, path: str, data: Union[bytes, str]) -> str:
-        """
-        Saves data (bytes or string) to the specified path.
+    def save(self, path: str, data: bytes | str) -> str:
+        """Saves data (bytes or string) to the specified path.
 
         Args:
             path (str): Relative path/key for the file.
@@ -22,55 +19,54 @@ class AbstractStorage(ABC):
 
         Returns:
             str: The resolved path or URI of the saved file.
+
         """
         pass
 
     @abstractmethod
     def read(self, path: str) -> bytes:
-        """
-        Reads raw bytes from the specified path.
+        """Reads raw bytes from the specified path.
 
         Args:
             path (str): Relative path/key.
 
         Returns:
             bytes: The file content.
+
         """
         pass
 
     @abstractmethod
     def exists(self, path: str) -> bool:
-        """
-        checks existence of the file.
+        """Checks existence of the file.
 
         Args:
             path (str): Relative path/key.
 
         Returns:
             bool: True if exists, else False.
+
         """
         pass
 
 
 class LocalFileStorage(AbstractStorage):
-    """
-    Local file system implementation of AbstractStorage.
+    """Local file system implementation of AbstractStorage.
     Stores files in a local directory (e.g., 'backend/files/executions').
     """
 
     def __init__(self, base_path: str = "backend/files/executions"):
-        """
-        Initializes local storage.
+        """Initializes local storage.
 
         Args:
             base_path (str): Root directory for file storage.
+
         """
         self.base_path = Path(base_path)
         self.base_path.mkdir(parents=True, exist_ok=True)
 
-    def save(self, path: str, data: Union[bytes, str]) -> str:
-        """
-        Saves file locally. 'path' is treated as relative to base_path.
+    def save(self, path: str, data: bytes | str) -> str:
+        """Saves file locally. 'path' is treated as relative to base_path.
 
         Args:
             path (str): Relative path.
@@ -81,6 +77,7 @@ class LocalFileStorage(AbstractStorage):
 
         Raises:
             IOError: If write fails.
+
         """
         try:
             full_path = self.base_path / path
@@ -100,14 +97,14 @@ class LocalFileStorage(AbstractStorage):
             raise e
 
     def read(self, path: str) -> bytes:
-        """
-        Reads file from local system.
+        """Reads file from local system.
 
         Args:
             path (str): Relative path.
 
         Returns:
             bytes: Content.
+
         """
         try:
             full_path = self.base_path / path
@@ -118,31 +115,32 @@ class LocalFileStorage(AbstractStorage):
             raise e
 
     def exists(self, path: str) -> bool:
-        """
-        Checks if local file exists.
+        """Checks if local file exists.
 
         Args:
             path (str): Relative path.
 
         Returns:
             bool: Existence status.
+
         """
         full_path = self.base_path / path
         return full_path.exists()
 
 
 class NoOpStorage(AbstractStorage):
-    """
-    Storage implementation that does nothing (for when storage is disabled).
-    """
+    """Storage implementation that does nothing (for when storage is disabled)."""
 
-    def save(self, path: str, data: Union[bytes, str]) -> str:
+    def save(self, path: str, data: bytes | str) -> str:
+        """Mock save."""
         return f"NOT_SAVED (NoOp): {path}"
 
     def read(self, path: str) -> bytes:
+        """Mock read."""
         raise FileNotFoundError(f"NoOpStorage does not store files: {path}")
 
     def exists(self, path: str) -> bool:
+        """Mock exists."""
         return False
 
 
@@ -150,17 +148,16 @@ class NoOpStorage(AbstractStorage):
 
 
 class FirebaseStorage(AbstractStorage):
-    """
-    Firebase Storage implementation of AbstractStorage.
+    """Firebase Storage implementation of AbstractStorage.
     Uses firebase-admin SDK.
     """
 
-    def __init__(self, bucket_name: Optional[str] = None):
-        """
-        Initializes Firebase Storage client.
+    def __init__(self, bucket_name: str | None = None):
+        """Initializes Firebase Storage client.
 
         Args:
             bucket_name (Optional[str]): Target bucket name.
+
         """
         import firebase_admin
         from firebase_admin import storage
@@ -175,9 +172,8 @@ class FirebaseStorage(AbstractStorage):
 
         self.bucket = storage.bucket(name=bucket_name)
 
-    def save(self, path: str, data: Union[bytes, str]) -> str:
-        """
-        Saves file to Firebase Storage bucket.
+    def save(self, path: str, data: bytes | str) -> str:
+        """Saves file to Firebase Storage bucket.
 
         Args:
             path (str): Blob path.
@@ -185,6 +181,7 @@ class FirebaseStorage(AbstractStorage):
 
         Returns:
             str: gs:// URI of the saved blob.
+
         """
         try:
             blob = self.bucket.blob(path)
@@ -201,14 +198,14 @@ class FirebaseStorage(AbstractStorage):
             raise e
 
     def read(self, path: str) -> bytes:
-        """
-        Reads file from Firebase bucket.
+        """Reads file from Firebase bucket.
 
         Args:
             path (str): Blob path.
 
         Returns:
             bytes: Content.
+
         """
         try:
             blob = self.bucket.blob(path)
@@ -218,28 +215,28 @@ class FirebaseStorage(AbstractStorage):
             raise e
 
     def exists(self, path: str) -> bool:
-        """
-        Checks if blob exists in Firebase.
+        """Checks if blob exists in Firebase.
 
         Args:
             path (str): Blob path.
 
         Returns:
             bool: Status.
+
         """
         blob = self.bucket.blob(path)
         return blob.exists()
 
 
 def get_storage_client() -> AbstractStorage:
-    """
-    Factory function to return the configured storage client.
+    """Factory function to return the configured storage client.
     Defaults to LocalFileStorage in development.
     """
     from backend.settings import get_settings
+
     settings = get_settings()
 
     if settings.environment == "production" and settings.storage_bucket_name:
-         return FirebaseStorage(bucket_name=settings.storage_bucket_name)
+        return FirebaseStorage(bucket_name=settings.storage_bucket_name)
     else:
-         return LocalFileStorage()
+        return LocalFileStorage()

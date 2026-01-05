@@ -1,27 +1,25 @@
 import os
-from typing import Any, Dict
+from typing import Any
 
 from backend.database.repository import AbstractWorkflowRepository
 from backend.services.progress import ProgressTracker
 
 
 class AdministrationService:
-    """
-    Coordinates administrative tasks like database exporting and rebuilding.
+    """Coordinates administrative tasks like database exporting and rebuilding.
     """
 
     def __init__(self, repository: AbstractWorkflowRepository):
-        """
-        Initializes the service with a repository instance.
+        """Initializes the service with a repository instance.
 
         Args:
             repository (AbstractWorkflowRepository): The data access layer.
+
         """
         self.repository = repository
 
-    def export_seed_data(self, tracker: ProgressTracker) -> Dict[str, Any]:
-        """
-        Exports the current database configuration to 'seed_data.json'.
+    def export_seed_data(self, tracker: ProgressTracker) -> dict[str, Any]:
+        """Exports the current database configuration to 'seed_data.json'.
         Used for persisting changes made in the UI back to source control.
 
         Args:
@@ -29,6 +27,7 @@ class AdministrationService:
 
         Returns:
             Dict[str, Any]: Status and result message.
+
         """
         from backend.database.exporter import export_db_to_files
 
@@ -47,9 +46,8 @@ class AdministrationService:
             tracker.fail(str(e))
             raise e
 
-    def rebuild_database(self, tracker: ProgressTracker) -> Dict[str, Any]:
-        """
-        Rebuilds the database using 'seed_data.json'.
+    def rebuild_database(self, tracker: ProgressTracker) -> dict[str, Any]:
+        """Rebuilds the database using 'seed_data.json'.
         Wipes existing data and re-seeds from the JSON source.
 
         Args:
@@ -57,6 +55,7 @@ class AdministrationService:
 
         Returns:
             Dict[str, Any]: Status and result message.
+
         """
         from backend.seed.seeder import seed_database
 
@@ -75,19 +74,40 @@ class AdministrationService:
             tracker.fail(str(e))
             raise e
 
-    def reset_mock_db(self, tracker: ProgressTracker) -> Dict[str, Any]:
-        """Resets the Mock database via external script."""
+    def reset_mock_db(self, tracker: ProgressTracker) -> dict[str, Any]:
+        """Resets the Mock database via external script.
+
+        Args:
+            tracker (ProgressTracker): Progress tracker.
+
+        Returns:
+            dict[str, Any]: Operation result.
+        """
         return self._run_external_reset(tracker, "rebuild_mock_db.py", "Mock Database Reset")
 
-    def reset_prod_db(self, tracker: ProgressTracker) -> Dict[str, Any]:
-        """Resets the Prod (TinyDB) database via external script."""
+    def reset_prod_db(self, tracker: ProgressTracker) -> dict[str, Any]:
+        """Resets the Prod (TinyDB) database via external script.
+
+        Args:
+            tracker (ProgressTracker): Progress tracker.
+
+        Returns:
+            dict[str, Any]: Operation result.
+        """
         return self._run_external_reset(tracker, "rebuild_prod_db.py", "Prod Database Reset")
 
-    def reset_firestore(self, tracker: ProgressTracker) -> Dict[str, Any]:
-        """Resets the Firestore database via external script."""
+    def reset_firestore(self, tracker: ProgressTracker) -> dict[str, Any]:
+        """Resets the Firestore database via external script.
+
+        Args:
+            tracker (ProgressTracker): Progress tracker.
+
+        Returns:
+            dict[str, Any]: Operation result.
+        """
         return self._run_external_reset(tracker, "seed_firestore.py", "Firestore Reset")
 
-    def _run_external_reset(self, tracker: ProgressTracker, script_name: str, op_name: str) -> Dict[str, Any]:
+    def _run_external_reset(self, tracker: ProgressTracker, script_name: str, op_name: str) -> dict[str, Any]:
         import subprocess
         import sys
 

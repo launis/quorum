@@ -1,7 +1,8 @@
 import json
 import logging
+from datetime import UTC
 from pathlib import Path
-from typing import Any, Dict, List, Set
+from typing import Any
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
@@ -18,22 +19,21 @@ EXCLUDED_TABLES = {
 }
 
 
-def load_json(path: Path) -> Dict[str, Any]:
+def load_json(path: Path) -> dict[str, Any]:
     """Loads a JSON file."""
     if not path.exists():
         logger.error(f"File not found: {path}")
         return {}
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             return json.load(f)
     except json.JSONDecodeError as e:
         logger.error(f"Failed to decode JSON from {path}: {e}")
         return {}
 
 
-def normalize_tinydb(db_data: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Normalizes TinyDB structure to match seed_data.json structure.
+def normalize_tinydb(db_data: dict[str, Any]) -> dict[str, Any]:
+    """Normalizes TinyDB structure to match seed_data.json structure.
     TinyDB assumes {"table_name": {"default": {"1": {...}, "2": {...}}}}
     Seed assumes {"table_name": [ ...list of items... ]} OR dicts.
     """
@@ -87,9 +87,8 @@ def normalize_tinydb(db_data: Dict[str, Any]) -> Dict[str, Any]:
     return normalized
 
 
-def normalize_seed(seed_data: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Normalizes seed_data.json structure for comparison.
+def normalize_seed(seed_data: dict[str, Any]) -> dict[str, Any]:
+    """Normalizes seed_data.json structure for comparison.
     Seed data is usually {"table_name": [ ...list... ]}
     """
     normalized = {}
@@ -121,7 +120,7 @@ def normalize_seed(seed_data: Dict[str, Any]) -> Dict[str, Any]:
     return normalized
 
 
-def compare_dicts(source: Dict[str, Any], target: Dict[str, Any], context: str) -> List[str]:
+def compare_dicts(source: dict[str, Any], target: dict[str, Any], context: str) -> list[str]:
     """Recursively compares two dictionaries."""
     diffs = []
 
@@ -166,9 +165,8 @@ except ImportError:
     firestore = None
 
 
-def load_firestore_data(credentials_path: Path, seed_keys: Set[str]) -> Dict[str, Any]:
-    """
-    Fetches data from Firestore for keys present in seed_data.
+def load_firestore_data(credentials_path: Path, seed_keys: set[str]) -> dict[str, Any]:
+    """Fetches data from Firestore for keys present in seed_data.
     """
     if not firestore:
         logger.warning("google-cloud-firestore not installed. Skipping Firestore verification.")
@@ -300,11 +298,11 @@ def run_verification(seed_path: Path, db_prod_path: Path, db_mock_path: Path, fi
     recommendations = []
 
     # Helper to find max timestamp in a dataset
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     def get_max_timestamp(data: Any) -> datetime:
         # Start with a distinct minimum that is also timezone-aware (UTC)
-        max_ts = datetime.min.replace(tzinfo=timezone.utc)
+        max_ts = datetime.min.replace(tzinfo=UTC)
 
         if isinstance(data, dict):
             for k, v in data.items():
@@ -321,7 +319,7 @@ def run_verification(seed_path: Path, db_prod_path: Path, db_mock_path: Path, fi
                             ts = datetime.fromisoformat(iso_str)
                             # If the parsed timestamp is naive, assume UTC
                             if ts.tzinfo is None:
-                                ts = ts.replace(tzinfo=timezone.utc)
+                                ts = ts.replace(tzinfo=UTC)
                             if ts > max_ts:
                                 max_ts = ts
                         except ValueError:
@@ -348,7 +346,7 @@ def run_verification(seed_path: Path, db_prod_path: Path, db_mock_path: Path, fi
         "model_registry",
     ]
 
-    def get_scoped_data(full_data: Dict[str, Any]) -> Dict[str, Any]:
+    def get_scoped_data(full_data: dict[str, Any]) -> dict[str, Any]:
         """Returns only the subsets of data that are subject to syncing."""
         if not isinstance(full_data, dict):
             return full_data
@@ -360,7 +358,7 @@ def run_verification(seed_path: Path, db_prod_path: Path, db_mock_path: Path, fi
     ts_fire = get_max_timestamp(firestore_data) if firestore_creds_path and firestore_data else datetime.min
 
     # Define a timezone-aware minimum for comparison
-    MIN_DT = datetime.min.replace(tzinfo=timezone.utc)
+    MIN_DT = datetime.min.replace(tzinfo=UTC)
 
     print("LATEST UPDATES DETECTED:")
     print(f"  Seed  : {ts_seed if ts_seed > MIN_DT else 'N/A'}")

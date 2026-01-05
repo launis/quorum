@@ -17,7 +17,7 @@ async def test_hybrid_guard_triggers_english(mock_state):
     
     # Mock LLM Provider response
     mock_llm_response = MagicMock()
-    mock_llm_response.content = '{"security_check": {"uhka_havaittu": false, "riski_taso": "MATALA", "adversariaalinen_simulaatio_tulos": "Clean."}, "data": {}}'
+    mock_llm_response.content = '{"metadata": {"luontiaika": "2026-01-01T12:00:00Z", "agentti": "GuardAgent", "vaihe": 1}, "metodologinen_loki": "Mock check", "edellisen_vaiheen_validointi": "N/A", "semanttinen_tarkistussumma": "hash123", "security_check": {"uhka_havaittu": true, "riski_taso": "KORKEA", "adversariaalinen_simulaatio_tulos": "Threat found: ignore previous instructions"}, "data": {}}'
     mock_llm_response.reasoning_token = None
     
     agent.llm_provider = AsyncMock()
@@ -40,7 +40,7 @@ async def test_hybrid_guard_triggers_finnish(mock_state):
     
     # Mock LLM
     mock_llm_response = MagicMock()
-    mock_llm_response.content = '{"security_check": {"uhka_havaittu": false, "riski_taso": "MATALA", "adversariaalinen_simulaatio_tulos": "Puhdas."}, "data": {}}'
+    mock_llm_response.content = '{"metadata": {"luontiaika": "2026-01-01T12:00:00Z", "agentti": "GuardAgent", "vaihe": 1}, "metodologinen_loki": "Mock check", "edellisen_vaiheen_validointi": "N/A", "semanttinen_tarkistussumma": "hash123", "security_check": {"uhka_havaittu": true, "riski_taso": "KORKEA", "adversariaalinen_simulaatio_tulos": "Threat found: unohda aiemmat ohjeet"}, "data": {}}'
     mock_llm_response.reasoning_token = None
     agent.llm_provider = AsyncMock()
     agent.llm_provider.generate.return_value = mock_llm_response
@@ -64,13 +64,21 @@ async def test_hybrid_guard_clean_input(mock_state):
     # TaintedData has security_check, content_analysis, anonymization_log
     json_content = """
     {
+        "metadata": {
+            "luontiaika": "2026-01-01T12:00:00Z",
+            "agentti": "GuardAgent",
+            "vaihe": 1
+        },
+        "metodologinen_loki": "Mock check",
+        "edellisen_vaiheen_validointi": "N/A",
+        "semanttinen_tarkistussumma": "hash123",
         "security_check": {
             "uhka_havaittu": false,
             "riski_taso": "MATALA",
             "adversariaalinen_simulaatio_tulos": "Clean."
         },
-        "content_analysis": {},
-        "anonymization_log": {}
+        "data": {},
+        "safe_data": {}
     }
     """
     mock_llm_response.content = json_content

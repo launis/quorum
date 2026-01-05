@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import docx
 
@@ -8,15 +8,13 @@ logger = logging.getLogger(__name__)
 
 
 class KnowledgeBaseParser:
-    """
-    Parses unstructured documents (DOCX, Markdown) into structured Knowledge Base entries.
+    """Parses unstructured documents (DOCX, Markdown) into structured Knowledge Base entries.
     Extracts Concepts, References, and Claims using heuristic detection and ReGex patterns.
     """
 
     @staticmethod
-    def extract_claims_from_text(text: str) -> List[Dict[str, Any]]:
-        """
-        Extracts sentences containing citations (claims) from text using ReGex.
+    def extract_claims_from_text(text: str) -> list[dict[str, Any]]:
+        """Extracts sentences containing citations (claims) from text using ReGex.
 
         Detection Rules:
         - Markdown Links: [Context](#anchor)
@@ -31,6 +29,7 @@ class KnowledgeBaseParser:
                 - citation_keys (List[str]): Extracted anchor IDs.
                 - citation_text (str): Extracted text markers.
                 - original_markdown (str): Initially empty, filled during resolve phase.
+
         """
         claims = []
         if not text:
@@ -102,9 +101,8 @@ class KnowledgeBaseParser:
         return claims
 
     @staticmethod
-    def parse_docx(file_input: Any) -> Dict[str, Any]:
-        """
-        Parses DOCX document into structured knowledge.
+    def parse_docx(file_input: Any) -> dict[str, Any]:
+        """Parses DOCX document into structured knowledge.
         Iterates through paragraphs to distinguish between Concepts (Headers + Text) and Bibliography.
 
         Args:
@@ -115,6 +113,7 @@ class KnowledgeBaseParser:
 
         Raises:
             Exception: If document cannot be opened.
+
         """
         logger.info(f"[KBParser] Parsing input (Type: {type(file_input)})")
         try:
@@ -283,14 +282,14 @@ class KnowledgeBaseParser:
 
     @staticmethod
     def clean_text(text: str) -> str:
-        """
-        Normalizes text by removing invisible Word artifacts (non-breaking spaces, dashes).
+        """Normalizes text by removing invisible Word artifacts (non-breaking spaces, dashes).
 
         Args:
             text (str): Raw text.
 
         Returns:
             str: Normalized text.
+
         """
         if not text:
             return ""
@@ -299,9 +298,8 @@ class KnowledgeBaseParser:
         return text
 
     @staticmethod
-    def extract_short_citation(full_entry: str) -> Optional[str]:
-        """
-        Extracts concise 'Author Year' or 'Author & Author Year' label from a full bibliographic entry.
+    def extract_short_citation(full_entry: str) -> str | None:
+        """Extracts concise 'Author Year' or 'Author & Author Year' label from a full bibliographic entry.
 
         Supported formats:
         - "Acemoglu, D. & Restrepo, P. 2018:"
@@ -313,6 +311,7 @@ class KnowledgeBaseParser:
 
         Returns:
             Optional[str]: Short citation string or None.
+
         """
         if not full_entry:
             return None
@@ -371,9 +370,8 @@ class KnowledgeBaseParser:
         return None
 
     @staticmethod
-    def parse_md(file_input: Any) -> Dict[str, Any]:
-        """
-        Parses Markdown content into structured knowledge.
+    def parse_md(file_input: Any) -> dict[str, Any]:
+        """Parses Markdown content into structured knowledge.
 
         Support for:
         - Headers (# Term) -> Concepts
@@ -385,12 +383,13 @@ class KnowledgeBaseParser:
 
         Returns:
              Dict[str, Any]: Structured KB dict.
+
         """
         logger.info(f"[KBParser] Parsing MD input (Type: {type(file_input)})")
 
         content_str = ""
         if isinstance(file_input, str):
-            with open(file_input, "r", encoding="utf-8") as f:
+            with open(file_input, encoding="utf-8") as f:
                 content_str = f.read()
         else:
             # Assume stream/bytes
@@ -539,9 +538,8 @@ class KnowledgeBaseParser:
         return knowledge_base
 
     @staticmethod
-    def _resolve_claims(knowledge_base: Dict[str, Any]):
-        """
-        Internal Helper: Resolves textual claims to their full bibliographic references.
+    def _resolve_claims(knowledge_base: dict[str, Any]):
+        """Internal Helper: Resolves textual claims to their full bibliographic references.
         Populates 'original_markdown' field in claims.
 
         Match Logic:

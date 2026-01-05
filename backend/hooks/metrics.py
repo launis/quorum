@@ -1,13 +1,12 @@
 import logging
 import re
-from typing import Any, Dict
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
-def calculate_text_metrics(text: str) -> Dict[str, Any]:
-    """
-    Calculates objective text metrics from the input text using simple heuristic counting.
+def calculate_text_metrics(text: str) -> dict[str, Any]:
+    """Calculates objective text metrics from the input text using simple heuristic counting.
     Metrics include word count, sentence count, avg sentence length, lexical diversity,
     and capitalization ratio.
 
@@ -16,6 +15,7 @@ def calculate_text_metrics(text: str) -> Dict[str, Any]:
 
     Returns:
         Dict[str, Any]: Key metrics (e.g. {'word_count': 150, 'lexical_diversity': 0.45}).
+
     """
     if not text or not text.strip():
         return {}
@@ -51,8 +51,7 @@ def calculate_text_metrics(text: str) -> Dict[str, Any]:
 
 
 def calculate_control_ratio(text: str) -> float:
-    """
-    Calculates ratio of Human Tokens vs Total Tokens (approximation using characters).
+    """Calculates ratio of Human Tokens vs Total Tokens (approximation using characters).
     Attempts to parse chat logs based on common headers (User:/AI:).
 
     Formula: UserChars / (UserChars + AIChars)
@@ -62,6 +61,7 @@ def calculate_control_ratio(text: str) -> float:
 
     Returns:
         float: Control ratio between 0.0 (Pure AI) and 1.0 (Pure Human).
+
     """
     if not text:
         return 0.0

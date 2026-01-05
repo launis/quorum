@@ -1,9 +1,8 @@
 import streamlit as st
-import pandas as pd
+
 
 def render_dual_matrix_view(data: dict):
-    """
-    Renders a comparative view of two Judge matrices dynamically.
+    """Renders a comparative view of two Judge matrices dynamically.
     Preferentially uses pre-computed 'comparison_data' from Backend (V2).
     Falls back to heuristic scanning for legacy reports.
     """
@@ -21,7 +20,7 @@ def render_dual_matrix_view(data: dict):
         left_label = comp_data.get('left_label', 'Judge A')
         right_label = comp_data.get('right_label', 'Judge B')
         rows = comp_data.get('rows', [])
-        
+
         # Header
         cols = st.columns([2, 2, 2, 1, 2])
         cols[0].markdown("**Ulottuvuus**")
@@ -30,19 +29,19 @@ def render_dual_matrix_view(data: dict):
         cols[3].markdown("**Delta**")
         cols[4].markdown("**Johtopäätös**")
         st.divider()
-        
+
         for r in rows:
             key = r.get('dimension', 'N/A')
             l_det = r.get('left', {})
             r_det = r.get('right', {})
             delta = r.get('delta', 0)
-            
+
             # Format values
             val_l = l_det.get('score', 0) if l_det else None
             val_r = r_det.get('score', 0) if r_det else None
             reason_l = l_det.get('reasoning', '') if l_det else ''
             reason_r = r_det.get('reasoning', '') if r_det else ''
-            
+
             if delta is not None:
                 delta_str = f"+{delta:.1f}" if delta > 0 else f"{delta:.1f}"
                 if delta == 0: delta_str = "="
@@ -50,7 +49,7 @@ def render_dual_matrix_view(data: dict):
             else:
                 delta_str = "-"
                 delta_color = "gray"
-            
+
             # Verdict Logic (Purely UI presentation here, data is fixed)
             verdict = "⚖️ Tasan"
             if delta > 0: verdict = f"📈 {right_label} (+)"
@@ -62,7 +61,7 @@ def render_dual_matrix_view(data: dict):
             c[2].metric(right_label, val_r, label_visibility="collapsed")
             c[3].markdown(f":{delta_color}[**{delta_str}**]")
             c[4].caption(verdict)
-            
+
             with c[0].expander("Perustelut"):
                 st.markdown(f"**{left_label}:** {reason_l}")
                 st.divider()
@@ -77,8 +76,7 @@ def render_dual_matrix_view(data: dict):
         return
 
 def render_dashboard(data: dict):
-    """
-    Renders the complete audit dashboard based on the result dictionary.
+    """Renders the complete audit dashboard based on the result dictionary.
     """
     st.divider()
     st.title("Results Dashboard")
@@ -86,7 +84,7 @@ def render_dashboard(data: dict):
     # 1. High Level Verdict (Report)
     report = data.get("Report", {})
     sys_status = data.get("System_Status", {})
-    
+
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.metric("Tuomio (Verdict)", report.get("final_verdict", "N/A"))
@@ -103,7 +101,7 @@ def render_dashboard(data: dict):
     # 2. Scores (Dual or Single)
     # Check for Dual Mode metadata or infer from comparison_data availability
     matrix_mode = data.get("matrix_mode") or data.get("_meta", {}).get("matrix_mode")
-    
+
     if not matrix_mode and report.get("comparison_data"):
         matrix_mode = "dual"
 
@@ -120,7 +118,7 @@ def render_dashboard(data: dict):
              s = float(score)
              # integer check
              val_str = f"{s:.0f}" if s.is_integer() else f"{s:.1f}"
-             
+
              if s_max:
                  return f"{val_str}/{s_max}"
              # Heuristic: If > 5, assume it's NOT a small Likert
@@ -129,14 +127,14 @@ def render_dashboard(data: dict):
             return str(score)
 
     if scores:
-        st.subheader(f"Arviointi (Dynamic Scores)")
-        
+        st.subheader("Arviointi (Dynamic Scores)")
+
         # Convert scores dict to list of items for rendering
         score_items = [
-            (k, v) for k, v in scores.items() 
+            (k, v) for k, v in scores.items()
             if not k.endswith('_selitys')
         ]
-        
+
         # Create rows of 3 columns
         for i in range(0, len(score_items), 3):
             cols = st.columns(3)
@@ -144,17 +142,17 @@ def render_dashboard(data: dict):
                 if i + j < len(score_items):
                     key, val = score_items[i + j]
                     label = key.replace('_', ' ').capitalize()
-                    
+
                     # Handle value if it's complex (e.g. dict with reasoning) or simple
                     score_val = val
                     selitys = ""
-                    
+
                     # If the flattened report puts explanation in a separate key (e.g. "analyysi_selitys")
                     # we try to find it.
                     possible_selitys_key = f"{key}_selitys"
                     if possible_selitys_key in scores:
                         selitys = scores[possible_selitys_key]
-                    
+
                     # If val is dict (JudgeAgent standard output often has {arvosana: X, perustelu: Y})
                     if isinstance(val, dict):
                         score_val = val.get("arvosana")
@@ -168,7 +166,7 @@ def render_dashboard(data: dict):
     # 3. Feedback
     st.subheader("Palaute (Feedback)")
     st.info(report.get("palaute_yhteenveto", "Ei palautetta."))
-    
+
     with st.expander("Toimenpiteet (Valmennusohjeet)", expanded=True):
         # 1. Coaching Actions
         actions = report.get("kehitystoimenpiteet", [])
@@ -192,7 +190,7 @@ def render_dashboard(data: dict):
 
     # 4. Profile & Interaction
     c_prof, c_int = st.columns(2)
-    
+
     with c_prof:
         st.markdown("### 🧠 Psykologinen Profiili")
         # In V2, profile is projected into Report if implemented, or we fallback to Raw Steps
@@ -249,7 +247,7 @@ def render_dashboard(data: dict):
 
     # 6. Deep Dive (Evidence & Logic)
     with st.expander("🔍 Syväanalyysi (Todisteet, Logiikka, Faktat)", expanded=False):
-        
+
         # A. XAI Report
         if report.get('xai_report_formatted'):
             st.markdown("#### 📝 XAI Raportti")
@@ -266,7 +264,7 @@ def render_dashboard(data: dict):
                 for h in hypos:
                     icon = "✅" if h.get('loytyyko_todisteita') else "❌"
                     st.caption(f"{icon} {h.get('vaite_teksti')}")
-            
+
             if evidence:
                 st.markdown("**Löydetyt todisteet (RAG):**")
                 for e in evidence:
@@ -295,7 +293,7 @@ def render_dashboard(data: dict):
                 res = f.get('verifiointi_tulos')
                 color = "green" if res == "Vahvistettu" else "red"
                 st.markdown(f":{color}[{res}] **{f.get('vaite')}** ({f.get('lahde_tai_paattely')})")
-            
+
             for e in ethics:
                 if e.get('tyyppi') != "Ei havaittu":
                     st.warning(f"**{e.get('tyyppi')}** ({e.get('vakavuus')}): {e.get('kuvaus')}")
@@ -313,7 +311,7 @@ def render_dashboard(data: dict):
         if pre_mortem:
             st.markdown("#### 🎭 Performatiivisuus & Pre-Mortem")
             if pre_mortem.get('suoritettu'):
-                 st.write(f"**Suoritettu:** Kyllä")
+                 st.write("**Suoritettu:** Kyllä")
                  signals = pre_mortem.get('hiljaiset_signaalit', [])
                  if signals:
                      st.markdown("**Hiljaiset signaalit:**")
@@ -343,9 +341,9 @@ def render_dashboard(data: dict):
                      steps.append((step_num, key, val))
                  else:
                      steps.append((999, key, val))
-             
+
              steps.sort(key=lambda x: x[0])
-             
+
              for _, key, step_data in steps:
                  meta = step_data.get('metadata', {})
                  agent = meta.get('agent', key)
@@ -353,9 +351,9 @@ def render_dashboard(data: dict):
                  time = meta.get('luontiaika', 'N/A')
                  log = step_data.get('metodologinen_loki')
                  reasoning = step_data.get('reasoning_trace')
-                 
+
                  st.markdown(f"**{agent}** (v{ver}) - *{time}*")
-                 
+
                  # Show Scale if available (Judge Steps)
                  s_min = step_data.get('scale_min')
                  s_max = step_data.get('scale_max')

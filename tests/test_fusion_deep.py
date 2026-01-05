@@ -116,7 +116,8 @@ def test_compile_fusion_flow(shared_engine):
         client = TestClient(app)
         
         # 1. List Workflows to find seed
-        wfs_res = client.get("/builder/workflows")
+        headers = {"Authorization": "Bearer mock-token:root_master"}
+        wfs_res = client.get("/builder/workflows", headers=headers)
         assert wfs_res.status_code == 200
         wfs = wfs_res.json()
         
@@ -124,7 +125,7 @@ def test_compile_fusion_flow(shared_engine):
         assert target is not None, "Seed workflow 'sequential_audit_chain' missing"
         
         # 2. Copy
-        copy_res = client.post(f"/builder/workflows/{target['id']}/copy", json={"new_name": "Fusion Test WF"})
+        copy_res = client.post(f"/builder/workflows/{target['id']}/copy", json={"new_name": "Fusion Test WF"}, headers=headers)
         assert copy_res.status_code == 200
         new_id = copy_res.json()['id']
         
@@ -134,7 +135,7 @@ def test_compile_fusion_flow(shared_engine):
             "workflow_id": new_id,
             "steps": ["step_logician", "step_falsifier", "step_causal", "step_detector", "step_overseer"]
         }
-        fuse_res = client.post("/builder/compile", json=payload)
+        fuse_res = client.post("/builder/compile", json=payload, headers=headers)
         
         if fuse_res.status_code != 200:
              print(f"Fusion Error: {fuse_res.text}")
@@ -151,7 +152,7 @@ def test_compile_fusion_flow(shared_engine):
         assert new_steps_list.index("step_panel") == 4
         
         # 4. Verify DB persistence
-        wf_res = client.get(f"/builder/workflows/{new_id}")
+        wf_res = client.get(f"/builder/workflows/{new_id}", headers=headers)
         assert "step_panel" in wf_res.json()['steps']
         
     finally:
@@ -165,10 +166,10 @@ async def test_panel_agent_fan_out():
             return MOCK_PANEL_OUTPUT
             
     # Create Agent
-    agent = PanelAgent(model_config={"model_name": "test"}, llm_provider=MockProvider())
+    agent = PanelAgent(model="test", provider="mock")
     
     # State setup (using InputData for validation)
-    state = WorkflowState(inputs=InputData(history_text="H", product_text="P", reflection_text="R"))
+    state = WorkflowState(execution_id="test_exec", inputs=InputData(history_text="H", product_text="P", reflection_text="R"))
     
     # Ensure aux_data dict exists (in case not auto-init)
     if not hasattr(state, 'aux_data') or state.aux_data is None:
@@ -181,7 +182,7 @@ async def test_panel_agent_fan_out():
     # 1. Logician/Falsifier output
     assert new_state.step_falsifier is not None
     assert new_state.step_falsifier.paattelyketjun_uskollisuus_auditointi.uskollisuus_score == "KORKEA"
-    assert new_state.step_falsifier.metadata.agentti == "Panel"
+    assert new_state.step_falsifier.metadata.agentti == "Falsifioija"
     
     # 2. Causal output
     assert new_state.step_causal is not None

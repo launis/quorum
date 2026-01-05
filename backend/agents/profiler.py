@@ -1,5 +1,6 @@
+"""Profiler Agent implementation."""
 import logging
-from typing import Any, Optional, Type, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
@@ -13,8 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class ProfilerAgent(BaseAgent):
-    """
-    Profiloija (Psychologist) Agent.
+    """Profiloija (Psychologist) Agent.
 
     Step 2.5: Analyzes the 'human' side of the input: intent, biases, tone.
     """
@@ -23,20 +23,36 @@ class ProfilerAgent(BaseAgent):
     REQUIRES_KEYS = ["history_text", "product_text", "reflection_text"]
     PRODUCES_KEYS = ["step_profiler"]
 
-    def get_response_schema(self) -> Optional[Type[BaseModel]]:
-        """
-        Returns the expected output schema.
+    def get_response_schema(self) -> type[BaseModel] | None:
+        """Returns the expected output schema.
 
         Returns:
             Optional[Type[BaseModel]]: ProfilerAnalysis schema.
+
         """
         return ProfilerAnalysis
 
-    async def _update_state(
-        self, state: WorkflowState, response_data: Any, output_key: Optional[str] = None, **kwargs
-    ) -> WorkflowState:
+    async def execute(self, state: WorkflowState, system_instruction: str | None = None, **kwargs) -> WorkflowState:
+        """Executes the psychological profiling analysis.
+
+        Input State:
+            - state.inputs.history_text
+            - state.inputs.product_text
+            - state.aux_data.profiler_metrics (Calculated via pre-hook)
+
+        Output State:
+            - state.step_profiler (ProfilerAnalysis): Psychological profile and intent analysis.
+            - state.aux_data.profiler_metrics: (Persisted)
+
+        Exceptions:
+            - AgentExecutionError: If LLM fails or schema validation fails.
         """
-        Updates the state with the response data.
+        return await super().execute(state, system_instruction, **kwargs)
+
+    async def _update_state(
+        self, state: WorkflowState, response_data: Any, output_key: str | None = None, **kwargs
+    ) -> WorkflowState:
+        """Updates the state with the response data.
         Injects metrics into the response if available in aux_data.
 
         Args:
@@ -47,6 +63,7 @@ class ProfilerAgent(BaseAgent):
 
         Returns:
             WorkflowState: Updated state.
+
         """
         # Merge Python-calculated metrics if available (from pre-hook)
         if "profiler_metrics" in state.aux_data and isinstance(response_data, dict):
@@ -58,10 +75,9 @@ class ProfilerAgent(BaseAgent):
     # --- PYTHON HOOKS ---
 
     def analyze_text_metrics(self, state: WorkflowState) -> WorkflowState:
-        """
-        PRE-HOOK: analyze_text_metrics.
+        """Pre-hook: Calculates objective text metrics from the input history/product.
 
-        Calculates objective text metrics from the input history/product.
+        Delegates underlying logic to 'backend.hooks.metrics.calculate_text_metrics'.
         Delegates underlying logic to 'backend.hooks.metrics.calculate_text_metrics'.
 
         Args:
@@ -69,6 +85,7 @@ class ProfilerAgent(BaseAgent):
 
         Returns:
             WorkflowState: Updated state with calculated metrics.
+
         """
         logger.info("[ProfilerAgent] Delegating to Metrics Hook...")
 
@@ -93,11 +110,11 @@ class ProfilerAgent(BaseAgent):
         return state
 
     def get_user_prompt_template(self) -> str:
-        """
-        Returns the user prompt template.
+        """Returns the user prompt template.
 
         Returns:
             str: The template string.
+
         """
         # Override to show we use metrics
         return "Analyze the text. Metrics: {{PROFILER_METRICS}}"

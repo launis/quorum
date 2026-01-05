@@ -1,6 +1,11 @@
+"""API Router for LLM Operations.
+
+This module provides endpoints for direct LLM model interaction, batch processing,
+and managing the Model Registry configuration.
+"""
 import asyncio
 import logging
-from typing import Annotated, Any, Dict, List, Optional
+from typing import Annotated, Any
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
@@ -19,21 +24,30 @@ router = APIRouter(prefix="/llm", tags=["LLM"])
 
 
 class CompletionRequest(BaseModel):
+    """Payload for a single LLM completion request.
+
+    Attributes:
+        prompt (str): The primary input text.
+        system_instruction (str): Optional system context.
+        model_strategy (str): Strategy key ('fast', 'deep') or direct model name.
+        response_schema (dict): JSON Schema for structured output validation.
+    """
+
     prompt: Annotated[str, Field(description="The primary prompt text.")]
-    system_instruction: Annotated[Optional[str], Field(description="Optional system instruction.")] = None
+    system_instruction: Annotated[str | None, Field(description="Optional system instruction.")] = None
     model_strategy: Annotated[str, Field(description="Strategy key (fast, deep, etc) or direct model name.")] = "fast"
     response_schema: Annotated[
-        Optional[Dict[str, Any]], Field(description="Optional JSON Schema for structured output.")
+        dict[str, Any] | None, Field(description="Optional JSON Schema for structured output.")
     ] = None
 
 
 class BatchCompletionRequest(BaseModel):
-    requests: Annotated[List[CompletionRequest], Field(description="List of requests to process in parallel.")]
+    requests: Annotated[list[CompletionRequest], Field(description="List of requests to process in parallel.")]
 
 
 class ModelRegistryUpdate(BaseModel):
     registry: Annotated[
-        Dict[str, Dict[str, str]],
+        dict[str, dict[str, str]],
         Field(description="The new configuration map for model strategies (e.g. {'fast': {'model_name': '...'}})."),
     ]
 
@@ -45,9 +59,19 @@ class ModelRegistryUpdate(BaseModel):
     "/completion", summary="Direct Completion", response_description="The generated text or structured object."
 )
 async def generate_completion(request: CompletionRequest, registry: RegistryDep):
-    """
-    Directly invokes the LLM using the specified strategy.
+    """Directly invokes the LLM using the specified strategy.
+
     Supports structured output if schema is provided.
+
+    Args:
+        request (CompletionRequest): The prompt and settings.
+        registry (RegistryDep): Registry dependency to resolve strategies.
+
+    Returns:
+        dict: Result object containing the generated content.
+
+    Raises:
+        HTTPException: If strategy is invalid (400) or generation fails (500).
     """
     try:
         # 1. Resolve Provider via Registry
@@ -73,8 +97,14 @@ async def generate_completion(request: CompletionRequest, registry: RegistryDep)
 
 @router.post("/batch-completion", summary="Batch Completion", response_description="List of results.")
 async def batch_completion(batch: BatchCompletionRequest, registry: RegistryDep):
-    """
-    Processes multiple completion requests in parallel.
+    """Processes multiple completion requests in parallel.
+
+    Args:
+        batch (BatchCompletionRequest): List of requests.
+        registry (RegistryDep): Registry dependency.
+
+    Returns:
+        dict: List of results (success or error) for each request.
     """
 
     async def _process_one(req: CompletionRequest):
@@ -93,8 +123,13 @@ async def batch_completion(batch: BatchCompletionRequest, registry: RegistryDep)
 
 @router.get("/providers", summary="List Providers", response_description="Active providers configuration.")
 async def list_providers(handler: LLMHandlerDep):
-    """
-    Returns information about active LLM providers and availability.
+    """Returns information about active LLM providers and availability.
+
+    Args:
+        handler (LLMHandlerDep): LLM Handler.
+
+    Returns:
+        dict: Strategies map and API key status.
     """
     # LLMHandler manages the high level interface, but factory has the config.
     # We can inspect the factory via the handler if exposed, or just return static info about supported types.
@@ -114,14 +149,14 @@ async def list_providers(handler: LLMHandlerDep):
     "/config", summary="Get Model Registry", response_description="The current internal model mapping configuration."
 )
 def get_model_config(handler: LLMHandlerDep):
-    """
-    Retrieves the active model registry, which maps abstract strategies (e.g., 'fast') to concrete models.
+    """Retrieves the active model registry, which maps abstract strategies (e.g., 'fast') to concrete models.
 
     Args:
         handler: Dependency.
 
     Returns:
         dict: The registry configuration object.
+
     """
     return handler.get_active_model_registry()
 
@@ -130,15 +165,17 @@ def get_model_config(handler: LLMHandlerDep):
     "/config", summary="Update Model Registry", response_description="Confirmation of the configuration update."
 )
 def update_model_config(update: ModelRegistryUpdate, db_client: DatabaseDep):
-    """
-    Updates the system's model registry configuration in the database.
+    """Updates the system's model registry configuration in the database.
 
     Args:
         update (ModelRegistryUpdate): The new configuration.
-        db_client (AbstractDatabase): Database dependency.
+        db_client (DatabaseDep): Database dependency.
 
     Returns:
         dict: Status and the updated registry.
+
+    Raises:
+        HTTPException: If database update fails (500).
     """
     try:
         table = db_client.table("system_config")

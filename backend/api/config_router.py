@@ -1,16 +1,21 @@
+"""API Router for System Configuration.
+
+This module provides endpoints for managing configuration components (prompts, mandates),
+model settings, and system-wide ontology (dimensions).
+"""
 import inspect
 import json
 import logging
 import re
-from typing import Annotated, Any, Dict, List, Optional, Union
+from typing import Annotated, Any
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Path
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Path
 from fastapi import Query as APIQuery
 from pydantic import BaseModel, Field
 from tinydb import Query
 
 from backend.database.exporter import export_db_to_files
-from backend.dependencies import DatabaseDep, LLMHandlerDep, get_agent_registry_dep
+from backend.dependencies import DatabaseDep, LLMHandlerDep, RegistryDep
 from backend.models import domain as schemas
 from backend.seed.seeder import seed_database
 
@@ -23,37 +28,47 @@ router = APIRouter(prefix="/config", tags=["Configuration"])
 
 
 class ComponentUpdate(BaseModel):
+    """Payload for updating a configuration component.
+
+    Attributes:
+        content (str | dict | list): The template content.
+        description (str): Metadata description.
+        citation (str): Short citation anchor.
+        citation_full (str): Complete bibliographic reference.
+        type (str): Component categorization.
+    """
+
     content: Annotated[
-        Union[str, Dict[str, Any], List[Any]],
+        str | dict[str, Any] | list[Any],
         Field(description="The template content (prompt text, rule text, or config object)."),
     ]
-    description: Annotated[Optional[str], Field(description="Metadata description.")] = None
-    citation: Annotated[Optional[str], Field(description="Short citation anchor.")] = None
-    citation_full: Annotated[Optional[str], Field(description="Complete bibliographic reference.")] = None
+    description: Annotated[str | None, Field(description="Metadata description.")] = None
+    citation: Annotated[str | None, Field(description="Short citation anchor.")] = None
+    citation_full: Annotated[str | None, Field(description="Complete bibliographic reference.")] = None
     type: Annotated[
-        Optional[str], Field(description="Component categorization (e.g. 'mandate', 'prompt', 'evaluation_matrix').")
+        str | None, Field(description="Component categorization (e.g. 'mandate', 'prompt', 'evaluation_matrix').")
     ] = None
 
 
 class ModelSettings(BaseModel):
     model_name: Annotated[str, Field(description="The concrete model identifier (e.g. 'gemini-1.5-pro').")]
-    temperature: Annotated[Optional[float], Field(description="Sampling temperature.")] = None
-    max_tokens: Annotated[Optional[int], Field(description="Maximum output token limit.")] = None
-    top_p: Annotated[Optional[float], Field(description="Nucleus sampling parameter.")] = None
+    temperature: Annotated[float | None, Field(description="Sampling temperature.")] = None
+    max_tokens: Annotated[int | None, Field(description="Maximum output token limit.")] = None
+    top_p: Annotated[float | None, Field(description="Nucleus sampling parameter.")] = None
 
 
 class GlobalModelConfig(BaseModel):
     registry: Annotated[
-        Dict[str, Dict[str, ModelSettings]], Field(description="Nested map: Provider -> Strategy -> Settings.")
+        dict[str, dict[str, ModelSettings]], Field(description="Nested map: Provider -> Strategy -> Settings.")
     ]
 
 
 class WorkflowUpdate(BaseModel):
-    steps: Annotated[Optional[List[Dict[str, Any]]], Field(description="Complete list of step configurations.")] = None
-    sequence: Annotated[Optional[List[str]], Field(description="Ordered list of step IDs.")] = None
-    description: Annotated[Optional[str], Field(description="User-facing workflow description.")] = None
+    steps: Annotated[list[dict[str, Any]] | None, Field(description="Complete list of step configurations.")] = None
+    sequence: Annotated[list[str] | None, Field(description="Ordered list of step IDs.")] = None
+    description: Annotated[str | None, Field(description="User-facing workflow description.")] = None
     default_model_mapping: Annotated[
-        Optional[Dict[str, str]], Field(description="Map of StepID -> ModelStrategyKey.")
+        dict[str, str] | None, Field(description="Map of StepID -> ModelStrategyKey.")
     ] = None
 
 
@@ -61,27 +76,27 @@ class ComponentCreate(BaseModel):
     id: Annotated[str, Field(description="Unique Identifier for the component.")]
     name: Annotated[str, Field(description="Human readable name.")]
     type: Annotated[str, Field(description="Component Type (header, prompt, evaluation_matrix, etc).")]
-    content: Annotated[Union[str, Dict[str, Any], List[Any]], Field(description="The content (text or JSON object).")]
-    description: Annotated[Optional[str], Field(description="Description of purpose.")] = None
-    citation: Annotated[Optional[str], Field(description="Short citation.")] = None
-    citation_full: Annotated[Optional[str], Field(description="Full citation.")] = None
-    module: Annotated[Optional[str], Field(description="Source module (legacy).")] = "config"
-    component_class: Annotated[Optional[str], Field(description="Class name.")] = "ConfigComponent"
+    content: Annotated[str | dict[str, Any] | list[Any], Field(description="The content (text or JSON object).")]
+    description: Annotated[str | None, Field(description="Description of purpose.")] = None
+    citation: Annotated[str | None, Field(description="Short citation.")] = None
+    citation_full: Annotated[str | None, Field(description="Full citation.")] = None
+    module: Annotated[str | None, Field(description="Source module (legacy).")] = "config"
+    component_class: Annotated[str | None, Field(description="Class name.")] = "ConfigComponent"
 
 
 class WorkflowCreate(BaseModel):
     id: Annotated[str, Field(description="New Workflow UUID/Slug.")]
     name: Annotated[str, Field(description="Workflow Name.")]
-    sequence: Annotated[List[str], Field(description="List of Step IDs.")] = []
-    description: Annotated[Optional[str], Field(description="Description.")] = None
-    default_model_mapping: Annotated[Optional[Dict[str, str]], Field(description="Step-Model map.")] = {}
+    sequence: Annotated[list[str], Field(description="List of Step IDs.")] = []
+    description: Annotated[str | None, Field(description="Description.")] = None
+    default_model_mapping: Annotated[dict[str, str] | None, Field(description="Step-Model map.")] = {}
 
 
 class LLMCallRequest(BaseModel):
     provider: Annotated[str, Field(description="Provider key (google, openai, mock).")]
     mode: Annotated[str, Field(description="Strategy mode (fast, smart, etc).")]
     prompt: Annotated[str, Field(description="Input prompt text.")]
-    system_instruction: Annotated[Optional[str], Field(description="Optional system context.")] = None
+    system_instruction: Annotated[str | None, Field(description="Optional system context.")] = None
 
 
 # --- Endpoints ---
@@ -89,16 +104,20 @@ class LLMCallRequest(BaseModel):
 
 @router.get("/components", summary="List Components", response_description="All configuration components.")
 def get_components(db: DatabaseDep):
-    """
-    Retrieves all defined configuration components (Prompts, Mandates, Rules, etc).
+    """Retrieves all defined configuration components (Prompts, Mandates, Rules, etc).
+
+    Args:
+        db (DatabaseDep): Database dependency.
+
+    Returns:
+        list[dict]: List of configuration components.
     """
     return db.table("components").all()
 
 
 @router.get("/components/{comp_id}", summary="Get Component", response_description="The requested component.")
 def get_component(comp_id: str = Path(..., description="Component ID or Name"), db: DatabaseDep = None):
-    """
-    Retrieves a single component by ID or Name.
+    """Retrieves a single component by ID or Name.
     """
     if db is None:  # Should be injected
         from backend.dependencies import get_db_client_dep
@@ -117,8 +136,7 @@ def get_component(comp_id: str = Path(..., description="Component ID or Name"), 
 
 @router.post("/components", summary="Create Component", response_description="Status and ID.")
 def create_component(comp: ComponentCreate, db: DatabaseDep):
-    """
-    Creates a new configuration component.
+    """Creates a new configuration component.
     """
     table = db.table("components")
     if table.search(Query().id == comp.id):
@@ -134,8 +152,18 @@ def create_component(comp: ComponentCreate, db: DatabaseDep):
 
 @router.put("/components/{comp_id}", summary="Update Component", response_description="Update status.")
 def update_component(comp_id: str, update: ComponentUpdate, db: DatabaseDep):
-    """
-    Updates an existing component's content and metadata.
+    """Updates an existing component's content and metadata.
+
+    Args:
+        comp_id (str): The ID of the component to update.
+        update (ComponentUpdate): The new data.
+        db (DatabaseDep): Database dependency.
+
+    Returns:
+        dict: Status and ID.
+
+    Raises:
+        HTTPException: If not found (404).
     """
     Component = Query()
     table = db.table("components")
@@ -160,8 +188,7 @@ def update_component(comp_id: str, update: ComponentUpdate, db: DatabaseDep):
 
 @router.delete("/components/{comp_id}", summary="Delete Component", response_description="Delete status.")
 def delete_component(comp_id: str, db: DatabaseDep):
-    """
-    Deletes a component if it is not referenced by any existing steps.
+    """Deletes a component if it is not referenced by any existing steps.
     """
     table = db.table("components")
     Component = Query()
@@ -197,7 +224,7 @@ def get_steps(db: DatabaseDep):
 
 
 @router.post("/steps", summary="Create Step", response_description="Created ID.")
-def create_step(step: Dict[str, Any], db: DatabaseDep):
+def create_step(step: dict[str, Any], db: DatabaseDep):
     """Create a new step configuration."""
     table = db.table("steps")
     if table.search(Query().id == step.get("id")):
@@ -207,7 +234,7 @@ def create_step(step: Dict[str, Any], db: DatabaseDep):
 
 
 @router.put("/steps/{step_id}", summary="Update Step", response_description="Update status.")
-def update_step(step_id: str, step: Dict[str, Any], db: DatabaseDep):
+def update_step(step_id: str, step: dict[str, Any], db: DatabaseDep):
     """Update a step configuration."""
     table = db.table("steps")
     if not table.search(Query().id == step_id):
@@ -387,7 +414,7 @@ def get_unified_prompts(db: DatabaseDep):
 
 
 # Helpers (kept same)
-def _fetch_schemas() -> Dict[str, Any]:
+def _fetch_schemas() -> dict[str, Any]:
     schema_data = {}
     for name, obj in inspect.getmembers(schemas):
         if inspect.isclass(obj) and issubclass(obj, schemas.BaseModel) and obj is not schemas.BaseModel:
@@ -406,7 +433,7 @@ def _fetch_schemas() -> Dict[str, Any]:
     return schema_data
 
 
-def _expand_content(text: Any, schemas: Dict[str, Any]) -> str:
+def _expand_content(text: Any, schemas: dict[str, Any]) -> str:
     if not text:
         return ""
     if isinstance(text, list):
@@ -429,7 +456,7 @@ def _expand_content(text: Any, schemas: Dict[str, Any]) -> str:
     return re.sub(pattern, replace_match, text)
 
 
-def _build_unified_view(components: list, schema_data: Dict[str, Any]) -> str:
+def _build_unified_view(components: list, schema_data: dict[str, Any]) -> str:
     grouped = {}
     for c in components:
         ctype = c.get("type", "other")
@@ -463,12 +490,19 @@ def _build_unified_view(components: list, schema_data: Dict[str, Any]) -> str:
 )
 def list_available_models(
     handler: LLMHandlerDep,
-    providers: Annotated[Optional[List[str]], APIQuery(description="List of providers (google, openai, mock)")] = None,
-    location: Annotated[Optional[str], APIQuery(description="Region for Google Cloud (defaults to env config)")] = None,
+    providers: Annotated[list[str] | None, APIQuery(description="List of providers (google, openai, mock)")] = None,
+    location: Annotated[str | None, APIQuery(description="Region for Google Cloud (defaults to env config)")] = None,
 ):
-    """
-    Returns a dynamic dictionary of models found via provider APIs.
+    """Returns a dynamic dictionary of models found via provider APIs.
     Supports filtering by provider and specifying Google Cloud region.
+
+    Args:
+        handler (LLMHandlerDep): LLM Handler dependency.
+        providers (list[str]): Optional list of providers to query.
+        location (str): Optional region override.
+
+    Returns:
+        dict: Map of provider -> list of models.
     """
     # Map 'moc' to 'mock' if user sends it (as requested)
     if providers:
@@ -485,7 +519,15 @@ def get_model_registry(handler: LLMHandlerDep):
 
 @router.post("/models/registry", summary="Update Registry", response_description="Updated registry.")
 def update_model_registry(config: GlobalModelConfig, db: DatabaseDep):
-    """Update global model registry."""
+    """Update global model registry.
+
+    Args:
+        config (GlobalModelConfig): The new registry configuration.
+        db (DatabaseDep): Database dependency.
+
+    Returns:
+        dict: Status and updated registry.
+    """
     table = db.table("system_config")
     Config = Query()
     # Serialize safe
@@ -497,8 +539,17 @@ def update_model_registry(config: GlobalModelConfig, db: DatabaseDep):
 
 @router.post("/models/call", summary="Call LLM (Ad-hoc)", response_description="Generated text response.")
 async def call_llm_adhoc(request: LLMCallRequest, handler: LLMHandlerDep):
-    """
-    Execute a direct LLM call using the Handler's logic (resolving config from registry).
+    """Execute a direct LLM call using the Handler's logic (resolving config from registry).
+
+    Args:
+        request (LLMCallRequest): The prompt and settings.
+        handler (LLMHandlerDep): LLM Handler dependency.
+
+    Returns:
+        dict: The content string from the LLM.
+
+    Raises:
+        HTTPException: If call fails (500).
     """
     try:
         response_text = await handler.call_llm(
@@ -586,7 +637,7 @@ def get_introspection():
 class DimensionDefinition(BaseModel):
     id: Annotated[str, Field(description="Unique dimension ID (e.g. 'analyysi').")]
     label: Annotated[str, Field(description="Human readable default label.")]
-    description: Annotated[Optional[str], Field(description="Explanation of what this measures.")] = None
+    description: Annotated[str | None, Field(description="Explanation of what this measures.")] = None
     is_system: Annotated[bool, Field(description="If true, is a core system dimension.")] = False
 
 
@@ -596,9 +647,14 @@ class DimensionDefinition(BaseModel):
     response_description="List of unique evaluation dimension IDs.",
 )
 def get_known_dimensions(db: DatabaseDep):
-    """
-    Returns specific allowed dimension IDs from the ontology table.
+    """Returns specific allowed dimension IDs from the ontology table.
     Auto-seeds defaults if table is empty.
+
+    Args:
+        db (DatabaseDep): Database dependency.
+
+    Returns:
+        list[str]: Sorted list of dimension IDs.
     """
     table = db.table("dimensions")
     all_dims = table.all()
@@ -689,9 +745,7 @@ def delete_dimension(dim_id: str, db: DatabaseDep):
 
 
 @router.post("/validate-flow", summary="Validate Flow", response_description="Validation Report.")
-async def validate_flow(
-    workflow: WorkflowCreate, db: DatabaseDep, registry: Annotated[Any, Depends(get_agent_registry_dep)]
-):
+async def validate_flow(workflow: WorkflowCreate, db: DatabaseDep, registry: RegistryDep):
     """Dry run validation."""
     from backend.core.factory import AgentFactory
 

@@ -42,14 +42,23 @@ Hooks are pure Python functions invoked by agents to perform tasks outside the L
 *   **Text Statistics:** Calculates lexical diversity, reading level (Flesch-Kincaid).
 *   **Structure Audit:** Counts paragraph and sentence structures.
 
-## 3. Data Models (`backend/models/`)
+## 3. Worker Service (`backend/worker.py`)
+
+The **Worker Service** is the heavy-lifting engine of Quorum V2.0.
+
+*   **Technology**: Built on **Arq** (Async Redis Queue).
+*   **Role**: Executes the `execute_workflow_task` function.
+*   **Resilience**: Handles retries, timeout management, and graceful shutdowns.
+*   **Scalability**: Multiple worker instances can consume from the same Redis queue (Horizontal Scaling).
+
+## 4. Data Models (`backend/models/`)
 
 All components communicate using **Pydantic V2** models.
 
 *   **`WorkflowState`**: The monolithic state object passed between agents.
 *   **`Domain Models`**: Specialized schemas (e.g., `JudgeVerdict`, `PanelAudit`) used for LLM structured output.
 
-## 4. LLM Provider (`backend/llm/`)
+## 5. LLM Provider (`backend/llm/`)
 
 A centralized adapter pattern for model access.
 *   **Supported Models:** Google Gemini 1.5 Pro/Flash, Gemini 2.0 Flash.

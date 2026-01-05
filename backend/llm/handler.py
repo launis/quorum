@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import openai
 from google.cloud import aiplatform_v1beta1
@@ -13,14 +13,12 @@ logger = logging.getLogger(__name__)
 
 
 class LLMHandler:
-    """
-    Handles higher-level LLM operations including model discovery via APIs,
+    """Handles higher-level LLM operations including model discovery via APIs,
     fetching configuration from the database, and delegating execution to the LLMFactory.
     """
 
     def _check_model_availability(self, model_id: str, location: str) -> bool:
-        """
-        Validates if a specific model_id (e.g., 'vertex_ai/gemini-1.5-pro')
+        """Validates if a specific model_id (e.g., 'vertex_ai/gemini-1.5-pro')
         is available in the target location by attempting to fetch its metadata.
         """
         try:
@@ -42,19 +40,18 @@ class LLMHandler:
             return False
 
     def __init__(self, db_client: Any):
-        """
-        Initializes the handler.
+        """Initializes the handler.
 
         Args:
             db_client (Any): Database client for accessing system config.
+
         """
         self.db_client = db_client
 
     def fetch_all_available_models(
-        self, providers: Optional[List[str]] = None, location: Optional[str] = None
-    ) -> Dict[str, List[str]]:
-        """
-        Queries External APIs (Vertex AI, OpenAI) for available models.
+        self, providers: list[str] | None = None, location: str | None = None
+    ) -> dict[str, list[str]]:
+        """Queries External APIs (Vertex AI, OpenAI) for available models.
         Respects 'use_mock_llm' setting by returning mock data if enabled.
 
         Args:
@@ -63,6 +60,7 @@ class LLMHandler:
         Logic for Google:
         1. Fetch Master List from 'us-central1' (Model Garden root).
         2. Iterate and Validate against Target Location (if different from us-central1).
+
         """
         settings = get_settings()
         models = {}
@@ -166,12 +164,12 @@ class LLMHandler:
 
         return models
 
-    def get_active_model_registry(self) -> Dict[str, str]:
-        """
-        Fetches the 'global_model_registry' from the 'system_config' table in the database.
+    def get_active_model_registry(self) -> dict[str, str]:
+        """Fetches the 'global_model_registry' from the 'system_config' table in the database.
 
         Returns:
             Dict[str, str]: configuration mapping (e.g. {'fast': 'gemini-1.5-flash'}).
+
         """
         try:
             table = self.db_client.table("system_config")
@@ -186,9 +184,8 @@ class LLMHandler:
             logger.error(f"Failed to get registry: {e}")
             return {}
 
-    def get_model_config(self, provider: str, mode: str) -> Optional[Dict[str, Any]]:
-        """
-        Retrieves a specific model configuration for a provider/mode.
+    def get_model_config(self, provider: str, mode: str) -> dict[str, Any] | None:
+        """Retrieves a specific model configuration for a provider/mode.
 
         Args:
             provider (str): Provider name (e.g., 'openai').
@@ -196,6 +193,7 @@ class LLMHandler:
 
         Returns:
             Optional[Dict[str, Any]]: Configuration dictionary if found, else None.
+
         """
         registry = self.get_active_model_registry()
 
@@ -207,9 +205,8 @@ class LLMHandler:
         if config:
             return config
 
-    async def call_llm(self, provider: str, mode: str, prompt: str, system_instruction: Optional[str] = None) -> str:
-        """
-        High-level helper to call an LLM (Ad-hoc usage).
+    async def call_llm(self, provider: str, mode: str, prompt: str, system_instruction: str | None = None) -> str:
+        """High-level helper to call an LLM (Ad-hoc usage).
         Resolves configuration from DB based on provider/mode and delegates to LLMFactory.
 
         Args:
@@ -220,6 +217,7 @@ class LLMHandler:
 
         Returns:
             str: Generated text response.
+
         """
         settings = get_settings()
         config = self.get_model_config(provider, mode)

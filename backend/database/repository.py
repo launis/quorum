@@ -1,6 +1,6 @@
 import asyncio
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from tinydb import Query
 
@@ -8,8 +8,7 @@ from backend.database.wrapper import AbstractDatabase
 
 
 class AbstractWorkflowRepository(ABC):
-    """
-    Universal Async Interface for Workflow Data Access.
+    """Universal Async Interface for Workflow Data Access.
 
     This replaces the old Sync/Async split. All repositories are now Async First.
     TinyDB implementations must use asyncio.to_thread internally.
@@ -17,15 +16,15 @@ class AbstractWorkflowRepository(ABC):
 
     # --- Components ---
     @abstractmethod
-    async def get_component_by_id(self, component_id: str) -> Optional[Dict[str, Any]]:
+    async def get_component_by_id(self, component_id: str) -> dict[str, Any] | None:
         pass
 
     @abstractmethod
-    async def get_component_by_name(self, name: str) -> Optional[Dict[str, Any]]:
+    async def get_component_by_name(self, name: str) -> dict[str, Any] | None:
         pass
 
     @abstractmethod
-    async def register_component(self, component_data: Dict[str, Any]):
+    async def register_component(self, component_data: dict[str, Any]):
         pass
 
     @abstractmethod
@@ -33,24 +32,24 @@ class AbstractWorkflowRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_all_components(self) -> List[Dict[str, Any]]:
+    async def get_all_components(self) -> list[dict[str, Any]]:
         pass
 
     # --- Steps ---
     @abstractmethod
-    async def get_step_by_id(self, step_id: str) -> Optional[Dict[str, Any]]:
+    async def get_step_by_id(self, step_id: str) -> dict[str, Any] | None:
         pass
 
     @abstractmethod
-    async def get_all_steps(self) -> List[Dict[str, Any]]:
+    async def get_all_steps(self) -> list[dict[str, Any]]:
         pass
 
     @abstractmethod
-    async def create_step(self, step_data: Dict[str, Any]) -> str:
+    async def create_step(self, step_data: dict[str, Any]) -> str:
         pass
 
     @abstractmethod
-    async def update_step(self, step_id: str, updates: Dict[str, Any]):
+    async def update_step(self, step_id: str, updates: dict[str, Any]):
         pass
 
     @abstractmethod
@@ -59,21 +58,21 @@ class AbstractWorkflowRepository(ABC):
 
     # --- Workflows ---
     @abstractmethod
-    async def get_workflow_by_id(self, workflow_id: str) -> Optional[Dict[str, Any]]:
+    async def get_workflow_by_id(self, workflow_id: str) -> dict[str, Any] | None:
         pass
 
     @abstractmethod
-    async def create_workflow(self, workflow_data: Dict[str, Any]) -> Union[int, str]:
+    async def create_workflow(self, workflow_data: dict[str, Any]) -> int | str:
         pass
 
     @abstractmethod
     async def get_all_workflows(
-        self, organization_id: Optional[str] = None, role: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+        self, organization_id: str | None = None, role: str | None = None
+    ) -> list[dict[str, Any]]:
         pass
 
     @abstractmethod
-    async def update_workflow(self, workflow_id: str, updates: Dict[str, Any]):
+    async def update_workflow(self, workflow_id: str, updates: dict[str, Any]):
         pass
 
     @abstractmethod
@@ -82,28 +81,28 @@ class AbstractWorkflowRepository(ABC):
 
     # --- Executions ---
     @abstractmethod
-    async def create_execution(self, execution_data: Dict[str, Any]) -> Union[int, str]:
+    async def create_execution(self, execution_data: dict[str, Any]) -> int | str:
         pass
 
     @abstractmethod
-    async def get_execution(self, execution_id: str) -> Optional[Dict[str, Any]]:
+    async def get_execution(self, execution_id: str) -> dict[str, Any] | None:
         pass
 
     @abstractmethod
-    async def update_execution(self, execution_id: str, updates: Dict[str, Any]):
+    async def update_execution(self, execution_id: str, updates: dict[str, Any]):
         pass
 
     @abstractmethod
-    async def get_all_executions(self, organization_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    async def get_all_executions(self, organization_id: str | None = None) -> list[dict[str, Any]]:
         pass
 
     # --- Config ---
     @abstractmethod
-    async def get_model_registry(self) -> Optional[Dict[str, Any]]:
+    async def get_model_registry(self) -> dict[str, Any] | None:
         pass
 
     @abstractmethod
-    async def get_banned_phrases(self) -> List[Dict[str, Any]]:
+    async def get_banned_phrases(self) -> list[dict[str, Any]]:
         pass
 
     @abstractmethod
@@ -116,11 +115,11 @@ class AbstractWorkflowRepository(ABC):
 
     # --- Knowledge Base ---
     @abstractmethod
-    async def get_knowledge_base_items(self) -> List[Dict[str, Any]]:
+    async def get_knowledge_base_items(self) -> list[dict[str, Any]]:
         pass
 
     @abstractmethod
-    async def add_knowledge_base_item(self, item_data: Dict[str, Any]):
+    async def add_knowledge_base_item(self, item_data: dict[str, Any]):
         pass
 
     @abstractmethod
@@ -129,19 +128,19 @@ class AbstractWorkflowRepository(ABC):
 
     # --- Organization Management ---
     @abstractmethod
-    async def create_organization(self, org_data: Dict[str, Any]) -> str:
+    async def create_organization(self, org_data: dict[str, Any]) -> str:
         pass
 
     @abstractmethod
-    async def get_organization(self, org_id: str) -> Optional[Dict[str, Any]]:
+    async def get_organization(self, org_id: str) -> dict[str, Any] | None:
         pass
 
     @abstractmethod
-    async def update_organization(self, org_id: str, updates: Dict[str, Any]):
+    async def update_organization(self, org_id: str, updates: dict[str, Any]):
         pass
 
     @abstractmethod
-    async def list_organizations(self) -> List[Dict[str, Any]]:
+    async def list_organizations(self) -> list[dict[str, Any]]:
         pass
 
     @abstractmethod
@@ -154,8 +153,7 @@ class AbstractWorkflowRepository(ABC):
 
 
 class TinyDBRepository(AbstractWorkflowRepository):
-    """
-    Async-First TinyDB Repository.
+    """Async-First TinyDB Repository.
     Wraps synchronous TinyDB calls in asyncio.to_thread.
     """
 
@@ -175,7 +173,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
         return await asyncio.to_thread(func, *args, **kwargs)
 
     # --- Components ---
-    async def get_component_by_id(self, component_id: str) -> Optional[Dict[str, Any]]:
+    async def get_component_by_id(self, component_id: str) -> dict[str, Any] | None:
         def _get():
             Q = Query()
             res = self.components.search(Q.id == component_id)
@@ -183,7 +181,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
 
         return await self._run(_get)
 
-    async def get_component_by_name(self, name: str) -> Optional[Dict[str, Any]]:
+    async def get_component_by_name(self, name: str) -> dict[str, Any] | None:
         def _get():
             Q = Query()
             res = self.components.search(Q.name == name)
@@ -191,7 +189,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
 
         return await self._run(_get)
 
-    async def register_component(self, component_data: Dict[str, Any]):
+    async def register_component(self, component_data: dict[str, Any]):
         await self._run(self.components.insert, component_data)
 
     async def update_component_metadata(self, name: str, module: str, component_class: str):
@@ -201,11 +199,11 @@ class TinyDBRepository(AbstractWorkflowRepository):
 
         await self._run(_update)
 
-    async def get_all_components(self) -> List[Dict[str, Any]]:
+    async def get_all_components(self) -> list[dict[str, Any]]:
         return await self._run(self.components.all)
 
     # --- Steps ---
-    async def get_step_by_id(self, step_id: str) -> Optional[Dict[str, Any]]:
+    async def get_step_by_id(self, step_id: str) -> dict[str, Any] | None:
         def _get():
             Q = Query()
             res = self.steps.search(Q.id == step_id)
@@ -213,15 +211,15 @@ class TinyDBRepository(AbstractWorkflowRepository):
 
         return await self._run(_get)
 
-    async def get_all_steps(self) -> List[Dict[str, Any]]:
+    async def get_all_steps(self) -> list[dict[str, Any]]:
         return await self._run(self.steps.all)
 
-    async def create_step(self, step_data: Dict[str, Any]) -> str:
+    async def create_step(self, step_data: dict[str, Any]) -> str:
         # TinyDB insert returns document ID (int), we convert to str/int
         res = await self._run(self.steps.insert, step_data)
         return str(res)
 
-    async def update_step(self, step_id: str, updates: Dict[str, Any]):
+    async def update_step(self, step_id: str, updates: dict[str, Any]):
         def _update():
             Q = Query()
             self.steps.update(updates, Q.id == step_id)
@@ -236,7 +234,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
         await self._run(_delete)
 
     # --- Workflows ---
-    async def get_workflow_by_id(self, workflow_id: str) -> Optional[Dict[str, Any]]:
+    async def get_workflow_by_id(self, workflow_id: str) -> dict[str, Any] | None:
         def _get():
             Q = Query()
             res = self.workflows.search(Q.id == workflow_id)
@@ -244,12 +242,12 @@ class TinyDBRepository(AbstractWorkflowRepository):
 
         return await self._run(_get)
 
-    async def create_workflow(self, workflow_data: Dict[str, Any]) -> Union[int, str]:
+    async def create_workflow(self, workflow_data: dict[str, Any]) -> int | str:
         return await self._run(self.workflows.insert, workflow_data)
 
     async def get_all_workflows(
-        self, organization_id: Optional[str] = None, role: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+        self, organization_id: str | None = None, role: str | None = None
+    ) -> list[dict[str, Any]]:
         def _get():
             all_wfs = self.workflows.all()
 
@@ -276,7 +274,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
 
         return await self._run(_get)
 
-    async def update_workflow(self, workflow_id: str, updates: Dict[str, Any]):
+    async def update_workflow(self, workflow_id: str, updates: dict[str, Any]):
         def _update():
             Q = Query()
             self.workflows.update(updates, Q.id == workflow_id)
@@ -291,10 +289,10 @@ class TinyDBRepository(AbstractWorkflowRepository):
         await self._run(_delete)
 
     # --- Executions ---
-    async def create_execution(self, execution_data: Dict[str, Any]) -> Union[int, str]:
+    async def create_execution(self, execution_data: dict[str, Any]) -> int | str:
         return await self._run(self.executions.insert, execution_data)
 
-    async def get_execution(self, execution_id: str) -> Optional[Dict[str, Any]]:
+    async def get_execution(self, execution_id: str) -> dict[str, Any] | None:
         def _get():
             Q = Query()
             res = self.executions.search(Q.execution_id == str(execution_id))
@@ -302,7 +300,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
 
         return await self._run(_get)
 
-    async def update_execution(self, execution_id: str, updates: Dict[str, Any]):
+    async def update_execution(self, execution_id: str, updates: dict[str, Any]):
         def _update():
             Q = Query()
             self.executions.update(updates, Q.execution_id == str(execution_id))
@@ -310,8 +308,8 @@ class TinyDBRepository(AbstractWorkflowRepository):
         await self._run(_update)
 
     async def get_all_executions(
-        self, organization_id: Optional[str] = None, user_id: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+        self, organization_id: str | None = None, user_id: str | None = None
+    ) -> list[dict[str, Any]]:
         def _get():
             all_execs = self.executions.all()
 
@@ -328,7 +326,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
         return await self._run(_get)
 
     # --- Config ---
-    async def get_model_registry(self) -> Optional[Dict[str, Any]]:
+    async def get_model_registry(self) -> dict[str, Any] | None:
         def _get():
             Q = Query()
             res = self.system_config.search(Q.type == "model_registry")
@@ -336,7 +334,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
 
         return await self._run(_get)
 
-    async def get_banned_phrases(self) -> List[Dict[str, Any]]:
+    async def get_banned_phrases(self) -> list[dict[str, Any]]:
         return await self._run(self.banned_phrases.all)
 
     async def add_banned_phrase(self, phrase: str, **kwargs):
@@ -356,23 +354,23 @@ class TinyDBRepository(AbstractWorkflowRepository):
         await self._run(_remove)
 
     # --- Knowledge Base ---
-    async def get_knowledge_base_items(self) -> List[Dict[str, Any]]:
+    async def get_knowledge_base_items(self) -> list[dict[str, Any]]:
         return await self._run(self.knowledge_base.all)
 
-    async def add_knowledge_base_item(self, item_data: Dict[str, Any]):
+    async def add_knowledge_base_item(self, item_data: dict[str, Any]):
         await self._run(self.knowledge_base.insert, item_data)
 
     async def clear_knowledge_base(self):
         await self._run(self.knowledge_base.truncate)
 
     # --- Organization Management ---
-    async def create_organization(self, org_data: Dict[str, Any]) -> str:
+    async def create_organization(self, org_data: dict[str, Any]) -> str:
         # For simplicity, we assume org_data already has 'id' or we let TinyDB trigger one.
         # But our ABC expects a string return ID.
         result = await self._run(self.organizations.insert, org_data)
         return str(result)
 
-    async def get_organization(self, org_id: str) -> Optional[Dict[str, Any]]:
+    async def get_organization(self, org_id: str) -> dict[str, Any] | None:
         def _get():
             Q = Query()
             res = self.organizations.search(Q.id == org_id)
@@ -380,14 +378,14 @@ class TinyDBRepository(AbstractWorkflowRepository):
 
         return await self._run(_get)
 
-    async def update_organization(self, org_id: str, updates: Dict[str, Any]):
+    async def update_organization(self, org_id: str, updates: dict[str, Any]):
         def _update():
             Q = Query()
             self.organizations.update(updates, Q.id == org_id)
 
         await self._run(_update)
 
-    async def list_organizations(self) -> List[Dict[str, Any]]:
+    async def list_organizations(self) -> list[dict[str, Any]]:
         return await self._run(self.organizations.all)
 
     async def delete_organization(self, org_id: str):
@@ -398,8 +396,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
         await self._run(_delete)
 
     async def delete_org_data(self, org_id: str):
-        """
-        Cascading delete for organization data (Workflows, Executions).
+        """Cascading delete for organization data (Workflows, Executions).
         """
 
         def _delete_data():

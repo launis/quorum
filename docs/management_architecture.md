@@ -1,12 +1,14 @@
 # Management Architecture
 
-The Management Architecture for Cognitive Quorum v2.0 is a decoupled system designed for dynamic, real-time configuration of the AI engine. It enables administrators to manage the system's core logic—workflows, prompts, and agent configurations—through a web interface, eliminating the need for code changes or new deployments for logic updates.
+The Management Architecture for Cognitive Quorum v2.5 is a decoupled system designed for dynamic, real-time configuration of the AI engine. It enables administrators to manage the system's core logic—workflows, prompts, and agent configurations—through a web interface, without deploying new code.
 
-This architecture separates the system into four key components: a user-facing Frontend, an API-driven Backend, a data-driven Generic Engine, and a Database that acts as the single source of truth for all configuration.
+This architecture separates the system into four execution components: a user-facing **Frontend**, an Async **API Backend**, a distributed **Worker Service**, and a data-driven **Generic Engine**.
+
+---
 
 ## System Components
 
-The v2.0 architecture is composed of distinct, interacting services. This separation of concerns enhances scalability, maintainability, and flexibility.
+The v2.5 architecture introduces asynchronous processing to handle long-running cognitive tasks (Deep Research, Causal Analysis) without blocking the management UI.
 
 ```mermaid
 graph TD
@@ -14,57 +16,55 @@ graph TD
         A["Management UI (Streamlit)"]
     end
     subgraph "Application Layer"
-        B["Backend (FastAPI)"]
+        B["API Service (FastAPI)"]
+        W["Worker Service (Arq)"]
     end
     subgraph "Core Logic"
         C["Generic Engine"]
         D["Agents"]
     end
     subgraph "Data Layer"
-        E["Database (db.json)"]
+        R[(Redis - Job Queue)]
+        E["Database (TinyDB / Firestore)"]
     end
 
     A -- API Calls (HTTP) --> B
-    B -- Manages/Persists Config --> E
-    B -- Initiates/Orchestrates --> C
-    C -- Reads Workflow & Prompts --> E
+    B -- Manages Config --> E
+    B -- Enqueue Job --> R
+    R -- Pull Job --> W
+    W -- Orchestrates --> C
+    C -- Reads Config --> E
     C -- Executes --> D
-    D -- Uses Config from --> E
+    D -- Updates State --> E
 ```
 
 ### Frontend (Streamlit)
-A web-based user interface (`pages/Management_Dashboard.py`) for system administrators. It provides tools to edit all system configurations. It communicates exclusively with the Backend via API calls and has no direct access to the database.
+A web-based user interface (`pages/Management_Dashboard.py`) for system administrators. It provides tools to edit all system configurations. It communicates exclusively with the Backend via REST API calls and has no direct access to the database.
 
 ### Backend (FastAPI)
-A RESTful API that serves as the system's control plane. It handles all incoming requests from the frontend, validates data, and is the sole component responsible for reading from and writing to the database.
+The Control Plane. It handles incoming HTTP requests, validates configuration changes via Pydantic V2 schemas, and serves as the gateway for enqueuing execution jobs.
+
+### Worker Service (Arq + Redis)
+The Execution Plane. A distributed background service that pulls jobs from Redis. This allows the system to scale horizontally and handle tasks that exceed standard HTTP timeout limits (e.g., 60s+ LLM reasoning chains).
 
 ### Generic Engine
-The core processing unit. When a task is initiated by the backend, the Engine reads the corresponding workflow definition from the database. It then executes the defined sequence of steps, invoking the appropriate Agents with their specified configurations.
+The core processing unit running inside the Worker. It reads the `WorkflowState` and `WorkflowDefinition` from the database, initializes the required Agents using Dependency Injection, and executes the pipeline.
 
-### Database (JSON)
-The single source of truth for the entire system's configuration. It stores all prompts, rules, agent settings, and the workflow definitions that dictate the engine's behavior.
+### Database (JSON / Firestore)
+The single source of truth. It stores:
+*   **Definitions**: Prompts, Rules, Agent Configs.
+*   **State**: Live execution data (`WorkflowState`).
 
-## The Data-Driven Workflow Engine
-
-Cognitive Quorum v2.0 operates as a generic, data-driven engine. All processing logic is defined as a Workflow within the database, rather than being hardcoded in the application.
-
-A **Workflow** is an ordered list of **Steps**. Each step is a JSON object that acts as an instruction, defining:
-
-*   **`agent_name`**: The specific agent class to execute (e.g., `LogicianAgent`, `JudgeAgent`).
-*   **`prompt_id`**: The ID of the prompt template to load.
-*   **`llm_config`**: Agent-specific parameters, such as the LLM model (e.g., `gemini-1.5-pro`) and temperature.
-*   **`output_schema`**: The Pydantic model name (e.g., `JudgeVerdict`) used for strict validation.
-
-This data-driven approach means new, complex behaviors can be created entirely through the Management UI.
+---
 
 ## Management Data Flow
 
-All configuration changes follow a clear, API-driven pattern. Unlike v1's "deploy to seed" model, changes are persisted immediately via the API.
+Configuration changes follow an API-driven, immediate consistency model.
 
 1.  **Edit**: An administrator modifies a prompt in the Streamlit UI.
 2.  **API Request**: Upon saving, the UI sends a `PUT /prompts/{id}` request to the FastAPI backend.
-3.  **Persistence**: The backend validates the data and updates the record in the active database (`db.json` or `db_mock.json`).
-4.  **Live Update**: The change is live immediately.
+3.  **Persistence**: The backend validates the data (Pydantic) and updates the record in the active database.
+4.  **Live Update**: The next job picked up by a Worker will immediately use the new configuration.
 
 ## UI Components (`pages/Management_Dashboard.py`)
 
@@ -87,11 +87,9 @@ Manages the content assets.
 
 ## Environments & Data Synchronization
 
-The system maintains two parallel environments:
+The system maintains two parallel environments, determined by the `ENV` variable:
 
-| Environment | Database File | Purpose |
-| :--- | :--- | :--- |
-| **MOCK** | `data/db_mock.json` | Sandbox for testing new prompts and workflows. |
-| **PROD** | `data/db.json` | Live production processing. |
-
-The Backend determines the active database from the `ENV` environment variable, ensuring isolation.
+| Environment | Database (Local) | Database (Cloud) | Purpose |
+| :--- | :--- | :--- | :--- |
+| **MOCK** | `data/db_mock.json` | `firestore/mock` | Sandbox for testing new prompts and workflows. |
+| **PROD** | `data/db.json` | `firestore/prod` | Live production processing. |

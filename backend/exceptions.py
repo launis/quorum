@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any
 
 
 class AppException(Exception):
@@ -49,12 +49,11 @@ class AgentExecutionError(AppException):
 
 
 class FatalInterruption(AppException):
-    """
-    Raised when a critical error requires stopping the entire workflow execution immediately.
+    """Raised when a critical error requires stopping the entire workflow execution immediately.
     This is favored over silent failures or partial execution.
     """
 
-    def __init__(self, step_name: str, reason: str, details: Dict[str, Any] = None):
+    def __init__(self, step_name: str, reason: str, details: dict[str, Any] = None):
         if details is None:
             details = {}
         # Ensure minimal structure

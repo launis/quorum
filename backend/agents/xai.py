@@ -1,5 +1,6 @@
+"""XAI Reporter Agent implementation."""
 import logging
-from typing import Optional, Type, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
 
@@ -13,8 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class XAIReporterAgent(BaseAgent):
-    """
-    XAI-Raportoija-agentti (XAI Reporter Agent).
+    """XAI-Raportoija-agentti (XAI Reporter Agent).
 
     Responsible for generating the final, explainable report.
     """
@@ -22,38 +22,36 @@ class XAIReporterAgent(BaseAgent):
     state_field = "step_reporter"
     REQUIRES_KEYS = ["step_judge"]
 
-    def get_response_schema(self) -> Optional[Type[BaseModel]]:
-        """
-        Returns the expected output schema.
+    def get_response_schema(self) -> type[BaseModel] | None:
+        """Returns the expected output schema.
 
         Use the Domain Model directly to ensure strict validation.
         The dynamic generation was causing issues with Optional fields and Type mismatches.
 
         Returns:
             Optional[Type[BaseModel]]: XAIReport schema.
+
         """
         return XAIReport
 
-    async def execute(self, state: WorkflowState, system_instruction: Optional[str] = None, **kwargs) -> WorkflowState:
-        """
-        Executes the XAI Reporter Agent logic.
+    async def execute(self, state: WorkflowState, system_instruction: str | None = None, **kwargs) -> WorkflowState:
+        """Executes the XAI Reporter Agent logic.
 
-        Strictly forwards kwargs without injecting local defaults, as configuration
-        must come from the WorkflowEngine/Config.
+        Input State:
+            - state.step_judge (Primary input for report).
+            - state (Full context read for synthesis).
 
-        Args:
-            state (WorkflowState): Current workflow state.
-            system_instruction (Optional[str]): System prompt.
-            **kwargs: Extra arguments.
+        Output State:
+            - state.step_reporter (XAIReport): The final explanation/report.
+            - (Post-Hook): Generates human-readable text via `generate_report`.
 
-        Returns:
-            WorkflowState: Updated workflow state.
+        Exceptions:
+            - AgentExecutionError: If LLM fails.
         """
         return await super().execute(state, system_instruction, **kwargs)
 
     def post_process(self, state: WorkflowState) -> WorkflowState:
-        """
-        Lifecycle Hook: Post-Execution.
+        """Lifecycle Hook: Post-Execution.
 
         Generates the final human-readable report by calling the reporting hook.
 
@@ -62,6 +60,7 @@ class XAIReporterAgent(BaseAgent):
 
         Returns:
             WorkflowState: Updated state with the generated report.
+
         """
         logger.info("[XAIReporterAgent] Running post_process hook...")
         from backend.hooks.reporting import generate_report

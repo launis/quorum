@@ -3,7 +3,7 @@ import json
 import logging
 import os
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional, Type, Union
+from typing import Any
 
 import litellm
 from pydantic import BaseModel
@@ -29,8 +29,7 @@ retry_strategy = retry(
 
 
 class LLMProvider(ABC):
-    """
-    Abstract base class for LLM providers.
+    """Abstract base class for LLM providers.
     Defines the contract for text generation and structured data extraction.
     """
 
@@ -38,15 +37,14 @@ class LLMProvider(ABC):
     async def generate(
         self,
         prompt: str,
-        system_instruction: Optional[str] = None,
-        response_schema: Optional[Type[BaseModel]] = None,
+        system_instruction: str | None = None,
+        response_schema: type[BaseModel] | None = None,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
-        pass_reasoning_token: Optional[str] = None,
+        max_tokens: int | None = None,
+        pass_reasoning_token: str | None = None,
         **kwargs,
     ) -> LLMResponse:
-        """
-        Generates content from the LLM.
+        """Generates content from the LLM.
 
         Args:
             prompt (str): The user prompt.
@@ -59,6 +57,7 @@ class LLMProvider(ABC):
 
         Returns:
             LLMResponse: The generated response object.
+
         """
         pass
 
@@ -68,19 +67,18 @@ _CACHED_MODELS = []
 
 
 class LiteLLMProvider(LLMProvider):
-    """
-    Unified LLM Provider using LiteLLM to support multiple models (Gemini, OpenAI, etc.)
+    """Unified LLM Provider using LiteLLM to support multiple models (Gemini, OpenAI, etc.)
     with a consistent interface.
     """
 
-    def __init__(self, model_name: str, api_key: Optional[str] = None, settings: Any = None):
-        """
-        Initializes the LiteLLM provider.
+    def __init__(self, model_name: str, api_key: str | None = None, settings: Any = None):
+        """Initializes the LiteLLM provider.
 
         Args:
             model_name (str): The model identifier.
             api_key (Optional[str]): API Key.
             settings (Any): System settings object (containing vertex_location etc).
+
         """
         self.model_name = model_name
         self.api_key = api_key
@@ -92,18 +90,16 @@ class LiteLLMProvider(LLMProvider):
     async def generate(
         self,
         prompt: str,
-        system_instruction: Optional[str] = None,
-        response_schema: Optional[Type[BaseModel]] = None,
+        system_instruction: str | None = None,
+        response_schema: type[BaseModel] | None = None,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
-        pass_reasoning_token: Optional[str] = None,
+        max_tokens: int | None = None,
+        pass_reasoning_token: str | None = None,
         **kwargs,
     ) -> LLMResponse:
-        """
-        Generates content using LiteLLM.
+        """Generates content using LiteLLM.
         Returns unified LLMResponse with content and reasoning state.
         """
-
         messages = []
         if system_instruction:
             messages.append({"role": "system", "content": system_instruction})
@@ -247,8 +243,7 @@ class LiteLLMProvider(LLMProvider):
 
 
 class MockProvider(LLMProvider):
-    """
-    Mock LLM Provider for offline testing and development.
+    """Mock LLM Provider for offline testing and development.
     Uses cached/simulated responses from MockLLMService.
     """
 
@@ -258,15 +253,14 @@ class MockProvider(LLMProvider):
     async def generate(
         self,
         prompt: str,
-        system_instruction: Optional[str] = None,
-        response_schema: Optional[Type[BaseModel]] = None,
+        system_instruction: str | None = None,
+        response_schema: type[BaseModel] | None = None,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
-        pass_reasoning_token: Optional[str] = None,
+        max_tokens: int | None = None,
+        pass_reasoning_token: str | None = None,
         **kwargs,
     ) -> LLMResponse:
-        """
-        Simulates generation by invoking the MockLLMService.
+        """Simulates generation by invoking the MockLLMService.
         """
         from backend.llm.mock import MockLLMService
 
@@ -297,8 +291,7 @@ class MockProvider(LLMProvider):
 
 
 class UnconfiguredProvider(LLMProvider):
-    """
-    Placeholder provider for agents initialized without a specific model configuration.
+    """Placeholder provider for agents initialized without a specific model configuration.
     Raises a strict runtime error if execution is attempted before configuration.
     """
 
@@ -311,19 +304,17 @@ class UnconfiguredProvider(LLMProvider):
 
 
 class LLMFactory:
-    """
-    Factory class to instantiate the appropriate LLMProvider based on configuration.
+    """Factory class to instantiate the appropriate LLMProvider based on configuration.
     """
 
     @staticmethod
     def create_provider(
         provider_type: str,
         model_name: str,
-        context: Optional[Union[Dict[str, Any], Any]] = None,
-        organization_id: Optional[str] = None,
+        context: dict[str, Any] | Any | None = None,
+        organization_id: str | None = None,
     ) -> LLMProvider:
-        """
-        Creates an LLM provider instance.
+        """Creates an LLM provider instance.
 
         Args:
             provider_type (str): Type of provider (e.g., 'gemini', 'openai').
@@ -336,6 +327,7 @@ class LLMFactory:
 
         Raises:
             ValueError: If configuration is invalid.
+
         """
         settings = get_settings()
 

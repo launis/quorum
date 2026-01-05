@@ -1,6 +1,11 @@
+"""API Router for Agent Execution and Discovery.
+
+This module provides endpoints for listing available agents, running specific agents
+in isolation, and resolving agent capabilities dynamically.
+"""
 import importlib
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from fastapi import APIRouter, Body, HTTPException
 from fastapi import Query as APIQuery
@@ -15,8 +20,7 @@ router = APIRouter(prefix="/agents", tags=["Agents"])
 
 
 def _load_agent_class(agent_name: str, db: AbstractDatabase):
-    """
-    Dynamically loads an agent class by name using the database registry.
+    """Dynamically loads an agent class by name using the database registry.
 
     Args:
         agent_name (str): The name of the agent class or component.
@@ -27,6 +31,7 @@ def _load_agent_class(agent_name: str, db: AbstractDatabase):
 
     Raises:
         ValueError: If the agent is not found or cannot be imported.
+
     """
     components_table = db.table("components")
 
@@ -54,13 +59,12 @@ def _load_agent_class(agent_name: str, db: AbstractDatabase):
 )
 async def run_agent(
     agent_name: str,
-    inputs: Dict[str, Any] = Body(..., description="Key-value pairs representing the input state for the agent."),
-    system_instruction: Optional[str] = Body(None, description="Optional system instruction override."),
-    model: Optional[str] = Body(None, description="Optional model strategy override."),
+    inputs: dict[str, Any] = Body(..., description="Key-value pairs representing the input state for the agent."),
+    system_instruction: str | None = Body(None, description="Optional system instruction override."),
+    model: str | None = Body(None, description="Optional model strategy override."),
     db: DatabaseDep = None,  # Injected
 ):
-    """
-    Executes a specific agent in isolation with provided inputs.
+    """Executes a specific agent in isolation with provided inputs.
 
     Args:
         agent_name (str): The class name of the agent to run.
@@ -74,6 +78,7 @@ async def run_agent(
 
     Raises:
         HTTPException: If the agent cannot be loaded or execution fails.
+
     """
     # Defensive fix for explicit None default to satisfy linter if needed, though Depends handles it.
     if db is None:
@@ -104,19 +109,18 @@ async def run_agent(
 
 @router.get(
     "/",
-    response_model=List[Dict],
+    response_model=list[dict],
     summary="List All Agents",
     response_description="A list of available agents containing metadata and schemas.",
 )
 def list_agents(
-    workflow_id: Optional[str] = APIQuery(
+    workflow_id: str | None = APIQuery(
         None, description="Optional Workflow ID to resolve model strategies contextually."
     ),
     db: DatabaseDep = None,
     registry: RegistryDep = None,
 ):
-    """
-    List all available agents with their metadata, models, and schemas.
+    """List all available agents with their metadata, models, and schemas.
     Dynamically resolves model strategy based on the selected workflow configuration.
 
     Args:
@@ -126,6 +130,7 @@ def list_agents(
 
     Returns:
         List[Dict]: A list of agent definition objects.
+
     """
     if db is None:
         from backend.dependencies import get_db_client_dep

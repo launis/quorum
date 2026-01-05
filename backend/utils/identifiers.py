@@ -1,11 +1,9 @@
 import re
 import uuid
-from typing import Optional
 
 
-def generate_unique_id(base_name: Optional[str] = None, prefix: Optional[str] = None) -> str:
-    """
-    Generates a unique, slugified identifier.
+def generate_unique_id(base_name: str | None = None, prefix: str | None = None) -> str:
+    """Generates a unique, slugified identifier.
 
     Format: {prefix}-{slug}-{short_uuid}
     Example: "my-prefix-acme-corp-a1b2c3d4"

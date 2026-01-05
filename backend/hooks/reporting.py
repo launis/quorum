@@ -10,8 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 def generate_report(state: WorkflowState) -> WorkflowState:
-    """
-    HOOK: generate_report
+    """HOOK: generate_report
     Post-execution hook that aggregates results from all agents (Judge, Overseer, Reporter)
     and renders a human-readable Markdown report using a Jinja2 template.
 
@@ -23,6 +22,7 @@ def generate_report(state: WorkflowState) -> WorkflowState:
 
     Returns:
         WorkflowState: Updated state with the final report.
+
     """
     logger.info("[ReportingHook] Generating report...")
 
@@ -154,7 +154,7 @@ def generate_report(state: WorkflowState) -> WorkflowState:
             else:
                 # Use setattr for Pydantic model with extra='allow'
                 try:
-                    setattr(xai_data, "comparison_data", comparison_data)
+                    xai_data.comparison_data = comparison_data
                 except Exception:
                     pass
 

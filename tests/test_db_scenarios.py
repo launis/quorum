@@ -59,8 +59,8 @@ def test_missing_step_definition(engine):
         # In V2, execution creation checks workflow existence.
         exec_id = await engine.create_execution("wf_missing_step", {})
         
-        # In V2, run_execution catches errors and updates DB status to 'failed'.
-        await engine.run_execution(exec_id, {})
+        # Call execute_workflow_task directly to verify the separated logic
+        await engine.execute_workflow_task(exec_id, "wf_missing_step", {})
 
         # Fetch record to verify status
         record = await engine.repository.get_execution(exec_id)
@@ -117,7 +117,8 @@ def test_empty_prompt_content(engine):
     
     async def run():
         exec_id = await engine.create_execution("wf_empty_prompt", {})
-        await engine.run_execution(exec_id, {})
+        # Verify direct execution
+        await engine.execute_workflow_task(exec_id, "wf_empty_prompt", {})
         return await engine.repository.get_execution(exec_id)
 
     result = asyncio.run(run())
@@ -162,7 +163,7 @@ def test_missing_prompt_component(engine):
     
     async def run():
         exec_id = await engine.create_execution("wf_missing_prompt", {})
-        await engine.run_execution(exec_id, {})
+        await engine.execute_workflow_task(exec_id, "wf_missing_prompt", {})
         return await engine.repository.get_execution(exec_id)
 
     result = asyncio.run(run())

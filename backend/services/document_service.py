@@ -1,7 +1,7 @@
 import io
 import logging
 import os
-from typing import Any, Dict, Tuple, Union
+from typing import Any
 
 import docx
 import fitz  # PyMuPDF
@@ -15,8 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class DocumentService:
-    """
-    Unified service for handling document ingestion, processing, and archiving.
+    """Unified service for handling document ingestion, processing, and archiving.
     Supports:
     - Evidence files (PDF/DOCX -> Text) for WorkflowEngine
     - Knowledge Base files (DOCX/MD -> Structured JSON) for KnowledgeBaseService
@@ -27,17 +26,16 @@ class DocumentService:
     """
 
     def __init__(self, storage_client: AbstractStorage):
-        """
-        Initializes the service.
+        """Initializes the service.
 
         Args:
             storage_client (AbstractStorage): The storage backend.
+
         """
         self.storage_client = storage_client
 
-    async def process_evidence_files(self, execution_id: str, files: Dict[str, Tuple[str, bytes]]) -> Dict[str, str]:
-        """
-        Archives evidence files to storage and extracts text for workflow execution.
+    async def process_evidence_files(self, execution_id: str, files: dict[str, tuple[str, bytes]]) -> dict[str, str]:
+        """Archives evidence files to storage and extracts text for workflow execution.
         Handles PDF and DOCX formats automatically.
 
         Args:
@@ -49,6 +47,7 @@ class DocumentService:
 
         Raises:
             FatalInterruption: If file processing fails critically.
+
         """
         extracted_data = {}
 
@@ -102,9 +101,8 @@ class DocumentService:
 
         return extracted_data
 
-    async def process_knowledge_base_file(self, content: bytes, filename: str, job_id: str) -> Dict[str, Any]:
-        """
-        Archives Knowledge Base file and parses it into concepts/references.
+    async def process_knowledge_base_file(self, content: bytes, filename: str, job_id: str) -> dict[str, Any]:
+        """Archives Knowledge Base file and parses it into concepts/references.
         Supports both DOCX and Markdown formats.
 
         Args:
@@ -117,6 +115,7 @@ class DocumentService:
 
         Raises:
             ValueError: If file type is unsupported.
+
         """
         is_docx = filename.lower().endswith(".docx")
         is_md = filename.lower().endswith(".md")
@@ -151,9 +150,8 @@ class DocumentService:
     # --- Internal Text Extraction Helpers (Migrated from DocumentProcessor) ---
 
     @staticmethod
-    def _extract_text_from_pdf(input_data: Union[str, bytes]) -> str:
-        """
-        Extracts plain text from a PDF file using PyMuPDF (fitz).
+    def _extract_text_from_pdf(input_data: str | bytes) -> str:
+        """Extracts plain text from a PDF file using PyMuPDF (fitz).
 
         Args:
             input_data (Union[str, bytes]): File path or bytes content.
@@ -163,6 +161,7 @@ class DocumentService:
 
         Raises:
             Exception: If parsing fails.
+
         """
         try:
             doc = None
@@ -184,9 +183,8 @@ class DocumentService:
             raise Exception(f"Failed to extract PDF text: {str(e)}")
 
     @staticmethod
-    def _extract_text_from_docx(input_data: Union[str, bytes]) -> str:
-        """
-        Extracts plain text from a DOCX file using python-docx.
+    def _extract_text_from_docx(input_data: str | bytes) -> str:
+        """Extracts plain text from a DOCX file using python-docx.
         Includes text from paragraphs and tables.
 
         Args:
@@ -197,6 +195,7 @@ class DocumentService:
 
         Raises:
             Exception: If parsing fails.
+
         """
         try:
             doc = None

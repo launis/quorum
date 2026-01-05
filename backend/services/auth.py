@@ -1,7 +1,6 @@
 import logging
 import time
 import uuid
-from typing import List, Optional
 
 from tinydb import Query
 
@@ -17,7 +16,15 @@ class OrganizationRepository:
     def __init__(self, db_client: AbstractDatabase):
         self.table: AbstractTable = db_client.table("organizations")
 
-    def get_by_id(self, org_id: str) -> Optional[Organization]:
+    def get_by_id(self, org_id: str) -> Organization | None:
+        """Retrieves an organization by ID.
+
+        Args:
+            org_id (str): Organization ID.
+
+        Returns:
+            Optional[Organization]: The organization object.
+        """
         # TinyDB simulation for get
         result = self.table.get(lambda x: x.get("id") == org_id)
         if result:
@@ -28,10 +35,18 @@ class OrganizationRepository:
         return None
 
     def create(self, org: Organization) -> Organization:
+        """Persists a new organization.
+
+        Args:
+            org (Organization): The object to save.
+
+        Returns:
+            Organization: The saved object.
+        """
         self.table.insert(org.model_dump())
         return org
 
-    def list_all(self) -> List[Organization]:
+    def list_all(self) -> list[Organization]:
         results = []
         for o in self.table.all():
             if "tier" not in o:
@@ -44,22 +59,29 @@ class OrganizationRepository:
 
 
 class UserRepository:
-    """
-    Handles persistence of User metadata (roles, display names, hierarchy)
+    """Handles persistence of User metadata (roles, display names, hierarchy)
     to the underlying database (TinyDB or Firestore).
     """
 
     def __init__(self, db_client: AbstractDatabase):
         self.table: AbstractTable = db_client.table("users")
 
-    def get_by_uid(self, uid: str) -> Optional[User]:
+    def get_by_uid(self, uid: str) -> User | None:
+        """Retrieves user by UID.
+
+        Args:
+            uid (str): User ID.
+
+        Returns:
+            Optional[User]: The user object.
+        """
         # TinyDB / Memory filter approach
         result = self.table.get(lambda x: x.get("uid") == uid)
         if result:
             return User(**result)
         return None
 
-    def get_by_email(self, email: str) -> Optional[User]:
+    def get_by_email(self, email: str) -> User | None:
         result = self.table.get(lambda x: x.get("email") == email)
         if result:
             return User(**result)
@@ -70,7 +92,7 @@ class UserRepository:
         self.table.insert(data)
         return user
 
-    def update(self, uid: str, updates: UserUpdate) -> Optional[User]:
+    def update(self, uid: str, updates: UserUpdate) -> User | None:
         user = self.get_by_uid(uid)
         if not user:
             return None
@@ -85,13 +107,12 @@ class UserRepository:
         # Return updated
         return self.get_by_uid(uid)
 
-    def list_all(self) -> List[User]:
+    def list_all(self) -> list[User]:
         raw_users = self.table.all()
         return [User(**u) for u in raw_users]
 
     def delete(self, uid: str) -> bool:
-        """
-        Hard delete user from DB.
+        """Hard delete user from DB.
         """
         # TinyDB remove
         ids = self.table.remove(Query().uid == uid)
@@ -102,8 +123,7 @@ class UserRepository:
 
 
 class AuthService:
-    """
-    Hybrid Auth Service with Multi-Tenancy (SaaS).
+    """Hybrid Auth Service with Multi-Tenancy (SaaS).
     """
 
     def __init__(self, db_client: AbstractDatabase, use_firebase: bool = False):
@@ -128,8 +148,7 @@ class AuthService:
             self.use_firebase = False
 
     def verify_token(self, token: str) -> TokenData:
-        """
-        Verifies a Bearer token.
+        """Verifies a Bearer token.
         Returns TokenData (uid, role, organization_id).
         """
         # 1. Mock/Dev Mode check
@@ -177,9 +196,19 @@ class AuthService:
             raise ValueError("Invalid credentials")
 
     def create_organization(self, creator_uid: str, org_create: OrganizationCreate) -> Organization:
-        """
-        Creates a new Tenant Organization and an initial Admin user for it.
+        """Creates a new Tenant Organization and an initial Admin user for it.
+
         Only ROOT can do this.
+
+        Args:
+            creator_uid (str): User ID of the creator (must be ROOT).
+            org_create (OrganizationCreate): Config for new org.
+
+        Returns:
+            Organization: The created organization.
+
+        Raises:
+            PermissionError: If creator is not ROOT.
         """
         creator = self.repo.get_by_uid(creator_uid)
         if not creator or creator.role != UserRole.ROOT:
@@ -205,6 +234,19 @@ class AuthService:
         return new_org
 
     def create_user(self, creator_uid: str, user_data: UserCreate) -> User:
+        """Creates a new user, enforcing hierarchy and tenancy.
+
+        Args:
+            creator_uid (str): The requesting user.
+            user_data (UserCreate): New user data.
+
+        Returns:
+            User: Created user.
+
+        Raises:
+            PermissionError: If role hierarchy validation fails.
+            ValueError: If creator context invalid.
+        """
         return self._create_user_internal(creator_uid, user_data)
 
     def _create_user_internal(self, creator_uid: str, user_data: UserCreate, force_org_id: str = None) -> User:
@@ -288,8 +330,7 @@ class AuthService:
         raise PermissionError("This user role cannot create users")
 
     def _count_org_admins(self, org_id: str) -> int:
-        """
-        Counts how many ADMINs exist in a given Organization.
+        """Counts how many ADMINs exist in a given Organization.
         """
         if not org_id:
             return 0
@@ -297,8 +338,7 @@ class AuthService:
         return sum(1 for u in all_users if u.organization_id == org_id and u.role == UserRole.ADMIN)
 
     def delete_user(self, initiator_uid: str, target_uid: str) -> bool:
-        """
-        Delete a user, with Last Admin Protection.
+        """Delete a user, with Last Admin Protection.
         """
         initiator = self.repo.get_by_uid(initiator_uid)
         target = self.repo.get_by_uid(target_uid)
@@ -342,8 +382,7 @@ class AuthService:
         return self.repo.delete(target_uid)
 
     def delete_organization(self, initiator_uid: str, target_org_id: str) -> None:
-        """
-        Deletes an Organization and ALL its users.
+        """Deletes an Organization and ALL its users.
         Bypasses Last Admin Protection because the Org itself is dying.
         """
         initiator = self.repo.get_by_uid(initiator_uid)
@@ -372,8 +411,7 @@ class AuthService:
         # using repo.delete_org_data(org_id) as AuthService doesn't access WorkflowRepo directly.
 
     def update_user(self, initiator_uid: str, target_uid: str, updates: UserUpdate) -> User:
-        """
-        General update method.
+        """General update method.
         If 'role' is being changed, we must enforce Last Admin Protection.
         """
         initiator = self.repo.get_by_uid(initiator_uid)
@@ -405,7 +443,6 @@ class AuthService:
 
     def ensure_root_user(self, email: str = "root@example.com") -> User:
         """Bootstraps a root user and Development Scenario (Demo Corp) if needed."""
-
         # 0. Ensure SYSTEM Org exists (Container for Root)
         if not self.org_repo.get_by_id("system"):
             logger.info("[AuthService] Creating 'system' Organization.")
@@ -440,8 +477,7 @@ class AuthService:
     # --- Dependency Injection Helpers (Static) ---
     @staticmethod
     def require_role(required_role: UserRole):
-        """
-        Returns a dependency that validates the user has the required role.
+        """Returns a dependency that validates the user has the required role.
         Implicitly allows ROOT for everything.
         """
         from fastapi import Depends, HTTPException
@@ -462,8 +498,7 @@ class AuthService:
     def get_current_user(
         from_header=None,  # Placeholder to match Depends signature if needed, but we delegate
     ):
-        """
-        Dependency alias for getting current user via header.
+        """Dependency alias for getting current user via header.
         Intended usage: user: TokenData = Depends(AuthService.get_current_user)
         """
         from backend.dependencies import get_current_user_from_header

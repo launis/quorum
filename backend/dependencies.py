@@ -1,5 +1,4 @@
-"""
-Core Dependency Injection Module.
+"""Core Dependency Injection Module.
 
 Implements Singleton patterns for infrastructure services (DB, Engine, Registry)
 using FastAPI's `Depends` system. Validates configurations and abstracts
@@ -9,7 +8,7 @@ Exports `Annotated` type aliases (e.g., `EngineDep`) for clean router injection.
 """
 
 import logging
-from typing import Annotated, Any, Optional
+from typing import Annotated, Any
 
 from fastapi import Depends, Header, HTTPException
 
@@ -27,13 +26,13 @@ from backend.settings import Settings, get_settings
 logger = logging.getLogger(__name__)
 
 # Global Singleton Instances
-_db_client_instance: Optional[AbstractDatabase] = None
-_repository_instance: Optional[AbstractWorkflowRepository] = None
-_registry_instance: Optional[AgentRegistry] = None
-_prompt_builder_instance: Optional[PromptBuilder] = None
-_storage_service_instance: Optional[AbstractStorage] = None
-_engine_instance: Optional[WorkflowEngine] = None
-_auth_service_instance: Optional[AuthService] = None
+_db_client_instance: AbstractDatabase | None = None
+_repository_instance: AbstractWorkflowRepository | None = None
+_registry_instance: AgentRegistry | None = None
+_prompt_builder_instance: PromptBuilder | None = None
+_storage_service_instance: AbstractStorage | None = None
+_engine_instance: WorkflowEngine | None = None
+_auth_service_instance: AuthService | None = None
 
 
 def get_settings_dep() -> Settings:
@@ -50,8 +49,7 @@ def get_db_client_dep() -> AbstractDatabase:
 
 
 def get_async_repository(db_client: AbstractDatabase = Depends(get_db_client_dep)) -> AbstractWorkflowRepository:
-    """
-    Factory that returns the appropriate ASYNC-FIRST Repository implementation.
+    """Factory that returns the appropriate ASYNC-FIRST Repository implementation.
     """
     global _repository_instance
 
@@ -103,8 +101,7 @@ async def get_prompt_builder_dep(
 
 
 def get_storage_service_dep() -> AbstractStorage:
-    """
-    Dependency to provide a Singleton Storage Service.
+    """Dependency to provide a Singleton Storage Service.
     Selects FirebaseStorage if STORAGE_BACKEND is 'FIRESTORE', otherwise LocalFileStorage.
     """
     global _storage_service_instance
@@ -145,8 +142,7 @@ def get_document_service_dep(storage_client: AbstractStorage = Depends(get_stora
 def get_auth_service(
     db_client: AbstractDatabase = Depends(get_db_client_dep), settings: Settings = Depends(get_settings_dep)
 ) -> AuthService:
-    """
-    Dependency to provide Singleton Auth Service.
+    """Dependency to provide Singleton Auth Service.
     Automatically ensures Root User exists.
     """
     global _auth_service_instance
@@ -168,8 +164,7 @@ async def get_engine(
     storage_service: AbstractStorage = Depends(get_storage_service_dep),
     document_service: Any = Depends(get_document_service_dep),
 ) -> WorkflowEngine:
-    """
-    Dependency to provide a Singleton WorkflowEngine.
+    """Dependency to provide a Singleton WorkflowEngine.
     """
     global _engine_instance
     if _engine_instance is None:
@@ -234,8 +229,7 @@ async def get_llm_provider(model_strategy: str, registry: AgentRegistry = Depend
 
 
 def get_llm_provider_factory(strategy: str):
-    """
-    Returns a dependency callable that provides an LLMProvider configured with the specified strategy.
+    """Returns a dependency callable that provides an LLMProvider configured with the specified strategy.
     Enforces that the strategy must exist in the database configuration.
     """
 
@@ -308,10 +302,9 @@ LLMHandlerDep = Annotated[LLMHandler, Depends(get_llm_handler_dep)]
 
 
 async def get_current_user_from_header(
-    authorization: Annotated[Optional[str], Header()] = None, auth_service: AuthService = Depends(get_auth_service)
+    authorization: Annotated[str | None, Header()] = None, auth_service: AuthService = Depends(get_auth_service)
 ) -> TokenData:
-    """
-    Helper dependency to extract user from Bearer token.
+    """Helper dependency to extract user from Bearer token.
     Allows accessing 'CurrentUser' in any router.
     """
     if not authorization:

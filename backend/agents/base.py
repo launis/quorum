@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Optional, Type, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
@@ -13,12 +13,11 @@ logger = logging.getLogger(__name__)
 
 
 class BaseAgent(BaseComponent):
-    """
-    Abstract base class for all Cognitive Quorum agents.
+    """Abstract base class for all Cognitive Quorum agents.
     Handles LLM interaction via the Provider Pattern and manages WorkflowState.
     """
 
-    state_field: Optional[str] = None
+    state_field: str | None = None
 
     # --- CONTRACTS (Data Flow Validation) ---
     # List of keys (in state or inputs) that this agent REQUIRES to run.
@@ -28,16 +27,16 @@ class BaseAgent(BaseComponent):
     PRODUCES_KEYS: list[str] = []
 
     # Optional Pydantic Models for Schema Validation
-    INPUT_SCHEMA: Optional[Type[BaseModel]] = None
-    OUTPUT_SCHEMA: Optional[Type[BaseModel]] = None
+    INPUT_SCHEMA: type[BaseModel] | None = None
+    OUTPUT_SCHEMA: type[BaseModel] | None = None
 
-    def __init__(self, model: Optional[str] = None, provider: Optional[str] = None):
-        """
-        Initializes the agent with an optional specific model strategy.
+    def __init__(self, model: str | None = None, provider: str | None = None):
+        """Initializes the agent with an optional specific model strategy.
 
         Args:
             model (Optional[str]): The model identifier (e.g. 'gemini-1.5-pro').
             provider (Optional[str]): The provider (e.g. 'google').
+
         """
         self.model = model
         self.provider_type = provider or "vertex_ai"
@@ -54,13 +53,13 @@ class BaseAgent(BaseComponent):
             logger.error(f"[BaseAgent] Failed to init provider: {e}. using Mock.")
             self.llm_provider = LLMFactory.create_provider("mock", "mock-fallback")
 
-    def set_model(self, model_name: str, provider: Optional[str] = None):
-        """
-        Dynamically updates the agent's model preference and ensures LLMProvider is ready.
+    def set_model(self, model_name: str, provider: str | None = None):
+        """Dynamically updates the agent's model preference and ensures LLMProvider is ready.
 
         Args:
             model_name (str): The new model name.
             provider (Optional[str]): The provider type.
+
         """
         self.model = model_name
         if provider:
@@ -84,6 +83,12 @@ class BaseAgent(BaseComponent):
             self._create_provider(current_provider_type, model_name)
 
     def _create_provider(self, provider_type: str, model_name: str):
+        """Helper to instantiate and assign the LLM provider.
+
+        Args:
+            provider_type (str): Provider key (e.g. 'google', 'openai').
+            model_name (str): The specific model ID.
+        """
         try:
             self.llm_provider = LLMFactory.create_provider(provider_type, model_name)
             logger.debug(f"[BaseAgent] Provider initialized with {model_name} (Type: {provider_type})")
@@ -91,10 +96,9 @@ class BaseAgent(BaseComponent):
             logger.error(f"[BaseAgent] Failed to create provider in set_model: {e}")
 
     async def _update_state(
-        self, state: WorkflowState, response_data: Any, output_key: Optional[str] = None, **kwargs
+        self, state: WorkflowState, response_data: Any, output_key: str | None = None, **kwargs
     ) -> WorkflowState:
-        """
-        Updates the WorkflowState with the LLM response.
+        """Updates the WorkflowState with the LLM response.
         Generic implementation: Uses self.state_field and self.get_response_schema().
 
         Args:
@@ -107,6 +111,7 @@ class BaseAgent(BaseComponent):
 
         Raises:
             Exception: If schema validation fails.
+
         """
         target_field = output_key or self.state_field
 
@@ -140,9 +145,8 @@ class BaseAgent(BaseComponent):
 
         raise NotImplementedError(f"[{self.__class__.__name__}] must define 'state_field' or override '_update_state'.")
 
-    async def execute(self, state: WorkflowState, system_instruction: Optional[str] = None, **kwargs) -> WorkflowState:
-        """
-        Standard execution entry point.
+    async def execute(self, state: WorkflowState, system_instruction: str | None = None, **kwargs) -> WorkflowState:
+        """Standard execution entry point.
         Takes the entire WorkflowState, processes it, and returns the updated state.
 
         Args:
@@ -155,6 +159,7 @@ class BaseAgent(BaseComponent):
 
         Raises:
             Exception: If execution fails.
+
         """
         logger.info(f"[{self.__class__.__name__}] Starting execution...")
         try:
@@ -252,9 +257,8 @@ class BaseAgent(BaseComponent):
             logger.error(f"[{self.__class__.__name__}] Execution failed: {e}", exc_info=True)
             raise e
 
-    async def prepare_context(self, state: WorkflowState, **kwargs) -> Optional[str]:
-        """
-        Lifecycle Hook: Pre-Execution.
+    async def prepare_context(self, state: WorkflowState, **kwargs) -> str | None:
+        """Lifecycle Hook: Pre-Execution.
         Override to inject dynamic context.
 
         Args:
@@ -263,12 +267,12 @@ class BaseAgent(BaseComponent):
 
         Returns:
             Optional[str]: Text to append to system instruction.
+
         """
         return None
 
     def post_process(self, state: WorkflowState) -> WorkflowState:
-        """
-        Lifecycle Hook: Post-Execution.
+        """Lifecycle Hook: Post-Execution.
         Override to refine state or perform calculations.
 
         Args:
@@ -276,44 +280,45 @@ class BaseAgent(BaseComponent):
 
         Returns:
             WorkflowState: Processed state.
+
         """
         return state
 
     def construct_user_prompt(self, state: WorkflowState) -> str:
-        """
-        Deprecated: User prompts are now generic.
+        """Deprecated: User prompts are now generic.
 
         Args:
             state (WorkflowState): Context.
 
         Returns:
             str: Prompt text.
+
         """
         return "Proceed with your task."
 
-    def get_response_schema(self) -> Optional[Type[BaseModel]]:
-        """
-        Returns the Pydantic model that this agent expects as output.
+    def get_response_schema(self) -> type[BaseModel] | None:
+        """Returns the Pydantic model that this agent expects as output.
 
         Returns:
             Optional[Type[BaseModel]]: The Pydantic output schema class.
+
         """
         return None
 
     def get_system_instruction(self) -> str:
-        """
-        Retrieves the default system instruction.
+        """Retrieves the default system instruction.
 
         Returns:
             str: Default instruction text.
+
         """
         return "You are a helpful AI assistant."
 
     def get_user_prompt_template(self) -> str:
-        """
-        Returns a string representation of the user prompt template for UI preview.
+        """Returns a string representation of the user prompt template for UI preview.
 
         Returns:
             str: Template preview.
+
         """
         return "Proceed with your task according to the system instructions."

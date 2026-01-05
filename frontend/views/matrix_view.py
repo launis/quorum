@@ -1,28 +1,33 @@
-import streamlit as st
-import pandas as pd
-import requests
 import json
 import uuid
 
-def render_matrix_view(api_client, backend_url):
-    """
-    Renders the No-Code Evaluation Matrix Builder.
-    Refactored to avoid nested st.form issues.
+import requests
+import streamlit as st
+
+
+def render_matrix_view(api_client, backend_url: str):
+    """Renders the No-Code Evaluation Matrix Builder.
+
+    Allows creation and management of dynamic evaluation matrices (e.g., Cognitive BARS, Compliance Checks).
+
+    Args:
+        api_client: The API client instance.
+        backend_url (str): The base URL of the backend.
     """
     st.header("⚖️ Audit Matrix Builder")
     st.markdown("Create and manage dynamic evaluation matrices (e.g., Cognitive BARS, Compliance Checks). These matrices can be attached to **Judge Agents** in any workflow.")
-    
+
     # --- INIT STATE ---
     if "selected_matrix_id" not in st.session_state:
         st.session_state.selected_matrix_id = None
 
     # --- SIDEBAR: Navigation ---
     sb_tabs = st.sidebar.tabs(["Matrix Editor", "Ontology Manager"])
-    
+
     # === TAB 2: ONTOLOGY MANAGER ===
     with sb_tabs[1]:
         st.subheader("Ontology Manager")
-        
+
         # 1. Create New
         with st.expander("➕ Define New Dimension"):
             with st.form("new_dim_form"):
@@ -51,7 +56,7 @@ def render_matrix_view(api_client, backend_url):
 
         st.markdown("---")
         st.caption("Existing Dimensions")
-        
+
         # 2. List & Delete
         try:
             full_onto = requests.get(f"{backend_url}/config/ontology/dimensions/full").json()
@@ -61,7 +66,7 @@ def render_matrix_view(api_client, backend_url):
                     c1.markdown(f"**{d['label']}** (`{d['id']}`)")
                     if d.get('description'):
                         c1.caption(d['description'])
-                    
+
                     if c2.button("🗑️", key=f"del_dim_{d['id']}", help=f"Delete {d['id']}"):
                         try:
                             res = requests.delete(f"{backend_url}/config/ontology/dimensions/{d['id']}")
@@ -80,10 +85,10 @@ def render_matrix_view(api_client, backend_url):
     # === TAB 1: MATRIX EDITOR ===
     with sb_tabs[0]:
         st.subheader("Matrix Selection")
-        
+
         def reset_selection():
             st.session_state.selected_matrix_id = None
-            
+
         c_mode = st.radio("Mode", ["Edit Existing", "Create New"], key="mode_select", on_change=reset_selection)
 
         existing_matrices = []
@@ -100,26 +105,26 @@ def render_matrix_view(api_client, backend_url):
             if existing_matrices:
                 opts = {m['id']: f"{m.get('name', m['id'])} ({m['id']})" for m in existing_matrices}
                 keys = list(opts.keys())
-                
+
                 # Determine Index
                 curr = st.session_state.selected_matrix_id
                 idx = 0
                 if curr in keys:
                     idx = keys.index(curr)
-                
+
                 def on_change_sel():
                     st.session_state.selected_matrix_id = st.session_state.matrix_selector_sb
                     if "editor_criteria" in st.session_state: del st.session_state.editor_criteria
 
                 st.selectbox(
-                    "Select Matrix", 
-                    keys, 
-                    format_func=lambda x: opts[x], 
-                    key="matrix_selector_sb", 
+                    "Select Matrix",
+                    keys,
+                    format_func=lambda x: opts[x],
+                    key="matrix_selector_sb",
                     index=idx,
                     on_change=on_change_sel
                 )
-                
+
                 # Force init if needed
                 if st.session_state.selected_matrix_id not in keys:
                      st.session_state.selected_matrix_id = keys[0]
@@ -145,13 +150,13 @@ def render_matrix_view(api_client, backend_url):
 
     # --- MAIN EDITOR AREA ---
     target_id = st.session_state.selected_matrix_id
-    
+
     if not target_id:
         st.info("👈 Select a matrix from the sidebar library or create a new one.")
         return
 
     st.subheader("Matrix Editor")
-    
+
     # Determine Data
     if target_id == "NEW":
         base_data = {
@@ -171,7 +176,7 @@ def render_matrix_view(api_client, backend_url):
     else:
         base_data = next((m for m in matrices if m['id'] == target_id), None)
         is_new = False
-        
+
     if not base_data:
         st.error("Matrix not found.")
         return
@@ -182,8 +187,9 @@ def render_matrix_view(api_client, backend_url):
         content = base_data.get('content', {})
         if isinstance(content, str):
             try: content = json.loads(content)
-            except: content = {}
-        
+            except:
+                content = {}
+
         st.session_state.editor_matrix_id = target_id
         st.session_state.editor_criteria = content.get('criteria', [])
         # Also helper fields
@@ -196,7 +202,7 @@ def render_matrix_view(api_client, backend_url):
 
     # --- METADATA ---
     c1, c2 = st.columns(2)
-    
+
     def update_meta(key):
         # No-op needed, values are in st.session_state[key]
         pass
@@ -204,26 +210,26 @@ def render_matrix_view(api_client, backend_url):
     c1.text_input("Component ID (Unique)", key="ed_id", disabled=not is_new)
     c2.text_input("Matrix Name", key="ed_name")
     st.text_area("Description", key="ed_desc")
-    
+
     st.divider()
     st.markdown("#### Evaluation Logic")
-    
+
     gc1, gc2 = st.columns(2)
     gc1.text_input("Role Persona", key="ed_role")
-    
+
     gc2.number_input("Min Score", 0, 10, key="ed_min")
     gc2.number_input("Max Score", 1, 100, key="ed_max")
-    
+
     # --- CRITERIA BUILDER ---
     st.markdown("#### Criteria Dimensions")
-    
+
     # Helper callbacks
     def update_crit_field(idx, field):
         if "editor_criteria" not in st.session_state: return
         val = st.session_state.get(f"c_{field}_{idx}")
         if val is not None:
              st.session_state.editor_criteria[idx][field] = val
-        
+
     def update_anchor_field(idx, level):
             if "editor_criteria" not in st.session_state: return
             val = st.session_state.get(f"c_a{level}_{idx}")
@@ -249,22 +255,22 @@ def render_matrix_view(api_client, backend_url):
             st.stop()
 
     criteria_list = st.session_state.editor_criteria
-    
+
     for i, crit in enumerate(criteria_list):
         label = crit.get('label') or f"Dimension {i+1}"
         with st.expander(f"Dimension {i+1}: {label}", expanded=False):
             cc1, cc2 = st.columns([1, 2])
-            
+
             # ID Selection with Ontology Enforcement
             curr_id = crit.get('id', '')
-            
+
             options = list(KNOWN_DIMENSIONS_MAP.keys()) + ["Custom..."]
-            
+
             # Determine initial index for selectbox
             sel_index = len(options) - 1 # Default Custom
             if curr_id in KNOWN_DIMENSIONS_MAP:
                 sel_index = options.index(curr_id)
-            
+
             def update_id_from_select(idx):
                 if "editor_criteria" not in st.session_state:
                     return
@@ -278,7 +284,7 @@ def render_matrix_view(api_client, backend_url):
                              st.session_state.editor_criteria[idx]['label'] = dim_data['label']
                          # We could autofill instruction too if we had a default one in DB, but descriptions are short.
                 # If Custom, we wait for text input update
-            
+
             # Format Function for Rich Display
             def format_dim_option(opt):
                 if opt == "Custom...": return opt
@@ -289,25 +295,25 @@ def render_matrix_view(api_client, backend_url):
                 # Ensure it's not too long
                 if len(desc) > 40: desc = desc[:37] + "..."
                 return f"{obj['label']} ({desc})"
-            
+
             sel_val = cc1.selectbox(
-                "Category (System ID)", 
-                options, 
-                index=sel_index, 
-                key=f"c_id_sel_{i}", 
-                on_change=update_id_from_select, 
+                "Category (System ID)",
+                options,
+                index=sel_index,
+                key=f"c_id_sel_{i}",
+                on_change=update_id_from_select,
                 format_func=format_dim_option,
-                args=(i,), 
+                args=(i,),
                 help="Determines where this score appears in comparisons and analytics (e.g. 'agency' scores are grouped together)."
             )
-            
+
             if sel_val == "Custom...":
                 def update_id_custom(idx):
                     if "editor_criteria" not in st.session_state: return
                     val = st.session_state.get(f"c_id_custom_{idx}")
                     if val is not None:
                         st.session_state.editor_criteria[idx]['id'] = val
-                    
+
                 cc1.text_input("Custom ID", value=curr_id if curr_id not in KNOWN_DIMENSIONS_MAP else "", key=f"c_id_custom_{i}", on_change=update_id_custom, args=(i,), label_visibility="collapsed", placeholder="Enter ID...")
 
             # Contextual Help for ID
@@ -319,27 +325,27 @@ def render_matrix_view(api_client, backend_url):
                 "synteesi": "Luovuus & Kritiikki (Falsification)",
                 "falsification": "Virheiden etsintä & Iterointi"
             }
-            
+
             final_id = st.session_state.editor_criteria[i].get('id', '')
             if final_id in help_map:
                 cc1.caption(f"ℹ️ {help_map[final_id]}")
 
             cc2.text_input("Display Name", value=crit.get('label', ''), key=f"c_label_{i}", on_change=update_crit_field, args=(i, 'label'))
             st.text_area(f"Instruction ##{i}", value=crit.get('instruction', ''), key=f"c_instruction_{i}", height=70, on_change=update_crit_field, args=(i, 'instruction'))
-            
+
             st.markdown("**Proficiency Levels (Anchors)**")
             # Pills removed by user request
-            
+
             ac1, ac2 = st.columns(2)
             ac3, ac4 = st.columns(2)
-            
+
             anchors = crit.get('anchors', {})
-            
+
             ac1.text_area(f"Level 1 ##{i}", value=anchors.get('1', ''), key=f"c_a1_{i}", height=100, on_change=update_anchor_field, args=(i, 1))
             ac2.text_area(f"Level 2 ##{i}", value=anchors.get('2', ''), key=f"c_a2_{i}", height=100, on_change=update_anchor_field, args=(i, 2))
             ac3.text_area(f"Level 3 ##{i}", value=anchors.get('3', ''), key=f"c_a3_{i}", height=100, on_change=update_anchor_field, args=(i, 3))
             ac4.text_area(f"Level 4 ##{i}", value=anchors.get('4', ''), key=f"c_a4_{i}", height=100, on_change=update_anchor_field, args=(i, 4))
-            
+
             if st.button(f"🗑️ Remove Dimension {i+1}", key=f"del_c_{i}"):
                 st.session_state.editor_criteria.pop(i)
                 st.rerun()
@@ -352,11 +358,11 @@ def render_matrix_view(api_client, backend_url):
             "anchors": {"1": "", "2": "", "3": "", "4": ""}
         })
         st.rerun()
-        
+
     st.divider()
-    
+
     st.divider()
-    
+
     # SAVE ACTION
     if st.button("💾 Save Matrix", type="primary"):
         try:
@@ -364,7 +370,7 @@ def render_matrix_view(api_client, backend_url):
             final_id = st.session_state.ed_id
             final_name = st.session_state.ed_name
             final_desc = st.session_state.ed_desc
-            
+
             final_content = {
                 "name": final_name,
                 "description": final_desc,
@@ -372,7 +378,7 @@ def render_matrix_view(api_client, backend_url):
                 "scale": {"min": st.session_state.ed_min, "max": st.session_state.ed_max},
                 "criteria": st.session_state.editor_criteria
             }
-            
+
             payload = {
                 "id": final_id,
                 "name": final_name,
@@ -380,7 +386,7 @@ def render_matrix_view(api_client, backend_url):
                 "type": "evaluation_matrix",
                 "content": final_content
             }
-            
+
             if is_new:
                 requests.post(f"{backend_url}/config/components", json=payload).raise_for_status()
                 st.success("Matrix Created!")
@@ -392,7 +398,7 @@ def render_matrix_view(api_client, backend_url):
                 st.success("Matrix Updated!")
                 st.session_state.editor_matrix_id = final_id # Sync
                 st.rerun()
-                
+
         except Exception as e:
             st.error(f"Error saving matrix: {e}")
 

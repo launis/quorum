@@ -1,33 +1,20 @@
 @echo off
 
 REM ========================================================
-REM  RUN FULL REGRESSION SUITE (MOCK MODE)
+REM  RUN FULL REGRESSION SUITE (SAFE MODE)
 REM ========================================================
+REM Delegates to the central python safety wrapper to ensure 
+REM correct environment (TESTING=true) and signal handling.
 
-REM Navigate to Project Root
 pushd %~dp0\..
 
 echo.
 echo ========================================================
-echo  RUNNING FULL REGRESSION SUITE (MOCK MODE)
+echo  RUNNING FULL REGRESSION SUITE (SAFE WRAPPER)
 echo ========================================================
 echo.
-echo  Configuration:
-echo  - LLM: MOCK (Offline/Free)
-echo  - DB:  MOCK (Safe)
-echo.
 
-set USE_MOCK_LLM=true
-set USE_MOCK_DB=true
-set PYTHONUTF8=1
-
-REM Run everything
-uv run pytest tests/ > tests/output/regression_results.txt 2>&1
-
-echo.
-echo  DONE.
-echo  Check 'tests/output/regression_results.txt' for details.
-echo.
+uv run scripts/run_tests_safely.py
 
 popd
 
@@ -36,6 +23,6 @@ if %ERRORLEVEL% EQU 0 (
     echo [SUCCESS] All tests passed!
 ) else (
     echo.
-    echo [FAILURE] Some tests failed. Check output above.
+    echo [FAILURE] Tests failed. Check output above.
 )
 pause

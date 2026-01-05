@@ -1,6 +1,6 @@
 import os
 from functools import lru_cache
-from typing import Annotated, Any, Dict, Optional
+from typing import Annotated, Any
 
 from dotenv import load_dotenv
 from pydantic import BeforeValidator, Field, computed_field
@@ -21,8 +21,7 @@ MyBool = Annotated[bool, BeforeValidator(strip_whitespace)]
 
 
 class Settings(BaseSettings):
-    """
-    Application Settings managed by Pydantic.
+    """Application Settings managed by Pydantic.
     Reads from environment variables and .env file.
     """
 
@@ -33,7 +32,7 @@ class Settings(BaseSettings):
     )
 
     # --- API Keys ---
-    google_api_key: Annotated[Optional[str], Field(description="Google AI Provider API Key")] = None
+    google_api_key: Annotated[str | None, Field(description="Google AI Provider API Key")] = None
     vertex_location: Annotated[str, Field(description="Google Cloud Region (e.g. europe-north1)")] = "us-central1"
 
     # --- LLM Configuration ---
@@ -52,7 +51,7 @@ class Settings(BaseSettings):
     # --- Storage ---
     storage_backend: Annotated[str, Field(description="LOCAL, NONE, or FIRESTORE")] = "LOCAL"
     environment: Annotated[str, Field(description="development, staging, or production")] = "development"
-    storage_bucket_name: Annotated[Optional[str], Field(description="Firebase Storage Bucket Name")] = None
+    storage_bucket_name: Annotated[str | None, Field(description="Firebase Storage Bucket Name")] = None
 
     # --- Paths ---
     # We define base_dir relative to this file (backend/settings.py)
@@ -95,9 +94,8 @@ class Settings(BaseSettings):
 
     # --- Complex Configs (Computed) ---
     @computed_field
-    def model_strategies(self) -> Dict[str, Dict[str, Any]]:
-        """
-        Returns empty dict by default.
+    def model_strategies(self) -> dict[str, dict[str, Any]]:
+        """Returns empty dict by default.
         Strategies MUST be loaded from 'system_config' table in database.
         """
         return {}

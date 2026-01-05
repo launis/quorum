@@ -1,4 +1,3 @@
-from typing import Dict
 
 from backend.agents.analyst import AnalystAgent
 from backend.agents.archivist import ArchivistAgent
@@ -20,15 +19,20 @@ from backend.agents.xai import XAIReporterAgent
 
 
 class AgentFactory:
-    """
-    Static Factory to explicitly instantiate all available Agents.
+    """Static Factory to explicitly instantiate all available Agents.
     Replaces dynamic discovery to ensure compile-time safety and explicit dependencies.
     """
 
     @staticmethod
-    def create_agents_map(initial_model: str = None) -> Dict[str, BaseAgent]:
-        """
-        Returns a dictionary of {ClassName: AgentInstance}.
+    @staticmethod
+    def create_agents_map(initial_model: str = None) -> dict[str, BaseAgent]:
+        """Returns a dictionary of {ClassName: AgentInstance}.
+
+        Args:
+            initial_model (Optional[str]): The model ID to initialize all agents with.
+
+        Returns:
+            dict[str, BaseAgent]: Map of class name to agent instance.
         """
         # Explicitly pass provider="vertex_ai" to ensure robust initialization
         default_provider = "vertex_ai"

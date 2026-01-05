@@ -3,8 +3,7 @@ import os
 
 
 def sync_db_to_seed():
-    """
-    Reads the current active database (Local/Prod) and exports the configuration
+    """Reads the current active database (Local/Prod) and exports the configuration
     tables back to seed_data.json.
     Excludes execution history.
     """
@@ -31,7 +30,7 @@ def sync_db_to_seed():
 
     print(f"[Syncer] Reading from {source_path}...")
     try:
-        with open(source_path, "r", encoding="utf-8") as f:
+        with open(source_path, encoding="utf-8") as f:
             db_data = json.load(f)
     except Exception as e:
         print(f"[Syncer] Failed to read DB: {e}")

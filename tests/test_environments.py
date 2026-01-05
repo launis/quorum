@@ -3,7 +3,8 @@ import os
 import sys
 from unittest.mock import patch, MagicMock
 from backend.settings import get_settings
-from backend.database.wrapper import get_db_client, TinyDBClient
+from backend.settings import get_settings
+import backend.database.wrapper as db_wrapper
 
 @pytest.fixture(autouse=True)
 def clear_settings_cache():
@@ -16,8 +17,8 @@ def test_env_mock_db_default():
     """
     # Clear env vars to allow defaults to take over, BUT Keep LLM Mocked
     with patch.dict(os.environ, {"USE_MOCK_LLM": "true"}, clear=True):
-        client = get_db_client()
-        assert isinstance(client, TinyDBClient)
+        client = db_wrapper.get_db_client()
+        assert isinstance(client, db_wrapper.TinyDBClient)
         # Verify it points to db_mock.json
         # TinyDB path access varies, assuming standard JSONStorage
         # client.db is TinyDB instance. _storage might be Middleware.
@@ -37,8 +38,8 @@ def test_env_local_production():
         "USE_MOCK_LLM": "true"
     }
     with patch.dict(os.environ, env, clear=True):
-        client = get_db_client()
-        assert isinstance(client, TinyDBClient)
+        client = db_wrapper.get_db_client()
+        assert isinstance(client, db_wrapper.TinyDBClient)
         
         settings = get_settings()
         assert settings.use_mock_db is False

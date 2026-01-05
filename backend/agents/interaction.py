@@ -1,5 +1,6 @@
+"""Interaction Analyst Agent implementation."""
 import logging
-from typing import Optional, Type, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
 
@@ -13,8 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class InteractionAnalystAgent(BaseAgent):
-    """
-    InteractionAnalystAgent (Vuorovaikutusanalysaattori).
+    """InteractionAnalystAgent (Vuorovaikutusanalysaattori).
 
     Analyses the 'history_text' to evaluate Prompt Engineering competence.
     Hybrid logic:
@@ -25,33 +25,32 @@ class InteractionAnalystAgent(BaseAgent):
     state_field = "step_interaction"
     REQUIRES_KEYS = ["history_text"]
 
-    def get_response_schema(self) -> Optional[Type[BaseModel]]:
-        """
-        Returns the expected output schema.
+    def get_response_schema(self) -> type[BaseModel] | None:
+        """Returns the expected output schema.
 
         Returns:
             Optional[Type[BaseModel]]: InteractionAnalysis schema.
+
         """
         return InteractionAnalysis
 
-    async def execute(self, state: WorkflowState, system_instruction: Optional[str] = None, **kwargs) -> WorkflowState:
-        """
-        Executes the agent logic.
+    async def execute(self, state: WorkflowState, system_instruction: str | None = None, **kwargs) -> WorkflowState:
+        """Executes interaction analysis (Driver/Passenger classification).
 
-        Args:
-            state (WorkflowState): Current workflow state.
-            system_instruction (Optional[str]): System prompt.
-            **kwargs: Extra arguments.
+        Input State:
+            - state.inputs.history_text (Primary analysis target).
 
-        Returns:
-            WorkflowState: Updated workflow state.
+        Output State:
+            - state.step_interaction (InteractionAnalysis): Qualitative analysis.
+            - state.step_interaction.input_control_ratio (Updated via post-hook).
+
+        Exceptions:
+            - AgentExecutionError: If LLM fails.
         """
-        # Override but BaseAgent.execute uses generic prompt.
         return await super().execute(state, system_instruction, **kwargs)
 
     def calculate_control_ratio(self, state: WorkflowState) -> WorkflowState:
-        """
-        Lifecycle Hook: Post-Execution.
+        """Lifecycle Hook: Post-Execution.
 
         Calculates 'input_control_ratio' using Python regex on history_text.
         Delegates underlying logic to 'backend.hooks.metrics.calculate_control_ratio'.
@@ -61,6 +60,7 @@ class InteractionAnalystAgent(BaseAgent):
 
         Returns:
             WorkflowState: Updated state with calculated metrics.
+
         """
         logger.info("[InteractionAnalystAgent] Post-Processing: Calculating Input Control Ratio via Hook...")
 

@@ -5,8 +5,7 @@ from pathlib import Path
 
 
 def main():
-    """
-    Sets up environment for Mock DB seeding and runs the backend.seed.seeder module.
+    """Sets up environment for Mock DB seeding and runs the backend.seed.seeder module.
     """
     print("======================================")
     print("  SEED MOCK DATABASE (Python Script)  ")

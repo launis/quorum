@@ -1,6 +1,7 @@
-import streamlit as st
 import os
 import sys
+
+import streamlit as st
 
 # Add project root to path to allow absolute imports (e.g. from frontend.utils...)
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -9,20 +10,20 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 # Utils
-from frontend.utils.session_manager import init_session_state
 from frontend.api import APIClient
+from frontend.utils.session_manager import init_session_state
+from frontend.views.admin_view import render_admin_view
 
 # Views
 from frontend.views.audit_view import render_audit_view
-from frontend.views.admin_view import render_admin_view
-from frontend.views.system_view import render_system_view
-from frontend.views.config_view import render_config_view 
-from frontend.views.matrix_view import render_matrix_view
-from frontend.views.user_view import render_user_view
 from frontend.views.builder_view import render_workflow_builder
-from frontend.views.dashboard_view import render_dashboard # New View
-from frontend.views.system_admin_view import render_system_admin_view
+from frontend.views.config_view import render_config_view
+from frontend.views.dashboard_view import render_dashboard  # New View
+from frontend.views.matrix_view import render_matrix_view
 from frontend.views.org_admin_view import render_org_admin_view
+from frontend.views.system_admin_view import render_system_admin_view
+from frontend.views.system_view import render_system_view
+from frontend.views.user_view import render_user_view
 
 # Config
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
@@ -38,14 +39,14 @@ def render_login_screen():
     """Renders the Dev/Mock Login Screen for Streamlit."""
     st.markdown("## 🔐 Admin Console Login")
     st.info("Cognitive Quorum Hybrid Auth. Use Dev Tokens for local development.")
-    
+
     col1, col2 = st.columns(2)
-    
+
     with col1:
         st.subheader("Dev / Root Access")
         if st.button("⚡ Impersonate ROOT", type="primary"):
             _perform_login("mock-token:root_master")
-            
+
         st.markdown("---")
         st.subheader("Manual Token")
         token_input = st.text_input("Firebase ID Token / Mock Token", type="password")
@@ -70,7 +71,7 @@ def _print_mock_banner_once():
     print(" 🖥️  COGNITIVE QUORUM UI v2.2 - FRONTEND STATUS")
     print("="*60)
     print(f" 🔗  BACKEND:     {BACKEND_URL}")
-    print(f" 🔑  AUTH SYSTEM: Active (Dev Tokens Enabled)")
+    print(" 🔑  AUTH SYSTEM: Active (Dev Tokens Enabled)")
     print("="*60 + "\n")
     return True
 
@@ -86,13 +87,13 @@ def _perform_login(token):
 
 def main():
     st.set_page_config(page_title="Cognitive Quorum v2", layout="wide")
-    
+
     # Init State
     init_session_state()
-    
+
     # Print Console Banner (Once)
     _print_mock_banner_once()
-    
+
     # --- AUTHENTICATION CHECK ---
     if "user" not in st.session_state:
         st.session_state.user = None
@@ -110,29 +111,29 @@ def main():
         st.title("🧠 Cognitive Quorum")
         st.caption(f"v2.2 Admin | {st.session_state.user['role'].upper()}")
         st.divider()
-        
+
         st.markdown("### Navigation")
         # Filter views
         nav_options = ["Dashboard", "Assessment"]
-        
+
         user_role = st.session_state.user['role'].lower() # normalize
-        
+
         # ROOT: Everything
         if user_role == "root":
             nav_options.extend(["Workflow Builder", "Global Config", "Audit Matrix Library", "User Management", "System Info", "🛡️ System Admin", "🏢 Organization Settings"])
-            
+
         # ADMIN: Users (Team) - Org Level User Management
         elif user_role == "admin":
              nav_options.extend(["User Management", "🏢 Organization Settings"])
-             
+
         # MANAGER: Workflow Config - Technical Lead
         elif user_role == "manager":
              nav_options.extend(["Workflow Builder", "Global Config", "Audit Matrix Library"])
-             
+
         # MEMBER & VIEWER: Assessment Only (Default)
-            
+
         page = st.radio("Go to", nav_options, label_visibility="collapsed")
-        
+
         st.divider()
         if st.button("Logout"):
             # Clear all session state to prevent data bleeding between users
@@ -140,7 +141,7 @@ def main():
             st.rerun()
 
         st.caption(f"Session: `{st.session_state.get('session_id', '???')[:8]}...`")
-    
+
     # Fetch Data with Token
     workflow_options = get_workflow_map(token=st.session_state.get('auth_token'))
 
@@ -150,7 +151,7 @@ def main():
     elif page == "Assessment":
         # Pass backend_url if needed by view, though we are moving away from it.
         render_audit_view(api_client, BACKEND_URL, workflow_options)
-        
+
     elif page == "Workflow Builder":
         render_workflow_builder(api_client)
 
@@ -159,13 +160,13 @@ def main():
 
     elif page == "Audit Matrix Library":
         render_matrix_view(api_client, BACKEND_URL)
-        
+
     elif page == "User Management":
         render_user_view(api_client)
-        
+
     elif page == "Admin": # Legacy, maybe merge into Global Config or System Info?
         render_admin_view(api_client, BACKEND_URL, workflow_options)
-        
+
     elif page == "System Info":
         render_system_view(api_client)
 

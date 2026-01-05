@@ -1,5 +1,6 @@
+"""Analyst Agent implementation."""
 import logging
-from typing import Optional, Type, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
 
@@ -13,8 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class AnalystAgent(BaseAgent):
-    """
-    Analyytikko-agentti (Analyst Agent).
+    """Analyytikko-agentti (Analyst Agent).
 
     Responsible for:
     1. Evidence Anchoring (Todistepohjainen Ankkurointi)
@@ -28,18 +28,33 @@ class AnalystAgent(BaseAgent):
     PRODUCES_KEYS = ["step_analyst"]
     OUTPUT_SCHEMA = TodistusKartta
 
-    def get_response_schema(self) -> Optional[Type[BaseModel]]:
-        """
-        Returns the Pydantic model for the agent's expected output.
+    def get_response_schema(self) -> type[BaseModel] | None:
+        """Returns the Pydantic model for the agent's expected output.
 
         Returns:
             Optional[Type[BaseModel]]: The TodistusKartta schema.
+
         """
         return TodistusKartta
 
-    def verify_structure(self, state: WorkflowState) -> WorkflowState:
+    async def execute(self, state: WorkflowState, system_instruction: str | None = None, **kwargs) -> WorkflowState:
+        """Executes the analysis logic.
+
+        Input State:
+            - state.inputs.history_text
+            - state.inputs.product_text
+            - state.inputs.reflection_text
+
+        Output State:
+            - state.step_analyst (TodistusKartta): The generated evidence map.
+
+        Exceptions:
+            - AgentExecutionError: If LLM fails or schema validation fails.
         """
-        HOOK: verify_structure.
+        return await super().execute(state, system_instruction, **kwargs)
+
+    def verify_structure(self, state: WorkflowState) -> WorkflowState:
+        """HOOK: verify_structure.
 
         Pre-hook that validates whether the inputs have sufficient content for analysis.
         Delegates the actual check to the 'backend.hooks.validation' module.
@@ -49,6 +64,7 @@ class AnalystAgent(BaseAgent):
 
         Returns:
             WorkflowState: The validated workflow state.
+
         """
         logger.info("[AnalystAgent] Delegating to Validation Hook...")
         from backend.hooks.validation import verify_structure

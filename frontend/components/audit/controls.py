@@ -1,12 +1,13 @@
-import streamlit as st
 import time
 
+import streamlit as st
+
+
 def render_controls(api_client, selected_workflow_id, uploaded_files):
-    """
-    Renders the Start/Stop controls and handles job submission.
+    """Renders the Start/Stop controls and handles job submission.
     """
     b_col1, b_col2 = st.columns([1, 1])
-    
+
     with b_col1:
         # Role Check
         user = st.session_state.get('user')
@@ -18,19 +19,19 @@ def render_controls(api_client, selected_workflow_id, uploaded_files):
             if not selected_workflow_id:
                 st.error("Please select a workflow.")
                 return
-            
+
             # Validation: Expect 3 files
             # Note: uploaded_files is a dict with keys like 'history_text'
             required_keys = ['history_text', 'product_text', 'reflection_text']
             missing = [k for k in required_keys if k not in uploaded_files]
-            
+
             if missing:
                 st.error(f"Please upload all 3 files. Missing: {missing}")
                 return
-            
+
             with st.spinner("Starting Workflow..."):
                 try:
-                    inputs_metadata = {} 
+                    inputs_metadata = {}
                     token = st.session_state.get('auth_token')
                     job_data = api_client.start_execution(selected_workflow_id, uploaded_files, inputs_metadata, token=token)
                     job_id = job_data['execution_id']

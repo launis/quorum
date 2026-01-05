@@ -6,8 +6,7 @@ logger = logging.getLogger(__name__)
 
 
 def apply_scoring_logic(state: WorkflowState) -> WorkflowState:
-    """
-    HOOK: apply_scoring_logic
+    """HOOK: apply_scoring_logic
     Applies deterministic penalties based on Guard (Security) and Falsifier (Logical) findings,
     then calculates final score averages.
 
@@ -20,6 +19,7 @@ def apply_scoring_logic(state: WorkflowState) -> WorkflowState:
 
     Returns:
         WorkflowState: State with penalty-adjusted scores and calculated averages in 'aux_data'.
+
     """
     target_steps = []
     if state.step_judge and state.step_judge.pisteet:

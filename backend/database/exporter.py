@@ -13,8 +13,7 @@ SEED_DATA_PATH = os.path.join(DATA_DIR, "seed_data.json")
 
 
 def export_db_to_files(source_db_path=None):
-    """
-    Exports the current state of the database back to `seed_data.json`.
+    """Exports the current state of the database back to `seed_data.json`.
     """
     from backend.settings import get_settings
 
@@ -36,7 +35,7 @@ def export_db_to_files(source_db_path=None):
     try:
         # Read existing seed_data to preserve other fields if any
         if os.path.exists(settings.seed_data_path):
-            with open(settings.seed_data_path, "r", encoding="utf-8") as f:
+            with open(settings.seed_data_path, encoding="utf-8") as f:
                 seed_data = json.load(f)
         else:
             seed_data = {"components": [], "steps": [], "workflows": []}

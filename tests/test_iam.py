@@ -15,11 +15,18 @@ def setup_auth_override():
     from backend.dependencies import get_current_user_from_header, get_db_client_dep
     from backend.models.auth import TokenData, UserRole, Organization
     from fastapi import Request, HTTPException
-
+    from backend import dependencies
     from tinydb import Query
+
+    # 0. Clear Singletons FIRST to ensure we start fresh
+    dependencies._auth_service_instance = None
+    dependencies._db_client_instance = None
+    dependencies._repository_instance = None
     
     # 1. Seed DB with required Orgs (Mock DB persistence)
+    # This initializes the singleton _db_client_instance which we MUST KEEP for the app to see the same data
     try:
+        get_settings.cache_clear()
         db = get_db_client_dep()
         org_table = db.table("organizations")
         Q = Query()
@@ -45,15 +52,15 @@ def setup_auth_override():
             return TokenData(uid="member_1", email="member@example.com", role=UserRole.MEMBER, organization_id="org-1")
         
         raise HTTPException(status_code=401, detail="Unknown mock user")
-
-    # Clear AuthService singleton to force reload with potentially new DB/Config
-    from backend import dependencies
-    dependencies._auth_service_instance = None
     
     app.dependency_overrides[get_current_user_from_header] = mock_user_resolver
     yield
     app.dependency_overrides.clear()
+    
+    # Cleanup logic
     dependencies._auth_service_instance = None
+    dependencies._db_client_instance = None
+    dependencies._repository_instance = None
 
 def get_headers(token):
     return {"Authorization": f"Bearer {token}"}
@@ -147,7 +154,28 @@ def test_get_my_organization_admin():
     """
     Verify '/organizations/me' resolves correctly for an ADMIN.
     """
+    # Force seed org-1 because sometimes fixture fails to sync with repo
+    from backend.dependencies import get_db_client_dep
+    db = get_db_client_dep()
+    db.table("organizations").upsert({"id": "org-1", "name": "Org 1", "tier": "standard"}, lambda x: x["id"] == "org-1")
+    from tinydb import Query
+    # Cleanup legacy/bad data (previous failing runs injected 'id' instead of 'uid')
+    db.table("users").remove(Query().id == "admin_1")
+    
+    db.table("users").upsert({
+        "uid": "admin_1", 
+        "email": "admin@example.com", 
+        "full_name": "Admin One",
+        "hashed_password": "fake_hash",
+        "organization_id": "org-1",
+        "role": "ADMIN",
+        "created_at": "2026-01-01T00:00:00",
+        "is_active": True
+    }, lambda x: x["uid"] == "admin_1")
+
     response = client.get("/organizations/me", headers=get_headers(ADMIN_TOKEN))
+    if response.status_code != 200:
+        print(f"DEBUG FAIL ORGS: {db.table('organizations').all()}")
     assert response.status_code == 200
     data = response.json()
     # admin_1 is typically seeded to 'org-1'
@@ -159,4 +187,3 @@ def test_fetch_nonexistent_organization():
     """
     response = client.get("/organizations/non-existent-12345", headers=get_headers(ROOT_TOKEN))
     assert response.status_code == 404
-

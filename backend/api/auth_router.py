@@ -1,5 +1,9 @@
-from typing import List, Optional
 
+"""API Router for Authentication and User Management.
+
+This module provides endpoints for user login (token verification), registration,
+profile management, and organization administration.
+"""
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
@@ -10,13 +14,27 @@ router = APIRouter(prefix="/auth", tags=["Authentication & Users"])
 
 
 class TokenPayload(BaseModel):
+    """Payload for token verification.
+
+    Attributes:
+        token (str): The Firebase or Mock ID Token.
+    """
+
     token: str
 
 
 class LoginResponse(BaseModel):
+    """Response model for successful login.
+
+    Attributes:
+        user (User): The full user profile.
+        token_valid (bool): Confirmation of token validity.
+        debug_msg (Optional[str]): Debug information (mock vs real).
+    """
+
     user: User
     token_valid: bool
-    debug_msg: Optional[str] = None
+    debug_msg: str | None = None
 
 
 # CurrentUserDep imported from dependencies now
@@ -24,9 +42,18 @@ class LoginResponse(BaseModel):
 
 @router.post("/verify", response_model=LoginResponse)
 async def verify_user_token(payload: TokenPayload, auth_service: AuthServiceDep):
-    """
-    Exchanges a Firebase ID Token (or mock token) for the Backend User Profile (Role, etc).
-    Call this immediately after Firebase Login on the client.
+    """Exchanges a Firebase ID Token (or mock token) for the Backend User Profile.
+
+    Args:
+        payload (TokenPayload): The token payload.
+        auth_service (AuthServiceDep): Authentication service dependency.
+
+    Returns:
+        LoginResponse: The authenticated user profile and status.
+
+    Raises:
+        HTTPException: If the user is found in Firebase but not in the DB (404),
+                       or if the token is invalid (401).
     """
     try:
         token_data = auth_service.verify_token(payload.token)
@@ -50,9 +77,18 @@ async def verify_user_token(payload: TokenPayload, auth_service: AuthServiceDep)
 
 @router.post("/users", response_model=User)
 async def create_user(user_data: UserCreate, current_user: CurrentUserDep, auth_service: AuthServiceDep):
-    """
-    Create a new user.
-    Requires Role: ROOT, ADMIN, or MANAGER.
+    """Create a new user.
+
+    Args:
+        user_data (UserCreate): Payload for the new user.
+        current_user (CurrentUserDep): The requesting user (must be ROOT, ADMIN, or MANAGER).
+        auth_service (AuthServiceDep): Authentication service dependency.
+
+    Returns:
+        User: The created user profile.
+
+    Raises:
+        HTTPException: If permission denied (403) or validation fails (400).
     """
     # Authorization checks are handled inside auth_service._enforce_hierarchy,
     # but we need to fetch the full Creator User object first.
@@ -71,9 +107,18 @@ async def create_user(user_data: UserCreate, current_user: CurrentUserDep, auth_
 
 @router.post("/organizations", response_model=Organization)
 async def create_organization(org_data: OrganizationCreate, current_user: CurrentUserDep, auth_service: AuthServiceDep):
-    """
-    Create a new Tenant Organization.
-    Requires Role: ROOT.
+    """Create a new Tenant Organization.
+
+    Args:
+        org_data (OrganizationCreate): Payload for the new organization.
+        current_user (CurrentUserDep): The requesting user (must be ROOT).
+        auth_service (AuthServiceDep): Authentication service dependency.
+
+    Returns:
+        Organization: The created organization.
+
+    Raises:
+        HTTPException: If user is not ROOT (403).
     """
     creator = auth_service.repo.get_by_uid(current_user.uid)
     if not creator or creator.role != UserRole.ROOT:
@@ -85,10 +130,16 @@ async def create_organization(org_data: OrganizationCreate, current_user: Curren
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/users", response_model=List[User])
+@router.get("/users", response_model=list[User])
 async def list_users(current_user: CurrentUserDep, auth_service: AuthServiceDep):
-    """
-    List users visible to the current user (scoped by Organization).
+    """List users visible to the current user (scoped by Organization).
+
+    Args:
+        current_user (CurrentUserDep): The requesting user.
+        auth_service (AuthServiceDep): Authorization service.
+
+    Returns:
+        list[User]: A list of accessible user profiles.
     """
     requester = auth_service.repo.get_by_uid(current_user.uid)
     if not requester:
@@ -118,10 +169,20 @@ async def list_users(current_user: CurrentUserDep, auth_service: AuthServiceDep)
 
 @router.delete("/users/{uid}")
 async def delete_user(uid: str, current_user: CurrentUserDep, auth_service: AuthServiceDep):
-    """
-    Delete a user.
-    Requires Role: ROOT or ADMIN (within Org).
+    """Delete a user.
+
     Enforces Last Admin Protection.
+
+    Args:
+        uid (str): The UID of the user to delete.
+        current_user (CurrentUserDep): The requesting user (ROOT or ADMIN).
+        auth_service (AuthServiceDep): Authorization service.
+
+    Returns:
+        dict: Status confirmation.
+
+    Raises:
+        HTTPException: Permission denied (403) or business logic error (400).
     """
     try:
         auth_service.delete_user(current_user.uid, uid)
@@ -135,10 +196,16 @@ async def delete_user(uid: str, current_user: CurrentUserDep, auth_service: Auth
 
 @router.patch("/users/{uid}", response_model=User)
 async def update_user(uid: str, user_update: UserUpdate, current_user: CurrentUserDep, auth_service: AuthServiceDep):
-    """
-    Update a user (Role, Display Name, etc).
-    Requires Role: ROOT or ADMIN (within Org).
-    Enforces Last Admin Protection if demoting an Admin.
+    """Update a user (Role, Display Name, etc).
+
+    Args:
+        uid (str): The UID of the user to update.
+        user_update (UserUpdate): Fields to update.
+        current_user (CurrentUserDep): Requesting user.
+        auth_service (AuthServiceDep): Authorization service.
+
+    Returns:
+        User: The updated user profile.
     """
     try:
         updated_user = auth_service.update_user(current_user.uid, uid, user_update)
@@ -151,6 +218,15 @@ async def update_user(uid: str, user_update: UserUpdate, current_user: CurrentUs
 
 @router.get("/me", response_model=User)
 async def get_my_profile(current_user: CurrentUserDep, auth_service: AuthServiceDep):
+    """Get the currently authenticated user's profile.
+
+    Args:
+        current_user (CurrentUserDep): The authenticated user.
+        auth_service (AuthServiceDep): Auth service.
+
+    Returns:
+        User: The full user profile.
+    """
     user = auth_service.repo.get_by_uid(current_user.uid)
     if not user:
         raise HTTPException(status_code=404)

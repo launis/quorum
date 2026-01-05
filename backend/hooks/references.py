@@ -1,14 +1,13 @@
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 from backend.services.reference_manager import ReferenceManager
 
 logger = logging.getLogger(__name__)
 
 
-def generate_bibliography(text_dump: str, knowledge_base: Dict[str, Any]) -> List[str]:
-    """
-    HOOK: generate_bibliography
+def generate_bibliography(text_dump: str, knowledge_base: dict[str, Any]) -> list[str]:
+    """HOOK: generate_bibliography
     Scans the provided text dump for references using the ReferenceManager.
     Supports "advanced scan" which detects both explicit citations (e.g. "Author 2020")
     and implicit conceptual links.
@@ -19,6 +18,7 @@ def generate_bibliography(text_dump: str, knowledge_base: Dict[str, Any]) -> Lis
 
     Returns:
         List[str]: A sorted list of unique, full bibliographic reference strings found in the text.
+
     """
     if not knowledge_base:
         return []

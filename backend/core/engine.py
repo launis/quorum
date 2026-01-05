@@ -1,7 +1,7 @@
 import logging
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from backend.context import clear_execution_context, set_execution_context
 from backend.core.runner import PipelineRunner
@@ -21,11 +21,10 @@ class WorkflowEngine:
         repository: AbstractWorkflowRepository,
         registry: AgentRegistry,
         prompt_builder: PromptBuilder,
-        storage_client: Any, 
+        storage_client: Any,
         document_service: Any,
     ):
-        """
-        Initializes the Workflow Engine with necessary dependencies.
+        """Initializes the Workflow Engine with necessary dependencies.
         Strict Dependency Injection is enforced; no auto-wiring allowed.
 
         Args:
@@ -35,6 +34,7 @@ class WorkflowEngine:
             prompt_builder (PromptBuilder): Prompt generation service.
             storage_client (Any): Storage connection instance.
             document_service (Any): Document processing service.
+
         """
         self.db_path = db_path
         self.repository = repository
@@ -49,16 +49,29 @@ class WorkflowEngine:
         logger.info(f"[WorkflowEngine] initialized with DB at {db_path} (Strict DI)")
 
     # --- DELEGATED METHODS (Services) ---
-    # --- DELEGATED METHODS (Services) ---
     async def resolve_model_name(self, model_identifier: str) -> str:
-        """
-        Resolves a high-level model strategy to a concrete model name.
+        """Resolves a high-level model strategy to a concrete model name.
+
+        Args:
+            model_identifier (str): The strategy key (e.g. 'fast').
+
+        Returns:
+            str: The resolved model name.
         """
         return await self.registry.resolve_model_name(model_identifier)
 
-    async def create_workflow(self, name: str, steps: List[Dict[str, Any]]) -> int:
-        """
-        Creates a new workflow definition in the repository.
+    async def create_workflow(self, name: str, steps: list[dict[str, Any]]) -> int:
+        """Creates a new workflow definition in the repository.
+
+        Args:
+            name (str): Workflow name.
+            steps (List[dict]): List of step definitions.
+
+        Returns:
+            int: The new Workflow ID.
+
+        Side Effects:
+            - **Database**: Inserts a new record into the `workflows` table.
         """
         workflow_id = await self.repository.create_workflow(
             {"name": name, "steps": steps, "created_at": datetime.now().isoformat()}
@@ -68,13 +81,26 @@ class WorkflowEngine:
     async def create_execution(
         self,
         workflow_id: Any,
-        inputs: Dict[str, Any],
-        files: Optional[Dict[str, tuple]] = None,
-        organization_id: Optional[str] = None,
-        user_id: Optional[str] = None,
+        inputs: dict[str, Any],
+        files: dict[str, tuple] | None = None,
+        organization_id: str | None = None,
+        user_id: str | None = None,
     ) -> str:
-        """
-        Initializes a new execution record with processed inputs and files.
+        """Initializes a new execution record with processed inputs and files.
+
+        Args:
+            workflow_id (Any): Workflow ID.
+            inputs (dict): Raw input dictionary.
+            files (Optional[dict]): File uploads.
+            organization_id (Optional[str]): Org ID.
+            user_id (Optional[str]): User ID.
+
+        Returns:
+            str: The new Execution UUID.
+
+        Side Effects:
+            - **Database**: Creates a new execution record with status 'pending'.
+            - **DocumentService**: Ingests and archives provided files, updating inputs with file metadata.
         """
         execution_id = str(uuid.uuid4())
 
@@ -102,106 +128,108 @@ class WorkflowEngine:
         )
         return execution_id
 
-    async def get_execution_status(self, execution_id: Any) -> Optional[Dict[str, Any]]:
-        """
-        Retrieves the current status and data for a given execution.
+    async def get_execution_status(self, execution_id: Any) -> dict[str, Any] | None:
+        """Retrieves the current status and data for a given execution.
+
+        Args:
+            execution_id (Any): Execution UUID.
+
+        Returns:
+            Optional[dict]: Execution record if found.
+
+        Raises:
+            ExecutionNotFoundError: If not found.
         """
         exec_data = await self.repository.get_execution(str(execution_id))
         if not exec_data:
             raise ExecutionNotFoundError(str(execution_id))
         return exec_data
 
-    async def preview_step_prompt(self, step_id: str) -> Dict[str, Any]:
-        """
-        Previews the prompt for a specific step.
+    async def preview_step_prompt(self, step_id: str) -> dict[str, Any]:
+        """Previews the prompt for a specific step.
+
+        Args:
+            step_id (str): Step ID.
+
+        Returns:
+            dict: Preview data (prompt string).
         """
         return await self.prompt_builder.preview_step_prompt(step_id)
 
     async def preview_full_chain_prompts(self, workflow_id: str) -> str:
-        """
-        Generates a full textual preview of all prompts in the validation chain.
+        """Generates a full textual preview of all prompts in the validation chain.
+
+        Args:
+            workflow_id (str): Workflow ID.
+
+        Returns:
+            str: Concatenated prompt preview.
         """
         return await self.prompt_builder.preview_full_chain_prompts(workflow_id)
 
-    async def _construct_prompt_for_step(self, step_id: str, current_state: Optional[WorkflowState] = None) -> str:
-        """
-        Helper to construct a prompt for a single step with current state.
+    async def _construct_prompt_for_step(self, step_id: str, current_state: WorkflowState | None = None) -> str:
+        """Helper to construct a prompt for a single step with current state.
+
+        Args:
+            step_id (str): Step ID.
+            current_state (Optional[WorkflowState]): Current state.
+
+        Returns:
+            str: Prompt string.
         """
         return await self.prompt_builder.construct_prompt(step_id, current_state)
 
     # --- CORE EXECUTION LOGIC (V2) ---
 
-    async def run_execution(
-        self, execution_id: str, raw_inputs: Dict[str, Any], arq_pool: Optional[Any] = None
-    ) -> Dict[str, Any]:
-        """
-        Executes a workflow state-machine asynchronously.
-        
-        If 'arq_pool' is provided, the job is enqueued to Redis (Async/Distributed).
-        Otherwise, it runs locally/inline (Blocking/Legacy).
+    async def execute_workflow_task(
+        self, execution_id: str, workflow_id: str, inputs: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Core worker task: Executes the workflow state-machine logic.
+        This method is designed to be called locally or via a task queue worker.
 
         Args:
             execution_id (str): The Execution UUID.
-            raw_inputs (Dict[str, Any]): Initial input data.
-            arq_pool (Optional[Any]): Arq Redis pool for background tasks.
+            workflow_id (str): The Workflow UUID.
+            inputs (Dict[str, Any]): Input data.
 
         Returns:
-            Dict[str, Any]: The initial state (if queued) or final results.
+            Dict[str, Any]: The final results.
+
+        Side Effects:
+            - **Context**: Sets thread-local execution context.
+            - **Database**:
+                - Updates execution status to 'completed' or 'failed'.
+                - Persists full execution trace (WorkflowState).
+            - **Progress Tracker**: Emits progress events to the database.
+
+        Raises:
+            ExecutionNotFoundError: If execution ID is invalid.
+            FatalInterruption: If workflow is halted by logic or error.
         """
         set_execution_context(execution_id)
-        logger.info(f"[WorkflowEngine] Starting execution {execution_id}")
+        logger.info(f"[WorkflowEngine] Worker started execution {execution_id}")
 
         try:
-            # 1. Get Execution Record first to identify Workflow
+            # 1. Fetch Context Data
+            # We fetch fresh records to ensure we have latest data (especially in distributed env)
             exec_record = await self.repository.get_execution(execution_id)
             if not exec_record:
                 raise ExecutionNotFoundError(execution_id)
 
-            wf_id = exec_record["workflow_id"]
-            wf_record = await self.repository.get_workflow_by_id(wf_id)
+            wf_record = await self.repository.get_workflow_by_id(workflow_id)
             wf_name = wf_record["name"] if wf_record else "Unknown"
-            
-            # 2. Distributed Execution (Preferred)
-            if arq_pool:
-                logger.info(f"[WorkflowEngine] Enqueuing execution {execution_id} to Arq/Redis.")
-                
-                # Enqueue the job defined in backend/worker.py
-                await arq_pool.enqueue_job(
-                    "execute_workflow_task",
-                    execution_id=execution_id,
-                    workflow_id=wf_id,
-                    inputs=raw_inputs
-                )
-                
-                # Initialize state stub so we return a valid structure (even if empty)
-                # The worker will re-initialize or hydrate it.
-                # Ideally, we verify initialization first, but for speed we assume worker handles it.
-                # However, returning a proper initial state is good for UI immediate feedback.
-                current_state = await self.runner.initialize_state(
-                    execution_id,
-                    raw_inputs,
-                    wf_id,
-                    wf_name,
-                    organization_id=exec_record.get("organization_id"),
-                    user_id=exec_record.get("user_id"),
-                )
-                
-                return current_state.model_dump()
-
-            # 3. Local Execution (Fallback)
-            logger.warning(f"[WorkflowEngine] No Arq pool provided. Running execution {execution_id} LOCALLY (Inline).")
 
             # 2. Initialize State via Runner
             current_state = await self.runner.initialize_state(
                 execution_id,
-                raw_inputs,
-                wf_id,
+                inputs,
+                workflow_id,
                 wf_name,
                 organization_id=exec_record.get("organization_id"),
                 user_id=exec_record.get("user_id"),
             )
 
-            pipeline_steps = await self._resolve_pipeline_steps(wf_id)
+            pipeline_steps = await self._resolve_pipeline_steps(workflow_id)
 
             # 3. Execute Loop via Runner
             from backend.services.progress import DatabaseProgressTracker
@@ -223,23 +251,104 @@ class WorkflowEngine:
             return result
 
         except FatalInterruption as fi:
-            return await self._create_halt_response(execution_id, fi.step_name, fi, current_state)
+            # We need to reconstruct state if possible for the halt response,
+            # but current_state accessible in this scope?
+            # We initialize current_state early, but python scope is function level?
+            # Safer to initialize c_state var
+            c_state = locals().get("current_state", None)
+            return await self._create_halt_response(execution_id, fi.step_name, fi, c_state)
         except AgentExecutionError as ae:
-            await self._handle_execution_error(execution_id, ae, current_state)
+            c_state = locals().get("current_state", None)
+            await self._handle_execution_error(execution_id, ae, c_state)
+            # We assume handle_execution_error updates DB. We return None or empty dict?
+            # Better to re-raise or return a status?
+            # The caller might expect a result dict.
+            # Usually we return the partial result from DB or just None.
+            return {"status": "failed", "error": ae.message}
         except Exception as e:
-            await self._handle_execution_error(execution_id, e, current_state)
+            c_state = locals().get("current_state", None)
+            await self._handle_execution_error(execution_id, e, c_state)
+            return {"status": "failed", "error": str(e)}
         finally:
             clear_execution_context()
 
-    async def resume_execution(self, execution_id: str) -> Dict[str, Any]:
+    async def run_execution(
+        self, execution_id: str, raw_inputs: dict[str, Any], arq_pool: Any | None = None
+    ) -> dict[str, Any]:
+        """Executes a workflow state-machine asynchronously.
+
+        If 'arq_pool' is provided, the job is enqueued to Redis (Async/Distributed).
+        Otherwise, it runs locally/inline (Blocking/Legacy).
+
+        Args:
+            execution_id (str): The Execution UUID.
+            raw_inputs (Dict[str, Any]): Initial input data.
+            arq_pool (Optional[Any]): Arq Redis pool for background tasks.
+
+        Returns:
+            Dict[str, Any]: The initial state (if queued) or final results.
+
+        Side Effects:
+            - **Redis**: Enqueues job if `arq_pool` is provided.
+            - **Database**: Updates execution record during synchronous run.
         """
-        Resumes a failed or interrupted execution from its last known trace state.
+        set_execution_context(execution_id)
+        logger.info(f"[WorkflowEngine] Submit execution {execution_id}")
+
+        try:
+            # 1. Get Execution Record first to identify Workflow
+            exec_record = await self.repository.get_execution(execution_id)
+            if not exec_record:
+                raise ExecutionNotFoundError(execution_id)
+
+            wf_id = exec_record["workflow_id"]
+            wf_record = await self.repository.get_workflow_by_id(wf_id)
+            wf_name = wf_record["name"] if wf_record else "Unknown"
+
+            # 2. Distributed Execution (Preferred)
+            if arq_pool:
+                logger.info(f"[WorkflowEngine] Enqueuing execution {execution_id} to Arq/Redis.")
+
+                # Enqueue the job defined in backend/worker.py
+                await arq_pool.enqueue_job(
+                    "execute_workflow_task", execution_id=execution_id, workflow_id=wf_id, inputs=raw_inputs
+                )
+
+                # Initialize state stub for immediate UI feedback
+                current_state = await self.runner.initialize_state(
+                    execution_id,
+                    raw_inputs,
+                    wf_id,
+                    wf_name,
+                    organization_id=exec_record.get("organization_id"),
+                    user_id=exec_record.get("user_id"),
+                )
+
+                return current_state.model_dump()
+
+            # 3. Local Execution (Fallback)
+            logger.warning(f"[WorkflowEngine] No Arq pool provided. Running execution {execution_id} LOCALLY (Inline).")
+            return await self.execute_workflow_task(execution_id, wf_id, raw_inputs)
+
+        except Exception as e:
+            # If submission fails, we log it and re-raise or handle.
+            logger.error(f"[WorkflowEngine] Submission failed: {e}")
+            raise e
+        finally:
+            clear_execution_context()
+
+    async def resume_execution(self, execution_id: str) -> dict[str, Any]:
+        """Resumes a failed or interrupted execution from its last known trace state.
 
         Args:
             execution_id (str): The Execution UUID.
 
         Returns:
             Dict[str, Any]: The final results object.
+
+        Side Effects:
+            - **Database**: Re-hydrates state from trace and updates status to 'running'.
+            - **Progress Tracker**: Resumes progress tracking from last checkpoint.
         """
         set_execution_context(execution_id)
         logger.info(f"[WorkflowEngine] RESUMING execution {execution_id}")
@@ -328,8 +437,7 @@ class WorkflowEngine:
             clear_execution_context()
 
     async def recover_interrupted_jobs(self):
-        """
-        Scans for and resumes jobs that were interrupted (e.g. by server restart).
+        """Scans for and resumes jobs that were interrupted (e.g. by server restart).
         """
         logger.info("[WorkflowEngine] Scanning for interrupted jobs...")
         try:
@@ -358,10 +466,9 @@ class WorkflowEngine:
             logger.error(f"[WorkflowEngine] Recovery scan failed: {e}")
 
     async def _create_halt_response(
-        self, execution_id: str, step_name: str, error: FatalInterruption, state: Optional[WorkflowState] = None
-    ) -> Dict[str, Any]:
-        """
-        Helper to construct a structured response when execution is fatally halted.
+        self, execution_id: str, step_name: str, error: FatalInterruption, state: WorkflowState | None = None
+    ) -> dict[str, Any]:
+        """Helper to construct a structured response when execution is fatally halted.
 
         Args:
             execution_id (str): Execution ID.
@@ -371,6 +478,7 @@ class WorkflowEngine:
 
         Returns:
             Dict[str, Any]: The structured halt result.
+
         """
         msg = f"[WorkflowEngine] FATAL INTERRUPTION at {step_name}: {error.reason}"
         logger.error(msg)
@@ -398,15 +506,15 @@ class WorkflowEngine:
         await self.repository.update_execution(execution_id, update_data)
         return halt_result
 
-    async def _resolve_pipeline_steps(self, workflow_id: str) -> List[Any]:
-        """
-        Resolves the sequential list of execution steps for a workflow.
+    async def _resolve_pipeline_steps(self, workflow_id: str) -> list[Any]:
+        """Resolves the sequential list of execution steps for a workflow.
 
         Args:
             workflow_id (str): Workflow ID.
 
         Returns:
             List[Any]: List of (AgentInstance, StepDocument) tuples.
+
         """
         wf_record = await self.repository.get_workflow_by_id(workflow_id)
         if not wf_record:
@@ -428,28 +536,12 @@ class WorkflowEngine:
             logger.error(f"[WorkflowEngine] Error: No workflow steps found for Workflow ID {workflow_id}")
             raise ValueError(f"No steps defined for workflow {workflow_id}. Ensure seeding is correct.")
 
-        # VALIDATION: Enforce Maximum 2 BARS Matrices per Workflow
-        # This ensures the Stereoscopic Audit does not become a 'cacophony'.
-        matrix_count = sum(
-            1 for _, doc in pipeline_steps if doc.get("component") == "JudgeAgent" or doc.get("matrix_id")
-        )
-        if matrix_count > 2:
-            logger.error(
-                f"[WorkflowEngine] Configuration Error: Workflow {workflow_id} has {matrix_count} matrices "
-                "(Max 2 allowed)."
-            )
-            raise ValueError(
-                f"Workflow '{workflow_id}' violates constraint: "
-                f"Maximum of 2 BARS Matrices allowed (found {matrix_count})."
-            )
-
         return pipeline_steps
 
     async def _project_final_result(
-        self, execution_id: str, state: WorkflowState, pipeline_steps: List[Any]
-    ) -> Dict[str, Any]:
-        """
-        Transforms the final internal state into the public result dictionary.
+        self, execution_id: str, state: WorkflowState, pipeline_steps: list[Any]
+    ) -> dict[str, Any]:
+        """Transforms the final internal state into the public result dictionary.
         Applies logic for field hoisting and Reference Manager scanning.
 
         Args:
@@ -459,10 +551,11 @@ class WorkflowEngine:
 
         Returns:
             Dict[str, Any]: The public facing result object.
+
         """
         # 1. Start with the architecturally mandated V2 structure via StatePresenter
         from backend.services.state_presenter import StatePresenter
-        
+
         # We start with the flattened representation
         public_result = StatePresenter.flatten_state(state)
         full_state = state.model_dump(mode="json")
@@ -499,51 +592,6 @@ class WorkflowEngine:
                         # Overwrite/Add specific hoisted fields
                         public_result[target_key] = val
 
-        # 3. Generate Consolidated Bibliography (ReferenceManager)
-        try:
-            from backend.services.reference_manager import ReferenceManager
-
-            kb_items = await self.repository.get_knowledge_base_items()
-            kb_struct = {"references": []}
-            for item in kb_items:
-                if item.get("type") == "reference":
-                    kb_struct["references"].append(
-                        {
-                            "citation": item.get("definition"),
-                            "short_citation": item.get("term"),
-                            "doi": item.get("doi_link"),
-                        }
-                    )
-
-            ref_manager = ReferenceManager(kb_struct)
-
-            # Scan everything!
-            bibliography = ref_manager.scan_and_collect_references(public_result)
-
-            if bibliography:
-                # Add to Root
-                public_result["lahdeluettelo"] = bibliography
-
-                # Add to Report if exists
-                if "Report" in public_result:
-                    public_result["Report"]["lahdeluettelo"] = bibliography
-
-        except Exception as e:
-            logger.error(f"[WorkflowEngine] Reference consolidation failed: {e}")
-
-        # 4. Inject Matrix Metadata for UI (Stereoscopic Vision Support)
-        # This allows the Frontend to decide whether to show 'Combined Verdict' (Dual) or standard view.
-        matrix_count = sum(
-            1 for _, doc in pipeline_steps if doc.get("component") == "JudgeAgent" or doc.get("matrix_id")
-        )
-        public_result["_meta"] = {
-            "matrix_count": matrix_count,
-            "matrix_mode": "dual" if matrix_count == 2 else "single",
-        }
-        # Backward compatibility for direct access if needed
-        public_result["matrix_count"] = matrix_count
-        public_result["matrix_mode"] = "dual" if matrix_count == 2 else "single"
-
         await self.repository.update_execution(
             execution_id,
             {
@@ -555,14 +603,14 @@ class WorkflowEngine:
         )
         return public_result
 
-    async def _handle_execution_error(self, execution_id: str, error: Exception, state: Optional[WorkflowState] = None):
-        """
-        Handles exception logging and state persistence during failure.
+    async def _handle_execution_error(self, execution_id: str, error: Exception, state: WorkflowState | None = None):
+        """Handles exception logging and state persistence during failure.
 
         Args:
             execution_id (str): Execution ID.
             error (Exception): The captured exception.
             state (Optional[WorkflowState]): The current state.
+
         """
         if isinstance(error, AgentExecutionError):
             logger.error(f"[WorkflowEngine] Agent Error: {error.message}")

@@ -1,13 +1,22 @@
-import streamlit as st
 import pandas as pd
+import streamlit as st
+
 from frontend.api import APIClient
 
+
 def render_user_view(api_client: APIClient):
+    """Renders the User Management (Team) view.
+
+    Allows listing and creating users within the authenticated organization.
+
+    Args:
+        api_client (APIClient): The API client instance.
+    """
     st.header("👥 User Management (Team)")
-    
+
     user = st.session_state.get("user")
     token = st.session_state.get("auth_token")
-    
+
     if not user or not token:
         st.error("Access Denied")
         return
@@ -32,14 +41,14 @@ def render_user_view(api_client: APIClient):
         display_cols = ["display_name", "email", "role", "uid", "created_by", "created_at"]
         # Filter to only cols that exist
         cols = [c for c in display_cols if c in df.columns]
-        
+
         # Format timestamps nicely if possible, else raw
         st.dataframe(df[cols], hide_index=True)
     else:
         st.info("No users found in this organization.")
 
     st.markdown("---")
-    
+
     # 3. Create User Form (Permissions Check)
     # Rules:
     # ROOT -> Can create ROOT
@@ -48,14 +57,14 @@ def render_user_view(api_client: APIClient):
     # MEMBER/VIEWER -> Access Denied (Should not be seeing this view)
 
     allowed_roles = []
-    
+
     if user_role == "ROOT":
         allowed_roles = ["ROOT"]
         st.info("💡 As ROOT, you are managing System Administrators. To manage Tenants, go to 'Organizations'.")
-        
+
     elif user_role == "ADMIN":
         allowed_roles = ["ADMIN", "MANAGER", "MEMBER", "VIEWER"]
-        
+
     elif user_role == "MANAGER":
         st.warning("Managers provide technical leadership but do not manage user accounts. Contact an Admin to add users.")
         return
@@ -64,7 +73,7 @@ def render_user_view(api_client: APIClient):
         return
 
     st.markdown("### Invite New Member")
-    
+
     with st.form("create_user_form"):
         col1, col2 = st.columns(2)
         with col1:
@@ -76,7 +85,7 @@ def render_user_view(api_client: APIClient):
 
         st.caption("New users will be created in your organization.")
         submit = st.form_submit_button("Create User")
-        
+
         if submit:
             if not new_email or not new_password:
                 st.error("Email and Password are required.")
@@ -93,6 +102,6 @@ def render_user_view(api_client: APIClient):
                     st.balloons()
                     # No rerun immediately to let user see success message, or rerun with delay?
                     # Streamlit rerun is instant.
-                    # st.rerun() 
+                    # st.rerun()
                 except Exception as e:
                     st.error(f"Failed to create user: {e}")

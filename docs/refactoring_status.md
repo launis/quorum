@@ -27,6 +27,12 @@ Enforce strict Google-style docstrings, Pydantic `Annotated` schemas, and Englis
 - [x] `domain.py` (Strict `Annotated`)
 - [x] `state.py` (Strict `Annotated`)
 
+### 7. V2.0 Architecture Upgrade - [COMPLETED]
+- [x] **Deferred Annotations (PEP 649)**: Python 3.14 compatibility.
+- [x] **Dependency Injection**: Strict separation of concerns in `WorkflowEngine`.
+- [x] **Distributed Queue**: Arq + Redis implementation.
+- [x] **Optimistic Locking**: State integrity protection.
+
 ## Validation
 *   **Startup Check:** Application starts with no type errors.
 *   **Docs Build:** MkDocs builds successfully with `mkdocstrings`.

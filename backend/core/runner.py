@@ -1,7 +1,7 @@
 import inspect
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from backend.exceptions import AgentExecutionError, FatalInterruption
 from backend.models.state import InputData, WorkflowState
@@ -10,19 +10,18 @@ logger = logging.getLogger(__name__)
 
 
 class PipelineRunner:
-    """
-    Responsible for executing the sequential agent loop and individual steps.
+    """Responsible for executing the sequential agent loop and individual steps.
     Managed by the WorkflowEngine.
     """
 
     def __init__(self, repository, registry, prompt_builder):
-        """
-        Initializes the PipelineRunner.
+        """Initializes the PipelineRunner.
 
         Args:
             repository: Data access layer for executions/workflows.
             registry: Service for agent discovery and configuration.
             prompt_builder: Service for dynamic prompt construction.
+
         """
         self.repository = repository
         self.registry = registry
@@ -31,14 +30,13 @@ class PipelineRunner:
     async def initialize_state(
         self,
         execution_id: str,
-        raw_inputs: Dict[str, Any],
-        workflow_id: Optional[str] = None,
-        workflow_name: Optional[str] = None,
-        organization_id: Optional[str] = None,
-        user_id: Optional[str] = None,
+        raw_inputs: dict[str, Any],
+        workflow_id: str | None = None,
+        workflow_name: str | None = None,
+        organization_id: str | None = None,
+        user_id: str | None = None,
     ) -> WorkflowState:
-        """
-        Constructs the initial WorkflowState object from raw input dictionary.
+        """Constructs the initial WorkflowState object from raw input dictionary.
 
         Args:
             execution_id (str): The unique ID of the execution.
@@ -53,6 +51,7 @@ class PipelineRunner:
 
         Raises:
             FatalInterruption: If state cannot be initialized.
+
         """
         try:
             input_data = InputData(
@@ -90,14 +89,13 @@ class PipelineRunner:
     async def execute_loop(
         self,
         state: WorkflowState,
-        pipeline_steps: List[Any],
+        pipeline_steps: list[Any],
         tracker: Any,
         execution_id: str,
         start_index: int = 0,
         total_steps_count: int = 0,
     ) -> Any:
-        """
-        Runs the sequential agent loop.
+        """Runs the sequential agent loop.
 
         Args:
             state (WorkflowState): The current workflow state.
@@ -109,6 +107,11 @@ class PipelineRunner:
 
         Returns:
             Any: The final WorkflowState or a dict (if early exit).
+
+        Side Effects:
+            - **Database**: Persists state trace via `tracker` at each step.
+            - **Logging**: Logs step transitions and progress.
+            - **State Mutation**: `current_state` is updated by each step's execution.
         """
         print(f"DEBUG: PipelineRunner.execute_loop START. Steps: {len(pipeline_steps)}", flush=True)
         total_steps = total_steps_count or len(pipeline_steps)
@@ -135,10 +138,9 @@ class PipelineRunner:
         return current_state
 
     async def _execute_step(
-        self, current_state: WorkflowState, agent: Any, step_doc: Dict[str, Any], execution_id: str
+        self, current_state: WorkflowState, agent: Any, step_doc: dict[str, Any], execution_id: str
     ) -> Any:
-        """
-        Executes a singe pipeline step: Hooks -> Model Config -> Prompt -> Agent -> Hooks -> Validation.
+        """Executes a singe pipeline step: Hooks -> Model Config -> Prompt -> Agent -> Hooks -> Validation.
 
         Args:
             current_state (WorkflowState): Current state.
@@ -146,11 +148,6 @@ class PipelineRunner:
             step_doc (Dict[str, Any]): The Step configuration document.
             execution_id (str): Execution ID.
 
-        Returns:
-            Any: Updated state or early return dict.
-
-        Raises:
-            AgentExecutionError: If execution fails.
         """
         step_id = step_doc["id"]
         agent_name = agent.__class__.__name__
@@ -210,12 +207,10 @@ class PipelineRunner:
 
         # DEBUG TRACE
 
-
         return current_state
 
     async def _execute_hook(self, hook_name: str, agent: Any, state: WorkflowState) -> WorkflowState:
-        """
-        Executes a named hook method on the agent instance.
+        """Executes a named hook method on the agent instance.
 
         Args:
             hook_name (str): Name of the method.
@@ -224,6 +219,7 @@ class PipelineRunner:
 
         Returns:
             WorkflowState: Updated state.
+
         """
         if hasattr(agent, hook_name):
             logger.debug(f"[PipelineRunner] Executing Hook: {agent.__class__.__name__}.{hook_name}")
@@ -259,9 +255,8 @@ class PipelineRunner:
                 )
             return state
 
-    async def _configure_agent_model(self, agent: Any, step_id: str, execution_id: str) -> Dict[str, Any]:
-        """
-        Resolves the appropriate model strategy for the step and configures the agent.
+    async def _configure_agent_model(self, agent: Any, step_id: str, execution_id: str) -> dict[str, Any]:
+        """Resolves the appropriate model strategy for the step and configures the agent.
 
         Args:
             agent (Any): The Agent instance.
@@ -270,6 +265,7 @@ class PipelineRunner:
 
         Returns:
             Dict[str, Any]: The resolved model configuration.
+
         """
         step_model_key = None
 
@@ -314,10 +310,9 @@ class PipelineRunner:
         return resolved_config
 
     async def _validate_step_output(
-        self, agent_name: str, step_id: str, state: WorkflowState, step_doc: Dict[str, Any]
+        self, agent_name: str, step_id: str, state: WorkflowState, step_doc: dict[str, Any]
     ):
-        """
-        Validates the step output against the defined component output schema.
+        """Validates the step output against the defined component output schema.
 
         Args:
             agent_name (str): Name of the agent.
@@ -327,6 +322,7 @@ class PipelineRunner:
 
         Raises:
             AgentExecutionError: If validation fails.
+
         """
         output_config_id = step_doc.get("output_config_component")
         if output_config_id:
@@ -345,9 +341,8 @@ class PipelineRunner:
                                 logger.error(f"[PipelineRunner] {error_msg}")
                                 raise AgentExecutionError(agent_name, step_id, ValueError(error_msg))
 
-    async def _handle_security_intervention(self, execution_id: str, state: WorkflowState) -> Dict[str, Any]:
-        """
-        Handles a security check failure by creating a rejection result.
+    async def _handle_security_intervention(self, execution_id: str, state: WorkflowState) -> dict[str, Any]:
+        """Handles a security check failure by creating a rejection result.
 
         Args:
             execution_id (str): Execution ID.
@@ -355,6 +350,7 @@ class PipelineRunner:
 
         Returns:
             Dict[str, Any]: Rejection details object.
+
         """
         msg = "[PipelineRunner] SECURITY INTERVENTION: Threat detected."
         logger.critical(msg)

@@ -5,8 +5,7 @@ from pathlib import Path
 
 
 def main():
-    """
-    Sets up environment for Firestore seeding and runs the backend.database.seeder module.
+    """Sets up environment for Firestore seeding and runs the backend.database.seeder module.
     """
     print("==========================================")
     print("  SEED FIRESTORE DATABASE (Python Script) ")

@@ -1,6 +1,7 @@
+"""Judge Agent implementation."""
 import json
 import logging
-from typing import Any, Optional, Type, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
@@ -16,8 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class JudgeAgent(BaseAgent):
-    """
-    Tuomari-agentti (Judge Agent).
+    """Tuomari-agentti (Judge Agent).
     Refactored to support dynamic Evaluation Matrix configurations with legacy fallback.
     """
 
@@ -27,10 +27,44 @@ class JudgeAgent(BaseAgent):
     PRODUCES_KEYS = ["step_judge", "audit_results"]
     OUTPUT_SCHEMA = EvaluationResult
 
-    def get_response_schema(self) -> Optional[Type[BaseModel]]:
+    def get_response_schema(self) -> type[BaseModel] | None:
+        """Returns the EvaluationResult schema.
+
+        Returns:
+            Optional[Type[BaseModel]]: EvaluationResult schema.
+        """
         return EvaluationResult
 
-    async def prepare_context(self, state: WorkflowState, **kwargs) -> Optional[str]:
+    async def execute(self, state: WorkflowState, system_instruction: str | None = None, **kwargs) -> WorkflowState:
+        """Executes the judgment/audit logic against the matrix.
+
+        Input State:
+            - state.inputs (history_text, product_text, reflection_text)
+            - state.audit_results (read for context if needed)
+
+        Output State:
+            - state.step_judge (EvaluationResult): The primary evaluation result.
+            - state.audit_results [Dict]: Updated with the evaluation result keyed by step_id.
+
+        Exceptions:
+            - AgentExecutionError: If LLM fails or schema validation fails.
+            - ValueError: If Matrix ID is invalid or missing.
+        """
+        return await super().execute(state, system_instruction, **kwargs)
+
+    async def prepare_context(self, state: WorkflowState, **kwargs) -> str | None:
+        """Lifecycle Hook: Pre-Execution.
+
+        Loads and formats the Evaluation Matrix (rubric) from the repository/config.
+        Injects the matrix instructions into the system prompt.
+
+        Args:
+            state (WorkflowState): The current workflow state.
+            **kwargs: Config and repository.
+
+        Returns:
+            Optional[str]: The formatted matrix context string.
+        """
         config = kwargs.get("execution_config", {})
         matrix_id = config.get("matrix_id")
         repo = kwargs.get("repository")
@@ -68,6 +102,14 @@ class JudgeAgent(BaseAgent):
         return base_prompt
 
     def _format_matrix_prompt(self, component: dict) -> str:
+        """Formats a JSON-based Evaluation Matrix into a human-readable prompt string.
+
+        Args:
+            component (dict): The matrix component structure.
+
+        Returns:
+            str: The formatted string.
+        """
         content = component.get("content", {})
         if isinstance(content, str):
             try:
@@ -111,8 +153,24 @@ class JudgeAgent(BaseAgent):
         return "\n".join(prompt_lines)
 
     async def _update_state(
-        self, state: WorkflowState, response_data: Any, output_key: Optional[str] = None, **kwargs
+        self, state: WorkflowState, response_data: Any, output_key: str | None = None, **kwargs
     ) -> WorkflowState:
+        """Updates the state with the judge's evaluation result.
+
+        Supports dynamic matrix ID handling and storing extra metadata (like scale min/max).
+
+        Args:
+            state (WorkflowState): Current state.
+            response_data (Any): The LLM response (data).
+            output_key (Optional[str]): Target key (default uses state_field).
+            **kwargs: Extra execution config.
+
+        Returns:
+            WorkflowState: Updated state.
+
+        Raises:
+             Exception: If update fails.
+        """
         step_id = kwargs.get("step_id", output_key or self.state_field or "unknown_step")
 
         try:

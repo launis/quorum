@@ -1,30 +1,35 @@
-import streamlit as st
 import pandas as pd
+import streamlit as st
+
 
 def render_system_view(api_client):
-    """
-    Renders the System Info / Configuration view.
+    """Renders the System Info / Configuration view.
+
+    Displays technical configuration details and seed data references.
+
+    Args:
+        api_client: The API client instance.
     """
     st.header("System Configuration & Seed Data")
-    
+
     token = st.session_state.get('auth_token')
     data = api_client.get_seed_data(token=token)
     if data:
         # Get Workflows
         workflows = data.get('workflows', [])
         workflow_options = {w['id']: w for w in workflows}
-        
+
         # Workflow Selection
         st.subheader("Valitse Työnkulku (Select Workflow)")
         selected_wf_id = st.selectbox(
-            "Workflow", 
+            "Workflow",
             options=list(workflow_options.keys()),
             format_func=lambda x: workflow_options[x].get('name', x),
             key="sys_info_wf_selector"
         )
-        
+
         selected_workflow = workflow_options.get(selected_wf_id)
-        
+
         if selected_workflow:
             st.info(f"Viewing configuration for: **{selected_workflow.get('name')}**")
             st.markdown(f"_{selected_workflow.get('description')}_")
@@ -34,20 +39,20 @@ def render_system_view(api_client):
             workflow_steps_ids = selected_workflow.get('steps', [])
             all_steps = {s['id']: s for s in data.get('steps', []) if 'id' in s}
             all_components = {c['id']: c for c in data.get('components', []) if 'id' in c}
-             
+
             relevant_steps = [all_steps[sid] for sid in workflow_steps_ids if sid in all_steps]
-             
+
             used_component_ids = set()
             for step in relevant_steps:
                 prompts = step.get('execution_config', {}).get('llm_prompts', [])
                 for p_id in prompts:
                     used_component_ids.add(p_id)
-             
+
             used_components = [all_components[cid] for cid in used_component_ids if cid in all_components]
-             
+
             # Ordering
             type_order = ["header", "mandate", "rule", "operational_rule", "protocol", "method", "instruction", "task"]
-             
+
             def sort_key(c):
                 t = c.get('type', '').lower()
                 if t in type_order:
@@ -58,7 +63,7 @@ def render_system_view(api_client):
 
             # Tabs
             tab1, tab2, tab3, tab4, tab5 = st.tabs(["📚 Komponenttikirjasto", "Workflow Steps", "Prompt Preview", "Full Chain Export", "📘 Methodology"])
-             
+
             with tab5:
                 st.markdown("""
                 ### Methodology & Definitions
@@ -95,7 +100,7 @@ def render_system_view(api_client):
             with tab1:
                 st.markdown(f"### Komponenttikirjasto (Library) - {len(used_components)} items")
                 st.caption("Components used in this workflow's prompts.")
-                 
+
                 # Optional Type Filter
                 c_types = sorted(list(set(str(c.get('type') or 'unknown') for c in used_components)))
                 if c_types:
@@ -108,10 +113,10 @@ def render_system_view(api_client):
                     c_type = comp.get('type', 'unknown').upper()
                     c_id = comp.get('id')
                     c_desc = comp.get('description', '')
-                     
+
                     with st.expander(f"[{c_type}] {c_id} - {c_desc}"):
                         st.text_area("Content", comp.get('content'), height=200, key=f"lib_{c_id}")
-             
+
             with tab2:
                 st.markdown("### Workflow Steps")
                 if relevant_steps:
@@ -132,7 +137,7 @@ def render_system_view(api_client):
                 st.markdown("### Step Prompt Preview")
                 step_ids_ordered = [s['id'] for s in relevant_steps]
                 step_to_preview = st.selectbox("Select Step", step_ids_ordered, format_func=lambda x: f"{x} ({all_steps.get(x, {}).get('name')})")
-                
+
                 if step_to_preview:
                     preview_data = api_client.get_prompt_preview(step_to_preview)
                     if preview_data:
@@ -155,6 +160,6 @@ def render_system_view(api_client):
                             st.download_button("Download .md", full_text, file_name=f"{selected_wf_id}_full_chain.md")
                         else:
                             st.error("Failed to generate chain preview.")
-        
+
     else:
         st.error("Failed to load seed data.")

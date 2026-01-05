@@ -1,20 +1,18 @@
 import os
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from backend.models.state import WorkflowState
 
 
 class StatePresenter:
-    """
-    Handles the presentation logic for WorkflowState.
+    """Handles the presentation logic for WorkflowState.
     Separates the concern of data serialization/flattening from the state model itself.
     """
 
     @staticmethod
-    def flatten_state(state: WorkflowState) -> Dict[str, Any]:
-        """
-        Projects the complex state into a simplified, flat dictionary.
+    def flatten_state(state: WorkflowState) -> dict[str, Any]:
+        """Projects the complex state into a simplified, flat dictionary.
         This structured is optimized for frontend UI consumption (React/JSON).
         Does NOT rely on specific UI code but organizes data logically.
 
@@ -23,6 +21,7 @@ class StatePresenter:
 
         Returns:
             Dict[str, Any]: The flattened result object.
+
         """
         from backend.settings import get_settings
 
@@ -95,6 +94,9 @@ class StatePresenter:
         if state.step_reporter:
             report["final_verdict"] = state.step_reporter.final_verdict
             report["confidence"] = state.step_reporter.confidence_score
+            if hasattr(state.step_reporter, "comparison_data") and state.step_reporter.comparison_data:
+                # Direct check or field existence
+                report["comparison_data"] = state.step_reporter.comparison_data
 
         # Dynamic Score Flattening
         # We iterate through all stored audit results (e.g., standard, cognitive, etc.)
@@ -200,17 +202,13 @@ class StatePresenter:
                         t.model_dump() for t in state.step_panel.logiikka_auditointi.toulmin_analyysi
                     ]
                 if state.step_panel.logiikka_auditointi.walton_skeema:
-                    report["logiikka_skeema"] = (
-                        state.step_panel.logiikka_auditointi.walton_skeema.tunnistettu_skeema
-                    )
+                    report["logiikka_skeema"] = state.step_panel.logiikka_auditointi.walton_skeema.tunnistettu_skeema
 
             if (
                 state.step_panel.kausaalinen_auditointi
                 and state.step_panel.kausaalinen_auditointi.kausaalinen_auditointi
             ):
-                report["kausaalisuus_paatelma"] = (
-                    state.step_panel.kausaalinen_auditointi.abduktiivinen_paatelma
-                )
+                report["kausaalisuus_paatelma"] = state.step_panel.kausaalinen_auditointi.abduktiivinen_paatelma
 
             if (
                 state.step_panel.falsifiointi_auditointi
@@ -226,9 +224,7 @@ class StatePresenter:
                         f.model_dump() for f in state.step_panel.etiikka_ja_fakta.faktantarkistus_rfi
                     ]
                 if state.step_panel.etiikka_ja_fakta.eettiset_havainnot:
-                    report["etiikka"] = [
-                        e.model_dump() for e in state.step_panel.etiikka_ja_fakta.eettiset_havainnot
-                    ]
+                    report["etiikka"] = [e.model_dump() for e in state.step_panel.etiikka_ja_fakta.eettiset_havainnot]
 
         # 3. Actionable Feedback
         if state.step_coach:

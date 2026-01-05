@@ -1,6 +1,5 @@
 import logging
 import re
-from typing import List, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -14,9 +13,8 @@ PII_PATTERNS = {
 }
 
 
-def sanitize_text(text: str) -> Tuple[str, List[str]]:
-    """
-    Sanitizes a single string by redacting Personally Identifiable Information (PII)
+def sanitize_text(text: str) -> tuple[str, list[str]]:
+    """Sanitizes a single string by redacting Personally Identifiable Information (PII)
     based on predefined Regex patterns (e.g. Email, SSN, Credit Card).
 
     Args:
@@ -26,6 +24,7 @@ def sanitize_text(text: str) -> Tuple[str, List[str]]:
         Tuple[str, List[str]]: A tuple containing:
             1. The sanitized text with PII replaced by [REDACTED_TYPE].
             2. A list of strings describing what was detected/redacted (e.g. "EMAIL: 2 items").
+
     """
     if not text:
         return text, []
@@ -47,9 +46,8 @@ def sanitize_text(text: str) -> Tuple[str, List[str]]:
     return clean_value, threats_detected
 
 
-def check_banned_phrases(text: str, phrases: List[str]) -> List[str]:
-    """
-    Checks if the input text contains any of the specified banned phrases (case-insensitive).
+def check_banned_phrases(text: str, phrases: list[str]) -> list[str]:
+    """Checks if the input text contains any of the specified banned phrases (case-insensitive).
 
     Args:
         text (str): The text to scan.
@@ -57,6 +55,7 @@ def check_banned_phrases(text: str, phrases: List[str]) -> List[str]:
 
     Returns:
         List[str]: A list of unique banned phrases found in the text.
+
     """
     if not text or not phrases:
         return []

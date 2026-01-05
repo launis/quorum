@@ -5,8 +5,7 @@ from pathlib import Path
 
 
 def main():
-    """
-    Sets up environment to seed PROD DB (data/db.json) from seed_data.json.
+    """Sets up environment to seed PROD DB (data/db.json) from seed_data.json.
     WARNING: ALL EXISTING DATA IN data/db.json WILL BE LOST.
     """
     print("=======================================")

@@ -3,12 +3,12 @@ import os
 import sys
 
 import logfire
+
 from backend.context import get_execution_context
 
 
 class ContextFilter(logging.Filter):
-    """
-    Injects execution_id from contextvars into log records.
+    """Injects execution_id from contextvars into log records.
     """
 
     def filter(self, record):
@@ -17,22 +17,16 @@ class ContextFilter(logging.Filter):
         return True
 
 
-
-
-
 def configure_logfire():
-    """
-    Configures Logfire for observability.
+    """Configures Logfire for observability.
     Should be called early in the application lifecycle.
     """
-
     logfire.configure()
     logfire.instrument_pydantic()
 
 
 def setup_logging(log_level=logging.INFO):
-    """
-    Configures the root logger to write to a file and the console.
+    """Configures the root logger to write to a file and the console.
 
     Log File: backend_debug.log (in the project root)
     Format: timestamp | level | logger_name | message

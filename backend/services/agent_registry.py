@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any
 
 from backend.agents.base import BaseAgent
 from backend.database.repository import AbstractWorkflowRepository
@@ -9,24 +9,22 @@ logger = logging.getLogger(__name__)
 
 
 class AgentRegistry:
-    """
-    Service for discovering, instantiating, and managing Agent components.
+    """Service for discovering, instantiating, and managing Agent components.
     Handles Model Strategy resolution against the database.
     """
 
     def __init__(self, repository: AbstractWorkflowRepository):
-        """
-        Initializes the registry.
+        """Initializes the registry.
 
         Args:
             repository (AbstractWorkflowRepository): Storage for component metadata and configs.
+
         """
         self.repository = repository
-        self.agents_map: Dict[str, BaseAgent] = {}
+        self.agents_map: dict[str, BaseAgent] = {}
 
     async def resolve_model_name(self, model_identifier: str) -> str:
-        """
-        Resolves a high-level model key (e.g. 'fast', 'smart') to a concrete model name.
+        """Resolves a high-level model key (e.g. 'fast', 'smart') to a concrete model name.
         Prioritizes database configuration over any hardcoded defaults.
 
         Args:
@@ -34,6 +32,7 @@ class AgentRegistry:
 
         Returns:
             str: The concrete model identifier (e.g. 'gemini-1.5-flash').
+
         """
         from backend.settings import get_settings
 
@@ -41,9 +40,8 @@ class AgentRegistry:
         config = await self.resolve_model_config(model_identifier)
         return config.get("model_name", settings.initial_model)
 
-    async def resolve_model_config(self, model_identifier: str) -> Dict[str, Any]:
-        """
-        Resolves a model identifier to a full configuration dictionary (name, tokens, temp, provider).
+    async def resolve_model_config(self, model_identifier: str) -> dict[str, Any]:
+        """Resolves a model identifier to a full configuration dictionary (name, tokens, temp, provider).
         STRICT MODE: Fetches ONLY from Database. No fallbacks.
 
         Args:
@@ -54,6 +52,7 @@ class AgentRegistry:
 
         Raises:
             ValueError: If strategy not found in DB.
+
         """
         # 1. Fetch Dynamic Strategies from Repository
         reg_entry = await self.repository.get_model_registry()
@@ -95,13 +94,13 @@ class AgentRegistry:
         raise ValueError(err_msg)
 
     async def register_component(self, name: str, type: str, class_name: str):
-        """
-        Registers a new component definition in the database.
+        """Registers a new component definition in the database.
 
         Args:
             name (str): Component ID/Name.
             type (str): Type category (e.g. 'agent', 'tool').
             class_name (str): Python class name.
+
         """
         if not await self.repository.get_component_by_name(name):
             await self.repository.register_component(
@@ -115,15 +114,19 @@ class AgentRegistry:
             )
 
     async def _update_component_metadata(self, name, module, component_class):
-        """
-        Helper to add module/class info for dynamic router loading.
+        """Helper to add module/class info for dynamic router loading.
+
         Updates existing component records with runtime metadata.
+
+        Args:
+            name (str): Component ID.
+            module (str): Module path.
+            component_class (str): Class name.
         """
         await self.repository.update_component_metadata(name, module, component_class)
 
     async def discover_and_register_agents(self, package_path: str = "backend.agents"):
-        """
-        Loads agents using the static AgentFactory and registers them in the DB.
+        """Loads agents using the static AgentFactory and registers them in the DB.
         This bootstraps the system with available code components.
 
         Args:
@@ -131,6 +134,7 @@ class AgentRegistry:
 
         Raises:
             FatalInterruption: If AgentFactory fails to load.
+
         """
         from backend.core.factory import AgentFactory
         from backend.settings import get_settings
@@ -186,23 +190,23 @@ class AgentRegistry:
                 step_name="AgentDiscovery", reason="AgentFactory Initialization Failed", details={"error": str(e)}
             )
 
-    def get_agent(self, agent_name: str) -> Optional[BaseAgent]:
-        """
-        Retrieves an instantiated agent by name.
+    def get_agent(self, agent_name: str) -> BaseAgent | None:
+        """Retrieves an instantiated agent by name.
 
         Args:
             agent_name (str): Class name of the agent.
 
         Returns:
             Optional[BaseAgent]: The agent instance or None.
+
         """
         return self.agents_map.get(agent_name)
 
-    def get_all_agents(self) -> Dict[str, BaseAgent]:
-        """
-        Returns all registered agent instances.
+    def get_all_agents(self) -> dict[str, BaseAgent]:
+        """Returns all registered agent instances.
 
         Returns:
             Dict[str, BaseAgent]: Map of name -> instance.
+
         """
         return self.agents_map.copy()

@@ -1,30 +1,32 @@
-import streamlit as st
 import time
+
 import requests
+import streamlit as st
+
 from frontend.components.results.renderer import render_dashboard
 
+
 def render_execution_status(api_client, job_id, workflow_id, workflow_options, backend_url):
-    """
-    Renders the progress bar and status text. 
+    """Renders the progress bar and status text.
     Polls the backend until completion or failure.
     """
     st.divider()
     st.subheader(f"Execution Status: {job_id}")
-    
+
     dynamic_steps_order = []
     if workflow_id:
          dynamic_steps_order = api_client.get_workflow_steps(workflow_id, workflow_options)
-    
+
     progress_bar = st.progress(0)
     status_text = st.empty()
     result_container = st.container()
-    
+
     while True:
          status_data = api_client.get_execution_status(job_id)
          if not status_data:
              time.sleep(2)
              continue
-             
+
          status = status_data.get('status')
          current_step = status_data.get('current_step')
          pct = status_data.get('progress')
@@ -42,7 +44,7 @@ def render_execution_status(api_client, job_id, workflow_id, workflow_options, b
               progress_bar.progress(min(progress, 0.95))
               status_text.info(f"Vaihe {idx+1}/{len(dynamic_steps_order)}: {current_step} käynnissä...")
          else:
-              progress_bar.progress(0.1) 
+              progress_bar.progress(0.1)
               if current_step:
                    status_text.info(f"{current_step}")
               else:
@@ -55,17 +57,17 @@ def render_execution_status(api_client, job_id, workflow_id, workflow_options, b
              result = status_data.get('result', {})
              with result_container:
                   render_dashboard(result)
-             
+
              if st.button("Start New Assessment"):
                   del st.session_state['active_job_id']
                   st.rerun()
              break
-         
+
          elif status.upper() == "FAILED":
              status_text.error(f"Job Failed: {status_data.get('error')}")
              render_failure_controls(job_id, backend_url)
              break
-         
+
          elif status.upper() == "REJECTED":
              status_text.error(f"⚠️ Security Intervention (Rejected): {status_data.get('error')}")
              if 'result' in status_data:
@@ -75,7 +77,7 @@ def render_execution_status(api_client, job_id, workflow_id, workflow_options, b
                   del st.session_state['active_job_id']
                   st.rerun()
              break
-         
+
          time.sleep(2)
 
 def render_failure_controls(job_id, backend_url):
