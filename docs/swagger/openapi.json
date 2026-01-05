@@ -12,7 +12,7 @@
           "Tools"
         ],
         "summary": "Extract Text from File",
-        "description": "Extracts text content from an uploaded file (PDF, Docx, etc).",
+        "description": "Extracts text content from an uploaded file (PDF, Docx, etc).\n\nArgs:\n    file (UploadFile): The binary file to process.\n\nReturns:\n    dict: Filename and extracted text.\n\nRaises:\n    HTTPException: If extraction fails (500).",
         "operationId": "extract_text_from_file_tools_text_extract_post",
         "requestBody": {
           "content": {
@@ -52,7 +52,7 @@
           "Tools"
         ],
         "summary": "Extract Concepts (Text/File)",
-        "description": "Extracts domain concepts from either raw text or an uploaded file.",
+        "description": "Extracts domain concepts from either raw text or an uploaded file.\n\nArgs:\n    registry (RegistryDep): Registry for LLM config.\n    text (str): Raw text input.\n    file (UploadFile): File input.\n    llm_provider (str): Preferred provider (deprecated, uses registry).\n\nReturns:\n    dict: Extracted concepts.\n\nRaises:\n    HTTPException: If no input provided (400) or extraction errors (500).",
         "operationId": "extract_concepts_from_file_or_text_tools_concept_extraction_post",
         "requestBody": {
           "content": {
@@ -91,7 +91,7 @@
           "Tools"
         ],
         "summary": "Scrape URL",
-        "description": "Fetches and parses a public URL.",
+        "description": "Fetches and parses a public URL.\n\nArgs:\n    url (str): The URL to scrape.\n\nReturns:\n    dict: Title, content, and metadata.\n\nRaises:\n    HTTPException: If connection fails (400).",
         "operationId": "scrape_url_tools_web_scrape_post",
         "requestBody": {
           "content": {
@@ -131,7 +131,7 @@
           "Tools"
         ],
         "summary": "Resolve Citations",
-        "description": "Uses the Knowledge Base Service to find context for citations.",
+        "description": "Uses the Knowledge Base Service to find context for citations.\n\nArgs:\n    db (DatabaseDep): Database dependency.\n    registry (RegistryDep): Registry dependency.\n    queries (list[str]): List of citation keys or queries.\n\nReturns:\n    dict: Map of query to resolved context.",
         "operationId": "citation_lookup_tools_citation_lookup_post",
         "requestBody": {
           "content": {
@@ -177,7 +177,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/WorkflowCreateRequest"
+                "$ref": "#/components/schemas/backend__api__execution_router__WorkflowCreateRequest"
               }
             }
           },
@@ -647,7 +647,7 @@
           "Admin"
         ],
         "summary": "Reset Mock Database",
-        "description": "Triggers 'rebuild_mock_db.py' in the background.",
+        "description": "Triggers 'rebuild_mock_db.py' in the background.\n\nArgs:\n    background_tasks (BackgroundTasks): FastAPI background task manager.\n    db (DatabaseDep): Database dependency.\n\nReturns:\n    dict: Job status and ID.",
         "operationId": "reset_mock_db_admin_database_reset_mock_post",
         "parameters": [
           {
@@ -695,7 +695,7 @@
           "Admin"
         ],
         "summary": "Reset Production Database (Local)",
-        "description": "Triggers 'rebuild_prod_db.py' in the background.\nWARNING: This wipes the local production database.",
+        "description": "Triggers 'rebuild_prod_db.py' in the background.\n\nWARNING: This wipes the local production database.\n\nArgs:\n    background_tasks (BackgroundTasks): FastAPI background task manager.\n    db (DatabaseDep): Database dependency.\n\nReturns:\n    dict: Job status and ID.",
         "operationId": "reset_prod_db_admin_database_reset_prod_post",
         "parameters": [
           {
@@ -743,7 +743,7 @@
           "Admin"
         ],
         "summary": "Reset Firestore Database",
-        "description": "Triggers 'seed_firestore.py' in the background.\nWARNING: This wipes the Firestore database!",
+        "description": "Triggers 'seed_firestore.py' in the background.\n\nWARNING: This wipes the Firestore database!\n\nArgs:\n    background_tasks (BackgroundTasks): FastAPI background task manager.\n    db (DatabaseDep): Database dependency.\n\nReturns:\n    dict: Job status and ID.",
         "operationId": "reset_firestore_db_admin_database_reset_firestore_post",
         "parameters": [
           {
@@ -958,7 +958,7 @@
           "Admin"
         ],
         "summary": "Ingest from File (Path)",
-        "description": "Starts the process of ingesting a document into the knowledge base from a local file path.",
+        "description": "Starts the process of ingesting a document into the knowledge base from a local file path.\n\nArgs:\n    request (IngestRequest): Ingestion configuration (file path, reset flag).\n    background_tasks (BackgroundTasks): FastAPI background task manager.\n    repository (DatabaseDep): Database dependency.\n    llm_provider (LLMProviderFast): LLM provider for embedding generation.\n\nReturns:\n    dict: Job status, ID, start confirmation message.",
         "operationId": "ingest_knowledge_base_admin_knowledge_base_ingest_post",
         "parameters": [
           {
@@ -1016,7 +1016,7 @@
           "Admin"
         ],
         "summary": "Upload and Ingest File",
-        "description": "Uploads a file and triggers the ingestion process.",
+        "description": "Uploads a file and triggers the ingestion process.\n\nArgs:\n    file (UploadFile): The binary file to ingest.\n    reset_db (bool): If True, clear KB before ingestion.\n    background_tasks (BackgroundTasks): Background task manager.\n    db_client (DatabaseDep): Database dependency.\n    llm_provider (LLMProviderFast): LLM provider dependency.\n\nReturns:\n    dict: Job status, ID, filename, and reset flag.",
         "operationId": "upload_knowledge_base_admin_knowledge_base_upload_post",
         "parameters": [
           {
@@ -1086,7 +1086,7 @@
           "Admin"
         ],
         "summary": "List Banned Phrases",
-        "description": "Retrieves all banned phrases from the database.",
+        "description": "Retrieves all banned phrases from the database.\n\nArgs:\n    db (DatabaseDep): Database dependency.\n\nReturns:\n    list[dict]: List of banned phrase objects (e.g. {'phrase': 'bad word'}).",
         "operationId": "get_banned_phrases_admin_banned_phrases_get",
         "parameters": [
           {
@@ -1132,7 +1132,7 @@
           "Admin"
         ],
         "summary": "Add Banned Phrase",
-        "description": "Adds a new phrase to the blocklist.",
+        "description": "Adds a new phrase to the blocklist.\n\nArgs:\n    request (BannedPhraseRequest): The phrase to add.\n    db (DatabaseDep): Database dependency.\n\nReturns:\n    dict: Status and the added phrase.\n\nRaises:\n    HTTPException: If the phrase is too short (400).",
         "operationId": "add_banned_phrase_admin_banned_phrases_post",
         "parameters": [
           {
@@ -1190,7 +1190,7 @@
           "Admin"
         ],
         "summary": "Remove Banned Phrase",
-        "description": "Remove a phrase from the banned list.",
+        "description": "Remove a phrase from the banned list.\n\nArgs:\n    db (DatabaseDep): Database dependency.\n    phrase (str): The phrase string to remove.\n\nReturns:\n    dict: Status and the removed phrase.\n\nRaises:\n    HTTPException: If deletion fails (500).",
         "operationId": "delete_banned_phrase_admin_banned_phrases__phrase__delete",
         "parameters": [
           {
@@ -1307,7 +1307,7 @@
           "Configuration"
         ],
         "summary": "List Components",
-        "description": "Retrieves all defined configuration components (Prompts, Mandates, Rules, etc).",
+        "description": "Retrieves all defined configuration components (Prompts, Mandates, Rules, etc).\n\nArgs:\n    db (DatabaseDep): Database dependency.\n\nReturns:\n    list[dict]: List of configuration components.",
         "operationId": "get_components_config_components_get",
         "responses": {
           "200": {
@@ -1406,7 +1406,7 @@
           "Configuration"
         ],
         "summary": "Update Component",
-        "description": "Updates an existing component's content and metadata.",
+        "description": "Updates an existing component's content and metadata.\n\nArgs:\n    comp_id (str): The ID of the component to update.\n    update (ComponentUpdate): The new data.\n    db (DatabaseDep): Database dependency.\n\nReturns:\n    dict: Status and ID.\n\nRaises:\n    HTTPException: If not found (404).",
         "operationId": "update_component_config_components__comp_id__put",
         "parameters": [
           {
@@ -1955,7 +1955,7 @@
           "Configuration"
         ],
         "summary": "List Available Models",
-        "description": "Returns a dynamic dictionary of models found via provider APIs.\nSupports filtering by provider and specifying Google Cloud region.",
+        "description": "Returns a dynamic dictionary of models found via provider APIs.\nSupports filtering by provider and specifying Google Cloud region.\n\nArgs:\n    handler (LLMHandlerDep): LLM Handler dependency.\n    providers (list[str]): Optional list of providers to query.\n    location (str): Optional region override.\n\nReturns:\n    dict: Map of provider -> list of models.",
         "operationId": "list_available_models_config_models_available_get",
         "parameters": [
           {
@@ -2044,7 +2044,7 @@
           "Configuration"
         ],
         "summary": "Update Registry",
-        "description": "Update global model registry.",
+        "description": "Update global model registry.\n\nArgs:\n    config (GlobalModelConfig): The new registry configuration.\n    db (DatabaseDep): Database dependency.\n\nReturns:\n    dict: Status and updated registry.",
         "operationId": "update_model_registry_config_models_registry_post",
         "requestBody": {
           "content": {
@@ -2084,7 +2084,7 @@
           "Configuration"
         ],
         "summary": "Call LLM (Ad-hoc)",
-        "description": "Execute a direct LLM call using the Handler's logic (resolving config from registry).",
+        "description": "Execute a direct LLM call using the Handler's logic (resolving config from registry).\n\nArgs:\n    request (LLMCallRequest): The prompt and settings.\n    handler (LLMHandlerDep): LLM Handler dependency.\n\nReturns:\n    dict: The content string from the LLM.\n\nRaises:\n    HTTPException: If call fails (500).",
         "operationId": "call_llm_adhoc_config_models_call_post",
         "requestBody": {
           "content": {
@@ -2161,7 +2161,7 @@
           "Configuration"
         ],
         "summary": "Get Known Dimensions",
-        "description": "Returns specific allowed dimension IDs from the ontology table.\nAuto-seeds defaults if table is empty.",
+        "description": "Returns specific allowed dimension IDs from the ontology table.\nAuto-seeds defaults if table is empty.\n\nArgs:\n    db (DatabaseDep): Database dependency.\n\nReturns:\n    list[str]: Sorted list of dimension IDs.",
         "operationId": "get_known_dimensions_config_ontology_dimensions_get",
         "responses": {
           "200": {
@@ -2317,7 +2317,7 @@
           "Authentication & Users"
         ],
         "summary": "Verify User Token",
-        "description": "Exchanges a Firebase ID Token (or mock token) for the Backend User Profile (Role, etc).\nCall this immediately after Firebase Login on the client.",
+        "description": "Exchanges a Firebase ID Token (or mock token) for the Backend User Profile.\n\nArgs:\n    payload (TokenPayload): The token payload.\n    auth_service (AuthServiceDep): Authentication service dependency.\n\nReturns:\n    LoginResponse: The authenticated user profile and status.\n\nRaises:\n    HTTPException: If the user is found in Firebase but not in the DB (404),\n                   or if the token is invalid (401).",
         "operationId": "verify_user_token_auth_verify_post",
         "requestBody": {
           "content": {
@@ -2359,7 +2359,7 @@
           "Authentication & Users"
         ],
         "summary": "Create User",
-        "description": "Create a new user.\nRequires Role: ROOT, ADMIN, or MANAGER.",
+        "description": "Create a new user.\n\nArgs:\n    user_data (UserCreate): Payload for the new user.\n    current_user (CurrentUserDep): The requesting user (must be ROOT, ADMIN, or MANAGER).\n    auth_service (AuthServiceDep): Authentication service dependency.\n\nReturns:\n    User: The created user profile.\n\nRaises:\n    HTTPException: If permission denied (403) or validation fails (400).",
         "operationId": "create_user_auth_users_post",
         "parameters": [
           {
@@ -2417,7 +2417,7 @@
           "Authentication & Users"
         ],
         "summary": "List Users",
-        "description": "List users visible to the current user (scoped by Organization).",
+        "description": "List users visible to the current user (scoped by Organization).\n\nArgs:\n    current_user (CurrentUserDep): The requesting user.\n    auth_service (AuthServiceDep): Authorization service.\n\nReturns:\n    list[User]: A list of accessible user profiles.",
         "operationId": "list_users_auth_users_get",
         "parameters": [
           {
@@ -2471,7 +2471,7 @@
           "Authentication & Users"
         ],
         "summary": "Create Organization",
-        "description": "Create a new Tenant Organization.\nRequires Role: ROOT.",
+        "description": "Create a new Tenant Organization.\n\nArgs:\n    org_data (OrganizationCreate): Payload for the new organization.\n    current_user (CurrentUserDep): The requesting user (must be ROOT).\n    auth_service (AuthServiceDep): Authentication service dependency.\n\nReturns:\n    Organization: The created organization.\n\nRaises:\n    HTTPException: If user is not ROOT (403).",
         "operationId": "create_organization_auth_organizations_post",
         "parameters": [
           {
@@ -2496,7 +2496,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/OrganizationCreate"
+                "$ref": "#/components/schemas/backend__models__auth__OrganizationCreate"
               }
             }
           }
@@ -2531,7 +2531,7 @@
           "Authentication & Users"
         ],
         "summary": "Delete User",
-        "description": "Delete a user.\nRequires Role: ROOT or ADMIN (within Org).\nEnforces Last Admin Protection.",
+        "description": "Delete a user.\n\nEnforces Last Admin Protection.\n\nArgs:\n    uid (str): The UID of the user to delete.\n    current_user (CurrentUserDep): The requesting user (ROOT or ADMIN).\n    auth_service (AuthServiceDep): Authorization service.\n\nReturns:\n    dict: Status confirmation.\n\nRaises:\n    HTTPException: Permission denied (403) or business logic error (400).",
         "operationId": "delete_user_auth_users__uid__delete",
         "parameters": [
           {
@@ -2586,7 +2586,7 @@
           "Authentication & Users"
         ],
         "summary": "Update User",
-        "description": "Update a user (Role, Display Name, etc).\nRequires Role: ROOT or ADMIN (within Org).\nEnforces Last Admin Protection if demoting an Admin.",
+        "description": "Update a user (Role, Display Name, etc).\n\nArgs:\n    uid (str): The UID of the user to update.\n    user_update (UserUpdate): Fields to update.\n    current_user (CurrentUserDep): Requesting user.\n    auth_service (AuthServiceDep): Authorization service.\n\nReturns:\n    User: The updated user profile.",
         "operationId": "update_user_auth_users__uid__patch",
         "parameters": [
           {
@@ -2655,6 +2655,7 @@
           "Authentication & Users"
         ],
         "summary": "Get My Profile",
+        "description": "Get the currently authenticated user's profile.\n\nArgs:\n    current_user (CurrentUserDep): The authenticated user.\n    auth_service (AuthServiceDep): Auth service.\n\nReturns:\n    User: The full user profile.",
         "operationId": "get_my_profile_auth_me_get",
         "parameters": [
           {
@@ -2705,7 +2706,7 @@
           "LLM"
         ],
         "summary": "Direct Completion",
-        "description": "Directly invokes the LLM using the specified strategy.\nSupports structured output if schema is provided.",
+        "description": "Directly invokes the LLM using the specified strategy.\n\nSupports structured output if schema is provided.\n\nArgs:\n    request (CompletionRequest): The prompt and settings.\n    registry (RegistryDep): Registry dependency to resolve strategies.\n\nReturns:\n    dict: Result object containing the generated content.\n\nRaises:\n    HTTPException: If strategy is invalid (400) or generation fails (500).",
         "operationId": "generate_completion_llm_llm_completion_post",
         "requestBody": {
           "content": {
@@ -2746,7 +2747,7 @@
           "LLM"
         ],
         "summary": "Batch Completion",
-        "description": "Processes multiple completion requests in parallel.",
+        "description": "Processes multiple completion requests in parallel.\n\nArgs:\n    batch (BatchCompletionRequest): List of requests.\n    registry (RegistryDep): Registry dependency.\n\nReturns:\n    dict: List of results (success or error) for each request.",
         "operationId": "batch_completion_llm_llm_batch_completion_post",
         "requestBody": {
           "content": {
@@ -2787,7 +2788,7 @@
           "LLM"
         ],
         "summary": "List Providers",
-        "description": "Returns information about active LLM providers and availability.",
+        "description": "Returns information about active LLM providers and availability.\n\nArgs:\n    handler (LLMHandlerDep): LLM Handler.\n\nReturns:\n    dict: Strategies map and API key status.",
         "operationId": "list_providers_llm_llm_providers_get",
         "responses": {
           "200": {
@@ -2827,7 +2828,7 @@
           "LLM"
         ],
         "summary": "Update Model Registry",
-        "description": "Updates the system's model registry configuration in the database.\n\nArgs:\n    update (ModelRegistryUpdate): The new configuration.\n    db_client (AbstractDatabase): Database dependency.\n\nReturns:\n    dict: Status and the updated registry.",
+        "description": "Updates the system's model registry configuration in the database.\n\nArgs:\n    update (ModelRegistryUpdate): The new configuration.\n    db_client (DatabaseDep): Database dependency.\n\nReturns:\n    dict: Status and the updated registry.\n\nRaises:\n    HTTPException: If database update fails (500).",
         "operationId": "update_model_config_llm_llm_config_post",
         "requestBody": {
           "content": {
@@ -2890,7 +2891,7 @@
           "Builder"
         ],
         "summary": "List Workflows",
-        "description": "List all workflows visible to the current user.",
+        "description": "List all workflows visible to the current user.\n\nArgs:\n    engine (EngineDep): Workflow engine dependency.\n    current_user (CurrentUserDep): The requesting user.\n\nReturns:\n    list[dict]: A list of workflow definitions.",
         "operationId": "list_workflows_builder_workflows_get",
         "parameters": [
           {
@@ -2939,7 +2940,7 @@
           "Builder"
         ],
         "summary": "Create Workflow",
-        "description": "Create a new workflow.\nProtected: ROOT or MANAGER only.",
+        "description": "Create a new workflow.\n\nArgs:\n    request (WorkflowCreateRequest): Workflow definition.\n    engine (EngineDep): Engine dependency.\n    current_user (CurrentUserDep): Requesting user (ROOT/MANAGER).\n\nReturns:\n    dict: The created workflow object.\n\nRaises:\n    HTTPException: If permission denied (403) or creation fails (500).",
         "operationId": "create_workflow_builder_workflows_post",
         "parameters": [
           {
@@ -2964,7 +2965,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/backend__api__builder_router__WorkflowCreateRequest"
+                "$ref": "#/components/schemas/WorkflowCreateRequest"
               }
             }
           }
@@ -3000,7 +3001,7 @@
           "Builder"
         ],
         "summary": "Get Workflow",
-        "description": "Get details of a specific workflow.",
+        "description": "Get details of a specific workflow.\n\nArgs:\n    workflow_id (str): The UUID of the workflow.\n    engine (EngineDep): Engine dependency.\n\nReturns:\n    dict: The workflow definition.\n\nRaises:\n    HTTPException: If not found (404).",
         "operationId": "get_workflow_builder_workflows__workflow_id__get",
         "parameters": [
           {
@@ -3042,7 +3043,7 @@
           "Builder"
         ],
         "summary": "Update Workflow",
-        "description": "Update an existing workflow.",
+        "description": "Update an existing workflow.\n\nArgs:\n    workflow_id (str): The UUID of the workflow to update.\n    request (WorkflowUpdateRequest): Fields to update.\n    engine (EngineDep): Engine dependency.\n    current_user (CurrentUserDep): Requesting user.\n\nReturns:\n    dict: The updated workflow object.\n\nRaises:\n    HTTPException: If not found (404) or permission denied (403).",
         "operationId": "update_workflow_builder_workflows__workflow_id__put",
         "parameters": [
           {
@@ -3110,7 +3111,7 @@
           "Builder"
         ],
         "summary": "Delete Workflow",
-        "description": "Delete a workflow AND its orphan steps (Garbage Collection).",
+        "description": "Delete a workflow AND its orphan steps (Garbage Collection).\n\nArgs:\n    workflow_id (str): UUID of the workflow.\n    engine (EngineDep): Engine dependency.\n    current_user (CurrentUserDep): Requesting user.\n\nReturns:\n    dict: Status and list of deleted orphan steps.\n\nRaises:\n    HTTPException: If permission denied (403).",
         "operationId": "delete_workflow_builder_workflows__workflow_id__delete",
         "parameters": [
           {
@@ -3224,7 +3225,7 @@
           "Builder"
         ],
         "summary": "Validate Connection",
-        "description": "Validates connection between two steps based on Agent I/O contracts.",
+        "description": "Validates connection between two steps based on Agent I/O contracts.\n\nArgs:\n    request (ValidationRequest): Source and Target step IDs.\n    engine (EngineDep): Engine dependency.\n\nReturns:\n    dict: Validation result (valid: bool, reason: str).",
         "operationId": "validate_connection_builder_validate_post",
         "requestBody": {
           "content": {
@@ -3267,7 +3268,7 @@
           "Builder"
         ],
         "summary": "Get Step Details",
-        "description": "V2: Get full configuration of a step.",
+        "description": "V2: Get full configuration of a step.\n\nArgs:\n    step_id (str): The UUID of the step.\n    engine (EngineDep): Engine dependency.\n\nReturns:\n    dict: The step configuration.",
         "operationId": "get_step_details_builder_steps__step_id__get",
         "parameters": [
           {
@@ -3606,7 +3607,7 @@
           "Organizations"
         ],
         "summary": "Create Organization",
-        "description": "Create a new Tenant Organization.\nROOT Only.",
+        "description": "Create a new Tenant Organization.\n\nArgs:\n    org (OrganizationCreate): Organization details.\n    user (TokenData): Requesting user (must be ROOT).\n    repo (RepositoryDep): Repository dependency.\n\nReturns:\n    OrganizationResponse: The created organization.\n\nRaises:\n    HTTPException: If ID conflict (409).",
         "operationId": "create_organization_organizations__post",
         "parameters": [
           {
@@ -3631,7 +3632,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/backend__api__organization_router__OrganizationCreate"
+                "$ref": "#/components/schemas/OrganizationCreate"
               }
             }
           }
@@ -3664,7 +3665,7 @@
           "Organizations"
         ],
         "summary": "List Organizations",
-        "description": "List all organizations.\nROOT Only.",
+        "description": "List all organizations.\n\nArgs:\n    user (TokenData): Requesting user (must be ROOT).\n    repo (RepositoryDep): Repository dependency.\n\nReturns:\n    list[OrganizationResponse]: List of all organizations.",
         "operationId": "list_organizations_organizations__get",
         "parameters": [
           {
@@ -3718,7 +3719,7 @@
           "Organizations"
         ],
         "summary": "Get My Organization",
-        "description": "Get the currently logged-in user's organization metadata.\nAccessible to: ROOT, ADMIN, MEMBER (Read-Only own org)\n\nNote: ROOT does not belong to an org primarily, but if they want to see 'an' org,\nthey should use get_organization_by_id logic. This endpoint is for Tenant Context.",
+        "description": "Get the currently logged-in user's organization metadata.\n\nAccessible to: ROOT, ADMIN, MEMBER (Read-Only own org)\n\nNote: ROOT does not belong to an org primarily, but if they want to see 'an' org,\nthey should use get_organization_by_id logic. This endpoint is for Tenant Context.\n\nArgs:\n    user (CurrentUserDep): The authenticated user.\n    repo (RepositoryDep): Repository dependency.\n\nReturns:\n    OrganizationResponse: The user's organization details.\n\nRaises:\n    HTTPException: If not assigned (404).",
         "operationId": "get_my_organization_organizations_me_get",
         "parameters": [
           {
@@ -3768,7 +3769,7 @@
           "Organizations"
         ],
         "summary": "Get Organization",
-        "description": "Get specific organization details.\nROOT: Can access any.\nADMIN: Can access OWN org only.",
+        "description": "Get specific organization details.\n\nROOT: Can access any.\nADMIN: Can access OWN org only.\n\nArgs:\n    org_id (str): Organization ID.\n    user (CurrentUserDep): Requesting user.\n    repo (RepositoryDep): Repository.\n\nReturns:\n    OrganizationResponse: The organization details.\n\nRaises:\n    HTTPException: If access denied (403) or not found (404).",
         "operationId": "get_organization_organizations__org_id__get",
         "parameters": [
           {
@@ -3825,7 +3826,7 @@
           "Organizations"
         ],
         "summary": "Update Organization",
-        "description": "Update Organization settings.\nROOT: Can update any.\nADMIN: Can update OWN org only.",
+        "description": "Update Organization settings.\n\nROOT: Can update any.\nADMIN: Can update OWN org only.\n\nArgs:\n    org_id (str): Organization ID.\n    updates (OrganizationUpdate): Fields to update.\n    user (CurrentUserDep): Requesting user.\n    repo (RepositoryDep): Repository.\n\nReturns:\n    OrganizationResponse: Updated organization.\n\nRaises:\n    HTTPException: If permission denied (403) or not found (404).",
         "operationId": "update_organization_organizations__org_id__put",
         "parameters": [
           {
@@ -3892,7 +3893,7 @@
           "Organizations"
         ],
         "summary": "Delete Organization",
-        "description": "Delete an organization.\nROOT Only.\nProtected: Cannot delete 'system' org.",
+        "description": "Delete an organization.\n\nArgs:\n    org_id (str): Organization ID.\n    user (TokenData): Requesting user (must be ROOT).\n    repo (RepositoryDep): Repository.\n    auth_service (AuthService): Auth service for user deletion.\n\nReturns:\n    None\n\nRaises:\n    HTTPException: If system org (403) or not found (404).",
         "operationId": "delete_organization_organizations__org_id__delete",
         "parameters": [
           {
@@ -4410,7 +4411,8 @@
         "required": [
           "prompt"
         ],
-        "title": "CompletionRequest"
+        "title": "CompletionRequest",
+        "description": "Payload for a single LLM completion request.\n\nAttributes:\n    prompt (str): The primary input text.\n    system_instruction (str): Optional system context.\n    model_strategy (str): Strategy key ('fast', 'deep') or direct model name.\n    response_schema (dict): JSON Schema for structured output validation."
       },
       "ComponentCreate": {
         "properties": {
@@ -4590,7 +4592,8 @@
         "required": [
           "content"
         ],
-        "title": "ComponentUpdate"
+        "title": "ComponentUpdate",
+        "description": "Payload for updating a configuration component.\n\nAttributes:\n    content (str | dict | list): The template content.\n    description (str): Metadata description.\n    citation (str): Short citation anchor.\n    citation_full (str): Complete bibliographic reference.\n    type (str): Component categorization."
       },
       "CopyWorkflowRequest": {
         "properties": {
@@ -4797,7 +4800,8 @@
           "user",
           "token_valid"
         ],
-        "title": "LoginResponse"
+        "title": "LoginResponse",
+        "description": "Response model for successful login.\n\nAttributes:\n    user (User): The full user profile.\n    token_valid (bool): Confirmation of token validity.\n    debug_msg (Optional[str]): Debug information (mock vs real)."
       },
       "ModelRegistryUpdate": {
         "properties": {
@@ -4923,34 +4927,58 @@
           "id",
           "name"
         ],
-        "title": "Organization"
+        "title": "Organization",
+        "description": "Represents a tenant or customer organization.\n\nAttributes:\n    id (str): Unique Organization ID (e.g. 'nokia-v1').\n    name (str): Display Name.\n    created_at (Optional[str]): ISO Timestamp.\n    is_active (bool): Subscription status.\n    tier (str): Service Tier.\n    contact_email (Optional[str]): Admin Contact."
       },
       "OrganizationCreate": {
         "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
           "name": {
             "type": "string",
             "title": "Name"
           },
-          "admin_email": {
+          "tier": {
             "type": "string",
-            "format": "email",
-            "title": "Admin Email"
+            "title": "Tier",
+            "default": "standard"
           },
-          "admin_password": {
-            "type": "string",
-            "title": "Admin Password"
+          "contact_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Email"
           },
-          "admin_name": {
-            "type": "string",
-            "title": "Admin Name"
+          "settings_override": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Settings Override"
           }
         },
         "type": "object",
         "required": [
-          "name",
-          "admin_email",
-          "admin_password",
-          "admin_name"
+          "name"
         ],
         "title": "OrganizationCreate"
       },
@@ -5092,7 +5120,8 @@
         "required": [
           "token"
         ],
-        "title": "TokenPayload"
+        "title": "TokenPayload",
+        "description": "Payload for token verification.\n\nAttributes:\n    token (str): The Firebase or Mock ID Token."
       },
       "User": {
         "properties": {
@@ -5166,7 +5195,8 @@
           "uid",
           "created_at"
         ],
-        "title": "User"
+        "title": "User",
+        "description": "Full User model representing a persisted user record.\n\nAttributes:\n    uid (str): Unique ID (matches Firebase UID if used).\n    created_at (str): ISO 8601 Timestamp.\n    created_by (Optional[str]): UID of the creator."
       },
       "UserCreate": {
         "properties": {
@@ -5242,7 +5272,7 @@
           "email"
         ],
         "title": "UserCreate",
-        "description": "Payload for creating a new user.\norganization_id is optional: if missing, inherits from creator."
+        "description": "Payload for creating a new user.\n\nAttributes:\n    password (Optional[str]): Initial password (min 6 chars).\n    created_by (Optional[str]): UID of the admin creating this user."
       },
       "UserRole": {
         "type": "string",
@@ -5253,7 +5283,8 @@
           "MEMBER",
           "VIEWER"
         ],
-        "title": "UserRole"
+        "title": "UserRole",
+        "description": "Enumeration of user permission roles within the system.\n\nAttributes:\n    ROOT: System Owner / Platform Admin with unrestricted access.\n    ADMIN: Organization Admin responsible for user management.\n    MANAGER: Workflow/Process Lead managing execution flows.\n    MEMBER: Standard User (Audit Runner).\n    VIEWER: Read-Only Stakeholder."
       },
       "UserUpdate": {
         "properties": {
@@ -5302,7 +5333,8 @@
           }
         },
         "type": "object",
-        "title": "UserUpdate"
+        "title": "UserUpdate",
+        "description": "Payload for updating an existing user.\n\nAttributes:\n    display_name (Optional[str]): New display name.\n    role (Optional[UserRole]): New role assignment.\n    is_active (Optional[bool]): New active status.\n    password (Optional[str]): New password (only for admin resets)."
       },
       "ValidationError": {
         "properties": {
@@ -5419,24 +5451,72 @@
           "name": {
             "type": "string",
             "title": "Name",
-            "description": "The unique, human-readable name for the new workflow."
+            "description": "Name of the new workflow."
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Optional description."
           },
           "steps": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "type": "string"
             },
             "type": "array",
             "title": "Steps",
-            "description": "A sequential list of step configurations defining the workflow logic."
+            "description": "List of step IDs.",
+            "default": []
+          },
+          "default_model_mapping": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Model Mapping",
+            "description": "Initial model mapping.",
+            "default": {}
+          },
+          "ui_schema": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ui Schema",
+            "description": "UI Layout metadata.",
+            "default": {}
+          },
+          "is_public": {
+            "type": "boolean",
+            "title": "Is Public",
+            "description": "If True, visible to all tenants (System Only).",
+            "default": false
           }
         },
         "type": "object",
         "required": [
-          "name",
-          "steps"
+          "name"
         ],
-        "title": "WorkflowCreateRequest"
+        "title": "WorkflowCreateRequest",
+        "description": "Payload for creating a new workflow.\n\nAttributes:\n    name (str): The name of the workflow.\n    description (Optional[str]): Detailed description.\n    steps (list[str]): List of step IDs to include.\n    default_model_mapping (Optional[dict]): Map of step IDs to model strategies.\n    ui_schema (Optional[dict]): Frontend layout metadata.\n    is_public (bool): Visibility flag (System Root only)."
       },
       "WorkflowUpdate": {
         "properties": {
@@ -5587,128 +5667,60 @@
         "type": "object",
         "title": "WorkflowUpdateRequest"
       },
-      "backend__api__builder_router__WorkflowCreateRequest": {
+      "backend__api__execution_router__WorkflowCreateRequest": {
         "properties": {
           "name": {
             "type": "string",
             "title": "Name",
-            "description": "Name of the new workflow."
-          },
-          "description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description",
-            "description": "Optional description."
+            "description": "The unique, human-readable name for the new workflow."
           },
           "steps": {
             "items": {
-              "type": "string"
+              "additionalProperties": true,
+              "type": "object"
             },
             "type": "array",
             "title": "Steps",
-            "description": "List of step IDs.",
-            "default": []
-          },
-          "default_model_mapping": {
-            "anyOf": [
-              {
-                "additionalProperties": {
-                  "type": "string"
-                },
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Default Model Mapping",
-            "description": "Initial model mapping.",
-            "default": {}
-          },
-          "ui_schema": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Ui Schema",
-            "description": "UI Layout metadata.",
-            "default": {}
-          },
-          "is_public": {
-            "type": "boolean",
-            "title": "Is Public",
-            "description": "If True, visible to all tenants (System Only).",
-            "default": false
+            "description": "A sequential list of step configurations defining the workflow logic."
           }
         },
         "type": "object",
         "required": [
-          "name"
+          "name",
+          "steps"
         ],
-        "title": "WorkflowCreateRequest"
+        "title": "WorkflowCreateRequest",
+        "description": "Payload for creating a new workflow definition.\n\nAttributes:\n    name (str): Human-readable name.\n    steps (list[dict]): List of step configurations."
       },
-      "backend__api__organization_router__OrganizationCreate": {
+      "backend__models__auth__OrganizationCreate": {
         "properties": {
-          "id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Id"
-          },
           "name": {
             "type": "string",
             "title": "Name"
           },
-          "tier": {
+          "admin_email": {
             "type": "string",
-            "title": "Tier",
-            "default": "standard"
+            "format": "email",
+            "title": "Admin Email"
           },
-          "contact_email": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Contact Email"
+          "admin_password": {
+            "type": "string",
+            "title": "Admin Password"
           },
-          "settings_override": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Settings Override"
+          "admin_name": {
+            "type": "string",
+            "title": "Admin Name"
           }
         },
         "type": "object",
         "required": [
-          "name"
+          "name",
+          "admin_email",
+          "admin_password",
+          "admin_name"
         ],
-        "title": "OrganizationCreate"
+        "title": "OrganizationCreate",
+        "description": "Payload for creating a new organization.\n\nAttributes:\n    name (str): Organization display name.\n    admin_email (EmailStr): Email for the initial admin user.\n    admin_password (str): Password for the initial admin user.\n    admin_name (str): Display name for the initial admin user."
       }
     }
   }

@@ -21,8 +21,15 @@ def configure_logfire():
     """Configures Logfire for observability.
     Should be called early in the application lifecycle.
     """
-    logfire.configure()
-    logfire.instrument_pydantic()
+    if os.getenv("DISABLE_LOGFIRE", "").lower() == "true":
+        logging.getLogger(__name__).info("Logfire disabled via DISABLE_LOGFIRE environment variable.")
+        return
+
+    try:
+        logfire.configure()
+        logfire.instrument_pydantic()
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"Logfire validation failed (likely no token): {e}. Observability disabled.")
 
 
 def setup_logging(log_level=logging.INFO):

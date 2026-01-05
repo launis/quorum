@@ -237,7 +237,11 @@ import logfire  # noqa: E402
 from backend.logging_config import configure_logfire  # noqa: E402
 
 configure_logfire()
-logfire.instrument_fastapi(app)
+if os.getenv("DISABLE_LOGFIRE", "").lower() != "true":
+    try:
+        logfire.instrument_fastapi(app)
+    except Exception as e:
+        logger.warning(f"Failed to instrument FastAPI with Logfire: {e}")
 
 
 @app.exception_handler(AppException)

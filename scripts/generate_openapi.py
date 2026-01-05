@@ -8,6 +8,7 @@ sys.path.append(os.getcwd())
 # FORCE MOCK MODE to bypass credential checks in Settings
 os.environ["USE_MOCK_LLM"] = "True"
 os.environ["USE_MOCK_DB"] = "True"
+os.environ["DISABLE_LOGFIRE"] = "true"
 
 try:
     from backend.main import app
