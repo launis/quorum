@@ -41,6 +41,11 @@ android/app/proguard-rules.pro
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Firebase
+**/google-services.json
+**/GoogleService-Info.plist
+
 /android/app/src/main/assets/
 
 # Android Local properties
