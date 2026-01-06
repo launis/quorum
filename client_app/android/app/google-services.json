@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "943560988580",
+    "project_id": "cognitive-quorum",
+    "storage_bucket": "cognitive-quorum.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:943560988580:android:38e86c519d5beb7e2bd331",
+        "android_client_info": {
+          "package_name": "com.launis.quorum.client_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAXrTJjN_6pL2EEitrpz9mmUf4x1wNGS6M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
