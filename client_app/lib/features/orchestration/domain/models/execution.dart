@@ -1,82 +1,95 @@
-import 'package:client_app/features/auth/domain/models/user.dart' show User;
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-import 'package:json_annotation/json_annotation.dart';
-
+part 'execution.freezed.dart';
 part 'execution.g.dart';
 
-/// **Execution Status Enum**
+/// Represents the status of an Audit Execution.
 ///
-/// Represents the lifecycle state of a workflow execution.
-enum ExecutionStatus {
-  pending,
-  started,
-  running,
-  completed,
-  failed,
-  rejected,
-  interrupted,
-  unknown,
-}
+/// Mirrors the backend's status machine:
+/// - pending: Created but not started.
+/// - running: Currently executing a step.
+/// - completed: Finished successfully with a result.
+/// - failed: Terminated due to an error.
+enum ExecutionStatus { pending, running, completed, failed, unknown }
 
-/// **Execution Domain Model**
+/// A strict, immutable representation of an Audit Workflow Execution.
 ///
-/// Represents a single instance of a Workflow being run.
-/// This is the primary data structure for tracking asynchronous jobs in the system.
+/// This model uses a Sealed Class (Union) pattern discriminated by the [status] field.
+/// This ensures type-safe access to fields that only exist in certain states
+/// (e.g., [result] is only available when [status] is [completed]).
 ///
-/// **Business Context**:
-/// An [Execution] links a [User] to a [Workflow] and stores both the initial [inputs]
-/// and the final [result]. It acts as the audit trail for "who did what and when".
-///
-/// **Serialization**:
-/// Uses [JsonSerializable] to map from the backend JSON schema.
-/// `explicitToJson: true` ensures nested objects are correctly serialized.
-@JsonSerializable(explicitToJson: true)
-class Execution {
-  /// The unique UUID of the execution record.
-  @JsonKey(name: 'execution_id')
-  final String? executionId;
+/// Business Logic:
+/// - [id]: The unique UUID of the execution (maps to backend `execution_id`).
+/// - [inputs]: The initial data provided to the workflow.
+/// - result: The final output (e.g., XAI Report), only present on completion.
+@Freezed(unionKey: 'status', unionValueCase: FreezedUnionCase.snake)
+sealed class Execution with _$Execution {
+  /// State: Execution is queued or initialized.
+  const factory Execution.pending({
+    @JsonKey(name: 'execution_id') required String id,
+    @JsonKey(name: 'start_time') required DateTime createdAt,
+    @JsonKey(name: 'organization_id') String? organizationId,
+    @JsonKey(name: 'user_id') String? userId,
+    @Default({}) Map<String, dynamic> inputs,
+    @Default(ExecutionStatus.pending) ExecutionStatus status,
+  }) = ExecutionPending;
 
-  /// The UUID of the Workflow definition that strictly defines the steps logic.
-  @JsonKey(name: 'workflow_id')
-  final String? workflowId;
+  /// State: Execution is actively processing steps.
+  const factory Execution.running({
+    @JsonKey(name: 'execution_id') required String id,
+    @JsonKey(name: 'start_time') required DateTime createdAt,
+    @JsonKey(name: 'organization_id') String? organizationId,
+    @JsonKey(name: 'user_id') String? userId,
+    @Default({}) Map<String, dynamic> inputs,
+    @JsonKey(name: 'current_step_name') String? currentStepName,
+    @Default(ExecutionStatus.running) ExecutionStatus status,
+  }) = ExecutionRunning;
 
-  /// Current status string (e.g. 'completed', 'failed').
-  /// Ideally mapped to [ExecutionStatus] in the UI layer or via custom converters.
-  final String? status;
+  /// State: Execution has finished successfully.
+  ///
+  /// Contains the [result] payload.
+  const factory Execution.completed({
+    @JsonKey(name: 'execution_id') required String id,
+    @JsonKey(name: 'start_time') required DateTime createdAt,
+    @JsonKey(name: 'organization_id') String? organizationId,
+    @JsonKey(name: 'user_id') String? userId,
+    @Default({}) Map<String, dynamic> inputs,
+    @JsonKey(name: 'current_step_name') String? currentStepName,
 
-  /// The input parameters provided at start time.
-  /// Used for re-running or auditing the execution context.
-  @JsonKey(defaultValue: {})
-  final Map<String, dynamic> inputs;
+    /// The final output of the workflow (e.g., the Report object).
+    /// Only available in completed state.
+    @Default({}) Map<String, dynamic> result,
 
-  /// ISO 8601 Timestamp of when the execution started.
-  @JsonKey(name: 'start_time')
-  final String? startTime;
+    /// Optional formatted markdown report, if pre-rendered.
+    @JsonKey(name: 'xai_report_formatted') String? xaiReport,
 
-  /// ISO 8601 Timestamp of when the execution finished (if applicable).
-  @JsonKey(name: 'end_time')
-  final String? endTime;
+    @Default(ExecutionStatus.completed) ExecutionStatus status,
+  }) = ExecutionCompleted;
 
-  /// The Organization ID this execution belongs to.
-  /// Used for multi-tenant isolation and strict data scoping.
-  @JsonKey(name: 'organization_id')
-  final String? organizationId;
+  /// State: Execution failed or was rejected.
+  const factory Execution.failed({
+    @JsonKey(name: 'execution_id') required String id,
+    @JsonKey(name: 'start_time') required DateTime createdAt,
+    @JsonKey(name: 'organization_id') String? organizationId,
+    @JsonKey(name: 'user_id') String? userId,
+    @Default({}) Map<String, dynamic> inputs,
+    @JsonKey(name: 'current_step_name') String? currentStepName,
 
-  // Constructor
-  Execution({
-    this.executionId,
-    this.workflowId,
-    this.status,
-    this.inputs = const {},
-    this.startTime,
-    this.endTime,
-    this.organizationId,
-  });
+    /// Error message or failure reason.
+    String? error,
 
-  /// Creates an [Execution] instance from a JSON map.
+    @Default(ExecutionStatus.failed) ExecutionStatus status,
+  }) = ExecutionFailed;
+
+  /// Fallback for unknown states or future backend updates.
+  const factory Execution.unknown({
+    @JsonKey(name: 'execution_id') required String id,
+    @JsonKey(name: 'start_time') required DateTime createdAt,
+    @Default(ExecutionStatus.unknown) ExecutionStatus status,
+    Map<String, dynamic>? result,
+    String? error,
+  }) = ExecutionUnknown;
+
   factory Execution.fromJson(Map<String, dynamic> json) =>
       _$ExecutionFromJson(json);
-
-  /// Converts this [Execution] instance to a JSON map.
-  Map<String, dynamic> toJson() => _$ExecutionToJson(this);
 }

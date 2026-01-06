@@ -76,30 +76,24 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 ---
 
 ## 📍 Phase 2: The Pilot App (Flutter MVP)
-**Objective:** Enable end-users (Testers) to perform audits via a high-performance mobile/web interface with offline-first capabilities.
+**Objective:** Enable end-users (Testers) to perform audits via a mobile/web interface using modern Flutter 3.38+ standards.
 
-### 2.1 Project Initialization (Updated Tech Stack)
-- [x] **Flutter Project Setup**: Initialize explicitly with **Flutter 3.38**.
-    - Folder structure: `client_app/` (Monorepo setup).
-- [x] **State Management**: Implement **Riverpod 3.0** using code generation (`@riverpod` macros) for strict compile-time safety.
-- [x] **Routing**: Implement **go_router ^17.0.1** with Riverpod integration for redirection and auth state listening.
-- [x] **Internationalization (i18n)**:
-    - Setup `flutter_localizations` and `intl`.
-    - Configure `.arb` files immediately (Support: `en`, `fi`).
-- [x] **Environment Config**: Use `dart-define` or `envied` to switch between Dev (Localhost:8000) and Prod (Cloud) APIs.
+### 2.1 Foundation & Architecture (Critical Path)
+- [x] **Scaffold & Theme**: Configure `FlexColorScheme` (Deep Purple #673AB7) and `google_fonts` (Inter) for Light/Dark modes.
+- [x] **Localization Engine**: Setup `flutter_localizations` with `app_en.arb` and `app_fi.arb` (Mandatory FI/EN support).
+- [x] **Riverpod & State**: Initialize `ProviderScope` and setup `json_serializable` / `riverpod_generator` build runners.
+- [x] **Router Architecture**: Implement `GoRouter` with `StatefulShellRoute` (Nested Navigation) and Type-safe Routes (`GoRouteData`).
 
-### 2.2 Core Features (Tester Role)
-- [~] **Authentication**:
-    - [x] **firebase_auth ^6.1.3** implementation.
-    - [x] Use **firebase_ui_auth** for pre-built, localized Sign-In/Profile widgets.
-    - [x] Integration with Backend's `Hybrid Auth Service` (Token Interceptor).
-    - [ ] Secure storage of tokens.
-- [ ] **Dashboard**: View assigned tasks or available System Workflows (Riverpod `FutureProvider` streams).
-- [ ] **Execution Interface**: Wizard-style UI.
-    - *Input*: File picker for PDF/Text.
-    - *State*: Local persistence of draft audits (using Hive or similar) before submission (Offline-first).
-    - *Process*: WebSocket connection to backend `Active Job` status.
-- [ ] **History**: View past audit results with filtering.
+### 2.2 Connectivity & Auth
+- [x] **Secure HTTP Client**: Implement `Dio` with a generic `AuthInterceptor` to inject Firebase Tokens into Backend requests.
+- [x] **Authentication State**: Build `auth_provider` (StreamProvider) using `firebase_auth` to drive Reactive Redirection (Guard).
+- [x] **Environment Config**: Use `flutter_dotenv` to manage Backend URL (`http://localhost:8000` vs Cloud) via `.env`.
+
+### 2.3 Core Features (Tester Role)
+- [ ] **Dashboard UI**: Grid view of System Workflows fetching data via `AsyncValue` providers.
+- [ ] **Audit Wizard**: Multi-step generic wizard for file uploads and parameter inputs.
+- [ ] **Live Execution Tracking**: Implement a Polling Mechanism (`StreamProvider.autoDispose`) to track `worker` status from the backend.
+- [ ] **Report Viewer**: Render final HTML/Markdown results using `webview_flutter` or generic markdown renderers.
 
 ---
 

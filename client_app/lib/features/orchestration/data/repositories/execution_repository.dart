@@ -1,76 +1,68 @@
+import 'package:dio/dio.dart';
+import 'package:fpdart/fpdart.dart';
+
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
 import 'package:client_app/api/api_client.dart';
 import 'package:client_app/features/orchestration/domain/models/execution.dart';
-import 'package:dio/dio.dart';
-import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'execution_repository.g.dart';
 
-/// **Execution Repository Provider**
+/// Repository for managing Audit Execution data.
 ///
-/// The single source of truth for accessing Execution data.
-/// It abstracts the underlying API network calls and serialization logic.
-@riverpod
+/// Handles interaction with the `/executions` endpoints of the backend API.
+/// Uses strict functional error handling via [TaskEither].
+@Riverpod(keepAlive: true)
 ExecutionRepository executionRepository(Ref ref) {
   return ExecutionRepository(ref.watch(apiClientProvider));
 }
 
-/// **Execution Data Repository**
-///
-/// Handles all CRUD operations related to [Execution] entities.
-///
-/// **Responsibility**:
-/// - Connects to the `/executions` API endpoints.
-/// - Handles serialization of JSON responses into [Execution] domain objects.
-/// - Maps network errors (e.g., DioError) into domain-specific exceptions (planned).
 class ExecutionRepository {
   final Dio _client;
 
-  /// Creates the repository with the authenticated [_client].
   ExecutionRepository(this._client);
 
-  /// **Fetch Recent Executions**
+  /// Fetches the most recent executions from the backend.
   ///
-  /// Retrieves a list of the most recent workflow executions, scoped to the user's organization.
+  /// Endpoint: `GET /executions/recent`
+  /// Query Params:
+  /// - `limit`: Optional limit on number of results (default 5).
   ///
-  /// **Business Logic**:
-  /// - The backend automatically applies multi-tenant scoping based on the User's Role.
-  /// - Returns a list sorted by `start_time` descending.
-  ///
-  /// **Parameters**:
-  /// - [limit]: The maximum number of records to return (default: 5).
-  ///
-  /// **Returns**:
-  /// A Future containing a list of [Execution] objects.
-  Future<List<Execution>> fetchRecentExecutions({int limit = 5}) async {
-    try {
-      final response = await _client.get<List<dynamic>>(
-        '/executions/recent',
-        queryParameters: {'limit': limit},
-      );
+  /// Returns a [TaskEither] containing:
+  /// - Left: [Exception] (Network error, Server error)
+  /// - Right: [List<Execution>] (Success)
+  TaskEither<Exception, List<Execution>> fetchExecutions({int limit = 5}) {
+    return TaskEither.tryCatch(
+      () async {
+        final response = await _client.get<List<dynamic>>(
+          '/executions/recent',
+          queryParameters: {'limit': limit},
+        );
 
-      final list = response.data ?? [];
-      return list
-          .map((json) => Execution.fromJson(json as Map<String, dynamic>))
-          .toList();
-    } catch (e) {
-      // In a real app, map DioError to DomainError using fpdart.
-      // For now, rethrow or return empty.
-      rethrow;
-    }
+        final List<dynamic> data = response.data as List<dynamic>;
+        return data
+            .map((json) => Execution.fromJson(json as Map<String, dynamic>))
+            .toList();
+      },
+      (error, stackTrace) {
+        // TODO: Map to domain specific exceptions if needed
+        return Exception('Failed to fetch executions: $error');
+      },
+    );
   }
 
-  /// **Start Execution** (Placeholder)
+  /// Fetches a single execution by ID.
   ///
-  /// Initiates a new workflow execution.
-  ///
-  /// **Note**:
-  /// Currently strictly defined to support future implementation. Current mandate
-  /// focuses on `fetchRecentExecutions`.
-  Future<String> startExecution({
-    required String workflowId,
-    Map<String, dynamic> inputs = const {},
-  }) async {
-    // Implementation deferred to Phase 3
-    return 'implemented_later';
+  /// Endpoint: `GET /executions/{id}`
+  TaskEither<Exception, Execution> getExecution(String id) {
+    return TaskEither.tryCatch(
+      () async {
+        final response = await _client.get<Map<String, dynamic>>(
+          '/executions/$id',
+        );
+        return Execution.fromJson(response.data!);
+      },
+      (error, stackTrace) => Exception('Failed to fetch execution $id: $error'),
+    );
   }
 }

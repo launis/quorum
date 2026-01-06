@@ -6,22 +6,130 @@ part of 'execution.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-Execution _$ExecutionFromJson(Map<String, dynamic> json) => Execution(
-  executionId: json['execution_id'] as String?,
-  workflowId: json['workflow_id'] as String?,
-  status: json['status'] as String?,
-  inputs: json['inputs'] as Map<String, dynamic>? ?? {},
-  startTime: json['start_time'] as String?,
-  endTime: json['end_time'] as String?,
-  organizationId: json['organization_id'] as String?,
-);
+ExecutionPending _$ExecutionPendingFromJson(Map<String, dynamic> json) =>
+    ExecutionPending(
+      id: json['execution_id'] as String,
+      createdAt: DateTime.parse(json['start_time'] as String),
+      organizationId: json['organization_id'] as String?,
+      userId: json['user_id'] as String?,
+      inputs: json['inputs'] as Map<String, dynamic>? ?? const {},
+      status:
+          $enumDecodeNullable(_$ExecutionStatusEnumMap, json['status']) ??
+          ExecutionStatus.pending,
+    );
 
-Map<String, dynamic> _$ExecutionToJson(Execution instance) => <String, dynamic>{
-  'execution_id': instance.executionId,
-  'workflow_id': instance.workflowId,
-  'status': instance.status,
-  'inputs': instance.inputs,
-  'start_time': instance.startTime,
-  'end_time': instance.endTime,
-  'organization_id': instance.organizationId,
+Map<String, dynamic> _$ExecutionPendingToJson(ExecutionPending instance) =>
+    <String, dynamic>{
+      'execution_id': instance.id,
+      'start_time': instance.createdAt.toIso8601String(),
+      'organization_id': instance.organizationId,
+      'user_id': instance.userId,
+      'inputs': instance.inputs,
+      'status': _$ExecutionStatusEnumMap[instance.status]!,
+    };
+
+const _$ExecutionStatusEnumMap = {
+  ExecutionStatus.pending: 'pending',
+  ExecutionStatus.running: 'running',
+  ExecutionStatus.completed: 'completed',
+  ExecutionStatus.failed: 'failed',
+  ExecutionStatus.unknown: 'unknown',
 };
+
+ExecutionRunning _$ExecutionRunningFromJson(Map<String, dynamic> json) =>
+    ExecutionRunning(
+      id: json['execution_id'] as String,
+      createdAt: DateTime.parse(json['start_time'] as String),
+      organizationId: json['organization_id'] as String?,
+      userId: json['user_id'] as String?,
+      inputs: json['inputs'] as Map<String, dynamic>? ?? const {},
+      currentStepName: json['current_step_name'] as String?,
+      status:
+          $enumDecodeNullable(_$ExecutionStatusEnumMap, json['status']) ??
+          ExecutionStatus.running,
+    );
+
+Map<String, dynamic> _$ExecutionRunningToJson(ExecutionRunning instance) =>
+    <String, dynamic>{
+      'execution_id': instance.id,
+      'start_time': instance.createdAt.toIso8601String(),
+      'organization_id': instance.organizationId,
+      'user_id': instance.userId,
+      'inputs': instance.inputs,
+      'current_step_name': instance.currentStepName,
+      'status': _$ExecutionStatusEnumMap[instance.status]!,
+    };
+
+ExecutionCompleted _$ExecutionCompletedFromJson(Map<String, dynamic> json) =>
+    ExecutionCompleted(
+      id: json['execution_id'] as String,
+      createdAt: DateTime.parse(json['start_time'] as String),
+      organizationId: json['organization_id'] as String?,
+      userId: json['user_id'] as String?,
+      inputs: json['inputs'] as Map<String, dynamic>? ?? const {},
+      currentStepName: json['current_step_name'] as String?,
+      result: json['result'] as Map<String, dynamic>? ?? const {},
+      xaiReport: json['xai_report_formatted'] as String?,
+      status:
+          $enumDecodeNullable(_$ExecutionStatusEnumMap, json['status']) ??
+          ExecutionStatus.completed,
+    );
+
+Map<String, dynamic> _$ExecutionCompletedToJson(ExecutionCompleted instance) =>
+    <String, dynamic>{
+      'execution_id': instance.id,
+      'start_time': instance.createdAt.toIso8601String(),
+      'organization_id': instance.organizationId,
+      'user_id': instance.userId,
+      'inputs': instance.inputs,
+      'current_step_name': instance.currentStepName,
+      'result': instance.result,
+      'xai_report_formatted': instance.xaiReport,
+      'status': _$ExecutionStatusEnumMap[instance.status]!,
+    };
+
+ExecutionFailed _$ExecutionFailedFromJson(Map<String, dynamic> json) =>
+    ExecutionFailed(
+      id: json['execution_id'] as String,
+      createdAt: DateTime.parse(json['start_time'] as String),
+      organizationId: json['organization_id'] as String?,
+      userId: json['user_id'] as String?,
+      inputs: json['inputs'] as Map<String, dynamic>? ?? const {},
+      currentStepName: json['current_step_name'] as String?,
+      error: json['error'] as String?,
+      status:
+          $enumDecodeNullable(_$ExecutionStatusEnumMap, json['status']) ??
+          ExecutionStatus.failed,
+    );
+
+Map<String, dynamic> _$ExecutionFailedToJson(ExecutionFailed instance) =>
+    <String, dynamic>{
+      'execution_id': instance.id,
+      'start_time': instance.createdAt.toIso8601String(),
+      'organization_id': instance.organizationId,
+      'user_id': instance.userId,
+      'inputs': instance.inputs,
+      'current_step_name': instance.currentStepName,
+      'error': instance.error,
+      'status': _$ExecutionStatusEnumMap[instance.status]!,
+    };
+
+ExecutionUnknown _$ExecutionUnknownFromJson(Map<String, dynamic> json) =>
+    ExecutionUnknown(
+      id: json['execution_id'] as String,
+      createdAt: DateTime.parse(json['start_time'] as String),
+      status:
+          $enumDecodeNullable(_$ExecutionStatusEnumMap, json['status']) ??
+          ExecutionStatus.unknown,
+      result: json['result'] as Map<String, dynamic>?,
+      error: json['error'] as String?,
+    );
+
+Map<String, dynamic> _$ExecutionUnknownToJson(ExecutionUnknown instance) =>
+    <String, dynamic>{
+      'execution_id': instance.id,
+      'start_time': instance.createdAt.toIso8601String(),
+      'status': _$ExecutionStatusEnumMap[instance.status]!,
+      'result': instance.result,
+      'error': instance.error,
+    };

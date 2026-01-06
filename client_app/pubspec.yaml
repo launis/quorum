@@ -19,6 +19,7 @@ dependencies:
   # Connectivity & Data
   dio: any
   json_annotation: any
+  freezed_annotation: any
   flutter_dotenv: any
 
   # Firebase
@@ -46,6 +47,7 @@ dev_dependencies:
   custom_lint: any
   riverpod_lint: any
   json_serializable: any
+  freezed: any
   flutter_lints: any
   mocktail: any
 

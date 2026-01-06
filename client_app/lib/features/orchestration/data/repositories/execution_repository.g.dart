@@ -8,18 +8,18 @@ part of 'execution_repository.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// **Execution Repository Provider**
+/// Repository for managing Audit Execution data.
 ///
-/// The single source of truth for accessing Execution data.
-/// It abstracts the underlying API network calls and serialization logic.
+/// Handles interaction with the `/executions` endpoints of the backend API.
+/// Uses strict functional error handling via [TaskEither].
 
 @ProviderFor(executionRepository)
 final executionRepositoryProvider = ExecutionRepositoryProvider._();
 
-/// **Execution Repository Provider**
+/// Repository for managing Audit Execution data.
 ///
-/// The single source of truth for accessing Execution data.
-/// It abstracts the underlying API network calls and serialization logic.
+/// Handles interaction with the `/executions` endpoints of the backend API.
+/// Uses strict functional error handling via [TaskEither].
 
 final class ExecutionRepositoryProvider
     extends
@@ -29,17 +29,17 @@ final class ExecutionRepositoryProvider
           ExecutionRepository
         >
     with $Provider<ExecutionRepository> {
-  /// **Execution Repository Provider**
+  /// Repository for managing Audit Execution data.
   ///
-  /// The single source of truth for accessing Execution data.
-  /// It abstracts the underlying API network calls and serialization logic.
+  /// Handles interaction with the `/executions` endpoints of the backend API.
+  /// Uses strict functional error handling via [TaskEither].
   ExecutionRepositoryProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
         name: r'executionRepositoryProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -68,4 +68,4 @@ final class ExecutionRepositoryProvider
 }
 
 String _$executionRepositoryHash() =>
-    r'7d845ff897ef1891adb63315cc96f7f3f8f2ff99';
+    r'1ba73bed51807c49114ccafdaf79086c67a71791';
