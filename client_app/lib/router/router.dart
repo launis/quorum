@@ -1,7 +1,9 @@
 import 'package:client_app/core/ui/splash_screen.dart';
 import 'package:client_app/features/auth/presentation/login_screen.dart';
-import 'package:client_app/features/auth/presentation/providers/auth_provider.dart';
-import 'package:client_app/features/auth/presentation/providers/user_role_provider.dart';
+import 'package:client_app/features/dashboard/presentation/screens/dashboard_screen.dart';
+import 'package:client_app/features/dashboard/presentation/screens/execution_details_screen.dart';
+import 'package:client_app/features/settings/presentation/screens/settings_screen.dart';
+import 'package:client_app/features/auth/presentation/auth_controller.dart';
 import 'package:client_app/router/scaffold_with_nav.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -31,53 +33,47 @@ final _rootNavigatorKey = GlobalKey<NavigatorState>();
 ///     - `/` redirects to `/dashboard` or `/admin` based on role.
 @riverpod
 GoRouter router(Ref ref) {
-  // Listen to Auth State to trigger rebuilds on login/logout
-  final authState = ref.watch(authStateProvider);
-  final userProfile = ref.watch(currentUserProfileProvider);
+  // Listen to Auth State (User Profile)
+  final authState = ref.watch(authControllerProvider);
 
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/',
-    debugLogDiagnostics: true, // Helpful for debugging redirects
+    debugLogDiagnostics: true,
     redirect: (context, state) {
-      // 1. Unwrap Auth State
-      final isLoggedIn = authState.asData?.value != null;
       final isLoggingIn = state.uri.toString() == '/login';
       final isSplash = state.uri.toString() == '/splash';
 
-      // 2. Not Logged In -> Force Login
-      if (!isLoggedIn) {
-        return isLoggingIn ? null : '/login';
-      }
-
-      // 3. Logged In -> Handle Profile Loading
-      // If we are logged in, we MUST have the profile to decide where to go.
-      // If profile is loading or error, we show splash to prevent "flash of content"
-      // or security leaks.
-      if (userProfile.isLoading || userProfile.hasError) {
+      // 1. Loading State -> Splash
+      if (authState.isLoading) {
         return isSplash ? null : '/splash';
       }
 
-      final profile = userProfile.asData?.value;
+      // 2. Error State -> Login (or specialized error page)
+      if (authState.hasError) {
+        // If error (e.g. network), maybe show login to retry?
+        return isLoggingIn ? null : '/login';
+      }
 
-      // If profile is somehow null (e.g. backend error treated as success null),
-      // we might want to stay on splash or show error.
-      // For now, assuming hydration works if not loading/error.
-      if (profile == null) return '/splash';
+      final user = authState.asData?.value;
 
-      // 4. Already on Login/Splash? -> Go Home
+      // 3. Unauthenticated -> Login
+      if (user == null) {
+        return isLoggingIn ? null : '/login';
+      }
+
+      // 4. Authenticated -> Redirect from Guest routes
       if (isLoggingIn || isSplash) {
-        return targetRouteForUser(profile.isAdmin); // '/admin' or '/dashboard'
+        return targetRouteForUser(user.isAdmin);
       }
 
-      // 5. Role Guarding
-      // Example: Member trying to access /admin
+      // 5. Role Guard
       final isAdminRoute = state.uri.toString().startsWith('/admin');
-      if (isAdminRoute && !profile.isAdmin) {
-        return '/dashboard'; // Access Denied -> Fallback
+      if (isAdminRoute && !user.isAdmin) {
+        return '/dashboard';
       }
 
-      return null; // Allow navigation
+      return null;
     },
     routes: [
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
@@ -96,13 +92,30 @@ GoRouter router(Ref ref) {
             routes: [
               GoRoute(
                 path: '/dashboard',
-                builder:
-                    (context, state) =>
-                        const Scaffold(body: Center(child: Text('Dashboard'))),
+                // BYPASS: Use real DashboardScreen
+                builder: (context, state) => const DashboardScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'executions/:id',
+                    builder: (context, state) {
+                      final id = state.pathParameters['id']!;
+                      return ExecutionDetailsScreen(executionId: id);
+                    },
+                  ),
+                ],
               ),
             ],
           ),
-          // Branch 1: Admin (Root/Admin only)
+          // Branch 1: Settings (Member/Everyone)
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/settings',
+                builder: (context, state) => const SettingsScreen(),
+              ),
+            ],
+          ),
+          // Branch 2: Admin (Root/Admin only)
           StatefulShellBranch(
             routes: [
               GoRoute(

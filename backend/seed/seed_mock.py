@@ -12,29 +12,38 @@ def main():
     print("======================================")
 
     # 1. Define Project Root
-    # This script is in backend/seed/, so root is two levels up (../../)
     script_dir = Path(__file__).resolve().parent
     project_root = script_dir.parent.parent
 
-    # 2. Set Environment Variables
-    env = os.environ.copy()
-    env["USE_MOCK_DB"] = "true"
-    env["USE_MOCK_LLM"] = "true"
-    env["STORAGE_BACKEND"] = "LOCAL"
-    env["PYTHONIOENCODING"] = "utf-8"
+    # 2. Add Project Root to Sys Path to allow imports
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+
+    # 3. Set Environment Variables
+    os.environ["USE_MOCK_DB"] = "true"
+    os.environ["USE_MOCK_LLM"] = "true"
+    os.environ["STORAGE_BACKEND"] = "LOCAL"
+    os.environ["PYTHONIOENCODING"] = "utf-8"
 
     print(f"\n[INFO] Root Path: {project_root}")
     print("[INFO] Backend: LOCAL (MOCK)")
-    print("[ACTION] Running backend.seed.seeder...\n")
+    print("[ACTION] Importing backend.seed.seeder...\n")
 
-    # 3. Run the Module
     try:
-        subprocess.run([sys.executable, "-m", "backend.seed.seeder"], cwd=project_root, env=env, check=True)
+        # Import dynamically to ensure env vars are picked up
+        from backend.seed.seeder import seed_database
+        
+        # Run Seeding
+        # async run wrapper if needed, but seeder usually has a sync entry point or we run asyncio.run
+        import asyncio
+        asyncio.run(seed_database())
+        
         print("\n[SUCCESS] Mock DB populated successfully!")
 
-    except subprocess.CalledProcessError as e:
-        print(f"\n[ERROR] Seeding failed with exit code {e.returncode}.")
-        sys.exit(e.returncode)
+    except ImportError as e:
+        print(f"\n[ERROR] Could not import backend: {e}")
+        print("Ensure you are running with 'uv run' or in the virtual environment.")
+        sys.exit(1)
     except Exception as e:
         print(f"\n[ERROR] An unexpected error occurred: {e}")
         sys.exit(1)

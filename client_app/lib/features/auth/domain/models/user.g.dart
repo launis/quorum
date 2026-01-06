@@ -18,6 +18,7 @@ User _$UserFromJson(Map<String, dynamic> json) => User(
       UserRole.viewer,
   organizationId: json['organization_id'] as String?,
   displayName: json['display_name'] as String?,
+  createdAt: json['created_at'] as String?,
 );
 
 Map<String, dynamic> _$UserToJson(User instance) => <String, dynamic>{
@@ -26,6 +27,7 @@ Map<String, dynamic> _$UserToJson(User instance) => <String, dynamic>{
   'role': _$UserRoleEnumMap[instance.role]!,
   'organization_id': instance.organizationId,
   'display_name': instance.displayName,
+  'created_at': instance.createdAt,
 };
 
 const _$UserRoleEnumMap = {

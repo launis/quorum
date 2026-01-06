@@ -1,44 +1,205 @@
-import 'package:firebase_ui_auth/firebase_ui_auth.dart';
+import 'package:client_app/features/auth/presentation/auth_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// **Login Screen**
-///
-/// Uses `firebase_ui_auth` to provide a production-grade Sign-In UI.
-///
-/// **Features**:
-/// - Email/Password Authentication (configured in providers).
-/// - Automatic handling of auth state (user is redirected by Router upon success).
-/// - Responsive design (courtesy of Firebase UI).
-/// - Localization support.
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends ConsumerState<LoginScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await ref
+          .read(authControllerProvider.notifier)
+          .signIn(_emailController.text.trim(), _passwordController.text);
+      // Success is handled by Router listening to Auth State
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString().replaceAll('Exception: ', '');
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return SignInScreen(
-      providers: [EmailAuthProvider()],
-      actions: [
-        AuthStateChangeAction<SignedIn>((context, state) {
-          // Router listens to auth state changes and will redirect automatically.
-          // We don't need manual navigation here, but this callback is available
-          // if we needed to clear specific local state.
-        }),
-      ],
-      // Optional: Add a header with the App Logo
-      headerBuilder: (context, constraints, shrinkOffset) {
-        return Padding(
-          padding: const EdgeInsets.all(20),
-          child: Center(
-            child: Text(
-              'Cognitive Quorum',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.bold,
-              ),
+    return Scaffold(
+      body: Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 400),
+          padding: const EdgeInsets.all(24),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Cognitive Quorum',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Sign in to continue',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+                if (_errorMessage != null)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.errorContainer,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      _errorMessage!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onErrorContainer,
+                      ),
+                    ),
+                  ),
+                TextFormField(
+                  controller: _emailController,
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    prefixIcon: Icon(Icons.email_outlined),
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your email';
+                    }
+                    if (!value.contains('@')) {
+                      return 'Invalid email address';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _passwordController,
+                  decoration: const InputDecoration(
+                    labelText: 'Password',
+                    prefixIcon: Icon(Icons.lock_outlined),
+                    border: OutlineInputBorder(),
+                  ),
+                  obscureText: true,
+                  textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) => _submit(),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your password';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 24),
+                FilledButton(
+                  onPressed: _isLoading ? null : _submit,
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child:
+                      _isLoading
+                          ? const CircularProgressIndicator()
+                          : const Text('Sign In'),
+                ),
+                // Debug Feature: Mock Login
+                const SizedBox(height: 24),
+                // Only show in debug mode (or always during Prototyping Phase)
+                Column(
+                  children: [
+                    const Divider(),
+                    const Text(
+                      'Development Tools',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.purple,
+                      ),
+                      onPressed:
+                          _isLoading ? null : () => _mockLogin('root_master'),
+                      child: const Text('Mock Login (Root Master)'),
+                    ),
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.orange,
+                      ),
+                      onPressed:
+                          _isLoading ? null : () => _mockLogin('admin_001'),
+                      child: const Text('Mock Login (Admin)'),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
+  }
+
+  Future<void> _mockLogin(String uid) async {
+    setState(() => _isLoading = true);
+    try {
+      await ref.read(authControllerProvider.notifier).debugMockLogin(uid);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Mock Login Successful! Redirecting...'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Mock Login Failed: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 }

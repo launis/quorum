@@ -11,7 +11,7 @@ part of 'execution_providers.dart';
 /// Controller for the Orchestration Dashboard.
 ///
 /// Manages the state of the execution list.
-/// Uses strict Riverpod 3.0 [AsyncNotifier] pattern.
+/// Uses strict Riverpod 3.0 AsyncNotifier pattern.
 
 @ProviderFor(DashboardController)
 final dashboardControllerProvider = DashboardControllerProvider._();
@@ -19,13 +19,13 @@ final dashboardControllerProvider = DashboardControllerProvider._();
 /// Controller for the Orchestration Dashboard.
 ///
 /// Manages the state of the execution list.
-/// Uses strict Riverpod 3.0 [AsyncNotifier] pattern.
+/// Uses strict Riverpod 3.0 AsyncNotifier pattern.
 final class DashboardControllerProvider
     extends $AsyncNotifierProvider<DashboardController, List<Execution>> {
   /// Controller for the Orchestration Dashboard.
   ///
   /// Manages the state of the execution list.
-  /// Uses strict Riverpod 3.0 [AsyncNotifier] pattern.
+  /// Uses strict Riverpod 3.0 AsyncNotifier pattern.
   DashboardControllerProvider._()
     : super(
         from: null,
@@ -51,7 +51,7 @@ String _$dashboardControllerHash() =>
 /// Controller for the Orchestration Dashboard.
 ///
 /// Manages the state of the execution list.
-/// Uses strict Riverpod 3.0 [AsyncNotifier] pattern.
+/// Uses strict Riverpod 3.0 AsyncNotifier pattern.
 
 abstract class _$DashboardController extends $AsyncNotifier<List<Execution>> {
   FutureOr<List<Execution>> build();

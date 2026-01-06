@@ -14,14 +14,14 @@ enum ExecutionStatus { pending, running, completed, failed, unknown }
 
 /// A strict, immutable representation of an Audit Workflow Execution.
 ///
-/// This model uses a Sealed Class (Union) pattern discriminated by the [status] field.
+/// This model uses a Sealed Class (Union) pattern discriminated by the `status` field.
 /// This ensures type-safe access to fields that only exist in certain states
-/// (e.g., [result] is only available when [status] is [completed]).
+/// (e.g., `result` is only available when `status` is `completed`).
 ///
 /// Business Logic:
-/// - [id]: The unique UUID of the execution (maps to backend `execution_id`).
-/// - [inputs]: The initial data provided to the workflow.
-/// - result: The final output (e.g., XAI Report), only present on completion.
+/// - `id`: The unique UUID of the execution (maps to backend `execution_id`).
+/// - `inputs`: The initial data provided to the workflow.
+/// - `result`: The final output (e.g., XAI Report), only present on completion.
 @Freezed(unionKey: 'status', unionValueCase: FreezedUnionCase.snake)
 sealed class Execution with _$Execution {
   /// State: Execution is queued or initialized.

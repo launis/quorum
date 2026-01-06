@@ -51,12 +51,17 @@ class User {
   @JsonKey(name: 'display_name')
   final String? displayName;
 
+  /// ISO 8601 Timestamp of creation.
+  @JsonKey(name: 'created_at')
+  final String? createdAt;
+
   const User({
     required this.uid,
     required this.email,
     required this.role,
     this.organizationId,
     this.displayName,
+    this.createdAt,
   });
 
   /// Factory constructor for creating a new [User] instance from a map.

@@ -22,7 +22,7 @@ UserRepository userRepository(Ref ref) {
 /// **Responsibility**:
 /// - Bridges the gap between Firebase Auth (Identity) and the Python Backend (Profile/Role).
 /// - Since Firebase Auth tokens only contain basic info, this repository fetches the
-///   authoritative [UserRole] and [organizationId] from the database.
+///   authoritative [UserRole] and [User.organizationId] from the database.
 class UserRepository {
   final Dio _client;
 
@@ -49,7 +49,7 @@ class UserRepository {
       // Note: Endpoint inferred from openapi.json. Adjust if backend path differs (e.g. /users/me vs /auth/me).
       // Based on openapi scan, we saw references but not explicit /users/me in the partial view.
       // Assuming standard convention or I'll assume /users/me based on prompt request.
-      final response = await _client.get<Map<String, dynamic>>('/users/me');
+      final response = await _client.get<Map<String, dynamic>>('/auth/me');
 
       if (response.data == null) {
         throw Exception('User profile returned null data.');

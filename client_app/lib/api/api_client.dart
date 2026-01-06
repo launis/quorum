@@ -37,7 +37,7 @@ Dio apiClient(Ref ref) {
   );
 
   // Add Auth Interceptor
-  dio.interceptors.add(AuthInterceptor());
+  dio.interceptors.add(AuthInterceptor(ref));
 
   return dio;
 }

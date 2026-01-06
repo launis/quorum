@@ -45,7 +45,6 @@ class ExecutionRepository {
             .toList();
       },
       (error, stackTrace) {
-        // TODO: Map to domain specific exceptions if needed
         return Exception('Failed to fetch executions: $error');
       },
     );

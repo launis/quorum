@@ -40,6 +40,11 @@ class ScaffoldWithNav extends StatelessWidget {
                     label: 'Dashboard',
                   ),
                   NavigationDestination(
+                    icon: Icon(Icons.settings_outlined),
+                    selectedIcon: Icon(Icons.settings),
+                    label: 'Settings',
+                  ),
+                  NavigationDestination(
                     icon: Icon(Icons.admin_panel_settings_outlined),
                     selectedIcon: Icon(Icons.admin_panel_settings),
                     label: 'Admin',
@@ -80,6 +85,11 @@ class _DesktopLayout extends StatelessWidget {
               icon: Icon(Icons.dashboard_outlined),
               selectedIcon: Icon(Icons.dashboard),
               label: Text('Dashboard'),
+            ),
+            NavigationRailDestination(
+              icon: Icon(Icons.settings_outlined),
+              selectedIcon: Icon(Icons.settings),
+              label: Text('Settings'),
             ),
             NavigationRailDestination(
               icon: Icon(Icons.admin_panel_settings_outlined),
