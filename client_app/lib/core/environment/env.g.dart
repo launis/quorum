@@ -8,19 +8,35 @@ part of 'env.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
+/// **Environment Provider**
+///
+/// Exposes the [Env] configuration properties to the Riverpod dependency graph.
+/// Although [Env] properties are static, this provider allows mocking or overriding
+/// configuration for testing purposes.
 
 @ProviderFor(env)
 final envProvider = EnvProvider._();
 
+/// **Environment Provider**
+///
+/// Exposes the [Env] configuration properties to the Riverpod dependency graph.
+/// Although [Env] properties are static, this provider allows mocking or overriding
+/// configuration for testing purposes.
+
 final class EnvProvider extends $FunctionalProvider<Env, Env, Env>
     with $Provider<Env> {
+  /// **Environment Provider**
+  ///
+  /// Exposes the [Env] configuration properties to the Riverpod dependency graph.
+  /// Although [Env] properties are static, this provider allows mocking or overriding
+  /// configuration for testing purposes.
   EnvProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
         name: r'envProvider',
-        isAutoDispose: false,
+        isAutoDispose: true,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -47,4 +63,4 @@ final class EnvProvider extends $FunctionalProvider<Env, Env, Env>
   }
 }
 
-String _$envHash() => r'e87fb318007e96b5429f3e0e9ccb3d869c086a26';
+String _$envHash() => r'a665c523416853586d601e8a69a8caacb7b65fec';

@@ -76,20 +76,30 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 ---
 
 ## 📍 Phase 2: The Pilot App (Flutter MVP)
-**Objective:** Enable end-users (Testers) to perform audits via a mobile/web interface.
+**Objective:** Enable end-users (Testers) to perform audits via a high-performance mobile/web interface with offline-first capabilities.
 
-### 2.1 Project Initialization
-- [ ] **Flutter Project Setup**: Initialize with `riverpod` (state management) and `go_router`.
-- [ ] **Auth Integration**: Implement "Sign in with Firebase" and exchange token with Backend.
-- [ ] **Environment Config**: Support switching between Dev (Localhost) and Prod (Cloud) APIs.
+### 2.1 Project Initialization (Updated Tech Stack)
+- [x] **Flutter Project Setup**: Initialize explicitly with **Flutter 3.38**.
+    - Folder structure: `client_app/` (Monorepo setup).
+- [x] **State Management**: Implement **Riverpod 3.0** using code generation (`@riverpod` macros) for strict compile-time safety.
+- [x] **Routing**: Implement **go_router ^17.0.1** with Riverpod integration for redirection and auth state listening.
+- [x] **Internationalization (i18n)**:
+    - Setup `flutter_localizations` and `intl`.
+    - Configure `.arb` files immediately (Support: `en`, `fi`).
+- [x] **Environment Config**: Use `dart-define` or `envied` to switch between Dev (Localhost:8000) and Prod (Cloud) APIs.
 
 ### 2.2 Core Features (Tester Role)
-- [ ] **Dashboard**: View assigned tasks or available System Workflows.
-- [ ] **Execution Interface**: Simple step-by-step wizard to run an Audit.
-    - *Input*: Upload PDF/Text.
-    - *Process*: Live progress bar (WebSocket or Polling).
-    - *Result*: View final HTML/Markdown report.
-- [ ] **History**: View past audit results.
+- [~] **Authentication**:
+    - [x] **firebase_auth ^6.1.3** implementation.
+    - [x] Use **firebase_ui_auth** for pre-built, localized Sign-In/Profile widgets.
+    - [x] Integration with Backend's `Hybrid Auth Service` (Token Interceptor).
+    - [ ] Secure storage of tokens.
+- [ ] **Dashboard**: View assigned tasks or available System Workflows (Riverpod `FutureProvider` streams).
+- [ ] **Execution Interface**: Wizard-style UI.
+    - *Input*: File picker for PDF/Text.
+    - *State*: Local persistence of draft audits (using Hive or similar) before submission (Offline-first).
+    - *Process*: WebSocket connection to backend `Active Job` status.
+- [ ] **History**: View past audit results with filtering.
 
 ---
 

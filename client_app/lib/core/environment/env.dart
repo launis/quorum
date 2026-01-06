@@ -1,0 +1,35 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+part 'env.g.dart';
+
+/// **Environment Configuration Service**
+///
+/// Manages environment-specific variables and configuration secrets.
+/// This abstraction ensures the app is not hardcoded to specific URLs or keys,
+/// facilitating movement between Dev (localhost), Staging, and Production.
+///
+/// **Source**:
+/// Loads values from the `.env` file via `flutter_dotenv`.
+///
+/// **Business Logic**:
+/// - Provides a safe fallback for the `API_URL` to `http://localhost:8000` to ensure
+///   local development works out-of-the-box.
+class Env {
+  /// The base URL for the Python Backend API.
+  ///
+  /// Examples:
+  /// - Local: `http://localhost:8000`
+  /// - Prod: `https://api.cognitivequorum.com`
+  static String get apiUrl => dotenv.env['API_URL'] ?? 'http://localhost:8000';
+}
+
+/// **Environment Provider**
+///
+/// Exposes the [Env] configuration properties to the Riverpod dependency graph.
+/// Although [Env] properties are static, this provider allows mocking or overriding
+/// configuration for testing purposes.
+@riverpod
+Env env(Ref ref) {
+  return Env();
+}
