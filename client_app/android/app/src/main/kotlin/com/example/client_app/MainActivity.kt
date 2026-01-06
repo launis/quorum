@@ -1,4 +1,4 @@
-package com.launis.quorum.client_app
+package com.example.client_app
 
 import io.flutter.embedding.android.FlutterActivity
 

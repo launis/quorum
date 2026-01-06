@@ -3,7 +3,8 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
-  cloud_firestore
+  app_links
+  desktop_webview_auth
   firebase_auth
   firebase_core
 )

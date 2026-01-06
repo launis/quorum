@@ -8,7 +8,7 @@
 PRODUCT_NAME = client_app
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.launis.quorum.clientApp
+PRODUCT_BUNDLE_IDENTIFIER = com.example.clientApp
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 com.launis.quorum. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 com.example. All rights reserved.

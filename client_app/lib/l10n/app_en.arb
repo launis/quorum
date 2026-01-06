@@ -1,0 +1,14 @@
+{
+  "appTitle": "Cognitive Quorum Client",
+  "@appTitle": {
+    "description": "The title of the application"
+  },
+  "loginBtn": "Login",
+  "@loginBtn": {
+    "description": "Text for the login button"
+  },
+  "adminPanel": "Admin Panel",
+  "@adminPanel": {
+    "description": "Label for the admin panel"
+  }
+}
