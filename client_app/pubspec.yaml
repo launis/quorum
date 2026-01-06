@@ -33,7 +33,8 @@ dependencies:
   intl: any
   flex_color_scheme: any
   flutter_animate: any
-  # google_fonts: any # User didn't strictly request this but I had it. I'll include it as 'any' or remove if not in list? User list was explicit. I'll keep it as it's useful.
+  google_fonts: ^6.2.1
+  shared_preferences: ^2.3.2
 
 dev_dependencies:
   flutter_test:
@@ -51,3 +52,6 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   generate: true
+
+  assets:
+    - .env

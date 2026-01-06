@@ -1,7 +1,9 @@
 import 'package:client_app/l10n/app_localizations.dart';
 import 'package:client_app/router/router.dart';
+import 'package:client_app/features/settings/theme_provider.dart';
+import 'package:client_app/theme/app_theme.dart';
 import 'package:firebase_ui_localizations/firebase_ui_localizations.dart';
-import 'package:flex_color_scheme/flex_color_scheme.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -24,23 +26,19 @@ class App extends ConsumerWidget {
     // by the routerDelegate.
     final goRouter = ref.watch(routerProvider);
 
+    // 2. Watch Theme Mode
+    final themeMode = ref.watch(themeModeProvider);
+
     return MaterialApp.router(
       title: 'Cognitive Quorum',
 
-      // 2. Navigation
+      // 3. Navigation
       routerConfig: goRouter,
 
-      // 3. Theming
-      // Using FlexColorScheme for a polished look as per design mandates.
-      theme: FlexThemeData.light(
-        scheme: FlexScheme.deepBlue,
-        useMaterial3: true,
-      ),
-      darkTheme: FlexThemeData.dark(
-        scheme: FlexScheme.deepBlue,
-        useMaterial3: true,
-      ),
-      themeMode: ThemeMode.system,
+      // 4. Theming
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: themeMode,
 
       // 4. Localization
       localizationsDelegates: const [

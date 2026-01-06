@@ -52,7 +52,7 @@ class UserRepository {
       final response = await _client.get<Map<String, dynamic>>('/users/me');
 
       if (response.data == null) {
-        throw Exception("User profile returned null data.");
+        throw Exception('User profile returned null data.');
       }
 
       return User.fromJson(response.data!);

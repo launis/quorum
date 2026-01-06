@@ -1,3 +1,5 @@
+import 'package:client_app/features/auth/domain/models/user.dart' show User;
+
 import 'package:json_annotation/json_annotation.dart';
 
 part 'execution.g.dart';

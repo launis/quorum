@@ -1,17 +1,16 @@
 import 'package:client_app/core/ui/splash_screen.dart';
+import 'package:client_app/features/auth/presentation/login_screen.dart';
 import 'package:client_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:client_app/features/auth/presentation/providers/user_role_provider.dart';
 import 'package:client_app/router/scaffold_with_nav.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'router.g.dart';
 
 // Private keys for navigator state
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
-final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
 /// **Router Provider**
 ///
@@ -81,13 +80,7 @@ GoRouter router(Ref ref) {
       return null; // Allow navigation
     },
     routes: [
-      GoRoute(
-        path: '/login',
-        builder:
-            (context, state) => const Scaffold(
-              body: Center(child: Text('Login Screen Placeholder')),
-            ),
-      ),
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
         path: '/splash',
         builder: (context, state) => const SplashScreen(),
