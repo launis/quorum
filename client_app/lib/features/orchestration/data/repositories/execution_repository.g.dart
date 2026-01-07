@@ -11,7 +11,7 @@ part of 'execution_repository.dart';
 /// Repository for managing Audit Execution data.
 ///
 /// Handles interaction with the `/executions` endpoints of the backend API.
-/// Uses strict functional error handling via [TaskEither].
+/// Uses strict functional error handling via [TaskEither] and [AppError].
 
 @ProviderFor(executionRepository)
 final executionRepositoryProvider = ExecutionRepositoryProvider._();
@@ -19,7 +19,7 @@ final executionRepositoryProvider = ExecutionRepositoryProvider._();
 /// Repository for managing Audit Execution data.
 ///
 /// Handles interaction with the `/executions` endpoints of the backend API.
-/// Uses strict functional error handling via [TaskEither].
+/// Uses strict functional error handling via [TaskEither] and [AppError].
 
 final class ExecutionRepositoryProvider
     extends
@@ -32,7 +32,7 @@ final class ExecutionRepositoryProvider
   /// Repository for managing Audit Execution data.
   ///
   /// Handles interaction with the `/executions` endpoints of the backend API.
-  /// Uses strict functional error handling via [TaskEither].
+  /// Uses strict functional error handling via [TaskEither] and [AppError].
   ExecutionRepositoryProvider._()
     : super(
         from: null,

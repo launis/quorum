@@ -1,0 +1,385 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:client_app/features/orchestration/domain/models/execution.dart';
+import 'package:client_app/features/orchestration/presentation/providers/execution_details_provider.dart';
+import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
+
+class ExecutionMonitorScreen extends ConsumerWidget {
+  final String executionId;
+
+  const ExecutionMonitorScreen({super.key, required this.executionId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final asyncExecution = ref.watch(executionDetailsProvider(executionId));
+
+    return Scaffold(
+      appBar: AppBar(title: Text('Monitor: ${executionId.substring(0, 8)}...')),
+      body: asyncExecution.when(
+        data: (execution) {
+          // Auto-redirect if completed
+          if (execution.status == ExecutionStatus.completed) {
+            // We use a post-frame callback or simple logic to show a prominent button.
+            // Direct navigation might be jarring if user is reading logs.
+            // Let's show a FAB or banner.
+          }
+          return _MonitorView(execution: execution);
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, stack) => Center(child: Text('Error: $err')),
+      ),
+      floatingActionButton:
+          asyncExecution.asData?.value.status == ExecutionStatus.completed
+              ? FloatingActionButton.extended(
+                onPressed:
+                    () =>
+                        context.go('/dashboard/executions/$executionId/report'),
+                label: const Text('View Results'),
+                icon: const Icon(Icons.arrow_forward),
+                backgroundColor: Colors.green,
+              )
+              : null,
+    );
+  }
+}
+
+class _MonitorView extends StatelessWidget {
+  final Execution execution;
+
+  const _MonitorView({required this.execution});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isRunning = execution.status == ExecutionStatus.running;
+    final isCompleted = execution.status == ExecutionStatus.completed;
+
+    return ListView(
+      padding: const EdgeInsets.all(16.0),
+      children: [
+        // Status Card
+        Card(
+          color: _getStatusColor(execution.status).withValues(alpha: 0.1),
+          child: ListTile(
+            leading:
+                isRunning
+                    ? SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 3,
+                        color: _getStatusColor(execution.status),
+                      ),
+                    )
+                    : Icon(
+                      _getStatusIcon(execution.status),
+                      color: _getStatusColor(execution.status),
+                      size: 32,
+                    ),
+            title: Text(
+              execution.status.name.toUpperCase(),
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            subtitle:
+                execution.currentStepName != null
+                    ? Text('Step: ${execution.currentStepName}')
+                    : null,
+          ),
+        ),
+        if (isCompleted) ...[
+          const SizedBox(height: 16),
+          _CompletionBanner(executionId: execution.id),
+        ],
+        const SizedBox(height: 16),
+
+        // Timeline
+        Text('Timeline', style: theme.textTheme.titleMedium),
+        const Divider(),
+        _infoRow(
+          'Created',
+          DateFormat('yyyy-MM-dd HH:mm:ss').format(execution.createdAt),
+        ),
+        const SizedBox(height: 24),
+
+        // Steps Progress
+        Text('Workflow Progress', style: theme.textTheme.titleMedium),
+        const SizedBox(height: 8),
+        _StepProgressList(
+          currentStep: execution.currentStepName,
+          workflowId: execution.workflowName,
+          status: execution.status,
+        ),
+
+        // Hint for raw data
+        const SizedBox(height: 32),
+        Center(
+          child: TextButton.icon(
+            icon: const Icon(Icons.code),
+            label: const Text('View Raw Data (Coming Soon)'),
+            onPressed: () {
+              // Placeholder for raw data modal or route
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _infoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+          Text(value),
+        ],
+      ),
+    );
+  }
+
+  Color _getStatusColor(ExecutionStatus status) {
+    return switch (status) {
+      ExecutionStatus.completed => Colors.green,
+      ExecutionStatus.running => Colors.blue,
+      ExecutionStatus.failed || ExecutionStatus.rejected => Colors.red,
+      _ => Colors.grey,
+    };
+  }
+
+  IconData _getStatusIcon(ExecutionStatus status) {
+    return switch (status) {
+      ExecutionStatus.completed => Icons.check_circle,
+      ExecutionStatus.running => Icons.sync,
+      ExecutionStatus.failed || ExecutionStatus.rejected => Icons.error,
+      _ => Icons.hourglass_empty,
+    };
+  }
+}
+
+class _CompletionBanner extends StatelessWidget {
+  final String executionId;
+
+  const _CompletionBanner({required this.executionId});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.green.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.green.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.green),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Analysis Completed Successfully!',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Colors.green,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed:
+                  () => context.go('/dashboard/executions/$executionId/report'),
+              icon: const Icon(Icons.visibility),
+              label: const Text('View Full Report'),
+              style: FilledButton.styleFrom(backgroundColor: Colors.green),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StepProgressList extends StatelessWidget {
+  final String? currentStep;
+  final String? workflowId;
+  final ExecutionStatus status;
+
+  const _StepProgressList({
+    this.currentStep,
+    this.workflowId,
+    required this.status,
+  });
+
+  static const _stepsFused = [
+    'step_guard',
+    'step_analyst',
+    'step_interaction',
+    'step_profiler',
+    // 'step_panel', // Skipped in Fused
+    // 'step_archivist', // Skipped/Fused
+    'step_judge',
+    // 'step_coach', // Skipped/Fused
+    'step_xai',
+  ];
+
+  static const _stepsSequential = [
+    'step_guard',
+    'step_analyst',
+    'step_interaction',
+    'step_profiler',
+    'step_panel',
+    'step_archivist',
+    'step_judge',
+    'step_coach',
+    'step_xai',
+  ];
+
+  static const stepNames = {
+    'step_guard': 'Guard Agent (Safety)',
+    'step_analyst': 'Analyst Agent (Research)',
+    'step_interaction': 'Interaction Analyst',
+    'step_profiler': 'Profiler Agent',
+    'step_panel': 'Panel Audit (Parallel)',
+    'step_archivist': 'Archivist (History)',
+    'step_judge': 'Judge (Verdict)',
+    'step_coach': 'Coach (Feedback)',
+    'step_xai': 'Reporter (Final Report)',
+    'init': 'Initializing...',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    // Determine which list to use
+    final steps =
+        (workflowId == 'fused_audit_chain') ? _stepsFused : _stepsSequential;
+
+    int currentIndex = -1;
+    if (currentStep != null) {
+      // 1. Try exact match
+      currentIndex = steps.indexOf(currentStep!);
+
+      // 2. Try fuzzy / value match if exact failed
+      if (currentIndex == -1) {
+        // Reverse lookup: check if currentStep matches any of the values in stepNames
+        // or partial contains
+        final lowerStep = currentStep!.toLowerCase();
+
+        // Try to find a key where stepNames[key] contains currentStep or vice versa
+        // OR simply map known backend strings to keys
+        for (int i = 0; i < steps.length; i++) {
+          final key = steps[i];
+          // Check normalized key
+          if (key == lowerStep || 'step_$lowerStep' == key) {
+            currentIndex = i;
+            break;
+          }
+
+          // Check display name map
+          final displayName = stepNames[key]?.toLowerCase() ?? '';
+          if (displayName.contains(lowerStep) ||
+              lowerStep.contains(displayName)) {
+            currentIndex = i;
+            break;
+          }
+          // Specific backend mappings (common ones)
+          if (lowerStep.contains('guard') && key == 'step_guard') {
+            currentIndex = i;
+          }
+          if (lowerStep.contains('analyst') && key == 'step_analyst') {
+            currentIndex = i;
+          }
+          if (lowerStep.contains('interaction') && key == 'step_interaction') {
+            currentIndex = i;
+          }
+          if (lowerStep.contains('profiler') && key == 'step_profiler') {
+            currentIndex = i;
+          }
+          if (lowerStep.contains('archivist') && key == 'step_archivist') {
+            currentIndex = i;
+          }
+          if (lowerStep.contains('panel') && key == 'step_panel') {
+            currentIndex = i;
+          }
+          if (lowerStep.contains('judge') && key == 'step_judge') {
+            currentIndex = i;
+          }
+          if (lowerStep.contains('coach') && key == 'step_coach') {
+            currentIndex = i;
+          }
+          if (lowerStep.contains('reporter') && key == 'step_xai') {
+            currentIndex = i;
+          }
+
+          if (currentIndex != -1) break;
+        }
+      }
+    }
+
+    return Card(
+      child: ListView.separated(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: steps.length,
+        separatorBuilder: (_, _) => const Divider(height: 1),
+        itemBuilder: (context, index) {
+          final stepKey = steps[index];
+          final stepLabel = stepNames[stepKey] ?? stepKey;
+
+          // Steps before current index are completed
+          bool isCompleted = index < currentIndex;
+          // Current step is the one matching index (if running/pending)
+          bool isCurrent =
+              index == currentIndex && status != ExecutionStatus.completed;
+
+          // Visually, if completed, ALL are completed
+          if (status == ExecutionStatus.completed) {
+            isCompleted = true;
+            isCurrent = false;
+          }
+
+          return ListTile(
+            dense: true,
+            leading: _buildStepIcon(isCompleted, isCurrent),
+            title: Text(
+              stepLabel,
+              style: TextStyle(
+                fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                color: isCurrent ? Theme.of(context).primaryColor : null,
+              ),
+            ),
+            trailing:
+                isCurrent
+                    ? const SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                    : null,
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildStepIcon(bool isCompleted, bool isCurrent) {
+    if (isCompleted) {
+      return const Icon(Icons.check_circle, color: Colors.green, size: 20);
+    }
+    if (isCurrent) {
+      return const Icon(Icons.play_circle_fill, color: Colors.blue, size: 20);
+    }
+    return const Icon(
+      Icons.radio_button_unchecked,
+      color: Colors.grey,
+      size: 20,
+    );
+  }
+}

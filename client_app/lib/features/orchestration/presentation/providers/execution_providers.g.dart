@@ -13,47 +13,48 @@ part of 'execution_providers.dart';
 /// Manages the state of the execution list.
 /// Uses strict Riverpod 3.0 AsyncNotifier pattern.
 
-@ProviderFor(DashboardController)
-final dashboardControllerProvider = DashboardControllerProvider._();
+@ProviderFor(ExecutionListController)
+final executionListControllerProvider = ExecutionListControllerProvider._();
 
 /// Controller for the Orchestration Dashboard.
 ///
 /// Manages the state of the execution list.
 /// Uses strict Riverpod 3.0 AsyncNotifier pattern.
-final class DashboardControllerProvider
-    extends $AsyncNotifierProvider<DashboardController, List<Execution>> {
+final class ExecutionListControllerProvider
+    extends $AsyncNotifierProvider<ExecutionListController, List<Execution>> {
   /// Controller for the Orchestration Dashboard.
   ///
   /// Manages the state of the execution list.
   /// Uses strict Riverpod 3.0 AsyncNotifier pattern.
-  DashboardControllerProvider._()
+  ExecutionListControllerProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
-        name: r'dashboardControllerProvider',
+        name: r'executionListControllerProvider',
         isAutoDispose: true,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
 
   @override
-  String debugGetCreateSourceHash() => _$dashboardControllerHash();
+  String debugGetCreateSourceHash() => _$executionListControllerHash();
 
   @$internal
   @override
-  DashboardController create() => DashboardController();
+  ExecutionListController create() => ExecutionListController();
 }
 
-String _$dashboardControllerHash() =>
-    r'50448d49729b0825fcd706f4ac56f6a62316acc8';
+String _$executionListControllerHash() =>
+    r'8830259535d76dd57206e7fff1352bf577474da2';
 
 /// Controller for the Orchestration Dashboard.
 ///
 /// Manages the state of the execution list.
 /// Uses strict Riverpod 3.0 AsyncNotifier pattern.
 
-abstract class _$DashboardController extends $AsyncNotifier<List<Execution>> {
+abstract class _$ExecutionListController
+    extends $AsyncNotifier<List<Execution>> {
   FutureOr<List<Execution>> build();
   @$mustCallSuper
   @override

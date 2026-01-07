@@ -1,27 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import 'package:client_app/features/orchestration/presentation/providers/execution_providers.dart';
 import 'package:client_app/features/orchestration/domain/models/execution.dart';
+import 'package:client_app/features/dashboard/presentation/widgets/execution_grid_item.dart';
+import 'package:client_app/features/dashboard/presentation/widgets/execution_list_item.dart';
+import 'package:client_app/features/dashboard/presentation/widgets/execution_stats_card.dart';
 
 /// The main dashboard screen displaying a list of recent executions.
 ///
-/// This screen strictly follows the System Mandate (2026):
-/// - Uses [ConsumerWidget] for Riverpod integration.
-/// - Watches [dashboardControllerProvider] for state.
-/// - Handles [AsyncValue] states (loading, error, data).
-/// - Implements Material 3 design via [Scaffold] and [Card].
+/// Features:
+/// - **Responsive Layout**: Switches between Grid and List view based on screen width.
+/// - **Stats Section**: Displays summary metrics (Total, Failed, In Progress).
+/// - **RBAC Readiness**: Prepared for role-based content filtering.
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final asyncExecutions = ref.watch(dashboardControllerProvider);
+    final asyncExecutions = ref.watch(executionListControllerProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Orchestration Dashboard'),
+        title: const Text('Dashboard'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -29,59 +30,48 @@ class DashboardScreen extends ConsumerWidget {
             onPressed:
                 () =>
                     ref
-                        .read(dashboardControllerProvider.notifier)
+                        .read(executionListControllerProvider.notifier)
                         .refreshList(),
           ),
+          const SizedBox(width: 8),
         ],
       ),
-      body: asyncExecutions.when(
-        data: (executions) {
-          if (executions.isEmpty) {
-            return const Center(child: Text('No executions found.'));
-          }
-          return ListView.separated(
-            itemCount: executions.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 8),
-            padding: const EdgeInsets.all(16),
-            itemBuilder: (context, index) {
-              final execution = executions[index];
-              return _ExecutionCard(execution: execution);
-            },
-          );
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          context.go('/orchestration/new');
         },
+        icon: const Icon(Icons.add),
+        label: const Text('New Analysis'),
+      ),
+      body: asyncExecutions.when(
+        data: (executions) => _DashboardContent(executions: executions),
         error:
             (error, stack) => Center(
-              child: Card(
-                margin: const EdgeInsets.all(16),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.error_outline,
-                        color: Colors.red,
-                        size: 48,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Failed to load executions',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(error.toString(), textAlign: TextAlign.center),
-                      const SizedBox(height: 16),
-                      FilledButton.icon(
-                        onPressed:
-                            () =>
-                                ref
-                                    .read(dashboardControllerProvider.notifier)
-                                    .refreshList(),
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('Retry'),
-                      ),
-                    ],
-                  ),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      size: 48,
+                      color: Colors.red,
+                    ),
+                    const SizedBox(height: 16),
+                    Text('Failed to load executions: $error'),
+                    const SizedBox(height: 16),
+                    FilledButton.icon(
+                      onPressed:
+                          () =>
+                              ref
+                                  .read(
+                                    executionListControllerProvider.notifier,
+                                  )
+                                  .refreshList(),
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Retry'),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -91,109 +81,152 @@ class DashboardScreen extends ConsumerWidget {
   }
 }
 
-/// A Material 3 Card representing a single [Execution].
-///
-/// Displays:
-/// - Status indicator (color-coded).
-/// - Execution ID/Title.
-/// - Current Step Name (if running) or Status text.
-/// - Created timestamp.
-class _ExecutionCard extends StatelessWidget {
-  const _ExecutionCard({required this.execution});
+class _DashboardContent extends StatelessWidget {
+  const _DashboardContent({required this.executions});
 
-  final Execution execution;
-
-  Color _getStatusColor(ExecutionStatus status) {
-    switch (status) {
-      case ExecutionStatus.running:
-        return Colors.blue;
-      case ExecutionStatus.completed:
-        return Colors.green;
-      case ExecutionStatus.failed:
-        return Colors.red;
-      case ExecutionStatus.pending:
-      default:
-        return Colors.grey;
-    }
-  }
+  final List<Execution> executions;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final statusColor = _getStatusColor(execution.status);
-    final dateFormat = DateFormat.yMMMd().add_Hm();
+    // Determine breakpoints
+    // Mobile < 600, Tablet < 1200, Desktop >= 1200
+    // We switch to Grid on Tablet+ (>= 600)
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: statusColor.withValues(alpha: 0.2),
-          child: Icon(
-            _getStatusIcon(execution.status),
-            color: statusColor,
-            size: 20,
-          ),
-        ),
-        title: Text(
-          execution.id, // Using ID as title for now, maybe inputs['name'] later
-          style: theme.textTheme.titleSmall?.copyWith(
-            fontFamily:
-                'Inter', // Enforcing Inter as per mandate (handled by theme globally usually but good to know)
-            fontWeight: FontWeight.bold,
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (_getCurrentStepName(execution) != null)
-              Text(
-                'Step: ${_getCurrentStepName(execution)}',
-                style: theme.textTheme.bodySmall,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 600;
+        final theme = Theme.of(context);
+
+        return CustomScrollView(
+          slivers: [
+            // 1. Stats Section (Top Padding)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: _buildStatsRow(context, executions, isMobile),
+              ),
+            ),
+
+            // 2. Section Header
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 8.0,
+                ),
+                child: Text(
+                  'Recent Logic Executions',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+
+            // 3. Executions List/Grid
+            if (executions.isEmpty)
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.all(32.0),
+                  child: Center(child: Text('No executions found.')),
+                ),
+              )
+            else if (isMobile)
+              SliverList(
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final execution = executions[index];
+                  return ExecutionListItem(execution: execution);
+                }, childCount: executions.length),
               )
             else
-              Text(
-                execution.status.name.toUpperCase(),
-                style: theme.textTheme.labelSmall?.copyWith(letterSpacing: 0.5),
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                sliver: SliverGrid(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: constraints.maxWidth > 1200 ? 3 : 2,
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
+                    childAspectRatio: 1.5, // Widescreen cards
+                  ),
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final execution = executions[index];
+                    return ExecutionGridItem(execution: execution);
+                  }, childCount: executions.length),
+                ),
               ),
+
+            // Bottom Padding for FAB
+            const SliverToBoxAdapter(child: SizedBox(height: 80)),
           ],
-        ),
-        trailing: Text(
-          dateFormat.format(execution.createdAt),
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        onTap: () {
-          context.go('/dashboard/executions/${execution.id}');
-        },
+        );
+      },
+    );
+  }
+
+  Widget _buildStatsRow(
+    BuildContext context,
+    List<Execution> list,
+    bool isMobile,
+  ) {
+    if (list.isEmpty) return const SizedBox.shrink();
+
+    // Calculate metrics
+    final total = list.length;
+    final failed = list.where((e) => e.status == ExecutionStatus.failed).length;
+    final running =
+        list.where((e) => e.status == ExecutionStatus.running).length;
+
+    // In a real app we'd fetch aggregate stats from API, but for now derive from loaded list
+    // or mock deeper stats.
+
+    final cards = [
+      ExecutionStatsCard(
+        label: 'Total Runs',
+        value: total.toString(),
+        icon: Icons.article,
+        color: Colors.blue,
       ),
-    );
-  }
+      ExecutionStatsCard(
+        label: 'In Progress',
+        value: running.toString(),
+        icon: Icons.sync,
+        color: Colors.orange,
+      ),
+      ExecutionStatsCard(
+        label: 'Critical Failures',
+        value: failed.toString(),
+        icon: Icons.warning,
+        color: Colors.red,
+      ),
+    ];
 
-  IconData _getStatusIcon(ExecutionStatus status) {
-    switch (status) {
-      case ExecutionStatus.running:
-        return Icons.sync;
-      case ExecutionStatus.completed:
-        return Icons.check;
-      case ExecutionStatus.failed:
-        return Icons.error_outline;
-      case ExecutionStatus.pending:
-        return Icons.hourglass_empty;
-      case ExecutionStatus.unknown:
-        return Icons.help_outline;
+    if (isMobile) {
+      // Horizontal scroll for stats on mobile
+      return SizedBox(
+        height: 120, // Card height
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          itemCount: cards.length,
+          separatorBuilder: (context, index) => const SizedBox(width: 8),
+          itemBuilder:
+              (context, index) => SizedBox(width: 160, child: cards[index]),
+        ),
+      );
+    } else {
+      // Row (or Grid) for stats on larger screens
+      return Row(
+        children:
+            cards
+                .map(
+                  (c) => Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                      child: c,
+                    ),
+                  ),
+                )
+                .toList(),
+      );
     }
-  }
-
-  String? _getCurrentStepName(Execution execution) {
-    return execution.map(
-      pending: (_) => null,
-      running: (e) => e.currentStepName,
-      completed: (e) => e.currentStepName,
-      failed: (e) => e.currentStepName,
-      unknown: (_) => null,
-    );
   }
 }

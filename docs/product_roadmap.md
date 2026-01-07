@@ -89,15 +89,26 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **Authentication State**: Build `auth_provider` (StreamProvider) using `firebase_auth` to drive Reactive Redirection (Guard).
 - [x] **Environment Config**: Use `flutter_dotenv` to manage Backend URL (`http://localhost:8000` vs Cloud) via `.env`.
 
-### 2.3 Core Features (Tester Role)
+### 2.3 Dashboard & Monitoring
 - [ ] **Dashboard UI**: Grid view of System Workflows fetching data via `AsyncValue` providers.
-- [ ] **Audit Wizard**: Multi-step generic wizard for file uploads and parameter inputs.
-- [ ] **Live Execution Tracking**: Implement a Polling Mechanism (`StreamProvider.autoDispose`) to track `worker` status from the backend.
 - [ ] **Report Viewer**: Render final HTML/Markdown results using `webview_flutter` or generic markdown renderers.
+
+### 2.4 Workflow Data Layer (Foundation)
+- [ ] **Models**: Ensure `Execution`, `ExecutionStep`, and `ExecutionInput` match the backend Pydantic models (JSON serialization).
+- [ ] **Repository**: Update `ExecutionRepository` to support `createExecution()` (POST) and `streamExecution()` (SSE/Polling) calls.
+
+### 2.5 Workflow State Management (Controller)
+- [ ] **Controller**: Implement `executionControllerProvider` to manage analysis initiation, validation logic, and polling state.
+- [ ] **Validation**: Dedicated logic for validating inputs before API calls.
+
+### 2.6 Workflow UI (Wizard & Feedback)
+- [ ] **Creation Wizard**: Multi-step form view for configuring and starting a new analysis (replaces Audit Wizard).
+- [ ] **Live Execution View**: Real-time progress UI with polling integration (Progress Bar, Step Indicator).
 
 ---
 
 ## 📍 Phase 3: The Business Layer (Billing & Compliance)
+
 **Objective:** Turn usage into revenue and ensure enterprise compliance.
 
 ### 3.1 Usage Tracking & Cost Attribution (✅ Completed)

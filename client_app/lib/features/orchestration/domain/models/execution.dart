@@ -10,7 +10,17 @@ part 'execution.g.dart';
 /// - running: Currently executing a step.
 /// - completed: Finished successfully with a result.
 /// - failed: Terminated due to an error.
-enum ExecutionStatus { pending, running, completed, failed, unknown }
+/// - rejected: Rejected by quota or policy.
+/// - interrupted: Stopped mid-execution.
+enum ExecutionStatus {
+  pending,
+  running,
+  completed,
+  failed,
+  rejected,
+  interrupted,
+  unknown,
+}
 
 /// A strict, immutable representation of an Audit Workflow Execution.
 ///
@@ -28,9 +38,11 @@ sealed class Execution with _$Execution {
   const factory Execution.pending({
     @JsonKey(name: 'execution_id') required String id,
     @JsonKey(name: 'start_time') required DateTime createdAt,
+    @JsonKey(name: 'workflow_name') String? workflowName,
     @JsonKey(name: 'organization_id') String? organizationId,
     @JsonKey(name: 'user_id') String? userId,
     @Default({}) Map<String, dynamic> inputs,
+    @JsonKey(name: 'current_step_name') String? currentStepName,
     @Default(ExecutionStatus.pending) ExecutionStatus status,
   }) = ExecutionPending;
 
@@ -38,6 +50,7 @@ sealed class Execution with _$Execution {
   const factory Execution.running({
     @JsonKey(name: 'execution_id') required String id,
     @JsonKey(name: 'start_time') required DateTime createdAt,
+    @JsonKey(name: 'workflow_name') String? workflowName,
     @JsonKey(name: 'organization_id') String? organizationId,
     @JsonKey(name: 'user_id') String? userId,
     @Default({}) Map<String, dynamic> inputs,
@@ -51,6 +64,7 @@ sealed class Execution with _$Execution {
   const factory Execution.completed({
     @JsonKey(name: 'execution_id') required String id,
     @JsonKey(name: 'start_time') required DateTime createdAt,
+    @JsonKey(name: 'workflow_name') String? workflowName,
     @JsonKey(name: 'organization_id') String? organizationId,
     @JsonKey(name: 'user_id') String? userId,
     @Default({}) Map<String, dynamic> inputs,
@@ -62,7 +76,6 @@ sealed class Execution with _$Execution {
 
     /// Optional formatted markdown report, if pre-rendered.
     @JsonKey(name: 'xai_report_formatted') String? xaiReport,
-
     @Default(ExecutionStatus.completed) ExecutionStatus status,
   }) = ExecutionCompleted;
 
@@ -70,6 +83,7 @@ sealed class Execution with _$Execution {
   const factory Execution.failed({
     @JsonKey(name: 'execution_id') required String id,
     @JsonKey(name: 'start_time') required DateTime createdAt,
+    @JsonKey(name: 'workflow_name') String? workflowName,
     @JsonKey(name: 'organization_id') String? organizationId,
     @JsonKey(name: 'user_id') String? userId,
     @Default({}) Map<String, dynamic> inputs,
@@ -77,7 +91,6 @@ sealed class Execution with _$Execution {
 
     /// Error message or failure reason.
     String? error,
-
     @Default(ExecutionStatus.failed) ExecutionStatus status,
   }) = ExecutionFailed;
 
@@ -85,6 +98,9 @@ sealed class Execution with _$Execution {
   const factory Execution.unknown({
     @JsonKey(name: 'execution_id') required String id,
     @JsonKey(name: 'start_time') required DateTime createdAt,
+    @JsonKey(name: 'workflow_name') String? workflowName,
+    @Default({}) Map<String, dynamic> inputs,
+    @JsonKey(name: 'current_step_name') String? currentStepName,
     @Default(ExecutionStatus.unknown) ExecutionStatus status,
     Map<String, dynamic>? result,
     String? error,

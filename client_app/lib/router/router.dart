@@ -1,10 +1,13 @@
 import 'package:client_app/core/ui/splash_screen.dart';
 import 'package:client_app/features/auth/presentation/login_screen.dart';
 import 'package:client_app/features/dashboard/presentation/screens/dashboard_screen.dart';
-import 'package:client_app/features/dashboard/presentation/screens/execution_details_screen.dart';
+
 import 'package:client_app/features/settings/presentation/screens/settings_screen.dart';
 import 'package:client_app/features/auth/presentation/auth_controller.dart';
 import 'package:client_app/router/scaffold_with_nav.dart';
+import 'package:client_app/features/orchestration/presentation/screens/analysis_wizard_screen.dart';
+import 'package:client_app/features/orchestration/presentation/screens/execution_monitor_screen.dart';
+import 'package:client_app/features/orchestration/presentation/screens/execution_result_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -97,10 +100,30 @@ GoRouter router(Ref ref) {
                 routes: [
                   GoRoute(
                     path: 'executions/:id',
-                    builder: (context, state) {
-                      final id = state.pathParameters['id']!;
-                      return ExecutionDetailsScreen(executionId: id);
+                    redirect: (context, state) {
+                      final path = state.uri.toString();
+                      if (path.endsWith('/monitor') ||
+                          path.endsWith('/report')) {
+                        return null;
+                      }
+                      return '$path/monitor';
                     },
+                    routes: [
+                      GoRoute(
+                        path: 'monitor',
+                        builder: (context, state) {
+                          final id = state.pathParameters['id']!;
+                          return ExecutionMonitorScreen(executionId: id);
+                        },
+                      ),
+                      GoRoute(
+                        path: 'report',
+                        builder: (context, state) {
+                          final id = state.pathParameters['id']!;
+                          return ExecutionResultScreen(executionId: id);
+                        },
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -139,6 +162,11 @@ GoRouter router(Ref ref) {
         // So we can just redirect to dashboard here, and if admin, the shell might
         // show admin.
         // Better: let the top level redirect handle "Landing".
+      ),
+      GoRoute(
+        path: '/orchestration/new',
+        parentNavigatorKey: _rootNavigatorKey, // Full screen, cover shell
+        builder: (context, state) => const AnalysisWizardScreen(),
       ),
     ],
   );

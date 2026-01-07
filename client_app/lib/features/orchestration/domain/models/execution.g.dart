@@ -10,9 +10,11 @@ ExecutionPending _$ExecutionPendingFromJson(Map<String, dynamic> json) =>
     ExecutionPending(
       id: json['execution_id'] as String,
       createdAt: DateTime.parse(json['start_time'] as String),
+      workflowName: json['workflow_name'] as String?,
       organizationId: json['organization_id'] as String?,
       userId: json['user_id'] as String?,
       inputs: json['inputs'] as Map<String, dynamic>? ?? const {},
+      currentStepName: json['current_step_name'] as String?,
       status:
           $enumDecodeNullable(_$ExecutionStatusEnumMap, json['status']) ??
           ExecutionStatus.pending,
@@ -22,9 +24,11 @@ Map<String, dynamic> _$ExecutionPendingToJson(ExecutionPending instance) =>
     <String, dynamic>{
       'execution_id': instance.id,
       'start_time': instance.createdAt.toIso8601String(),
+      'workflow_name': instance.workflowName,
       'organization_id': instance.organizationId,
       'user_id': instance.userId,
       'inputs': instance.inputs,
+      'current_step_name': instance.currentStepName,
       'status': _$ExecutionStatusEnumMap[instance.status]!,
     };
 
@@ -33,6 +37,8 @@ const _$ExecutionStatusEnumMap = {
   ExecutionStatus.running: 'running',
   ExecutionStatus.completed: 'completed',
   ExecutionStatus.failed: 'failed',
+  ExecutionStatus.rejected: 'rejected',
+  ExecutionStatus.interrupted: 'interrupted',
   ExecutionStatus.unknown: 'unknown',
 };
 
@@ -40,6 +46,7 @@ ExecutionRunning _$ExecutionRunningFromJson(Map<String, dynamic> json) =>
     ExecutionRunning(
       id: json['execution_id'] as String,
       createdAt: DateTime.parse(json['start_time'] as String),
+      workflowName: json['workflow_name'] as String?,
       organizationId: json['organization_id'] as String?,
       userId: json['user_id'] as String?,
       inputs: json['inputs'] as Map<String, dynamic>? ?? const {},
@@ -53,6 +60,7 @@ Map<String, dynamic> _$ExecutionRunningToJson(ExecutionRunning instance) =>
     <String, dynamic>{
       'execution_id': instance.id,
       'start_time': instance.createdAt.toIso8601String(),
+      'workflow_name': instance.workflowName,
       'organization_id': instance.organizationId,
       'user_id': instance.userId,
       'inputs': instance.inputs,
@@ -64,6 +72,7 @@ ExecutionCompleted _$ExecutionCompletedFromJson(Map<String, dynamic> json) =>
     ExecutionCompleted(
       id: json['execution_id'] as String,
       createdAt: DateTime.parse(json['start_time'] as String),
+      workflowName: json['workflow_name'] as String?,
       organizationId: json['organization_id'] as String?,
       userId: json['user_id'] as String?,
       inputs: json['inputs'] as Map<String, dynamic>? ?? const {},
@@ -79,6 +88,7 @@ Map<String, dynamic> _$ExecutionCompletedToJson(ExecutionCompleted instance) =>
     <String, dynamic>{
       'execution_id': instance.id,
       'start_time': instance.createdAt.toIso8601String(),
+      'workflow_name': instance.workflowName,
       'organization_id': instance.organizationId,
       'user_id': instance.userId,
       'inputs': instance.inputs,
@@ -92,6 +102,7 @@ ExecutionFailed _$ExecutionFailedFromJson(Map<String, dynamic> json) =>
     ExecutionFailed(
       id: json['execution_id'] as String,
       createdAt: DateTime.parse(json['start_time'] as String),
+      workflowName: json['workflow_name'] as String?,
       organizationId: json['organization_id'] as String?,
       userId: json['user_id'] as String?,
       inputs: json['inputs'] as Map<String, dynamic>? ?? const {},
@@ -106,6 +117,7 @@ Map<String, dynamic> _$ExecutionFailedToJson(ExecutionFailed instance) =>
     <String, dynamic>{
       'execution_id': instance.id,
       'start_time': instance.createdAt.toIso8601String(),
+      'workflow_name': instance.workflowName,
       'organization_id': instance.organizationId,
       'user_id': instance.userId,
       'inputs': instance.inputs,
@@ -118,6 +130,9 @@ ExecutionUnknown _$ExecutionUnknownFromJson(Map<String, dynamic> json) =>
     ExecutionUnknown(
       id: json['execution_id'] as String,
       createdAt: DateTime.parse(json['start_time'] as String),
+      workflowName: json['workflow_name'] as String?,
+      inputs: json['inputs'] as Map<String, dynamic>? ?? const {},
+      currentStepName: json['current_step_name'] as String?,
       status:
           $enumDecodeNullable(_$ExecutionStatusEnumMap, json['status']) ??
           ExecutionStatus.unknown,
@@ -129,6 +144,9 @@ Map<String, dynamic> _$ExecutionUnknownToJson(ExecutionUnknown instance) =>
     <String, dynamic>{
       'execution_id': instance.id,
       'start_time': instance.createdAt.toIso8601String(),
+      'workflow_name': instance.workflowName,
+      'inputs': instance.inputs,
+      'current_step_name': instance.currentStepName,
       'status': _$ExecutionStatusEnumMap[instance.status]!,
       'result': instance.result,
       'error': instance.error,
