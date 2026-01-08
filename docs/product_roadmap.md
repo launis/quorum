@@ -66,12 +66,11 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **Regional Compliance**: Implemented strict Regional Model Validation (Model Garden Master List -> Regional Intersection).
 - [x] **Operational Hardening**: Implemented URL Safety (SSRF), Quota Checks, and Integrity Audits.
 - [x] **Crash Recovery**: Established standardized DB Reset protocols (`seed_prod.py`) and Integrity Checks.
+- [x] **Containerization**: Full Docker support (Virtual Environment Parity, Strict `.dockerignore`, Multi-stage Builds).
 
 ### 1.4 Scalability Architecture (Future)
-- [ ] **Parallel Execution**: Implement DAG-based concurrent step execution (utilizing `execute_workflow_task` separation).
 - [x] **Distributed Task Queue**: `Arq` with Redis implementation (`backend/worker.py`) for durable job execution.
 - [x] **Decoupled Workers**: Initial separation of `execute_workflow_task` accessible via `worker.py`.
-- [ ] **Hook Strategies**: Maintain Python-based Direct Call hooks for performance until microservice decoupling is strictly required.
 
 ---
 
@@ -137,7 +136,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 **Objective:** Enable deep customization for Enterprise clients.
 
 ### 4.1 Custom Workflow Builder
-- [ ] **Clone Capability**: Allow Tenants to "Clone" a System Workflow.
+- [x] **Clone Capability**: Allow Tenants to "Clone" a System Workflow (Implemented in `builder_router.py`).
 - [ ] **Tenant Repository**: Enable saving modified JSON configurations linked to `organization_id`.
 - [ ] **Builder UI**: (Long term) A visual editor for modifying prompts and steps.
 
@@ -156,9 +155,12 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 2.  **SaaS Billing Integration**:
     *   Backend has `billing_id` and `subscription_status`, but no payment gateway connection.
     *   **Need**: Stripe/Paddle integration to automate status updates via Webhooks.
-3.  **Strict Environment Management**:
-    *   Dependency drifts (e.g., missing `arq`) cause startup crashes.
-    *   **Need**: Dockerize the application to guarantee environment consistency across dev/prod.
+    *   **Need**: Stripe/Paddle integration to automate status updates via Webhooks.
 4.  **Test Data Management**:
     *   `seed_data.json` is the source of truth but fragile.
     *   **Need**: A dedicated Test Data Factory or Fixture system to generate comprehensive scenarios without manual JSON editing.
+5.  **Python 3.14 & Modern Pydantic**:
+    *   Currently downgraded to Python 3.13 due to `pydantic-core` build issues and required `from __future__` hacks.
+6.  **Advanced Execution Strategies (On Demand)**:
+    *   **Parallel Execution**: Implement DAG-based concurrent step execution (utilizing `execute_workflow_task` separation) for high-volume analysis.
+    *   **Microservice Decoupling**: Transition from Python Direct Call hooks to network-based service calls only when scaling demands strict separation.

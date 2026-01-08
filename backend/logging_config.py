@@ -2,7 +2,10 @@ import logging
 import os
 import sys
 
-import logfire
+try:
+    import logfire
+except Exception:
+    logfire = None
 
 from backend.context import get_execution_context
 
@@ -21,6 +24,8 @@ def configure_logfire():
     """Configures Logfire for observability.
     Should be called early in the application lifecycle.
     """
+    if logfire is None:
+        return
     # Idempotency check to prevent double initialization/logging
     if getattr(configure_logfire, "_called", False):
         return
@@ -93,8 +98,10 @@ def setup_logging(log_level=logging.INFO):
 
     # LiteLLM is extremely verbose on DEBUG
     logging.getLogger("LiteLLM").setLevel(logging.WARNING)
-    import litellm
-
-    litellm.set_verbose = False
+    try:
+        import litellm
+        litellm.set_verbose = False
+    except Exception:
+        pass
 
     logging.info(f"Logging configured. Writing to: {log_file_path}")

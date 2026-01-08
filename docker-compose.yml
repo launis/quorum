@@ -4,19 +4,35 @@ services:
     container_name: quorum-backend
     ports:
       - "8000:8000"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      # Production Configuration (Vertex AI + Firestore)
+      - USE_MOCK_LLM=false
+      - USE_MOCK_DB=false
+      - STORAGE_BACKEND=FIRESTORE
+      - USE_VERTEX_LLM=true
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/service-account.json
+      # Allow local override via .env if needed, but defaults above are safer for container logic
     volumes:
-      - ./src:/app/src
+      - ./backend:/app/backend
       - ./data:/app/data
+      - ./service-account.json:/app/service-account.json
+    networks:
+      - quorum-net
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
     networks:
       - quorum-net
 
   frontend:
-    build: ./frontend
+    build: ./client_app
     container_name: quorum-frontend
     ports:
-      - "8501:8501"
-    environment:
-      - API_URL=http://backend:8000
+      - "8080:80"
     depends_on:
       - backend
     networks:

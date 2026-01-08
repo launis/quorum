@@ -49,7 +49,7 @@ class Settings(BaseSettings):
     # gemini_model_fast and gemini_model_deep are deprecated.
 
     # --- Storage ---
-    storage_backend: Annotated[str, Field(description="LOCAL, NONE, or FIRESTORE")] = "LOCAL"
+    storage_backend: Annotated[str, BeforeValidator(strip_whitespace), Field(description="LOCAL, NONE, or FIRESTORE")] = "LOCAL"
     environment: Annotated[str, Field(description="development, staging, or production")] = "development"
     storage_bucket_name: Annotated[str | None, Field(description="Firebase Storage Bucket Name")] = None
 

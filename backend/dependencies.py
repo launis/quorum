@@ -64,14 +64,10 @@ def get_async_repository(db_client: AbstractDatabase = Depends(get_db_client_dep
 
     # 1. Check for Firestore (Native Async)
     if settings.storage_backend.upper() == "FIRESTORE" and not settings.use_mock_db:
-        try:
-            from backend.database.firestore_repo import FirestoreWorkflowRepository
+        from backend.database.firestore_repo import FirestoreWorkflowRepository
 
-            logger.info("[Dependencies] Initializing Native Async Firestore.")
-            _repository_instance = FirestoreWorkflowRepository(db_client)
-        except ImportError as e:
-            logger.warning(f"[Dependencies] Native Async Firestore failed to import: {e}. Falling back to TinyDB.")
-            _repository_instance = TinyDBRepository(db_client)
+        logger.info("[Dependencies] Initializing Native Async Firestore.")
+        _repository_instance = FirestoreWorkflowRepository(db_client)
     else:
         # 2. Async TinyDB (Dev)
         logger.info("[Dependencies] Initializing Async-First TinyDB.")
@@ -122,13 +118,9 @@ def get_storage_service_dep() -> AbstractStorage:
 
     # Logic matched with repository selection: FIRESTORE means Cloud
     elif settings.storage_backend.upper() == "FIRESTORE" and not settings.use_mock_db:
-        try:
-            logger.info("[Dependencies] Initializing Firebase Cloud Storage.")
-            # Bucket name can be fetched from settings if needed, defaulting to None (default bucket)
-            _storage_service_instance = FirebaseStorage()
-        except Exception as e:
-            logger.error(f"[Dependencies] Failed to initialize FirebaseStorage: {e}. Falling back to LOCAL.")
-            _storage_service_instance = LocalFileStorage()
+        logger.info("[Dependencies] Initializing Firebase Cloud Storage.")
+        # Bucket name can be fetched from settings if needed, defaulting to None (default bucket)
+        _storage_service_instance = FirebaseStorage()
 
     else:
         logger.info("[Dependencies] Initializing Local File Storage.")

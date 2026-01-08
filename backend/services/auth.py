@@ -1,7 +1,10 @@
+from __future__ import annotations
 import logging
 import jwt
 import time
 import uuid
+
+from typing import Any
 
 # Secure Secret for Local Tokens (Impersonation)
 # In production, this MUST be set via environment variable.

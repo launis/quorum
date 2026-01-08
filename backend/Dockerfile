@@ -1,15 +1,19 @@
-FROM python:3.9-slim
+FROM python:3.13
 
 WORKDIR /app
 
-FROM python:3.9-slim
 
-WORKDIR /app
 
+# Install dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --upgrade pip setuptools && pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+# Copy application code to root /app
+COPY . /app
+
+# Set Python path so 'backend' package is resolvable
+ENV PYTHONPATH=/app
 
 # Start the application
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# We are in /app, so 'backend' is a package.
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
