@@ -27,6 +27,8 @@ jobs:
         run: uv sync --all-extras --dev
 
       - name: Generate OpenAPI Spec
+        env:
+          VERTEX_LOCATION: "europe-north1"
         run: uv run scripts/generate_openapi.py
         
       - name: Verify synchronization
