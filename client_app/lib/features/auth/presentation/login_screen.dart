@@ -168,8 +168,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         foregroundColor: Colors.orange,
                       ),
                       onPressed:
-                          _isLoading ? null : () => _mockLogin('admin_001'),
+                          _isLoading ? null : () => _mockLogin('admin_1'),
                       child: const Text('Mock Login (Admin)'),
+                    ),
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.green,
+                      ),
+                      onPressed:
+                          _isLoading ? null : () => _mockLogin('manager_1'),
+                      child: const Text('Mock Login (Manager)'),
                     ),
                   ],
                 ),

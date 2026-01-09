@@ -22,6 +22,11 @@ part 'execution_controller.g.dart';
 class ExecutionController extends _$ExecutionController {
   @override
   FutureOr<Execution?> build() {
+    // Register disposal logic once at initialization
+    ref.onDispose(() {
+      _monitoringSubscription?.cancel();
+    });
+
     // Initially no active execution.
     return null;
   }
@@ -87,8 +92,9 @@ class ExecutionController extends _$ExecutionController {
         return null;
       },
       (executionId) async {
-        // Successfully started. Now fetch the initial state.
-        await _fetchAndSetExecution(executionId);
+        // Successfully started. Now start monitoring.
+        // We do *not* await this infinite stream here, we just kick it off.
+        unawaited(monitorExecution(executionId));
 
         // Invalidate the list so the dashboard updates
         ref.invalidate(executionListControllerProvider);
@@ -114,6 +120,41 @@ class ExecutionController extends _$ExecutionController {
       (error) => state = AsyncError(error, StackTrace.current),
       (execution) => state = AsyncData(execution),
     );
+  }
+
+  StreamSubscription<Either<AppError, Execution>>? _monitoringSubscription;
+
+  /// Monitors the execution stream and updates state live.
+  ///
+  /// Uses a [StreamSubscription] to allow proper cancellation via `ref.onDispose`.
+  /// This prevents "setState after dispose" errors.
+  Future<void> monitorExecution(String id) async {
+    final repository = ref.read(executionRepositoryProvider);
+
+    // Set loading initially if we don't have data
+    if (!state.hasValue) {
+      state = const AsyncLoading();
+    }
+
+    // Cancel any existing subscription to avoid duplicate listeners
+    await _monitoringSubscription?.cancel();
+
+    final stream = repository.streamExecution(id);
+
+    _monitoringSubscription = stream.listen((result) {
+      // Need to check if mounted? Riverpod Notifiers don't expose mounted.
+      // But cancelling in onDispose should be sufficient to prevent this callback
+      // from firing after dispose.
+
+      result.match(
+        (error) {
+          state = AsyncError(error, StackTrace.current);
+        },
+        (execution) {
+          state = AsyncData(execution);
+        },
+      );
+    });
   }
 
   /// Validates that 3 key text fields are present and not empty.

@@ -145,4 +145,40 @@ class ExecutionRepository {
       return Execution.fromJson(_normalizeExecutionJson(response.data!));
     }, (error, stackTrace) => _mapError(error));
   }
+
+  /// Streams the execution status by polling the API.
+  ///
+  /// Yields updates every [interval] until the execution reaches a terminal state.
+  /// Terminal states: completed, failed, rejected, interrupted.
+  Stream<Either<AppError, Execution>> streamExecution(
+    String id, {
+    Duration interval = const Duration(seconds: 2),
+  }) async* {
+    while (true) {
+      final result = await getExecution(id).run();
+
+      yield result;
+
+      // Check for terminal state to stop polling
+      final shouldStop = result.match(
+        (error) => true, // Stop on error (or maybe retry? simplistic for now)
+        (execution) => _isTerminal(execution.status),
+      );
+
+      if (shouldStop) break;
+
+      await Future<void>.delayed(interval);
+    }
+  }
+
+  /// Checks if the status is final/terminal.
+  bool _isTerminal(ExecutionStatus status) {
+    return switch (status) {
+      ExecutionStatus.completed ||
+      ExecutionStatus.failed ||
+      ExecutionStatus.rejected ||
+      ExecutionStatus.interrupted => true,
+      _ => false,
+    };
+  }
 }

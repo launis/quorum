@@ -1,6 +1,7 @@
+import 'package:client_app/features/orchestration/presentation/providers/workflow_controller.dart';
+import 'package:client_app/features/orchestration/presentation/providers/wizard_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:client_app/features/orchestration/presentation/providers/wizard_provider.dart';
 
 class WorkflowSelector extends ConsumerWidget {
   const WorkflowSelector({super.key});
@@ -10,6 +11,7 @@ class WorkflowSelector extends ConsumerWidget {
     final selectedId = ref.watch(
       wizardStateProvider.select((s) => s.selectedWorkflowId),
     );
+    final workflowsAsync = ref.watch(workflowListProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -19,36 +21,53 @@ class WorkflowSelector extends ConsumerWidget {
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
-        _buildOption(
-          context,
-          ref,
-          id: 'fused_audit_chain',
-          title: 'Courtroom 3.0 (Fused)',
-          description:
-              'Optimized "Fused Critics" workflow for standard auditing.',
-          icon: Icons.gavel,
-          isSelected: selectedId == 'fused_audit_chain',
+
+        // Dynamic List
+        workflowsAsync.when(
+          data: (workflows) {
+            if (workflows.isEmpty) {
+              return const Text('No workflows available for your account.');
+            }
+            return Column(
+              children:
+                  workflows.map((wf) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _buildOption(
+                        context,
+                        ref,
+                        id: wf.id,
+                        title: wf.name,
+                        description:
+                            wf.description.isNotEmpty
+                                ? wf.description
+                                : 'Custom workflow.',
+                        // Mapping standard icons based on known IDs or fallback
+                        icon: _getIconForWorkflow(wf.id),
+                        isSelected: selectedId == wf.id,
+                      ),
+                    );
+                  }).toList(),
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error:
+              (err, stack) => Text(
+                'Error loading workflows: $err',
+                style: const TextStyle(color: Colors.red),
+              ),
         ),
-        const SizedBox(height: 12),
-        _buildOption(
-          context,
-          ref,
-          id: 'sequential_audit_chain',
-          title: 'Courtroom 2.0 (Sequential)',
-          description: 'Full sequential audit chain (legacy/deep mode).',
-          icon: Icons.psychology,
-          isSelected: selectedId == 'sequential_audit_chain',
-        ),
+
         const SizedBox(height: 24),
-        // Custom ID input fallback
+
+        // Custom ID input fallback (Always available)
         TextFormField(
           initialValue:
-              [
-                    'fused_audit_chain',
-                    'sequential_audit_chain',
-                  ].contains(selectedId)
-                  ? ''
-                  : selectedId,
+              // Only show text if it's NOT one of the list options
+              // This is tricky if lists are async.
+              // Simplification: If selectedId starts with 'wf_' or standard IDs, hide it.
+              // Or just always show empty unless user types here.
+              '',
           decoration: const InputDecoration(
             labelText: 'Or enter Custom Workflow ID',
             border: OutlineInputBorder(),
@@ -62,6 +81,12 @@ class WorkflowSelector extends ConsumerWidget {
         ),
       ],
     );
+  }
+
+  IconData _getIconForWorkflow(String id) {
+    if (id.contains('fused')) return Icons.gavel;
+    if (id.contains('sequential')) return Icons.psychology;
+    return Icons.settings_applications;
   }
 
   Widget _buildOption(

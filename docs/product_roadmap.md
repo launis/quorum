@@ -95,12 +95,12 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [ ] **Report Viewer**: Render final HTML/Markdown results using `webview_flutter` or generic markdown renderers.
 
 ### 2.4 Workflow Data Layer (Foundation)
-- [ ] **Models**: Ensure `Execution`, `ExecutionStep`, and `ExecutionInput` match the backend Pydantic models (JSON serialization).
-- [ ] **Repository**: Update `ExecutionRepository` to support `createExecution()` (POST) and `streamExecution()` (SSE/Polling) calls.
+- [x] **Models**: Ensure `Execution`, `ExecutionStep`, and `ExecutionInput` match the backend Pydantic models (JSON serialization).
+- [x] **Repository**: Update `ExecutionRepository` to support `createExecution()` (POST) and `streamExecution()` (SSE/Polling) calls.
 
 ### 2.5 Workflow State Management (Controller)
-- [ ] **Controller**: Implement `executionControllerProvider` to manage analysis initiation, validation logic, and polling state.
-- [ ] **Validation**: Dedicated logic for validating inputs before API calls.
+- [x] **Controller**: Implement `executionControllerProvider` to manage analysis initiation, validation logic, and polling state.
+- [x] **Validation**: Dedicated logic for validating inputs before API calls.
 
 ### 2.6 Workflow UI (Wizard & Feedback)
 - [ ] **Creation Wizard**: Multi-step form view for configuring and starting a new analysis (replaces Audit Wizard).
