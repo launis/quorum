@@ -26,6 +26,9 @@ echo [1/2] Launching Backend (Uvicorn)...
 echo       Mode: LOCAL PROD (REAL LLM, NO MOCK, LOCAL STORAGE)
 start "CQ Backend (LOCAL HYBRID)" cmd /k "chcp 65001 > nul && set USE_MOCK_DB=false&& set USE_MOCK_LLM=false&& set STORAGE_BACKEND=LOCAL&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& uv run uvicorn backend.main:app --reload --port 8000"
 
+echo [1.5/2] Launching Worker (Arq)...
+start "CQ Worker (LOCAL)" cmd /k "chcp 65001 > nul && set USE_MOCK_DB=false&& set USE_MOCK_LLM=false&& set STORAGE_BACKEND=LOCAL&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& uv run python -m backend.run_worker"
+
 echo [2/2] Launching Client (Flutter)...
 start "CQ Client (LOCAL PROD)" cmd /k "cd client_app && flutter run"
 

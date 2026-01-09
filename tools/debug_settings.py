@@ -1,5 +1,6 @@
-from backend.settings import get_settings
 import os
+
+from backend.settings import get_settings
 
 print("--- DEBUG SETTINGS ---")
 print(f"CWD: {os.getcwd()}")

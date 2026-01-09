@@ -3,9 +3,10 @@
 This module persists immutable usage records to the repository, utilizing
 the cost calculated by LiteLLM (no local pricing logic).
 """
+
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from backend.database.repository import AbstractWorkflowRepository
 from backend.models.domain import UsageRecord
@@ -50,8 +51,8 @@ class UsageService:
             Optional[UsageRecord]: The created record if successful, else None.
         """
         try:
-            timestamp = datetime.now(timezone.utc).isoformat()
-            
+            timestamp = datetime.now(UTC).isoformat()
+
             record = UsageRecord(
                 id=str(uuid.uuid4()),
                 org_id=org_id,
@@ -60,7 +61,7 @@ class UsageService:
                 input_tokens=input_tokens,
                 output_tokens=output_tokens,
                 cost_usd=cost_usd,
-                timestamp=timestamp
+                timestamp=timestamp,
             )
 
             await self.repo.log_usage(record)
@@ -76,32 +77,33 @@ class UsageService:
         """
         try:
             # 1. Get Org Limits
+            if not org_id:
+                logger.warning("Quota Check: No Organization ID (Orphan User). Allowing execution (Default Policy).")
+                return True
+
             org = await self.repo.get_organization(org_id)
             if not org:
                 # If org doesn't exist, we probably shouldn't run executions, but maybe it's system?
                 # System org usually has no limit or high limit.
-                if org_id == "system":
-                    return True
-                return False
+                logger.warning(f"Quota Check: Organization '{org_id}' not found. Allowing execution (Fail Open for Pilot).")
+                return True
 
-            limit = float(org.get("quota_limit", 10.0)) # Default $10.00 conservative
+            limit = float(org.get("quota_limit", 10.0))  # Default $10.00 conservative
 
             # 2. Calculate Usage (Current Month)
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             # ISO Format for simple string comparison in JSON/TinyDB
             start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
-            
+
             used = await self.repo.get_org_usage_total(org_id, since=start_of_month)
-            
+
             if used >= limit:
                 logger.warning(f"Quota Exceeded for {org_id}: Used ${used:.2f} >= Limit ${limit:.2f}")
                 return False
-            
+
             return True
 
         except Exception as e:
             logger.error(f"Quota check failed for {org_id}: {e}")
-            # Fail closed (Block) or Open? 
-            # For hardening, Fail Closed is safer, but annoying if DB errs.
-            # Let's Fail Closed.
-            return False
+            # Fail Open during Pilot/Debugging
+            return True

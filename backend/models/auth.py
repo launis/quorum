@@ -3,6 +3,7 @@
 This module defines Pydantic models for user identity, role-based access control (RBAC),
 organization management, and cryptographic token structures.
 """
+
 from enum import Enum
 from typing import Annotated
 
@@ -31,6 +32,7 @@ class UserRole(str, Enum):
 
 class SubscriptionStatus(str, Enum):
     """SaaS Subscription Status."""
+
     ACTIVE = "active"
     PAST_DUE = "past_due"
     CANCELED = "canceled"
@@ -61,10 +63,12 @@ class Organization(BaseModel):
     is_active: Annotated[bool, Field(description="Subscription status")] = True
     tier: Annotated[str, Field(description="Service Tier")] = "standard"
     contact_email: Annotated[str | None, Field(description="Admin Contact")] = None
-    
+
     # Billing & SaaS Fields (Phase 4)
     billing_id: Annotated[str | None, Field(description="External Billing ID (Stripe/etc)")] = None
-    subscription_status: Annotated[SubscriptionStatus, Field(description="Current billing status")] = SubscriptionStatus.TRIAL
+    subscription_status: Annotated[SubscriptionStatus, Field(description="Current billing status")] = (
+        SubscriptionStatus.TRIAL
+    )
     quota_limit: Annotated[float, Field(ge=0.0, description="Monthly API call quota (USD)")] = 10.0
 
 
@@ -138,7 +142,7 @@ class OrganizationCreate(BaseModel):
 
 class UserUpdate(BaseModel):
     """Payload for updating an existing user.
-    
+
     Attributes:
         display_name (Optional[str]): New display name.
         role (Optional[UserRole]): New role assignment.

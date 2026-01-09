@@ -98,6 +98,34 @@ This allows changing the *behavior* (prompts, order) without redeploying code, w
 *   **PII:** Microsoft Presidio
 *   **Causal Inference:** Microsoft DoWhy
 
+## Deployment Architecture (Docker)
+The system is fully containerized using Docker Compose, adhering to a "Single Source of Truth" configuration philosophy.
+
+```mermaid
+graph TD
+    subgraph "Docker Host"
+        Redis[(Redis:6379)]
+        
+        subgraph "Services"
+            Backend["API Service (:8000)"]
+            Worker["Worker Service"]
+            Frontend["Frontend (:8080)"]
+        end
+        
+        Backend --> Redis
+        Worker --> Redis
+        Frontend --> Backend
+    end
+    
+    Volume["./backend (Host)"] -.->|Bind Mount| Backend
+    Volume -.->|Bind Mount| Worker
+```
+
+### Container Strategy
+*   **Shared Image**: Both `backend` and `worker` services share the same `Dockerfile` capabilities (Python 3.13+), ensuring environment parity.
+*   **Bind Mounts:** Development utilizes host-to-container volume mapping for `backend/` and `data/`, allowing code changes to reflect immediately in the Worker without rebuilding.
+*   **Configuration**: Environment variables (e.g., `VERTEX_LOCATION`, `STORAGE_BUCKET_NAME`) are injected via `docker-compose.yml`, overriding internal defaults to ensure Production readiness.
+
 ## Identity & Security Architecture
 
 ### 1. Multi-Tenancy Model

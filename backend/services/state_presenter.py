@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import os
 from typing import TYPE_CHECKING, Any
 
@@ -111,7 +112,7 @@ class StatePresenter:
 
         # 1. Prefer Dynamic Storage
         if state.audit_results:
-            for step_id, res in state.audit_results.items():
+            for _step_id, res in state.audit_results.items():
                 sources_to_process.append(res)
 
         # 2. Fallback to Legacy Fields if Dynamic Store is empty

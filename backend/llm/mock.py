@@ -14,8 +14,7 @@ class MockLLMService:
     """
 
     def __init__(self):
-        """Initializes the Mock Service.
-        """
+        """Initializes the Mock Service."""
         # MAPPING: Agent Class Name -> Mock Key
         # Centralized in mock_data.py
         self.agent_identity_map = AGENT_CLASS_TO_MOCK_KEY

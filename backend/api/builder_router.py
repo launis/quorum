@@ -3,6 +3,7 @@
 This module provides endpoints for creating, updating, copying, and validating
 workflows and steps, including the Builder UI toolbox and fusion logic.
 """
+
 import copy
 import logging
 import uuid
@@ -143,7 +144,7 @@ async def list_workflows(engine: EngineDep, current_user: CurrentUserDep):
 @router.get("/steps", summary="List Steps", response_description="All Steps.")
 async def list_steps(engine: EngineDep):
     """List all available steps.
-    
+
     Returns:
         list[dict]: A list of step definitions.
     """
@@ -338,11 +339,11 @@ async def delete_workflow(workflow_id: str, engine: EngineDep, current_user: Cur
     # Prevent deleting workflows that have audit history.
     all_execs = await engine.repository.get_all_executions()
     related_execs = [e for e in all_execs if e.get("workflow_id") == workflow_id]
-    
+
     if related_execs:
         raise HTTPException(
-            status_code=409, 
-            detail=f"Cannot delete workflow '{workflow_id}' because it has {len(related_execs)} execution record(s). Archive it or delete executions first."
+            status_code=409,
+            detail=f"Cannot delete workflow '{workflow_id}' because it has {len(related_execs)} execution record(s). Archive it or delete executions first.",
         )
 
     # 1. Identify Orphan Steps
@@ -380,8 +381,7 @@ async def delete_workflow(workflow_id: str, engine: EngineDep, current_user: Cur
 
 @router.post("/workflows/{workflow_id}/copy", summary="Copy Workflow", response_description="The new workflow object.")
 async def copy_workflow(workflow_id: str, request: CopyWorkflowRequest, engine: EngineDep):
-    """Deep Copy a workflow structure (Shallow copy of steps).
-    """
+    """Deep Copy a workflow structure (Shallow copy of steps)."""
     original = await engine.repository.get_workflow_by_id(workflow_id)
     if not original:
         raise HTTPException(status_code=404, detail="Workflow not found")
@@ -511,8 +511,7 @@ async def update_step(step_id: str, request: StepUpdateRequest, engine: EngineDe
 
 @router.post("/steps/clone", summary="Clone Step", response_description="The new custom step config.")
 async def clone_step(engine: EngineDep, source_step_id: str = Body(..., embed=True)):
-    """V2: Clone a step to a new Custom Step (Copy-on-Write).
-    """
+    """V2: Clone a step to a new Custom Step (Copy-on-Write)."""
     step = await engine.repository.get_step_by_id(source_step_id)
     if not step:
         raise HTTPException(status_code=404, detail="Source step not found")
@@ -533,8 +532,7 @@ async def clone_step(engine: EngineDep, source_step_id: str = Body(..., embed=Tr
     "/steps/create-custom", summary="Create Custom Step", response_description="The newly created custom step."
 )
 async def create_custom_step(req: CustomStepCreateRequest, engine: EngineDep):
-    """Creates a new custom step definition server-side with proper defaults.
-    """
+    """Creates a new custom step definition server-side with proper defaults."""
     # 1. Generate ID
     prefix = f"custom_{req.component_type.lower()}"
     new_id = f"{prefix}_{uuid.uuid4().hex[:6]}"
@@ -588,8 +586,7 @@ async def get_workflow_template():
 
 @router.get("/config/fusion-rules", summary="Get Fusion Rules", response_description="List of fusion rules.")
 async def get_fusion_rules(engine: EngineDep):
-    """Returns validation rules for prompt fusion.
-    """
+    """Returns validation rules for prompt fusion."""
     rules = []
     all_steps = await engine.repository.get_all_steps()
     for s in all_steps:

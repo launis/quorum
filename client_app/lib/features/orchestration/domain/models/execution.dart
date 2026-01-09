@@ -46,6 +46,13 @@ sealed class Execution with _$Execution {
     @Default(ExecutionStatus.pending) ExecutionStatus status,
   }) = ExecutionPending;
 
+  // ... (keeping other factories as they are, assume tool handles text correctly) ...
+  // Wait, I need to be careful not to delete the middle of the file.
+  // The tool instructions say: "TargetContent... This must be a unique substring".
+  // I should split this into two edits or use multi_replace.
+  // Actually, I just need to remove the annotation on line ~38 and update line ~109.
+  // Let's use multi_replace for safety.
+
   /// State: Execution is actively processing steps.
   const factory Execution.running({
     @JsonKey(name: 'execution_id') required String id,

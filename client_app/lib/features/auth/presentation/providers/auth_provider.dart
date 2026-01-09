@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:client_app/features/auth/presentation/providers/firebase_instance_provider.dart';
 
 part 'auth_provider.g.dart';
 
@@ -14,5 +15,7 @@ part 'auth_provider.g.dart';
 ///   to the login screen immediately upon logout).
 @riverpod
 Stream<User?> authState(Ref ref) {
-  return FirebaseAuth.instance.authStateChanges();
+  final auth = ref.watch(firebaseAuthInstanceProvider);
+  if (auth == null) return Stream.value(null);
+  return auth.authStateChanges();
 }

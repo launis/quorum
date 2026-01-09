@@ -63,8 +63,6 @@ class LLMProvider(ABC):
         pass
 
 
-
-
 class LiteLLMProvider(LLMProvider):
     """Unified LLM Provider using LiteLLM to support multiple models (Gemini, OpenAI, etc.)
     with a consistent interface.
@@ -241,7 +239,7 @@ class LiteLLMProvider(LLMProvider):
                 try:
                     # Calculate cost using LiteLLM
                     cost = litellm.completion_cost(completion_response=response)
-                    
+
                     # Track usage asynchronously (fire and forget for now, or await)
                     # For strict async correctness, we await it.
                     await self.usage_service.track_usage(
@@ -250,7 +248,7 @@ class LiteLLMProvider(LLMProvider):
                         model=self.model_name,
                         input_tokens=usage.get("prompt_tokens", 0),
                         output_tokens=usage.get("completion_tokens", 0),
-                        cost_usd=cost
+                        cost_usd=cost,
                     )
                 except Exception as e:
                     logger.warning(f"[LiteLLMProvider] Usage Tracking Failed: {e}")
@@ -285,8 +283,7 @@ class MockProvider(LLMProvider):
         pass_reasoning_token: str | None = None,
         **kwargs,
     ) -> LLMResponse:
-        """Simulates generation by invoking the MockLLMService.
-        """
+        """Simulates generation by invoking the MockLLMService."""
         from backend.llm.mock import MockLLMService
 
         logger.info(f"[MockProvider] Calling Mock Service (Simulating Async)... {kwargs}")
@@ -329,8 +326,7 @@ class UnconfiguredProvider(LLMProvider):
 
 
 class LLMFactory:
-    """Factory class to instantiate the appropriate LLMProvider based on configuration.
-    """
+    """Factory class to instantiate the appropriate LLMProvider based on configuration."""
 
     @staticmethod
     def create_provider(
@@ -409,5 +405,5 @@ class LLMFactory:
             api_key=api_key,
             settings=settings,
             usage_service=usage_service,
-            organization_id=org_id
+            organization_id=org_id,
         )

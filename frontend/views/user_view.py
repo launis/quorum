@@ -66,7 +66,9 @@ def render_user_view(api_client: APIClient):
         allowed_roles = ["ADMIN", "MANAGER", "MEMBER", "VIEWER"]
 
     elif user_role == "MANAGER":
-        st.warning("Managers provide technical leadership but do not manage user accounts. Contact an Admin to add users.")
+        st.warning(
+            "Managers provide technical leadership but do not manage user accounts. Contact an Admin to add users."
+        )
         return
 
     if not allowed_roles:
@@ -90,12 +92,7 @@ def render_user_view(api_client: APIClient):
             if not new_email or not new_password:
                 st.error("Email and Password are required.")
             else:
-                payload = {
-                    "email": new_email,
-                    "password": new_password,
-                    "display_name": new_name,
-                    "role": new_role
-                }
+                payload = {"email": new_email, "password": new_password, "display_name": new_name, "role": new_role}
                 try:
                     res = api_client.create_user(token, payload)
                     st.success(f"User created: {res.get('email')}")
@@ -111,15 +108,19 @@ def render_user_view(api_client: APIClient):
 
     # User Selection Logic
     # Map UID -> Display String
-    user_map = {u['uid']: f"{u.get('display_name', 'Unknown')} ({u.get('email')}) - {u.get('role')}" for u in users_list}
-    
+    user_map = {
+        u["uid"]: f"{u.get('display_name', 'Unknown')} ({u.get('email')}) - {u.get('role')}" for u in users_list
+    }
+
     # Filter out self (optional, but usually good to avoid deleting self)
     # But allowing self-update might be okay. Let's keep it simple.
-    
-    selected_uid = st.selectbox("Select User to Manage", options=list(user_map.keys()), format_func=lambda x: user_map[x])
+
+    selected_uid = st.selectbox(
+        "Select User to Manage", options=list(user_map.keys()), format_func=lambda x: user_map[x]
+    )
 
     if selected_uid:
-        target_user = next((u for u in users_list if u['uid'] == selected_uid), None)
+        target_user = next((u for u in users_list if u["uid"] == selected_uid), None)
         if not target_user:
             st.error("User not found.")
             return
@@ -129,17 +130,23 @@ def render_user_view(api_client: APIClient):
         # 1. Edit User Form
         with st.expander("📝 Edit Details", expanded=False):
             with st.form(key=f"edit_form_{selected_uid}"):
-                new_role_edit = st.selectbox("Role", allowed_roles, index=allowed_roles.index(target_user.get('role')) if target_user.get('role') in allowed_roles else 0)
-                new_name_edit = st.text_input("Display Name", value=target_user.get('display_name', ''))
-                
+                new_role_edit = st.selectbox(
+                    "Role",
+                    allowed_roles,
+                    index=allowed_roles.index(target_user.get("role"))
+                    if target_user.get("role") in allowed_roles
+                    else 0,
+                )
+                new_name_edit = st.text_input("Display Name", value=target_user.get("display_name", ""))
+
                 if st.form_submit_button("Update User"):
-                     payload = {"role": new_role_edit, "display_name": new_name_edit}
-                     try:
-                         api_client.update_user(token, selected_uid, payload)
-                         st.success("User updated!")
-                         st.rerun()
-                     except Exception as e:
-                         st.error(f"Update failed: {e}")
+                    payload = {"role": new_role_edit, "display_name": new_name_edit}
+                    try:
+                        api_client.update_user(token, selected_uid, payload)
+                        st.success("User updated!")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Update failed: {e}")
 
         # 2. Administrative Actions
         col_actions_1, col_actions_2 = st.columns(2)
@@ -153,10 +160,10 @@ def render_user_view(api_client: APIClient):
                         if imp_token:
                             # Set session state
                             st.session_state["auth_token"] = imp_token
-                            # We need to refresh the 'user' object in session state too, 
+                            # We need to refresh the 'user' object in session state too,
                             # usually main.py handles this on rerun if we clear 'user' or just rerun.
                             # Best practice: Clear 'user' so main.py refetches it.
-                            st.session_state["user"] = None 
+                            st.session_state["user"] = None
                             st.success(f"Impersonating {target_user.get('email')}...")
                             st.rerun()
                     except Exception as e:
@@ -165,18 +172,18 @@ def render_user_view(api_client: APIClient):
         # Delete User
         with col_actions_2:
             if st.button("🗑️ Delete User", key=f"del_{selected_uid}", type="primary"):
-                # Confirmation? Streamlit buttons are instant. 
-                # For safety, maybe a checkbox "Confirm Delete" first? 
+                # Confirmation? Streamlit buttons are instant.
+                # For safety, maybe a checkbox "Confirm Delete" first?
                 # Or use a separate popover in newer Streamlit, but here let's stick to basic.
-                pass 
-            
+                pass
+
             # Since standard button doesn't have confirmation dialog easily, we use a session state trick or just a simple "Confirm" action
             # Let's add a checkbox for safety in the same column
             confirm_del = st.checkbox("Confirm Deletion", key=f"confirm_del_{selected_uid}")
             if confirm_del and st.button("⚠️ CONFIRM DELETE", key=f"real_del_{selected_uid}", type="primary"):
-                 try:
-                     api_client.delete_user(token, selected_uid)
-                     st.success("User deleted.")
-                     st.rerun()
-                 except Exception as e:
-                     st.error(f"Delete failed: {e}")
+                try:
+                    api_client.delete_user(token, selected_uid)
+                    st.success("User deleted.")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Delete failed: {e}")

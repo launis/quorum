@@ -29,11 +29,14 @@ from frontend.views.user_view import render_user_view
 BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
 api_client = APIClient(BACKEND_URL)
 
+
 def get_workflow_map(token=None):
     try:
         wfs = api_client.get_workflows(token=token)
-        return {w['id']: w for w in wfs} if wfs else {}
-    except: return {}
+        return {w["id"]: w for w in wfs} if wfs else {}
+    except:
+        return {}
+
 
 def render_login_screen():
     """Renders the Dev/Mock Login Screen for Streamlit."""
@@ -56,24 +59,26 @@ def render_login_screen():
     with col2:
         st.subheader("Role Simulation")
         if st.button("👥 Impersonate VIEWER"):
-             _perform_login("mock-token:viewer_1")
+            _perform_login("mock-token:viewer_1")
         if st.button("👤 Impersonate MANAGER"):
-             _perform_login("mock-token:manager_1")
+            _perform_login("mock-token:manager_1")
         if st.button("🔧 Impersonate ADMIN"):
-             _perform_login("mock-token:admin_1")
+            _perform_login("mock-token:admin_1")
         if st.button("🧪 Impersonate MEMBER"):
-             _perform_login("mock-token:member_1")
+            _perform_login("mock-token:member_1")
+
 
 @st.cache_resource
 def _print_mock_banner_once():
     """Prints a startup banner to the console only once."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print(" 🖥️  COGNITIVE QUORUM UI v2.2 - FRONTEND STATUS")
-    print("="*60)
+    print("=" * 60)
     print(f" 🔗  BACKEND:     {BACKEND_URL}")
     print(" 🔑  AUTH SYSTEM: Active (Dev Tokens Enabled)")
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
     return True
+
 
 def _perform_login(token):
     user = api_client.login_with_token(token)
@@ -84,6 +89,7 @@ def _perform_login(token):
         st.rerun()
     else:
         st.error("Login Failed. Backend refused token.")
+
 
 def main():
     st.set_page_config(page_title="Cognitive Quorum v2", layout="wide")
@@ -104,7 +110,9 @@ def main():
     # ----------------------------
 
     st.title("Cognitive Quorum v2 - Admin Console")
-    st.markdown(f"**Backend:** `{BACKEND_URL}` | **User:** `{st.session_state.user['display_name']} ({st.session_state.user['role']})`")
+    st.markdown(
+        f"**Backend:** `{BACKEND_URL}` | **User:** `{st.session_state.user['display_name']} ({st.session_state.user['role']})`"
+    )
 
     # Sidebar
     with st.sidebar:
@@ -116,19 +124,29 @@ def main():
         # Filter views
         nav_options = ["Dashboard", "Assessment"]
 
-        user_role = st.session_state.user['role'].lower() # normalize
+        user_role = st.session_state.user["role"].lower()  # normalize
 
         # ROOT: Everything
         if user_role == "root":
-            nav_options.extend(["Workflow Builder", "Global Config", "Audit Matrix Library", "User Management", "System Info", "🛡️ System Admin", "🏢 Organization Settings"])
+            nav_options.extend(
+                [
+                    "Workflow Builder",
+                    "Global Config",
+                    "Audit Matrix Library",
+                    "User Management",
+                    "System Info",
+                    "🛡️ System Admin",
+                    "🏢 Organization Settings",
+                ]
+            )
 
         # ADMIN: Users (Team) - Org Level User Management
         elif user_role == "admin":
-             nav_options.extend(["User Management", "🏢 Organization Settings"])
+            nav_options.extend(["User Management", "🏢 Organization Settings"])
 
         # MANAGER: Workflow Config - Technical Lead
         elif user_role == "manager":
-             nav_options.extend(["Workflow Builder", "Global Config", "Audit Matrix Library"])
+            nav_options.extend(["Workflow Builder", "Global Config", "Audit Matrix Library"])
 
         # MEMBER & VIEWER: Assessment Only (Default)
 
@@ -143,11 +161,11 @@ def main():
         st.caption(f"Session: `{st.session_state.get('session_id', '???')[:8]}...`")
 
     # Fetch Data with Token
-    workflow_options = get_workflow_map(token=st.session_state.get('auth_token'))
+    workflow_options = get_workflow_map(token=st.session_state.get("auth_token"))
 
     # Routing
     if page == "Dashboard":
-         render_dashboard(api_client)
+        render_dashboard(api_client)
     elif page == "Assessment":
         # Pass backend_url if needed by view, though we are moving away from it.
         render_audit_view(api_client, BACKEND_URL, workflow_options)
@@ -164,7 +182,7 @@ def main():
     elif page == "User Management":
         render_user_view(api_client)
 
-    elif page == "Admin": # Legacy, maybe merge into Global Config or System Info?
+    elif page == "Admin":  # Legacy, maybe merge into Global Config or System Info?
         render_admin_view(api_client, BACKEND_URL, workflow_options)
 
     elif page == "System Info":
@@ -175,6 +193,7 @@ def main():
 
     elif page == "🏢 Organization Settings":
         render_org_admin_view(BACKEND_URL)
+
 
 if __name__ == "__main__":
     main()

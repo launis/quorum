@@ -3,6 +3,7 @@
 This module provides endpoints for system maintenance, database management,
 knowledge base ingestion, and banned phrase configuration.
 """
+
 import json
 import logging
 import os
@@ -75,7 +76,7 @@ admin_task_status: dict[str, dict[str, Any]] = {}
 # --- Helper Functions ---
 
 
-def run_script(script_name: str, args: list[str] = []) -> subprocess.CompletedProcess:
+def run_script(script_name: str, args: list[str] = None) -> subprocess.CompletedProcess:
     """Helper to run a script from the scripts directory in a subprocess.
 
     Args:
@@ -88,6 +89,8 @@ def run_script(script_name: str, args: list[str] = []) -> subprocess.CompletedPr
     """
     from backend.settings import get_settings
 
+    if args is None:
+        args = []
     settings = get_settings()
     script_path = os.path.join(settings.scripts_dir, script_name)
     if not os.path.exists(script_path):
@@ -224,7 +227,7 @@ def reset_mock_db(background_tasks: BackgroundTasks, db: DatabaseDep):
 )
 def reset_prod_db(background_tasks: BackgroundTasks, db: DatabaseDep):
     """Triggers 'rebuild_prod_db.py' in the background.
-    
+
     WARNING: This wipes the local production database.
 
     Args:
@@ -244,7 +247,7 @@ def reset_prod_db(background_tasks: BackgroundTasks, db: DatabaseDep):
 )
 def reset_firestore_db(background_tasks: BackgroundTasks, db: DatabaseDep):
     """Triggers 'seed_firestore.py' in the background.
-    
+
     WARNING: This wipes the Firestore database!
 
     Args:

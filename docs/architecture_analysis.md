@@ -57,7 +57,7 @@ All agents inherit from `BaseAgent` and enforce strict Input/Output state contra
 
 The system maintains state (`WorkflowState`) centrally, efficiently managed across distributed components.
 
-1.  **API**: Enqueues a Job ID to Redis (`backend/api/execution_router.py`).
+1.  **API**: Enqueues a Job ID to Redis (`backend/api/execution_router.py`). The API responds immediately (HTTP 202), preventing client timeouts.
 2.  **Worker**: Pulls Job (`backend/worker.py`).
 3.  **Engine**: Loads `WorkflowState` from DB (TinyDB/Firestore).
 4.  **Runner**: Executes one Step (Agent).
@@ -66,6 +66,13 @@ The system maintains state (`WorkflowState`) centrally, efficiently managed acro
 7.  **Engine**: Persists State to DB (incrementing `version`).
 
 This ensures that if a Worker crashes, the job can be retried or resumed from the last checkpoint.
+
+### Performance & Scalability Analysis
+The refactoring to an Async Worker architecture addresses critical bottlenecks identified in V1:
+
+*   **Timeout Decoupling**: Standard HTTP clients (browsers, proxies) timeout after 60-300 seconds. Deep cognitive workflows (e.g., Causal Analysis or broad Research) can run for 15+ minutes. By offloading to `arq` workers (configured with `job_timeout=900s`), the system can execute long-running tasks without connection loss.
+*   **Horizontal Scalability**: The decoupling allows independent scaling of API nodes (handling high concurrency lightweight requests) and Worker nodes (handling CPU/Memory intensive reasoning).
+*   **State Parity**: The database (TinyDB vs Firestore) serves as the synchronization point. Worker-based updates are immediately visible to the Polling Client, solving the "Silent Execution" paradox.
 
 ---
 

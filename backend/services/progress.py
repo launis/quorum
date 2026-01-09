@@ -81,22 +81,22 @@ class DatabaseProgressTracker(ProgressTracker):
         self.execution_id = execution_id
 
     async def start(self, details: dict[str, Any] = None):
-        """Sets status to 'started'.
-        """
+        """Sets status to 'started'."""
         payload = {"status": STATUS_STARTED, "start_time": datetime.now().isoformat()}
         if details:
             payload.update(details)
         await self.repository.update_execution(self.execution_id, payload)
 
     async def update(self, stage: str, percent: int, details: dict[str, Any] = None):
-        """Updates 'current_step' and 'progress' fields in DB.
-        """
+        """Updates 'current_step' and 'progress' fields in DB."""
         # We map 'stage' to 'current_step' or just stick it in a visible field?
         # The UI likely looks at 'current_step' and 'logs'.
         # For compatibility, we set 'current_step' = stage.
+        # compatibility with Frontend 'Execution' model which expects 'current_step_name'
         payload = {
             "status": STATUS_RUNNING,
             "current_step": stage,
+            "current_step_name": stage, # Frontend expects this key
             "progress": percent,
             "last_updated": datetime.now().isoformat(),
         }
@@ -105,16 +105,14 @@ class DatabaseProgressTracker(ProgressTracker):
         await self.repository.update_execution(self.execution_id, payload)
 
     async def complete(self, result: dict[str, Any] = None):
-        """Sets status to 'completed' and saves final result.
-        """
+        """Sets status to 'completed' and saves final result."""
         payload = {"status": STATUS_COMPLETED, "end_time": datetime.now().isoformat()}
         if result:
             payload["result"] = result
         await self.repository.update_execution(self.execution_id, payload)
 
     async def fail(self, error: str, details: dict[str, Any] = None):
-        """Sets status to 'failed' and saves error message.
-        """
+        """Sets status to 'failed' and saves error message."""
         payload = {"status": STATUS_FAILED, "error": error, "end_time": datetime.now().isoformat()}
         if details:
             payload["result"] = details  # Halt details often go to result

@@ -1,4 +1,5 @@
 import logging
+
 """Archivist Agent implementation."""
 from typing import Any
 

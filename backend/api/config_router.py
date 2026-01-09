@@ -3,6 +3,7 @@
 This module provides endpoints for managing configuration components (prompts, mandates),
 model settings, and system-wide ontology (dimensions).
 """
+
 import inspect
 import json
 import logging
@@ -67,9 +68,9 @@ class WorkflowUpdate(BaseModel):
     steps: Annotated[list[dict[str, Any]] | None, Field(description="Complete list of step configurations.")] = None
     sequence: Annotated[list[str] | None, Field(description="Ordered list of step IDs.")] = None
     description: Annotated[str | None, Field(description="User-facing workflow description.")] = None
-    default_model_mapping: Annotated[
-        dict[str, str] | None, Field(description="Map of StepID -> ModelStrategyKey.")
-    ] = None
+    default_model_mapping: Annotated[dict[str, str] | None, Field(description="Map of StepID -> ModelStrategyKey.")] = (
+        None
+    )
 
 
 class ComponentCreate(BaseModel):
@@ -117,8 +118,7 @@ def get_components(db: DatabaseDep):
 
 @router.get("/components/{comp_id}", summary="Get Component", response_description="The requested component.")
 def get_component(comp_id: str = Path(..., description="Component ID or Name"), db: DatabaseDep = None):
-    """Retrieves a single component by ID or Name.
-    """
+    """Retrieves a single component by ID or Name."""
     if db is None:  # Should be injected
         from backend.dependencies import get_db_client_dep
 
@@ -136,8 +136,7 @@ def get_component(comp_id: str = Path(..., description="Component ID or Name"), 
 
 @router.post("/components", summary="Create Component", response_description="Status and ID.")
 def create_component(comp: ComponentCreate, db: DatabaseDep):
-    """Creates a new configuration component.
-    """
+    """Creates a new configuration component."""
     table = db.table("components")
     if table.search(Query().id == comp.id):
         raise HTTPException(status_code=400, detail="Component ID already exists")
@@ -188,8 +187,7 @@ def update_component(comp_id: str, update: ComponentUpdate, db: DatabaseDep):
 
 @router.delete("/components/{comp_id}", summary="Delete Component", response_description="Delete status.")
 def delete_component(comp_id: str, db: DatabaseDep):
-    """Deletes a component if it is not referenced by any existing steps.
-    """
+    """Deletes a component if it is not referenced by any existing steps."""
     table = db.table("components")
     Component = Query()
 
@@ -259,11 +257,10 @@ async def delete_step(step_id: str, db: DatabaseDep):
     for wf in workflows:
         if step_id in wf.get("steps", []) or step_id in wf.get("sequence", []):
             used_in.append(wf.get("name", wf["id"]))
-    
+
     if used_in:
         raise HTTPException(
-            status_code=409, 
-            detail=f"Cannot delete step '{step_id}'. Used in workflows: {', '.join(used_in[:3])}..."
+            status_code=409, detail=f"Cannot delete step '{step_id}'. Used in workflows: {', '.join(used_in[:3])}..."
         )
 
     # 3. Delete
@@ -624,7 +621,7 @@ def get_introspection():
     available_hooks = set()
     package = backend.agents
     prefix = package.__name__ + "."
-    for _, name, ispkg in pkgutil.iter_modules(package.__path__, prefix):
+    for _, name, _ispkg in pkgutil.iter_modules(package.__path__, prefix):
         if name == "backend.agents.base":
             continue
         try:

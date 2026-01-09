@@ -5,6 +5,7 @@ import requests
 
 logger = logging.getLogger(__name__)
 
+
 class APIClient:
     def __init__(self, base_url: str):
         """Initializes the APIClient.
@@ -69,14 +70,14 @@ class APIClient:
             steps_res = requests.get(f"{self.base_url}/config/steps", timeout=10)
             if steps_res.status_code == 200:
                 for s in steps_res.json():
-                    steps_lookup[s['id']] = s.get('component')
+                    steps_lookup[s["id"]] = s.get("component")
         except Exception:
             pass
 
         dynamic_steps_order = []
         current_workflow = workflow_options.get(workflow_id)
         if current_workflow:
-            wf_step_ids = current_workflow.get('steps', [])
+            wf_step_ids = current_workflow.get("steps", [])
             for sid in wf_step_ids:
                 agent_name = steps_lookup.get(sid)
                 if agent_name:
@@ -117,10 +118,7 @@ class APIClient:
         if metadata is None:
             metadata = {}
 
-        form_data = {
-            "workflow_id": workflow_id,
-            "inputs": json.dumps(metadata)
-        }
+        form_data = {"workflow_id": workflow_id, "inputs": json.dumps(metadata)}
 
         headers = {}
         if token:
@@ -132,7 +130,7 @@ class APIClient:
                 data=form_data,
                 files=files,
                 headers=headers,
-                timeout=30 # Longer timeout for upload
+                timeout=30,  # Longer timeout for upload
             )
             response.raise_for_status()
             return response.json()
@@ -235,7 +233,6 @@ class APIClient:
             return []
 
     def get_model_strategies(self):
-
         """Fetches available model strategies (e.g. 'fast', 'deep') from the backend.
 
         Returns:
@@ -246,8 +243,6 @@ class APIClient:
             return list(res.json().keys()) if res.status_code == 200 else []
         except Exception:
             return []
-
-
 
     def get_components(self):
         """Fetches all configuration components.
@@ -371,7 +366,9 @@ class APIClient:
         """
         try:
             headers = {"Authorization": f"Bearer {token}"}
-            res = requests.put(f"{self.base_url}/builder/workflows/{workflow_id}", json=payload, headers=headers, timeout=10)
+            res = requests.put(
+                f"{self.base_url}/builder/workflows/{workflow_id}", json=payload, headers=headers, timeout=10
+            )
             res.raise_for_status()
             return res.json()
         except Exception as e:
@@ -416,7 +413,12 @@ class APIClient:
         """
         try:
             headers = {"Authorization": f"Bearer {token}"}
-            res = requests.post(f"{self.base_url}/builder/workflows/{workflow_id}/copy", json={"new_name": new_name}, headers=headers, timeout=10)
+            res = requests.post(
+                f"{self.base_url}/builder/workflows/{workflow_id}/copy",
+                json={"new_name": new_name},
+                headers=headers,
+                timeout=10,
+            )
             res.raise_for_status()
             return res.json()
         except Exception as e:
@@ -482,27 +484,27 @@ class APIClient:
 
     def get_global_settings(self, token: str):
         """Fetches global system settings.
-        
+
         Args:
             token (str): Authentication token.
-        
+
         Returns:
             dict: Settings dictionary.
         """
         try:
-             headers = {"Authorization": f"Bearer {token}"}
-             res = requests.get(f"{self.base_url}/settings", headers=headers, timeout=5)
-             return res.json() if res.status_code == 200 else {}
+            headers = {"Authorization": f"Bearer {token}"}
+            res = requests.get(f"{self.base_url}/settings", headers=headers, timeout=5)
+            return res.json() if res.status_code == 200 else {}
         except Exception:
-             return {}
+            return {}
 
     def update_global_settings(self, payload: dict, token: str):
         """Updates global system settings.
-        
+
         Args:
             payload (dict): Settings to update.
             token (str): Authentication token.
-            
+
         Returns:
             bool: True if successful, False otherwise.
         """
@@ -552,8 +554,7 @@ class APIClient:
             raise e
 
     def update_user(self, token: str, uid: str, payload: dict):
-        """Updates a user.
-        """
+        """Updates a user."""
         try:
             headers = {"Authorization": f"Bearer {token}"}
             res = requests.patch(f"{self.base_url}/auth/users/{uid}", json=payload, headers=headers, timeout=10)
@@ -564,8 +565,7 @@ class APIClient:
             raise e
 
     def delete_user(self, token: str, uid: str):
-        """Deletes a user.
-        """
+        """Deletes a user."""
         try:
             headers = {"Authorization": f"Bearer {token}"}
             res = requests.delete(f"{self.base_url}/auth/users/{uid}", headers=headers, timeout=10)
@@ -576,8 +576,7 @@ class APIClient:
             raise e
 
     def impersonate_user(self, token: str, target_uid: str):
-        """Generates an impersonation token.
-        """
+        """Generates an impersonation token."""
         try:
             headers = {"Authorization": f"Bearer {token}"}
             payload = {"target_uid": target_uid}
@@ -593,7 +592,7 @@ class APIClient:
 
     def get_available_roles(self):
         """Fetches list of available roles from backend.
-        
+
         Returns:
             list[str]: e.g. ['admin', 'member', 'viewer']
         """
@@ -606,7 +605,7 @@ class APIClient:
     # --- Organization User Management (V2.5) ---
     def get_organization_users(self, org_id: str, token: str):
         """Fetches users for a specific organization.
-        
+
         Args:
             org_id (str): Organization ID.
             token (str): Auth token.
@@ -620,11 +619,12 @@ class APIClient:
             return []
 
     def create_organization_user(self, org_id: str, payload: dict, token: str):
-        """Creates a user in an organization.
-        """
+        """Creates a user in an organization."""
         try:
             headers = {"Authorization": f"Bearer {token}"}
-            res = requests.post(f"{self.base_url}/organizations/{org_id}/users", json=payload, headers=headers, timeout=10)
+            res = requests.post(
+                f"{self.base_url}/organizations/{org_id}/users", json=payload, headers=headers, timeout=10
+            )
             res.raise_for_status()
             return res.json()
         except Exception as e:
@@ -632,11 +632,12 @@ class APIClient:
             raise e
 
     def delete_organization_user(self, org_id: str, target_uid: str, token: str):
-        """Deletes a user from an organization.
-        """
+        """Deletes a user from an organization."""
         try:
             headers = {"Authorization": f"Bearer {token}"}
-            res = requests.delete(f"{self.base_url}/organizations/{org_id}/users/{target_uid}", headers=headers, timeout=10)
+            res = requests.delete(
+                f"{self.base_url}/organizations/{org_id}/users/{target_uid}", headers=headers, timeout=10
+            )
             res.raise_for_status()
             return True
         except Exception as e:
@@ -644,15 +645,19 @@ class APIClient:
             raise e
 
     # --- Audit Logs ---
-    def get_audit_logs(self, token: str, organization_id: str = None, actor_uid: str = None, action: str = None, limit: int = 100):
-        """Fetches audit logs with optional filters.
-        """
+    def get_audit_logs(
+        self, token: str, organization_id: str = None, actor_uid: str = None, action: str = None, limit: int = 100
+    ):
+        """Fetches audit logs with optional filters."""
         try:
             params = {"limit": limit}
-            if organization_id: params["organization_id"] = organization_id
-            if actor_uid: params["actor_uid"] = actor_uid
-            if action: params["action"] = action
-            
+            if organization_id:
+                params["organization_id"] = organization_id
+            if actor_uid:
+                params["actor_uid"] = actor_uid
+            if action:
+                params["action"] = action
+
             headers = {"Authorization": f"Bearer {token}"}
             res = requests.get(f"{self.base_url}/audit/logs", params=params, headers=headers, timeout=10)
             return res.json() if res.status_code == 200 else []
@@ -710,7 +715,9 @@ class APIClient:
             Exception: If cloning fails.
         """
         try:
-            res = requests.post(f"{self.base_url}/builder/steps/clone", json={"source_step_id": source_step_id}, timeout=10)
+            res = requests.post(
+                f"{self.base_url}/builder/steps/clone", json={"source_step_id": source_step_id}, timeout=10
+            )
             res.raise_for_status()
             return res.json()
         except Exception as e:
@@ -731,7 +738,11 @@ class APIClient:
             Exception: If compilation fails.
         """
         try:
-            res = requests.post(f"{self.base_url}/builder/compile", json={"workflow_id": workflow_id, "steps": steps_to_fuse}, timeout=10)
+            res = requests.post(
+                f"{self.base_url}/builder/compile",
+                json={"workflow_id": workflow_id, "steps": steps_to_fuse},
+                timeout=10,
+            )
             res.raise_for_status()
             return res.json()
         except Exception as e:
@@ -761,10 +772,11 @@ class APIClient:
         """
         try:
             res = requests.get(f"{self.base_url}/builder/utils/generate-id?prefix={prefix}", timeout=10)
-            return res.json().get('id', '')
+            return res.json().get("id", "")
         except Exception:
             # Fallback
             import uuid
+
             return f"{prefix}_{uuid.uuid4().hex[:6]}"
 
     def create_custom_step_v2(self, component_type: str, name_hint: str = None):
@@ -782,7 +794,8 @@ class APIClient:
         """
         try:
             payload = {"component_type": component_type}
-            if name_hint: payload["name_hint"] = name_hint
+            if name_hint:
+                payload["name_hint"] = name_hint
 
             res = requests.post(f"{self.base_url}/builder/steps/create-custom", json=payload, timeout=10)
             res.raise_for_status()
@@ -845,12 +858,7 @@ class APIClient:
             dict: Validation result with keys 'valid' and 'errors'.
         """
         try:
-            payload = {
-                "id": "validation_temp",
-                "name": "Validation",
-                "sequence": sequence,
-                "description": "Temp"
-            }
+            payload = {"id": "validation_temp", "name": "Validation", "sequence": sequence, "description": "Temp"}
             res = requests.post(f"{self.base_url}/config/validate-flow", json=payload, timeout=10)
             return res.json() if res.status_code == 200 else {"valid": False, "errors": ["Network Error"]}
         except Exception as e:
@@ -895,12 +903,7 @@ class APIClient:
             str: The LLM response content, or error message.
         """
         try:
-            payload = {
-                "provider": provider,
-                "mode": mode,
-                "prompt": prompt,
-                "system_instruction": system_instruction
-            }
+            payload = {"provider": provider, "mode": mode, "prompt": prompt, "system_instruction": system_instruction}
             res = requests.post(f"{self.base_url}/config/models/call", json=payload, timeout=60)
             res.raise_for_status()
             return res.json().get("content", "")

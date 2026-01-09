@@ -182,14 +182,14 @@ class KnowledgeBaseService:
             prompt = f"""
             You are an expert academic research assistant.
             Analyze the following text chunk. Extract theoretical concepts, models, or frameworks defined in the text.
-            
+
             Return a JSON object with a key "concepts" which is a list of objects.
             Each object must have:
             - "term": The name of the concept (Capitalized).
             - "definition": A precise definition or explanation found in the text. Preferably include citations (Author Year) if present in the text.
-            
+
             If no concepts are found, return {{"concepts": []}}.
-            
+
             TEXT CHUNK:
             {chunk}
             """

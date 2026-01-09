@@ -1,4 +1,3 @@
-
 import pandas as pd
 import streamlit as st
 
@@ -13,7 +12,7 @@ def render_dashboard(api_client):
 
     # Get User Context
     user = st.session_state.user
-    role = user['role']
+    role = user["role"]
 
     st.caption(f"Welcome back, **{user.get('display_name', 'User')}**! ({role})")
 
@@ -33,10 +32,7 @@ def render_dashboard(api_client):
         st.divider()
         st.subheader("System Activity")
         # Placeholder chart using native Streamlit
-        df = pd.DataFrame({
-            "Day": ["Mon", "Tue", "Wed", "Thu", "Fri"],
-            "Executions": [10, 15, 8, 22, 18]
-        })
+        df = pd.DataFrame({"Day": ["Mon", "Tue", "Wed", "Thu", "Fri"], "Executions": [10, 15, 8, 22, 18]})
         st.bar_chart(df.set_index("Day"))
 
     elif role in ["MANAGER", "MEMBER"]:
@@ -44,10 +40,10 @@ def render_dashboard(api_client):
         recent_runs = api_client.get_recent_runs(limit=5, token=st.session_state.auth_token)
 
         with col1:
-             st.metric("My Audits (Total)", len(recent_runs) if recent_runs else 0)
+            st.metric("My Audits (Total)", len(recent_runs) if recent_runs else 0)
         with col2:
-             # Calculate average score if possible
-             st.metric("Avg Score", "8.4", "+0.2")
+            # Calculate average score if possible
+            st.metric("Avg Score", "8.4", "+0.2")
 
         st.divider()
         st.subheader("Recent Audits")
@@ -76,5 +72,5 @@ def render_dashboard(api_client):
         else:
             st.info("No recent audits found. Start one in the Assessment tab!")
 
-    else: # VIEWER
+    else:  # VIEWER
         st.info("Welcome to the Viewer Portal. Please navigate to 'Assessment' to view reports.")

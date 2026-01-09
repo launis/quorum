@@ -1,12 +1,10 @@
 import os
-import subprocess
 import sys
 from pathlib import Path
 
 
 def main():
-    """Sets up environment for Mock DB seeding and runs the backend.seed.seeder module.
-    """
+    """Sets up environment for Mock DB seeding and runs the backend.seed.seeder module."""
     print("======================================")
     print("  SEED MOCK DATABASE (Python Script)  ")
     print("======================================")
@@ -31,13 +29,14 @@ def main():
 
     try:
         # Import dynamically to ensure env vars are picked up
-        from backend.seed.seeder import seed_database
-        
         # Run Seeding
         # async run wrapper if needed, but seeder usually has a sync entry point or we run asyncio.run
         import asyncio
+
+        from backend.seed.seeder import seed_database
+
         asyncio.run(seed_database())
-        
+
         print("\n[SUCCESS] Mock DB populated successfully!")
 
     except ImportError as e:

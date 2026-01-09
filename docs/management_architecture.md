@@ -96,3 +96,17 @@ The system maintains a **3-Tier Environment** model to ensure safe promotion of 
 | **Local Mock** | `data/db_mock.json` | Sandbox for offline testing and development. | `tools/seed_mock.py` |
 | **Local Prod** | `data/db.json` | Local testing with Live LLMs (Vertex AI). | `run_rebuild_prod_db.py` |
 | **Cloud Prod** | Firestore (GCP) | Production traffic in `europe-north1`. | `scripts/seed_firestore.py` |
+
+## Operational Management (Process Hygiene)
+
+Managing the distributed components (API, Worker, Redis) requires strict process hygiene, especially in Windows development environments.
+
+### Docker-Based Orchestration
+The primary deployment interface is Docker Compose.
+*   **Startup**: `run_full_docker.bat` performs a "Clean Build & Start". It forcefully rebuilds images to ensure `worker.py` code changes are propagated.
+*   **Shutdown**: Standard `docker-compose down`.
+
+### Process Hygiene & "Zombie Kill"
+Due to the multi-process nature of the Worker and Python's behavior on Windows:
+*   **The Problem**: Terminating a terminal often leaves orphan `python.exe` or `uv` processes running in the background, holding onto file locks (TinyDB) or ports (8000).
+*   **The Protocol**: The **Nuclear Kill Mandate** is enforced via `kill_services.bat`, which aggressively terminates all related processes by name/port before restarting. This is standard operating procedure when switching environments or recovering from "Split-Brain" database states.

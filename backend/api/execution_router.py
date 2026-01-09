@@ -3,6 +3,7 @@
 This module provides endpoints for creating workflows, starting executions,
 monitoring progress, and retrieving results.
 """
+
 import json
 import logging
 from typing import Annotated, Any
@@ -108,49 +109,70 @@ async def execute_workflow(
 
     """
     # Quota Enforcement (Phase 5)
+    logger.info("[Router] Trace: 1. Request Received. Checking Quota...")
     from backend.services.usage_service import UsageService
-    
+
     usage_service = UsageService(engine.repository)
     if not await usage_service.check_quota(current_user.organization_id):
         raise HTTPException(status_code=402, detail="Organization Quota Exceeded. Please upgrade your tier.")
 
-    form = await request.form()
+    try:
+        logger.info("[Router] Trace: 2. Quota OK. Parsing Form...")
+        form = await request.form()
 
-    workflow_id = form.get("workflow_id")
-    if not workflow_id:
-        raise HTTPException(status_code=422, detail="Missing workflow_id")
+        workflow_id = form.get("workflow_id")
+        if not workflow_id:
+            raise HTTPException(status_code=422, detail="Missing workflow_id")
 
-    inputs = json.loads(form.get("inputs") or "{}")
+        inputs = json.loads(form.get("inputs") or "{}")
 
-    files_map = {}
-    for key, value in form.items():
-        if hasattr(value, "filename") and value.filename:
-            content = await value.read()
-            files_map[key] = (value.filename, content)
+        files_map = {}
+        for key, value in form.items():
+            if hasattr(value, "filename") and value.filename:
+                content = await value.read()
+                files_map[key] = (value.filename, content)
+        
+        logger.info(f"[Router] Trace: 3. Form Parsed. Files: {len(files_map)}. Writing to DB/Storage...")
 
-    # Inject User Identity into Execution Record
-    execution_id = await engine.create_execution(
-        workflow_id=workflow_id,
-        inputs=inputs,
-        files=files_map,
-        organization_id=current_user.organization_id,
-        user_id=current_user.uid,
-    )
+        # Inject User Identity into Execution Record
+        execution_id = await engine.create_execution(
+            workflow_id=workflow_id,
+            inputs=inputs,
+            files=files_map,
+            organization_id=current_user.organization_id,
+            user_id=current_user.uid,
+        )
 
-    # Fetch actual text inputs from DB for the runner
-    rec = await engine.repository.get_execution(execution_id)
-    cleaned_inputs = rec.get("inputs", {})
+        logger.info(f"[Router] Trace: 4. DB Write Success (ID: {execution_id}). Fetching cleaned inputs...")
 
-    # DEBUG: Verify inputs made it
-    input_summary = {k: len(str(v)) for k, v in cleaned_inputs.items()}
-    logger.info(
-        f"[Router] Triggering execution {execution_id} for User {current_user.uid} "
-        f"(Org: {current_user.organization_id}). Input sizes: {input_summary}"
-    )
+        # Fetch actual text inputs from DB for the runner
+        rec = await engine.repository.get_execution(execution_id)
+        cleaned_inputs = rec.get("inputs", {})
 
-    background_tasks.add_task(engine.run_execution, execution_id, cleaned_inputs)
+        # DEBUG: Verify inputs made it
+        input_summary = {k: len(str(v)) for k, v in cleaned_inputs.items()}
+        logger.info(
+            f"[Router] Triggering execution {execution_id} for User {current_user.uid} "
+            f"(Org: {current_user.organization_id}). Input sizes: {input_summary}"
+        )
 
-    return {"status": "started", "execution_id": execution_id}
+        background_tasks.add_task(
+            engine.run_execution, 
+            execution_id, 
+            cleaned_inputs, 
+            arq_pool=getattr(request.app.state, "arq_pool", None)
+        )
+        
+        logger.info("[Router] Trace: 5. Background Task Queued. Returning Response.")
+
+        return {"status": "started", "execution_id": execution_id}
+    except Exception as e:
+        logger.exception("CRITICAL FAILURE IN EXECUTION SUBMISSION")
+        # Propagate specific HTTP Exceptions
+        if isinstance(e, HTTPException):
+            raise e
+        # Convert 500s to 400s with visible messages for debugging
+        raise HTTPException(status_code=400, detail=f"Submission Error: {str(e)}")
 
 
 @router.get(
@@ -164,8 +186,7 @@ async def get_recent_executions(
     limit: int = APIQuery(5, description="Maximum number of executions to return."),
     status: str | None = APIQuery(None, description="Filter by execution status (e.g., 'completed', 'failed')."),
 ):
-    """Retrieves a list of the most recent workflow executions (Scoped by Org).
-    """
+    """Retrieves a list of the most recent workflow executions (Scoped by Org)."""
     # 1. Tenant Scope (Root sees all, others confined to Org)
     scope_org_id = current_user.organization_id if current_user.role != UserRole.ROOT else None
 
@@ -191,8 +212,7 @@ async def get_recent_executions(
     response_description="The single most recent execution record.",
 )
 async def get_latest_execution(engine: EngineDep):
-    """Retrieves the absolutely most recent execution record.
-    """
+    """Retrieves the absolutely most recent execution record."""
     all_execs = await engine.repository.get_all_executions()
     if not all_execs:
         raise HTTPException(status_code=404, detail="No executions found")
@@ -260,8 +280,7 @@ async def retry_execution(
     engine: EngineDep,
     execution_id: str = Path(..., description="The UUID of the execution to retry."),
 ):
-    """Resumes a failed, rejected, or interrupted execution from its last successful state.
-    """
+    """Resumes a failed, rejected, or interrupted execution from its last successful state."""
     status = await engine.get_execution_status(execution_id)
     if not status:
         raise HTTPException(status_code=404, detail="Execution not found")

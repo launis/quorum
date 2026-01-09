@@ -6,8 +6,7 @@ from backend.services.progress import ProgressTracker
 
 
 class AdministrationService:
-    """Coordinates administrative tasks like database exporting and rebuilding.
-    """
+    """Coordinates administrative tasks like database exporting and rebuilding."""
 
     def __init__(self, repository: AbstractWorkflowRepository):
         """Initializes the service with a repository instance.

@@ -1,7 +1,8 @@
 import 'package:client_app/features/auth/presentation/providers/mock_auth_provider.dart';
 import 'package:dio/dio.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:client_app/features/auth/presentation/providers/firebase_instance_provider.dart';
 
 /// **Authentication Interceptor**
 ///
@@ -17,9 +18,11 @@ class AuthInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    final user = FirebaseAuth.instance.currentUser;
-
     // 1. Try Firebase Auth
+    // Use safe provider -> Returns null if Firebase is missing
+    final auth = _ref.read(firebaseAuthInstanceProvider);
+    final user = auth?.currentUser;
+
     if (user != null) {
       try {
         final token = await user.getIdToken();

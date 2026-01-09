@@ -33,7 +33,7 @@ class Settings(BaseSettings):
 
     # --- API Keys ---
     google_api_key: Annotated[str | None, Field(description="Google AI Provider API Key")] = None
-    vertex_location: Annotated[str, Field(description="Google Cloud Region (e.g. europe-north1)")] = "us-central1"
+    vertex_location: Annotated[str, Field(..., description="Google Cloud Region (e.g. europe-north1)")]
 
     # --- LLM Configuration ---
     initial_model: Annotated[str, Field(description="Initial Model Strategy")] = "fast"
@@ -49,7 +49,9 @@ class Settings(BaseSettings):
     # gemini_model_fast and gemini_model_deep are deprecated.
 
     # --- Storage ---
-    storage_backend: Annotated[str, BeforeValidator(strip_whitespace), Field(description="LOCAL, NONE, or FIRESTORE")] = "LOCAL"
+    storage_backend: Annotated[
+        str, BeforeValidator(strip_whitespace), Field(description="LOCAL, NONE, or FIRESTORE")
+    ] = "LOCAL"
     environment: Annotated[str, Field(description="development, staging, or production")] = "development"
     storage_bucket_name: Annotated[str | None, Field(description="Firebase Storage Bucket Name")] = None
 

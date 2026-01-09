@@ -6,8 +6,7 @@ logger = logging.getLogger(__name__)
 
 
 class AbstractStorage(ABC):
-    """Abstract base class defining the contract for file storage backends.
-    """
+    """Abstract base class defining the contract for file storage backends."""
 
     @abstractmethod
     def save(self, path: str, data: bytes | str) -> str:
@@ -194,7 +193,10 @@ class FirebaseStorage(AbstractStorage):
             return f"gs://{self.bucket.name}/{path}"
 
         except Exception as e:
-            logger.error(f"Failed to save file to Firebase {path}: {e}")
+            msg = f"Failed to save file to Firebase {path}: {e}"
+            logger.error(msg)
+            print(f"!!! FIREBASE STORAGE ERROR: {msg}", flush=True)
+            print("!!! HINT: Did you enable 'Storage' in the Firebase Console?", flush=True)
             raise e
 
     def read(self, path: str) -> bytes:

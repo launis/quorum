@@ -1,12 +1,10 @@
 import os
-import subprocess
 import sys
 from pathlib import Path
 
 
 def main():
-    """Sets up environment for Firestore seeding and runs the backend.database.seeder module.
-    """
+    """Sets up environment for Firestore seeding and runs the backend.database.seeder module."""
     print("==========================================")
     print("  SEED FIRESTORE DATABASE (Python Script) ")
     print("==========================================")
@@ -34,9 +32,11 @@ def main():
     print("[ACTION] Importing backend.seed.seeder...\n")
 
     try:
-        from backend.seed.seeder import seed_database
         import asyncio
-        asyncio.run(seed_database())
+
+        from backend.seed.seeder import seed_database
+
+        seed_database()
 
         print("\n[SUCCESS] Firestore populated successfully!")
 

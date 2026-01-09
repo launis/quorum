@@ -5,8 +5,7 @@ from pathlib import Path
 
 
 def main():
-    """Sets up environment to reads PROD DB (data/db.json) and sync it to seed_data.json.
-    """
+    """Sets up environment to reads PROD DB (data/db.json) and sync it to seed_data.json."""
     print("=======================================")
     print("  SYNC PROD DB TO SEED (Python Script) ")
     print("=======================================")

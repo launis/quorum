@@ -1,9 +1,8 @@
-
-import sys
 import os
+import sys
 import traceback
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 modules = [
     "backend.api.admin_router",
@@ -13,7 +12,7 @@ modules = [
     "backend.api.execution_router",
     "backend.api.llm_router",
     "backend.api.tools_router",
-    "backend.main"
+    "backend.main",
 ]
 
 print("Starting FULL diagnostics...")

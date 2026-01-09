@@ -1,4 +1,5 @@
 import 'package:client_app/api/api_client.dart';
+import 'package:client_app/features/auth/presentation/providers/firebase_instance_provider.dart';
 import 'package:client_app/features/auth/domain/models/user.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase;
@@ -9,22 +10,29 @@ part 'auth_repository.g.dart';
 @riverpod
 AuthRepository authRepository(Ref ref) {
   return AuthRepository(
-    firebase.FirebaseAuth.instance,
+    ref.watch(firebaseAuthInstanceProvider),
     ref.watch(apiClientProvider),
   );
 }
 
 class AuthRepository {
-  final firebase.FirebaseAuth _firebaseAuth;
+  final firebase.FirebaseAuth? _firebaseAuth;
   final Dio _client;
 
   AuthRepository(this._firebaseAuth, this._client);
 
-  Stream<firebase.User?> authStateChanges() => _firebaseAuth.authStateChanges();
+  Stream<firebase.User?> authStateChanges() {
+    return _firebaseAuth?.authStateChanges() ?? Stream.value(null);
+  }
 
   Future<User> signInWithEmailAndPassword(String email, String password) async {
     try {
-      // 1. Authenticate with Firebase
+      if (_firebaseAuth == null) {
+        throw Exception(
+          'Firebase is not initialized. Retrieve a real token or use Mock Mode.',
+        );
+      }
+      // 1. Authenticate with Firebase (We know it's not null here)
       final userCredential = await _firebaseAuth.signInWithEmailAndPassword(
         email: email,
         password: password,
@@ -82,6 +90,6 @@ class AuthRepository {
   }
 
   Future<void> signOut() async {
-    await _firebaseAuth.signOut();
+    await _firebaseAuth?.signOut();
   }
 }

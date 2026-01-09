@@ -24,7 +24,10 @@ docker-compose up -d redis
 
 echo [1/2] Launching Backend (Uvicorn)...
 echo       Mode: FIRESTORE, REAL LLM, NO MOCK
-start "CQ Backend (PROD)" cmd /k "chcp 65001 > nul && set USE_MOCK_DB=false&& set USE_MOCK_LLM=false&& set STORAGE_BACKEND=FIRESTORE&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& uv run uvicorn backend.main:app --reload --port 8000"
+start "CQ Backend (PROD)" cmd /k "chcp 65001 > nul && set USE_MOCK_DB=false&& set USE_MOCK_LLM=false&& set STORAGE_BACKEND=FIRESTORE&& set STORAGE_BUCKET_NAME=cognitive-quorum.firebasestorage.app&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& uv run uvicorn backend.main:app --reload --port 8000"
+
+echo [1.5/2] Launching Worker (Arq)...
+start "CQ Worker (PROD)" cmd /k "chcp 65001 > nul && set USE_MOCK_DB=false&& set USE_MOCK_LLM=false&& set STORAGE_BACKEND=FIRESTORE&& set STORAGE_BUCKET_NAME=cognitive-quorum.firebasestorage.app&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& uv run python -m backend.run_worker"
 
 echo [2/2] Launching Client (Flutter)...
 start "CQ Client (PROD)" cmd /k "cd client_app && flutter run"

@@ -18,8 +18,8 @@ from backend.database.wrapper import AbstractDatabase, get_db_client
 from backend.llm.provider import LLMProvider
 from backend.models.auth import TokenData
 from backend.services.agent_registry import AgentRegistry
-from backend.services.auth import AuthService
 from backend.services.audit_service import AuditService
+from backend.services.auth import AuthService
 from backend.services.prompt_builder import PromptBuilder
 from backend.services.storage import AbstractStorage
 from backend.services.usage_service import UsageService
@@ -53,17 +53,20 @@ def get_db_client_dep() -> AbstractDatabase:
 
 
 def get_async_repository(db_client: AbstractDatabase = Depends(get_db_client_dep)) -> AbstractWorkflowRepository:
-    """Factory that returns the appropriate ASYNC-FIRST Repository implementation.
-    """
+    """Factory that returns the appropriate ASYNC-FIRST Repository implementation."""
     global _repository_instance
 
     if _repository_instance is not None:
         return _repository_instance
 
     settings = get_settings()
+    logger.warning(f"### DEBUG CONFIG ###: STORAGE='{settings.storage_backend}', MOCK_DB={settings.use_mock_db} (Env: {settings.environment})")
 
     # 1. Check for Firestore (Native Async)
-    if settings.storage_backend.upper() == "FIRESTORE" and not settings.use_mock_db:
+    if settings.storage_backend.upper() == "FIRESTORE":
+        if settings.use_mock_db:
+             raise RuntimeError("CRITICAL CONFIG ERROR: STORAGE_BACKEND=FIRESTORE implies Real DB, but USE_MOCK_DB=True. Check your .bat file or .env variables.")
+        
         from backend.database.firestore_repo import FirestoreWorkflowRepository
 
         logger.info("[Dependencies] Initializing Native Async Firestore.")
@@ -112,18 +115,34 @@ def get_storage_service_dep() -> AbstractStorage:
     settings = get_settings()
     from backend.services.storage import FirebaseStorage, LocalFileStorage, NoOpStorage
 
+    # Remove debug logging
+    # logger.warning(f"### DEBUG CONFIG ###: ...")
+
+    print(f"!!! DEBUG DEPENDENCIES !!! Backend={settings.storage_backend}, Bucket={settings.storage_bucket_name}", flush=True)
+
     if settings.storage_backend == "NONE":
         logger.info("[Dependencies] Storage disabled (NoOp).")
+        print("!!! DEBUG !!! Selected NoOpStorage", flush=True)
         _storage_service_instance = NoOpStorage()
 
     # Logic matched with repository selection: FIRESTORE means Cloud
     elif settings.storage_backend.upper() == "FIRESTORE" and not settings.use_mock_db:
-        logger.info("[Dependencies] Initializing Firebase Cloud Storage.")
-        # Bucket name can be fetched from settings if needed, defaulting to None (default bucket)
-        _storage_service_instance = FirebaseStorage()
+        bucket_name = settings.storage_bucket_name
+        print(f"!!! DEBUG !!! Entering FIRESTORE block. Bucket: {bucket_name}", flush=True)
+        
+        if bucket_name:
+            logger.info(f"[Dependencies] Initializing Firebase Cloud Storage (Bucket: {bucket_name}).")
+            _storage_service_instance = FirebaseStorage(bucket_name=bucket_name)
+        else:
+            print("!!! DEBUG !!! Bucket Missing in FIRESTORE mode!", flush=True)
+            # STRICT ZERO-FALLBACK
+            msg = "CRITICAL: Firestore backend selected but STORAGE_BUCKET_NAME is missing. Zero-fallback policy in effect."
+            logger.critical(msg)
+            raise RuntimeError(msg)
 
     else:
         logger.info("[Dependencies] Initializing Local File Storage.")
+        print("!!! DEBUG !!! Selected LocalFileStorage", flush=True)
         _storage_service_instance = LocalFileStorage()
 
     return _storage_service_instance
@@ -145,7 +164,6 @@ def get_audit_service(
     return _audit_service_instance
 
 
-
 def get_auth_service(
     db_client: AbstractDatabase = Depends(get_db_client_dep),
     settings: Settings = Depends(get_settings_dep),
@@ -157,9 +175,10 @@ def get_auth_service(
     global _auth_service_instance
     if _auth_service_instance is None:
         import os
-        use_firebase = (
-            settings.storage_backend.upper() == "FIRESTORE" and not settings.use_mock_db
-        ) or os.getenv("USE_FIREBASE_AUTH", "false").lower() == "true"
+
+        use_firebase = (settings.storage_backend.upper() == "FIRESTORE" and not settings.use_mock_db) or os.getenv(
+            "USE_FIREBASE_AUTH", "false"
+        ).lower() == "true"
         logger.info(f"[Dependencies] Initializing AuthService (Firebase={use_firebase})...")
         _auth_service_instance = AuthService(db_client, use_firebase=use_firebase, audit_service=audit_service)
 
@@ -167,7 +186,6 @@ def get_auth_service(
         _auth_service_instance.ensure_root_user()
 
     return _auth_service_instance
-
 
 
 def get_usage_service(
@@ -180,8 +198,6 @@ def get_usage_service(
     return _usage_service_instance
 
 
-
-
 async def get_engine(
     repository: AbstractWorkflowRepository = Depends(get_async_repository),
     registry: AgentRegistry = Depends(get_agent_registry_dep),
@@ -189,8 +205,7 @@ async def get_engine(
     storage_service: AbstractStorage = Depends(get_storage_service_dep),
     document_service: Any = Depends(get_document_service_dep),
 ) -> WorkflowEngine:
-    """Dependency to provide a Singleton WorkflowEngine.
-    """
+    """Dependency to provide a Singleton WorkflowEngine."""
     global _engine_instance
     if _engine_instance is None:
         logger.info("[Dependencies] Initializing Singleton WorkflowEngine (Async Mode)...")
@@ -254,9 +269,7 @@ async def get_llm_provider(
     if not provider_type:
         raise ValueError(f"[get_llm_provider] 'provider' missing for strategy '{model_strategy}'.")
 
-    return LLMFactory.create_provider(
-        provider_type=provider_type, model_name=model_name, usage_service=usage_service
-    )
+    return LLMFactory.create_provider(provider_type=provider_type, model_name=model_name, usage_service=usage_service)
 
 
 def get_llm_provider_factory(strategy: str):

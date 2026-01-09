@@ -83,7 +83,7 @@ class AgentRegistry:
         # 3. Fail if not found
         # Collect available strategies for error message
         available = []
-        for p, s in dynamic_strategies_map.items():
+        for _p, s in dynamic_strategies_map.items():
             available.extend(s.keys())
 
         err_msg = (
@@ -139,7 +139,7 @@ class AgentRegistry:
         from backend.core.factory import AgentFactory
         from backend.settings import get_settings
 
-        settings = get_settings()
+        get_settings()
         logger.info("[AgentRegistry] Loading agents via AgentFactory...")
 
         try:

@@ -437,8 +437,7 @@ class WorkflowEngine:
             clear_execution_context()
 
     async def recover_interrupted_jobs(self):
-        """Scans for and resumes jobs that were interrupted (e.g. by server restart).
-        """
+        """Scans for and resumes jobs that were interrupted (e.g. by server restart)."""
         logger.info("[WorkflowEngine] Scanning for interrupted jobs...")
         try:
             all_executions = await self.repository.get_all_executions()
@@ -561,7 +560,7 @@ class WorkflowEngine:
         full_state = state.model_dump(mode="json")
 
         # 2. Augment with dynamic steps that might not be in to_flat_dict explicit logic
-        for agent, step_doc in pipeline_steps:
+        for _agent, step_doc in pipeline_steps:
             state_key = step_doc.get("state_key")
             hoist_fields = step_doc.get("hoist_fields", [])
 

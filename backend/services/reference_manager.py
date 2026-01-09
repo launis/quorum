@@ -115,11 +115,9 @@ class ReferenceManager:
                 # If "Smith & Jones 2020" is in text, but Map has "Smith et al. 2020"
                 # This requires more complex logic.
                 # For now, check if map key is substring of text citation or vice versa
-                found = False
                 for map_key, full_ref in self.references_map.items():
                     if map_key in clean_lower or clean_lower in map_key:
                         used_refs.add(full_ref)
-                        found = True
                         break
 
     def advanced_scan(self, text_dump: str) -> dict[str, list[str]]:

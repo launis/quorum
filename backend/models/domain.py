@@ -4,6 +4,7 @@ This module contains the core domain models representing the output of various
 AI agents (Analyzer, Profiler, Logician, etc.) and the structure of the
 audit report components.
 """
+
 from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -90,7 +91,7 @@ class SecurityCheck(BaseModel):
 
 class TaintedDataContent(BaseModel):
     """Wrapper for file pointers to potential PII-laden content.
-    
+
     Attributes:
         keskusteluhistoria (Optional[str]): Pointer to history file.
         lopputuote (Optional[str]): Pointer to product file.

@@ -11,13 +11,39 @@ services:
       - USE_MOCK_LLM=false
       - USE_MOCK_DB=false
       - STORAGE_BACKEND=FIRESTORE
+      - STORAGE_BUCKET_NAME=cognitive-quorum.firebasestorage.app
       - USE_VERTEX_LLM=true
+      - VERTEX_LOCATION=europe-north1
       - GOOGLE_APPLICATION_CREDENTIALS=/app/service-account.json
       # Allow local override via .env if needed, but defaults above are safer for container logic
     volumes:
       - ./backend:/app/backend
       - ./data:/app/data
       - ./service-account.json:/app/service-account.json
+    networks:
+      - quorum-net
+
+  worker:
+    build: ./backend
+    container_name: quorum-worker
+    command: python -m backend.run_worker
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - USE_MOCK_LLM=false
+      - USE_MOCK_DB=false
+      - STORAGE_BACKEND=FIRESTORE
+      - STORAGE_BUCKET_NAME=cognitive-quorum.appspot.com
+      - USE_VERTEX_LLM=true
+      - VERTEX_LOCATION=europe-north1
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/service-account.json
+    volumes:
+      - ./backend:/app/backend
+      - ./data:/app/data
+      - ./service-account.json:/app/service-account.json
+    depends_on:
+      - redis
+      - backend
     networks:
       - quorum-net
 

@@ -1,15 +1,15 @@
-
 import json
 import os
 
 DB_PATH = "backend/database/db_mock.json"
+
 
 def clean_protector():
     if not os.path.exists(DB_PATH):
         print(f"File not found: {DB_PATH}")
         return
 
-    with open(DB_PATH, "r", encoding="utf-8") as f:
+    with open(DB_PATH, encoding="utf-8") as f:
         data = json.load(f)
 
     workflows = data.get("workflows", {})
@@ -24,7 +24,7 @@ def clean_protector():
         return
 
     print(f"Found {len(to_delete)} 'Protector' workflows to delete: {to_delete}")
-    
+
     for wf_id in to_delete:
         del workflows[wf_id]
 
@@ -32,8 +32,9 @@ def clean_protector():
 
     with open(DB_PATH, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
-    
+
     print("Cleanup complete.")
+
 
 if __name__ == "__main__":
     clean_protector()

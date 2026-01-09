@@ -4,6 +4,7 @@ This module defines the `WorkflowState` and `InputData` models, which serve as t
 "blackboard" or shared memory for the entire execution pipeline. It handles
 the persistence of agent outputs and the continuity of the reasoning process.
 """
+
 import logging
 from datetime import datetime
 from typing import Annotated, Any
@@ -46,9 +47,7 @@ class InputData(BaseModel):
     reflection_text: Annotated[str, Field(description="Self-reflection or meta-commentary provided by the user.")]
 
     # Optional bibliography context
-    bibliography_context: Annotated[list[str] | None, Field(description="Optional list of reference citations.")] = (
-        None
-    )
+    bibliography_context: Annotated[list[str] | None, Field(description="Optional list of reference citations.")] = None
 
     model_config = ConfigDict(validate_assignment=True)
 
@@ -129,9 +128,9 @@ class WorkflowState(BaseModel):
         Field(description="Agent 7: Performativity & Authenticity."),
     ] = None
     step_judge: Annotated[TuomioJaPisteet | None, Field(description="Agent 9: Scoring & Verdict.")] = None
-    step_judge_cognitive: Annotated[
-        TuomioJaPisteet | None, Field(description="Agent 9b: Cognitive BARS Scoring.")
-    ] = None
+    step_judge_cognitive: Annotated[TuomioJaPisteet | None, Field(description="Agent 9b: Cognitive BARS Scoring.")] = (
+        None
+    )
     step_archivist: Annotated[CaseLawContext | None, Field(description="Agent 8a: Historical alignment.")] = None
     step_coach: Annotated[CoachingPlan | None, Field(description="Agent 8c: Feedback & Action Plan.")] = None
     step_interaction: Annotated[
@@ -214,8 +213,7 @@ class WorkflowState(BaseModel):
         return "\n".join(summary)
 
     def get_latest_reasoning_metadata(self) -> dict[str, str] | None:
-        """Retrieves the reasoning metadata (token + model) from the most recently executed relevant step.
-        """
+        """Retrieves the reasoning metadata (token + model) from the most recently executed relevant step."""
         priority_steps = ["step_panel", "step_coach", "step_judge", "step_judge_cognitive", "step_analyst"]
         for step_id in priority_steps:
             if step_id in self.reasoning_context:

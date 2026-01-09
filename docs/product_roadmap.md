@@ -67,6 +67,8 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **Operational Hardening**: Implemented URL Safety (SSRF), Quota Checks, and Integrity Audits.
 - [x] **Crash Recovery**: Established standardized DB Reset protocols (`seed_prod.py`) and Integrity Checks.
 - [x] **Containerization**: Full Docker support (Virtual Environment Parity, Strict `.dockerignore`, Multi-stage Builds).
+- [ ] **Config SSOT**: Refactor `docker-compose.yml` to use `.env` interpolation (Single Source of Truth) to avoid configuration drift.
+- [x] **Worker Environment Parity**: Worker successfully verified in Local (TinyDB), Local (Firestore), and Docker (Firestore) environments.
 
 ### 1.4 Scalability Architecture (Future)
 - [x] **Distributed Task Queue**: `Arq` with Redis implementation (`backend/worker.py`) for durable job execution.
@@ -155,12 +157,4 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 2.  **SaaS Billing Integration**:
     *   Backend has `billing_id` and `subscription_status`, but no payment gateway connection.
     *   **Need**: Stripe/Paddle integration to automate status updates via Webhooks.
-    *   **Need**: Stripe/Paddle integration to automate status updates via Webhooks.
-4.  **Test Data Management**:
-    *   `seed_data.json` is the source of truth but fragile.
-    *   **Need**: A dedicated Test Data Factory or Fixture system to generate comprehensive scenarios without manual JSON editing.
-5.  **Python 3.14 & Modern Pydantic**:
-    *   Currently downgraded to Python 3.13 due to `pydantic-core` build issues and required `from __future__` hacks.
-6.  **Advanced Execution Strategies (On Demand)**:
-    *   **Parallel Execution**: Implement DAG-based concurrent step execution (utilizing `execute_workflow_task` separation) for high-volume analysis.
-    *   **Microservice Decoupling**: Transition from Python Direct Call hooks to network-based service calls only when scaling demands strict separation.
+

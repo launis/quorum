@@ -89,7 +89,7 @@ def normalize_tinydb(db_data: dict[str, Any]) -> dict[str, Any]:
 
 def normalize_seed(seed_data: dict[str, Any]) -> dict[str, Any]:
     """Normalizes seed_data.json structure for comparison.
-    Seed data is usually {"table_name": [ ...list... ]}
+    Seed data is usually {"table_name": [ ...list... ]}.
     """
     normalized = {}
     for table_name, table_content in seed_data.items():
@@ -166,8 +166,7 @@ except ImportError:
 
 
 def load_firestore_data(credentials_path: Path, seed_keys: set[str]) -> dict[str, Any]:
-    """Fetches data from Firestore for keys present in seed_data.
-    """
+    """Fetches data from Firestore for keys present in seed_data."""
     if not firestore:
         logger.warning("google-cloud-firestore not installed. Skipping Firestore verification.")
         return {}
@@ -305,7 +304,7 @@ def run_verification(seed_path: Path, db_prod_path: Path, db_mock_path: Path, fi
         max_ts = datetime.min.replace(tzinfo=UTC)
 
         if isinstance(data, dict):
-            for k, v in data.items():
+            for _k, v in data.items():
                 if isinstance(v, (dict, list)):
                     ts = get_max_timestamp(v)
                     if ts > max_ts:

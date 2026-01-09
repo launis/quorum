@@ -3,14 +3,16 @@
 This module provides multitenancy endpoints for creating, updating, and
 retrieving organization details.
 """
+
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
 from backend.dependencies import AuthServiceDep, CurrentUserDep, RepositoryDep
-from backend.models.auth import Organization, TokenData, UserRole, SubscriptionStatus
+from backend.models.auth import Organization, SubscriptionStatus, TokenData, UserRole
 from backend.services.auth import AuthService
+
 
 # --- Pydantic Models ---
 class OrganizationCreateRequest(BaseModel):
@@ -111,17 +113,19 @@ async def create_organization(
     # AUDIT LOG (Phase 3)
     try:
         from backend.services.audit_service import AuditService
+
         audit = AuditService(repo)
         await audit.log_event(
             actor_uid=user.uid,
             action="ORG_CREATED",
             organization_id=item["id"],
-            details={"name": item["name"], "tier": item["tier"]}
+            details={"name": item["name"], "tier": item["tier"]},
         )
     except Exception as e:
         with open("backend_error.log", "w") as f:
             f.write(f"AUDIT ERROR: {e}\n")
             import traceback
+
             traceback.print_exc(file=f)
         raise e
 
@@ -288,27 +292,25 @@ async def delete_organization(
     # Prevent deleting Org if it has running jobs.
     all_execs = await repo.get_all_executions(organization_id=org_id)
     active_execs = [e for e in all_execs if e.get("status") in ["running", "pending", "queued"]]
-    
+
     if active_execs:
         raise HTTPException(
-            status_code=409, 
-            detail=f"Cannot delete Organization '{org_id}' while it has {len(active_execs)} active execution(s). Cancel them first."
+            status_code=409,
+            detail=f"Cannot delete Organization '{org_id}' while it has {len(active_execs)} active execution(s). Cancel them first.",
         )
 
     # 3. Delete Users & Org Entity (AuthService)
     # This also enforces constraints like checking if org is system (redundant but safe)
     try:
         await auth_service.delete_organization(user.uid, org_id)
-        
+
         # AUDIT LOG (Phase 3)
         try:
             from backend.services.audit_service import AuditService
+
             audit = AuditService(repo)
             await audit.log_event(
-                actor_uid=user.uid,
-                action="ORG_DELETED",
-                organization_id=org_id,
-                details={"reason": "admin_action"}
+                actor_uid=user.uid, action="ORG_DELETED", organization_id=org_id, details={"reason": "admin_action"}
             )
         except Exception:
             pass
@@ -377,7 +379,7 @@ async def create_organization_user(
         display_name=user_data.display_name,
         role=user_data.role,
         password=user_data.password,
-        organization_id=org_id
+        organization_id=org_id,
     )
 
     try:
@@ -385,10 +387,11 @@ async def create_organization_user(
         # Note: AuthService is sync, but running in FastApi threadpool is acceptable pattern for now
         # given the complexity of refactoring it fully.
         new_user = await auth_service.create_user(creator_uid=user.uid, user_data=internal_payload)
-        
+
         # AUDIT LOG (Phase 3)
         try:
             from backend.services.audit_service import AuditService
+
             # We need Repo for Audit, but AuthServiceDep might opaque it.
             # Usually AuthService has .repo.
             audit = AuditService(auth_service.repo)
@@ -397,11 +400,11 @@ async def create_organization_user(
                 action="USER_CREATED",
                 organization_id=org_id,
                 target_uid=new_user.uid,
-                details={"email": new_user.email, "role": new_user.role}
+                details={"email": new_user.email, "role": new_user.role},
             )
         except Exception:
             pass
-            
+
         return new_user
     except PermissionError as e:
         raise HTTPException(status_code=403, detail=str(e))
@@ -417,8 +420,7 @@ async def delete_organization_user(
     repo: RepositoryDep,
     auth_service: AuthServiceDep,
 ):
-    """Delete a user from an organization.
-    """
+    """Delete a user from an organization."""
     # 1. Access Control
     if user.role != UserRole.ROOT:
         if user.organization_id != org_id:
@@ -430,12 +432,14 @@ async def delete_organization_user(
     # Users own Executions. If they have active ones, block delete.
     # Note: Workflows are Org-owned, so no check needed there.
     user_execs = await repo.get_all_executions(organization_id=org_id)
-    active_user_execs = [e for e in user_execs if e.get("user_id") == target_uid and e.get("status") in ["running", "pending", "queued"]]
+    active_user_execs = [
+        e for e in user_execs if e.get("user_id") == target_uid and e.get("status") in ["running", "pending", "queued"]
+    ]
 
     if active_user_execs:
         raise HTTPException(
-            status_code=409, 
-            detail=f"Cannot delete user '{target_uid}'. They have {len(active_user_execs)} active execution(s)."
+            status_code=409,
+            detail=f"Cannot delete user '{target_uid}'. They have {len(active_user_execs)} active execution(s).",
         )
 
     # 3. Delete via AuthService
@@ -445,18 +449,15 @@ async def delete_organization_user(
         # AUDIT LOG (Phase 3)
         try:
             from backend.services.audit_service import AuditService
+
             audit = AuditService(repo)
             await audit.log_event(
-                actor_uid=user.uid,
-                action="USER_DELETED",
-                organization_id=org_id,
-                target_uid=target_uid,
-                details={}
+                actor_uid=user.uid, action="USER_DELETED", organization_id=org_id, target_uid=target_uid, details={}
             )
         except Exception:
             pass
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
-    
+
     return None

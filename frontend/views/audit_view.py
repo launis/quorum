@@ -1,4 +1,3 @@
-
 import streamlit as st
 
 from frontend.components.audit.controls import render_controls
@@ -25,17 +24,17 @@ def render_audit_view(api_client: APIClient, backend_url: str, workflow_options:
         selected_workflow_id = st.sidebar.selectbox(
             "Valitse Työnkulku (Select Workflow)",
             options=list(workflow_options.keys()),
-            format_func=lambda x: workflow_options[x].get('name', x),
-            key="ui_selected_workflow_id"
+            format_func=lambda x: workflow_options[x].get("name", x),
+            key="ui_selected_workflow_id",
         )
         # Show Model Mapping snippet (simplified from original ui.py)
         if selected_workflow_id:
-             st.sidebar.subheader("Model Mapping")
-             wf = workflow_options[selected_workflow_id]
-             mapping = wf.get('default_model_mapping', {})
-             if mapping:
-                 for step, model in mapping.items():
-                     st.sidebar.caption(f"**{step}**: `{model}`")
+            st.sidebar.subheader("Model Mapping")
+            wf = workflow_options[selected_workflow_id]
+            mapping = wf.get("default_model_mapping", {})
+            if mapping:
+                for step, model in mapping.items():
+                    st.sidebar.caption(f"**{step}**: `{model}`")
     else:
         st.sidebar.warning("No workflows found.")
 
@@ -46,7 +45,7 @@ def render_audit_view(api_client: APIClient, backend_url: str, workflow_options:
     render_controls(api_client, selected_workflow_id, uploaded_files)
 
     # 4. Progress / Status
-    job_id = st.session_state.get('active_job_id')
+    job_id = st.session_state.get("active_job_id")
     if job_id:
         render_execution_status(api_client, job_id, selected_workflow_id, workflow_options, backend_url)
 
@@ -54,25 +53,25 @@ def render_audit_view(api_client: APIClient, backend_url: str, workflow_options:
     st.subheader("Historia")
     with st.expander("Selaa aiempia ajoja", expanded=False):
         if st.button("Hae viimeiset 5 ajoa"):
-            token = st.session_state.get('auth_token')
+            token = st.session_state.get("auth_token")
             runs = api_client.get_recent_runs(token=token)
             if runs:
-                st.session_state['recent_runs'] = runs
+                st.session_state["recent_runs"] = runs
             else:
                 st.warning("Ei ajoja löytynyt tai yhteysvirhe.")
 
-        if 'recent_runs' in st.session_state and st.session_state['recent_runs']:
-            runs = st.session_state['recent_runs']
+        if "recent_runs" in st.session_state and st.session_state["recent_runs"]:
+            runs = st.session_state["recent_runs"]
             # Sort generic dict safely
             run_options = {f"{r.get('start_time', 'N/A')} - {r.get('status')}": r for r in runs}
             selected_label = st.selectbox("Valitse ajo:", options=list(run_options.keys()))
 
             if st.button("Lataa valittu tulos"):
                 selected_run = run_options[selected_label]
-                if selected_run.get('status') == 'completed':
-                    if 'result' in selected_run:
+                if selected_run.get("status") == "completed":
+                    if "result" in selected_run:
                         st.success(f"Ladattu ajo: {selected_run.get('execution_id')}")
-                        render_dashboard(selected_run['result'])
+                        render_dashboard(selected_run["result"])
                     else:
                         st.warning("Valitussa ajossa ei ole tulosta.")
                 else:

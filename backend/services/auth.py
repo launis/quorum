@@ -1,10 +1,11 @@
 from __future__ import annotations
+
 import logging
-import jwt
 import time
 import uuid
-
 from typing import Any
+
+import jwt
 
 # Secure Secret for Local Tokens (Impersonation)
 # In production, this MUST be set via environment variable.
@@ -121,8 +122,7 @@ class UserRepository:
         return [User(**u) for u in raw_users]
 
     def delete(self, uid: str) -> bool:
-        """Hard delete user from DB.
-        """
+        """Hard delete user from DB."""
         # TinyDB remove
         ids = self.table.remove(Query().uid == uid)
         return len(ids) > 0
@@ -132,8 +132,7 @@ class UserRepository:
 
 
 class AuthService:
-    """Hybrid Auth Service with Multi-Tenancy (SaaS).
-    """
+    """Hybrid Auth Service with Multi-Tenancy (SaaS)."""
 
     def __init__(self, db_client: AbstractDatabase, use_firebase: bool = False, audit_service: Any = None):
         self.repo = UserRepository(db_client)
@@ -171,7 +170,7 @@ class AuthService:
             "sub": target_uid,
             "exp": time.time() + duration_seconds,
             "iat": time.time(),
-            "type": "impersonation"
+            "type": "impersonation",
         }
         token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
         return token
@@ -203,7 +202,7 @@ class AuthService:
                 uid = token.split(":")[1]
             else:
                 uid = token
-            
+
             # Check if user exists in our DB
             user = self.repo.get_by_uid(uid)
             if not user:
@@ -244,8 +243,6 @@ class AuthService:
         """Creates a new Tenant Organization and an initial Admin user for it.
         Strictly Async.
         """
-        import asyncio
-
         creator = self.repo.get_by_uid(creator_uid)
         if not creator or creator.role != UserRole.ROOT:
             raise PermissionError("Only ROOT can create organizations.")
@@ -275,14 +272,13 @@ class AuthService:
                 action="ORG_CREATED",
                 organization_id=org_id,
                 target_uid=org_id,
-                details={"name": new_org.name, "tier": new_org.tier}
+                details={"name": new_org.name, "tier": new_org.tier},
             )
 
         return new_org
 
     async def create_user(self, creator_uid: str, user_data: UserCreate) -> User:
-        """Creates a new user, enforcing hierarchy and tenancy.
-        """
+        """Creates a new user, enforcing hierarchy and tenancy."""
         return await self._create_user_internal(creator_uid, user_data)
 
     async def _create_user_internal(self, creator_uid: str, user_data: UserCreate, force_org_id: str = None) -> User:
@@ -303,22 +299,20 @@ class AuthService:
         if user_data.role == UserRole.ROOT:
             if target_org_id != "system":
                 raise ValueError("Root users can only be created within the System Organization.")
-            target_org_id = "system" # Redundant safety, but ensures it matches
+            target_org_id = "system"  # Redundant safety, but ensures it matches
 
         # RULE: Organization MUST exist
         if target_org_id:
-             if target_org_id == "system":
-                 # System org acts as a special bootstrap case, but usually should exist.
-                 # We'll allow it specifically if we are bootstrapping, otherwise check valid.
-                 # Given ensure_root_user creates it, we can enforce check or just pass for resilience.
-                 # Let's check it strictly.
-                 pass
-             
-             org_exists = self.org_repo.get_by_id(target_org_id)
-             if not org_exists:
-                 raise ValueError(f"Target Organization '{target_org_id}' does not exist.")
+            if target_org_id == "system":
+                # System org acts as a special bootstrap case, but usually should exist.
+                # We'll allow it specifically if we are bootstrapping, otherwise check valid.
+                # Given ensure_root_user creates it, we can enforce check or just pass for resilience.
+                # Let's check it strictly.
+                pass
 
-
+            org_exists = self.org_repo.get_by_id(target_org_id)
+            if not org_exists:
+                raise ValueError(f"Target Organization '{target_org_id}' does not exist.")
 
         # Enforce Role Hierarchy
         self._enforce_hierarchy(creator, user_data.role)
@@ -363,7 +357,7 @@ class AuthService:
                 action="USER_CREATED",
                 organization_id=target_org_id,
                 target_uid=new_uid,
-                details={"email": new_user.email, "role": new_user.role.value}
+                details={"email": new_user.email, "role": new_user.role.value},
             )
 
         return saved_user
@@ -378,7 +372,7 @@ class AuthService:
         if creator.role == UserRole.MANAGER:
             raise PermissionError("Managers are Technical Leads and cannot manage users. Ask an Admin.")
         if creator.role == UserRole.MEMBER:
-             raise PermissionError("This user role cannot create users")
+            raise PermissionError("This user role cannot create users")
 
         raise PermissionError("This user role cannot create users")
 
@@ -389,8 +383,7 @@ class AuthService:
         return sum(1 for u in all_users if u.organization_id == org_id and u.role == UserRole.ADMIN)
 
     async def delete_user(self, initiator_uid: str, target_uid: str) -> bool:
-        """Delete a user, with Last Admin Protection.
-        """
+        """Delete a user, with Last Admin Protection."""
         initiator = self.repo.get_by_uid(initiator_uid)
         target = self.repo.get_by_uid(target_uid)
 
@@ -433,14 +426,13 @@ class AuthService:
                 action="USER_DELETED",
                 organization_id=target.organization_id,
                 target_uid=target_uid,
-                details={"email": target.email}
+                details={"email": target.email},
             )
 
         return True
 
     async def delete_organization(self, initiator_uid: str, target_org_id: str) -> None:
-        """Deletes an Organization and ALL its users.
-        """
+        """Deletes an Organization and ALL its users."""
         initiator = self.repo.get_by_uid(initiator_uid)
 
         if not initiator or initiator.role != UserRole.ROOT:
@@ -461,7 +453,7 @@ class AuthService:
 
         # 3. Delete Org Entity
         self.org_repo.table.remove(Query().id == target_org_id)
-        
+
         # Audit
         if self.audit_service:
             await self.audit_service.log_event(
@@ -469,9 +461,8 @@ class AuthService:
                 action="ORG_DELETED",
                 organization_id=target_org_id,
                 target_uid=target_org_id,
-                details={"users_deleted": len(org_users)}
+                details={"users_deleted": len(org_users)},
             )
-
 
     async def update_user(self, initiator_uid: str, target_uid: str, updates: UserUpdate) -> User:
         """General update method.
@@ -513,7 +504,7 @@ class AuthService:
                 action="USER_UPDATED",
                 organization_id=target.organization_id,  # Log under target's org
                 target_uid=target_uid,
-                details=changed_fields
+                details=changed_fields,
             )
 
         return updated_user
@@ -576,7 +567,7 @@ class AuthService:
         from_header=None,  # Placeholder to match Depends signature if needed, but we delegate
     ):
         """Dependency alias for getting current user via header.
-        Intended usage: user: TokenData = Depends(AuthService.get_current_user)
+        Intended usage: user: TokenData = Depends(AuthService.get_current_user).
         """
         from backend.dependencies import get_current_user_from_header
 

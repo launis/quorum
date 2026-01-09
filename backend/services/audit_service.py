@@ -19,10 +19,9 @@ Schema:
 """
 
 import logging
-import time
 import uuid
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from backend.database.repository import AbstractWorkflowRepository
 
@@ -30,6 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 from backend.models.audit import AuditEvent
+
 
 class AuditService:
     def __init__(self, repo: AbstractWorkflowRepository):
@@ -39,9 +39,9 @@ class AuditService:
         self,
         actor_uid: str,
         action: str,
-        organization_id: Optional[str] = None,
-        target_uid: Optional[str] = None,
-        details: Optional[dict[str, Any]] = None,
+        organization_id: str | None = None,
+        target_uid: str | None = None,
+        details: dict[str, Any] | None = None,
     ):
         """Records an audit event."""
         event = AuditEvent(
@@ -53,9 +53,9 @@ class AuditService:
             target_uid=target_uid,
             details=details or {},
         )
-        
+
         entry = event.model_dump()
-        
+
         try:
             await self.repo.log_audit_event(entry)
             logger.info(f"[AUDIT] {action} by {actor_uid} in {organization_id}")
@@ -64,15 +64,12 @@ class AuditService:
 
     async def get_logs(
         self,
-        organization_id: Optional[str] = None,
-        actor_uid: Optional[str] = None,
-        action: Optional[str] = None,
-        limit: int = 100
+        organization_id: str | None = None,
+        actor_uid: str | None = None,
+        action: str | None = None,
+        limit: int = 100,
     ) -> list[dict[str, Any]]:
         """Retrieves audit logs."""
         return await self.repo.get_audit_logs(
-            organization_id=organization_id,
-            actor_uid=actor_uid,
-            action=action,
-            limit=limit
+            organization_id=organization_id, actor_uid=actor_uid, action=action, limit=limit
         )

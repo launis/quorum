@@ -1,9 +1,9 @@
-
 """API Router for Authentication and User Management.
 
 This module provides endpoints for user login (token verification), registration,
 profile management, and organization administration.
 """
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
@@ -39,11 +39,13 @@ class LoginResponse(BaseModel):
 
 class ImpersonationRequest(BaseModel):
     """Request payload for impersonation."""
+
     target_uid: str
 
 
 class ImpersonationResponse(BaseModel):
     """Response containing the impersonation token."""
+
     access_token: str
     token_type: str = "bearer"
 

@@ -3,6 +3,7 @@
 This module provides endpoints for file processing (text extraction),
 web scraping, and concept extraction.
 """
+
 import logging
 import os
 import shutil
@@ -168,6 +169,7 @@ async def scrape_url(url: str = Body(..., embed=True)):
         logger.error(f"Scraping failed: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
+
 def _validate_url_safety(url: str):
     """Validates URL to prevent SSRF and unsafe usage.
 
@@ -175,21 +177,21 @@ def _validate_url_safety(url: str):
     1. Scheme is http/https.
     2. Hostname is not private/local (localhost, 127.0.0.1, 10.x, 192.168.x, 172.16.x).
     """
-    from urllib.parse import urlparse
-    import socket
     import ipaddress
+    import socket
+    from urllib.parse import urlparse
 
     parsed = urlparse(url)
     if parsed.scheme not in ("http", "https"):
         raise ValueError("Invalid URL scheme. Only http/https allowed.")
-    
+
     hostname = parsed.hostname
     if not hostname:
         raise ValueError("Invalid URL: no hostname.")
 
     # Check for direct loopback/private usage
     if hostname.lower() in ("localhost", "0.0.0.0"):
-         raise ValueError("Access to local network resources is forbidden.")
+        raise ValueError("Access to local network resources is forbidden.")
 
     try:
         # Resolve to IP to check against private ranges
@@ -197,7 +199,7 @@ def _validate_url_safety(url: str):
         ip = ipaddress.ip_address(ip_str)
 
         if ip.is_loopback or ip.is_private or ip.is_reserved:
-             raise ValueError(f"Access to private IP {ip_str} is forbidden.")
+            raise ValueError(f"Access to private IP {ip_str} is forbidden.")
     except Exception as e:
         # If we can't resolve, it might be an internal name or invalid. Block to be safe?
         # Or if it's a ValueError from above, re-raise.

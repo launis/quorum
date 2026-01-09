@@ -3,6 +3,7 @@
 This module provides endpoints for direct LLM model interaction, batch processing,
 and managing the Model Registry configuration.
 """
+
 import asyncio
 import logging
 from typing import Annotated, Any

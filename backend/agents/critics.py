@@ -1,5 +1,7 @@
 """Critics Agents implementation (Falsifier, Overseer, Causal, Detector)."""
+
 from __future__ import annotations
+
 import logging
 from typing import TYPE_CHECKING
 

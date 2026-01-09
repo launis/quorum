@@ -174,7 +174,7 @@ class AbstractWorkflowRepository(ABC):
         organization_id: str | None = None,
         actor_uid: str | None = None,
         action: str | None = None,
-        limit: int = 100
+        limit: int = 100,
     ) -> list[dict[str, Any]]:
         """Retrieves audit logs with optional filtering."""
         pass
@@ -445,8 +445,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
         await self._run(_delete)
 
     async def delete_org_data(self, org_id: str):
-        """Cascading delete for organization data (Workflows, Executions).
-        """
+        """Cascading delete for organization data (Workflows, Executions)."""
 
         def _delete_data():
             # 1. Delete Workflows
@@ -467,6 +466,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
                         continue
                 total += float(log.get("cost_usd", 0.0))
             return total
+
         return await self._run(_calc)
 
     async def log_usage(self, record: Any):
@@ -512,16 +512,18 @@ class TinyDBRepository(AbstractWorkflowRepository):
         organization_id: str | None = None,
         actor_uid: str | None = None,
         action: str | None = None,
-        limit: int = 100
+        limit: int = 100,
     ) -> list[dict[str, Any]]:
         def _get():
             # TinyDB doesn't do complex querying efficiently, so we filter in Python for now.
             # In a real DB we'd index this.
             all_logs = self.audit_logs.all()
             with open("backend_debug.log", "a") as f:
-                f.write(f"REPO: get_audit_logs found {len(all_logs)} entries. Requested: org={organization_id}, action={action}\n")
+                f.write(
+                    f"REPO: get_audit_logs found {len(all_logs)} entries. Requested: org={organization_id}, action={action}\n"
+                )
                 if len(all_logs) > 0:
-                     f.write(f"REPO: last log: {all_logs[-1]}\n")
+                    f.write(f"REPO: last log: {all_logs[-1]}\n")
 
             # Filter
             filtered = []
@@ -547,6 +549,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
             # Assuming 'uid' is the key in users table
             res = self.users.search(Q.uid == uid)
             return res[0] if res else None
+
         return await self._run(_get)
 
     async def list_users(self, organization_id: str | None = None) -> list[dict[str, Any]]:
@@ -554,6 +557,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
             if organization_id:
                 return self.users.search(Query().organization_id == organization_id)
             return self.users.all()
+
         return await self._run(_list)
 
 

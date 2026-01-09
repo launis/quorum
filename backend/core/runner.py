@@ -123,11 +123,13 @@ class PipelineRunner:
             step_num = current_abs_index + 1
 
             percent = int((step_num / total_steps) * 100)
-            stage_name = f"Step {step_num}/{total_steps}: {agent.__class__.__name__}"
+            # Fix: Use stable Step ID for UI matching (e.g. 'step_guard')
+            stage_name = step_doc.get("id", f"step_{step_num}")
+            description = f"Step {step_num}/{total_steps}: {agent.__class__.__name__}"
 
             # Checkpoint: Save current state to DB (trace)
             trace_dump = current_state.model_dump(mode="json")
-            await tracker.update(stage=stage_name, percent=percent, details={"trace": trace_dump})
+            await tracker.update(stage=stage_name, percent=percent, details={"trace": trace_dump, "description": description})
 
             current_state = await self._execute_step(current_state, agent, step_doc, execution_id)
 

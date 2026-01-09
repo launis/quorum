@@ -132,8 +132,19 @@ class AnalysisWizardScreen extends ConsumerWidget {
         if (executionId != null && executionId.isNotEmpty) {
           context.go('/dashboard/executions/$executionId/monitor');
         } else {
-          // Fallback if no ID available
-          context.go('/dashboard');
+          // FIX: Do not silently fail. Show error from controller.
+          final errorState = ref.read(executionControllerProvider);
+          final errorMsg =
+              errorState.error?.toString() ??
+              'Unknown Error: Execution ID was null';
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Submission Failed: $errorMsg'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 5),
+            ),
+          );
         }
       }
     } catch (e) {

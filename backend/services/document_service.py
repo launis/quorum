@@ -18,7 +18,7 @@ class DocumentService:
     """Unified service for handling document ingestion, processing, and archiving.
     Supports:
     - Evidence files (PDF/DOCX -> Text) for WorkflowEngine
-    - Knowledge Base files (DOCX/MD -> Structured JSON) for KnowledgeBaseService
+    - Knowledge Base files (DOCX/MD -> Structured JSON) for KnowledgeBaseService.
 
     Architecture:
     - Uses 'run_in_threadpool' for CPU-bound tasks (OCR/Extraction).
@@ -126,7 +126,7 @@ class DocumentService:
         try:
             # 1. Archive
             relative_path = f"knowledge_base/{job_id}/{filename}"
-            saved_path = await run_in_threadpool(self.storage_client.save, relative_path, content)
+            await run_in_threadpool(self.storage_client.save, relative_path, content)
 
             # 2. Parse (CPU-bound)
             if is_docx:

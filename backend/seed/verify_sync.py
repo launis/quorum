@@ -4,8 +4,7 @@ import verifier
 
 
 def main():
-    """Runs the DB Verification logic.
-    """
+    """Runs the DB Verification logic."""
     # 1. Define Project Root
     script_dir = Path(__file__).resolve().parent
     project_root = script_dir.parent.parent

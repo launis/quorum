@@ -1,5 +1,4 @@
 import os
-import subprocess
 import sys
 from pathlib import Path
 
@@ -32,10 +31,12 @@ def main():
     print("[ACTION] Importing backend.seed.seeder...\n")
 
     try:
-        from backend.seed.seeder import seed_database
         import asyncio
-        asyncio.run(seed_database())
-        
+
+        from backend.seed.seeder import seed_database
+
+        seed_database()
+
         print("\n[SUCCESS] Prod DB populated successfully!")
 
     except ImportError as e:

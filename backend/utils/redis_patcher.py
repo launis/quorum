@@ -1,24 +1,24 @@
-
 import logging
+
 from arq.connections import ArqRedis
 
 logger = logging.getLogger(__name__)
 
+
 def get_patched_fakeredis_pool() -> ArqRedis:
-    """
-    Creates and patches a FakeRedis instance to be compatible with Arq.
-    
+    """Creates and patches a FakeRedis instance to be compatible with Arq.
+
     Arq (0.26+) expects specific methods on the connection pool that FakeRedis
     doesn't natively provide or behaves differently with. This function applies
     all necessary monkey-patches to ensure Arq runs smoothly in in-memory mode.
-    
+
     Returns:
         ArqRedis: An Arq-compatible wrapper around a patched FakeRedis instance.
     """
     try:
-        from fakeredis.aioredis import FakeRedis
         import arq.connections
         import arq.worker
+        from fakeredis.aioredis import FakeRedis
     except ImportError:
         logger.error("Failed to import 'fakeredis'. Is it installed?")
         raise
@@ -62,7 +62,7 @@ def get_patched_fakeredis_pool() -> ArqRedis:
         pass
 
     arq.connections.log_redis_info = _no_op_log
-    
+
     # PATCH: We must also patch the reference in arq.worker, as it likely imported the function already
     arq.worker.log_redis_info = _no_op_log
 
@@ -91,16 +91,18 @@ def get_patched_fakeredis_pool() -> ArqRedis:
 
     # PATCH: Redis-py (via Arq) calls read_response() to await result
     if not hasattr(fake_redis, "read_response"):
+
         async def _read_response():
-                # In a real connection, this reads bytes. 
-                # Here, we do nothing because fakeredis executes immediately.
-                # Returning None might cause parse_response to fail if it expects data.
-                # However, for many operations, the result is already returned by execute_command.
-                pass
+            # In a real connection, this reads bytes.
+            # Here, we do nothing because fakeredis executes immediately.
+            # Returning None might cause parse_response to fail if it expects data.
+            # However, for many operations, the result is already returned by execute_command.
+            pass
+
         fake_redis.read_response = _read_response
 
     # ArqRedis wrapper needed for Arq features
     arq_redis = ArqRedis(fake_redis)
     logger.info("In-Memory Redis pool (Patched) initialized.")
-    
+
     return arq_redis

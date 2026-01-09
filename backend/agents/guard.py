@@ -1,5 +1,7 @@
 """Guard Agent implementation."""
+
 from __future__ import annotations
+
 import logging
 from typing import TYPE_CHECKING, Any
 
@@ -19,7 +21,7 @@ class GuardAgent(BaseAgent):
     Responsible for:
     1. Input Sanitization (Syötteen puhdistus)
     2. Security Check (Tietoturvatarkistus)
-    3. Anonymization (Anonymisointi)
+    3. Anonymization (Anonymisointi).
     """
 
     state_field = "step_guard"

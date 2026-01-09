@@ -94,14 +94,10 @@ async def lifespan(app: FastAPI):
     app.state.arq_pool = redis_pool
     logger.info(f"Arq Redis connection established at {settings.redis_host}:{settings.redis_port}")
 
-
-
     # Note: Engine is lazy-loaded on first request to avoid complex manual DI here.
     yield
     # Shutdown
     logger.info("Shutting down...")
-
-
 
     if hasattr(app.state, "arq_pool"):
         pool = app.state.arq_pool
@@ -120,6 +116,7 @@ app = FastAPI(
 
 try:
     import logfire  # noqa: E402
+
     from backend.logging_config import configure_logfire  # noqa: E402
 
     configure_logfire()
@@ -332,7 +329,6 @@ def introspect_codebase():
             available_schemas.append(name)
 
     # 2. Inspect Hooks (Legacy - Deprecated/Removed)
-    available_hooks = []
 
     # 3. Inspect Agents
     available_agents = []
@@ -350,6 +346,5 @@ def introspect_codebase():
 
 @app.get("/health", summary="Health Check", response_description="Simple status indicator.")
 def health_check():
-    """Basic liveness probe.
-    """
+    """Basic liveness probe."""
     return {"status": "ok"}

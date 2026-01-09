@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import json
 import logging
 from datetime import datetime
@@ -256,8 +257,7 @@ class PromptBuilder:
             return f"Error generating schema example: {str(e)}"
 
     async def preview_step_prompt(self, step_id: str) -> dict[str, Any]:
-        """Generates a preview of the prompt for a specific step.
-        """
+        """Generates a preview of the prompt for a specific step."""
         # 1. Fetch Step Record
         step_data = await self.repository.get_step_by_id(step_id)
         if not step_data:
@@ -288,8 +288,7 @@ class PromptBuilder:
         return preview_data
 
     async def preview_full_chain_prompts(self, workflow_id: str) -> str:
-        """Generates a markdown concatenation of ALL prompts in a workflow.
-        """
+        """Generates a markdown concatenation of ALL prompts in a workflow."""
         wf_record = await self.repository.get_workflow_by_id(workflow_id)
         if not wf_record:
             raise WorkflowNotFoundError(workflow_id)

@@ -68,43 +68,56 @@ class AbstractDatabase(ABC):
 
 
 class TinyDBTable(AbstractTable):
-    def __init__(self, table):
-        self._table = table
+    def __init__(self, db_path: str, table_name: str):
+        self._path = db_path
+        self._name = table_name
+
+    def _get_table(self, db):
+        return db.table(self._name)
 
     def insert(self, document: dict[str, Any]) -> int:
-        return self._table.insert(document)
+        with TinyDB(self._path, encoding="utf-8") as db:
+             return self._get_table(db).insert(document)
 
     def all(self) -> list[dict[str, Any]]:
-        return self._table.all()
+        with TinyDB(self._path, encoding="utf-8") as db:
+            return self._get_table(db).all()
 
     def search(self, query: Any) -> list[dict[str, Any]]:
-        return self._table.search(query)
+        with TinyDB(self._path, encoding="utf-8") as db:
+            return self._get_table(db).search(query)
 
     def get(self, query: Any) -> dict[str, Any] | None:
-        return self._table.get(query)
+        with TinyDB(self._path, encoding="utf-8") as db:
+            return self._get_table(db).get(query)
 
     def update(self, fields: dict[str, Any], query: Any = None, doc_ids: list[int] | None = None) -> list[int]:
-        return self._table.update(fields, cond=query, doc_ids=doc_ids)
+        with TinyDB(self._path, encoding="utf-8") as db:
+            return self._get_table(db).update(fields, cond=query, doc_ids=doc_ids)
 
     def upsert(self, document: dict[str, Any], query: Any) -> list[int]:
-        return self._table.upsert(document, query)
+        with TinyDB(self._path, encoding="utf-8") as db:
+            return self._get_table(db).upsert(document, query)
 
     def remove(self, query: Any) -> list[int]:
-        return self._table.remove(query)
+        with TinyDB(self._path, encoding="utf-8") as db:
+            return self._get_table(db).remove(query)
 
 
 class TinyDBClient(AbstractDatabase):
     def __init__(self, path: str):
         import os
-
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        self.db = TinyDB(path, encoding="utf-8")
+        self.path = path
+        # Verify creation/access but don't hold connection
+        with TinyDB(path, encoding="utf-8") as _:
+            pass
 
     def table(self, name: str) -> AbstractTable:
-        return TinyDBTable(self.db.table(name))
+        return TinyDBTable(self.path, name)
 
     def close(self):
-        self.db.close()
+        pass
 
 
 # --- Firestore Implementation ---
@@ -209,6 +222,23 @@ class FirestoreClient(AbstractDatabase):
             firebase_admin.initialize_app(cred)
 
         self.db = firestore.client()
+        
+        # ACTIVE PING TEST (Strict Zero-Fallback)
+        try:
+             # Attempt to access a collection (lightweight validation)
+             # Note: list_collections is a generator, so we just get the first one or simply call it.
+             # Better: try to get a non-existent doc to prove connectivity without permissions error if list is restricted
+             # But list_collections is standard matching `wrapper.py` previous intent.
+             # Actually, just `next(self.db.collections(), None)` is enough to verify auth works.
+             # Or `self.db.collection('system_settings').limit(1).get()`
+             logger.info("[Firestore] Verifying connection...")
+             # self.db.collection('system_settings').limit(1).get() # Might fail if empty? No, returns empty list.
+             # Simpler:
+             list(self.db.collection("connectivity_test").limit(1).stream())
+             logger.info("[Firestore] Connection VERIFIED successfully.")
+        except Exception as e:
+            logger.critical(f"[Firestore] Connection ping FAILED: {e}")
+            raise RuntimeError(f"Firestore connectivity test failed. Check internet/VPN/Credentials. Error: {e}")
 
     def table(self, name: str) -> AbstractTable:
         return FirestoreTable(self.db.collection(name))
@@ -221,8 +251,7 @@ class FirestoreClient(AbstractDatabase):
 
 
 def get_db_client() -> AbstractDatabase:
-    """Factory to get the appropriate database client based on configuration.
-    """
+    """Factory to get the appropriate database client based on configuration."""
     from backend.settings import get_settings
 
     settings = get_settings()
@@ -236,14 +265,13 @@ def get_db_client() -> AbstractDatabase:
 
     if backend == "FIRESTORE":
         if not FIRESTORE_AVAILABLE:
-            logger.warning("Firestore requested but not available. Falling back to Local TinyDB.")
-            return TinyDBClient(settings.prod_db_path)
+            raise RuntimeError("CRITICAL: Firestore requested (STORAGE_BACKEND=FIRESTORE) but 'firebase_admin' or 'google-cloud-firestore' is not installed.")
 
         try:
             return FirestoreClient()
         except Exception as e:
-            logger.error(f"Failed to create FirestoreClient: {e}. Falling back to Local TinyDB.")
-            return TinyDBClient(settings.prod_db_path)
+            logger.critical(f"Failed to connect to Firestore: {e}")
+            raise RuntimeError(f"CRITICAL: Firestore connection failed: {e}. Zero-fallback policy in effect.")
 
     elif backend == "LOCAL":
         # Standard Production JSON DB

@@ -11,8 +11,7 @@ from backend.context import get_execution_context
 
 
 class ContextFilter(logging.Filter):
-    """Injects execution_id from contextvars into log records.
-    """
+    """Injects execution_id from contextvars into log records."""
 
     def filter(self, record):
         exec_id = get_execution_context()
@@ -39,7 +38,9 @@ def configure_logfire():
         logfire.configure()
         logfire.instrument_pydantic()
     except Exception as e:
-        logging.getLogger(__name__).warning(f"Logfire validation failed (likely no token): {e}. Observability disabled.")
+        logging.getLogger(__name__).warning(
+            f"Logfire validation failed (likely no token): {e}. Observability disabled."
+        )
 
 
 def setup_logging(log_level=logging.INFO):
@@ -100,6 +101,7 @@ def setup_logging(log_level=logging.INFO):
     logging.getLogger("LiteLLM").setLevel(logging.WARNING)
     try:
         import litellm
+
         litellm.set_verbose = False
     except Exception:
         pass

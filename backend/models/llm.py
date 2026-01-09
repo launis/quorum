@@ -4,6 +4,7 @@ This module defines the standardized response structures for interacting with
 various LLM providers (Google Gemini, OpenAI, etc.), including support for
 advanced reasoning tokens and tool calls.
 """
+
 from typing import Annotated, Any
 
 from pydantic import BaseModel, Field

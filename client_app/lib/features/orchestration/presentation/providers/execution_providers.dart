@@ -29,7 +29,9 @@ class ExecutionListController extends _$ExecutionListController {
 
       if (hasActive) {
         final timer = Timer(const Duration(seconds: 5), () {
-          ref.invalidateSelf();
+          try {
+            ref.invalidateSelf();
+          } catch (_) {}
         });
         ref.onDispose(timer.cancel);
       }
