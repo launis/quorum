@@ -107,6 +107,23 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **Creation Wizard**: Multi-step form view for configuring and starting a new analysis (replaces Audit Wizard).
 - [x] **Live Execution View**: Real-time progress UI with polling integration (Progress Bar, Step Indicator).
 
+### 2.7 Administration & Governance (The Admin Portal)
+**Objective:** Port existing `frontend/main.py` admin capabilities to Flutter with a premium, "Best Practice" UX.
+
+- [ ] **Admin Portal Separation**:
+    - **Workflow vs. Admin**: Strict visual and navigational separation between *Technical Configuration* (Workflow Builder, Matrix) and *Governance* (Users, Org, System).
+    - **Dedicated Admin Route**: `/admin` dashboard with a distinct visual theme (e.g., darker sidebar or accent) to denote privileged context.
+- [ ] **Advanced User Management**:
+    - **Access Lifecycle**: UI strategies for Granting, Renewing, and Revoking access with clear expiry visualizations.
+    - **Role Matrix**: Interactive permission table for assigning Roles (Viewer, Member, Manager, Admin) with "Best Practice" visual feedback.
+    - **Organization Roster**: Searchable, filterable list of all Users within the Organization.
+- [ ] **Organization Governance**:
+    - **Settings Hub**: Centralized management for Organization Profile, Branding, and Localization.
+    - **Security Overview**: High-level view of active sessions and permission distribution.
+- [ ] **Live Operations Dashboard**:
+    - **Concurrent Execution Monitor**: "Mission Control" view for Managers/Root to see all active jobs across their scope (Org vs System).
+    - **Queue Visibility**: Insight into the task queue to manage future high-load concurrency.
+
 ---
 
 ## 📍 Phase 3: The Business Layer (Billing & Compliance)
@@ -138,8 +155,9 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 ## 📍 Phase 4: Power Users (Platform Features)
 **Objective:** Enable deep customization for Enterprise clients.
 
-### 4.1 Custom Workflow Builder
+### 4.1 Custom Workflow Management (Builder & CRUD)
 - [x] **Clone Capability**: Allow Tenants to "Clone" a System Workflow (Implemented in `builder_router.py`).
+- [ ] **Workflow CRUD**: Full Create/Read/Update/Delete management for Tenant-specific workflows.
 - [ ] **Tenant Repository**: Enable saving modified JSON configurations linked to `organization_id`.
 - [ ] **Builder UI**: (Long term) A visual editor for modifying prompts and steps.
 
