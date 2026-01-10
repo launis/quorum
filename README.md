@@ -40,7 +40,7 @@ Quorum is an "Anti-Hallucination" engine.
 
 ```mermaid
 graph LR
-    User[User / Frontend] -->|HTTP Request| API[FastAPI Gateway]
+    User[User / Client App] -->|HTTP Request| API[FastAPI Gateway]
     API -->|Enqueue Job| Redis[(Redis / Arq)]
     Redis -->|Pull Job| Worker[Async Worker]
     Worker -->|Execute| Engine[Workflow Engine]
@@ -52,7 +52,8 @@ graph LR
 
 ## 🛠️ Technology Stack
 
-*   **Language**: Python 3.14 (PEP 649 Compliant).
+*   **Language**: Python 3.14 (PEP 649 Compliant) & Dart (Flutter).
+*   **Client**: **Flutter** (Data-Driven, Responsive Client).
 *   **Core**: **FastAPI**, Pydantic V2.
 *   **Tooling**: **uv** (Package Management), **Ruff** (Linting/Style).
 *   **Async Processing**: **Arq** (Task Queue), **Redis** (Broker).
@@ -66,6 +67,7 @@ graph LR
 
 ### Prerequisites
 *   Python 3.14 (managed via `uv`)
+*   Flutter SDK (3.27+)
 *   Google Gemini API Key
 *   Docker (for Redis)
 
@@ -77,12 +79,19 @@ graph LR
     cd quorum
     ```
 
-2.  Install dependencies (using **uv**):
+2.  Install Backend dependencies (using **uv**):
     ```bash
     uv sync
     ```
 
-3.  Create a `.env` file:
+3.  Install Client dependencies:
+    ```bash
+    cd client_app
+    flutter pub get
+    cd ..
+    ```
+
+4.  Create a `.env` file:
     ```env
     GOOGLE_API_KEY=your_key_here
     GOOGLE_SEARCH_API_KEY=optional
@@ -107,8 +116,14 @@ graph LR
     uv run backend/worker.py
     ```
 
-4.  **Access the System**:
-    *   **Frontend UI**: [http://localhost:8501](http://localhost:8501)
+4.  **Start the Client App**:
+    ```bash
+    cd client_app
+    flutter run
+    ```
+
+5.  **Access the System**:
+    *   **Client UI**: (Opens in application window)
     *   **API Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ---

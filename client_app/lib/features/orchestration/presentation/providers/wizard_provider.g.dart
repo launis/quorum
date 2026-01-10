@@ -41,7 +41,7 @@ final class WizardStateProvider
   }
 }
 
-String _$wizardStateHash() => r'aff567897bda8608554d3b819f0fa3c489c90bb1';
+String _$wizardStateHash() => r'12dc0c7225d0b37f32d9ba429d72b15cdda68f62';
 
 abstract class _$WizardState extends $Notifier<WizardStateModel> {
   WizardStateModel build();

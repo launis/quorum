@@ -266,4 +266,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get chooseAnalysisType => 'Choose Analysis Type';
+
+  @override
+  String get usageCurrentMonth => 'Current Month Usage';
+
+  @override
+  String get usageQuota => 'Usage vs Quota';
+
+  @override
+  String tokensUsed(int count) {
+    final intl.NumberFormat countNumberFormat = intl
+        .NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString Tokens Used';
+  }
+
+  @override
+  String quotaLimit(int limit) {
+    final intl.NumberFormat limitNumberFormat = intl
+        .NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return '$limitString Limit';
+  }
+
+  @override
+  String get selectWorkflowRequired => 'Please select a workflow.';
 }

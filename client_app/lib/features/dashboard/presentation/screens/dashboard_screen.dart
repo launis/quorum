@@ -100,67 +100,73 @@ class _DashboardContent extends StatelessWidget {
         final isMobile = constraints.maxWidth < 600;
         final theme = Theme.of(context);
 
-        return CustomScrollView(
-          slivers: [
-            // 1. Stats Section (Top Padding)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: _buildStatsRow(context, executions, isMobile),
-              ),
-            ),
-
-            // 2. Section Header
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16.0,
-                  vertical: 8.0,
-                ),
-                child: Text(
-                  l10n.dashboardTitle,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1000),
+            child: CustomScrollView(
+              slivers: [
+                // 1. Stats Section (Top Padding)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: _buildStatsRow(context, executions, isMobile),
                   ),
                 ),
-              ),
-            ),
 
-            // 3. Executions List/Grid
-            if (executions.isEmpty)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(32.0),
-                  child: Center(child: Text(l10n.noExecutions)),
-                ),
-              )
-            else if (isMobile)
-              SliverList(
-                delegate: SliverChildBuilderDelegate((context, index) {
-                  final execution = executions[index];
-                  return ExecutionListItem(execution: execution);
-                }, childCount: executions.length),
-              )
-            else
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                sliver: SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 400.0,
-                    mainAxisSpacing: 16,
-                    crossAxisSpacing: 16,
-                    childAspectRatio: 1.5, // Widescreen cards
+                // 2. Section Header
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0,
+                      vertical: 8.0,
+                    ),
+                    child: Text(
+                      l10n.dashboardTitle,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
-                  delegate: SliverChildBuilderDelegate((context, index) {
-                    final execution = executions[index];
-                    return ExecutionGridItem(execution: execution);
-                  }, childCount: executions.length),
                 ),
-              ),
 
-            // Bottom Padding for FAB
-            const SliverToBoxAdapter(child: SizedBox(height: 80)),
-          ],
+                // 3. Executions List/Grid
+                if (executions.isEmpty)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32.0),
+                      child: Center(child: Text(l10n.noExecutions)),
+                    ),
+                  )
+                else if (isMobile)
+                  SliverList(
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final execution = executions[index];
+                      return ExecutionListItem(execution: execution);
+                    }, childCount: executions.length),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    sliver: SliverGrid(
+                      gridDelegate:
+                          const SliverGridDelegateWithMaxCrossAxisExtent(
+                            maxCrossAxisExtent: 400.0,
+                            mainAxisSpacing: 16,
+                            crossAxisSpacing: 16,
+                            childAspectRatio: 1.5, // Widescreen cards
+                          ),
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final execution = executions[index];
+                        return ExecutionGridItem(execution: execution);
+                      }, childCount: executions.length),
+                    ),
+                  ),
+
+                // Bottom Padding for FAB
+                const SliverToBoxAdapter(child: SizedBox(height: 80)),
+              ],
+            ),
+          ),
         );
       },
     );

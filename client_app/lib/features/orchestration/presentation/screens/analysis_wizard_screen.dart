@@ -96,7 +96,12 @@ class AnalysisWizardScreen extends ConsumerWidget {
         // Handle Failure
         // Check if it was validation error (inputs empty) or API error
         final state = ref.read(wizardStateProvider);
-        if (state.inputs.isEmpty) {
+
+        if (state.selectedWorkflowId.isEmpty) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l10n.selectWorkflowRequired)));
+        } else if (state.inputs.isEmpty) {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text(l10n.fillRequiredInputs)));

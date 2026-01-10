@@ -29,6 +29,8 @@ Cognitive Quorum v2.5 is a Modular Async Monolith designed for **High-Fidelity A
 *   [Prompt Engineering](prompt_engineering.md) - Jinja2 + Pydantic strategy.
 *   [API Models & Schemas](api_models.md) - Strict Pydantic V2 definitions.
 *   [API Reference](reference.md) - Endpoints and Directory Structure.
+*   [Testing Strategy](test_strategy.md) - Comprehensive Testing Guide (Backend & Client).
+*   [Seed Data & Sync](seed_data.md) - Database management and Source of Truth.
 
 ### Status
 *   [Refactoring Status](refactoring_status.md) - Audit of the V2.5 codebase.
@@ -39,8 +41,6 @@ Cognitive Quorum v2.5 is a Modular Async Monolith designed for **High-Fidelity A
 2.  **Start Infrastructure**: `docker-compose up -d redis`
 3.  **Run API**: `uv run uvicorn backend.main:app --reload`
 4.  **Run Worker**: `uv run backend/worker.py`
-5.  **UI**: [http://localhost:8501](http://localhost:8501)
+5.  **Run Client**: `cd client_app && flutter run`
 6.  **API Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
 7.  **Project Docs**: `uv run mkdocs serve` (http://localhost:8001)
-
-

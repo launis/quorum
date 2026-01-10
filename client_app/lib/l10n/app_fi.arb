@@ -78,5 +78,10 @@
   "viewLogTooltip": "Näytä suoritusloki",
   "downloadReportTooltip": "Lataa raportti",
   "downloadNotImplementedPdf": "PDF-lataus ei vielä käytössä",
-  "chooseAnalysisType": "Valitse analyysin tyyppi"
+  "chooseAnalysisType": "Valitse Analyysityyppi",
+  "usageCurrentMonth": "Nykyisen kuukauden käyttö",
+  "usageQuota": "Käyttö vs Kiintiö",
+  "tokensUsed": "{count} Tokenia käytetty",
+  "quotaLimit": "{limit} Raja",
+  "selectWorkflowRequired": "Valitse analyysityyppi."
 }

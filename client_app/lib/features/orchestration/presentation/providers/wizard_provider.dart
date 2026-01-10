@@ -9,7 +9,7 @@ part 'wizard_provider.g.dart';
 abstract class WizardStateModel with _$WizardStateModel {
   const factory WizardStateModel({
     @Default(0) int currentStep,
-    @Default('audit_workflow_v1') String selectedWorkflowId,
+    @Default('') String selectedWorkflowId,
     @Default({}) Map<String, dynamic> inputs,
     @Default(false) bool isSubmitting,
     String? error,
@@ -50,7 +50,7 @@ class WizardState extends _$WizardState {
   }
 
   bool validateInputs() {
-    return state.inputs.isNotEmpty;
+    return state.inputs.isNotEmpty && state.selectedWorkflowId.isNotEmpty;
   }
 
   Future<String?> submitAnalysis() async {

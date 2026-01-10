@@ -42,9 +42,11 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  integration_test:
+    sdk: flutter
 
   # Dev Tools & Code Generation
-  build_runner: any
+  build_runner: ^2.10.4
   riverpod_generator: any
   custom_lint: any
   riverpod_lint: any
@@ -52,6 +54,7 @@ dev_dependencies:
   freezed: any
   flutter_lints: any
   mocktail: any
+  mockito: ^5.6.1
 
 flutter:
   uses-material-design: true

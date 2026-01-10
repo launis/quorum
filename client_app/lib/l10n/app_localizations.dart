@@ -577,6 +577,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Choose Analysis Type'**
   String get chooseAnalysisType;
+
+  /// No description provided for @usageCurrentMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Current Month Usage'**
+  String get usageCurrentMonth;
+
+  /// No description provided for @usageQuota.
+  ///
+  /// In en, this message translates to:
+  /// **'Usage vs Quota'**
+  String get usageQuota;
+
+  /// No description provided for @tokensUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} Tokens Used'**
+  String tokensUsed(int count);
+
+  /// No description provided for @quotaLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'{limit} Limit'**
+  String quotaLimit(int limit);
+
+  /// No description provided for @selectWorkflowRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select a workflow.'**
+  String get selectWorkflowRequired;
 }
 
 class _AppLocalizationsDelegate

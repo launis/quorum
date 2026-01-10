@@ -26,7 +26,7 @@ quorum/
 │   ├── seed_data.json      # Configuration Source of Truth
 │   └── uploads/            # User Uploads
 ├── docs/                   # MkDocs Documentation
-├── frontend/               # Streamlit Interface (Thin Client)
+├── client_app/             # Client App (Flutter / Native)
 ├── scripts/                # Utility Scripts (Seeding, OpenAPI Gen)
 ├── pyproject.toml          # Project Metadata & Dependnecies
 └── uv.lock                 # Strict Dependency Lockfile
@@ -88,10 +88,10 @@ This project uses **uv** for strict dependency management. `requirements.txt` is
 ### CI Pipelines (GitHub Actions)
 Pipelines are defined in `.github/workflows/` and use `uv` for consistent environments.
 
-1.  **OpenAPI Sync (`api-sync.yml`)**:
     *   Runs on every push.
     *   Generates `docs/swagger/openapi.json`.
     *   Fails if the generated file differs from git (ensures API specs are up-to-date).
+    *   **Manual Trigger**: `uv run python scripts/generate_openapi.py`
 
 2.  **Documentation Deploy (`docs.yml`)**:
     *   Runs on push to `main`.

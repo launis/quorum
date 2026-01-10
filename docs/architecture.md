@@ -6,8 +6,8 @@ Cognitive Quorum v2.5 is a **Modular Monolith** built on Python 3.14, designed f
 
 ```mermaid
 graph TD
-    User["User / Client"] -->|HTTP| Streamlit["Frontend (Streamlit)"]
-    Streamlit -->|REST API| Backend["Backend (FastAPI)"]
+    User["User / Client"] -->|HTTP / gRPC| Client["Client App (Flutter)"]
+    Client -->|REST API| Backend["Backend (FastAPI)"]
     
     Backend -->|Enqueue Job| Redis[(Redis / Arq)]
     Redis -->|Pull Job| Worker["Async Worker Service"]
@@ -85,11 +85,11 @@ This allows changing the *behavior* (prompts, order) without redeploying code, w
 
 ## Technology Stack
 
-*   **Language:** Python 3.14
-*   **Dependency Management:** uv
+*   **Language:** Python 3.14 & Dart (Flutter)
+*   **Dependency Management:** uv (Python) & pub (Dart)
 *   **Observability:** Logfire (Distributed Tracing & Structured Logging)
 *   **API:** FastAPI + Pydantic v2 (Strict Mode)
-*   **UI:** Streamlit (Thin Client - No Business Logic)
+*   **Client:** Flutter (Responsive Native App)
 *   **Database:** TinyDB (Local) / Firestore (Cloud) - **3-Tier Env** (Mock/Local/Prod)
 *   **Vector Search:** ChromaDB
 *   **LLM:** **Google Cloud Vertex AI** (Region: `europe-north1` / Hamina) - Strict Data Residency
@@ -109,13 +109,13 @@ graph TD
         subgraph "Services"
             Backend["API Service (:8000)"]
             Worker["Worker Service"]
-            Frontend["Frontend (:8080)"]
         end
         
         Backend --> Redis
         Worker --> Redis
-        Frontend --> Backend
     end
+    
+    Client["Client App"] -.->|HTTP :8000| Backend
     
     Volume["./backend (Host)"] -.->|Bind Mount| Backend
     Volume -.->|Bind Mount| Worker

@@ -264,5 +264,32 @@ class AppLocalizationsFi extends AppLocalizations {
   String get downloadNotImplementedPdf => 'PDF-lataus ei vielä käytössä';
 
   @override
-  String get chooseAnalysisType => 'Valitse analyysin tyyppi';
+  String get chooseAnalysisType => 'Valitse Analyysityyppi';
+
+  @override
+  String get usageCurrentMonth => 'Nykyisen kuukauden käyttö';
+
+  @override
+  String get usageQuota => 'Käyttö vs Kiintiö';
+
+  @override
+  String tokensUsed(int count) {
+    final intl.NumberFormat countNumberFormat = intl
+        .NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    return '$countString Tokenia käytetty';
+  }
+
+  @override
+  String quotaLimit(int limit) {
+    final intl.NumberFormat limitNumberFormat = intl
+        .NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return '$limitString Raja';
+  }
+
+  @override
+  String get selectWorkflowRequired => 'Valitse analyysityyppi.';
 }

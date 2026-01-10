@@ -16,7 +16,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **LLM Integration**: Implemented flexible `LLMProvider` (Gemini support) with structured JSON output enforcement.
 - [x] **Workflow Engine**: Built the core sequential execution logic handling inputs, outputs, and step transitions.
 - [x] **Step Architecture**: Defined modular step definitions (`step_judge`, `step_profiler`) in `seed_data.json`.
-- [x] **Web Interface v1**: Initial Streamlit frontend for launching audits and viewing results.
+- [x] **Legacy UI**: (Deprecated) Initial Streamlit frontend used for prototyping. Replaced by Client App.
 
 ### 0.1 Async-First Architecture
 - [x] **V3 Engine Refactor**: Transitioned from Synchronous to Asynchronous Blackboard Architecture.
@@ -49,7 +49,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **System Admin UI**: Dashboard for ROOT to list/create organizations.
 - [x] **Org Admin UI**: Dashboard for ADMIN to manage organization settings.
 - [x] **Organization Deletion**: Implemented in API with safety checks for active jobs (Manual UI trigger pending).
-- [x] **Last Admin Protection**: Prevent deletion/demotion of the last ADMIN in an organization (Implemented in `AuthService`).
+- [x] **Last Admin Protection**: Prevent deletion of the last ADMIN in an organization (Implemented in `AuthService`).
 - [x] **Primary Root Protection**: Prevent deletion of the `root_master` system account (Implemented in `AuthService`).
 
 ### 1.2 Data Isolation & Security (✅ Completed)
@@ -76,8 +76,8 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 
 ---
 
-## 📍 Phase 2: The Pilot App (Flutter MVP)
-**Objective:** Enable end-users (Testers) to perform audits via a mobile/web interface using modern Flutter 3.38+ standards.
+## 📍 Phase 2: The Pilot App (Flutter MVP) (✅ Completed)
+**Objective:** Enable end-users (Testers) to perform audits via a mobile/web interface using modern Flutter 3.27+ standards.
 
 ### 2.1 Foundation & Architecture (Critical Path)
 - [x] **Scaffold & Theme**: Configure `FlexColorScheme` (Deep Purple #673AB7) and `google_fonts` (Inter) for Light/Dark modes.
@@ -117,7 +117,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **Usage Service**: Track Token Usage (Input/Output) per Execution.
 - [x] **Cost Calculation**: Real-time cost checking via LiteLLM.
 - [x] **Quota Management**: Enforce Organization-level spend limits.
-- [ ] **Visual Reporting**: Admin API to fetch usage stats per month (Backend Ready).
+- [x] **Visual Reporting**: Visual usage stats in Client App Settings.
 
 ### 3.2 BYOK (Bring Your Own Key)
 - [ ] **Secret Management**: Encrypted storage for Tenant API Keys.

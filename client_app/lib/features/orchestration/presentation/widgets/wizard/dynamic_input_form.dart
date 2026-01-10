@@ -42,12 +42,20 @@ class _DynamicInputFormState extends ConsumerState<DynamicInputForm> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            l10n.configureInputs(workflowId),
+            l10n.configureInputs(workflowId.isEmpty ? '...' : workflowId),
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 16),
 
-          if (workflow != null && (workflow.uiSchema?.isNotEmpty ?? false)) ...[
+          if (workflowId.isEmpty)
+            Center(
+              child: Text(
+                l10n.selectWorkflowRequired,
+                style: TextStyle(color: Theme.of(context).disabledColor),
+              ),
+            )
+          else if (workflow != null &&
+              (workflow.uiSchema?.isNotEmpty ?? false)) ...[
             // Dynamic rendering from Schema
             ...workflow.uiSchema!.entries.map((entry) {
               final val = entry.value as Map<String, dynamic>;

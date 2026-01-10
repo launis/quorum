@@ -17,10 +17,11 @@ The system is built on modern Python standards (3.14+), emphasizing static typin
     - `backend/worker.py`: Heavy-lifting background worker (processes jobs).
     - `backend/core/engine.py`: Core orchestration logic (Dependency Injection).
 
-### Frontend (Streamlit)
-- **Role:** Lightweight "Thin Client" UI layer.
-- **Communication:** REST API calls to backend state endpoints.
-- **Rendering:** Polling-based UI aimed at real-time progress tracking.
+### Client App (Flutter)
+- **Role:** Responsive, State-Managed "Thick Client" (iOS/Android/Web/Desktop).
+- **Communication:** REST API calls to backend, managed via Riverpod Repository Pattern.
+- **State Management:** Local reactive state (Riverpod) for responsiveness, synced with Backend state (`WorkflowState`).
+- **Rendering:** Native rendering (Impeller/Skia) for fluid 60fps animations.
 
 ### Resilience & Observability
 - **Logfire:** Distributed tracing across API and Workers.
@@ -98,9 +99,9 @@ Following the refactoring, the codebase adheres to strict standards:
 
 ```mermaid
 graph TD
-    User["User"] --> FE["Frontend (Streamlit)"]
+    User["User"] --> Client["Client App (Flutter)"]
     
-    FE -- REST API --> API["API Service (FastAPI)"]
+    Client -- REST API --> API["API Service (FastAPI)"]
     API -- Enqueue --> Redis[(Redis)]
     Redis -- Pull --> Worker["Async Worker (Arq)"]
     

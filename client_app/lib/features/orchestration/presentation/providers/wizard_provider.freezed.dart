@@ -210,7 +210,7 @@ return $default(_that.currentStep,_that.selectedWorkflowId,_that.inputs,_that.is
 
 
 class _WizardStateModel implements WizardStateModel {
-  const _WizardStateModel({this.currentStep = 0, this.selectedWorkflowId = 'audit_workflow_v1', final  Map<String, dynamic> inputs = const {}, this.isSubmitting = false, this.error}): _inputs = inputs;
+  const _WizardStateModel({this.currentStep = 0, this.selectedWorkflowId = '', final  Map<String, dynamic> inputs = const {}, this.isSubmitting = false, this.error}): _inputs = inputs;
   
 
 @override@JsonKey() final  int currentStep;

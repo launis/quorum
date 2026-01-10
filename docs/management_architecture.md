@@ -12,8 +12,8 @@ The v2.5 architecture introduces asynchronous processing to handle long-running 
 
 ```mermaid
 graph TD
-    subgraph "User Interface"
-        A["Management UI (Streamlit)"]
+    subgraph "Client Layer"
+        A["Client App (Flutter)"]
     end
     subgraph "Application Layer"
         B["API Service (FastAPI)"]
@@ -24,7 +24,7 @@ graph TD
         D["Agents"]
     end
     subgraph "Data Layer"
-        R[(Redis - Job Queue)]
+    	R[(Redis - Job Queue)]
         E["Database (TinyDB / Firestore)"]
     end
 
@@ -38,8 +38,8 @@ graph TD
     D -- Updates State --> E
 ```
 
-### Frontend (Streamlit)
-A web-based user interface (`pages/Management_Dashboard.py`) for system administrators. It provides tools to edit all system configurations. It communicates exclusively with the Backend via REST API calls and has no direct access to the database.
+### Client App (Flutter)
+A native, multi-platform user interface found in (`client_app/`). It provides tools for workflow execution, system monitoring, and user management. It communicates exclusively with the Backend via REST API calls and manages local state via **Riverpod**.
 
 ### Backend (FastAPI)
 The Control Plane. It handles incoming HTTP requests, validates configuration changes via Pydantic V2 schemas, and serves as the gateway for enqueuing execution jobs.
@@ -61,29 +61,30 @@ The single source of truth. It stores:
 
 Configuration changes follow an API-driven, immediate consistency model.
 
-1.  **Edit**: An administrator modifies a prompt in the Streamlit UI.
-2.  **API Request**: Upon saving, the UI sends a `PUT /prompts/{id}` request to the FastAPI backend.
+1.  **Action**: An administrator modifies a setting in the Client App.
+2.  **API Request**: The Client App sends a `PATCH` request to the FastAPI backend.
 3.  **Persistence**: The backend validates the data (Pydantic) and updates the record in the active database.
 4.  **Live Update**: The next job picked up by a Worker will immediately use the new configuration.
 
-## UI Components (`pages/Management_Dashboard.py`)
+## UI Components (`client_app/lib/`)
 
-The Management Dashboard is organized into task-oriented tabs:
+The Client App is organized into task-oriented features:
 
-### 1. Workflow Editor
-The primary interface for defining behavior.
-*   **Visualizer**: Displays the sequence of agent steps.
-*   **Step Configuration**: Drag-and-drop interface to add/remove/reorder steps and assign Agents/Prompts.
+### 1. Dashboard
+The primary interface for monitoring system health and execution status.
+*   **Execution Tracking**: Real-time status of running workflows.
+*   **Visualizer**: Step-by-step progress tracking.
 
-### 2. Prompts & Rules Editor
-Manages the content assets.
-*   **Prompt Editor**: Jinja2-aware text editor.
-*   **Rules Editor**: Managed list of Mandates and Protocols.
-*   **Previewer**: Real-time rendering of prompts with sample data.
+### 2. Analysis Wizard
+The primary interface for launching new workflows.
+*   **Workflow Selection**: Dynamic loading of available analysis templates.
+*   **Input Configuration**: Dynamic forms based on workflow requirements.
 
-### 3. System Maintenance
-*   **Database Seeding**: Reset the active database to `seed_data.json` baseline interactively via API.
-*   **Environment Sync**: APIs to promote configurations from Mock to Prod (`Deploy Mock to Prod`) or clone Prod to Mock (`Sync Prod to Mock`).
+### 3. Settings & Administration
+*   **System Maintenance**: Database reset and seeding tools.
+*   **User Management**: Role assignment and user audit.
+*   **Usage Stats**: Visual quotas and consumption tracking.
+*   **Environment Sync**: APIs to promote configurations from Mock to Prod.
 
 ## Environments & Data Synchronization
 

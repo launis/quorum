@@ -115,5 +115,26 @@
   "viewLogTooltip": "View Execution Log",
   "downloadReportTooltip": "Download Report",
   "downloadNotImplementedPdf": "Download PDF not implemented yet",
-  "chooseAnalysisType": "Choose Analysis Type"
+  "chooseAnalysisType": "Choose Analysis Type",
+  "usageCurrentMonth": "Current Month Usage",
+  "usageQuota": "Usage vs Quota",
+  "tokensUsed": "{count} Tokens Used",
+  "@tokensUsed": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "quotaLimit": "{limit} Limit",
+  "@quotaLimit": {
+        "placeholders": {
+        "limit": {
+            "type": "int",
+            "format": "decimalPattern"
+        }
+        }
+    },
+  "selectWorkflowRequired": "Please select a workflow."
 }

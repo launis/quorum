@@ -21,9 +21,9 @@ class ScaffoldWithNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Breakpoint: 600dp (Standard M3 Mobile/Tablet boundary)
-    final isWideScreen = MediaQuery.of(context).size.width >= 600;
+    // Breakpoint: 600dp (Standard M3 Mobile/Tablet boundary)
+    final isWideScreen = MediaQuery.sizeOf(context).width >= 600;
     final l10n = AppLocalizations.of(context)!;
-
     return Scaffold(
       body:
           isWideScreen

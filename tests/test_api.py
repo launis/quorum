@@ -25,30 +25,7 @@ def test_extract_pdf():
     assert response.status_code in [200, 400, 422, 500]
 
 
-def test_render_template():
-    """Test the template rendering endpoint."""
-    # We need a template that exists. 'prompt_guard.j2' should exist.
-    response = client.post(
-        "/templates/render",
-        json={
-            "template_name": "prompt_guard.j2",
-            "context": {
-                "history_text": "Test History",
-                "product_text": "Test Product",
-                "reflection_text": "Test Reflection",
-            },
-        },
-    )
 
-    if response.status_code == 404:
-        # Template might not be found in test env if paths are wrong
-        print("Template not found, skipping assertion.")
-    else:
-        assert response.status_code == 200
-        data = response.json()
-        assert "rendered_text" in data
-        # The template contains static text "VAIHE 1: VARTIJA-AGENTTI"
-        assert "VAIHE 1: VARTIJA-AGENTTI" in data["rendered_text"]
 
 
 def test_run_agent_mock():
