@@ -757,6 +757,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Inputs cannot be empty.'**
   String get validationInputEmpty;
+
+  /// No description provided for @errorUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown error occurred.'**
+  String get errorUnknown;
+
+  /// No description provided for @errorNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Network error. Please check your connection.'**
+  String get errorNetwork;
+
+  /// No description provided for @errorServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Server error. Please try again later.'**
+  String get errorServer;
+
+  /// No description provided for @errorUnauthorized.
+  ///
+  /// In en, this message translates to:
+  /// **'Unauthorized. Please log in again.'**
+  String get errorUnauthorized;
+
+  /// No description provided for @errorNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Resource not found.'**
+  String get errorNotFound;
+
+  /// No description provided for @errorValidation.
+  ///
+  /// In en, this message translates to:
+  /// **'Validation failed.'**
+  String get errorValidation;
+
+  /// No description provided for @errorValidationEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Inputs cannot be empty.'**
+  String get errorValidationEmpty;
+
+  /// No description provided for @errorValidationMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Missing required fields: {fields}'**
+  String errorValidationMissing(String fields);
 }
 
 class _AppLocalizationsDelegate

@@ -175,5 +175,20 @@
       }
     }
   },
-  "validationInputEmpty": "Inputs cannot be empty."
+  "validationInputEmpty": "Inputs cannot be empty.",
+  "errorUnknown": "Unknown error occurred.",
+  "errorNetwork": "Network error. Please check your connection.",
+  "errorServer": "Server error. Please try again later.",
+  "errorUnauthorized": "Unauthorized. Please log in again.",
+  "errorNotFound": "Resource not found.",
+  "errorValidation": "Validation failed.",
+  "errorValidationEmpty": "Inputs cannot be empty.",
+  "errorValidationMissing": "Missing required fields: {fields}",
+  "@errorValidationMissing": {
+    "placeholders": {
+      "fields": {
+        "type": "String"
+      }
+    }
+  }
 }

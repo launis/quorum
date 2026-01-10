@@ -27,7 +27,10 @@ class AuthController extends _$AuthController {
     if (mockToken != null) {
       // Trigger a fetch!
       return Stream.fromFuture(
-        ref.read(userRepositoryProvider).fetchCurrentUser(),
+        ref
+            .read(userRepositoryProvider)
+            .fetchCurrentUser()
+            .then((result) => result.fold((l) => null, (r) => r)),
       );
     }
 
@@ -35,16 +38,13 @@ class AuthController extends _$AuthController {
     return authStream.asyncMap((firebaseUser) async {
       if (firebaseUser == null) return null;
 
-      try {
-        // Fetch authoritative profile from backend
-        // Note: The AuthInterceptor will automatically attach the token from firebaseUser
-        return await ref.read(userRepositoryProvider).fetchCurrentUser();
-      } catch (e) {
-        // If fetch fails (e.g. backend down or 401), we consider user effectively logged out
-        // or in an error state. For the stream, we might return null.
-        // Optional: Trigger signOut to clean up Firebase state if the account is invalid.
-        return null;
-      }
+      // Fetch authoritative profile from backend
+      // Note: The AuthInterceptor will automatically attach the token from firebaseUser
+      final result = await ref.read(userRepositoryProvider).fetchCurrentUser();
+      return result.fold(
+        (error) => null, // Treat error as no user (logged out / error state)
+        (user) => user,
+      );
     });
   }
 

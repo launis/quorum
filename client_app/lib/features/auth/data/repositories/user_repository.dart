@@ -1,6 +1,8 @@
 import 'package:client_app/api/api_client.dart';
+import 'package:client_app/core/error/app_error.dart';
 import 'package:client_app/features/auth/domain/models/user.dart';
 import 'package:dio/dio.dart';
+import 'package:fpdart/fpdart.dart';
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -42,9 +44,9 @@ class UserRepository {
   /// **Returns**:
   /// A [User] object containing the Role and Organization ID.
   ///
-  /// **Throws**:
-  /// - [DioException] if the backend is unreachable or the user record doesn't exist yet.
-  Future<User> fetchCurrentUser() async {
+  /// **Returns**:
+  /// An [Either] containing [AppError] on failure or [User] on success.
+  Future<Either<AppError, User>> fetchCurrentUser() async {
     try {
       // Note: Endpoint inferred from openapi.json. Adjust if backend path differs (e.g. /users/me vs /auth/me).
       // Based on openapi scan, we saw references but not explicit /users/me in the partial view.
@@ -52,13 +54,20 @@ class UserRepository {
       final response = await _client.get<Map<String, dynamic>>('/auth/me');
 
       if (response.data == null) {
-        throw Exception('User profile returned null data.');
+        return left(const AppError.server('User profile returned null data.'));
       }
 
-      return User.fromJson(response.data!);
-    } catch (e) {
-      // In a robust app, we'd wrap this.
-      rethrow;
+      return right(User.fromJson(response.data!));
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout ||
+          e.type == DioExceptionType.sendTimeout ||
+          e.type == DioExceptionType.connectionError) {
+        return left(AppError.network(e));
+      }
+      return left(AppError.server(e.message, e.response?.statusCode));
+    } catch (e, stackTrace) {
+      return left(AppError.unknown(e, stackTrace));
     }
   }
 }

@@ -108,5 +108,13 @@
   "stepReporter": "Raportoija (Reporter)",
   "stepInitializing": "Alustetaan...",
   "validationMissingEvidence": "Puuttuvat todisteet: {fields}",
-  "validationInputEmpty": "Syötteet eivät voi olla tyhjiä."
+  "validationInputEmpty": "Syötteet eivät voi olla tyhjiä.",
+  "errorUnknown": "Tuntematon virhe.",
+  "errorNetwork": "Verkkovirhe. Tarkista yhteytesi.",
+  "errorServer": "Palvelinvirhe. Yritä myöhemmin uudelleen.",
+  "errorUnauthorized": "Luvaton pääsy. Kirjaudu uudelleen.",
+  "errorNotFound": "Resurssia ei löydy.",
+  "errorValidation": "Validointivirhe.",
+  "errorValidationEmpty": "Syötteet eivät voi olla tyhjiä.",
+  "errorValidationMissing": "Puuttuvat kentät: {fields}"
 }

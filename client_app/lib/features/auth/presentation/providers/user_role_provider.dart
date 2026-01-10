@@ -34,5 +34,6 @@ Future<User?> currentUserProfile(Ref ref) async {
   // The 'authState' provider gives us the Firebase User (identity).
   // The 'userRepository' gives us the Domain User (permissions).
   final repo = ref.watch(userRepositoryProvider);
-  return repo.fetchCurrentUser();
+  final result = await repo.fetchCurrentUser();
+  return result.fold((l) => throw l, (r) => r);
 }

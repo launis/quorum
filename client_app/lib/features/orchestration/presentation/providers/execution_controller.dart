@@ -116,7 +116,12 @@ class ExecutionController extends _$ExecutionController {
     Map<String, dynamic> inputs,
     String workflowId,
   ) {
-    // 1. Audit Workflow Specific Validation
+    // 1. Immediate Fail: Empty Inputs
+    if (inputs.isEmpty) {
+      return const Left(AppError.validation(ValidationErrorReason.emptyInput));
+    }
+
+    // 2. Audit Workflow Specific Validation
     if (workflowId.toLowerCase().contains('audit')) {
       final requiredFields = [
         'history_text',
@@ -145,12 +150,6 @@ class ExecutionController extends _$ExecutionController {
         // Return structured error
         return Left(AppError.validationMissing(missing));
       }
-    }
-
-    // 2. Generic Validation (if any)
-    // Ensure no null keys or totally empty inputs if required by other workflows
-    if (inputs.isEmpty) {
-      return const Left(AppError.validation(ValidationErrorReason.emptyInput));
     }
 
     return const Right(unit);

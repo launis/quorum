@@ -371,4 +371,30 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get validationInputEmpty => 'Syötteet eivät voi olla tyhjiä.';
+
+  @override
+  String get errorUnknown => 'Tuntematon virhe.';
+
+  @override
+  String get errorNetwork => 'Verkkovirhe. Tarkista yhteytesi.';
+
+  @override
+  String get errorServer => 'Palvelinvirhe. Yritä myöhemmin uudelleen.';
+
+  @override
+  String get errorUnauthorized => 'Luvaton pääsy. Kirjaudu uudelleen.';
+
+  @override
+  String get errorNotFound => 'Resurssia ei löydy.';
+
+  @override
+  String get errorValidation => 'Validointivirhe.';
+
+  @override
+  String get errorValidationEmpty => 'Syötteet eivät voi olla tyhjiä.';
+
+  @override
+  String errorValidationMissing(String fields) {
+    return 'Puuttuvat kentät: $fields';
+  }
 }

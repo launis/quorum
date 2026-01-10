@@ -372,4 +372,30 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get validationInputEmpty => 'Inputs cannot be empty.';
+
+  @override
+  String get errorUnknown => 'Unknown error occurred.';
+
+  @override
+  String get errorNetwork => 'Network error. Please check your connection.';
+
+  @override
+  String get errorServer => 'Server error. Please try again later.';
+
+  @override
+  String get errorUnauthorized => 'Unauthorized. Please log in again.';
+
+  @override
+  String get errorNotFound => 'Resource not found.';
+
+  @override
+  String get errorValidation => 'Validation failed.';
+
+  @override
+  String get errorValidationEmpty => 'Inputs cannot be empty.';
+
+  @override
+  String errorValidationMissing(String fields) {
+    return 'Missing required fields: $fields';
+  }
 }
