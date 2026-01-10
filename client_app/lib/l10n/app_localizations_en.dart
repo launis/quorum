@@ -293,4 +293,75 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get selectWorkflowRequired => 'Please select a workflow.';
+
+  @override
+  String get adminDashboardTitle => 'Admin Dashboard';
+
+  @override
+  String get welcomeAdmin => 'Welcome to Admin Dashboard';
+
+  @override
+  String get manageUsersButton => 'Manage Users';
+
+  @override
+  String get manageOrganizationsButton => 'Manage Organizations';
+
+  @override
+  String get userManagementTitle => 'User Management';
+
+  @override
+  String get organizationManagementTitle => 'Organization Management';
+
+  @override
+  String get userListPlaceholder => 'User Management List Placeholder';
+
+  @override
+  String get organizationListPlaceholder => 'Organization List Placeholder';
+
+  @override
+  String monitorTitle(String id) {
+    return 'Monitor: $id';
+  }
+
+  @override
+  String get viewResults => 'View Results';
+
+  @override
+  String get analysisCompletedSuccess => 'Analysis Completed Successfully!';
+
+  @override
+  String get viewFullReport => 'View Full Report';
+
+  @override
+  String get viewRawDataComingSoon => 'View Raw Data (Coming Soon)';
+
+  @override
+  String get stepGuard => 'Guard Agent (Safety)';
+
+  @override
+  String get stepAnalyst => 'Analyst Agent (Research)';
+
+  @override
+  String get stepInteraction => 'Interaction Analyst';
+
+  @override
+  String get stepProfiler => 'Profiler Agent';
+
+  @override
+  String get stepPanel => 'Panel Audit (Parallel)';
+
+  @override
+  String get stepArchivist => 'Archivist (History)';
+
+  @override
+  String get stepJudge => 'Judge (Verdict)';
+
+  @override
+  String get stepCoach => 'Coach (Feedback)';
+
+  @override
+  String get stepReporter => 'Reporter (Final Report)';
+
+  @override
+  String get stepInitializing => 'Initializing...';
 }

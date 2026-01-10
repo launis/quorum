@@ -8,6 +8,10 @@ import 'package:client_app/router/scaffold_with_nav.dart';
 import 'package:client_app/features/orchestration/presentation/screens/analysis_wizard_screen.dart';
 import 'package:client_app/features/orchestration/presentation/screens/execution_monitor_screen.dart';
 import 'package:client_app/features/orchestration/presentation/screens/execution_result_screen.dart';
+import 'package:client_app/features/admin/presentation/screens/admin_dashboard_screen.dart';
+import 'package:client_app/features/admin/presentation/screens/user_management_screen.dart';
+import 'package:client_app/features/admin/presentation/screens/organization_list_screen.dart';
+import 'package:client_app/features/admin/presentation/screens/overview_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -147,15 +151,31 @@ GoRouter router(Ref ref) {
               ),
             ],
           ),
-          // Branch 2: Admin (Root/Admin only)
+          // Branch 3: Admin (Root/Admin only)
           StatefulShellBranch(
             routes: [
-              GoRoute(
-                path: '/admin',
-                builder:
-                    (context, state) => const Scaffold(
-                      body: Center(child: Text('Admin Panel')),
-                    ),
+              ShellRoute(
+                builder: (context, state, child) {
+                  return AdminDashboardScreen(child: child);
+                },
+                routes: [
+                  GoRoute(
+                    path: '/admin',
+                    builder: (context, state) => const OverviewScreen(),
+                    routes: [
+                      GoRoute(
+                        path: 'users',
+                        builder:
+                            (context, state) => const UserManagementScreen(),
+                      ),
+                      GoRoute(
+                        path: 'organizations',
+                        builder:
+                            (context, state) => const OrganizationListScreen(),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ],
           ),

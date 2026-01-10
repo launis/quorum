@@ -2,7 +2,7 @@ import 'package:client_app/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/orchestration/domain/models/execution.dart';
-import 'package:client_app/features/orchestration/presentation/providers/execution_details_provider.dart';
+import 'package:client_app/features/orchestration/presentation/providers/execution_controller.dart';
 import 'package:client_app/features/orchestration/presentation/widgets/results/result_dashboard.dart';
 import 'package:intl/intl.dart';
 
@@ -13,7 +13,7 @@ class ExecutionDetailsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final asyncExecution = ref.watch(executionDetailsProvider(executionId));
+    final asyncExecution = ref.watch(executionStreamProvider(executionId));
     final l10n = AppLocalizations.of(context)!;
 
     return DefaultTabController(
@@ -65,7 +65,7 @@ class ExecutionDetailsScreen extends ConsumerWidget {
                     FilledButton(
                       onPressed:
                           () => ref.invalidate(
-                            executionDetailsProvider(executionId),
+                            executionStreamProvider(executionId),
                           ),
                       child: Text(l10n.retry),
                     ),

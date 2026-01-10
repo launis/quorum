@@ -292,4 +292,75 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get selectWorkflowRequired => 'Valitse analyysityyppi.';
+
+  @override
+  String get adminDashboardTitle => 'Hallintapaneeli';
+
+  @override
+  String get welcomeAdmin => 'Tervetuloa hallintapaneeliin';
+
+  @override
+  String get manageUsersButton => 'Käyttäjien hallinta';
+
+  @override
+  String get manageOrganizationsButton => 'Organisaatioiden hallinta';
+
+  @override
+  String get userManagementTitle => 'Käyttäjien hallinta';
+
+  @override
+  String get organizationManagementTitle => 'Organisaatioiden hallinta';
+
+  @override
+  String get userListPlaceholder => 'Käyttäjälistan paikkamerkki';
+
+  @override
+  String get organizationListPlaceholder => 'Organisaatiolistan paikkamerkki';
+
+  @override
+  String monitorTitle(String id) {
+    return 'Seuranta: $id';
+  }
+
+  @override
+  String get viewResults => 'Näytä tulokset';
+
+  @override
+  String get analysisCompletedSuccess => 'Analyysi valmistui onnistuneesti!';
+
+  @override
+  String get viewFullReport => 'Näytä koko raportti';
+
+  @override
+  String get viewRawDataComingSoon => 'Näytä raakadata (Tulossa pian)';
+
+  @override
+  String get stepGuard => 'Turva-agentti (Guard)';
+
+  @override
+  String get stepAnalyst => 'Analyytikko (Analyst)';
+
+  @override
+  String get stepInteraction => 'Vuorovaikutus (Interaction)';
+
+  @override
+  String get stepProfiler => 'Profiloija (Profiler)';
+
+  @override
+  String get stepPanel => 'Paneeli (Panel Audit)';
+
+  @override
+  String get stepArchivist => 'Arkistonhoitaja (Archivist)';
+
+  @override
+  String get stepJudge => 'Tuomari (Judge)';
+
+  @override
+  String get stepCoach => 'Valmentaja (Coach)';
+
+  @override
+  String get stepReporter => 'Raportoija (Reporter)';
+
+  @override
+  String get stepInitializing => 'Alustetaan...';
 }

@@ -607,6 +607,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Please select a workflow.'**
   String get selectWorkflowRequired;
+
+  /// No description provided for @adminDashboardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Admin Dashboard'**
+  String get adminDashboardTitle;
+
+  /// No description provided for @welcomeAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome to Admin Dashboard'**
+  String get welcomeAdmin;
+
+  /// No description provided for @manageUsersButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage Users'**
+  String get manageUsersButton;
+
+  /// No description provided for @manageOrganizationsButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage Organizations'**
+  String get manageOrganizationsButton;
+
+  /// No description provided for @userManagementTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'User Management'**
+  String get userManagementTitle;
+
+  /// No description provided for @organizationManagementTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Organization Management'**
+  String get organizationManagementTitle;
+
+  /// No description provided for @userListPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'User Management List Placeholder'**
+  String get userListPlaceholder;
+
+  /// No description provided for @organizationListPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Organization List Placeholder'**
+  String get organizationListPlaceholder;
+
+  /// No description provided for @monitorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Monitor: {id}'**
+  String monitorTitle(String id);
+
+  /// No description provided for @viewResults.
+  ///
+  /// In en, this message translates to:
+  /// **'View Results'**
+  String get viewResults;
+
+  /// No description provided for @analysisCompletedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Analysis Completed Successfully!'**
+  String get analysisCompletedSuccess;
+
+  /// No description provided for @viewFullReport.
+  ///
+  /// In en, this message translates to:
+  /// **'View Full Report'**
+  String get viewFullReport;
+
+  /// No description provided for @viewRawDataComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'View Raw Data (Coming Soon)'**
+  String get viewRawDataComingSoon;
+
+  /// No description provided for @stepGuard.
+  ///
+  /// In en, this message translates to:
+  /// **'Guard Agent (Safety)'**
+  String get stepGuard;
+
+  /// No description provided for @stepAnalyst.
+  ///
+  /// In en, this message translates to:
+  /// **'Analyst Agent (Research)'**
+  String get stepAnalyst;
+
+  /// No description provided for @stepInteraction.
+  ///
+  /// In en, this message translates to:
+  /// **'Interaction Analyst'**
+  String get stepInteraction;
+
+  /// No description provided for @stepProfiler.
+  ///
+  /// In en, this message translates to:
+  /// **'Profiler Agent'**
+  String get stepProfiler;
+
+  /// No description provided for @stepPanel.
+  ///
+  /// In en, this message translates to:
+  /// **'Panel Audit (Parallel)'**
+  String get stepPanel;
+
+  /// No description provided for @stepArchivist.
+  ///
+  /// In en, this message translates to:
+  /// **'Archivist (History)'**
+  String get stepArchivist;
+
+  /// No description provided for @stepJudge.
+  ///
+  /// In en, this message translates to:
+  /// **'Judge (Verdict)'**
+  String get stepJudge;
+
+  /// No description provided for @stepCoach.
+  ///
+  /// In en, this message translates to:
+  /// **'Coach (Feedback)'**
+  String get stepCoach;
+
+  /// No description provided for @stepReporter.
+  ///
+  /// In en, this message translates to:
+  /// **'Reporter (Final Report)'**
+  String get stepReporter;
+
+  /// No description provided for @stepInitializing.
+  ///
+  /// In en, this message translates to:
+  /// **'Initializing...'**
+  String get stepInitializing;
 }
 
 class _AppLocalizationsDelegate

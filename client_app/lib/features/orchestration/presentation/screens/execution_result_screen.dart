@@ -1,8 +1,8 @@
+import 'package:client_app/features/orchestration/presentation/providers/execution_controller.dart';
 import 'package:client_app/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/orchestration/domain/models/execution.dart';
-import 'package:client_app/features/orchestration/presentation/providers/execution_details_provider.dart';
 import 'package:client_app/features/orchestration/presentation/widgets/results/result_dashboard.dart';
 import 'package:go_router/go_router.dart';
 
@@ -15,8 +15,8 @@ class ExecutionResultScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // We assume the user shouldn't be here if it's running,
     // but we can still watch it. Logically we might not need polling here,
-    // but executionDetailsProvider handles it.
-    final asyncExecution = ref.watch(executionDetailsProvider(executionId));
+    // but executionStreamProvider handles it.
+    final asyncExecution = ref.watch(executionStreamProvider(executionId));
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(

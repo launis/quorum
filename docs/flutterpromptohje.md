@@ -25,6 +25,10 @@ TECHNOLOGY STACK & VERIFIED DOCUMENTATION LINKS:
         * *Requirement*: STRICT Generator Mode (`@riverpod`).
         * *Requirement*: Use `Ref` instead of `WidgetRef` in logic classes.
         * *Requirement*: All async operations must return `AsyncValue<T>`.
+        * *Requirement*: **Declarative Data Flow**. NEVER manually subscribe to Streams (`.listen()`) inside a Controller/Notifier.
+            * *Bad Pattern*: A Controller creating a `StreamSubscription` and setting state manually.
+            * *Correct Pattern*: Use a separate `@riverpod Stream<T>` provider for real-time data and `watch` it in the UI.
+            * *Separation*: Controllers (`AsyncNotifier`) are for **Actions** (Mutations). Providers are for **Data** (Reads).
 
 3.  **Routing (The Navigation)**:
     * **GoRouter ^17.0.1**: [https://pub.dev/packages/go_router]

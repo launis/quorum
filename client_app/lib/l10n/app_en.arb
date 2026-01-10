@@ -136,5 +136,33 @@
         }
         }
     },
-  "selectWorkflowRequired": "Please select a workflow."
+  "selectWorkflowRequired": "Please select a workflow.",
+  "adminDashboardTitle": "Admin Dashboard",
+  "welcomeAdmin": "Welcome to Admin Dashboard",
+  "manageUsersButton": "Manage Users",
+  "manageOrganizationsButton": "Manage Organizations",
+  "userManagementTitle": "User Management",
+  "organizationManagementTitle": "Organization Management",
+  "userListPlaceholder": "User Management List Placeholder",
+  "organizationListPlaceholder": "Organization List Placeholder",
+  "monitorTitle": "Monitor: {id}",
+  "@monitorTitle": {
+      "placeholders": {
+          "id": {"type": "String"}
+      }
+  },
+  "viewResults": "View Results",
+  "analysisCompletedSuccess": "Analysis Completed Successfully!",
+  "viewFullReport": "View Full Report",
+  "viewRawDataComingSoon": "View Raw Data (Coming Soon)",
+  "stepGuard": "Guard Agent (Safety)",
+  "stepAnalyst": "Analyst Agent (Research)",
+  "stepInteraction": "Interaction Analyst",
+  "stepProfiler": "Profiler Agent",
+  "stepPanel": "Panel Audit (Parallel)",
+  "stepArchivist": "Archivist (History)",
+  "stepJudge": "Judge (Verdict)",
+  "stepCoach": "Coach (Feedback)",
+  "stepReporter": "Reporter (Final Report)",
+  "stepInitializing": "Initializing..."
 }

@@ -47,7 +47,7 @@ void main() {
     // l10n.chooseAnalysisType -> "Choose Analysis Type" (in English)
     // We configured delegates, so it should be localized.
     expect(
-      find.text('Analysis Type'),
+      find.text('Choose Analysis Type'),
       findsOneWidget,
     ); // Matching label text from Widget?
     // Wait, WorkflowSelector uses `l10n.chooseAnalysisType`.

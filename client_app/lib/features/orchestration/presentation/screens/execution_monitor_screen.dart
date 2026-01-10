@@ -1,9 +1,10 @@
+import 'package:client_app/features/orchestration/domain/models/execution.dart';
+import 'package:client_app/features/orchestration/presentation/providers/execution_controller.dart';
+import 'package:client_app/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:client_app/features/orchestration/domain/models/execution.dart';
-import 'package:client_app/features/orchestration/presentation/providers/execution_details_provider.dart';
-import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 class ExecutionMonitorScreen extends ConsumerWidget {
   final String executionId;
@@ -12,10 +13,13 @@ class ExecutionMonitorScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final asyncExecution = ref.watch(executionDetailsProvider(executionId));
+    final asyncExecution = ref.watch(executionStreamProvider(executionId));
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(title: Text('Monitor: ${executionId.substring(0, 8)}...')),
+      appBar: AppBar(
+        title: Text(l10n.monitorTitle(executionId.substring(0, 8))),
+      ),
       body: asyncExecution.when(
         data: (execution) {
           // Auto-redirect if completed
@@ -27,7 +31,9 @@ class ExecutionMonitorScreen extends ConsumerWidget {
           return _MonitorView(execution: execution);
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text('Error: $err')),
+        error:
+            (err, stack) =>
+                Center(child: Text(l10n.failedToLoad(err.toString()))),
       ),
       floatingActionButton:
           asyncExecution.asData?.value.status == ExecutionStatus.completed
@@ -35,7 +41,7 @@ class ExecutionMonitorScreen extends ConsumerWidget {
                 onPressed:
                     () =>
                         context.go('/dashboard/executions/$executionId/report'),
-                label: const Text('View Results'),
+                label: Text(l10n.viewResults),
                 icon: const Icon(Icons.arrow_forward),
                 backgroundColor: Colors.green,
               )
@@ -52,6 +58,7 @@ class _MonitorView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final isRunning = execution.status == ExecutionStatus.running;
     final isCompleted = execution.status == ExecutionStatus.completed;
 
@@ -81,12 +88,13 @@ class _MonitorView extends StatelessWidget {
                           size: 32,
                         ),
                 title: Text(
-                  execution.status.name.toUpperCase(),
+                  execution.status.name
+                      .toUpperCase(), // Enum names remain tech-focused, or could map too
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 subtitle:
                     execution.currentStepName != null
-                        ? Text('Step: ${execution.currentStepName}')
+                        ? Text(l10n.stepLabel(execution.currentStepName!))
                         : null,
               ),
             ),
@@ -97,16 +105,16 @@ class _MonitorView extends StatelessWidget {
             const SizedBox(height: 16),
 
             // Timeline
-            Text('Timeline', style: theme.textTheme.titleMedium),
+            Text(l10n.timeline, style: theme.textTheme.titleMedium),
             const Divider(),
             _infoRow(
-              'Created',
+              l10n.created,
               DateFormat('yyyy-MM-dd HH:mm:ss').format(execution.createdAt),
             ),
             const SizedBox(height: 24),
 
             // Steps Progress
-            Text('Workflow Progress', style: theme.textTheme.titleMedium),
+            Text(l10n.workflowProgress, style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
             _StepProgressList(
               currentStep: execution.currentStepName,
@@ -119,7 +127,7 @@ class _MonitorView extends StatelessWidget {
             Center(
               child: TextButton.icon(
                 icon: const Icon(Icons.code),
-                label: const Text('View Raw Data (Coming Soon)'),
+                label: Text(l10n.viewRawDataComingSoon),
                 onPressed: () {
                   // Placeholder for raw data modal or route
                 },
@@ -170,6 +178,7 @@ class _CompletionBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -179,14 +188,14 @@ class _CompletionBanner extends StatelessWidget {
       ),
       child: Column(
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.check_circle, color: Colors.green),
-              SizedBox(width: 12),
+              const Icon(Icons.check_circle, color: Colors.green),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Analysis Completed Successfully!',
-                  style: TextStyle(
+                  l10n.analysisCompletedSuccess,
+                  style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
                     color: Colors.green,
@@ -202,7 +211,7 @@ class _CompletionBanner extends StatelessWidget {
               onPressed:
                   () => context.go('/dashboard/executions/$executionId/report'),
               icon: const Icon(Icons.visibility),
-              label: const Text('View Full Report'),
+              label: Text(l10n.viewFullReport),
               style: FilledButton.styleFrom(backgroundColor: Colors.green),
             ),
           ),
@@ -247,18 +256,22 @@ class _StepProgressList extends StatelessWidget {
     'step_xai',
   ];
 
-  static const stepNames = {
-    'step_guard': 'Guard Agent (Safety)',
-    'step_analyst': 'Analyst Agent (Research)',
-    'step_interaction': 'Interaction Analyst',
-    'step_profiler': 'Profiler Agent',
-    'step_panel': 'Panel Audit (Parallel)',
-    'step_archivist': 'Archivist (History)',
-    'step_judge': 'Judge (Verdict)',
-    'step_coach': 'Coach (Feedback)',
-    'step_xai': 'Reporter (Final Report)',
-    'init': 'Initializing...',
-  };
+  String _getStepLabel(BuildContext context, String stepKey) {
+    final l10n = AppLocalizations.of(context)!;
+    return switch (stepKey) {
+      'step_guard' => l10n.stepGuard,
+      'step_analyst' => l10n.stepAnalyst,
+      'step_interaction' => l10n.stepInteraction,
+      'step_profiler' => l10n.stepProfiler,
+      'step_panel' => l10n.stepPanel,
+      'step_archivist' => l10n.stepArchivist,
+      'step_judge' => l10n.stepJudge,
+      'step_coach' => l10n.stepCoach,
+      'step_xai' => l10n.stepReporter,
+      'init' => l10n.stepInitializing,
+      _ => stepKey,
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -274,11 +287,9 @@ class _StepProgressList extends StatelessWidget {
       // 2. Try fuzzy / value match if exact failed
       if (currentIndex == -1) {
         // Reverse lookup: check if currentStep matches any of the values in stepNames
-        // or partial contains
+        // or partial contains - now using backend keys
         final lowerStep = currentStep!.toLowerCase();
 
-        // Try to find a key where stepNames[key] contains currentStep or vice versa
-        // OR simply map known backend strings to keys
         for (int i = 0; i < steps.length; i++) {
           final key = steps[i];
           // Check normalized key
@@ -287,13 +298,6 @@ class _StepProgressList extends StatelessWidget {
             break;
           }
 
-          // Check display name map
-          final displayName = stepNames[key]?.toLowerCase() ?? '';
-          if (displayName.contains(lowerStep) ||
-              lowerStep.contains(displayName)) {
-            currentIndex = i;
-            break;
-          }
           // Specific backend mappings (common ones)
           if (lowerStep.contains('guard') && key == 'step_guard') {
             currentIndex = i;
@@ -319,7 +323,8 @@ class _StepProgressList extends StatelessWidget {
           if (lowerStep.contains('coach') && key == 'step_coach') {
             currentIndex = i;
           }
-          if (lowerStep.contains('reporter') && key == 'step_xai') {
+          if ((lowerStep.contains('reporter') || lowerStep.contains('xai')) &&
+              key == 'step_xai') {
             currentIndex = i;
           }
 
@@ -336,7 +341,7 @@ class _StepProgressList extends StatelessWidget {
         separatorBuilder: (_, _) => const Divider(height: 1),
         itemBuilder: (context, index) {
           final stepKey = steps[index];
-          final stepLabel = stepNames[stepKey] ?? stepKey;
+          final stepLabel = _getStepLabel(context, stepKey);
 
           // Steps before current index are completed
           bool isCompleted = index < currentIndex;

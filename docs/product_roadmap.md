@@ -106,13 +106,15 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 ### 2.6 Workflow UI (Wizard & Feedback)
 - [x] **Creation Wizard**: Multi-step form view for configuring and starting a new analysis (replaces Audit Wizard).
 - [x] **Live Execution View**: Real-time progress UI with polling integration (Progress Bar, Step Indicator).
+- [x] **Localization**: Full EN/FI support for Analysis Wizard and Execution Monitor.
+- [x] **Strict Validation**: Client-side enforcement of Audit workflow requirements (Fail-Fast).
 
 ### 2.7 Administration & Governance (The Admin Portal)
 **Objective:** Port existing `frontend/main.py` admin capabilities to Flutter with a premium, "Best Practice" UX.
 
-- [ ] **Admin Portal Separation**:
+- [x] **Admin Portal Separation**:
     - **Workflow vs. Admin**: Strict visual and navigational separation between *Technical Configuration* (Workflow Builder, Matrix) and *Governance* (Users, Org, System).
-    - **Dedicated Admin Route**: `/admin` dashboard with a distinct visual theme (e.g., darker sidebar or accent) to denote privileged context.
+    - **Dedicated Admin Route**: `/admin` dashboard with a distinct visual theme (ShellRoute + NavigationRail).
 - [ ] **Advanced User Management**:
     - **Access Lifecycle**: UI strategies for Granting, Renewing, and Revoking access with clear expiry visualizations.
     - **Role Matrix**: Interactive permission table for assigning Roles (Viewer, Member, Manager, Admin) with "Best Practice" visual feedback.
