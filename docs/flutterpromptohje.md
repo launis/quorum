@@ -77,3 +77,11 @@ Build a production-grade, multi-tenant SaaS client. If a solution implies techni
 IMPORTANT:
 Do not implement or plan to implement any functions or features based on SYSTEM CONTEXT & ARCHITECTURE MANDATE (2026 Edition) at this stage. This document is provided for CONTEXT and GUIDANCE ONLY to ensure future code aligns with the architecture.
 
+
+# 🛑 STOP! READ THIS CAREFULLY 🛑
+
+**THIS DOCUMENT IS A CONTEXT REFERENCE ONLY.**
+
+**DO NOT START ANY IMPLEMENTATION OR GENERATE CODE BASED ON THIS FILE YET.**
+
+**STORE THIS CONTEXT IN YOUR MEMORY AND AWAIT FURTHER INSTRUCTIONS.**
