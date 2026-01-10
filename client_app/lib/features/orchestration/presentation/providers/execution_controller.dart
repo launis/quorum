@@ -49,8 +49,12 @@ class ExecutionController extends _$ExecutionController {
     // 1. Validate Inputs (Client-side fail-fast)
     final validation = _validateInputs(inputs, workflowId);
     if (validation.isLeft()) {
-      final errorStr = validation.getLeft().toNullable() ?? 'Invalid inputs';
-      final error = AppError.validation(errorStr);
+      // Extract the specific AppError
+      final error =
+          validation.getLeft().toNullable() ??
+          const AppError.validation('Invalid inputs');
+
+      // Update state and throw so UI can show it
       state = AsyncError(error, StackTrace.current);
       throw error;
     }
@@ -108,7 +112,7 @@ class ExecutionController extends _$ExecutionController {
   /// Mirrors Backend Logic (`GUARD 2` in `execution_router.py`):
   /// - If workflow ID contains "audit", requires specific evidence files/fields.
   /// - Checks that required fields are not empty or null.
-  Either<String, Unit> _validateInputs(
+  Either<AppError, Unit> _validateInputs(
     Map<String, dynamic> inputs,
     String workflowId,
   ) {
@@ -138,16 +142,15 @@ class ExecutionController extends _$ExecutionController {
       }
 
       if (missing.isNotEmpty) {
-        return Left(
-          'Missing required evidence for Audit: ${missing.join(', ')}',
-        );
+        // Return structured error
+        return Left(AppError.validationMissing(missing));
       }
     }
 
     // 2. Generic Validation (if any)
     // Ensure no null keys or totally empty inputs if required by other workflows
     if (inputs.isEmpty) {
-      return const Left('Inputs cannot be empty.');
+      return const Left(AppError.validation('Inputs cannot be empty.'));
     }
 
     return const Right(unit);

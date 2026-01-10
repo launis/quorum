@@ -364,4 +364,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get stepInitializing => 'Initializing...';
+
+  @override
+  String validationMissingEvidence(String fields) {
+    return 'Missing required evidence: $fields';
+  }
+
+  @override
+  String get validationInputEmpty => 'Inputs cannot be empty.';
 }

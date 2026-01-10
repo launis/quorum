@@ -12,6 +12,9 @@ from pydantic import BaseModel
 from backend.dependencies import AuthServiceDep, CurrentUserDep, RepositoryDep
 from backend.models.auth import Organization, SubscriptionStatus, TokenData, UserRole
 from backend.services.auth import AuthService
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # --- Pydantic Models ---
@@ -121,12 +124,9 @@ async def create_organization(
             organization_id=item["id"],
             details={"name": item["name"], "tier": item["tier"]},
         )
-    except Exception as e:
-        with open("backend_error.log", "w") as f:
-            f.write(f"AUDIT ERROR: {e}\n")
-            import traceback
 
-            traceback.print_exc(file=f)
+    except Exception as e:
+        logger.error(f"AUDIT ERROR: {e}", exc_info=True)
         raise e
 
     # Return as response (Organization has logic to default fields if needed, but input covers it)

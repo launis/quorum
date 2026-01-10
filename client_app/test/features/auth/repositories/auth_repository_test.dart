@@ -23,16 +23,21 @@ void main() {
   });
 
   group('AuthRepository', () {
-    const email = 'test@example.com';
+    // Aligned with backend/seed/seed_data.json
+    const email = 'root@example.com';
     const password = 'pass';
-    const token = 'firebase_token_123';
+    const token = 'firebase_token_root_master';
 
     final backendUserJson = {
       'user': {
-        'uid': 'u-1',
+        'uid': 'root_master',
         'email': email,
-        'role': 'ADMIN',
-        'organization_id': 'org-1',
+        'role': 'ROOT',
+        'organization_id': 'system',
+        'display_name': 'System Root',
+        'created_at': '2026-01-01T00:00:00',
+        'language': 'fi',
+        'theme_mode': 'system',
       },
     };
 
@@ -63,11 +68,17 @@ void main() {
       );
 
       // 3. Call method
-      final user = await repository.signInWithEmailAndPassword(email, password);
+      final result = await repository.signInWithEmailAndPassword(
+        email,
+        password,
+      );
 
       // 4. Verify
-      expect(user.uid, 'u-1');
-      expect(user.role, app_user.UserRole.admin);
+      expect(result.isRight(), true);
+      final user = result.getRight().toNullable()!;
+      expect(user.uid, 'root_master');
+      expect(user.role, app_user.UserRole.root);
+      expect(user.organizationId, 'system');
 
       verify(
         mockFirebaseAuth.signInWithEmailAndPassword(
@@ -84,7 +95,7 @@ void main() {
     });
 
     test('debugSignInWithMockToken calls backend directly', () async {
-      const uid = 'mock-user';
+      const uid = 'root_master';
       when(
         mockDio.post<Map<String, dynamic>>(
           '/auth/verify',
@@ -98,9 +109,11 @@ void main() {
         ),
       );
 
-      final user = await repository.debugSignInWithMockToken(uid);
+      final result = await repository.debugSignInWithMockToken(uid);
 
-      expect(user.uid, 'u-1');
+      expect(result.isRight(), true);
+      final user = result.getRight().toNullable()!;
+      expect(user.uid, 'root_master');
       verify(
         mockDio.post<Map<String, dynamic>>(
           '/auth/verify',

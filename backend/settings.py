@@ -56,6 +56,8 @@ class Settings(BaseSettings):
     storage_bucket_name: Annotated[str | None, Field(description="Firebase Storage Bucket Name")] = None
 
     # --- Paths ---
+    log_file_name: Annotated[str, Field(description="Name of the debug log file")] = "backend_debug.log"
+
     # We define base_dir relative to this file (backend/settings.py)
     @computed_field
     def base_dir(self) -> str:
@@ -93,6 +95,12 @@ class Settings(BaseSettings):
     @computed_field
     def mock_responses_path(self) -> str:
         return os.path.join(self.data_dir, "mock_responses.json")
+
+    @computed_field
+    def log_file_path(self) -> str:
+        """Absolute path to the log file in the project root."""
+        # Using base_dir parent (project root) + log_file_name
+        return os.path.join(os.path.dirname(self.base_dir), self.log_file_name)
 
     # --- Complex Configs (Computed) ---
     @computed_field

@@ -15,6 +15,12 @@ void main() {
   late MockExecutionRepository mockRepository;
   late ProviderContainer container;
 
+  setUpAll(() {
+    provideDummy<TaskEither<AppError, String>>(
+      TaskEither.left(const AppError.unknown()),
+    );
+  });
+
   setUp(() {
     mockRepository = MockExecutionRepository();
     container = ProviderContainer(
@@ -30,19 +36,51 @@ void main() {
 
   group('ExecutionController', () {
     test(
-      'startAnalysis throws AppError.validation if inputs are invalid for Audit',
+      'startAnalysis throws AppError.validationMissing if inputs are invalid for Audit',
       () async {
         final controller = container.read(executionControllerProvider.notifier);
         // Missing required audit fields
         final inputs = {'some_other_field': 'value'};
 
-        expect(
-          controller.startAnalysis(
+        try {
+          await controller.startAnalysis(
             workflowId: 'audit_workflow',
             inputs: inputs,
-          ),
-          throwsA(isA<AppError>()),
-        );
+          );
+          fail('Should have thrown AppError');
+        } catch (e) {
+          expect(e, isA<AppError>());
+          final error = e as AppError;
+          error.maybeMap(
+            validationMissing: (value) {
+              expect(value.fields, contains('history_text'));
+              expect(value.fields, contains('product_text'));
+            },
+            orElse: () => fail('Wrong error type: $error'),
+          );
+        }
+      },
+    );
+
+    test(
+      'startAnalysis throws AppError.validation if inputs are empty',
+      () async {
+        final controller = container.read(executionControllerProvider.notifier);
+        try {
+          await controller.startAnalysis(
+            workflowId: 'generic_workflow',
+            inputs: {},
+          );
+          fail('Should have thrown AppError');
+        } catch (e) {
+          expect(e, isA<AppError>());
+          final error = e as AppError;
+          error.maybeMap(
+            validation:
+                (value) => expect(value.message, contains('cannot be empty')),
+            orElse: () => fail('Wrong error type: $error'),
+          );
+        }
       },
     );
 
@@ -65,29 +103,24 @@ void main() {
         expect(result, executionId);
         verify(mockRepository.createExecution(any)).called(1);
       },
-      skip: 'Mocking issues with TaskEither',
     );
 
-    test(
-      'startAnalysis throws AppError if repository fails',
-      () async {
-        final controller = container.read(executionControllerProvider.notifier);
-        final inputs = {'generic_field': 'value'};
-        final error = AppError.server('API Error');
+    test('startAnalysis throws AppError if repository fails', () async {
+      final controller = container.read(executionControllerProvider.notifier);
+      final inputs = {'generic_field': 'value'};
+      final error = AppError.server('API Error');
 
-        when(
-          mockRepository.createExecution(any),
-        ).thenAnswer((_) => TaskEither<AppError, String>.left(error));
+      when(
+        mockRepository.createExecution(any),
+      ).thenAnswer((_) => TaskEither<AppError, String>.left(error));
 
-        await expectLater(
-          controller.startAnalysis(
-            workflowId: 'generic_workflow',
-            inputs: inputs,
-          ),
-          throwsA(isA<AppError>()),
-        );
-      },
-      skip: 'Mocking issues with TaskEither',
-    );
+      await expectLater(
+        controller.startAnalysis(
+          workflowId: 'generic_workflow',
+          inputs: inputs,
+        ),
+        throwsA(isA<AppError>()),
+      );
+    });
   });
 }

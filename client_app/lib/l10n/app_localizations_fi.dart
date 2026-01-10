@@ -363,4 +363,12 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get stepInitializing => 'Alustetaan...';
+
+  @override
+  String validationMissingEvidence(String fields) {
+    return 'Puuttuvat todisteet: $fields';
+  }
+
+  @override
+  String get validationInputEmpty => 'Syötteet eivät voi olla tyhjiä.';
 }

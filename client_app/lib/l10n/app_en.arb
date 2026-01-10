@@ -164,5 +164,16 @@
   "stepJudge": "Judge (Verdict)",
   "stepCoach": "Coach (Feedback)",
   "stepReporter": "Reporter (Final Report)",
-  "stepInitializing": "Initializing..."
+  "stepReporter": "Reporter (Final Report)",
+  "stepInitializing": "Initializing...",
+  "validationMissingEvidence": "Missing required evidence: {fields}",
+  "@validationMissingEvidence": {
+    "description": "Validation error for missing evidence fields",
+    "placeholders": {
+      "fields": {
+        "type": "String"
+      }
+    }
+  },
+  "validationInputEmpty": "Inputs cannot be empty."
 }

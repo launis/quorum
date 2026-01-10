@@ -745,6 +745,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Initializing...'**
   String get stepInitializing;
+
+  /// Validation error for missing evidence fields
+  ///
+  /// In en, this message translates to:
+  /// **'Missing required evidence: {fields}'**
+  String validationMissingEvidence(String fields);
+
+  /// No description provided for @validationInputEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Inputs cannot be empty.'**
+  String get validationInputEmpty;
 }
 
 class _AppLocalizationsDelegate

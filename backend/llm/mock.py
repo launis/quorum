@@ -53,10 +53,8 @@ class MockLLMService:
             key = self._identify_prompt_type(prompt, system_instruction)
             logger.info(f"[MockLLM] Identified agent via heuristics: '{key}'")
 
-        with open("mock_debug.log", "a", encoding="utf-8") as f:
-            f.write("\n--- NEW CALL ---\n")
-            f.write(f"Agent Identity: {agent_identity}\n")
-            f.write(f"Resolved Key: {key}\n")
+        # Replaced manual file write with logger.debug to use standard logging infrastructure
+        logger.debug(f"--- NEW CALL ---\nAgent Identity: {agent_identity}\nResolved Key: {key}")
 
         logger.info(f"[MOCK RESPONSE] Generating response for: {key}")
 

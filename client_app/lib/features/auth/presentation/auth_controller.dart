@@ -55,23 +55,50 @@ class AuthController extends _$AuthController {
   /// 2. Backend Verification (via Repository)
   /// 3. State update (vi Stream)
   Future<void> signIn(String email, String password) async {
+    state =
+        const AsyncLoading(); // Optional: indicate loading explicitly if needed
+
     // We delegate to repo. The stream will update automatically.
     // However, we want to await the full flow to catch errors.
-    await ref
+    final result = await ref
         .read(authRepositoryProvider)
         .signInWithEmailAndPassword(email, password);
+
+    result.fold(
+      (error) {
+        state = AsyncError(error, StackTrace.current);
+        throw error; // Rethrow as requested so UI can show snackbar/dialog if it catches it
+      },
+      (user) {
+        // Success! The stream will emit the new user automatically.
+        // We don't need to manually set state here unless we want to force it.
+      },
+    );
   }
 
   /// **Debug Only**: Log in with a mock token.
+  /// **Debug Only**: Log in with a mock token.
   Future<void> debugMockLogin(String uid) async {
+    state = const AsyncLoading();
+
     // 1. Validate with Backend (Ensures user exists and backend accepts it)
-    await ref.read(authRepositoryProvider).debugSignInWithMockToken(uid);
+    final result = await ref
+        .read(authRepositoryProvider)
+        .debugSignInWithMockToken(uid);
 
-    // 2. Create the token string
-    final token = 'mock-token:$uid';
+    result.fold(
+      (error) {
+        state = AsyncError(error, StackTrace.current);
+        throw error;
+      },
+      (user) {
+        // 2. Create the token string
+        final token = 'mock-token:$uid';
 
-    // 3. Set Global State (Triggers build() rebuild -> Stream -> User)
-    ref.read(mockTokenProvider.notifier).setToken(token);
+        // 3. Set Global State (Triggers build() rebuild -> Stream -> User)
+        ref.read(mockTokenProvider.notifier).setToken(token);
+      },
+    );
   }
 
   Future<void> signOut() async {

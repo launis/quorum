@@ -148,3 +148,25 @@ Permissions are hierarchical:
 3.  **MANAGER**: Technical Lead. Can configure Workflows/Prompts but cannot manage Users.
 4.  **MEMBER**: Standard User. Can execute Workflows.
 5.  **VIEWER**: Read-Only access.
+
+## API & Error Contract (Protocol)
+
+To ensure consistent UX across the hybrid Architecture (Flutter Client + Python Backend), all subsystems adhere to a strict **JSON Error Schema**.
+
+### 1. Backend Responsibility (`APIError`)
+All API endpoints and Exception Handlers must return the standard `APIError` shape (HTTP 4xx/5xx):
+```json
+{
+  "error_code": "VALIDATION_ERROR", // Machine-readable constant
+  "message": "Invalid input data",  // Human-readable fallback (English)
+  "details": ["Field 'token' is required"] // Optional debugging context
+}
+```
+
+### 2. Frontend Responsibility (`AppError`)
+The Flutter Client **MUST NOT** display raw backend strings directly.
+1.  **Parse**: Intercept HTTP Error -> inspect `error_code`.
+2.  **Map**: Convert `error_code` -> `AppError` Union (e.g., `AppError.validationMissing`).
+3.  **Localize**: View Layer uses `AppLocalizations` to render the final message to the User (e.g., `l10n.fieldRequired`).
+
+*Rule*: "If it's not in `.arb`, it doesn't exist for the user."

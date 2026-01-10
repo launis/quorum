@@ -106,5 +106,7 @@
   "stepJudge": "Tuomari (Judge)",
   "stepCoach": "Valmentaja (Coach)",
   "stepReporter": "Raportoija (Reporter)",
-  "stepInitializing": "Alustetaan..."
+  "stepInitializing": "Alustetaan...",
+  "validationMissingEvidence": "Puuttuvat todisteet: {fields}",
+  "validationInputEmpty": "Syötteet eivät voi olla tyhjiä."
 }

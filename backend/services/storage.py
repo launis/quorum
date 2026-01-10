@@ -195,8 +195,9 @@ class FirebaseStorage(AbstractStorage):
         except Exception as e:
             msg = f"Failed to save file to Firebase {path}: {e}"
             logger.error(msg)
-            print(f"!!! FIREBASE STORAGE ERROR: {msg}", flush=True)
-            print("!!! HINT: Did you enable 'Storage' in the Firebase Console?", flush=True)
+            # Using logger.critical/warning instead of print for better visibility in logs
+            logger.critical(f"!!! FIREBASE STORAGE ERROR: {msg}")
+            logger.critical("!!! HINT: Did you enable 'Storage' in the Firebase Console?")
             raise e
 
     def read(self, path: str) -> bytes:

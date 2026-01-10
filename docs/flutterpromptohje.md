@@ -2,7 +2,7 @@ SYSTEM CONTEXT & ARCHITECTURE MANDATE (2026 Edition)
 
 PROJECT: Cognitive Quorum (Monorepo: Python Backend + Flutter Client)
 CURRENT DATE: 2026-01-01
-STATUS: Phase 2 (Building the Scalable Flutter Client)
+STATUS: Phase 2 (Hardening Architecture & Error Handling)
 
 --------------------------------------------------------------------------------
 ⚠️ STRICT DEPENDENCY & PATTERN PROTOCOL
@@ -51,6 +51,9 @@ TECHNOLOGY STACK & VERIFIED DOCUMENTATION LINKS:
     * **Intl & Flutter Localizations**: [https://docs.flutter.dev/ui/internationalization]
         * *Requirement*: **Multi-language Support (FI/EN)**. The app must support Finnish and English immediately.
         * *Requirement*: All strings must be in `.arb` files. No hardcoded strings allowed.
+    * **Error Message Hygiene**: NEVER pass hardcoded string literals to `AppError.validation()` or any error constructor.
+        * *Requirement*: Client-side validation errors must use `AppLocalizations` getters (e.g., `l10n.fieldRequired`).
+        * *Requirement*: Backend errors must be mapped from `error_code` to `.arb` keys. Do not rely on backend `message` strings unless they are guaranteed to be user-facing and localized.
 
 6.  **Documentation & Code Quality**:
     * **DartDoc Standard**: [https://dart.dev/effective-dart/documentation]
@@ -67,13 +70,27 @@ TECHNOLOGY STACK & VERIFIED DOCUMENTATION LINKS:
     * **Grids**:
         * *Requirement*: Use `SliverGridDelegateWithMaxCrossAxisExtent` to automatically add columns on wider screens.
 
+8.  **Logging & Observability Mandate (Backend)**:
+    * **No Manual Printing**: `print()` usage is FORBIDDEN in production code. Use the standard `logging` module.
+    * **Standard Logger**: Always instantiate `logger = logging.getLogger(__name__)`.
+    * **Routing Policy**:
+        * **INFO/DEBUG/WARNING**: Routed to `logging_config.py` handlers (File: `backend_debug.log` / Stream).
+        * **ERROR/CRITICAL**: Must include `exc_info=True` for stack traces.
+    * **Environment Config**: Log file location is controlled via `LOG_FILE_NAME` env var.
+    * **Cloud-Native**: Assume logs are scraped from `stdout`. File writing is secondary/local-only.
+
 ARCHITECTURAL RULES (ENFORCED):
 1.  **Monorepo Context**: You are working in `client_app/`. The backend is in `backend/`.
 2.  **API Strategy**: The Flutter app DOES NOT touch the database directly. It talks to the Python API (`http://localhost:8000`).
 3.  **Code Style**:
-    * Use `fpdart` for functional error handling where appropriate.
+    * Use `fpdart` for functional error handling. **Repositories MUST return `Future<Either<AppError, T>>` instead of throwing exceptions.**
     * Prioritize Composition over Inheritance.
     * Always verify imports (no relative imports for different feature modules).
+
+4.  **API & Error Contract (ENFORCED)**:
+    * "**API Error Handling**: Backend follows a strict JSON error schema (`error_code`, `message`)."
+    * " *Requirement*: The Frontend must NOT parse error strings using `contains()`. It must switch on the `error_code` provided by the API."
+    * " *Requirement*: All API calls must be wrapped in a repository-level handler that converts Dio `Response` (RFC 7807 style) into domain-specific `AppError` types."
 
 GOAL:
 Build a production-grade, multi-tenant SaaS client. If a solution implies technical debt or "the old way of doing things", REJECT IT and propose the scalable, modern solution based on the documentation links above.

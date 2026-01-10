@@ -1702,6 +1702,7 @@
             "description": "Esikäsittely ja Turvaportti (Vaihe 1).",
             "component": "GuardAgent",
             "execution_config": {
+                "pre_hooks": [],
                 "llm_prompts": [
                     "GLOBAL_CONTEXT",
                     "HEADER_MANDATES",
@@ -1727,6 +1728,7 @@
             "description": "Todistepohjainen ankkurointi (Vaihe 2).",
             "component": "AnalystAgent",
             "execution_config": {
+                "pre_hooks": [],
                 "llm_prompts": [
                     "GLOBAL_CONTEXT",
                     "HEADER_MANDATES",
@@ -1752,6 +1754,7 @@
             "description": "Promptauskompetenssin analyysi (Vaihe 3).",
             "component": "InteractionAnalystAgent",
             "execution_config": {
+                "pre_hooks": [],
                 "llm_prompts": [
                     "GLOBAL_CONTEXT",
                     "HEADER_MANDATES",
@@ -1776,6 +1779,7 @@
             "description": "Kirjoittajan intention ja sävyn analyysi (Vaihe 4).",
             "component": "ProfilerAgent",
             "execution_config": {
+                "pre_hooks": [],
                 "llm_prompts": [
                     "GLOBAL_CONTEXT",
                     "HEADER_MANDATES",
@@ -1798,6 +1802,7 @@
             "description": "Argumentaation rakentaminen (Vaihe 5).",
             "component": "LogicianAgent",
             "execution_config": {
+                "pre_hooks": [],
                 "llm_prompts": [
                     "GLOBAL_CONTEXT",
                     "HEADER_MANDATES",
@@ -1820,6 +1825,7 @@
             "description": "Argumentaation auditointi (Vaihe 6).",
             "component": "LogicalFalsifierAgent",
             "execution_config": {
+                "pre_hooks": [],
                 "llm_prompts": [
                     "GLOBAL_CONTEXT",
                     "HEADER_MANDATES",
@@ -1842,6 +1848,7 @@
             "description": "Kausaalisuuden auditointi (Vaihe 7).",
             "component": "CausalAnalystAgent",
             "execution_config": {
+                "pre_hooks": [],
                 "llm_prompts": [
                     "GLOBAL_CONTEXT",
                     "HEADER_MANDATES",
@@ -1863,6 +1870,7 @@
             "description": "Käyttäytymisanalyysi (Vaihe 8).",
             "component": "PerformativityDetectorAgent",
             "execution_config": {
+                "pre_hooks": [],
                 "llm_prompts": [
                     "GLOBAL_CONTEXT",
                     "HEADER_MANDATES",
@@ -1899,6 +1907,7 @@
             "description": "Todisteiden valvoja (Vaihe 9).",
             "component": "FactualOverseerAgent",
             "execution_config": {
+                "pre_hooks": [],
                 "llm_prompts": [
                     "GLOBAL_CONTEXT",
                     "HEADER_MANDATES",
@@ -1935,6 +1944,7 @@
             "description": "Oikeuskäytännön ja linjakkuuden vartija (Vaihe 10).",
             "component": "ArchivistAgent",
             "execution_config": {
+                "pre_hooks": [],
                 "llm_prompts": [
                     "GLOBAL_CONTEXT",
                     "HEADER_MANDATES",
@@ -1972,6 +1982,7 @@
             "description": "Synteesi ja konfliktinratkaisu (Vaihe 11).",
             "component": "JudgeAgent",
             "execution_config": {
+                "pre_hooks": [],
                 "matrix_id": "matrix_standard_v1",
                 "llm_prompts": [
                     "GLOBAL_CONTEXT",
@@ -2010,6 +2021,7 @@
             "description": "Toissijainen arviointi (Secondary Assessment).",
             "component": "JudgeAgent",
             "execution_config": {
+                "pre_hooks": [],
                 "matrix_id": "matrix_cognitive_v2",
                 "llm_prompts": [
                     "GLOBAL_CONTEXT",
@@ -2048,6 +2060,7 @@
             "description": "Pedagoginen palaute (Vaihe 12).",
             "component": "CoachAgent",
             "execution_config": {
+                "pre_hooks": [],
                 "llm_prompts": [
                     "GLOBAL_CONTEXT",
                     "HEADER_MANDATES",
@@ -2096,6 +2109,7 @@
                 "min_steps": 2
             },
             "execution_config": {
+                "pre_hooks": [],
                 "llm_prompts": [
                     "GLOBAL_CONTEXT",
                     "HEADER_MANDATES",
@@ -2117,6 +2131,9 @@
             "description": "Selitettävä tekoäly ja raportointi (Vaihe 13).",
             "component": "XAIReporterAgent",
             "execution_config": {
+                "pre_hooks": [
+                    "generate_report"
+                ],
                 "llm_prompts": [
                     "GLOBAL_CONTEXT",
                     "HEADER_MANDATES",

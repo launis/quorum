@@ -55,9 +55,23 @@ def setup_logging(log_level=logging.INFO):
 
     # Determine path to log file in project root
     # backend/logging_config.py -> backend/ -> root/
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.dirname(current_dir)
-    log_file_path = os.path.join(project_root, "backend_debug.log")
+    from backend.settings import get_settings
+    
+    settings = get_settings()
+    log_file_path = settings.log_file_path
+
+    # Ensure the directory exists (CRITICAL for custom paths)
+    log_dir = os.path.dirname(log_file_path)
+    if log_dir and not os.path.exists(log_dir):
+        try:
+            os.makedirs(log_dir, exist_ok=True)
+        except Exception as e:
+            # Fallback to stdout only if we can't create the file, 
+            # effectively disabling file logging to prevent crash.
+            print(f"FAILED TO CREATE LOG DIRECTORY {log_dir}: {e}")
+            # Reset to None so FileHandler is skipped? 
+            # Actually easier to let it fail or wrap in try/except block below.
+            pass
 
     # Create formatters
     formatter = logging.Formatter(

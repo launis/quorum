@@ -27,6 +27,10 @@ sealed class AppError with _$AppError implements Exception {
   /// Validation or Bad Request (400/422).
   const factory AppError.validation(String message) = _Validation;
 
+  /// Specific validation error for missing fields.
+  const factory AppError.validationMissing(List<String> fields) =
+      _ValidationMissing;
+
   /// Operation cancelled by user.
   const factory AppError.cancelled() = _Cancelled;
 }

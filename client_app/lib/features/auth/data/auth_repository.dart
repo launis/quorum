@@ -3,6 +3,8 @@ import 'package:client_app/features/auth/presentation/providers/firebase_instanc
 import 'package:client_app/features/auth/domain/models/user.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase;
+import 'package:client_app/core/error/app_error.dart';
+import 'package:fpdart/fpdart.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'auth_repository.g.dart';
@@ -25,11 +27,16 @@ class AuthRepository {
     return _firebaseAuth?.authStateChanges() ?? Stream.value(null);
   }
 
-  Future<User> signInWithEmailAndPassword(String email, String password) async {
+  Future<Either<AppError, User>> signInWithEmailAndPassword(
+    String email,
+    String password,
+  ) async {
     try {
       if (_firebaseAuth == null) {
-        throw Exception(
-          'Firebase is not initialized. Retrieve a real token or use Mock Mode.',
+        return const Left(
+          AppError.unknown(
+            'Firebase is not initialized. Retrieve a real token or use Mock Mode.',
+          ),
         );
       }
       // 1. Authenticate with Firebase (We know it's not null here)
@@ -40,7 +47,9 @@ class AuthRepository {
 
       final firebaseUser = userCredential.user;
       if (firebaseUser == null) {
-        throw Exception('Firebase Sign-In failed: User is null');
+        return const Left(
+          AppError.unknown('Firebase Sign-In failed: User is null'),
+        );
       }
 
       // 2. Get Token
@@ -53,40 +62,79 @@ class AuthRepository {
       );
 
       if (response.data == null || response.data!['user'] == null) {
-        throw Exception('Backend verification failed: No data');
+        return const Left(
+          AppError.server('Backend verification failed: No data'),
+        );
       }
 
       // 4. Return Hydrated User
-      return User.fromJson(response.data!['user'] as Map<String, dynamic>);
+      return Right(
+        User.fromJson(response.data!['user'] as Map<String, dynamic>),
+      );
     } on firebase.FirebaseAuthException catch (e) {
-      throw Exception('Login Failed: ${e.message}');
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 404) {
-        throw Exception('User account not found on backend. Contact Support.');
+      // Map all Firebase Auth logic to Unauthorized/Validation
+      if (e.code == 'user-not-found' || e.code == 'wrong-password') {
+        return const Left(AppError.unauthorized());
       }
-      throw Exception('Server Error: ${e.message}');
+      return Left(AppError.validation(e.message ?? 'Login Failed'));
+    } on DioException catch (e) {
+      if (e.response != null && e.response!.data != null) {
+        final data = e.response!.data;
+        if (data is Map<String, dynamic> && data.containsKey('error_code')) {
+          final code = data['error_code'] as String?;
+          final msg = (data['message'] as String?) ?? 'Unknown Error';
+
+          if (code == 'HTTP_401' || code == 'AUTH_FAILED') {
+            return const Left(AppError.unauthorized());
+          }
+          if (code == 'HTTP_404') {
+            return Left(AppError.notFound(msg));
+          }
+          return Left(AppError.server(msg)); // Map other backend errors
+        }
+      }
+
+      if (e.response?.statusCode == 404) {
+        return const Left(
+          AppError.notFound(
+            'User account not found on backend. Contact Support.',
+          ),
+        );
+      }
+      if (e.response?.statusCode == 401) {
+        return const Left(AppError.unauthorized());
+      }
+
+      return Left(AppError.server(e.message));
     } catch (e) {
-      throw Exception('Authentication Error: $e');
+      return Left(AppError.unknown(e));
     }
   }
 
   /// **Debug Only**: Bypasses Firebase and authenticates directly with Backend Mock Token.
-  Future<User> debugSignInWithMockToken(String uid) async {
-    // 1. Verify with Backend (using special mock-token prefix logic)
-    final response = await _client.post<Map<String, dynamic>>(
-      '/auth/verify',
-      data: {'token': 'mock-token:$uid'},
-    );
+  /// **Debug Only**: Bypasses Firebase and authenticates directly with Backend Mock Token.
+  Future<Either<AppError, User>> debugSignInWithMockToken(String uid) async {
+    try {
+      // 1. Verify with Backend (using special mock-token prefix logic)
+      final response = await _client.post<Map<String, dynamic>>(
+        '/auth/verify',
+        data: {'token': 'mock-token:$uid'},
+      );
 
-    if (response.data == null || response.data!['user'] == null) {
-      throw Exception('Mock Verification Failed');
+      if (response.data == null || response.data!['user'] == null) {
+        return const Left(AppError.server('Mock Verification Failed'));
+      }
+
+      // 2. Return Hydrated User
+      // Note: We don't have a Firebase User, so the calls to `authStateChanges` stream
+      // won't fire. The Controller must handle this manually or we create a fake internal session.
+      // For Phase 2, we will just return the User and let the Controller manage state.
+      return Right(
+        User.fromJson(response.data!['user'] as Map<String, dynamic>),
+      );
+    } catch (e) {
+      return Left(AppError.unknown(e));
     }
-
-    // 2. Return Hydrated User
-    // Note: We don't have a Firebase User, so the calls to `authStateChanges` stream
-    // won't fire. The Controller must handle this manually or we create a fake internal session.
-    // For Phase 2, we will just return the User and let the Controller manage state.
-    return User.fromJson(response.data!['user'] as Map<String, dynamic>);
   }
 
   Future<void> signOut() async {

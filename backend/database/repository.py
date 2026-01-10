@@ -93,7 +93,9 @@ class AbstractWorkflowRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_all_executions(self, organization_id: str | None = None) -> list[dict[str, Any]]:
+    async def get_all_executions(
+        self, organization_id: str | None = None, user_id: str | None = None
+    ) -> list[dict[str, Any]]:
         pass
 
     # --- Config ---
@@ -215,7 +217,11 @@ class TinyDBRepository(AbstractWorkflowRepository):
         self.usage_logs = self.db.table("usage_logs")
         self.settings = self.db.table("settings")
         self.users = self.db.table("users")
+        self.settings = self.db.table("settings")
+        self.users = self.db.table("users")
         self.audit_logs = self.db.table("audit_logs")
+        import logging
+        self.logger = logging.getLogger(__name__)
 
     async def _run(self, func, *args, **kwargs):
         """Helper to run sync DB calls in thread."""
@@ -503,8 +509,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
 
     # --- Audit Logs ---
     async def log_audit_event(self, entry: dict[str, Any]):
-        with open("backend_debug.log", "a") as f:
-            f.write(f"REPO: log_audit_event called with {entry}\n")
+        self.logger.debug(f"REPO: log_audit_event called with {entry}")
         await self._run(self.audit_logs.insert, entry)
 
     async def get_audit_logs(
@@ -518,12 +523,12 @@ class TinyDBRepository(AbstractWorkflowRepository):
             # TinyDB doesn't do complex querying efficiently, so we filter in Python for now.
             # In a real DB we'd index this.
             all_logs = self.audit_logs.all()
-            with open("backend_debug.log", "a") as f:
-                f.write(
-                    f"REPO: get_audit_logs found {len(all_logs)} entries. Requested: org={organization_id}, action={action}\n"
-                )
-                if len(all_logs) > 0:
-                    f.write(f"REPO: last log: {all_logs[-1]}\n")
+            
+            self.logger.debug(
+                f"REPO: get_audit_logs found {len(all_logs)} entries. Requested: org={organization_id}, action={action}"
+            )
+            if len(all_logs) > 0:
+                self.logger.debug(f"REPO: last log: {all_logs[-1]}")
 
             # Filter
             filtered = []

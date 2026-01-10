@@ -158,10 +158,34 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
             _, doc_ref = await self.db.collection("workflows").add(workflow_data)
             return doc_ref.id
 
-    async def get_all_workflows(self, organization_id: str | None = None) -> list[dict[str, Any]]:
+    async def get_all_workflows(
+        self, organization_id: str | None = None, role: str | None = None
+    ) -> list[dict[str, Any]]:
+        # Root View: See EVERYTHING
+        if role == "ROOT":
+            return await self._get_all("workflows")
+
         if organization_id:
-            docs = self.db.collection("workflows").where("organization_id", "==", organization_id).stream()
+            # Using FieldFilter to silence UserWarning about positional args
+            # "Detected filter using positional arguments. Prefer using the 'filter' keyword argument instead."
+            # Note: We use the module alias 'google_cloud_firestore' imported at the top
+            
+            # TODO: Ideally should also fetch public system workflows (org_id='system', is_public=True)
+            # and merge with tenant workflows. For now, strict tenant isolation.
+            
+            # Using keyword arguments for where() is one way, but the warning suggests 'filter' arg.
+            # However, for simple equality, keyword args to where() (field_path, op_string, value) *might* silence it,
+            # but using FieldFilter is the robust modern way.
+            
+            from google.cloud.firestore import FieldFilter
+            
+            docs = (
+                self.db.collection("workflows")
+                .where(filter=FieldFilter("organization_id", "==", organization_id))
+                .stream()
+            )
             return [doc.to_dict() async for doc in docs]
+            
         return await self._get_all("workflows")
 
     async def update_workflow(self, workflow_id: str, updates: dict[str, Any]):
@@ -196,12 +220,12 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
 
     async def get_all_executions(self, organization_id: str | None = None, user_id: str | None = None) -> list[dict[str, Any]]:
         query = self.db.collection("executions")
-        
+
         if organization_id:
-            query = query.where("organization_id", "==", organization_id)
+            query = query.where(filter=FieldFilter("organization_id", "==", organization_id))
         
         if user_id:
-            query = query.where("user_id", "==", user_id)
+            query = query.where(filter=FieldFilter("user_id", "==", user_id))
             
         # Order by timestamp desc for consistency with Recent Executions view? 
         # The Abstract method doesn't strictly mandate ordering but recent executions relies on it potentially?
@@ -276,9 +300,9 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
 
     async def get_org_usage_total(self, org_id: str, since: str | None = None) -> float:
         coll = self.db.collection("usage_logs")
-        query = coll.where("org_id", "==", org_id)
+        query = coll.where(filter=FieldFilter("org_id", "==", org_id))
         if since:
-            query = query.where("timestamp", ">=", since)
+            query = query.where(filter=FieldFilter("timestamp", ">=", since))
 
         docs = query.stream()
         total = 0.0
@@ -315,11 +339,11 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
         query = self.db.collection("audit_logs")
 
         if organization_id:
-            query = query.where("organization_id", "==", organization_id)
+            query = query.where(filter=FieldFilter("organization_id", "==", organization_id))
         if actor_uid:
-            query = query.where("actor_uid", "==", actor_uid)
+            query = query.where(filter=FieldFilter("actor_uid", "==", actor_uid))
         if action:
-            query = query.where("action", "==", action)
+            query = query.where(filter=FieldFilter("action", "==", action))
         
         # Order by timestamp desc
         query = query.order_by("timestamp", direction=google_cloud_firestore.Query.DESCENDING)
@@ -334,6 +358,6 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
 
     async def list_users(self, organization_id: str | None = None) -> list[dict[str, Any]]:
         if organization_id:
-            docs = self.db.collection("users").where("organization_id", "==", organization_id).stream()
+            docs = self.db.collection("users").where(filter=FieldFilter("organization_id", "==", organization_id)).stream()
             return [doc.to_dict() async for doc in docs]
         return await self._get_all("users")

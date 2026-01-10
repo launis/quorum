@@ -26,6 +26,7 @@ from backend.api.tools_router import router as tools_router
 # Dependencies
 from backend.dependencies import CurrentUserDep, DatabaseDep, EngineDep
 from backend.exceptions import AppException
+from backend.schemas.error import APIError
 from backend.settings import get_settings
 
 logger = logging.getLogger(__name__)
@@ -133,6 +134,57 @@ except Exception as e:
 async def app_exception_handler(request: Request, exc: AppException):
     return JSONResponse(
         status_code=exc.status_code, content={"error": exc.message, "details": exc.details, "status": "error"}
+    )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """
+    Catch-all handler for unhandled exceptions.
+    Returns 500 INTERNAL_SERVER_ERROR with standardized APIError.
+    """
+    logger.error(f"Global Exception: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content=APIError(
+            error_code="INTERNAL_SERVER_ERROR",
+            message="An unexpected error occurred.",
+            details=str(exc),
+        ).model_dump(),
+    )
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """
+    Handler for FastAPI/Starlette HTTPExceptions.
+    Converts them to standardized APIError format.
+    """
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=APIError(
+            error_code=f"HTTP_{exc.status_code}",
+            message=str(exc.detail),
+            details=None,
+        ).model_dump(),
+    )
+
+from fastapi.exceptions import RequestValidationError
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """
+    Handler for Pydantic/FastAPI validation errors.
+    Returns 422 with standardized APIError.
+    """
+    logger.warning(f"Request Validation Failed: {exc.errors()}")
+    return JSONResponse(
+        status_code=422,
+        content=APIError(
+            error_code="VALIDATION_ERROR",
+            message="Request validation failed",
+            details=exc.errors(), # Pydantic error details
+        ).model_dump(),
     )
 
 
