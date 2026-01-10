@@ -109,6 +109,11 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **Localization**: Full EN/FI support for Analysis Wizard and Execution Monitor.
 - [x] **Strict Validation**: Client-side enforcement of Audit workflow requirements (Fail-Fast).
 
+### 2.8 Quality Assurance & Hygiene (Strict Mandate)
+- [x] **Localization Hygiene**: Refactored `AppError` to enforce `ValidationErrorReason` enum (No raw strings).
+- [x] **Error Contract**: `AuthRepository` strictly maps backend errors to typed exceptions.
+- [x] **Hook Configuration**: Standardized `pre_hooks` in `seed_data.json` and re-seeded all environments.
+
 ### 2.7 Administration & Governance (The Admin Portal)
 **Objective:** Port existing `frontend/main.py` admin capabilities to Flutter with a premium, "Best Practice" UX.
 

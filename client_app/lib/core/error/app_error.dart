@@ -25,7 +25,9 @@ sealed class AppError with _$AppError implements Exception {
   const factory AppError.notFound(String message) = _NotFound;
 
   /// Validation or Bad Request (400/422).
-  const factory AppError.validation(String message) = _Validation;
+  ///
+  /// Forces localization by using an enum instead of raw strings.
+  const factory AppError.validation(ValidationErrorReason reason) = _Validation;
 
   /// Specific validation error for missing fields.
   const factory AppError.validationMissing(List<String> fields) =
@@ -33,4 +35,13 @@ sealed class AppError with _$AppError implements Exception {
 
   /// Operation cancelled by user.
   const factory AppError.cancelled() = _Cancelled;
+}
+
+/// Enumeration of strict validation reasons for localization.
+enum ValidationErrorReason {
+  emptyInput,
+  invalidEmail,
+  passwordTooWeak,
+  invalidDate,
+  unknown,
 }

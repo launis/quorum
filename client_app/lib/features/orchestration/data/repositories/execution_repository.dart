@@ -39,7 +39,8 @@ class ExecutionRepository {
             return AppError.notFound(message ?? 'Resource not found');
           case 400:
           case 422:
-            return AppError.validation(message ?? 'Validation failed');
+            // Strict Localization: Server message is lost in strict mode unless we add a generic field or map it.
+            return const AppError.validation(ValidationErrorReason.unknown);
           case 500:
           default:
             return AppError.server(message ?? 'Server error', statusCode);

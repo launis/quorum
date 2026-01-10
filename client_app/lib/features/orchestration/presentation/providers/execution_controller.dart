@@ -52,7 +52,7 @@ class ExecutionController extends _$ExecutionController {
       // Extract the specific AppError
       final error =
           validation.getLeft().toNullable() ??
-          const AppError.validation('Invalid inputs');
+          const AppError.validation(ValidationErrorReason.unknown);
 
       // Update state and throw so UI can show it
       state = AsyncError(error, StackTrace.current);
@@ -150,7 +150,7 @@ class ExecutionController extends _$ExecutionController {
     // 2. Generic Validation (if any)
     // Ensure no null keys or totally empty inputs if required by other workflows
     if (inputs.isEmpty) {
-      return const Left(AppError.validation('Inputs cannot be empty.'));
+      return const Left(AppError.validation(ValidationErrorReason.emptyInput));
     }
 
     return const Right(unit);

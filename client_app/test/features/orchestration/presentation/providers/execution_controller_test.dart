@@ -77,7 +77,8 @@ void main() {
           final error = e as AppError;
           error.maybeMap(
             validation:
-                (value) => expect(value.message, contains('cannot be empty')),
+                (value) =>
+                    expect(value.reason, ValidationErrorReason.emptyInput),
             orElse: () => fail('Wrong error type: $error'),
           );
         }

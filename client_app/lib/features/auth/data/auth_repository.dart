@@ -33,13 +33,9 @@ class AuthRepository {
   ) async {
     try {
       if (_firebaseAuth == null) {
-        return const Left(
-          AppError.unknown(
-            'Firebase is not initialized. Retrieve a real token or use Mock Mode.',
-          ),
-        );
+        return const Left(AppError.unknown());
       }
-      // 1. Authenticate with Firebase (We know it's not null here)
+      // 1. Authenticate with Firebase
       final userCredential = await _firebaseAuth.signInWithEmailAndPassword(
         email: email,
         password: password,
@@ -47,9 +43,7 @@ class AuthRepository {
 
       final firebaseUser = userCredential.user;
       if (firebaseUser == null) {
-        return const Left(
-          AppError.unknown('Firebase Sign-In failed: User is null'),
-        );
+        return const Left(AppError.unknown());
       }
 
       // 2. Get Token
@@ -62,9 +56,7 @@ class AuthRepository {
       );
 
       if (response.data == null || response.data!['user'] == null) {
-        return const Left(
-          AppError.server('Backend verification failed: No data'),
-        );
+        return const Left(AppError.server(null));
       }
 
       // 4. Return Hydrated User
@@ -72,42 +64,41 @@ class AuthRepository {
         User.fromJson(response.data!['user'] as Map<String, dynamic>),
       );
     } on firebase.FirebaseAuthException catch (e) {
-      // Map all Firebase Auth logic to Unauthorized/Validation
       if (e.code == 'user-not-found' || e.code == 'wrong-password') {
         return const Left(AppError.unauthorized());
       }
-      return Left(AppError.validation(e.message ?? 'Login Failed'));
+      // Strict Localization: Map generic Auth failure to unknown validation error
+      return const Left(AppError.validation(ValidationErrorReason.unknown));
     } on DioException catch (e) {
       if (e.response != null && e.response!.data != null) {
         final data = e.response!.data;
         if (data is Map<String, dynamic> && data.containsKey('error_code')) {
           final code = data['error_code'] as String?;
-          final msg = (data['message'] as String?) ?? 'Unknown Error';
 
+          // Strict Mapping of Backend Error Codes
           if (code == 'HTTP_401' || code == 'AUTH_FAILED') {
             return const Left(AppError.unauthorized());
           }
           if (code == 'HTTP_404') {
-            return Left(AppError.notFound(msg));
+            return const Left(
+              AppError.notFound(''),
+            ); // Empty string or null? mismatch signature. AppError.notFound takes String. Using empty string as placeholder.
           }
-          return Left(AppError.server(msg)); // Map other backend errors
+          // Default to generic server error without dynamic message
+          return const Left(AppError.server(null));
         }
       }
 
       if (e.response?.statusCode == 404) {
-        return const Left(
-          AppError.notFound(
-            'User account not found on backend. Contact Support.',
-          ),
-        );
+        return const Left(AppError.notFound(''));
       }
       if (e.response?.statusCode == 401) {
         return const Left(AppError.unauthorized());
       }
 
-      return Left(AppError.server(e.message));
+      return const Left(AppError.server(null));
     } catch (e) {
-      return Left(AppError.unknown(e));
+      return const Left(AppError.unknown());
     }
   }
 
@@ -122,7 +113,7 @@ class AuthRepository {
       );
 
       if (response.data == null || response.data!['user'] == null) {
-        return const Left(AppError.server('Mock Verification Failed'));
+        return const Left(AppError.server(null));
       }
 
       // 2. Return Hydrated User
@@ -133,7 +124,7 @@ class AuthRepository {
         User.fromJson(response.data!['user'] as Map<String, dynamic>),
       );
     } catch (e) {
-      return Left(AppError.unknown(e));
+      return const Left(AppError.unknown());
     }
   }
 
