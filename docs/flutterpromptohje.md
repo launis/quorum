@@ -54,6 +54,15 @@ TECHNOLOGY STACK & VERIFIED DOCUMENTATION LINKS:
         * *Requirement*: Comments must explain the **WHY** and the **BUSINESS LOGIC**, not just restate the function name.
         * *Requirement*: Use markdown in comments (e.g., `[MyClass]`, code blocks) to ensure generated HTML docs are navigable.
 
+7.  **Adaptive & Responsive Design (Strict Mandate)**:
+    * **Philosophy**: "Write once, adapt everywhere." The app must look professional on Mobile, Tablet, and Desktop/Web.
+    * **Navigation Architecture**:
+        * *Requirement*: Implement a responsive shell. Use `NavigationBar` (Bottom) for width < 600dp and `NavigationRail` (Left) for width > 600dp.
+    * **Content Layout**:
+        * *Requirement*: **Content Constraint**. NEVER allow text or forms to stretch full-width on large screens. Wrap body content in `Center` > `ConstrainedBox(maxWidth: ~1000)`.
+    * **Grids**:
+        * *Requirement*: Use `SliverGridDelegateWithMaxCrossAxisExtent` to automatically add columns on wider screens.
+
 ARCHITECTURAL RULES (ENFORCED):
 1.  **Monorepo Context**: You are working in `client_app/`. The backend is in `backend/`.
 2.  **API Strategy**: The Flutter app DOES NOT touch the database directly. It talks to the Python API (`http://localhost:8000`).
@@ -68,4 +77,3 @@ Build a production-grade, multi-tenant SaaS client. If a solution implies techni
 IMPORTANT:
 Do not implement or plan to implement any functions or features based on SYSTEM CONTEXT & ARCHITECTURE MANDATE (2026 Edition) at this stage. This document is provided for CONTEXT and GUIDANCE ONLY to ensure future code aligns with the architecture.
 
-Start by simply acknowledging this context and confirming you understand the requirements.
