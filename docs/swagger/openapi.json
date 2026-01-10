@@ -171,13 +171,13 @@
           "Orchestration"
         ],
         "summary": "Create Workflow",
-        "description": "Creates a new workflow definition in the database.\n\nArgs:\n    request (WorkflowCreateRequest): The workflow payload containing name and steps.\n    engine (WorkflowEngine): The workflow engine dependency.\n\nReturns:\n    dict: The status and generated workflow_id.",
+        "description": "Creates a new workflow definition in the database.\n\nArgs:\n    request (ExecutionWorkflowCreateRequest): The workflow payload containing name and steps.\n    engine (WorkflowEngine): The workflow engine dependency.\n\nReturns:\n    dict: The status and generated workflow_id.",
         "operationId": "create_workflow_workflows_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/WorkflowCreateRequest"
+                "$ref": "#/components/schemas/ExecutionWorkflowCreateRequest"
               }
             }
           },
@@ -3146,7 +3146,7 @@
           "Builder"
         ],
         "summary": "Create Workflow",
-        "description": "Create a new workflow.\n\nArgs:\n    request (WorkflowCreateRequest): Workflow definition.\n    engine (EngineDep): Engine dependency.\n    current_user (CurrentUserDep): Requesting user (ROOT/MANAGER).\n\nReturns:\n    dict: The created workflow object.\n\nRaises:\n    HTTPException: If permission denied (403) or creation fails (500).",
+        "description": "Create a new workflow.\n\nArgs:\n    request (BuilderWorkflowCreateRequest): Workflow definition.\n    engine (EngineDep): Engine dependency.\n    current_user (CurrentUserDep): Requesting user (ROOT/MANAGER).\n\nReturns:\n    dict: The created workflow object.\n\nRaises:\n    HTTPException: If permission denied (403) or creation fails (500).",
         "operationId": "create_workflow_builder_workflows_post",
         "parameters": [
           {
@@ -3171,7 +3171,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/backend__api__builder_router__WorkflowCreateRequest"
+                "$ref": "#/components/schemas/BuilderWorkflowCreateRequest"
               }
             }
           }
@@ -4884,6 +4884,78 @@
         ],
         "title": "Body_upload_knowledge_base_admin_knowledge_base_upload_post"
       },
+      "BuilderWorkflowCreateRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Name of the new workflow."
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Optional description."
+          },
+          "steps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Steps",
+            "description": "List of step IDs.",
+            "default": []
+          },
+          "default_model_mapping": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Model Mapping",
+            "description": "Initial model mapping.",
+            "default": {}
+          },
+          "ui_schema": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ui Schema",
+            "description": "UI Layout metadata.",
+            "default": {}
+          },
+          "is_public": {
+            "type": "boolean",
+            "title": "Is Public",
+            "description": "If True, visible to all tenants (System Only).",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "BuilderWorkflowCreateRequest",
+        "description": "Payload for creating a new workflow.\n\nAttributes:\n    name (str): The name of the workflow.\n    description (Optional[str]): Detailed description.\n    steps (list[str]): List of step IDs to include.\n    default_model_mapping (Optional[dict]): Map of step IDs to model strategies.\n    ui_schema (Optional[dict]): Frontend layout metadata.\n    is_public (bool): Visibility flag (System Root only)."
+      },
       "CompileRequest": {
         "properties": {
           "workflow_id": {
@@ -5211,6 +5283,31 @@
           "label"
         ],
         "title": "DimensionDefinition"
+      },
+      "ExecutionWorkflowCreateRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "The unique, human-readable name for the new workflow."
+          },
+          "steps": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Steps",
+            "description": "A sequential list of step configurations defining the workflow logic."
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "steps"
+        ],
+        "title": "ExecutionWorkflowCreateRequest",
+        "description": "Payload for creating a new workflow definition.\n\nAttributes:\n    name (str): Human-readable name.\n    steps (list[dict]): List of step configurations."
       },
       "GenerateBannedPhrasesRequest": {
         "properties": {
@@ -5958,6 +6055,18 @@
             "description": "Is the account active?",
             "default": true
           },
+          "language": {
+            "type": "string",
+            "title": "Language",
+            "description": "Preferred UI language",
+            "default": "fi"
+          },
+          "theme_mode": {
+            "type": "string",
+            "title": "Theme Mode",
+            "description": "Preferred Theme Mode (system/light/dark)",
+            "default": "system"
+          },
           "uid": {
             "type": "string",
             "title": "Uid",
@@ -6032,6 +6141,18 @@
             "title": "Is Active",
             "description": "Is the account active?",
             "default": true
+          },
+          "language": {
+            "type": "string",
+            "title": "Language",
+            "description": "Preferred UI language",
+            "default": "fi"
+          },
+          "theme_mode": {
+            "type": "string",
+            "title": "Theme Mode",
+            "description": "Preferred Theme Mode (system/light/dark)",
+            "default": "system"
           },
           "password": {
             "anyOf": [
@@ -6122,6 +6243,28 @@
               }
             ],
             "title": "Password"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "theme_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Theme Mode"
           }
         },
         "type": "object",
@@ -6237,31 +6380,6 @@
           "name"
         ],
         "title": "WorkflowCreate"
-      },
-      "WorkflowCreateRequest": {
-        "properties": {
-          "name": {
-            "type": "string",
-            "title": "Name",
-            "description": "The unique, human-readable name for the new workflow."
-          },
-          "steps": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "type": "array",
-            "title": "Steps",
-            "description": "A sequential list of step configurations defining the workflow logic."
-          }
-        },
-        "type": "object",
-        "required": [
-          "name",
-          "steps"
-        ],
-        "title": "WorkflowCreateRequest",
-        "description": "Payload for creating a new workflow definition.\n\nAttributes:\n    name (str): Human-readable name.\n    steps (list[dict]): List of step configurations."
       },
       "WorkflowUpdate": {
         "properties": {
@@ -6411,78 +6529,6 @@
         },
         "type": "object",
         "title": "WorkflowUpdateRequest"
-      },
-      "backend__api__builder_router__WorkflowCreateRequest": {
-        "properties": {
-          "name": {
-            "type": "string",
-            "title": "Name",
-            "description": "Name of the new workflow."
-          },
-          "description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description",
-            "description": "Optional description."
-          },
-          "steps": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Steps",
-            "description": "List of step IDs.",
-            "default": []
-          },
-          "default_model_mapping": {
-            "anyOf": [
-              {
-                "additionalProperties": {
-                  "type": "string"
-                },
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Default Model Mapping",
-            "description": "Initial model mapping.",
-            "default": {}
-          },
-          "ui_schema": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Ui Schema",
-            "description": "UI Layout metadata.",
-            "default": {}
-          },
-          "is_public": {
-            "type": "boolean",
-            "title": "Is Public",
-            "description": "If True, visible to all tenants (System Only).",
-            "default": false
-          }
-        },
-        "type": "object",
-        "required": [
-          "name"
-        ],
-        "title": "WorkflowCreateRequest",
-        "description": "Payload for creating a new workflow.\n\nAttributes:\n    name (str): The name of the workflow.\n    description (Optional[str]): Detailed description.\n    steps (list[str]): List of step IDs to include.\n    default_model_mapping (Optional[dict]): Map of step IDs to model strategies.\n    ui_schema (Optional[dict]): Frontend layout metadata.\n    is_public (bool): Visibility flag (System Root only)."
       }
     }
   }

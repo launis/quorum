@@ -31,7 +31,7 @@ router = APIRouter(tags=["Orchestration"])
 # --- Request Models ---
 
 
-class WorkflowCreateRequest(BaseModel):
+class ExecutionWorkflowCreateRequest(BaseModel):
     """Payload for creating a new workflow definition.
 
     Attributes:
@@ -66,11 +66,11 @@ class WorkflowExecutionRequest(BaseModel):
 @router.post(
     "/workflows", summary="Create Workflow", response_description="A confirmation object with the new Workflow ID."
 )
-async def create_workflow(request: WorkflowCreateRequest, engine: EngineDep):
+async def create_workflow(request: ExecutionWorkflowCreateRequest, engine: EngineDep):
     """Creates a new workflow definition in the database.
 
     Args:
-        request (WorkflowCreateRequest): The workflow payload containing name and steps.
+        request (ExecutionWorkflowCreateRequest): The workflow payload containing name and steps.
         engine (WorkflowEngine): The workflow engine dependency.
 
     Returns:

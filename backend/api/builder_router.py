@@ -25,7 +25,7 @@ router = APIRouter(
 logger = logging.getLogger(__name__)
 
 
-class WorkflowCreateRequest(BaseModel):
+class BuilderWorkflowCreateRequest(BaseModel):
     """Payload for creating a new workflow.
 
     Attributes:
@@ -152,11 +152,11 @@ async def list_steps(engine: EngineDep):
 
 
 @router.post("/workflows", summary="Create Workflow", response_description="Created workflow data.")
-async def create_workflow(request: WorkflowCreateRequest, engine: EngineDep, current_user: CurrentUserDep):
+async def create_workflow(request: BuilderWorkflowCreateRequest, engine: EngineDep, current_user: CurrentUserDep):
     """Create a new workflow.
 
     Args:
-        request (WorkflowCreateRequest): Workflow definition.
+        request (BuilderWorkflowCreateRequest): Workflow definition.
         engine (EngineDep): Engine dependency.
         current_user (CurrentUserDep): Requesting user (ROOT/MANAGER).
 
