@@ -1,3 +1,5 @@
+import 'package:client_app/api/api_client.dart';
+import 'package:client_app/features/auth/presentation/auth_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -43,5 +45,23 @@ class ThemeModeNotifier extends _$ThemeModeNotifier {
     state = mode;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_storageKey, mode.toString());
+
+    // Sync to Backend
+    final user = ref.read(authControllerProvider).value;
+    if (user != null) {
+      try {
+        final api = ref.read(apiClientProvider);
+        await api.patch<Map<String, dynamic>>(
+          '/auth/users/${user.uid}',
+          data: {
+            'theme_mode':
+                mode.toString().split('.').last, // "system", "light", "dark"
+          },
+        );
+      } catch (e) {
+        // Fail silently or log, don't block UI
+        debugPrint('Failed to sync theme to backend: $e');
+      }
+    }
   }
 }

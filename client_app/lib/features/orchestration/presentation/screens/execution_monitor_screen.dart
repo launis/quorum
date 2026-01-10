@@ -55,74 +55,79 @@ class _MonitorView extends StatelessWidget {
     final isRunning = execution.status == ExecutionStatus.running;
     final isCompleted = execution.status == ExecutionStatus.completed;
 
-    return ListView(
-      padding: const EdgeInsets.all(16.0),
-      children: [
-        // Status Card
-        Card(
-          color: _getStatusColor(execution.status).withValues(alpha: 0.1),
-          child: ListTile(
-            leading:
-                isRunning
-                    ? SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 3,
-                        color: _getStatusColor(execution.status),
-                      ),
-                    )
-                    : Icon(
-                      _getStatusIcon(execution.status),
-                      color: _getStatusColor(execution.status),
-                      size: 32,
-                    ),
-            title: Text(
-              execution.status.name.toUpperCase(),
-              style: const TextStyle(fontWeight: FontWeight.bold),
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1000),
+        child: ListView(
+          padding: const EdgeInsets.all(16.0),
+          children: [
+            // Status Card
+            Card(
+              color: _getStatusColor(execution.status).withValues(alpha: 0.1),
+              child: ListTile(
+                leading:
+                    isRunning
+                        ? SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 3,
+                            color: _getStatusColor(execution.status),
+                          ),
+                        )
+                        : Icon(
+                          _getStatusIcon(execution.status),
+                          color: _getStatusColor(execution.status),
+                          size: 32,
+                        ),
+                title: Text(
+                  execution.status.name.toUpperCase(),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                subtitle:
+                    execution.currentStepName != null
+                        ? Text('Step: ${execution.currentStepName}')
+                        : null,
+              ),
             ),
-            subtitle:
-                execution.currentStepName != null
-                    ? Text('Step: ${execution.currentStepName}')
-                    : null,
-          ),
-        ),
-        if (isCompleted) ...[
-          const SizedBox(height: 16),
-          _CompletionBanner(executionId: execution.id),
-        ],
-        const SizedBox(height: 16),
+            if (isCompleted) ...[
+              const SizedBox(height: 16),
+              _CompletionBanner(executionId: execution.id),
+            ],
+            const SizedBox(height: 16),
 
-        // Timeline
-        Text('Timeline', style: theme.textTheme.titleMedium),
-        const Divider(),
-        _infoRow(
-          'Created',
-          DateFormat('yyyy-MM-dd HH:mm:ss').format(execution.createdAt),
-        ),
-        const SizedBox(height: 24),
+            // Timeline
+            Text('Timeline', style: theme.textTheme.titleMedium),
+            const Divider(),
+            _infoRow(
+              'Created',
+              DateFormat('yyyy-MM-dd HH:mm:ss').format(execution.createdAt),
+            ),
+            const SizedBox(height: 24),
 
-        // Steps Progress
-        Text('Workflow Progress', style: theme.textTheme.titleMedium),
-        const SizedBox(height: 8),
-        _StepProgressList(
-          currentStep: execution.currentStepName,
-          workflowId: execution.workflowName,
-          status: execution.status,
-        ),
+            // Steps Progress
+            Text('Workflow Progress', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 8),
+            _StepProgressList(
+              currentStep: execution.currentStepName,
+              workflowId: execution.workflowName,
+              status: execution.status,
+            ),
 
-        // Hint for raw data
-        const SizedBox(height: 32),
-        Center(
-          child: TextButton.icon(
-            icon: const Icon(Icons.code),
-            label: const Text('View Raw Data (Coming Soon)'),
-            onPressed: () {
-              // Placeholder for raw data modal or route
-            },
-          ),
+            // Hint for raw data
+            const SizedBox(height: 32),
+            Center(
+              child: TextButton.icon(
+                icon: const Icon(Icons.code),
+                label: const Text('View Raw Data (Coming Soon)'),
+                onPressed: () {
+                  // Placeholder for raw data modal or route
+                },
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 

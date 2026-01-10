@@ -115,6 +115,468 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Admin Panel'**
   String get adminPanel;
+
+  /// No description provided for @settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settings;
+
+  /// No description provided for @language.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get language;
+
+  /// No description provided for @themeMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme Mode'**
+  String get themeMode;
+
+  /// No description provided for @system.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get system;
+
+  /// No description provided for @light.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get light;
+
+  /// No description provided for @dark.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get dark;
+
+  /// Header for input configuration screen
+  ///
+  /// In en, this message translates to:
+  /// **'Configure Inputs: {workflowId}'**
+  String configureInputs(String workflowId);
+
+  /// Label for generic text input
+  ///
+  /// In en, this message translates to:
+  /// **'General Input'**
+  String get generalInput;
+
+  /// Label showing selected file details
+  ///
+  /// In en, this message translates to:
+  /// **'File: {fileName} ({size} bytes)'**
+  String fileInputLabel(String fileName, int size);
+
+  /// Placeholder text for file picker
+  ///
+  /// In en, this message translates to:
+  /// **'Select a file...'**
+  String get selectFile;
+
+  /// Validation error message
+  ///
+  /// In en, this message translates to:
+  /// **'This field is required.'**
+  String get fieldRequired;
+
+  /// Validation error message for files
+  ///
+  /// In en, this message translates to:
+  /// **'This file is required.'**
+  String get fileRequired;
+
+  /// No description provided for @dashboardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent Logic Executions'**
+  String get dashboardTitle;
+
+  /// No description provided for @totalRuns.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Runs'**
+  String get totalRuns;
+
+  /// No description provided for @inProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'In Progress'**
+  String get inProgress;
+
+  /// No description provided for @criticalFailures.
+  ///
+  /// In en, this message translates to:
+  /// **'Critical Failures'**
+  String get criticalFailures;
+
+  /// No description provided for @noExecutions.
+  ///
+  /// In en, this message translates to:
+  /// **'No executions found.'**
+  String get noExecutions;
+
+  /// No description provided for @failedToLoad.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load executions: {error}'**
+  String failedToLoad(Object error);
+
+  /// No description provided for @retry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retry;
+
+  /// No description provided for @newAnalysis.
+  ///
+  /// In en, this message translates to:
+  /// **'New Analysis'**
+  String get newAnalysis;
+
+  /// No description provided for @executionDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Execution Details'**
+  String get executionDetails;
+
+  /// No description provided for @overview.
+  ///
+  /// In en, this message translates to:
+  /// **'Overview'**
+  String get overview;
+
+  /// No description provided for @report.
+  ///
+  /// In en, this message translates to:
+  /// **'Report'**
+  String get report;
+
+  /// No description provided for @rawData.
+  ///
+  /// In en, this message translates to:
+  /// **'Raw Data'**
+  String get rawData;
+
+  /// No description provided for @status.
+  ///
+  /// In en, this message translates to:
+  /// **'STATUS'**
+  String get status;
+
+  /// No description provided for @timeline.
+  ///
+  /// In en, this message translates to:
+  /// **'Timeline'**
+  String get timeline;
+
+  /// No description provided for @created.
+  ///
+  /// In en, this message translates to:
+  /// **'Created'**
+  String get created;
+
+  /// No description provided for @workflowProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Workflow Progress'**
+  String get workflowProgress;
+
+  /// No description provided for @analysisInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Analysis in progress...'**
+  String get analysisInProgress;
+
+  /// No description provided for @currentStep.
+  ///
+  /// In en, this message translates to:
+  /// **'Current Step: {step}'**
+  String currentStep(Object step);
+
+  /// No description provided for @waitingToStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting to start...'**
+  String get waitingToStart;
+
+  /// No description provided for @executionStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Execution Started...'**
+  String get executionStarted;
+
+  /// No description provided for @executionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Execution Failed: {error}'**
+  String executionFailed(Object error);
+
+  /// No description provided for @unknownState.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown State'**
+  String get unknownState;
+
+  /// No description provided for @downloadNotImplemented.
+  ///
+  /// In en, this message translates to:
+  /// **'Download not implemented yet'**
+  String get downloadNotImplemented;
+
+  /// No description provided for @detailsComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Details view coming soon...'**
+  String get detailsComingSoon;
+
+  /// No description provided for @viewChecklist.
+  ///
+  /// In en, this message translates to:
+  /// **'View Checklist'**
+  String get viewChecklist;
+
+  /// No description provided for @viewRawData.
+  ///
+  /// In en, this message translates to:
+  /// **'View Raw Data'**
+  String get viewRawData;
+
+  /// No description provided for @analysisResults.
+  ///
+  /// In en, this message translates to:
+  /// **'Analysis Results'**
+  String get analysisResults;
+
+  /// No description provided for @goToMonitor.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to Monitor'**
+  String get goToMonitor;
+
+  /// No description provided for @analysisNotComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Analysis is not complete yet.'**
+  String get analysisNotComplete;
+
+  /// No description provided for @verdict.
+  ///
+  /// In en, this message translates to:
+  /// **'Verdict'**
+  String get verdict;
+
+  /// No description provided for @score.
+  ///
+  /// In en, this message translates to:
+  /// **'Score'**
+  String get score;
+
+  /// No description provided for @summary.
+  ///
+  /// In en, this message translates to:
+  /// **'Summary'**
+  String get summary;
+
+  /// No description provided for @type.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get type;
+
+  /// No description provided for @inputs.
+  ///
+  /// In en, this message translates to:
+  /// **'Inputs'**
+  String get inputs;
+
+  /// No description provided for @startAnalysis.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Analysis'**
+  String get startAnalysis;
+
+  /// No description provided for @next.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get next;
+
+  /// No description provided for @back.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get back;
+
+  /// No description provided for @cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
+
+  /// No description provided for @analysisStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Analysis Started!'**
+  String get analysisStarted;
+
+  /// No description provided for @submissionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Submission Failed: {error}'**
+  String submissionFailed(Object error);
+
+  /// No description provided for @fillRequiredInputs.
+  ///
+  /// In en, this message translates to:
+  /// **'Please fill in required inputs.'**
+  String get fillRequiredInputs;
+
+  /// No description provided for @errorReadingFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Error reading file: {error}'**
+  String errorReadingFile(Object error);
+
+  /// No description provided for @noWorkflowsAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No workflows available for your account.'**
+  String get noWorkflowsAvailable;
+
+  /// No description provided for @enterCustomWorkflowId.
+  ///
+  /// In en, this message translates to:
+  /// **'Or enter Custom Workflow ID'**
+  String get enterCustomWorkflowId;
+
+  /// No description provided for @statusCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'COMPLETED'**
+  String get statusCompleted;
+
+  /// No description provided for @statusRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'RUNNING'**
+  String get statusRunning;
+
+  /// No description provided for @statusFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'FAILED'**
+  String get statusFailed;
+
+  /// No description provided for @statusRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'REJECTED'**
+  String get statusRejected;
+
+  /// No description provided for @statusPending.
+  ///
+  /// In en, this message translates to:
+  /// **'PENDING'**
+  String get statusPending;
+
+  /// No description provided for @statusStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'STARTED'**
+  String get statusStarted;
+
+  /// No description provided for @inputChatHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'1. Chat History / Evidence (Chat Logs)'**
+  String get inputChatHistory;
+
+  /// No description provided for @inputProductTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'2. Product / Evaluation Target (Final Product)'**
+  String get inputProductTarget;
+
+  /// No description provided for @inputReflection.
+  ///
+  /// In en, this message translates to:
+  /// **'3. Reflection / Self-Evaluation'**
+  String get inputReflection;
+
+  /// No description provided for @unknownWorkflow.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown Workflow'**
+  String get unknownWorkflow;
+
+  /// No description provided for @navDashboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Dashboard'**
+  String get navDashboard;
+
+  /// No description provided for @navSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get navSettings;
+
+  /// No description provided for @navAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'Admin'**
+  String get navAdmin;
+
+  /// No description provided for @stepLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Step: {stepName}'**
+  String stepLabel(Object stepName);
+
+  /// No description provided for @defaultWorkflowTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Workflow Execution'**
+  String get defaultWorkflowTitle;
+
+  /// No description provided for @executionIdLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Execution {id}'**
+  String executionIdLabel(Object id);
+
+  /// No description provided for @resultsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Analysis Results'**
+  String get resultsTitle;
+
+  /// No description provided for @viewLogTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'View Execution Log'**
+  String get viewLogTooltip;
+
+  /// No description provided for @downloadReportTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Download Report'**
+  String get downloadReportTooltip;
+
+  /// No description provided for @downloadNotImplementedPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Download PDF not implemented yet'**
+  String get downloadNotImplementedPdf;
+
+  /// No description provided for @chooseAnalysisType.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose Analysis Type'**
+  String get chooseAnalysisType;
 }
 
 class _AppLocalizationsDelegate

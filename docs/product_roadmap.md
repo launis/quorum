@@ -84,6 +84,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **Localization Engine**: Setup `flutter_localizations` with `app_en.arb` and `app_fi.arb` (Mandatory FI/EN support).
 - [x] **Riverpod & State**: Initialize `ProviderScope` and setup `json_serializable` / `riverpod_generator` build runners.
 - [x] **Router Architecture**: Implement `GoRouter` with `StatefulShellRoute` (Nested Navigation) and Type-safe Routes (`GoRouteData`).
+- [x] **Adaptive Layout**: Implemented NavigationRail/Bar switching and max-width constraints for Desktop/Web support.
 
 ### 2.2 Connectivity & Auth
 - [x] **Secure HTTP Client**: Implement `Dio` with a generic `AuthInterceptor` to inject Firebase Tokens into Backend requests.
@@ -91,8 +92,8 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **Environment Config**: Use `flutter_dotenv` to manage Backend URL (`http://localhost:8000` vs Cloud) via `.env`.
 
 ### 2.3 Dashboard & Monitoring
-- [ ] **Dashboard UI**: Grid view of System Workflows fetching data via `AsyncValue` providers.
-- [ ] **Report Viewer**: Render final HTML/Markdown results using `webview_flutter` or generic markdown renderers.
+- [x] **Dashboard UI**: Grid view of System Workflows fetching data via `AsyncValue` providers.
+- [x] **Report Viewer**: Render final HTML/Markdown results using `webview_flutter` or generic markdown renderers.
 
 ### 2.4 Workflow Data Layer (Foundation)
 - [x] **Models**: Ensure `Execution`, `ExecutionStep`, and `ExecutionInput` match the backend Pydantic models (JSON serialization).
@@ -103,8 +104,8 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **Validation**: Dedicated logic for validating inputs before API calls.
 
 ### 2.6 Workflow UI (Wizard & Feedback)
-- [ ] **Creation Wizard**: Multi-step form view for configuring and starting a new analysis (replaces Audit Wizard).
-- [ ] **Live Execution View**: Real-time progress UI with polling integration (Progress Bar, Step Indicator).
+- [x] **Creation Wizard**: Multi-step form view for configuring and starting a new analysis (replaces Audit Wizard).
+- [x] **Live Execution View**: Real-time progress UI with polling integration (Progress Bar, Step Indicator).
 
 ---
 

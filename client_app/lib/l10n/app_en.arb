@@ -10,5 +10,110 @@
   "adminPanel": "Admin Panel",
   "@adminPanel": {
     "description": "Label for the admin panel"
-  }
+  },
+  "settings": "Settings",
+  "language": "Language",
+  "themeMode": "Theme Mode",
+  "system": "System",
+  "light": "Light",
+  "dark": "Dark",
+  "configureInputs": "Configure Inputs: {workflowId}",
+  "@configureInputs": {
+    "description": "Header for input configuration screen",
+    "placeholders": {
+      "workflowId": {
+        "type": "String",
+        "example": "audit_workflow"
+      }
+    }
+  },
+  "generalInput": "General Input",
+  "@generalInput": {
+    "description": "Label for generic text input"
+  },
+  "fileInputLabel": "File: {fileName} ({size} bytes)",
+  "@fileInputLabel": {
+      "description": "Label showing selected file details",
+      "placeholders": {
+          "fileName": {"type": "String"},
+          "size": {"type": "int"}
+      }
+  },
+  "selectFile": "Select a file...",
+  "@selectFile": {
+      "description": "Placeholder text for file picker"
+  },
+  "fieldRequired": "This field is required.",
+  "@fieldRequired": {
+      "description": "Validation error message"
+  },
+  "fileRequired": "This file is required.",
+  "@fileRequired": {
+      "description": "Validation error message for files"
+  },
+  "dashboardTitle": "Recent Logic Executions",
+  "totalRuns": "Total Runs",
+  "inProgress": "In Progress",
+  "criticalFailures": "Critical Failures",
+  "noExecutions": "No executions found.",
+  "failedToLoad": "Failed to load executions: {error}",
+  "retry": "Retry",
+  "newAnalysis": "New Analysis",
+  "executionDetails": "Execution Details",
+  "overview": "Overview",
+  "report": "Report",
+  "rawData": "Raw Data",
+  "status": "STATUS",
+  "timeline": "Timeline",
+  "created": "Created",
+  "workflowProgress": "Workflow Progress",
+  "analysisInProgress": "Analysis in progress...",
+  "currentStep": "Current Step: {step}",
+  "waitingToStart": "Waiting to start...",
+  "executionStarted": "Execution Started...",
+  "executionFailed": "Execution Failed: {error}",
+  "unknownState": "Unknown State",
+  "downloadNotImplemented": "Download not implemented yet",
+  "detailsComingSoon": "Details view coming soon...",
+  "viewChecklist": "View Checklist",
+  "viewRawData": "View Raw Data",
+  "analysisResults": "Analysis Results",
+  "goToMonitor": "Go to Monitor",
+  "analysisNotComplete": "Analysis is not complete yet.",
+  "verdict": "Verdict",
+  "score": "Score",
+  "summary": "Summary",
+  "type": "Type",
+  "inputs": "Inputs",
+  "startAnalysis": "Start Analysis",
+  "next": "Next",
+  "back": "Back",
+  "cancel": "Cancel",
+  "analysisStarted": "Analysis Started!",
+  "submissionFailed": "Submission Failed: {error}",
+  "fillRequiredInputs": "Please fill in required inputs.",
+  "errorReadingFile": "Error reading file: {error}",
+  "noWorkflowsAvailable": "No workflows available for your account.",
+  "enterCustomWorkflowId": "Or enter Custom Workflow ID",
+  "statusCompleted": "COMPLETED",
+  "statusRunning": "RUNNING",
+  "statusFailed": "FAILED",
+  "statusRejected": "REJECTED",
+  "statusPending": "PENDING",
+  "statusStarted": "STARTED",
+  "inputChatHistory": "1. Chat History / Evidence (Chat Logs)",
+  "inputProductTarget": "2. Product / Evaluation Target (Final Product)",
+  "inputReflection": "3. Reflection / Self-Evaluation",
+  "unknownWorkflow": "Unknown Workflow",
+  "navDashboard": "Dashboard",
+  "navSettings": "Settings",
+  "navAdmin": "Admin",
+  "stepLabel": "Step: {stepName}",
+  "defaultWorkflowTitle": "Workflow Execution",
+  "executionIdLabel": "Execution {id}",
+  "resultsTitle": "Analysis Results",
+  "viewLogTooltip": "View Execution Log",
+  "downloadReportTooltip": "Download Report",
+  "downloadNotImplementedPdf": "Download PDF not implemented yet",
+  "chooseAnalysisType": "Choose Analysis Type"
 }

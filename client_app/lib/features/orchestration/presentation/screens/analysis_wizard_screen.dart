@@ -1,3 +1,4 @@
+import 'package:client_app/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,6 +13,7 @@ class AnalysisWizardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final wizardState = ref.watch(wizardStateProvider);
+    final l10n = AppLocalizations.of(context)!;
     // Keep controller alive during async operations
     ref.watch(executionControllerProvider);
     // final theme = Theme.of(context); // Unused for now
@@ -20,142 +22,95 @@ class AnalysisWizardScreen extends ConsumerWidget {
     // but typically we await the future in the button callback.
 
     return Scaffold(
-      appBar: AppBar(title: const Text('New Analysis')),
-      body: Stepper(
-        type: StepperType.horizontal,
-        currentStep: wizardState.currentStep,
-        onStepCancel: () {
-          if (wizardState.currentStep > 0) {
-            ref
-                .read(wizardStateProvider.notifier)
-                .setStep(wizardState.currentStep - 1);
-          } else {
-            if (context.canPop()) {
-              context.pop();
-            } else {
-              context.go('/dashboard');
-            }
-          }
-        },
-        onStepContinue: () {
-          // Validate current step
-          final current = wizardState.currentStep;
-          if (current == 0) {
-            // Step 1: Workflow Selection
-            ref.read(wizardStateProvider.notifier).setStep(1);
-          } else if (current == 1) {
-            // Step 2: Inputs -> SUbmit directly
-            final inputs = wizardState.inputs;
-            if (inputs.isEmpty) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Please fill in required inputs.'),
-                ),
-              );
-              return;
-            }
-            _submit(context, ref);
-          }
-        },
-        controlsBuilder: (context, details) {
-          final isLast = wizardState.currentStep == 1;
-          return Padding(
-            padding: const EdgeInsets.only(top: 24.0),
-            child: Row(
+      appBar: AppBar(title: Text(l10n.newAnalysis)),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1000),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                FilledButton(
-                  onPressed:
-                      wizardState.isSubmitting ? null : details.onStepContinue,
-                  child:
+                // 1. Selector
+                const WorkflowSelector(),
+
+                const SizedBox(height: 32),
+
+                // 2. Inputs (Dynamically rendered based on selection)
+                const DynamicInputForm(),
+
+                const SizedBox(height: 48),
+
+                // 3. Submit Action
+                SizedBox(
+                  height: 50,
+                  child: FilledButton.icon(
+                    onPressed:
+                        wizardState.isSubmitting
+                            ? null
+                            : () => _submit(context, ref),
+                    icon:
+                        wizardState.isSubmitting
+                            ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                            : const Icon(Icons.rocket_launch),
+                    label: Text(
                       wizardState.isSubmitting
-                          ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                          : Text(isLast ? 'Start Analysis' : 'Next'),
-                ),
-                const SizedBox(width: 12),
-                TextButton(
-                  onPressed:
-                      wizardState.isSubmitting ? null : details.onStepCancel,
-                  child: Text(wizardState.currentStep == 0 ? 'Cancel' : 'Back'),
+                          ? l10n.analysisInProgress
+                          : l10n.startAnalysis,
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  ),
                 ),
               ],
             ),
-          );
-        },
-        steps: [
-          Step(
-            title: const Text('Type'),
-            isActive: wizardState.currentStep >= 0,
-            state:
-                wizardState.currentStep > 0
-                    ? StepState.complete
-                    : StepState.editing,
-            content: const WorkflowSelector(),
           ),
-          Step(
-            title: const Text('Inputs'),
-            isActive: wizardState.currentStep >= 1,
-            state: StepState.editing,
-            content: const DynamicInputForm(),
-          ),
-        ],
+        ),
       ),
     );
   }
 
   Future<void> _submit(BuildContext context, WidgetRef ref) async {
-    final state = ref.read(wizardStateProvider);
     final notifier = ref.read(wizardStateProvider.notifier);
+    // Use read, not watch/of for async context usage is safer with mounted check
+    // But we need l10n to show messages.
+    // It's safe to grab it before await, or if context is mounted after await.
 
-    notifier.setSubmitting(true);
-    notifier.setError(null);
+    // Call provider method (handles state validation and API call)
+    final executionId = await notifier.submitAnalysis();
 
-    try {
-      final executionId = await ref
-          .read(executionControllerProvider.notifier)
-          .startAnalysis(
-            workflowId: state.selectedWorkflowId,
-            inputs: state.inputs,
-          );
-
-      if (context.mounted) {
+    if (context.mounted) {
+      final l10n = AppLocalizations.of(context)!;
+      if (executionId != null && executionId.isNotEmpty) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Analysis Started!')));
-
-        if (executionId != null && executionId.isNotEmpty) {
-          context.go('/dashboard/executions/$executionId/monitor');
+        ).showSnackBar(SnackBar(content: Text(l10n.analysisStarted)));
+        context.go('/dashboard/executions/$executionId/monitor');
+      } else {
+        // Handle Failure
+        // Check if it was validation error (inputs empty) or API error
+        final state = ref.read(wizardStateProvider);
+        if (state.inputs.isEmpty) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l10n.fillRequiredInputs)));
         } else {
-          // FIX: Do not silently fail. Show error from controller.
-          final errorState = ref.read(executionControllerProvider);
-          final errorMsg =
-              errorState.error?.toString() ??
-              'Unknown Error: Execution ID was null';
-
+          final errorMsg = state.error ?? 'Error';
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Submission Failed: $errorMsg'),
+              content: Text(l10n.submissionFailed(errorMsg)),
               backgroundColor: Colors.red,
               duration: const Duration(seconds: 5),
             ),
           );
         }
       }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
-        notifier.setError(e.toString());
-      }
-    } finally {
-      notifier.setSubmitting(false);
     }
   }
 }

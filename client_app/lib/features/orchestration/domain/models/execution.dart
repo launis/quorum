@@ -14,6 +14,7 @@ part 'execution.g.dart';
 /// - interrupted: Stopped mid-execution.
 enum ExecutionStatus {
   pending,
+  started,
   running,
   completed,
   failed,
@@ -45,6 +46,18 @@ sealed class Execution with _$Execution {
     @JsonKey(name: 'current_step_name') String? currentStepName,
     @Default(ExecutionStatus.pending) ExecutionStatus status,
   }) = ExecutionPending;
+
+  /// State: Execution has started but is not yet processing steps (or early initialization).
+  const factory Execution.started({
+    @JsonKey(name: 'execution_id') required String id,
+    @JsonKey(name: 'start_time') required DateTime createdAt,
+    @JsonKey(name: 'workflow_name') String? workflowName,
+    @JsonKey(name: 'organization_id') String? organizationId,
+    @JsonKey(name: 'user_id') String? userId,
+    @Default({}) Map<String, dynamic> inputs,
+    @JsonKey(name: 'current_step_name') String? currentStepName,
+    @Default(ExecutionStatus.started) ExecutionStatus status,
+  }) = ExecutionStarted;
 
   // ... (keeping other factories as they are, assume tool handles text correctly) ...
   // Wait, I need to be careful not to delete the middle of the file.

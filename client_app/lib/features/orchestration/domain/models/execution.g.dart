@@ -34,6 +34,7 @@ Map<String, dynamic> _$ExecutionPendingToJson(ExecutionPending instance) =>
 
 const _$ExecutionStatusEnumMap = {
   ExecutionStatus.pending: 'pending',
+  ExecutionStatus.started: 'started',
   ExecutionStatus.running: 'running',
   ExecutionStatus.completed: 'completed',
   ExecutionStatus.failed: 'failed',
@@ -41,6 +42,32 @@ const _$ExecutionStatusEnumMap = {
   ExecutionStatus.interrupted: 'interrupted',
   ExecutionStatus.unknown: 'unknown',
 };
+
+ExecutionStarted _$ExecutionStartedFromJson(Map<String, dynamic> json) =>
+    ExecutionStarted(
+      id: json['execution_id'] as String,
+      createdAt: DateTime.parse(json['start_time'] as String),
+      workflowName: json['workflow_name'] as String?,
+      organizationId: json['organization_id'] as String?,
+      userId: json['user_id'] as String?,
+      inputs: json['inputs'] as Map<String, dynamic>? ?? const {},
+      currentStepName: json['current_step_name'] as String?,
+      status:
+          $enumDecodeNullable(_$ExecutionStatusEnumMap, json['status']) ??
+          ExecutionStatus.started,
+    );
+
+Map<String, dynamic> _$ExecutionStartedToJson(ExecutionStarted instance) =>
+    <String, dynamic>{
+      'execution_id': instance.id,
+      'start_time': instance.createdAt.toIso8601String(),
+      'workflow_name': instance.workflowName,
+      'organization_id': instance.organizationId,
+      'user_id': instance.userId,
+      'inputs': instance.inputs,
+      'current_step_name': instance.currentStepName,
+      'status': _$ExecutionStatusEnumMap[instance.status]!,
+    };
 
 ExecutionRunning _$ExecutionRunningFromJson(Map<String, dynamic> json) =>
     ExecutionRunning(

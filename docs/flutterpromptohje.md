@@ -17,7 +17,7 @@ Legacy patterns (e.g., `ChangeNotifier`, manual providers, `setState` for comple
 TECHNOLOGY STACK & VERIFIED DOCUMENTATION LINKS:
 
 1.  **Framework & Core**:
-    * **Flutter 3.38+** (Beta/Stable): [https://docs.flutter.dev/]
+    * **Flutter 3.38+** (Stable): [https://docs.flutter.dev/]
         * *Requirement*: Use latest Material 3 widgets, Adaptive Scaffold, and `dart:ui` features.
 
 2.  **State Management (The Brain)**:

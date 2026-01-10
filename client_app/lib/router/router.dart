@@ -129,7 +129,16 @@ GoRouter router(Ref ref) {
               ),
             ],
           ),
-          // Branch 1: Settings (Member/Everyone)
+          // Branch 1: New Analysis (Member/Everyone)
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/orchestration/new',
+                builder: (context, state) => const AnalysisWizardScreen(),
+              ),
+            ],
+          ),
+          // Branch 2: Settings (Member/Everyone)
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -162,11 +171,6 @@ GoRouter router(Ref ref) {
         // So we can just redirect to dashboard here, and if admin, the shell might
         // show admin.
         // Better: let the top level redirect handle "Landing".
-      ),
-      GoRoute(
-        path: '/orchestration/new',
-        parentNavigatorKey: _rootNavigatorKey, // Full screen, cover shell
-        builder: (context, state) => const AnalysisWizardScreen(),
       ),
     ],
   );

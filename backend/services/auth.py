@@ -476,11 +476,15 @@ class AuthService:
 
         # Permission Check
         if initiator.role != UserRole.ROOT:
+            # Self-Update Rule (Language/Theme)
+            if initiator_uid == target_uid:
+                # Allowed to update self, but check for Restricted fields (Role)
+                if updates.role is not None and updates.role != initiator.role:
+                     raise PermissionError("Users cannot change their own role.")
             # Org Admin Check
-            if initiator.role == UserRole.ADMIN:
+            elif initiator.role == UserRole.ADMIN:
                 if target.organization_id != initiator.organization_id:
                     raise PermissionError("Cannot update users from other organizations")
-                # Admin cannot change their own role to something else (demotion) check below covers it
             else:
                 raise PermissionError("Insufficient permissions to update users")
 

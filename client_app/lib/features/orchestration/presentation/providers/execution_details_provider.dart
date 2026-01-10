@@ -21,7 +21,8 @@ Future<Execution> executionDetails(Ref ref, String executionId) async {
     // Polling Logic: If running or pending, refresh after 3 seconds.
     // This creates a recursive loop of "live" updates.
     if (execution.status == ExecutionStatus.running ||
-        execution.status == ExecutionStatus.pending) {
+        execution.status == ExecutionStatus.pending ||
+        execution.status == ExecutionStatus.started) {
       final timer = Timer(const Duration(seconds: 3), () {
         // We invalidate the provider to force a re-fetch
         ref.invalidateSelf();

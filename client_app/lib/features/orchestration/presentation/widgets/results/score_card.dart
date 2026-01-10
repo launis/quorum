@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class ScoreCard extends StatelessWidget {
   final String label;
@@ -64,7 +65,7 @@ class ScoreCard extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    _formatScore(value),
+                    _formatScore(context, value),
                     style: theme.textTheme.labelLarge?.copyWith(
                       color: scoreColor,
                       fontWeight: FontWeight.bold,
@@ -107,7 +108,7 @@ class ScoreCard extends StatelessWidget {
         Icon(icon, size: 12, color: color),
         const SizedBox(width: 4),
         Text(
-          '${delta.abs().toStringAsFixed(1)} (vs prev)',
+          '${NumberFormat.decimalPatternDigits(locale: Localizations.localeOf(context).toString(), decimalDigits: 1).format(delta.abs())} (vs prev)',
           style: Theme.of(
             context,
           ).textTheme.bodySmall?.copyWith(color: color, fontSize: 10),
@@ -116,8 +117,23 @@ class ScoreCard extends StatelessWidget {
     );
   }
 
-  String _formatScore(double val) {
-    if (val % 1 == 0) return val.toInt().toString();
-    return val.toStringAsFixed(1);
+  String _formatScore(BuildContext context, double val) {
+    final locale = Localizations.localeOf(context).toString();
+    final fmt = NumberFormat.decimalPattern(locale);
+
+    // Custom logic: if integer, show integer. If decimal, show 1 decimal place.
+    // decimalPattern usually does sensible things, but let's be explicit if needed.
+    // Actually, simply using flexible pattern is best.
+    // If we want fixed 1 decimal for non-integers:
+    if (val % 1 == 0) {
+      return fmt.format(val.toInt());
+    }
+
+    // For decimals, force 1 digit
+    final decimalFmt = NumberFormat.decimalPatternDigits(
+      locale: locale,
+      decimalDigits: 1,
+    );
+    return decimalFmt.format(val);
   }
 }

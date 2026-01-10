@@ -24,7 +24,8 @@ class ExecutionListController extends _$ExecutionListController {
       final hasActive = executions.any(
         (e) =>
             e.status == ExecutionStatus.running ||
-            e.status == ExecutionStatus.pending,
+            e.status == ExecutionStatus.pending ||
+            e.status == ExecutionStatus.started,
       );
 
       if (hasActive) {

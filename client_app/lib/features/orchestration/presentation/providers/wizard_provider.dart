@@ -1,3 +1,4 @@
+import 'package:client_app/features/orchestration/presentation/providers/execution_controller.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -46,6 +47,33 @@ class WizardState extends _$WizardState {
 
   void setError(String? error) {
     state = state.copyWith(error: error);
+  }
+
+  bool validateInputs() {
+    return state.inputs.isNotEmpty;
+  }
+
+  Future<String?> submitAnalysis() async {
+    if (!validateInputs()) {
+      return null;
+    }
+
+    state = state.copyWith(isSubmitting: true, error: null);
+
+    try {
+      final executionId = await ref
+          .read(executionControllerProvider.notifier)
+          .startAnalysis(
+            workflowId: state.selectedWorkflowId,
+            inputs: state.inputs,
+          );
+      return executionId;
+    } catch (e) {
+      state = state.copyWith(error: e.toString());
+      return null;
+    } finally {
+      state = state.copyWith(isSubmitting: false);
+    }
   }
 
   void reset() {

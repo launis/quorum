@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/orchestration/presentation/providers/wizard_provider.dart';
 import 'package:client_app/features/orchestration/presentation/widgets/wizard/file_input_field.dart';
+import 'package:client_app/features/orchestration/domain/models/workflow.dart';
+import 'package:client_app/features/orchestration/presentation/providers/workflow_controller.dart';
+import 'package:client_app/l10n/app_localizations.dart';
 
 class DynamicInputForm extends ConsumerStatefulWidget {
   const DynamicInputForm({super.key});
@@ -16,10 +19,22 @@ class _DynamicInputFormState extends ConsumerState<DynamicInputForm> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final workflowId = ref.watch(
       wizardStateProvider.select((s) => s.selectedWorkflowId),
     );
+    final workflowAsync = ref.watch(workflowListProvider);
     final inputs = ref.watch(wizardStateProvider.select((s) => s.inputs));
+
+    final workflow = workflowAsync.asData?.value.firstWhere(
+      (w) => w.id == workflowId,
+      orElse:
+          () => Workflow(
+            id: 'unknown',
+            name: l10n.unknownWorkflow,
+            description: '',
+          ),
+    );
 
     return Form(
       key: _formKey,
@@ -27,58 +42,90 @@ class _DynamicInputFormState extends ConsumerState<DynamicInputForm> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Configure Inputs: $workflowId',
+            l10n.configureInputs(workflowId),
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 16),
 
-          if (workflowId == 'fused_audit_chain' ||
-              workflowId == 'sequential_audit_chain') ...[
-            // Audit Workflows require file inputs
+          if (workflow != null && (workflow.uiSchema?.isNotEmpty ?? false)) ...[
+            // Dynamic rendering from Schema
+            ...workflow.uiSchema!.entries.map((entry) {
+              final val = entry.value as Map<String, dynamic>;
+              final key = entry.key;
+              final type = val['type'] as String? ?? 'text';
+              final label = val['label'] as String? ?? key;
+              final iconData = _getIcon(val['icon'] as String?);
+              final minLines = val['minLines'] as int? ?? 1;
+
+              if (type == 'file') {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0),
+                  child: _buildFileInput(
+                    label: label,
+                    keyName: key,
+                    icon: iconData,
+                    currentValue: inputs[key] as PlatformFile?,
+                  ),
+                );
+              } else {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0),
+                  child: _buildTextField(
+                    label: label,
+                    keyName: key,
+                    icon: iconData,
+                    minLines: minLines,
+                  ),
+                );
+              }
+            }),
+          ] else ...[
+            // DEFAULT FALLBACK: 3-File Audit Layout
+            // "kaikki workflowt ovat nyt siinä tilassa, että vaaditaan 3 nappia"
             _buildFileInput(
-              label: '1. Chat History / Evidence (Chat Logs)',
+              label: l10n.inputChatHistory,
               keyName: 'history_text',
               icon: Icons.history,
               currentValue: inputs['history_text'] as PlatformFile?,
             ),
             const SizedBox(height: 16),
             _buildFileInput(
-              label: '2. Product / Evaluation Target (Final Product)',
+              label: l10n.inputProductTarget,
               keyName: 'product_text',
               icon: Icons.inventory_2,
               currentValue: inputs['product_text'] as PlatformFile?,
             ),
             const SizedBox(height: 16),
             _buildFileInput(
-              label: '3. Reflection / Self-Evaluation',
+              label: l10n.inputReflection,
               keyName: 'reflection_text',
               icon: Icons.lightbulb,
               currentValue: inputs['reflection_text'] as PlatformFile?,
-            ),
-          ] else if (workflowId == 'deep_research') ...[
-            _buildTextField(
-              label: 'Research Topic',
-              keyName: 'topic',
-              icon: Icons.search,
-            ),
-            const SizedBox(height: 16),
-            _buildTextField(
-              label: 'Context URLs (comma separated)',
-              keyName: 'urls',
-              icon: Icons.link,
-            ),
-          ] else ...[
-            // Default generic fallback
-            _buildTextField(
-              label: 'General Input',
-              keyName: 'input_text',
-              icon: Icons.message,
-              minLines: 5,
             ),
           ],
         ],
       ),
     );
+  }
+
+  IconData? _getIcon(String? iconName) {
+    if (iconName == null) return null;
+    switch (iconName) {
+      case 'history':
+        return Icons.history;
+      case 'inventory_2':
+        return Icons.inventory_2;
+      case 'lightbulb':
+        return Icons.lightbulb;
+      case 'search':
+        return Icons.search;
+      case 'link':
+        return Icons.link;
+      case 'message':
+        return Icons.message;
+      default:
+        return Icons.insert_drive_file;
+    }
   }
 
   Widget _buildFileInput({
@@ -93,7 +140,7 @@ class _DynamicInputFormState extends ConsumerState<DynamicInputForm> {
       value: currentValue,
       validator: (value) {
         if (value == null) {
-          return 'This file is required.';
+          return AppLocalizations.of(context)!.fileRequired;
         }
         return null;
       },
@@ -123,7 +170,7 @@ class _DynamicInputFormState extends ConsumerState<DynamicInputForm> {
       maxLines: minLines + 5,
       validator: (value) {
         if (value == null || value.isEmpty) {
-          return 'This field is required.';
+          return AppLocalizations.of(context)!.fieldRequired;
         }
         return null;
       },

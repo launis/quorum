@@ -29,7 +29,9 @@
             "role": "ROOT",
             "organization_id": "system",
             "display_name": "System Root",
-            "created_at": "2026-01-01T00:00:00"
+            "created_at": "2026-01-01T00:00:00",
+            "language": "fi",
+            "theme_mode": "system"
         },
         {
             "uid": "admin_1",
@@ -37,7 +39,9 @@
             "role": "ADMIN",
             "organization_id": "demo_corp",
             "display_name": "Demo Admin",
-            "created_at": "2026-01-01T00:00:00"
+            "created_at": "2026-01-01T00:00:00",
+            "language": "fi",
+            "theme_mode": "system"
         },
         {
             "uid": "manager_1",
@@ -45,7 +49,9 @@
             "role": "MANAGER",
             "organization_id": "demo_corp",
             "display_name": "Demo Manager",
-            "created_at": "2026-01-01T00:00:00"
+            "created_at": "2026-01-01T00:00:00",
+            "language": "en",
+            "theme_mode": "system"
         },
         {
             "uid": "member_1",
@@ -53,7 +59,9 @@
             "role": "MEMBER",
             "organization_id": "demo_corp",
             "display_name": "Demo Member",
-            "created_at": "2026-01-01T00:00:00"
+            "created_at": "2026-01-01T00:00:00",
+            "language": "fi",
+            "theme_mode": "system"
         },
         {
             "uid": "viewer_1",
@@ -61,7 +69,9 @@
             "role": "VIEWER",
             "organization_id": "demo_corp",
             "display_name": "Demo Viewer",
-            "created_at": "2026-01-01T00:00:00"
+            "created_at": "2026-01-01T00:00:00",
+            "language": "fi",
+            "theme_mode": "system"
         }
     ],
     "system_config": [
@@ -2334,7 +2344,7 @@
                 "step_coach": "deep",
                 "step_xai": "fast"
             },
-            "ui_schema": {},
+
             "is_public": true,
             "updated_at": "2026-01-03T14:25:30.174660"
         }

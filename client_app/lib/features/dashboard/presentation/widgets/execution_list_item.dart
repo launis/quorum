@@ -1,3 +1,4 @@
+import 'package:client_app/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
@@ -12,7 +13,9 @@ class ExecutionListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final dateFormat = DateFormat.MMMd().add_Hm();
+    final l10n = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context).toString();
+    final dateFormat = DateFormat.MMMd(locale).add_Hm();
     final statusColor = _getStatusColor(execution.status);
 
     return ListTile(
@@ -32,14 +35,15 @@ class ExecutionListItem extends StatelessWidget {
         ),
       ),
       title: Text(
-        execution.workflowName ?? 'Execution ${execution.id.substring(0, 6)}',
+        execution.workflowName ??
+            l10n.executionIdLabel(execution.id.substring(0, 6)),
         style: theme.textTheme.titleSmall?.copyWith(
           fontWeight: FontWeight.w600,
         ),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
-      subtitle: _buildSubtitle(context),
+      subtitle: _buildSubtitle(context, l10n),
       trailing: Text(
         dateFormat.format(execution.createdAt),
         style: theme.textTheme.bodySmall?.copyWith(
@@ -49,20 +53,42 @@ class ExecutionListItem extends StatelessWidget {
     );
   }
 
-  Widget _buildSubtitle(BuildContext context) {
+  Widget _buildSubtitle(BuildContext context, AppLocalizations l10n) {
     final stepName = _getCurrentStepName(execution);
     if (stepName != null) {
-      return Text('Step: $stepName');
+      return Text(l10n.stepLabel(stepName));
     }
     return Text(
-      execution.status.name.toUpperCase(),
+      _getStatusLabel(l10n, execution.status),
       style: const TextStyle(fontSize: 10), // Tiny generic label
     );
+  }
+
+  String _getStatusLabel(AppLocalizations l10n, ExecutionStatus status) {
+    switch (status) {
+      case ExecutionStatus.completed:
+        return l10n.statusCompleted;
+      case ExecutionStatus.running:
+        return l10n.statusRunning;
+      case ExecutionStatus.failed:
+        return l10n.statusFailed;
+      case ExecutionStatus.rejected:
+        return l10n.statusRejected;
+      case ExecutionStatus.pending:
+        return l10n.statusPending;
+      case ExecutionStatus.started:
+        return l10n.statusStarted;
+      case ExecutionStatus.interrupted:
+        return l10n.unknownState; // Using unknown as fallback or add new key
+      case ExecutionStatus.unknown:
+        return l10n.unknownState;
+    }
   }
 
   Color _getStatusColor(ExecutionStatus status) {
     switch (status) {
       case ExecutionStatus.running:
+      case ExecutionStatus.started:
         return Colors.blue;
       case ExecutionStatus.completed:
         return Colors.green;
@@ -81,6 +107,8 @@ class ExecutionListItem extends StatelessWidget {
     switch (status) {
       case ExecutionStatus.running:
         return Icons.sync;
+      case ExecutionStatus.started:
+        return Icons.play_circle_outline;
       case ExecutionStatus.completed:
         return Icons.check_circle_outline;
       case ExecutionStatus.failed:
@@ -98,6 +126,7 @@ class ExecutionListItem extends StatelessWidget {
   String? _getCurrentStepName(Execution execution) {
     return execution.map(
       pending: (_) => null,
+      started: (_) => null,
       running: (e) => e.currentStepName,
       completed: (e) => e.currentStepName,
       failed: (e) => e.currentStepName,

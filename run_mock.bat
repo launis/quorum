@@ -26,6 +26,9 @@ REM Enable "Hybrid Mode": Mock DB + Real Firebase Auth
 set USE_FIREBASE_AUTH=true
 start "CQ Backend" cmd /k "set USE_MOCK_DB=true&& set USE_MOCK_LLM=true&& set STORAGE_BACKEND=LOCAL&& uv run uvicorn backend.main:app --reload --port 8000"
 
+echo [1.5/2] Launching Worker (Arq)...
+start "CQ Worker (MOCK)" cmd /k "chcp 65001 > nul && set USE_MOCK_DB=true&& set USE_MOCK_LLM=true&& set STORAGE_BACKEND=LOCAL&& uv run python -m backend.run_worker"
+
 echo [2/2] Launching Client (Flutter)...
 start "CQ Client" cmd /k "cd client_app && flutter run"
 

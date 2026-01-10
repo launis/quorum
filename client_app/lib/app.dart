@@ -1,6 +1,7 @@
 import 'package:client_app/l10n/app_localizations.dart';
 import 'package:client_app/router/router.dart';
 import 'package:client_app/features/settings/theme_provider.dart';
+import 'package:client_app/features/settings/locale_provider.dart';
 import 'package:client_app/theme/app_theme.dart';
 import 'package:firebase_ui_localizations/firebase_ui_localizations.dart';
 
@@ -27,10 +28,13 @@ class App extends ConsumerWidget {
     final goRouter = ref.watch(routerProvider);
 
     // 2. Watch Theme Mode
+    // 2. Watch Theme Mode
     final themeMode = ref.watch(themeModeProvider);
+    final locale = ref.watch(localeProvider);
 
     return MaterialApp.router(
       title: 'Cognitive Quorum',
+      locale: locale,
 
       // 3. Navigation
       routerConfig: goRouter,

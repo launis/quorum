@@ -1,3 +1,4 @@
+import 'package:client_app/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -19,14 +20,15 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncExecutions = ref.watch(executionListControllerProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Dashboard'),
+        title: Text(l10n.dashboardTitle),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh',
+            tooltip: l10n.retry, // reusing retry or specific refresh key
             onPressed:
                 () =>
                     ref
@@ -41,7 +43,7 @@ class DashboardScreen extends ConsumerWidget {
           context.go('/orchestration/new');
         },
         icon: const Icon(Icons.add),
-        label: const Text('New Analysis'),
+        label: Text(l10n.newAnalysis),
       ),
       body: asyncExecutions.when(
         data: (executions) => _DashboardContent(executions: executions),
@@ -58,7 +60,7 @@ class DashboardScreen extends ConsumerWidget {
                       color: Colors.red,
                     ),
                     const SizedBox(height: 16),
-                    Text('Failed to load executions: $error'),
+                    Text(l10n.failedToLoad('$error')),
                     const SizedBox(height: 16),
                     FilledButton.icon(
                       onPressed:
@@ -69,7 +71,7 @@ class DashboardScreen extends ConsumerWidget {
                                   )
                                   .refreshList(),
                       icon: const Icon(Icons.refresh),
-                      label: const Text('Retry'),
+                      label: Text(l10n.retry),
                     ),
                   ],
                 ),
@@ -91,6 +93,7 @@ class _DashboardContent extends StatelessWidget {
     // Determine breakpoints
     // Mobile < 600, Tablet < 1200, Desktop >= 1200
     // We switch to Grid on Tablet+ (>= 600)
+    final l10n = AppLocalizations.of(context)!;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -115,7 +118,7 @@ class _DashboardContent extends StatelessWidget {
                   vertical: 8.0,
                 ),
                 child: Text(
-                  'Recent Logic Executions',
+                  l10n.dashboardTitle,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -125,10 +128,10 @@ class _DashboardContent extends StatelessWidget {
 
             // 3. Executions List/Grid
             if (executions.isEmpty)
-              const SliverToBoxAdapter(
+              SliverToBoxAdapter(
                 child: Padding(
-                  padding: EdgeInsets.all(32.0),
-                  child: Center(child: Text('No executions found.')),
+                  padding: const EdgeInsets.all(32.0),
+                  child: Center(child: Text(l10n.noExecutions)),
                 ),
               )
             else if (isMobile)
@@ -142,8 +145,8 @@ class _DashboardContent extends StatelessWidget {
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 sliver: SliverGrid(
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: constraints.maxWidth > 1200 ? 3 : 2,
+                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 400.0,
                     mainAxisSpacing: 16,
                     crossAxisSpacing: 16,
                     childAspectRatio: 1.5, // Widescreen cards
@@ -169,6 +172,7 @@ class _DashboardContent extends StatelessWidget {
     bool isMobile,
   ) {
     if (list.isEmpty) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context)!;
 
     // Calculate metrics
     final total = list.length;
@@ -181,19 +185,19 @@ class _DashboardContent extends StatelessWidget {
 
     final cards = [
       ExecutionStatsCard(
-        label: 'Total Runs',
+        label: l10n.totalRuns,
         value: total.toString(),
         icon: Icons.article,
         color: Colors.blue,
       ),
       ExecutionStatsCard(
-        label: 'In Progress',
+        label: l10n.inProgress,
         value: running.toString(),
         icon: Icons.sync,
         color: Colors.orange,
       ),
       ExecutionStatsCard(
-        label: 'Critical Failures',
+        label: l10n.criticalFailures,
         value: failed.toString(),
         icon: Icons.warning,
         color: Colors.red,

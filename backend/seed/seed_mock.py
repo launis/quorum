@@ -31,11 +31,11 @@ def main():
         # Import dynamically to ensure env vars are picked up
         # Run Seeding
         # async run wrapper if needed, but seeder usually has a sync entry point or we run asyncio.run
-        import asyncio
-
+        # Import dynamically to ensure env vars are picked up
+        # Run Seeding
         from backend.seed.seeder import seed_database
 
-        asyncio.run(seed_database())
+        seed_database()
 
         print("\n[SUCCESS] Mock DB populated successfully!")
 

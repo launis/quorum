@@ -1,3 +1,4 @@
+import 'package:client_app/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
@@ -12,7 +13,9 @@ class ExecutionGridItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final dateFormat = DateFormat.yMMMd().add_Hm();
+    final l10n = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context).toString();
+    final dateFormat = DateFormat.yMMMd(locale).add_Hm();
     final statusColor = _getStatusColor(execution.status);
 
     return Card(
@@ -56,7 +59,7 @@ class ExecutionGridItem extends StatelessWidget {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          execution.status.name.toUpperCase(),
+                          _getStatusLabel(l10n, execution.status),
                           style: theme.textTheme.labelSmall?.copyWith(
                             color: statusColor,
                             fontWeight: FontWeight.bold,
@@ -70,7 +73,7 @@ class ExecutionGridItem extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                execution.workflowName ?? 'Workflow Execution',
+                execution.workflowName ?? l10n.defaultWorkflowTitle,
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -88,7 +91,7 @@ class ExecutionGridItem extends StatelessWidget {
               const SizedBox(height: 8),
               if (_getCurrentStepName(execution) != null) ...[
                 Text(
-                  'Step: ${_getCurrentStepName(execution)}',
+                  l10n.stepLabel(_getCurrentStepName(execution)!),
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: theme.colorScheme.primary,
                   ),
@@ -110,9 +113,31 @@ class ExecutionGridItem extends StatelessWidget {
     );
   }
 
+  String _getStatusLabel(AppLocalizations l10n, ExecutionStatus status) {
+    switch (status) {
+      case ExecutionStatus.completed:
+        return l10n.statusCompleted;
+      case ExecutionStatus.running:
+        return l10n.statusRunning;
+      case ExecutionStatus.failed:
+        return l10n.statusFailed;
+      case ExecutionStatus.rejected:
+        return l10n.statusRejected;
+      case ExecutionStatus.pending:
+        return l10n.statusPending;
+      case ExecutionStatus.started:
+        return l10n.statusStarted;
+      case ExecutionStatus.interrupted:
+        return l10n.unknownState;
+      case ExecutionStatus.unknown:
+        return l10n.unknownState;
+    }
+  }
+
   Color _getStatusColor(ExecutionStatus status) {
     switch (status) {
       case ExecutionStatus.running:
+      case ExecutionStatus.started:
         return Colors.blue;
       case ExecutionStatus.completed:
         return Colors.green;
@@ -131,6 +156,8 @@ class ExecutionGridItem extends StatelessWidget {
     switch (status) {
       case ExecutionStatus.running:
         return Icons.sync;
+      case ExecutionStatus.started:
+        return Icons.play_circle_outline;
       case ExecutionStatus.completed:
         return Icons.check_circle_outline;
       case ExecutionStatus.failed:
@@ -148,6 +175,7 @@ class ExecutionGridItem extends StatelessWidget {
   String? _getCurrentStepName(Execution execution) {
     return execution.map(
       pending: (_) => null,
+      started: (_) => null,
       running: (e) => e.currentStepName,
       completed: (e) => e.currentStepName,
       failed: (e) => e.currentStepName,

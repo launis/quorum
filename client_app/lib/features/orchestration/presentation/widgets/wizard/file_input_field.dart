@@ -1,6 +1,7 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:client_app/l10n/app_localizations.dart';
 
 class FileInputField extends StatefulWidget {
   final String label;
@@ -28,11 +29,23 @@ class _FileInputFieldState extends State<FileInputField> {
   bool _isLoading = false;
 
   Future<void> _pickFile() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() => _isLoading = true);
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['txt', 'md', 'json', 'log', 'pdf', 'docx'],
+        allowedExtensions: [
+          'pdf',
+          'docx',
+          'txt',
+          'md',
+          'json',
+          'log',
+          'csv',
+          'xml',
+          'yaml',
+          'yml',
+        ],
         withData: kIsWeb, // Only load bytes in memory on Web
       );
 
@@ -44,7 +57,7 @@ class _FileInputFieldState extends State<FileInputField> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Error reading file: $e')));
+        ).showSnackBar(SnackBar(content: Text(l10n.errorReadingFile('$e'))));
       }
     } finally {
       if (mounted) {
@@ -88,7 +101,7 @@ class _FileInputFieldState extends State<FileInputField> {
                           : const Icon(Icons.attach_file),
                 ),
                 child: Text(
-                  fileName ?? 'Select a file...',
+                  fileName ?? AppLocalizations.of(context)!.selectFile,
                   style: TextStyle(
                     color:
                         hasFile
@@ -104,7 +117,9 @@ class _FileInputFieldState extends State<FileInputField> {
               Padding(
                 padding: const EdgeInsets.only(top: 4, left: 12),
                 child: Text(
-                  'File: ${widget.value!.name} (${widget.value!.size} bytes)',
+                  AppLocalizations.of(
+                    context,
+                  )!.fileInputLabel(widget.value!.name, widget.value!.size),
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ),

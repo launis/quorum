@@ -1,3 +1,4 @@
+import 'package:client_app/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/orchestration/domain/models/execution.dart';
@@ -16,56 +17,61 @@ class ExecutionResultScreen extends ConsumerWidget {
     // but we can still watch it. Logically we might not need polling here,
     // but executionDetailsProvider handles it.
     final asyncExecution = ref.watch(executionDetailsProvider(executionId));
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Analysis Results'),
+        title: Text(l10n.resultsTitle),
         actions: [
           IconButton(
             onPressed:
                 () => context.go('/dashboard/executions/$executionId/monitor'),
             icon: const Icon(Icons.history),
-            tooltip: 'View Execution Log',
+            tooltip: l10n.viewLogTooltip,
           ),
           IconButton(
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Download PDF not implemented yet'),
-                ),
+                SnackBar(content: Text(l10n.downloadNotImplementedPdf)),
               );
             },
             icon: const Icon(Icons.download),
-            tooltip: 'Download Report',
+            tooltip: l10n.downloadReportTooltip,
           ),
         ],
       ),
-      body: asyncExecution.when(
-        data: (execution) {
-          if (execution is ExecutionCompleted) {
-            return ResultDashboard(execution: execution);
-          } else {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text('Analysis is not complete yet.'),
-                  const SizedBox(height: 16),
-                  FilledButton.icon(
-                    onPressed:
-                        () => context.go(
-                          '/dashboard/executions/$executionId/monitor',
-                        ),
-                    icon: const Icon(Icons.visibility),
-                    label: const Text('Go to Monitor'),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1000),
+          child: asyncExecution.when(
+            data: (execution) {
+              if (execution is ExecutionCompleted) {
+                return ResultDashboard(execution: execution);
+              } else {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(l10n.analysisNotComplete),
+                      const SizedBox(height: 16),
+                      FilledButton.icon(
+                        onPressed:
+                            () => context.go(
+                              '/dashboard/executions/$executionId/monitor',
+                            ),
+                        icon: const Icon(Icons.visibility),
+                        label: Text(l10n.goToMonitor),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            );
-          }
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text('Error: $err')),
+                );
+              }
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error:
+                (err, stack) => Center(child: Text(l10n.failedToLoad('$err'))),
+          ),
+        ),
       ),
     );
   }

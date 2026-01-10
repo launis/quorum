@@ -12,6 +12,7 @@ sealed class Workflow with _$Workflow {
     @Default([]) List<String> steps,
     @JsonKey(name: 'organization_id') String? organizationId,
     @JsonKey(name: 'is_public') @Default(false) bool isPublic,
+    @JsonKey(name: 'ui_schema') Map<String, dynamic>? uiSchema,
   }) = _Workflow;
 
   factory Workflow.fromJson(Map<String, dynamic> json) =>

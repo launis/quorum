@@ -88,6 +88,8 @@ class UserBase(BaseModel):
     role: Annotated[UserRole, Field(description="Assigned permission role")] = UserRole.MEMBER
     organization_id: Annotated[str | None, Field(description="ID of the organization this user belongs to")] = None
     is_active: Annotated[bool, Field(description="Is the account active?")] = True
+    language: Annotated[str, Field(description="Preferred UI language")] = "fi"
+    theme_mode: Annotated[str, Field(description="Preferred Theme Mode (system/light/dark)")] = "system"
 
     model_config = ConfigDict(extra="ignore")
 
@@ -154,6 +156,8 @@ class UserUpdate(BaseModel):
     role: UserRole | None = None
     is_active: bool | None = None
     password: str | None = None  # Only for admin resets
+    language: str | None = None
+    theme_mode: str | None = None
 
 
 # --- Auth Fragments ---

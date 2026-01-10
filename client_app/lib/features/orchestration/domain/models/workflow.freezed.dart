@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Workflow {
 
- String get id; String get name; String get description; List<String> get steps;@JsonKey(name: 'organization_id') String? get organizationId;@JsonKey(name: 'is_public') bool get isPublic;
+ String get id; String get name; String get description; List<String> get steps;@JsonKey(name: 'organization_id') String? get organizationId;@JsonKey(name: 'is_public') bool get isPublic;@JsonKey(name: 'ui_schema') Map<String, dynamic>? get uiSchema;
 /// Create a copy of Workflow
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $WorkflowCopyWith<Workflow> get copyWith => _$WorkflowCopyWithImpl<Workflow>(thi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Workflow&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other.steps, steps)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.isPublic, isPublic) || other.isPublic == isPublic));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Workflow&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other.steps, steps)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.isPublic, isPublic) || other.isPublic == isPublic)&&const DeepCollectionEquality().equals(other.uiSchema, uiSchema));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,description,const DeepCollectionEquality().hash(steps),organizationId,isPublic);
+int get hashCode => Object.hash(runtimeType,id,name,description,const DeepCollectionEquality().hash(steps),organizationId,isPublic,const DeepCollectionEquality().hash(uiSchema));
 
 @override
 String toString() {
-  return 'Workflow(id: $id, name: $name, description: $description, steps: $steps, organizationId: $organizationId, isPublic: $isPublic)';
+  return 'Workflow(id: $id, name: $name, description: $description, steps: $steps, organizationId: $organizationId, isPublic: $isPublic, uiSchema: $uiSchema)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $WorkflowCopyWith<$Res>  {
   factory $WorkflowCopyWith(Workflow value, $Res Function(Workflow) _then) = _$WorkflowCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, String description, List<String> steps,@JsonKey(name: 'organization_id') String? organizationId,@JsonKey(name: 'is_public') bool isPublic
+ String id, String name, String description, List<String> steps,@JsonKey(name: 'organization_id') String? organizationId,@JsonKey(name: 'is_public') bool isPublic,@JsonKey(name: 'ui_schema') Map<String, dynamic>? uiSchema
 });
 
 
@@ -65,7 +65,7 @@ class _$WorkflowCopyWithImpl<$Res>
 
 /// Create a copy of Workflow
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? description = null,Object? steps = null,Object? organizationId = freezed,Object? isPublic = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? description = null,Object? steps = null,Object? organizationId = freezed,Object? isPublic = null,Object? uiSchema = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -73,7 +73,8 @@ as String,description: null == description ? _self.description : description // 
 as String,steps: null == steps ? _self.steps : steps // ignore: cast_nullable_to_non_nullable
 as List<String>,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
 as String?,isPublic: null == isPublic ? _self.isPublic : isPublic // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,uiSchema: freezed == uiSchema ? _self.uiSchema : uiSchema // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>?,
   ));
 }
 
@@ -120,10 +121,7 @@ return $default(_that);case _:
 final _that = this;
 switch (_that) {
 case _Workflow():
-return $default(_that);case _:
-  throw StateError('Unexpected subclass');
-
-}
+return $default(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
 ///
@@ -158,10 +156,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String description,  List<String> steps, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'is_public')  bool isPublic)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String description,  List<String> steps, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'is_public')  bool isPublic, @JsonKey(name: 'ui_schema')  Map<String, dynamic>? uiSchema)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Workflow() when $default != null:
-return $default(_that.id,_that.name,_that.description,_that.steps,_that.organizationId,_that.isPublic);case _:
+return $default(_that.id,_that.name,_that.description,_that.steps,_that.organizationId,_that.isPublic,_that.uiSchema);case _:
   return orElse();
 
 }
@@ -179,13 +177,10 @@ return $default(_that.id,_that.name,_that.description,_that.steps,_that.organiza
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String description,  List<String> steps, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'is_public')  bool isPublic)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String description,  List<String> steps, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'is_public')  bool isPublic, @JsonKey(name: 'ui_schema')  Map<String, dynamic>? uiSchema)  $default,) {final _that = this;
 switch (_that) {
 case _Workflow():
-return $default(_that.id,_that.name,_that.description,_that.steps,_that.organizationId,_that.isPublic);case _:
-  throw StateError('Unexpected subclass');
-
-}
+return $default(_that.id,_that.name,_that.description,_that.steps,_that.organizationId,_that.isPublic,_that.uiSchema);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -199,10 +194,10 @@ return $default(_that.id,_that.name,_that.description,_that.steps,_that.organiza
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String description,  List<String> steps, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'is_public')  bool isPublic)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String description,  List<String> steps, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'is_public')  bool isPublic, @JsonKey(name: 'ui_schema')  Map<String, dynamic>? uiSchema)?  $default,) {final _that = this;
 switch (_that) {
 case _Workflow() when $default != null:
-return $default(_that.id,_that.name,_that.description,_that.steps,_that.organizationId,_that.isPublic);case _:
+return $default(_that.id,_that.name,_that.description,_that.steps,_that.organizationId,_that.isPublic,_that.uiSchema);case _:
   return null;
 
 }
@@ -214,7 +209,7 @@ return $default(_that.id,_that.name,_that.description,_that.steps,_that.organiza
 @JsonSerializable()
 
 class _Workflow implements Workflow {
-  const _Workflow({required this.id, required this.name, this.description = '', final  List<String> steps = const [], @JsonKey(name: 'organization_id') this.organizationId, @JsonKey(name: 'is_public') this.isPublic = false}): _steps = steps;
+  const _Workflow({required this.id, required this.name, this.description = '', final  List<String> steps = const [], @JsonKey(name: 'organization_id') this.organizationId, @JsonKey(name: 'is_public') this.isPublic = false, @JsonKey(name: 'ui_schema') final  Map<String, dynamic>? uiSchema}): _steps = steps,_uiSchema = uiSchema;
   factory _Workflow.fromJson(Map<String, dynamic> json) => _$WorkflowFromJson(json);
 
 @override final  String id;
@@ -229,6 +224,15 @@ class _Workflow implements Workflow {
 
 @override@JsonKey(name: 'organization_id') final  String? organizationId;
 @override@JsonKey(name: 'is_public') final  bool isPublic;
+ final  Map<String, dynamic>? _uiSchema;
+@override@JsonKey(name: 'ui_schema') Map<String, dynamic>? get uiSchema {
+  final value = _uiSchema;
+  if (value == null) return null;
+  if (_uiSchema is EqualUnmodifiableMapView) return _uiSchema;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(value);
+}
+
 
 /// Create a copy of Workflow
 /// with the given fields replaced by the non-null parameter values.
@@ -243,16 +247,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Workflow&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other._steps, _steps)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.isPublic, isPublic) || other.isPublic == isPublic));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Workflow&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other._steps, _steps)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.isPublic, isPublic) || other.isPublic == isPublic)&&const DeepCollectionEquality().equals(other._uiSchema, _uiSchema));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,description,const DeepCollectionEquality().hash(_steps),organizationId,isPublic);
+int get hashCode => Object.hash(runtimeType,id,name,description,const DeepCollectionEquality().hash(_steps),organizationId,isPublic,const DeepCollectionEquality().hash(_uiSchema));
 
 @override
 String toString() {
-  return 'Workflow(id: $id, name: $name, description: $description, steps: $steps, organizationId: $organizationId, isPublic: $isPublic)';
+  return 'Workflow(id: $id, name: $name, description: $description, steps: $steps, organizationId: $organizationId, isPublic: $isPublic, uiSchema: $uiSchema)';
 }
 
 
@@ -263,7 +267,7 @@ abstract mixin class _$WorkflowCopyWith<$Res> implements $WorkflowCopyWith<$Res>
   factory _$WorkflowCopyWith(_Workflow value, $Res Function(_Workflow) _then) = __$WorkflowCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String description, List<String> steps,@JsonKey(name: 'organization_id') String? organizationId,@JsonKey(name: 'is_public') bool isPublic
+ String id, String name, String description, List<String> steps,@JsonKey(name: 'organization_id') String? organizationId,@JsonKey(name: 'is_public') bool isPublic,@JsonKey(name: 'ui_schema') Map<String, dynamic>? uiSchema
 });
 
 
@@ -280,7 +284,7 @@ class __$WorkflowCopyWithImpl<$Res>
 
 /// Create a copy of Workflow
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? description = null,Object? steps = null,Object? organizationId = freezed,Object? isPublic = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? description = null,Object? steps = null,Object? organizationId = freezed,Object? isPublic = null,Object? uiSchema = freezed,}) {
   return _then(_Workflow(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -288,7 +292,8 @@ as String,description: null == description ? _self.description : description // 
 as String,steps: null == steps ? _self._steps : steps // ignore: cast_nullable_to_non_nullable
 as List<String>,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
 as String?,isPublic: null == isPublic ? _self.isPublic : isPublic // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,uiSchema: freezed == uiSchema ? _self._uiSchema : uiSchema // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>?,
   ));
 }
 

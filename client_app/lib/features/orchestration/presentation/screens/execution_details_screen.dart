@@ -1,3 +1,4 @@
+import 'package:client_app/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/orchestration/domain/models/execution.dart';
@@ -13,17 +14,20 @@ class ExecutionDetailsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncExecution = ref.watch(executionDetailsProvider(executionId));
+    final l10n = AppLocalizations.of(context)!;
 
     return DefaultTabController(
       length: 3,
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Execution: ${executionId.substring(0, 8)}...'),
-          bottom: const TabBar(
+          title: Text(
+            '${l10n.executionDetails}: ${executionId.substring(0, 8)}...',
+          ),
+          bottom: TabBar(
             tabs: [
-              Tab(text: 'Overview'),
-              Tab(text: 'Report'),
-              Tab(text: 'Raw Data'),
+              Tab(text: l10n.overview),
+              Tab(text: l10n.report),
+              Tab(text: l10n.rawData),
             ],
           ),
           actions: [
@@ -33,9 +37,7 @@ class ExecutionDetailsScreen extends ConsumerWidget {
               tooltip: 'Download PDF',
               onPressed: () {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Download not implemented yet.'),
-                  ),
+                  SnackBar(content: Text(l10n.downloadNotImplemented)),
                 );
               },
             ),
@@ -58,14 +60,14 @@ class ExecutionDetailsScreen extends ConsumerWidget {
                   children: [
                     const Icon(Icons.error, color: Colors.red, size: 48),
                     const SizedBox(height: 16),
-                    Text('Error loading details: $err'),
+                    Text(l10n.failedToLoad('$err')),
                     const SizedBox(height: 16),
                     FilledButton(
                       onPressed:
                           () => ref.invalidate(
                             executionDetailsProvider(executionId),
                           ),
-                      child: const Text('Retry'),
+                      child: Text(l10n.retry),
                     ),
                   ],
                 ),
@@ -84,6 +86,28 @@ class _OverviewTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+
+    String statusText = execution.status.name.toUpperCase();
+    // Optional: map to localized status if needed, or keep technical uppercase
+    if (execution.status == ExecutionStatus.completed) {
+      statusText = l10n.statusCompleted;
+    }
+    if (execution.status == ExecutionStatus.running) {
+      statusText = l10n.statusRunning;
+    }
+    if (execution.status == ExecutionStatus.failed) {
+      statusText = l10n.statusFailed;
+    }
+    if (execution.status == ExecutionStatus.rejected) {
+      statusText = l10n.statusRejected;
+    }
+    if (execution.status == ExecutionStatus.pending) {
+      statusText = l10n.statusPending;
+    }
+    if (execution.status == ExecutionStatus.started) {
+      statusText = l10n.statusStarted;
+    }
 
     return ListView(
       padding: const EdgeInsets.all(16.0),
@@ -98,23 +122,25 @@ class _OverviewTab extends StatelessWidget {
               size: 32,
             ),
             title: Text(
-              execution.status.name.toUpperCase(),
+              statusText,
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             subtitle:
                 execution.currentStepName != null
-                    ? Text('Step: ${execution.currentStepName}')
+                    ? Text(l10n.currentStep(execution.currentStepName!))
                     : null,
           ),
         ),
         const SizedBox(height: 16),
 
         // Timeline
-        Text('Timeline', style: theme.textTheme.titleMedium),
+        Text(l10n.timeline, style: theme.textTheme.titleMedium),
         const Divider(),
         _infoRow(
-          'Created',
-          DateFormat('yyyy-MM-dd HH:mm:ss').format(execution.createdAt),
+          l10n.created,
+          DateFormat.yMMMd(
+            Localizations.localeOf(context).toString(),
+          ).add_jms().format(execution.createdAt),
         ),
 
         // Assuming we default to None for missing times in MVP
@@ -122,7 +148,7 @@ class _OverviewTab extends StatelessWidget {
         const SizedBox(height: 24),
 
         // Steps Progress
-        Text('Workflow Progress', style: theme.textTheme.titleMedium),
+        Text(l10n.workflowProgress, style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
         _StepProgressList(currentStep: execution.currentStepName),
       ],
@@ -268,8 +294,11 @@ class _ReportTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     if (execution.status == ExecutionStatus.running ||
-        execution.status == ExecutionStatus.pending) {
+        execution.status == ExecutionStatus.pending ||
+        execution.status == ExecutionStatus.started) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -277,31 +306,30 @@ class _ReportTab extends StatelessWidget {
             const CircularProgressIndicator(),
             const SizedBox(height: 16),
             Text(
-              'Analysis in progress...',
+              l10n.analysisInProgress,
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 8),
-            Text(
-              'Current Step: ${execution.currentStepName ?? "Initializing"}',
-            ),
+            Text(l10n.currentStep(execution.currentStepName ?? 'Initializing')),
           ],
         ),
       );
     }
 
     return execution.map(
-      pending: (_) => const Center(child: Text('Waiting to start...')),
+      pending: (_) => Center(child: Text(l10n.waitingToStart)),
+      started: (_) => Center(child: Text(l10n.executionStarted)),
       running: (_) => const SizedBox.shrink(),
       completed:
           (data) => ResultDashboard(execution: data), // Use new Dashboard
       failed:
           (data) => Center(
             child: Text(
-              'Execution Failed: ${data.error}',
+              l10n.executionFailed('${data.error}'),
               style: const TextStyle(color: Colors.red),
             ),
           ),
-      unknown: (_) => const Center(child: Text('Unknown State')),
+      unknown: (_) => Center(child: Text(l10n.unknownState)),
     );
   }
 }

@@ -63,7 +63,7 @@ final class ExecutionDetailsProvider
   }
 }
 
-String _$executionDetailsHash() => r'23e4e55eda1901a95b2236c078d884dcee1607e7';
+String _$executionDetailsHash() => r'cb9e21a842c57868d6cc1dbc46a1b87c582ace31';
 
 final class ExecutionDetailsFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<Execution>, String> {

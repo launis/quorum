@@ -96,21 +96,6 @@ class ExecutionRepository {
     }, (error, stackTrace) => _mapError(error));
   }
 
-  /// Normalizes backend execution data to match client expectations.
-  ///
-  /// Specifically, maps the backend's "started" status to "pending".
-  /// This ensures the client treats "started" executions as active/pending
-  /// for polling purposes, without needing to modify the strict Domain Model.
-  Map<String, dynamic> _normalizeExecutionJson(Map<String, dynamic> json) {
-    if (json['status'] == 'started') {
-      // Create a shallow copy to avoid mutating Original input if it matters
-      final modified = Map<String, dynamic>.from(json);
-      modified['status'] = 'pending';
-      return modified;
-    }
-    return json;
-  }
-
   /// Fetches the most recent executions from the backend.
   ///
   /// Endpoint: `GET /executions/recent`
@@ -125,11 +110,7 @@ class ExecutionRepository {
 
       final List<dynamic> data = response.data as List<dynamic>;
       return data
-          .map(
-            (json) => Execution.fromJson(
-              _normalizeExecutionJson(json as Map<String, dynamic>),
-            ),
-          )
+          .map((json) => Execution.fromJson(json as Map<String, dynamic>))
           .toList();
     }, (error, stackTrace) => _mapError(error));
   }
@@ -142,7 +123,7 @@ class ExecutionRepository {
       final response = await _client.get<Map<String, dynamic>>(
         '/executions/$id',
       );
-      return Execution.fromJson(_normalizeExecutionJson(response.data!));
+      return Execution.fromJson(response.data!);
     }, (error, stackTrace) => _mapError(error));
   }
 
