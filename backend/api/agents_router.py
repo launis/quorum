@@ -6,7 +6,7 @@ in isolation, and resolving agent capabilities dynamically.
 
 import importlib
 import logging
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Body, HTTPException
 from fastapi import Query as APIQuery

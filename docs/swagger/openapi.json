@@ -357,7 +357,7 @@
           "Orchestration"
         ],
         "summary": "Get Execution Status",
-        "description": "Retrieves the full status and result data for a specific execution ID.\nPerforms on-the-fly hydration of legacy result structures if necessary.",
+        "description": "Retrieves the full status and result data for a specific execution ID.\n\nPerforms on-the-fly hydration of legacy result structures if necessary.",
         "operationId": "get_execution_status_executions__execution_id__get",
         "parameters": [
           {
@@ -1607,7 +1607,7 @@
           "Configuration"
         ],
         "summary": "Delete Step",
-        "description": "Delete a step.\nRefactored to enforce Integrity: Cannot delete step if used in Workflows.",
+        "description": "Delete a step.\n\nRefactored to enforce Integrity: Cannot delete step if used in Workflows.",
         "operationId": "delete_step_config_steps__step_id__delete",
         "parameters": [
           {
@@ -2179,6 +2179,7 @@
           "Configuration"
         ],
         "summary": "Create Dimension",
+        "description": "Create a new evaluation dimension.",
         "operationId": "create_dimension_config_ontology_dimensions_post",
         "requestBody": {
           "content": {
@@ -2218,6 +2219,7 @@
           "Configuration"
         ],
         "summary": "Get Full Ontology",
+        "description": "Retrieve all dimension objects from the ontology.",
         "operationId": "get_full_ontology_config_ontology_dimensions_full_get",
         "responses": {
           "200": {
@@ -2237,6 +2239,7 @@
           "Configuration"
         ],
         "summary": "Delete Dimension",
+        "description": "Delete a dimension if not in use.",
         "operationId": "delete_dimension_config_ontology_dimensions__dim_id__delete",
         "parameters": [
           {
@@ -4142,6 +4145,14 @@
               "type": "boolean",
               "default": false,
               "title": "Force"
+            }
+          },
+          {
+            "name": "auth",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "title": "Auth"
             }
           },
           {

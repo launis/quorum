@@ -282,8 +282,8 @@ async def update_organization(
 @router.delete("/{org_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_organization(
     org_id: str,
-    force: bool = False,
     user: Annotated[TokenData, Depends(AuthService.require_role(UserRole.ROOT))],
+    force: bool = False,
     repo: RepositoryDep = None,
     auth: Any = None,
 ):
