@@ -4125,7 +4125,7 @@
           "Organizations"
         ],
         "summary": "Delete Organization",
-        "description": "Delete an organization.\n\nArgs:\n    org_id (str): Organization ID.\n    force (bool): Functionally cascade delete users if True.\n    user (TokenData): Requesting user (must be ROOT).\n    repo (RepositoryDep): Repository.\n    auth_service (AuthService): Auth service for user deletion.\n\nReturns:\n    None\n\nRaises:\n    HTTPException: If system org (403), not found (404), or not empty (409).",
+        "description": "Delete an organization.\n\nArgs:\n    org_id (str): Organization ID.\n    force (bool): Functionally cascade delete users if True.\n    user (TokenData): Requesting user (must be ROOT).\n    repo (RepositoryDep): Repository.\n    auth (Any): Auth service for user deletion.\n\nReturns:\n    None\n\nRaises:\n    HTTPException: If system org (403), not found (404), or not empty (409).",
         "operationId": "delete_organization_organizations__org_id__delete",
         "parameters": [
           {
@@ -4462,7 +4462,7 @@
     "/db/seed_data": {
       "get": {
         "summary": "Get Seed Data",
-        "description": "Retrieves the raw seed data configuration (components, steps, workflows).\nNow scoped by User Role (Root sees all).\n\nArgs:\n    engine (EngineDep): Dependency.\n    current_user (CurrentUserDep): Authenticated User.\n\nReturns:\n    dict: Object containing lists of components, steps, and workflows.",
+        "description": "Retrieves the raw seed data configuration (components, steps, workflows).\n\nNow scoped by User Role (Root sees all).\n\nArgs:\n    engine (EngineDep): Dependency.\n    current_user (CurrentUserDep): Authenticated User.\n\nReturns:\n    dict: Object containing lists of components, steps, and workflows.",
         "operationId": "get_seed_data_db_seed_data_get",
         "parameters": [
           {
@@ -4507,7 +4507,7 @@
     "/db/workflows": {
       "get": {
         "summary": "List Workflows (DB)",
-        "description": "Retrieves all workflow definitions from the repository.\nScoped by User Role.\n\nArgs:\n    engine (EngineDep): Dependency.\n    current_user (CurrentUserDep): Authenticated User.\n\nReturns:\n    List[dict]: List of workflow objects.",
+        "description": "Retrieves all workflow definitions from the repository.\n\nScoped by User Role.\n\nArgs:\n    engine (EngineDep): Dependency.\n    current_user (CurrentUserDep): Authenticated User.\n\nReturns:\n    List[dict]: List of workflow objects.",
         "operationId": "get_workflows_db_workflows_get",
         "parameters": [
           {
