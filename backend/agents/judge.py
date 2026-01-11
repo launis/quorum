@@ -19,8 +19,10 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+
 class JudgeAgent(BaseAgent):
     """Tuomari-agentti (Judge Agent).
+
     Refactored to support dynamic Evaluation Matrix configurations with legacy fallback.
     """
 
@@ -207,7 +209,8 @@ class JudgeAgent(BaseAgent):
                 # 1. Update Dynamic Store
                 state.audit_results[step_id] = res_obj
                 logger.info(
-                    f"[JudgeAgent] Saved EvaluationResult to state.audit_results['{step_id}'] (Scale: {res_obj.scale_min}-{res_obj.scale_max})"
+                    f"[JudgeAgent] Saved EvaluationResult to state.audit_results['{step_id}'] "
+                    f"(Scale: {res_obj.scale_min}-{res_obj.scale_max})"
                 )
 
             return state
@@ -217,5 +220,6 @@ class JudgeAgent(BaseAgent):
             raise e
 
     def post_process(self, state: WorkflowState) -> WorkflowState:
+        """Post-process hook."""
         # We rely on _update_state for population.
         return state

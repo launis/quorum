@@ -93,6 +93,7 @@ async def execute_workflow(
     request: Request, background_tasks: BackgroundTasks, engine: EngineDep, current_user: CurrentUserDep
 ):
     """Initiates a new workflow execution asynchronously.
+
     Supports Multipart/Form-Data for optional file uploads alongside JSON inputs.
 
     Args:
@@ -184,7 +185,7 @@ async def execute_workflow(
         if isinstance(e, HTTPException):
             raise e
         # Convert 500s to 400s with visible messages for debugging
-        raise HTTPException(status_code=400, detail=f"Submission Error: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Submission Error: {str(e)}") from e
 
 
 @router.get(

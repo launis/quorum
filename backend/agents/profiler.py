@@ -56,6 +56,7 @@ class ProfilerAgent(BaseAgent):
         self, state: WorkflowState, response_data: Any, output_key: str | None = None, **kwargs
     ) -> WorkflowState:
         """Updates the state with the response data.
+
         Injects metrics into the response if available in aux_data.
 
         Args:

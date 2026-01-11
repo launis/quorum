@@ -1,10 +1,10 @@
 import pytest
 from fastapi.testclient import TestClient
+from tinydb import Query
 
+from backend.dependencies import get_db_client_dep
 from backend.main import app
 from backend.settings import get_settings
-from backend.dependencies import get_db_client_dep
-from tinydb import Query
 
 client = TestClient(app)
 

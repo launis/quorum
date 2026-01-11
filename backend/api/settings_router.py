@@ -25,7 +25,10 @@ async def update_settings(
     current_user: CurrentUserDep,
     audit_service: AuditServiceDep = None,  # Injected
 ):
-    """Updates global system settings. Requires ROOT."""
+    """Updates global system settings.
+
+    Requires ROOT.
+    """
     # 1. Verify Permission
     AuthService.require_role(UserRole.ROOT)
     if current_user.role != UserRole.ROOT:
@@ -54,4 +57,4 @@ async def update_settings(
 
         logger = logging.getLogger(__name__)
         logger.error(f"Settings Update Failed: {e}\n{traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e

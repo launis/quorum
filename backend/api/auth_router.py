@@ -85,7 +85,7 @@ async def verify_user_token(payload: TokenPayload, auth_service: AuthServiceDep)
             debug_msg="Authenticated via Firebase" if auth_service.use_firebase else "Authenticated via Mock",
         )
     except ValueError as e:
-        raise HTTPException(status_code=401, detail=str(e))
+        raise HTTPException(status_code=401, detail=str(e)) from e
 
 
 @router.post("/impersonate", response_model=ImpersonationResponse)
@@ -149,13 +149,15 @@ async def create_user(user_data: UserCreate, current_user: CurrentUserDep, auth_
         new_user = await auth_service.create_user(creator_full.uid, user_data)
         return new_user
     except PermissionError as e:
-        raise HTTPException(status_code=403, detail=str(e))
+        raise HTTPException(status_code=403, detail=str(e)) from e
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.post("/organizations", response_model=Organization)
-async def create_organization(org_data: OrganizationCreate, current_user: CurrentUserDep, auth_service: AuthServiceDep):
+async def create_organization(
+    org_data: OrganizationCreate, current_user: CurrentUserDep, auth_service: AuthServiceDep
+):
     """Create a new Tenant Organization.
 
     Args:
@@ -176,7 +178,7 @@ async def create_organization(org_data: OrganizationCreate, current_user: Curren
     try:
         return await auth_service.create_organization(creator.uid, org_data)
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.get("/users", response_model=list[User])
@@ -237,14 +239,16 @@ async def delete_user(uid: str, current_user: CurrentUserDep, auth_service: Auth
         await auth_service.delete_user(current_user.uid, uid)
         return {"status": "deleted", "uid": uid}
     except PermissionError as e:
-        raise HTTPException(status_code=403, detail=str(e))
+        raise HTTPException(status_code=403, detail=str(e)) from e
     except ValueError as e:
         # Business logic errors (Last Admin) usually 400
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.patch("/users/{uid}", response_model=User)
-async def update_user(uid: str, user_update: UserUpdate, current_user: CurrentUserDep, auth_service: AuthServiceDep):
+async def update_user(
+    uid: str, user_update: UserUpdate, current_user: CurrentUserDep, auth_service: AuthServiceDep
+):
     """Update a user (Role, Display Name, etc).
 
     Args:
@@ -260,9 +264,9 @@ async def update_user(uid: str, user_update: UserUpdate, current_user: CurrentUs
         updated_user = await auth_service.update_user(current_user.uid, uid, user_update)
         return updated_user
     except PermissionError as e:
-        raise HTTPException(status_code=403, detail=str(e))
+        raise HTTPException(status_code=403, detail=str(e)) from e
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.get("/me", response_model=User)

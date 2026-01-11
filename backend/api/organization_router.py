@@ -19,6 +19,8 @@ logger = logging.getLogger(__name__)
 
 # --- Pydantic Models ---
 class OrganizationCreateRequest(BaseModel):
+    """Payload for creating a new organization."""
+
     id: str | None = None  # Auto-generated if empty
     name: str
     tier: str = "standard"  # standard, premium, enterprise
@@ -30,6 +32,8 @@ class OrganizationCreateRequest(BaseModel):
 
 
 class OrganizationUpdate(BaseModel):
+    """Payload for updating an organization."""
+
     name: str | None = None
     tier: str | None = None
     contact_email: str | None = None
@@ -40,6 +44,8 @@ class OrganizationUpdate(BaseModel):
 
 
 class OrganizationResponse(BaseModel):
+    """Response model for organization details."""
+
     id: str
     name: str
     tier: str
@@ -55,6 +61,7 @@ class OrganizationResponse(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def set_status_from_active_flag(cls, data: Any) -> Any:
+        """Validator to derive status attribute from is_active flag."""
         if isinstance(data, dict):
             # Check is_active (default True if missing in dict, but safer to check)
             is_active = data.get("is_active", True)
@@ -66,6 +73,7 @@ class OrganizationResponse(BaseModel):
 # --- Strict Usage Models (No Defaults) ---
 class OrganizationUserCreate(BaseModel):
     """Payload for creating a user within an organization.
+
     Strictly forbids default values for role and email.
     """
 
@@ -340,8 +348,8 @@ async def delete_organization(
         msg = str(e)
         if "Organization is not empty" in msg:
             # Client relies on this specific detail or code to trigger confirmation dialog
-            raise HTTPException(status_code=409, detail="ORG_HAS_USERS")
-        raise HTTPException(status_code=400, detail=msg)
+            raise HTTPException(status_code=409, detail="ORG_HAS_USERS") from e
+        raise HTTPException(status_code=400, detail=msg) from e
 
     # 4. Cascade Delete Data (Workflows/Executions - Clean up orphan data)
     await repo.delete_org_data(org_id)
@@ -430,9 +438,9 @@ async def create_organization_user(
 
         return new_user
     except PermissionError as e:
-        raise HTTPException(status_code=403, detail=str(e))
+        raise HTTPException(status_code=403, detail=str(e)) from e
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.delete("/{org_id}/users/{target_uid}", status_code=status.HTTP_204_NO_CONTENT)
@@ -483,6 +491,6 @@ async def delete_organization_user(
             pass
 
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
     return None

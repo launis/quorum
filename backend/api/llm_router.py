@@ -43,10 +43,14 @@ class CompletionRequest(BaseModel):
 
 
 class BatchCompletionRequest(BaseModel):
+    """Payload for batch completion requests."""
+
     requests: Annotated[list[CompletionRequest], Field(description="List of requests to process in parallel.")]
 
 
 class ModelRegistryUpdate(BaseModel):
+    """Payload for updating the model registry."""
+
     registry: Annotated[
         dict[str, dict[str, str]],
         Field(description="The new configuration map for model strategies (e.g. {'fast': {'model_name': '...'}})."),
@@ -90,10 +94,10 @@ async def generate_completion(request: CompletionRequest, registry: RegistryDep)
         return {"result": response}
 
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         logger.error(f"Completion failed: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/batch-completion", summary="Batch Completion", response_description="List of results.")
@@ -185,4 +189,4 @@ def update_model_config(update: ModelRegistryUpdate, db_client: DatabaseDep):
         table.upsert({"type": "model_registry", "models": update.registry}, Config.type == "model_registry")
         return {"status": "success", "registry": update.registry}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e

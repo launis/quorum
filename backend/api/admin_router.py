@@ -49,22 +49,40 @@ router = APIRouter(prefix="/admin", tags=["Admin"], dependencies=[Depends(requir
 
 
 class IngestRequest(BaseModel):
+    """Request model for knowledge base ingestion.
+
+    Attributes:
+        file_path (str): Path to the source document.
+        reset_db (bool): Whether to clear the database before ingestion.
+    """
+
     file_path: Annotated[
-        str, Field(description="The relative or absolute file path to the source document for ingestion.")
+        str,
+        Field(
+            description="The relative or absolute file path to the source document for ingestion.",
+            examples=["data/Holistinen Mestaruus.docx"],
+        ),
     ] = "data/Holistinen Mestaruus.docx"
 
     reset_db: Annotated[
-        bool, Field(description="If True, the existing knowledge base will be cleared before ingesting the new file.")
+        bool,
+        Field(
+            description="If True, the existing knowledge base will be cleared before ingesting the new file.",
+        ),
     ] = False
 
 
 class BannedPhraseRequest(BaseModel):
+    """Request model for adding a banned phrase."""
+
     phrase: Annotated[
         str, Field(description="The text phrase that should be banned from user inputs or agent outputs.")
     ]
 
 
 class GenerateBannedPhrasesRequest(BaseModel):
+    """Request model for generating banned phrases."""
+
     language: Annotated[
         str, Field(description="The target language for generating banned phrases (e.g., 'en', 'fi').")
     ] = "en"
@@ -76,7 +94,7 @@ admin_task_status: dict[str, dict[str, Any]] = {}
 # --- Helper Functions ---
 
 
-def run_script(script_name: str, args: list[str] = None) -> subprocess.CompletedProcess:
+def run_script(script_name: str, args: list[str] | None = None) -> subprocess.CompletedProcess:
     """Helper to run a script from the scripts directory in a subprocess.
 
     Args:
@@ -551,7 +569,7 @@ async def delete_banned_phrase(
 
     except Exception as e:
         logger.error(f"Failed to remove banned phrase: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post(
@@ -625,4 +643,4 @@ async def generate_banned_phrases(
 
     except Exception as e:
         logger.error(f"Failed to generate banned phrases: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e

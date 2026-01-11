@@ -1,3 +1,5 @@
+"""Custom Exceptions for the application."""
+
 from typing import Any
 
 
@@ -23,16 +25,22 @@ class ResourceNotFoundError(AppException):
 
 
 class WorkflowNotFoundError(ResourceNotFoundError):
+    """Raised when a specific Workflow ID is not found."""
+
     def __init__(self, workflow_id: str):
         super().__init__("Workflow", workflow_id)
 
 
 class StepNotFoundError(ResourceNotFoundError):
+    """Raised when a specific Step ID is not found."""
+
     def __init__(self, step_id: str):
         super().__init__("Step", step_id)
 
 
 class ExecutionNotFoundError(ResourceNotFoundError):
+    """Raised when a specific Execution ID is not found."""
+
     def __init__(self, execution_id: str):
         super().__init__("Execution", execution_id)
 

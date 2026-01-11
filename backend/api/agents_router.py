@@ -103,9 +103,9 @@ async def run_agent(
         return {"agent": agent_name, "result": result}
 
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get(
@@ -122,6 +122,7 @@ def list_agents(
     registry: RegistryDep = None,
 ):
     """List all available agents with their metadata, models, and schemas.
+
     Dynamically resolves model strategy based on the selected workflow configuration.
 
     Args:
@@ -288,4 +289,4 @@ def list_agents(
         logger.error(f"List Agents Failed: {e}\n{traceback.format_exc()}")
         raise HTTPException(
             status_code=500, detail=f"Internal Error in list_agents: {str(e)} | TRACE: {traceback.format_exc()}"
-        )
+        ) from e

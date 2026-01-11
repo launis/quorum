@@ -40,6 +40,7 @@ _audit_service_instance: AuditService | None = None
 
 
 def get_settings_dep() -> Settings:
+    """Dependency to provide Singleton Settings."""
     return get_settings()
 
 
@@ -52,7 +53,9 @@ def get_db_client_dep() -> AbstractDatabase:
     return _db_client_instance
 
 
-def get_async_repository(db_client: AbstractDatabase = Depends(get_db_client_dep)) -> AbstractWorkflowRepository:
+def get_async_repository(
+    db_client: Annotated[AbstractDatabase, Depends(get_db_client_dep)],
+) -> AbstractWorkflowRepository:
     """Factory that returns the appropriate ASYNC-FIRST Repository implementation."""
     global _repository_instance
 
@@ -87,7 +90,9 @@ def get_async_repository(db_client: AbstractDatabase = Depends(get_db_client_dep
 get_repository_dep = get_async_repository
 
 
-async def get_agent_registry_dep(repo: AbstractWorkflowRepository = Depends(get_async_repository)) -> AgentRegistry:
+async def get_agent_registry_dep(
+    repo: Annotated[AbstractWorkflowRepository, Depends(get_async_repository)],
+) -> AgentRegistry:
     global _registry_instance
     if _registry_instance is None:
         # AgentRegistry expects a repo to do recursive updates.
@@ -98,8 +103,8 @@ async def get_agent_registry_dep(repo: AbstractWorkflowRepository = Depends(get_
 
 
 async def get_prompt_builder_dep(
-    repo: AbstractWorkflowRepository = Depends(get_async_repository),
-    registry: AgentRegistry = Depends(get_agent_registry_dep),
+    repo: Annotated[AbstractWorkflowRepository, Depends(get_async_repository)],
+    registry: Annotated[AgentRegistry, Depends(get_agent_registry_dep)],
 ) -> PromptBuilder:
     global _prompt_builder_instance
     if _prompt_builder_instance is None:
@@ -155,14 +160,17 @@ def get_storage_service_dep() -> AbstractStorage:
     return _storage_service_instance
 
 
-def get_document_service_dep(storage_client: AbstractStorage = Depends(get_storage_service_dep)) -> Any:
+def get_document_service_dep(
+    storage_client: Annotated[AbstractStorage, Depends(get_storage_service_dep)],
+) -> Any:
+    """Dependency to provide Singleton Document Service."""
     from backend.services.document_service import DocumentService
 
     return DocumentService(storage_client)
 
 
 def get_audit_service(
-    repo: AbstractWorkflowRepository = Depends(get_async_repository),
+    repo: Annotated[AbstractWorkflowRepository, Depends(get_async_repository)],
 ) -> AuditService:
     """Dependency to provide Singleton Audit Service."""
     global _audit_service_instance
@@ -172,9 +180,9 @@ def get_audit_service(
 
 
 def get_auth_service(
-    db_client: AbstractDatabase = Depends(get_db_client_dep),
-    settings: Settings = Depends(get_settings_dep),
-    audit_service: AuditService = Depends(get_audit_service),
+    db_client: Annotated[AbstractDatabase, Depends(get_db_client_dep)],
+    settings: Annotated[Settings, Depends(get_settings_dep)],
+    audit_service: Annotated[AuditService, Depends(get_audit_service)],
 ) -> AuthService:
     """Dependency to provide Singleton Auth Service.
     Automatically ensures Root User exists.
@@ -196,7 +204,7 @@ def get_auth_service(
 
 
 def get_usage_service(
-    repo: AbstractWorkflowRepository = Depends(get_async_repository),
+    repo: Annotated[AbstractWorkflowRepository, Depends(get_async_repository)],
 ) -> UsageService:
     """Dependency to provide Singleton Usage Service."""
     global _usage_service_instance
@@ -206,11 +214,11 @@ def get_usage_service(
 
 
 async def get_engine(
-    repository: AbstractWorkflowRepository = Depends(get_async_repository),
-    registry: AgentRegistry = Depends(get_agent_registry_dep),
-    prompt_builder: PromptBuilder = Depends(get_prompt_builder_dep),
-    storage_service: AbstractStorage = Depends(get_storage_service_dep),
-    document_service: Any = Depends(get_document_service_dep),
+    repository: Annotated[AbstractWorkflowRepository, Depends(get_async_repository)],
+    registry: Annotated[AgentRegistry, Depends(get_agent_registry_dep)],
+    prompt_builder: Annotated[PromptBuilder, Depends(get_prompt_builder_dep)],
+    storage_service: Annotated[AbstractStorage, Depends(get_storage_service_dep)],
+    document_service: Annotated[Any, Depends(get_document_service_dep)],
 ) -> WorkflowEngine:
     """Dependency to provide a Singleton WorkflowEngine."""
     global _engine_instance
@@ -264,9 +272,10 @@ async def get_engine(
 
 async def get_llm_provider(
     model_strategy: str,
-    registry: AgentRegistry = Depends(get_agent_registry_dep),
-    usage_service: UsageService = Depends(get_usage_service),
+    registry: Annotated[AgentRegistry, Depends(get_agent_registry_dep)],
+    usage_service: Annotated[UsageService, Depends(get_usage_service)],
 ):
+    """Dependency to provide a configured LLM Provider."""
     from backend.llm.provider import LLMFactory
 
     config = await registry.resolve_model_config(model_strategy)
@@ -285,21 +294,25 @@ def get_llm_provider_factory(strategy: str):
     """
 
     async def _provider_dependency(
-        registry: AgentRegistry = Depends(get_agent_registry_dep),
-        usage_service: UsageService = Depends(get_usage_service),
+        registry: Annotated[AgentRegistry, Depends(get_agent_registry_dep)],
+        usage_service: Annotated[UsageService, Depends(get_usage_service)],
     ):
         return await get_llm_provider(strategy, registry, usage_service)
 
     return _provider_dependency
 
 
-def get_llm_handler_dep(db_client: AbstractDatabase = Depends(get_db_client_dep)):
+def get_llm_handler_dep(
+    db_client: Annotated[AbstractDatabase, Depends(get_db_client_dep)],
+):
+    """Dependency to provide Singleton LLM Handler."""
     from backend.llm.handler import LLMHandler
 
     return LLMHandler(db_client)
 
 
 def get_llm_factory_dep():
+    """Dependency to provide LLM Factory."""
     from backend.llm.provider import LLMFactory
 
     return LLMFactory
@@ -360,7 +373,8 @@ LLMHandlerDep = Annotated[LLMHandler, Depends(get_llm_handler_dep)]
 
 
 async def get_current_user_from_header(
-    authorization: Annotated[str | None, Header()] = None, auth_service: AuthService = Depends(get_auth_service)
+    authorization: Annotated[str | None, Header()] = None,
+    auth_service: Annotated[AuthService, Depends(get_auth_service)] = None,
 ) -> TokenData:
     """Helper dependency to extract user from Bearer token.
     Allows accessing 'CurrentUser' in any router.

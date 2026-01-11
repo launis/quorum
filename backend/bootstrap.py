@@ -1,3 +1,5 @@
+"""Bootstrap logic for the backend application."""
+
 import json
 import logging
 import os

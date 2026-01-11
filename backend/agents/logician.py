@@ -11,7 +11,7 @@ from backend.agents.base import BaseAgent
 from backend.models.domain import ArgumentaatioAnalyysi
 
 if TYPE_CHECKING:
-    pass
+    from backend.models.state import WorkflowState
 
 logger = logging.getLogger(__name__)
 

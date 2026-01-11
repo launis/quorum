@@ -46,6 +46,8 @@ class BuilderWorkflowCreateRequest(BaseModel):
 
 
 class WorkflowUpdateRequest(BaseModel):
+    """Payload for updating an existing workflow."""
+
     name: Annotated[str | None, Field(description="New name.")] = None
     description: Annotated[str | None, Field(description="New description.")] = None
     steps: Annotated[list[str] | None, Field(description="New step sequence.")] = None
@@ -55,25 +57,35 @@ class WorkflowUpdateRequest(BaseModel):
 
 
 class StepUpdateRequest(BaseModel):
+    """Payload for updating a step configuration."""
+
     name: Annotated[str | None, Field(description="New step name.")] = None
     execution_config: Annotated[dict[str, Any] | None, Field(description="Updated execution config.")] = None
 
 
 class CopyWorkflowRequest(BaseModel):
+    """Payload for copying a workflow."""
+
     new_name: Annotated[str, Field(description="Name for the copy.")]
 
 
 class CustomStepCreateRequest(BaseModel):
+    """Payload for creating a custom step."""
+
     component_type: Annotated[str, Field(description="Base component type (e.g. 'Judge', 'Analyst').")]
     name_hint: Annotated[str | None, Field(description="Optional name override.")] = None
 
 
 class CompileRequest(BaseModel):
+    """Payload for compiling a sequence of steps into a fusion step."""
+
     workflow_id: Annotated[str, Field(description="Target workflow ID.")]
     steps: Annotated[list[str], Field(description="List of step IDs to fuse.")]
 
 
 class WorkflowTemplate(BaseModel):
+    """Model representing an empty workflow template."""
+
     name: str
     description: str
     steps: list[str]
@@ -82,6 +94,8 @@ class WorkflowTemplate(BaseModel):
 
 
 class ValidationRequest(BaseModel):
+    """Payload for validating connection compatibility between steps."""
+
     source_step: Annotated[str, Field(description="ID of the source step.")]
     target_step: Annotated[str, Field(description="ID of the target step.")]
 
@@ -122,7 +136,7 @@ async def get_available_agents(engine: EngineDep):
         return agents_meta
     except Exception as e:
         logger.error(f"Failed to list agents: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/workflows", summary="List Workflows", response_description="All Workflows.")
@@ -200,7 +214,7 @@ async def create_workflow(request: BuilderWorkflowCreateRequest, engine: EngineD
         return workflow_data
     except Exception as e:
         logger.error(f"Failed to create workflow: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/workflows/{workflow_id}", summary="Get Workflow", response_description="Workflow details.")
@@ -405,7 +419,7 @@ async def copy_workflow(workflow_id: str, request: CopyWorkflowRequest, engine: 
         return clean_wf
     except Exception as e:
         logger.error(f"Copy workflow failed: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Copy failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Copy failed: {str(e)}") from e
 
 
 @router.post("/validate", summary="Validate Connection", response_description="Validation result.")
@@ -495,6 +509,7 @@ async def get_step_details(step_id: str, engine: EngineDep):
 @router.put("/steps/{step_id}", summary="Update Step", response_description="Updated step.")
 async def update_step(step_id: str, request: StepUpdateRequest, engine: EngineDep):
     """V2: Update a step configuration.
+
     WARNING: This modifies the global step definition.
     """
     step = await engine.repository.get_step_by_id(step_id)
@@ -573,7 +588,7 @@ async def create_custom_step(req: CustomStepCreateRequest, engine: EngineDep):
         return new_step
     except Exception as e:
         logger.error(f"Failed to create custom step: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/utils/generate-id", summary="Generate ID", response_description="A unique ID string.")
@@ -617,6 +632,7 @@ async def get_prompt_types():
 @router.post("/compile", summary="Compile Fusion", response_description="Compilation result.")
 async def compile_fusion(req: CompileRequest, engine: EngineDep):
     """V2: Prompt Fusion Compilation.
+
     Replaces a sequence of steps with a compatible Composite Step (Panel).
     """
     wf = await engine.repository.get_workflow_by_id(req.workflow_id)

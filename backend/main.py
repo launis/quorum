@@ -1,15 +1,17 @@
+"""Main entry point for the FastAPI backend application."""
+
 import logging
 import os
+import re
 from contextlib import asynccontextmanager
 
 from arq import create_pool
 from arq.connections import RedisSettings
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Path, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
-import re
 
 from backend.api.admin_router import router as admin_router
 from backend.api.agents_router import router as agents_router

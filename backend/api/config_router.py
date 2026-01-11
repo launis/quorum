@@ -52,6 +52,8 @@ class ComponentUpdate(BaseModel):
 
 
 class ModelSettings(BaseModel):
+    """Configuration settings for a specific model strategy."""
+
     model_name: Annotated[str, Field(description="The concrete model identifier (e.g. 'gemini-1.5-pro').")]
     temperature: Annotated[float | None, Field(description="Sampling temperature.")] = None
     max_tokens: Annotated[int | None, Field(description="Maximum output token limit.")] = None
@@ -59,12 +61,16 @@ class ModelSettings(BaseModel):
 
 
 class GlobalModelConfig(BaseModel):
+    """Global configuration for model strategies."""
+
     registry: Annotated[
         dict[str, dict[str, ModelSettings]], Field(description="Nested map: Provider -> Strategy -> Settings.")
     ]
 
 
 class WorkflowUpdate(BaseModel):
+    """Payload for updating a workflow."""
+
     steps: Annotated[list[dict[str, Any]] | None, Field(description="Complete list of step configurations.")] = None
     sequence: Annotated[list[str] | None, Field(description="Ordered list of step IDs.")] = None
     description: Annotated[str | None, Field(description="User-facing workflow description.")] = None
@@ -74,6 +80,8 @@ class WorkflowUpdate(BaseModel):
 
 
 class ComponentCreate(BaseModel):
+    """Payload for creating a new component."""
+
     id: Annotated[str, Field(description="Unique Identifier for the component.")]
     name: Annotated[str, Field(description="Human readable name.")]
     type: Annotated[str, Field(description="Component Type (header, prompt, evaluation_matrix, etc).")]
@@ -86,6 +94,8 @@ class ComponentCreate(BaseModel):
 
 
 class WorkflowCreate(BaseModel):
+    """Payload for creating a new workflow."""
+
     id: Annotated[str, Field(description="New Workflow UUID/Slug.")]
     name: Annotated[str, Field(description="Workflow Name.")]
     sequence: Annotated[list[str], Field(description="List of Step IDs.")] = []
@@ -94,6 +104,8 @@ class WorkflowCreate(BaseModel):
 
 
 class LLMCallRequest(BaseModel):
+    """Payload for ad-hoc LLM calls."""
+
     provider: Annotated[str, Field(description="Provider key (google, openai, mock).")]
     mode: Annotated[str, Field(description="Strategy mode (fast, smart, etc).")]
     prompt: Annotated[str, Field(description="Input prompt text.")]
@@ -363,7 +375,7 @@ def reset_from_seed():
         seed_database()
         return {"status": "success", "message": "Database reset from seed data."}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/deploy-mock-to-prod", summary="Deploy Mock -> Prod", response_description="Deployment status.")
@@ -377,7 +389,7 @@ def deploy_mock_to_prod():
         seed_database(target_db_path=settings.prod_db_path)
         return {"status": "success", "message": "Mock environment deployed to Production DB."}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/deploy-prod-to-mock", summary="Deploy Prod -> Mock", response_description="Deployment status.")
@@ -391,7 +403,7 @@ def deploy_prod_to_mock():
         seed_database(target_db_path=settings.mock_db_path)
         return {"status": "success", "message": "Production environment deployed to Mock DB."}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/schemas", summary="List Schemas", response_description="All Pydantic Schemas.")
@@ -425,7 +437,7 @@ def get_unified_prompts(db: DatabaseDep):
         return {"content": unified_text}
     except Exception as e:
         logger.error(f"Error generating unified prompts: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 # Helpers (kept same)
@@ -509,6 +521,7 @@ def list_available_models(
     location: Annotated[str | None, APIQuery(description="Region for Google Cloud (defaults to env config)")] = None,
 ):
     """Returns a dynamic dictionary of models found via provider APIs.
+
     Supports filtering by provider and specifying Google Cloud region.
 
     Args:
@@ -650,6 +663,8 @@ def get_introspection():
 
 
 class DimensionDefinition(BaseModel):
+    """Model definition for an evaluation dimension."""
+
     id: Annotated[str, Field(description="Unique dimension ID (e.g. 'analyysi').")]
     label: Annotated[str, Field(description="Human readable default label.")]
     description: Annotated[str | None, Field(description="Explanation of what this measures.")] = None
@@ -663,6 +678,7 @@ class DimensionDefinition(BaseModel):
 )
 def get_known_dimensions(db: DatabaseDep):
     """Returns specific allowed dimension IDs from the ontology table.
+
     Auto-seeds defaults if table is empty.
 
     Args:
@@ -769,7 +785,7 @@ async def validate_flow(workflow: WorkflowCreate, db: DatabaseDep, registry: Reg
         config = await registry.resolve_model_config("fast")
         agents_map = AgentFactory.create_agents_map(initial_model=config["model_name"])
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Factory Error: {e}")
+        raise HTTPException(status_code=500, detail=f"Factory Error: {e}") from e
 
     known_keys = ["history_text", "product_text", "reflection_text", "bibliography_context"]
     errors = []

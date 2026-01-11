@@ -1,3 +1,5 @@
+"""Base Agent implementation."""
+
 from __future__ import annotations
 
 import logging
@@ -16,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 class BaseAgent(BaseComponent):
     """Abstract base class for all Cognitive Quorum agents.
+
     Handles LLM interaction via the Provider Pattern and manages WorkflowState.
     """
 
@@ -101,12 +104,14 @@ class BaseAgent(BaseComponent):
         self, state: WorkflowState, response_data: Any, output_key: str | None = None, **kwargs
     ) -> WorkflowState:
         """Updates the WorkflowState with the LLM response.
+
         Generic implementation: Uses self.state_field and self.get_response_schema().
 
         Args:
             state (WorkflowState): Current state.
             response_data (Any): Raw data dictionary from LLM.
             output_key (Optional[str]): Override for self.state_field.
+            **kwargs: Additional parameters.
 
         Returns:
             WorkflowState: The updated state object.
@@ -150,6 +155,7 @@ class BaseAgent(BaseComponent):
 
     async def execute(self, state: WorkflowState, system_instruction: str | None = None, **kwargs) -> WorkflowState:
         """Standard execution entry point.
+
         Takes the entire WorkflowState, processes it, and returns the updated state.
 
         Args:
@@ -219,7 +225,7 @@ class BaseAgent(BaseComponent):
                 except Exception:
                     # STRICT MODE: If json keys are malformed after provider, we fail.
                     logger.error(f"[{self.__class__.__name__}] Failed to parse JSON content from provider.")
-                    raise ValueError("Critical: Failed to parse JSON content.")
+                    raise ValueError("Critical: Failed to parse JSON content.") from None
             else:
                 response_data = response_obj.content
 
@@ -266,6 +272,7 @@ class BaseAgent(BaseComponent):
 
     async def prepare_context(self, state: WorkflowState, **kwargs) -> str | None:
         """Lifecycle Hook: Pre-Execution.
+
         Override to inject dynamic context.
 
         Args:
@@ -280,6 +287,7 @@ class BaseAgent(BaseComponent):
 
     def post_process(self, state: WorkflowState) -> WorkflowState:
         """Lifecycle Hook: Post-Execution.
+
         Override to refine state or perform calculations.
 
         Args:

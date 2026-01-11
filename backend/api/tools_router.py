@@ -8,6 +8,7 @@ import logging
 import os
 import shutil
 import uuid
+from typing import Annotated
 
 import requests as req_lib
 from bs4 import BeautifulSoup
@@ -24,7 +25,7 @@ router = APIRouter(prefix="/tools", tags=["Tools"])
 
 
 @router.post("/text-extract", summary="Extract Text from File", response_description="The extracted raw text.")
-async def extract_text_from_file(file: UploadFile = File(...)):
+async def extract_text_from_file(file: Annotated[UploadFile, File(...)]):
     """Extracts text content from an uploaded file (PDF, Docx, etc).
 
     Args:
@@ -49,7 +50,7 @@ async def extract_text_from_file(file: UploadFile = File(...)):
 
     except Exception as e:
         logger.error(f"Text extraction failed: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
     finally:
         if os.path.exists(temp_path):
             try:
@@ -65,9 +66,9 @@ async def extract_text_from_file(file: UploadFile = File(...)):
 )
 async def extract_concepts_from_file_or_text(
     registry: RegistryDep,
-    text: str | None = Body(None),
-    file: UploadFile | None = File(None),
-    llm_provider: str | None = Body("google"),
+    text: Annotated[str | None, Body()] = None,
+    file: Annotated[UploadFile | None, File()] = None,
+    llm_provider: Annotated[str | None, Body()] = "google",
 ):
     """Extracts domain concepts from either raw text or an uploaded file.
 
@@ -97,7 +98,7 @@ async def extract_concepts_from_file_or_text(
             if os.path.exists(temp_path):
                 try:
                     os.remove(temp_path)
-                except:
+                except Exception:
                     pass
 
     if not content:
@@ -128,11 +129,11 @@ async def extract_concepts_from_file_or_text(
 
     except Exception as e:
         logger.error(f"Concept extraction failed: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/web-scrape", summary="Scrape URL", response_description="Extracted text and metadata.")
-async def scrape_url(url: str = Body(..., embed=True)):
+async def scrape_url(url: Annotated[str, Body(..., embed=True)]):
     """Fetches and parses a public URL.
 
     Args:
@@ -167,7 +168,7 @@ async def scrape_url(url: str = Body(..., embed=True)):
         return {"url": url, "title": soup.title.string if soup.title else "", "content": text[:50000]}
     except Exception as e:
         logger.error(f"Scraping failed: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 def _validate_url_safety(url: str):
@@ -211,7 +212,9 @@ def _validate_url_safety(url: str):
 
 
 @router.post("/citation-lookup", summary="Resolve Citations", response_description="Resolved context.")
-async def citation_lookup(db: DatabaseDep, registry: RegistryDep, queries: list[str] = Body(..., embed=True)):
+async def citation_lookup(
+    db: DatabaseDep, registry: RegistryDep, queries: Annotated[list[str], Body(..., embed=True)]
+):
     """Uses the Knowledge Base Service to find context for citations.
 
     Args:
@@ -244,4 +247,4 @@ async def citation_lookup(db: DatabaseDep, registry: RegistryDep, queries: list[
 
     except Exception as e:
         logger.error(f"Citation lookup failed: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
