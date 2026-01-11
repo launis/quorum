@@ -30,7 +30,11 @@ class TestLiveLLM(unittest.IsolatedAsyncioTestCase):
 
     def setUp(self):
         # Ensure env var is set if file exists, for Google Auth library
-        if not os.getenv("GOOGLE_APPLICATION_CREDENTIALS") and os.path.exists("service-account.json"):
+        # (Auto-detection helper)
+        if (
+            not os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+            and os.path.exists("service-account.json")
+        ):
             os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.path.abspath("service-account.json")
 
         # Force Live Settings

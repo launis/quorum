@@ -1,9 +1,11 @@
+"""Read Logic for Test Reports."""
 import os
 
 LOG_PATH = "tests/output/round15_final.txt"
 
 
 def read_log():
+    """Reads and prints the test log file with fallback encoding handling."""
     if not os.path.exists(LOG_PATH):
         print("Log file not found.")
         return

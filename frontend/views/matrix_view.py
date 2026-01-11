@@ -1,3 +1,4 @@
+"""Matrix Builder View."""
 import json
 import uuid
 
@@ -16,7 +17,8 @@ def render_matrix_view(api_client, backend_url: str):
     """
     st.header("⚖️ Audit Matrix Builder")
     st.markdown(
-        "Create and manage dynamic evaluation matrices (e.g., Cognitive BARS, Compliance Checks). These matrices can be attached to **Judge Agents** in any workflow."
+        "Create and manage dynamic evaluation matrices (e.g., Cognitive BARS, Compliance Checks). "
+        "These matrices can be attached to **Judge Agents** in any workflow."
     )
 
     # --- INIT STATE ---
@@ -99,7 +101,7 @@ def render_matrix_view(api_client, backend_url: str):
             if resp.status_code == 200:
                 all_comps = resp.json()
                 existing_matrices = [c for c in all_comps if c.get("type") == "evaluation_matrix"]
-        except:
+        except Exception:
             st.error("Failed to fetch existing matrices.")
 
         if c_mode == "Edit Existing":
@@ -191,7 +193,7 @@ def render_matrix_view(api_client, backend_url: str):
         if isinstance(content, str):
             try:
                 content = json.loads(content)
-            except:
+            except Exception:
                 content = {}
 
         st.session_state.editor_matrix_id = target_id
@@ -313,7 +315,10 @@ def render_matrix_view(api_client, backend_url: str):
                 on_change=update_id_from_select,
                 format_func=format_dim_option,
                 args=(i,),
-                help="Determines where this score appears in comparisons and analytics (e.g. 'agency' scores are grouped together).",
+                help=(
+                    "Determines where this score appears in comparisons and analytics "
+                    "(e.g. 'agency' scores are grouped together)."
+                ),
             )
 
             if sel_val == "Custom...":

@@ -1,3 +1,4 @@
+"""System Info View."""
 import pandas as pd
 import streamlit as st
 
@@ -96,7 +97,8 @@ def render_system_view(api_client):
 
                 **3. Model Strategies (Fast vs Deep)**
                 The system allows mapping specific models to steps based on cognitive load.
-                - **⚡ Fast (Global Strategy)**: Uses lighter, faster models (e.g., `Gemini-Flash` or `GPT-3.5`). Best for:
+                - **⚡ Fast (Global Strategy)**: Uses lighter, faster models
+                  (e.g., `Gemini-Flash` or `GPT-3.5`). Best for:
                     - Structural parsing
                     - Formatting
                     - Simple fact-checking
@@ -107,7 +109,8 @@ def render_system_view(api_client):
                     - "Prompt Fusion" panels
 
                 **4. Prompt Fusion**
-                An optimization technique where multiple sequential steps are merged into a single LLM call ("Panel") to save time and tokens, while maintaining the logic of individual sub-steps.
+                An optimization technique where multiple sequential steps are merged into a single LLM call
+                ("Panel") to save time and tokens, while maintaining the logic of individual sub-steps.
                 """)
 
             with tab1:
@@ -152,7 +155,9 @@ def render_system_view(api_client):
                 st.markdown("### Step Prompt Preview")
                 step_ids_ordered = [s["id"] for s in relevant_steps]
                 step_to_preview = st.selectbox(
-                    "Select Step", step_ids_ordered, format_func=lambda x: f"{x} ({all_steps.get(x, {}).get('name')})"
+                    "Select Step",
+                    step_ids_ordered,
+                    format_func=lambda x: f"{x} ({all_steps.get(x, {}).get('name')})",
                 )
 
                 if step_to_preview:

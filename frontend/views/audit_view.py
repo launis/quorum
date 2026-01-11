@@ -1,5 +1,7 @@
+"""Audit View Module."""
 import streamlit as st
 
+from frontend.api import APIClient
 from frontend.components.audit.controls import render_controls
 from frontend.components.audit.inputs import render_file_inputs
 from frontend.components.audit.status import render_execution_status

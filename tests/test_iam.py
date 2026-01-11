@@ -93,7 +93,8 @@ def test_root_can_list_organizations():
 def test_admin_cannot_list_all_organizations():
     """Verify standard ADMIN cannot list *all* organizations.
 
-    Only their own scope usually, but /organizations/ usually requires ROOT/System Admin privileges in this architecture.
+    Only their own scope usually, but /organizations/ usually requires ROOT
+    System Admin privileges in this architecture.
     """
     # NOTE: Depending on policy, ADMIN might get 403 or just their own.
     # In V2.2 Architecture: /organizations/ logic usually restricts to ROOT.

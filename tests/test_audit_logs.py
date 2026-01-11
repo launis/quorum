@@ -112,7 +112,9 @@ async def test_audit_lifecycle_root(client: AsyncClient, admin_token_headers):
     org_id = res.json()["id"]
 
     # Verify Log: ORG_CREATED
-    res_logs = await client.get(f"/audit/logs?organization_id={org_id}&action=ORG_CREATED", headers=admin_token_headers)
+    res_logs = await client.get(
+        f"/audit/logs?organization_id={org_id}&action=ORG_CREATED", headers=admin_token_headers
+    )
     assert res_logs.status_code == 200
     logs = res_logs.json()
     assert len(logs) >= 1
@@ -163,7 +165,9 @@ async def test_audit_lifecycle_root(client: AsyncClient, admin_token_headers):
     assert res.status_code == 204
 
     # Verify Log: ORG_DELETED
-    res_logs = await client.get(f"/audit/logs?organization_id={org_id}&action=ORG_DELETED", headers=admin_token_headers)
+    res_logs = await client.get(
+        f"/audit/logs?organization_id={org_id}&action=ORG_DELETED", headers=admin_token_headers
+    )
     with open("test_progress.log", "a") as f:
         f.write(f"Step 4 Audit Log Status: {res_logs.status_code}\n")
     assert res_logs.status_code == 200

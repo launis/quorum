@@ -1,3 +1,4 @@
+"""Inspect Timestamp Formatting in Mock DB."""
 import json
 import os
 from datetime import datetime
@@ -13,7 +14,7 @@ try:
         print(f"Reading {mock_db_path}...")
         print(f"Found {len(tables)} records in 'executions'.")
 
-        for key, record in tables.items():
+        for _key, record in tables.items():
             # Execution timestamps might be 'created_at' or 'start_time'
             ts = record.get("created_at") or record.get("start_time")
             exe_id = record.get("execution_id")
@@ -25,12 +26,12 @@ try:
                     # Try ISO format
                     dt = datetime.fromisoformat(str(ts))
                     readable = dt.strftime("%H:%M")
-                except:
+                except Exception:
                     # Try timestamp float
                     try:
                         dt = datetime.fromtimestamp(float(ts))
                         readable = dt.strftime("%H:%M")
-                    except:
+                    except Exception:
                         readable = str(ts)
 
             print(f"Execution {exe_id}: Timestamp={ts} ({readable})")

@@ -1,3 +1,4 @@
+"""Audit Status Component."""
 import time
 
 import requests
@@ -8,6 +9,7 @@ from frontend.components.results.renderer import render_dashboard
 
 def render_execution_status(api_client, job_id, workflow_id, workflow_options, backend_url):
     """Renders the progress bar and status text.
+
     Polls the backend until completion or failure.
     """
     st.divider()
@@ -82,6 +84,7 @@ def render_execution_status(api_client, job_id, workflow_id, workflow_options, b
 
 
 def render_failure_controls(job_id, backend_url):
+    """Render controls for handling failed jobs (Retry/Cancel)."""
     col_retry, col_clear = st.columns(2)
     with col_retry:
         if st.button("🔄 Retry / Resume (From last success)"):

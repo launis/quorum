@@ -1,8 +1,10 @@
+"""Audit Inputs Component."""
 import streamlit as st
 
 
 def render_file_inputs():
     """Renders the file upload section for the 3 required audit artifacts.
+
     Returns a dictionary suitable for API submission:
     { 'history_text': (name, bytes), ... }.
     """

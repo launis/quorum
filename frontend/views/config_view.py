@@ -1,3 +1,4 @@
+"""Global Configuration View."""
 import pandas as pd
 import requests
 import streamlit as st
@@ -101,7 +102,8 @@ def render_config_view(api_client, backend_url: str):
             # PROTECT SYSTEM COMPONENTS
             if comp_data.get("type") in ["agent", "critic", "processor"]:
                 st.info(
-                    f"🔒 **System Component ({comp_data.get('type')})**: This component is defined in Python code and cannot be edited in the UI."
+                    f"🔒 **System Component ({comp_data.get('type')})**: "
+                    f"This component is defined in Python code and cannot be edited in the UI."
                 )
                 st.json(comp_data)
             else:
@@ -297,8 +299,10 @@ def render_config_view(api_client, backend_url: str):
         st.subheader("Workflow Configuration Manager")
         st.info("""
         **Difference to Workflow Builder:**
-        - **This View (Manager):** modify the **low-level configuration** of workflows (ID, Name, Default Model Strategies). Use this for system administration.
-        - **Workflow Builder:** Use the visual **Builder** (in main menu) for designing flow logic, adding steps, and Prompt Fusion.
+        - **This View (Manager):** modify the **low-level configuration** of workflows.
+          (ID, Name, Default Model Strategies). Use this for system administration.
+        - **Workflow Builder:** Use the visual **Builder** (in main menu) for designing flow logic, adding steps,
+          and Prompt Fusion.
         """)
 
         token = st.session_state.get("auth_token")
@@ -391,13 +395,13 @@ def render_config_view(api_client, backend_url: str):
             # Fallback
             try:
                 strategies = requests.get(f"{backend_url}/config/models/strategies").json()
-            except:
+            except Exception:
                 pass
 
         registry = {}
         try:
             registry = requests.get(f"{backend_url}/config/models/registry").json()
-        except:
+        except Exception:
             pass
 
         if not registry:

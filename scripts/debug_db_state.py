@@ -1,9 +1,11 @@
+"""Debug Database State."""
 import os
 
 from tinydb import TinyDB
 
 
 def debug_db():
+    """Prints summary statistics for Prod and Mock TinyDB instances."""
     print("=======================================")
     print("  DEBUG TINYDB STATE                   ")
     print("=======================================")

@@ -1,3 +1,4 @@
+"""Force Cleanup of Test Outputs."""
 import glob
 import os
 
@@ -5,6 +6,7 @@ TARGET_DIR = "tests/output"
 
 
 def force_cleanup():
+    """Deletes all .txt files in tests/output, excluding the safe log."""
     if not os.path.exists(TARGET_DIR):
         print(f"{TARGET_DIR} does not exist.")
         return

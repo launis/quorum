@@ -1,3 +1,4 @@
+"""Frontend Entrypoint (Streamlit)."""
 import os
 import sys
 
@@ -10,6 +11,7 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 # Utils
+# ruff: noqa: E402
 from frontend.api import APIClient
 from frontend.utils.session_manager import init_session_state
 from frontend.views.admin_view import render_admin_view
@@ -31,10 +33,11 @@ api_client = APIClient(BACKEND_URL)
 
 
 def get_workflow_map(token=None):
+    """Fetches workflows and returns a mapping of ID to Workflow Data."""
     try:
         wfs = api_client.get_workflows(token=token)
         return {w["id"]: w for w in wfs} if wfs else {}
-    except:
+    except Exception:
         return {}
 
 
@@ -92,6 +95,7 @@ def _perform_login(token):
 
 
 def main():
+    """Main Streamlit Application Entrypoint."""
     st.set_page_config(page_title="Cognitive Quorum v2", layout="wide")
 
     # Init State
@@ -111,7 +115,8 @@ def main():
 
     st.title("Cognitive Quorum v2 - Admin Console")
     st.markdown(
-        f"**Backend:** `{BACKEND_URL}` | **User:** `{st.session_state.user['display_name']} ({st.session_state.user['role']})`"
+        f"**Backend:** `{BACKEND_URL}` | "
+        f"**User:** `{st.session_state.user['display_name']} ({st.session_state.user['role']})`"
     )
 
     # Sidebar

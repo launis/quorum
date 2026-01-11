@@ -1,3 +1,4 @@
+"""Audit Controls Component."""
 import time
 
 import streamlit as st

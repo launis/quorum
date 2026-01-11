@@ -1,8 +1,10 @@
+"""Results Renderer Component."""
 import streamlit as st
 
 
 def render_dual_matrix_view(data: dict):
     """Renders a comparative view of two Judge matrices dynamically.
+
     Preferentially uses pre-computed 'comparison_data' from Backend (V2).
     Falls back to heuristic scanning for legacy reports.
     """
@@ -126,7 +128,7 @@ def render_dashboard(data: dict):
                 return f"{val_str}/{s_max}"
             # Heuristic: If > 5, assume it's NOT a small Likert
             return val_str
-        except:
+        except Exception:
             return str(score)
 
     if scores:
@@ -208,7 +210,8 @@ def render_dashboard(data: dict):
             if biases:
                 st.write("**Tunnistetut vinoumat:**")
                 for b in biases:
-                    # StructuredBias object or string? Flattened State usually keeps Objects inside Raw, but Report might simplify
+                    # StructuredBias object or string? Flattened State usually keeps Objects inside Raw,
+                    # but Report might simplify
                     if isinstance(b, dict):
                         st.caption(f"- {b.get('nimi')}: {b.get('selitys')}")
                     else:
@@ -286,7 +289,8 @@ def render_dashboard(data: dict):
                 st.markdown("**Toulmin-rakenne:**")
                 for t in toulmin:
                     st.text(
-                        f"Claim: {t.get('claim')}\nData: {t.get('data')}\nWarrant: {t.get('warrant')}\nBacking: {t.get('backing')}"
+                        f"Claim: {t.get('claim')}\nData: {t.get('data')}\n"
+                        f"Warrant: {t.get('warrant')}\nBacking: {t.get('backing')}"
                     )
 
         # D. Facts & Ethics

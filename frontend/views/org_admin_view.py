@@ -1,3 +1,4 @@
+"""Organization Admin View."""
 import requests
 import streamlit as st
 
@@ -120,7 +121,9 @@ def render_org_admin_view(api_url: str):
                 try:
                     # Update endpoint
                     upd_res = requests.put(
-                        f"{api_url}/organizations/{org_data['id']}", json=update_payload, headers=headers
+                        f"{api_url}/organizations/{org_data['id']}",
+                        json=update_payload,
+                        headers=headers,
                     )
                     if upd_res.status_code == 200:
                         st.success("✅ Settings updated successfully!")
@@ -210,7 +213,8 @@ def render_org_admin_view(api_url: str):
                             # Use target_org_id
                             client.create_organization_user(target_org_id, payload, token)
                             st.success(
-                                f"User '{display_name}' created in '{selected_org_name if role == 'ROOT' else 'Organization'}'!"
+                                f"User '{display_name}' created in "
+                                f"'{selected_org_name if role == 'ROOT' else 'Organization'}'!"
                             )
                             st.rerun()
                         except Exception as e:

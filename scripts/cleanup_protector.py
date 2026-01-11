@@ -1,3 +1,4 @@
+"""Cleanup Protector Workflows."""
 import json
 import os
 
@@ -5,6 +6,7 @@ DB_PATH = "backend/database/db_mock.json"
 
 
 def clean_protector():
+    """Removes 'Protector' workflows from the mock database."""
     if not os.path.exists(DB_PATH):
         print(f"File not found: {DB_PATH}")
         return

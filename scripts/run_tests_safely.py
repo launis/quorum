@@ -1,9 +1,11 @@
+"""Run Tests Safely (Wrapper)."""
 import os
 import subprocess
 import sys
 
 
 def run_tests():
+    """Runs pytest with safe environment variables and captures output."""
     # Set env vars to skip arq worker
     env = os.environ.copy()
     env["TESTING"] = "true"

@@ -1,3 +1,4 @@
+"""View details of the last execution."""
 import json
 import sys
 

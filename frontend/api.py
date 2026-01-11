@@ -1,3 +1,4 @@
+"""Frontend API integration."""
 import json
 import logging
 
@@ -7,6 +8,8 @@ logger = logging.getLogger(__name__)
 
 
 class APIClient:
+    """Client for interacting with the backend API."""
+
     def __init__(self, base_url: str):
         """Initializes the APIClient.
 
@@ -270,14 +273,7 @@ class APIClient:
             logger.error(f"Failed to fetch steps: {e}")
             return []
 
-    def get_prompt_types(self):
-        """Fetches allowed prompt component types.
-
-        Returns:
-            list: A list of type strings (e.g. 'prompt', 'mandate').
-        """
-        # Currently no backend endpoint, return empty to trigger view fallback
-        return []
+    # get_prompt_types removed (redundant placeholder, see implementation below)
 
     # --- Builder API ---
     def get_builder_config_agents(self):
@@ -824,17 +820,7 @@ class APIClient:
             logger.error(f"Failed to create step: {e}")
             raise e
 
-    def get_components(self):
-        """Fetches all configuration components.
-
-        Returns:
-            list: A list of component dictionaries.
-        """
-        try:
-            res = requests.get(f"{self.base_url}/config/components", timeout=10)
-            return res.json() if res.status_code == 200 else []
-        except Exception:
-            return []
+    # get_components removed (redundant definition)
 
     def get_prompt_types(self):
         """Fetches available prompt types for the Builder.

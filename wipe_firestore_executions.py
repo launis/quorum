@@ -1,3 +1,4 @@
+"""Wipe Firestore Executions collection."""
 import asyncio
 import os
 
@@ -9,6 +10,7 @@ COLLECTION_NAME = "executions"
 
 
 async def wipe_collection():
+    """Deletes all documents in the 'executions' collection."""
     print(f"--- WIPING COLLECTION: {COLLECTION_NAME} ---")
 
     if not os.path.exists(SERVICE_ACCOUNT_PATH):

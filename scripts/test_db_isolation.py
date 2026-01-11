@@ -1,3 +1,4 @@
+"""Test Database Isolation (Local vs Firestore)."""
 import sys
 from pathlib import Path
 
@@ -11,6 +12,7 @@ sys.path.append(str(project_root))
 
 
 def test_isolation():
+    """Verifies that Local DB operations are isolated from Firestore."""
     print("=" * 60)
     print(" 🧪 DATABASE ISOLATION TEST")
     print("=" * 60)

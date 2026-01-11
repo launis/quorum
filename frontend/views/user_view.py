@@ -1,3 +1,4 @@
+"""User Management View."""
 import pandas as pd
 import streamlit as st
 
@@ -109,14 +110,17 @@ def render_user_view(api_client: APIClient):
     # User Selection Logic
     # Map UID -> Display String
     user_map = {
-        u["uid"]: f"{u.get('display_name', 'Unknown')} ({u.get('email')}) - {u.get('role')}" for u in users_list
+        u["uid"]: f"{u.get('display_name', 'Unknown')} ({u.get('email')}) - {u.get('role')}"
+        for u in users_list
     }
 
     # Filter out self (optional, but usually good to avoid deleting self)
     # But allowing self-update might be okay. Let's keep it simple.
 
     selected_uid = st.selectbox(
-        "Select User to Manage", options=list(user_map.keys()), format_func=lambda x: user_map[x]
+        "Select User to Manage",
+        options=list(user_map.keys()),
+        format_func=lambda x: user_map[x],
     )
 
     if selected_uid:
@@ -177,7 +181,8 @@ def render_user_view(api_client: APIClient):
                 # Or use a separate popover in newer Streamlit, but here let's stick to basic.
                 pass
 
-            # Since standard button doesn't have confirmation dialog easily, we use a session state trick or just a simple "Confirm" action
+            # Since standard button doesn't have confirmation dialog easily,
+            # we use a session state trick or just a simple "Confirm" action
             # Let's add a checkbox for safety in the same column
             confirm_del = st.checkbox("Confirm Deletion", key=f"confirm_del_{selected_uid}")
             if confirm_del and st.button("⚠️ CONFIRM DELETE", key=f"real_del_{selected_uid}", type="primary"):

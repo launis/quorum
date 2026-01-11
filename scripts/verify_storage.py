@@ -1,3 +1,4 @@
+"""Verify Firebase Storage Connection."""
 import logging
 import os
 import sys

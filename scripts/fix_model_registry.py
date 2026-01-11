@@ -1,7 +1,9 @@
+"""Fix Model Registry configuration."""
 from tinydb import Query, TinyDB
 
 
 def fix_registry():
+    """Updates the model registry to use safe Gemini 2.5 models."""
     db_path = "data/db.json"
     db = TinyDB(db_path)
     table = db.table("system_config")
