@@ -233,8 +233,7 @@ class BaseAgent(BaseComponent):
             reasoning_source = None
             if response_obj.reasoning_token:
                 logger.info(
-                    f"[{self.__class__.__name__}] Reasoning Token captured "
-                    f"(Size: {len(response_obj.reasoning_token)})"
+                    f"[{self.__class__.__name__}] Reasoning Token captured (Size: {len(response_obj.reasoning_token)})"
                 )
                 state.last_reasoning_trace = response_obj.reasoning_token
                 reasoning_source = response_obj.reasoning_token

@@ -1,4 +1,5 @@
 """Sync DB to Seed script."""
+
 import os
 import subprocess
 import sys

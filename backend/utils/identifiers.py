@@ -1,4 +1,5 @@
 """Unique identifier utilities."""
+
 import re
 import uuid
 

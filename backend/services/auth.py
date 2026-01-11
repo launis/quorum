@@ -1,4 +1,5 @@
 """Authentication and User Management Service."""
+
 from __future__ import annotations
 
 import asyncio
@@ -17,7 +18,6 @@ from backend.models.auth import Organization, OrganizationCreate, TokenData, Use
 # In production, this MUST be set via environment variable.
 JWT_SECRET = "cognitive-quorum-internal-secret-change-me"
 JWT_ALGORITHM = "HS256"
-
 
 
 logger = logging.getLogger(__name__)
@@ -207,7 +207,6 @@ class AuthService:
             raise ValueError("Token expired") from None
         except jwt.PyJWTError:
             pass
-
 
         # 2. Mock/Dev Mode check
         if not self.use_firebase or token.startswith("mock-token:"):

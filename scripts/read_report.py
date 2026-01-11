@@ -1,4 +1,5 @@
 """Read Logic for Test Reports."""
+
 import os
 
 LOG_PATH = "tests/output/round15_final.txt"

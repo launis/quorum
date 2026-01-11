@@ -1,4 +1,5 @@
 """User Management View."""
+
 import pandas as pd
 import streamlit as st
 
@@ -110,8 +111,7 @@ def render_user_view(api_client: APIClient):
     # User Selection Logic
     # Map UID -> Display String
     user_map = {
-        u["uid"]: f"{u.get('display_name', 'Unknown')} ({u.get('email')}) - {u.get('role')}"
-        for u in users_list
+        u["uid"]: f"{u.get('display_name', 'Unknown')} ({u.get('email')}) - {u.get('role')}" for u in users_list
     }
 
     # Filter out self (optional, but usually good to avoid deleting self)

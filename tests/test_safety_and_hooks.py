@@ -1,4 +1,5 @@
 """Safety and Hook Logic Tests."""
+
 import json
 import os
 import shutil

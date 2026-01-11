@@ -1,26 +1,25 @@
-"""Last Admin Protection Tests."""
+"""Last Admin Protection Tests (Async)."""
+
 import os
 
 import pytest
+from httpx import AsyncClient
 
 # Force Mock DB to avoid file lock conflicts with running backend
 os.environ["USE_MOCK_DB"] = "true"
 
-from fastapi.testclient import TestClient
-
 from backend.main import app
-
-client = TestClient(app)
 
 
 # Fixture setup similar to test_iam.py
-@pytest.fixture(autouse=True)
-def setup_auth_scenario():
+@pytest.fixture
+async def setup_auth_scenario(client):
     """Setup auth scenario with Last Admin Corp."""
     from backend.dependencies import get_db_client_dep
     from backend.services.auth import AuthService, OrganizationCreate
 
     db = get_db_client_dep()
+    # Use sync=True if AuthService supports it? No, it's async first.
     svc = AuthService(db, use_firebase=False)
 
     # 1. Reset/Ensure System State
@@ -35,8 +34,6 @@ def setup_auth_scenario():
         admin_name="Last Admin",
     )
     # This creates the org AND the first admin (Last Admin)
-    # Note: verify_token uses mock-token:uid, so we need to know the UID.
-    # create_organization mocks the admin UID internally or we can list users to find it.
 
     # Cleanup previous run if needed
     existing_users = svc.repo.list_all()
@@ -48,7 +45,7 @@ def setup_auth_scenario():
 
     # Re-create
     try:
-        svc.create_organization(root_uid, org_create)
+        await svc.create_organization(root_uid, org_create)
     except Exception:
         # Might fail if Org ID collision, but usually we just want the User.
         pass
@@ -63,73 +60,79 @@ def get_headers(uid):
     return {"Authorization": f"Bearer mock-token:{uid}"}
 
 
-def test_last_admin_cannot_delete_self(setup_auth_scenario):
+@pytest.mark.asyncio
+async def test_last_admin_cannot_delete_self(client: AsyncClient, setup_auth_scenario):
     """Verify last admin cannot delete themselves."""
     admin_user = setup_auth_scenario
     assert admin_user is not None
 
     # Try to delete self
-    response = client.delete(f"/auth/users/{admin_user.uid}", headers=get_headers(admin_user.uid))
+    response = await client.delete(f"/auth/users/{admin_user.uid}", headers=get_headers(admin_user.uid))
 
     # Should fail with 400 or 403 (Service raises ValueError -> 400)
     assert response.status_code == 400
-    assert "Cannot delete the last Administrator" in response.json()["detail"]
+    # detail could be string or dict? Usually generic handler makes it "detail": str
+    # Or "message" in APIError
+    assert "Cannot delete the last Administrator" in response.text
 
 
-def test_last_admin_cannot_be_demoted(setup_auth_scenario):
+
+@pytest.mark.asyncio
+async def test_last_admin_cannot_be_demoted(client: AsyncClient, setup_auth_scenario):
     """Verify last admin cannot be demoted."""
     admin_user = setup_auth_scenario
+    assert admin_user is not None
 
     # Try to update role to MEMBER
     payload = {"role": "MEMBER"}
-    response = client.patch(f"/auth/users/{admin_user.uid}", json=payload, headers=get_headers(admin_user.uid))
+    response = await client.patch(f"/auth/users/{admin_user.uid}", json=payload, headers=get_headers(admin_user.uid))
 
     assert response.status_code == 400
-    assert "Cannot demote the last Administrator" in response.json()["detail"]
+    assert response.status_code == 400
+    assert "Cannot demote the last Administrator" in response.text
 
 
-def test_second_admin_allows_deletion(setup_auth_scenario):
+@pytest.mark.asyncio
+async def test_second_admin_allows_deletion(client: AsyncClient, setup_auth_scenario):
     """Verify deletion succeeds if another admin exists."""
     last_admin = setup_auth_scenario
+    assert last_admin is not None
 
     # 1. Promote a second user to ADMIN
-    # First create a member
-    # We need the service instance to create user, or use API
-
+    # First create a member OR create directly using API if allowed?
     # Create via API as Last Admin
     new_user_payload = {
         "email": "admin_second@example.com",
         "display_name": "Second Admin",
         "role": "ADMIN",  # Direct creation as ADMIN
         "organization_id": last_admin.organization_id,
+        "password": "password123"
     }
 
     # Note: ADMIN creating ADMIN is allowed in our new rules
-    create_res = client.post("/auth/users", json=new_user_payload, headers=get_headers(last_admin.uid))
-    assert create_res.status_code == 200
+    create_res = await client.post("/auth/users", json=new_user_payload, headers=get_headers(last_admin.uid))
+    assert create_res.status_code == 200, f"Failed to create second admin: {create_res.text}"
     second_admin_uid = create_res.json()["uid"]
 
     # 2. Now Last Admin deletes themselves (should succeed because there is a second admin)
     # Actually, let's have the Second Admin delete the First Admin to test cross-admin deletion
-    delete_res = client.delete(f"/auth/users/{last_admin.uid}", headers=get_headers(second_admin_uid))
+    delete_res = await client.delete(f"/auth/users/{last_admin.uid}", headers=get_headers(second_admin_uid))
 
     assert delete_res.status_code == 200
     assert delete_res.json()["status"] == "deleted"
 
 
-def test_root_can_bypass_checks_if_orphan_org_logic_not_strict(setup_auth_scenario):
+@pytest.mark.asyncio
+async def test_root_can_bypass_checks_if_orphan_org_logic_not_strict(client: AsyncClient, setup_auth_scenario):
     """Verify ROOT is also subject to last admin protection."""
-    # Actually, our logic applies to everyone: "Cannot delete the last Administrator...".
-    # Even Root shouldn't leave an Org empty of admins unless deleting the Org itself (which we don't implement yet).
-    # So Root SHOULD also get the error if they try to delete the last admin without deleting the org.
-
     last_admin = setup_auth_scenario
+    assert last_admin is not None
     root_token = "root_master"
 
-    response = client.delete(f"/auth/users/{last_admin.uid}", headers=get_headers(root_token))
+    response = await client.delete(f"/auth/users/{last_admin.uid}", headers=get_headers(root_token))
 
     # Based on our implementation:
     # if target.role == ADMIN: admin_count = ... if <=1 raise
     # This check runs AFTER permission check. So Root IS subject to it.
     assert response.status_code == 400
-    assert "Cannot delete the last Administrator" in response.json()["detail"]
+    assert "Cannot delete the last Administrator" in response.text

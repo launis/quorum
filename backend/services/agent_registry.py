@@ -1,4 +1,5 @@
 """Registry service for managing Agent components and strategies."""
+
 import logging
 from datetime import datetime
 from typing import Any

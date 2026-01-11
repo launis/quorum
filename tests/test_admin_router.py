@@ -1,4 +1,5 @@
 """Admin Router Tests."""
+
 from unittest.mock import AsyncMock
 
 import pytest

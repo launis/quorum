@@ -155,9 +155,7 @@ async def create_user(user_data: UserCreate, current_user: CurrentUserDep, auth_
 
 
 @router.post("/organizations", response_model=Organization)
-async def create_organization(
-    org_data: OrganizationCreate, current_user: CurrentUserDep, auth_service: AuthServiceDep
-):
+async def create_organization(org_data: OrganizationCreate, current_user: CurrentUserDep, auth_service: AuthServiceDep):
     """Create a new Tenant Organization.
 
     Args:
@@ -247,9 +245,7 @@ async def delete_user(uid: str, current_user: CurrentUserDep, auth_service: Auth
 
 
 @router.patch("/users/{uid}", response_model=User)
-async def update_user(
-    uid: str, user_update: UserUpdate, current_user: CurrentUserDep, auth_service: AuthServiceDep
-):
+async def update_user(uid: str, user_update: UserUpdate, current_user: CurrentUserDep, auth_service: AuthServiceDep):
     """Update a user (Role, Display Name, etc).
 
     Args:

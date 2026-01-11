@@ -1,4 +1,5 @@
 """LLM Handler module for managing model discovery and configuration."""
+
 import logging
 import os
 from typing import Any
@@ -107,9 +108,7 @@ class LLMHandler:
                     # We inline the list call here for simplicity or could use helper if reused.
                     # Using us-central1 explicitly.
                     discovery_ep = "us-central1-aiplatform.googleapis.com"
-                    client = aiplatform_v1beta1.ModelGardenServiceClient(
-                        client_options={"api_endpoint": discovery_ep}
-                    )
+                    client = aiplatform_v1beta1.ModelGardenServiceClient(client_options={"api_endpoint": discovery_ep})
 
                     # Listing
                     # logger.info("Fetching Master Catalog from us-central1...")
@@ -212,9 +211,7 @@ class LLMHandler:
         if config:
             return config
 
-    async def call_llm(
-        self, provider: str, mode: str, prompt: str, system_instruction: str | None = None
-    ) -> str:
+    async def call_llm(self, provider: str, mode: str, prompt: str, system_instruction: str | None = None) -> str:
         """High-level helper to call an LLM (Ad-hoc usage).
 
         Resolves configuration from DB based on provider/mode and delegates to LLMFactory.

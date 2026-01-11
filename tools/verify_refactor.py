@@ -1,4 +1,5 @@
 """Verify Refactor Tool."""
+
 from backend.models.state import InputData, WorkflowState
 from backend.services.state_presenter import StatePresenter
 

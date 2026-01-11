@@ -1,4 +1,5 @@
 """Reference management hooks for bibliography generation."""
+
 import logging
 from typing import Any
 

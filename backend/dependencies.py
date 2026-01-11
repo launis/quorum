@@ -235,8 +235,6 @@ async def get_engine(
         except Exception as e:
             logger.warning(f"Could not pre-warm Auth Service: {e}")
 
-
-
         settings = get_settings()
 
         # Inject Services

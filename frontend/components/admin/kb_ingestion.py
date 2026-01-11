@@ -1,4 +1,5 @@
 """Knowledge Base Ingestion Component."""
+
 import time
 
 import requests

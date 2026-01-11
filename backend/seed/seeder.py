@@ -2,6 +2,7 @@
 
 Reads from backend/seed/seed_data.json and populates the target database.
 """
+
 import json
 import os
 

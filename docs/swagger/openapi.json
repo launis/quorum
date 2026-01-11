@@ -4148,14 +4148,6 @@
             }
           },
           {
-            "name": "auth",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "title": "Auth"
-            }
-          },
-          {
             "name": "authorization",
             "in": "header",
             "required": false,

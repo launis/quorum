@@ -60,9 +60,7 @@ def _load_agent_class(agent_name: str, db: AbstractDatabase):
 )
 async def run_agent(
     agent_name: str,
-    inputs: Annotated[
-        dict[str, Any], Body(description="Key-value pairs representing the input state for the agent.")
-    ],
+    inputs: Annotated[dict[str, Any], Body(description="Key-value pairs representing the input state for the agent.")],
     system_instruction: Annotated[str | None, Body(description="Optional system instruction override.")] = None,
     model: Annotated[str | None, Body(description="Optional model strategy override.")] = None,
     db: DatabaseDep = None,  # Injected

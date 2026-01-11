@@ -1,4 +1,5 @@
 """Arq Worker configuration and startup logic."""
+
 import logging
 from typing import Any
 
@@ -67,7 +68,6 @@ async def startup(ctx: Any) -> None:
 
     # 1. Base Clients
     db_client = get_db_client_dep()
-
 
     # 2. Services
     repo = get_async_repository(db_client)

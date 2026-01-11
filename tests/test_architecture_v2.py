@@ -1,4 +1,5 @@
 """Architecture V2 Logic Tests."""
+
 from backend.hooks.reporting import generate_report
 from backend.models.domain import Pisteet, PisteetKriteeri, TuomioJaPisteet, XAIReport
 from backend.models.state import InputData, WorkflowState

@@ -1,4 +1,5 @@
 """Linguistics hooks for analyzing text patterns and language use."""
+
 import json
 import logging
 

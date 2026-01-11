@@ -212,9 +212,7 @@ def _validate_url_safety(url: str):
 
 
 @router.post("/citation-lookup", summary="Resolve Citations", response_description="Resolved context.")
-async def citation_lookup(
-    db: DatabaseDep, registry: RegistryDep, queries: Annotated[list[str], Body(..., embed=True)]
-):
+async def citation_lookup(db: DatabaseDep, registry: RegistryDep, queries: Annotated[list[str], Body(..., embed=True)]):
     """Uses the Knowledge Base Service to find context for citations.
 
     Args:

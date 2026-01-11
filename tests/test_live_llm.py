@@ -1,4 +1,5 @@
 """Live LLM Integration Tests."""
+
 import logging
 import os
 import unittest
@@ -29,6 +30,7 @@ class TestLiveLLM(unittest.IsolatedAsyncioTestCase):
     """Live LLM Integration Tests."""
 
     def setUp(self):
+        """Prepare environment for live tests."""
         # Ensure env var is set if file exists, for Google Auth library
         # (Auto-detection helper)
         if (

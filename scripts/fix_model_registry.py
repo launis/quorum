@@ -1,4 +1,5 @@
 """Fix Model Registry configuration."""
+
 from tinydb import Query, TinyDB
 
 

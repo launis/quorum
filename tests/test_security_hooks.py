@@ -1,4 +1,5 @@
 """Security Hooks Tests."""
+
 from backend.hooks.security import check_banned_phrases, sanitize_text
 
 

@@ -1,4 +1,5 @@
 """Mock LLM Service for testing and offline development."""
+
 import json
 import logging
 import random

@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 class WorkflowEngine:
     """Central controller for executing workflows and managing state."""
+
     def __init__(
         self,
         db_path: str,

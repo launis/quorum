@@ -1,4 +1,5 @@
 """Dashboard View."""
+
 import pandas as pd
 import streamlit as st
 

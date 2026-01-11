@@ -1,4 +1,5 @@
 """Dual Workflows Integration Tests."""
+
 import json
 import os
 import sys

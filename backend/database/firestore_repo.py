@@ -1,4 +1,5 @@
 """Firestore Repository implementation."""
+
 import logging
 from typing import Any
 

@@ -1,4 +1,5 @@
 """Metrics hooks for calculating text statistics and control ratios."""
+
 import logging
 import re
 from typing import Any

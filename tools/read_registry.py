@@ -1,4 +1,5 @@
 """Read Registry Tool."""
+
 import json
 
 from tinydb import Query, TinyDB

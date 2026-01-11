@@ -1,4 +1,5 @@
 """Environment Configuration Tests."""
+
 import os
 from unittest.mock import patch
 

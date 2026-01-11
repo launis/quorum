@@ -1,4 +1,5 @@
 """Mock data generator for LLM responses."""
+
 from typing import Any
 
 AGENT_CLASS_TO_MOCK_KEY = {

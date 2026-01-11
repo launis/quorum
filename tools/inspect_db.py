@@ -1,4 +1,5 @@
 """Inspect Database Tool."""
+
 import json
 import os
 

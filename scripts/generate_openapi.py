@@ -1,4 +1,5 @@
 """Generate OpenAPI Specification."""
+
 import json
 import os
 import sys

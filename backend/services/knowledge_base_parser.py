@@ -1,4 +1,5 @@
 """Parser service for extracting structured knowledge from documents."""
+
 import logging
 import re
 from typing import Any

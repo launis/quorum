@@ -1,4 +1,5 @@
 """Hybrid Guard Tests."""
+
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest

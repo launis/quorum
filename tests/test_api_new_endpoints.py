@@ -1,4 +1,5 @@
 """New API Endpoints Tests."""
+
 import requests
 
 BASE_URL = "http://localhost:8000"

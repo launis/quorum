@@ -1,4 +1,5 @@
 """Results Renderer Component."""
+
 import streamlit as st
 
 

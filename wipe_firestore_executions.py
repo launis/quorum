@@ -1,4 +1,5 @@
 """Wipe Firestore Executions collection."""
+
 import asyncio
 import os
 

@@ -1,4 +1,5 @@
 """Audit Inputs Component."""
+
 import streamlit as st
 
 

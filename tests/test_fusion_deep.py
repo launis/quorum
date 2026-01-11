@@ -1,4 +1,5 @@
 """Deep Fusion Logic Tests."""
+
 import json
 import os
 import shutil
@@ -201,6 +202,7 @@ def test_compile_fusion_flow(shared_engine):
 @pytest.mark.asyncio
 async def test_panel_agent_fan_out():
     """Test Panel Agent fan-out logic."""
+
     # Mock Provider
     class MockProvider:
         async def generate(self, prompt, system_instruction, response_schema, **kwargs):

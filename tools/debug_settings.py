@@ -1,4 +1,5 @@
 """Debug Settings Tool."""
+
 import os
 
 from backend.settings import get_settings

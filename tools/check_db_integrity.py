@@ -1,4 +1,5 @@
 """Check Database Integrity."""
+
 import json
 import os
 

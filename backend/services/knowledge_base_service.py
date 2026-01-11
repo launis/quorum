@@ -1,4 +1,5 @@
 """Service for managing Knowledge Base ingestion and retrieval."""
+
 import logging
 import uuid
 from datetime import datetime

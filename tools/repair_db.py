@@ -1,4 +1,5 @@
 """Repair Database Tool."""
+
 import json
 import os
 import sys

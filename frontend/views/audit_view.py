@@ -1,4 +1,5 @@
 """Audit View Module."""
+
 import streamlit as st
 
 from frontend.api import APIClient

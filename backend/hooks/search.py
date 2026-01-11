@@ -1,4 +1,5 @@
 """Search hooks for executing external searches (e.g. Google)."""
+
 import json
 import logging
 import os

@@ -283,9 +283,9 @@ async def update_organization(
 async def delete_organization(
     org_id: str,
     user: Annotated[TokenData, Depends(AuthService.require_role(UserRole.ROOT))],
+    repo: RepositoryDep,
+    auth: AuthServiceDep,
     force: bool = False,
-    repo: RepositoryDep = None,
-    auth: Any = None,
 ):
     """Delete an organization.
 
@@ -464,9 +464,7 @@ async def delete_organization_user(
     # Note: Workflows are Org-owned, so no check needed there.
     user_execs = await repo.get_all_executions(organization_id=org_id)
     active_user_execs = [
-        e
-        for e in user_execs
-        if e.get("user_id") == target_uid and e.get("status") in ["running", "pending", "queued"]
+        e for e in user_execs if e.get("user_id") == target_uid and e.get("status") in ["running", "pending", "queued"]
     ]
 
     if active_user_execs:

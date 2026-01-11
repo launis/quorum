@@ -29,9 +29,6 @@ from backend.models.audit import AuditEvent
 logger = logging.getLogger(__name__)
 
 
-
-
-
 class AuditService:
     """Service for handling audit log persistence."""
 

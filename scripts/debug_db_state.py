@@ -1,4 +1,5 @@
 """Debug Database State."""
+
 import os
 
 from tinydb import TinyDB

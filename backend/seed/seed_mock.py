@@ -1,4 +1,5 @@
 """Seed Mock Database script."""
+
 import os
 import sys
 from pathlib import Path

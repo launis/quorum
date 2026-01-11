@@ -1,4 +1,5 @@
 """System Info View."""
+
 import pandas as pd
 import streamlit as st
 

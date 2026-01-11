@@ -1,4 +1,5 @@
 """IAM Tests."""
+
 import pytest
 from fastapi.testclient import TestClient
 from tinydb import Query

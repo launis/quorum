@@ -1,4 +1,5 @@
 """Manual entrypoint for Arq Worker."""
+
 import asyncio
 import logging
 

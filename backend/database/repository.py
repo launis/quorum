@@ -1,4 +1,5 @@
 """Abstract Repository Helper Types."""
+
 import asyncio
 from abc import ABC, abstractmethod
 from typing import Any
@@ -268,6 +269,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
     # --- Components ---
     async def get_component_by_id(self, component_id: str) -> dict[str, Any] | None:
         """Get component by ID."""
+
         def _get():
             Q = Query()
             res = self.components.search(Q.id == component_id)
@@ -277,6 +279,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
 
     async def get_component_by_name(self, name: str) -> dict[str, Any] | None:
         """Get component by name."""
+
         def _get():
             Q = Query()
             res = self.components.search(Q.name == name)
@@ -290,6 +293,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
 
     async def update_component_metadata(self, name: str, module: str, component_class: str):
         """Update component metadata."""
+
         def _update():
             Q = Query()
             self.components.update({"module": module, "class": component_class}, Q.name == name)
@@ -303,6 +307,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
     # --- Steps ---
     async def get_step_by_id(self, step_id: str) -> dict[str, Any] | None:
         """Get step by ID."""
+
         def _get():
             Q = Query()
             res = self.steps.search(Q.id == step_id)
@@ -322,6 +327,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
 
     async def update_step(self, step_id: str, updates: dict[str, Any]):
         """Update step."""
+
         def _update():
             Q = Query()
             self.steps.update(updates, Q.id == step_id)
@@ -330,6 +336,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
 
     async def delete_step(self, step_id: str):
         """Delete step."""
+
         def _delete():
             Q = Query()
             self.steps.remove(Q.id == step_id)
@@ -339,6 +346,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
     # --- Workflows ---
     async def get_workflow_by_id(self, workflow_id: str) -> dict[str, Any] | None:
         """Get workflow by ID."""
+
         def _get():
             Q = Query()
             res = self.workflows.search(Q.id == workflow_id)
@@ -354,6 +362,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
         self, organization_id: str | None = None, role: str | None = None
     ) -> list[dict[str, Any]]:
         """Get all workflows."""
+
         def _get():
             all_wfs = self.workflows.all()
 
@@ -382,6 +391,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
 
     async def update_workflow(self, workflow_id: str, updates: dict[str, Any]):
         """Update workflow."""
+
         def _update():
             Q = Query()
             self.workflows.update(updates, Q.id == workflow_id)
@@ -390,6 +400,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
 
     async def delete_workflow(self, workflow_id: str):
         """Delete workflow."""
+
         def _delete():
             Q = Query()
             self.workflows.remove(Q.id == workflow_id)
@@ -403,6 +414,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
 
     async def get_execution(self, execution_id: str) -> dict[str, Any] | None:
         """Get execution."""
+
         def _get():
             Q = Query()
             res = self.executions.search(Q.execution_id == str(execution_id))
@@ -412,6 +424,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
 
     async def update_execution(self, execution_id: str, updates: dict[str, Any]):
         """Update execution."""
+
         def _update():
             Q = Query()
             self.executions.update(updates, Q.execution_id == str(execution_id))
@@ -422,6 +435,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
         self, organization_id: str | None = None, user_id: str | None = None
     ) -> list[dict[str, Any]]:
         """Get all executions."""
+
         def _get():
             all_execs = self.executions.all()
 
@@ -440,6 +454,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
     # --- Config ---
     async def get_model_registry(self) -> dict[str, Any] | None:
         """Get model registry."""
+
         def _get():
             Q = Query()
             res = self.system_config.search(Q.type == "model_registry")
@@ -453,6 +468,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
 
     async def add_banned_phrase(self, phrase: str, **kwargs):
         """Add banned phrase."""
+
         def _add():
             existing = self.banned_phrases.search(Query().phrase == phrase)
             if not existing:
@@ -464,6 +480,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
 
     async def remove_banned_phrase(self, phrase: str):
         """Remove banned phrase."""
+
         def _remove():
             self.banned_phrases.remove(Query().phrase == phrase)
 
@@ -492,6 +509,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
 
     async def get_organization(self, org_id: str) -> dict[str, Any] | None:
         """Get organization."""
+
         def _get():
             Q = Query()
             res = self.organizations.search(Q.id == org_id)
@@ -501,6 +519,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
 
     async def update_organization(self, org_id: str, updates: dict[str, Any]):
         """Update organization."""
+
         def _update():
             Q = Query()
             self.organizations.update(updates, Q.id == org_id)
@@ -513,6 +532,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
 
     async def delete_organization(self, org_id: str):
         """Delete organization."""
+
         def _delete():
             Q = Query()
             self.organizations.remove(Q.id == org_id)
@@ -532,6 +552,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
 
     async def get_org_usage_total(self, org_id: str, since: str | None = None) -> float:
         """Calculate total usage cost."""
+
         def _calc():
             # Filter by Org
             logs = self.usage_logs.search(Query().org_id == org_id)
@@ -555,6 +576,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
     # --- System Settings ---
     async def get_system_settings(self) -> dict[str, Any]:
         """Get system settings."""
+
         def _get():
             # Singleton: ID=1 or just the first record
             res = self.settings.all()
@@ -567,6 +589,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
 
     async def update_system_settings(self, updates: dict[str, Any]):
         """Update system settings."""
+
         def _update():
             # Check existence
             existing = self.settings.all()
@@ -593,6 +616,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
         limit: int = 100,
     ) -> list[dict[str, Any]]:
         """Get audit logs."""
+
         def _get():
             # TinyDB doesn't do complex querying efficiently, so we filter in Python for now.
             # In a real DB we'd index this.
@@ -624,6 +648,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
     # --- User Management ---
     async def get_user(self, uid: str) -> dict[str, Any] | None:
         """Get user by UID."""
+
         def _get():
             Q = Query()
             # Assuming 'uid' is the key in users table
@@ -634,6 +659,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
 
     async def list_users(self, organization_id: str | None = None) -> list[dict[str, Any]]:
         """List users."""
+
         def _list():
             if organization_id:
                 return self.users.search(Query().organization_id == organization_id)

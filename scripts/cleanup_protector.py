@@ -1,4 +1,5 @@
 """Cleanup Protector Workflows."""
+
 import json
 import os
 

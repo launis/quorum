@@ -1,4 +1,5 @@
 """Storage Service abstraction for local and cloud backends."""
+
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path

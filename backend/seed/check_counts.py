@@ -1,4 +1,5 @@
 """Check database counts script."""
+
 import json
 import sys
 from pathlib import Path

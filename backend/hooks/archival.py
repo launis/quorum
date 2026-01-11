@@ -1,4 +1,5 @@
 """Archival hooks for retrieving system precedents."""
+
 import logging
 from typing import Any
 

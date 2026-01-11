@@ -1,4 +1,5 @@
 """Inspect Timestamp Formatting in Mock DB."""
+
 import json
 import os
 from datetime import datetime

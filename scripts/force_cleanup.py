@@ -1,4 +1,5 @@
 """Force Cleanup of Test Outputs."""
+
 import glob
 import os
 

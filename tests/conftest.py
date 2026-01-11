@@ -1,5 +1,8 @@
+
 """Global Pytest Configuration."""
+
 import os
+from typing import AsyncGenerator
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -11,8 +14,6 @@ os.environ["STORAGE_BACKEND"] = "LOCAL"
 os.environ["TESTING"] = "true"
 
 # 2. PATCH ARQ TO PREVENT FAKEREDIS CRASH
-# Fakeredis + Arq = Crash on startup because Arq tries to run 'INFO' command
-# inside a pipeline and parse it manually, which Fakeredis fails on.
 try:
     import arq.connections
 
@@ -21,7 +22,6 @@ try:
 
     arq.connections.log_redis_info = _no_op_log
 
-    # Also patch the imported reference in worker.py!
     import arq.worker
 
     arq.worker.log_redis_info = _no_op_log
@@ -60,7 +60,7 @@ def mock_auth_service():
 
 
 @pytest.fixture
-async def client_authenticated(mock_auth_service):
+async def client_authenticated(mock_auth_service) -> AsyncGenerator[AsyncClient, None]:
     """Async Client with Dynamic Auth overrides."""
     # Default to Root if not set
     if not mock_auth_service.current_user:
@@ -81,6 +81,15 @@ async def client_authenticated(mock_auth_service):
 
     # Override Database to use Temp File (Isolated Tests)
     import tempfile
+    import backend.dependencies
+
+    # RESET GLOBALS to avoid stale DB references
+    backend.dependencies._db_client_instance = None
+    backend.dependencies._repository_instance = None
+    backend.dependencies._auth_service_instance = None
+    backend.dependencies._audit_service_instance = None
+    backend.dependencies._engine_instance = None
+    backend.dependencies._storage_service_instance = None
 
     fd, temp_db_path = tempfile.mkstemp(suffix=".json")
     os.close(fd)
@@ -91,17 +100,29 @@ async def client_authenticated(mock_auth_service):
         return Settings(
             storage_backend="LOCAL",
             start_db_path=temp_db_path,
-            use_mock_db=False,
+            use_mock_db=False,  # We use real TinyDB on temp file
             use_mock_llm=True,
+            use_firebase=False,
         )
 
     from backend.database.wrapper import TinyDBClient
     from backend.dependencies import get_db_client_dep, get_settings_dep
 
     test_db = TinyDBClient(temp_db_path)
+    
+    # Align Global Helper for direct usage (e.g. in test fixtures)
+    backend.dependencies._db_client_instance = test_db
 
     app.dependency_overrides[get_settings_dep] = override_settings
     app.dependency_overrides[get_db_client_dep] = lambda: test_db
+
+    # SEED MOCK USER so repos can find it (e.g. for Creator checks)
+    if mock_auth_service.current_user:
+        from tinydb import Query
+        UserQ = Query()
+        # Ensure we dump properly (model_dump used in Pydantic v2)
+        u_data = mock_auth_service.current_user.model_dump(mode="json")
+        test_db.table("users").upsert(u_data, UserQ.uid == mock_auth_service.current_user.uid)
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         yield c
@@ -112,6 +133,19 @@ async def client_authenticated(mock_auth_service):
         os.remove(temp_db_path)
     except Exception:
         pass
+    
+    # TEARDOWN RESET
+    backend.dependencies._db_client_instance = None
+    backend.dependencies._repository_instance = None
+    backend.dependencies._auth_service_instance = None
+    backend.dependencies._audit_service_instance = None
+    backend.dependencies._engine_instance = None
+    backend.dependencies._storage_service_instance = None
+
+@pytest.fixture
+async def client(client_authenticated) -> AsyncGenerator[AsyncClient, None]:
+    """Alias for client_authenticated for compatibility with tests expecting 'client'."""
+    yield client_authenticated
 
 
 @pytest.fixture

@@ -1,4 +1,5 @@
 """API Error schema definition."""
+
 from typing import Any
 
 from pydantic import BaseModel

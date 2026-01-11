@@ -1,4 +1,5 @@
 """Inspect Mock Database Tool."""
+
 import json
 import os
 

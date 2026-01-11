@@ -1,4 +1,5 @@
 """Reference Manager for handling citations and bibliography generation."""
+
 import logging
 import re
 from typing import Any

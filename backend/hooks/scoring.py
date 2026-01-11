@@ -1,4 +1,5 @@
 """Scoring hooks for applying penalties and calculating averages."""
+
 import logging
 
 from backend.models.state import WorkflowState

@@ -1,4 +1,5 @@
 """Reporting hooks for generating XAI reports."""
+
 import logging
 import os
 from datetime import datetime

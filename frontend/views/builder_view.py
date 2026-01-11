@@ -1,4 +1,5 @@
 """Workflow Builder View."""
+
 import time
 
 import streamlit as st
@@ -353,9 +354,7 @@ def render_workflow_builder(api_client: APIClient):
                         is_custom = "_custom_" in active_step
 
                         if not is_custom:
-                            st.warning(
-                                "This is a SHARED Standard Step. Editing directly is restricted."
-                            )
+                            st.warning("This is a SHARED Standard Step. Editing directly is restricted.")
                             if st.button("✨ Customize (Fork Step)"):
                                 try:
                                     new_step = api_client.clone_builder_step(active_step)
@@ -365,9 +364,9 @@ def render_workflow_builder(api_client: APIClient):
                                     steps[idx] = new_id
                                     # Update model mapping key
                                     if active_step in wf_data["default_model_mapping"]:
-                                        wf_data["default_model_mapping"][new_id] = wf_data[
-                                            "default_model_mapping"
-                                        ][active_step]
+                                        wf_data["default_model_mapping"][new_id] = wf_data["default_model_mapping"][
+                                            active_step
+                                        ]
                                         del wf_data["default_model_mapping"][active_step]
 
                                     st.session_state["builder_act_step"] = new_id

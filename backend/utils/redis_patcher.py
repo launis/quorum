@@ -1,4 +1,5 @@
 """Redis patching utilities."""
+
 import logging
 
 from arq.connections import ArqRedis

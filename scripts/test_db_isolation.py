@@ -1,4 +1,5 @@
 """Test Database Isolation (Local vs Firestore)."""
+
 import sys
 from pathlib import Path
 

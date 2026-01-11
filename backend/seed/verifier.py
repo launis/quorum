@@ -1,4 +1,5 @@
 """Database Verification Module."""
+
 import json
 import logging
 from datetime import UTC

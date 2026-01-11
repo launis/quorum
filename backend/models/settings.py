@@ -1,4 +1,5 @@
 """System Settings Models."""
+
 from pydantic import BaseModel, Field
 
 

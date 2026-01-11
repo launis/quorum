@@ -1,4 +1,5 @@
 """Prompt Builder service for constructing dynamic LLM prompts."""
+
 from __future__ import annotations
 
 import json

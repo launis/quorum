@@ -1,4 +1,5 @@
 """Operational Hardening Tests."""
+
 import pytest
 from httpx import AsyncClient
 
@@ -12,8 +13,8 @@ async def test_ssrf_blocking_localhost(client: AsyncClient, admin_token_headers)
     res = await client.post("/tools/web-scrape", json={"url": url}, headers=admin_token_headers)
     assert res.status_code == 400
     assert (
-        "Access to local network resources is forbidden" in res.json()["detail"]
-        or "Access to private IP" in res.json()["detail"]
+        "Access to local network resources is forbidden" in res.text
+        or "Access to private IP" in res.text
     )
 
 
@@ -23,7 +24,7 @@ async def test_ssrf_blocking_private_ip(client: AsyncClient, admin_token_headers
     url = "http://192.168.1.1/admin"
     res = await client.post("/tools/web-scrape", json={"url": url}, headers=admin_token_headers)
     assert res.status_code == 400
-    assert "Access to private IP" in res.json()["detail"]
+    assert "Access to private IP" in res.text
 
 
 @pytest.mark.asyncio

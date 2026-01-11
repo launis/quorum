@@ -1,4 +1,5 @@
 """Frontend API integration."""
+
 import json
 import logging
 

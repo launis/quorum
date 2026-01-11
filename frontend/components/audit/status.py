@@ -1,4 +1,5 @@
 """Audit Status Component."""
+
 import time
 
 import requests

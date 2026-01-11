@@ -1,4 +1,5 @@
 """Inspect Audit Logs."""
+
 import os
 
 from tinydb import TinyDB

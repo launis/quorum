@@ -1,4 +1,5 @@
 """Database Scenarios Tests."""
+
 import asyncio
 from unittest.mock import MagicMock
 

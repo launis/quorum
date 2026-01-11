@@ -1,4 +1,5 @@
 """Validation hooks for structural integrity checks."""
+
 import logging
 
 from backend.models.state import WorkflowState

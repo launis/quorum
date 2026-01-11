@@ -1,4 +1,5 @@
 """Web Fetcher service for retrieving and cleaning external content."""
+
 import logging
 import re
 import urllib.error
