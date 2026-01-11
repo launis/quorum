@@ -1,3 +1,4 @@
+"""Service for managing Knowledge Base ingestion and retrieval."""
 import logging
 import uuid
 from datetime import datetime
@@ -144,10 +145,11 @@ class KnowledgeBaseService:
         except Exception as e:
             logger.error(f"[KBService] Ingestion failed: {e}")
             tracker.fail(str(e))
-            raise e
+            raise e from e
 
     async def extract_concepts_with_llm(self, text: str, tracker: Any = None) -> list[dict[str, str]]:
         """Chunks text and uses configured LLM to extract theoretical concepts.
+
         Publicly accessible for ad-hoc extraction.
 
         Args:

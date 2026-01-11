@@ -31,6 +31,7 @@ retry_strategy = retry(
 
 class LLMProvider(ABC):
     """Abstract base class for LLM providers.
+
     Defines the contract for text generation and structured data extraction.
     """
 
@@ -64,8 +65,9 @@ class LLMProvider(ABC):
 
 
 class LiteLLMProvider(LLMProvider):
-    """Unified LLM Provider using LiteLLM to support multiple models (Gemini, OpenAI, etc.)
-    with a consistent interface.
+    """Unified LLM Provider using LiteLLM to support multiple models (Gemini, OpenAI, etc.).
+
+    Provides a consistent interface.
     """
 
     def __init__(
@@ -105,6 +107,7 @@ class LiteLLMProvider(LLMProvider):
         **kwargs,
     ) -> LLMResponse:
         """Generates content using LiteLLM.
+
         Returns unified LLMResponse with content and reasoning state.
         """
         messages = []
@@ -267,6 +270,7 @@ class LiteLLMProvider(LLMProvider):
 
 class MockProvider(LLMProvider):
     """Mock LLM Provider for offline testing and development.
+
     Uses cached/simulated responses from MockLLMService.
     """
 
@@ -314,6 +318,7 @@ class MockProvider(LLMProvider):
 
 class UnconfiguredProvider(LLMProvider):
     """Placeholder provider for agents initialized without a specific model configuration.
+
     Raises a strict runtime error if execution is attempted before configuration.
     """
 

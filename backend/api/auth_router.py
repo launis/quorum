@@ -210,7 +210,8 @@ async def list_users(current_user: CurrentUserDep, auth_service: AuthServiceDep)
 
     if requester.role == UserRole.MANAGER:
         # Managers see Users they created OR just all in org?
-        # Often easier if they see all testers/viewers in Org, but let's stick to created_by for strictness OR strict hierarchy
+        # Often easier if they see all testers/viewers in Org, but let's stick to created_by for strictness
+        # OR strict hierarchy
         # Simpler SaaS Model: Manager sees all Testers/Viewers in their Org.
         return [u for u in org_users if u.role in [UserRole.MEMBER, UserRole.VIEWER, UserRole.MANAGER]]
 

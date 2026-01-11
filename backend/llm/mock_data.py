@@ -20,6 +20,7 @@ AGENT_CLASS_TO_MOCK_KEY = {
 
 def get_fallback_data(key: str) -> dict[str, Any]:
     """Returns generic valid JSON for the given proper mock key.
+
     Used when specific mock responses are missing from data/mock_responses.json.
 
     Args:

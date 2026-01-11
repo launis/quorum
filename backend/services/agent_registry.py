@@ -1,3 +1,4 @@
+"""Registry service for managing Agent components and strategies."""
 import logging
 from datetime import datetime
 from typing import Any
@@ -10,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 class AgentRegistry:
     """Service for discovering, instantiating, and managing Agent components.
+
     Handles Model Strategy resolution against the database.
     """
 
@@ -25,6 +27,7 @@ class AgentRegistry:
 
     async def resolve_model_name(self, model_identifier: str) -> str:
         """Resolves a high-level model key (e.g. 'fast', 'smart') to a concrete model name.
+
         Prioritizes database configuration over any hardcoded defaults.
 
         Args:
@@ -42,6 +45,7 @@ class AgentRegistry:
 
     async def resolve_model_config(self, model_identifier: str) -> dict[str, Any]:
         """Resolves a model identifier to a full configuration dictionary (name, tokens, temp, provider).
+
         STRICT MODE: Fetches ONLY from Database. No fallbacks.
 
         Args:
@@ -127,6 +131,7 @@ class AgentRegistry:
 
     async def discover_and_register_agents(self, package_path: str = "backend.agents"):
         """Loads agents using the static AgentFactory and registers them in the DB.
+
         This bootstraps the system with available code components.
 
         Args:

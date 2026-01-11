@@ -5,7 +5,7 @@ retrieving organization details.
 """
 
 import logging
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -91,7 +91,7 @@ router = APIRouter(prefix="/organizations", tags=["Organizations"])
 @router.post("/", response_model=OrganizationResponse, status_code=status.HTTP_201_CREATED)
 async def create_organization(
     org: OrganizationCreateRequest,
-    user: TokenData = Depends(AuthService.require_role(UserRole.ROOT)),
+    user: Annotated[TokenData, Depends(AuthService.require_role(UserRole.ROOT))],
     repo: RepositoryDep = None,  # Injected
 ):
     """Create a new Tenant Organization.
@@ -155,7 +155,7 @@ async def create_organization(
 
 @router.get("/", response_model=list[OrganizationResponse])
 async def list_organizations(
-    user: TokenData = Depends(AuthService.require_role(UserRole.ROOT)),
+    user: Annotated[TokenData, Depends(AuthService.require_role(UserRole.ROOT))],
     repo: RepositoryDep = None,
 ):
     """List all organizations.
@@ -283,9 +283,9 @@ async def update_organization(
 async def delete_organization(
     org_id: str,
     force: bool = False,
-    user: TokenData = Depends(AuthService.require_role(UserRole.ROOT)),
+    user: Annotated[TokenData, Depends(AuthService.require_role(UserRole.ROOT))],
     repo: RepositoryDep = None,
-    auth_service: AuthServiceDep = None,
+    auth: Any = None,
 ):
     """Delete an organization.
 
@@ -326,7 +326,7 @@ async def delete_organization(
 
     # 3. Delete Users & Org Entity (AuthService)
     try:
-        await auth_service.delete_organization(user.uid, org_id, force=force)
+        await auth.delete_organization(user.uid, org_id, force=force)
 
         # AUDIT LOG (Phase 3)
         try:
@@ -343,7 +343,7 @@ async def delete_organization(
             pass
 
     except PermissionError as e:
-        raise HTTPException(status_code=403, detail=str(e))
+        raise HTTPException(status_code=403, detail=str(e)) from e
     except ValueError as e:
         msg = str(e)
         if "Organization is not empty" in msg:

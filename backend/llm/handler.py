@@ -13,13 +13,15 @@ logger = logging.getLogger(__name__)
 
 
 class LLMHandler:
-    """Handles higher-level LLM operations including model discovery via APIs,
-    fetching configuration from the database, and delegating execution to the LLMFactory.
+    """Handles higher-level LLM operations including model discovery via APIs.
+
+    Fetching configuration from the database, and delegating execution to the LLMFactory.
     """
 
     def _check_model_availability(self, model_id: str, location: str) -> bool:
-        """Validates if a specific model_id (e.g., 'vertex_ai/gemini-1.5-pro')
-        is available in the target location by attempting to fetch its metadata.
+        """Validates if a specific model_id (e.g., 'vertex_ai/gemini-1.5-pro') is available.
+
+        Attempts to fetch its metadata in the target location.
         """
         try:
             api_endpoint = f"{location}-aiplatform.googleapis.com"
@@ -52,6 +54,7 @@ class LLMHandler:
         self, providers: list[str] | None = None, location: str | None = None
     ) -> dict[str, list[str]]:
         """Queries External APIs (Vertex AI, OpenAI) for available models.
+
         Respects 'use_mock_llm' setting by returning mock data if enabled.
 
         Args:
@@ -102,7 +105,9 @@ class LLMHandler:
                     # We inline the list call here for simplicity or could use helper if reused.
                     # Using us-central1 explicitly.
                     discovery_ep = "us-central1-aiplatform.googleapis.com"
-                    client = aiplatform_v1beta1.ModelGardenServiceClient(client_options={"api_endpoint": discovery_ep})
+                    client = aiplatform_v1beta1.ModelGardenServiceClient(
+                        client_options={"api_endpoint": discovery_ep}
+                    )
 
                     # Listing
                     # logger.info("Fetching Master Catalog from us-central1...")
@@ -205,8 +210,11 @@ class LLMHandler:
         if config:
             return config
 
-    async def call_llm(self, provider: str, mode: str, prompt: str, system_instruction: str | None = None) -> str:
+    async def call_llm(
+        self, provider: str, mode: str, prompt: str, system_instruction: str | None = None
+    ) -> str:
         """High-level helper to call an LLM (Ad-hoc usage).
+
         Resolves configuration from DB based on provider/mode and delegates to LLMFactory.
 
         Args:
@@ -224,7 +232,8 @@ class LLMHandler:
 
         if not config:
             raise ValueError(
-                f"STRICT CONFIG ERROR: No configuration found for strategy '{provider}/{mode}' in System Registry. Fallbacks are PROHIBITED."
+                f"STRICT CONFIG ERROR: No configuration found for strategy '{provider}/{mode}' "
+                "in System Registry. Fallbacks are PROHIBITED."
             )
 
         # Handle if config is Pydantic model or dict
@@ -274,7 +283,10 @@ class LLMHandler:
             llm_provider = LLMFactory.create_provider(provider, model_name)
 
             response = await llm_provider.generate(
-                prompt=prompt, system_instruction=system_instruction, temperature=temperature, max_tokens=max_tokens
+                prompt=prompt,
+                system_instruction=system_instruction,
+                temperature=temperature,
+                max_tokens=max_tokens,
             )
 
             # Response is now LLMResponse object

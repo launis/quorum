@@ -1,3 +1,4 @@
+"""Presenter layer for formatting WorkflowState into UI-ready structures."""
 from __future__ import annotations
 
 import os
@@ -9,12 +10,14 @@ if TYPE_CHECKING:
 
 class StatePresenter:
     """Handles the presentation logic for WorkflowState.
+
     Separates the concern of data serialization/flattening from the state model itself.
     """
 
     @staticmethod
     def flatten_state(state: WorkflowState) -> dict[str, Any]:
         """Projects the complex state into a simplified, flat dictionary.
+
         This structured is optimized for frontend UI consumption (React/JSON).
         Does NOT rely on specific UI code but organizes data logically.
 

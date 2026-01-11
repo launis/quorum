@@ -19,6 +19,7 @@ class AdministrationService:
 
     def export_seed_data(self, tracker: ProgressTracker) -> dict[str, Any]:
         """Exports the current database configuration to 'seed_data.json'.
+
         Used for persisting changes made in the UI back to source control.
 
         Args:
@@ -43,10 +44,11 @@ class AdministrationService:
             return final_res
         except Exception as e:
             tracker.fail(str(e))
-            raise e
+            raise e from e
 
     def rebuild_database(self, tracker: ProgressTracker) -> dict[str, Any]:
         """Rebuilds the database using 'seed_data.json'.
+
         Wipes existing data and re-seeds from the JSON source.
 
         Args:
@@ -71,7 +73,7 @@ class AdministrationService:
             return result
         except Exception as e:
             tracker.fail(str(e))
-            raise e
+            raise e from e
 
     def reset_mock_db(self, tracker: ProgressTracker) -> dict[str, Any]:
         """Resets the Mock database via external script.
@@ -138,4 +140,4 @@ class AdministrationService:
 
         except Exception as e:
             tracker.fail(str(e))
-            raise e
+            raise e from e

@@ -1,3 +1,4 @@
+"""Reference Manager for handling citations and bibliography generation."""
 import logging
 import re
 from typing import Any
@@ -7,6 +8,7 @@ logger = logging.getLogger(__name__)
 
 class ReferenceManager:
     """Centralized service for managing bibliometric citations and generating master bibliographies.
+
     Scans text for short citations (e.g. "Acemoglu 2023") and resolves them against the Knowledge Base
     to produce accurate lists of references used in generated output.
     """
@@ -29,6 +31,7 @@ class ReferenceManager:
 
     def _build_reference_map(self) -> dict[str, str]:
         """Builds a normalized lookup map: Short Citation (lowercase) -> Full Reference String.
+
         Used for O(1) resolution of citations found in text.
 
         Returns:
@@ -65,6 +68,7 @@ class ReferenceManager:
 
     def scan_and_collect_references(self, content: Any) -> list[str]:
         """Recursively scans a JSON-like structure (dict/list/str) for citations.
+
         Extracts all parenthetical citations and resolves them to full references.
 
         Args:
@@ -122,6 +126,7 @@ class ReferenceManager:
 
     def advanced_scan(self, text_dump: str) -> dict[str, list[str]]:
         """Performs a deep (2-hop) scan for citation relevance.
+
         1. Checks for direct citation in text.
         2. Checks for theoretical concepts mentioned in text, and includes references defining those concepts.
 

@@ -73,6 +73,7 @@ class UsageService:
 
     async def check_quota(self, org_id: str) -> bool:
         """Checks if organization is within quota limits (Current Month).
+
         Returns True if SAFE (under limit), False if EXCEEDED.
         """
         try:

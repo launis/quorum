@@ -6,6 +6,7 @@ from typing import Any
 
 class BaseComponent(ABC):
     """Abstract base class for all workflow components.
+
     All components must inherit from this class and implement the execute method.
     """
 

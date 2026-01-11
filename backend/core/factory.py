@@ -21,6 +21,7 @@ from backend.agents.xai import XAIReporterAgent
 
 class AgentFactory:
     """Static Factory to explicitly instantiate all available Agents.
+
     Replaces dynamic discovery to ensure compile-time safety and explicit dependencies.
     """
 

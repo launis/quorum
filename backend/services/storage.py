@@ -1,3 +1,4 @@
+"""Storage Service abstraction for local and cloud backends."""
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -51,6 +52,7 @@ class AbstractStorage(ABC):
 
 class LocalFileStorage(AbstractStorage):
     """Local file system implementation of AbstractStorage.
+
     Stores files in a local directory (e.g., 'backend/files/executions').
     """
 
@@ -93,7 +95,7 @@ class LocalFileStorage(AbstractStorage):
             return str(full_path)
         except Exception as e:
             logger.error(f"Failed to save file to {path}: {e}")
-            raise e
+            raise e from e
 
     def read(self, path: str) -> bytes:
         """Reads file from local system.
@@ -111,7 +113,7 @@ class LocalFileStorage(AbstractStorage):
                 return f.read()
         except Exception as e:
             logger.error(f"Failed to read file from {path}: {e}")
-            raise e
+            raise e from e
 
     def exists(self, path: str) -> bool:
         """Checks if local file exists.
@@ -148,6 +150,7 @@ class NoOpStorage(AbstractStorage):
 
 class FirebaseStorage(AbstractStorage):
     """Firebase Storage implementation of AbstractStorage.
+
     Uses firebase-admin SDK.
     """
 
@@ -198,7 +201,7 @@ class FirebaseStorage(AbstractStorage):
             # Using logger.critical/warning instead of print for better visibility in logs
             logger.critical(f"!!! FIREBASE STORAGE ERROR: {msg}")
             logger.critical("!!! HINT: Did you enable 'Storage' in the Firebase Console?")
-            raise e
+            raise e from e
 
     def read(self, path: str) -> bytes:
         """Reads file from Firebase bucket.
@@ -233,6 +236,7 @@ class FirebaseStorage(AbstractStorage):
 
 def get_storage_client() -> AbstractStorage:
     """Factory function to return the configured storage client.
+
     Defaults to LocalFileStorage in development.
     """
     from backend.settings import get_settings

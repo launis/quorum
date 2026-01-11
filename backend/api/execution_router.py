@@ -242,6 +242,7 @@ async def get_execution_status(
     engine: EngineDep, execution_id: str = Path(..., description="The UUID of the execution to retrieve.")
 ):
     """Retrieves the full status and result data for a specific execution ID.
+
     Performs on-the-fly hydration of legacy result structures if necessary.
     """
     status = await engine.get_execution_status(execution_id)

@@ -1,3 +1,4 @@
+"""Prompt Builder service for constructing dynamic LLM prompts."""
 from __future__ import annotations
 
 import json
@@ -34,8 +35,8 @@ class PromptBuilder:
         self.registry = agent_registry
 
     async def construct_prompt(self, step_id: str, current_state: WorkflowState | None = None) -> str:
-        """Fetches the step configuration and constructs the full system prompt
-        by concatenating the content of all referenced prompt components.
+        """Fetches the step configuration and constructs the full system prompt by concatenating the content of all referenced prompt components.
+
         Injects dynamic variables (e.g., {{HISTORY_TEXT}}) if state is provided.
         """
         try:
@@ -76,6 +77,7 @@ class PromptBuilder:
 
     async def _resolve_prompt_components(self, step_data: dict[str, Any]) -> list[str]:
         """Fetches content from all prompt components linked to the step.
+
         Resolves references stored in 'execution_config.llm_prompts'.
         """
         exec_config = step_data.get("execution_config", {})

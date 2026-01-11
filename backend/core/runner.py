@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 class PipelineRunner:
     """Responsible for executing the sequential agent loop and individual steps.
+
     Managed by the WorkflowEngine.
     """
 
@@ -86,7 +87,7 @@ class PipelineRunner:
             return current_state
         except Exception as e:
             logger.error(f"[PipelineRunner] Failed to initialize state: {e}")
-            raise FatalInterruption("StateInitialization", f"Failed to initialize state: {e}", {"error": str(e)})
+            raise FatalInterruption("StateInitialization", f"Failed to initialize state: {e}", {"error": str(e)}) from e
 
     async def execute_loop(
         self,
@@ -196,7 +197,7 @@ class PipelineRunner:
             current_state = await agent.execute(current_state, **exec_kwargs)
 
         except Exception as e:
-            raise AgentExecutionError(agent_name, step_id, e)
+            raise AgentExecutionError(agent_name, step_id, e) from e
 
         # 5. Post-Hooks
         for hook in config.get("post_hooks") or []:
@@ -257,7 +258,8 @@ class PipelineRunner:
         else:
             if not hook_name.startswith("parse_"):
                 logger.warning(
-                    f"[PipelineRunner] Warning: Hook '{hook_name}' not found on Agent {agent.__class__.__name__}. Skipping."
+                    f"[PipelineRunner] Warning: Hook '{hook_name}' not found on Agent "
+                    f"{agent.__class__.__name__}. Skipping."
                 )
             return state
 
@@ -310,7 +312,8 @@ class PipelineRunner:
         if resolved_model_name and hasattr(agent, "set_model"):
             agent.set_model(resolved_model_name, provider=resolved_provider)
             logger.debug(
-                f"[PipelineRunner] Configured {agent.__class__.__name__} with {resolved_model_name} (Provider: {resolved_provider})"
+                f"[PipelineRunner] Configured {agent.__class__.__name__} with {resolved_model_name} "
+                f"(Provider: {resolved_provider})"
             )
 
         return resolved_config

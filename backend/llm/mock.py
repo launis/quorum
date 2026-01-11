@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 class MockLLMService:
     """Simulates LLM responses for testing and development without API costs.
+
     Intercepts calls and returns pre-defined JSON responses based on agent identity or prompt heuristics.
     """
 
@@ -62,6 +63,7 @@ class MockLLMService:
 
     def _identify_prompt_type(self, prompt: str, system_instruction: str | None) -> str:
         """Heuristics to identify the prompt type/agent key.
+
         Prioritizes explicit STEP_ID injection, then system instruction keywords, then prompt keywords.
 
         Args:
@@ -266,6 +268,7 @@ class MockLLMService:
 
     def _generate_fallback(self, key: str, prompt: str = "", system_instruction: str | None = None) -> str:
         """Generates a minimal valid JSON response for the identified key, strictly matching backend/schemas.py.
+
         Delegates precise data generation to `mock_data.py`.
 
         Args:

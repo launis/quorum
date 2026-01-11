@@ -256,6 +256,7 @@ def update_step(step_id: str, step: dict[str, Any], db: DatabaseDep):
 @router.delete("/steps/{step_id}", summary="Delete Step", response_description="Delete status.")
 async def delete_step(step_id: str, db: DatabaseDep):
     """Delete a step.
+
     Refactored to enforce Integrity: Cannot delete step if used in Workflows.
     """
     # 1. Check Existence
@@ -589,7 +590,7 @@ async def call_llm_adhoc(request: LLMCallRequest, handler: LLMHandlerDep):
         return {"content": response_text}
     except Exception as e:
         logger.error(f"Ad-hoc LLM Call Failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/models/strategies", summary="Get Strategies", response_description="Active strategy map.")
@@ -729,12 +730,14 @@ def get_known_dimensions(db: DatabaseDep):
 
 @router.get("/ontology/dimensions/full", summary="Get Full Ontology", response_description="Full dimension objects.")
 def get_full_ontology(db: DatabaseDep):
+    """Retrieve all dimension objects from the ontology."""
     get_known_dimensions(db)  # Ensure seed
     return db.table("dimensions").all()
 
 
 @router.post("/ontology/dimensions", summary="Create Dimension", response_description="Created Dimension.")
 def create_dimension(dim: DimensionDefinition, db: DatabaseDep):
+    """Create a new evaluation dimension."""
     table = db.table("dimensions")
     if table.search(Query().id == dim.id):
         raise HTTPException(status_code=400, detail=f"Dimension '{dim.id}' already exists.")
@@ -744,6 +747,7 @@ def create_dimension(dim: DimensionDefinition, db: DatabaseDep):
 
 @router.delete("/ontology/dimensions/{dim_id}", summary="Delete Dimension", response_description="Status.")
 def delete_dimension(dim_id: str, db: DatabaseDep):
+    """Delete a dimension if not in use."""
     # 1. Check Usage
     comp_table = db.table("components")
     Component = Query()

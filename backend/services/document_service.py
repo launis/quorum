@@ -1,3 +1,4 @@
+"""Document Service for file processing."""
 import io
 import logging
 import os
@@ -36,6 +37,7 @@ class DocumentService:
 
     async def process_evidence_files(self, execution_id: str, files: dict[str, tuple[str, bytes]]) -> dict[str, str]:
         """Archives evidence files to storage and extracts text for workflow execution.
+
         Handles PDF and DOCX formats automatically.
 
         Args:
@@ -103,6 +105,7 @@ class DocumentService:
 
     async def process_knowledge_base_file(self, content: bytes, filename: str, job_id: str) -> dict[str, Any]:
         """Archives Knowledge Base file and parses it into concepts/references.
+
         Supports both DOCX and Markdown formats.
 
         Args:
@@ -145,7 +148,7 @@ class DocumentService:
 
         except Exception as e:
             logger.error(f"[DocumentService] KB processing failed for {filename}: {e}")
-            raise e
+            raise e from e
 
     # --- Internal Text Extraction Helpers (Migrated from DocumentProcessor) ---
 
@@ -185,6 +188,7 @@ class DocumentService:
     @staticmethod
     def _extract_text_from_docx(input_data: str | bytes) -> str:
         """Extracts plain text from a DOCX file using python-docx.
+
         Includes text from paragraphs and tables.
 
         Args:

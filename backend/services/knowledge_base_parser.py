@@ -1,3 +1,4 @@
+"""Parser service for extracting structured knowledge from documents."""
 import logging
 import re
 from typing import Any
@@ -103,6 +104,7 @@ class KnowledgeBaseParser:
     @staticmethod
     def parse_docx(file_input: Any) -> dict[str, Any]:
         """Parses DOCX document into structured knowledge.
+
         Iterates through paragraphs to distinguish between Concepts (Headers + Text) and Bibliography.
 
         Args:
@@ -120,7 +122,7 @@ class KnowledgeBaseParser:
             doc = docx.Document(file_input)
         except Exception as e:
             logger.error(f"[KBParser] Failed to open document: {e}")
-            raise e
+            raise e from e
 
         # Data structure
         knowledge_base = {
@@ -540,6 +542,7 @@ class KnowledgeBaseParser:
     @staticmethod
     def _resolve_claims(knowledge_base: dict[str, Any]):
         """Internal Helper: Resolves textual claims to their full bibliographic references.
+
         Populates 'original_markdown' field in claims.
 
         Match Logic:

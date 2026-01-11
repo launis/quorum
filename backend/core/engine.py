@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class WorkflowEngine:
+    """Central controller for executing workflows and managing state."""
     def __init__(
         self,
         db_path: str,
@@ -27,6 +28,7 @@ class WorkflowEngine:
         document_service: Any,
     ):
         """Initializes the Workflow Engine with necessary dependencies.
+
         Strict Dependency Injection is enforced; no auto-wiring allowed.
 
         Args:
@@ -187,6 +189,7 @@ class WorkflowEngine:
         self, execution_id: str, workflow_id: str, inputs: dict[str, Any]
     ) -> dict[str, Any]:
         """Core worker task: Executes the workflow state-machine logic.
+
         This method is designed to be called locally or via a task queue worker.
 
         Args:
@@ -400,7 +403,8 @@ class WorkflowEngine:
                 return await self._project_final_result(execution_id, current_state, pipeline_steps)
 
             logger.info(
-                f"[WorkflowEngine] Resuming from step {resume_index + 1}/{len(pipeline_steps)} ({steps_to_run[0][0].__class__.__name__})"
+                f"[WorkflowEngine] Resuming from step {resume_index + 1}/{len(pipeline_steps)} "
+                f"({steps_to_run[0][0].__class__.__name__})"
             )
 
             # 4. Update Status to Running
@@ -543,6 +547,7 @@ class WorkflowEngine:
         self, execution_id: str, state: WorkflowState, pipeline_steps: list[Any]
     ) -> dict[str, Any]:
         """Transforms the final internal state into the public result dictionary.
+
         Applies logic for field hoisting and Reference Manager scanning.
 
         Args:

@@ -1,3 +1,4 @@
+"""Redis patching utilities."""
 import logging
 
 from arq.connections import ArqRedis
@@ -44,8 +45,10 @@ def get_patched_fakeredis_pool() -> ArqRedis:
 
         fake_redis.release = _release
 
-    # PATCH: Arq calls .disconnect() on the pool? No, on connection. FakeRedis has close() but Arq might call something else.
-    # But the specific error is AttributeError: 'FakeRedis' object has no attribute 'retry' in await conn.retry.call_with_retry
+    # PATCH: Arq calls .disconnect() on the pool? No, on connection.
+    # FakeRedis has close() but Arq might call something else.
+    # But the specific error is AttributeError: 'FakeRedis' object has no attribute 'retry'
+    # in await conn.retry.call_with_retry
     # Wait, 'conn' IS 'fake_redis' because _get_conn returns self.
     # So fake_redis needs a .retry attribute which has a .call_with_retry method.
 

@@ -52,7 +52,7 @@ def _load_agent_class(agent_name: str, db: AbstractDatabase):
         module = importlib.import_module(module_name)
         return getattr(module, agent_name)
     except (ImportError, AttributeError) as e:
-        raise ValueError(f"Failed to load agent {agent_name} from {module_name}: {e}")
+        raise ValueError(f"Failed to load agent {agent_name} from {module_name}: {e}") from e
 
 
 @router.post(
@@ -60,9 +60,11 @@ def _load_agent_class(agent_name: str, db: AbstractDatabase):
 )
 async def run_agent(
     agent_name: str,
-    inputs: dict[str, Any] = Body(..., description="Key-value pairs representing the input state for the agent."),
-    system_instruction: str | None = Body(None, description="Optional system instruction override."),
-    model: str | None = Body(None, description="Optional model strategy override."),
+    inputs: Annotated[
+        dict[str, Any], Body(description="Key-value pairs representing the input state for the agent.")
+    ],
+    system_instruction: Annotated[str | None, Body(description="Optional system instruction override.")] = None,
+    model: Annotated[str | None, Body(description="Optional model strategy override.")] = None,
     db: DatabaseDep = None,  # Injected
 ):
     """Executes a specific agent in isolation with provided inputs.

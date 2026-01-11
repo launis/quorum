@@ -1,3 +1,4 @@
+"""Database wrapper implementations."""
 import logging
 import os
 from abc import ABC, abstractmethod
@@ -27,40 +28,49 @@ except ImportError:
 class AbstractTable(ABC):
     @abstractmethod
     def insert(self, document: dict[str, Any]) -> Any:
+        """Insert a document."""
         pass
 
     @abstractmethod
     def all(self) -> list[dict[str, Any]]:
+        """Retrieve all documents."""
         pass
 
     @abstractmethod
     def search(self, query: Any) -> list[dict[str, Any]]:
+        """Search documents matching a query."""
         pass
 
     @abstractmethod
     def get(self, query: Any) -> dict[str, Any] | None:
+        """Get a single document matching a query."""
         pass
 
     @abstractmethod
     def update(self, fields: dict[str, Any], query: Any = None, doc_ids: list[int] | None = None) -> list[int]:
+        """Update documents."""
         pass
 
     @abstractmethod
     def upsert(self, document: dict[str, Any], query: Any) -> list[int]:
+        """Upsert a document."""
         pass
 
     @abstractmethod
     def remove(self, query: Any) -> list[int]:
+        """Remove documents."""
         pass
 
 
 class AbstractDatabase(ABC):
     @abstractmethod
     def table(self, name: str) -> AbstractTable:
+        """Get a table by name."""
         pass
 
     @abstractmethod
     def close(self):
+        """Close the database connection."""
         pass
 
 
@@ -69,6 +79,7 @@ class AbstractDatabase(ABC):
 
 class TinyDBTable(AbstractTable):
     def __init__(self, db_path: str, table_name: str):
+        """Initialize TinyDB table."""
         self._path = db_path
         self._name = table_name
 
@@ -76,36 +87,44 @@ class TinyDBTable(AbstractTable):
         return db.table(self._name)
 
     def insert(self, document: dict[str, Any]) -> int:
+        """Insert document."""
         with TinyDB(self._path, encoding="utf-8") as db:
             return self._get_table(db).insert(document)
 
     def all(self) -> list[dict[str, Any]]:
+        """Retrieve all documents."""
         with TinyDB(self._path, encoding="utf-8") as db:
             return self._get_table(db).all()
 
     def search(self, query: Any) -> list[dict[str, Any]]:
+        """Search documents."""
         with TinyDB(self._path, encoding="utf-8") as db:
             return self._get_table(db).search(query)
 
     def get(self, query: Any) -> dict[str, Any] | None:
+        """Get document."""
         with TinyDB(self._path, encoding="utf-8") as db:
             return self._get_table(db).get(query)
 
     def update(self, fields: dict[str, Any], query: Any = None, doc_ids: list[int] | None = None) -> list[int]:
+        """Update documents."""
         with TinyDB(self._path, encoding="utf-8") as db:
             return self._get_table(db).update(fields, cond=query, doc_ids=doc_ids)
 
     def upsert(self, document: dict[str, Any], query: Any) -> list[int]:
+        """Upsert document."""
         with TinyDB(self._path, encoding="utf-8") as db:
             return self._get_table(db).upsert(document, query)
 
     def remove(self, query: Any) -> list[int]:
+        """Remove documents."""
         with TinyDB(self._path, encoding="utf-8") as db:
             return self._get_table(db).remove(query)
 
 
 class TinyDBClient(AbstractDatabase):
     def __init__(self, path: str):
+        """Initialize TinyDB Client."""
         import os
 
         os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -115,9 +134,11 @@ class TinyDBClient(AbstractDatabase):
             pass
 
     def table(self, name: str) -> AbstractTable:
+        """Get table."""
         return TinyDBTable(self.path, name)
 
     def close(self):
+        """Close client."""
         pass
 
 
@@ -126,17 +147,21 @@ class TinyDBClient(AbstractDatabase):
 
 class FirestoreTable(AbstractTable):
     def __init__(self, collection_ref):
+        """Initialize Firestore Table."""
         self._collection = collection_ref
 
     def insert(self, document: dict[str, Any]) -> Any:
+        """Insert document."""
         _, doc_ref = self._collection.add(document)
         return doc_ref.id
 
     def all(self) -> list[dict[str, Any]]:
+        """Retrieve all documents."""
         docs = self._collection.stream()
         return [doc.to_dict() for doc in docs]
 
     def search(self, query: Any) -> list[dict[str, Any]]:
+        """Search documents."""
         # Fetch all and filter in memory using TinyDB query evaluation
         # This is inefficient for large datasets but acceptable for configuration tables.
         docs = self._collection.stream()
@@ -148,6 +173,7 @@ class FirestoreTable(AbstractTable):
         return results
 
     def get(self, query: Any) -> dict[str, Any] | None:
+        """Get document."""
         # Return the first match
         docs = self._collection.stream()
         for doc in docs:
@@ -157,6 +183,7 @@ class FirestoreTable(AbstractTable):
         return None
 
     def update(self, fields: dict[str, Any], query: Any = None, doc_ids: list[int] | None = None) -> list[int]:
+        """Update documents."""
         # Firestore implementation ignores doc_ids (int) as it uses string IDs.
         # Ideally, repository should use Query for compatibility.
         docs = self._collection.stream()
@@ -171,6 +198,7 @@ class FirestoreTable(AbstractTable):
         return [1] * updated_count
 
     def upsert(self, document: dict[str, Any], query: Any) -> list[int]:
+        """Upsert document."""
         docs = self._collection.stream()
         matches = []
         for doc in docs:
@@ -191,6 +219,7 @@ class FirestoreTable(AbstractTable):
             return [1]
 
     def remove(self, query: Any) -> list[int]:
+        """Remove documents."""
         docs = self._collection.stream()
         removed_count = 0
         to_delete = []
@@ -255,9 +284,11 @@ class FirestoreClient(AbstractDatabase):
             raise RuntimeError(f"Firestore connectivity test failed. Check internet/VPN/Credentials. Error: {e}")
 
     def table(self, name: str) -> AbstractTable:
+        """Get table."""
         return FirestoreTable(self.db.collection(name))
 
     def close(self):
+        """Close client."""
         pass
 
 

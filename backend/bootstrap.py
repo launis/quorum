@@ -21,6 +21,7 @@ from backend.settings import get_settings
 
 async def bootstrap_application():
     """Centralized initialization logic for the backend.
+
     Handles logging, configuration checks, and Engine warmup.
     """
     # 1. Initialize Logging
@@ -120,4 +121,4 @@ async def bootstrap_application():
 
     except Exception as e:
         logger.error(f"   [CRITICAL] Engine Warmup Failed: {e}", exc_info=True)
-        raise RuntimeError(f"Startup Failed: {e}")
+        raise RuntimeError(f"Startup Failed: {e}") from e

@@ -164,8 +164,8 @@ def _start_admin_task(
             else:
                 # Run sync method in threadpool to avoid blocking loop
                 loop = asyncio.get_running_loop()
-                # Use lambda or functools.partial could be cleaner, but straight args work with run_in_executor in recent python
-                # Note: run_in_executor(None, func, *args)
+                # Use lambda or functools.partial could be cleaner, but straight args work with run_in_executor
+                # in recent python. Note: run_in_executor(None, func, *args)
                 if args:
                     res = await loop.run_in_executor(None, method, tracker, *args)
                 else:
@@ -437,8 +437,8 @@ def ingest_knowledge_base(
     response_description="Confirmation that upload ingestion has started.",
 )
 async def upload_knowledge_base(
-    file: UploadFile = File(..., description="The file to be uploaded and ingested."),
-    reset_db: bool = Query(False, description="Whether to clear the KB before ingestion."),
+    file: Annotated[UploadFile, File(description="The file to be uploaded and ingested.")],
+    reset_db: Annotated[bool, Query(description="Whether to clear the KB before ingestion.")] = False,
     background_tasks: BackgroundTasks = None,
     db_client: DatabaseDep = None,  # Make optional default if needed or just DatabaseDep
     llm_provider: LLMProviderFast = None,

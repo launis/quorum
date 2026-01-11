@@ -1,3 +1,4 @@
+"""API Router for Global System Settings."""
 from fastapi import APIRouter, HTTPException
 
 from backend.dependencies import AuditServiceDep, AuthService, CurrentUserDep, EngineDep

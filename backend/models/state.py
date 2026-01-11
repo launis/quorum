@@ -174,6 +174,7 @@ class WorkflowState(BaseModel):
 
     def get_previous_outputs_summary(self) -> str:
         """Generates a text summary of all previous agent outputs.
+
         Used to provide context to subsequent agents.
 
         Returns:

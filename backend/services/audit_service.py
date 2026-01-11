@@ -27,12 +27,14 @@ from backend.database.repository import AbstractWorkflowRepository
 
 logger = logging.getLogger(__name__)
 
-
 from backend.models.audit import AuditEvent
 
 
 class AuditService:
+    """Service for handling audit log persistence."""
+
     def __init__(self, repo: AbstractWorkflowRepository):
+        """Initialize AuditService."""
         self.repo = repo
 
     async def log_event(

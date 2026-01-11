@@ -81,6 +81,7 @@ class SecurityCheck(BaseModel):
     @field_validator("uhka_havaittu", mode="before")
     @classmethod
     def parse_uhka_havaittu(cls, v: Any) -> bool:
+        """Validate uhka_havaittu boolean."""
         if isinstance(v, str):
             if v.upper() in ["EI", "NO", "FALSE"]:
                 return False
@@ -114,6 +115,7 @@ class TaintedDataContent(BaseModel):
 
 
 class SafeDataContent(BaseModel):
+    """Sanitized data content (PII removed)."""
     keskusteluhistoria: Annotated[str | None, Field(description="Sanitized history.")] = None
     lopputuote: Annotated[str | None, Field(description="Sanitized product.")] = None
     reflektiodokumentti: Annotated[str | None, Field(description="Sanitized reflection.")] = None
@@ -157,6 +159,7 @@ class Hypoteesi(BaseModel):
 
 
 class RagTodiste(BaseModel):
+    """Evidence retrieved via RAG."""
     viittaa_hypoteesiin_id: Annotated[
         str | list[str], Field(description="ID(s) of the hypothesis this evidence supports.")
     ]
@@ -169,6 +172,7 @@ class RagTodiste(BaseModel):
     @field_validator("viittaa_hypoteesiin_id", mode="before")
     @classmethod
     def parse_viittaa_hypoteesiin_id(cls, v: Any) -> str | list[str]:
+        """Validate hypothesis ID reference."""
         if isinstance(v, str):
             if v.startswith("[") and v.endswith("]"):
                 import json
@@ -182,6 +186,7 @@ class RagTodiste(BaseModel):
     @field_validator("konteksti_segmentti", mode="before")
     @classmethod
     def parse_konteksti_segmentti(cls, v: Any) -> str:
+        """Validate context segment."""
         if isinstance(v, dict):
             for key in ["text", "content", "segment", "history", "lopputuote", "reflektio"]:
                 if key in v and isinstance(v[key], str):
@@ -194,6 +199,7 @@ class RagTodiste(BaseModel):
     @field_validator("relevanssi_score", mode="before")
     @classmethod
     def parse_relevanssi_score(cls, v: Any) -> int:
+        """Validate relevance score."""
         if isinstance(v, float):
             return int(round(v))
         if isinstance(v, str):
@@ -218,6 +224,7 @@ class TodistusKartta(BaseJSON):
     @field_validator("hypoteesit", mode="before")
     @classmethod
     def parse_hypoteesit(cls, v: Any) -> list[Hypoteesi]:
+        """Validate list of hypotheses."""
         if isinstance(v, list):
             parsed_list = []
             for item in v:
@@ -242,6 +249,7 @@ class TodistusKartta(BaseJSON):
 
 
 class StructuredBias(BaseModel):
+    """Structured representation of a cognitive bias."""
     nimi: Annotated[str, Field(description="Name of the cognitive bias")]
     selitys: Annotated[str, Field(description="Explanation of how this bias appears in the text")]
 
@@ -249,6 +257,7 @@ class StructuredBias(BaseModel):
 
 
 class TextMetrics(BaseModel):
+    """Objective text metrics."""
     word_count: Annotated[int, Field(description="Total number of words")]
     sentence_count: Annotated[int, Field(description="Total number of sentences")]
     avg_sentence_length: Annotated[float, Field(description="Average words per sentence")]
@@ -302,6 +311,7 @@ class ToulminKomponentti(BaseModel):
 
 
 class KognitiivinenTaso(BaseModel):
+    """Assessment of cognitive depth."""
     bloom_taso: Annotated[str, Field(description="Bloom's Taxonomy Level.")]
     strateginen_syvyys: Annotated[str, Field(description="Strategic depth analysis.")]
 
@@ -309,6 +319,7 @@ class KognitiivinenTaso(BaseModel):
 
 
 class WaltonSkeema(BaseModel):
+    """Walton's Argumentation Scheme."""
     tunnistettu_skeema: Annotated[str, Field(description="Identified Argumentation Scheme.")]
     kriittiset_kysymykset: Annotated[list[str], Field(description="Critical Questions posed.")]
 
@@ -333,6 +344,7 @@ class ArgumentaatioAnalyysi(BaseJSON):
 
 
 class WaltonStressitesti(BaseModel):
+    """Stress test using Walton's critical questions."""
     kysymys: Annotated[str, Field(description="The critical question asked.")]
     kestiko_todistusaineisto: Annotated[bool, Field(description="Did the evidence hold up?")]
     havainto: Annotated[str, Field(description="Observation notes.")]
@@ -341,6 +353,7 @@ class WaltonStressitesti(BaseModel):
 
 
 class PaattelyketjunUskollisuus(BaseModel):
+    """Audit of the chain of reasoning fidelity."""
     onko_post_hoc_rationalisointia: Annotated[bool, Field(description="True if post-hoc rationalization detected.")]
     perustelu: Annotated[str, Field(description="Reasoning.")]
     uskollisuus_score: Annotated[Literal["KORKEA", "EPÄVARMA", "HEIKKO"], Field(description="Fidelity score.")]
@@ -364,6 +377,7 @@ class LogiikkaAuditointi(BaseJSON):
 
 
 class FaktantarkistusRFI(BaseModel):
+    """Request for Information (Fact Check)."""
     vaite: Annotated[str, Field(description="Claim to check.")]
     verifiointi_tulos: Annotated[Literal["Vahvistettu", "Kumottu", "Ei voitu vahvistaa"], Field(description="Result.")]
     lahde_tai_paattely: Annotated[str, Field(description="Source or reasoning.")]
@@ -372,6 +386,7 @@ class FaktantarkistusRFI(BaseModel):
 
 
 class EettinenHavainto(BaseModel):
+    """Ethical Observation."""
     tyyppi: Annotated[
         Literal["Syrjintä", "Haitallinen sisältö", "Plagiointi", "Ei havaittu"], Field(description="Type of issue.")
     ]
@@ -401,6 +416,7 @@ class EtiikkaJaFakta(BaseJSON):
 
 
 class KausaalinenAuditointiData(BaseModel):
+    """Data from Causal Audit."""
     aikajana_validi: Annotated[bool, Field(description="Is the timeline valid?")]
     havainnot: Annotated[str, Field(description="General observations.")]
 
@@ -408,6 +424,7 @@ class KausaalinenAuditointiData(BaseModel):
 
 
 class KontrafaktuaalinenTesti(BaseModel):
+    """Counterfactual Simulation Test."""
     skenaario_A_toteutunut: Annotated[str, Field(description="Actual scenario.")]
     skenaario_B_simulaatio: Annotated[str, Field(description="Counterfactual simulation.")]
     uskottavuus_arvio: Annotated[str, Field(description="Plausibility assessment.")]
@@ -435,6 +452,7 @@ class KausaalinenAuditointi(BaseJSON):
 
 
 class PerformatiivisuusHeuristiikka(BaseModel):
+    """Heuristic check for performativity."""
     heuristiikka: Annotated[str, Field(description="Heuristic name.")]
     lippu_nostettu: Annotated[bool, Field(description="Flag raised?")]
     kuvaus: Annotated[str, Field(description="Description.")]
@@ -443,6 +461,7 @@ class PerformatiivisuusHeuristiikka(BaseModel):
 
 
 class PreMortemAnalyysi(BaseModel):
+    """Pre-Mortem Analysis results."""
     suoritettu: Annotated[bool, Field(description="Was Pre-Mortem performed?")]
     hiljaiset_signaalit: Annotated[list[str], Field(description="Detected weak signals.")]
 
@@ -471,6 +490,7 @@ class PerformatiivisuusAuditointi(BaseJSON):
 
 
 class KonfliktinRatkaisu(BaseModel):
+    """Resolution of conflicting information."""
     konflikti: Annotated[str, Field(description="Description of conflict.")]
     ratkaisu_malli: Annotated[str, Field(description="Resolution model applied.")]
     perustelu: Annotated[str, Field(description="Justification.")]
@@ -479,6 +499,7 @@ class KonfliktinRatkaisu(BaseModel):
 
 
 class MestaruusPoikkeama(BaseModel):
+    """Deviation from the 'Mastery' standard."""
     tunnistettu: Annotated[bool, Field(description="Is anomaly detected?")]
     perustelu: Annotated[str, Field(description="Reasoning.")]
 
@@ -486,6 +507,7 @@ class MestaruusPoikkeama(BaseModel):
 
 
 class AitousEpaily(BaseModel):
+    """Suspicion of lack of authenticity."""
     automaattinen_lippu: Annotated[bool, Field(description="Automatic flag?")]
     viesti_hitl_lle: Annotated[str, Field(alias="viesti_hitl:lle", description="Message for human reviewer.")]
 
@@ -493,6 +515,7 @@ class AitousEpaily(BaseModel):
 
 
 class PisteetKriteeri(BaseModel):
+    """Score for a specific criterion."""
     arvosana: Annotated[int | float, Field(description="Grade (typically 1-4, but allows dynamic scales).")]
     perustelu: Annotated[str, Field(description="Justification.")]
 
@@ -500,6 +523,7 @@ class PisteetKriteeri(BaseModel):
 
 
 class Pisteet(BaseModel):
+    """Collection of scores (legacy format)."""
     analyysi: Annotated[PisteetKriteeri | None, Field(description="Score for Analysis.")] = None
     arviointi: Annotated[PisteetKriteeri | None, Field(description="Score for Evaluation.")] = None
     synteesi: Annotated[PisteetKriteeri | None, Field(description="Score for Synthesis.")] = None
@@ -555,6 +579,7 @@ class CaseLawContext(BaseJSON):
 
 
 class ActionItem(BaseModel):
+    """Concrete action item for improvement."""
     otsikko: Annotated[str, Field(description="Action title.")]
     kuvaus: Annotated[str, Field(description="Description.")]
     resurssit: Annotated[list[str], Field(default_factory=list, description="URLs or Book refs")]
@@ -563,6 +588,7 @@ class ActionItem(BaseModel):
 
 
 class ActionGroup(BaseModel):
+    """Group of action items categories."""
     kategoria: Annotated[str, Field(description="Category header (e.g. 'Logic', 'Structure')")]
     kohdat: Annotated[list[ActionItem], Field(description="Items in this category")]
 

@@ -1,3 +1,4 @@
+"""Web Fetcher service for retrieving and cleaning external content."""
 import logging
 import re
 import urllib.error
@@ -8,12 +9,14 @@ logger = logging.getLogger(__name__)
 
 class WebFetcher:
     """Simple service to fetch text content from URLs.
+
     Uses generic utilities to avoid heavy dependencies efficiently for metadata fetching.
     """
 
     @staticmethod
     def fetch_text(url: str, timeout: int = 5) -> str | None:
         """Fetches the content of a URL and extracts visible text using naive parsing.
+
         Useful for quick checkups or reference validation.
         Limits output to first 5000 chars.
 

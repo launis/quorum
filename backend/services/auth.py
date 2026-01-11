@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 class OrganizationRepository:
     def __init__(self, db_client: AbstractDatabase):
+        """Initialize OrganizationRepository."""
         self.table: AbstractTable = db_client.table("organizations")
 
     def get_by_id(self, org_id: str) -> Organization | None:
@@ -59,6 +60,7 @@ class OrganizationRepository:
         return org
 
     def list_all(self) -> list[Organization]:
+        """List all organizations."""
         results = []
         for o in self.table.all():
             if "tier" not in o:
@@ -76,6 +78,7 @@ class UserRepository:
     """
 
     def __init__(self, db_client: AbstractDatabase):
+        """Initialize UserRepository."""
         self.table: AbstractTable = db_client.table("users")
 
     def get_by_uid(self, uid: str) -> User | None:
@@ -94,17 +97,20 @@ class UserRepository:
         return None
 
     def get_by_email(self, email: str) -> User | None:
+        """Retrieve user by email."""
         result = self.table.get(lambda x: x.get("email") == email)
         if result:
             return User(**result)
         return None
 
     def create(self, user: User) -> User:
+        """Create a new user."""
         data = user.model_dump()
         self.table.insert(data)
         return user
 
     def update(self, uid: str, updates: UserUpdate) -> User | None:
+        """Update a user."""
         user = self.get_by_uid(uid)
         if not user:
             return None
@@ -120,6 +126,7 @@ class UserRepository:
         return self.get_by_uid(uid)
 
     def list_all(self) -> list[User]:
+        """List all users."""
         raw_users = self.table.all()
         return [User(**u) for u in raw_users]
 
@@ -137,6 +144,7 @@ class AuthService:
     """Hybrid Auth Service with Multi-Tenancy (SaaS)."""
 
     def __init__(self, db_client: AbstractDatabase, use_firebase: bool = False, audit_service: Any = None):
+        """Initialize AuthService."""
         self.repo = UserRepository(db_client)
         self.org_repo = OrganizationRepository(db_client)
         self.use_firebase = use_firebase
@@ -179,6 +187,7 @@ class AuthService:
 
     def verify_token(self, token: str) -> TokenData:
         """Verifies a Bearer token.
+
         Returns TokenData (uid, role, organization_id).
         """
         # 1. Local Signed Token (Impersonation / Internal)
@@ -243,6 +252,7 @@ class AuthService:
 
     async def create_organization(self, creator_uid: str, org_create: OrganizationCreate) -> Organization:
         """Creates a new Tenant Organization and an initial Admin user for it.
+
         Strictly Async.
         """
         creator = self.repo.get_by_uid(creator_uid)
@@ -506,6 +516,7 @@ class AuthService:
 
     async def update_user(self, initiator_uid: str, target_uid: str, updates: UserUpdate) -> User:
         """General update method.
+
         If 'role' is being changed, we must enforce Last Admin Protection.
         """
         initiator = self.repo.get_by_uid(initiator_uid)
@@ -590,6 +601,7 @@ class AuthService:
     @staticmethod
     def require_role(required_role: UserRole):
         """Returns a dependency that validates the user has the required role.
+
         Implicitly allows ROOT for everything.
         """
         from fastapi import Depends, HTTPException
@@ -611,6 +623,7 @@ class AuthService:
         from_header=None,  # Placeholder to match Depends signature if needed, but we delegate
     ):
         """Dependency alias for getting current user via header.
+
         Intended usage: user: TokenData = Depends(AuthService.get_current_user).
         """
         from backend.dependencies import get_current_user_from_header
