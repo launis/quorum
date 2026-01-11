@@ -7,34 +7,40 @@ BASE_URL = "http://127.0.0.1:8000"
 
 
 def check_steps(data):
-    # Should be a list of dicts with 'id'
+    """Check if steps data is a list of dicts with 'id'."""
     return isinstance(data, list) and len(data) > 0 and "id" in data[0]
 
 
 def check_strategies(data):
+    """Check if strategies data is a dict containing 'fast' strategy."""
     # Should be a dict where keys are strategy names or list of keys?
     # Actually client expects: 'list(res.json().keys())' so backend likely returns dict
     return isinstance(data, dict) and "fast" in data
 
 
 def check_template(data):
+    """Check if the template data contains required fields."""
     return "steps" in data and "default_model_mapping" in data and data["name"] == "New Workflow"
 
 
 def check_id_gen(data):
+    """Check if the generated ID starts with the expected prefix."""
     return "id" in data and data["id"].startswith("test_")
 
 
 def check_fusion_rules(data):
+    """Check if fusion rules are a list and contain 'composite_step_id'."""
     # Should be a list of rules
     return isinstance(data, list) and len(data) > 0 and "composite_step_id" in data[0]
 
 
 def check_prompt_types(data):
+    """Check if prompt types are a list and contain 'prompt'."""
     return isinstance(data, list) and "prompt" in data
 
 
 def test_endpoint(name, url, expected_status=200, check_fn=None, res_log=None):
+    """Test a specific API endpoint and log the result."""
     try:
         res = requests.get(f"{BASE_URL}{url}", timeout=10)
         status = "PASSED"
@@ -55,6 +61,7 @@ def test_endpoint(name, url, expected_status=200, check_fn=None, res_log=None):
 
 
 def run_tests():
+    """Run all verification tests."""
     logs = []
 
     test_endpoint("Config Steps", "/config/steps", check_fn=check_steps, res_log=logs)

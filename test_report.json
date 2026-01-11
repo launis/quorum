@@ -1,0 +1,44 @@
+[
+  {
+    "name": "Config Steps",
+    "url": "/config/steps",
+    "status": "FAILED",
+    "detail": "HTTPConnectionPool(host='127.0.0.1', port=8000): Max retries exceeded with url: /config/steps (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x00000258E831A660>: Failed to establish a new connection: [WinError 10061] Yhteytt\u00e4 ei voi muodostaa, koska kohdekone ei salli sit\u00e4'))"
+  },
+  {
+    "name": "Model Strategies",
+    "url": "/config/models/strategies",
+    "status": "FAILED",
+    "detail": "HTTPConnectionPool(host='127.0.0.1', port=8000): Max retries exceeded with url: /config/models/strategies (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x00000258E836A5D0>: Failed to establish a new connection: [WinError 10061] Yhteytt\u00e4 ei voi muodostaa, koska kohdekone ei salli sit\u00e4'))"
+  },
+  {
+    "name": "Workflow Template",
+    "url": "/builder/config/template",
+    "status": "FAILED",
+    "detail": "HTTPConnectionPool(host='127.0.0.1', port=8000): Max retries exceeded with url: /builder/config/template (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x00000258E836AD50>: Failed to establish a new connection: [WinError 10061] Yhteytt\u00e4 ei voi muodostaa, koska kohdekone ei salli sit\u00e4'))"
+  },
+  {
+    "name": "ID Generation",
+    "url": "/builder/utils/generate-id?prefix=test",
+    "status": "FAILED",
+    "detail": "HTTPConnectionPool(host='127.0.0.1', port=8000): Max retries exceeded with url: /builder/utils/generate-id?prefix=test (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x00000258E838DBA0>: Failed to establish a new connection: [WinError 10061] Yhteytt\u00e4 ei voi muodostaa, koska kohdekone ei salli sit\u00e4'))"
+  },
+  {
+    "name": "Fusion Rules",
+    "url": "/builder/config/fusion-rules",
+    "status": "FAILED",
+    "detail": "HTTPConnectionPool(host='127.0.0.1', port=8000): Max retries exceeded with url: /builder/config/fusion-rules (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x00000258E838D350>: Failed to establish a new connection: [WinError 10061] Yhteytt\u00e4 ei voi muodostaa, koska kohdekone ei salli sit\u00e4'))"
+  },
+  {
+    "name": "Prompt Types",
+    "url": "/builder/config/prompt-types",
+    "status": "FAILED",
+    "detail": "HTTPConnectionPool(host='127.0.0.1', port=8000): Max retries exceeded with url: /builder/config/prompt-types (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x00000258E8384DD0>: Failed to establish a new connection: [WinError 10061] Yhteytt\u00e4 ei voi muodostaa, koska kohdekone ei salli sit\u00e4'))"
+  },
+  {
+    "name": "Agents Config",
+    "url": "/builder/config/agents",
+    "status": "FAILED",
+    "detail": "HTTPConnectionPool(host='127.0.0.1', port=8000): Max retries exceeded with url: /builder/config/agents (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x00000258E8362030>: Failed to establish a new connection: [WinError 10061] Yhteytt\u00e4 ei voi muodostaa, koska kohdekone ei salli sit\u00e4'))"
+  }
+]

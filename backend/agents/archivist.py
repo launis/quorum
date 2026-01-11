@@ -1,6 +1,6 @@
-import logging
-
 """Archivist Agent implementation."""
+
+import logging
 from typing import Any
 
 from pydantic import BaseModel
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class ArchivistAgent(BaseAgent):
     """Arkistonhoitaja (Archivist) Agent.
 
-    Step 8.5: Retrieves past cases to ensure consistency (Stare Decisis).
+    Retrieves past cases to ensure consistency (Stare Decisis).
     """
 
     state_field = "step_archivist"
