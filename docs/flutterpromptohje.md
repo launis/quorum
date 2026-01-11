@@ -88,7 +88,12 @@ ARCHITECTURAL RULES (ENFORCED):
     * Always verify imports (no relative imports for different feature modules).
 
 4.  **API & Error Contract (ENFORCED)**:
-    * "**API Error Handling**: Backend follows a strict JSON error schema (`error_code`, `message`)."
+    * "**API Error Handling**: Backend follows a strict JSON error schema `{ "error_code": "...", "message": "...", "details": ... }`."
+    * "**Standard Error Codes**:
+        * `VALIDATION_ERROR`: Pydantic/FastAPI validation failure (422).
+        * `RESOURCE_NOT_FOUND_ERROR`: Standard 404.
+        * `INTERNAL_SERVER_ERROR`: Uncaught exceptions (500).
+        * *Custom Errors*: Derived from Exception Class Name (e.g. `BudgetExceededError` -> `BUDGET_EXCEEDED_ERROR`)."
     * " *Requirement*: The Frontend must NOT parse error strings using `contains()`. It must switch on the `error_code` provided by the API."
     * " *Requirement*: All API calls must be wrapped in a repository-level handler that converts Dio `Response` (RFC 7807 style) into domain-specific `AppError` types."
 

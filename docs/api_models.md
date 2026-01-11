@@ -165,9 +165,9 @@ Strict error contract for all HTTP 4xx/5xx responses.
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
-| `error_code` | `enum` | Machine-readable code (e.g., `ORG_HAS_USERS`, `VALIDATION_ERROR`). |
-| `message` | `str` | Human-readable description (English). |
-| `details` | `list[str]` | Optional context (validation fields, debug info). |
+| `error_code` | `enum` | `VALIDATION_ERROR`, `RESOURCE_NOT_FOUND_ERROR`, `INTERNAL_SERVER_ERROR`, or custom (e.g., `ORG_HAS_USERS`). |
+| `message` | `str` | Human-readable description (English, for debugging). |
+| `details` | `list` | Optional context (Pydantic validation errors or stack traces). |
 
 ### `Metadata`
 Included in every agent output.

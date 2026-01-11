@@ -192,9 +192,9 @@ To ensure consistent UX across the hybrid Architecture (Flutter Client + Python 
 All API endpoints and Exception Handlers must return the standard `APIError` shape (HTTP 4xx/5xx):
 ```json
 {
-  "error_code": "VALIDATION_ERROR", // Machine-readable constant
+  "error_code": "VALIDATION_ERROR", // Fixed Constant or Derived (ResourceNotFoundError -> RESOURCE_NOT_FOUND_ERROR)
   "message": "Invalid input data",  // Human-readable fallback (English)
-  "details": ["Field 'token' is required"] // Optional debugging context
+  "details": [{"loc": ["body", "token"], "msg": "field required"}] // Pydantic-style details
 }
 ```
 

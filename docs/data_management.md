@@ -69,7 +69,7 @@ All data access (e.g., `OrganizationRepository`, `UserRepository`) follows a str
 2.  **Return Type**: Always returns `Future<Either<AppError, T>>` (from `fpdart`).
 3.  **Error Handling**:
     *   **Catches**: `DioException` only.
-    *   **Maps**: Converts network errors -> `AppError.network`, 5xx/4xx -> `AppError.server`.
+    *   **Maps**: Converts `error_code="VALIDATION_ERROR"` -> `ValidationErrorReason`, others to `AppError.server` or `AppError.known`.
     *   **Never Rethrows**: Exceptions are contained within the repository boundary.
 
 ### 2. Validation Mirroring

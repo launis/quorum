@@ -1,0 +1,49 @@
+name: Backend Quality
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'backend/**'
+      - 'pyproject.toml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'backend/**'
+      - 'pyproject.toml'
+
+jobs:
+  quality:
+    name: Lint, Type Check & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: "pyproject.toml"
+
+      - name: Install dependencies
+        run: uv sync --all-extras --dev
+
+      - name: Linting (Ruff)
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+
+      - name: Type Checking (Mypy)
+        run: uv run mypy backend
+
+      - name: Run Tests (Pytest)
+        env:
+            # Emulates the 'cloud' environment as closely as possible without credentials
+            STORAGE_BACKEND: TINYDB 
+            USE_MOCK_LLM: "true"
+            USE_MOCK_DB: "true"
+        run: uv run pytest

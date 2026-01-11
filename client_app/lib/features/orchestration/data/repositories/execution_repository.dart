@@ -31,7 +31,11 @@ class ExecutionRepository {
       if (error.response != null) {
         final statusCode = error.response!.statusCode;
         final data = error.response!.data;
-        final message = data is Map ? data['detail'] as String? : null;
+        // Strict API Contract: 'error_code' is the machine-readable key.
+        // 'detail' or 'message' is for debugging only.
+        final errorCode = data is Map ? data['error_code'] as String? : null;
+        final message =
+            data is Map ? (data['message'] ?? data['detail']) as String? : null;
 
         switch (statusCode) {
           case 401:
@@ -40,8 +44,8 @@ class ExecutionRepository {
             return AppError.notFound(message ?? 'Resource not found');
           case 400:
           case 422:
-            // Strict Localization: Server message is lost in strict mode unless we add a generic field or map it.
-            return const AppError.validation(ValidationErrorReason.unknown);
+            final reason = _mapValidationReason(errorCode);
+            return AppError.validation(reason);
           case 500:
           default:
             return AppError.server(message ?? 'Server error', statusCode);
@@ -52,6 +56,22 @@ class ExecutionRepository {
       }
     }
     return AppError.unknown(error);
+  }
+
+  /// Maps backend error strings to strict [ValidationErrorReason] enum.
+  ValidationErrorReason _mapValidationReason(String? code) {
+    if (code == null) return ValidationErrorReason.unknown;
+
+    return switch (code.toUpperCase()) {
+      'VALIDATION_ERROR' ||
+      'VALUE_ERROR' ||
+      'EMPTY_INPUT' => ValidationErrorReason.emptyInput,
+      'INVALID_EMAIL' => ValidationErrorReason.invalidEmail,
+      'WEAK_PASSWORD' ||
+      'PASSWORD_TOO_SHORT' => ValidationErrorReason.passwordTooWeak,
+      'INVALID_DATE' => ValidationErrorReason.invalidDate,
+      _ => ValidationErrorReason.unknown,
+    };
   }
 
   /// Initiates a new workflow execution.

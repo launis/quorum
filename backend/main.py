@@ -132,8 +132,23 @@ except Exception as e:
 
 @app.exception_handler(AppException)
 async def app_exception_handler(request: Request, exc: AppException):
+    """
+    Handler for Application Logic Errors.
+    Enforces the strict 'API & Error Contract' by returning APIError.
+    Derives 'error_code' from the Exception Class Name (e.g. ResourceNotFoundError -> RESOURCE_NOT_FOUND_ERROR).
+    """
+    import re
+    # Convert CamelCase to SNAKE_CASE for the error code
+    class_name = exc.__class__.__name__
+    snake_case = re.sub(r'(?<!^)(?=[A-Z])', '_', class_name).upper()
+    
     return JSONResponse(
-        status_code=exc.status_code, content={"error": exc.message, "details": exc.details, "status": "error"}
+        status_code=exc.status_code,
+        content=APIError(
+            error_code=snake_case,
+            message=exc.message,
+            details=exc.details
+        ).model_dump()
     )
 
 
