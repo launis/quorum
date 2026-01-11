@@ -58,3 +58,21 @@ The system maintains a **Knowledge Base** for grounding agent responses:
 Data is strictly scoped by `organization_id`:
 *   **Isolation**: Queries are filtered at the repository layer.
 *   **System Tenant**: `id="system"` contains global shared templates.
+
+## Client-Side Data Layer (Flutter)
+
+The client application mirrors the backend's strict contracts through a **Repository Pattern**.
+
+### 1. Repository Standard
+All data access (e.g., `OrganizationRepository`, `UserRepository`) follows a strict functional implementation:
+1.  **Dependency**: Uses `Ref` to watch `apiClientProvider` (Dio).
+2.  **Return Type**: Always returns `Future<Either<AppError, T>>` (from `fpdart`).
+3.  **Error Handling**:
+    *   **Catches**: `DioException` only.
+    *   **Maps**: Converts network errors -> `AppError.network`, 5xx/4xx -> `AppError.server`.
+    *   **Never Rethrows**: Exceptions are contained within the repository boundary.
+
+### 2. Validation Mirroring
+To support the **Fail-Fast** mandate, the client implements Pydantic-like validation in the `Logic Layer` (Controllers):
+*   **Wizards**: Use `FormMixin` to validate required fields *before* calling the Repository.
+*   **Type Safety**: All JSON responses are deserialized into rigid Dart models (`@JsonSerializable`) that match the backend Pydantic schemas.

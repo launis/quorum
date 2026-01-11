@@ -4,6 +4,7 @@ import 'package:client_app/features/dashboard/presentation/screens/dashboard_scr
 
 import 'package:client_app/features/settings/presentation/screens/settings_screen.dart';
 import 'package:client_app/features/auth/presentation/auth_controller.dart';
+import 'package:client_app/features/auth/domain/models/user.dart';
 import 'package:client_app/router/scaffold_with_nav.dart';
 import 'package:client_app/features/orchestration/presentation/screens/analysis_wizard_screen.dart';
 import 'package:client_app/features/orchestration/presentation/screens/execution_monitor_screen.dart';
@@ -56,9 +57,8 @@ GoRouter router(Ref ref) {
         return isSplash ? null : '/splash';
       }
 
-      // 2. Error State -> Login (or specialized error page)
+      // 2. Error State -> Login (Assume session lost or network error preventing auth)
       if (authState.hasError) {
-        // If error (e.g. network), maybe show login to retry?
         return isLoggingIn ? null : '/login';
       }
 
@@ -69,15 +69,20 @@ GoRouter router(Ref ref) {
         return isLoggingIn ? null : '/login';
       }
 
-      // 4. Authenticated -> Redirect from Guest routes
+      // 4. Authenticated -> Redirect from Guest routes (Login/Splash)
       if (isLoggingIn || isSplash) {
-        return targetRouteForUser(user.isAdmin);
+        return targetRouteForUser(user.role);
       }
 
       // 5. Role Guard
       final isAdminRoute = state.uri.toString().startsWith('/admin');
-      if (isAdminRoute && !user.isAdmin) {
-        return '/dashboard';
+
+      // Strict RBAC: Only ROOT and ADMIN can access /admin routes
+      if (isAdminRoute) {
+        if (user.role != UserRole.root && user.role != UserRole.admin) {
+          // Unauthorized access attempt -> Redirect to dashboard
+          return '/dashboard';
+        }
       }
 
       return null;
@@ -99,7 +104,6 @@ GoRouter router(Ref ref) {
             routes: [
               GoRoute(
                 path: '/dashboard',
-                // BYPASS: Use real DashboardScreen
                 builder: (context, state) => const DashboardScreen(),
                 routes: [
                   GoRoute(
@@ -151,52 +155,54 @@ GoRouter router(Ref ref) {
               ),
             ],
           ),
-          // Branch 3: Admin (Root/Admin only)
-          StatefulShellBranch(
+        ],
+      ),
+      // Admin Shell (Independent)
+      ShellRoute(
+        builder: (context, state, child) {
+          return AdminDashboardScreen(child: child);
+        },
+        routes: [
+          GoRoute(
+            path: '/admin',
+            builder: (context, state) => const OverviewScreen(),
             routes: [
-              ShellRoute(
-                builder: (context, state, child) {
-                  return AdminDashboardScreen(child: child);
+              GoRoute(
+                path: 'users',
+                builder: (context, state) => const UserManagementScreen(),
+              ),
+              GoRoute(
+                path: 'organizations',
+                builder: (context, state) => const OrganizationListScreen(),
+                redirect: (context, state) {
+                  // Extra security: Prevent direct URL access by non-root admins
+                  if (authState.value?.role != UserRole.root) {
+                    return '/admin';
+                  }
+                  return null;
                 },
-                routes: [
-                  GoRoute(
-                    path: '/admin',
-                    builder: (context, state) => const OverviewScreen(),
-                    routes: [
-                      GoRoute(
-                        path: 'users',
-                        builder:
-                            (context, state) => const UserManagementScreen(),
-                      ),
-                      GoRoute(
-                        path: 'organizations',
-                        builder:
-                            (context, state) => const OrganizationListScreen(),
-                      ),
-                    ],
-                  ),
-                ],
+              ),
+              GoRoute(
+                path: 'settings',
+                builder: (context, state) => const SettingsScreen(),
               ),
             ],
           ),
         ],
       ),
       // Root Redirect
-      GoRoute(
-        path: '/',
-        redirect: (context, state) => '/dashboard',
-        // Note: The top-level redirect will catch this before it executes
-        // if we are in a special state, but `targetRouteForUser` handles the logic.
-        // Actually, returning null in top-level redirect means this matches.
-        // So we can just redirect to dashboard here, and if admin, the shell might
-        // show admin.
-        // Better: let the top level redirect handle "Landing".
-      ),
+      GoRoute(path: '/', redirect: (context, state) => '/dashboard'),
     ],
   );
 }
 
 /// Helper to determine the default landing page based on role.
-String targetRouteForUser(bool isAdmin) {
-  return isAdmin ? '/admin' : '/dashboard';
+String targetRouteForUser(UserRole role) {
+  switch (role) {
+    case UserRole.root:
+    case UserRole.admin:
+      return '/admin';
+    default:
+      return '/dashboard';
+  }
 }

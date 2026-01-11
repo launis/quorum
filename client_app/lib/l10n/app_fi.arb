@@ -116,5 +116,18 @@
   "errorNotFound": "Resurssia ei löydy.",
   "errorValidation": "Validointivirhe.",
   "errorValidationEmpty": "Syötteet eivät voi olla tyhjiä.",
-  "errorValidationMissing": "Puuttuvat kentät: {fields}"
+  "errorValidationMissing": "Puuttuvat kentät: {fields}",
+  "createOrganization": "Luo organisaatio",
+  "editOrganization": "Muokkaa organisaatiota",
+  "deleteOrganization": "Poista organisaatio",
+  "save": "Tallenna",
+  "orgNameLabel": "Organisaation nimi",
+  "orgTierLabel": "Taso",
+  "basicTier": "Perus",
+  "premiumTier": "Premium",
+  "enterpriseTier": "Enterprise",
+  "deleteOrgConfirmation": "Haluatko varmasti poistaa organisaation {name}?",
+  "deleteOrgHasUsersTitle": "Organisaatiossa on käyttäjiä",
+  "deleteOrgHasUsersMessage": "Tämä organisaatio sisältää käyttäjiä. Poistaminen poistaa pysyvästi myös kaikki sen käyttäjät. Toimintoa ei voi peruuttaa.",
+  "deleteForceConfirm": "Poista kaikki"
 }

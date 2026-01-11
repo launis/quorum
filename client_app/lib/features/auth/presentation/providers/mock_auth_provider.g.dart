@@ -31,7 +31,7 @@ final class MockTokenProvider extends $NotifierProvider<MockToken, String?> {
         argument: null,
         retry: null,
         name: r'mockTokenProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -52,7 +52,7 @@ final class MockTokenProvider extends $NotifierProvider<MockToken, String?> {
   }
 }
 
-String _$mockTokenHash() => r'fec63cc7ce6a9b0d175e1b59384af303dbf42ad8';
+String _$mockTokenHash() => r'3a440851cdee6d808c5cc7d255dec3000f4f8d86';
 
 /// **Mock Token Provider**
 ///

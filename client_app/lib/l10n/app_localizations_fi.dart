@@ -318,6 +318,9 @@ class AppLocalizationsFi extends AppLocalizations {
   String get organizationListPlaceholder => 'Organisaatiolistan paikkamerkki';
 
   @override
+  String get systemSettingsTitle => 'System Settings';
+
+  @override
   String monitorTitle(String id) {
     return 'Seuranta: $id';
   }
@@ -394,7 +397,49 @@ class AppLocalizationsFi extends AppLocalizations {
   String get errorValidationEmpty => 'Syötteet eivät voi olla tyhjiä.';
 
   @override
-  String errorValidationMissing(String fields) {
+  String errorValidationMissing(Object fields) {
     return 'Puuttuvat kentät: $fields';
   }
+
+  @override
+  String get createOrganization => 'Luo organisaatio';
+
+  @override
+  String get editOrganization => 'Muokkaa organisaatiota';
+
+  @override
+  String get deleteOrganization => 'Poista organisaatio';
+
+  @override
+  String get save => 'Tallenna';
+
+  @override
+  String get orgNameLabel => 'Organisaation nimi';
+
+  @override
+  String get orgTierLabel => 'Taso';
+
+  @override
+  String get basicTier => 'Perus';
+
+  @override
+  String get premiumTier => 'Premium';
+
+  @override
+  String get enterpriseTier => 'Enterprise';
+
+  @override
+  String deleteOrgConfirmation(String name) {
+    return 'Haluatko varmasti poistaa organisaation $name?';
+  }
+
+  @override
+  String get deleteOrgHasUsersTitle => 'Organisaatiossa on käyttäjiä';
+
+  @override
+  String get deleteOrgHasUsersMessage =>
+      'Tämä organisaatio sisältää käyttäjiä. Poistaminen poistaa pysyvästi myös kaikki sen käyttäjät. Toimintoa ei voi peruuttaa.';
+
+  @override
+  String get deleteForceConfirm => 'Poista kaikki';
 }

@@ -7,7 +7,7 @@ part 'mock_auth_provider.g.dart';
 ///
 /// Stores the 'fake' JWT token when running in Debug/Mock mode without Firebase.
 /// This allows the [AuthInterceptor] to sign requests with `mock-token:uid`.
-@riverpod
+@Riverpod(keepAlive: true)
 class MockToken extends _$MockToken {
   @override
   String? build() {

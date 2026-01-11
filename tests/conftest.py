@@ -45,47 +45,49 @@ from backend.main import app
 from backend.models.auth import User, UserRole
 
 
+
+class MockAuthService:
+    def __init__(self):
+        self.current_user = None
+
 @pytest.fixture
-async def client():
-    """Async Client with Auth overrides."""
-    # Override Auth to return ROOT user always
-    from datetime import datetime
+def mock_auth_service():
+    return MockAuthService()
 
-    root_user = User(
-        uid="root_master",
-        email="root@example.com",
-        role=UserRole.ROOT,
-        organization_id="system",
-        display_name="Root User",
-        created_at=datetime.utcnow().isoformat(),
-    )
+@pytest.fixture
+async def client_authenticated(mock_auth_service):
+    """Async Client with Dynamic Auth overrides."""
+    # Default to Root if not set
+    if not mock_auth_service.current_user:
+        from backend.models.auth import User, UserRole
+        from datetime import datetime
+        mock_auth_service.current_user = User(
+            uid="root_master",
+            email="root@example.com",
+            role=UserRole.ROOT,
+            organization_id="system",
+            display_name="Root User",
+            created_at=datetime.utcnow().isoformat(),
+        )
 
-    app.dependency_overrides[get_current_user_from_header] = lambda: root_user
+    app.dependency_overrides[get_current_user_from_header] = lambda: mock_auth_service.current_user
 
     # Override Database to use Temp File (Isolated Tests)
-    import os
     import tempfile
-
-    # Create temp DB file
+    
     fd, temp_db_path = tempfile.mkstemp(suffix=".json")
     os.close(fd)
 
-    # Initialize with schema if needed, or rely on code to create tables.
-    # We need to make sure 'settings' says we are using LOCAL storage.
     from backend.settings import Settings
-
+    
     def override_settings():
         return Settings(
             storage_backend="LOCAL",
             start_db_path=temp_db_path,
             use_mock_db=False,
-            use_mock_llm=True,  # Use Mock LLM for speed/safety
+            use_mock_llm=True,
         )
 
-    # Reset singleton to ensure fresh init if it was already created (though dependencies usually create new if function called, but we have global singleton in dependencies.py)
-    # We can't easily reset the global variable in dependencies.py from here without accessing it.
-    # But overriding the dependency avoids calling the original function.
-    # We construct a fresh DB client
     from backend.database.wrapper import TinyDBClient
     from backend.dependencies import get_db_client_dep, get_settings_dep
 
@@ -99,14 +101,12 @@ async def client():
 
     app.dependency_overrides = {}
 
-    # Cleanup
     try:
         os.remove(temp_db_path)
     except:
         pass
 
-
 @pytest.fixture
 def admin_token_headers():
-    """Mock headers (Auth is overridden, so this is dummy)."""
     return {"Authorization": "Bearer mock_token"}
+

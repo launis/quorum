@@ -182,8 +182,8 @@ def get_auth_service(
         logger.info(f"[Dependencies] Initializing AuthService (Firebase={use_firebase})...")
         _auth_service_instance = AuthService(db_client, use_firebase=use_firebase, audit_service=audit_service)
 
-        # Bootstrap Root User
-        _auth_service_instance.ensure_root_user()
+        # Bootstrap Root User - DISABLED (Manual Seeding Required per Security Policy)
+        # _auth_service_instance.ensure_root_user()
 
     return _auth_service_instance
 

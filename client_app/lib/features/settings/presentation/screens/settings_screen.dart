@@ -1,9 +1,12 @@
+import 'package:client_app/features/auth/presentation/auth_controller.dart';
+import 'package:client_app/features/auth/domain/models/user.dart';
 import 'package:client_app/features/settings/presentation/widgets/usage_stats_card.dart';
 import 'package:client_app/features/settings/theme_provider.dart';
 import 'package:client_app/features/settings/locale_provider.dart';
 import 'package:client_app/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -13,6 +16,9 @@ class SettingsScreen extends ConsumerWidget {
     final themeMode = ref.watch(themeModeProvider);
     final localizations = AppLocalizations.of(context)!;
     final locale = ref.watch(localeProvider);
+    final authState = ref.watch(authControllerProvider);
+    final user = authState.asData?.value;
+    final isAdmin = user?.role == UserRole.root || user?.role == UserRole.admin;
 
     return Scaffold(
       appBar: AppBar(title: Text(localizations.settings)),
@@ -21,7 +27,23 @@ class SettingsScreen extends ConsumerWidget {
           constraints: const BoxConstraints(maxWidth: 1000),
           child: ListView(
             children: [
+              // DEBUG INFO
+              if (user != null)
+                ListTile(
+                  title: Text('Debug: ${user.role}'),
+                  subtitle: Text('UID: ${user.uid}'),
+                  tileColor: Colors.amber.withValues(alpha: 0.2),
+                ),
               const UsageStatsCard(),
+              if (isAdmin) ...[
+                ListTile(
+                  leading: const Icon(Icons.admin_panel_settings),
+                  title: Text(localizations.adminPanel),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.go('/admin'),
+                ),
+                const Divider(),
+              ],
               ListTile(
                 leading: const Icon(Icons.language),
                 title: Text(localizations.language),

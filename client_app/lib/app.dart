@@ -8,6 +8,7 @@ import 'package:firebase_ui_localizations/firebase_ui_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:client_app/features/auth/presentation/auth_controller.dart';
 
 ///
 /// The entry point of the Flutter application.
@@ -31,6 +32,17 @@ class App extends ConsumerWidget {
     // 2. Watch Theme Mode
     final themeMode = ref.watch(themeModeProvider);
     final locale = ref.watch(localeProvider);
+
+    // 3. Listen to Auth Changes for Locale Sync
+    ref.listen(authControllerProvider, (prev, next) {
+      final user = next.asData?.value;
+      if (user?.language != null) {
+        // Only update if different to avoid redundant rebuilds
+        if (locale.languageCode != user!.language!) {
+          ref.read(localeProvider.notifier).setLocale(Locale(user.language!));
+        }
+      }
+    });
 
     return MaterialApp.router(
       title: 'Cognitive Quorum',

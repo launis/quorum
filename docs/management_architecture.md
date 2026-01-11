@@ -80,11 +80,12 @@ The primary interface for launching new workflows.
 *   **Workflow Selection**: Dynamic loading of available analysis templates.
 *   **Input Configuration**: Dynamic forms based on workflow requirements.
 
-### 3. Settings & Administration
-*   **System Maintenance**: Database reset and seeding tools.
-*   **User Management**: Role assignment and user audit.
-*   **Usage Stats**: Visual quotas and consumption tracking.
-*   **Environment Sync**: APIs to promote configurations from Mock to Prod.
+### 3. Administration (The Admin Portal)
+A protected, adaptive environment (`/admin`) utilizing strict RBAC:
+*   **Adaptive Shell**: Automatically switches between `NavigationRail` and `NavigationBar` based on screen width (`600dp` breakpoint).
+*   **Organization Management**: Root-level creation and suspension of tenants. 
+*   **User Governance**: Role assignment and access control using `OrganizationRepository`.
+*   **System Settings**: Global configuration and environment synchronization.
 
 ## Environments & Data Synchronization
 

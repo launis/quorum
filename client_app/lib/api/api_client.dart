@@ -20,7 +20,7 @@ part 'api_client.g.dart';
 ///
 /// **Returns**:
 /// A fully configured [Dio] instance ready for network requests.
-@riverpod
+@Riverpod(keepAlive: true)
 Dio apiClient(Ref ref) {
   // Watch envProvider to rebuild client if config changes (unlikely in runtime, but good practice)
   ref.watch(envProvider);

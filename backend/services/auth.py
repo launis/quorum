@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import time
 import uuid
+import asyncio
 from typing import Any
 
 import jwt
@@ -383,9 +384,12 @@ class AuthService:
         return sum(1 for u in all_users if u.organization_id == org_id and u.role == UserRole.ADMIN)
 
     async def delete_user(self, initiator_uid: str, target_uid: str) -> bool:
-        """Delete a user, with Last Admin Protection."""
-        initiator = self.repo.get_by_uid(initiator_uid)
-        target = self.repo.get_by_uid(target_uid)
+        """Delete a user, with Last Admin Protection. (Non-blocking)"""
+        logger.info(f"[AuthService] delete_user called. Initiator: {initiator_uid}, Target: {target_uid}")
+
+        # Run Read operations in thread
+        initiator = await asyncio.to_thread(self.repo.get_by_uid, initiator_uid)
+        target = await asyncio.to_thread(self.repo.get_by_uid, target_uid)
 
         if not initiator or not target:
             raise ValueError("User not found")
@@ -404,7 +408,8 @@ class AuthService:
 
         # LAST ADMIN PROTECTION
         if target.role == UserRole.ADMIN and target.organization_id:
-            admin_count = self._count_org_admins(target.organization_id)
+            # Run Admin Count in thread -> Count iterates list_all
+            admin_count = await asyncio.to_thread(self._count_org_admins, target.organization_id)
             if admin_count <= 1:
                 raise ValueError("Cannot delete the last Administrator of an Organization. Promote another user first.")
 
@@ -412,12 +417,14 @@ class AuthService:
         # 1. Firebase (if enabled)
         if self.use_firebase:
             try:
-                self.firebase_auth.delete_user(target.uid)
+                logger.info(f"[AuthService] Deleting Firebase user {target.uid}...")
+                await asyncio.to_thread(self.firebase_auth.delete_user, target.uid)
             except Exception as e:
                 logger.warning(f"Firebase delete failed (might be local user): {e}")
 
         # 2. Local DB
-        self.repo.delete(target_uid)
+        logger.info(f"[AuthService] Deleting Local DB user {target_uid}...")
+        await asyncio.to_thread(self.repo.delete, target_uid)
 
         # Audit
         if self.audit_service:
@@ -431,28 +438,58 @@ class AuthService:
 
         return True
 
-    async def delete_organization(self, initiator_uid: str, target_org_id: str) -> None:
-        """Deletes an Organization and ALL its users."""
-        initiator = self.repo.get_by_uid(initiator_uid)
+    async def delete_organization(self, initiator_uid: str, target_org_id: str, force: bool = False) -> None:
+        """Deletes an Organization.
+        
+        Safety Rules:
+        - Cannot delete 'system' organization.
+        - Cannot delete non-empty organization unless force=True.
+        - force=True cascades delete to all users.
+        """
+        logger.info(f"[AuthService] delete_organization called. Initiator: {initiator_uid}, Target: {target_org_id}, Force: {force}")
+
+        initiator = await asyncio.to_thread(self.repo.get_by_uid, initiator_uid)
 
         if not initiator or initiator.role != UserRole.ROOT:
             raise PermissionError("Only ROOT can delete organizations.")
 
         if target_org_id == "system":
-            raise PermissionError("Cannot delete System Organization.")
+            raise PermissionError("CRITICAL: The 'system' organization is protected and CANNOT be deleted.")
 
-        # 2. Delete All Users in Org
-        org_users = [u for u in self.repo.list_all() if u.organization_id == target_org_id]
-        for user in org_users:
-            if self.use_firebase:
-                try:
-                    self.firebase_auth.delete_user(user.uid)
-                except Exception:
-                    pass
-            self.repo.delete(user.uid)
+        # 2. Check Users
+        logger.info("[AuthService] Fetching users to check for safety...")
+        all_users = await asyncio.to_thread(self.repo.list_all)
+        org_users = [u for u in all_users if u.organization_id == target_org_id]
+        
+        user_count = len(org_users)
+        logger.info(f"[AuthService] Organization {target_org_id} has {user_count} users.")
 
-        # 3. Delete Org Entity
-        self.org_repo.table.remove(Query().id == target_org_id)
+        if user_count > 0 and not force:
+            # Revert to standard ValueError (which FastAPI can allow routing exceptions for, 
+            # or we map it to 409 Conflict in router).
+            # The client needs a specific code. We'll rely on the exception message or type.
+            # Best practice: Custom exception, but ValueError is standard for logic.
+            raise ValueError(f"Organization is not empty ({user_count} users). Use force=True to delete.")
+
+        # 3. Delete Logic (Cascading)
+        if user_count > 0:
+            logger.info(f"[AuthService] FORCE DELETE enabled. Removing {user_count} users...")
+            for user in org_users:
+                if self.use_firebase:
+                    try:
+                        await asyncio.to_thread(self.firebase_auth.delete_user, user.uid)
+                    except Exception:
+                        pass
+                
+                await asyncio.to_thread(self.repo.delete, user.uid)
+
+        # 4. Delete Org Entity
+        logger.info(f"[AuthService] Removing Organization {target_org_id} from DB...")
+        
+        def _delete_org():
+            self.org_repo.table.remove(Query().id == target_org_id)
+            
+        await asyncio.to_thread(_delete_org)
 
         # Audit
         if self.audit_service:
@@ -461,7 +498,7 @@ class AuthService:
                 action="ORG_DELETED",
                 organization_id=target_org_id,
                 target_uid=target_org_id,
-                details={"users_deleted": len(org_users)},
+                details={"users_deleted": user_count, "force_used": force},
             )
 
     async def update_user(self, initiator_uid: str, target_uid: str, updates: UserUpdate) -> User:

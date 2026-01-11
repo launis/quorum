@@ -656,6 +656,12 @@ abstract class AppLocalizations {
   /// **'Organization List Placeholder'**
   String get organizationListPlaceholder;
 
+  /// No description provided for @systemSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'System Settings'**
+  String get systemSettingsTitle;
+
   /// No description provided for @monitorTitle.
   ///
   /// In en, this message translates to:
@@ -804,7 +810,85 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Missing required fields: {fields}'**
-  String errorValidationMissing(String fields);
+  String errorValidationMissing(Object fields);
+
+  /// No description provided for @createOrganization.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Organization'**
+  String get createOrganization;
+
+  /// No description provided for @editOrganization.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Organization'**
+  String get editOrganization;
+
+  /// No description provided for @deleteOrganization.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Organization'**
+  String get deleteOrganization;
+
+  /// No description provided for @save.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get save;
+
+  /// No description provided for @orgNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Organization Name'**
+  String get orgNameLabel;
+
+  /// No description provided for @orgTierLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Tier'**
+  String get orgTierLabel;
+
+  /// No description provided for @basicTier.
+  ///
+  /// In en, this message translates to:
+  /// **'Basic'**
+  String get basicTier;
+
+  /// No description provided for @premiumTier.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium'**
+  String get premiumTier;
+
+  /// No description provided for @enterpriseTier.
+  ///
+  /// In en, this message translates to:
+  /// **'Enterprise'**
+  String get enterpriseTier;
+
+  /// No description provided for @deleteOrgConfirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete {name}?'**
+  String deleteOrgConfirmation(String name);
+
+  /// No description provided for @deleteOrgHasUsersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Organization has users'**
+  String get deleteOrgHasUsersTitle;
+
+  /// No description provided for @deleteOrgHasUsersMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This organization contains users. Deleting it will also permanently delete all its users. This action cannot be undone.'**
+  String get deleteOrgHasUsersMessage;
+
+  /// No description provided for @deleteForceConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete everything'**
+  String get deleteForceConfirm;
 }
 
 class _AppLocalizationsDelegate

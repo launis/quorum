@@ -10,6 +10,7 @@ try:
 
     try:
         from google.cloud import firestore as google_cloud_firestore
+        from google.cloud.firestore import FieldFilter
 
         FIRESTORE_LIB_AVAILABLE = True
     except ImportError:
@@ -68,7 +69,12 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
         return None
 
     async def _find_one_by_field(self, collection: str, field: str, value: Any) -> dict[str, Any] | None:
-        docs = self.db.collection(collection).where(field, "==", value).limit(1).stream()
+        docs = (
+            self.db.collection(collection)
+            .where(filter=FieldFilter(field, "==", value))
+            .limit(1)
+            .stream()
+        )
         async for doc in docs:
             return doc.to_dict()
         return None
@@ -78,12 +84,20 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
         return [doc.to_dict() async for doc in docs]
 
     async def _delete_doc(self, collection: str, doc_key: str, doc_value: str):
-        docs = self.db.collection(collection).where(doc_key, "==", doc_value).stream()
+        docs = (
+            self.db.collection(collection)
+            .where(filter=FieldFilter(doc_key, "==", doc_value))
+            .stream()
+        )
         async for doc in docs:
             await doc.reference.delete()
 
     async def _update_doc(self, collection: str, doc_key: str, doc_value: str, updates: dict[str, Any]):
-        docs = self.db.collection(collection).where(doc_key, "==", doc_value).stream()
+        docs = (
+            self.db.collection(collection)
+            .where(filter=FieldFilter(doc_key, "==", doc_value))
+            .stream()
+        )
         async for doc in docs:
             await doc.reference.update(updates)
 

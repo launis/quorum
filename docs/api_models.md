@@ -141,7 +141,31 @@ The final executive summary.
 
 ---
 
+## 🏢 Identity Models
+
+### `Organization` (Tenant)
+Represents a customer account or the system shell.
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `str` | Unique Identifier (slug-friendly). |
+| `name` | `str` | Display Name (e.g., "Acme Corp"). |
+| `tier` | `enum` | `standard`, `premium`, `enterprise` |
+| `contact_email` | `str` | Billing/Admin contact. |
+| `created_at` | `str` | ISO 8601 Timestamp. |
+
+---
+
 ## 🔩 Shared Components
+
+### `APIError` (Standard Error)
+Strict error contract for all HTTP 4xx/5xx responses.
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `error_code` | `enum` | Machine-readable code (e.g., `ORG_HAS_USERS`, `VALIDATION_ERROR`). |
+| `message` | `str` | Human-readable description (English). |
+| `details` | `list[str]` | Optional context (validation fields, debug info). |
 
 ### `Metadata`
 Included in every agent output.

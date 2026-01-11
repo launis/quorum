@@ -29,7 +29,7 @@ final class AuthControllerProvider
         argument: null,
         retry: null,
         name: r'authControllerProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -42,7 +42,7 @@ final class AuthControllerProvider
   AuthController create() => AuthController();
 }
 
-String _$authControllerHash() => r'30ffd9b9f552bae745ca59d02a506e016d00ccf7';
+String _$authControllerHash() => r'a2cd73cf87b56d9ca733b5a5216c2e5872df115a';
 
 /// **Authentication Controller**
 ///

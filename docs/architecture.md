@@ -141,6 +141,15 @@ To maintain architectural simplicity and strict security boundaries:
 *   **No "System Roles"**: There are no separate `SYSTEM_ADMIN` or `SYSTEM_MEMBER` roles. Platform authority is derived from the `ROOT` role itself, not the organization membership.
 *   **Immutability**: The System Organization and the primary Seeded Root user cannot be deleted.
 
+### 5. Safe Deletion Protocols
+To prevent accidental data loss in a multi-tenant environment, strict deletion protocols are enforced:
+
+*   **System Protection**: The `system` organization is immutable and rejects all deletion attempts (HTTP 403).
+*   **Dependency Check**: Organizations with active users cannot be deleted effectively without explicit confirmation.
+    *   **Standard Delete**: Fails with `409 Conflict (ORG_HAS_USERS)` if users exist.
+    *   **Force Delete**: Requires explicit `force=true` flag. Cascades deletion to all users within the organization first, then removes the organization.
+    *   **Cleanup**: Associated `workflows` and `executions` are hard-deleted asynchronously to maintain referential integrity.
+
 ### 3. Role Hierarchy
 Permissions are hierarchical:
 1.  **ROOT**: Platform Owner. Can manage all Organizations, Users, and System Config.
@@ -148,6 +157,22 @@ Permissions are hierarchical:
 3.  **MANAGER**: Technical Lead. Can configure Workflows/Prompts but cannot manage Users.
 4.  **MEMBER**: Standard User. Can execute Workflows.
 5.  **VIEWER**: Read-Only access.
+
+### 4. Client Architecture (Flutter)
+The client application implements a **Strict Reactive Architecture** powered by Riverpod 3.0 and GoRouter 17.
+
+*   **Adaptive Shell**:
+    *   **Desktop/Tablet (>600dp)**: Uses a `NavigationRail` + `Row` layout with content constrained to `1200dp` max-width.
+    *   **Mobile (<600dp)**: Uses a `NavigationBar` + `Scaffold` layout.
+*   **Router Guard (RBAC)**:
+    *   `GoRouter` listens to `authControllerProvider` state.
+    *   **Strict Redirects**:
+        *   `Unauthenticated` -> `/login`
+        *   `Role != ROOT|ADMIN` -> Redirects away from `/admin` to `/dashboard`.
+*   **Passive View Pattern**:
+    *   UI components (`ConsumerWidget`) do *not* contain business logic.
+    *   Events vary logic via `ref.read(controller.notifier).method()`.
+    *   Side-effects (Snackbars, Navigation) are triggered via `ref.listen()`.
 
 ## API & Error Contract (Protocol)
 

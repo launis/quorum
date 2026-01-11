@@ -45,10 +45,22 @@ class OrganizationResponse(BaseModel):
     tier: str
     contact_email: str | None = None
     created_at: str | None = None
-    # Billing Fields
     billing_id: str | None = None
     subscription_status: SubscriptionStatus = SubscriptionStatus.TRIAL
     quota_limit: float = 10.0
+    status: str = "PENDING"  # Mapped from is_active
+
+    from pydantic import model_validator
+
+    @model_validator(mode="before")
+    @classmethod
+    def set_status_from_active_flag(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            # Check is_active (default True if missing in dict, but safer to check)
+            is_active = data.get("is_active", True)
+            if "status" not in data:
+                 data["status"] = "ACTIVE" if is_active else "SUSPENDED"
+        return data
 
 
 # --- Strict Usage Models (No Defaults) ---
@@ -262,6 +274,7 @@ async def update_organization(
 @router.delete("/{org_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_organization(
     org_id: str,
+    force: bool = False,
     user: TokenData = Depends(AuthService.require_role(UserRole.ROOT)),
     repo: RepositoryDep = None,
     auth_service: AuthServiceDep = None,
@@ -270,6 +283,7 @@ async def delete_organization(
 
     Args:
         org_id (str): Organization ID.
+        force (bool): Functionally cascade delete users if True.
         user (TokenData): Requesting user (must be ROOT).
         repo (RepositoryDep): Repository.
         auth_service (AuthService): Auth service for user deletion.
@@ -278,7 +292,7 @@ async def delete_organization(
         None
 
     Raises:
-        HTTPException: If system org (403) or not found (404).
+        HTTPException: If system org (403), not found (404), or not empty (409).
     """
     if org_id == "system":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot delete System Organization.")
@@ -300,9 +314,8 @@ async def delete_organization(
         )
 
     # 3. Delete Users & Org Entity (AuthService)
-    # This also enforces constraints like checking if org is system (redundant but safe)
     try:
-        await auth_service.delete_organization(user.uid, org_id)
+        await auth_service.delete_organization(user.uid, org_id, force=force)
 
         # AUDIT LOG (Phase 3)
         try:
@@ -310,7 +323,10 @@ async def delete_organization(
 
             audit = AuditService(repo)
             await audit.log_event(
-                actor_uid=user.uid, action="ORG_DELETED", organization_id=org_id, details={"reason": "admin_action"}
+                actor_uid=user.uid,
+                action="ORG_DELETED",
+                organization_id=org_id,
+                details={"reason": "admin_action", "force": force},
             )
         except Exception:
             pass
@@ -318,7 +334,11 @@ async def delete_organization(
     except PermissionError as e:
         raise HTTPException(status_code=403, detail=str(e))
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        msg = str(e)
+        if "Organization is not empty" in msg:
+             # Client relies on this specific detail or code to trigger confirmation dialog
+             raise HTTPException(status_code=409, detail="ORG_HAS_USERS")
+        raise HTTPException(status_code=400, detail=msg)
 
     # 4. Cascade Delete Data (Workflows/Executions - Clean up orphan data)
     await repo.delete_org_data(org_id)

@@ -55,6 +55,13 @@ class User {
   @JsonKey(name: 'created_at')
   final String? createdAt;
 
+  /// User's preferred language code (e.g., 'en', 'fi').
+  final String? language;
+
+  /// User's preferred theme mode (e.g., 'system', 'light', 'dark').
+  @JsonKey(name: 'theme_mode')
+  final String? themeMode;
+
   const User({
     required this.uid,
     required this.email,
@@ -62,6 +69,8 @@ class User {
     this.organizationId,
     this.displayName,
     this.createdAt,
+    this.language,
+    this.themeMode,
   });
 
   /// Factory constructor for creating a new [User] instance from a map.

@@ -319,6 +319,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get organizationListPlaceholder => 'Organization List Placeholder';
 
   @override
+  String get systemSettingsTitle => 'System Settings';
+
+  @override
   String monitorTitle(String id) {
     return 'Monitor: $id';
   }
@@ -395,7 +398,49 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorValidationEmpty => 'Inputs cannot be empty.';
 
   @override
-  String errorValidationMissing(String fields) {
+  String errorValidationMissing(Object fields) {
     return 'Missing required fields: $fields';
   }
+
+  @override
+  String get createOrganization => 'Create Organization';
+
+  @override
+  String get editOrganization => 'Edit Organization';
+
+  @override
+  String get deleteOrganization => 'Delete Organization';
+
+  @override
+  String get save => 'Save';
+
+  @override
+  String get orgNameLabel => 'Organization Name';
+
+  @override
+  String get orgTierLabel => 'Tier';
+
+  @override
+  String get basicTier => 'Basic';
+
+  @override
+  String get premiumTier => 'Premium';
+
+  @override
+  String get enterpriseTier => 'Enterprise';
+
+  @override
+  String deleteOrgConfirmation(String name) {
+    return 'Are you sure you want to delete $name?';
+  }
+
+  @override
+  String get deleteOrgHasUsersTitle => 'Organization has users';
+
+  @override
+  String get deleteOrgHasUsersMessage =>
+      'This organization contains users. Deleting it will also permanently delete all its users. This action cannot be undone.';
+
+  @override
+  String get deleteForceConfirm => 'Delete everything';
 }

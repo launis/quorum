@@ -4122,7 +4122,7 @@
           "Organizations"
         ],
         "summary": "Delete Organization",
-        "description": "Delete an organization.\n\nArgs:\n    org_id (str): Organization ID.\n    user (TokenData): Requesting user (must be ROOT).\n    repo (RepositoryDep): Repository.\n    auth_service (AuthService): Auth service for user deletion.\n\nReturns:\n    None\n\nRaises:\n    HTTPException: If system org (403) or not found (404).",
+        "description": "Delete an organization.\n\nArgs:\n    org_id (str): Organization ID.\n    force (bool): Functionally cascade delete users if True.\n    user (TokenData): Requesting user (must be ROOT).\n    repo (RepositoryDep): Repository.\n    auth_service (AuthService): Auth service for user deletion.\n\nReturns:\n    None\n\nRaises:\n    HTTPException: If system org (403), not found (404), or not empty (409).",
         "operationId": "delete_organization_organizations__org_id__delete",
         "parameters": [
           {
@@ -4132,6 +4132,16 @@
             "schema": {
               "type": "string",
               "title": "Org Id"
+            }
+          },
+          {
+            "name": "force",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Force"
             }
           },
           {
@@ -5780,6 +5790,11 @@
             "type": "number",
             "title": "Quota Limit",
             "default": 10.0
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "PENDING"
           }
         },
         "type": "object",

@@ -192,10 +192,23 @@ class FirestoreTable(AbstractTable):
     def remove(self, query: Any) -> list[int]:
         docs = self._collection.stream()
         removed_count = 0
+        to_delete = []
+        
+        # 1. Identify docs (Scan)
         for doc in docs:
             if query(doc.to_dict()):
-                doc.reference.delete()
+                to_delete.append(doc.reference)
+
+        # 2. Delete (Batch/Serial)
+        # Note: We do serial delete here to match interface, but batching would be better for performance.
+        # For safety/simplicity in this wrapper, we keep it serial but decoupled from stream.
+        for ref in to_delete:
+            try:
+                ref.delete()
                 removed_count += 1
+            except Exception as e:
+                logger.error(f"[FirestoreTable] Failed to delete doc {ref.id}: {e}")
+
         return [1] * removed_count
 
     def close(self):

@@ -119,14 +119,15 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 
 - [x] **Admin Portal Separation**:
     - **Workflow vs. Admin**: Strict visual and navigational separation between *Technical Configuration* (Workflow Builder, Matrix) and *Governance* (Users, Org, System).
-    - **Dedicated Admin Route**: `/admin` dashboard with a distinct visual theme (ShellRoute + NavigationRail).
+    - **Dedicated Admin Route**: `/admin` dashboard with a distinct visual theme (ShellRoute + NavigationRail/NavigationBar Adaptive).
 - [ ] **Advanced User Management**:
     - **Access Lifecycle**: UI strategies for Granting, Renewing, and Revoking access with clear expiry visualizations.
     - **Role Matrix**: Interactive permission table for assigning Roles (Viewer, Member, Manager, Admin) with "Best Practice" visual feedback.
     - **Organization Roster**: Searchable, filterable list of all Users within the Organization.
-- [ ] **Organization Governance**:
-    - **Settings Hub**: Centralized management for Organization Profile, Branding, and Localization.
-    - **Security Overview**: High-level view of active sessions and permission distribution.
+- [x] **Organization Governance**:
+    - **Organization Management**: Full CRUD (Create, List, Delete) for Root Users.
+    - **Safe Deletion**: Two-step verification with "Force Delete" for non-empty organizations.
+    - **Access Control**: Strict RBAC enforcement (Root-only access to Org Management).
 - [ ] **Live Operations Dashboard**:
     - **Concurrent Execution Monitor**: "Mission Control" view for Managers/Root to see all active jobs across their scope (Org vs System).
     - **Queue Visibility**: Insight into the task queue to manage future high-load concurrency.

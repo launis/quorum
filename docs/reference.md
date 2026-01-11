@@ -27,6 +27,13 @@ quorum/
 │   └── uploads/            # User Uploads
 ├── docs/                   # MkDocs Documentation
 ├── client_app/             # Client App (Flutter / Native)
+│   ├── lib/
+│   │   ├── features/
+│   │   │   ├── admin/      # Organization & User Management
+│   │   │   ├── auth/       # Authentication & Guard
+│   │   │   ├── settings/   # Localization & Theme
+│   │   │   └── orchestration/ # Workflow Execution UI
+│   │   └── router/         # GoRouter Config
 ├── scripts/                # Utility Scripts (Seeding, OpenAPI Gen)
 ├── pyproject.toml          # Project Metadata & Dependnecies
 └── uv.lock                 # Strict Dependency Lockfile
@@ -100,5 +107,9 @@ Pipelines are defined in `.github/workflows/` and use `uv` for consistent enviro
     *   Deploys to **GitHub Pages**.
 
 ### Code Quality
-*   **Linting**: `uv run ruff check .`
 *   **Formatting**: `uv run ruff format .`
+*   **Flutter**:
+    *   **Analyze**: `flutter analyze`
+    *   **Test**: `flutter test`
+    *   **Localization**: `flutter gen-l10n`
+    *   **Code Generation**: `dart run build_runner build --delete-conflicting-outputs`

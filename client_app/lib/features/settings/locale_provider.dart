@@ -16,22 +16,10 @@ class LocaleNotifier extends _$LocaleNotifier {
 
   @override
   Locale build() {
-    _loadLocale();
-    return const Locale('en'); // Default to English initially
-  }
-
-  Future<void> _loadLocale() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedCode = prefs.getString(_storageKey);
-
-    if (savedCode != null) {
-      state = Locale(savedCode);
-    } else {
-      // Could default to system locale here if desired
-      state = const Locale(
-        'fi',
-      ); // Default fallback if nothing saved? User asked for 'fi' default.
-    }
+    // 1. Default Fallback
+    // Note: We rely on App.dart to sync User Profile locale.
+    // Future: Restore _loadLocale logic using listener or proper initialization.
+    return const Locale('en');
   }
 
   Future<void> setLocale(Locale locale) async {

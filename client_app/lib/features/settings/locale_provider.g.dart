@@ -53,7 +53,7 @@ final class LocaleNotifierProvider
   }
 }
 
-String _$localeNotifierHash() => r'5e25bc11c23868507a4daaae3967d9d8013f18e9';
+String _$localeNotifierHash() => r'a6db6909221a875614c6007eafceb610e011dffe';
 
 /// **Locale Provider**
 ///
