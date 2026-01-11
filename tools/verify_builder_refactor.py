@@ -68,7 +68,7 @@ def run_tests():
     with open("test_report.json", "w") as f:
         json.dump(logs, f, indent=2)
 
-    if any(l["status"] == "FAILED" for l in logs):
+    if any(log_entry["status"] == "FAILED" for log_entry in logs):
         sys.exit(1)
     sys.exit(0)
 

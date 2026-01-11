@@ -133,7 +133,7 @@ async def test_audit_lifecycle_root(client: AsyncClient, admin_token_headers):
     )
     assert res_logs.status_code == 200
     logs = res_logs.json()
-    found = any(l["target_uid"] == user_uid for l in logs)
+    found = any(log_entry["target_uid"] == user_uid for log_entry in logs)
     assert found, "USER_CREATED log not found for new user"
 
     # 3. Delete User
@@ -150,7 +150,7 @@ async def test_audit_lifecycle_root(client: AsyncClient, admin_token_headers):
         f.write(f"Step 3 Audit Log Status: {res_logs.status_code}\n")
     assert res_logs.status_code == 200
     logs = res_logs.json()
-    found = any(l["target_uid"] == user_uid for l in logs)
+    found = any(log_entry["target_uid"] == user_uid for log_entry in logs)
     assert found, "USER_DELETED log not found"
 
     # 4. Delete Organization

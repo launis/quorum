@@ -3,6 +3,8 @@ from fastapi.testclient import TestClient
 
 from backend.main import app
 from backend.settings import get_settings
+from backend.dependencies import get_db_client_dep
+from tinydb import Query
 
 client = TestClient(app)
 
@@ -147,11 +149,8 @@ def test_member_cannot_create_organization():
 def test_get_my_organization_admin():
     """Verify '/organizations/me' resolves correctly for an ADMIN."""
     # Force seed org-1 because sometimes fixture fails to sync with repo
-    from backend.dependencies import get_db_client_dep
-
     db = get_db_client_dep()
     db.table("organizations").upsert({"id": "org-1", "name": "Org 1", "tier": "standard"}, lambda x: x["id"] == "org-1")
-    from tinydb import Query
 
     # Cleanup legacy/bad data (previous failing runs injected 'id' instead of 'uid')
     db.table("users").remove(Query().id == "admin_1")

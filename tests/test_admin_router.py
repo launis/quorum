@@ -33,7 +33,8 @@ def override_deps():
     # FastAPI overrides use the function object as key.
     # In dependencies.py we see: get_llm_provider_factory(strategy) returns _provider_dependency.
     # Since it's a closure, exact matching is hard.
-    # Strategy: Validation logic in router uses LLMProviderFast which is Annotated[..., Depends(get_llm_provider_factory("fast"))]
+    # Strategy: Validation logic in router uses LLMProviderFast which is
+    # Annotated[..., Depends(get_llm_provider_factory("fast"))]
     # Ideally we override the underlying 'get_llm_provider' if possible, or just mock the network calls if integration.
     # BUT, 'get_llm_provider_factory("fast")' returns the '_provider_dependency' inner function.
     # Since we can't easily grab that inner function reference from outside to use as key,
@@ -49,7 +50,8 @@ def override_deps():
     # If called at module level in dependencies.py:
     # LLMProviderFast = Annotated[..., Depends(get_llm_provider_factory("fast"))]
     # The Depends key IS the function returned by that call.
-    # We can inspect `backend.dependencies.LLMProviderFast.__metadata__[0].dependency` to find the key!
+    # We can inspect `backend.dependencies.LLMProviderFast.__metadata__[0].dependency`
+    # to find the key!
     pass
 
 

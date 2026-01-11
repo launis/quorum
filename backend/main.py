@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Path, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+import re
 
 from backend.api.admin_router import router as admin_router
 from backend.api.agents_router import router as agents_router
@@ -136,8 +138,6 @@ async def app_exception_handler(request: Request, exc: AppException):
     Enforces the strict 'API & Error Contract' by returning APIError.
     Derives 'error_code' from the Exception Class Name (e.g. ResourceNotFoundError -> RESOURCE_NOT_FOUND_ERROR).
     """
-    import re
-
     # Convert CamelCase to SNAKE_CASE for the error code
     class_name = exc.__class__.__name__
     snake_case = re.sub(r"(?<!^)(?=[A-Z])", "_", class_name).upper()
@@ -179,7 +179,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
     )
 
 
-from fastapi.exceptions import RequestValidationError
+
 
 
 @app.exception_handler(RequestValidationError)

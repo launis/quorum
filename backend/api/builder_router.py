@@ -343,7 +343,10 @@ async def delete_workflow(workflow_id: str, engine: EngineDep, current_user: Cur
     if related_execs:
         raise HTTPException(
             status_code=409,
-            detail=f"Cannot delete workflow '{workflow_id}' because it has {len(related_execs)} execution record(s). Archive it or delete executions first.",
+            detail=(
+                f"Cannot delete workflow '{workflow_id}' because it has {len(related_execs)} execution record(s). "
+                "Archive it or delete executions first."
+            ),
         )
 
     # 1. Identify Orphan Steps
@@ -456,7 +459,10 @@ async def validate_connection(request: ValidationRequest, engine: EngineDep):
         missing = [req for req in required if req not in produced]
 
         if missing and required:
-            msg = f"⚠️ Potential Schema Mismatch: Target requires {missing}. Source produces {produced}. Ensure dependencies exist upstream."
+            msg = (
+                f"⚠️ Potential Schema Mismatch: Target requires {missing}. Source produces {produced}. "
+                "Ensure dependencies exist upstream."
+            )
             return {"valid": True, "reason": msg}
 
         return {"valid": True, "reason": "Connection Compatible."}

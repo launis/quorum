@@ -310,7 +310,10 @@ async def delete_organization(
     if active_execs:
         raise HTTPException(
             status_code=409,
-            detail=f"Cannot delete Organization '{org_id}' while it has {len(active_execs)} active execution(s). Cancel them first.",
+            detail=(
+                f"Cannot delete Organization '{org_id}' while it has {len(active_execs)} active execution(s). "
+                "Cancel them first."
+            ),
         )
 
     # 3. Delete Users & Org Entity (AuthService)
@@ -453,7 +456,9 @@ async def delete_organization_user(
     # Note: Workflows are Org-owned, so no check needed there.
     user_execs = await repo.get_all_executions(organization_id=org_id)
     active_user_execs = [
-        e for e in user_execs if e.get("user_id") == target_uid and e.get("status") in ["running", "pending", "queued"]
+        e
+        for e in user_execs
+        if e.get("user_id") == target_uid and e.get("status") in ["running", "pending", "queued"]
     ]
 
     if active_user_execs:

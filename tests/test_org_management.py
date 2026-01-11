@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import pytest
+from backend.models.auth import User, UserRole
 
 # Mock user payloads
 ROOT_USER = User(

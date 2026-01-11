@@ -1,6 +1,7 @@
 import os
 
 import pytest
+from httpx import ASGITransport, AsyncClient
 
 # 1. FORCE ENV VARS BEFORE IMPORTS
 os.environ["USE_MOCK_LLM"] = "true"
@@ -38,10 +39,8 @@ def anyio_backend():
     return "asyncio"
 
 
-from httpx import ASGITransport, AsyncClient
-
-from backend.dependencies import get_current_user_from_header
-from backend.main import app
+from backend.dependencies import get_current_user_from_header  # noqa: E402
+from backend.main import app  # noqa: E402
 
 
 class MockAuthService:

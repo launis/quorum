@@ -136,7 +136,8 @@ class BaseAgent(BaseComponent):
                     logger.info(f"[{self.__class__.__name__}] Updated state.{target_field}")
                 else:
                     logger.warning(
-                        f"[{self.__class__.__name__}] State model missing field '{target_field}'. Assigning to aux_data."
+                        f"[{self.__class__.__name__}] State model missing field '{target_field}'. "
+                        "Assigning to aux_data."
                     )
                     state.aux_data[target_field] = validated_data.model_dump()
 
@@ -202,7 +203,10 @@ class BaseAgent(BaseComponent):
             kwargs["mock_identity"] = self.__class__.__name__
 
             response_obj = await self.llm_provider.generate(
-                prompt=user_prompt, system_instruction=system_instruction, response_schema=response_schema, **kwargs
+                prompt=user_prompt,
+                system_instruction=system_instruction,
+                response_schema=response_schema,
+                **kwargs,
             )
 
             # Handle Response Content
@@ -223,7 +227,8 @@ class BaseAgent(BaseComponent):
             reasoning_source = None
             if response_obj.reasoning_token:
                 logger.info(
-                    f"[{self.__class__.__name__}] Reasoning Token captured (Size: {len(response_obj.reasoning_token)})"
+                    f"[{self.__class__.__name__}] Reasoning Token captured "
+                    f"(Size: {len(response_obj.reasoning_token)})"
                 )
                 state.last_reasoning_trace = response_obj.reasoning_token
                 reasoning_source = response_obj.reasoning_token

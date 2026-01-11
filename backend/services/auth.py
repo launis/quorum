@@ -7,16 +7,17 @@ import uuid
 from typing import Any
 
 import jwt
+from tinydb import Query
+
+from backend.database.wrapper import AbstractDatabase, AbstractTable
+from backend.models.auth import Organization, OrganizationCreate, TokenData, User, UserCreate, UserRole, UserUpdate
 
 # Secure Secret for Local Tokens (Impersonation)
 # In production, this MUST be set via environment variable.
 JWT_SECRET = "cognitive-quorum-internal-secret-change-me"
 JWT_ALGORITHM = "HS256"
 
-from tinydb import Query
 
-from backend.database.wrapper import AbstractDatabase, AbstractTable
-from backend.models.auth import Organization, OrganizationCreate, TokenData, User, UserCreate, UserRole, UserUpdate
 
 logger = logging.getLogger(__name__)
 

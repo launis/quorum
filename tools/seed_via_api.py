@@ -7,9 +7,9 @@ from pathlib import Path
 project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root))
 
-from fastapi.testclient import TestClient
+from fastapi.testclient import TestClient  # noqa: E402
 
-from backend.main import app
+from backend.main import app  # noqa: E402
 
 # Experiment Settings
 DB_PATH = project_root / "data" / "db_api_seeded.json"
