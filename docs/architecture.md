@@ -174,6 +174,16 @@ The client application implements a **Strict Reactive Architecture** powered by 
     *   Events vary logic via `ref.read(controller.notifier).method()`.
     *   Side-effects (Snackbars, Navigation) are triggered via `ref.listen()`.
 
+### 5. Client File Handling Strategy (OOM Prevention)
+To ensure stability across low-memory mobile devices and browser environments, file uploads follow a **Dual-Path Strategy**:
+
+*   **IO Platforms (Desktop/Mobile)**:
+    *   Files are treated as **Streams** (`MultipartFile.fromFile`).
+    *   **Zero-Copy**: File bytes are *never* loaded into Dart heap memory. This allows uploading GB-sized files without OOM crashes.
+*   **Web Platform**:
+    *   Files are loaded as **Bytes** (`Uint8List`) because browsers restrict direct filesystem access.
+    *   `ExecutionController` strictly enforces `kIsWeb` checks to select the correct strategy.
+
 ## API & Error Contract (Protocol)
 
 To ensure consistent UX across the hybrid Architecture (Flutter Client + Python Backend), all subsystems adhere to a strict **JSON Error Schema**.

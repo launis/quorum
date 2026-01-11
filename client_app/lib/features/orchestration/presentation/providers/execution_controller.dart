@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:fpdart/fpdart.dart';
+import 'package:flutter/foundation.dart';
 
 import 'package:client_app/core/error/app_error.dart';
 import 'package:file_picker/file_picker.dart';
@@ -9,6 +9,7 @@ import 'package:client_app/features/orchestration/domain/models/execution.dart';
 import 'package:client_app/features/orchestration/domain/models/execution_file.dart';
 import 'package:client_app/features/orchestration/domain/models/execution_input.dart';
 import 'package:client_app/features/orchestration/presentation/providers/execution_providers.dart';
+import 'package:client_app/features/orchestration/domain/logic/workflow_input_validator.dart';
 
 part 'execution_controller.g.dart';
 
@@ -42,12 +43,21 @@ class ExecutionController extends _$ExecutionController {
   ///
   /// **Validation Logic**:
   /// Checks for presence of required text fields.
+  /// Starts a new analysis workflow.
+  ///
+  /// **Validation Logic**:
+  /// Validates [inputs] against the provided [requiredInputs] keys using [WorkflowInputValidator].
   Future<String?> startAnalysis({
     required String workflowId,
     required Map<String, dynamic> inputs,
+    required List<String> requiredInputs,
   }) async {
     // 1. Validate Inputs (Client-side fail-fast)
-    final validation = _validateInputs(inputs, workflowId);
+    final validation = WorkflowInputValidator.validate(
+      inputs: inputs,
+      requiredKeys: requiredInputs,
+    );
+
     if (validation.isLeft()) {
       // Extract the specific AppError
       final error =
@@ -69,10 +79,14 @@ class ExecutionController extends _$ExecutionController {
     for (final entry in inputs.entries) {
       final value = entry.value;
       if (value is PlatformFile) {
+        // Efficient File Handling (OOM Prevention):
+        // On IO (Mobile/Desktop), we prefer 'path' and avoid loading 'bytes'.
+        // On Web, 'path' is useless (or causes crash if used in MultipartFile.fromFile), so we MUST use 'bytes'.
         files[entry.key] = ExecutionFile(
           name: value.name,
-          path: value.path, // May be null on Web
-          bytes: value.bytes, // May be null on IO (unless forced)
+          path: value.path,
+          // Only clear bytes if we are NOT on web AND we have a path.
+          bytes: (!kIsWeb && value.path != null) ? null : value.bytes,
         );
       } else {
         jsonInputs[entry.key] = value;
@@ -105,53 +119,5 @@ class ExecutionController extends _$ExecutionController {
         return executionId;
       },
     );
-  }
-
-  /// Validates inputs.
-  ///
-  /// Mirrors Backend Logic (`GUARD 2` in `execution_router.py`):
-  /// - If workflow ID contains "audit", requires specific evidence files/fields.
-  /// - Checks that required fields are not empty or null.
-  Either<AppError, Unit> _validateInputs(
-    Map<String, dynamic> inputs,
-    String workflowId,
-  ) {
-    // 1. Immediate Fail: Empty Inputs
-    if (inputs.isEmpty) {
-      return const Left(AppError.validation(ValidationErrorReason.emptyInput));
-    }
-
-    // 2. Audit Workflow Specific Validation
-    if (workflowId.toLowerCase().contains('audit')) {
-      final requiredFields = [
-        'history_text',
-        'product_text',
-        'reflection_text',
-      ];
-      final missing = <String>[];
-
-      for (final field in requiredFields) {
-        if (!inputs.containsKey(field)) {
-          missing.add(field);
-          continue;
-        }
-
-        final value = inputs[field];
-        // If it's a file (PlatformFile), we assume it's valid if present.
-        // If it's a string, it must not be empty.
-        if (value is String && value.trim().isEmpty) {
-          missing.add(field);
-        } else if (value == null) {
-          missing.add(field);
-        }
-      }
-
-      if (missing.isNotEmpty) {
-        // Return structured error
-        return Left(AppError.validationMissing(missing));
-      }
-    }
-
-    return const Right(unit);
   }
 }

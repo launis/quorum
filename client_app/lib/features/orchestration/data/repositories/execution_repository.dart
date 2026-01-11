@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -72,14 +73,17 @@ class ExecutionRepository {
       // Add files if present
       for (final entry in input.files.entries) {
         final file = entry.value;
-        if (file.bytes != null) {
-          formDataMap[entry.key] = MultipartFile.fromBytes(
-            file.bytes!,
-            filename: file.name,
-          );
-        } else if (file.path != null) {
+        // Web Safety & OOM Prevention:
+        // 1. On Web, ALWAYS use bytes (kIsWeb check). 'fromFile' is unsupported.
+        // 2. On IO, if path is available, use 'fromFile' (Stream) to save memory.
+        if (!kIsWeb && file.path != null) {
           formDataMap[entry.key] = await MultipartFile.fromFile(
             file.path!,
+            filename: file.name,
+          );
+        } else if (file.bytes != null) {
+          formDataMap[entry.key] = MultipartFile.fromBytes(
+            file.bytes!,
             filename: file.name,
           );
         }

@@ -2171,6 +2171,23 @@
             "id": "sequential_audit_chain",
             "name": "Courtroom 2.0 (Full Audit)",
             "description": "Enhanced 12-step audit chain with Profiler, Archivist, and Coach.",
+            "ui_schema": {
+                "history_text": {
+                    "type": "file",
+                    "label": "1. Chat History / Evidence (Chat Logs)",
+                    "icon": "history"
+                },
+                "product_text": {
+                    "type": "file",
+                    "label": "2. Product / Evaluation Target (Final Product)",
+                    "icon": "inventory_2"
+                },
+                "reflection_text": {
+                    "type": "file",
+                    "label": "3. Reflection / Self-Evaluation",
+                    "icon": "lightbulb"
+                }
+            },
             "steps": [
                 "step_guard",
                 "step_analyst",
@@ -2206,6 +2223,23 @@
             "id": "fused_audit_chain",
             "name": "Courtroom 3.0 (Fused Critics)",
             "description": "Optimized workflow merging logical, causal, and performativity analysis into one parallel step.",
+            "ui_schema": {
+                "history_text": {
+                    "type": "file",
+                    "label": "1. Chat History / Evidence (Chat Logs)",
+                    "icon": "history"
+                },
+                "product_text": {
+                    "type": "file",
+                    "label": "2. Product / Evaluation Target (Final Product)",
+                    "icon": "inventory_2"
+                },
+                "reflection_text": {
+                    "type": "file",
+                    "label": "3. Reflection / Self-Evaluation",
+                    "icon": "lightbulb"
+                }
+            },
             "steps": [
                 "step_guard",
                 "step_analyst",
@@ -2236,6 +2270,23 @@
             "id": "sequential_audit_chain_cognitive",
             "name": "Courtroom 2.0 (Cognitive Audit)",
             "description": "Sequential audit using the new Cognitive BARS Matrix.",
+            "ui_schema": {
+                "history_text": {
+                    "type": "file",
+                    "label": "1. Chat History / Evidence (Chat Logs)",
+                    "icon": "history"
+                },
+                "product_text": {
+                    "type": "file",
+                    "label": "2. Product / Evaluation Target (Final Product)",
+                    "icon": "inventory_2"
+                },
+                "reflection_text": {
+                    "type": "file",
+                    "label": "3. Reflection / Self-Evaluation",
+                    "icon": "lightbulb"
+                }
+            },
             "steps": [
                 "step_guard",
                 "step_analyst",
@@ -2271,6 +2322,23 @@
             "id": "fused_audit_chain_cognitive",
             "name": "Courtroom 3.0 (Fused Cognitive)",
             "description": "Fused workflow using the new Cognitive BARS Matrix.",
+            "ui_schema": {
+                "history_text": {
+                    "type": "file",
+                    "label": "1. Chat History / Evidence (Chat Logs)",
+                    "icon": "history"
+                },
+                "product_text": {
+                    "type": "file",
+                    "label": "2. Product / Evaluation Target (Final Product)",
+                    "icon": "inventory_2"
+                },
+                "reflection_text": {
+                    "type": "file",
+                    "label": "3. Reflection / Self-Evaluation",
+                    "icon": "lightbulb"
+                }
+            },
             "steps": [
                 "step_guard",
                 "step_analyst",
@@ -2299,6 +2367,23 @@
             "id": "sequential_audit_chain_dual",
             "name": "Courtroom 2.0 (Dual Matrix)",
             "description": "Sequential audit using BOTH Process and Cognitive BARS Matrices.",
+            "ui_schema": {
+                "history_text": {
+                    "type": "file",
+                    "label": "1. Chat History / Evidence (Chat Logs)",
+                    "icon": "history"
+                },
+                "product_text": {
+                    "type": "file",
+                    "label": "2. Product / Evaluation Target (Final Product)",
+                    "icon": "inventory_2"
+                },
+                "reflection_text": {
+                    "type": "file",
+                    "label": "3. Reflection / Self-Evaluation",
+                    "icon": "lightbulb"
+                }
+            },
             "steps": [
                 "step_guard",
                 "step_analyst",
@@ -2336,6 +2421,23 @@
             "id": "fused_audit_chain_dual",
             "name": "Courtroom 3.0 (Fused Dual)",
             "description": "Fused workflow using BOTH Process and Cognitive BARS Matrices.",
+            "ui_schema": {
+                "history_text": {
+                    "type": "file",
+                    "label": "1. Chat History / Evidence (Chat Logs)",
+                    "icon": "history"
+                },
+                "product_text": {
+                    "type": "file",
+                    "label": "2. Product / Evaluation Target (Final Product)",
+                    "icon": "inventory_2"
+                },
+                "reflection_text": {
+                    "type": "file",
+                    "label": "3. Reflection / Self-Evaluation",
+                    "icon": "lightbulb"
+                }
+            },
             "steps": [
                 "step_guard",
                 "step_analyst",

@@ -30,6 +30,8 @@ Raw inputs provided by the user.
 | `reflection_text` | `str` | Student/User self-reflection. |
 | `bibliography_context` | `list[str]` | Optional reference citations. |
 
+> **⚠️ Architectural Constraint**: The current `InputData` model is "Slot-Based", enforcing specific fields (`history`, `product`). This prevents arbitrary file uploads without semantic mapping. A "Hyper-Dynamic" Artifact-based refactor is planned for Q1 2026.
+
 ---
 
 ## 🛡️ Agent Schemas (Step-by-Step)

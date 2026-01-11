@@ -889,6 +889,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete everything'**
   String get deleteForceConfirm;
+
+  /// No description provided for @contactEmailLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact Email'**
+  String get contactEmailLabel;
 }
 
 class _AppLocalizationsDelegate

@@ -108,6 +108,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **Live Execution View**: Real-time progress UI with polling integration (Progress Bar, Step Indicator).
 - [x] **Localization**: Full EN/FI support for Analysis Wizard and Execution Monitor.
 - [x] **Strict Validation**: Client-side enforcement of Audit workflow requirements (Fail-Fast).
+- [x] **Dynamic Input Rendering**: Forms generated purely from Backend `ui_schema`, removing client-side hardcoding.
 
 ### 2.8 Quality Assurance & Hygiene (Strict Mandate)
 - [x] **Localization Hygiene**: Refactored `AppError` to enforce `ValidationErrorReason` enum (No raw strings).
@@ -185,3 +186,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
     *   Backend has `billing_id` and `subscription_status`, but no payment gateway connection.
     *   **Need**: Stripe/Paddle integration to automate status updates via Webhooks.
 
+3.  **Hyper-Dynamic Artifact Architecture**:
+    *   **Concept**: Shift from rigid "Slot-Based" inputs (`History`, `Product`) to a "Tag-Based Artifact Collection" (`List[Artifact]`).
+    *   **Enablement**: Allows arbitrary number of files, auto-routing via semantic tags, and mass-scale case law analysis.
+    *   **Effort**: High (Core Engine & Prompt Logic Refactor).

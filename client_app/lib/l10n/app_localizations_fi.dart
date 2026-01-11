@@ -442,4 +442,7 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get deleteForceConfirm => 'Poista kaikki';
+
+  @override
+  String get contactEmailLabel => 'Yhteyshenkilön sähköposti';
 }

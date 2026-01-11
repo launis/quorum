@@ -84,9 +84,7 @@ class _OrganizationFormDialogState
               const SizedBox(height: 16),
               TextFormField(
                 controller: _contactEmailController,
-                decoration: const InputDecoration(
-                  labelText: 'Contact Email',
-                ), // TODO: Localize properly if strict
+                decoration: InputDecoration(labelText: l10n.contactEmailLabel),
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(

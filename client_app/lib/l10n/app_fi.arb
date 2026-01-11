@@ -129,5 +129,6 @@
   "deleteOrgConfirmation": "Haluatko varmasti poistaa organisaation {name}?",
   "deleteOrgHasUsersTitle": "Organisaatiossa on käyttäjiä",
   "deleteOrgHasUsersMessage": "Tämä organisaatio sisältää käyttäjiä. Poistaminen poistaa pysyvästi myös kaikki sen käyttäjät. Toimintoa ei voi peruuttaa.",
-  "deleteForceConfirm": "Poista kaikki"
+  "deleteForceConfirm": "Poista kaikki",
+  "contactEmailLabel": "Yhteyshenkilön sähköposti"
 }

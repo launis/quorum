@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:client_app/core/error/app_error.dart';
 import 'package:client_app/features/orchestration/data/repositories/execution_repository.dart';
 import 'package:client_app/features/orchestration/domain/models/execution.dart';
 import 'package:client_app/features/orchestration/domain/models/execution_input.dart';
+import 'package:client_app/features/orchestration/domain/models/execution_file.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
@@ -39,11 +42,56 @@ void main() {
       verify(
         mockDio.post<Map<String, dynamic>>(
           '/executions',
-          data: anyNamed(
-            'data',
-          ), // Can't easily inspect FormData content in mockito basics
+          data: anyNamed('data'),
         ),
       ).called(1);
+    });
+
+    test('createExecution handles multiple files correctly', () async {
+      // Create a real temp file so MultipartFile.fromFile doesn't crash
+      final tempDir = Directory.systemTemp.createTempSync();
+      final tempFile = File('${tempDir.path}/test.pdf');
+      tempFile.writeAsBytesSync([1, 2, 3]);
+
+      try {
+        final fileInput = ExecutionInput(
+          workflowId: 'wf-files',
+          inputs: {'meta': 'data'},
+          files: {
+            'doc1': const ExecutionFile(
+              name: 'a.pdf',
+              bytes: [1, 2],
+            ), // Web-like
+            'doc2': ExecutionFile(
+              name: 'b.pdf',
+              path: tempFile.path,
+            ), // IO-like
+          },
+        );
+
+        when(
+          mockDio.post<Map<String, dynamic>>(any, data: anyNamed('data')),
+        ).thenAnswer(
+          (_) async => Response(
+            data: {'execution_id': 'exec-files'},
+            statusCode: 201,
+            requestOptions: RequestOptions(path: '/executions'),
+          ),
+        );
+
+        await repository.createExecution(fileInput).run();
+
+        verify(
+          mockDio.post<Map<String, dynamic>>(
+            '/executions',
+            data: anyNamed('data'),
+          ),
+        ).called(1);
+      } finally {
+        if (tempDir.existsSync()) {
+          tempDir.deleteSync(recursive: true);
+        }
+      }
     });
 
     test('fetchExecutions returns list of Executions', () async {

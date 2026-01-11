@@ -87,30 +87,16 @@ class _DynamicInputFormState extends ConsumerState<DynamicInputForm> {
                 );
               }
             }),
-          ] else ...[
-            // DEFAULT FALLBACK: 3-File Audit Layout
-            // "kaikki workflowt ovat nyt siinä tilassa, että vaaditaan 3 nappia"
-            _buildFileInput(
-              label: l10n.inputChatHistory,
-              keyName: 'history_text',
-              icon: Icons.history,
-              currentValue: inputs['history_text'] as PlatformFile?,
+          ] else
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  l10n.fillRequiredInputs, // Or a specific "No inputs needed" string
+                  style: TextStyle(color: Theme.of(context).disabledColor),
+                ),
+              ),
             ),
-            const SizedBox(height: 16),
-            _buildFileInput(
-              label: l10n.inputProductTarget,
-              keyName: 'product_text',
-              icon: Icons.inventory_2,
-              currentValue: inputs['product_text'] as PlatformFile?,
-            ),
-            const SizedBox(height: 16),
-            _buildFileInput(
-              label: l10n.inputReflection,
-              keyName: 'reflection_text',
-              icon: Icons.lightbulb,
-              currentValue: inputs['reflection_text'] as PlatformFile?,
-            ),
-          ],
         ],
       ),
     );

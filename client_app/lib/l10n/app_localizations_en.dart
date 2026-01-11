@@ -443,4 +443,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deleteForceConfirm => 'Delete everything';
+
+  @override
+  String get contactEmailLabel => 'Contact Email';
 }

@@ -7,6 +7,8 @@ import 'package:client_app/features/orchestration/presentation/providers/wizard_
 import 'package:client_app/features/orchestration/presentation/providers/execution_controller.dart';
 import 'package:client_app/features/orchestration/presentation/widgets/wizard/workflow_selector.dart';
 import 'package:client_app/features/orchestration/presentation/widgets/wizard/dynamic_input_form.dart';
+import 'package:client_app/features/orchestration/presentation/providers/workflow_controller.dart';
+import 'package:collection/collection.dart';
 
 class AnalysisWizardScreen extends ConsumerWidget {
   const AnalysisWizardScreen({super.key});
@@ -53,26 +55,10 @@ class AnalysisWizardScreen extends ConsumerWidget {
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
-      } else if (next is AsyncData && next.value != null) {
-        // Success: Navigate (value is executionId based on controller logic, usually controller returns executionId but state is void/null?)
-        // UPDATE: Controller.startAnalysis returns String? but sets state to AsyncData(null).
-        // Wait, if state is AsyncData(null), we don't have the ID in the state to navigate to!
-        // The return value of the Future is where we get the ID.
-        // However, passive view guidelines suggest relying on state.
-        // If the Controller sets state to AsyncData(null), we lose the ID.
-        // We should probably rely on the Future return in _submit, OR separate state.
-        // BUT, the prompt asked to "navigate to dashboard using context.go" in ref.listen.
-        // If the controller doesn't store the ID in state, we can't get it here unless we change the controller state type.
-        // Let's assume for this specific refactor strict adherence to prompt: "If the next state is AsyncData (success), navigate..."
-        // If we don't have the ID, we might default to dashboard root.
-        // Or we can rely on `_submit` to do the navigation if successful?
-        // REQUIREMENT: "In the ref.listen callback: ... navigate to the dashboard"
-        // I will assume for now we navigate to the root dashboard list if ID cannot be retrieved, or `_submit` handles the specific ID nav.
-        // actually, let's look at the controller again. It returns `executionId`.
-        // The Prompt says: "If the next state is AsyncData (success), navigate to the dashboard using context.go."
-        // It does NOT explicitly say "to the specific monitor page", just "dashboard".
-        // I'll navigate to '/dashboard/executions' which is safe.
-        context.go('/dashboard/executions');
+      } else if (previous?.isLoading == true && next is AsyncData) {
+        // Success Transition: Loading -> Data
+        // Controller returns void (null), so we don't check value.
+        context.go('/dashboard');
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(l10n.analysisStarted)));
@@ -137,6 +123,21 @@ class AnalysisWizardScreen extends ConsumerWidget {
 
   Future<void> _submit(WidgetRef ref) async {
     final wizardState = ref.read(wizardStateProvider);
+    final workflowList = ref.read(workflowListProvider);
+
+    // Find selected workflow to determine required inputs
+    final workflow =
+        workflowList.asData?.value
+            .where((w) => w.id == wizardState.selectedWorkflowId)
+            .firstOrNull;
+
+    // Determine Required Keys based on Schema OR Fallback
+    final List<String> requiredInputs;
+    if (workflow != null && (workflow.uiSchema?.isNotEmpty ?? false)) {
+      requiredInputs = workflow.uiSchema!.keys.toList();
+    } else {
+      requiredInputs = [];
+    }
 
     // Delegate strictly to Controller.
     // Validation is handled inside startAnalysis (Fail-fast).
@@ -147,6 +148,7 @@ class AnalysisWizardScreen extends ConsumerWidget {
         .startAnalysis(
           workflowId: wizardState.selectedWorkflowId,
           inputs: wizardState.inputs,
+          requiredInputs: requiredInputs,
         );
   }
 }

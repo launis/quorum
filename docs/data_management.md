@@ -76,3 +76,9 @@ All data access (e.g., `OrganizationRepository`, `UserRepository`) follows a str
 To support the **Fail-Fast** mandate, the client implements Pydantic-like validation in the `Logic Layer` (Controllers):
 *   **Wizards**: Use `FormMixin` to validate required fields *before* calling the Repository.
 *   **Type Safety**: All JSON responses are deserialized into rigid Dart models (`@JsonSerializable`) that match the backend Pydantic schemas.
+
+### 3. OOM-Safe File Uploads
+To prevent Out-Of-Memory crashes on low-end devices when uploading large (GB+) evidentiary files:
+*   **Path-Priority**: The Repository always checks for a file path first.
+*   **Streaming**: If a path exists (Desktop/Mobile), `MultipartFile.fromFile` is used to stream data directly from disk.
+*   **Web Fallback**: Only on Web (where paths are virtual) does it fall back to loading `bytes` into memory.
