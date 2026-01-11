@@ -1,8 +1,10 @@
 """Banned Phrases API Tests."""
 
 import uuid
+
 import pytest
 from httpx import AsyncClient
+
 
 @pytest.mark.asyncio
 async def test_banned_phrases_crud(client: AsyncClient):
@@ -10,7 +12,7 @@ async def test_banned_phrases_crud(client: AsyncClient):
     # 1. Create
     unique_phrase = f"test_ban_phrase_{uuid.uuid4()}"
     payload = {"phrase": unique_phrase, "language": "en"}
-    
+
     # Use await
     response = await client.post("/admin/banned-phrases", json=payload)
     assert response.status_code == 200
@@ -22,9 +24,9 @@ async def test_banned_phrases_crud(client: AsyncClient):
     response = await client.get("/admin/banned-phrases")
     assert response.status_code == 200
     phrases = response.json()
-    
+
     # Check if phrase exists. phrases is list[dict]
-    # 'phrase' key. 
+    # 'phrase' key.
     # API get_banned_phrases returns "list[dict]" (Step 2489)
     # Repo returns list of dicts.
     match = [p for p in phrases if p.get("phrase") == unique_phrase]
@@ -48,7 +50,7 @@ async def test_banned_phrases_crud(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_duplicate_phrase(client: AsyncClient):
     """Test adding a duplicate phrase."""
-    # Logic in admin_router doesn't strictly forbid duplicates in 'add_banned_phrase' 
+    # Logic in admin_router doesn't strictly forbid duplicates in 'add_banned_phrase'
     # (repo.add_banned_phrase usually handles it or allows).
     # If we want to test it, we should know expected behavior.
     # Existing test passed, so assume 200 is fine.

@@ -181,7 +181,8 @@ def render_config_view(api_client, backend_url: str):
         st.subheader("Step Configuration Manager")
         st.info("""
         **Info:** A "Step" is a configured instance of an **Agent Class**.
-        - You CAN create new steps here (e.g., `step_analyst_v2`) by re-using existing logic (e.g., `AnalystAgent`) with different prompts.
+        - You CAN create new steps here (e.g., `step_analyst_v2`) by re-using existing logic (e.g., `AnalystAgent`)
+          with different prompts.
         - You CANNOT create new Python logic (Classes) here. That requires backend coding in `backend/agents/`.
         """)
 

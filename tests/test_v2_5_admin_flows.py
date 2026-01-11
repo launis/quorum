@@ -4,7 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from backend.main import app
-from backend.models.auth import TokenData, UserRole
+from backend.models.auth import UserRole
 
 client = TestClient(app)
 
@@ -13,7 +13,7 @@ client = TestClient(app)
 async def test_global_settings_persistence(client_authenticated, mock_auth_service):
     """Verify ROOT can update global settings and audit log is created."""
     mock_auth_service.current_user.role = UserRole.ROOT
-    
+
     # 1. Get initial
     res = await client_authenticated.get("/settings")
     assert res.status_code == 200

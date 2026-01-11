@@ -1,11 +1,14 @@
-
 """Global Pytest Configuration."""
 
 import os
-from typing import AsyncGenerator
+import tempfile
+from collections.abc import AsyncGenerator
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+
+import backend.dependencies
+from backend.main import app
 
 # 1. FORCE ENV VARS BEFORE IMPORTS
 os.environ["USE_MOCK_LLM"] = "true"
@@ -42,7 +45,6 @@ def anyio_backend():
 
 
 from backend.dependencies import get_current_user_from_header  # noqa: E402
-from backend.main import app  # noqa: E402
 
 
 class MockAuthService:
@@ -60,7 +62,7 @@ def mock_auth_service():
 
 
 @pytest.fixture
-async def client_authenticated(mock_auth_service) -> AsyncGenerator[AsyncClient, None]:
+async def client_authenticated(mock_auth_service) -> AsyncGenerator[AsyncClient]:
     """Async Client with Dynamic Auth overrides."""
     # Default to Root if not set
     if not mock_auth_service.current_user:
@@ -80,8 +82,6 @@ async def client_authenticated(mock_auth_service) -> AsyncGenerator[AsyncClient,
     app.dependency_overrides[get_current_user_from_header] = lambda: mock_auth_service.current_user
 
     # Override Database to use Temp File (Isolated Tests)
-    import tempfile
-    import backend.dependencies
 
     # RESET GLOBALS to avoid stale DB references
     backend.dependencies._db_client_instance = None
@@ -109,7 +109,7 @@ async def client_authenticated(mock_auth_service) -> AsyncGenerator[AsyncClient,
     from backend.dependencies import get_db_client_dep, get_settings_dep
 
     test_db = TinyDBClient(temp_db_path)
-    
+
     # Align Global Helper for direct usage (e.g. in test fixtures)
     backend.dependencies._db_client_instance = test_db
 
@@ -133,7 +133,7 @@ async def client_authenticated(mock_auth_service) -> AsyncGenerator[AsyncClient,
         os.remove(temp_db_path)
     except Exception:
         pass
-    
+
     # TEARDOWN RESET
     backend.dependencies._db_client_instance = None
     backend.dependencies._repository_instance = None
@@ -143,7 +143,7 @@ async def client_authenticated(mock_auth_service) -> AsyncGenerator[AsyncClient,
     backend.dependencies._storage_service_instance = None
 
 @pytest.fixture
-async def client(client_authenticated) -> AsyncGenerator[AsyncClient, None]:
+async def client(client_authenticated) -> AsyncGenerator[AsyncClient]:
     """Alias for client_authenticated for compatibility with tests expecting 'client'."""
     yield client_authenticated
 

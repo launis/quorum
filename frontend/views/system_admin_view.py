@@ -6,6 +6,7 @@ import streamlit as st
 
 def render_system_admin_view(api_client):
     """Renders the System Admin Dashboard for ROOT users.
+
     Focus: Organization Management (Multi-Tenancy).
 
     Args:

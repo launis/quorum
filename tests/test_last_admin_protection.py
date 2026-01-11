@@ -8,8 +8,6 @@ from httpx import AsyncClient
 # Force Mock DB to avoid file lock conflicts with running backend
 os.environ["USE_MOCK_DB"] = "true"
 
-from backend.main import app
-
 
 # Fixture setup similar to test_iam.py
 @pytest.fixture
