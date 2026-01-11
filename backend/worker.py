@@ -52,12 +52,39 @@ async def startup(ctx: Any) -> None:
     configure_logfire()
     logging.info("Arq Worker started successfully.")
 
-    # Initialize Services via Dependencies
-    # usage of get_engine() automatically resolves all sub-dependencies (Repo, Storage, Registry)
-    from backend.dependencies import get_engine
+    # Initialize Services via Manual Dependency Resolution
+    from backend.dependencies import (
+        get_agent_registry_dep,
+        get_async_repository,
+        get_db_client_dep,
+        get_document_service_dep,
+        get_engine,
+        get_prompt_builder_dep,
+        get_settings_dep,
+        get_storage_service_dep,
+    )
 
-    # We call get_engine() which handles manual resolution invocation
-    engine = await get_engine()
+    # 1. Base Clients
+    db_client = get_db_client_dep()
+    settings = get_settings_dep()
+    
+    # 2. Services
+    repo = get_async_repository(db_client)
+    storage = get_storage_service_dep()
+    doc_service = get_document_service_dep(storage)
+    
+    # 3. Async Registry & Builder
+    registry = await get_agent_registry_dep(repo)
+    prompt_builder = await get_prompt_builder_dep(repo, registry)
+
+    # 4. Engine
+    engine = await get_engine(
+        repository=repo,
+        registry=registry,
+        prompt_builder=prompt_builder,
+        storage_service=storage,
+        document_service=doc_service,
+    )
 
     # Store in context for jobs
     ctx["engine"] = engine

@@ -127,26 +127,18 @@ def get_storage_service_dep() -> AbstractStorage:
     # Remove debug logging
     # logger.warning(f"### DEBUG CONFIG ###: ...")
 
-    print(
-        f"!!! DEBUG DEPENDENCIES !!! Backend={settings.storage_backend}, Bucket={settings.storage_bucket_name}",
-        flush=True,
-    )
-
     if settings.storage_backend == "NONE":
         logger.info("[Dependencies] Storage disabled (NoOp).")
-        print("!!! DEBUG !!! Selected NoOpStorage", flush=True)
         _storage_service_instance = NoOpStorage()
 
     # Logic matched with repository selection: FIRESTORE means Cloud
     elif settings.storage_backend.upper() == "FIRESTORE" and not settings.use_mock_db:
         bucket_name = settings.storage_bucket_name
-        print(f"!!! DEBUG !!! Entering FIRESTORE block. Bucket: {bucket_name}", flush=True)
 
         if bucket_name:
             logger.info(f"[Dependencies] Initializing Firebase Cloud Storage (Bucket: {bucket_name}).")
             _storage_service_instance = FirebaseStorage(bucket_name=bucket_name)
         else:
-            print("!!! DEBUG !!! Bucket Missing in FIRESTORE mode!", flush=True)
             # STRICT ZERO-FALLBACK
             msg = "CRITICAL: Firestore backend selected but STORAGE_BUCKET_NAME is missing. Zero-fallback policy in effect."
             logger.critical(msg)
@@ -154,7 +146,6 @@ def get_storage_service_dep() -> AbstractStorage:
 
     else:
         logger.info("[Dependencies] Initializing Local File Storage.")
-        print("!!! DEBUG !!! Selected LocalFileStorage", flush=True)
         _storage_service_instance = LocalFileStorage()
 
     return _storage_service_instance
@@ -235,23 +226,7 @@ async def get_engine(
         except Exception as e:
             logger.warning(f"Could not pre-warm Auth Service: {e}")
 
-        # MANUAL RESOLUTION IF CALLED WITHOUT DI
-        from fastapi.params import Depends as DependsParams
 
-        if isinstance(repository, DependsParams):
-            repository = get_async_repository(get_db_client_dep())
-
-        if isinstance(registry, DependsParams):
-            registry = await get_agent_registry_dep(repository)
-
-        if isinstance(prompt_builder, DependsParams):
-            prompt_builder = await get_prompt_builder_dep(repository, registry)
-
-        if isinstance(storage_service, DependsParams):
-            storage_service = get_storage_service_dep()
-
-        if isinstance(document_service, DependsParams):
-            document_service = get_document_service_dep(storage_service)
 
         settings = get_settings()
 
