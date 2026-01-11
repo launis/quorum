@@ -211,7 +211,7 @@
           "Orchestration"
         ],
         "summary": "Start Execution",
-        "description": "Initiates a new workflow execution asynchronously.\nSupports Multipart/Form-Data for optional file uploads alongside JSON inputs.\n\nArgs:\n    request (Request): The raw FastAPI request (for parsing form data).\n    background_tasks (BackgroundTasks): Logic for handling async operations.\n    engine (WorkflowEngine): The workflow engine dependency.\n    current_user (CurrentUserDep): The authenticated user initiating the run.\n\nReturns:\n    dict: The status and execution_id.\n\nRaises:\n    HTTPException: If workflow_id is missing from the form data.",
+        "description": "Initiates a new workflow execution asynchronously.\n\nSupports Multipart/Form-Data for optional file uploads alongside JSON inputs.\n\nArgs:\n    request (Request): The raw FastAPI request (for parsing form data).\n    background_tasks (BackgroundTasks): Logic for handling async operations.\n    engine (WorkflowEngine): The workflow engine dependency.\n    current_user (CurrentUserDep): The authenticated user initiating the run.\n\nReturns:\n    dict: The status and execution_id.\n\nRaises:\n    HTTPException: If workflow_id is missing from the form data.",
         "operationId": "execute_workflow_executions_post",
         "parameters": [
           {
@@ -494,7 +494,7 @@
           "Agents"
         ],
         "summary": "List All Agents",
-        "description": "List all available agents with their metadata, models, and schemas.\nDynamically resolves model strategy based on the selected workflow configuration.\n\nArgs:\n    workflow_id (Optional[str]): Context for model resolution.\n    db (DatabaseDep): Database dependency.\n    registry (RegistryDep): Injected registry service.\n\nReturns:\n    List[Dict]: A list of agent definition objects.",
+        "description": "List all available agents with their metadata, models, and schemas.\n\nDynamically resolves model strategy based on the selected workflow configuration.\n\nArgs:\n    workflow_id (Optional[str]): Context for model resolution.\n    db (DatabaseDep): Database dependency.\n    registry (RegistryDep): Injected registry service.\n\nReturns:\n    List[Dict]: A list of agent definition objects.",
         "operationId": "list_agents_agents__get",
         "parameters": [
           {
@@ -1955,7 +1955,7 @@
           "Configuration"
         ],
         "summary": "List Available Models",
-        "description": "Returns a dynamic dictionary of models found via provider APIs.\nSupports filtering by provider and specifying Google Cloud region.\n\nArgs:\n    handler (LLMHandlerDep): LLM Handler dependency.\n    providers (list[str]): Optional list of providers to query.\n    location (str): Optional region override.\n\nReturns:\n    dict: Map of provider -> list of models.",
+        "description": "Returns a dynamic dictionary of models found via provider APIs.\n\nSupports filtering by provider and specifying Google Cloud region.\n\nArgs:\n    handler (LLMHandlerDep): LLM Handler dependency.\n    providers (list[str]): Optional list of providers to query.\n    location (str): Optional region override.\n\nReturns:\n    dict: Map of provider -> list of models.",
         "operationId": "list_available_models_config_models_available_get",
         "parameters": [
           {
@@ -2161,7 +2161,7 @@
           "Configuration"
         ],
         "summary": "Get Known Dimensions",
-        "description": "Returns specific allowed dimension IDs from the ontology table.\nAuto-seeds defaults if table is empty.\n\nArgs:\n    db (DatabaseDep): Database dependency.\n\nReturns:\n    list[str]: Sorted list of dimension IDs.",
+        "description": "Returns specific allowed dimension IDs from the ontology table.\n\nAuto-seeds defaults if table is empty.\n\nArgs:\n    db (DatabaseDep): Database dependency.\n\nReturns:\n    list[str]: Sorted list of dimension IDs.",
         "operationId": "get_known_dimensions_config_ontology_dimensions_get",
         "responses": {
           "200": {
@@ -3539,7 +3539,7 @@
           "Builder"
         ],
         "summary": "Update Step",
-        "description": "V2: Update a step configuration.\nWARNING: This modifies the global step definition.",
+        "description": "V2: Update a step configuration.\n\nWARNING: This modifies the global step definition.",
         "operationId": "update_step_builder_steps__step_id__put",
         "parameters": [
           {
@@ -3793,7 +3793,7 @@
           "Builder"
         ],
         "summary": "Compile Fusion",
-        "description": "V2: Prompt Fusion Compilation.\nReplaces a sequence of steps with a compatible Composite Step (Panel).",
+        "description": "V2: Prompt Fusion Compilation.\n\nReplaces a sequence of steps with a compatible Composite Step (Panel).",
         "operationId": "compile_fusion_builder_compile_post",
         "requestBody": {
           "content": {
@@ -4394,7 +4394,7 @@
           "Global Settings"
         ],
         "summary": "Update Settings",
-        "description": "Updates global system settings. Requires ROOT.",
+        "description": "Updates global system settings.\n\nRequires ROOT.",
         "operationId": "update_settings_settings_patch",
         "parameters": [
           {
@@ -4724,7 +4724,8 @@
         "required": [
           "phrase"
         ],
-        "title": "BannedPhraseRequest"
+        "title": "BannedPhraseRequest",
+        "description": "Request model for adding a banned phrase."
       },
       "BatchCompletionRequest": {
         "properties": {
@@ -4741,7 +4742,8 @@
         "required": [
           "requests"
         ],
-        "title": "BatchCompletionRequest"
+        "title": "BatchCompletionRequest",
+        "description": "Payload for batch completion requests."
       },
       "Body_citation_lookup_tools_citation_lookup_post": {
         "properties": {
@@ -4987,7 +4989,8 @@
           "workflow_id",
           "steps"
         ],
-        "title": "CompileRequest"
+        "title": "CompileRequest",
+        "description": "Payload for compiling a sequence of steps into a fusion step."
       },
       "CompletionRequest": {
         "properties": {
@@ -5139,7 +5142,8 @@
           "type",
           "content"
         ],
-        "title": "ComponentCreate"
+        "title": "ComponentCreate",
+        "description": "Payload for creating a new component."
       },
       "ComponentUpdate": {
         "properties": {
@@ -5228,7 +5232,8 @@
         "required": [
           "new_name"
         ],
-        "title": "CopyWorkflowRequest"
+        "title": "CopyWorkflowRequest",
+        "description": "Payload for copying a workflow."
       },
       "CustomStepCreateRequest": {
         "properties": {
@@ -5254,7 +5259,8 @@
         "required": [
           "component_type"
         ],
-        "title": "CustomStepCreateRequest"
+        "title": "CustomStepCreateRequest",
+        "description": "Payload for creating a custom step."
       },
       "DimensionDefinition": {
         "properties": {
@@ -5292,7 +5298,8 @@
           "id",
           "label"
         ],
-        "title": "DimensionDefinition"
+        "title": "DimensionDefinition",
+        "description": "Model definition for an evaluation dimension."
       },
       "ExecutionWorkflowCreateRequest": {
         "properties": {
@@ -5329,7 +5336,8 @@
           }
         },
         "type": "object",
-        "title": "GenerateBannedPhrasesRequest"
+        "title": "GenerateBannedPhrasesRequest",
+        "description": "Request model for generating banned phrases."
       },
       "GlobalModelConfig": {
         "properties": {
@@ -5349,7 +5357,8 @@
         "required": [
           "registry"
         ],
-        "title": "GlobalModelConfig"
+        "title": "GlobalModelConfig",
+        "description": "Global configuration for model strategies."
       },
       "HTTPValidationError": {
         "properties": {
@@ -5403,7 +5412,10 @@
             "type": "string",
             "title": "File Path",
             "description": "The relative or absolute file path to the source document for ingestion.",
-            "default": "data/Holistinen Mestaruus.docx"
+            "default": "data/Holistinen Mestaruus.docx",
+            "examples": [
+              "data/Holistinen Mestaruus.docx"
+            ]
           },
           "reset_db": {
             "type": "boolean",
@@ -5413,7 +5425,8 @@
           }
         },
         "type": "object",
-        "title": "IngestRequest"
+        "title": "IngestRequest",
+        "description": "Request model for knowledge base ingestion.\n\nAttributes:\n    file_path (str): Path to the source document.\n    reset_db (bool): Whether to clear the database before ingestion."
       },
       "LLMCallRequest": {
         "properties": {
@@ -5451,7 +5464,8 @@
           "mode",
           "prompt"
         ],
-        "title": "LLMCallRequest"
+        "title": "LLMCallRequest",
+        "description": "Payload for ad-hoc LLM calls."
       },
       "LoginResponse": {
         "properties": {
@@ -5500,7 +5514,8 @@
         "required": [
           "registry"
         ],
-        "title": "ModelRegistryUpdate"
+        "title": "ModelRegistryUpdate",
+        "description": "Payload for updating the model registry."
       },
       "ModelSettings": {
         "properties": {
@@ -5550,7 +5565,8 @@
         "required": [
           "model_name"
         ],
-        "title": "ModelSettings"
+        "title": "ModelSettings",
+        "description": "Configuration settings for a specific model strategy."
       },
       "Organization": {
         "properties": {
@@ -5733,7 +5749,8 @@
         "required": [
           "name"
         ],
-        "title": "OrganizationCreateRequest"
+        "title": "OrganizationCreateRequest",
+        "description": "Payload for creating a new organization."
       },
       "OrganizationResponse": {
         "properties": {
@@ -5803,7 +5820,8 @@
           "name",
           "tier"
         ],
-        "title": "OrganizationResponse"
+        "title": "OrganizationResponse",
+        "description": "Response model for organization details."
       },
       "OrganizationUpdate": {
         "properties": {
@@ -5886,7 +5904,8 @@
           }
         },
         "type": "object",
-        "title": "OrganizationUpdate"
+        "title": "OrganizationUpdate",
+        "description": "Payload for updating an organization."
       },
       "OrganizationUserCreate": {
         "properties": {
@@ -5920,7 +5939,7 @@
           "role"
         ],
         "title": "OrganizationUserCreate",
-        "description": "Payload for creating a user within an organization.\nStrictly forbids default values for role and email."
+        "description": "Payload for creating a user within an organization.\n\nStrictly forbids default values for role and email."
       },
       "StepUpdateRequest": {
         "properties": {
@@ -5951,7 +5970,8 @@
           }
         },
         "type": "object",
-        "title": "StepUpdateRequest"
+        "title": "StepUpdateRequest",
+        "description": "Payload for updating a step configuration."
       },
       "SubscriptionStatus": {
         "type": "string",
@@ -6337,7 +6357,8 @@
           "source_step",
           "target_step"
         ],
-        "title": "ValidationRequest"
+        "title": "ValidationRequest",
+        "description": "Payload for validating connection compatibility between steps."
       },
       "WorkflowCreate": {
         "properties": {
@@ -6394,7 +6415,8 @@
           "id",
           "name"
         ],
-        "title": "WorkflowCreate"
+        "title": "WorkflowCreate",
+        "description": "Payload for creating a new workflow."
       },
       "WorkflowUpdate": {
         "properties": {
@@ -6458,7 +6480,8 @@
           }
         },
         "type": "object",
-        "title": "WorkflowUpdate"
+        "title": "WorkflowUpdate",
+        "description": "Payload for updating a workflow."
       },
       "WorkflowUpdateRequest": {
         "properties": {
@@ -6543,7 +6566,8 @@
           }
         },
         "type": "object",
-        "title": "WorkflowUpdateRequest"
+        "title": "WorkflowUpdateRequest",
+        "description": "Payload for updating an existing workflow."
       }
     }
   }
