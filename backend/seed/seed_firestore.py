@@ -1,3 +1,4 @@
+"""Seed Firestore Data Script."""
 import os
 import sys
 from pathlib import Path
@@ -32,7 +33,7 @@ def main():
     print("[ACTION] Importing backend.seed.seeder...\n")
 
     try:
-        import asyncio
+
 
         from backend.seed.seeder import seed_database
 

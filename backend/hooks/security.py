@@ -1,3 +1,4 @@
+"""Security hooks for PII redaction and keyword banning."""
 import logging
 import re
 
@@ -13,8 +14,10 @@ PII_PATTERNS = {
 }
 
 
-def sanitize_text(text: str) -> tuple[str, list[str]]:
-    """Sanitizes a single string by redacting Personally Identifiable Information (PII)
+def sanitize_text(text: str) -> str:
+    """Sanitizes text by removing potential PII patterns.
+
+    This is a basic regex-based filter. For production, use a dedicated DLP service.
     based on predefined Regex patterns (e.g. Email, SSN, Credit Card).
 
     Args:

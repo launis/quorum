@@ -1,3 +1,4 @@
+"""Builder API Tests."""
 import logging
 import os
 import tempfile
@@ -16,6 +17,7 @@ logging.disable(logging.CRITICAL)
 # Fixture to override DB with a temp file for isolation
 @pytest.fixture(name="client")
 def client_fixture():
+    """Client fixture with isolated file DB."""
     # 0. Clear Singletons
     dependencies._db_client_instance = None
     dependencies._repository_instance = None
@@ -76,7 +78,7 @@ def client_fixture():
     for db in db_ref:
         try:
             db.close()
-        except:
+        except Exception:
             pass
 
     if os.path.exists(path):

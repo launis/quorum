@@ -1,3 +1,4 @@
+"""Scoring hooks for applying penalties and calculating averages."""
 import logging
 
 from backend.models.state import WorkflowState
@@ -6,7 +7,8 @@ logger = logging.getLogger(__name__)
 
 
 def apply_scoring_logic(state: WorkflowState) -> WorkflowState:
-    """HOOK: apply_scoring_logic
+    """HOOK: apply_scoring_logic.
+
     Applies deterministic penalties based on Guard (Security) and Falsifier (Logical) findings,
     then calculates final score averages.
 

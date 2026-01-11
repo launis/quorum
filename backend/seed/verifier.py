@@ -1,3 +1,4 @@
+"""Database Verification Module."""
 import json
 import logging
 from datetime import UTC
@@ -34,6 +35,7 @@ def load_json(path: Path) -> dict[str, Any]:
 
 def normalize_tinydb(db_data: dict[str, Any]) -> dict[str, Any]:
     """Normalizes TinyDB structure to match seed_data.json structure.
+
     TinyDB assumes {"table_name": {"default": {"1": {...}, "2": {...}}}}
     Seed assumes {"table_name": [ ...list of items... ]} OR dicts.
     """
@@ -89,6 +91,7 @@ def normalize_tinydb(db_data: dict[str, Any]) -> dict[str, Any]:
 
 def normalize_seed(seed_data: dict[str, Any]) -> dict[str, Any]:
     """Normalizes seed_data.json structure for comparison.
+
     Seed data is usually {"table_name": [ ...list... ]}.
     """
     normalized = {}
@@ -224,6 +227,7 @@ def load_firestore_data(credentials_path: Path, seed_keys: set[str]) -> dict[str
 
 
 def run_verification(seed_path: Path, db_prod_path: Path, db_mock_path: Path, firestore_creds_path: Path = None):
+    """Runs the full verification suite between seed, prod, mock, and firestore."""
     print("----------------------------------------------------------------")
     print("  DATABASE SYNCHRONIZATION VERIFIER")
     print("----------------------------------------------------------------")

@@ -1,3 +1,4 @@
+"""Inspect Mock Database Tool."""
 import json
 import os
 
@@ -16,13 +17,17 @@ try:
         print(f"Found {len(users)} users (dict)")
         for _key, user in users.items():
             print(
-                f"User: {user.get('uid', 'unknown')} | Org: {user.get('organization_id', 'unknown')} | Role: {user.get('role', 'unknown')}"
+                f"User: {user.get('uid', 'unknown')} | "
+                f"Org: {user.get('organization_id', 'unknown')} | "
+                f"Role: {user.get('role', 'unknown')}"
             )
     elif isinstance(users, list):
         print(f"Found {len(users)} users (list)")
         for user in users:
             print(
-                f"User: {user.get('uid', 'unknown')} | Org: {user.get('organization_id', 'unknown')} | Role: {user.get('role', 'unknown')}"
+                f"User: {user.get('uid', 'unknown')} | "
+                f"Org: {user.get('organization_id', 'unknown')} | "
+                f"Role: {user.get('role', 'unknown')}"
             )
     else:
         print("Users key not found or empty")

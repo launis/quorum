@@ -1,3 +1,4 @@
+"""Seed Production Database Script."""
 import os
 import sys
 from pathlib import Path
@@ -5,6 +6,7 @@ from pathlib import Path
 
 def main():
     """Sets up environment to seed PROD DB (data/db.json) from seed_data.json.
+
     WARNING: ALL EXISTING DATA IN data/db.json WILL BE LOST.
     """
     print("=======================================")
@@ -31,7 +33,7 @@ def main():
     print("[ACTION] Importing backend.seed.seeder...\n")
 
     try:
-        import asyncio
+
 
         from backend.seed.seeder import seed_database
 

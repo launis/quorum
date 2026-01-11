@@ -1,3 +1,4 @@
+"""Reporting hooks for generating XAI reports."""
 import logging
 import os
 from datetime import datetime
@@ -10,7 +11,8 @@ logger = logging.getLogger(__name__)
 
 
 def generate_report(state: WorkflowState) -> WorkflowState:
-    """HOOK: generate_report
+    """HOOK: generate_report.
+
     Post-execution hook that aggregates results from all agents (Judge, Overseer, Reporter)
     and renders a human-readable Markdown report using a Jinja2 template.
 

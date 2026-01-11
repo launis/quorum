@@ -1,3 +1,4 @@
+"""Workflow Integration Tests."""
 import os
 import time
 
@@ -17,6 +18,7 @@ SCENARIOS_DIR = os.path.join(os.path.dirname(__file__), "scenarios", "workflow")
 @pytest.mark.live
 def test_full_workflow_execution():
     """Tests the full workflow execution using PDF files from tests/scenarios/workflow.
+
     Supports running against local or cloud API via API_BASE_URL.
     """
     # 0. Ensure Backend is Ready

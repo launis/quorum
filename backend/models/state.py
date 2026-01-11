@@ -5,13 +5,10 @@ This module defines the `WorkflowState` and `InputData` models, which serve as t
 the persistence of agent outputs and the continuity of the reasoning process.
 """
 
-import logging
 from datetime import datetime
 from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, Field
-
-logger = logging.getLogger(__name__)
 
 from backend.models.domain import (
     ArgumentaatioAnalyysi,

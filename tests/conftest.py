@@ -1,3 +1,4 @@
+"""Global Pytest Configuration."""
 import os
 
 import pytest
@@ -36,6 +37,7 @@ def global_setup():
 
 @pytest.fixture
 def anyio_backend():
+    """Configure AnyIO backend to use asyncio."""
     return "asyncio"
 
 
@@ -44,12 +46,16 @@ from backend.main import app  # noqa: E402
 
 
 class MockAuthService:
+    """Mock service for authentication overrides."""
+
     def __init__(self):
+        """Initialize mock auth service."""
         self.current_user = None
 
 
 @pytest.fixture
 def mock_auth_service():
+    """Fixture to provide access to the mock auth service instance."""
     return MockAuthService()
 
 
@@ -104,10 +110,11 @@ async def client_authenticated(mock_auth_service):
 
     try:
         os.remove(temp_db_path)
-    except:
+    except Exception:
         pass
 
 
 @pytest.fixture
 def admin_token_headers():
+    """Fixture providing valid admin authentication headers."""
     return {"Authorization": "Bearer mock_token"}

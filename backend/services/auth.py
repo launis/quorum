@@ -1,3 +1,4 @@
+"""Authentication and User Management Service."""
 from __future__ import annotations
 
 import asyncio
@@ -25,6 +26,8 @@ logger = logging.getLogger(__name__)
 
 
 class OrganizationRepository:
+    """Repository for Organization data access."""
+
     def __init__(self, db_client: AbstractDatabase):
         """Initialize OrganizationRepository."""
         self.table: AbstractTable = db_client.table("organizations")
@@ -73,8 +76,9 @@ class OrganizationRepository:
 
 
 class UserRepository:
-    """Handles persistence of User metadata (roles, display names, hierarchy)
-    to the underlying database (TinyDB or Firestore).
+    """Handles persistence of User metadata (roles, display names, hierarchy).
+
+    Persists to the underlying database (TinyDB or Firestore).
     """
 
     def __init__(self, db_client: AbstractDatabase):
@@ -156,7 +160,6 @@ class AuthService:
 
     def _init_firebase(self):
         try:
-            import firebase_admin
             from firebase_admin import auth
 
             self.firebase_auth = auth
@@ -201,10 +204,10 @@ class AuthService:
                     raise ValueError(f"Impersonated User not found: {uid}")
                 return TokenData(uid=user.uid, role=user.role, email=user.email, organization_id=user.organization_id)
         except jwt.ExpiredSignatureError:
-            raise ValueError("Token expired")
+            raise ValueError("Token expired") from None
         except jwt.PyJWTError:
-            # Not a local JWT, proceed to other methods
             pass
+
 
         # 2. Mock/Dev Mode check
         if not self.use_firebase or token.startswith("mock-token:"):
@@ -248,7 +251,7 @@ class AuthService:
 
         except Exception as e:
             logger.error(f"Token verification failed: {e}")
-            raise ValueError("Invalid credentials")
+            raise ValueError("Invalid credentials") from e
 
     async def create_organization(self, creator_uid: str, org_create: OrganizationCreate) -> Organization:
         """Creates a new Tenant Organization and an initial Admin user for it.
@@ -344,7 +347,7 @@ class AuthService:
                     new_uid = existing.uid
                     logger.info(f"User {user_data.email} already in Firebase. Using existing UID.")
                 except Exception as e:
-                    raise ValueError(f"Failed to create Firebase user: {e}")
+                    raise ValueError(f"Failed to create Firebase user: {e}") from e
         else:
             # Generate a mock UID
             new_uid = f"local_{uuid.uuid4().hex[:8]}"
@@ -395,7 +398,7 @@ class AuthService:
         return sum(1 for u in all_users if u.organization_id == org_id and u.role == UserRole.ADMIN)
 
     async def delete_user(self, initiator_uid: str, target_uid: str) -> bool:
-        """Delete a user, with Last Admin Protection. (Non-blocking)"""
+        """Delete a user, with Last Admin Protection. (Non-blocking)."""
         logger.info(f"[AuthService] delete_user called. Initiator: {initiator_uid}, Target: {target_uid}")
 
         # Run Read operations in thread
@@ -458,7 +461,8 @@ class AuthService:
         - force=True cascades delete to all users.
         """
         logger.info(
-            f"[AuthService] delete_organization called. Initiator: {initiator_uid}, Target: {target_org_id}, Force: {force}"
+            f"[AuthService] delete_organization called. Initiator: {initiator_uid}, "
+            f"Target: {target_org_id}, Force: {force}"
         )
 
         initiator = await asyncio.to_thread(self.repo.get_by_uid, initiator_uid)
@@ -608,7 +612,7 @@ class AuthService:
 
         from backend.dependencies import get_current_user_from_header  # Lazy import
 
-        async def _role_checker(user: TokenData = Depends(get_current_user_from_header)):
+        async def _role_checker(user: TokenData = Depends(get_current_user_from_header)):  # noqa: B008
             if user.role == UserRole.ROOT:
                 return user
 

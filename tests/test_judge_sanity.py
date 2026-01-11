@@ -1,3 +1,4 @@
+"""Judge Agent Sanity Tests."""
 import unittest
 from unittest.mock import AsyncMock, MagicMock
 
@@ -8,8 +9,11 @@ from backend.models.state import InputData, WorkflowState
 
 
 class TestJudgeSanity(unittest.IsolatedAsyncioTestCase):
+    """Judge sanity test suite."""
+
     async def test_judge_sanity_execution(self):
         """Sanity check for JudgeAgent V2.
+
         Ensures input injection and result parsing works.
         """
         # 1. Setup Input Data

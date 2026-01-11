@@ -1,0 +1,68 @@
+﻿[
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 75,
+      "row": 12
+    },
+    "filename": "C:\\src\\quorum\\backend\\seed\\seeder.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 75,
+            "row": 12
+          },
+          "location": {
+            "column": 62,
+            "row": 12
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 62,
+      "row": 12
+    },
+    "message": "Use `X | None` for type annotations",
+    "noqa_row": 12,
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "I001",
+    "end_location": {
+      "column": 57,
+      "row": 8
+    },
+    "filename": "C:\\src\\quorum\\backend\\seed\\syncer.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "import json\r\nimport os\r\nfrom pathlib import Path\r\n\r\nfrom backend.seed.sync_db_to_seed import sync_db_to_seed\r\nfrom backend.settings import get_settings\r\n\r\n",
+          "end_location": {
+            "column": 1,
+            "row": 10
+          },
+          "location": {
+            "column": 1,
+            "row": 3
+          }
+        }
+      ],
+      "message": "Organize imports"
+    },
+    "location": {
+      "column": 1,
+      "row": 3
+    },
+    "message": "Import block is un-sorted or un-formatted",
+    "noqa_row": 3,
+    "url": "https://docs.astral.sh/ruff/rules/unsorted-imports"
+  }
+]

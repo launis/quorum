@@ -28,7 +28,11 @@ class LLMResponse(BaseModel):
         str | None,
         Field(
             default=None,
-            description="Encrypted Blob representing the model's internal reasoning state (e.g. Gemini 'thought_signature' or OpenAI 'reasoning_blob'). Must be passed back to continue the thought process.",
+            description=(
+                "Encrypted Blob representing the model's internal reasoning state "
+                "(e.g. Gemini 'thought_signature' or OpenAI 'reasoning_blob'). "
+                "Must be passed back to continue the thought process."
+            ),
         ),
     ]
     tool_calls: Annotated[
@@ -44,4 +48,6 @@ class LLMResponse(BaseModel):
     ]
 
     class Config:
+        """Pydantic configuration."""
+
         extra = "ignore"

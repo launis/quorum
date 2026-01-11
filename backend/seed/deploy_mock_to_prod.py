@@ -1,3 +1,4 @@
+"""Deploy Mock to Prod script."""
 import os
 import sys
 
@@ -10,6 +11,7 @@ from backend.settings import get_settings
 
 
 def deploy_mock_to_prod():
+    """Deploy mock DB to prod."""
     settings = get_settings()
 
     print("--- DEPLOYING MOCK CONFIGIGURATION TO PRODUCTION ---")

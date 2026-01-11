@@ -1,3 +1,4 @@
+"""Admin V2.5 Flow Tests."""
 import pytest
 from fastapi.testclient import TestClient
 
@@ -10,6 +11,7 @@ client = TestClient(app)
 # Helper to act as ROOT
 @pytest.fixture
 def root_client():
+    """Create root-authenticated client."""
     from backend.dependencies import get_current_user_from_header
 
     app.dependency_overrides[get_current_user_from_header] = lambda: TokenData(
@@ -78,7 +80,7 @@ def test_organization_lifecycle_saas(root_client):
     # 3. Verify Audit Log for Org & User Creation
     res = root_client.get("/audit/logs", params={"organization_id": org_id, "limit": 10})
     logs = res.json()
-    actions = [l["action"] for l in logs]
+    actions = [entry["action"] for entry in logs]
     assert "ORG_CREATED" in actions or "USER_CREATED" in actions  # Depending on order/filter
 
     # 4. Impersonation

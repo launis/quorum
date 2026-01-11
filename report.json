@@ -1,0 +1,1442 @@
+﻿[
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 122,
+      "row": 287
+    },
+    "filename": "C:\\src\\quorum\\backend\\database\\wrapper.py",
+    "fix": null,
+    "location": {
+      "column": 121,
+      "row": 287
+    },
+    "message": "Line too long (121 > 120)",
+    "noqa_row": 287,
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "D205",
+    "end_location": {
+      "column": 8,
+      "row": 29
+    },
+    "filename": "C:\\src\\quorum\\backend\\hooks\\security.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 18
+    },
+    "message": "1 blank line required between summary line and description",
+    "noqa_row": 29,
+    "url": "https://docs.astral.sh/ruff/rules/missing-blank-line-after-summary"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 122,
+      "row": 397
+    },
+    "filename": "C:\\src\\quorum\\backend\\llm\\mock_data.py",
+    "fix": null,
+    "location": {
+      "column": 121,
+      "row": 397
+    },
+    "message": "Line too long (121 > 120)",
+    "noqa_row": 397,
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 135,
+      "row": 378
+    },
+    "filename": "C:\\src\\quorum\\backend\\llm\\provider.py",
+    "fix": null,
+    "location": {
+      "column": 121,
+      "row": 378
+    },
+    "message": "Line too long (134 > 120)",
+    "noqa_row": 378,
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "D103",
+    "end_location": {
+      "column": 19,
+      "row": 71
+    },
+    "filename": "C:\\src\\quorum\\backend\\main.py",
+    "fix": null,
+    "location": {
+      "column": 11,
+      "row": 71
+    },
+    "message": "Missing docstring in public function",
+    "noqa_row": 71,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-function"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 207,
+      "row": 31
+    },
+    "filename": "C:\\src\\quorum\\backend\\models\\llm.py",
+    "fix": null,
+    "location": {
+      "column": 121,
+      "row": 31
+    },
+    "message": "Line too long (206 > 120)",
+    "noqa_row": 31,
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "I001",
+    "end_location": {
+      "column": 2,
+      "row": 30
+    },
+    "filename": "C:\\src\\quorum\\backend\\models\\state.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "from datetime import datetime\r\nfrom typing import Annotated, Any\r\n\r\nfrom pydantic import BaseModel, ConfigDict, Field\r\n\r\nfrom backend.models.domain import (\r\n    ArgumentaatioAnalyysi,\r\n    CaseLawContext,\r\n    CoachingPlan,\r\n    EtiikkaJaFakta,\r\n    EvaluationResult,\r\n    InteractionAnalysis,\r\n    KausaalinenAuditointi,\r\n    LogiikkaAuditointi,\r\n    PanelAudit,\r\n    PerformatiivisuusAuditointi,\r\n    ProfilerAnalysis,\r\n    TaintedData,\r\n    TodistusKartta,\r\n    TuomioJaPisteet,\r\n    XAIReport,\r\n)\r\n\r\n\r\n",
+          "end_location": {
+            "column": 1,
+            "row": 35
+          },
+          "location": {
+            "column": 1,
+            "row": 9
+          }
+        }
+      ],
+      "message": "Organize imports"
+    },
+    "location": {
+      "column": 1,
+      "row": 9
+    },
+    "message": "Import block is un-sorted or un-formatted",
+    "noqa_row": 9,
+    "url": "https://docs.astral.sh/ruff/rules/unsorted-imports"
+  },
+  {
+    "cell": null,
+    "code": "D205",
+    "end_location": {
+      "column": 8,
+      "row": 10
+    },
+    "filename": "C:\\src\\quorum\\backend\\schemas\\error.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 8
+    },
+    "message": "1 blank line required between summary line and description",
+    "noqa_row": 10,
+    "url": "https://docs.astral.sh/ruff/rules/missing-blank-line-after-summary"
+  },
+  {
+    "cell": null,
+    "code": "D104",
+    "end_location": {
+      "column": 1,
+      "row": 1
+    },
+    "filename": "C:\\src\\quorum\\backend\\seed\\__init__.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 1
+    },
+    "message": "Missing docstring in public package",
+    "noqa_row": 1,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-package"
+  },
+  {
+    "cell": null,
+    "code": "D100",
+    "end_location": {
+      "column": 1,
+      "row": 1
+    },
+    "filename": "C:\\src\\quorum\\backend\\seed\\check_counts.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 1
+    },
+    "message": "Missing docstring in public module",
+    "noqa_row": 1,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-module"
+  },
+  {
+    "cell": null,
+    "code": "D103",
+    "end_location": {
+      "column": 14,
+      "row": 16
+    },
+    "filename": "C:\\src\\quorum\\backend\\seed\\check_counts.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 16
+    },
+    "message": "Missing docstring in public function",
+    "noqa_row": 16,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-function"
+  },
+  {
+    "cell": null,
+    "code": "D103",
+    "end_location": {
+      "column": 16,
+      "row": 23
+    },
+    "filename": "C:\\src\\quorum\\backend\\seed\\check_counts.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 23
+    },
+    "message": "Missing docstring in public function",
+    "noqa_row": 23,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-function"
+  },
+  {
+    "cell": null,
+    "code": "D103",
+    "end_location": {
+      "column": 9,
+      "row": 51
+    },
+    "filename": "C:\\src\\quorum\\backend\\seed\\check_counts.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 51
+    },
+    "message": "Missing docstring in public function",
+    "noqa_row": 51,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-function"
+  },
+  {
+    "cell": null,
+    "code": "D100",
+    "end_location": {
+      "column": 1,
+      "row": 1
+    },
+    "filename": "C:\\src\\quorum\\backend\\seed\\deploy_mock_to_prod.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 1
+    },
+    "message": "Missing docstring in public module",
+    "noqa_row": 1,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-module"
+  },
+  {
+    "cell": null,
+    "code": "D103",
+    "end_location": {
+      "column": 24,
+      "row": 12
+    },
+    "filename": "C:\\src\\quorum\\backend\\seed\\deploy_mock_to_prod.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 12
+    },
+    "message": "Missing docstring in public function",
+    "noqa_row": 12,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-function"
+  },
+  {
+    "cell": null,
+    "code": "D100",
+    "end_location": {
+      "column": 1,
+      "row": 1
+    },
+    "filename": "C:\\src\\quorum\\backend\\seed\\seed_firestore.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 1
+    },
+    "message": "Missing docstring in public module",
+    "noqa_row": 1,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-module"
+  },
+  {
+    "cell": null,
+    "code": "F401",
+    "end_location": {
+      "column": 23,
+      "row": 35
+    },
+    "filename": "C:\\src\\quorum\\backend\\seed\\seed_firestore.py",
+    "fix": null,
+    "location": {
+      "column": 16,
+      "row": 35
+    },
+    "message": "`asyncio` imported but unused; consider using `importlib.util.find_spec` to test for availability",
+    "noqa_row": 35,
+    "url": "https://docs.astral.sh/ruff/rules/unused-import"
+  },
+  {
+    "cell": null,
+    "code": "D100",
+    "end_location": {
+      "column": 1,
+      "row": 1
+    },
+    "filename": "C:\\src\\quorum\\backend\\seed\\seed_mock.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 1
+    },
+    "message": "Missing docstring in public module",
+    "noqa_row": 1,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-module"
+  },
+  {
+    "cell": null,
+    "code": "D100",
+    "end_location": {
+      "column": 1,
+      "row": 1
+    },
+    "filename": "C:\\src\\quorum\\backend\\seed\\seed_prod.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 1
+    },
+    "message": "Missing docstring in public module",
+    "noqa_row": 1,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-module"
+  },
+  {
+    "cell": null,
+    "code": "D205",
+    "end_location": {
+      "column": 8,
+      "row": 9
+    },
+    "filename": "C:\\src\\quorum\\backend\\seed\\seed_prod.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 7
+    },
+    "message": "1 blank line required between summary line and description",
+    "noqa_row": 9,
+    "url": "https://docs.astral.sh/ruff/rules/missing-blank-line-after-summary"
+  },
+  {
+    "cell": null,
+    "code": "F401",
+    "end_location": {
+      "column": 23,
+      "row": 34
+    },
+    "filename": "C:\\src\\quorum\\backend\\seed\\seed_prod.py",
+    "fix": null,
+    "location": {
+      "column": 16,
+      "row": 34
+    },
+    "message": "`asyncio` imported but unused; consider using `importlib.util.find_spec` to test for availability",
+    "noqa_row": 34,
+    "url": "https://docs.astral.sh/ruff/rules/unused-import"
+  },
+  {
+    "cell": null,
+    "code": "D100",
+    "end_location": {
+      "column": 1,
+      "row": 1
+    },
+    "filename": "C:\\src\\quorum\\backend\\seed\\seeder.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 1
+    },
+    "message": "Missing docstring in public module",
+    "noqa_row": 1,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-module"
+  },
+  {
+    "cell": null,
+    "code": "D205",
+    "end_location": {
+      "column": 8,
+      "row": 14
+    },
+    "filename": "C:\\src\\quorum\\backend\\seed\\seeder.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 8
+    },
+    "message": "1 blank line required between summary line and description",
+    "noqa_row": 14,
+    "url": "https://docs.astral.sh/ruff/rules/missing-blank-line-after-summary"
+  },
+  {
+    "cell": null,
+    "code": "D100",
+    "end_location": {
+      "column": 1,
+      "row": 1
+    },
+    "filename": "C:\\src\\quorum\\backend\\seed\\sync_db_to_seed.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 1
+    },
+    "message": "Missing docstring in public module",
+    "noqa_row": 1,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-module"
+  },
+  {
+    "cell": null,
+    "code": "D100",
+    "end_location": {
+      "column": 1,
+      "row": 1
+    },
+    "filename": "C:\\src\\quorum\\backend\\seed\\syncer.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 1
+    },
+    "message": "Missing docstring in public module",
+    "noqa_row": 1,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-module"
+  },
+  {
+    "cell": null,
+    "code": "D205",
+    "end_location": {
+      "column": 8,
+      "row": 9
+    },
+    "filename": "C:\\src\\quorum\\backend\\seed\\syncer.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 6
+    },
+    "message": "1 blank line required between summary line and description",
+    "noqa_row": 9,
+    "url": "https://docs.astral.sh/ruff/rules/missing-blank-line-after-summary"
+  },
+  {
+    "cell": null,
+    "code": "D100",
+    "end_location": {
+      "column": 1,
+      "row": 1
+    },
+    "filename": "C:\\src\\quorum\\backend\\seed\\verifier.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 1
+    },
+    "message": "Missing docstring in public module",
+    "noqa_row": 1,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-module"
+  },
+  {
+    "cell": null,
+    "code": "D205",
+    "end_location": {
+      "column": 8,
+      "row": 39
+    },
+    "filename": "C:\\src\\quorum\\backend\\seed\\verifier.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 36
+    },
+    "message": "1 blank line required between summary line and description",
+    "noqa_row": 39,
+    "url": "https://docs.astral.sh/ruff/rules/missing-blank-line-after-summary"
+  },
+  {
+    "cell": null,
+    "code": "D205",
+    "end_location": {
+      "column": 8,
+      "row": 93
+    },
+    "filename": "C:\\src\\quorum\\backend\\seed\\verifier.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 91
+    },
+    "message": "1 blank line required between summary line and description",
+    "noqa_row": 93,
+    "url": "https://docs.astral.sh/ruff/rules/missing-blank-line-after-summary"
+  },
+  {
+    "cell": null,
+    "code": "D103",
+    "end_location": {
+      "column": 21,
+      "row": 226
+    },
+    "filename": "C:\\src\\quorum\\backend\\seed\\verifier.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 226
+    },
+    "message": "Missing docstring in public function",
+    "noqa_row": 226,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-function"
+  },
+  {
+    "cell": null,
+    "code": "D100",
+    "end_location": {
+      "column": 1,
+      "row": 1
+    },
+    "filename": "C:\\src\\quorum\\backend\\seed\\verify_sync.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 1
+    },
+    "message": "Missing docstring in public module",
+    "noqa_row": 1,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-module"
+  },
+  {
+    "cell": null,
+    "code": "D100",
+    "end_location": {
+      "column": 1,
+      "row": 1
+    },
+    "filename": "C:\\src\\quorum\\backend\\services\\administration_service.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 1
+    },
+    "message": "Missing docstring in public module",
+    "noqa_row": 1,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-module"
+  },
+  {
+    "cell": null,
+    "code": "B904",
+    "end_location": {
+      "column": 14,
+      "row": 196
+    },
+    "filename": "C:\\src\\quorum\\backend\\services\\agent_registry.py",
+    "fix": null,
+    "location": {
+      "column": 13,
+      "row": 194
+    },
+    "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling",
+    "noqa_row": 194,
+    "url": "https://docs.astral.sh/ruff/rules/raise-without-from-inside-except"
+  },
+  {
+    "cell": null,
+    "code": "E402",
+    "end_location": {
+      "column": 44,
+      "row": 30
+    },
+    "filename": "C:\\src\\quorum\\backend\\services\\audit_service.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 30
+    },
+    "message": "Module level import not at top of file",
+    "noqa_row": 30,
+    "url": "https://docs.astral.sh/ruff/rules/module-import-not-at-top-of-file"
+  },
+  {
+    "cell": null,
+    "code": "D100",
+    "end_location": {
+      "column": 1,
+      "row": 1
+    },
+    "filename": "C:\\src\\quorum\\backend\\services\\auth.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 1
+    },
+    "message": "Missing docstring in public module",
+    "noqa_row": 1,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-module"
+  },
+  {
+    "cell": null,
+    "code": "D101",
+    "end_location": {
+      "column": 29,
+      "row": 27
+    },
+    "filename": "C:\\src\\quorum\\backend\\services\\auth.py",
+    "fix": null,
+    "location": {
+      "column": 7,
+      "row": 27
+    },
+    "message": "Missing docstring in public class",
+    "noqa_row": 27,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-class"
+  },
+  {
+    "cell": null,
+    "code": "D205",
+    "end_location": {
+      "column": 8,
+      "row": 78
+    },
+    "filename": "C:\\src\\quorum\\backend\\services\\auth.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 76
+    },
+    "message": "1 blank line required between summary line and description",
+    "noqa_row": 78,
+    "url": "https://docs.astral.sh/ruff/rules/missing-blank-line-after-summary"
+  },
+  {
+    "cell": null,
+    "code": "F401",
+    "end_location": {
+      "column": 34,
+      "row": 159
+    },
+    "filename": "C:\\src\\quorum\\backend\\services\\auth.py",
+    "fix": null,
+    "location": {
+      "column": 20,
+      "row": 159
+    },
+    "message": "`firebase_admin` imported but unused; consider using `importlib.util.find_spec` to test for availability",
+    "noqa_row": 159,
+    "url": "https://docs.astral.sh/ruff/rules/unused-import"
+  },
+  {
+    "cell": null,
+    "code": "B904",
+    "end_location": {
+      "column": 46,
+      "row": 204
+    },
+    "filename": "C:\\src\\quorum\\backend\\services\\auth.py",
+    "fix": null,
+    "location": {
+      "column": 13,
+      "row": 204
+    },
+    "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling",
+    "noqa_row": 204,
+    "url": "https://docs.astral.sh/ruff/rules/raise-without-from-inside-except"
+  },
+  {
+    "cell": null,
+    "code": "B904",
+    "end_location": {
+      "column": 52,
+      "row": 251
+    },
+    "filename": "C:\\src\\quorum\\backend\\services\\auth.py",
+    "fix": null,
+    "location": {
+      "column": 13,
+      "row": 251
+    },
+    "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling",
+    "noqa_row": 251,
+    "url": "https://docs.astral.sh/ruff/rules/raise-without-from-inside-except"
+  },
+  {
+    "cell": null,
+    "code": "B904",
+    "end_location": {
+      "column": 77,
+      "row": 347
+    },
+    "filename": "C:\\src\\quorum\\backend\\services\\auth.py",
+    "fix": null,
+    "location": {
+      "column": 21,
+      "row": 347
+    },
+    "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling",
+    "noqa_row": 347,
+    "url": "https://docs.astral.sh/ruff/rules/raise-without-from-inside-except"
+  },
+  {
+    "cell": null,
+    "code": "D415",
+    "end_location": {
+      "column": 72,
+      "row": 398
+    },
+    "filename": "C:\\src\\quorum\\backend\\services\\auth.py",
+    "fix": {
+      "applicability": "unsafe",
+      "edits": [
+        {
+          "content": ".",
+          "end_location": {
+            "column": 69,
+            "row": 398
+          },
+          "location": {
+            "column": 69,
+            "row": 398
+          }
+        }
+      ],
+      "message": "Add closing punctuation"
+    },
+    "location": {
+      "column": 9,
+      "row": 398
+    },
+    "message": "First line should end with a period, question mark, or exclamation point",
+    "noqa_row": 398,
+    "url": "https://docs.astral.sh/ruff/rules/missing-terminal-punctuation"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 125,
+      "row": 461
+    },
+    "filename": "C:\\src\\quorum\\backend\\services\\auth.py",
+    "fix": null,
+    "location": {
+      "column": 121,
+      "row": 461
+    },
+    "message": "Line too long (124 > 120)",
+    "noqa_row": 461,
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 88,
+      "row": 611
+    },
+    "filename": "C:\\src\\quorum\\backend\\services\\auth.py",
+    "fix": null,
+    "location": {
+      "column": 51,
+      "row": 611
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "noqa_row": 611,
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "D205",
+    "end_location": {
+      "column": 8,
+      "row": 27
+    },
+    "filename": "C:\\src\\quorum\\backend\\services\\document_service.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 19
+    },
+    "message": "1 blank line required between summary line and description",
+    "noqa_row": 27,
+    "url": "https://docs.astral.sh/ruff/rules/missing-blank-line-after-summary"
+  },
+  {
+    "cell": null,
+    "code": "B904",
+    "end_location": {
+      "column": 26,
+      "row": 73
+    },
+    "filename": "C:\\src\\quorum\\backend\\services\\document_service.py",
+    "fix": null,
+    "location": {
+      "column": 25,
+      "row": 71
+    },
+    "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling",
+    "noqa_row": 71,
+    "url": "https://docs.astral.sh/ruff/rules/raise-without-from-inside-except"
+  },
+  {
+    "cell": null,
+    "code": "B904",
+    "end_location": {
+      "column": 26,
+      "row": 82
+    },
+    "filename": "C:\\src\\quorum\\backend\\services\\document_service.py",
+    "fix": null,
+    "location": {
+      "column": 25,
+      "row": 80
+    },
+    "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling",
+    "noqa_row": 80,
+    "url": "https://docs.astral.sh/ruff/rules/raise-without-from-inside-except"
+  },
+  {
+    "cell": null,
+    "code": "B904",
+    "end_location": {
+      "column": 18,
+      "row": 102
+    },
+    "filename": "C:\\src\\quorum\\backend\\services\\document_service.py",
+    "fix": null,
+    "location": {
+      "column": 17,
+      "row": 98
+    },
+    "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling",
+    "noqa_row": 98,
+    "url": "https://docs.astral.sh/ruff/rules/raise-without-from-inside-except"
+  },
+  {
+    "cell": null,
+    "code": "B904",
+    "end_location": {
+      "column": 69,
+      "row": 186
+    },
+    "filename": "C:\\src\\quorum\\backend\\services\\document_service.py",
+    "fix": null,
+    "location": {
+      "column": 13,
+      "row": 186
+    },
+    "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling",
+    "noqa_row": 186,
+    "url": "https://docs.astral.sh/ruff/rules/raise-without-from-inside-except"
+  },
+  {
+    "cell": null,
+    "code": "B904",
+    "end_location": {
+      "column": 70,
+      "row": 228
+    },
+    "filename": "C:\\src\\quorum\\backend\\services\\document_service.py",
+    "fix": null,
+    "location": {
+      "column": 13,
+      "row": 228
+    },
+    "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling",
+    "noqa_row": 228,
+    "url": "https://docs.astral.sh/ruff/rules/raise-without-from-inside-except"
+  },
+  {
+    "cell": null,
+    "code": "D205",
+    "end_location": {
+      "column": 8,
+      "row": 14
+    },
+    "filename": "C:\\src\\quorum\\backend\\services\\knowledge_base_parser.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 12
+    },
+    "message": "1 blank line required between summary line and description",
+    "noqa_row": 14,
+    "url": "https://docs.astral.sh/ruff/rules/missing-blank-line-after-summary"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 182,
+      "row": 281
+    },
+    "filename": "C:\\src\\quorum\\backend\\services\\knowledge_base_parser.py",
+    "fix": null,
+    "location": {
+      "column": 121,
+      "row": 281
+    },
+    "message": "Line too long (181 > 120)",
+    "noqa_row": 281,
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 180,
+      "row": 538
+    },
+    "filename": "C:\\src\\quorum\\backend\\services\\knowledge_base_parser.py",
+    "fix": null,
+    "location": {
+      "column": 121,
+      "row": 538
+    },
+    "message": "Line too long (179 > 120)",
+    "noqa_row": 538,
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "D205",
+    "end_location": {
+      "column": 8,
+      "row": 16
+    },
+    "filename": "C:\\src\\quorum\\backend\\services\\knowledge_base_service.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 13
+    },
+    "message": "1 blank line required between summary line and description",
+    "noqa_row": 16,
+    "url": "https://docs.astral.sh/ruff/rules/missing-blank-line-after-summary"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 150,
+      "row": 191
+    },
+    "filename": "C:\\src\\quorum\\backend\\services\\knowledge_base_service.py",
+    "fix": null,
+    "location": {
+      "column": 121,
+      "row": 191
+    },
+    "message": "Line too long (149 > 120)",
+    "noqa_row": 197,
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "D205",
+    "end_location": {
+      "column": 8,
+      "row": 22
+    },
+    "filename": "C:\\src\\quorum\\backend\\services\\progress.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 20
+    },
+    "message": "1 blank line required between summary line and description",
+    "noqa_row": 22,
+    "url": "https://docs.astral.sh/ruff/rules/missing-blank-line-after-summary"
+  },
+  {
+    "cell": null,
+    "code": "D205",
+    "end_location": {
+      "column": 8,
+      "row": 71
+    },
+    "filename": "C:\\src\\quorum\\backend\\services\\progress.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 69
+    },
+    "message": "1 blank line required between summary line and description",
+    "noqa_row": 71,
+    "url": "https://docs.astral.sh/ruff/rules/missing-blank-line-after-summary"
+  },
+  {
+    "cell": null,
+    "code": "D205",
+    "end_location": {
+      "column": 8,
+      "row": 126
+    },
+    "filename": "C:\\src\\quorum\\backend\\services\\progress.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 124
+    },
+    "message": "1 blank line required between summary line and description",
+    "noqa_row": 126,
+    "url": "https://docs.astral.sh/ruff/rules/missing-blank-line-after-summary"
+  },
+  {
+    "cell": null,
+    "code": "D205",
+    "end_location": {
+      "column": 8,
+      "row": 24
+    },
+    "filename": "C:\\src\\quorum\\backend\\services\\prompt_builder.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 22
+    },
+    "message": "1 blank line required between summary line and description",
+    "noqa_row": 24,
+    "url": "https://docs.astral.sh/ruff/rules/missing-blank-line-after-summary"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 146,
+      "row": 38
+    },
+    "filename": "C:\\src\\quorum\\backend\\services\\prompt_builder.py",
+    "fix": null,
+    "location": {
+      "column": 121,
+      "row": 38
+    },
+    "message": "Line too long (145 > 120)",
+    "noqa_row": 41,
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "D100",
+    "end_location": {
+      "column": 1,
+      "row": 1
+    },
+    "filename": "C:\\src\\quorum\\backend\\settings.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 1
+    },
+    "message": "Missing docstring in public module",
+    "noqa_row": 1,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-module"
+  },
+  {
+    "cell": null,
+    "code": "D103",
+    "end_location": {
+      "column": 21,
+      "row": 14
+    },
+    "filename": "C:\\src\\quorum\\backend\\settings.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 14
+    },
+    "message": "Missing docstring in public function",
+    "noqa_row": 14,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-function"
+  },
+  {
+    "cell": null,
+    "code": "D205",
+    "end_location": {
+      "column": 8,
+      "row": 26
+    },
+    "filename": "C:\\src\\quorum\\backend\\settings.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 24
+    },
+    "message": "1 blank line required between summary line and description",
+    "noqa_row": 26,
+    "url": "https://docs.astral.sh/ruff/rules/missing-blank-line-after-summary"
+  },
+  {
+    "cell": null,
+    "code": "D102",
+    "end_location": {
+      "column": 17,
+      "row": 63
+    },
+    "filename": "C:\\src\\quorum\\backend\\settings.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 63
+    },
+    "message": "Missing docstring in public method",
+    "noqa_row": 63,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-method"
+  },
+  {
+    "cell": null,
+    "code": "D102",
+    "end_location": {
+      "column": 17,
+      "row": 67
+    },
+    "filename": "C:\\src\\quorum\\backend\\settings.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 67
+    },
+    "message": "Missing docstring in public method",
+    "noqa_row": 67,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-method"
+  },
+  {
+    "cell": null,
+    "code": "D102",
+    "end_location": {
+      "column": 15,
+      "row": 72
+    },
+    "filename": "C:\\src\\quorum\\backend\\settings.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 72
+    },
+    "message": "Missing docstring in public method",
+    "noqa_row": 72,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-method"
+  },
+  {
+    "cell": null,
+    "code": "D102",
+    "end_location": {
+      "column": 20,
+      "row": 76
+    },
+    "filename": "C:\\src\\quorum\\backend\\settings.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 76
+    },
+    "message": "Missing docstring in public method",
+    "noqa_row": 76,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-method"
+  },
+  {
+    "cell": null,
+    "code": "D102",
+    "end_location": {
+      "column": 21,
+      "row": 80
+    },
+    "filename": "C:\\src\\quorum\\backend\\settings.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 80
+    },
+    "message": "Missing docstring in public method",
+    "noqa_row": 80,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-method"
+  },
+  {
+    "cell": null,
+    "code": "D102",
+    "end_location": {
+      "column": 21,
+      "row": 84
+    },
+    "filename": "C:\\src\\quorum\\backend\\settings.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 84
+    },
+    "message": "Missing docstring in public method",
+    "noqa_row": 84,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-method"
+  },
+  {
+    "cell": null,
+    "code": "D102",
+    "end_location": {
+      "column": 22,
+      "row": 88
+    },
+    "filename": "C:\\src\\quorum\\backend\\settings.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 88
+    },
+    "message": "Missing docstring in public method",
+    "noqa_row": 88,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-method"
+  },
+  {
+    "cell": null,
+    "code": "D102",
+    "end_location": {
+      "column": 23,
+      "row": 92
+    },
+    "filename": "C:\\src\\quorum\\backend\\settings.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 92
+    },
+    "message": "Missing docstring in public method",
+    "noqa_row": 92,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-method"
+  },
+  {
+    "cell": null,
+    "code": "D102",
+    "end_location": {
+      "column": 28,
+      "row": 96
+    },
+    "filename": "C:\\src\\quorum\\backend\\settings.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 96
+    },
+    "message": "Missing docstring in public method",
+    "noqa_row": 96,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-method"
+  },
+  {
+    "cell": null,
+    "code": "D205",
+    "end_location": {
+      "column": 12,
+      "row": 110
+    },
+    "filename": "C:\\src\\quorum\\backend\\settings.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 108
+    },
+    "message": "1 blank line required between summary line and description",
+    "noqa_row": 110,
+    "url": "https://docs.astral.sh/ruff/rules/missing-blank-line-after-summary"
+  },
+  {
+    "cell": null,
+    "code": "D102",
+    "end_location": {
+      "column": 24,
+      "row": 115
+    },
+    "filename": "C:\\src\\quorum\\backend\\settings.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 115
+    },
+    "message": "Missing docstring in public method",
+    "noqa_row": 115,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-method"
+  },
+  {
+    "cell": null,
+    "code": "D103",
+    "end_location": {
+      "column": 17,
+      "row": 140
+    },
+    "filename": "C:\\src\\quorum\\backend\\settings.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 140
+    },
+    "message": "Missing docstring in public function",
+    "noqa_row": 140,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-function"
+  },
+  {
+    "cell": null,
+    "code": "D100",
+    "end_location": {
+      "column": 1,
+      "row": 1
+    },
+    "filename": "C:\\src\\quorum\\backend\\worker.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 1
+    },
+    "message": "Missing docstring in public module",
+    "noqa_row": 1,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-module"
+  },
+  {
+    "cell": null,
+    "code": "D205",
+    "end_location": {
+      "column": 8,
+      "row": 50
+    },
+    "filename": "C:\\src\\quorum\\backend\\worker.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 48
+    },
+    "message": "1 blank line required between summary line and description",
+    "noqa_row": 50,
+    "url": "https://docs.astral.sh/ruff/rules/missing-blank-line-after-summary"
+  },
+  {
+    "cell": null,
+    "code": "F841",
+    "end_location": {
+      "column": 13,
+      "row": 69
+    },
+    "filename": "C:\\src\\quorum\\backend\\worker.py",
+    "fix": {
+      "applicability": "unsafe",
+      "edits": [
+        {
+          "content": "",
+          "end_location": {
+            "column": 16,
+            "row": 69
+          },
+          "location": {
+            "column": 5,
+            "row": 69
+          }
+        }
+      ],
+      "message": "Remove assignment to unused variable `settings`"
+    },
+    "location": {
+      "column": 5,
+      "row": 69
+    },
+    "message": "Local variable `settings` is assigned to but never used",
+    "noqa_row": 69,
+    "url": "https://docs.astral.sh/ruff/rules/unused-variable"
+  },
+  {
+    "cell": null,
+    "code": "W293",
+    "end_location": {
+      "column": 5,
+      "row": 70
+    },
+    "filename": "C:\\src\\quorum\\backend\\worker.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "",
+          "end_location": {
+            "column": 5,
+            "row": 70
+          },
+          "location": {
+            "column": 1,
+            "row": 70
+          }
+        }
+      ],
+      "message": "Remove whitespace from blank line"
+    },
+    "location": {
+      "column": 1,
+      "row": 70
+    },
+    "message": "Blank line contains whitespace",
+    "noqa_row": 70,
+    "url": "https://docs.astral.sh/ruff/rules/blank-line-with-whitespace"
+  },
+  {
+    "cell": null,
+    "code": "W293",
+    "end_location": {
+      "column": 5,
+      "row": 75
+    },
+    "filename": "C:\\src\\quorum\\backend\\worker.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "",
+          "end_location": {
+            "column": 5,
+            "row": 75
+          },
+          "location": {
+            "column": 1,
+            "row": 75
+          }
+        }
+      ],
+      "message": "Remove whitespace from blank line"
+    },
+    "location": {
+      "column": 1,
+      "row": 75
+    },
+    "message": "Blank line contains whitespace",
+    "noqa_row": 75,
+    "url": "https://docs.astral.sh/ruff/rules/blank-line-with-whitespace"
+  }
+]

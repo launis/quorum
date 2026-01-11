@@ -1,3 +1,4 @@
+"""Safety and Hook Logic Tests."""
 import json
 import os
 import shutil
@@ -18,6 +19,7 @@ from backend.models.state import InputData, WorkflowState
 # --- SETUP Fixture ---
 @pytest.fixture(scope="module")
 def shared_engine_safe():
+    """Create shared engine for safety tests."""
     base_dir = f"test_safety_{uuid.uuid4().hex}"
     os.makedirs(base_dir, exist_ok=True)
     db_path = os.path.join(base_dir, "db.json")
@@ -83,6 +85,7 @@ def shared_engine_safe():
 
 # --- TEST: Copy-on-Write Safety ---
 def test_fork_step_safety(shared_engine_safe):
+    """Test safety of step forking (Copy-on-Write)."""
     app.dependency_overrides[get_engine] = lambda: shared_engine_safe
     client = TestClient(app)
 
@@ -125,6 +128,7 @@ def test_fork_step_safety(shared_engine_safe):
 # --- TEST: Python Hooks (Mock Execution) ---
 @pytest.mark.asyncio
 async def test_python_hooks_execution():
+    """Test execution of python hooks (Profiler)."""
     from backend.agents.profiler import ProfilerAgent
 
     # Mock Provider

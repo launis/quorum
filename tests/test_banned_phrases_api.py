@@ -1,3 +1,4 @@
+"""Banned Phrases API Tests."""
 import uuid
 
 import pytest
@@ -10,6 +11,7 @@ from backend.models.auth import TokenData, UserRole
 
 # Mock Auth
 def mock_get_current_user():
+    """Mock root user."""
     return TokenData(
         uid="root_user",
         email="root@example.com",
@@ -20,6 +22,7 @@ def mock_get_current_user():
 
 @pytest.fixture(name="client")
 def client_fixture():
+    """Client fixture with mocked auth."""
     app.dependency_overrides[get_current_user_from_header] = mock_get_current_user
     with TestClient(app) as c:
         yield c
@@ -27,6 +30,7 @@ def client_fixture():
 
 
 def test_banned_phrases_crud(client):
+    """Test CRUD operations for banned phrases."""
     # 1. Create
     unique_phrase = f"test_ban_phrase_{uuid.uuid4()}"
     payload = {"phrase": unique_phrase, "language": "en"}
@@ -55,6 +59,7 @@ def test_banned_phrases_crud(client):
 
 
 def test_duplicate_phrase(client):
+    """Test adding duplicate phrases."""
     unique_phrase = f"duplicate_test_{uuid.uuid4()}"
     payload = {"phrase": unique_phrase, "language": "en"}
     client.post("/admin/banned-phrases", json=payload)

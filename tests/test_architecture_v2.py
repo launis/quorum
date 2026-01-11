@@ -1,3 +1,4 @@
+"""Architecture V2 Logic Tests."""
 from backend.hooks.reporting import generate_report
 from backend.models.domain import Pisteet, PisteetKriteeri, TuomioJaPisteet, XAIReport
 from backend.models.state import InputData, WorkflowState
@@ -6,8 +7,9 @@ from backend.models.state import InputData, WorkflowState
 
 
 def test_reporting_dual_comparison():
-    """Test that generate_report correctly identifies two evaluation steps
-    and generates 'comparison_data' (V2 Logic).
+    """Test that generate_report correctly identifies two evaluation steps.
+
+    And generates 'comparison_data' (V2 Logic).
     """
     # 1. Create State with TWO judges
     p1 = Pisteet(

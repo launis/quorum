@@ -64,14 +64,16 @@ def get_async_repository(
 
     settings = get_settings()
     logger.warning(
-        f"### DEBUG CONFIG ###: STORAGE='{settings.storage_backend}', MOCK_DB={settings.use_mock_db} (Env: {settings.environment})"
+        f"### DEBUG CONFIG ###: STORAGE='{settings.storage_backend}', "
+        f"MOCK_DB={settings.use_mock_db} (Env: {settings.environment})"
     )
 
     # 1. Check for Firestore (Native Async)
     if settings.storage_backend.upper() == "FIRESTORE":
         if settings.use_mock_db:
             raise RuntimeError(
-                "CRITICAL CONFIG ERROR: STORAGE_BACKEND=FIRESTORE implies Real DB, but USE_MOCK_DB=True. Check your .bat file or .env variables."
+                "CRITICAL CONFIG ERROR: STORAGE_BACKEND=FIRESTORE implies Real DB, but USE_MOCK_DB=True. "
+                "Check your .bat file or .env variables."
             )
 
         from backend.database.firestore_repo import FirestoreWorkflowRepository
@@ -93,6 +95,7 @@ get_repository_dep = get_async_repository
 async def get_agent_registry_dep(
     repo: Annotated[AbstractWorkflowRepository, Depends(get_async_repository)],
 ) -> AgentRegistry:
+    """Dependency to provide Singleton Agent Registry."""
     global _registry_instance
     if _registry_instance is None:
         # AgentRegistry expects a repo to do recursive updates.
@@ -106,6 +109,7 @@ async def get_prompt_builder_dep(
     repo: Annotated[AbstractWorkflowRepository, Depends(get_async_repository)],
     registry: Annotated[AgentRegistry, Depends(get_agent_registry_dep)],
 ) -> PromptBuilder:
+    """Dependency to provide Singleton Prompt Builder."""
     global _prompt_builder_instance
     if _prompt_builder_instance is None:
         _prompt_builder_instance = PromptBuilder(repo, registry)
@@ -114,6 +118,7 @@ async def get_prompt_builder_dep(
 
 def get_storage_service_dep() -> AbstractStorage:
     """Dependency to provide a Singleton Storage Service.
+
     Selects FirebaseStorage if STORAGE_BACKEND is 'FIRESTORE', otherwise LocalFileStorage.
     """
     global _storage_service_instance
@@ -140,7 +145,10 @@ def get_storage_service_dep() -> AbstractStorage:
             _storage_service_instance = FirebaseStorage(bucket_name=bucket_name)
         else:
             # STRICT ZERO-FALLBACK
-            msg = "CRITICAL: Firestore backend selected but STORAGE_BUCKET_NAME is missing. Zero-fallback policy in effect."
+            msg = (
+                "CRITICAL: Firestore backend selected but STORAGE_BUCKET_NAME is missing. "
+                "Zero-fallback policy in effect."
+            )
             logger.critical(msg)
             raise RuntimeError(msg)
 
@@ -176,6 +184,7 @@ def get_auth_service(
     audit_service: Annotated[AuditService, Depends(get_audit_service)],
 ) -> AuthService:
     """Dependency to provide Singleton Auth Service.
+
     Automatically ensures Root User exists.
     """
     global _auth_service_instance
@@ -265,6 +274,7 @@ async def get_llm_provider(
 
 def get_llm_provider_factory(strategy: str):
     """Returns a dependency callable that provides an LLMProvider configured with the specified strategy.
+
     Enforces that the strategy must exist in the database configuration.
     """
 
@@ -339,7 +349,7 @@ EngineDep = Annotated[WorkflowEngine, Depends(get_engine)]
 # Provides the LLM Handler (manages conversational state and high-level LLM interactions).
 # Note: Requires importing LLMHandler inside the file or using TYPE_CHECKING to avoid circular imports if lazily loaded.
 # But get_llm_handler_dep returns the instance.
-from backend.llm.handler import LLMHandler
+from backend.llm.handler import LLMHandler  # noqa: E402
 
 LLMHandlerDep = Annotated[LLMHandler, Depends(get_llm_handler_dep)]
 
@@ -352,6 +362,7 @@ async def get_current_user_from_header(
     auth_service: Annotated[AuthService, Depends(get_auth_service)] = None,
 ) -> TokenData:
     """Helper dependency to extract user from Bearer token.
+
     Allows accessing 'CurrentUser' in any router.
     """
     if not authorization:
@@ -368,7 +379,7 @@ async def get_current_user_from_header(
     try:
         return auth_service.verify_token(token)
     except ValueError as e:
-        raise HTTPException(status_code=401, detail=str(e))
+        raise HTTPException(status_code=401, detail=str(e)) from e
 
 
 CurrentUserDep = Annotated[TokenData, Depends(get_current_user_from_header)]

@@ -1,3 +1,4 @@
+"""Live LLM Integration Tests."""
 import logging
 import os
 import unittest
@@ -14,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 # Helper to check API Key presence
 def has_google_key():
+    """Check for Google credentials."""
     return bool(
         os.getenv("GOOGLE_API_KEY")
         or os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
@@ -24,6 +26,8 @@ def has_google_key():
 @pytest.mark.live
 @pytest.mark.skipif(not has_google_key(), reason="GOOGLE_API_KEY or service-account.json not found")
 class TestLiveLLM(unittest.IsolatedAsyncioTestCase):
+    """Live LLM Integration Tests."""
+
     def setUp(self):
         # Ensure env var is set if file exists, for Google Auth library
         if not os.getenv("GOOGLE_APPLICATION_CREDENTIALS") and os.path.exists("service-account.json"):
@@ -50,6 +54,7 @@ class TestLiveLLM(unittest.IsolatedAsyncioTestCase):
         get_settings.cache_clear()
 
     def tearDown(self):
+        """Restore environment."""
         self.env_patcher.stop()
         from backend.settings import get_settings
 

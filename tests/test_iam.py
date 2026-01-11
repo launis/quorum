@@ -1,3 +1,4 @@
+"""IAM Tests."""
 import pytest
 from fastapi.testclient import TestClient
 from tinydb import Query
@@ -16,6 +17,7 @@ MEMBER_TOKEN = "mock-token:member_1"  # Belongs to 'org-1'
 
 @pytest.fixture(autouse=True)
 def setup_auth_override():
+    """Setup mock authentication for IAM tests."""
     from fastapi import HTTPException, Request
     from tinydb import Query
 
@@ -69,6 +71,7 @@ def setup_auth_override():
 
 
 def get_headers(token):
+    """Create auth headers."""
     return {"Authorization": f"Bearer {token}"}
 
 
@@ -88,8 +91,9 @@ def test_root_can_list_organizations():
 
 
 def test_admin_cannot_list_all_organizations():
-    """Verify standard ADMIN cannot list *all* organizations (only their own scope usually,
-    but /organizations/ usually requires ROOT/System Admin privileges in this architecture).
+    """Verify standard ADMIN cannot list *all* organizations.
+
+    Only their own scope usually, but /organizations/ usually requires ROOT/System Admin privileges in this architecture.
     """
     # NOTE: Depending on policy, ADMIN might get 403 or just their own.
     # In V2.2 Architecture: /organizations/ logic usually restricts to ROOT.

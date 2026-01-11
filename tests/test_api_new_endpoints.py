@@ -1,9 +1,11 @@
+"""New API Endpoints Tests."""
 import requests
 
 BASE_URL = "http://localhost:8000"
 
 
 def test_get_models():
+    """Test getting available models."""
     print("Testing GET /llm/models...")
     try:
         res = requests.get(f"{BASE_URL}/llm/models")
@@ -16,6 +18,7 @@ def test_get_models():
 
 
 def test_self_test():
+    """Test admin self-test endpoint."""
     print("\nTesting POST /admin/self-test...")
     try:
         res = requests.post(f"{BASE_URL}/admin/self-test")
@@ -28,6 +31,7 @@ def test_self_test():
 
 
 def test_docs_update():
+    """Test documentation update endpoint (dry run)."""
     print("\nTesting POST /admin/docs/update (Dry run)...")
     # This triggers a background task, so we just check if it accepts the request
     try:

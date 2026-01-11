@@ -1,3 +1,4 @@
+"""Dual Workflows Integration Tests."""
 import json
 import os
 import sys
@@ -28,6 +29,7 @@ WORKFLOWS_TO_TEST = [
 
 
 def trigger_workflow(workflow_id):
+    """Trigger a workflow execution via API."""
     url = f"{BASE_URL}/executions"
     files = {}
     opened = []
@@ -52,6 +54,7 @@ def trigger_workflow(workflow_id):
 
 
 def wait_for_completion(execution_id, timeout=60):
+    """Poll API for execution completion."""
     start = time.time()
     while time.time() - start < timeout:
         r = requests.get(f"{BASE_URL}/executions/{execution_id}")
@@ -64,6 +67,7 @@ def wait_for_completion(execution_id, timeout=60):
 
 
 def verify_result(wf_id, data):
+    """Verify execution result structure."""
     issues = []
 
     # Check Status
@@ -107,6 +111,7 @@ def verify_result(wf_id, data):
 
 
 def main():
+    """Run integration tests."""
     sys.stdout.reconfigure(encoding="utf-8")
     print("🚀 STARTING INTEGRATION TEST: Dual & Cognitive Workflows")
     print(f"Backend: {BASE_URL}")

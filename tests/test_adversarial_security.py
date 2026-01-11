@@ -1,3 +1,4 @@
+"""Adversarial Security Tests."""
 import unittest
 from unittest.mock import AsyncMock, MagicMock
 
@@ -8,6 +9,8 @@ from backend.models.state import InputData, WorkflowState
 
 
 class TestAdversarialSecurity(unittest.IsolatedAsyncioTestCase):
+    """Adversarial security test suite."""
+
     async def test_adversarial_reflection_injection(self):
         """ADVERSARIAL TEST: Reflection Injection.
 

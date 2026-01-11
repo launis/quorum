@@ -1,3 +1,4 @@
+"""Logging configuration module."""
 import logging
 import os
 import sys
@@ -14,6 +15,7 @@ class ContextFilter(logging.Filter):
     """Injects execution_id from contextvars into log records."""
 
     def filter(self, record):
+        """Filter record to inject execution ID."""
         exec_id = get_execution_context()
         record.execution_id = exec_id if exec_id else "SYSTEM"
         return True
@@ -21,6 +23,7 @@ class ContextFilter(logging.Filter):
 
 def configure_logfire():
     """Configures Logfire for observability.
+
     Should be called early in the application lifecycle.
     """
     if logfire is None:

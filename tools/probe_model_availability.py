@@ -1,3 +1,4 @@
+"""Probe Model Availability Tool."""
 import logging
 import os
 
@@ -11,6 +12,7 @@ load_dotenv()
 
 
 def check_model(model_name: str, location: str):
+    """Check if a model is available in a specific location."""
     logger.info(f"Checking '{model_name}' in '{location}'...")
     try:
         api_endpoint = f"{location}-aiplatform.googleapis.com"
@@ -30,6 +32,7 @@ def check_model(model_name: str, location: str):
 
 
 def list_us_central_models():
+    """List available models in us-central1."""
     logger.info("Fetching Master Catalog from us-central1...")
     try:
         client = aiplatform_v1beta1.ModelGardenServiceClient(

@@ -1,15 +1,19 @@
+"""Main Seeder Entrypoint.
+
+Reads from backend/seed/seed_data.json and populates the target database.
+"""
 import json
 import os
 
 from tinydb import Query, TinyDB
 
 
-def seed_database(target_db_path: str | None = None):
-    """Seeds the database with initial data from seed_data.json.
-    Supports both TinyDB (local) and Firestore (cloud) based on settings.
+def seed_database(target_env: str = "LOCAL", target_db_path: str | None = None):
+    """Supports both TinyDB (local) and Firestore (cloud) based on settings.
 
     Args:
-        target_db_path (Optional[str]): Path to the database file (TinyDB only).
+        target_env (str): The target environment ('LOCAL' or 'FIRESTORE').
+        target_db_path (str | None): Path to the database file (TinyDB only).
 
     """
     from backend.settings import get_settings

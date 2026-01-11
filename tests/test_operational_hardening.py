@@ -1,3 +1,4 @@
+"""Operational Hardening Tests."""
 import pytest
 from httpx import AsyncClient
 

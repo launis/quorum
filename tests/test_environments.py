@@ -1,3 +1,4 @@
+"""Environment Configuration Tests."""
 import os
 from unittest.mock import patch
 
@@ -9,6 +10,7 @@ from backend.settings import get_settings
 
 @pytest.fixture(autouse=True)
 def clear_settings_cache():
+    """Clear settings cache before each test."""
     get_settings.cache_clear()
     yield
 
@@ -46,6 +48,7 @@ def test_env_local_production():
 @patch("backend.database.wrapper.firestore")
 def test_firestore_client_instantiation(mock_firestore, mock_creds, mock_admin):
     """Test Firestore Client Instantiation: Verify imports and init logic.
+
     Catches errors like "name 'os' is not defined".
     """
     try:

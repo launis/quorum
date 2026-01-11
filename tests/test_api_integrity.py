@@ -1,3 +1,4 @@
+"""API Integrity Tests."""
 from unittest.mock import MagicMock
 
 import pytest
@@ -69,20 +70,20 @@ async def test_delete_workflow_integrity_violation(client: AsyncClient, admin_to
     # Check execution_router.py: @router.post("/executions") -> /executions
     res = await client.post("/executions", data={"workflow_id": wf_id, "inputs": "{}"}, headers=admin_token_headers)
 
-    # If API call fails (e.g. valid steps required), we accept that we can't easily test this without a full valid workflow.
+    # If API call fails (e.g. valid steps required), we accept that we can't easily test this without a
+    # full valid workflow.
     # But let's check if it failed with 404 (Path error) or 422 (Validation).
     if res.status_code == 404:
         # Try /orchestration/executions just in case, but main.py suggests /executions or router has prefix
         # Actually router = APIRouter(tags=["Orchestration"]) has NO prefix.
-        # But maybe main.py includes it with prefix? NO.
         pass
 
     # Assuming the previous POST created a record or we manually inject one into DB if API fails.
-    # For robust testing, let's inject execution directly if API fails, to test DELETE logic independently of CREATE logic.
+    # For robust testing, let's inject execution directly if API fails, to test DELETE logic independently of CREATE.
     if res.status_code != 200:
         # Inject via DB
         # We need access to repo. But we are in Client test.
-        # We can use the 'tools' router if available or just proceed and see if delete passes (validation might skip if no execs)
+        # We can use the 'tools' router if available or just proceed and see if delete passes (validation might skip).
         pass
 
     # 3. Attempt to Delete Workflow -> EXPECT 409 IF execution exists

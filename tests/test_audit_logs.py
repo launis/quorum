@@ -1,3 +1,4 @@
+"""Audit Log Tests."""
 import pytest
 from httpx import AsyncClient
 
@@ -7,7 +8,8 @@ from backend.main import app
 
 @pytest.mark.asyncio
 async def test_audit_access_control(client: AsyncClient):
-    """Verify RBAC for Audit Logs:
+    """Verify RBAC for Audit Logs.
+
     1. Setup: Create Org, Admin, Member using Root (via mock token).
     2. MEMBER Access -> 403 Forbidden.
     3. ADMIN Access -> 200 OK (Own Org), 200 OK (Own Actions).
@@ -96,7 +98,8 @@ def admin_token_headers_custom(client):
 
 @pytest.mark.asyncio
 async def test_audit_lifecycle_root(client: AsyncClient, admin_token_headers):
-    """Verify the full audit lifecycle as ROOT:
+    """Verify the full audit lifecycle as ROOT.
+
     1. Create Organization -> Expect ORG_CREATED log.
     2. Create User in that Org -> Expect USER_CREATED log.
     3. Delete User -> Expect USER_DELETED log.

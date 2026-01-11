@@ -1,8 +1,10 @@
+"""Check Database Integrity."""
 import json
 import os
 
 
 def check_integrity(db_path, env_name):
+    """Check integrity of the database file."""
     print(f"\n--- Checking Integrity: {env_name} ---")
     if not os.path.exists(db_path):
         print(f"[SKIP] Database file not found: {db_path}")

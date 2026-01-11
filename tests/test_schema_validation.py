@@ -1,3 +1,4 @@
+"""Schema Validation Tests."""
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -8,24 +9,31 @@ from backend.models.state import InputData, WorkflowState
 
 
 class MockSchema(BaseModel):
+    """Mock Schema for testing."""
+
     field1: str
     field2: int
 
 
 class MockAgent(BaseAgent):
+    """Mock Agent for schema tests."""
+
     state_field = "aux_data"  # Write to aux_data by default
 
     def get_response_schema(self) -> type[BaseModel] | None:
+        """Return mock schema."""
         return MockSchema
 
 
 @pytest.fixture
 def mock_state():
+    """Create mock state."""
     return WorkflowState(execution_id="test", inputs=InputData(history_text="H", product_text="P", reflection_text="R"))
 
 
 @pytest.mark.asyncio
 async def test_schema_validation_success(mock_state):
+    """Test successful schema validation."""
     agent = MockAgent()
     agent.llm_provider = AsyncMock()
 
@@ -48,6 +56,7 @@ async def test_schema_validation_success(mock_state):
 
 @pytest.mark.asyncio
 async def test_schema_validation_failure_retry(mock_state):
+    """Test schema validation failure handling."""
     # This test assumes the BaseAgent/LLMProvider handles retries.
     # Actually, retries are usually handled inside LLMProvider.generate if implemented,
     # OR explicit loop in execute. BaseAgent.execute calls verify? No.

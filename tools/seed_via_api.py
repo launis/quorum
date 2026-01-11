@@ -1,3 +1,4 @@
+"""Seed Via API Tool."""
 import json
 import os
 import sys
@@ -16,6 +17,7 @@ DB_PATH = project_root / "data" / "db_api_seeded.json"
 
 
 def run_experiment():
+    """Run the API seeding experiment."""
     print("--- API Seeding Tool ---")
     print(f"Target DB: {DB_PATH}")
 

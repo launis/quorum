@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 class KnowledgeBaseService:
     """Coordinator for ingesting Knowledge Base files into the database.
+
     Integrates Parsing, Storage, and Database Persistence layers.
     Operates asynchronously and reports status via unified ProgressTracker.
     """
@@ -188,7 +189,8 @@ class KnowledgeBaseService:
             Return a JSON object with a key "concepts" which is a list of objects.
             Each object must have:
             - "term": The name of the concept (Capitalized).
-            - "definition": A precise definition or explanation found in the text. Preferably include citations (Author Year) if present in the text.
+            - "definition": A precise definition or explanation found in the text.
+              Preferably include citations (Author Year) if present in the text.
 
             If no concepts are found, return {{"concepts": []}}.
 

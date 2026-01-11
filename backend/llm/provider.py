@@ -1,3 +1,4 @@
+"""LLM Provider implementations (LiteLLM, Mock, Unconfigured)."""
 import asyncio
 import json
 import logging
@@ -175,7 +176,8 @@ class LiteLLMProvider(LLMProvider):
             if not v_loc:
                 logger.error(f"[LiteLLMProvider] Env load failed. Tried path: {env_path}, Exists: {env_path.exists()}")
                 raise ValueError(
-                    f"[LiteLLMProvider] Critical Error: VERTEX_LOCATION not found in settings or .env ({env_path}). Cannot proceed."
+                    f"[LiteLLMProvider] Critical Error: VERTEX_LOCATION not found in settings or .env ({env_path}). "
+                    "Cannot proceed."
                 )
 
             logger.info(f"[LiteLLMProvider] Using Vertex Location: {v_loc}")
@@ -235,7 +237,7 @@ class LiteLLMProvider(LLMProvider):
                         final_content = json.dumps(obj, ensure_ascii=False)
                     except json.JSONDecodeError as e:
                         logger.error(f"[LiteLLM] Strict JSON Parse Failed: {e}")
-                        raise ValueError("Strict JSON parsing failed.")
+                        raise ValueError("Strict JSON parsing failed.") from e
 
             # --- COST TRACKING ---
             if self.usage_service:
@@ -275,6 +277,7 @@ class MockProvider(LLMProvider):
     """
 
     def __init__(self, model_name: str = "mock"):
+        """Initialize the Mock Provider."""
         self.model_name = model_name
 
     async def generate(
@@ -323,6 +326,7 @@ class UnconfiguredProvider(LLMProvider):
     """
 
     def generate(self, *args, **kwargs) -> LLMResponse:
+        """Raise error on attempt to generate without configuration."""
         raise RuntimeError(
             "CRITICAL: Agent attempted execution with an UNCONFIGURED model. "
             "The system requires Strategy Resolution (DB Config) before execution. "
@@ -348,6 +352,7 @@ class LLMFactory:
             model_name (str): Specific model name.
             context (Optional[Union[Dict[str, Any], Any]]): Workflow context or state object.
             organization_id (Optional[str]): Explicit tenant/organization ID.
+            usage_service (Optional[UsageService]): Service for cost tracking.
 
         Returns:
             LLMProvider: Configured provider instance.
@@ -370,7 +375,8 @@ class LLMFactory:
         tenant_api_key = None
         if org_id:
             logger.info(
-                f"[LLMFactory] Organization Context Found: {org_id}. Checking for BYOK credentials... (Using Global Fallback for now)"
+                f"[LLMFactory] Organization Context Found: {org_id}. "
+                "Checking for BYOK credentials... (Using Global Fallback for now)"
             )
             pass
 

@@ -1,3 +1,4 @@
+"""API Tests."""
 from fastapi.testclient import TestClient
 
 from backend.main import app
@@ -27,6 +28,7 @@ def test_extract_pdf():
 
 def test_run_agent_mock():
     """Test running an agent via API.
+
     We'll use a simple agent like GuardAgent.
     """
     # Note: This will actually call the LLM if not mocked!

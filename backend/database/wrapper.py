@@ -26,6 +26,8 @@ except ImportError:
 
 
 class AbstractTable(ABC):
+    """Abstract base class for database tables."""
+
     @abstractmethod
     def insert(self, document: dict[str, Any]) -> Any:
         """Insert a document."""
@@ -63,6 +65,8 @@ class AbstractTable(ABC):
 
 
 class AbstractDatabase(ABC):
+    """Abstract base class for database clients."""
+
     @abstractmethod
     def table(self, name: str) -> AbstractTable:
         """Get a table by name."""
@@ -78,6 +82,8 @@ class AbstractDatabase(ABC):
 
 
 class TinyDBTable(AbstractTable):
+    """TinyDB implementation of AbstractTable."""
+
     def __init__(self, db_path: str, table_name: str):
         """Initialize TinyDB table."""
         self._path = db_path
@@ -123,6 +129,8 @@ class TinyDBTable(AbstractTable):
 
 
 class TinyDBClient(AbstractDatabase):
+    """TinyDB implementation of AbstractDatabase."""
+
     def __init__(self, path: str):
         """Initialize TinyDB Client."""
         import os
@@ -146,6 +154,8 @@ class TinyDBClient(AbstractDatabase):
 
 
 class FirestoreTable(AbstractTable):
+    """Firestore implementation of AbstractTable."""
+
     def __init__(self, collection_ref):
         """Initialize Firestore Table."""
         self._collection = collection_ref
@@ -205,10 +215,8 @@ class FirestoreTable(AbstractTable):
             if query(doc.to_dict()):
                 matches.append(doc)
 
-        if matches:
-            for doc in matches:
-                doc.reference.update(document)
             return [1] * len(matches)
+
         else:
             # Insert new
             doc_id = document.get("id")
@@ -242,11 +250,15 @@ class FirestoreTable(AbstractTable):
         return [1] * removed_count
 
     def close(self):
+        """Close the table connection (no-op for Firestore)."""
         pass
 
 
 class FirestoreClient(AbstractDatabase):
+    """Firestore implementation of AbstractDatabase."""
+
     def __init__(self):
+        """Initialize Firestore Client and verify connection."""
         # Lazy import settings to avoid circular deps if any
         from backend.settings import get_settings
 
@@ -270,10 +282,10 @@ class FirestoreClient(AbstractDatabase):
         try:
             # Attempt to access a collection (lightweight validation)
             # Note: list_collections is a generator, so we just get the first one or simply call it.
-            # Better: try to get a non-existent doc to prove connectivity without permissions error if list is restricted
+            # Better: try to get a non-existent doc to prove connectivity without permissions error
+            # if list is restricted
             # But list_collections is standard matching `wrapper.py` previous intent.
-            # Actually, just `next(self.db.collections(), None)` is enough to verify auth works.
-            # Or `self.db.collection('system_settings').limit(1).get()`
+            # Actually, just next(self.db.collections(), None) is enough to verify auth.
             logger.info("[Firestore] Verifying connection...")
             # self.db.collection('system_settings').limit(1).get() # Might fail if empty? No, returns empty list.
             # Simpler:
@@ -281,7 +293,7 @@ class FirestoreClient(AbstractDatabase):
             logger.info("[Firestore] Connection VERIFIED successfully.")
         except Exception as e:
             logger.critical(f"[Firestore] Connection ping FAILED: {e}")
-            raise RuntimeError(f"Firestore connectivity test failed. Check internet/VPN/Credentials. Error: {e}")
+            raise RuntimeError(f"Firestore connectivity test failed. Error: {e}") from e
 
     def table(self, name: str) -> AbstractTable:
         """Get table."""
@@ -311,14 +323,15 @@ def get_db_client() -> AbstractDatabase:
     if backend == "FIRESTORE":
         if not FIRESTORE_AVAILABLE:
             raise RuntimeError(
-                "CRITICAL: Firestore requested (STORAGE_BACKEND=FIRESTORE) but 'firebase_admin' or 'google-cloud-firestore' is not installed."
+                "CRITICAL: Firestore requested (STORAGE_BACKEND=FIRESTORE) "
+                "but 'firebase_admin' or 'google-cloud-firestore' is not installed."
             )
 
         try:
             return FirestoreClient()
         except Exception as e:
             logger.critical(f"Failed to connect to Firestore: {e}")
-            raise RuntimeError(f"CRITICAL: Firestore connection failed: {e}. Zero-fallback policy in effect.")
+            raise RuntimeError(f"CRITICAL: Firestore connection failed: {e}. Zero-fallback policy in effect.") from e
 
     elif backend == "LOCAL":
         # Standard Production JSON DB

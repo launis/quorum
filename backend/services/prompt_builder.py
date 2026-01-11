@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 class PromptBuilder:
     """Service responsible for constructing, enriching, and formatting LLM prompts.
+
     Handles dynamic variables, state injection, and schema exemplars.
     """
 
@@ -35,8 +36,9 @@ class PromptBuilder:
         self.registry = agent_registry
 
     async def construct_prompt(self, step_id: str, current_state: WorkflowState | None = None) -> str:
-        """Fetches the step configuration and constructs the full system prompt by concatenating the content of all referenced prompt components.
+        """Constructs the full system prompt from referenced components.
 
+        Fetches the step configuration and concatenates all referenced prompt components.
         Injects dynamic variables (e.g., {{HISTORY_TEXT}}) if state is provided.
         """
         try:

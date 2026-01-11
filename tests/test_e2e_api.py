@@ -1,3 +1,4 @@
+"""End-to-End API Tests."""
 import importlib
 import os
 from unittest.mock import patch
@@ -9,6 +10,7 @@ from fastapi.testclient import TestClient
 # Helper to reload backend dependencies to force DB switch between tests
 # This is necessary because the App initializes the DB once at startup (Singleton).
 def get_reloaded_client(env_vars):
+    """Reload backend with specified environment variables."""
     with patch.dict(os.environ, env_vars):
         # 1. Clear Pydantic Settings Cache
         from backend.settings import get_settings
@@ -30,6 +32,7 @@ def get_reloaded_client(env_vars):
 
 def test_e2e_api_mock_db():
     """E2E: Test basic API endpoints using the Local Mock Database.
+
     Target: Ensure default developer environment works.
     """
     print("\n[E2E] Starting Mock DB Test...")
@@ -58,8 +61,8 @@ def test_e2e_api_mock_db():
 @pytest.mark.live
 def test_e2e_api_firestore_db():
     """E2E: Test API endpoints using REAL Firestore connection.
-    Target: Ensure cloud connectivity works through the API layer.
 
+    Target: Ensure cloud connectivity works through the API layer.
     Note: Requires GOOGLE_APPLICATION_CREDENTIALS or valid environment.
     """
     print("\n[E2E] Starting Firestore DB Test...")

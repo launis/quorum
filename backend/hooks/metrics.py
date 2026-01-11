@@ -1,3 +1,4 @@
+"""Metrics hooks for calculating text statistics and control ratios."""
 import logging
 import re
 from typing import Any
@@ -7,6 +8,7 @@ logger = logging.getLogger(__name__)
 
 def calculate_text_metrics(text: str) -> dict[str, Any]:
     """Calculates objective text metrics from the input text using simple heuristic counting.
+
     Metrics include word count, sentence count, avg sentence length, lexical diversity,
     and capitalization ratio.
 
@@ -52,6 +54,7 @@ def calculate_text_metrics(text: str) -> dict[str, Any]:
 
 def calculate_control_ratio(text: str) -> float:
     """Calculates ratio of Human Tokens vs Total Tokens (approximation using characters).
+
     Attempts to parse chat logs based on common headers (User:/AI:).
 
     Formula: UserChars / (UserChars + AIChars)

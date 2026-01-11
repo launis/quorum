@@ -1,3 +1,4 @@
+"""Reference management hooks for bibliography generation."""
 import logging
 from typing import Any
 
@@ -7,7 +8,8 @@ logger = logging.getLogger(__name__)
 
 
 def generate_bibliography(text_dump: str, knowledge_base: dict[str, Any]) -> list[str]:
-    """HOOK: generate_bibliography
+    """HOOK: generate_bibliography.
+
     Scans the provided text dump for references using the ReferenceManager.
     Supports "advanced scan" which detects both explicit citations (e.g. "Author 2020")
     and implicit conceptual links.

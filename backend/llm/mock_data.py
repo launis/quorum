@@ -1,3 +1,4 @@
+"""Mock data generator for LLM responses."""
 from typing import Any
 
 AGENT_CLASS_TO_MOCK_KEY = {
@@ -393,8 +394,10 @@ def _generate_coach_data() -> dict[str, Any]:
                     "kohdat": [
                         {
                             "otsikko": "Kontekstin Etupainotteisuus",
-                            "kuvaus": "Määrittele rooli (neuvonantaja), kohderyhmä (johtoryhmä) ja tavoite heti alussa. "
-                            "Tämä vähentää iteraatioita.",
+                            "kuvaus": (
+                                "Määrittele rooli (neuvonantaja), kohderyhmä (johtoryhmä) ja tavoite heti alussa. "
+                                "Tämä vähentää iteraatioita."
+                            ),
                             "resurssit": ["Prompt Engineering: The CO-STAR Method"],
                         },
                         {
@@ -432,6 +435,7 @@ def _generate_coach_data() -> dict[str, Any]:
 
 def _generate_panel_data() -> dict[str, Any]:
     """Generates a COMPOSITE response for the PanelAgent.
+
     Must match the complex schema of PanelAgent output.
 
     Returns:

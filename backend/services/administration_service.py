@@ -1,3 +1,4 @@
+"""Administration Service for backend management."""
 import os
 from typing import Any
 

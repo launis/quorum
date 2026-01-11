@@ -1,3 +1,4 @@
+"""Arq Worker configuration and startup logic."""
 import logging
 from typing import Any
 
@@ -46,6 +47,7 @@ async def execute_workflow_task(ctx: Any, execution_id: str, workflow_id: str, i
 
 async def startup(ctx: Any) -> None:
     """Called when the worker starts.
+
     We initialize logging and Logfire here to ensure worker logs are captured.
     """
     setup_logging()
@@ -60,19 +62,18 @@ async def startup(ctx: Any) -> None:
         get_document_service_dep,
         get_engine,
         get_prompt_builder_dep,
-        get_settings_dep,
         get_storage_service_dep,
     )
 
     # 1. Base Clients
     db_client = get_db_client_dep()
-    settings = get_settings_dep()
-    
+
+
     # 2. Services
     repo = get_async_repository(db_client)
     storage = get_storage_service_dep()
     doc_service = get_document_service_dep(storage)
-    
+
     # 3. Async Registry & Builder
     registry = await get_agent_registry_dep(repo)
     prompt_builder = await get_prompt_builder_dep(repo, registry)

@@ -40,6 +40,7 @@ load_dotenv()
 
 
 def _print_startup_banner():
+    """Prints the system startup banner."""
     settings = get_settings()
     print("\n" + "=" * 60)
     print(" 🧠  COGNITIVE QUORUM v2.2 - SYSTEM STATUS")
@@ -68,6 +69,7 @@ def _print_startup_banner():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Lifecycle manager for the FastAPI app."""
     # Startup
     logger.info("Starting up Cognitive Quorum Backend...")
     _print_startup_banner()
@@ -137,6 +139,7 @@ except Exception as e:
 @app.exception_handler(AppException)
 async def app_exception_handler(request: Request, exc: AppException):
     """Handler for Application Logic Errors.
+
     Enforces the strict 'API & Error Contract' by returning APIError.
     Derives 'error_code' from the Exception Class Name (e.g. ResourceNotFoundError -> RESOURCE_NOT_FOUND_ERROR).
     """
@@ -153,6 +156,7 @@ async def app_exception_handler(request: Request, exc: AppException):
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     """Catch-all handler for unhandled exceptions.
+
     Returns 500 INTERNAL_SERVER_ERROR with standardized APIError.
     """
     logger.error(f"Global Exception: {exc}", exc_info=True)
@@ -169,6 +173,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
     """Handler for FastAPI/Starlette HTTPExceptions.
+
     Converts them to standardized APIError format.
     """
     return JSONResponse(
@@ -187,6 +192,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     """Handler for Pydantic/FastAPI validation errors.
+
     Returns 422 with standardized APIError.
     """
     logger.warning(f"Request Validation Failed: {exc.errors()}")
@@ -226,6 +232,7 @@ app.include_router(settings_router)
 
 @app.middleware("http")
 async def add_no_cache_header(request, call_next):
+    """Adds no-cache headers to all responses."""
     response = await call_next(request)
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["Pragma"] = "no-cache"
@@ -234,7 +241,9 @@ async def add_no_cache_header(request, call_next):
 
 
 @app.on_event("startup")
+@app.on_event("startup")
 async def startup_event():
+    """Performs application startup tasks."""
     from backend.bootstrap import bootstrap_application
 
     await bootstrap_application()
@@ -264,6 +273,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 )
 async def get_seed_data(engine: EngineDep, current_user: CurrentUserDep):
     """Retrieves the raw seed data configuration (components, steps, workflows).
+
     Now scoped by User Role (Root sees all).
 
     Args:
@@ -286,12 +296,13 @@ async def get_seed_data(engine: EngineDep, current_user: CurrentUserDep):
         return {"components": components, "steps": steps, "workflows": workflows}
     except Exception as e:
         print(f"DEBUG: Error reading seed data from DB: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.get("/db/workflows", summary="List Workflows (DB)", response_description="A list of all workflow definitions.")
 async def get_workflows(engine: EngineDep, current_user: CurrentUserDep):
     """Retrieves all workflow definitions from the repository.
+
     Scoped by User Role.
 
     Args:
@@ -308,7 +319,7 @@ async def get_workflows(engine: EngineDep, current_user: CurrentUserDep):
         )
         return workflows
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/db/reset", deprecated=True)
@@ -342,7 +353,7 @@ async def preview_prompt(engine: EngineDep, step_id: str = Path(..., description
             raise HTTPException(status_code=400, detail=preview["error"])
         return preview
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.get(
@@ -367,7 +378,7 @@ async def preview_full_chain(engine: EngineDep, workflow_id: str = Path(..., des
             raise HTTPException(status_code=404, detail=preview_text)
         return {"full_chain_text": preview_text}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.get(

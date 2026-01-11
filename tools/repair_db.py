@@ -1,9 +1,11 @@
+"""Repair Database Tool."""
 import json
 import os
 import sys
 
 
 def repair_json(file_path):
+    """Repair a corrupted JSON file by truncating extra data."""
     print(f"Repairing {file_path}...")
 
     if not os.path.exists(file_path):

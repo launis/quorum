@@ -1,12 +1,13 @@
+"""Debug Handler Discovery Tool."""
 import os
 
 from dotenv import load_dotenv
 
-# Explicitly load dotenv like main.py likely does (or check if it happens automatically)
-load_dotenv()
-
 from backend.database.wrapper import get_db_client
 from backend.llm.handler import LLMHandler
+
+# Explicitly load dotenv like main.py likely does (or check if it happens automatically)
+load_dotenv()
 
 print("--- DIAGNOSTICS ---")
 env_loc = os.getenv("VERTEX_LOCATION")

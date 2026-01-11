@@ -24,10 +24,12 @@ from datetime import datetime
 from typing import Any
 
 from backend.database.repository import AbstractWorkflowRepository
+from backend.models.audit import AuditEvent
 
 logger = logging.getLogger(__name__)
 
-from backend.models.audit import AuditEvent
+
+
 
 
 class AuditService:

@@ -1,3 +1,4 @@
+"""Database Sync Verification Script."""
 from pathlib import Path
 
 import verifier

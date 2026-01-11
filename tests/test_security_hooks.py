@@ -1,8 +1,10 @@
+"""Security Hooks Tests."""
 from backend.hooks.security import check_banned_phrases, sanitize_text
 
 
 # Test PII redaction logic
 def test_pii_sanitization():
+    """Test standard PII redaction."""
     input_text = "My email is test@example.com and phone is 050 123 4567. Credit card 1234 5678 1234 5678."
     cleaned, threats = sanitize_text(input_text)
 
@@ -19,6 +21,7 @@ def test_pii_sanitization():
 
 # Test banned phrases logic
 def test_banned_phrases_detection():
+    """Test banned word detection."""
     input_text = "This text contains forbidden magic words."
     phrases = ["magic", "forbidden"]
     detected = check_banned_phrases(input_text, phrases)
@@ -29,6 +32,7 @@ def test_banned_phrases_detection():
 
 
 def test_banned_phrases_empty():
+    """Test safe text passes detection."""
     input_text = "Safe text here."
     phrases = ["magic"]
     detected = check_banned_phrases(input_text, phrases)

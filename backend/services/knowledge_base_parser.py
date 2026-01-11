@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 class KnowledgeBaseParser:
     """Parses unstructured documents (DOCX, Markdown) into structured Knowledge Base entries.
+
     Extracts Concepts, References, and Claims using heuristic detection and ReGex patterns.
     """
 
@@ -278,7 +279,8 @@ class KnowledgeBaseParser:
         KnowledgeBaseParser._resolve_claims(knowledge_base)
 
         logger.info(
-            f"[KBParser] Extracted {len(knowledge_base['concepts'])} concepts, {len(knowledge_base['references'])} references, and {len(knowledge_base['claims'])} claims from DOCX."
+            f"[KBParser] Extracted {len(knowledge_base['concepts'])} concepts, "
+            f"{len(knowledge_base['references'])} references, and {len(knowledge_base['claims'])} claims from DOCX."
         )
         return knowledge_base
 
@@ -535,7 +537,8 @@ class KnowledgeBaseParser:
         KnowledgeBaseParser._resolve_claims(knowledge_base)
 
         logger.info(
-            f"[KBParser] Extracted {len(knowledge_base['concepts'])} concepts, {len(knowledge_base['references'])} references, and {len(knowledge_base['claims'])} claims from MD."
+            f"[KBParser] Extracted {len(knowledge_base['concepts'])} concepts, "
+            f"{len(knowledge_base['references'])} references, and {len(knowledge_base['claims'])} claims from MD."
         )
         return knowledge_base
 

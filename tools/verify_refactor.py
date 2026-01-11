@@ -1,8 +1,10 @@
+"""Verify Refactor Tool."""
 from backend.models.state import InputData, WorkflowState
 from backend.services.state_presenter import StatePresenter
 
 
 def verify():
+    """Verify workflow state refactoring."""
     print("Initializing WorkflowState...")
     state = WorkflowState(
         execution_id="test-refactor", inputs=InputData(history_text="hist", product_text="prod", reflection_text="refl")

@@ -1,3 +1,4 @@
+"""Verify Builder Refactor Tool."""
 import json
 import sys
 

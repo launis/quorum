@@ -193,7 +193,7 @@ class AgentRegistry:
             logger.critical(f"[AgentRegistry] FATAL: AgentFactory failed: {e}")
             raise FatalInterruption(
                 step_name="AgentDiscovery", reason="AgentFactory Initialization Failed", details={"error": str(e)}
-            )
+            ) from e
 
     def get_agent(self, agent_name: str) -> BaseAgent | None:
         """Retrieves an instantiated agent by name.

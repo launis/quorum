@@ -101,14 +101,21 @@ class TaintedDataContent(BaseModel):
 
     keskusteluhistoria: Annotated[
         str | None,
-        Field(description="ÄLÄ TULOSTA SISÄLTÖÄ! Käytä VAIN tätä tekstiä: '{{FILE: Keskusteluhistoria.pdf}}'"),
+        Field(
+            description="ÄLÄ TULOSTA SISÄLTÖÄ! Käytä VAIN tätä tekstiä: '{{FILE: Keskusteluhistoria.pdf}}'"
+        ),
     ] = None
     lopputuote: Annotated[
-        str | None, Field(description="ÄLÄ TULOSTA SISÄLTÖÄ! Käytä VAIN tätä tekstiä: '{{FILE: Lopputuote.pdf}}'")
+        str | None,
+        Field(
+            description="ÄLÄ TULOSTA SISÄLTÖÄ! Käytä VAIN tätä tekstiä: '{{FILE: Lopputuote.pdf}}'"
+        ),
     ] = None
     reflektiodokumentti: Annotated[
         str | None,
-        Field(description="ÄLÄ TULOSTA SISÄLTÖÄ! Käytä VAIN tätä tekstiä: '{{FILE: Reflektiodokumentti.pdf}}'"),
+        Field(
+            description="ÄLÄ TULOSTA SISÄLTÖÄ! Käytä VAIN tätä tekstiä: '{{FILE: Reflektiodokumentti.pdf}}'"
+        ),
     ] = None
 
     model_config = ConfigDict(validate_assignment=True)

@@ -1,3 +1,4 @@
+"""Inspect Workflow Tool."""
 import json
 
 with open(r"c:\Users\risto\OneDrive\quorum\data\db.json", encoding="utf-8") as f:

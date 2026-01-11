@@ -1,3 +1,4 @@
+"""Last Admin Protection Tests."""
 import os
 
 import pytest
@@ -15,6 +16,7 @@ client = TestClient(app)
 # Fixture setup similar to test_iam.py
 @pytest.fixture(autouse=True)
 def setup_auth_scenario():
+    """Setup auth scenario with Last Admin Corp."""
     from backend.dependencies import get_db_client_dep
     from backend.services.auth import AuthService, OrganizationCreate
 
@@ -57,10 +59,12 @@ def setup_auth_scenario():
 
 
 def get_headers(uid):
+    """Create auth headers."""
     return {"Authorization": f"Bearer mock-token:{uid}"}
 
 
 def test_last_admin_cannot_delete_self(setup_auth_scenario):
+    """Verify last admin cannot delete themselves."""
     admin_user = setup_auth_scenario
     assert admin_user is not None
 
@@ -73,6 +77,7 @@ def test_last_admin_cannot_delete_self(setup_auth_scenario):
 
 
 def test_last_admin_cannot_be_demoted(setup_auth_scenario):
+    """Verify last admin cannot be demoted."""
     admin_user = setup_auth_scenario
 
     # Try to update role to MEMBER
@@ -84,6 +89,7 @@ def test_last_admin_cannot_be_demoted(setup_auth_scenario):
 
 
 def test_second_admin_allows_deletion(setup_auth_scenario):
+    """Verify deletion succeeds if another admin exists."""
     last_admin = setup_auth_scenario
 
     # 1. Promote a second user to ADMIN
@@ -112,6 +118,7 @@ def test_second_admin_allows_deletion(setup_auth_scenario):
 
 
 def test_root_can_bypass_checks_if_orphan_org_logic_not_strict(setup_auth_scenario):
+    """Verify ROOT is also subject to last admin protection."""
     # Actually, our logic applies to everyone: "Cannot delete the last Administrator...".
     # Even Root shouldn't leave an Org empty of admins unless deleting the Org itself (which we don't implement yet).
     # So Root SHOULD also get the error if they try to delete the last admin without deleting the org.

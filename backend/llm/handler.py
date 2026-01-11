@@ -1,3 +1,4 @@
+"""LLM Handler module for managing model discovery and configuration."""
 import logging
 import os
 from typing import Any
@@ -59,6 +60,7 @@ class LLMHandler:
 
         Args:
             providers (List[str]): List of providers to query ('google', 'openai', 'mock'). Defaults to all.
+            location (str | None): Optional target location to validate against. Defaults to settings value.
 
         Logic for Google:
         1. Fetch Master List from 'us-central1' (Model Garden root).
@@ -278,7 +280,8 @@ class LLMHandler:
         # Create Provider via Factory (Unified Logic)
         try:
             logger.info(
-                f"[LLM Execution] Strategy: {provider}/{mode} -> Model: {model_name} (Temp: {temperature}, MaxTokens: {max_tokens})"
+                f"[LLM Execution] Strategy: {provider}/{mode} -> Model: {model_name} "
+                f"(Temp: {temperature}, MaxTokens: {max_tokens})"
             )
             llm_provider = LLMFactory.create_provider(provider, model_name)
 

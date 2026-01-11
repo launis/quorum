@@ -1,3 +1,4 @@
+"""Deep Fusion Logic Tests."""
 import json
 import os
 import shutil
@@ -72,6 +73,7 @@ MOCK_PANEL_OUTPUT = {
 
 @pytest.fixture(scope="module")
 def shared_engine():
+    """Setup shared WorkflowEngine instance."""
     # Use unique dir to avoid lock issues
     base_dir = f"test_fusion_{uuid.uuid4().hex}"
     os.makedirs(base_dir, exist_ok=True)
@@ -143,6 +145,7 @@ def shared_engine():
 
 
 def test_compile_fusion_flow(shared_engine):
+    """Test compiling a fusion workflow."""
     # Override the dependency to use our shared_engine
     app.dependency_overrides[get_engine] = lambda: shared_engine
 
@@ -197,6 +200,7 @@ def test_compile_fusion_flow(shared_engine):
 
 @pytest.mark.asyncio
 async def test_panel_agent_fan_out():
+    """Test Panel Agent fan-out logic."""
     # Mock Provider
     class MockProvider:
         async def generate(self, prompt, system_instruction, response_schema, **kwargs):

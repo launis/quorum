@@ -17,6 +17,8 @@ class SystemSettings(BaseModel):
     enable_beta_features: bool = Field(default=False, description="Toggle experimental features.")
 
     class Config:
+        """Pydantic configuration."""
+
         json_schema_extra = {
             "example": {
                 "maintenance_mode": False,

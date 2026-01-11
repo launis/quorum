@@ -294,7 +294,7 @@ async def delete_organization(
         force (bool): Functionally cascade delete users if True.
         user (TokenData): Requesting user (must be ROOT).
         repo (RepositoryDep): Repository.
-        auth_service (AuthService): Auth service for user deletion.
+        auth (Any): Auth service for user deletion.
 
     Returns:
         None

@@ -1,3 +1,4 @@
+"""Application Settings Module."""
 import os
 from functools import lru_cache
 from typing import Annotated, Any
@@ -12,6 +13,7 @@ load_dotenv()
 
 
 def strip_whitespace(v: Any) -> Any:
+    """Validator to strip whitespace from strings."""
     if isinstance(v, str):
         return v.strip()
     return v
@@ -22,6 +24,7 @@ MyBool = Annotated[bool, BeforeValidator(strip_whitespace)]
 
 class Settings(BaseSettings):
     """Application Settings managed by Pydantic.
+
     Reads from environment variables and .env file.
     """
 
@@ -61,39 +64,48 @@ class Settings(BaseSettings):
     # We define base_dir relative to this file (backend/settings.py)
     @computed_field
     def base_dir(self) -> str:
+        """Returns the base directory of the backend application."""
         return os.path.dirname(os.path.abspath(__file__))
 
     @computed_field
     def data_dir(self) -> str:
+        """Returns the path to the persistent data directory."""
         # Assuming ../data from backend/
         return os.path.join(os.path.dirname(self.base_dir), "data")
 
     @computed_field
     def db_dir(self) -> str:
+        """Returns the path to the database directory."""
         return os.path.join(self.base_dir, "database")
 
     @computed_field
     def scripts_dir(self) -> str:
+        """Returns the path to the scripts directory."""
         return os.path.join(os.path.dirname(self.base_dir), "scripts")
 
     @computed_field
     def mock_db_path(self) -> str:
+        """Returns the path to the mock database file."""
         return os.path.join(self.db_dir, "db_mock.json")
 
     @computed_field
     def prod_db_path(self) -> str:
+        """Returns the path to the production database file."""
         return os.path.join(self.data_dir, "db.json")
 
     @computed_field
     def start_db_path(self) -> str:
+        """Returns the path to the database file to be used at startup (Prod or Mock)."""
         return self.mock_db_path if self.use_mock_db else self.prod_db_path
 
     @computed_field
     def seed_data_path(self) -> str:
+        """Returns the path to the seed data file."""
         return os.path.join(self.base_dir, "seed", "seed_data.json")
 
     @computed_field
     def mock_responses_path(self) -> str:
+        """Returns the path to the mock responses file."""
         return os.path.join(self.data_dir, "mock_responses.json")
 
     @computed_field
@@ -106,6 +118,7 @@ class Settings(BaseSettings):
     @computed_field
     def model_strategies(self) -> dict[str, dict[str, Any]]:
         """Returns empty dict by default.
+
         Strategies MUST be loaded from 'system_config' table in database.
         """
         return {}
@@ -113,6 +126,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_ignore_empty=True, extra="ignore", case_sensitive=False)
 
     def model_post_init(self, __context: Any) -> None:
+        """Validates settings after initialization."""
         # Check for EITHER Google AI Studio Key OR Vertex AI Credentials
         has_vertex = (
             os.getenv("VERTEX_PROJECT_ID")
@@ -138,4 +152,5 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
+    """Singleton getter for Settings."""
     return Settings()

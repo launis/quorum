@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 class DocumentService:
     """Unified service for handling document ingestion, processing, and archiving.
+
     Supports:
     - Evidence files (PDF/DOCX -> Text) for WorkflowEngine
     - Knowledge Base files (DOCX/MD -> Structured JSON) for KnowledgeBaseService.
@@ -70,7 +71,7 @@ class DocumentService:
                         logger.error(f"PDF extraction failed for {filename}: {e}")
                         raise FatalInterruption(
                             "DocumentService", f"PDF extraction failed for {filename}: {e}", {"filename": filename}
-                        )
+                        ) from e
 
                 elif lower_name.endswith(".docx"):
                     try:
@@ -79,7 +80,7 @@ class DocumentService:
                         logger.error(f"DOCX extraction failed for {filename}: {e}")
                         raise FatalInterruption(
                             "DocumentService", f"DOCX extraction failed for {filename}: {e}", {"filename": filename}
-                        )
+                        ) from e
                 else:
                     # Treat as text file
                     text = file_bytes.decode("utf-8", errors="ignore")
@@ -99,7 +100,7 @@ class DocumentService:
                     step_name="DocumentService",
                     reason=f"Failed to ingest evidence {filename}: {str(e)}",
                     details={"filename": filename, "error": str(e)},
-                )
+                ) from e
 
         return extracted_data
 
@@ -183,7 +184,7 @@ class DocumentService:
 
             return text.strip()
         except Exception as e:
-            raise Exception(f"Failed to extract PDF text: {str(e)}")
+            raise Exception(f"Failed to extract PDF text: {str(e)}") from e
 
     @staticmethod
     def _extract_text_from_docx(input_data: str | bytes) -> str:
@@ -225,4 +226,4 @@ class DocumentService:
 
             return "\n".join(text).strip()
         except Exception as e:
-            raise Exception(f"Failed to extract DOCX text: {str(e)}")
+            raise Exception(f"Failed to extract DOCX text: {str(e)}") from e

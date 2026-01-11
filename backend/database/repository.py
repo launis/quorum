@@ -234,10 +234,12 @@ class AbstractWorkflowRepository(ABC):
 
 class TinyDBRepository(AbstractWorkflowRepository):
     """Async-First TinyDB Repository.
+
     Wraps synchronous TinyDB calls in asyncio.to_thread.
     """
 
     def __init__(self, db_client: AbstractDatabase):
+        """Initialize the repository."""
         self.db = db_client
         self.components = self.db.table("components")
         self.steps = self.db.table("steps")

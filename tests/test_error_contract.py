@@ -1,3 +1,4 @@
+"""API Error Contract Tests."""
 import pytest
 from httpx import AsyncClient
 
@@ -7,7 +8,8 @@ from httpx import AsyncClient
 
 @pytest.mark.anyio
 async def test_validation_error_contract(client: AsyncClient):
-    """Verifies that calling an endpoint with invalid data returns 422
+    """Verifies that calling an endpoint with invalid data returns 422.
+
     AND strictly follows the APIError schema (error_code, message).
     """
     # 1. Trigger a Pydantic Validation Error (e.g. invalid type)

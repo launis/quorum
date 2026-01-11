@@ -18,6 +18,7 @@ STATUS_FAILED = "failed"
 
 class ProgressTracker(ABC):
     """Abstract Base Class for unified progress reporting across the application.
+
     Enforces standardized states (STARTED, RUNNING, COMPLETED, FAILED).
     """
 
@@ -67,6 +68,7 @@ class ProgressTracker(ABC):
 
 class DatabaseProgressTracker(ProgressTracker):
     """Tracks progress by updating the 'executions' table in the database.
+
     Used by WorkflowEngine to persist state across server restarts.
     """
 
@@ -122,6 +124,7 @@ class DatabaseProgressTracker(ProgressTracker):
 
 class InMemoryProgressTracker(ProgressTracker):
     """Tracks progress in-memory via a callback function.
+
     Used by short-lived API tasks like File Ingestion.
     """
 

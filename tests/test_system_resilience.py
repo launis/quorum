@@ -1,3 +1,4 @@
+"""System Resilience Tests."""
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -10,9 +11,12 @@ from backend.models.state import InputData, WorkflowState
 
 
 class TestSystemResilienceAsync(unittest.IsolatedAsyncioTestCase):
+    """System Resilience Async Tests."""
+
     async def test_create_workflow_db_failure(self):
-        """Test that DB failures during workflow creation result in a clean 500 error,
-        not an unhandled traceback leaking internal info.
+        """Test that DB failures during workflow creation result in a clean 500 error.
+
+        Not an unhandled traceback leaking internal info.
         """
         mock_engine = MagicMock()
         from unittest.mock import AsyncMock

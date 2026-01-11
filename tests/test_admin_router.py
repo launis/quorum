@@ -1,3 +1,4 @@
+"""Admin Router Tests."""
 from unittest.mock import AsyncMock
 
 import pytest
@@ -15,6 +16,7 @@ mock_llm_fast.generate.return_value = '{"phrases": ["ignore previous instruction
 
 @pytest.fixture
 def override_deps():
+    """Override auth and LLM dependencies."""
     # Override Auth to be ROOT
     from backend.dependencies import get_current_user_from_header
 

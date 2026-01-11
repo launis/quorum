@@ -1,0 +1,648 @@
+[
+  {
+    "cell": null,
+    "code": "D100",
+    "end_location": {
+      "column": 1,
+      "row": 1
+    },
+    "filename": "C:\\src\\quorum\\tests\\test_adversarial_security.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 1
+    },
+    "message": "Missing docstring in public module",
+    "noqa_row": 1,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-module"
+  },
+  {
+    "cell": null,
+    "code": "D101",
+    "end_location": {
+      "column": 30,
+      "row": 10
+    },
+    "filename": "C:\\src\\quorum\\tests\\test_adversarial_security.py",
+    "fix": null,
+    "location": {
+      "column": 7,
+      "row": 10
+    },
+    "message": "Missing docstring in public class",
+    "noqa_row": 10,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-class"
+  },
+  {
+    "cell": null,
+    "code": "D100",
+    "end_location": {
+      "column": 1,
+      "row": 1
+    },
+    "filename": "C:\\src\\quorum\\tests\\test_api_integrity.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 1
+    },
+    "message": "Missing docstring in public module",
+    "noqa_row": 1,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-module"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 125,
+      "row": 72
+    },
+    "filename": "C:\\src\\quorum\\tests\\test_api_integrity.py",
+    "fix": null,
+    "location": {
+      "column": 121,
+      "row": 72
+    },
+    "message": "Line too long (124 > 120)",
+    "noqa_row": 72,
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "D100",
+    "end_location": {
+      "column": 1,
+      "row": 1
+    },
+    "filename": "C:\\src\\quorum\\tests\\test_api_new_endpoints.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 1
+    },
+    "message": "Missing docstring in public module",
+    "noqa_row": 1,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-module"
+  },
+  {
+    "cell": null,
+    "code": "D103",
+    "end_location": {
+      "column": 20,
+      "row": 6
+    },
+    "filename": "C:\\src\\quorum\\tests\\test_api_new_endpoints.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 6
+    },
+    "message": "Missing docstring in public function",
+    "noqa_row": 6,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-function"
+  },
+  {
+    "cell": null,
+    "code": "D103",
+    "end_location": {
+      "column": 19,
+      "row": 18
+    },
+    "filename": "C:\\src\\quorum\\tests\\test_api_new_endpoints.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 18
+    },
+    "message": "Missing docstring in public function",
+    "noqa_row": 18,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-function"
+  },
+  {
+    "cell": null,
+    "code": "D103",
+    "end_location": {
+      "column": 21,
+      "row": 30
+    },
+    "filename": "C:\\src\\quorum\\tests\\test_api_new_endpoints.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 30
+    },
+    "message": "Missing docstring in public function",
+    "noqa_row": 30,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-function"
+  },
+  {
+    "cell": null,
+    "code": "D103",
+    "end_location": {
+      "column": 17,
+      "row": 13
+    },
+    "filename": "C:\\src\\quorum\\tests\\test_db_scenarios.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 13
+    },
+    "message": "Missing docstring in public function",
+    "noqa_row": 13,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-function"
+  },
+  {
+    "cell": null,
+    "code": "D103",
+    "end_location": {
+      "column": 11,
+      "row": 18
+    },
+    "filename": "C:\\src\\quorum\\tests\\test_db_scenarios.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 18
+    },
+    "message": "Missing docstring in public function",
+    "noqa_row": 18,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-function"
+  },
+  {
+    "cell": null,
+    "code": "D205",
+    "end_location": {
+      "column": 8,
+      "row": 36
+    },
+    "filename": "C:\\src\\quorum\\tests\\test_e2e_api.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 34
+    },
+    "message": "1 blank line required between summary line and description",
+    "noqa_row": 36,
+    "url": "https://docs.astral.sh/ruff/rules/missing-blank-line-after-summary"
+  },
+  {
+    "cell": null,
+    "code": "D205",
+    "end_location": {
+      "column": 8,
+      "row": 66
+    },
+    "filename": "C:\\src\\quorum\\tests\\test_e2e_api.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 62
+    },
+    "message": "1 blank line required between summary line and description",
+    "noqa_row": 66,
+    "url": "https://docs.astral.sh/ruff/rules/missing-blank-line-after-summary"
+  },
+  {
+    "cell": null,
+    "code": "D103",
+    "end_location": {
+      "column": 25,
+      "row": 12
+    },
+    "filename": "C:\\src\\quorum\\tests\\test_environments.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 12
+    },
+    "message": "Missing docstring in public function",
+    "noqa_row": 12,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-function"
+  },
+  {
+    "cell": null,
+    "code": "D205",
+    "end_location": {
+      "column": 8,
+      "row": 51
+    },
+    "filename": "C:\\src\\quorum\\tests\\test_environments.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 49
+    },
+    "message": "1 blank line required between summary line and description",
+    "noqa_row": 51,
+    "url": "https://docs.astral.sh/ruff/rules/missing-blank-line-after-summary"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 402,
+      "row": 25
+    },
+    "filename": "C:\\src\\quorum\\tests\\test_guard_hybrid.py",
+    "fix": null,
+    "location": {
+      "column": 121,
+      "row": 25
+    },
+    "message": "Line too long (401 > 120)",
+    "noqa_row": 25,
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 395,
+      "row": 53
+    },
+    "filename": "C:\\src\\quorum\\tests\\test_guard_hybrid.py",
+    "fix": null,
+    "location": {
+      "column": 121,
+      "row": 53
+    },
+    "message": "Line too long (394 > 120)",
+    "noqa_row": 53,
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "D103",
+    "end_location": {
+      "column": 24,
+      "row": 19
+    },
+    "filename": "C:\\src\\quorum\\tests\\test_iam.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 19
+    },
+    "message": "Missing docstring in public function",
+    "noqa_row": 19,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-function"
+  },
+  {
+    "cell": null,
+    "code": "D205",
+    "end_location": {
+      "column": 8,
+      "row": 95
+    },
+    "filename": "C:\\src\\quorum\\tests\\test_iam.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 93
+    },
+    "message": "1 blank line required between summary line and description",
+    "noqa_row": 95,
+    "url": "https://docs.astral.sh/ruff/rules/missing-blank-line-after-summary"
+  },
+  {
+    "cell": null,
+    "code": "D101",
+    "end_location": {
+      "column": 22,
+      "row": 11
+    },
+    "filename": "C:\\src\\quorum\\tests\\test_judge_sanity.py",
+    "fix": null,
+    "location": {
+      "column": 7,
+      "row": 11
+    },
+    "message": "Missing docstring in public class",
+    "noqa_row": 11,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-class"
+  },
+  {
+    "cell": null,
+    "code": "D103",
+    "end_location": {
+      "column": 24,
+      "row": 18
+    },
+    "filename": "C:\\src\\quorum\\tests\\test_last_admin_protection.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 18
+    },
+    "message": "Missing docstring in public function",
+    "noqa_row": 18,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-function"
+  },
+  {
+    "cell": null,
+    "code": "D103",
+    "end_location": {
+      "column": 39,
+      "row": 65
+    },
+    "filename": "C:\\src\\quorum\\tests\\test_last_admin_protection.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 65
+    },
+    "message": "Missing docstring in public function",
+    "noqa_row": 65,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-function"
+  },
+  {
+    "cell": null,
+    "code": "D103",
+    "end_location": {
+      "column": 38,
+      "row": 77
+    },
+    "filename": "C:\\src\\quorum\\tests\\test_last_admin_protection.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 77
+    },
+    "message": "Missing docstring in public function",
+    "noqa_row": 77,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-function"
+  },
+  {
+    "cell": null,
+    "code": "D103",
+    "end_location": {
+      "column": 38,
+      "row": 88
+    },
+    "filename": "C:\\src\\quorum\\tests\\test_last_admin_protection.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 88
+    },
+    "message": "Missing docstring in public function",
+    "noqa_row": 88,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-function"
+  },
+  {
+    "cell": null,
+    "code": "D103",
+    "end_location": {
+      "column": 63,
+      "row": 116
+    },
+    "filename": "C:\\src\\quorum\\tests\\test_last_admin_protection.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 116
+    },
+    "message": "Missing docstring in public function",
+    "noqa_row": 116,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-function"
+  },
+  {
+    "cell": null,
+    "code": "D103",
+    "end_location": {
+      "column": 19,
+      "row": 17
+    },
+    "filename": "C:\\src\\quorum\\tests\\test_live_llm.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 17
+    },
+    "message": "Missing docstring in public function",
+    "noqa_row": 17,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-function"
+  },
+  {
+    "cell": null,
+    "code": "D101",
+    "end_location": {
+      "column": 18,
+      "row": 27
+    },
+    "filename": "C:\\src\\quorum\\tests\\test_live_llm.py",
+    "fix": null,
+    "location": {
+      "column": 7,
+      "row": 27
+    },
+    "message": "Missing docstring in public class",
+    "noqa_row": 27,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-class"
+  },
+  {
+    "cell": null,
+    "code": "D102",
+    "end_location": {
+      "column": 14,
+      "row": 28
+    },
+    "filename": "C:\\src\\quorum\\tests\\test_live_llm.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 28
+    },
+    "message": "Missing docstring in public method",
+    "noqa_row": 28,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-method"
+  },
+  {
+    "cell": null,
+    "code": "D102",
+    "end_location": {
+      "column": 17,
+      "row": 53
+    },
+    "filename": "C:\\src\\quorum\\tests\\test_live_llm.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 53
+    },
+    "message": "Missing docstring in public method",
+    "noqa_row": 53,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-method"
+  },
+  {
+    "cell": null,
+    "code": "D103",
+    "end_location": {
+      "column": 23,
+      "row": 21
+    },
+    "filename": "C:\\src\\quorum\\tests\\test_safety_and_hooks.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 21
+    },
+    "message": "Missing docstring in public function",
+    "noqa_row": 21,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-function"
+  },
+  {
+    "cell": null,
+    "code": "D103",
+    "end_location": {
+      "column": 26,
+      "row": 86
+    },
+    "filename": "C:\\src\\quorum\\tests\\test_safety_and_hooks.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 86
+    },
+    "message": "Missing docstring in public function",
+    "noqa_row": 86,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-function"
+  },
+  {
+    "cell": null,
+    "code": "D103",
+    "end_location": {
+      "column": 38,
+      "row": 128
+    },
+    "filename": "C:\\src\\quorum\\tests\\test_safety_and_hooks.py",
+    "fix": null,
+    "location": {
+      "column": 11,
+      "row": 128
+    },
+    "message": "Missing docstring in public function",
+    "noqa_row": 128,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-function"
+  },
+  {
+    "cell": null,
+    "code": "D101",
+    "end_location": {
+      "column": 17,
+      "row": 11
+    },
+    "filename": "C:\\src\\quorum\\tests\\test_schema_validation.py",
+    "fix": null,
+    "location": {
+      "column": 7,
+      "row": 11
+    },
+    "message": "Missing docstring in public class",
+    "noqa_row": 11,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-class"
+  },
+  {
+    "cell": null,
+    "code": "D102",
+    "end_location": {
+      "column": 28,
+      "row": 21
+    },
+    "filename": "C:\\src\\quorum\\tests\\test_schema_validation.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 21
+    },
+    "message": "Missing docstring in public method",
+    "noqa_row": 21,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-method"
+  },
+  {
+    "cell": null,
+    "code": "D103",
+    "end_location": {
+      "column": 15,
+      "row": 26
+    },
+    "filename": "C:\\src\\quorum\\tests\\test_schema_validation.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 26
+    },
+    "message": "Missing docstring in public function",
+    "noqa_row": 26,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-function"
+  },
+  {
+    "cell": null,
+    "code": "D103",
+    "end_location": {
+      "column": 41,
+      "row": 31
+    },
+    "filename": "C:\\src\\quorum\\tests\\test_schema_validation.py",
+    "fix": null,
+    "location": {
+      "column": 11,
+      "row": 31
+    },
+    "message": "Missing docstring in public function",
+    "noqa_row": 31,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-function"
+  },
+  {
+    "cell": null,
+    "code": "D103",
+    "end_location": {
+      "column": 47,
+      "row": 53
+    },
+    "filename": "C:\\src\\quorum\\tests\\test_schema_validation.py",
+    "fix": null,
+    "location": {
+      "column": 11,
+      "row": 53
+    },
+    "message": "Missing docstring in public function",
+    "noqa_row": 53,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-function"
+  },
+  {
+    "cell": null,
+    "code": "D101",
+    "end_location": {
+      "column": 32,
+      "row": 13
+    },
+    "filename": "C:\\src\\quorum\\tests\\test_system_resilience.py",
+    "fix": null,
+    "location": {
+      "column": 7,
+      "row": 13
+    },
+    "message": "Missing docstring in public class",
+    "noqa_row": 13,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-class"
+  },
+  {
+    "cell": null,
+    "code": "D103",
+    "end_location": {
+      "column": 16,
+      "row": 13
+    },
+    "filename": "C:\\src\\quorum\\tests\\test_v2_5_admin_flows.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 13
+    },
+    "message": "Missing docstring in public function",
+    "noqa_row": 13,
+    "url": "https://docs.astral.sh/ruff/rules/undocumented-public-function"
+  }
+]

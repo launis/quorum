@@ -1,3 +1,4 @@
+"""Database Scenarios Tests."""
 import asyncio
 from unittest.mock import MagicMock
 
@@ -10,11 +11,13 @@ from backend.database.wrapper import TinyDBClient
 
 @pytest.fixture
 def test_db_path(tmp_path):
+    """Create temp DB path."""
     return str(tmp_path / "test_db.json")
 
 
 @pytest.fixture
 def engine(test_db_path):
+    """Initialize WorkflowEngine with temp DB."""
     client = TinyDBClient(test_db_path)
     repo = TinyDBRepository(client)
     # Initialize Engine with explicit repository (bypassing auto-wiring)
@@ -46,6 +49,7 @@ def engine(test_db_path):
 
 def test_missing_step_definition(engine):
     """Scenario: Workflow refers to a step ID that does not exist in the DB.
+
     Expectation: The engine should skip the step or fail gracefully. V2 logic might raise error or skip.
     """
     # Insert a workflow with a missing step
@@ -73,6 +77,7 @@ def test_missing_step_definition(engine):
 
 def test_empty_prompt_content(engine):
     """Scenario: A step uses a prompt component that has empty content.
+
     Expectation: The agent should be executed with an empty system instruction.
     """
     # 1. Define Step
@@ -129,6 +134,7 @@ def test_empty_prompt_content(engine):
 
 def test_missing_prompt_component(engine):
     """Scenario: A step refers to a prompt ID that does not exist.
+
     Expectation: The agent should be executed with empty system instruction.
     """
     engine.repository.steps.insert(

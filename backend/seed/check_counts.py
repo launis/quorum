@@ -1,3 +1,4 @@
+"""Check database counts script."""
 import json
 import sys
 from pathlib import Path
@@ -14,6 +15,7 @@ except ImportError as e:
 
 
 def load_json(path):
+    """Load JSON from path."""
     if not path.exists():
         return {}
     with open(path, encoding="utf-8") as f:
@@ -21,6 +23,7 @@ def load_json(path):
 
 
 def count_items(data, name):
+    """Count items in data."""
     counts = {}
     if not data:
         return counts
@@ -49,6 +52,7 @@ def count_items(data, name):
 
 
 def main():
+    """Run the check counts script."""
     root_dir = Path(__file__).resolve().parent.parent.parent
     seed_path = root_dir / "backend" / "seed" / "seed_data.json"
     prod_path = root_dir / "data" / "db.json"

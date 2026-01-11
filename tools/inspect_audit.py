@@ -1,3 +1,4 @@
+"""Inspect Audit Logs."""
 import os
 
 from tinydb import TinyDB
@@ -6,6 +7,7 @@ DB_PATH = "data/db.json"
 
 
 def inspect_audit_logs():
+    """Print the last 5 audit logs."""
     if not os.path.exists(DB_PATH):
         print(f"Database not found at {DB_PATH}")
         return

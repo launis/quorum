@@ -1,17 +1,21 @@
+"""Database Synchronization logic."""
+
 import json
 import os
+from pathlib import Path
+
+from backend.seed.sync_db_to_seed import sync_db_to_seed
+from backend.settings import get_settings
+
+settings = get_settings()
 
 
-def sync_db_to_seed():
-    """Reads the current active database (Local/Prod) and exports the configuration
-    tables back to seed_data.json.
+def sync_db_file(source_path: Path, target_path: Path):
+    """Syncs a JSON database file from source to target.
+
+    Preserves runtime tables (audit_logs, executions, etc.) from the target.
     Excludes execution history.
     """
-    from backend.settings import get_settings
-
-    settings = get_settings()
-
-    # Determine source DB path
     # Usually we want to sync from the "Prod" (Local Persistent) DB if running this script,
     # because that's where we make changes.
     # However, if Env var USE_MOCK_DB is true, we might be syncing from Mock.
