@@ -221,6 +221,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
         self.users = self.db.table("users")
         self.audit_logs = self.db.table("audit_logs")
         import logging
+
         self.logger = logging.getLogger(__name__)
 
     async def _run(self, func, *args, **kwargs):
@@ -523,7 +524,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
             # TinyDB doesn't do complex querying efficiently, so we filter in Python for now.
             # In a real DB we'd index this.
             all_logs = self.audit_logs.all()
-            
+
             self.logger.debug(
                 f"REPO: get_audit_logs found {len(all_logs)} entries. Requested: org={organization_id}, action={action}"
             )

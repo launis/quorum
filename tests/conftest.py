@@ -42,25 +42,27 @@ from httpx import ASGITransport, AsyncClient
 
 from backend.dependencies import get_current_user_from_header
 from backend.main import app
-from backend.models.auth import User, UserRole
-
 
 
 class MockAuthService:
     def __init__(self):
         self.current_user = None
 
+
 @pytest.fixture
 def mock_auth_service():
     return MockAuthService()
+
 
 @pytest.fixture
 async def client_authenticated(mock_auth_service):
     """Async Client with Dynamic Auth overrides."""
     # Default to Root if not set
     if not mock_auth_service.current_user:
-        from backend.models.auth import User, UserRole
         from datetime import datetime
+
+        from backend.models.auth import User, UserRole
+
         mock_auth_service.current_user = User(
             uid="root_master",
             email="root@example.com",
@@ -74,12 +76,12 @@ async def client_authenticated(mock_auth_service):
 
     # Override Database to use Temp File (Isolated Tests)
     import tempfile
-    
+
     fd, temp_db_path = tempfile.mkstemp(suffix=".json")
     os.close(fd)
 
     from backend.settings import Settings
-    
+
     def override_settings():
         return Settings(
             storage_backend="LOCAL",
@@ -106,7 +108,7 @@ async def client_authenticated(mock_auth_service):
     except:
         pass
 
+
 @pytest.fixture
 def admin_token_headers():
     return {"Authorization": "Bearer mock_token"}
-

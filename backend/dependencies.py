@@ -60,13 +60,17 @@ def get_async_repository(db_client: AbstractDatabase = Depends(get_db_client_dep
         return _repository_instance
 
     settings = get_settings()
-    logger.warning(f"### DEBUG CONFIG ###: STORAGE='{settings.storage_backend}', MOCK_DB={settings.use_mock_db} (Env: {settings.environment})")
+    logger.warning(
+        f"### DEBUG CONFIG ###: STORAGE='{settings.storage_backend}', MOCK_DB={settings.use_mock_db} (Env: {settings.environment})"
+    )
 
     # 1. Check for Firestore (Native Async)
     if settings.storage_backend.upper() == "FIRESTORE":
         if settings.use_mock_db:
-             raise RuntimeError("CRITICAL CONFIG ERROR: STORAGE_BACKEND=FIRESTORE implies Real DB, but USE_MOCK_DB=True. Check your .bat file or .env variables.")
-        
+            raise RuntimeError(
+                "CRITICAL CONFIG ERROR: STORAGE_BACKEND=FIRESTORE implies Real DB, but USE_MOCK_DB=True. Check your .bat file or .env variables."
+            )
+
         from backend.database.firestore_repo import FirestoreWorkflowRepository
 
         logger.info("[Dependencies] Initializing Native Async Firestore.")
@@ -118,7 +122,10 @@ def get_storage_service_dep() -> AbstractStorage:
     # Remove debug logging
     # logger.warning(f"### DEBUG CONFIG ###: ...")
 
-    print(f"!!! DEBUG DEPENDENCIES !!! Backend={settings.storage_backend}, Bucket={settings.storage_bucket_name}", flush=True)
+    print(
+        f"!!! DEBUG DEPENDENCIES !!! Backend={settings.storage_backend}, Bucket={settings.storage_bucket_name}",
+        flush=True,
+    )
 
     if settings.storage_backend == "NONE":
         logger.info("[Dependencies] Storage disabled (NoOp).")
@@ -129,7 +136,7 @@ def get_storage_service_dep() -> AbstractStorage:
     elif settings.storage_backend.upper() == "FIRESTORE" and not settings.use_mock_db:
         bucket_name = settings.storage_bucket_name
         print(f"!!! DEBUG !!! Entering FIRESTORE block. Bucket: {bucket_name}", flush=True)
-        
+
         if bucket_name:
             logger.info(f"[Dependencies] Initializing Firebase Cloud Storage (Bucket: {bucket_name}).")
             _storage_service_instance = FirebaseStorage(bucket_name=bucket_name)

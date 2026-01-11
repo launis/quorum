@@ -85,7 +85,9 @@ class UsageService:
             if not org:
                 # If org doesn't exist, we probably shouldn't run executions, but maybe it's system?
                 # System org usually has no limit or high limit.
-                logger.warning(f"Quota Check: Organization '{org_id}' not found. Allowing execution (Fail Open for Pilot).")
+                logger.warning(
+                    f"Quota Check: Organization '{org_id}' not found. Allowing execution (Fail Open for Pilot)."
+                )
                 return True
 
             limit = float(org.get("quota_limit", 10.0))  # Default $10.00 conservative

@@ -77,7 +77,7 @@ class TinyDBTable(AbstractTable):
 
     def insert(self, document: dict[str, Any]) -> int:
         with TinyDB(self._path, encoding="utf-8") as db:
-             return self._get_table(db).insert(document)
+            return self._get_table(db).insert(document)
 
     def all(self) -> list[dict[str, Any]]:
         with TinyDB(self._path, encoding="utf-8") as db:
@@ -107,6 +107,7 @@ class TinyDBTable(AbstractTable):
 class TinyDBClient(AbstractDatabase):
     def __init__(self, path: str):
         import os
+
         os.makedirs(os.path.dirname(path), exist_ok=True)
         self.path = path
         # Verify creation/access but don't hold connection
@@ -193,7 +194,7 @@ class FirestoreTable(AbstractTable):
         docs = self._collection.stream()
         removed_count = 0
         to_delete = []
-        
+
         # 1. Identify docs (Scan)
         for doc in docs:
             if query(doc.to_dict()):
@@ -235,20 +236,20 @@ class FirestoreClient(AbstractDatabase):
             firebase_admin.initialize_app(cred)
 
         self.db = firestore.client()
-        
+
         # ACTIVE PING TEST (Strict Zero-Fallback)
         try:
-             # Attempt to access a collection (lightweight validation)
-             # Note: list_collections is a generator, so we just get the first one or simply call it.
-             # Better: try to get a non-existent doc to prove connectivity without permissions error if list is restricted
-             # But list_collections is standard matching `wrapper.py` previous intent.
-             # Actually, just `next(self.db.collections(), None)` is enough to verify auth works.
-             # Or `self.db.collection('system_settings').limit(1).get()`
-             logger.info("[Firestore] Verifying connection...")
-             # self.db.collection('system_settings').limit(1).get() # Might fail if empty? No, returns empty list.
-             # Simpler:
-             list(self.db.collection("connectivity_test").limit(1).stream())
-             logger.info("[Firestore] Connection VERIFIED successfully.")
+            # Attempt to access a collection (lightweight validation)
+            # Note: list_collections is a generator, so we just get the first one or simply call it.
+            # Better: try to get a non-existent doc to prove connectivity without permissions error if list is restricted
+            # But list_collections is standard matching `wrapper.py` previous intent.
+            # Actually, just `next(self.db.collections(), None)` is enough to verify auth works.
+            # Or `self.db.collection('system_settings').limit(1).get()`
+            logger.info("[Firestore] Verifying connection...")
+            # self.db.collection('system_settings').limit(1).get() # Might fail if empty? No, returns empty list.
+            # Simpler:
+            list(self.db.collection("connectivity_test").limit(1).stream())
+            logger.info("[Firestore] Connection VERIFIED successfully.")
         except Exception as e:
             logger.critical(f"[Firestore] Connection ping FAILED: {e}")
             raise RuntimeError(f"Firestore connectivity test failed. Check internet/VPN/Credentials. Error: {e}")
@@ -278,7 +279,9 @@ def get_db_client() -> AbstractDatabase:
 
     if backend == "FIRESTORE":
         if not FIRESTORE_AVAILABLE:
-            raise RuntimeError("CRITICAL: Firestore requested (STORAGE_BACKEND=FIRESTORE) but 'firebase_admin' or 'google-cloud-firestore' is not installed.")
+            raise RuntimeError(
+                "CRITICAL: Firestore requested (STORAGE_BACKEND=FIRESTORE) but 'firebase_admin' or 'google-cloud-firestore' is not installed."
+            )
 
         try:
             return FirestoreClient()

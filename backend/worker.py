@@ -55,17 +55,17 @@ async def startup(ctx: Any) -> None:
     # Initialize Services via Dependencies
     # usage of get_engine() automatically resolves all sub-dependencies (Repo, Storage, Registry)
     from backend.dependencies import get_engine
-    
+
     # We call get_engine() which handles manual resolution invocation
     engine = await get_engine()
 
     # Store in context for jobs
     ctx["engine"] = engine
-    
+
     # Also expose sub-services if needed for other tasks, but Engine covers execution
     ctx["repository"] = engine.repository
     ctx["registry"] = engine.registry
-    
+
     logging.info("Worker services initialized (Unified Engine).")
 
 

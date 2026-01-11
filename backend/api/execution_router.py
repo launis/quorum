@@ -136,19 +136,17 @@ async def execute_workflow(
             if hasattr(value, "filename") and value.filename:
                 content = await value.read()
                 files_map[key] = (value.filename, content)
-        
+
         # GUARD 2: Check Required Files (Simple Heuristic for Phase 2)
         # If workflow has 'audit' in name, expect standard evidence files
         if "audit" in workflow_id.lower() or "audit" in wf_exists.get("name", "").lower():
-             required_files = ["history_text", "product_text", "reflection_text"]
-             missing = [f for f in required_files if f not in files_map]
-             if missing:
-                 raise HTTPException(
-                     status_code=400, 
-                     detail=f"Missing required evidence files for Audit: {', '.join(missing)}"
-                 )
+            required_files = ["history_text", "product_text", "reflection_text"]
+            missing = [f for f in required_files if f not in files_map]
+            if missing:
+                raise HTTPException(
+                    status_code=400, detail=f"Missing required evidence files for Audit: {', '.join(missing)}"
+                )
 
-        
         logger.info(f"[Router] Trace: 3. Form Parsed. Files: {len(files_map)}. Writing to DB/Storage...")
 
         # Inject User Identity into Execution Record
@@ -174,12 +172,9 @@ async def execute_workflow(
         )
 
         background_tasks.add_task(
-            engine.run_execution, 
-            execution_id, 
-            cleaned_inputs, 
-            arq_pool=getattr(request.app.state, "arq_pool", None)
+            engine.run_execution, execution_id, cleaned_inputs, arq_pool=getattr(request.app.state, "arq_pool", None)
         )
-        
+
         logger.info("[Router] Trace: 5. Background Task Queued. Returning Response.")
 
         return {"status": "started", "execution_id": execution_id}

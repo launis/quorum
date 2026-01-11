@@ -1,12 +1,14 @@
-
 import asyncio
 import logging
+
 from arq.worker import create_worker
+
 from backend.worker import WorkerSettings
 
 # Force loop policy for Windows if needed, though asyncio.run usually handles it.
 # On Windows, SelectorEventLoop is default in 3.14? Proactor?
 # Arq expects to just work on the loop.
+
 
 async def main():
     """Manual entrypoint for Arq Worker to avoid CLI loop issues."""
@@ -18,6 +20,7 @@ async def main():
         logging.info("Worker stopped by user.")
     except Exception as e:
         logging.error(f"Worker crashed: {e}")
+
 
 if __name__ == "__main__":
     try:

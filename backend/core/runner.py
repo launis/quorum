@@ -129,7 +129,9 @@ class PipelineRunner:
 
             # Checkpoint: Save current state to DB (trace)
             trace_dump = current_state.model_dump(mode="json")
-            await tracker.update(stage=stage_name, percent=percent, details={"trace": trace_dump, "description": description})
+            await tracker.update(
+                stage=stage_name, percent=percent, details={"trace": trace_dump, "description": description}
+            )
 
             current_state = await self._execute_step(current_state, agent, step_doc, execution_id)
 

@@ -96,7 +96,7 @@ class DatabaseProgressTracker(ProgressTracker):
         payload = {
             "status": STATUS_RUNNING,
             "current_step": stage,
-            "current_step_name": stage, # Frontend expects this key
+            "current_step_name": stage,  # Frontend expects this key
             "progress": percent,
             "last_updated": datetime.now().isoformat(),
         }

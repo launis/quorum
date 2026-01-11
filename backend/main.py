@@ -132,30 +132,25 @@ except Exception as e:
 
 @app.exception_handler(AppException)
 async def app_exception_handler(request: Request, exc: AppException):
-    """
-    Handler for Application Logic Errors.
+    """Handler for Application Logic Errors.
     Enforces the strict 'API & Error Contract' by returning APIError.
     Derives 'error_code' from the Exception Class Name (e.g. ResourceNotFoundError -> RESOURCE_NOT_FOUND_ERROR).
     """
     import re
+
     # Convert CamelCase to SNAKE_CASE for the error code
     class_name = exc.__class__.__name__
-    snake_case = re.sub(r'(?<!^)(?=[A-Z])', '_', class_name).upper()
-    
+    snake_case = re.sub(r"(?<!^)(?=[A-Z])", "_", class_name).upper()
+
     return JSONResponse(
         status_code=exc.status_code,
-        content=APIError(
-            error_code=snake_case,
-            message=exc.message,
-            details=exc.details
-        ).model_dump()
+        content=APIError(error_code=snake_case, message=exc.message, details=exc.details).model_dump(),
     )
 
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    """
-    Catch-all handler for unhandled exceptions.
+    """Catch-all handler for unhandled exceptions.
     Returns 500 INTERNAL_SERVER_ERROR with standardized APIError.
     """
     logger.error(f"Global Exception: {exc}", exc_info=True)
@@ -171,8 +166,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
-    """
-    Handler for FastAPI/Starlette HTTPExceptions.
+    """Handler for FastAPI/Starlette HTTPExceptions.
     Converts them to standardized APIError format.
     """
     return JSONResponse(
@@ -184,12 +178,13 @@ async def http_exception_handler(request: Request, exc: HTTPException):
         ).model_dump(),
     )
 
+
 from fastapi.exceptions import RequestValidationError
+
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    """
-    Handler for Pydantic/FastAPI validation errors.
+    """Handler for Pydantic/FastAPI validation errors.
     Returns 422 with standardized APIError.
     """
     logger.warning(f"Request Validation Failed: {exc.errors()}")
@@ -198,7 +193,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         content=APIError(
             error_code="VALIDATION_ERROR",
             message="Request validation failed",
-            details=exc.errors(), # Pydantic error details
+            details=exc.errors(),  # Pydantic error details
         ).model_dump(),
     )
 

@@ -25,9 +25,6 @@ def test_extract_pdf():
     assert response.status_code in [200, 400, 422, 500]
 
 
-
-
-
 def test_run_agent_mock():
     """Test running an agent via API.
     We'll use a simple agent like GuardAgent.

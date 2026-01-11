@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 import uuid
-import asyncio
 from typing import Any
 
 import jwt
@@ -440,13 +440,15 @@ class AuthService:
 
     async def delete_organization(self, initiator_uid: str, target_org_id: str, force: bool = False) -> None:
         """Deletes an Organization.
-        
+
         Safety Rules:
         - Cannot delete 'system' organization.
         - Cannot delete non-empty organization unless force=True.
         - force=True cascades delete to all users.
         """
-        logger.info(f"[AuthService] delete_organization called. Initiator: {initiator_uid}, Target: {target_org_id}, Force: {force}")
+        logger.info(
+            f"[AuthService] delete_organization called. Initiator: {initiator_uid}, Target: {target_org_id}, Force: {force}"
+        )
 
         initiator = await asyncio.to_thread(self.repo.get_by_uid, initiator_uid)
 
@@ -460,12 +462,12 @@ class AuthService:
         logger.info("[AuthService] Fetching users to check for safety...")
         all_users = await asyncio.to_thread(self.repo.list_all)
         org_users = [u for u in all_users if u.organization_id == target_org_id]
-        
+
         user_count = len(org_users)
         logger.info(f"[AuthService] Organization {target_org_id} has {user_count} users.")
 
         if user_count > 0 and not force:
-            # Revert to standard ValueError (which FastAPI can allow routing exceptions for, 
+            # Revert to standard ValueError (which FastAPI can allow routing exceptions for,
             # or we map it to 409 Conflict in router).
             # The client needs a specific code. We'll rely on the exception message or type.
             # Best practice: Custom exception, but ValueError is standard for logic.
@@ -480,15 +482,15 @@ class AuthService:
                         await asyncio.to_thread(self.firebase_auth.delete_user, user.uid)
                     except Exception:
                         pass
-                
+
                 await asyncio.to_thread(self.repo.delete, user.uid)
 
         # 4. Delete Org Entity
         logger.info(f"[AuthService] Removing Organization {target_org_id} from DB...")
-        
+
         def _delete_org():
             self.org_repo.table.remove(Query().id == target_org_id)
-            
+
         await asyncio.to_thread(_delete_org)
 
         # Audit
@@ -517,7 +519,7 @@ class AuthService:
             if initiator_uid == target_uid:
                 # Allowed to update self, but check for Restricted fields (Role)
                 if updates.role is not None and updates.role != initiator.role:
-                     raise PermissionError("Users cannot change their own role.")
+                    raise PermissionError("Users cannot change their own role.")
             # Org Admin Check
             elif initiator.role == UserRole.ADMIN:
                 if target.organization_id != initiator.organization_id:

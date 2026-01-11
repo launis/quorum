@@ -4,6 +4,7 @@ This module provides multitenancy endpoints for creating, updating, and
 retrieving organization details.
 """
 
+import logging
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -12,7 +13,6 @@ from pydantic import BaseModel
 from backend.dependencies import AuthServiceDep, CurrentUserDep, RepositoryDep
 from backend.models.auth import Organization, SubscriptionStatus, TokenData, UserRole
 from backend.services.auth import AuthService
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +59,7 @@ class OrganizationResponse(BaseModel):
             # Check is_active (default True if missing in dict, but safer to check)
             is_active = data.get("is_active", True)
             if "status" not in data:
-                 data["status"] = "ACTIVE" if is_active else "SUSPENDED"
+                data["status"] = "ACTIVE" if is_active else "SUSPENDED"
         return data
 
 
@@ -336,8 +336,8 @@ async def delete_organization(
     except ValueError as e:
         msg = str(e)
         if "Organization is not empty" in msg:
-             # Client relies on this specific detail or code to trigger confirmation dialog
-             raise HTTPException(status_code=409, detail="ORG_HAS_USERS")
+            # Client relies on this specific detail or code to trigger confirmation dialog
+            raise HTTPException(status_code=409, detail="ORG_HAS_USERS")
         raise HTTPException(status_code=400, detail=msg)
 
     # 4. Cascade Delete Data (Workflows/Executions - Clean up orphan data)

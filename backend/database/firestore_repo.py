@@ -38,28 +38,29 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
 
         # NOTE: For simplicity in this architectural refactor, we are instantiating a new AsyncClient.
         # In production, this should likely be passed in via DI properly.
-        
+
         # FIX: Explicitly load credentials to match wrapper.py success
         import os
+
         from backend.settings import get_settings
+
         settings = get_settings()
-        
+
         root_dir = os.path.dirname(settings.base_dir)
         sa_path = os.path.join(root_dir, "service-account.json")
-        
+
         if os.path.exists(sa_path):
-             from google.oauth2 import service_account
-             from google.cloud import firestore as google_cloud_firestore
-             
-             # Native Async Client doesn't take 'credentials' arg directly in constructor usually?
-             # actually it does: Client(credentials=..., project=...)
-             # But AsyncClient? Yes.
-             # Wait, AsyncClient.from_service_account_json(sa_path) is better.
-             logger.info(f"[FirestoreRepo] Initializes Native Async Client with explicit creds: {sa_path}")
-             self.db = google_cloud_firestore.AsyncClient.from_service_account_json(sa_path)
+            from google.cloud import firestore as google_cloud_firestore
+
+            # Native Async Client doesn't take 'credentials' arg directly in constructor usually?
+            # actually it does: Client(credentials=..., project=...)
+            # But AsyncClient? Yes.
+            # Wait, AsyncClient.from_service_account_json(sa_path) is better.
+            logger.info(f"[FirestoreRepo] Initializes Native Async Client with explicit creds: {sa_path}")
+            self.db = google_cloud_firestore.AsyncClient.from_service_account_json(sa_path)
         else:
-             logger.warning("[FirestoreRepo] service-account.json not found. Relying on implicit ADC environment.")
-             self.db = google_cloud_firestore.AsyncClient()
+            logger.warning("[FirestoreRepo] service-account.json not found. Relying on implicit ADC environment.")
+            self.db = google_cloud_firestore.AsyncClient()
 
     # --- Core Helpers ---
     async def _get_doc(self, collection: str, doc_id: str) -> dict[str, Any] | None:
@@ -69,12 +70,7 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
         return None
 
     async def _find_one_by_field(self, collection: str, field: str, value: Any) -> dict[str, Any] | None:
-        docs = (
-            self.db.collection(collection)
-            .where(filter=FieldFilter(field, "==", value))
-            .limit(1)
-            .stream()
-        )
+        docs = self.db.collection(collection).where(filter=FieldFilter(field, "==", value)).limit(1).stream()
         async for doc in docs:
             return doc.to_dict()
         return None
@@ -84,20 +80,12 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
         return [doc.to_dict() async for doc in docs]
 
     async def _delete_doc(self, collection: str, doc_key: str, doc_value: str):
-        docs = (
-            self.db.collection(collection)
-            .where(filter=FieldFilter(doc_key, "==", doc_value))
-            .stream()
-        )
+        docs = self.db.collection(collection).where(filter=FieldFilter(doc_key, "==", doc_value)).stream()
         async for doc in docs:
             await doc.reference.delete()
 
     async def _update_doc(self, collection: str, doc_key: str, doc_value: str, updates: dict[str, Any]):
-        docs = (
-            self.db.collection(collection)
-            .where(filter=FieldFilter(doc_key, "==", doc_value))
-            .stream()
-        )
+        docs = self.db.collection(collection).where(filter=FieldFilter(doc_key, "==", doc_value)).stream()
         async for doc in docs:
             await doc.reference.update(updates)
 
@@ -183,23 +171,23 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
             # Using FieldFilter to silence UserWarning about positional args
             # "Detected filter using positional arguments. Prefer using the 'filter' keyword argument instead."
             # Note: We use the module alias 'google_cloud_firestore' imported at the top
-            
+
             # TODO: Ideally should also fetch public system workflows (org_id='system', is_public=True)
             # and merge with tenant workflows. For now, strict tenant isolation.
-            
+
             # Using keyword arguments for where() is one way, but the warning suggests 'filter' arg.
             # However, for simple equality, keyword args to where() (field_path, op_string, value) *might* silence it,
             # but using FieldFilter is the robust modern way.
-            
+
             from google.cloud.firestore import FieldFilter
-            
+
             docs = (
                 self.db.collection("workflows")
                 .where(filter=FieldFilter("organization_id", "==", organization_id))
                 .stream()
             )
             return [doc.to_dict() async for doc in docs]
-            
+
         return await self._get_all("workflows")
 
     async def update_workflow(self, workflow_id: str, updates: dict[str, Any]):
@@ -232,22 +220,24 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
         else:
             await self._update_doc("executions", "execution_id", str(execution_id), updates)
 
-    async def get_all_executions(self, organization_id: str | None = None, user_id: str | None = None) -> list[dict[str, Any]]:
+    async def get_all_executions(
+        self, organization_id: str | None = None, user_id: str | None = None
+    ) -> list[dict[str, Any]]:
         query = self.db.collection("executions")
 
         if organization_id:
             query = query.where(filter=FieldFilter("organization_id", "==", organization_id))
-        
+
         if user_id:
             query = query.where(filter=FieldFilter("user_id", "==", user_id))
-            
-        # Order by timestamp desc for consistency with Recent Executions view? 
+
+        # Order by timestamp desc for consistency with Recent Executions view?
         # The Abstract method doesn't strictly mandate ordering but recent executions relies on it potentially?
         # Actually TinyDB impl doesn't sort by default in get_all_executions unless explicitly asked?
         # Wait, TinyDB implementation in step 2093 does NOT sort in get_all_executions (lines 359-375).
         # However, execution_router.py calls get_all_executions then likely sorts or paginates?
         # Let's keep it simple: just filtering.
-        
+
         docs = query.stream()
         return [doc.to_dict() async for doc in docs]
 
@@ -358,7 +348,7 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
             query = query.where(filter=FieldFilter("actor_uid", "==", actor_uid))
         if action:
             query = query.where(filter=FieldFilter("action", "==", action))
-        
+
         # Order by timestamp desc
         query = query.order_by("timestamp", direction=google_cloud_firestore.Query.DESCENDING)
         query = query.limit(limit)
@@ -372,6 +362,8 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
 
     async def list_users(self, organization_id: str | None = None) -> list[dict[str, Any]]:
         if organization_id:
-            docs = self.db.collection("users").where(filter=FieldFilter("organization_id", "==", organization_id)).stream()
+            docs = (
+                self.db.collection("users").where(filter=FieldFilter("organization_id", "==", organization_id)).stream()
+            )
             return [doc.to_dict() async for doc in docs]
         return await self._get_all("users")
