@@ -89,6 +89,12 @@ TECHNOLOGY STACK & VERIFIED DOCUMENTATION LINKS:
     *   **Source of Truth**: Treat Firestore as the primary design target for data models.
     *   **Async-First**: All repository methods MUST be designed for Firestore's async nature first.
     *   **Dual Support**: However, you MUST maintain functional TinyDB support for local development and testing alongside Firestore. Both databases are used for everything.
+    
+11. **Cloud-Native & Hosting Strategy (Long-Term Mandate)**:
+    *   **Metric**: "Design for the Cloud, Run Locally."
+    *   **Goal**: The long-term objective is to deploy a fully hosted Cloud SaaS solution for both the Flutter Client and the Backend.
+    *   **Requirement**: The software MUST implement this readiness *immediately*.
+    *   **Implication**: Strict Statelessness. Do not rely on local filesystem for shared state (use Storage/DB). Do not hardcode `localhost` references in production logic. Ensure containerization compatibility.
 
 ARCHITECTURAL RULES (ENFORCED):
 1.  **Monorepo Context**: You are working in `client_app/`. The backend is in `backend/`.

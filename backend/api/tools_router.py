@@ -167,18 +167,20 @@ async def web_scrape(
         ip_obj = ipaddress.ip_address(ip)
 
         if ip_obj.is_loopback or ip_obj.is_private:
-            raise HTTPException(status_code=400, detail="SSRF Protection: Access to private resources is blocked.")
+            raise HTTPException(status_code=400, detail="SSRF Protection: Access to private IP is blocked.")
 
+    except HTTPException:
+        raise
     except Exception as e:
         # Map specific SSRF errors to 400
         if "SSRF" in str(e):
-            raise HTTPException(status_code=400, detail=str(e))
+            raise HTTPException(status_code=400, detail=str(e)) from e
         # Logic error in resolving might be 400 too
         if isinstance(e, ValueError):
-            raise HTTPException(status_code=400, detail="Invalid URL structure.")
+            raise HTTPException(status_code=400, detail="Invalid URL structure.") from e
         # Fallback
         # If socket fails, it's 400 usually (invalid host)
-        raise HTTPException(status_code=400, detail=f"SSRF Check Failed: {e}")
+        raise HTTPException(status_code=400, detail=f"SSRF Check Failed: {e}") from e
 
     # 2. Mock Implementation for now (or real if needed, but test only checks hardening)
     # Return dummy content
