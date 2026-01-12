@@ -215,7 +215,7 @@ async def get_organization(
     if user.role != UserRole.ROOT:
         if user.organization_id != org_id:
             raise HTTPException(status_code=403, detail="Access denied.")
-    
+
     # 2. Fetch
     org = await repo.get_organization(org_id)
     if not org:
