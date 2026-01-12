@@ -83,6 +83,7 @@ TECHNOLOGY STACK & VERIFIED DOCUMENTATION LINKS:
     *   **Linter**: Code MUST pass `ruff check` with zero errors. No exceptions.
     *   **Formatter**: Code MUST be formatted via `ruff format`.
     *   **Pre-Commit**: Always run `uv run ruff check .` and `uv run pytest` before submitting changes.
+    *   **Mypy Type Checking**: Code MUST pass `uv run mypy backend` with zero errors.
 
 ARCHITECTURAL RULES (ENFORCED):
 1.  **Monorepo Context**: You are working in `client_app/`. The backend is in `backend/`.

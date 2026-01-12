@@ -116,7 +116,7 @@ async def execute_workflow(
 
     usage_service = UsageService(engine.repository)
     if not current_user.organization_id:
-         raise HTTPException(status_code=400, detail="User has no organization.")
+        raise HTTPException(status_code=400, detail="User has no organization.")
     if not await usage_service.check_quota(current_user.organization_id):
         raise HTTPException(status_code=402, detail="Organization Quota Exceeded. Please upgrade your tier.")
 
@@ -169,7 +169,7 @@ async def execute_workflow(
         # Fetch actual text inputs from DB for the runner
         rec = await engine.repository.get_execution(execution_id)
         if not rec:
-             raise HTTPException(status_code=500, detail="Execution created but not found.")
+            raise HTTPException(status_code=500, detail="Execution created but not found.")
         cleaned_inputs = rec.get("inputs", {})
 
         # DEBUG: Verify inputs made it

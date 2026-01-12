@@ -76,7 +76,7 @@ class LLMHandler:
         # Resolve Target Location from Settings (Robust .env loading)
         target_location = location if location else settings.vertex_location
         if not target_location:
-             target_location = "europe-north1"  # Fallback
+            target_location = "europe-north1"  # Fallback
 
         # Normalize providers list
         if not providers:
@@ -208,7 +208,7 @@ class LLMHandler:
         if isinstance(registry.get(provider), dict):
             provider_config = registry[provider]
             if isinstance(provider_config, dict):
-                 config = provider_config.get(mode)
+                config = provider_config.get(mode)
 
         if config:
             return config
@@ -233,9 +233,7 @@ class LLMHandler:
         config = self.get_model_config(provider, mode)
 
         if not config:
-            raise ValueError(
-                f"STRICT CONFIG ERROR: No configuration found for strategy '{provider}/{mode}' "
-            )
+            raise ValueError(f"STRICT CONFIG ERROR: No configuration found for strategy '{provider}/{mode}' ")
 
         # Handle if config is Pydantic model or dict
         cd: dict[str, Any]
@@ -246,10 +244,10 @@ class LLMHandler:
             # For now, coerce.
             cd = config.model_dump()
         elif isinstance(config, dict):
-             cd = config
+            cd = config
         else:
-             # Fallback
-             cd = dict(config) # type: ignore
+            # Fallback
+            cd = dict(config)  # type: ignore
 
         model_name = cd.get("model_name")
         if not model_name:

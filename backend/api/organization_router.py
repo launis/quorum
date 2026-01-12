@@ -170,6 +170,7 @@ async def list_organizations(
     # Items are raw dicts (Documents). Wrap in Organization to apply defaults, then dump.
     return [OrganizationResponse(**Organization(**i).model_dump()) for i in items]
 
+
 @router.put("/{org_id}", response_model=OrganizationResponse)
 async def update_organization(
     org_id: str,
@@ -210,7 +211,7 @@ async def update_organization(
     # Fetch fresh
     fresh = await repo.get_organization(org_id)
     if not fresh:
-         raise HTTPException(status_code=404, detail="Organization disappeared after update.")
+        raise HTTPException(status_code=404, detail="Organization disappeared after update.")
     return OrganizationResponse(**Organization(**fresh).model_dump())
 
 
@@ -251,10 +252,11 @@ async def delete_organization(
     try:
         await repo.delete_organization(org_id)
         if force:
-             # Cascade delete users/data
-             await repo.delete_org_data(org_id)
+            # Cascade delete users/data
+            await repo.delete_org_data(org_id)
     except Exception as e:
-         raise HTTPException(status_code=500, detail=str(e)) from e
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
 
 @router.post("/{org_id}/users", status_code=status.HTTP_201_CREATED)
 async def create_organization_user(

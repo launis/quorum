@@ -241,11 +241,7 @@ class TodistusKartta(BaseJSON):
                             continue
                     except (json.JSONDecodeError, ValueError, TypeError):
                         pass
-                    parsed_list.append(
-                        Hypoteesi(
-                            id="GENERATED_ID", vaite_teksti=item, loytyyko_todisteita=False
-                        )
-                    )
+                    parsed_list.append(Hypoteesi(id="GENERATED_ID", vaite_teksti=item, loytyyko_todisteita=False))
                 elif isinstance(item, dict):
                     parsed_list.append(Hypoteesi(**item))
                 else:

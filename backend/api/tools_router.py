@@ -54,8 +54,8 @@ async def extract_text(
                     shutil.copyfileobj(file.file, buffer)
                 content = doc_service.extract_text(temp_path)
             except Exception as e:
-                 logger.error(f"Text extraction failed: {e}", exc_info=True)
-                 raise HTTPException(status_code=500, detail=str(e)) from e
+                logger.error(f"Text extraction failed: {e}", exc_info=True)
+                raise HTTPException(status_code=500, detail=str(e)) from e
             finally:
                 if temp_path and os.path.exists(temp_path):
                     try:

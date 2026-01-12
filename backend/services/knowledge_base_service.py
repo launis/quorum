@@ -163,8 +163,8 @@ class KnowledgeBaseService:
 
         """
         if not self.llm_provider:
-             logger.warning("[KBService] No LLM Provider configured. Skipping extraction.")
-             return []
+            logger.warning("[KBService] No LLM Provider configured. Skipping extraction.")
+            return []
 
         # 1. Chunking
         chunk_size = 8000

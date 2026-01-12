@@ -15,8 +15,6 @@ except Exception:
 _LOGFIRE_CONFIGURED = False
 
 
-
-
 class ContextFilter(logging.Filter):
     """Injects execution_id from contextvars into log records."""
 

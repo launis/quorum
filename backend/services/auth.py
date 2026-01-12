@@ -557,7 +557,7 @@ class AuthService:
         updated_user = self.repo.update(target_uid, updates)
 
         if not updated_user:
-             raise ValueError("User update failed (not found despite check).")
+            raise ValueError("User update failed (not found despite check).")
 
         # Audit
         if self.audit_service:
@@ -605,7 +605,7 @@ class AuthService:
             root = self.repo.get_by_uid("root_master")  # Refresh
 
         if not root:
-             raise ValueError("Failed to obtain Root user.")
+            raise ValueError("Failed to obtain Root user.")
 
         return root
 

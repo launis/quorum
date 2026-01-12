@@ -608,8 +608,6 @@ class WorkflowEngine:
         )
         return public_result
 
-
-
     async def _handle_execution_error(self, execution_id: str, error: Exception, state: WorkflowState | None = None):
         """Handles exception logging and state persistence during failure.
 

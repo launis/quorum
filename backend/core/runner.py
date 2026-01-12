@@ -370,7 +370,7 @@ class PipelineRunner:
         logger.critical(msg)
 
         if not state.step_guard:
-             raise ValueError("Security intervention triggered loop, but guard state is missing.")
+            raise ValueError("Security intervention triggered loop, but guard state is missing.")
 
         rejection_details = {
             "security_alert": "Execution aborted due to security violation.",
