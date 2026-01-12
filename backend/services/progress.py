@@ -110,14 +110,14 @@ class DatabaseProgressTracker(ProgressTracker):
 
     async def complete(self, result: dict[str, Any] | None = None):
         """Sets status to 'completed' and saves final result."""
-        payload = {"status": STATUS_COMPLETED, "end_time": datetime.now().isoformat()}
+        payload: dict[str, Any] = {"status": STATUS_COMPLETED, "end_time": datetime.now().isoformat()}
         if result:
             payload["result"] = result
         await self.repository.update_execution(self.execution_id, payload)
 
     async def fail(self, error: str, details: dict[str, Any] | None = None):
         """Sets status to 'failed' and saves error message."""
-        payload = {"status": STATUS_FAILED, "error": error, "end_time": datetime.now().isoformat()}
+        payload: dict[str, Any] = {"status": STATUS_FAILED, "error": error, "end_time": datetime.now().isoformat()}
         if details:
             payload["result"] = details  # Halt details often go to result
         await self.repository.update_execution(self.execution_id, payload)
@@ -165,7 +165,7 @@ class InMemoryProgressTracker(ProgressTracker):
 
     async def complete(self, result: dict[str, Any] | None = None):
         """Signals completion."""
-        data = {"percent": 100}
+        data: dict[str, Any] = {"percent": 100}
         if result:
             data["result"] = result
         self._emit(STATUS_COMPLETED, data)

@@ -182,6 +182,11 @@ class AbstractWorkflowRepository(ABC):
         pass
 
     @abstractmethod
+    async def delete_org_data(self, org_id: str):
+        """Clean up all data associated with an organization."""
+        pass
+
+    @abstractmethod
     async def log_usage(self, record: Any):
         """Log usage data."""
         pass
@@ -234,6 +239,12 @@ class AbstractWorkflowRepository(ABC):
 
 class TinyDBRepository(AbstractWorkflowRepository):
     """Async-First TinyDB Repository.
+
+    DEPRECATION NOTICE:
+    This repository implementation is for Local Development and Mocking only.
+    The primary production database is Firestore.
+    New features must prioritize `FirestoreWorkflowRepository` implementation.
+    This module is slated for removal in future phases.
 
     Wraps synchronous TinyDB calls in asyncio.to_thread.
     """
@@ -591,9 +602,8 @@ class TinyDBRepository(AbstractWorkflowRepository):
             if not existing:
                 self.settings.insert(updates)
             else:
-                # Update the first one
-                doc_id = existing[0].doc_id
-                self.settings.update(updates, doc_ids=[doc_id])
+                # Update all (singleton)
+                self.settings.update(updates)
 
         await self._run(_update)
 

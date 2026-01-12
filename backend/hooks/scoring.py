@@ -36,7 +36,7 @@ def apply_scoring_logic(state: WorkflowState) -> WorkflowState:
         return state
 
     try:
-        total_global = 0
+        total_global: float = 0.0
         count_global = 0
         penalties_applied = []
 

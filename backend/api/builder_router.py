@@ -278,7 +278,7 @@ async def update_workflow(
         if current_user.role != UserRole.ROOT:
             raise HTTPException(status_code=403, detail="Only ROOT can change visibility.")
 
-    update_data = {}
+    update_data: dict[str, Any] = {}
     if request.name is not None:
         update_data["name"] = request.name
     if request.description is not None:
@@ -446,13 +446,13 @@ async def validate_connection(request: ValidationRequest, engine: EngineDep):
         tgt_comp_ref = target_step.get("component")
 
         # Note: get_component needs await
-        source_comp = await engine.repository.get_component_by_id(src_comp_ref)
+        source_comp = await engine.repository.get_component_by_id(str(src_comp_ref))
         if not source_comp:
-            source_comp = await engine.repository.get_component_by_name(src_comp_ref)
+            source_comp = await engine.repository.get_component_by_name(str(src_comp_ref))
 
-        target_comp = await engine.repository.get_component_by_id(tgt_comp_ref)
+        target_comp = await engine.repository.get_component_by_id(str(tgt_comp_ref))
         if not target_comp:
-            target_comp = await engine.repository.get_component_by_name(tgt_comp_ref)
+            target_comp = await engine.repository.get_component_by_name(str(tgt_comp_ref))
 
         if not source_comp or not target_comp:
             return {"valid": True, "reason": "Component definitions missing, skipping deep check."}
@@ -460,8 +460,8 @@ async def validate_connection(request: ValidationRequest, engine: EngineDep):
         src_cls_name = source_comp.get("class_name")
         tgt_cls_name = target_comp.get("class_name")
 
-        src_agent = engine.registry.agents_map.get(src_cls_name)
-        tgt_agent = engine.registry.agents_map.get(tgt_cls_name)
+        src_agent = engine.registry.agents_map.get(str(src_cls_name))
+        tgt_agent = engine.registry.agents_map.get(str(tgt_cls_name))
 
         if not src_agent or not tgt_agent:
             return {"valid": True, "reason": "Agent implementation not found in registry."}
@@ -516,7 +516,7 @@ async def update_step(step_id: str, request: StepUpdateRequest, engine: EngineDe
     if not step:
         raise HTTPException(status_code=404, detail="Step not found")
 
-    update_data = {}
+    update_data: dict[str, Any] = {}
     if request.name is not None:
         update_data["name"] = request.name
     if request.execution_config is not None:

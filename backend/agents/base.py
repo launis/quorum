@@ -3,20 +3,18 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from pydantic import BaseModel
 
 from backend.core.component import BaseComponent
 from backend.llm.provider import LLMFactory, LLMProvider, UnconfiguredProvider
-
-if TYPE_CHECKING:
-    from backend.models.state import WorkflowState
+from backend.models.state import WorkflowState  # Runtime import for Generic
 
 logger = logging.getLogger(__name__)
 
 
-class BaseAgent(BaseComponent):
+class BaseAgent(BaseComponent[WorkflowState]):
     """Abstract base class for all Cognitive Quorum agents.
 
     Handles LLM interaction via the Provider Pattern and manages WorkflowState.
@@ -49,10 +47,10 @@ class BaseAgent(BaseComponent):
         # Ensure LLMProvider is ALWAYS initialized (Strict Mode)
         # If no model provided, Factory returns UnconfiguredProvider (Execution Trap).
         # The AgentRegistry/PipelineRunner MUST call set_model() before execution.
-        target_model = model
+        target_model = model or "unconfigured"
 
         try:
-            self.llm_provider: LLMProvider = LLMFactory.create_provider(self.provider_type, target_model)
+            self.llm_provider = LLMFactory.create_provider(self.provider_type, target_model)
         except Exception as e:
             # Fallback for extreme cases (should be caught by UnconfiguredProvider logic now)
             logger.error(f"[BaseAgent] Failed to init provider: {e}. using Mock.")
@@ -121,10 +119,10 @@ class BaseAgent(BaseComponent):
 
         """
         target_field = output_key or self.state_field
+        SchemaClass = self.get_response_schema()
 
-        if target_field and self.get_response_schema():
+        if target_field and SchemaClass:
             try:
-                SchemaClass = self.get_response_schema()
                 # Validate and create Pydantic model
                 # Ensure response_data is a dict (JSON has been parsed)
                 if not isinstance(response_data, dict):
@@ -153,13 +151,13 @@ class BaseAgent(BaseComponent):
 
         raise NotImplementedError(f"[{self.__class__.__name__}] must define 'state_field' or override '_update_state'.")
 
-    async def execute(self, state: WorkflowState, system_instruction: str | None = None, **kwargs) -> WorkflowState:  # type: ignore[override]
+    async def execute(self, state: WorkflowState | None = None, system_instruction: str | None = None, **kwargs) -> WorkflowState:  # type: ignore[override]
         """Standard execution entry point.
 
         Takes the entire WorkflowState, processes it, and returns the updated state.
 
         Args:
-            state (WorkflowState): The current workflow context.
+            state (WorkflowState, optional): The current workflow context.
             system_instruction (Optional[str]): Prompt override.
             **kwargs: Additional parameters for LLM (e.g. max_tokens, temperature, output_key).
 
@@ -170,6 +168,9 @@ class BaseAgent(BaseComponent):
             Exception: If execution fails.
 
         """
+        if state is None:
+            raise ValueError(f"[{self.__class__.__name__}] Execution requires a valid WorkflowState.")
+        
         logger.info(f"[{self.__class__.__name__}] Starting execution...")
         try:
             # 1. Use Generic User Prompt (The System Instruction carries the context)

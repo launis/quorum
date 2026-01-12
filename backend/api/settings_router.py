@@ -25,7 +25,7 @@ async def update_settings(
     updates: SystemSettings,
     engine: EngineDep,
     current_user: CurrentUserDep,
-    audit_service: AuditServiceDep = None,  # Injected
+    audit_service: AuditServiceDep,  # Injected
 ):
     """Updates global system settings.
 

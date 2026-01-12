@@ -254,7 +254,7 @@ async def get_llm_provider(
     from backend.llm.provider import LLMFactory
 
     config = await registry.resolve_model_config(model_strategy)
-    model_name = config.get("model_name")
+    model_name = str(config.get("model_name", ""))
     provider_type = config.get("provider")
 
     if not provider_type:
@@ -349,8 +349,8 @@ LLMHandlerDep = Annotated[LLMHandler, Depends(get_llm_handler_dep)]
 
 
 async def get_current_user_from_header(
+    auth_service: Annotated[AuthService, Depends(get_auth_service)],
     authorization: Annotated[str | None, Header()] = None,
-    auth_service: Annotated[AuthService, Depends(get_auth_service)] = None,
 ) -> TokenData:
     """Helper dependency to extract user from Bearer token.
 

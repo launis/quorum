@@ -14,6 +14,7 @@ from fastapi import (
     HTTPException,
     Path,
     Request,
+    UploadFile,
 )
 from fastapi import (
     Query as APIQuery,
@@ -114,6 +115,8 @@ async def execute_workflow(
     from backend.services.usage_service import UsageService
 
     usage_service = UsageService(engine.repository)
+    if not current_user.organization_id:
+         raise HTTPException(status_code=400, detail="User has no organization.")
     if not await usage_service.check_quota(current_user.organization_id):
         raise HTTPException(status_code=402, detail="Organization Quota Exceeded. Please upgrade your tier.")
 
@@ -122,19 +125,21 @@ async def execute_workflow(
         form = await request.form()
 
         workflow_id = form.get("workflow_id")
-        if not workflow_id:
-            raise HTTPException(status_code=422, detail="Missing workflow_id")
+        if not workflow_id or not isinstance(workflow_id, str):
+            raise HTTPException(status_code=422, detail="Missing or invalid workflow_id")
 
         # GUARD 1: Fail Fast - Check if Workflow Exists (Sync)
         wf_exists = await engine.repository.get_workflow_by_id(workflow_id)
         if not wf_exists:
             raise HTTPException(status_code=404, detail=f"Workflow not found: {workflow_id}")
 
-        inputs = json.loads(form.get("inputs") or "{}")
+        raw_inputs = form.get("inputs")
+        inputs_str: str = raw_inputs if isinstance(raw_inputs, str) else "{}"
+        inputs = json.loads(inputs_str or "{}")
 
         files_map = {}
         for key, value in form.items():
-            if hasattr(value, "filename") and value.filename:
+            if isinstance(value, UploadFile) and value.filename:
                 content = await value.read()
                 files_map[key] = (value.filename, content)
 
@@ -163,6 +168,8 @@ async def execute_workflow(
 
         # Fetch actual text inputs from DB for the runner
         rec = await engine.repository.get_execution(execution_id)
+        if not rec:
+             raise HTTPException(status_code=500, detail="Execution created but not found.")
         cleaned_inputs = rec.get("inputs", {})
 
         # DEBUG: Verify inputs made it
@@ -274,7 +281,7 @@ async def get_execution_status(
 
                     # Attempt to hydrate the dict back into a State Object
                     hydrated_state = WorkflowState(**hydration_data)
-                    status["result"] = hydrated_state.to_flat_dict()
+                    status["result"] = hydrated_state.model_dump()
 
                 except Exception as e:
                     logger.warning(f"Failed to migrate legacy execution result {execution_id}: {e}")

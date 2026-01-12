@@ -199,8 +199,8 @@ def generate_report(state: WorkflowState) -> WorkflowState:
         findings = safe_get(judge_step, "kriittiset_havainnot_yhteenveto")
         if judge_step and findings:
             critical_findings = get_list(findings)
-        elif hasattr(judge_step, "critical_findings"):  # V2
-            critical_findings = judge_step.critical_findings
+        elif judge_step and hasattr(judge_step, "critical_findings"):  # V2
+            critical_findings = getattr(judge_step, "critical_findings", [])
 
         exec_summary = safe_get(xai_data, "executive_summary") or "Yhteenveto puuttuu."
 

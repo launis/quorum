@@ -60,8 +60,13 @@ class AbstractTable(ABC):
         pass
 
     @abstractmethod
-    def remove(self, query: Any) -> list[int]:
+    def remove(self, query: Any = None, doc_ids: list[int] | None = None) -> list[int]:
         """Remove documents."""
+        pass
+
+    @abstractmethod
+    def truncate(self) -> None:
+        """Truncate the table."""
         pass
 
 
@@ -123,10 +128,15 @@ class TinyDBTable(AbstractTable):
         with TinyDB(self._path, encoding="utf-8") as db:
             return self._get_table(db).upsert(document, query)
 
-    def remove(self, query: Any) -> list[int]:
+    def remove(self, query: Any = None, doc_ids: list[int] | None = None) -> list[int]:
         """Remove documents."""
         with TinyDB(self._path, encoding="utf-8") as db:
-            return self._get_table(db).remove(query)
+            return self._get_table(db).remove(query, doc_ids=doc_ids)
+
+    def truncate(self) -> None:
+        """Truncate table."""
+        with TinyDB(self._path, encoding="utf-8") as db:
+            self._get_table(db).truncate()
 
 
 class TinyDBClient(AbstractDatabase):
@@ -216,8 +226,11 @@ class FirestoreTable(AbstractTable):
             if query(doc.to_dict()):
                 matches.append(doc)
 
+        if matches:
+            # Update existing
+            for doc in matches:
+                doc.reference.update(document)
             return [1] * len(matches)
-
         else:
             # Insert new
             doc_id = document.get("id")
@@ -227,7 +240,7 @@ class FirestoreTable(AbstractTable):
                 self._collection.add(document)
             return [1]
 
-    def remove(self, query: Any) -> list[int]:
+    def remove(self, query: Any = None, doc_ids: list[int] | None = None) -> list[int]:
         """Remove documents."""
         docs = self._collection.stream()
         removed_count = 0
@@ -235,7 +248,9 @@ class FirestoreTable(AbstractTable):
 
         # 1. Identify docs (Scan)
         for doc in docs:
-            if query(doc.to_dict()):
+            # If query is None, do we delete ALL? No, only valid queries.
+            # But truncate uses different method.
+            if query and query(doc.to_dict()):
                 to_delete.append(doc.reference)
 
         # 2. Delete (Batch/Serial)
@@ -249,6 +264,21 @@ class FirestoreTable(AbstractTable):
                 logger.error(f"[FirestoreTable] Failed to delete doc {ref.id}: {e}")
 
         return [1] * removed_count
+
+    def truncate(self) -> None:
+        """Truncate the table (Legacy/Dev: Delete all documents)."""
+        # Batch delete for Firestore in chunks of 500
+        batch_size = 500
+        docs = self._collection.limit(batch_size).stream()
+        deleted = 0
+
+        for doc in docs:
+            doc.reference.delete()
+            deleted += 1
+
+        if deleted >= batch_size:
+            # Recursively call if more exist
+            self.truncate()
 
     def close(self):
         """Close the table connection (no-op for Firestore)."""

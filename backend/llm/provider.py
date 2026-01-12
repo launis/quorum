@@ -42,7 +42,7 @@ class LLMProvider(ABC):
         self,
         prompt: str,
         system_instruction: str | None = None,
-        response_schema: type[BaseModel] | None = None,
+        response_schema: type[BaseModel] | dict[str, Any] | None = None,
         temperature: float = 0.7,
         max_tokens: int | None = None,
         pass_reasoning_token: str | None = None,
@@ -51,13 +51,13 @@ class LLMProvider(ABC):
         """Generates content from the LLM.
 
         Args:
-            prompt (str): The user prompt.
-            system_instruction (Optional[str]): System prompt/context.
-            response_schema (Optional[Type[BaseModel]]): Pydantic model for structured output validation.
-            temperature (float): Sampling temperature.
-            max_tokens (Optional[int]): Max tokens to generate.
-            pass_reasoning_token (Optional[str]): Encrypted state blob from previous turn.
-            **kwargs: Additional provider-specific arguments.
+        prompt (str): The user prompt.
+        system_instruction (str | None): System prompt/context.
+        response_schema (type[BaseModel] | dict[str, Any] | None): Pydantic model or JSON Schema.
+        temperature (float): Sampling temperature.
+        max_tokens (int | None): Max tokens to generate.
+        pass_reasoning_token (str | None): Encrypted state blob from previous turn.
+        **kwargs: Additional provider-specific arguments.
 
         Returns:
             LLMResponse: The generated response object.
@@ -102,7 +102,7 @@ class LiteLLMProvider(LLMProvider):
         self,
         prompt: str,
         system_instruction: str | None = None,
-        response_schema: type[BaseModel] | None = None,
+        response_schema: type[BaseModel] | dict[str, Any] | None = None,
         temperature: float = 0.7,
         max_tokens: int | None = None,
         pass_reasoning_token: str | None = None,
@@ -132,7 +132,8 @@ class LiteLLMProvider(LLMProvider):
         response_format = None
         if response_schema:
             try:
-                logger.info(f"[LiteLLM] Enabling Structured Output for schema: {response_schema.__name__}")
+                schema_name = getattr(response_schema, "__name__", "dict")
+                logger.info(f"[LiteLLM] Enabling Structured Output for schema: {schema_name}")
                 response_format = response_schema
             except Exception:
                 pass
@@ -286,7 +287,7 @@ class MockProvider(LLMProvider):
         self,
         prompt: str,
         system_instruction: str | None = None,
-        response_schema: type[BaseModel] | None = None,
+        response_schema: type[BaseModel] | dict[str, Any] | None = None,
         temperature: float = 0.7,
         max_tokens: int | None = None,
         pass_reasoning_token: str | None = None,

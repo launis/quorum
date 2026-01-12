@@ -65,7 +65,7 @@ class WorkflowEngine:
         """
         return await self.registry.resolve_model_name(model_identifier)
 
-    async def create_workflow(self, name: str, steps: list[dict[str, Any]]) -> int:
+    async def create_workflow(self, name: str, steps: list[dict[str, Any]]) -> int | str:
         """Creates a new workflow definition in the repository.
 
         Args:
@@ -73,7 +73,7 @@ class WorkflowEngine:
             steps (List[dict]): List of step definitions.
 
         Returns:
-            int: The new Workflow ID.
+            int | str: The new Workflow ID.
 
         Side Effects:
             - **Database**: Inserts a new record into the `workflows` table.
@@ -115,8 +115,6 @@ class WorkflowEngine:
         # Handle Files (Extract & Archive) via Service
         if files:
             file_updates = await self.document_service.process_evidence_files(execution_id, files)
-            final_inputs.update(file_updates)
-
             final_inputs.update(file_updates)
 
         await self.repository.create_execution(
@@ -610,6 +608,8 @@ class WorkflowEngine:
         )
         return public_result
 
+
+
     async def _handle_execution_error(self, execution_id: str, error: Exception, state: WorkflowState | None = None):
         """Handles exception logging and state persistence during failure.
 
@@ -626,7 +626,7 @@ class WorkflowEngine:
             logger.error(f"[WorkflowEngine] Critical Failure: {str(error)}", exc_info=True)
             msg = str(error)
 
-        update_data = {"status": "failed", "error": msg, "end_time": datetime.now().isoformat()}
+        update_data: dict[str, Any] = {"status": "failed", "error": msg, "end_time": datetime.now().isoformat()}
 
         # Save trace if available so we can resume later
         if state:

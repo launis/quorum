@@ -129,13 +129,8 @@ def get_components(db: DatabaseDep):
 
 
 @router.get("/components/{comp_id}", summary="Get Component", response_description="The requested component.")
-def get_component(comp_id: str = Path(..., description="Component ID or Name"), db: DatabaseDep = None):
+def get_component(db: DatabaseDep, comp_id: str = Path(..., description="Component ID or Name")):
     """Retrieves a single component by ID or Name."""
-    if db is None:  # Should be injected
-        from backend.dependencies import get_db_client_dep
-
-        db = get_db_client_dep()
-
     Component = Query()
     res = db.table("components").search(Component.id == comp_id)
     if not res:
@@ -306,7 +301,7 @@ def update_workflow(wf_id: str, update: WorkflowUpdate, db: DatabaseDep):
     if not table.search(Workflow.id == wf_id):
         raise HTTPException(status_code=404, detail="Workflow not found")
 
-    update_data = {}
+    update_data: dict[str, Any] = {}
     if update.steps is not None:
         update_data["steps"] = update.steps
     if update.sequence is not None:
@@ -417,10 +412,10 @@ def get_schemas():
                 json_schema = obj.model_json_schema()
                 example = None
                 if hasattr(obj, "model_config"):
-                    config = obj.model_config
+                    config: dict[str, Any] = dict(obj.model_config)
                     if "json_schema_extra" in config:
                         extra = config["json_schema_extra"]
-                        if "examples" in extra and extra["examples"]:
+                        if isinstance(extra, dict) and "examples" in extra and extra["examples"]:
                             example = extra["examples"][0]
                 schema_data[name] = {"schema": json_schema, "example": example}
             except Exception as e:
@@ -450,10 +445,10 @@ def _fetch_schemas() -> dict[str, Any]:
                 json_schema = obj.model_json_schema()
                 example = None
                 if hasattr(obj, "model_config"):
-                    config = obj.model_config
+                    config: dict[str, Any] = dict(obj.model_config)
                     if "json_schema_extra" in config:
                         extra = config["json_schema_extra"]
-                        if "examples" in extra and extra["examples"]:
+                        if isinstance(extra, dict) and "examples" in extra and extra["examples"]:
                             example = extra["examples"][0]
                 schema_data[name] = {"schema": json_schema, "example": example}
             except Exception:

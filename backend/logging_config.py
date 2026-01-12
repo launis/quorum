@@ -3,11 +3,14 @@
 import logging
 import os
 import sys
+from typing import Any
 
 try:
     import logfire
 except Exception:
-    logfire = None
+    logfire: Any = None  # type: ignore
+
+_LOGFIRE_CONFIGURED = False
 
 from backend.context import get_execution_context
 
@@ -29,10 +32,11 @@ def configure_logfire():
     """
     if logfire is None:
         return
+    global _LOGFIRE_CONFIGURED
     # Idempotency check to prevent double initialization/logging
-    if getattr(configure_logfire, "_called", False):
+    if _LOGFIRE_CONFIGURED:
         return
-    configure_logfire._called = True
+    _LOGFIRE_CONFIGURED = True
 
     if os.getenv("DISABLE_LOGFIRE", "").lower() == "true":
         logging.getLogger(__name__).info("Logfire disabled via DISABLE_LOGFIRE environment variable.")

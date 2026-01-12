@@ -237,11 +237,17 @@ class TodistusKartta(BaseJSON):
                     try:
                         loaded = json.loads(item)
                         if isinstance(loaded, dict):
-                            parsed_list.append(loaded)
+                            parsed_list.append(Hypoteesi(**loaded))
                             continue
-                    except json.JSONDecodeError:
+                    except (json.JSONDecodeError, ValueError, TypeError):
                         pass
-                    parsed_list.append({"id": "GENERATED_ID", "vaite_teksti": item, "loytyyko_todisteita": False})
+                    parsed_list.append(
+                        Hypoteesi(
+                            id="GENERATED_ID", vaite_teksti=item, loytyyko_todisteita=False
+                        )
+                    )
+                elif isinstance(item, dict):
+                    parsed_list.append(Hypoteesi(**item))
                 else:
                     parsed_list.append(item)
             return parsed_list
@@ -664,7 +670,7 @@ class XAIReport(BaseJSON):
     final_verdict: Annotated[str, Field(description="Final conclusion.")]
     confidence_score: Annotated[float, Field(description="Confidence score (0.0-1.0).")]
     xai_report_formatted: Annotated[str | None, Field(description="Markdown formatted report.")] = None
-    # comparison_data removed from schema to avoid LLM validation errors (handled dynamically)
+    comparison_data: Annotated[dict[str, Any] | None, Field(description="Structured comparison data.")] = None
 
     model_config = ConfigDict(extra="allow", validate_assignment=True)
 

@@ -247,4 +247,4 @@ def get_storage_client() -> AbstractStorage:
     if settings.environment == "production" and settings.storage_bucket_name:
         return FirebaseStorage(bucket_name=settings.storage_bucket_name)
     else:
-        return LocalFileStorage()
+        return LocalFileStorage(base_path=settings.files_dir)

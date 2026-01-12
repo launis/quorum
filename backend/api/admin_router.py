@@ -612,7 +612,7 @@ async def generate_banned_phrases(
         response = await llm_provider.generate(user_prompt, system_instruction=system_prompt)
 
         # 3. Parse Response
-        clean_response = response.replace("```json", "").replace("```", "").strip()
+        clean_response = response.content.replace("```json", "").replace("```", "").strip()
         data = json.loads(clean_response)
         candidates = data.get("phrases", [])
 

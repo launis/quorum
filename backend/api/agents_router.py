@@ -46,7 +46,7 @@ def _load_agent_class(agent_name: str, db: AbstractDatabase):
     if not comp_record:
         raise ValueError(f"Unknown agent: {agent_name} (not found in registry)")
     else:
-        module_name = comp_record.get("module")
+        module_name = str(comp_record.get("module"))
 
     try:
         module = importlib.import_module(module_name)
@@ -61,9 +61,9 @@ def _load_agent_class(agent_name: str, db: AbstractDatabase):
 async def run_agent(
     agent_name: str,
     inputs: Annotated[dict[str, Any], Body(description="Key-value pairs representing the input state for the agent.")],
+    db: DatabaseDep,
     system_instruction: Annotated[str | None, Body(description="Optional system instruction override.")] = None,
     model: Annotated[str | None, Body(description="Optional model strategy override.")] = None,
-    db: DatabaseDep = None,  # Injected
 ):
     """Executes a specific agent in isolation with provided inputs.
 
@@ -81,12 +81,6 @@ async def run_agent(
         HTTPException: If the agent cannot be loaded or execution fails.
 
     """
-    # Defensive fix for explicit None default to satisfy linter if needed, though Depends handles it.
-    if db is None:
-        from backend.dependencies import get_db_client_dep
-
-        db = get_db_client_dep()
-
     try:
         AgentClass = _load_agent_class(agent_name, db)
         agent = AgentClass(model=model)
@@ -115,11 +109,11 @@ async def run_agent(
     response_description="A list of available agents containing metadata and schemas.",
 )
 async def list_agents(
+    db: DatabaseDep,
+    registry: RegistryDep,
     workflow_id: str | None = APIQuery(
         None, description="Optional Workflow ID to resolve model strategies contextually."
     ),
-    db: DatabaseDep = None,
-    registry: RegistryDep = None,
 ):
     """List all available agents with their metadata, models, and schemas.
 
@@ -134,10 +128,7 @@ async def list_agents(
         List[Dict]: A list of agent definition objects.
 
     """
-    if db is None:
-        from backend.dependencies import get_db_client_dep
 
-        db = get_db_client_dep()
 
     # Debug wrapper removed, proper DI used.
     import traceback
@@ -162,7 +153,7 @@ async def list_agents(
         agent_to_step_id = {}
 
         try:
-            wfs = registry.repository.get_all_workflows()
+            wfs = await registry.repository.get_all_workflows()
             if wfs:
                 target_wf = None
                 if workflow_id:
@@ -176,7 +167,7 @@ async def list_agents(
                     workflow_mapping = target_wf.get("default_model_mapping", {})
 
             # Map Agent Class Name -> Step ID
-            steps = registry.repository.get_all_steps()
+            steps = await registry.repository.get_all_steps()
             for s in steps:
                 comp = s.get("component")  # e.g. "GuardAgent"
                 sid = s.get("id")  # e.g. "step_guard"

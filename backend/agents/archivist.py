@@ -29,7 +29,7 @@ class ArchivistAgent(BaseAgent):
         """
         return CaseLawContext
 
-    async def execute(self, state: WorkflowState, system_instruction: str | None = None, **kwargs) -> WorkflowState:
+    async def execute(self, state: WorkflowState | None = None, system_instruction: str | None = None, **kwargs) -> WorkflowState:
         """Executes the archival retrieval and analysis.
 
         Input State:

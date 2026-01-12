@@ -6,19 +6,19 @@
     "version": "2.1.0"
   },
   "paths": {
-    "/tools/text-extract": {
+    "/tools/extract-text": {
       "post": {
         "tags": [
           "Tools"
         ],
         "summary": "Extract Text from File",
-        "description": "Extracts text content from an uploaded file (PDF, Docx, etc).\n\nArgs:\n    file (UploadFile): The binary file to process.\n\nReturns:\n    dict: Filename and extracted text.\n\nRaises:\n    HTTPException: If extraction fails (500).",
-        "operationId": "extract_text_from_file_tools_text_extract_post",
+        "description": "Deep-parse a PDF/DOCX file and return raw text.\n\nArgs:\n    file (UploadFile): The binary file to process.\n    doc_service (DocumentService): Injected document service.\n\nReturns:\n    dict: Filename and extracted text.\n\nRaises:\n    HTTPException: If extraction fails (500).",
+        "operationId": "extract_text_tools_extract_text_post",
         "requestBody": {
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_extract_text_from_file_tools_text_extract_post"
+                "$ref": "#/components/schemas/Body_extract_text_tools_extract_text_post"
               }
             }
           },
@@ -26,7 +26,7 @@
         },
         "responses": {
           "200": {
-            "description": "The extracted raw text.",
+            "description": "Extracted text.",
             "content": {
               "application/json": {
                 "schema": {}
@@ -46,26 +46,26 @@
         }
       }
     },
-    "/tools/concept-extraction": {
+    "/tools/extract-concepts": {
       "post": {
         "tags": [
           "Tools"
         ],
-        "summary": "Extract Concepts (Text/File)",
-        "description": "Extracts domain concepts from either raw text or an uploaded file.\n\nArgs:\n    registry (RegistryDep): Registry for LLM config.\n    text (str): Raw text input.\n    file (UploadFile): File input.\n    llm_provider (str): Preferred provider (deprecated, uses registry).\n\nReturns:\n    dict: Extracted concepts.\n\nRaises:\n    HTTPException: If no input provided (400) or extraction errors (500).",
-        "operationId": "extract_concepts_from_file_or_text_tools_concept_extraction_post",
+        "summary": "Extract Concepts from Content",
+        "description": "Extracts domain concepts from either raw text or an uploaded file.\n\nArgs:\n    registry (RegistryDep): Registry for LLM config.\n    doc_service (DocumentService): Injected document service.\n    text (str): Raw text input.\n    file (UploadFile): File input.\n    llm_provider (str): Preferred provider (deprecated, uses registry).\n\nReturns:\n    dict: Extracted concepts.\n\nRaises:\n    HTTPException: If no input provided (400) or extraction errors (500).",
+        "operationId": "extract_concepts_from_file_or_text_tools_extract_concepts_post",
         "requestBody": {
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_extract_concepts_from_file_or_text_tools_concept_extraction_post"
+                "$ref": "#/components/schemas/Body_extract_concepts_from_file_or_text_tools_extract_concepts_post"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "List of extracted concepts and relationships.",
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
@@ -3956,120 +3956,13 @@
         }
       }
     },
-    "/organizations/me": {
-      "get": {
-        "tags": [
-          "Organizations"
-        ],
-        "summary": "Get My Organization",
-        "description": "Get the currently logged-in user's organization metadata.\n\nAccessible to: ROOT, ADMIN, MEMBER (Read-Only own org)\n\nNote: ROOT does not belong to an org primarily, but if they want to see 'an' org,\nthey should use get_organization_by_id logic. This endpoint is for Tenant Context.\n\nArgs:\n    user (CurrentUserDep): The authenticated user.\n    repo (RepositoryDep): Repository dependency.\n\nReturns:\n    OrganizationResponse: The user's organization details.\n\nRaises:\n    HTTPException: If not assigned (404).",
-        "operationId": "get_my_organization_organizations_me_get",
-        "parameters": [
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OrganizationResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/organizations/{org_id}": {
-      "get": {
-        "tags": [
-          "Organizations"
-        ],
-        "summary": "Get Organization",
-        "description": "Get specific organization details.\n\nROOT: Can access any.\nADMIN: Can access OWN org only.\n\nArgs:\n    org_id (str): Organization ID.\n    user (CurrentUserDep): Requesting user.\n    repo (RepositoryDep): Repository.\n\nReturns:\n    OrganizationResponse: The organization details.\n\nRaises:\n    HTTPException: If access denied (403) or not found (404).",
-        "operationId": "get_organization_organizations__org_id__get",
-        "parameters": [
-          {
-            "name": "org_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Org Id"
-            }
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OrganizationResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      },
       "put": {
         "tags": [
           "Organizations"
         ],
         "summary": "Update Organization",
-        "description": "Update Organization settings.\n\nROOT: Can update any.\nADMIN: Can update OWN org only.\n\nArgs:\n    org_id (str): Organization ID.\n    updates (OrganizationUpdate): Fields to update.\n    user (CurrentUserDep): Requesting user.\n    repo (RepositoryDep): Repository.\n\nReturns:\n    OrganizationResponse: Updated organization.\n\nRaises:\n    HTTPException: If permission denied (403) or not found (404).",
+        "description": "Update organization details.\n\nArgs:\n    org_id (str): Organization ID.\n    organization_update (OrganizationUpdate): Fields to update.\n    user (CurrentUserDep): Requesting user.\n    repo (RepositoryDep): Repository dependency.\n\nReturns:\n    OrganizationResponse: Updated organization.",
         "operationId": "update_organization_organizations__org_id__put",
         "parameters": [
           {
@@ -4136,7 +4029,7 @@
           "Organizations"
         ],
         "summary": "Delete Organization",
-        "description": "Delete an organization.\n\nArgs:\n    org_id (str): Organization ID.\n    force (bool): Functionally cascade delete users if True.\n    user (TokenData): Requesting user (must be ROOT).\n    repo (RepositoryDep): Repository.\n    auth (Any): Auth service for user deletion.\n\nReturns:\n    None\n\nRaises:\n    HTTPException: If system org (403), not found (404), or not empty (409).",
+        "description": "Delete an organization.\n\nArgs:\n    org_id (str): Organization ID.\n    user (CurrentUserDep): Requesting user.\n    repo (RepositoryDep): Repository dependency.\n    force (bool): If True, delete even if users exist.",
         "operationId": "delete_organization_organizations__org_id__delete",
         "parameters": [
           {
@@ -4193,68 +4086,6 @@
       }
     },
     "/organizations/{org_id}/users": {
-      "get": {
-        "tags": [
-          "Organizations"
-        ],
-        "summary": "List Organization Users",
-        "description": "List users within an organization.\n\nArgs:\n    org_id (str): Organization ID.\n    user (CurrentUserDep): Requesting user.\n    repo (RepositoryDep): Repository.\n\nReturns:\n    list[dict]: List of users (serialized).",
-        "operationId": "list_organization_users_organizations__org_id__users_get",
-        "parameters": [
-          {
-            "name": "org_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Org Id"
-            }
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "additionalProperties": true
-                  },
-                  "title": "Response List Organization Users Organizations  Org Id  Users Get"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      },
       "post": {
         "tags": [
           "Organizations"
@@ -4698,29 +4529,15 @@
         ],
         "title": "Body_clone_step_builder_steps_clone_post"
       },
-      "Body_extract_concepts_from_file_or_text_tools_concept_extraction_post": {
+      "Body_extract_concepts_from_file_or_text_tools_extract_concepts_post": {
         "properties": {
           "text": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Text"
           },
           "file": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "binary"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "binary",
             "title": "File"
           },
           "llm_provider": {
@@ -4732,14 +4549,13 @@
                 "type": "null"
               }
             ],
-            "title": "Llm Provider",
-            "default": "google"
+            "title": "Llm Provider"
           }
         },
         "type": "object",
-        "title": "Body_extract_concepts_from_file_or_text_tools_concept_extraction_post"
+        "title": "Body_extract_concepts_from_file_or_text_tools_extract_concepts_post"
       },
-      "Body_extract_text_from_file_tools_text_extract_post": {
+      "Body_extract_text_tools_extract_text_post": {
         "properties": {
           "file": {
             "type": "string",
@@ -4751,7 +4567,7 @@
         "required": [
           "file"
         ],
-        "title": "Body_extract_text_from_file_tools_text_extract_post"
+        "title": "Body_extract_text_tools_extract_text_post"
       },
       "Body_run_agent_agents__agent_name__run_post": {
         "properties": {
@@ -6211,6 +6027,17 @@
               }
             ],
             "title": "Theme Mode"
+          },
+          "organization_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organization Id"
           }
         },
         "type": "object",

@@ -26,8 +26,7 @@ class AgentFactory:
     """
 
     @staticmethod
-    @staticmethod
-    def create_agents_map(initial_model: str = None) -> dict[str, BaseAgent]:
+    def create_agents_map(initial_model: str | None = None) -> dict[str, BaseAgent]:
         """Returns a dictionary of {ClassName: AgentInstance}.
 
         Args:

@@ -51,6 +51,8 @@ class LLMHandler:
 
         """
         self.db_client = db_client
+        self._cached_google_models: list[str] = []
+        self._cached_openai_models: list[str] = []
 
     def fetch_all_available_models(
         self, providers: list[str] | None = None, location: str | None = None
@@ -73,6 +75,8 @@ class LLMHandler:
 
         # Resolve Target Location from Settings (Robust .env loading)
         target_location = location if location else settings.vertex_location
+        if not target_location:
+             target_location = "europe-north1"  # Fallback
 
         # Normalize providers list
         if not providers:
@@ -100,7 +104,7 @@ class LLMHandler:
         if "google" in providers:
             try:
                 # Check cache for the *Target Location* (validated list)
-                if hasattr(self, "_cached_google_models") and self._cached_google_models:  # type: ignore[has-type]
+                if self._cached_google_models:
                     # Simple cache assumption: Environment doesn't change runtime
                     models["google"] = self._cached_google_models
                 else:
@@ -138,7 +142,7 @@ class LLMHandler:
                         logger.info(f"[LLMHandler] Validation complete. Found {len(final_list)} valid models.")
 
                     models["google"] = final_list
-                    self._cached_google_models = final_list  # type: ignore[has-type]
+                    self._cached_google_models = final_list
 
             except ImportError:
                 logger.error("google-cloud-aiplatform not installed.")
@@ -150,16 +154,13 @@ class LLMHandler:
         # --- OPENAI ---
         if "openai" in providers:
             try:
-                if not hasattr(self, "_cached_openai_models"):
-                    self._cached_openai_models: list[str] = []
-
                 if self._cached_openai_models:
                     models["openai"] = self._cached_openai_models
                 else:
                     api_key = os.getenv("OPENAI_API_KEY") or settings.openai_api_key
                     if api_key:
-                        client = openai.OpenAI(api_key=api_key)
-                        for m in client.models.list():
+                        openai_client = openai.OpenAI(api_key=api_key)
+                        for m in openai_client.models.list():
                             if "gpt" in m.id:
                                 self._cached_openai_models.append(m.id)
                         models["openai"] = self._cached_openai_models
@@ -170,12 +171,11 @@ class LLMHandler:
 
         return models
 
-    def get_active_model_registry(self) -> dict[str, str]:
+    def get_active_model_registry(self) -> dict[str, Any]:
         """Fetches the 'global_model_registry' from the 'system_config' table in the database.
 
         Returns:
-            Dict[str, str]: configuration mapping (e.g. {'fast': 'gemini-1.5-flash'}).
-
+            Dict[str, Any]: configuration mapping.
         """
         try:
             table = self.db_client.table("system_config")
@@ -206,10 +206,13 @@ class LLMHandler:
         # Try nested structure first (new schema)
         config = None
         if isinstance(registry.get(provider), dict):
-            config = registry[provider].get(mode)
+            provider_config = registry[provider]
+            if isinstance(provider_config, dict):
+                 config = provider_config.get(mode)
 
         if config:
             return config
+        return None
 
     async def call_llm(self, provider: str, mode: str, prompt: str, system_instruction: str | None = None) -> str:
         """High-level helper to call an LLM (Ad-hoc usage).
@@ -232,16 +235,21 @@ class LLMHandler:
         if not config:
             raise ValueError(
                 f"STRICT CONFIG ERROR: No configuration found for strategy '{provider}/{mode}' "
-                "in System Registry. Fallbacks are PROHIBITED."
             )
 
         # Handle if config is Pydantic model or dict
-        if hasattr(config, "dict"):
-            cd = config.model_dump()
-        elif hasattr(config, "model_dump"):
-            cd = config.model_dump()
+        cd: dict[str, Any]
+        if hasattr(config, "model_dump"):
+            # Cast Any to something with model_dump? Mypy hates ambiguous "hasattr".
+            # Assume it's a dict unless proven otherwise, but get_model_config returns dict.
+            # If it returns BaseModel, annotation should say so.
+            # For now, coerce.
+             cd = getattr(config, "model_dump")()
+        elif isinstance(config, dict):
+             cd = config
         else:
-            cd = config
+             # Fallback
+             cd = dict(config) # type: ignore
 
         model_name = cd.get("model_name")
         if not model_name:

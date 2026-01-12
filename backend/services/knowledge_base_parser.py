@@ -150,6 +150,8 @@ class KnowledgeBaseParser:
                 continue
 
             # Heuristics
+            if not para.style or not hasattr(para.style, "name"):
+                continue
             style_name = para.style.name.lower()
 
             # Detect Bibliography Section

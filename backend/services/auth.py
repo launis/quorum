@@ -295,11 +295,12 @@ class AuthService:
         """Creates a new user, enforcing hierarchy and tenancy."""
         return await self._create_user_internal(creator_uid, user_data)
 
-    async def _create_user_internal(self, creator_uid: str, user_data: UserCreate, force_org_id: str = None) -> User:
+    async def _create_user_internal(self, creator_uid: str, user_data: UserCreate, force_org_id: str | None = None) -> User:
         creator = self.repo.get_by_uid(creator_uid)
         if not creator:
             raise ValueError("Creator not found")
 
+        target_org_id: str | None = None
         # Resolve Org ID
         if force_org_id:
             target_org_id = force_org_id
@@ -553,6 +554,9 @@ class AuthService:
 
         updated_user = self.repo.update(target_uid, updates)
 
+        if not updated_user:
+             raise ValueError("User update failed (not found despite check).")
+
         # Audit
         if self.audit_service:
             # Determine what changed for details
@@ -597,6 +601,9 @@ class AuthService:
 
             self.repo.update("root_master", UserUpdate(organization_id="system"))
             root = self.repo.get_by_uid("root_master")  # Refresh
+
+        if not root:
+             raise ValueError("Failed to obtain Root user.")
 
         return root
 

@@ -28,8 +28,8 @@ class StorageBackend(str, Enum):
     """Enumeration for Storage Backends."""
 
     FIRESTORE = "FIRESTORE"
-    LOCAL = "LOCAL"
-    MOCK = "MOCK"
+    LOCAL = "LOCAL"  # Legacy/Dev modes. Production target is FIRESTORE.
+    MOCK = "MOCK"  # Legacy/Dev modes. Production target is FIRESTORE.
 
 
 class Settings(BaseSettings):
@@ -46,6 +46,7 @@ class Settings(BaseSettings):
 
     # --- API Keys ---
     google_api_key: Annotated[str | None, Field(description="Google AI Provider API Key")] = None
+    openai_api_key: Annotated[str | None, Field(description="OpenAI API Key (Optional)")] = None
     vertex_location: Annotated[str | None, Field(description="Google Cloud Region (e.g. europe-north1)")] = None
 
     # --- LLM Configuration ---

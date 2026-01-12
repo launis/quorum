@@ -89,7 +89,8 @@ router = APIRouter(prefix="/organizations", tags=["Organizations"])
 async def create_organization(
     org: OrganizationCreateRequest,
     user: Annotated[TokenData, Depends(AuthService.require_role(UserRole.ROOT))],
-    repo: RepositoryDep = None,  # Injected
+    repo: RepositoryDep,  # Injected
+    auth: AuthServiceDep,
 ):
     """Create a new Tenant Organization.
 
@@ -153,7 +154,7 @@ async def create_organization(
 @router.get("/", response_model=list[OrganizationResponse])
 async def list_organizations(
     user: Annotated[TokenData, Depends(AuthService.require_role(UserRole.ROOT))],
-    repo: RepositoryDep = None,
+    repo: RepositoryDep,
 ):
     """List all organizations.
 
@@ -168,217 +169,91 @@ async def list_organizations(
     # Items are raw dicts (Documents). Wrap in Organization to apply defaults, then dump.
     return [OrganizationResponse(**Organization(**i).model_dump()) for i in items]
 
-
-@router.get("/me", response_model=OrganizationResponse)
-async def get_my_organization(user: CurrentUserDep, repo: RepositoryDep):
-    """Get the currently logged-in user's organization metadata.
-
-    Accessible to: ROOT, ADMIN, MEMBER (Read-Only own org)
-
-    Note: ROOT does not belong to an org primarily, but if they want to see 'an' org,
-    they should use get_organization_by_id logic. This endpoint is for Tenant Context.
-
-    Args:
-        user (CurrentUserDep): The authenticated user.
-        repo (RepositoryDep): Repository dependency.
-
-    Returns:
-        OrganizationResponse: The user's organization details.
-
-    Raises:
-        HTTPException: If not assigned (404).
-    """
-    if not user.organization_id:
-        raise HTTPException(status_code=404, detail="User is not assigned to any organization.")
-
-    org_data = await repo.get_organization(user.organization_id)
-
-    if not org_data:
-        raise HTTPException(status_code=404, detail="Organization not found in registry.")
-
-    return OrganizationResponse(**Organization(**org_data).model_dump())
-
-
-@router.get("/{org_id}", response_model=OrganizationResponse)
-async def get_organization(org_id: str, user: CurrentUserDep, repo: RepositoryDep):
-    """Get specific organization details.
-
-    ROOT: Can access any.
-    ADMIN: Can access OWN org only.
-
-    Args:
-        org_id (str): Organization ID.
-        user (CurrentUserDep): Requesting user.
-        repo (RepositoryDep): Repository.
-
-    Returns:
-        OrganizationResponse: The organization details.
-
-    Raises:
-        HTTPException: If access denied (403) or not found (404).
-    """
-    # 1. Access Control
-    if user.role != UserRole.ROOT:
-        if user.organization_id != org_id:
-            raise HTTPException(status_code=403, detail="Access denied to other organization.")
-
-    org_data = await repo.get_organization(org_id)
-
-    if not org_data:
-        raise HTTPException(status_code=404, detail="Organization not found.")
-
-    return OrganizationResponse(**Organization(**org_data).model_dump())
-
-
 @router.put("/{org_id}", response_model=OrganizationResponse)
 async def update_organization(
     org_id: str,
-    updates: OrganizationUpdate,
+    organization_update: OrganizationUpdate,
     user: CurrentUserDep,
     repo: RepositoryDep,
 ):
-    """Update Organization settings.
-
-    ROOT: Can update any.
-    ADMIN: Can update OWN org only.
+    """Update organization details.
 
     Args:
         org_id (str): Organization ID.
-        updates (OrganizationUpdate): Fields to update.
+        organization_update (OrganizationUpdate): Fields to update.
         user (CurrentUserDep): Requesting user.
-        repo (RepositoryDep): Repository.
+        repo (RepositoryDep): Repository dependency.
 
     Returns:
         OrganizationResponse: Updated organization.
-
-    Raises:
-        HTTPException: If permission denied (403) or not found (404).
     """
     # 1. Access Control
     if user.role != UserRole.ROOT:
         if user.organization_id != org_id:
-            raise HTTPException(status_code=403, detail="Access denied. Cannot modify other organization.")
+            raise HTTPException(status_code=403, detail="Access denied.")
         if user.role != UserRole.ADMIN:
-            # Even if it's my org, I need to be ADMIN to update it
-            raise HTTPException(status_code=403, detail="Insufficient privileges. Organization Admin required.")
+            raise HTTPException(status_code=403, detail="Organization Admin required.")
 
-    # Check existence
-    existing = await repo.get_organization(org_id)
-    if not existing:
-        raise HTTPException(status_code=404, detail="Organization not found.")
+    # 2. Update
+    try:
+        current_data = await repo.get_organization(org_id)
+        if not current_data:
+            raise HTTPException(status_code=404, detail="Organization not found")
 
-    # Apply Updates
-    update_data = updates.dict(exclude_unset=True)
-    await repo.update_organization(org_id, update_data)
+        # Merge
+        updates = organization_update.model_dump(exclude_unset=True)
+        await repo.update_organization(org_id, updates)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
     # Fetch fresh
     fresh = await repo.get_organization(org_id)
+    if not fresh:
+         raise HTTPException(status_code=404, detail="Organization disappeared after update.")
     return OrganizationResponse(**Organization(**fresh).model_dump())
 
 
 @router.delete("/{org_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_organization(
     org_id: str,
-    user: Annotated[TokenData, Depends(AuthService.require_role(UserRole.ROOT))],
+    user: CurrentUserDep,
     repo: RepositoryDep,
-    auth: AuthServiceDep,
     force: bool = False,
 ):
     """Delete an organization.
 
     Args:
         org_id (str): Organization ID.
-        force (bool): Functionally cascade delete users if True.
-        user (TokenData): Requesting user (must be ROOT).
-        repo (RepositoryDep): Repository.
-        auth (Any): Auth service for user deletion.
-
-    Returns:
-        None
-
-    Raises:
-        HTTPException: If system org (403), not found (404), or not empty (409).
-    """
-    if org_id == "system":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot delete System Organization.")
-
-    # 1. Check Existence
-    existing = await repo.get_organization(org_id)
-    if not existing:
-        raise HTTPException(status_code=404, detail="Organization not found.")
-
-    # 2. Integrity Check: Active Executions
-    # Prevent deleting Org if it has running jobs.
-    all_execs = await repo.get_all_executions(organization_id=org_id)
-    active_execs = [e for e in all_execs if e.get("status") in ["running", "pending", "queued"]]
-
-    if active_execs:
-        raise HTTPException(
-            status_code=409,
-            detail=(
-                f"Cannot delete Organization '{org_id}' while it has {len(active_execs)} active execution(s). "
-                "Cancel them first."
-            ),
-        )
-
-    # 3. Delete Users & Org Entity (AuthService)
-    try:
-        await auth.delete_organization(user.uid, org_id, force=force)
-
-        # AUDIT LOG (Phase 3)
-        try:
-            from backend.services.audit_service import AuditService
-
-            audit = AuditService(repo)
-            await audit.log_event(
-                actor_uid=user.uid,
-                action="ORG_DELETED",
-                organization_id=org_id,
-                details={"reason": "admin_action", "force": force},
-            )
-        except Exception:
-            pass
-
-    except PermissionError as e:
-        raise HTTPException(status_code=403, detail=str(e)) from e
-    except ValueError as e:
-        msg = str(e)
-        if "Organization is not empty" in msg:
-            # Client relies on this specific detail or code to trigger confirmation dialog
-            raise HTTPException(status_code=409, detail="ORG_HAS_USERS") from e
-        raise HTTPException(status_code=400, detail=msg) from e
-
-    # 4. Cascade Delete Data (Workflows/Executions - Clean up orphan data)
-    await repo.delete_org_data(org_id)
-
-    return None
-
-
-@router.get("/{org_id}/users", response_model=list[dict[str, Any]])
-async def list_organization_users(
-    org_id: str,
-    user: CurrentUserDep,
-    repo: RepositoryDep,
-):
-    """List users within an organization.
-
-    Args:
-        org_id (str): Organization ID.
         user (CurrentUserDep): Requesting user.
-        repo (RepositoryDep): Repository.
-
-    Returns:
-        list[dict]: List of users (serialized).
+        repo (RepositoryDep): Repository dependency.
+        force (bool): If True, delete even if users exist.
     """
     # 1. Access Control
     if user.role != UserRole.ROOT:
-        if user.organization_id != org_id:
-            raise HTTPException(status_code=403, detail="Access denied.")
+        raise HTTPException(status_code=403, detail="Only ROOT can delete organizations.")
 
-    # 2. Fetch using Repository Pattern (Async)
-    users = await repo.list_users(organization_id=org_id)
-    return users
+    # 2. System Protection
+    if org_id == "system":
+        raise HTTPException(status_code=403, detail="Cannot delete System Organization.")
 
+    # 3. Validation
+    if not force:
+        # Check for users
+        users = await repo.list_users(org_id)
+        if users:
+            raise HTTPException(
+                status_code=409,
+                detail=f"Organization not empty (ORG_HAS_USERS). Found {len(users)} users. Use force=true.",
+            )
+
+    # 4. Execute
+    try:
+        await repo.delete_organization(org_id)
+        if force:
+             # Cascade delete users/data
+             await repo.delete_org_data(org_id)
+    except Exception as e:
+         raise HTTPException(status_code=500, detail=str(e)) from e
 
 @router.post("/{org_id}/users", status_code=status.HTTP_201_CREATED)
 async def create_organization_user(
@@ -386,6 +261,7 @@ async def create_organization_user(
     user_data: OrganizationUserCreate,
     user: CurrentUserDep,
     auth_service: AuthServiceDep,
+    repo: RepositoryDep,
 ):
     """Create a user within an organization.
 
@@ -422,7 +298,7 @@ async def create_organization_user(
 
             # We need Repo for Audit, but AuthServiceDep might opaque it.
             # Usually AuthService has .repo.
-            audit = AuditService(auth_service.repo)
+            audit = AuditService(repo)
             await audit.log_event(
                 actor_uid=user.uid,
                 action="USER_CREATED",

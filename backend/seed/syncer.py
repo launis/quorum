@@ -4,7 +4,6 @@ import json
 import os
 from pathlib import Path
 
-from backend.seed.sync_db_to_seed import sync_db_to_seed
 from backend.settings import get_settings
 
 settings = get_settings()
@@ -90,4 +89,4 @@ def sync_db_file(source_path: str | Path | None = None, target_path: str | Path 
 
 
 if __name__ == "__main__":
-    sync_db_to_seed()
+    sync_db_file()

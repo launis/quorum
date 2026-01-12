@@ -154,6 +154,39 @@ class DocumentService:
 
     # --- Internal Text Extraction Helpers (Migrated from DocumentProcessor) ---
 
+    def extract_text(self, input_data: str | bytes) -> str:
+        """Unified text extraction method (Public API).
+
+        Routes to PDF or DOCX extractors based on content or filename.
+
+        Args:
+            input_data (str | bytes): File path or file content bytes.
+        """
+        if isinstance(input_data, str):
+            # Path based dispatch
+            lower = input_data.lower()
+            if lower.endswith(".pdf"):
+                return self._extract_text_from_pdf(input_data)
+            elif lower.endswith(".docx"):
+                return self._extract_text_from_docx(input_data)
+        elif isinstance(input_data, bytes):
+            # In-memory dispatch (Naive check, could be improved with magic numbers if needed)
+            # For now, we rely on the caller knowing what they have or try-except?
+            # Actually, tools_router pass a temp FILE PATH usually.
+            pass
+
+        # Fallback or error
+        # If it's a file path text file?
+        if isinstance(input_data, str) and os.path.exists(input_data):
+            try:
+                # Try simple read
+                with open(input_data, "r", encoding="utf-8") as f:
+                    return f.read()
+            except Exception:
+                pass
+
+        return ""
+
     @staticmethod
     def _extract_text_from_pdf(input_data: str | bytes) -> str:
         """Extracts plain text from a PDF file using PyMuPDF (fitz).

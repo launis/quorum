@@ -369,6 +369,9 @@ class PipelineRunner:
         msg = "[PipelineRunner] SECURITY INTERVENTION: Threat detected."
         logger.critical(msg)
 
+        if not state.step_guard:
+             raise ValueError("Security intervention triggered loop, but guard state is missing.")
+
         rejection_details = {
             "security_alert": "Execution aborted due to security violation.",
             "risk_level": state.step_guard.security_check.riski_taso,

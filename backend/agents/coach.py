@@ -35,7 +35,7 @@ class CoachAgent(BaseAgent):
         """
         return CoachingPlan
 
-    async def execute(self, state: WorkflowState, system_instruction: str | None = None, **kwargs) -> WorkflowState:
+    async def execute(self, state: WorkflowState | None = None, system_instruction: str | None = None, **kwargs) -> WorkflowState:
         """Executes the coaching plan generation.
 
         Input State:
@@ -154,10 +154,10 @@ class CoachAgent(BaseAgent):
 
         # Prepare Scan Data (Global)
         try:
-            full_state_dict = state.to_flat_dict()
+            full_state_dict = state.model_dump()
             text_dump = str(full_state_dict)
         except Exception:
-            text_dump = str(state.dict())
+            text_dump = str(state.__dict__)
 
         # Delegate to Hook
         from backend.hooks.references import generate_bibliography

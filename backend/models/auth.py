@@ -158,6 +158,7 @@ class UserUpdate(BaseModel):
     password: str | None = None  # Only for admin resets
     language: str | None = None
     theme_mode: str | None = None
+    organization_id: str | None = None
 
 
 # --- Auth Fragments ---

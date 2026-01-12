@@ -162,6 +162,10 @@ class KnowledgeBaseService:
             List[Dict[str, str]]: List of {'term': ..., 'definition': ...}.
 
         """
+        if not self.llm_provider:
+             logger.warning("[KBService] No LLM Provider configured. Skipping extraction.")
+             return []
+
         # 1. Chunking
         chunk_size = 8000
         overlap = 500
@@ -333,3 +337,15 @@ class KnowledgeBaseService:
             "references_count": count_refs,
             "claims_count": count_claims,
         }
+
+    async def retrieve_context(self, query: str) -> str:
+        """Retrieves context for a query.
+
+        Args:
+            query (str): Search query.
+
+        Returns:
+            str: Retrieved context (mocked for now).
+        """
+        # Placeholder implementation
+        return f"Context for {query}"

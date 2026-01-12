@@ -65,7 +65,7 @@ class PanelAgent(BaseAgent):
         ---
         """
 
-    async def execute(self, state: WorkflowState, system_instruction: str | None = None, **kwargs) -> WorkflowState:
+    async def execute(self, state: WorkflowState | None = None, system_instruction: str | None = None, **kwargs) -> WorkflowState:
         """Executes the Panel Agent logic.
 
         1. Constructs the user prompt.
@@ -89,6 +89,9 @@ class PanelAgent(BaseAgent):
             - AgentExecutionError: If LLM fails or schema validation fails.
         """
         # 1. Construct User Prompt
+        if state is None:
+            raise ValueError("PanelAgent requires a valid WorkflowState.")
+
         user_content = self.construct_user_prompt(state)
 
         # 2. Call LLM with strict PanelAudit schema
