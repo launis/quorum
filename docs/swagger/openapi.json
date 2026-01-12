@@ -210,7 +210,7 @@
           "Orchestration"
         ],
         "summary": "Start Execution",
-        "description": "Initiates a new workflow execution asynchronously.\n\nSupports Multipart/Form-Data for optional file uploads alongside JSON inputs.\n\nArgs:\n    request (Request): The raw FastAPI request (for parsing form data).\n    background_tasks (BackgroundTasks): Logic for handling async operations.\n    engine (WorkflowEngine): The workflow engine dependency.\n    current_user (CurrentUserDep): The authenticated user initiating the run.\n\nReturns:\n    dict: The status and execution_id.\n\nRaises:\n    HTTPException: If workflow_id is missing from the form data.",
+        "description": "Initiates a new workflow execution asynchronously.\n\nSupports Multipart/Form-Data for optional file uploads alongside JSON inputs.\n\nArgs:\n    request (Request): The raw FastAPI request (for parsing file keys).\n    json_payload (str): The raw JSON string containing execution config.\n    background_tasks (BackgroundTasks): Logic for handling async operations.\n    engine (WorkflowEngine): The workflow engine dependency.\n    current_user (CurrentUserDep): The authenticated user initiating the run.\n\nReturns:\n    dict: The status and execution_id.",
         "operationId": "execute_workflow_executions_post",
         "parameters": [
           {
@@ -230,6 +230,16 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_execute_workflow_executions_post"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "The ID of the newly started execution background job.",
@@ -4674,6 +4684,19 @@
           "source_step_id"
         ],
         "title": "Body_clone_step_builder_steps_clone_post"
+      },
+      "Body_execute_workflow_executions_post": {
+        "properties": {
+          "json_payload": {
+            "type": "string",
+            "title": "Json Payload"
+          }
+        },
+        "type": "object",
+        "required": [
+          "json_payload"
+        ],
+        "title": "Body_execute_workflow_executions_post"
       },
       "Body_extract_concepts_from_file_or_text_tools_extract_concepts_post": {
         "properties": {

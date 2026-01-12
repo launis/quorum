@@ -2463,7 +2463,6 @@
                 "step_coach": "deep",
                 "step_xai": "fast"
             },
-
             "is_public": true,
             "updated_at": "2026-01-03T14:25:30.174660"
         }

@@ -4,13 +4,13 @@ This module provides endpoints for creating workflows, starting executions,
 monitoring progress, and retrieving results.
 """
 
-import json
 import logging
 from typing import Annotated, Any
 
 from fastapi import (
     APIRouter,
     BackgroundTasks,
+    Form,
     HTTPException,
     Path,
     Request,
@@ -20,14 +20,18 @@ from fastapi import (
     Query as APIQuery,
 )
 from pydantic import BaseModel, Field
+from starlette.datastructures import UploadFile as StarletteUploadFile
 
 from backend.dependencies import CurrentUserDep, EngineDep
 from backend.models.auth import UserRole  # Required for role check
 from backend.models.state import WorkflowState  # Required for migration/hydration logic
+from backend.schemas.execution import ExecutionRequest
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Orchestration"])
+
+
 
 # --- Request Models ---
 
@@ -91,24 +95,25 @@ async def create_workflow(request: ExecutionWorkflowCreateRequest, engine: Engin
     response_description="The ID of the newly started execution background job.",
 )
 async def execute_workflow(
-    request: Request, background_tasks: BackgroundTasks, engine: EngineDep, current_user: CurrentUserDep
+    request: Request,
+    json_payload: Annotated[str, Form(alias="json_payload")],
+    background_tasks: BackgroundTasks,
+    engine: EngineDep,
+    current_user: CurrentUserDep,
 ):
     """Initiates a new workflow execution asynchronously.
 
     Supports Multipart/Form-Data for optional file uploads alongside JSON inputs.
 
     Args:
-        request (Request): The raw FastAPI request (for parsing form data).
+        request (Request): The raw FastAPI request (for parsing file keys).
+        json_payload (str): The raw JSON string containing execution config.
         background_tasks (BackgroundTasks): Logic for handling async operations.
         engine (WorkflowEngine): The workflow engine dependency.
         current_user (CurrentUserDep): The authenticated user initiating the run.
 
     Returns:
         dict: The status and execution_id.
-
-    Raises:
-        HTTPException: If workflow_id is missing from the form data.
-
     """
     # Quota Enforcement (Phase 5)
     logger.info("[Router] Trace: 1. Request Received. Checking Quota...")
@@ -121,39 +126,57 @@ async def execute_workflow(
         raise HTTPException(status_code=402, detail="Organization Quota Exceeded. Please upgrade your tier.")
 
     try:
-        logger.info("[Router] Trace: 2. Quota OK. Parsing Form...")
-        form = await request.form()
+        logger.info("[Router] Trace: 2. Quota OK. Processing Payload...")
 
-        workflow_id = form.get("workflow_id")
-        if not workflow_id or not isinstance(workflow_id, str):
-            raise HTTPException(status_code=422, detail="Missing or invalid workflow_id")
+        # Parse & Validate Payload Manually (Robustness)
+        try:
+            request_data = ExecutionRequest.model_validate_json(json_payload)
+        except Exception as e:
+            raise HTTPException(status_code=422, detail=f"Invalid JSON Payload: {str(e)}") from e
+
+        # Map Pydantic Schema to Internal Logic
+        workflow_id = request_data.project_id
+        inputs = request_data.settings
 
         # GUARD 1: Fail Fast - Check if Workflow Exists (Sync)
         wf_exists = await engine.repository.get_workflow_by_id(workflow_id)
         if not wf_exists:
             raise HTTPException(status_code=404, detail=f"Workflow not found: {workflow_id}")
 
-        raw_inputs = form.get("inputs")
-        inputs_str: str = raw_inputs if isinstance(raw_inputs, str) else "{}"
-        inputs = json.loads(inputs_str or "{}")
-
+        # Parse Files (Dynamic Keys via Request.form)
+        form = await request.form()
         files_map = {}
         for key, value in form.items():
-            if isinstance(value, UploadFile) and value.filename:
+            # Check for StarletteUploadFile (robustness)
+            if isinstance(value, (UploadFile, StarletteUploadFile)) and value.filename:
                 content = await value.read()
                 files_map[key] = (value.filename, content)
 
-        # GUARD 2: Check Required Files (Simple Heuristic for Phase 2)
-        # If workflow has 'audit' in name, expect standard evidence files
+        # GUARD 2: Check Required Files/Inputs (Simple Heuristic for Phase 2)
+        # If workflow has 'audit' in name, expect standard evidence keys (file OR text)
         if "audit" in workflow_id.lower() or "audit" in wf_exists.get("name", "").lower():
-            required_files = ["history_text", "product_text", "reflection_text"]
-            missing = [f for f in required_files if f not in files_map]
+            required_keys = ["history_text", "product_text", "reflection_text"]
+
+            # SCAVENGE: Check for missing keys in the raw form data
+            # (Dio/Flutter on Web might send files as simple form fields if content-type is text)
+            for key in required_keys:
+                if key not in files_map and key not in inputs and key in form:
+                    val = form[key]
+                    if isinstance(val, str):
+                        inputs[key] = val
+                    elif isinstance(val, (UploadFile, StarletteUploadFile)):
+                        content = await val.read()
+                        # Use filename if available, else key name + .txt
+                        fname = val.filename or f"{key}.txt"
+                        files_map[key] = (fname, content)
+
+            missing = [k for k in required_keys if k not in files_map and k not in inputs]
             if missing:
                 raise HTTPException(
                     status_code=400, detail=f"Missing required evidence files for Audit: {', '.join(missing)}"
                 )
 
-        logger.info(f"[Router] Trace: 3. Form Parsed. Files: {len(files_map)}. Writing to DB/Storage...")
+        logger.info(f"[Router] Trace: 3. Payload Validated. Files: {len(files_map)}. Writing to DB/Storage...")
 
         # Inject User Identity into Execution Record
         execution_id = await engine.create_execution(

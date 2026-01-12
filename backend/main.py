@@ -194,14 +194,24 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     """Handler for Pydantic/FastAPI validation errors.
 
     Returns 422 with standardized APIError.
+    Sanitizes errors to remove non-serializable 'input' (e.g. UploadFile).
     """
     logger.warning(f"Request Validation Failed: {exc.errors()}")
+    
+    # Sanitize errors: remove 'input' field which may contain bytes/UploadFile
+    safe_errors = []
+    for e in exc.errors():
+        e_copy = e.copy()
+        if "input" in e_copy:
+            del e_copy["input"]
+        safe_errors.append(e_copy)
+
     return JSONResponse(
         status_code=422,
         content=APIError(
             error_code="VALIDATION_ERROR",
             message="Request validation failed",
-            details=exc.errors(),  # Pydantic error details
+            details=safe_errors,
         ).model_dump(),
     )
 

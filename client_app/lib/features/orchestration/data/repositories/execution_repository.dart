@@ -83,11 +83,15 @@ class ExecutionRepository {
   /// - Returns the created execution ID.
   TaskEither<AppError, String> createExecution(ExecutionInput input) {
     return TaskEither.tryCatch(() async {
-      // Backend expects FormData for execution creation
-      // Inputs must be a JSON string
+      // Backend expects 'json_payload' field containing the ExecutionRequest schema
+      final executionRequest = {
+        'project_id': input.workflowId,
+        'settings': input.inputs,
+        'description': null, // Optional
+      };
+
       final formDataMap = <String, dynamic>{
-        'workflow_id': input.workflowId,
-        'inputs': jsonEncode(input.inputs),
+        'json_payload': jsonEncode(executionRequest),
       };
 
       // Add files if present
@@ -106,6 +110,10 @@ class ExecutionRepository {
             file.bytes!,
             filename: file.name,
           );
+        } else {
+          // CRITICAL FIX: Prevent silent dropping of files (which causes Backend 400).
+          // If neither path (IO) nor bytes (Web/Other) are available, the file is invalid.
+          throw const AppError.validation(ValidationErrorReason.emptyInput);
         }
       }
 

@@ -190,3 +190,8 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
     *   **Concept**: Shift from rigid "Slot-Based" inputs (`History`, `Product`) to a "Tag-Based Artifact Collection" (`List[Artifact]`).
     *   **Enablement**: Allows arbitrary number of files, auto-routing via semantic tags, and mass-scale case law analysis.
     *   **Effort**: High (Core Engine & Prompt Logic Refactor).
+
+4.  **Database-Driven Workflow Definitions**:
+    *   **Current State**: Hardcoded logic in `execution_router.py` handles specific workflow cases (e.g., "Audit" expects 3 specific files).
+    *   **Interim Strategy**: Continue using hardcoded "Case Logic" where `audit = 3 files` is defined in code but executed via DB-stored steps.
+    *   **Future Goal**: Fully dynamic definition where the Database stores the *File Requirements* (input schema) alongside the steps, removing hardcoded logic from the router.
