@@ -296,8 +296,7 @@ async def delete_user(
         # Check if it was "Last Admin" related from service, usually Permission or Value
         if "Last Admin" in str(e) or "last Administrator" in str(e):
             raise HTTPException(
-                status_code=409,
-                 detail={"error_code": "LAST_ADMIN_PROTECTION", "message": str(e)}
+                status_code=409, detail={"error_code": "LAST_ADMIN_PROTECTION", "message": str(e)}
             ) from e
         raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
