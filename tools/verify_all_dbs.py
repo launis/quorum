@@ -1,3 +1,5 @@
+"""Utility to verify database consistency across environments."""
+
 import json
 from pathlib import Path
 
@@ -8,6 +10,7 @@ FILES_TO_CHECK = [
 ]
 
 def check_file(filepath):
+    """Checks a specific database file for workflow counts and non-compliant names."""
     print(f"\n--- Checking {filepath} ---")
     path = Path(filepath)
     if not path.exists():
@@ -15,14 +18,14 @@ def check_file(filepath):
         return
 
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             data = json.load(f)
-        
+
         # seed_data.json has "workflows": [...] (list)
         # db files usually have "workflows": {...} (dict) or list depending on implementation
-        
+
         workflows = data.get("workflows")
-        
+
         if isinstance(workflows, list):
             items = workflows
         elif isinstance(workflows, dict):
@@ -38,7 +41,7 @@ def check_file(filepath):
             count += 1
             if not name.lower().startswith("courtroom"):
                 non_courtroom.append(name)
-        
+
         print(f"Total Workflows: {count}")
         if non_courtroom:
             print(f"!! WARNING !! Found {len(non_courtroom)} NON-COURTROOM workflows:")

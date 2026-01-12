@@ -1,7 +1,9 @@
+"""Utility to inspect seed data."""
+
 import json
 
 try:
-    with open(r"C:\src\quorum\backend\seed\seed_data.json", "r", encoding="utf-8") as f:
+    with open(r"C:\src\quorum\backend\seed\seed_data.json", encoding="utf-8") as f:
         data = json.load(f)
 
     workflows = data.get("workflows", [])

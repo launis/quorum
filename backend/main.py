@@ -197,7 +197,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     Sanitizes errors to remove non-serializable 'input' (e.g. UploadFile).
     """
     logger.warning(f"Request Validation Failed: {exc.errors()}")
-    
+
     # Sanitize errors: remove 'input' field which may contain bytes/UploadFile
     safe_errors = []
     for e in exc.errors():
