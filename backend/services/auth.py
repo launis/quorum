@@ -436,7 +436,7 @@ class AuthService:
             # Run Admin Count in thread -> Count iterates list_all
             admin_count = await asyncio.to_thread(self._count_org_admins, target.organization_id)
             if admin_count <= 1:
-                raise ValueError("Cannot delete the last Administrator of an Organization. Promote another user first.")
+                raise RuntimeError("LAST_ADMIN_PROTECTION: Cannot delete the last Administrator of an Organization. Promote another user first.")
 
         # Execute
         # 1. Firebase (if enabled)

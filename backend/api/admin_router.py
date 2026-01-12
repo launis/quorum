@@ -292,6 +292,12 @@ async def delete_user(
         return {"status": "deleted", "uid": user_id}
     except PermissionError as e:
         raise HTTPException(status_code=403, detail=str(e)) from e
+    except RuntimeError as e:
+        if "LAST_ADMIN_PROTECTION" in str(e):
+            raise HTTPException(
+                status_code=409, detail={"error_code": "LAST_ADMIN_PROTECTION", "message": str(e)}
+            ) from e
+        raise HTTPException(status_code=500, detail=str(e)) from e
     except ValueError as e:
         # Check if it was "Last Admin" related from service, usually Permission or Value
         if "Last Admin" in str(e) or "last Administrator" in str(e):
