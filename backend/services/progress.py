@@ -24,7 +24,7 @@ class ProgressTracker(ABC):
     """
 
     @abstractmethod
-    async def start(self, details: dict[str, Any] = None):
+    async def start(self, details: dict[str, Any] | None = None):
         """Signals the process has started.
 
         Args:
@@ -34,7 +34,7 @@ class ProgressTracker(ABC):
         pass
 
     @abstractmethod
-    async def update(self, stage: str, percent: int, details: dict[str, Any] = None):
+    async def update(self, stage: str, percent: int, details: dict[str, Any] | None = None):
         """Updates progress with current stage and percentage.
 
         Args:
@@ -46,7 +46,7 @@ class ProgressTracker(ABC):
         pass
 
     @abstractmethod
-    async def complete(self, result: dict[str, Any] = None):
+    async def complete(self, result: dict[str, Any] | None = None):
         """Signals successful completion.
 
         Args:
@@ -56,7 +56,7 @@ class ProgressTracker(ABC):
         pass
 
     @abstractmethod
-    async def fail(self, error: str, details: dict[str, Any] = None):
+    async def fail(self, error: str, details: dict[str, Any] | None = None):
         """Signals failure/halt.
 
         Args:
@@ -84,14 +84,14 @@ class DatabaseProgressTracker(ProgressTracker):
         self.repository = repository
         self.execution_id = execution_id
 
-    async def start(self, details: dict[str, Any] = None):
+    async def start(self, details: dict[str, Any] | None = None):
         """Sets status to 'started'."""
         payload = {"status": STATUS_STARTED, "start_time": datetime.now().isoformat()}
         if details:
             payload.update(details)
         await self.repository.update_execution(self.execution_id, payload)
 
-    async def update(self, stage: str, percent: int, details: dict[str, Any] = None):
+    async def update(self, stage: str, percent: int, details: dict[str, Any] | None = None):
         """Updates 'current_step' and 'progress' fields in DB."""
         # We map 'stage' to 'current_step' or just stick it in a visible field?
         # The UI likely looks at 'current_step' and 'logs'.
@@ -108,14 +108,14 @@ class DatabaseProgressTracker(ProgressTracker):
             payload.update(details)
         await self.repository.update_execution(self.execution_id, payload)
 
-    async def complete(self, result: dict[str, Any] = None):
+    async def complete(self, result: dict[str, Any] | None = None):
         """Sets status to 'completed' and saves final result."""
         payload = {"status": STATUS_COMPLETED, "end_time": datetime.now().isoformat()}
         if result:
             payload["result"] = result
         await self.repository.update_execution(self.execution_id, payload)
 
-    async def fail(self, error: str, details: dict[str, Any] = None):
+    async def fail(self, error: str, details: dict[str, Any] | None = None):
         """Sets status to 'failed' and saves error message."""
         payload = {"status": STATUS_FAILED, "error": error, "end_time": datetime.now().isoformat()}
         if details:
@@ -137,7 +137,7 @@ class InMemoryProgressTracker(ProgressTracker):
 
         """
         self.callback = callback
-        self.current_state = {}
+        self.current_state: dict[str, Any] = {}
 
     def _emit(self, status: str, payload: dict[str, Any]):
         """Internal helper to emit status.
@@ -152,25 +152,25 @@ class InMemoryProgressTracker(ProgressTracker):
         # Pass the simplified view expected by API consumers
         self.callback(base)
 
-    async def start(self, details: dict[str, Any] = None):
+    async def start(self, details: dict[str, Any] | None = None):
         """Signals start."""
         self._emit(STATUS_STARTED, details or {})
 
-    async def update(self, stage: str, percent: int, details: dict[str, Any] = None):
+    async def update(self, stage: str, percent: int, details: dict[str, Any] | None = None):
         """Signals update."""
         data = {"stage": stage, "percent": percent}
         if details:
             data.update(details)
         self._emit(STATUS_RUNNING, data)
 
-    async def complete(self, result: dict[str, Any] = None):
+    async def complete(self, result: dict[str, Any] | None = None):
         """Signals completion."""
         data = {"percent": 100}
         if result:
             data["result"] = result
         self._emit(STATUS_COMPLETED, data)
 
-    async def fail(self, error: str, details: dict[str, Any] = None):
+    async def fail(self, error: str, details: dict[str, Any] | None = None):
         """Signals failure."""
         data = {"error": error}
         if details:

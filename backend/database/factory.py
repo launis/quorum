@@ -8,17 +8,18 @@ import logging
 
 from backend.database.firestore_repo import FirestoreWorkflowRepository
 from backend.database.repository import AbstractWorkflowRepository, TinyDBRepository
-from backend.database.wrapper import TinyDBClient
+from backend.database.wrapper import AbstractDatabase, TinyDBClient
 from backend.settings import Settings, StorageBackend
 
 logger = logging.getLogger(__name__)
 
 
-async def get_repository(settings: Settings) -> AbstractWorkflowRepository:
+async def get_repository(settings: Settings, db_client: AbstractDatabase | None = None) -> AbstractWorkflowRepository:
     """Factory function to instantiate the appropriate Async Workflow Repository.
 
     Args:
         settings: The application settings object containing 'active_backend'.
+        db_client: Optional pre-initialized database client (e.g. for Tests/Dependency Injection).
 
     Returns:
         An instance of AbstractWorkflowRepository (TinyDBRepository or FirestoreWorkflowRepository).
@@ -40,6 +41,9 @@ async def get_repository(settings: Settings) -> AbstractWorkflowRepository:
             return FirestoreWorkflowRepository(client)
 
         case StorageBackend.MOCK:
+            if db_client:
+                 return TinyDBRepository(db_client)
+
             # Mock DB Path: backend/database/db_mock.json
             # Strictly usage settings.mock_db_path as source of truth.
             db_path = settings.mock_db_path
@@ -48,6 +52,9 @@ async def get_repository(settings: Settings) -> AbstractWorkflowRepository:
             return TinyDBRepository(client)
 
         case StorageBackend.LOCAL:
+            if db_client:
+                 return TinyDBRepository(db_client)
+
             # Prod Local Path: data/db.json
             # Strictly usage settings.prod_db_path as source of truth.
             db_path = settings.prod_db_path

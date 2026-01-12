@@ -39,7 +39,7 @@ class StatePresenter:
         db_source = settings.active_backend.value
 
         # DEBUG TRACE
-        flat = {}
+        flat: dict[str, Any] = {}
 
         # 1. System Status & Safety
         flat["System_Status"] = {
@@ -69,7 +69,7 @@ class StatePresenter:
         }
 
         # MERGED REPORT (Max Simplicity)
-        report = {}
+        report: dict[str, Any] = {}
 
         # 2. Psychological & Behavioral Profile
         if state.step_profiler:
@@ -105,11 +105,11 @@ class StatePresenter:
         # We iterate through all stored audit results (e.g., standard, cognitive, etc.)
         # and merge them into the flat 'scores' dictionary.
 
-        all_scores = {}
+        all_scores: dict[str, Any] = {}
         all_critique = []
 
         # Sources to check: 1. Dynamic Audit Results (New), 2. Legacy Fields (Old)
-        sources_to_process = []
+        sources_to_process: list[Any] = []
 
         # 1. Prefer Dynamic Storage
         if state.audit_results:

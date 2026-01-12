@@ -485,7 +485,7 @@ def _expand_content(text: Any, schemas: dict[str, Any]) -> str:
 
 
 def _build_unified_view(components: list, schema_data: dict[str, Any]) -> str:
-    grouped = {}
+    grouped: dict[str, list[dict[str, Any]]] = {}
     for c in components:
         ctype = c.get("type", "other")
         if ctype not in grouped:
@@ -793,7 +793,7 @@ async def validate_flow(workflow: WorkflowCreate, db: DatabaseDep, registry: Reg
 
     known_keys = ["history_text", "product_text", "reflection_text", "bibliography_context"]
     errors = []
-    trace_log = []
+    trace_log: list[str] = []
     all_steps_config = db.table("steps").all()
     steps_db_map = {s["id"]: s for s in all_steps_config}
     pseudo_state = list(known_keys)

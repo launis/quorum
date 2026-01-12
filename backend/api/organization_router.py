@@ -8,7 +8,7 @@ import logging
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 from backend.dependencies import AuthServiceDep, CurrentUserDep, RepositoryDep
 from backend.models.auth import Organization, SubscriptionStatus, TokenData, UserRole
@@ -56,9 +56,6 @@ class OrganizationResponse(BaseModel):
     quota_limit: float = 10.0
     status: str = "PENDING"  # Mapped from is_active
 
-    from pydantic import model_validator
-
-    @model_validator(mode="before")
     @classmethod
     def set_status_from_active_flag(cls, data: Any) -> Any:
         """Validator to derive status attribute from is_active flag."""

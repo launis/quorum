@@ -31,6 +31,19 @@ get_settings_dep = get_settings
 
 logger = logging.getLogger(__name__)
 
+# Singleton Instances
+_db_client_instance: AbstractDatabase | None = None
+_repository_instance: AbstractWorkflowRepository | None = None
+_registry_instance: AgentRegistry | None = None
+_prompt_builder_instance: PromptBuilder | None = None
+_storage_service_instance: AbstractStorage | None = None
+_document_service_instance: Any | None = None
+_audit_service_instance: AuditService | None = None
+_auth_service_instance: AuthService | None = None
+_usage_service_instance: UsageService | None = None
+_engine_instance: WorkflowEngine | None = None
+
+
 
 def get_db_client_dep() -> AbstractDatabase:
     """Dependency to provide a Singleton Database Client."""
@@ -49,8 +62,12 @@ async def get_async_repository() -> AbstractWorkflowRepository:
         return _repository_instance
 
     settings = get_settings()
+
+    # Pass the Singleton DB Client to ensure shared instance usage (Crucial for Tests/TinyDB)
+    db_client = get_db_client_dep()
+
     # Factory handles logic for Firestore vs TinyDB and Mock/Local options.
-    _repository_instance = await get_repository(settings)
+    _repository_instance = await get_repository(settings, db_client=db_client)
     return _repository_instance
 
 

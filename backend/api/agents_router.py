@@ -114,7 +114,7 @@ async def run_agent(
     summary="List All Agents",
     response_description="A list of available agents containing metadata and schemas.",
 )
-def list_agents(
+async def list_agents(
     workflow_id: str | None = APIQuery(
         None, description="Optional Workflow ID to resolve model strategies contextually."
     ),
@@ -147,12 +147,12 @@ def list_agents(
 
         # Force discovery if empty
         if not registry.agents_map:
-            registry.discover_and_register_agents()
+            await registry.discover_and_register_agents()
 
         # 1. Resolve Global Strategies (for display suffixes)
         try:
-            fast_model = registry.resolve_model_name("fast")
-            deep_model = registry.resolve_model_name("deep")
+            fast_model = await registry.resolve_model_name("fast")
+            deep_model = await registry.resolve_model_name("deep")
         except Exception:
             fast_model = "unknown"
             deep_model = "unknown"

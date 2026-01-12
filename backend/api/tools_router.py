@@ -14,7 +14,7 @@ import requests as req_lib
 from bs4 import BeautifulSoup
 from fastapi import APIRouter, Body, File, HTTPException, UploadFile
 
-from backend.dependencies import DatabaseDep, RegistryDep
+from backend.dependencies import DatabaseDep, RegistryDep, RepositoryDep
 from backend.services.document_service import DocumentService
 
 logger = logging.getLogger(__name__)
@@ -116,7 +116,16 @@ async def extract_concepts_from_file_or_text(
 
         provider = LLMFactory.create_provider(config["provider"], config["model_name"])
 
-        kb_service = KnowledgeBaseService(repository=None, llm_provider=provider)
+        # We need a repository for the service even if just extracting concepts
+        from backend.dependencies import get_async_repository
+
+        # If we didn't inject it, try to get it (but better to inject)
+        # However, for pure extraction without storage, we might pass a dummy or just None if safe
+        # KBService.__init__ type hint says repository: AbstractWorkflowRepository
+        # Let's get the standard one to be safe, though extraction might not use it if we don't call store
+        repo = await get_async_repository()
+        
+        kb_service = KnowledgeBaseService(repository=repo, llm_provider=provider)
 
         # We need a dummy tracker?
         from backend.services.progress import InMemoryProgressTracker
@@ -212,7 +221,9 @@ def _validate_url_safety(url: str):
 
 
 @router.post("/citation-lookup", summary="Resolve Citations", response_description="Resolved context.")
-async def citation_lookup(db: DatabaseDep, registry: RegistryDep, queries: Annotated[list[str], Body(..., embed=True)]):
+async def citation_lookup(
+    db: DatabaseDep, repo: RepositoryDep, registry: RegistryDep, queries: Annotated[list[str], Body(..., embed=True)]
+):
     """Uses the Knowledge Base Service to find context for citations.
 
     Args:
@@ -231,7 +242,7 @@ async def citation_lookup(db: DatabaseDep, registry: RegistryDep, queries: Annot
         # Strict Resolution: Use 'smart' strategy for citation analysis
         config = await registry.resolve_model_config("smart")
 
-        repo = get_async_repository(db)
+        # repo is injected via Dependency
         provider = LLMFactory.create_provider("google", config["model_name"])
 
         kb_service = KnowledgeBaseService(repo, llm_provider=provider)

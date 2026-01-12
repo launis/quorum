@@ -109,7 +109,7 @@ def shared_engine():
     from backend.services.prompt_builder import PromptBuilder
     from backend.services.storage import LocalFileStorage
 
-    storage = LocalFileStorage()
+    storage = LocalFileStorage(base_path=base_dir)
     registry = AgentRegistry(repo)
 
     prompt_builder = PromptBuilder(repo, registry)

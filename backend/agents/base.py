@@ -153,7 +153,7 @@ class BaseAgent(BaseComponent):
 
         raise NotImplementedError(f"[{self.__class__.__name__}] must define 'state_field' or override '_update_state'.")
 
-    async def execute(self, state: WorkflowState, system_instruction: str | None = None, **kwargs) -> WorkflowState:
+    async def execute(self, state: WorkflowState, system_instruction: str | None = None, **kwargs) -> WorkflowState:  # type: ignore[override]
         """Standard execution entry point.
 
         Takes the entire WorkflowState, processes it, and returns the updated state.

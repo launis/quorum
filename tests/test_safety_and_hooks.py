@@ -63,7 +63,7 @@ def shared_engine_safe():
     from backend.services.prompt_builder import PromptBuilder
     from backend.services.storage import LocalFileStorage
 
-    storage = LocalFileStorage()
+    storage = LocalFileStorage(base_path=base_dir)
     registry = AgentRegistry(repo)
     # No async discovery in sync fixture, but tests seem to inject mocks later or use db state.
 

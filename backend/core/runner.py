@@ -71,6 +71,11 @@ class PipelineRunner:
                 organization_id=organization_id,  # Populated from Exec Record
                 user_id=user_id,  # Populated from Exec Record
                 inputs=input_data,
+                start_time=datetime.now(),
+                audit_results={},
+                reasoning_context={},
+                last_reasoning_trace=None,
+                aux_data={},
             )
 
             # Inject Global Configuration

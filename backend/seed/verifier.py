@@ -227,7 +227,7 @@ def load_firestore_data(credentials_path: Path, seed_keys: set[str]) -> dict[str
         return {}
 
 
-def run_verification(seed_path: Path, db_prod_path: Path, db_mock_path: Path, firestore_creds_path: Path = None):
+def run_verification(seed_path: Path, db_prod_path: Path, db_mock_path: Path, firestore_creds_path: Path | None = None):
     """Runs the full verification suite between seed, prod, mock, and firestore."""
     print("----------------------------------------------------------------")
     print("  DATABASE SYNCHRONIZATION VERIFIER")

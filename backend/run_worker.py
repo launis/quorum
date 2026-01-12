@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+from typing import Any, cast
 
 from arq.worker import create_worker
 
@@ -15,7 +16,7 @@ from backend.worker import WorkerSettings
 async def main():
     """Manual entrypoint for Arq Worker to avoid CLI loop issues."""
     try:
-        worker = create_worker(WorkerSettings)
+        worker = create_worker(cast(Any, WorkerSettings))
         logging.info("Starting Arq Worker (Manual Script)...")
         await worker.async_run()
     except KeyboardInterrupt:

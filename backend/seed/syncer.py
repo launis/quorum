@@ -10,7 +10,7 @@ from backend.settings import get_settings
 settings = get_settings()
 
 
-def sync_db_file(source_path: Path, target_path: Path):
+def sync_db_file(source_path: str | Path | None = None, target_path: str | Path | None = None):
     """Syncs a JSON database file from source to target.
 
     Preserves runtime tables (audit_logs, executions, etc.) from the target.
@@ -25,8 +25,10 @@ def sync_db_file(source_path: Path, target_path: Path):
     # But we want to be explicit. If this runs via wrapper that sets USE_MOCK_DB=false,
     # then start_db_path is prod_db_path.
 
-    source_path = settings.start_db_path
-    target_path = settings.seed_data_path
+    if source_path is None:
+        source_path = settings.start_db_path
+    if target_path is None:
+        target_path = settings.seed_data_path
 
     if not os.path.exists(source_path):
         print(f"[Syncer] Error: Source DB {source_path} not found.")

@@ -70,7 +70,7 @@ async def startup(ctx: Any) -> None:
     db_client = get_db_client_dep()
 
     # 2. Services
-    repo = get_async_repository(db_client)
+    repo = await get_async_repository()
     storage = get_storage_service_dep()
     doc_service = get_document_service_dep(storage)
 

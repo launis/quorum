@@ -264,6 +264,7 @@ class LiteLLMProvider(LLMProvider):
                 reasoning_token=reasoning_token,
                 token_usage=usage,
                 provider_metadata=response.model_dump() if hasattr(response, "model_dump") else {},
+                tool_calls=[],
             )
 
         except Exception as e:
@@ -317,6 +318,8 @@ class MockProvider(LLMProvider):
             content=content_str,
             reasoning_token="mock_thought_signature_123456",
             token_usage={"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150},
+            tool_calls=[],
+            provider_metadata={},
         )
 
 
@@ -326,7 +329,7 @@ class UnconfiguredProvider(LLMProvider):
     Raises a strict runtime error if execution is attempted before configuration.
     """
 
-    def generate(self, *args, **kwargs) -> LLMResponse:
+    async def generate(self, *args, **kwargs) -> LLMResponse:
         """Raise error on attempt to generate without configuration."""
         raise RuntimeError(
             "CRITICAL: Agent attempted execution with an UNCONFIGURED model. "

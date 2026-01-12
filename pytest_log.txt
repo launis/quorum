@@ -1,0 +1,835 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.2, pytest-9.0.2, pluggy-1.6.0 -- C:\src\quorum\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: C:\src\quorum
+configfile: pytest.ini
+testpaths: tests
+plugins: anyio-4.12.0, logfire-4.16.0, asyncio-1.3.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collecting ... collected 75 items
+
+tests/test_admin_router.py::test_admin_self_test_mocked PASSED           [  1%]
+tests/test_adversarial_security.py::TestAdversarialSecurity::test_adversarial_chat_history_masquerade PASSED [  2%]
+tests/test_adversarial_security.py::TestAdversarialSecurity::test_adversarial_reflection_injection PASSED [  4%]
+tests/test_api.py::test_extract_pdf PASSED                               [  5%]
+tests/test_api.py::test_run_agent_mock PASSED                            [  6%]
+tests/test_api.py::test_admin_reset PASSED                               [  8%]
+tests/test_api_integrity.py::test_delete_step_integrity_violation FAILED [  9%]
+tests/test_api_integrity.py::test_delete_workflow_integrity_violation PASSED [ 10%]
+tests/test_api_integrity.py::test_delete_organization_active_jobs FAILED [ 12%]
+tests/test_api_new_endpoints.py::test_get_models PASSED                  [ 13%]
+tests/test_api_new_endpoints.py::test_self_test PASSED                   [ 14%]
+tests/test_api_new_endpoints.py::test_docs_update PASSED                 [ 16%]
+tests/test_architecture_v2.py::test_reporting_dual_comparison PASSED     [ 17%]
+tests/test_architecture_v2.py::test_reporting_single_judge_fallback PASSED [ 18%]
+tests/test_audit_logs.py::test_audit_access_control FAILED               [ 20%]
+tests/test_audit_logs.py::test_audit_lifecycle_root FAILED               [ 21%]
+tests/test_banned_phrases_api.py::test_banned_phrases_crud FAILED        [ 22%]
+tests/test_banned_phrases_api.py::test_duplicate_phrase PASSED           [ 24%]
+tests/test_builder_api.py::test_list_agents_config PASSED                [ 25%]
+tests/test_builder_api.py::test_workflow_crud_lifecycle PASSED           [ 26%]
+tests/test_builder_api.py::test_orphan_step_deletion PASSED              [ 28%]
+tests/test_db_scenarios.py::test_missing_step_definition ERROR           [ 29%]
+tests/test_db_scenarios.py::test_empty_prompt_content ERROR              [ 30%]
+tests/test_db_scenarios.py::test_missing_prompt_component ERROR          [ 32%]
+tests/test_e2e_api.py::test_e2e_api_mock_db FAILED                       [ 33%]
+tests/test_e2e_api.py::test_e2e_api_firestore_db PASSED                  [ 34%]
+tests/test_environments.py::test_env_mock_db_default PASSED              [ 36%]
+tests/test_environments.py::test_env_local_production PASSED             [ 37%]
+tests/test_environments.py::test_firestore_client_instantiation PASSED   [ 38%]
+tests/test_error_contract.py::test_validation_error_contract PASSED      [ 40%]
+tests/test_error_contract.py::test_http_exception_contract PASSED        [ 41%]
+tests/test_error_contract.py::test_execution_validation_logic PASSED     [ 42%]
+tests/test_fusion_deep.py::test_compile_fusion_flow ERROR                [ 44%]
+tests/test_fusion_deep.py::test_panel_agent_fan_out PASSED               [ 45%]
+tests/test_guard_hybrid.py::test_hybrid_guard_triggers_english PASSED    [ 46%]
+tests/test_guard_hybrid.py::test_hybrid_guard_triggers_finnish PASSED    [ 48%]
+tests/test_guard_hybrid.py::test_hybrid_guard_clean_input PASSED         [ 49%]
+tests/test_iam.py::test_root_can_list_organizations PASSED               [ 50%]
+tests/test_iam.py::test_admin_cannot_list_all_organizations PASSED       [ 52%]
+tests/test_iam.py::test_root_can_create_organization PASSED              [ 53%]
+tests/test_iam.py::test_create_duplicate_organization_fails PASSED       [ 54%]
+tests/test_iam.py::test_member_cannot_create_organization PASSED         [ 56%]
+tests/test_iam.py::test_get_my_organization_admin PASSED                 [ 57%]
+tests/test_iam.py::test_fetch_nonexistent_organization PASSED            [ 58%]
+tests/test_judge_sanity.py::TestJudgeSanity::test_judge_sanity_execution PASSED [ 60%]
+tests/test_last_admin_protection.py::test_last_admin_cannot_delete_self PASSED [ 61%]
+tests/test_last_admin_protection.py::test_last_admin_cannot_be_demoted PASSED [ 62%]
+tests/test_last_admin_protection.py::test_second_admin_allows_deletion PASSED [ 64%]
+tests/test_last_admin_protection.py::test_root_can_bypass_checks_if_orphan_org_logic_not_strict PASSED [ 65%]
+tests/test_live_llm.py::TestLiveLLM::test_live_critical_schemas_validity SKIPPED [ 66%]
+tests/test_live_llm.py::TestLiveLLM::test_live_gemini_connectivity PASSED [ 68%]
+tests/test_operational_hardening.py::test_ssrf_blocking_localhost PASSED [ 69%]
+tests/test_operational_hardening.py::test_ssrf_blocking_private_ip PASSED [ 70%]
+tests/test_operational_hardening.py::test_quota_enforcement PASSED       [ 72%]
+tests/test_org_management.py::test_create_org_as_root FAILED             [ 73%]
+tests/test_org_management.py::test_create_org_as_admin_forbidden PASSED  [ 74%]
+tests/test_org_management.py::test_delete_org_as_admin_forbidden PASSED  [ 76%]
+tests/test_org_management.py::test_list_orgs_as_admin_forbidden PASSED   [ 77%]
+tests/test_org_management.py::test_delete_system_org_forbidden PASSED    [ 78%]
+tests/test_org_management.py::test_delete_org_with_users_conflict FAILED [ 80%]
+tests/test_org_management.py::test_force_delete_org_success FAILED       [ 81%]
+tests/test_safety_and_hooks.py::test_fork_step_safety ERROR              [ 82%]
+tests/test_safety_and_hooks.py::test_python_hooks_execution PASSED       [ 84%]
+tests/test_schema_validation.py::test_schema_validation_success PASSED   [ 85%]
+tests/test_schema_validation.py::test_schema_validation_failure_retry PASSED [ 86%]
+tests/test_security_hooks.py::test_pii_sanitization PASSED               [ 88%]
+tests/test_security_hooks.py::test_banned_phrases_detection PASSED       [ 89%]
+tests/test_security_hooks.py::test_banned_phrases_empty PASSED           [ 90%]
+tests/test_system_resilience.py::TestSystemResilienceAsync::test_create_workflow_db_failure PASSED [ 92%]
+tests/test_system_resilience.py::test_reporting_hook_catches_exceptions PASSED [ 93%]
+tests/test_system_resilience.py::test_reporting_hook_handles_mixed_data_types PASSED [ 94%]
+tests/test_v2_5_admin_flows.py::test_global_settings_persistence PASSED  [ 96%]
+tests/test_v2_5_admin_flows.py::test_organization_lifecycle_saas FAILED  [ 97%]
+tests/test_workflow_construction.py::test_workflow_construction FAILED   [ 98%]
+tests/test_workflow_integration.py::test_full_workflow_execution SKIPPED [100%]
+
+=================================== ERRORS ====================================
+_______________ ERROR at setup of test_missing_step_definition ________________
+
+test_db_path = 'C:\\Users\\risto\\AppData\\Local\\Temp\\pytest-of-risto\\pytest-79\\test_missing_step_definition0\\test_db.json'
+
+    @pytest.fixture
+    def engine(test_db_path):
+        """Initialize WorkflowEngine with temp DB."""
+        client = TinyDBClient(test_db_path)
+        repo = TinyDBRepository(client)
+        # Initialize Engine with explicit repository (bypassing auto-wiring)
+        # Initialize Engine with explicit repository (bypassing auto-wiring)
+        from backend.services.agent_registry import AgentRegistry
+        from backend.services.document_service import DocumentService
+        from backend.services.prompt_builder import PromptBuilder
+        from backend.services.storage import LocalFileStorage
+    
+>       storage = LocalFileStorage()
+                  ^^^^^^^^^^^^^^^^^^
+E       TypeError: LocalFileStorage.__init__() missing 1 required positional argument: 'base_path'
+
+tests\test_db_scenarios.py:31: TypeError
+_________________ ERROR at setup of test_empty_prompt_content _________________
+
+test_db_path = 'C:\\Users\\risto\\AppData\\Local\\Temp\\pytest-of-risto\\pytest-79\\test_empty_prompt_content0\\test_db.json'
+
+    @pytest.fixture
+    def engine(test_db_path):
+        """Initialize WorkflowEngine with temp DB."""
+        client = TinyDBClient(test_db_path)
+        repo = TinyDBRepository(client)
+        # Initialize Engine with explicit repository (bypassing auto-wiring)
+        # Initialize Engine with explicit repository (bypassing auto-wiring)
+        from backend.services.agent_registry import AgentRegistry
+        from backend.services.document_service import DocumentService
+        from backend.services.prompt_builder import PromptBuilder
+        from backend.services.storage import LocalFileStorage
+    
+>       storage = LocalFileStorage()
+                  ^^^^^^^^^^^^^^^^^^
+E       TypeError: LocalFileStorage.__init__() missing 1 required positional argument: 'base_path'
+
+tests\test_db_scenarios.py:31: TypeError
+_______________ ERROR at setup of test_missing_prompt_component _______________
+
+test_db_path = 'C:\\Users\\risto\\AppData\\Local\\Temp\\pytest-of-risto\\pytest-79\\test_missing_prompt_component0\\test_db.json'
+
+    @pytest.fixture
+    def engine(test_db_path):
+        """Initialize WorkflowEngine with temp DB."""
+        client = TinyDBClient(test_db_path)
+        repo = TinyDBRepository(client)
+        # Initialize Engine with explicit repository (bypassing auto-wiring)
+        # Initialize Engine with explicit repository (bypassing auto-wiring)
+        from backend.services.agent_registry import AgentRegistry
+        from backend.services.document_service import DocumentService
+        from backend.services.prompt_builder import PromptBuilder
+        from backend.services.storage import LocalFileStorage
+    
+>       storage = LocalFileStorage()
+                  ^^^^^^^^^^^^^^^^^^
+E       TypeError: LocalFileStorage.__init__() missing 1 required positional argument: 'base_path'
+
+tests\test_db_scenarios.py:31: TypeError
+_________________ ERROR at setup of test_compile_fusion_flow __________________
+
+    @pytest.fixture(scope="module")
+    def shared_engine():
+        """Setup shared WorkflowEngine instance."""
+        # Use unique dir to avoid lock issues
+        base_dir = f"test_fusion_{uuid.uuid4().hex}"
+        os.makedirs(base_dir, exist_ok=True)
+        db_path = os.path.join(base_dir, "db.json")
+    
+        # 1. Setup DB
+        db = TinyDB(db_path)
+        repo = TinyDBRepository(db)
+    
+        # 2. Seed Data
+        try:
+            # Assuming run from root
+            with open("backend/seed/seed_data.json", encoding="utf-8") as f:
+                seed = json.load(f)
+    
+            repo.db.drop_tables()
+            if "workflows" in seed:
+                repo.db.table("workflows").insert_multiple(seed["workflows"])
+            if "components" in seed:
+                repo.db.table("components").insert_multiple(seed["components"])
+            if "steps" in seed:
+                repo.db.table("steps").insert_multiple(seed["steps"])
+        except Exception as e:
+            print(f"Seeding failed: {e}")
+            db.close()
+            shutil.rmtree(base_dir, ignore_errors=True)
+            raise e
+    
+        # 3. Create Engine
+        from backend.services.agent_registry import AgentRegistry
+        from backend.services.document_service import DocumentService
+        from backend.services.prompt_builder import PromptBuilder
+        from backend.services.storage import LocalFileStorage
+    
+>       storage = LocalFileStorage()
+                  ^^^^^^^^^^^^^^^^^^
+E       TypeError: LocalFileStorage.__init__() missing 1 required positional argument: 'base_path'
+
+tests\test_fusion_deep.py:112: TypeError
+___________________ ERROR at setup of test_fork_step_safety ___________________
+
+    @pytest.fixture(scope="module")
+    def shared_engine_safe():
+        """Create shared engine for safety tests."""
+        base_dir = f"test_safety_{uuid.uuid4().hex}"
+        os.makedirs(base_dir, exist_ok=True)
+        db_path = os.path.join(base_dir, "db.json")
+    
+        db = TinyDB(db_path)
+        repo = TinyDBRepository(db)
+    
+        try:
+            # Load Seeds
+            with open("backend/seed/seed_data.json", encoding="utf-8") as f:
+                seed = json.load(f)
+            repo.db.drop_tables()
+            if "workflows" in seed:
+                repo.db.table("workflows").insert_multiple(seed["workflows"])
+            if "components" in seed:
+                repo.db.table("components").insert_multiple(seed["components"])
+            if "steps" in seed:
+                repo.db.table("steps").insert_multiple(seed["steps"])
+    
+            # Inject Mock System Config to prevent AgentRegistry failure
+            repo.db.table("system_config").insert(
+                {
+                    "type": "model_registry",
+                    "models": {
+                        "mock_provider": {
+                            "fast": {"model_name": "mock-fast", "provider": "mock"},
+                            "deep": {"model_name": "mock-deep", "provider": "mock"},
+                        }
+                    },
+                }
+            )
+    
+        except Exception as e:
+            db.close()
+            shutil.rmtree(base_dir, ignore_errors=True)
+            raise e
+    
+        from backend.services.agent_registry import AgentRegistry
+        from backend.services.document_service import DocumentService
+        from backend.services.prompt_builder import PromptBuilder
+        from backend.services.storage import LocalFileStorage
+    
+>       storage = LocalFileStorage()
+                  ^^^^^^^^^^^^^^^^^^
+E       TypeError: LocalFileStorage.__init__() missing 1 required positional argument: 'base_path'
+
+tests\test_safety_and_hooks.py:66: TypeError
+================================== FAILURES ===================================
+____________________ test_delete_step_integrity_violation _____________________
+
+client = <httpx.AsyncClient object at 0x000002B301C8BBB0>
+admin_token_headers = {'Authorization': 'Bearer mock_token'}
+
+    @pytest.mark.asyncio
+    async def test_delete_step_integrity_violation(client: AsyncClient, admin_token_headers):
+        """Test that deleting a step used in a workflow raises 409."""
+        # 1. Create a Step
+        step_payload = {"id": "step_critical", "name": "Critical Step", "component": "Judge", "execution_config": {}}
+        res = await client.post("/config/steps", json=step_payload, headers=admin_token_headers)
+        assert res.status_code == 200, f"Setup failed: {res.text}"
+    
+        # 2. Create a Workflow using that Step
+        wf_payload = {
+            "id": "wf_dependent",
+            "name": "Dependent Workflow",
+            "steps": ["step_critical"],
+            "organization_id": "system",
+        }
+        # Note: Endpoint requires ROOT/MANAGER. admin_token_headers usually implies ROOT in these tests.
+        res = await client.post("/builder/workflows", json=wf_payload, headers=admin_token_headers)
+        assert res.status_code == 200, "Workflow setup failed"
+        wf_id = res.json()["id"]
+    
+        # 3. Attempt to Delete Step -> EXPECT 409
+        res = await client.delete("/config/steps/step_critical", headers=admin_token_headers)
+>       assert res.status_code == 409
+E       assert 200 == 409
+E        +  where 200 = <Response [200 OK]>.status_code
+
+tests\test_api_integrity.py:48: AssertionError
+---------------------------- Captured stdout call -----------------------------
+11:20:46.633 POST /config/steps
+11:20:46.655 POST /builder/workflows
+11:20:49.151 DELETE /config/steps/step_critical
+____________________ test_delete_organization_active_jobs _____________________
+
+client = <httpx.AsyncClient object at 0x000002B301D768B0>
+admin_token_headers = {'Authorization': 'Bearer mock_token'}
+
+    @pytest.mark.asyncio
+    async def test_delete_organization_active_jobs(client: AsyncClient, admin_token_headers):
+        """Test blocking Org deletion if jobs are active."""
+        # 1. Create Org
+        org_res = await client.post(
+            "/organizations/", json={"name": "Busy Corp", "tier": "standard"}, headers=admin_token_headers
+        )
+        assert org_res.status_code == 201 or org_res.status_code == 200
+        org_id = org_res.json()["id"]
+    
+        # 2. Create User in Org
+        user_payload = {"email": "worker@busy.com", "display_name": "Worker", "role": "MEMBER", "password": "password123"}
+        user_res = await client.post(f"/organizations/{org_id}/users", json=user_payload, headers=admin_token_headers)
+>       assert user_res.status_code == 201, f"User creation failed: {user_res.text}"
+E       AssertionError: User creation failed: {"error_code":"HTTP_400","message":"Target Organization 'busy-corp-1097f46e' does not exist.","details":null}
+E       assert 400 == 201
+E        +  where 400 = <Response [400 Bad Request]>.status_code
+
+tests\test_api_integrity.py:115: AssertionError
+---------------------------- Captured stdout call -----------------------------
+11:20:51.109 POST /organizations/
+11:20:51.493 POST /organizations/busy-corp-1097f46e/users
+__________________________ test_audit_access_control __________________________
+
+client = <httpx.AsyncClient object at 0x000002B301FADE10>
+
+    @pytest.mark.asyncio
+    async def test_audit_access_control(client: AsyncClient):
+        """Verify RBAC for Audit Logs.
+    
+        1. Setup: Create Org, Admin, Member using Root (via mock token).
+        2. MEMBER Access -> 403 Forbidden.
+        3. ADMIN Access -> 200 OK (Own Org), 200 OK (Own Actions).
+        4. ROOT Access -> 200 OK (Everything).
+        """
+        # 1. Disable Force-Root for this test to allow multi-user testing
+        app.dependency_overrides.pop(get_current_user_from_header, None)
+    
+        # Use Root Token for Setup (AuthService supports 'mock-token:<uid>' in dev mode)
+        root_header = {"Authorization": "Bearer mock-token:root_master"}
+    
+        # Create Org
+        org_res = await client.post("/organizations/", json={"name": "RBAC Corp", "tier": "standard"}, headers=root_header)
+        with open("test_progress.log", "a") as f:
+            f.write(f"RBAC Setup Org: {org_res.status_code}\n")
+        assert org_res.status_code == 201
+        org_id = org_res.json()["id"]
+    
+        # Create Member
+        try:
+            member_payload = {"email": "mem@rbac.com", "display_name": "Mem", "role": "MEMBER", "password": "password123"}
+            mem_res = await client.post(f"/organizations/{org_id}/users", json=member_payload, headers=root_header)
+            with open("test_progress.log", "a") as f:
+                f.write(f"RBAC Setup Member: {mem_res.status_code}\n")
+            if mem_res.status_code != 201:
+                with open("test_progress.log", "a") as f:
+                    f.write(f"RBAC Setup Member Error Body: {mem_res.text}\n")
+            assert mem_res.status_code == 201
+            mem_uid = mem_res.json()["uid"]
+        except Exception as e:
+            with open("test_progress.log", "a") as f:
+                f.write(f"RBAC Setup Member EXCEPTION: {e}\n")
+>           raise e
+
+tests\test_audit_logs.py:46: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+client = <httpx.AsyncClient object at 0x000002B301FADE10>
+
+    @pytest.mark.asyncio
+    async def test_audit_access_control(client: AsyncClient):
+        """Verify RBAC for Audit Logs.
+    
+        1. Setup: Create Org, Admin, Member using Root (via mock token).
+        2. MEMBER Access -> 403 Forbidden.
+        3. ADMIN Access -> 200 OK (Own Org), 200 OK (Own Actions).
+        4. ROOT Access -> 200 OK (Everything).
+        """
+        # 1. Disable Force-Root for this test to allow multi-user testing
+        app.dependency_overrides.pop(get_current_user_from_header, None)
+    
+        # Use Root Token for Setup (AuthService supports 'mock-token:<uid>' in dev mode)
+        root_header = {"Authorization": "Bearer mock-token:root_master"}
+    
+        # Create Org
+        org_res = await client.post("/organizations/", json={"name": "RBAC Corp", "tier": "standard"}, headers=root_header)
+        with open("test_progress.log", "a") as f:
+            f.write(f"RBAC Setup Org: {org_res.status_code}\n")
+        assert org_res.status_code == 201
+        org_id = org_res.json()["id"]
+    
+        # Create Member
+        try:
+            member_payload = {"email": "mem@rbac.com", "display_name": "Mem", "role": "MEMBER", "password": "password123"}
+            mem_res = await client.post(f"/organizations/{org_id}/users", json=member_payload, headers=root_header)
+            with open("test_progress.log", "a") as f:
+                f.write(f"RBAC Setup Member: {mem_res.status_code}\n")
+            if mem_res.status_code != 201:
+                with open("test_progress.log", "a") as f:
+                    f.write(f"RBAC Setup Member Error Body: {mem_res.text}\n")
+>           assert mem_res.status_code == 201
+E           assert 400 == 201
+E            +  where 400 = <Response [400 Bad Request]>.status_code
+
+tests\test_audit_logs.py:41: AssertionError
+---------------------------- Captured stdout call -----------------------------
+11:21:03.768 POST /organizations/
+11:21:04.152 POST /organizations/rbac-corp-636e9e56/users
+__________________________ test_audit_lifecycle_root __________________________
+
+client = <httpx.AsyncClient object at 0x000002B30208EF50>
+admin_token_headers = {'Authorization': 'Bearer mock_token'}
+
+    @pytest.mark.asyncio
+    async def test_audit_lifecycle_root(client: AsyncClient, admin_token_headers):
+        """Verify the full audit lifecycle as ROOT.
+    
+        1. Create Organization -> Expect ORG_CREATED log.
+        2. Create User in that Org -> Expect USER_CREATED log.
+        3. Delete User -> Expect USER_DELETED log.
+        4. Delete Organization -> Expect ORG_DELETED log.
+        """
+        # 1. Create Organization
+        org_payload = {"name": "Audit Test Corp", "tier": "standard", "quota_limit": 50.0}
+        res = await client.post("/organizations/", json=org_payload, headers=admin_token_headers)
+        assert res.status_code == 201
+        org_id = res.json()["id"]
+    
+        # Verify Log: ORG_CREATED
+        res_logs = await client.get(f"/audit/logs?organization_id={org_id}&action=ORG_CREATED", headers=admin_token_headers)
+        assert res_logs.status_code == 200
+        logs = res_logs.json()
+        assert len(logs) >= 1
+        assert logs[0]["action"] == "ORG_CREATED"
+        assert logs[0]["organization_id"] == org_id
+    
+        # 2. Create User
+        user_payload = {
+            "email": "audited_user@test.com",
+            "display_name": "Audited User",
+            "role": "MEMBER",
+            "password": "password123",
+        }
+        res = await client.post(f"/organizations/{org_id}/users", json=user_payload, headers=admin_token_headers)
+>       assert res.status_code == 201
+E       assert 400 == 201
+E        +  where 400 = <Response [400 Bad Request]>.status_code
+
+tests\test_audit_logs.py:131: AssertionError
+---------------------------- Captured stdout call -----------------------------
+11:21:04.205 POST /organizations/
+11:21:04.617 GET /audit/logs ? action='ORG_CREATED' & organization_id='audit-tes…-7d9bda75'
+11:21:04.822 POST /organizations/audit-test-corp-7d9bda75/users
+__________________________ test_banned_phrases_crud ___________________________
+
+client = <httpx.AsyncClient object at 0x000002B30208E250>
+
+    @pytest.mark.asyncio
+    async def test_banned_phrases_crud(client: AsyncClient):
+        """Test CRUD operations for banned phrases."""
+        # 1. Create
+        unique_phrase = f"test_ban_phrase_{uuid.uuid4()}"
+        payload = {"phrase": unique_phrase, "language": "en"}
+    
+        # Use await
+        response = await client.post("/admin/banned-phrases", json=payload)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "added"
+        assert data["phrase"] == unique_phrase
+    
+        # 2. Read
+        response = await client.get("/admin/banned-phrases")
+        assert response.status_code == 200
+        phrases = response.json()
+    
+        # Check if phrase exists. phrases is list[dict]
+        # 'phrase' key.
+        # API get_banned_phrases returns "list[dict]" (Step 2489)
+        # Repo returns list of dicts.
+        match = [p for p in phrases if p.get("phrase") == unique_phrase]
+        assert match, f"Phrase {unique_phrase} not found in {phrases}"
+    
+        # 3. Delete
+        # Endpoint: /admin/banned-phrases/{phrase}
+        response = await client.delete(f"/admin/banned-phrases/{unique_phrase}")
+        assert response.status_code == 200
+        del_data = response.json()
+        assert del_data["status"] == "removed"
+    
+        # 4. Verify Deletion
+        response = await client.get("/admin/banned-phrases")
+        assert response.status_code == 200
+        phrases = response.json()
+        match = [p for p in phrases if p.get("phrase") == unique_phrase]
+>       assert not match, f"Phrase {unique_phrase} should be deleted but found."
+E       AssertionError: Phrase test_ban_phrase_ea9aec93-4b6f-40b6-ba32-f952e55d94d9 should be deleted but found.
+E       assert not [{'phrase': 'test_ban_phrase_ea9aec93-4b6f-40b6-ba32-f952e55d94d9'}]
+
+tests\test_banned_phrases_api.py:47: AssertionError
+---------------------------- Captured stdout call -----------------------------
+11:21:04.882 POST /admin/banned-phrases
+11:21:04.930 GET /admin/banned-phrases
+11:21:05.136 DELETE /admin/banned-phrases/test_ban_phrase_ea9aec93-4b6f-40b6-ba32-f952e55d94d9
+11:21:05.162 GET /admin/banned-phrases
+____________________________ test_e2e_api_mock_db _____________________________
+
+    def test_e2e_api_mock_db():
+        """E2E: Test basic API endpoints using the Local Mock Database.
+    
+        Target: Ensure default developer environment works.
+        """
+        print("\n[E2E] Starting Mock DB Test...")
+        env = {"USE_MOCK_DB": "true"}
+    
+        try:
+            client = get_reloaded_client(env)
+    
+            headers = {"Authorization": "Bearer mock-token:root_master"}
+    
+            # 1. Check Configuration Endpoint (Read)
+            response = client.get("/config/components", headers=headers)
+            assert response.status_code == 200, f"Failed to get components: {response.text}"
+            data = response.json()
+            assert isinstance(data, list)
+            assert len(data) > 0, "Mock DB should have seed data components"
+    
+            # 2. Check Workflows Endpoint
+            response = client.get("/db/workflows", headers=headers)
+>           assert response.status_code == 200
+E           assert 404 == 200
+E            +  where 404 = <Response [404 Not Found]>.status_code
+
+tests\test_e2e_api.py:56: AssertionError
+
+During handling of the above exception, another exception occurred:
+
+    def test_e2e_api_mock_db():
+        """E2E: Test basic API endpoints using the Local Mock Database.
+    
+        Target: Ensure default developer environment works.
+        """
+        print("\n[E2E] Starting Mock DB Test...")
+        env = {"USE_MOCK_DB": "true"}
+    
+        try:
+            client = get_reloaded_client(env)
+    
+            headers = {"Authorization": "Bearer mock-token:root_master"}
+    
+            # 1. Check Configuration Endpoint (Read)
+            response = client.get("/config/components", headers=headers)
+            assert response.status_code == 200, f"Failed to get components: {response.text}"
+            data = response.json()
+            assert isinstance(data, list)
+            assert len(data) > 0, "Mock DB should have seed data components"
+    
+            # 2. Check Workflows Endpoint
+            response = client.get("/db/workflows", headers=headers)
+            assert response.status_code == 200
+    
+        except Exception as e:
+>           pytest.fail(f"Mock DB E2E Failed: {e}")
+E           Failed: Mock DB E2E Failed: assert 404 == 200
+E            +  where 404 = <Response [404 Not Found]>.status_code
+
+tests\test_e2e_api.py:59: Failed
+---------------------------- Captured stdout call -----------------------------
+
+[E2E] Starting Mock DB Test...
+11:21:17.589 GET /config/components
+11:21:17.805 GET /db/workflows
+___________________________ test_create_org_as_root ___________________________
+
+client_authenticated = <httpx.AsyncClient object at 0x000002B303F4FD10>
+mock_auth_service = <conftest.MockAuthService object at 0x000002B303F58730>
+
+    @pytest.mark.asyncio
+    async def test_create_org_as_root(client_authenticated, mock_auth_service):
+        """Test that ROOT can create an organization."""
+        # Setup Root User
+        mock_auth_service.current_user = ROOT_USER
+    
+        org_data = {"id": "new_corp_root", "name": "New Corp", "tier": "standard", "contact_email": "admin@newcorp.com"}
+        response = await client_authenticated.post("/organizations/", json=org_data)
+>       assert response.status_code == 201
+E       assert 409 == 201
+E        +  where 409 = <Response [409 Conflict]>.status_code
+
+tests\test_org_management.py:37: AssertionError
+---------------------------- Captured stdout call -----------------------------
+11:21:49.054 POST /organizations/
+_____________________ test_delete_org_with_users_conflict _____________________
+
+client_authenticated = <httpx.AsyncClient object at 0x000002B30289A690>
+mock_auth_service = <conftest.MockAuthService object at 0x000002B303F2F5D0>
+
+    @pytest.mark.asyncio
+    async def test_delete_org_with_users_conflict(client_authenticated, mock_auth_service):
+        """Test that deleting a populated org without force=true fails."""
+        mock_auth_service.current_user = ROOT_USER
+    
+        # 1. Create Org
+        org_id = "populated_org"
+        await client_authenticated.post("/organizations/", json={"id": org_id, "name": "Populated"})
+    
+        # 2. Add a User to it (Mocking DB state directly or via API if available)
+        # Using API to create user if possible, or mocking repo.
+        # Let's assume we can create a user.
+        user_data = {"uid": "user1", "email": "user@pop.com", "role": "MEMBER", "organization_id": org_id}
+        # Create user directly in repo/db for speed if no public API, but let's try API if we have access.
+        # Actually, let's just use the fact that the endpoint calls AuthService.delete_organization
+        # We should probably mock the repository response for 'count_users' if we want unit test isolation,
+        # but for integration text, we need real state.
+    
+        # Prerequisite: We need a way to insert a user.
+        # If standard API allows creating users: POST /api/v1/users
+        # If standard API allows creating users: POST /api/v1/users
+        res_create = await client_authenticated.post("/auth/users", json=user_data)
+>       assert res_create.status_code in [200, 201]
+E       assert 400 in [200, 201]
+E        +  where 400 = <Response [400 Bad Request]>.status_code
+
+tests\test_org_management.py:109: AssertionError
+---------------------------- Captured stdout call -----------------------------
+11:21:49.323 POST /organizations/
+11:21:49.339 POST /auth/users
+________________________ test_force_delete_org_success ________________________
+
+client_authenticated = <httpx.AsyncClient object at 0x000002B303F4F290>
+mock_auth_service = <conftest.MockAuthService object at 0x000002B3028FD350>
+
+    @pytest.mark.asyncio
+    async def test_force_delete_org_success(client_authenticated, mock_auth_service):
+        """Test that force=true successfully deletes an org and its users."""
+        mock_auth_service.current_user = ROOT_USER
+        org_id = "force_del_org"
+    
+        # 1. Setup
+        await client_authenticated.post("/organizations/", json={"id": org_id, "name": "To Delete"})
+        await client_authenticated.post(
+            "/auth/users", json={"uid": "user2", "organization_id": org_id, "role": "MEMBER", "email": "u@d.com"}
+        )
+    
+        # 2. Force Delete
+        response = await client_authenticated.delete(f"/organizations/{org_id}?force=true")
+        assert response.status_code == 204
+    
+        # 3. Verify Gone
+        check = await client_authenticated.get("/organizations/")
+        orgs = check.json()
+>       assert not any(o["id"] == org_id for o in orgs)
+E       assert not True
+E        +  where True = any(<generator object test_force_delete_org_success.<locals>.<genexpr> at 0x000002B303F8EF80>)
+
+tests\test_org_management.py:139: AssertionError
+---------------------------- Captured stdout call -----------------------------
+11:21:49.388 POST /organizations/
+11:21:49.473 POST /auth/users
+11:21:49.499 DELETE /organizations/force_del_org ? force='true'
+11:21:50.241 GET /organizations/
+______________________ test_organization_lifecycle_saas _______________________
+
+client_authenticated = <httpx.AsyncClient object at 0x000002B304203890>
+mock_auth_service = <conftest.MockAuthService object at 0x000002B303F0D630>
+
+    @pytest.mark.asyncio
+    async def test_organization_lifecycle_saas(client_authenticated, mock_auth_service):
+        """Verify Org creation with Billing fields and User management."""
+        mock_auth_service.current_user.role = UserRole.ROOT
+    
+        # 1. Create Org with SaaS fields
+        org_payload = {
+            "name": "SaaS Corp",
+            "tier": "premium",
+            "subscription_status": "active",
+            "quota_limit": 5000,
+            "billing_id": "cust_123",
+            "contact_email": "admin@saas.com",
+        }
+        res = await client_authenticated.post("/organizations/", json=org_payload)
+        assert res.status_code == 201
+        org = res.json()
+        org_id = org["id"]
+    
+        assert org["subscription_status"] == "active"
+        assert org["quota_limit"] == 5000
+        assert org["billing_id"] == "cust_123"
+    
+        # 2. Create User in Org
+        user_payload = {"email": "user@saas.com", "display_name": "SaaS User", "role": "MEMBER", "password": "password123"}
+        res = await client_authenticated.post(f"/organizations/{org_id}/users", json=user_payload)
+>       assert res.status_code == 201
+E       assert 400 == 201
+E        +  where 400 = <Response [400 Bad Request]>.status_code
+
+tests\test_v2_5_admin_flows.py:68: AssertionError
+---------------------------- Captured stdout call -----------------------------
+11:21:55.253 POST /organizations/
+11:21:55.525 POST /organizations/saas-corp-8a397b49/users
+_________________________ test_workflow_construction __________________________
+
+    @pytest.mark.asyncio
+    async def test_workflow_construction():
+        """Verify workflow construction logic."""
+        print("Testing Workflow Construction...")
+    
+        # Initialize Engine with Mock DB (Explicitly pointed or rely on env)
+        # Using relative path assuming running from root
+        db_path = "data/db_mock.json"
+        if not os.path.exists(db_path):
+            # Fallback for CI if needed, or assume setup
+            pass
+    
+        # Manually wire to ensure we are reading from the file we expect
+        from backend.services.agent_registry import AgentRegistry
+        from backend.services.document_service import DocumentService
+        from backend.services.prompt_builder import PromptBuilder
+        from backend.services.storage import LocalFileStorage
+    
+        client = TinyDBClient(db_path)
+        repo = TinyDBRepository(client)
+    
+>       storage = LocalFileStorage()
+                  ^^^^^^^^^^^^^^^^^^
+E       TypeError: LocalFileStorage.__init__() missing 1 required positional argument: 'base_path'
+
+tests\test_workflow_construction.py:33: TypeError
+---------------------------- Captured stdout call -----------------------------
+Testing Workflow Construction...
+============================== warnings summary ===============================
+.venv\Lib\site-packages\litellm\litellm_core_utils\logging_utils.py:273: 17 warnings
+  C:\src\quorum\.venv\Lib\site-packages\litellm\litellm_core_utils\logging_utils.py:273: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+backend\models\llm.py:13
+  C:\src\quorum\backend\models\llm.py:13: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class LLMResponse(BaseModel):
+
+backend\models\settings.py:6
+  C:\src\quorum\backend\models\settings.py:6: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class SystemSettings(BaseModel):
+
+backend\main.py:240
+tests/test_e2e_api.py::test_e2e_api_mock_db
+tests/test_e2e_api.py::test_e2e_api_firestore_db
+  C:\src\quorum\backend\main.py:240: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+.venv\Lib\site-packages\fastapi\applications.py:4576
+.venv\Lib\site-packages\fastapi\applications.py:4576
+tests/test_e2e_api.py::test_e2e_api_mock_db
+tests/test_e2e_api.py::test_e2e_api_mock_db
+tests/test_e2e_api.py::test_e2e_api_firestore_db
+tests/test_e2e_api.py::test_e2e_api_firestore_db
+  C:\src\quorum\.venv\Lib\site-packages\fastapi\applications.py:4576: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)
+
+backend\main.py:241
+tests/test_e2e_api.py::test_e2e_api_mock_db
+tests/test_e2e_api.py::test_e2e_api_firestore_db
+  C:\src\quorum\backend\main.py:241: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+tests\test_org_management.py:16
+  C:\src\quorum\tests\test_org_management.py:16: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow().isoformat(),
+
+tests\test_org_management.py:25
+  C:\src\quorum\tests\test_org_management.py:25: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow().isoformat(),
+
+tests/test_api_integrity.py: 3 warnings
+tests/test_audit_logs.py: 2 warnings
+tests/test_banned_phrases_api.py: 2 warnings
+tests/test_error_contract.py: 3 warnings
+tests/test_last_admin_protection.py: 4 warnings
+tests/test_operational_hardening.py: 3 warnings
+tests/test_org_management.py: 7 warnings
+tests/test_v2_5_admin_flows.py: 2 warnings
+  C:\src\quorum\tests\conftest.py:79: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow().isoformat(),
+
+tests/test_api_integrity.py: 1 warning
+tests/test_audit_logs.py: 2 warnings
+tests/test_iam.py: 3 warnings
+tests/test_last_admin_protection.py: 2 warnings
+tests/test_operational_hardening.py: 1 warning
+tests/test_org_management.py: 2 warnings
+tests/test_v2_5_admin_flows.py: 2 warnings
+  C:\src\quorum\backend\services\audit_service.py:50: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    timestamp=datetime.utcnow().isoformat(),
+
+tests/test_builder_api.py::test_list_agents_config
+tests/test_builder_api.py::test_workflow_crud_lifecycle
+tests/test_builder_api.py::test_orphan_step_deletion
+  C:\src\quorum\backend\main.py:113: DeprecationWarning: Call to deprecated close. (Use aclose() instead) -- Deprecated since version 5.0.1.
+    await pool.close()
+
+tests/test_live_llm.py::TestLiveLLM::test_live_critical_schemas_validity
+tests/test_live_llm.py::TestLiveLLM::test_live_critical_schemas_validity
+tests/test_live_llm.py::TestLiveLLM::test_live_gemini_connectivity
+  C:\src\quorum\.venv\Lib\site-packages\pydantic\main.py:464: UserWarning: Pydantic serializer warnings:
+    PydanticSerializationUnexpectedValue(Expected 10 fields but got 5: Expected `Message` - serialized value may not be as expected [field_name='message', input_value=Message(content=None, rol...er_specific_fields=None), input_type=Message])
+    PydanticSerializationUnexpectedValue(Expected `StreamingChoices` - serialized value may not be as expected [field_name='choices', input_value=Choices(finish_reason='st...r_specific_fields=None)), input_type=Choices])
+    return self.__pydantic_serializer__.to_python(
+
+tests/test_live_llm.py::TestLiveLLM::test_live_critical_schemas_validity
+tests/test_live_llm.py::TestLiveLLM::test_live_gemini_connectivity
+  C:\src\quorum\.venv\Lib\site-packages\aiohttp\connector.py:993: DeprecationWarning: enable_cleanup_closed ignored because https://github.com/python/cpython/pull/118960 is fixed in Python version sys.version_info(major=3, minor=14, micro=2, releaselevel='final', serial=0)
+    super().__init__(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+--------- generated xml file: C:\src\quorum\tests\output\results.xml ----------
+=========================== short test summary info ===========================
+FAILED tests/test_api_integrity.py::test_delete_step_integrity_violation - as...
+FAILED tests/test_api_integrity.py::test_delete_organization_active_jobs - As...
+FAILED tests/test_audit_logs.py::test_audit_access_control - assert 400 == 201
+FAILED tests/test_audit_logs.py::test_audit_lifecycle_root - assert 400 == 201
+FAILED tests/test_banned_phrases_api.py::test_banned_phrases_crud - Assertion...
+FAILED tests/test_e2e_api.py::test_e2e_api_mock_db - Failed: Mock DB E2E Fail...
+FAILED tests/test_org_management.py::test_create_org_as_root - assert 409 == 201
+FAILED tests/test_org_management.py::test_delete_org_with_users_conflict - as...
+FAILED tests/test_org_management.py::test_force_delete_org_success - assert n...
+FAILED tests/test_v2_5_admin_flows.py::test_organization_lifecycle_saas - ass...
+FAILED tests/test_workflow_construction.py::test_workflow_construction - Type...
+ERROR tests/test_db_scenarios.py::test_missing_step_definition - TypeError: L...
+ERROR tests/test_db_scenarios.py::test_empty_prompt_content - TypeError: Loca...
+ERROR tests/test_db_scenarios.py::test_missing_prompt_component - TypeError: ...
+ERROR tests/test_fusion_deep.py::test_compile_fusion_flow - TypeError: LocalF...
+ERROR tests/test_safety_and_hooks.py::test_fork_step_safety - TypeError: Loca...
+= 11 failed, 57 passed, 2 skipped, 80 warnings, 5 errors in 73.99s (0:01:13) ==

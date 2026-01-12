@@ -2,6 +2,7 @@
 
 import asyncio
 from unittest.mock import MagicMock
+from pathlib import Path
 
 import pytest
 
@@ -28,7 +29,7 @@ def engine(test_db_path):
     from backend.services.prompt_builder import PromptBuilder
     from backend.services.storage import LocalFileStorage
 
-    storage = LocalFileStorage()
+    storage = LocalFileStorage(base_path=str(Path(test_db_path).parent))
     registry = AgentRegistry(repo)
     # We must explicitly discover agents for the test scenarios to work
     # Since registry.discover() is async, and this is a sync fixture, we might have issues.

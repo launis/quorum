@@ -30,7 +30,7 @@ async def test_workflow_construction():
     client = TinyDBClient(db_path)
     repo = TinyDBRepository(client)
 
-    storage = LocalFileStorage()
+    storage = LocalFileStorage(base_path=os.path.dirname(db_path))
     registry = AgentRegistry(repo)
     # Discovery usually needed for steps to resolve components
     await registry.discover_and_register_agents()

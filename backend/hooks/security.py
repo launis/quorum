@@ -15,7 +15,7 @@ PII_PATTERNS = {
 }
 
 
-def sanitize_text(text: str) -> str:
+def sanitize_text(text: str) -> tuple[str, list[str]]:
     """Sanitizes text by removing potential PII patterns.
 
     This is a basic regex-based filter. For production, use a dedicated DLP service.

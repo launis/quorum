@@ -52,7 +52,7 @@ def test_e2e_api_mock_db():
         assert len(data) > 0, "Mock DB should have seed data components"
 
         # 2. Check Workflows Endpoint
-        response = client.get("/db/workflows", headers=headers)
+        response = client.get("/config/workflows", headers=headers)
         assert response.status_code == 200
 
     except Exception as e:

@@ -122,7 +122,7 @@ def generate_report(state: WorkflowState) -> WorkflowState:
                 l_det = get_details(l_dict, k)
                 r_det = get_details(r_dict, k)
 
-                delta = 0
+                delta: float | None = 0
                 if l_det and r_det:
                     try:
                         delta = float(r_det["score"]) - float(l_det["score"])

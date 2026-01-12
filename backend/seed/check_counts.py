@@ -25,7 +25,7 @@ def load_json(path):
 
 def count_items(data, name):
     """Count items in data."""
-    counts = {}
+    counts: dict[str, int] = {}
     if not data:
         return counts
 

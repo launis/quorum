@@ -11,14 +11,15 @@ class BaseComponent(ABC):
     """
 
     @abstractmethod
-    def execute(self, **kwargs) -> dict[str, Any]:
+    def execute(self, state: Any = None, **kwargs: Any) -> Any:
         """Executes the component logic.
 
         Args:
-            **kwargs: Input arguments for the component.
+            *args: Variable positional arguments.
+            **kwargs: Arbitrary keyword arguments.
 
         Returns:
-            Dict[str, Any]: The output of the component execution.
+            Any: The output of the component execution.
 
         """
         pass

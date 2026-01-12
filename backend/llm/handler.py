@@ -54,7 +54,7 @@ class LLMHandler:
 
     def fetch_all_available_models(
         self, providers: list[str] | None = None, location: str | None = None
-    ) -> dict[str, list[str]]:
+    ) -> dict[str, list[str] | str]:
         """Queries External APIs (Vertex AI, OpenAI) for available models.
 
         Respects 'use_mock_llm' setting by returning mock data if enabled.
@@ -69,7 +69,7 @@ class LLMHandler:
 
         """
         settings = get_settings()
-        models = {}
+        models: dict[str, list[str] | str] = {}
 
         # Resolve Target Location from Settings (Robust .env loading)
         target_location = location if location else settings.vertex_location
@@ -100,7 +100,7 @@ class LLMHandler:
         if "google" in providers:
             try:
                 # Check cache for the *Target Location* (validated list)
-                if hasattr(self, "_cached_google_models") and self._cached_google_models:
+                if hasattr(self, "_cached_google_models") and self._cached_google_models:  # type: ignore[has-type]
                     # Simple cache assumption: Environment doesn't change runtime
                     models["google"] = self._cached_google_models
                 else:
@@ -138,7 +138,7 @@ class LLMHandler:
                         logger.info(f"[LLMHandler] Validation complete. Found {len(final_list)} valid models.")
 
                     models["google"] = final_list
-                    self._cached_google_models = final_list
+                    self._cached_google_models = final_list  # type: ignore[has-type]
 
             except ImportError:
                 logger.error("google-cloud-aiplatform not installed.")
@@ -151,7 +151,7 @@ class LLMHandler:
         if "openai" in providers:
             try:
                 if not hasattr(self, "_cached_openai_models"):
-                    self._cached_openai_models = []
+                    self._cached_openai_models: list[str] = []
 
                 if self._cached_openai_models:
                     models["openai"] = self._cached_openai_models

@@ -46,7 +46,7 @@ class Settings(BaseSettings):
 
     # --- API Keys ---
     google_api_key: Annotated[str | None, Field(description="Google AI Provider API Key")] = None
-    vertex_location: Annotated[str, Field(..., description="Google Cloud Region (e.g. europe-north1)")]
+    vertex_location: Annotated[str | None, Field(description="Google Cloud Region (e.g. europe-north1)")] = None
 
     # --- LLM Configuration ---
     initial_model: Annotated[str, Field(description="Initial Model Strategy")] = "fast"
@@ -72,64 +72,76 @@ class Settings(BaseSettings):
     log_file_name: Annotated[str, Field(description="Name of the debug log file")] = "backend_debug.log"
 
     # We define base_dir relative to this file (backend/settings.py)
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
+    @property
     def base_dir(self) -> str:
         """Returns the base directory of the backend application."""
         return os.path.dirname(os.path.abspath(__file__))
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
+    @property
     def data_dir(self) -> str:
         """Returns the path to the persistent data directory."""
         # Assuming ../data from backend/
         return os.path.join(os.path.dirname(self.base_dir), "data")
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
+    @property
     def files_dir(self) -> str:
         """Returns the path to the central files directory."""
         return os.path.join(self.data_dir, "files")
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
+    @property
     def db_dir(self) -> str:
         """Returns the path to the database directory."""
         return os.path.join(self.base_dir, "database")
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
+    @property
     def scripts_dir(self) -> str:
         """Returns the path to the scripts directory."""
         return os.path.join(os.path.dirname(self.base_dir), "scripts")
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
+    @property
     def mock_db_path(self) -> str:
         """Returns the path to the mock database file."""
         return os.path.join(self.db_dir, "db_mock.json")
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
+    @property
     def prod_db_path(self) -> str:
         """Returns the path to the production database file."""
         return os.path.join(self.data_dir, "db.json")
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
+    @property
     def start_db_path(self) -> str:
         """Returns the path to the database file to be used at startup (Prod or Mock)."""
         return self.mock_db_path if self.use_mock_db else self.prod_db_path
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
+    @property
     def seed_data_path(self) -> str:
         """Returns the path to the seed data file."""
         return os.path.join(self.base_dir, "seed", "seed_data.json")
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
+    @property
     def mock_responses_path(self) -> str:
         """Returns the path to the mock responses file."""
         return os.path.join(self.data_dir, "mock_responses.json")
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
+    @property
     def log_file_path(self) -> str:
         """Absolute path to the log file in the project root."""
         # Using base_dir parent (project root) + log_file_name
         return os.path.join(os.path.dirname(self.base_dir), self.log_file_name)
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
+    @property
     def active_backend(self) -> StorageBackend:
         """Determines the active storage backend based on configuration.
 
@@ -143,7 +155,8 @@ class Settings(BaseSettings):
             return StorageBackend.MOCK
         return StorageBackend.LOCAL
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
+    @property
     def is_cloud_storage(self) -> bool:
         """Returns True if active_backend is FIRESTORE."""
         return self.active_backend == StorageBackend.FIRESTORE

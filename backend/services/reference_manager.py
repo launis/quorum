@@ -138,7 +138,7 @@ class ReferenceManager:
             Dict[str, List[str]]: Map of {Full Reference -> [List of Reasons/Contexts]}.
 
         """
-        found = {}
+        found: dict[str, list[str]] = {}
         text_lower = text_dump.lower()
 
         # A. Strict Reference Scan
@@ -157,7 +157,7 @@ class ReferenceManager:
                     found[full].append("Suora viittaus (ilman sulkeita)")
 
         # B. Scan Concepts (Semantic Linking)
-        concepts = self.knowledge_base.get("concepts", {})
+        concepts = self.knowledge_base.get("concepts", [])
         cit_pattern = re.compile(r"\((?:[A-Za-zÅÄÖåäö&,.-]+\s+)+\d{4}[a-z]?\)")
 
         ignored_concepts = {
@@ -173,7 +173,22 @@ class ReferenceManager:
             "introduction",
         }
 
-        for term, defn in concepts.items():
+        # Handle list of dicts (standard KB) or dict (legacy/mock)
+        iterator = []
+        if isinstance(concepts, list):
+            iterator = concepts
+        elif isinstance(concepts, dict):
+            # Convert dict to list format for uniform handling
+            iterator = [{"term": k, "definition": v} for k, v in concepts.items()]
+
+        for item in iterator:
+            # Ensure it's a dict
+            if not isinstance(item, dict):
+                continue
+
+            term = item.get("term")
+            defn = item.get("definition")
+
             if not term:
                 continue
             if term.lower() in ignored_concepts:

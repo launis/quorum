@@ -19,8 +19,12 @@ from backend.database.wrapper import AbstractDatabase
 from backend.dependencies import (
     CurrentUserDep,
     DatabaseDep,
+    LLMProviderDeep,
     LLMProviderFast,
+    RepositoryDep,
+    get_async_repository,
 )
+from backend.database.repository import AbstractWorkflowRepository
 from backend.models.auth import UserRole
 
 logger = logging.getLogger(__name__)
@@ -122,13 +126,13 @@ def run_script(script_name: str, args: list[str] | None = None) -> subprocess.Co
 
 
 def _start_admin_task(
-    background_tasks: BackgroundTasks, db: AbstractDatabase, method_name: str, *args
+    background_tasks: BackgroundTasks, repo: AbstractWorkflowRepository, method_name: str, *args
 ) -> dict[str, str]:
     """Starts an administrative task in the background using AdministrationService.
 
     Args:
         background_tasks (BackgroundTasks): FastAPI background task manager.
-        db (AbstractDatabase): Database connection.
+        repo (AbstractWorkflowRepository): Async Repository instance.
         method_name (str): Name of the method to call on AdministrationService.
         *args: Variable length argument list to pass to the method.
 
@@ -138,9 +142,7 @@ def _start_admin_task(
     job_id = str(uuid.uuid4())
     admin_task_status[job_id] = {"status": "starting", "stage": "Initializing", "percent": 0}
 
-    from backend.dependencies import get_async_repository
-
-    repo = get_async_repository(db)
+    # repo is already passed
     import asyncio
 
     from backend.services.administration_service import AdministrationService
@@ -187,18 +189,18 @@ def _start_admin_task(
     summary="Export Seed Data",
     response_description="Confirmation that the export task has started.",
 )
-def export_seed_data(background_tasks: BackgroundTasks, db: DatabaseDep):
+async def export_seed_data(background_tasks: BackgroundTasks, repo: RepositoryDep):
     """Triggers the seed data export process via AdministrationService in the background.
 
     Args:
         background_tasks (BackgroundTasks): FastAPI background task manager.
-        db (DatabaseDep): The database connection dependency.
+        repo (RepositoryDep): The async repository dependency.
 
     Returns:
         dict: A dictionary containing the job ID and status.
 
     """
-    return _start_admin_task(background_tasks, db, "export_seed_data")
+    return _start_admin_task(background_tasks, repo, "export_seed_data")
 
 
 @router.post(
@@ -206,18 +208,18 @@ def export_seed_data(background_tasks: BackgroundTasks, db: DatabaseDep):
     summary="Rebuild Database",
     response_description="Confirmation that the rebuild task has started.",
 )
-def rebuild_database(background_tasks: BackgroundTasks, db: DatabaseDep):
+async def rebuild_database(background_tasks: BackgroundTasks, repo: RepositoryDep):
     """Triggers a complete database rebuild (drop and re-seed) in the background.
 
     Args:
         background_tasks (BackgroundTasks): FastAPI background task manager.
-        db (DatabaseDep): The database connection dependency.
+        repo (RepositoryDep): The async repository dependency.
 
     Returns:
         dict: A dictionary containing the job ID and status.
 
     """
-    return _start_admin_task(background_tasks, db, "rebuild_database")
+    return _start_admin_task(background_tasks, repo, "rebuild_database")
 
 
 @router.post(
@@ -225,17 +227,17 @@ def rebuild_database(background_tasks: BackgroundTasks, db: DatabaseDep):
     summary="Reset Mock Database",
     response_description="Confirmation that the Mock DB reset task has started.",
 )
-def reset_mock_db(background_tasks: BackgroundTasks, db: DatabaseDep):
+async def reset_mock_db(background_tasks: BackgroundTasks, repo: RepositoryDep):
     """Triggers 'rebuild_mock_db.py' in the background.
 
     Args:
         background_tasks (BackgroundTasks): FastAPI background task manager.
-        db (DatabaseDep): Database dependency.
+        repo (RepositoryDep): Database dependency.
 
     Returns:
         dict: Job status and ID.
     """
-    return _start_admin_task(background_tasks, db, "reset_mock_db")
+    return _start_admin_task(background_tasks, repo, "reset_mock_db")
 
 
 @router.post(
@@ -243,19 +245,19 @@ def reset_mock_db(background_tasks: BackgroundTasks, db: DatabaseDep):
     summary="Reset Production Database (Local)",
     response_description="Confirmation that the Prod (TinyDB) reset task has started.",
 )
-def reset_prod_db(background_tasks: BackgroundTasks, db: DatabaseDep):
+async def reset_prod_db(background_tasks: BackgroundTasks, repo: RepositoryDep):
     """Triggers 'rebuild_prod_db.py' in the background.
 
     WARNING: This wipes the local production database.
 
     Args:
         background_tasks (BackgroundTasks): FastAPI background task manager.
-        db (DatabaseDep): Database dependency.
+        repo (RepositoryDep): Database dependency.
 
     Returns:
         dict: Job status and ID.
     """
-    return _start_admin_task(background_tasks, db, "reset_prod_db")
+    return _start_admin_task(background_tasks, repo, "reset_prod_db")
 
 
 @router.post(
@@ -263,19 +265,19 @@ def reset_prod_db(background_tasks: BackgroundTasks, db: DatabaseDep):
     summary="Reset Firestore Database",
     response_description="Confirmation that the Firestore reset task has started.",
 )
-def reset_firestore_db(background_tasks: BackgroundTasks, db: DatabaseDep):
+async def reset_firestore_db(background_tasks: BackgroundTasks, repo: RepositoryDep):
     """Triggers 'seed_firestore.py' in the background.
 
     WARNING: This wipes the Firestore database!
 
     Args:
         background_tasks (BackgroundTasks): FastAPI background task manager.
-        db (DatabaseDep): Database dependency.
+        repo (RepositoryDep): Database dependency.
 
     Returns:
         dict: Job status and ID.
     """
-    return _start_admin_task(background_tasks, db, "reset_firestore")
+    return _start_admin_task(background_tasks, repo, "reset_firestore")
 
 
 @router.post(
@@ -294,7 +296,7 @@ async def run_self_test(db_client: DatabaseDep, llm_provider: LLMProviderFast):
         dict: A health report with 'llm_status' and 'db_status'.
 
     """
-    report = {"llm_status": "unknown", "db_status": "unknown", "details": {}}
+    report: dict[str, Any] = {"llm_status": "unknown", "db_status": "unknown", "details": {}}
 
     # 1. Test LLM
     try:
@@ -378,10 +380,10 @@ def get_ingestion_status(job_id: str = Path(..., description="UUID of the backgr
     summary="Ingest from File (Path)",
     response_description="Confirmation that ingestion has started.",
 )
-def ingest_knowledge_base(
+async def ingest_knowledge_base(
     request: IngestRequest,
     background_tasks: BackgroundTasks,
-    repository: DatabaseDep,
+    repo: RepositoryDep,
     llm_provider: LLMProviderFast,
 ):
     """Starts the process of ingesting a document into the knowledge base from a local file path.
@@ -389,7 +391,7 @@ def ingest_knowledge_base(
     Args:
         request (IngestRequest): Ingestion configuration (file path, reset flag).
         background_tasks (BackgroundTasks): FastAPI background task manager.
-        repository (DatabaseDep): Database dependency.
+        repo (RepositoryDep): Database dependency.
         llm_provider (LLMProviderFast): LLM provider for embedding generation.
 
     Returns:
@@ -398,9 +400,7 @@ def ingest_knowledge_base(
     job_id = str(uuid.uuid4())
     admin_task_status[job_id] = {"status": "starting", "stage": "Initializing", "percent": 0}
 
-    from backend.dependencies import get_async_repository
-
-    repo = get_async_repository(repository)
+    # repo is already injected
     from backend.services.knowledge_base_service import KnowledgeBaseService
 
     service = KnowledgeBaseService(repo, llm_provider=llm_provider)
@@ -408,7 +408,7 @@ def ingest_knowledge_base(
     async def _run_ingest():
         try:
             if not os.path.exists(request.file_path):
-                admin_task_status[job_id] = {"status": "failed", "error": "File not found"}
+                admin_task_status[job_id] = {"status": "failed", "error": "File not found"} # type: ignore[index]
                 return
 
             # Read file in binary mode
@@ -438,10 +438,10 @@ def ingest_knowledge_base(
 )
 async def upload_knowledge_base(
     file: Annotated[UploadFile, File(description="The file to be uploaded and ingested.")],
+    repo: RepositoryDep,
+    llm_provider: LLMProviderFast,
+    background_tasks: BackgroundTasks,
     reset_db: Annotated[bool, Query(description="Whether to clear the KB before ingestion.")] = False,
-    background_tasks: BackgroundTasks = None,
-    db_client: DatabaseDep = None,  # Make optional default if needed or just DatabaseDep
-    llm_provider: LLMProviderFast = None,
 ):
     """Uploads a file and triggers the ingestion process.
 
@@ -449,7 +449,7 @@ async def upload_knowledge_base(
         file (UploadFile): The binary file to ingest.
         reset_db (bool): If True, clear KB before ingestion.
         background_tasks (BackgroundTasks): Background task manager.
-        db_client (DatabaseDep): Database dependency.
+        repo (RepositoryDep): Database dependency.
         llm_provider (LLMProviderFast): LLM provider dependency.
 
     Returns:
@@ -459,11 +459,10 @@ async def upload_knowledge_base(
     admin_task_status[job_id] = {"status": "starting", "stage": "Reading Upload", "percent": 0}
 
     content = await file.read()
-    filename = file.filename
+    filename = file.filename or "upload"
 
-    from backend.dependencies import get_async_repository
-
-    repo = get_async_repository(db_client)
+    if repo is None:
+        repo = await get_async_repository()
     from backend.services.knowledge_base_service import KnowledgeBaseService
 
     service = KnowledgeBaseService(repo, llm_provider=llm_provider)
@@ -490,28 +489,25 @@ async def upload_knowledge_base(
 @router.get(
     "/banned-phrases", summary="List Banned Phrases", response_description="A list of all currently banned phrases."
 )
-async def get_banned_phrases(db: DatabaseDep):
+async def get_banned_phrases(repo: RepositoryDep):
     """Retrieves all banned phrases from the database.
 
     Args:
-        db (DatabaseDep): Database dependency.
+        repo (RepositoryDep): Database dependency.
 
     Returns:
         list[dict]: List of banned phrase objects (e.g. {'phrase': 'bad word'}).
     """
-    from backend.dependencies import get_async_repository
-
-    repo = get_async_repository(db)
     return await repo.get_banned_phrases()
 
 
 @router.post("/banned-phrases", summary="Add Banned Phrase", response_description="Confirmation of the added phrase.")
-async def add_banned_phrase(request: BannedPhraseRequest, db: DatabaseDep):
+async def add_banned_phrase(request: BannedPhraseRequest, repo: RepositoryDep):
     """Adds a new phrase to the blocklist.
 
     Args:
         request (BannedPhraseRequest): The phrase to add.
-        db (DatabaseDep): Database dependency.
+        repo (RepositoryDep): Database dependency.
 
     Returns:
         dict: Status and the added phrase.
@@ -519,9 +515,6 @@ async def add_banned_phrase(request: BannedPhraseRequest, db: DatabaseDep):
     Raises:
         HTTPException: If the phrase is too short (400).
     """
-    from backend.dependencies import get_async_repository
-
-    repo = get_async_repository(db)
     # Validate
     if not request.phrase or len(request.phrase.strip()) < 2:
         raise HTTPException(status_code=400, detail="Phrase too short")
@@ -578,13 +571,13 @@ async def delete_banned_phrase(
     response_description="A list of newly generated and added banned phrases.",
 )
 async def generate_banned_phrases(
-    request: GenerateBannedPhrasesRequest, db: DatabaseDep, llm_provider: LLMProviderFast
+    request: GenerateBannedPhrasesRequest, repo: RepositoryDep, llm_provider: LLMProviderDeep
 ):
     """Uses the LLM to generate new potential banned phrases based on common adversarial patterns.
 
     Args:
         request (GenerateBannedPhrasesRequest): Configuration for generation (e.g. language).
-        db (DatabaseDep): Database dependency.
+        repo (RepositoryDep): Database dependency.
         llm_provider (LLMProvider): LLM provider dependency.
 
     Returns:
@@ -594,10 +587,6 @@ async def generate_banned_phrases(
         HTTPException: If generation fails.
 
     """
-    from backend.dependencies import get_async_repository
-
-    repo = get_async_repository(db)
-
     # 1. Get existing to provide context
     existing_records = await repo.get_banned_phrases()
     existing = [p["phrase"] for p in existing_records]

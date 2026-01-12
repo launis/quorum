@@ -1,6 +1,7 @@
 """Redis patching utilities."""
 
 import logging
+from typing import Any
 
 from arq.connections import ArqRedis
 
@@ -27,7 +28,7 @@ def get_patched_fakeredis_pool() -> ArqRedis:
 
     # Initialize FakeRedis
     # Arq expects a pool-like object, FakeRedis works as one, but needs 'connection_kwargs' for Arq logging
-    fake_redis = FakeRedis()
+    fake_redis: Any = FakeRedis()
     fake_redis.connection_kwargs = {"host": "localhost", "port": 6379}  # Mock for Arq compatibility
 
     # PATCH: Arq 0.26+ calls .get_connection() on the pool, which FakeRedis lacks

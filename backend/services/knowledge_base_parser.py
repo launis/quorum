@@ -34,7 +34,7 @@ class KnowledgeBaseParser:
                 - original_markdown (str): Initially empty, filled during resolve phase.
 
         """
-        claims = []
+        claims: list[dict[str, Any]] = []
         if not text:
             return claims
 
@@ -127,18 +127,20 @@ class KnowledgeBaseParser:
             raise e from e
 
         # Data structure
-        knowledge_base = {
+        knowledge_base: dict[str, list[dict[str, Any]]] = {
             "concepts": [],  # List of {term, definition}
             "references": [],  # List of {citation, doi_link}
             "claims": [],  # List of {claim_text, citation_keys...}
-            "metadata": {"source": str(file_input)[:100]},
         }
+        # Add metadata separately or include in type. TypedDict would be better but dict[str, Any] works.
+        knowledge_base_any: dict[str, Any] = knowledge_base  # cast for mixed types like metadata
+        knowledge_base_any["metadata"] = {"source": str(file_input)[:100]}
 
         # Regex for DOI
         doi_pattern = re.compile(r"\b(10.\d{4,9}/[-._;()/:A-Z0-9]+)\b", re.IGNORECASE)
 
         current_concept = None
-        current_definition = []
+        current_definition: list[str] = []
 
         in_bibliography = False
 
@@ -410,12 +412,13 @@ class KnowledgeBaseParser:
         lines = content_str.splitlines()
 
         # Data structure
-        knowledge_base = {
+        knowledge_base: dict[str, list[dict[str, Any]]] = {
             "concepts": [],  # List of {term, definition}
             "references": [],  # List of {citation, doi_link}
             "claims": [],  # List of {claim_text, citation_keys...}
-            "metadata": {"source": "markdown_upload"},
         }
+        knowledge_base_any: dict[str, Any] = knowledge_base
+        knowledge_base_any["metadata"] = {"source": "markdown_upload"}
 
         # Regex for DOI
         doi_pattern = re.compile(r"\b(10.\d{4,9}/[-._;()/:A-Z0-9]+)\b", re.IGNORECASE)
@@ -431,7 +434,7 @@ class KnowledgeBaseParser:
         anchor_pattern = re.compile(r'(?:\{\#([a-zA-Z0-9_-]+)\}|<a\s+id="([a-zA-Z0-9_-]+)">)')
 
         current_concept = None
-        current_definition = []
+        current_definition: list[str] = []
 
         in_bibliography = False
 

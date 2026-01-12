@@ -6,7 +6,7 @@ from typing import Any
 class AppException(Exception):
     """Base class for application exceptions."""
 
-    def __init__(self, message: str, status_code: int = 500, details: dict = None):
+    def __init__(self, message: str, status_code: int = 500, details: dict | None = None):
         """Initialize the exception."""
         super().__init__(message)
         self.message = message
@@ -68,7 +68,7 @@ class FatalInterruption(AppException):
     This is favored over silent failures or partial execution.
     """
 
-    def __init__(self, step_name: str, reason: str, details: dict[str, Any] = None):
+    def __init__(self, step_name: str, reason: str, details: dict[str, Any] | None = None):
         """Initialize the exception."""
         if details is None:
             details = {}

@@ -551,7 +551,7 @@
           "Admin"
         ],
         "summary": "Export Seed Data",
-        "description": "Triggers the seed data export process via AdministrationService in the background.\n\nArgs:\n    background_tasks (BackgroundTasks): FastAPI background task manager.\n    db (DatabaseDep): The database connection dependency.\n\nReturns:\n    dict: A dictionary containing the job ID and status.",
+        "description": "Triggers the seed data export process via AdministrationService in the background.\n\nArgs:\n    background_tasks (BackgroundTasks): FastAPI background task manager.\n    repo (RepositoryDep): The async repository dependency.\n\nReturns:\n    dict: A dictionary containing the job ID and status.",
         "operationId": "export_seed_data_admin_export_seed_data_post",
         "parameters": [
           {
@@ -599,7 +599,7 @@
           "Admin"
         ],
         "summary": "Rebuild Database",
-        "description": "Triggers a complete database rebuild (drop and re-seed) in the background.\n\nArgs:\n    background_tasks (BackgroundTasks): FastAPI background task manager.\n    db (DatabaseDep): The database connection dependency.\n\nReturns:\n    dict: A dictionary containing the job ID and status.",
+        "description": "Triggers a complete database rebuild (drop and re-seed) in the background.\n\nArgs:\n    background_tasks (BackgroundTasks): FastAPI background task manager.\n    repo (RepositoryDep): The async repository dependency.\n\nReturns:\n    dict: A dictionary containing the job ID and status.",
         "operationId": "rebuild_database_admin_database_rebuild_post",
         "parameters": [
           {
@@ -647,7 +647,7 @@
           "Admin"
         ],
         "summary": "Reset Mock Database",
-        "description": "Triggers 'rebuild_mock_db.py' in the background.\n\nArgs:\n    background_tasks (BackgroundTasks): FastAPI background task manager.\n    db (DatabaseDep): Database dependency.\n\nReturns:\n    dict: Job status and ID.",
+        "description": "Triggers 'rebuild_mock_db.py' in the background.\n\nArgs:\n    background_tasks (BackgroundTasks): FastAPI background task manager.\n    repo (RepositoryDep): Database dependency.\n\nReturns:\n    dict: Job status and ID.",
         "operationId": "reset_mock_db_admin_database_reset_mock_post",
         "parameters": [
           {
@@ -695,7 +695,7 @@
           "Admin"
         ],
         "summary": "Reset Production Database (Local)",
-        "description": "Triggers 'rebuild_prod_db.py' in the background.\n\nWARNING: This wipes the local production database.\n\nArgs:\n    background_tasks (BackgroundTasks): FastAPI background task manager.\n    db (DatabaseDep): Database dependency.\n\nReturns:\n    dict: Job status and ID.",
+        "description": "Triggers 'rebuild_prod_db.py' in the background.\n\nWARNING: This wipes the local production database.\n\nArgs:\n    background_tasks (BackgroundTasks): FastAPI background task manager.\n    repo (RepositoryDep): Database dependency.\n\nReturns:\n    dict: Job status and ID.",
         "operationId": "reset_prod_db_admin_database_reset_prod_post",
         "parameters": [
           {
@@ -743,7 +743,7 @@
           "Admin"
         ],
         "summary": "Reset Firestore Database",
-        "description": "Triggers 'seed_firestore.py' in the background.\n\nWARNING: This wipes the Firestore database!\n\nArgs:\n    background_tasks (BackgroundTasks): FastAPI background task manager.\n    db (DatabaseDep): Database dependency.\n\nReturns:\n    dict: Job status and ID.",
+        "description": "Triggers 'seed_firestore.py' in the background.\n\nWARNING: This wipes the Firestore database!\n\nArgs:\n    background_tasks (BackgroundTasks): FastAPI background task manager.\n    repo (RepositoryDep): Database dependency.\n\nReturns:\n    dict: Job status and ID.",
         "operationId": "reset_firestore_db_admin_database_reset_firestore_post",
         "parameters": [
           {
@@ -958,7 +958,7 @@
           "Admin"
         ],
         "summary": "Ingest from File (Path)",
-        "description": "Starts the process of ingesting a document into the knowledge base from a local file path.\n\nArgs:\n    request (IngestRequest): Ingestion configuration (file path, reset flag).\n    background_tasks (BackgroundTasks): FastAPI background task manager.\n    repository (DatabaseDep): Database dependency.\n    llm_provider (LLMProviderFast): LLM provider for embedding generation.\n\nReturns:\n    dict: Job status, ID, start confirmation message.",
+        "description": "Starts the process of ingesting a document into the knowledge base from a local file path.\n\nArgs:\n    request (IngestRequest): Ingestion configuration (file path, reset flag).\n    background_tasks (BackgroundTasks): FastAPI background task manager.\n    repo (RepositoryDep): Database dependency.\n    llm_provider (LLMProviderFast): LLM provider for embedding generation.\n\nReturns:\n    dict: Job status, ID, start confirmation message.",
         "operationId": "ingest_knowledge_base_admin_knowledge_base_ingest_post",
         "parameters": [
           {
@@ -1016,7 +1016,7 @@
           "Admin"
         ],
         "summary": "Upload and Ingest File",
-        "description": "Uploads a file and triggers the ingestion process.\n\nArgs:\n    file (UploadFile): The binary file to ingest.\n    reset_db (bool): If True, clear KB before ingestion.\n    background_tasks (BackgroundTasks): Background task manager.\n    db_client (DatabaseDep): Database dependency.\n    llm_provider (LLMProviderFast): LLM provider dependency.\n\nReturns:\n    dict: Job status, ID, filename, and reset flag.",
+        "description": "Uploads a file and triggers the ingestion process.\n\nArgs:\n    file (UploadFile): The binary file to ingest.\n    reset_db (bool): If True, clear KB before ingestion.\n    background_tasks (BackgroundTasks): Background task manager.\n    repo (RepositoryDep): Database dependency.\n    llm_provider (LLMProviderFast): LLM provider dependency.\n\nReturns:\n    dict: Job status, ID, filename, and reset flag.",
         "operationId": "upload_knowledge_base_admin_knowledge_base_upload_post",
         "parameters": [
           {
@@ -1086,7 +1086,7 @@
           "Admin"
         ],
         "summary": "List Banned Phrases",
-        "description": "Retrieves all banned phrases from the database.\n\nArgs:\n    db (DatabaseDep): Database dependency.\n\nReturns:\n    list[dict]: List of banned phrase objects (e.g. {'phrase': 'bad word'}).",
+        "description": "Retrieves all banned phrases from the database.\n\nArgs:\n    repo (RepositoryDep): Database dependency.\n\nReturns:\n    list[dict]: List of banned phrase objects (e.g. {'phrase': 'bad word'}).",
         "operationId": "get_banned_phrases_admin_banned_phrases_get",
         "parameters": [
           {
@@ -1132,7 +1132,7 @@
           "Admin"
         ],
         "summary": "Add Banned Phrase",
-        "description": "Adds a new phrase to the blocklist.\n\nArgs:\n    request (BannedPhraseRequest): The phrase to add.\n    db (DatabaseDep): Database dependency.\n\nReturns:\n    dict: Status and the added phrase.\n\nRaises:\n    HTTPException: If the phrase is too short (400).",
+        "description": "Adds a new phrase to the blocklist.\n\nArgs:\n    request (BannedPhraseRequest): The phrase to add.\n    repo (RepositoryDep): Database dependency.\n\nReturns:\n    dict: Status and the added phrase.\n\nRaises:\n    HTTPException: If the phrase is too short (400).",
         "operationId": "add_banned_phrase_admin_banned_phrases_post",
         "parameters": [
           {
@@ -1249,7 +1249,7 @@
           "Admin"
         ],
         "summary": "Generate Banned Phrases",
-        "description": "Uses the LLM to generate new potential banned phrases based on common adversarial patterns.\n\nArgs:\n    request (GenerateBannedPhrasesRequest): Configuration for generation (e.g. language).\n    db (DatabaseDep): Database dependency.\n    llm_provider (LLMProvider): LLM provider dependency.\n\nReturns:\n    dict: Report containing added phrases.\n\nRaises:\n    HTTPException: If generation fails.",
+        "description": "Uses the LLM to generate new potential banned phrases based on common adversarial patterns.\n\nArgs:\n    request (GenerateBannedPhrasesRequest): Configuration for generation (e.g. language).\n    repo (RepositoryDep): Database dependency.\n    llm_provider (LLMProvider): LLM provider dependency.\n\nReturns:\n    dict: Report containing added phrases.\n\nRaises:\n    HTTPException: If generation fails.",
         "operationId": "generate_banned_phrases_admin_banned_phrases_generate_post",
         "parameters": [
           {
