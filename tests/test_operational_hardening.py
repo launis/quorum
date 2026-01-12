@@ -12,10 +12,7 @@ async def test_ssrf_blocking_localhost(client: AsyncClient, admin_token_headers)
     url = "http://localhost:8000/metrics"
     res = await client.post("/tools/web-scrape", json={"url": url}, headers=admin_token_headers)
     assert res.status_code == 400
-    assert (
-        "Access to local network resources is forbidden" in res.text
-        or "Access to private IP" in res.text
-    )
+    assert "Access to local network resources is forbidden" in res.text or "Access to private IP" in res.text
 
 
 @pytest.mark.asyncio

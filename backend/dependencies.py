@@ -129,7 +129,7 @@ def get_storage_service_dep() -> AbstractStorage:
             _storage_service_instance = LocalFileStorage(base_path=settings.files_dir)
 
         case _:
-             # Fallback for unexpected enum values
+            # Fallback for unexpected enum values
             logger.warning(f"[Dependencies] Unknown backend '{settings.active_backend}', defaulting to Local.")
             _storage_service_instance = LocalFileStorage(base_path=settings.files_dir)
 

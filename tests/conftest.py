@@ -119,6 +119,7 @@ async def client_authenticated(mock_auth_service) -> AsyncGenerator[AsyncClient]
     # SEED MOCK USER so repos can find it (e.g. for Creator checks)
     if mock_auth_service.current_user:
         from tinydb import Query
+
         UserQ = Query()
         # Ensure we dump properly (model_dump used in Pydantic v2)
         u_data = mock_auth_service.current_user.model_dump(mode="json")
@@ -141,6 +142,7 @@ async def client_authenticated(mock_auth_service) -> AsyncGenerator[AsyncClient]
     backend.dependencies._audit_service_instance = None
     backend.dependencies._engine_instance = None
     backend.dependencies._storage_service_instance = None
+
 
 @pytest.fixture
 async def client(client_authenticated) -> AsyncGenerator[AsyncClient]:

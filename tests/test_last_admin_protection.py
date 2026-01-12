@@ -74,7 +74,6 @@ async def test_last_admin_cannot_delete_self(client: AsyncClient, setup_auth_sce
     assert "Cannot delete the last Administrator" in response.text
 
 
-
 @pytest.mark.asyncio
 async def test_last_admin_cannot_be_demoted(client: AsyncClient, setup_auth_scenario):
     """Verify last admin cannot be demoted."""
@@ -104,7 +103,7 @@ async def test_second_admin_allows_deletion(client: AsyncClient, setup_auth_scen
         "display_name": "Second Admin",
         "role": "ADMIN",  # Direct creation as ADMIN
         "organization_id": last_admin.organization_id,
-        "password": "password123"
+        "password": "password123",
     }
 
     # Note: ADMIN creating ADMIN is allowed in our new rules

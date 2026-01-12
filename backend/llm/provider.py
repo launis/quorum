@@ -405,11 +405,11 @@ class LLMFactory:
                     api_key = os.getenv("OPENAI_API_KEY")
 
             case _:
-                 # Fallback/Default handling.
-                 # Previously we just set target_model = model_name and key=None implicitly.
-                 # Let's keep it robust.
-                 target_model = model_name
-                 api_key = tenant_api_key
+                # Fallback/Default handling.
+                # Previously we just set target_model = model_name and key=None implicitly.
+                # Let's keep it robust.
+                target_model = model_name
+                api_key = tenant_api_key
 
         if not target_model:
             # Should be caught by top check, but safe guard
