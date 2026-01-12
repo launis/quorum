@@ -76,7 +76,9 @@ class LLMHandler:
         # Resolve Target Location from Settings (Robust .env loading)
         target_location = location if location else settings.vertex_location
         if not target_location:
-            target_location = "europe-north1"  # Fallback
+            raise ValueError(
+                "CRITICAL: VERTEX_LOCATION not set in environment or settings. Cannot proceed with Model Discovery."
+            )
 
         # Normalize providers list
         if not providers:

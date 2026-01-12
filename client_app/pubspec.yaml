@@ -54,7 +54,7 @@ dev_dependencies:
   json_serializable: any
   freezed: any
   flutter_lints: any
-  mocktail: any
+  mocktail: ^1.0.4
   mockito: ^5.6.1
 
 flutter:

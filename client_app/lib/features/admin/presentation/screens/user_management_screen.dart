@@ -1,6 +1,10 @@
+import 'package:client_app/core/error/app_error.dart';
+import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/features/admin/presentation/providers/admin_providers.dart';
-import 'package:client_app/features/admin/presentation/widgets/role_selector_dialog.dart';
+import 'package:client_app/features/admin/presentation/providers/user_crud_controller.dart';
+import 'package:client_app/features/admin/presentation/widgets/user_form_dialog.dart';
 import 'package:client_app/features/admin/presentation/widgets/user_list_item.dart';
+import 'package:client_app/features/auth/domain/models/user.dart';
 import 'package:client_app/features/auth/presentation/auth_controller.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +17,51 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 class UserManagementScreen extends ConsumerWidget {
   const UserManagementScreen({super.key});
 
+  void _showUserDialog(BuildContext context, String orgId, [User? user]) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => UserFormDialog(user: user, orgId: orgId),
+    );
+  }
+
+  Future<void> _deleteUser(
+    BuildContext context,
+    WidgetRef ref,
+    User user,
+    String orgId,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text(l10n.deleteUser),
+            content: Text(
+              l10n.deleteUserConfirmation(user.displayName ?? user.email),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(l10n.cancel),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                ),
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(l10n.deleteUser),
+              ),
+            ],
+          ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      await ref
+          .read(userCrudControllerProvider.notifier)
+          .deleteUser(user.uid, orgId);
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
@@ -21,6 +70,31 @@ class UserManagementScreen extends ConsumerWidget {
 
     // 1. Get Current User (to determine Org ID)
     final authState = ref.watch(authControllerProvider);
+
+    // Listen for CRUD errors/success
+    ref.listen(userCrudControllerProvider, (previous, next) {
+      next.whenOrNull(
+        error: (error, stack) {
+          if (error is AppError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  error.message(l10n),
+                ), // Assuming AppError has message(l10n) helper or similar
+                backgroundColor: colorScheme.error,
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(error.toString()),
+                backgroundColor: colorScheme.error,
+              ),
+            );
+          }
+        },
+      );
+    });
 
     return Scaffold(
       body: Align(
@@ -127,16 +201,10 @@ class UserManagementScreen extends ConsumerWidget {
                             final user = users[index];
                             return UserListItem(
                               user: user,
-                              onEditRole: () {
-                                showDialog<void>(
-                                  context: context,
-                                  builder:
-                                      (context) => RoleSelectorDialog(
-                                        user: user,
-                                        orgId: orgId,
-                                      ),
-                                );
-                              },
+                              onEdit:
+                                  () => _showUserDialog(context, orgId, user),
+                              onDelete:
+                                  () => _deleteUser(context, ref, user, orgId),
                             );
                           }, childCount: users.length),
                         );
@@ -149,6 +217,17 @@ class UserManagementScreen extends ConsumerWidget {
           ),
         ),
       ),
+      floatingActionButton:
+          authState.value?.organizationId != null
+              ? FloatingActionButton(
+                onPressed:
+                    () => _showUserDialog(
+                      context,
+                      authState.value!.organizationId!,
+                    ),
+                child: const Icon(Icons.add),
+              )
+              : null,
     );
   }
 }

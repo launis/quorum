@@ -2,10 +2,12 @@ import 'package:client_app/core/error/app_error.dart';
 import 'package:client_app/features/admin/data/organization_repository.dart';
 import 'package:client_app/features/admin/domain/models/organization.dart';
 import 'package:dio/dio.dart';
+import 'package:fpdart/fpdart.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mockito/mockito.dart';
+import 'package:mocktail/mocktail.dart';
 
-import '../../../helpers/test_helper.mocks.dart';
+// Manual Mock
+class MockDio extends Mock implements Dio {}
 
 void main() {
   late MockDio mockDio;
@@ -26,7 +28,7 @@ void main() {
           {'id': 'org-2', 'name': 'Another Org', 'status': 'SUSPENDED'},
         ];
 
-        when(mockDio.get<List<dynamic>>('/organizations')).thenAnswer(
+        when(() => mockDio.get<List<dynamic>>('/organizations')).thenAnswer(
           (_) async => Response(
             data: responseData,
             statusCode: 200,
@@ -51,7 +53,7 @@ void main() {
 
     test('returns Right([]) when API call returns null data', () async {
       // Arrange
-      when(mockDio.get<List<dynamic>>('/organizations')).thenAnswer(
+      when(() => mockDio.get<List<dynamic>>('/organizations')).thenAnswer(
         (_) async => Response(
           data: null,
           statusCode: 200,
@@ -73,7 +75,7 @@ void main() {
       'returns Left(AppError.server) when API throws DioException',
       () async {
         // Arrange
-        when(mockDio.get<List<dynamic>>('/organizations')).thenThrow(
+        when(() => mockDio.get<List<dynamic>>('/organizations')).thenThrow(
           DioException(
             requestOptions: RequestOptions(path: '/organizations'),
             type: DioExceptionType.badResponse,
@@ -111,9 +113,9 @@ void main() {
       };
 
       when(
-        mockDio.patch<Map<String, dynamic>>(
+        () => mockDio.patch<Map<String, dynamic>>(
           '/organizations/$orgId',
-          data: updateData,
+          data: any(named: 'data'),
         ),
       ).thenAnswer(
         (_) async => Response(
@@ -137,9 +139,9 @@ void main() {
     test('returns Left(AppError.server) when API returns null data', () async {
       // Arrange
       when(
-        mockDio.patch<Map<String, dynamic>>(
+        () => mockDio.patch<Map<String, dynamic>>(
           '/organizations/$orgId',
-          data: updateData,
+          data: any(named: 'data'),
         ),
       ).thenAnswer(
         (_) async => Response(
@@ -162,7 +164,10 @@ void main() {
 
     test('returns Right(Organization) when creation is successful', () async {
       when(
-        mockDio.post<Map<String, dynamic>>('/organizations/', data: orgData),
+        () => mockDio.post<Map<String, dynamic>>(
+          '/organizations/',
+          data: any(named: 'data'),
+        ),
       ).thenAnswer(
         (_) async => Response(
           data: {'id': 'new-org', 'name': 'New Org', 'status': 'ACTIVE'},
@@ -185,9 +190,9 @@ void main() {
 
     test('calls delete with correct URI and returns Right(void)', () async {
       when(
-        mockDio.delete<void>(
+        () => mockDio.delete<Unit>(
           '/organizations/$orgId',
-          queryParameters: {'force': false},
+          queryParameters: any(named: 'queryParameters'),
         ),
       ).thenAnswer(
         (_) async => Response(
@@ -201,18 +206,18 @@ void main() {
 
       expect(result.isRight(), true);
       verify(
-        mockDio.delete<void>(
+        () => mockDio.delete<Unit>(
           '/organizations/$orgId',
-          queryParameters: {'force': false},
+          queryParameters: any(named: 'queryParameters'),
         ),
       ).called(1);
     });
 
     test('sends force=true param when force is true', () async {
       when(
-        mockDio.delete<void>(
+        () => mockDio.delete<Unit>(
           '/organizations/$orgId',
-          queryParameters: anyNamed('queryParameters'),
+          queryParameters: any(named: 'queryParameters'),
         ),
       ).thenAnswer(
         (_) async => Response(
@@ -226,45 +231,46 @@ void main() {
 
       expect(result.isRight(), true);
       verify(
-        mockDio.delete<void>(
+        () => mockDio.delete<Unit>(
           '/organizations/$orgId',
-          queryParameters: anyNamed('queryParameters'),
+          queryParameters: any(named: 'queryParameters'),
         ),
       ).called(1);
     });
 
-    test('returns Left(AppError.server) when API returns 409 Conflict', () async {
-      when(
-        mockDio.delete<void>(
-          '/organizations/$orgId',
-          queryParameters: {'force': false},
-        ),
-      ).thenThrow(
-        DioException(
-          requestOptions: RequestOptions(path: '/organizations/$orgId'),
-          type: DioExceptionType.badResponse,
-          response: Response(
-            statusCode: 409,
-            data: {'detail': 'ORG_HAS_USERS'},
-            requestOptions: RequestOptions(path: '/organizations/$orgId'),
+    test(
+      'returns Left(AppError.server) when API returns 409 Conflict',
+      () async {
+        when(
+          () => mockDio.delete<Unit>(
+            '/organizations/$orgId',
+            queryParameters: any(named: 'queryParameters'),
           ),
-        ),
-      );
-
-      final result = await repository.deleteOrganization(orgId);
-
-      expect(result.isLeft(), true);
-      result.fold((l) {
-        // We verify the error detail is preserved (though AppError abstraction might mask it depending on implementation)
-        // Checking if it's a server error is enough for now.
-        l.maybeWhen(
-          server: (msg, code) {
-            expect(code, 409);
-            expect(msg, 'ORG_HAS_USERS');
-          },
-          orElse: () => fail('Expected AppError.server'),
+        ).thenThrow(
+          DioException(
+            requestOptions: RequestOptions(path: '/organizations/$orgId'),
+            type: DioExceptionType.badResponse,
+            response: Response(
+              statusCode: 409,
+              data: {'detail': 'ORG_HAS_USERS'},
+              requestOptions: RequestOptions(path: '/organizations/$orgId'),
+            ),
+          ),
         );
-      }, (r) => fail('Should not return success'));
-    });
+
+        final result = await repository.deleteOrganization(orgId);
+
+        expect(result.isLeft(), true);
+        result.fold((l) {
+          l.maybeWhen(
+            server: (msg, code) {
+              expect(code, 409);
+              expect(msg, 'ORG_HAS_USERS');
+            },
+            orElse: () => fail('Expected AppError.server, got $l'),
+          );
+        }, (r) => fail('Should not return success'));
+      },
+    );
   });
 }

@@ -6,6 +6,7 @@ part 'user.g.dart';
 ///
 /// Defines the permission levels within the Cognitive Quorum system.
 /// Mapped to the backend's `UserRole` definition.
+@JsonEnum()
 enum UserRole {
   @JsonValue('ROOT')
   root,

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -51,7 +50,7 @@ class StatePresenter:
             # New Audit Metadata
             "reasoning_chain_active": bool(state.reasoning_context),
             "database_source": db_source,
-            "environment": os.getenv("ENV", "development"),
+            "environment": settings.environment,
             "uhka_havaittu": state.step_guard.security_check.uhka_havaittu
             if (state.step_guard and state.step_guard.security_check)
             else None,

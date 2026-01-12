@@ -24,13 +24,18 @@ TECHNOLOGY STACK & VERIFIED DOCUMENTATION LINKS:
 
 2.  **State Management (The Brain)**:
     * **Riverpod ^3.0.0** (with `riverpod_annotation`): [https://riverpod.dev/] & [https://riverpod.dev/docs/whats_new]
-        * *Requirement*: STRICT Generator Mode (`@riverpod`).
-        * *Requirement*: Use `Ref` instead of `WidgetRef` in logic classes.
-        * *Requirement*: All async operations must return `AsyncValue<T>`.
-        * *Requirement*: **Declarative Data Flow**. NEVER manually subscribe to Streams (`.listen()`) inside a Controller/Notifier.
-            * *Bad Pattern*: A Controller creating a `StreamSubscription` and setting state manually.
-            * *Correct Pattern*: Use a separate `@riverpod Stream<T>` provider for real-time data and `watch` it in the UI.
-            * *Separation*: Controllers (`AsyncNotifier`) are for **Actions** (Mutations). Providers are for **Data** (Reads).
+        * *Requirement*: **STRICT GENERATOR ONLY (Class-Based & Functional)**.
+            *   Manually defined defaults (`Provider`, `FutureProvider`, `StreamProvider`, `StateNotifierProvider`) are **BANNED**.
+            *   **Reasoning**: Prevents "provider desync", ensures correct overrides, eliminates boilerplate.
+        * *Requirement*: **Declarative vs Imperative** (The "What's New" Philosophy).
+            *   **DO NOT** manually `.listen()` to streams inside a Notifier to set state (Imperative).
+            *   **DO**: Create a dependency provider (`@riverpod Stream<T>`) and `ref.watch()` it in the UI or another provider (Declarative).
+        * *Requirement*: **AsyncValue Everywhere**.
+            *   All async state must use `AsyncValue<T>`. Never use custom `isLoading` booleans.
+            *   Use `.when()` or `.value` for UI rendering.
+        * *Requirement*: **Side Effects via Mutation**.
+            *   Controllers (`@riverpod class`) are for **Actions** (void methods modifying backend/state).
+            *   Providers (`@riverpod function`) are for **Data** (fetching/computing).
 
 3.  **Routing (The Navigation)**:
     * **GoRouter ^17.0.1**: [https://pub.dev/packages/go_router]
@@ -105,6 +110,12 @@ ARCHITECTURAL RULES (ENFORCED):
     * Use `fpdart` for functional error handling. **Repositories MUST return `Future<Either<AppError, T>>` instead of throwing exceptions.**
     * Prioritize Composition over Inheritance.
     * Always verify imports (no relative imports for different feature modules).
+
+5.  **Testing Strategy (Strict Mandate)**:
+    *   **Library**: **Mocktail (^1.0.4+)** is the ONLY permitted mocking library for new tests.
+    *   **Legacy**: `mockito` is DEPRECATED. Do not add new `mockito` dependencies or generatable mocks. Refactor to `mocktail` when touching legacy tests.
+    *   **Why**: No code generation (`build_runner`) required for tests, type-safe `any()`, and cleaner API.
+    *   **Pattern**: Register fallbacks in `setUpAll` or `setUp` if needed. Use `registerFallbackValue`.
 
 4.  **API & Error Contract (ENFORCED)**:
     * "**API Error Handling**: Backend follows a strict JSON error schema `{ "error_code": "...", "message": "...", "details": ... }`."

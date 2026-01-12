@@ -223,5 +223,22 @@
   "organizationMembers": "Organization Members",
   "refresh": "Refresh",
   "noUsersFound": "No users found.",
-  "loginRequired": "Login Required"
+  "loginRequired": "Login Required",
+  "createUser": "Create User",
+  "editUser": "Edit User",
+  "deleteUser": "Delete User",
+  "displayNameLabel": "Display Name",
+  "emailLabel": "Email",
+  "passwordLabel": "Password",
+  "deleteUserConfirmation": "Are you sure you want to delete {name}?",
+  "@deleteUserConfirmation": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "userCreatedSuccess": "User created successfully.",
+  "userUpdatedSuccess": "User updated successfully.",
+  "userDeletedSuccess": "User deleted successfully."
 }

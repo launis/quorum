@@ -61,7 +61,9 @@ def list_us_central_models():
 
 if __name__ == "__main__":
     target_model = "gemini-3-pro-preview"
-    target_loc = os.getenv("VERTEX_LOCATION", "europe-north1")
+    target_loc = os.getenv("VERTEX_LOCATION")
+    if not target_loc:
+        raise RuntimeError("VERTEX_LOCATION not set. Please defined it int .env")
 
     print("=" * 60)
     print(" MODEL AVAILABILITY PROBE")

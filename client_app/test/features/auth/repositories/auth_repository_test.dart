@@ -1,9 +1,18 @@
 import 'package:client_app/features/auth/data/auth_repository.dart';
 import 'package:client_app/features/auth/domain/models/user.dart' as app_user;
 import 'package:dio/dio.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mockito/mockito.dart';
-import '../../../helpers/test_helper.mocks.dart';
+import 'package:mocktail/mocktail.dart';
+
+// Manual Mocks using Mocktail
+class MockFirebaseAuth extends Mock implements firebase_auth.FirebaseAuth {}
+
+class MockUserCredential extends Mock implements firebase_auth.UserCredential {}
+
+class MockUser extends Mock implements firebase_auth.User {}
+
+class MockDio extends Mock implements Dio {}
 
 void main() {
   late MockFirebaseAuth mockFirebaseAuth;
@@ -44,18 +53,18 @@ void main() {
     test('signInWithEmailAndPassword success flow', () async {
       // 1. Setup Firebase mocks
       when(
-        mockFirebaseAuth.signInWithEmailAndPassword(
+        () => mockFirebaseAuth.signInWithEmailAndPassword(
           email: email,
           password: password,
         ),
       ).thenAnswer((_) async => mockUserCredential);
 
-      when(mockUserCredential.user).thenReturn(mockFirebaseUser);
-      when(mockFirebaseUser.getIdToken()).thenAnswer((_) async => token);
+      when(() => mockUserCredential.user).thenReturn(mockFirebaseUser);
+      when(() => mockFirebaseUser.getIdToken()).thenAnswer((_) async => token);
 
       // 2. Setup Backend Verify mock
       when(
-        mockDio.post<Map<String, dynamic>>(
+        () => mockDio.post<Map<String, dynamic>>(
           '/auth/verify',
           data: {'token': token},
         ),
@@ -81,13 +90,13 @@ void main() {
       expect(user.organizationId, 'system');
 
       verify(
-        mockFirebaseAuth.signInWithEmailAndPassword(
+        () => mockFirebaseAuth.signInWithEmailAndPassword(
           email: email,
           password: password,
         ),
       ).called(1);
       verify(
-        mockDio.post<Map<String, dynamic>>(
+        () => mockDio.post<Map<String, dynamic>>(
           '/auth/verify',
           data: {'token': token},
         ),
@@ -97,7 +106,7 @@ void main() {
     test('debugSignInWithMockToken calls backend directly', () async {
       const uid = 'root_master';
       when(
-        mockDio.post<Map<String, dynamic>>(
+        () => mockDio.post<Map<String, dynamic>>(
           '/auth/verify',
           data: {'token': 'mock-token:$uid'},
         ),
@@ -115,7 +124,7 @@ void main() {
       final user = result.getRight().toNullable()!;
       expect(user.uid, 'root_master');
       verify(
-        mockDio.post<Map<String, dynamic>>(
+        () => mockDio.post<Map<String, dynamic>>(
           '/auth/verify',
           data: {'token': 'mock-token:$uid'},
         ),

@@ -10,10 +10,16 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 /// Adaptive list item for displaying user details in the Admin Panel.
 /// Switches between a [ListTile] (Mobile) and a Table-row style [Row] (Desktop).
 class UserListItem extends ConsumerWidget {
-  const UserListItem({super.key, required this.user, this.onEditRole});
+  const UserListItem({
+    super.key,
+    required this.user,
+    this.onEdit,
+    this.onDelete,
+  });
 
   final User user;
-  final VoidCallback? onEditRole;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -25,21 +31,24 @@ class UserListItem extends ConsumerWidget {
     final String? currentUserId = authState.value?.uid;
 
     final bool isSelf = currentUserId == user.uid;
-    final bool canEdit = !isSelf && onEditRole != null;
+    // Allow edit/delete only if not self and callbacks provided
+    final bool canModify = !isSelf && (onEdit != null || onDelete != null);
 
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth < mobileBreakpoint) {
           return _MobileLayout(
             user: user,
-            canEdit: canEdit,
-            onEditRole: onEditRole,
+            canModify: canModify,
+            onEdit: onEdit,
+            onDelete: onDelete,
           );
         } else {
           return _DesktopLayout(
             user: user,
-            canEdit: canEdit,
-            onEditRole: onEditRole,
+            canModify: canModify,
+            onEdit: onEdit,
+            onDelete: onDelete,
           );
         }
       },
@@ -50,13 +59,15 @@ class UserListItem extends ConsumerWidget {
 class _MobileLayout extends StatelessWidget {
   const _MobileLayout({
     required this.user,
-    required this.canEdit,
-    required this.onEditRole,
+    required this.canModify,
+    this.onEdit,
+    this.onDelete,
   });
 
   final User user;
-  final bool canEdit;
-  final VoidCallback? onEditRole;
+  final bool canModify;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -88,11 +99,28 @@ class _MobileLayout extends StatelessWidget {
           ],
         ),
         trailing:
-            canEdit
-                ? IconButton(
-                  icon: const Icon(Icons.edit),
-                  onPressed: onEditRole,
-                  tooltip: l10n.editRole,
+            canModify
+                ? PopupMenuButton<String>(
+                  onSelected: (value) {
+                    if (value == 'edit') onEdit?.call();
+                    if (value == 'delete') onDelete?.call();
+                  },
+                  itemBuilder:
+                      (context) => [
+                        PopupMenuItem(
+                          value: 'edit',
+                          child: Text(l10n.editUser),
+                        ),
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: Text(
+                            l10n.deleteUser,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                          ),
+                        ),
+                      ],
                 )
                 : null,
       ),
@@ -103,13 +131,15 @@ class _MobileLayout extends StatelessWidget {
 class _DesktopLayout extends StatelessWidget {
   const _DesktopLayout({
     required this.user,
-    required this.canEdit,
-    required this.onEditRole,
+    required this.canModify,
+    this.onEdit,
+    this.onDelete,
   });
 
   final User user;
-  final bool canEdit;
-  final VoidCallback? onEditRole;
+  final bool canModify;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -201,16 +231,34 @@ class _DesktopLayout extends StatelessWidget {
           SizedBox(
             width: 100, // Fixed width for actions
             child:
-                canEdit
+                canModify
                     ? Align(
                       alignment: Alignment.centerRight,
-                      child: OutlinedButton.icon(
-                        icon: const Icon(Icons.edit, size: 16),
-                        label: Text(l10n.actions), // Or concise "Edit"
-                        onPressed: onEditRole,
-                        style: OutlinedButton.styleFrom(
-                          visualDensity: VisualDensity.compact,
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: PopupMenuButton<String>(
+                        tooltip: l10n.actions,
+                        onSelected: (value) {
+                          if (value == 'edit') onEdit?.call();
+                          if (value == 'delete') onDelete?.call();
+                        },
+                        itemBuilder:
+                            (context) => [
+                              PopupMenuItem(
+                                value: 'edit',
+                                child: Text(l10n.editUser),
+                              ),
+                              PopupMenuItem(
+                                value: 'delete',
+                                child: Text(
+                                  l10n.deleteUser,
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.error,
+                                  ),
+                                ),
+                              ),
+                            ],
+                        child: const Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: Icon(Icons.more_vert),
                         ),
                       ),
                     )

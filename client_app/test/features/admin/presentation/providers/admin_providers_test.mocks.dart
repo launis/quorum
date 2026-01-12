@@ -7,8 +7,9 @@ import 'dart:async' as _i3;
 
 import 'package:client_app/core/error/app_error.dart' as _i5;
 import 'package:client_app/features/admin/data/admin_repository.dart' as _i2;
+import 'package:client_app/features/admin/domain/dtos/user_dtos.dart' as _i8;
 import 'package:client_app/features/admin/domain/models/queue_stats.dart'
-    as _i8;
+    as _i9;
 import 'package:client_app/features/auth/domain/models/user.dart' as _i6;
 import 'package:fpdart/fpdart.dart' as _i4;
 import 'package:mockito/mockito.dart' as _i1;
@@ -70,16 +71,63 @@ class MockAdminRepository extends _i1.Mock implements _i2.AdminRepository {
           as _i3.Future<_i4.Either<_i5.AppError, void>>);
 
   @override
-  _i3.Future<_i4.Either<_i5.AppError, _i8.QueueStats>> getQueueStats() =>
+  _i3.Future<_i4.Either<_i5.AppError, void>> createUser(
+    _i8.UserCreateDto? data,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#createUser, [data]),
+            returnValue: _i3.Future<_i4.Either<_i5.AppError, void>>.value(
+              _i7.dummyValue<_i4.Either<_i5.AppError, void>>(
+                this,
+                Invocation.method(#createUser, [data]),
+              ),
+            ),
+          )
+          as _i3.Future<_i4.Either<_i5.AppError, void>>);
+
+  @override
+  _i3.Future<_i4.Either<_i5.AppError, void>> updateUser({
+    required String? userId,
+    required _i8.UserUpdateDto? data,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#updateUser, [], {#userId: userId, #data: data}),
+            returnValue: _i3.Future<_i4.Either<_i5.AppError, void>>.value(
+              _i7.dummyValue<_i4.Either<_i5.AppError, void>>(
+                this,
+                Invocation.method(#updateUser, [], {
+                  #userId: userId,
+                  #data: data,
+                }),
+              ),
+            ),
+          )
+          as _i3.Future<_i4.Either<_i5.AppError, void>>);
+
+  @override
+  _i3.Future<_i4.Either<_i5.AppError, void>> deleteUser(String? userId) =>
+      (super.noSuchMethod(
+            Invocation.method(#deleteUser, [userId]),
+            returnValue: _i3.Future<_i4.Either<_i5.AppError, void>>.value(
+              _i7.dummyValue<_i4.Either<_i5.AppError, void>>(
+                this,
+                Invocation.method(#deleteUser, [userId]),
+              ),
+            ),
+          )
+          as _i3.Future<_i4.Either<_i5.AppError, void>>);
+
+  @override
+  _i3.Future<_i4.Either<_i5.AppError, _i9.QueueStats>> getQueueStats() =>
       (super.noSuchMethod(
             Invocation.method(#getQueueStats, []),
             returnValue:
-                _i3.Future<_i4.Either<_i5.AppError, _i8.QueueStats>>.value(
-                  _i7.dummyValue<_i4.Either<_i5.AppError, _i8.QueueStats>>(
+                _i3.Future<_i4.Either<_i5.AppError, _i9.QueueStats>>.value(
+                  _i7.dummyValue<_i4.Either<_i5.AppError, _i9.QueueStats>>(
                     this,
                     Invocation.method(#getQueueStats, []),
                   ),
                 ),
           )
-          as _i3.Future<_i4.Either<_i5.AppError, _i8.QueueStats>>);
+          as _i3.Future<_i4.Either<_i5.AppError, _i9.QueueStats>>);
 }

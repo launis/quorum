@@ -7,8 +7,10 @@ import 'package:client_app/features/orchestration/domain/models/execution_input.
 import 'package:client_app/features/orchestration/domain/models/execution_file.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mockito/mockito.dart';
-import '../../../helpers/test_helper.mocks.dart';
+import 'package:mocktail/mocktail.dart';
+
+// Manual Mock
+class MockDio extends Mock implements Dio {}
 
 void main() {
   late MockDio mockDio;
@@ -24,8 +26,10 @@ void main() {
     final input = ExecutionInput(workflowId: 'wf-1', inputs: {'a': 1});
 
     test('createExecution calls correct endpoint with FormData', () async {
+      // Allow any request to post
       when(
-        mockDio.post<Map<String, dynamic>>(any, data: anyNamed('data')),
+        () =>
+            mockDio.post<Map<String, dynamic>>(any(), data: any(named: 'data')),
       ).thenAnswer(
         (_) async => Response(
           data: {'execution_id': executedId},
@@ -40,9 +44,9 @@ void main() {
       expect(result.fold((l) => null, (r) => r), executedId);
 
       verify(
-        mockDio.post<Map<String, dynamic>>(
+        () => mockDio.post<Map<String, dynamic>>(
           '/executions',
-          data: anyNamed('data'),
+          data: any(named: 'data'),
         ),
       ).called(1);
     });
@@ -70,7 +74,10 @@ void main() {
         );
 
         when(
-          mockDio.post<Map<String, dynamic>>(any, data: anyNamed('data')),
+          () => mockDio.post<Map<String, dynamic>>(
+            any(),
+            data: any(named: 'data'),
+          ),
         ).thenAnswer(
           (_) async => Response(
             data: {'execution_id': 'exec-files'},
@@ -82,9 +89,9 @@ void main() {
         await repository.createExecution(fileInput).run();
 
         verify(
-          mockDio.post<Map<String, dynamic>>(
+          () => mockDio.post<Map<String, dynamic>>(
             '/executions',
-            data: anyNamed('data'),
+            data: any(named: 'data'),
           ),
         ).called(1);
       } finally {
@@ -111,9 +118,9 @@ void main() {
       ];
 
       when(
-        mockDio.get<List<dynamic>>(
+        () => mockDio.get<List<dynamic>>(
           '/executions/recent',
-          queryParameters: anyNamed('queryParameters'),
+          queryParameters: any(named: 'queryParameters'),
         ),
       ).thenAnswer(
         (_) async => Response(
@@ -133,7 +140,9 @@ void main() {
     });
 
     test('getExecution handles error correctly', () async {
-      when(mockDio.get<Map<String, dynamic>>('/executions/999')).thenThrow(
+      when(
+        () => mockDio.get<Map<String, dynamic>>('/executions/999'),
+      ).thenThrow(
         DioException(
           requestOptions: RequestOptions(path: ''),
           response: Response(
