@@ -63,7 +63,7 @@ void main() {
 
       final container = createContainer();
       // Keep provider alive via listener to prevent premature disposal during error state
-      container.listen(orgUsersProvider(orgId), (_, __) {});
+      container.listen(orgUsersProvider(orgId), (_, _) {});
 
       try {
         await container.read(orgUsersProvider(orgId).future);
@@ -76,12 +76,12 @@ void main() {
 
   group('UserRoleController', () {
     const userId = 'u1';
-    const newRole = 'ADMIN';
+    const newRole = UserRole.admin;
     const orgId = 'org-1';
 
     test('updateRole success should invalidate orgUsersProvider', () async {
       when(
-        mockRepository.updateUserRole(userId, newRole),
+        mockRepository.updateUserRole(userId, newRole.name),
       ).thenAnswer((_) async => const Right(null));
 
       // Stub retrieval to prevent MissingStubError during invalidation refetch
@@ -105,7 +105,7 @@ void main() {
     test('updateRole failure should set state to error', () async {
       const tError = AppError.validation(ValidationErrorReason.demoteLastAdmin);
       when(
-        mockRepository.updateUserRole(userId, newRole),
+        mockRepository.updateUserRole(userId, newRole.name),
       ).thenAnswer((_) async => const Left(tError));
 
       final container = createContainer();

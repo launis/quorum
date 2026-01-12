@@ -229,6 +229,7 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 # /build/ is already covered by root 'build/' rule
+client_app/lib/l10n/gen/
 
 # Symbolication related
 app.*.symbols

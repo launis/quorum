@@ -1,0 +1,28 @@
+﻿00:00 +0: loading C:/src/quorum/client_app/test/features/admin/presentation/widgets/role_selector_dialog_test.dart
+00:00 +0 -1: loading C:/src/quorum/client_app/test/features/admin/presentation/widgets/role_selector_dialog_test.dart [E]
+  Failed to load "C:/src/quorum/client_app/test/features/admin/presentation/widgets/role_selector_dialog_test.dart":
+  Compilation failed for testPath=C:/src/quorum/client_app/test/features/admin/presentation/widgets/role_selector_dialog_test.dart: test/features/admin/presentation/widgets/role_selector_dialog_test.dart:13:8: Error: Error when reading 'test/features/admin/presentation/widgets/role_selector_dialog_test.mocks.dart': M├ñ├ñritetty├ñ tiedostoa ei l├Âydy
+  import 'role_selector_dialog_test.mocks.dart';
+         ^
+  test/features/admin/presentation/widgets/role_selector_dialog_test.dart:28:23: Error: The parameter 'newRole' of the method 'MockUserRoleController.updateRole' has type 'UserRole', which does not match the corresponding type, 'String', in the overridden method, 'UserRoleController.updateRole'.
+   - 'UserRole' is from 'package:client_app/features/auth/domain/models/user.dart' ('lib/features/auth/domain/models/user.dart').
+  Change to a supertype of 'String', or, for a covariant parameter, a subtype.
+      required UserRole newRole,
+                        ^
+  lib/features/admin/presentation/providers/admin_providers.dart:56:16: Context: This is the overridden method ('updateRole').
+    Future<void> updateRole({
+                 ^
+  lib/features/admin/presentation/widgets/role_selector_dialog.dart:51:20: Error: The argument type 'UserRole' can't be assigned to the parameter type 'String'.
+   - 'UserRole' is from 'package:client_app/features/auth/domain/models/user.dart' ('lib/features/auth/domain/models/user.dart').
+            newRole: _selectedRole,
+                     ^
+  lib/features/admin/presentation/widgets/role_selector_dialog.dart:54:20: Error: This expression has type 'void' and can't be used.
+      if (mounted && success) {
+                     ^
+  lib/features/admin/presentation/widgets/role_selector_dialog.dart:132:30: Error: The getter 'confirmDemotion' isn't defined for the type 'AppLocalizations'.
+   - 'AppLocalizations' is from 'package:client_app/l10n/gen/app_localizations.dart' ('lib/l10n/gen/app_localizations.dart').
+  Try correcting the name to the name of an existing getter, or defining a getter or field named 'confirmDemotion'.
+                          l10n.confirmDemotion,
+                               ^^^^^^^^^^^^^^^
+  .
+00:00 +0 -1: Some tests failed.

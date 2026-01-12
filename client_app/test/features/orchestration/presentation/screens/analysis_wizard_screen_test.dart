@@ -1,7 +1,7 @@
 import 'package:client_app/features/orchestration/domain/models/workflow.dart';
 import 'package:client_app/features/orchestration/presentation/providers/workflow_controller.dart';
 import 'package:client_app/features/orchestration/presentation/screens/analysis_wizard_screen.dart';
-import 'package:client_app/l10n/app_localizations.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

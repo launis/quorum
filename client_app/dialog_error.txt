@@ -1,0 +1,51 @@
+﻿00:00 +0: loading C:/src/quorum/client_app/test/features/admin/presentation/widgets/role_selector_dialog_test.dart
+flutter : lib/featur
+es/admin/presentatio
+n/widgets/role_selec
+tor_dialog.dart:100:
+23: Error: The argum
+ent type 'void Funct
+ion(UserRole?)?' can
+'t be assigned to th
+e parameter type 'vo
+id Function(UserRole
+?)'.
+At line:1 char:1
++ flutter test test/
+features/admin/prese
+ntation/widgets/role
+_selector_d ...
++ ~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~
+    + CategoryInfo  
+            : NotS  
+  pecified: (lib/   
+ features/ad...o    
+n(UserRole?)'.:    S
+tring) [], Rem    ot
+eException
+    + FullyQualifie 
+   dErrorId : Nati  
+  veCommandError
+ 
+ - 'UserRole' is fro
+m 'package:client_ap
+p/features/auth/doma
+in/models/user.dart'
+ ('lib/features/auth
+/domain/models/user.
+dart').
+                    
+  ? null
+                    
+  ^
+00:00 +0 -1: loading C:/src/quorum/client_app/test/features/admin/presentation/widgets/role_selector_dialog_test.dart [E]
+  Failed to load "C:/src/quorum/client_app/test/features/admin/presentation/widgets/role_selector_dialog_test.dart":
+  Compilation failed for testPath=C:/src/quorum/client_app/test/features/admin/presentation/widgets/role_selector_dialog_test.dart: lib/features/admin/presentation/widgets/role_selector_dialog.dart:100:23: Error: The argument type 'void Function(UserRole?)?' can't be assigned to the parameter type 'void Function(UserRole?)'.
+   - 'UserRole' is from 'package:client_app/features/auth/domain/models/user.dart' ('lib/features/auth/domain/models/user.dart').
+                        ? null
+                        ^
+  .
+00:00 +0 -1: Some tests failed.

@@ -19,6 +19,8 @@ TECHNOLOGY STACK & VERIFIED DOCUMENTATION LINKS:
 1.  **Framework & Core**:
     * **Flutter 3.38+** (Stable): [https://docs.flutter.dev/]
         * *Requirement*: Use latest Material 3 widgets, Adaptive Scaffold, and `dart:ui` features.
+        * *Requirement*: **STRICT ADHERENCE TO BREAKING CHANGES**. Consult [https://docs.flutter.dev/release/breaking-changes] regulary.
+        * *Requirement*: Immediate migration of deprecated APIs (e.g., `RadioListTile` -> `RadioGroup`).
 
 2.  **State Management (The Brain)**:
     * **Riverpod ^3.0.0** (with `riverpod_annotation`): [https://riverpod.dev/] & [https://riverpod.dev/docs/whats_new]

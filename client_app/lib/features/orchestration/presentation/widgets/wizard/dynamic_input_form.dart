@@ -5,7 +5,7 @@ import 'package:client_app/features/orchestration/presentation/providers/wizard_
 import 'package:client_app/features/orchestration/presentation/widgets/wizard/file_input_field.dart';
 import 'package:client_app/features/orchestration/domain/models/workflow.dart';
 import 'package:client_app/features/orchestration/presentation/providers/workflow_controller.dart';
-import 'package:client_app/l10n/app_localizations.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 
 class DynamicInputForm extends ConsumerStatefulWidget {
   const DynamicInputForm({super.key});

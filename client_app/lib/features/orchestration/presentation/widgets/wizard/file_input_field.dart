@@ -1,7 +1,7 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:client_app/l10n/app_localizations.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 
 class FileInputField extends StatefulWidget {
   final String label;

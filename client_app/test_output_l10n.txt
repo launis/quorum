@@ -1,0 +1,28 @@
+﻿00:00 +0: loading C:/src/quorum/client_app/test/features/admin/presentation/widgets/user_list_item_test.dart
+00:00 +0 -1: loading C:/src/quorum/client_app/test/features/admin/presentation/widgets/user_list_item_test.dart [E]
+  Failed to load "C:/src/quorum/client_app/test/features/admin/presentation/widgets/user_list_item_test.dart":
+  Compilation failed for testPath=C:/src/quorum/client_app/test/features/admin/presentation/widgets/user_list_item_test.dart: Error: Couldn't resolve the package 'flutter_gen' in 'package:flutter_gen/gen_l10n/app_localizations.dart'.
+  test/features/admin/presentation/widgets/user_list_item_test.dart:6:8: Error: Not found: 'package:flutter_gen/gen_l10n/app_localizations.dart'
+  import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+         ^
+  lib/features/admin/presentation/widgets/user_list_item.dart:6:8: Error: Not found: 'package:flutter_gen/gen_l10n/app_localizations.dart'
+  import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+         ^
+  test/features/admin/presentation/widgets/user_list_item_test.dart:39:33: Error: Undefined name 'AppLocalizations'.
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+                                  ^^^^^^^^^^^^^^^^
+  test/features/admin/presentation/widgets/user_list_item_test.dart:40:27: Error: Undefined name 'AppLocalizations'.
+          supportedLocales: AppLocalizations.supportedLocales,
+                            ^^^^^^^^^^^^^^^^
+  lib/features/admin/presentation/widgets/user_list_item.dart:64:18: Error: The getter 'AppLocalizations' isn't defined for the type '_MobileLayout'.
+   - '_MobileLayout' is from 'package:client_app/features/admin/presentation/widgets/user_list_item.dart' ('lib/features/admin/presentation/widgets/user_list_item.dart').
+  Try correcting the name to the name of an existing getter, or defining a getter or field named 'AppLocalizations'.
+      final l10n = AppLocalizations.of(context)!;
+                   ^^^^^^^^^^^^^^^^
+  lib/features/admin/presentation/widgets/user_list_item.dart:118:18: Error: The getter 'AppLocalizations' isn't defined for the type '_DesktopLayout'.
+   - '_DesktopLayout' is from 'package:client_app/features/admin/presentation/widgets/user_list_item.dart' ('lib/features/admin/presentation/widgets/user_list_item.dart').
+  Try correcting the name to the name of an existing getter, or defining a getter or field named 'AppLocalizations'.
+      final l10n = AppLocalizations.of(context)!;
+                   ^^^^^^^^^^^^^^^^
+  .
+00:00 +0 -1: Some tests failed.

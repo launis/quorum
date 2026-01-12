@@ -5,4 +5,4 @@ Analyzing 2 items...
   error - The constructor 'Stream.value' doesn't have type parameters - test\features\admin\presentation\screens\user_management_screen_test.dart:98:34 - wrong_number_of_type_arguments_constructor
   error - The argument type 'User' can't be assigned to the parameter type 'User?'.  - test\features\admin\presentation\screens\user_management_screen_test.dart:98:42 - argument_type_not_assignable
 
-4 issues found. (ran in 1.8s)
+4 issues found. (ran in 1.7s)

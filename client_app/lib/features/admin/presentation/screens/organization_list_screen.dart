@@ -2,7 +2,7 @@ import 'package:client_app/core/error/app_error.dart';
 import 'package:client_app/features/admin/domain/models/organization.dart';
 import 'package:client_app/features/admin/presentation/organization_controller.dart';
 import 'package:client_app/features/admin/presentation/widgets/organization_form_dialog.dart';
-import 'package:client_app/l10n/app_localizations.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

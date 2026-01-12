@@ -53,20 +53,27 @@ class UserRoleController extends _$UserRoleController {
   ///
   /// Calls the repository to update the user's role.
   /// On success, refreshes the [orgUsersProvider] for the relevant organization.
-  Future<void> updateRole({
+  Future<bool> updateRole({
     required String userId,
-    required String newRole,
+    required UserRole newRole,
     required String orgId,
   }) async {
     state = const AsyncLoading();
 
     final repository = ref.read(adminRepositoryProvider);
-    final result = await repository.updateUserRole(userId, newRole);
+    final result = await repository.updateUserRole(userId, newRole.name);
 
-    result.fold((error) => state = AsyncError(error, StackTrace.current), (_) {
-      // Success: Refresh the user list
-      ref.invalidate(orgUsersProvider(orgId));
-      state = const AsyncData(null);
-    });
+    return result.fold(
+      (error) {
+        state = AsyncError(error, StackTrace.current);
+        return false;
+      },
+      (_) {
+        // Success: Refresh the user list
+        ref.invalidate(orgUsersProvider(orgId));
+        state = const AsyncData(null);
+        return true;
+      },
+    );
   }
 }

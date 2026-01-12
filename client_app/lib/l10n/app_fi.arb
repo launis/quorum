@@ -139,6 +139,14 @@
   "demoteLastAdminError": "Viimeistä ylläpitäjää ei voi alentaa. Ylennä toinen käyttäjä ensin.",
   "queueStatus": "Järjestelmäjono",
   "queuedJobs": "Jonossa",
-  "activeJobs": "Aktiivisena"
-
+  "activeJobs": "Aktiivisena",
+  "roleLabel": "Rooli",
+  "lastLogin": "Viimeksi nähty",
+  "actions": "Toiminnot",
+  "editRole": "Muokkaa roolia",
+  "confirmDemotion": "Varoitus: Ylläpitäjän alentaminen rajoittaa heidän oikeuksiaan välittömästi.",
+  "organizationMembers": "Organisaation jäsenet",
+  "refresh": "Päivitä",
+  "noUsersFound": "Käyttäjiä ei löytynyt.",
+  "loginRequired": "Kirjautuminen vaaditaan"
 }

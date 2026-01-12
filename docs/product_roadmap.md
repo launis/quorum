@@ -161,7 +161,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 
 ---
 
-## 📍 Phase 4: Power Users (Platform Features)
+## 📍 Phase 4: Power Users (Platform Features, ROOT and MANAGER users)
 **Objective:** Enable deep customization for Enterprise clients.
 
 ### 4.1 Custom Workflow Management (Builder & CRUD)

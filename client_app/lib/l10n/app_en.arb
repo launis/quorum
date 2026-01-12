@@ -214,6 +214,14 @@
   "demoteLastAdminError": "Cannot demote the last Admin. Promote another user first.",
   "queueStatus": "System Queue",
   "queuedJobs": "Queued",
-  "activeJobs": "Active"
-
+  "activeJobs": "Active",
+  "roleLabel": "Role",
+  "lastLogin": "Last seen",
+  "actions": "Actions",
+  "editRole": "Edit Role",
+  "confirmDemotion": "Warning: Demoting an Admin limits their access immediately.",
+  "organizationMembers": "Organization Members",
+  "refresh": "Refresh",
+  "noUsersFound": "No users found.",
+  "loginRequired": "Login Required"
 }

@@ -1,4 +1,4 @@
-import 'package:client_app/l10n/app_localizations.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/router/router.dart';
 import 'package:client_app/features/settings/theme_provider.dart';
 import 'package:client_app/features/settings/locale_provider.dart';

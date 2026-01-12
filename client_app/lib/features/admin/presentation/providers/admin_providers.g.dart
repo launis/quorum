@@ -196,7 +196,7 @@ final class UserRoleControllerProvider
 }
 
 String _$userRoleControllerHash() =>
-    r'7b409a2b178bf8ff47b2cdbca34e984e143dfb11';
+    r'bce082fc7211de01885c92178f44d540defeba46';
 
 /// **User Role Controller**
 ///

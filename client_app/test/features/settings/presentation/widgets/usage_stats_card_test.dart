@@ -1,6 +1,6 @@
 import 'package:client_app/features/settings/presentation/widgets/usage_stats_card.dart';
 import 'package:client_app/features/settings/usage_stats_provider.dart';
-import 'package:client_app/l10n/app_localizations.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
