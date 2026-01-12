@@ -76,8 +76,13 @@ TECHNOLOGY STACK & VERIFIED DOCUMENTATION LINKS:
     * **Routing Policy**:
         * **INFO/DEBUG/WARNING**: Routed to `logging_config.py` handlers (File: `backend_debug.log` / Stream).
         * **ERROR/CRITICAL**: Must include `exc_info=True` for stack traces.
-    * **Environment Config**: Log file location is controlled via `LOG_FILE_NAME` env var.
-    * **Cloud-Native**: Assume logs are scraped from `stdout`. File writing is secondary/local-only.
+    *   "Environment Config": Log file location is controlled via `LOG_FILE_NAME` env var.
+    *   "Cloud-Native": Assume logs are scraped from `stdout`. File writing is secondary/local-only.
+
+9.  **Backend Code Quality & Standards (Python)**:
+    *   **Linter**: Code MUST pass `ruff check` with zero errors. No exceptions.
+    *   **Formatter**: Code MUST be formatted via `ruff format`.
+    *   **Pre-Commit**: Always run `uv run ruff check .` and `uv run pytest` before submitting changes.
 
 ARCHITECTURAL RULES (ENFORCED):
 1.  **Monorepo Context**: You are working in `client_app/`. The backend is in `backend/`.
