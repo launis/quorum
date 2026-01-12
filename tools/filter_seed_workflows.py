@@ -5,9 +5,10 @@ import logging
 import os
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
 SEED_FILE = r"C:\src\quorum\backend\seed\seed_data.json"
+
 
 def filter_workflows():
     """Filters workflows to only include those starting with 'COURTROOM'."""
@@ -24,10 +25,7 @@ def filter_workflows():
         initial_count = len(workflows)
 
         # Filter Logic: Starts with "COURTROOM" (case-insensitive)
-        filtered_workflows = [
-            wf for wf in workflows
-            if wf.get("name", "").strip().upper().startswith("COURTROOM")
-        ]
+        filtered_workflows = [wf for wf in workflows if wf.get("name", "").strip().upper().startswith("COURTROOM")]
 
         final_count = len(filtered_workflows)
         logging.info(f"Filtered workflows from {initial_count} to {final_count}.")
@@ -48,6 +46,7 @@ def filter_workflows():
 
     except Exception as e:
         logging.error(f"Failed to filter workflows: {e}")
+
 
 if __name__ == "__main__":
     filter_workflows()

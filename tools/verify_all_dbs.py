@@ -6,8 +6,9 @@ from pathlib import Path
 FILES_TO_CHECK = [
     r"C:\src\quorum\backend\seed\seed_data.json",
     r"C:\src\quorum\backend\database\db_mock.json",
-    r"C:\src\quorum\data\db.json"
+    r"C:\src\quorum\data\db.json",
 ]
+
 
 def check_file(filepath):
     """Checks a specific database file for workflow counts and non-compliant names."""
@@ -52,6 +53,7 @@ def check_file(filepath):
 
     except Exception as e:
         print(f"Error reading {filepath}: {e}")
+
 
 if __name__ == "__main__":
     for f in FILES_TO_CHECK:
