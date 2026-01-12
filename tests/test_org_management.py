@@ -1,6 +1,6 @@
 """Organization Management Tests."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 import pytest
 
@@ -13,7 +13,7 @@ ROOT_USER = User(
     organization_id="system",
     email="root@test.com",
     display_name="Root",
-    created_at=datetime.utcnow().isoformat(),
+    created_at=datetime.now(UTC).isoformat(),
 )
 
 ADMIN_USER = User(
@@ -22,7 +22,7 @@ ADMIN_USER = User(
     organization_id="test_org",
     email="admin@test.com",
     display_name="Admin",
-    created_at=datetime.utcnow().isoformat(),
+    created_at=datetime.now(UTC).isoformat(),
 )
 
 

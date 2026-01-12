@@ -20,7 +20,7 @@ Schema:
 
 import logging
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from backend.database.repository import AbstractWorkflowRepository
@@ -47,7 +47,7 @@ class AuditService:
         """Records an audit event."""
         event = AuditEvent(
             id=uuid.uuid4().hex,
-            timestamp=datetime.utcnow().isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
             actor_uid=actor_uid,
             organization_id=organization_id,
             action=action.upper(),

@@ -3,6 +3,7 @@
 import os
 import tempfile
 from collections.abc import AsyncGenerator
+from datetime import UTC
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -44,6 +45,8 @@ def anyio_backend():
     return "asyncio"
 
 
+
+
 from backend.dependencies import get_current_user_from_header  # noqa: E402
 
 
@@ -76,7 +79,7 @@ async def client_authenticated(mock_auth_service) -> AsyncGenerator[AsyncClient]
             role=UserRole.ROOT,
             organization_id="system",
             display_name="Root User",
-            created_at=datetime.utcnow().isoformat(),
+            created_at=datetime.now(UTC).isoformat(),
         )
 
     app.dependency_overrides[get_current_user_from_header] = lambda: mock_auth_service.current_user

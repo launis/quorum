@@ -74,6 +74,11 @@ async def lifespan(app: FastAPI):
     logger.info("Starting up Cognitive Quorum Backend...")
     _print_startup_banner()
 
+    # 0. Startup Bootstrap (Moved from on_event)
+    from backend.bootstrap import bootstrap_application
+
+    await bootstrap_application()
+
     # Ensure Auth Root User Exists
     try:
         # Manual Bootstrap to avoid Depends() issues outside of request context
@@ -249,13 +254,7 @@ async def add_no_cache_header(request, call_next):
     return response
 
 
-@app.on_event("startup")
-@app.on_event("startup")
-async def startup_event():
-    """Performs application startup tasks."""
-    from backend.bootstrap import bootstrap_application
 
-    await bootstrap_application()
 
 
 # Database setup
