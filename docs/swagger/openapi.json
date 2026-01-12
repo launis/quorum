@@ -85,53 +85,13 @@
         }
       }
     },
-    "/tools/web-scrape": {
-      "post": {
-        "tags": [
-          "Tools"
-        ],
-        "summary": "Scrape URL",
-        "description": "Fetches and parses a public URL.\n\nArgs:\n    url (str): The URL to scrape.\n\nReturns:\n    dict: Title, content, and metadata.\n\nRaises:\n    HTTPException: If connection fails (400).",
-        "operationId": "scrape_url_tools_web_scrape_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Body_scrape_url_tools_web_scrape_post"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Extracted text and metadata.",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/tools/citation-lookup": {
       "post": {
         "tags": [
           "Tools"
         ],
         "summary": "Resolve Citations",
-        "description": "Uses the Knowledge Base Service to find context for citations.\n\nArgs:\n    db (DatabaseDep): Database dependency.\n    registry (RegistryDep): Registry dependency.\n    queries (list[str]): List of citation keys or queries.\n\nReturns:\n    dict: Map of query to resolved context.",
+        "description": "Uses the Knowledge Base Service to find context for citations.\n\nArgs:\n    db (DatabaseDep): Database dependency.\n    repo (RepositoryDep): Repository dependency.\n    registry (RegistryDep): Registry dependency.\n    queries (list[str]): List of citation keys or queries.\n\n    registry (RegistryDep): Registry dependency.\n    queries (list[str]): List of citation keys or queries.\n\nReturns:\n    dict: Map of query to resolved context.",
         "operationId": "citation_lookup_tools_citation_lookup_post",
         "requestBody": {
           "content": {
@@ -4831,19 +4791,6 @@
           "inputs"
         ],
         "title": "Body_run_agent_agents__agent_name__run_post"
-      },
-      "Body_scrape_url_tools_web_scrape_post": {
-        "properties": {
-          "url": {
-            "type": "string",
-            "title": "Url"
-          }
-        },
-        "type": "object",
-        "required": [
-          "url"
-        ],
-        "title": "Body_scrape_url_tools_web_scrape_post"
       },
       "Body_upload_knowledge_base_admin_knowledge_base_upload_post": {
         "properties": {

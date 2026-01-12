@@ -1,5 +1,5 @@
+"""Run pytests and capture output to file."""
 import subprocess
-import sys
 
 with open("pytest_traceback.txt", "w", encoding="utf-8") as f:
     try:

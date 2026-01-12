@@ -1,8 +1,8 @@
 """Database Scenarios Tests."""
 
 import asyncio
-from unittest.mock import MagicMock
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 

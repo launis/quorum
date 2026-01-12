@@ -15,7 +15,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Path, Query, UploadFile
 from pydantic import BaseModel, Field
 
-from backend.database.wrapper import AbstractDatabase
+from backend.database.repository import AbstractWorkflowRepository
 from backend.dependencies import (
     CurrentUserDep,
     DatabaseDep,
@@ -24,7 +24,6 @@ from backend.dependencies import (
     RepositoryDep,
     get_async_repository,
 )
-from backend.database.repository import AbstractWorkflowRepository
 from backend.models.auth import UserRole
 
 logger = logging.getLogger(__name__)

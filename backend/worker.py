@@ -59,7 +59,6 @@ async def startup(ctx: Any) -> None:
     from backend.dependencies import (
         get_agent_registry_dep,
         get_async_repository,
-        get_db_client_dep,
         get_document_service_dep,
         get_engine,
         get_prompt_builder_dep,
@@ -67,7 +66,8 @@ async def startup(ctx: Any) -> None:
     )
 
     # 1. Base Clients
-    db_client = get_db_client_dep()
+    # 1. Base Clients
+    # db_client assignment removed (unused)
 
     # 2. Services
     repo = await get_async_repository()

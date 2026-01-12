@@ -16,7 +16,7 @@ async def test_workflow_construction():
 
     # Initialize Engine with Mock DB (Explicitly pointed or rely on env)
     # Using relative path assuming running from root
-    db_path = "data/db_mock.json"
+    db_path = "backend/database/db_mock.json"
     if not os.path.exists(db_path):
         # Fallback for CI if needed, or assume setup
         pass

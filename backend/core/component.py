@@ -15,6 +15,7 @@ class BaseComponent(ABC):
         """Executes the component logic.
 
         Args:
+            state (Any, optional): The current execution state.
             *args: Variable positional arguments.
             **kwargs: Arbitrary keyword arguments.
 
