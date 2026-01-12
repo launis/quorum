@@ -140,6 +140,12 @@ class UserRepository:
         ids = self.table.remove(Query().uid == uid)
         return len(ids) > 0
 
+    def get_by_organization(self, org_id: str) -> list[User]:
+        """Retrieve all users associated with an organization ID."""
+        results = self.table.search(Query().organization_id == org_id)
+        return [User(**u) for u in results]
+
+
 
 # --- Service Layer ---
 
@@ -399,6 +405,11 @@ class AuthService:
         all_users = self.repo.list_all()
         return sum(1 for u in all_users if u.organization_id == org_id and u.role == UserRole.ADMIN)
 
+    async def get_users_by_organization(self, organization_id: str) -> list[User]:
+        """Async retrieval of all users for a given organization."""
+        return await asyncio.to_thread(self.repo.get_by_organization, organization_id)
+
+
     async def delete_user(self, initiator_uid: str, target_uid: str) -> bool:
         """Delete a user, with Last Admin Protection. (Non-blocking)."""
         logger.info(f"[AuthService] delete_user called. Initiator: {initiator_uid}, Target: {target_uid}")
@@ -572,6 +583,73 @@ class AuthService:
             )
 
         return updated_user
+
+    async def update_user_role(self, initiator_uid: str, target_uid: str, new_role: UserRole) -> User:
+        """Updates a user's role with strict Last Admin Protection.
+
+        Raises:
+            PermissionError: If hierarchy is violated.
+            ValueError: If user not found.
+            RuntimeError: If Last Admin Protection is triggered (Client should map to 409).
+        """
+        initiator = self.repo.get_by_uid(initiator_uid)
+        target = self.repo.get_by_uid(target_uid)
+
+        if not initiator or not target:
+            raise ValueError("User not found")
+
+        # 1. Access Control (Hierarchy)
+        if initiator.role != UserRole.ROOT:
+            # Check privileges: Initiator >= Target AND Initiator >= New Role
+            # Roles are Enums, but we can compare values if defined, or explicitly check.
+            # Hierarchy: ROOT > ADMIN > MANAGER > MEMBER
+            # Simple int mapping for comparison
+            role_values = {
+                UserRole.ROOT: 40,
+                UserRole.ADMIN: 30,
+                UserRole.MANAGER: 20,
+                UserRole.MEMBER: 10,
+                UserRole.VIEWER: 5,  # Assuming VIEWER exists or mapping it low
+            }
+
+            init_val = role_values.get(initiator.role, 0)
+            target_val = role_values.get(target.role, 0)
+            new_val = role_values.get(new_role, 0)
+
+            if init_val < target_val:
+                raise PermissionError("Cannot modify users with higher or equal privileges.")
+            if init_val < new_val:
+                raise PermissionError("Cannot promote user to a role higher than your own.")
+
+            # Org Constraint
+            if initiator.role == UserRole.ADMIN:
+                if target.organization_id != initiator.organization_id:
+                    raise PermissionError("Cannot manage users in other organizations.")
+
+        # 2. Last Admin Protection
+        if target.role == UserRole.ADMIN and new_role != UserRole.ADMIN:
+             if target.organization_id:
+                count = await asyncio.to_thread(self._count_org_admins, target.organization_id)
+                if count <= 1:
+                    # Specific error string to be caught by router
+                    raise RuntimeError("LAST_ADMIN_PROTECTION: Cannot demote the last Administrator.")
+
+        # 3. Apply Update
+        updated = self.repo.update(target_uid, UserUpdate(role=new_role))
+        if not updated:
+            raise ValueError("User update failed (user reference lost).")
+
+        # 4. Audit
+        if self.audit_service:
+            await self.audit_service.log_event(
+                actor_uid=initiator_uid,
+                action="USER_ROLE_UPDATED",
+                organization_id=target.organization_id,
+                target_uid=target_uid,
+                details={"old_role": target.role.value, "new_role": new_role.value},
+            )
+
+        return updated
 
     def ensure_root_user(self, email: str = "root@example.com") -> User:
         """Bootstraps a root user and Development Scenario (Demo Corp) if needed."""

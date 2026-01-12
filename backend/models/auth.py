@@ -4,6 +4,7 @@ This module defines Pydantic models for user identity, role-based access control
 organization management, and cryptographic token structures.
 """
 
+from datetime import datetime
 from enum import Enum
 from typing import Annotated
 
@@ -109,6 +110,26 @@ class User(UserBase):
     uid: Annotated[str, Field(description="Unique ID (matches Firebase UID if used)")]
     created_at: Annotated[str, Field(description="ISO 8601 Timestamp")]
     created_by: Annotated[str | None, Field(description="UID of the creator")] = None
+
+
+class UserAdminView(UserBase):
+    """Extended User model for admin views with statistics and raw datetime objects.
+
+    Attributes:
+        uid (str): Unique ID.
+        created_at (datetime): Timestamp as datetime object.
+        created_by (Optional[str]): UID of the creator.
+        last_login_at (Optional[datetime]): Timestamp of last login.
+        execution_count (int): Total number of executions/audits run.
+    """
+
+    uid: str
+    created_at: datetime
+    created_by: str | None = None
+    last_login_at: datetime | None = None
+    execution_count: int = 0
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 # --- Creation Models ---
