@@ -62,6 +62,16 @@ class User {
   @JsonKey(name: 'theme_mode')
   final String? themeMode;
 
+  /// Timestamp of the last successful login.
+  /// Nullable as it might be missing for legacy users or first login.
+  @JsonKey(name: 'last_login_at')
+  final DateTime? lastLoginAt;
+
+  /// Total number of logic executions performed by the user.
+  /// Defaults to 0 if missing.
+  @JsonKey(name: 'execution_count', defaultValue: 0)
+  final int executionCount;
+
   const User({
     required this.uid,
     required this.email,
@@ -71,6 +81,8 @@ class User {
     this.createdAt,
     this.language,
     this.themeMode,
+    this.lastLoginAt,
+    this.executionCount = 0,
   });
 
   /// Factory constructor for creating a new [User] instance from a map.

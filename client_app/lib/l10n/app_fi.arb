@@ -130,5 +130,15 @@
   "deleteOrgHasUsersTitle": "Organisaatiossa on käyttäjiä",
   "deleteOrgHasUsersMessage": "Tämä organisaatio sisältää käyttäjiä. Poistaminen poistaa pysyvästi myös kaikki sen käyttäjät. Toimintoa ei voi peruuttaa.",
   "deleteForceConfirm": "Poista kaikki",
-  "contactEmailLabel": "Yhteyshenkilön sähköposti"
+  "contactEmailLabel": "Yhteyshenkilön sähköposti",
+  "userManagement": "Käyttäjien hallinta",
+  "roleManager": "Roolien hallinta",
+  "lastActive": "Viimeksi aktiivinen",
+  "executionCount": "Suoritukset",
+  "roleUpdateSuccess": "Rooli päivitetty onnistuneesti.",
+  "demoteLastAdminError": "Viimeistä ylläpitäjää ei voi alentaa. Ylennä toinen käyttäjä ensin.",
+  "queueStatus": "Järjestelmäjono",
+  "queuedJobs": "Jonossa",
+  "activeJobs": "Aktiivisena"
+
 }

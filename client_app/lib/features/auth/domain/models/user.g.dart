@@ -21,6 +21,11 @@ User _$UserFromJson(Map<String, dynamic> json) => User(
   createdAt: json['created_at'] as String?,
   language: json['language'] as String?,
   themeMode: json['theme_mode'] as String?,
+  lastLoginAt:
+      json['last_login_at'] == null
+          ? null
+          : DateTime.parse(json['last_login_at'] as String),
+  executionCount: (json['execution_count'] as num?)?.toInt() ?? 0,
 );
 
 Map<String, dynamic> _$UserToJson(User instance) => <String, dynamic>{
@@ -32,6 +37,8 @@ Map<String, dynamic> _$UserToJson(User instance) => <String, dynamic>{
   'created_at': instance.createdAt,
   'language': instance.language,
   'theme_mode': instance.themeMode,
+  'last_login_at': instance.lastLoginAt?.toIso8601String(),
+  'execution_count': instance.executionCount,
 };
 
 const _$UserRoleEnumMap = {

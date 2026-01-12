@@ -1,0 +1,66 @@
+﻿00:00 +0: loading C:/src/quorum/client_app/test/features/admin/presentation/providers/admin_providers_test.dart
+00:00 +0: orgUsersProvider should return list of users when repo success
+00:00 +0 -1: orgUsersProvider should return list of users when repo success [E]
+  MissingDummyValueError: Either<AppError, List<User>>
+  
+  This means Mockito was not smart enough to generate a dummy value of type
+  'Either<AppError, List<User>>'. Please consider using either 'provideDummy' or 'provideDummyBuilder'
+  functions to give Mockito a proper dummy value.
+  
+  Please note that due to implementation details Mockito sometimes needs users
+  to provide dummy values for some types, even if they plan to explicitly stub
+  all the called methods.
+  
+  package:mockito/src/dummies.dart 160:3                                            dummyValue
+  test\features\admin\presentation\providers\admin_providers_test.mocks.dart 48:23  MockAdminRepository.getUsersByOrganization
+  test\features\admin\presentation\providers\admin_providers_test.dart 42:24        main.<fn>.<fn>
+  
+00:00 +0 -1: orgUsersProvider should throw error when repo failure
+00:00 +0 -2: orgUsersProvider should throw error when repo failure [E]
+  MissingDummyValueError: Either<AppError, List<User>>
+  
+  This means Mockito was not smart enough to generate a dummy value of type
+  'Either<AppError, List<User>>'. Please consider using either 'provideDummy' or 'provideDummyBuilder'
+  functions to give Mockito a proper dummy value.
+  
+  Please note that due to implementation details Mockito sometimes needs users
+  to provide dummy values for some types, even if they plan to explicitly stub
+  all the called methods.
+  
+  package:mockito/src/dummies.dart 160:3                                            dummyValue
+  test\features\admin\presentation\providers\admin_providers_test.mocks.dart 48:23  MockAdminRepository.getUsersByOrganization
+  test\features\admin\presentation\providers\admin_providers_test.dart 59:24        main.<fn>.<fn>
+  
+00:00 +0 -2: UserRoleController updateRole success should invalidate orgUsersProvider
+00:00 +0 -3: UserRoleController updateRole success should invalidate orgUsersProvider [E]
+  MissingDummyValueError: Either<AppError, void>
+  
+  This means Mockito was not smart enough to generate a dummy value of type
+  'Either<AppError, void>'. Please consider using either 'provideDummy' or 'provideDummyBuilder'
+  functions to give Mockito a proper dummy value.
+  
+  Please note that due to implementation details Mockito sometimes needs users
+  to provide dummy values for some types, even if they plan to explicitly stub
+  all the called methods.
+  
+  package:mockito/src/dummies.dart 160:3                                            dummyValue
+  test\features\admin\presentation\providers\admin_providers_test.mocks.dart 64:19  MockAdminRepository.updateUserRole
+  test\features\admin\presentation\providers\admin_providers_test.dart 80:24        main.<fn>.<fn>
+  
+00:00 +0 -3: UserRoleController updateRole failure should set state to error
+00:00 +0 -4: UserRoleController updateRole failure should set state to error [E]
+  MissingDummyValueError: Either<AppError, void>
+  
+  This means Mockito was not smart enough to generate a dummy value of type
+  'Either<AppError, void>'. Please consider using either 'provideDummy' or 'provideDummyBuilder'
+  functions to give Mockito a proper dummy value.
+  
+  Please note that due to implementation details Mockito sometimes needs users
+  to provide dummy values for some types, even if they plan to explicitly stub
+  all the called methods.
+  
+  package:mockito/src/dummies.dart 160:3                                            dummyValue
+  test\features\admin\presentation\providers\admin_providers_test.mocks.dart 64:19  MockAdminRepository.updateUserRole
+  test\features\admin\presentation\providers\admin_providers_test.dart 104:24       main.<fn>.<fn>
+  
+00:00 +0 -4: Some tests failed.

@@ -43,5 +43,6 @@ enum ValidationErrorReason {
   invalidEmail,
   passwordTooWeak,
   invalidDate,
+  demoteLastAdmin,
   unknown,
 }
