@@ -1,4 +1,5 @@
 """Tests for AuthService."""
+
 import os
 import shutil
 import tempfile
@@ -24,6 +25,7 @@ def auth_service():
 
     # Cleanup
     shutil.rmtree(temp_dir, ignore_errors=True)
+
 
 @pytest.mark.asyncio
 async def test_get_users_by_organization(auth_service):

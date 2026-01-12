@@ -704,9 +704,7 @@ async def update_user_role(
     - Cannot demote valid Last Admin.
     """
     try:
-        updated = await auth_service.update_user_role(
-            initiator_uid=user.uid, target_uid=user_id, new_role=request.role
-        )
+        updated = await auth_service.update_user_role(initiator_uid=user.uid, target_uid=user_id, new_role=request.role)
         return updated
     except PermissionError as e:
         raise HTTPException(status_code=403, detail=str(e)) from e
@@ -715,7 +713,7 @@ async def update_user_role(
     except RuntimeError as e:
         # Check for our specific signal
         if "LAST_ADMIN_PROTECTION" in str(e):
-             raise HTTPException(
+            raise HTTPException(
                 status_code=409,
                 detail={"error_code": "LAST_ADMIN_PROTECTION", "message": str(e)},
             ) from e
@@ -783,7 +781,7 @@ async def get_queue_stats(request: Request):
         return QueueStats(
             queued_jobs=queued_count,
             active_jobs=0,  # Placeholder as ArQ doesn't expose global active count easily without scanning
-            dead_jobs=0     # Placeholder
+            dead_jobs=0,  # Placeholder
         )
     except Exception as e:
         logger.error(f"Failed to fetch queue stats: {e}")

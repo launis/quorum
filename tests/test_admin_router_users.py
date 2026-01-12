@@ -1,4 +1,5 @@
 """Tests for Admin Router User Management."""
+
 from unittest.mock import AsyncMock
 
 import pytest
@@ -12,7 +13,7 @@ from backend.models.auth import TokenData, UserRole
 async def test_list_organization_users_root():
     """Test ROOT user accessing users of ANY organization."""
     auth_service = AsyncMock()
-    auth_service.get_users_by_organization.return_value = [] # Return empty list
+    auth_service.get_users_by_organization.return_value = []  # Return empty list
 
     root_user = TokenData(uid="root", role=UserRole.ROOT, organization_id="system", email="root@sys")
 
@@ -21,6 +22,7 @@ async def test_list_organization_users_root():
 
     # Verify
     auth_service.get_users_by_organization.assert_called_with("target_org")
+
 
 @pytest.mark.asyncio
 async def test_list_organization_users_admin_own_org():
@@ -36,6 +38,7 @@ async def test_list_organization_users_admin_own_org():
     # Verify
     auth_service.get_users_by_organization.assert_called_with("my_org")
 
+
 @pytest.mark.asyncio
 async def test_list_organization_users_admin_other_org():
     """Test ADMIN user accessing users of OTHER organization (Forbidden)."""
@@ -49,6 +52,7 @@ async def test_list_organization_users_admin_other_org():
 
     assert exc.value.status_code == 403
     assert "Access denied" in exc.value.detail
+
 
 @pytest.mark.asyncio
 async def test_list_organization_users_member():

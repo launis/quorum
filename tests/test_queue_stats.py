@@ -1,4 +1,5 @@
 """Tests for Queue Stats Endpoint."""
+
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -20,7 +21,7 @@ async def test_get_queue_stats_root_success():
     # Mock ArQ Pool
     mock_pool = AsyncMock()
     # Mock return of queued_jobs()
-    mock_pool.queued_jobs.return_value = ["job1", "job2"] # length 2
+    mock_pool.queued_jobs.return_value = ["job1", "job2"]  # length 2
 
     mock_state.arq_pool = mock_pool
     mock_app.state = mock_state
@@ -35,6 +36,7 @@ async def test_get_queue_stats_root_success():
     assert stats.active_jobs == 0
     assert stats.dead_jobs == 0
 
+
 @pytest.mark.asyncio
 async def test_get_queue_stats_no_pool():
     """Test behavior when ArQ pool is missing (e.g. Mock DB mode)."""
@@ -44,13 +46,14 @@ async def test_get_queue_stats_no_pool():
     class SimpleState:
         pass
 
-    mock_request.app.state = SimpleState() # No arq_pool attr
+    mock_request.app.state = SimpleState()  # No arq_pool attr
 
     # Execute
     stats = await get_queue_stats(mock_request)
 
     # Verify
     assert stats.queued_jobs == 0
+
 
 @pytest.mark.asyncio
 async def test_get_queue_stats_exception_handling():

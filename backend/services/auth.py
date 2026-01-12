@@ -146,7 +146,6 @@ class UserRepository:
         return [User(**u) for u in results]
 
 
-
 # --- Service Layer ---
 
 
@@ -409,7 +408,6 @@ class AuthService:
         """Async retrieval of all users for a given organization."""
         return await asyncio.to_thread(self.repo.get_by_organization, organization_id)
 
-
     async def delete_user(self, initiator_uid: str, target_uid: str) -> bool:
         """Delete a user, with Last Admin Protection. (Non-blocking)."""
         logger.info(f"[AuthService] delete_user called. Initiator: {initiator_uid}, Target: {target_uid}")
@@ -628,7 +626,7 @@ class AuthService:
 
         # 2. Last Admin Protection
         if target.role == UserRole.ADMIN and new_role != UserRole.ADMIN:
-             if target.organization_id:
+            if target.organization_id:
                 count = await asyncio.to_thread(self._count_org_admins, target.organization_id)
                 if count <= 1:
                     # Specific error string to be caught by router

@@ -1,4 +1,5 @@
 """Tests for UserAdminView."""
+
 from datetime import UTC, datetime
 
 from backend.models.auth import UserAdminView, UserRole
@@ -14,7 +15,7 @@ def test_user_admin_view_instantiation_dict_datetime():
         "organization_id": "test_org",
         "created_at": now,
         "last_login_at": now,
-        "execution_count": 5
+        "execution_count": 5,
     }
 
     user = UserAdminView(**data)
@@ -24,6 +25,7 @@ def test_user_admin_view_instantiation_dict_datetime():
     assert user.created_at == now
     assert user.last_login_at == now
     assert user.execution_count == 5
+
 
 def test_user_admin_view_instantiation_dict_string():
     """Test creating UserAdminView from dict with ISO strings (auto-parsing)."""
@@ -36,7 +38,7 @@ def test_user_admin_view_instantiation_dict_string():
         "organization_id": "test_org",
         "created_at": iso_now,
         "last_login_at": iso_now,
-        "execution_count": 10
+        "execution_count": 10,
     }
 
     user = UserAdminView(**data)
@@ -45,8 +47,10 @@ def test_user_admin_view_instantiation_dict_string():
     assert user.created_at == now
     assert user.last_login_at == now
 
+
 def test_user_admin_view_from_orm():
     """Test creating UserAdminView using from_attributes (ORM mode)."""
+
     class MockORMUser:
         def __init__(self):
             self.uid = "orm_uid"
