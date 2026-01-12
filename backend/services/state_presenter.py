@@ -34,12 +34,9 @@ class StatePresenter:
         settings = get_settings()
 
         # Determine DB Source Label
-        if settings.use_mock_db:
-            db_source = "mock_json"
-        elif settings.storage_backend.strip().upper() == "FIRESTORE":
-            db_source = "firebase_firestore"
-        else:
-            db_source = "local_json"
+        # Use the single source of truth from Settings (SSO)
+        # Returns: "FIRESTORE", "LOCAL", or "MOCK"
+        db_source = settings.active_backend.value
 
         # DEBUG TRACE
         flat = {}

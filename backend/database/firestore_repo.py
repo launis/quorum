@@ -3,23 +3,9 @@
 import logging
 from typing import Any
 
+from google.cloud.firestore import AsyncClient, FieldFilter, Query
+
 from backend.database.repository import AbstractWorkflowRepository
-from backend.database.wrapper import AbstractDatabase
-
-# Check for Firestore availability
-try:
-    from firebase_admin import firestore
-
-    try:
-        from google.cloud import firestore as google_cloud_firestore
-        from google.cloud.firestore import FieldFilter
-
-        FIRESTORE_LIB_AVAILABLE = True
-    except ImportError:
-        FIRESTORE_LIB_AVAILABLE = False
-except ImportError:
-    firestore = None
-    FIRESTORE_LIB_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -27,44 +13,13 @@ logger = logging.getLogger(__name__)
 class FirestoreWorkflowRepository(AbstractWorkflowRepository):
     """Firestore Implementation of the Workflow Repository.
 
-    Native Async Implementation.
+    Native Async Implementation using google-cloud-firestore.
+    Expects an injected AsyncClient.
     """
 
-    def __init__(self, db_client: AbstractDatabase):
-        """Initialize Firestore Repo."""
-        if not FIRESTORE_LIB_AVAILABLE:
-            raise ImportError("backend.database.firestore_repo requires google-cloud-firestore for Native Async mode.")
-
-        # We assume db_client is an instance of FirestoreClient from backend.database.wrapper
-        # But for Native Async, we usually need the AsyncClient, not the Admin Client.
-        # The AbstractDatabase wrapper usually wraps the Admin SDK.
-        # Here we initialize a Native Async Client separately or reuse if possible.
-
-        # NOTE: For simplicity in this architectural refactor, we are instantiating a new AsyncClient.
-        # In production, this should likely be passed in via DI properly.
-
-        # FIX: Explicitly load credentials to match wrapper.py success
-        import os
-
-        from backend.settings import get_settings
-
-        settings = get_settings()
-
-        root_dir = os.path.dirname(settings.base_dir)
-        sa_path = os.path.join(root_dir, "service-account.json")
-
-        if os.path.exists(sa_path):
-            from google.cloud import firestore as google_cloud_firestore
-
-            # Native Async Client doesn't take 'credentials' arg directly in constructor usually?
-            # actually it does: Client(credentials=..., project=...)
-            # But AsyncClient? Yes.
-            # Wait, AsyncClient.from_service_account_json(sa_path) is better.
-            logger.info(f"[FirestoreRepo] Initializes Native Async Client with explicit creds: {sa_path}")
-            self.db = google_cloud_firestore.AsyncClient.from_service_account_json(sa_path)
-        else:
-            logger.warning("[FirestoreRepo] service-account.json not found. Relying on implicit ADC environment.")
-            self.db = google_cloud_firestore.AsyncClient()
+    def __init__(self, client: AsyncClient):
+        """Initialize Firestore Repo with injected AsyncClient."""
+        self.db = client
 
     # --- Core Helpers ---
     async def _get_doc(self, collection: str, doc_id: str) -> dict[str, Any] | None:
@@ -190,19 +145,6 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
             return await self._get_all("workflows")
 
         if organization_id:
-            # Using FieldFilter to silence UserWarning about positional args
-            # "Detected filter using positional arguments. Prefer using the 'filter' keyword argument instead."
-            # Note: We use the module alias 'google_cloud_firestore' imported at the top
-
-            # TODO: Ideally should also fetch public system workflows (org_id='system', is_public=True)
-            # and merge with tenant workflows. For now, strict tenant isolation.
-
-            # Using keyword arguments for where() is one way, but the warning suggests 'filter' arg.
-            # However, for simple equality, keyword args to where() (field_path, op_string, value) *might* silence it,
-            # but using FieldFilter is the robust modern way.
-
-            from google.cloud.firestore import FieldFilter
-
             docs = (
                 self.db.collection("workflows")
                 .where(filter=FieldFilter("organization_id", "==", organization_id))
@@ -258,13 +200,6 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
 
         if user_id:
             query = query.where(filter=FieldFilter("user_id", "==", user_id))
-
-        # Order by timestamp desc for consistency with Recent Executions view?
-        # The Abstract method doesn't strictly mandate ordering but recent executions relies on it potentially?
-        # Actually TinyDB impl doesn't sort by default in get_all_executions unless explicitly asked?
-        # Wait, TinyDB implementation in step 2093 does NOT sort in get_all_executions (lines 359-375).
-        # However, execution_router.py calls get_all_executions then likely sorts or paginates?
-        # Let's keep it simple: just filtering.
 
         docs = query.stream()
         return [doc.to_dict() async for doc in docs]
@@ -393,7 +328,7 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
             query = query.where(filter=FieldFilter("action", "==", action))
 
         # Order by timestamp desc
-        query = query.order_by("timestamp", direction=google_cloud_firestore.Query.DESCENDING)
+        query = query.order_by("timestamp", direction=Query.DESCENDING)
         query = query.limit(limit)
 
         docs = query.stream()

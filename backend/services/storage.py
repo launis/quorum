@@ -57,7 +57,7 @@ class LocalFileStorage(AbstractStorage):
     Stores files in a local directory (e.g., 'backend/files/executions').
     """
 
-    def __init__(self, base_path: str = "backend/files/executions"):
+    def __init__(self, base_path: str):
         """Initializes local storage.
 
         Args:

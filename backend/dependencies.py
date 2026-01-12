@@ -13,7 +13,8 @@ from typing import Annotated, Any
 from fastapi import Depends, Header, HTTPException
 
 from backend.core.engine import WorkflowEngine
-from backend.database.repository import AbstractWorkflowRepository, TinyDBRepository
+from backend.database.factory import get_repository
+from backend.database.repository import AbstractWorkflowRepository
 from backend.database.wrapper import AbstractDatabase, get_db_client
 from backend.llm.provider import LLMProvider
 from backend.models.auth import TokenData
@@ -27,22 +28,6 @@ from backend.settings import Settings, get_settings
 
 logger = logging.getLogger(__name__)
 
-# Global Singleton Instances
-_db_client_instance: AbstractDatabase | None = None
-_repository_instance: AbstractWorkflowRepository | None = None
-_registry_instance: AgentRegistry | None = None
-_prompt_builder_instance: PromptBuilder | None = None
-_storage_service_instance: AbstractStorage | None = None
-_engine_instance: WorkflowEngine | None = None
-_auth_service_instance: AuthService | None = None
-_usage_service_instance: UsageService | None = None
-_audit_service_instance: AuditService | None = None
-
-
-def get_settings_dep() -> Settings:
-    """Dependency to provide Singleton Settings."""
-    return get_settings()
-
 
 def get_db_client_dep() -> AbstractDatabase:
     """Dependency to provide a Singleton Database Client."""
@@ -53,9 +38,7 @@ def get_db_client_dep() -> AbstractDatabase:
     return _db_client_instance
 
 
-def get_async_repository(
-    db_client: Annotated[AbstractDatabase, Depends(get_db_client_dep)],
-) -> AbstractWorkflowRepository:
+async def get_async_repository() -> AbstractWorkflowRepository:
     """Factory that returns the appropriate ASYNC-FIRST Repository implementation."""
     global _repository_instance
 
@@ -63,28 +46,8 @@ def get_async_repository(
         return _repository_instance
 
     settings = get_settings()
-    logger.warning(
-        f"### DEBUG CONFIG ###: STORAGE='{settings.storage_backend}', "
-        f"MOCK_DB={settings.use_mock_db} (Env: {settings.environment})"
-    )
-
-    # 1. Check for Firestore (Native Async)
-    if settings.storage_backend.upper() == "FIRESTORE":
-        if settings.use_mock_db:
-            raise RuntimeError(
-                "CRITICAL CONFIG ERROR: STORAGE_BACKEND=FIRESTORE implies Real DB, but USE_MOCK_DB=True. "
-                "Check your .bat file or .env variables."
-            )
-
-        from backend.database.firestore_repo import FirestoreWorkflowRepository
-
-        logger.info("[Dependencies] Initializing Native Async Firestore.")
-        _repository_instance = FirestoreWorkflowRepository(db_client)
-    else:
-        # 2. Async TinyDB (Dev)
-        logger.info("[Dependencies] Initializing Async-First TinyDB.")
-        _repository_instance = TinyDBRepository(db_client)
-
+    # Factory handles logic for Firestore vs TinyDB and Mock/Local options.
+    _repository_instance = await get_repository(settings)
     return _repository_instance
 
 
@@ -135,26 +98,37 @@ def get_storage_service_dep() -> AbstractStorage:
     if settings.storage_backend == "NONE":
         logger.info("[Dependencies] Storage disabled (NoOp).")
         _storage_service_instance = NoOpStorage()
+        return _storage_service_instance
 
-    # Logic matched with repository selection: FIRESTORE means Cloud
-    elif settings.storage_backend.upper() == "FIRESTORE" and not settings.use_mock_db:
-        bucket_name = settings.storage_bucket_name
+    from backend.settings import StorageBackend
 
-        if bucket_name:
-            logger.info(f"[Dependencies] Initializing Firebase Cloud Storage (Bucket: {bucket_name}).")
-            _storage_service_instance = FirebaseStorage(bucket_name=bucket_name)
-        else:
-            # STRICT ZERO-FALLBACK
-            msg = (
-                "CRITICAL: Firestore backend selected but STORAGE_BUCKET_NAME is missing. "
-                "Zero-fallback policy in effect."
-            )
-            logger.critical(msg)
-            raise RuntimeError(msg)
+    match settings.active_backend:
+        case StorageBackend.FIRESTORE:
+            # Logic matched with repository selection: FIRESTORE means Cloud
+            bucket_name = settings.storage_bucket_name
 
-    else:
-        logger.info("[Dependencies] Initializing Local File Storage.")
-        _storage_service_instance = LocalFileStorage()
+            if bucket_name:
+                logger.info(f"[Dependencies] Initializing Firebase Cloud Storage (Bucket: {bucket_name}).")
+                _storage_service_instance = FirebaseStorage(bucket_name=bucket_name)
+            else:
+                # STRICT ZERO-FALLBACK
+                msg = (
+                    "CRITICAL: Firestore backend selected but STORAGE_BUCKET_NAME is missing. "
+                    "Zero-fallback policy in effect."
+                )
+                logger.critical(msg)
+                raise RuntimeError(msg)
+
+        case StorageBackend.LOCAL | StorageBackend.MOCK:
+            # Both Local and Mock use LocalFileStorage
+            logger.info(f"[Dependencies] Initializing Local File Storage at {settings.files_dir}.")
+            # Force usage of the centralized data/files directory
+            _storage_service_instance = LocalFileStorage(base_path=settings.files_dir)
+
+        case _:
+             # Fallback for unexpected enum values
+            logger.warning(f"[Dependencies] Unknown backend '{settings.active_backend}', defaulting to Local.")
+            _storage_service_instance = LocalFileStorage(base_path=settings.files_dir)
 
     return _storage_service_instance
 

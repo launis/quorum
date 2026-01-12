@@ -263,60 +263,10 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 # ... imports ...
 
 
-@app.get(
-    "/db/seed_data",
-    summary="Get Seed Data",
-    response_description="Returns the full components, steps, and workflows from the database.",
-)
-async def get_seed_data(engine: EngineDep, current_user: CurrentUserDep):
-    """Retrieves the raw seed data configuration (components, steps, workflows).
+# --- Root / DB Endpoints ---
 
-    Now scoped by User Role (Root sees all).
-
-    Args:
-        engine (EngineDep): Dependency.
-        current_user (CurrentUserDep): Authenticated User.
-
-    Returns:
-        dict: Object containing lists of components, steps, and workflows.
-
-    """
-    try:
-        components = await engine.repository.get_all_components()
-        steps = await engine.repository.get_all_steps()
-
-        # Pass Role/Org for filtering
-        workflows = await engine.repository.get_all_workflows(
-            organization_id=current_user.organization_id, role=current_user.role
-        )
-
-        return {"components": components, "steps": steps, "workflows": workflows}
-    except Exception as e:
-        print(f"DEBUG: Error reading seed data from DB: {e}")
-        raise HTTPException(status_code=500, detail=str(e)) from e
-
-
-@app.get("/db/workflows", summary="List Workflows (DB)", response_description="A list of all workflow definitions.")
-async def get_workflows(engine: EngineDep, current_user: CurrentUserDep):
-    """Retrieves all workflow definitions from the repository.
-
-    Scoped by User Role.
-
-    Args:
-        engine (EngineDep): Dependency.
-        current_user (CurrentUserDep): Authenticated User.
-
-    Returns:
-        List[dict]: List of workflow objects.
-
-    """
-    try:
-        workflows = await engine.repository.get_all_workflows(
-            organization_id=current_user.organization_id, role=current_user.role
-        )
-        return workflows
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+# Note: /db/seed_data has been moved to builder_router.py /builder/seed_data
+# Note: /db/workflows has been moved to builder_router.py /builder/workflows
 
 
 @app.post("/db/reset", deprecated=True)

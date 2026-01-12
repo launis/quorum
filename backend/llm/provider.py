@@ -392,16 +392,24 @@ class LLMFactory:
         target_model = model_name
         api_key = None
 
-        if provider_type.lower() == "gemini" or provider_type.lower() == "vertex_ai":
-            # STRICT MODE: Model name must come fully formed from DB (e.g. gemini/gemini-1.5-pro)
-            target_model = model_name
-            api_key = tenant_api_key or settings.google_api_key
+        match provider_type.lower():
+            case "gemini" | "vertex_ai":
+                # STRICT MODE: Model name must come fully formed from DB (e.g. gemini/gemini-1.5-pro)
+                target_model = model_name
+                api_key = tenant_api_key or settings.google_api_key
 
-        elif provider_type.lower() == "openai":
-            target_model = model_name
-            api_key = tenant_api_key or settings.openai_api_key
-            if not api_key and not tenant_api_key:
-                api_key = os.getenv("OPENAI_API_KEY")
+            case "openai":
+                target_model = model_name
+                api_key = tenant_api_key or settings.openai_api_key
+                if not api_key and not tenant_api_key:
+                    api_key = os.getenv("OPENAI_API_KEY")
+
+            case _:
+                 # Fallback/Default handling.
+                 # Previously we just set target_model = model_name and key=None implicitly.
+                 # Let's keep it robust.
+                 target_model = model_name
+                 api_key = tenant_api_key
 
         if not target_model:
             # Should be caught by top check, but safe guard

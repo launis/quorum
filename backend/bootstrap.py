@@ -85,8 +85,8 @@ async def bootstrap_application():
         # Manually resolve dependencies to avoid FastAPI Depends() leakage
         db = get_db_client_dep()
 
-        # In Async-First, we get the repo directly from DB client
-        repo = get_async_repository(db)
+        # In Async-First, we get the repo directly via factory
+        repo = await get_async_repository()
 
         # Registry and PromptBuilder use the repo
         registry = await get_agent_registry_dep(repo)

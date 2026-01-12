@@ -5,13 +5,15 @@ echo   (FIRESTORE CLOUD DATABASE)
 echo ===================================================
 echo.
 
-echo [0/2] Starting Infrastructure (Redis)...
+echo [1/3] Starting Infrastructure (Redis)...
+
+set "DOCKER_EXE=C:\Program Files\Docker\Docker\Docker Desktop.exe"
 
 :: Check if Docker is running
 docker info >nul 2>&1
 IF %ERRORLEVEL% NEQ 0 (
     echo Docker is not running. Starting Docker Desktop...
-    start "" "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+    start "" "%DOCKER_EXE%"
     echo Waiting for Docker to initialize...
     :wait_docker
     timeout /t 5 /nobreak >nul
@@ -22,15 +24,18 @@ IF %ERRORLEVEL% NEQ 0 (
 
 docker-compose up -d redis
 
-echo [1/2] Launching Backend (Uvicorn)...
-echo       Mode: FIRESTORE, REAL LLM, NO MOCK
-start "CQ Backend (PROD)" cmd /k "chcp 65001 > nul && set USE_MOCK_DB=false&& set USE_MOCK_LLM=false&& set STORAGE_BACKEND=FIRESTORE&& set STORAGE_BUCKET_NAME=cognitive-quorum.firebasestorage.app&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& uv run uvicorn backend.main:app --reload --port 8000"
+echo [2/3] Launching Backend & Worker (Uvicorn + Arq)...
+echo       Mode: FIRESTORE (REAL DB, REAL LLM, FIREBASE AUTH)
+echo       Config: STORAGE_BACKEND=FIRESTORE, USE_MOCK_DB=false, USE_MOCK_LLM=false
 
-echo [1.5/2] Launching Worker (Arq)...
-start "CQ Worker (PROD)" cmd /k "chcp 65001 > nul && set USE_MOCK_DB=false&& set USE_MOCK_LLM=false&& set STORAGE_BACKEND=FIRESTORE&& set STORAGE_BUCKET_NAME=cognitive-quorum.firebasestorage.app&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& uv run python -m backend.run_worker"
+:: Backend
+start "CQ Backend (FIRESTORE)" cmd /k "chcp 65001 > nul && set USE_MOCK_DB=false&& set USE_MOCK_LLM=false&& set STORAGE_BACKEND=FIRESTORE&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& uv run uvicorn backend.main:app --reload --port 8000"
 
-echo [2/2] Launching Client (Flutter)...
-start "CQ Client (PROD)" cmd /k "cd client_app && flutter run"
+:: Worker
+start "CQ Worker (FIRESTORE)" cmd /k "chcp 65001 > nul && set USE_MOCK_DB=false&& set USE_MOCK_LLM=false&& set STORAGE_BACKEND=FIRESTORE&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& uv run python -m backend.run_worker"
+
+echo [3/3] Launching Client (Flutter)...
+start "CQ Client (FIRESTORE)" cmd /k "cd client_app && flutter run"
 
 echo.
 echo ---------------------------------------------------

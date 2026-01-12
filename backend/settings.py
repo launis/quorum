@@ -1,6 +1,7 @@
 """Application Settings Module."""
 
 import os
+from enum import Enum
 from functools import lru_cache
 from typing import Annotated, Any
 
@@ -21,6 +22,14 @@ def strip_whitespace(v: Any) -> Any:
 
 
 MyBool = Annotated[bool, BeforeValidator(strip_whitespace)]
+
+
+class StorageBackend(str, Enum):
+    """Enumeration for Storage Backends."""
+
+    FIRESTORE = "FIRESTORE"
+    LOCAL = "LOCAL"
+    MOCK = "MOCK"
 
 
 class Settings(BaseSettings):
@@ -75,6 +84,11 @@ class Settings(BaseSettings):
         return os.path.join(os.path.dirname(self.base_dir), "data")
 
     @computed_field
+    def files_dir(self) -> str:
+        """Returns the path to the central files directory."""
+        return os.path.join(self.data_dir, "files")
+
+    @computed_field
     def db_dir(self) -> str:
         """Returns the path to the database directory."""
         return os.path.join(self.base_dir, "database")
@@ -114,6 +128,25 @@ class Settings(BaseSettings):
         """Absolute path to the log file in the project root."""
         # Using base_dir parent (project root) + log_file_name
         return os.path.join(os.path.dirname(self.base_dir), self.log_file_name)
+
+    @computed_field
+    def active_backend(self) -> StorageBackend:
+        """Determines the active storage backend based on configuration.
+
+        Priority 1: Explicit FIRESTORE backend.
+        Priority 2: Mock mode.
+        Default: Local storage.
+        """
+        if self.storage_backend.upper() == "FIRESTORE":
+            return StorageBackend.FIRESTORE
+        if self.use_mock_db:
+            return StorageBackend.MOCK
+        return StorageBackend.LOCAL
+
+    @computed_field
+    def is_cloud_storage(self) -> bool:
+        """Returns True if active_backend is FIRESTORE."""
+        return self.active_backend == StorageBackend.FIRESTORE
 
     # --- Complex Configs (Computed) ---
     @computed_field

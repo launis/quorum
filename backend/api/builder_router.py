@@ -685,3 +685,37 @@ async def compile_fusion(req: CompileRequest, engine: EngineDep):
     await engine.repository.update_workflow(req.workflow_id, {"steps": new_steps, "default_model_mapping": mapping})
 
     return {"status": "compiled", "composite_step_id": target_composite_id, "new_steps": new_steps}
+
+
+@router.get(
+    "/seed_data",
+    summary="Get Seed Data",
+    response_description="Returns the full components, steps, and workflows from the database.",
+)
+async def get_seed_data(engine: EngineDep, current_user: CurrentUserDep):
+    """Retrieves the raw seed data configuration (components, steps, workflows).
+
+    Now scoped by User Role (Root sees all).
+
+    Args:
+        engine (EngineDep): Dependency.
+        current_user (CurrentUserDep): Authenticated User.
+
+    Returns:
+        dict: Object containing lists of components, steps, and workflows.
+
+    """
+    try:
+        # Note: repository methods are async
+        components = await engine.repository.get_all_components()
+        steps = await engine.repository.get_all_steps()
+
+        # Pass Role/Org for filtering
+        workflows = await engine.repository.get_all_workflows(
+            organization_id=current_user.organization_id, role=current_user.role
+        )
+
+        return {"components": components, "steps": steps, "workflows": workflows}
+    except Exception as e:
+        logger.error(f"Error reading seed data from DB: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e)) from e

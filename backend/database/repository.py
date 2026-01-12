@@ -12,8 +12,7 @@ from backend.database.wrapper import AbstractDatabase
 class AbstractWorkflowRepository(ABC):
     """Universal Async Interface for Workflow Data Access.
 
-    This replaces the old Sync/Async split. All repositories are now Async First.
-    TinyDB implementations must use asyncio.to_thread internally.
+    Async-First architecture. TinyDB implementations use asyncio.to_thread internally.
     """
 
     # --- Components ---
@@ -251,10 +250,6 @@ class TinyDBRepository(AbstractWorkflowRepository):
         self.system_config = self.db.table("system_config")
         self.organizations = self.db.table("organizations")
         self.usage_logs = self.db.table("usage_logs")
-        self.organizations = self.db.table("organizations")
-        self.usage_logs = self.db.table("usage_logs")
-        self.settings = self.db.table("settings")
-        self.users = self.db.table("users")
         self.settings = self.db.table("settings")
         self.users = self.db.table("users")
         self.audit_logs = self.db.table("audit_logs")

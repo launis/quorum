@@ -32,36 +32,37 @@ def get_fallback_data(key: str) -> dict[str, Any]:
         Dict[str, Any]: A dictionary representing the mock response.
 
     """
-    if key == "guard_agent":
-        return _generate_guard_data()
-    elif key == "analyst_agent":
-        return _generate_analyst_data()
-    elif key == "interaction_agent":
-        return _generate_interaction_data()
-    elif key == "profiler_agent":
-        return _generate_profiler_data()
-    elif key == "logician_agent":
-        return _generate_logician_data()
-    elif key == "falsifier_agent":
-        return _generate_falsifier_data()
-    elif key == "fact_checker_agent":
-        return _generate_fact_checker_data()
-    elif key == "causal_agent":
-        return _generate_causal_data()
-    elif key == "archivist_agent":
-        return _generate_archivist_data()
-    elif key == "performativity_agent":
-        return _generate_performativity_data()
-    elif key == "judge_agent":
-        return _generate_judge_data()
-    elif key == "xai_agent":
-        return _generate_xai_data()
-    elif key == "coach_agent":
-        return _generate_coach_data()
-    elif key == "panel_agent":
-        return _generate_panel_data()
-
-    return {"error": "No mock data available", "mock_key": key}
+    match key:
+        case "guard_agent":
+            return _generate_guard_data()
+        case "analyst_agent":
+            return _generate_analyst_data()
+        case "interaction_agent":
+            return _generate_interaction_data()
+        case "profiler_agent":
+            return _generate_profiler_data()
+        case "logician_agent":
+            return _generate_logician_data()
+        case "falsifier_agent":
+            return _generate_falsifier_data()
+        case "fact_checker_agent":
+            return _generate_fact_checker_data()
+        case "causal_agent":
+            return _generate_causal_data()
+        case "archivist_agent":
+            return _generate_archivist_data()
+        case "performativity_agent":
+            return _generate_performativity_data()
+        case "judge_agent":
+            return _generate_judge_data()
+        case "xai_agent":
+            return _generate_xai_data()
+        case "coach_agent":
+            return _generate_coach_data()
+        case "panel_agent":
+            return _generate_panel_data()
+        case _:
+            return {"error": "No mock data available", "mock_key": key}
 
 
 def get_example_for_agent(agent_class_name: str) -> dict[str, Any] | None:

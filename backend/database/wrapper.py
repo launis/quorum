@@ -321,24 +321,25 @@ def get_db_client() -> AbstractDatabase:
     # 2. Production Modes
     backend = settings.storage_backend.strip().upper()
 
-    if backend == "FIRESTORE":
-        if not FIRESTORE_AVAILABLE:
-            raise RuntimeError(
-                "CRITICAL: Firestore requested (STORAGE_BACKEND=FIRESTORE) "
-                "but 'firebase_admin' or 'google-cloud-firestore' is not installed."
-            )
+    match backend:
+        case "FIRESTORE":
+            if not FIRESTORE_AVAILABLE:
+                raise RuntimeError(
+                    "CRITICAL: Firestore requested (STORAGE_BACKEND=FIRESTORE) "
+                    "but 'firebase_admin' or 'google-cloud-firestore' is not installed."
+                )
 
-        try:
-            return FirestoreClient()
-        except Exception as e:
-            logger.critical(f"Failed to connect to Firestore: {e}")
-            raise RuntimeError(f"CRITICAL: Firestore connection failed: {e}. Zero-fallback policy in effect.") from e
+            try:
+                return FirestoreClient()
+            except Exception as e:
+                logger.critical(f"Failed to connect to Firestore: {e}")
+                raise RuntimeError(f"CRITICAL: Firestore connection failed: {e}. Zero-fallback policy in effect.") from e
 
-    elif backend == "LOCAL":
-        # Standard Production JSON DB
-        return TinyDBClient(settings.prod_db_path)
+        case "LOCAL":
+            # Standard Production JSON DB
+            return TinyDBClient(settings.prod_db_path)
 
-    else:
-        # Default fallback
-        logger.warning(f"Unknown storage_backend '{backend}'. Defaulting to LOCAL.")
-        return TinyDBClient(settings.prod_db_path)
+        case _:
+            # Default fallback
+            logger.warning(f"Unknown storage_backend '{backend}'. Defaulting to LOCAL.")
+            return TinyDBClient(settings.prod_db_path)
