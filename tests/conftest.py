@@ -45,8 +45,6 @@ def anyio_backend():
     return "asyncio"
 
 
-
-
 from backend.dependencies import get_current_user_from_header  # noqa: E402
 
 

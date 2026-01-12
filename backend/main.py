@@ -254,9 +254,6 @@ async def add_no_cache_header(request, call_next):
     return response
 
 
-
-
-
 # Database setup
 settings = get_settings()
 # print(f"DEBUG: ACTIVE DATABASE PATH: {os.path.abspath(settings.start_db_path)}")
