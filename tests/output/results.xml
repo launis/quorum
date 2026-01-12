@@ -1,52 +1,67 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="5" skipped="0" tests="6" time="9.276" timestamp="2026-01-12T20:43:59.598513+02:00" hostname="Laptop-Risto"><testcase classname="tests.test_user_crud" name="test_root_create_user_any_org" time="1.848"><failure message="assert 400 == 200&#10; +  where 400 = &lt;Response [400 Bad Request]&gt;.status_code">def test_root_create_user_any_org():
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="5" skipped="0" tests="6" time="2.067" timestamp="2026-01-12T20:55:53.046513+02:00" hostname="Laptop-Risto"><testcase classname="tests.test_user_crud" name="test_root_create_user_any_org" time="0.772"><failure message="assert 400 == 200&#10; +  where 400 = &lt;Response [400 Bad Request]&gt;.status_code">client = &lt;httpx.AsyncClient object at 0x000001F11FF38050&gt;
+
+    @pytest.mark.asyncio
+    async def test_root_create_user_any_org(client: AsyncClient):
         """Root should be able to create a user in any organization."""
         payload = {
             "email": "new_root_created@example.com",
             "display_name": "Root Created",
             "role": "MEMBER",
             "organization_id": "org-1",
-            "password": "password123",
+            "password": "password123"
         }
-        response = client.post("/admin/users", json=payload, headers=get_headers(ROOT_TOKEN))
+        response = await client.post("/admin/users", json=payload, headers=get_headers(ROOT_TOKEN))
 &gt;       assert response.status_code == 200
 E       assert 400 == 200
 E        +  where 400 = &lt;Response [400 Bad Request]&gt;.status_code
 
-tests\test_user_crud.py:126: AssertionError</failure></testcase><testcase classname="tests.test_user_crud" name="test_admin_create_user_own_org" time="1.447"><failure message="assert 400 == 200&#10; +  where 400 = &lt;Response [400 Bad Request]&gt;.status_code">def test_admin_create_user_own_org():
+tests\test_user_crud.py:147: AssertionError</failure></testcase><testcase classname="tests.test_user_crud" name="test_admin_create_user_own_org" time="0.169"><failure message="assert 400 == 200&#10; +  where 400 = &lt;Response [400 Bad Request]&gt;.status_code">client = &lt;httpx.AsyncClient object at 0x000001F11FDC6570&gt;
+
+    @pytest.mark.asyncio
+    async def test_admin_create_user_own_org(client: AsyncClient):
         """Admin should be able to create a user in their own organization."""
         payload = {
             "email": "new_admin_created@example.com",
             "display_name": "Admin Created",
             "role": "MEMBER",
-            "organization_id": "org-1",  # Matches admin_1 org
-            "password": "password123",
+            "organization_id": "org-1", # Matches admin_1 org
+            "password": "password123"
         }
-        response = client.post("/admin/users", json=payload, headers=get_headers(ADMIN_TOKEN))
+        response = await client.post("/admin/users", json=payload, headers=get_headers(ADMIN_TOKEN))
 &gt;       assert response.status_code == 200
 E       assert 400 == 200
 E        +  where 400 = &lt;Response [400 Bad Request]&gt;.status_code
 
-tests\test_user_crud.py:142: AssertionError</failure></testcase><testcase classname="tests.test_user_crud" name="test_admin_cannot_create_user_other_org" time="1.296" /><testcase classname="tests.test_user_crud" name="test_update_user" time="1.205"><failure message="assert 404 == 200&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_update_user():
+tests\test_user_crud.py:164: AssertionError</failure></testcase><testcase classname="tests.test_user_crud" name="test_admin_cannot_create_user_other_org" time="0.079" /><testcase classname="tests.test_user_crud" name="test_update_user" time="0.099"><failure message="assert 404 == 200&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">client = &lt;httpx.AsyncClient object at 0x000001F1406ED480&gt;
+
+    @pytest.mark.asyncio
+    async def test_update_user(client: AsyncClient):
         """Admin can update a user in their org."""
         payload = {"display_name": "Updated Name"}
-        response = client.patch("/admin/users/target_user", json=payload, headers=get_headers(ADMIN_TOKEN))
+        response = await client.patch("/admin/users/target_user", json=payload, headers=get_headers(ADMIN_TOKEN))
 &gt;       assert response.status_code == 200
 E       assert 404 == 200
 E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
 
-tests\test_user_crud.py:169: AssertionError</failure></testcase><testcase classname="tests.test_user_crud" name="test_delete_user" time="1.317"><failure message="assert 404 == 200&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_delete_user():
+tests\test_user_crud.py:189: AssertionError</failure></testcase><testcase classname="tests.test_user_crud" name="test_delete_user" time="0.084"><failure message="assert 404 == 200&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">client = &lt;httpx.AsyncClient object at 0x000001F1408C8B50&gt;
+
+    @pytest.mark.asyncio
+    async def test_delete_user(client: AsyncClient):
         """Admin can delete a user in their org."""
-        response = client.delete("/admin/users/target_user", headers=get_headers(ADMIN_TOKEN))
+        response = await client.delete("/admin/users/target_user", headers=get_headers(ADMIN_TOKEN))
 &gt;       assert response.status_code == 200
 E       assert 404 == 200
 E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
 
-tests\test_user_crud.py:176: AssertionError</failure></testcase><testcase classname="tests.test_user_crud" name="test_last_admin_protection_delete" time="1.504"><failure message="assert 404 == 409&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_last_admin_protection_delete():
+tests\test_user_crud.py:197: AssertionError</failure></testcase><testcase classname="tests.test_user_crud" name="test_last_admin_protection_delete" time="0.082"><failure message="assert 404 == 409&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">client = &lt;httpx.AsyncClient object at 0x000001F1408C9B50&gt;
+
+    @pytest.mark.asyncio
+    async def test_last_admin_protection_delete(client: AsyncClient):
         """Cannot delete the last admin of an org."""
         # admin_1 is the only admin in org-1.
-        response = client.delete("/admin/users/admin_1", headers=get_headers(ADMIN_TOKEN))
+        response = await client.delete("/admin/users/admin_1", headers=get_headers(ADMIN_TOKEN))
 &gt;       assert response.status_code == 409
 E       assert 404 == 409
 E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
 
-tests\test_user_crud.py:188: AssertionError</failure></testcase></testsuite></testsuites>
+tests\test_user_crud.py:210: AssertionError</failure></testcase></testsuite></testsuites>
