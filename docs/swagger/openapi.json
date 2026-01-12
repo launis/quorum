@@ -12,7 +12,7 @@
           "Tools"
         ],
         "summary": "Extract Text from File",
-        "description": "Deep-parse a PDF/DOCX file and return raw text.\n\nArgs:\n    file (UploadFile): The binary file to process.\n    doc_service (DocumentService): Injected document service.\n\nReturns:\n    dict: Filename and extracted text.\n\nRaises:\n    HTTPException: If extraction fails (500).",
+        "description": "Deep-parse a PDF/DOCX file and return raw text.\n\nArgs:\n    file (UploadFile): The binary file to process.\n    doc_service (DocumentService): Injected document service.\n    text (str | None): Optional text fallback.\n\nReturns:\n    dict: Filename and extracted text.\n\nRaises:\n    HTTPException: If extraction fails (500).",
         "operationId": "extract_text_tools_extract_text_post",
         "requestBody": {
           "content": {
@@ -21,8 +21,7 @@
                 "$ref": "#/components/schemas/Body_extract_text_tools_extract_text_post"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -3850,7 +3849,7 @@
           "Organizations"
         ],
         "summary": "Create Organization",
-        "description": "Create a new Tenant Organization.\n\nArgs:\n    org (OrganizationCreateRequest): Organization details.\n    user (TokenData): Requesting user (must be ROOT).\n    repo (RepositoryDep): Repository dependency.\n\nReturns:\n    OrganizationResponse: The created organization.\n\nRaises:\n    HTTPException: If ID conflict (409).",
+        "description": "Create a new Tenant Organization.\n\nArgs:\n    org (OrganizationCreateRequest): Organization details.\n    user (TokenData): Requesting user (ROOT required).\n    auth (AuthServiceDep): Authentication service.\n    repo (RepositoryDep): Repository dependency.\n\nReturns:\n    OrganizationResponse: The created organization.\n\nRaises:\n    HTTPException: If ID conflict (409).",
         "operationId": "create_organization_organizations__post",
         "parameters": [
           {
@@ -4557,6 +4556,17 @@
       },
       "Body_extract_text_tools_extract_text_post": {
         "properties": {
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          },
           "file": {
             "type": "string",
             "format": "binary",
@@ -4564,9 +4574,6 @@
           }
         },
         "type": "object",
-        "required": [
-          "file"
-        ],
         "title": "Body_extract_text_tools_extract_text_post"
       },
       "Body_run_agent_agents__agent_name__run_post": {
