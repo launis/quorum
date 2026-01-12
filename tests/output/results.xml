@@ -1,1 +1,71 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="1" time="0.067" timestamp="2026-01-12T17:58:42.270837+02:00" hostname="Laptop-Risto"><testcase classname="tests.test_auth_service" name="test_get_users_by_organization" time="0.028" /></testsuite></testsuites>
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="6" skipped="0" tests="6" time="8.760" timestamp="2026-01-12T20:26:39.548727+02:00" hostname="Laptop-Risto"><testcase classname="tests.test_user_crud" name="test_root_create_user_any_org" time="1.902"><failure message="assert 400 == 200&#10; +  where 400 = &lt;Response [400 Bad Request]&gt;.status_code">def test_root_create_user_any_org():
+        """Root should be able to create a user in any organization."""
+        payload = {
+            "email": "new_root_created@example.com",
+            "display_name": "Root Created",
+            "role": "MEMBER",
+            "organization_id": "org-1",
+            "password": "password123"
+        }
+        response = client.post("/admin/users", json=payload, headers=get_headers(ROOT_TOKEN))
+&gt;       assert response.status_code == 200
+E       assert 400 == 200
+E        +  where 400 = &lt;Response [400 Bad Request]&gt;.status_code
+
+tests\test_user_crud.py:139: AssertionError</failure></testcase><testcase classname="tests.test_user_crud" name="test_admin_create_user_own_org" time="1.347"><failure message="assert 400 == 200&#10; +  where 400 = &lt;Response [400 Bad Request]&gt;.status_code">def test_admin_create_user_own_org():
+        """Admin should be able to create a user in their own organization."""
+        payload = {
+            "email": "new_admin_created@example.com",
+            "display_name": "Admin Created",
+            "role": "MEMBER",
+            "organization_id": "org-1", # Matches admin_1 org
+            "password": "password123"
+        }
+        response = client.post("/admin/users", json=payload, headers=get_headers(ADMIN_TOKEN))
+&gt;       assert response.status_code == 200
+E       assert 400 == 200
+E        +  where 400 = &lt;Response [400 Bad Request]&gt;.status_code
+
+tests\test_user_crud.py:155: AssertionError</failure></testcase><testcase classname="tests.test_user_crud" name="test_admin_cannot_create_user_other_org" time="1.130"><failure message="assert 400 in [403, 500]&#10; +  where 400 = &lt;Response [400 Bad Request]&gt;.status_code">def test_admin_cannot_create_user_other_org():
+        """Admin cannot create user in another organization."""
+        payload = {
+            "email": "intruder@example.com",
+            "display_name": "Intruder",
+            "role": "MEMBER",
+            "organization_id": "org-2", # Matches admin_2 org, not admin_1
+            "password": "password123"
+        }
+        response = client.post("/admin/users", json=payload, headers=get_headers(ADMIN_TOKEN))
+        # AuthService raises PermissionError -&gt; Main catches generic exceptions as 500 often,
+        # but we should ensure it maps to 403.
+        # Current dependencies/router might need explicit handling, or simple Exception handling.
+        # admin_router currently catches Exception and logs but let's see implementation goal.
+        # Ideally 403.
+&gt;       assert response.status_code in [403, 500]
+E       assert 400 in [403, 500]
+E        +  where 400 = &lt;Response [400 Bad Request]&gt;.status_code
+
+tests\test_user_crud.py:175: AssertionError</failure></testcase><testcase classname="tests.test_user_crud" name="test_update_user" time="1.161"><failure message="assert 404 == 200&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_update_user():
+        """Admin can update a user in their org."""
+        payload = {"display_name": "Updated Name"}
+        response = client.patch("/admin/users/target_user", json=payload, headers=get_headers(ADMIN_TOKEN))
+&gt;       assert response.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+tests\test_user_crud.py:182: AssertionError</failure></testcase><testcase classname="tests.test_user_crud" name="test_delete_user" time="1.380"><failure message="assert 404 == 200&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_delete_user():
+        """Admin can delete a user in their org."""
+        response = client.delete("/admin/users/target_user", headers=get_headers(ADMIN_TOKEN))
+&gt;       assert response.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+tests\test_user_crud.py:189: AssertionError</failure></testcase><testcase classname="tests.test_user_crud" name="test_last_admin_protection_delete" time="1.359"><failure message="assert 404 == 409&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_last_admin_protection_delete():
+        """Cannot delete the last admin of an org."""
+        # admin_1 is the only admin in org-1.
+        response = client.delete("/admin/users/admin_1", headers=get_headers(ADMIN_TOKEN))
+&gt;       assert response.status_code == 409
+E       assert 404 == 409
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+tests\test_user_crud.py:201: AssertionError</failure></testcase></testsuite></testsuites>

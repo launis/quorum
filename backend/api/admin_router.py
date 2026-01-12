@@ -25,7 +25,7 @@ from backend.dependencies import (
     RepositoryDep,
     get_async_repository,
 )
-from backend.models.auth import UserAdminView, UserRole
+from backend.models.auth import UserAdminView, UserCreate, UserRole, UserUpdate
 from backend.schemas.admin import QueueStats
 
 logger = logging.getLogger(__name__)
@@ -45,6 +45,23 @@ def require_root(user: CurrentUserDep):
     """
     if user.role != UserRole.ROOT:
         raise HTTPException(status_code=403, detail="Admin access required")
+    return user
+
+
+def require_admin_or_root(user: CurrentUserDep):
+    """Dependency to enforce ADMIN or ROOT role access.
+
+    Args:
+        user (CurrentUserDep): The authenticated user.
+
+    Returns:
+        User: The user object if authorized.
+
+    Raises:
+        HTTPException: If the user is not ADMIN/ROOT (403).
+    """
+    if user.role not in [UserRole.ROOT, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Admin or Root access required")
     return user
 
 
@@ -189,6 +206,103 @@ def _start_admin_task(
 
 
 # --- Endpoints ---
+
+
+@router.post(
+    "/users",
+    summary="Create User",
+    response_description="The created user.",
+    dependencies=[Depends(require_admin_or_root)],
+)
+async def create_user(
+    request: UserCreate,
+    user: CurrentUserDep,
+    auth_service: AuthServiceDep,
+):
+    """Creates a new user.
+
+    - **Root**: Can create in any organization.
+    - **Admin**: Can only create in their own organization.
+    """
+    try:
+        return await auth_service.create_user(creator_uid=user.uid, user_data=request)
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e)) from e
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception as e:
+        logger.error(f"Create user failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@router.patch(
+    "/users/{user_id}",
+    summary="Update User",
+    response_description="The updated user.",
+    dependencies=[Depends(require_admin_or_root)],
+)
+async def update_user(
+    user_id: str,
+    request: UserUpdate,
+    user: CurrentUserDep,
+    auth_service: AuthServiceDep,
+):
+    """Updates an existing user.
+
+    - **Root**: Can update anyone.
+    - **Admin**: Can only update users in their organization (subject to hierarchy).
+    """
+    try:
+        return await auth_service.update_user(initiator_uid=user.uid, target_uid=user_id, updates=request)
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e)) from e
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    except RuntimeError as e:
+        if "LAST_ADMIN_PROTECTION" in str(e):
+            raise HTTPException(
+                status_code=409,
+                detail={"error_code": "LAST_ADMIN_PROTECTION", "message": str(e)},
+            ) from e
+        raise HTTPException(status_code=500, detail=str(e)) from e
+    except Exception as e:
+        logger.error(f"Update user failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@router.delete(
+    "/users/{user_id}",
+    summary="Delete User",
+    response_description="Confirmation of deletion.",
+    dependencies=[Depends(require_admin_or_root)],
+)
+async def delete_user(
+    user_id: str,
+    user: CurrentUserDep,
+    auth_service: AuthServiceDep,
+):
+    """Deletes a user.
+
+    - **Root**: Can delete anyone (except root_master).
+    - **Admin**: Can only delete users in their organization.
+    - **Protection**: Cannot delete the last Admin of an organization.
+    """
+    try:
+        await auth_service.delete_user(initiator_uid=user.uid, target_uid=user_id)
+        return {"status": "deleted", "uid": user_id}
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e)) from e
+    except ValueError as e:
+        # Check if it was "Last Admin" related from service, usually Permission or Value
+        if "Last Admin" in str(e) or "last Administrator" in str(e):
+            raise HTTPException(
+                status_code=409,
+                 detail={"error_code": "LAST_ADMIN_PROTECTION", "message": str(e)}
+            ) from e
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    except Exception as e:
+        logger.error(f"Delete user failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post(
