@@ -761,7 +761,8 @@ async def get_queue_stats(request: Request):
         # Actually `pool.queued_jobs()` gets jobs in queue.
         # `active_jobs` usually requires checking worker keys.
         # For simplicity and standard Arq API, we might stick to what's easy.
-        # If standard ArQ doesn't easily give active count without worker inspection, we might mock it or leave as 0/TODO.
+        # If standard ArQ doesn't easily give active count without worker inspection,
+        # we might mock it or leave as 0/TODO.
         # However, `pool.queued_jobs()` is definitely available.
 
         # Let's check available methods on ArqRedis.

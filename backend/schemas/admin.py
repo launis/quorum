@@ -1,3 +1,4 @@
+"""Admin Schemas."""
 from pydantic import BaseModel, ConfigDict, Field
 
 

@@ -1,11 +1,13 @@
-import pytest
+"""Tests for Queue Stats Endpoint."""
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 from fastapi import FastAPI, Request
 from starlette.datastructures import State
 
 from backend.api.admin_router import get_queue_stats
 from backend.schemas.admin import QueueStats
-from backend.models.auth import UserRole, TokenData
+
 
 @pytest.mark.asyncio
 async def test_get_queue_stats_root_success():
@@ -14,19 +16,19 @@ async def test_get_queue_stats_root_success():
     mock_request = MagicMock(spec=Request)
     mock_app = MagicMock(spec=FastAPI)
     mock_state = MagicMock(spec=State)
-    
+
     # Mock ArQ Pool
     mock_pool = AsyncMock()
     # Mock return of queued_jobs()
     mock_pool.queued_jobs.return_value = ["job1", "job2"] # length 2
-    
+
     mock_state.arq_pool = mock_pool
     mock_app.state = mock_state
     mock_request.app = mock_app
-    
+
     # Execute
     stats = await get_queue_stats(mock_request)
-    
+
     # Verify
     assert isinstance(stats, QueueStats)
     assert stats.queued_jobs == 2
@@ -37,24 +39,16 @@ async def test_get_queue_stats_root_success():
 async def test_get_queue_stats_no_pool():
     """Test behavior when ArQ pool is missing (e.g. Mock DB mode)."""
     mock_request = MagicMock(spec=Request)
-    mock_app = MagicMock(spec=FastAPI)
-    mock_state = MagicMock(spec=State)
-    
-    # Setup state WITHOUT arq_pool
-    # Manually ensure getattr(state, "arq_pool", None) returns None
-    # MagicMock by default creates child mocks for attributes, so we strictly set it to None?
-    # Actually, getattr on a mock returns a child mock. 
-    # We need to simulate hasattr failure or specific return.
-    
+
     # Alternative: Use a real class or simple object for state
     class SimpleState:
         pass
-        
+
     mock_request.app.state = SimpleState() # No arq_pool attr
-    
+
     # Execute
     stats = await get_queue_stats(mock_request)
-    
+
     # Verify
     assert stats.queued_jobs == 0
 
@@ -64,11 +58,11 @@ async def test_get_queue_stats_exception_handling():
     mock_request = MagicMock(spec=Request)
     mock_pool = AsyncMock()
     mock_pool.queued_jobs.side_effect = Exception("Redis Down")
-    
+
     mock_request.app.state.arq_pool = mock_pool
-    
+
     # Execute
     stats = await get_queue_stats(mock_request)
-    
+
     # Verify fail-safe (zeros)
     assert stats.queued_jobs == 0
