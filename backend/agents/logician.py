@@ -36,7 +36,12 @@ class LogicianAgent(BaseAgent):
         """
         return ArgumentaatioAnalyysi
 
-    async def execute(self, state: WorkflowState | None = None, system_instruction: str | None = None, **kwargs) -> WorkflowState:
+    async def execute(
+        self,
+        state: WorkflowState | None = None,
+        system_instruction: str | None = None,
+        **kwargs,
+    ) -> WorkflowState:
         """Executes argument reconstruction and cognitive assessment.
 
         Input State:

@@ -34,7 +34,12 @@ class LogicalFalsifierAgent(BaseAgent):
         """
         return LogiikkaAuditointi
 
-    async def execute(self, state: WorkflowState | None = None, system_instruction: str | None = None, **kwargs) -> WorkflowState:
+    async def execute(
+        self,
+        state: WorkflowState | None = None,
+        system_instruction: str | None = None,
+        **kwargs,
+    ) -> WorkflowState:
         """Executes logical fallacies analysis.
 
         Input State:
@@ -67,7 +72,12 @@ class FactualOverseerAgent(BaseAgent):
         """
         return EtiikkaJaFakta
 
-    async def execute(self, state: WorkflowState | None = None, system_instruction: str | None = None, **kwargs) -> WorkflowState:
+    async def execute(
+        self,
+        state: WorkflowState | None = None,
+        system_instruction: str | None = None,
+        **kwargs,
+    ) -> WorkflowState:
         """Executes factual and ethical oversight.
 
         Input State:
@@ -119,7 +129,12 @@ class CausalAnalystAgent(BaseAgent):
         """
         return KausaalinenAuditointi
 
-    async def execute(self, state: WorkflowState | None = None, system_instruction: str | None = None, **kwargs) -> WorkflowState:
+    async def execute(
+        self,
+        state: WorkflowState | None = None,
+        system_instruction: str | None = None,
+        **kwargs,
+    ) -> WorkflowState:
         """Executes causal analysis.
 
         Input State:
@@ -152,7 +167,12 @@ class PerformativityDetectorAgent(BaseAgent):
         """
         return PerformatiivisuusAuditointi
 
-    async def execute(self, state: WorkflowState | None = None, system_instruction: str | None = None, **kwargs) -> WorkflowState:
+    async def execute(
+        self,
+        state: WorkflowState | None = None,
+        system_instruction: str | None = None,
+        **kwargs,
+    ) -> WorkflowState:
         """Executes performativity detection.
 
         Input State:

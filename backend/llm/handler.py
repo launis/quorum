@@ -244,7 +244,7 @@ class LLMHandler:
             # Assume it's a dict unless proven otherwise, but get_model_config returns dict.
             # If it returns BaseModel, annotation should say so.
             # For now, coerce.
-             cd = getattr(config, "model_dump")()
+            cd = config.model_dump()
         elif isinstance(config, dict):
              cd = config
         else:

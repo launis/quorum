@@ -126,10 +126,7 @@ async def list_agents(
 
     Returns:
         List[Dict]: A list of agent definition objects.
-
     """
-
-
     # Debug wrapper removed, proper DI used.
     import traceback
 

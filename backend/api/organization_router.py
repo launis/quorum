@@ -96,7 +96,8 @@ async def create_organization(
 
     Args:
         org (OrganizationCreateRequest): Organization details.
-        user (TokenData): Requesting user (must be ROOT).
+        user (TokenData): Requesting user (ROOT required).
+        auth (AuthServiceDep): Authentication service.
         repo (RepositoryDep): Repository dependency.
 
     Returns:

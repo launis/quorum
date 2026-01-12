@@ -1,12 +1,12 @@
 """Component definition model."""
 
 from abc import ABC, abstractmethod
-from typing import Any, Generic, TypeVar
+from typing import Any, TypeVar
 
 T = TypeVar("T")
 
 
-class BaseComponent(ABC, Generic[T]):
+class BaseComponent[T](ABC):
     """Abstract base class for all workflow components.
 
     All components must inherit from this class and implement the execute method.

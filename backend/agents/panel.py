@@ -65,7 +65,12 @@ class PanelAgent(BaseAgent):
         ---
         """
 
-    async def execute(self, state: WorkflowState | None = None, system_instruction: str | None = None, **kwargs) -> WorkflowState:
+    async def execute(
+        self,
+        state: WorkflowState | None = None,
+        system_instruction: str | None = None,
+        **kwargs,
+    ) -> WorkflowState:
         """Executes the Panel Agent logic.
 
         1. Constructs the user prompt.

@@ -295,7 +295,9 @@ class AuthService:
         """Creates a new user, enforcing hierarchy and tenancy."""
         return await self._create_user_internal(creator_uid, user_data)
 
-    async def _create_user_internal(self, creator_uid: str, user_data: UserCreate, force_org_id: str | None = None) -> User:
+    async def _create_user_internal(
+        self, creator_uid: str, user_data: UserCreate, force_org_id: str | None = None
+    ) -> User:
         creator = self.repo.get_by_uid(creator_uid)
         if not creator:
             raise ValueError("Creator not found")

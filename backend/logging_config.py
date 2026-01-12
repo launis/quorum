@@ -5,6 +5,8 @@ import os
 import sys
 from typing import Any
 
+from backend.context import get_execution_context
+
 try:
     import logfire
 except Exception:
@@ -12,7 +14,7 @@ except Exception:
 
 _LOGFIRE_CONFIGURED = False
 
-from backend.context import get_execution_context
+
 
 
 class ContextFilter(logging.Filter):

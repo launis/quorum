@@ -180,7 +180,7 @@ class DocumentService:
         if isinstance(input_data, str) and os.path.exists(input_data):
             try:
                 # Try simple read
-                with open(input_data, "r", encoding="utf-8") as f:
+                with open(input_data, encoding="utf-8") as f:
                     return f.read()
             except Exception:
                 pass

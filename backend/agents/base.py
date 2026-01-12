@@ -8,7 +8,7 @@ from typing import Any
 from pydantic import BaseModel
 
 from backend.core.component import BaseComponent
-from backend.llm.provider import LLMFactory, LLMProvider, UnconfiguredProvider
+from backend.llm.provider import LLMFactory, UnconfiguredProvider
 from backend.models.state import WorkflowState  # Runtime import for Generic
 
 logger = logging.getLogger(__name__)
@@ -151,7 +151,12 @@ class BaseAgent(BaseComponent[WorkflowState]):
 
         raise NotImplementedError(f"[{self.__class__.__name__}] must define 'state_field' or override '_update_state'.")
 
-    async def execute(self, state: WorkflowState | None = None, system_instruction: str | None = None, **kwargs) -> WorkflowState:  # type: ignore[override]
+    async def execute(
+        self,
+        state: WorkflowState | None = None,
+        system_instruction: str | None = None,
+        **kwargs,
+    ) -> WorkflowState:  # type: ignore[override]
         """Standard execution entry point.
 
         Takes the entire WorkflowState, processes it, and returns the updated state.
@@ -170,7 +175,7 @@ class BaseAgent(BaseComponent[WorkflowState]):
         """
         if state is None:
             raise ValueError(f"[{self.__class__.__name__}] Execution requires a valid WorkflowState.")
-        
+
         logger.info(f"[{self.__class__.__name__}] Starting execution...")
         try:
             # 1. Use Generic User Prompt (The System Instruction carries the context)

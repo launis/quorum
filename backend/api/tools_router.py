@@ -9,7 +9,9 @@ import os
 import shutil
 import uuid
 from typing import Annotated
+
 from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, UploadFile
+
 from backend.dependencies import DatabaseDep, RegistryDep, RepositoryDep, get_document_service_dep
 from backend.services.document_service import DocumentService
 
@@ -22,14 +24,16 @@ router = APIRouter(prefix="/tools", tags=["Tools"])
 
 @router.post("/extract-text", summary="Extract Text from File", response_description="Extracted text.")
 async def extract_text(
-    file: UploadFile,
     doc_service: Annotated[DocumentService, Depends(get_document_service_dep)],
+    text: str | None = Form(None),
+    file: UploadFile = File(None),  # noqa: B008
 ):
     """Deep-parse a PDF/DOCX file and return raw text.
 
     Args:
         file (UploadFile): The binary file to process.
         doc_service (DocumentService): Injected document service.
+        text (str | None): Optional text fallback.
 
     Returns:
         dict: Filename and extracted text.
@@ -37,31 +41,32 @@ async def extract_text(
     Raises:
         HTTPException: If extraction fails (500).
     """
-    temp_path = f"temp_{uuid.uuid4()}_{file.filename}"
-    try:
-        with open(temp_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+    content: str = text or ""
+    temp_path: str | None = None
+    filename: str | None = None
 
-        # Use the injected service
-        # NOTE: extract_text_from_file is likely the correct method name or extract_text
-        # Mypy said: "DocumentService" has no attribute "extract_text"
-        # Let's check DocumentService definition first. Assuming extract_text_from_file is correct based on naming conventions,
-        # but the user code had 'extract_text'. I will use 'extract_text' but if it fails I'll check the file.
-        # Actually Mypy said: error: "DocumentService" has no attribute "extract_text"
-        # So I need to find the REAL method name.
-        # I will view DocumentService first.
-        text = doc_service.extract_text(temp_path)
-        return {"filename": file.filename, "text": text}
-
-    except Exception as e:
-        logger.error(f"Text extraction failed: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e)) from e
-    finally:
-        if os.path.exists(temp_path):
+    if file:
+        filename = file.filename or "unknown"
+        if file.filename:
+            temp_path = f"temp_{uuid.uuid4()}_{file.filename}"
             try:
-                os.remove(temp_path)
-            except Exception:
-                pass
+                with open(temp_path, "wb") as buffer:
+                    shutil.copyfileobj(file.file, buffer)
+                content = doc_service.extract_text(temp_path)
+            except Exception as e:
+                 logger.error(f"Text extraction failed: {e}", exc_info=True)
+                 raise HTTPException(status_code=500, detail=str(e)) from e
+            finally:
+                if temp_path and os.path.exists(temp_path):
+                    try:
+                        os.remove(temp_path)
+                    except Exception:
+                        pass
+
+    if not content:
+        raise HTTPException(status_code=400, detail="No text or file provided.")
+
+    return {"filename": filename, "text": content}
 
 
 @router.post("/extract-concepts", summary="Extract Concepts from Content")
@@ -69,7 +74,7 @@ async def extract_concepts_from_file_or_text(
     registry: RegistryDep,
     doc_service: Annotated[DocumentService, Depends(get_document_service_dep)],
     text: str = Form(None),
-    file: UploadFile = File(None),
+    file: UploadFile = File(None),  # noqa: B008
     llm_provider: str | None = Form(None),
 ):
     """Extracts domain concepts from either raw text or an uploaded file.

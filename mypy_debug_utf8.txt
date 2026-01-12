@@ -1,7 +1,0 @@
-backend\llm\provider.py:135: error: Item "dict[str, Any]" of "type[BaseModel] | dict[str, Any]" has no attribute "__name__"  [union-attr]
-backend\llm\provider.py:289: error: Argument 3 of "generate" is incompatible with supertype "LLMProvider"; supertype defines the argument type as "type[BaseModel] | dict[str, Any] | None"  [override]
-backend\llm\provider.py:289: note: This violates the Liskov substitution principle
-backend\llm\provider.py:289: note: See https://mypy.readthedocs.io/en/stable/common_issues.html#incompatible-overrides
-Found 2 errors in 1 file (checked 97 source files)
-
-STDERR:
