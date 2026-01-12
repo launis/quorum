@@ -21,8 +21,9 @@ MEMBER_TOKEN = "mock-token:member_1"  # Belongs to 'org-1'
 def setup_auth_override():
     """Setup mock authentication for CRUD tests."""
     from fastapi import HTTPException, Request
+
     from backend import dependencies
-    
+
     # Reset Singletons
     dependencies._auth_service_instance = None
     dependencies._db_client_instance = None
@@ -32,18 +33,18 @@ def setup_auth_override():
     try:
         get_settings.cache_clear()
         db = get_db_client_dep()
-        
+
         # Orgs
         org_table = db.table("organizations")
         org_table.truncate()
         org_table.insert({"id": "system", "name": "System", "tier": "root"})
         org_table.insert({"id": "org-1", "name": "Test Org 1", "tier": "standard"})
         org_table.insert({"id": "org-2", "name": "Test Org 2", "tier": "standard"})
-        
+
         # Users
         user_table = db.table("users")
         user_table.truncate()
-        
+
         # Root
         user_table.insert({
             "uid": "root_master",
@@ -51,7 +52,7 @@ def setup_auth_override():
             "role": "ROOT",
             "organization_id": "system"
         })
-        
+
         # Admin 1 (Org 1)
         user_table.insert({
             "uid": "admin_1",
@@ -67,7 +68,7 @@ def setup_auth_override():
             "role": "ADMIN",
             "organization_id": "org-2"
         })
-        
+
         # Member 1 (Org 1)
         user_table.insert({
             "uid": "member_1",
@@ -75,7 +76,7 @@ def setup_auth_override():
             "role": "MEMBER",
             "organization_id": "org-1"
         })
-        
+
         # Target for deletion (Org 1)
         user_table.insert({
             "uid": "target_user",
@@ -94,33 +95,34 @@ def setup_auth_override():
 
         token_val = auth_header.split("Bearer ")[1]
         uid = token_val.split(":")[1]
-        
+
         # Query DB for dynamic users (needed for updates/deletes to reflect)
         db = get_db_client_dep()
         user_data = db.table("users").get(Query().uid == uid)
-        
+
         if user_data:
              return TokenData(
-                 uid=user_data["uid"], 
-                 email=user_data.get("email"), 
-                 role=UserRole(user_data["role"]), 
+                 uid=user_data["uid"],
+                 email=user_data.get("email"),
+                 role=UserRole(user_data["role"]),
                  organization_id=user_data.get("organization_id")
              )
-        
+
         # Fallback for predefined mocks if DB fails or for speed (though we seeded them above)
         if uid == "root_master":
              return TokenData(uid="root_master", email="root@example.com", role=UserRole.ROOT, organization_id="system")
-        
+
         raise HTTPException(status_code=401, detail="Unknown mock user")
 
     app.dependency_overrides[get_current_user_from_header] = mock_user_resolver
     yield
     app.dependency_overrides.clear()
-    
+
     dependencies._auth_service_instance = None
 
 
 def get_headers(token):
+    """Helper to generate Authorization headers."""
     return {"Authorization": f"Bearer {token}"}
 
 
@@ -167,12 +169,12 @@ def test_admin_cannot_create_user_other_org():
         "password": "password123"
     }
     response = client.post("/admin/users", json=payload, headers=get_headers(ADMIN_TOKEN))
-    # AuthService raises PermissionError -> Main catches generic exceptions as 500 often, 
-    # but we should ensure it maps to 403. 
+    # AuthService raises PermissionError -> Main catches generic exceptions as 500 often,
+    # but we should ensure it maps to 403.
     # Current dependencies/router might need explicit handling, or simple Exception handling.
     # admin_router currently catches Exception and logs but let's see implementation goal.
     # Ideally 403.
-    assert response.status_code in [403, 500] 
+    assert response.status_code in [403, 500]
 
 
 def test_update_user():
@@ -188,7 +190,7 @@ def test_delete_user():
     response = client.delete("/admin/users/target_user", headers=get_headers(ADMIN_TOKEN))
     assert response.status_code == 200
     assert response.json()["status"] == "deleted"
-    
+
     # Verify gone
     db = get_db_client_dep()
     assert not db.table("users").contains(Query().uid == "target_user")
