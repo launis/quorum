@@ -333,7 +333,9 @@ def get_db_client() -> AbstractDatabase:
                 return FirestoreClient()
             except Exception as e:
                 logger.critical(f"Failed to connect to Firestore: {e}")
-                raise RuntimeError(f"CRITICAL: Firestore connection failed: {e}. Zero-fallback policy in effect.") from e
+                raise RuntimeError(
+                    f"CRITICAL: Firestore connection failed: {e}. Zero-fallback policy in effect."
+                ) from e
 
         case "LOCAL":
             # Standard Production JSON DB

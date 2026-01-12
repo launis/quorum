@@ -83,7 +83,7 @@ async def bootstrap_application():
         logger.info("   [INFO] Warming up Engine Singleton...")
 
         # Manually resolve dependencies to avoid FastAPI Depends() leakage
-        db = get_db_client_dep()
+        get_db_client_dep()
 
         # In Async-First, we get the repo directly via factory
         repo = await get_async_repository()

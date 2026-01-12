@@ -28,7 +28,7 @@ from backend.api.settings_router import router as settings_router
 from backend.api.tools_router import router as tools_router
 
 # Dependencies
-from backend.dependencies import CurrentUserDep, DatabaseDep, EngineDep
+from backend.dependencies import DatabaseDep, EngineDep
 from backend.exceptions import AppException
 from backend.schemas.error import APIError
 from backend.settings import get_settings
