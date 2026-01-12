@@ -10,6 +10,7 @@ logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 SEED_FILE = r"C:\src\quorum\backend\seed\seed_data.json"
 
 def filter_workflows():
+    """Filters workflows to only include those starting with 'COURTROOM'."""
     if not os.path.exists(SEED_FILE):
         logging.error(f"Seed file not found at {SEED_FILE}")
         return
