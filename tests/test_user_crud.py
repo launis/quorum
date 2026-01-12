@@ -23,8 +23,9 @@ async def setup_auth_override(client: AsyncClient):
         client: The conftest fixture. This ensures the DB overrides are active
                 (temp DB created) BEFORE we try to seed it.
     """
-    from backend import dependencies
     from fastapi import HTTPException, Request
+
+    from backend import dependencies
 
     # 0. Singleton Reset (CRITICAL for isolating DB overrides and ensuring AuthService uses the new DB)
     dependencies._db_client_instance = None
@@ -199,13 +200,14 @@ async def test_delete_user(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_last_admin_protection_delete(client: AsyncClient):
+    """Test Last Admin Protection (Quarantined)."""
     # TODO: Critical Test disabled due to CI Environment Crash (MockDB/AuthService Singleton interaction).
     # Logic in AuthService and admin_router.py is correct (RuntimeError -> 409).
     # Re-enable after refactoring Backend Dependencies to be non-singleton in testing.
     pass
     # response = await client.delete("/admin/users/admin_1", headers=get_headers(ADMIN_TOKEN))
     # DEBUG_FINAL: Status={response.status_code} Body={response.text}
-    
+
     # Allow 409 or 404
     # Note: Environment-specific issue causes 404 or crash in CI harness.
     # Logic in admin_router.py is correct (maps RuntimeError to 409).
