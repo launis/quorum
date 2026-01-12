@@ -85,6 +85,11 @@ TECHNOLOGY STACK & VERIFIED DOCUMENTATION LINKS:
     *   **Pre-Commit**: Always run `uv run ruff check .` and `uv run pytest` before submitting changes.
     *   **Mypy Type Checking**: Code MUST pass `uv run mypy backend` with zero errors.
 
+10. **Database Strategy (Hybrid Mandate)**:
+    *   **Source of Truth**: Treat Firestore as the primary design target for data models.
+    *   **Async-First**: All repository methods MUST be designed for Firestore's async nature first.
+    *   **Dual Support**: However, you MUST maintain functional TinyDB support for local development and testing alongside Firestore. Both databases are used for everything.
+
 ARCHITECTURAL RULES (ENFORCED):
 1.  **Monorepo Context**: You are working in `client_app/`. The backend is in `backend/`.
 2.  **API Strategy**: The Flutter app DOES NOT touch the database directly. It talks to the Python API (`http://localhost:8000`).

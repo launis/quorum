@@ -152,6 +152,30 @@ async def create_organization(
     return OrganizationResponse(**item)
 
 
+@router.get("/me", response_model=OrganizationResponse)
+async def get_my_organization(
+    user: CurrentUserDep,
+    repo: RepositoryDep,
+):
+    """Get the organization of the current user.
+
+    Args:
+        user (CurrentUserDep): Requesting user.
+        repo (RepositoryDep): Repository dependency.
+
+    Returns:
+        OrganizationResponse: organization details.
+    """
+    if not user.organization_id:
+        raise HTTPException(status_code=404, detail="User not assigned to an organization.")
+
+    org = await repo.get_organization(user.organization_id)
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    return OrganizationResponse(**Organization(**org).model_dump())
+
+
 @router.get("/", response_model=list[OrganizationResponse])
 async def list_organizations(
     user: Annotated[TokenData, Depends(AuthService.require_role(UserRole.ROOT))],
@@ -254,6 +278,22 @@ async def delete_organization(
         if force:
             # Cascade delete users/data
             await repo.delete_org_data(org_id)
+
+        # AUDIT LOG (Phase 3)
+        try:
+            from backend.services.audit_service import AuditService
+
+            audit = AuditService(repo)
+            await audit.log_event(
+                actor_uid=user.uid,
+                action="ORG_DELETED",
+                organization_id=org_id,
+                details={"force": force},
+            )
+
+        except Exception as e:
+            logger.error(f"AUDIT ERROR: {e}", exc_info=True)
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 

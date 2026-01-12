@@ -84,6 +84,46 @@
         }
       }
     },
+    "/tools/web-scrape": {
+      "post": {
+        "tags": [
+          "Tools"
+        ],
+        "summary": "Scrape Web Page",
+        "description": "Scrapes a public web page.\n\nProtected against SSRF (Server-Side Request Forgery).\nBlocks requests to localhost and private IP ranges.",
+        "operationId": "web_scrape_tools_web_scrape_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_web_scrape_tools_web_scrape_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Scraped content.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/tools/citation-lookup": {
       "post": {
         "tags": [
@@ -3955,6 +3995,56 @@
         }
       }
     },
+    "/organizations/me": {
+      "get": {
+        "tags": [
+          "Organizations"
+        ],
+        "summary": "Get My Organization",
+        "description": "Get the organization of the current user.\n\nArgs:\n    user (CurrentUserDep): Requesting user.\n    repo (RepositoryDep): Repository dependency.\n\nReturns:\n    OrganizationResponse: organization details.",
+        "operationId": "get_my_organization_organizations_me_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/organizations/{org_id}": {
       "put": {
         "tags": [
@@ -4629,6 +4719,19 @@
           "file"
         ],
         "title": "Body_upload_knowledge_base_admin_knowledge_base_upload_post"
+      },
+      "Body_web_scrape_tools_web_scrape_post": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "title": "Body_web_scrape_tools_web_scrape_post"
       },
       "BuilderWorkflowCreateRequest": {
         "properties": {

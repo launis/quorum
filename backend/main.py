@@ -95,11 +95,14 @@ async def lifespan(app: FastAPI):
 
     # Initialize Arq (Background Tasks)
     # Initialize Arq (Background Tasks)
-    # 1. Attempt Real Redis
-    redis_settings = RedisSettings(host=settings.redis_host, port=settings.redis_port)
-    redis_pool = await create_pool(redis_settings)
-    app.state.arq_pool = redis_pool
-    logger.info(f"Arq Redis connection established at {settings.redis_host}:{settings.redis_port}")
+    # 1. Attempt Real Redis only if NOT ensuring mock DB
+    if not settings.use_mock_db:
+        redis_settings = RedisSettings(host=settings.redis_host, port=settings.redis_port)
+        redis_pool = await create_pool(redis_settings)
+        app.state.arq_pool = redis_pool
+        logger.info(f"Arq Redis connection established at {settings.redis_host}:{settings.redis_port}")
+    else:
+        logger.info("Mock DB active: Skipping real Redis connection.")
 
     # Note: Engine is lazy-loaded on first request to avoid complex manual DI here.
     yield
@@ -221,7 +224,6 @@ app.include_router(config_router)
 app.include_router(auth_router)
 app.include_router(audit_router)
 app.include_router(llm_router, prefix="/llm", tags=["LLM"])
-app.include_router(builder_router)
 app.include_router(builder_router)
 app.include_router(organization_router)
 app.include_router(settings_router)
