@@ -44,7 +44,6 @@ _usage_service_instance: UsageService | None = None
 _engine_instance: WorkflowEngine | None = None
 
 
-
 def get_db_client_dep() -> AbstractDatabase:
     """Dependency to provide a Singleton Database Client."""
     global _db_client_instance

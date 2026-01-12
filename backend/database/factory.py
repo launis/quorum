@@ -42,7 +42,7 @@ async def get_repository(settings: Settings, db_client: AbstractDatabase | None 
 
         case StorageBackend.MOCK:
             if db_client:
-                 return TinyDBRepository(db_client)
+                return TinyDBRepository(db_client)
 
             # Mock DB Path: backend/database/db_mock.json
             # Strictly usage settings.mock_db_path as source of truth.
@@ -53,7 +53,7 @@ async def get_repository(settings: Settings, db_client: AbstractDatabase | None 
 
         case StorageBackend.LOCAL:
             if db_client:
-                 return TinyDBRepository(db_client)
+                return TinyDBRepository(db_client)
 
             # Prod Local Path: data/db.json
             # Strictly usage settings.prod_db_path as source of truth.

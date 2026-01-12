@@ -106,7 +106,6 @@ async def extract_concepts_from_file_or_text(
         # Resolve config logic
         # config = await registry.resolve_model_config("deep")
 
-
         # from backend.llm.provider import LLMFactory
         # from backend.services.knowledge_base_service import KnowledgeBaseService
 
@@ -131,6 +130,7 @@ async def extract_concepts_from_file_or_text(
     except Exception as e:
         logger.error(f"Concept extraction failed: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e)) from e
+
 
 @router.post("/citation-lookup", summary="Resolve Citations", response_description="Resolved context.")
 async def citation_lookup(

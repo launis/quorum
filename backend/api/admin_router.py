@@ -407,7 +407,7 @@ async def ingest_knowledge_base(
     async def _run_ingest():
         try:
             if not os.path.exists(request.file_path):
-                admin_task_status[job_id] = {"status": "failed", "error": "File not found"} # type: ignore[index]
+                admin_task_status[job_id] = {"status": "failed", "error": "File not found"}  # type: ignore[index]
                 return
 
             # Read file in binary mode
