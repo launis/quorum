@@ -26,6 +26,9 @@ from backend.services.storage import AbstractStorage
 from backend.services.usage_service import UsageService
 from backend.settings import Settings, get_settings
 
+# Alias for consistent dependency naming
+get_settings_dep = get_settings
+
 logger = logging.getLogger(__name__)
 
 

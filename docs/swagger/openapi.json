@@ -3833,6 +3833,57 @@
         }
       }
     },
+    "/builder/seed_data": {
+      "get": {
+        "tags": [
+          "Builder"
+        ],
+        "summary": "Get Seed Data",
+        "description": "Retrieves the raw seed data configuration (components, steps, workflows).\n\nNow scoped by User Role (Root sees all).\n\nArgs:\n    engine (EngineDep): Dependency.\n    current_user (CurrentUserDep): Authenticated User.\n\nReturns:\n    dict: Object containing lists of components, steps, and workflows.",
+        "operationId": "get_seed_data_builder_seed_data_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the full components, steps, and workflows from the database.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/organizations/": {
       "post": {
         "tags": [
@@ -4435,96 +4486,6 @@
                 "schema": {
                   "$ref": "#/components/schemas/SystemSettings"
                 }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/db/seed_data": {
-      "get": {
-        "summary": "Get Seed Data",
-        "description": "Retrieves the raw seed data configuration (components, steps, workflows).\n\nNow scoped by User Role (Root sees all).\n\nArgs:\n    engine (EngineDep): Dependency.\n    current_user (CurrentUserDep): Authenticated User.\n\nReturns:\n    dict: Object containing lists of components, steps, and workflows.",
-        "operationId": "get_seed_data_db_seed_data_get",
-        "parameters": [
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Returns the full components, steps, and workflows from the database.",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/db/workflows": {
-      "get": {
-        "summary": "List Workflows (DB)",
-        "description": "Retrieves all workflow definitions from the repository.\n\nScoped by User Role.\n\nArgs:\n    engine (EngineDep): Dependency.\n    current_user (CurrentUserDep): Authenticated User.\n\nReturns:\n    List[dict]: List of workflow objects.",
-        "operationId": "get_workflows_db_workflows_get",
-        "parameters": [
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "A list of all workflow definitions.",
-            "content": {
-              "application/json": {
-                "schema": {}
               }
             }
           },
