@@ -4046,6 +4046,63 @@
       }
     },
     "/organizations/{org_id}": {
+      "get": {
+        "tags": [
+          "Organizations"
+        ],
+        "summary": "Get Organization",
+        "description": "Get organization details.\n\nArgs:\n    org_id (str): Organization ID.\n    user (CurrentUserDep): Requesting user.\n    repo (RepositoryDep): Repository dependency.\n\nReturns:\n    OrganizationResponse: organization details.",
+        "operationId": "get_organization_organizations__org_id__get",
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Org Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
       "put": {
         "tags": [
           "Organizations"

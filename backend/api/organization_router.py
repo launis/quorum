@@ -195,6 +195,35 @@ async def list_organizations(
     return [OrganizationResponse(**Organization(**i).model_dump()) for i in items]
 
 
+@router.get("/{org_id}", response_model=OrganizationResponse)
+async def get_organization(
+    org_id: str,
+    user: CurrentUserDep,
+    repo: RepositoryDep,
+):
+    """Get organization details.
+
+    Args:
+        org_id (str): Organization ID.
+        user (CurrentUserDep): Requesting user.
+        repo (RepositoryDep): Repository dependency.
+
+    Returns:
+        OrganizationResponse: organization details.
+    """
+    # 1. Access Control
+    if user.role != UserRole.ROOT:
+        if user.organization_id != org_id:
+            raise HTTPException(status_code=403, detail="Access denied.")
+    
+    # 2. Fetch
+    org = await repo.get_organization(org_id)
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    return OrganizationResponse(**Organization(**org).model_dump())
+
+
 @router.put("/{org_id}", response_model=OrganizationResponse)
 async def update_organization(
     org_id: str,
