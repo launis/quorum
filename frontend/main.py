@@ -24,10 +24,10 @@ from frontend.views.config_view import render_config_view
 from frontend.views.dashboard_view import render_dashboard  # New View
 from frontend.views.matrix_view import render_matrix_view
 from frontend.views.org_admin_view import render_org_admin_view
+from frontend.views.profile_view import render_profile_view
 from frontend.views.system_admin_view import render_system_admin_view
 from frontend.views.system_view import render_system_view
 from frontend.views.user_view import render_user_view
-from frontend.views.profile_view import render_profile_view
 
 # Config
 BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
@@ -183,7 +183,7 @@ def main():
     elif page == "Assessment":
         # Pass backend_url if needed by view, though we are moving away from it.
         render_audit_view(api_client, BACKEND_URL, workflow_options)
-    
+
     elif page == "My Profile":
         render_profile_view(api_client)
 

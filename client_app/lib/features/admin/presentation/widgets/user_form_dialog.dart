@@ -112,7 +112,7 @@ class _UserFormDialogState extends ConsumerState<UserFormDialog> {
                     .when(
                       data: (List<Organization> orgs) {
                         return DropdownButtonFormField<String>(
-                          value:
+                          initialValue:
                               _orgIdController.text.isNotEmpty &&
                                       orgs.any(
                                         (o) => o.id == _orgIdController.text,
@@ -127,7 +127,7 @@ class _UserFormDialogState extends ConsumerState<UserFormDialog> {
                               orgs.map((Organization org) {
                                 return DropdownMenuItem(
                                   value: org.id,
-                                  child: Text("${org.name} (${org.id})"),
+                                  child: Text('${org.name} (${org.id})'),
                                 );
                               }).toList(),
                           onChanged: (val) {

@@ -1,20 +1,23 @@
+"""Inspector for TinyDB mock database."""
 import json
 import os
 
 DB_PATH = r"C:\src\quorum\backend\database\db_mock.json"
 
+
 def inspect_db():
+    """Load and print summary of the mock database."""
     if not os.path.exists(DB_PATH):
         print(f"DB file not found: {DB_PATH}")
         return
 
     try:
-        with open(DB_PATH, "r", encoding="utf-8") as f:
+        with open(DB_PATH, encoding="utf-8") as f:
             data = json.load(f)
-        
+
         # Check keys
         print(f"Top level keys: {list(data.keys())}")
-        
+
         # Check users table
         # TinyDB usually stores tables as keys. If 'users' key exists directly:
         if "users" in data:

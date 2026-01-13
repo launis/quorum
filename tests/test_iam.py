@@ -4,9 +4,10 @@ Verifies Organization Router RBAC and Conflicts.
 Uses strict dependency injection overrides for isolation.
 """
 
+from unittest.mock import MagicMock
+
 import pytest
 from httpx import ASGITransport, AsyncClient
-from unittest.mock import MagicMock
 
 from backend.dependencies import get_async_repository, get_current_user_from_header, get_db_client_dep
 from backend.main import app
@@ -31,7 +32,7 @@ def mock_deps(mock_repo):
     # 1. Mock DB (for AuthService safety)
     mock_db = MagicMock()
     app.dependency_overrides[get_db_client_dep] = lambda: mock_db
-    
+
     # 2. Mock Repository
     async def _get_mock_repo():
         return mock_repo

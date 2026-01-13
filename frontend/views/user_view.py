@@ -102,7 +102,7 @@ def render_user_view(api_client: APIClient):
                 payload = {"email": new_email, "password": new_password, "display_name": new_name, "role": new_role}
                 if new_org_id:
                      payload["organization_id"] = new_org_id
-                
+
                 try:
                     res = api_client.create_user(token, payload)
                     st.success(f"User created: {res.get('email')}")
@@ -150,7 +150,7 @@ def render_user_view(api_client: APIClient):
                     else 0,
                 )
                 new_name_edit = st.text_input("Display Name", value=target_user.get("display_name", ""))
-                
+
                 # Root Override: Edit Organization
                 new_org_edit = None
                 if user_role == "ROOT":
