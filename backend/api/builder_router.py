@@ -10,16 +10,19 @@ import uuid
 from datetime import datetime
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Body, HTTPException
+from fastapi import APIRouter, Body, HTTPException, status
 from pydantic import BaseModel, Field
 
+# --- Local Imports ---
+# Rule 6: APIError must be the FIRST local import
+from backend.schemas.error import APIError
 from backend.dependencies import CurrentUserDep, EngineDep
 from backend.models.auth import UserRole
 
 router = APIRouter(
     prefix="/builder",
     tags=["Builder"],
-    responses={404: {"description": "Resource Not Found"}},
+    responses={status.HTTP_404_NOT_FOUND: {"description": "Resource Not Found"}},
 )
 
 logger = logging.getLogger(__name__)
@@ -137,7 +140,7 @@ async def get_available_agents(engine: EngineDep):
     except Exception as e:
         error_code = "AGENT_LISTING_FAILED"
         logger.error(f"{error_code}: Failed to list agents: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=error_code) from e
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_code) from e
 
 
 @router.get("/workflows", summary="List Workflows", response_description="All Workflows.")
@@ -185,7 +188,7 @@ async def create_workflow(request: BuilderWorkflowCreateRequest, engine: EngineD
     if current_user.role not in [UserRole.ROOT, UserRole.ADMIN, UserRole.MANAGER]:
         error_code = "PERMISSION_DENIED_WORKFLOW_CREATE"
         logger.error(f"{error_code}: User {current_user.uid} (Role {current_user.role}) denied.", exc_info=True)
-        raise HTTPException(status_code=403, detail=error_code)
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_code)
 
     # 2. Org Assignment
     # If ROOT, they "own" the system org (usually).
@@ -198,7 +201,7 @@ async def create_workflow(request: BuilderWorkflowCreateRequest, engine: EngineD
         if current_user.role != UserRole.ROOT:
             error_code = "PERMISSION_DENIED_PUBLIC_VISIBILITY"
             logger.error(f"{error_code}: Non-ROOT user {current_user.uid} tried setting public.", exc_info=True)
-            raise HTTPException(status_code=403, detail=error_code)
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_code)
         is_public_val = True
 
     try:
@@ -220,7 +223,7 @@ async def create_workflow(request: BuilderWorkflowCreateRequest, engine: EngineD
     except Exception as e:
         error_code = "WORKFLOW_CREATION_FAILED"
         logger.error(f"{error_code}: Failed to create workflow: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=error_code) from e
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_code) from e
 
 
 @router.get("/workflows/{workflow_id}", summary="Get Workflow", response_description="Workflow details.")
@@ -241,7 +244,7 @@ async def get_workflow(workflow_id: str, engine: EngineDep):
     if not wf:
         error_code = "WORKFLOW_NOT_FOUND"
         logger.error(f"{error_code}: ID {workflow_id}", exc_info=True)
-        raise HTTPException(status_code=404, detail=error_code)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error_code)
     return wf
 
 
@@ -267,7 +270,7 @@ async def update_workflow(
     if not wf:
         error_code = "WORKFLOW_NOT_FOUND"
         logger.error(f"{error_code}: ID {workflow_id}", exc_info=True)
-        raise HTTPException(status_code=404, detail=error_code)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error_code)
 
     # Permission Check
     wf_org = wf.get("organization_id")
@@ -277,27 +280,27 @@ async def update_workflow(
         if current_user.role != UserRole.ROOT:
             error_code = "PERMISSION_DENIED_SYSTEM_WORKFLOW"
             logger.error(f"{error_code}: User {current_user.uid} tried modifying system workflow.", exc_info=True)
-            raise HTTPException(status_code=403, detail=error_code)
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_code)
     else:
         # Tenant Workflow
         if current_user.role not in [UserRole.ROOT, UserRole.ADMIN, UserRole.MANAGER]:
             error_code = "PERMISSION_DENIED_WORKFLOW_UPDATE"
             logger.error(f"{error_code}: User {current_user.uid} denied update.", exc_info=True)
-            raise HTTPException(status_code=403, detail=error_code)
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_code)
         if wf_org != current_user.organization_id and current_user.role != UserRole.ROOT:
             error_code = "PERMISSION_DENIED_WORKFLOW_UPDATE"
             logger.error(
                 f"{error_code}: Org mismatch (WF: {wf_org} vs User: {current_user.organization_id}).",
                 exc_info=True,
             )
-            raise HTTPException(status_code=403, detail=error_code)
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_code)
 
     # Public Check
     if request.is_public is not None and request.is_public != wf.get("is_public"):
         if current_user.role != UserRole.ROOT:
             error_code = "PERMISSION_DENIED_PUBLIC_VISIBILITY"
             logger.error(f"{error_code}: Non-ROOT user tried changing visibility.", exc_info=True)
-            raise HTTPException(status_code=403, detail=error_code)
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_code)
 
     update_data: dict[str, Any] = {}
     if request.name is not None:
@@ -357,7 +360,7 @@ async def delete_workflow(workflow_id: str, engine: EngineDep, current_user: Cur
     if not wf:
         error_code = "WORKFLOW_NOT_FOUND"
         logger.error(f"{error_code}: ID {workflow_id}", exc_info=True)
-        raise HTTPException(status_code=404, detail=error_code)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error_code)
 
     # Permission Check
     wf_org = wf.get("organization_id")
@@ -367,16 +370,16 @@ async def delete_workflow(workflow_id: str, engine: EngineDep, current_user: Cur
         if current_user.role != UserRole.ROOT:
             error_code = "PERMISSION_DENIED_SYSTEM_WORKFLOW"
             logger.error(f"{error_code}: User {current_user.uid} tried deleting system workflow.", exc_info=True)
-            raise HTTPException(status_code=403, detail=error_code)
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_code)
     else:
         if current_user.role not in [UserRole.ROOT, UserRole.ADMIN, UserRole.MANAGER]:
             error_code = "PERMISSION_DENIED_WORKFLOW_DELETE"
             logger.error(f"{error_code}: User {current_user.uid} denied delete.", exc_info=True)
-            raise HTTPException(status_code=403, detail=error_code)
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_code)
         if wf_org != current_user.organization_id and current_user.role != UserRole.ROOT:
             error_code = "PERMISSION_DENIED_WORKFLOW_DELETE"
             logger.error(f"{error_code}: Org mismatch.", exc_info=True)
-            raise HTTPException(status_code=403, detail=error_code)
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_code)
 
     # 0. Integrity Check: Execution History
     # Prevent deleting workflows that have audit history.
@@ -390,7 +393,7 @@ async def delete_workflow(workflow_id: str, engine: EngineDep, current_user: Cur
             exc_info=True,
         )
         raise HTTPException(
-            status_code=409,
+            status_code=status.HTTP_409_CONFLICT,
             detail=error_code,
         )
 
@@ -434,7 +437,7 @@ async def copy_workflow(workflow_id: str, request: CopyWorkflowRequest, engine: 
     if not original:
         error_code = "WORKFLOW_NOT_FOUND"
         logger.error(f"{error_code}: ID {workflow_id}", exc_info=True)
-        raise HTTPException(status_code=404, detail=error_code)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error_code)
 
     new_id = f"{original['id']}_copy_{uuid.uuid4().hex[:4]}"
 
@@ -453,7 +456,7 @@ async def copy_workflow(workflow_id: str, request: CopyWorkflowRequest, engine: 
     except Exception as e:
         error_code = "WORKFLOW_COPY_FAILED"
         logger.error(f"{error_code}: Copy workflow failed: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=error_code) from e
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_code) from e
 
 
 @router.post("/validate", summary="Validate Connection", response_description="Validation result.")
@@ -538,7 +541,7 @@ async def get_step_details(step_id: str, engine: EngineDep):
     if not step:
         error_code = "STEP_NOT_FOUND"
         logger.error(f"{error_code}: ID {step_id}", exc_info=True)
-        raise HTTPException(status_code=404, detail=error_code)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error_code)
     return step
 
 
@@ -552,7 +555,7 @@ async def update_step(step_id: str, request: StepUpdateRequest, engine: EngineDe
     if not step:
         error_code = "STEP_NOT_FOUND"
         logger.error(f"{error_code}: ID {step_id}", exc_info=True)
-        raise HTTPException(status_code=404, detail=error_code)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error_code)
 
     update_data: dict[str, Any] = {}
     if request.name is not None:
@@ -575,7 +578,7 @@ async def clone_step(engine: EngineDep, source_step_id: str = Body(..., embed=Tr
     if not step:
         error_code = "SOURCE_STEP_NOT_FOUND"
         logger.error(f"{error_code}: ID {source_step_id}", exc_info=True)
-        raise HTTPException(status_code=404, detail=error_code)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error_code)
 
     new_id = f"{source_step_id}_custom_{uuid.uuid4().hex[:6]}"
     new_step = copy.deepcopy(step)
@@ -629,7 +632,7 @@ async def create_custom_step(req: CustomStepCreateRequest, engine: EngineDep):
     except Exception as e:
         error_code = "CUSTOM_STEP_CREATION_FAILED"
         logger.error(f"{error_code}: Failed to create custom step: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=error_code) from e
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_code) from e
 
 
 @router.get("/utils/generate-id", summary="Generate ID", response_description="A unique ID string.")
@@ -680,7 +683,7 @@ async def compile_fusion(req: CompileRequest, engine: EngineDep):
     if not wf:
         error_code = "WORKFLOW_NOT_FOUND"
         logger.error(f"{error_code}: ID {req.workflow_id}", exc_info=True)
-        raise HTTPException(status_code=404, detail=error_code)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error_code)
 
     current_steps = wf.get("steps", [])
     steps_to_fuse = req.steps
@@ -688,7 +691,10 @@ async def compile_fusion(req: CompileRequest, engine: EngineDep):
     if not all(s in current_steps for s in steps_to_fuse):
         error_code = "INVALID_COMPILATION_STEPS_MISSING"
         logger.error(f"{error_code}: Request contains steps not in target workflow.", exc_info=True)
-        raise HTTPException(status_code=400, detail=error_code)
+    if not all(s in current_steps for s in steps_to_fuse):
+        error_code = "INVALID_COMPILATION_STEPS_MISSING"
+        logger.error(f"{error_code}: Request contains steps not in target workflow.", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_code)
 
     fusing_components = []
     all_step_list = await engine.repository.get_all_steps()
@@ -764,4 +770,4 @@ async def get_seed_data(engine: EngineDep, current_user: CurrentUserDep):
     except Exception as e:
         error_code = "SEED_DATA_RETRIEVAL_FAILED"
         logger.error(f"{error_code}: Error reading seed data from DB: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=error_code) from e
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_code) from e

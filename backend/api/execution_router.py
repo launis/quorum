@@ -15,6 +15,7 @@ from fastapi import (
     Path,
     Request,
     UploadFile,
+    status,
 )
 from fastapi import (
     Query as APIQuery,
@@ -22,6 +23,9 @@ from fastapi import (
 from pydantic import BaseModel, Field
 from starlette.datastructures import UploadFile as StarletteUploadFile
 
+# --- Local Imports ---
+# Rule 6: APIError must be the FIRST local import
+from backend.schemas.error import APIError
 from backend.dependencies import CurrentUserDep, EngineDep
 from backend.models.auth import UserRole  # Required for role check
 from backend.models.state import WorkflowState  # Required for migration/hydration logic
@@ -122,11 +126,11 @@ async def execute_workflow(
     if not current_user.organization_id:
         error_code = "AUTH_MISSING_ORGANIZATION"
         logger.error(f"{error_code}: User {current_user.uid} missing organization_id.", exc_info=True)
-        raise HTTPException(status_code=400, detail=error_code)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_code)
     if not await usage_service.check_quota(current_user.organization_id):
         error_code = "ORGANIZATION_QUOTA_EXCEEDED"
         logger.error(f"{error_code}: Org {current_user.organization_id} quota exceeded.", exc_info=True)
-        raise HTTPException(status_code=402, detail=error_code)
+        raise HTTPException(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=error_code)
 
     try:
         logger.info("[Router] Trace: 2. Quota OK. Processing Payload...")
@@ -137,7 +141,7 @@ async def execute_workflow(
         except Exception as e:
             error_code = "INVALID_PAYLOAD"
             logger.error(f"{error_code}: JSON Validation Failed: {e}", exc_info=True)
-            raise HTTPException(status_code=422, detail=error_code) from e
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=error_code) from e
 
         # Map Pydantic Schema to Internal Logic
         workflow_id = request_data.project_id
@@ -148,7 +152,7 @@ async def execute_workflow(
         if not wf_exists:
             error_code = "WORKFLOW_NOT_FOUND"
             logger.error(f"{error_code}: ID {workflow_id}", exc_info=True)
-            raise HTTPException(status_code=404, detail=error_code)
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error_code)
 
         # Parse Files (Dynamic Keys via Request.form)
         form = await request.form()
@@ -181,7 +185,7 @@ async def execute_workflow(
             if missing:
                 error_code = "MISSING_EVIDENCE_FILES"
                 logger.error(f"{error_code}: Missing keys {missing}", exc_info=True)
-                raise HTTPException(status_code=400, detail=error_code)
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_code)
 
         logger.info(f"[Router] Trace: 3. Payload Validated. Files: {len(files_map)}. Writing to DB/Storage...")
 
@@ -201,7 +205,7 @@ async def execute_workflow(
         if not rec:
             error_code = "EXECUTION_CREATION_FAILED"
             logger.error(f"{error_code}: Execution {execution_id} not found immediately after creation.", exc_info=True)
-            raise HTTPException(status_code=500, detail=error_code)
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_code)
         cleaned_inputs = rec.get("inputs", {})
 
         # DEBUG: Verify inputs made it
@@ -226,7 +230,7 @@ async def execute_workflow(
         error_code = "EXECUTION_SUBMISSION_FAILED"
         logger.exception(f"{error_code}: CRITICAL FAILURE IN EXECUTION SUBMISSION")
         # Convert 500s to 400s with visible messages for debugging
-        raise HTTPException(status_code=400, detail=error_code) from e
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_code) from e
 
 
 @router.get(
@@ -271,7 +275,7 @@ async def get_latest_execution(engine: EngineDep):
     if not all_execs:
         error_code = "NO_EXECUTIONS_FOUND"
         logger.error(f"{error_code}: No executions available.", exc_info=True)
-        raise HTTPException(status_code=404, detail=error_code)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error_code)
 
     return sorted(all_execs, key=lambda x: x.get("start_time", ""), reverse=True)[0]
 
@@ -292,7 +296,7 @@ async def get_execution_status(
     if not status:
         error_code = "EXECUTION_NOT_FOUND"
         logger.error(f"{error_code}: ID {execution_id}", exc_info=True)
-        raise HTTPException(status_code=404, detail=error_code)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error_code)
 
     # If the workflow is complete and we have a final result state, flatten it for the UI
     if status.get("status") == "completed" and "result" in status:
@@ -344,13 +348,13 @@ async def retry_execution(
     if not status:
         error_code = "EXECUTION_NOT_FOUND"
         logger.error(f"{error_code}: ID {execution_id}", exc_info=True)
-        raise HTTPException(status_code=404, detail=error_code)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error_code)
 
     current_status = status.get("status")
     if current_status not in ["failed", "rejected", "interrupted"]:
         error_code = "INVALID_RETRY_STATE"
         logger.error(f"{error_code}: Status '{current_status}' is not retriable.", exc_info=True)
-        raise HTTPException(status_code=400, detail=error_code)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_code)
 
     background_tasks.add_task(engine.resume_execution, execution_id)
     return {"status": "resuming", "execution_id": execution_id}

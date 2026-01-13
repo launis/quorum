@@ -10,11 +10,14 @@ import logging
 import re
 from typing import Annotated, Any
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Path
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Path, status
 from fastapi import Query as APIQuery
 from pydantic import BaseModel, Field
 from tinydb import Query
 
+# --- Local Imports ---
+# Rule 6: APIError must be the FIRST local import
+from backend.schemas.error import APIError
 from backend.database.exporter import export_db_to_files
 from backend.dependencies import DatabaseDep, LLMHandlerDep, RegistryDep
 from backend.models import domain as schemas
@@ -139,7 +142,7 @@ def get_component(db: DatabaseDep, comp_id: str = Path(..., description="Compone
     if not res:
         error_code = "COMPONENT_NOT_FOUND"
         logger.error(f"{error_code}: ID {comp_id}", exc_info=True)
-        raise HTTPException(status_code=404, detail=error_code)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error_code)
     return res[0]
 
 
@@ -150,7 +153,7 @@ def create_component(comp: ComponentCreate, db: DatabaseDep):
     if table.search(Query().id == comp.id):
         error_code = "COMPONENT_ID_EXISTS"
         logger.error(f"{error_code}: ID {comp.id}", exc_info=True)
-        raise HTTPException(status_code=400, detail=error_code)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_code)
 
     new_comp = comp.model_dump()
     if "component_class" in new_comp:
@@ -182,7 +185,7 @@ def update_component(comp_id: str, update: ComponentUpdate, db: DatabaseDep):
     if not exists:
         error_code = "COMPONENT_NOT_FOUND"
         logger.error(f"{error_code}: ID {comp_id}", exc_info=True)
-        raise HTTPException(status_code=404, detail=error_code)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error_code)
 
     update_data = {"content": update.content}
     if update.description:
@@ -208,7 +211,7 @@ def delete_component(comp_id: str, db: DatabaseDep):
     if not exists:
         error_code = "COMPONENT_NOT_FOUND"
         logger.error(f"{error_code}: ID {comp_id}", exc_info=True)
-        raise HTTPException(status_code=404, detail=error_code)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error_code)
 
     # Referential Integrity Check
     steps = db.table("steps").all()
@@ -224,7 +227,7 @@ def delete_component(comp_id: str, db: DatabaseDep):
     if used_in:
         error_code = "COMPONENT_IN_USE"
         logger.error(f"{error_code}: ID {comp_id} used in {used_in}", exc_info=True)
-        raise HTTPException(status_code=409, detail=error_code)
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=error_code)
 
     table.remove((Component.id == comp_id) | (Component.name == comp_id))
     return {"status": "deleted", "id": comp_id}
@@ -243,7 +246,7 @@ def create_step(step: dict[str, Any], db: DatabaseDep):
     if table.search(Query().id == step.get("id")):
         error_code = "STEP_ID_EXISTS"
         logger.error(f"{error_code}: ID {step.get('id')}", exc_info=True)
-        raise HTTPException(status_code=400, detail=error_code)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_code)
     table.insert(step)
     return {"status": "created", "id": step.get("id")}
 
@@ -255,7 +258,7 @@ def update_step(step_id: str, step: dict[str, Any], db: DatabaseDep):
     if not table.search(Query().id == step_id):
         error_code = "STEP_NOT_FOUND"
         logger.error(f"{error_code}: ID {step_id}", exc_info=True)
-        raise HTTPException(status_code=404, detail=error_code)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error_code)
     table.update(step, Query().id == step_id)
     return {"status": "updated", "id": step_id}
 
@@ -271,7 +274,7 @@ async def delete_step(step_id: str, db: DatabaseDep):
     if not table.search(Query().id == step_id):
         error_code = "STEP_NOT_FOUND"
         logger.error(f"{error_code}: ID {step_id}", exc_info=True)
-        raise HTTPException(status_code=404, detail=error_code)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error_code)
 
     # 2. Integrity Check: Workflow Usage
     workflows = db.table("workflows").all()
@@ -283,7 +286,7 @@ async def delete_step(step_id: str, db: DatabaseDep):
     if used_in:
         error_code = "STEP_IN_USE"
         logger.error(f"{error_code}: ID {step_id} used in {used_in}", exc_info=True)
-        raise HTTPException(status_code=409, detail=error_code)
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=error_code)
 
     # 3. Delete
     table.remove(Query().id == step_id)
@@ -304,7 +307,7 @@ def get_workflow(wf_id: str, db: DatabaseDep):
     if not res:
         error_code = "WORKFLOW_NOT_FOUND"
         logger.error(f"{error_code}: ID {wf_id}", exc_info=True)
-        raise HTTPException(status_code=404, detail=error_code)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error_code)
     return res[0]
 
 
@@ -317,7 +320,7 @@ def update_workflow(wf_id: str, update: WorkflowUpdate, db: DatabaseDep):
     if not table.search(Workflow.id == wf_id):
         error_code = "WORKFLOW_NOT_FOUND"
         logger.error(f"{error_code}: ID {wf_id}", exc_info=True)
-        raise HTTPException(status_code=404, detail=error_code)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error_code)
 
     update_data: dict[str, Any] = {}
     if update.steps is not None:
@@ -332,7 +335,7 @@ def update_workflow(wf_id: str, update: WorkflowUpdate, db: DatabaseDep):
     if not update_data:
         error_code = "NO_UPDATE_DATA"
         logger.error(f"{error_code}: ID {wf_id}", exc_info=True)
-        raise HTTPException(status_code=400, detail=error_code)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_code)
 
     steps_to_check = update.steps if update.steps else update.sequence
     if steps_to_check:
@@ -342,7 +345,7 @@ def update_workflow(wf_id: str, update: WorkflowUpdate, db: DatabaseDep):
             if sid and sid not in valid_steps:
                 error_code = "INVALID_STEP_ID"
                 logger.error(f"{error_code}: Step {sid} not found.", exc_info=True)
-                raise HTTPException(status_code=400, detail=error_code)
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_code)
 
     table.update(update_data, Workflow.id == wf_id)
     return {"status": "updated", "id": wf_id}
@@ -357,7 +360,7 @@ def create_workflow(workflow: WorkflowCreate, db: DatabaseDep):
     if table.search(Workflow.id == workflow.id):
         error_code = "WORKFLOW_ID_EXISTS"
         logger.error(f"{error_code}: ID {workflow.id}", exc_info=True)
-        raise HTTPException(status_code=400, detail=error_code)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_code)
 
     new_wf = workflow.model_dump()
     if workflow.sequence:
@@ -366,7 +369,7 @@ def create_workflow(workflow: WorkflowCreate, db: DatabaseDep):
             if step_id not in valid_steps:
                 error_code = "INVALID_STEP_ID"
                 logger.error(f"{error_code}: Step {step_id} not found.", exc_info=True)
-                raise HTTPException(status_code=400, detail=error_code)
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_code)
 
     table.insert(new_wf)
     return {"status": "created", "id": workflow.id}
@@ -380,7 +383,7 @@ def delete_workflow(wf_id: str, db: DatabaseDep):
     if not table.search(Workflow.id == wf_id):
         error_code = "WORKFLOW_NOT_FOUND"
         logger.error(f"{error_code}: ID {wf_id}", exc_info=True)
-        raise HTTPException(status_code=404, detail=error_code)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error_code)
     table.remove(Workflow.id == wf_id)
     return {"status": "deleted", "id": wf_id}
 
@@ -401,7 +404,7 @@ def reset_from_seed():
     except Exception as e:
         error_code = "DB_RESET_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=error_code) from e
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_code) from e
 
 
 @router.post("/deploy-mock-to-prod", summary="Deploy Mock -> Prod", response_description="Deployment status.")
@@ -417,7 +420,7 @@ def deploy_mock_to_prod():
     except Exception as e:
         error_code = "DB_DEPLOY_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=error_code) from e
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_code) from e
 
 
 @router.post("/deploy-prod-to-mock", summary="Deploy Prod -> Mock", response_description="Deployment status.")
@@ -433,7 +436,7 @@ def deploy_prod_to_mock():
     except Exception as e:
         error_code = "DB_DEPLOY_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=error_code) from e
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_code) from e
 
 
 @router.get("/schemas", summary="List Schemas", response_description="All Pydantic Schemas.")
@@ -468,7 +471,7 @@ def get_unified_prompts(db: DatabaseDep):
     except Exception as e:
         error_code = "UNIFIED_PROMPT_GENERATION_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=error_code) from e
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_code) from e
 
 
 # Helpers (kept same)
@@ -621,7 +624,7 @@ async def call_llm_adhoc(request: LLMCallRequest, handler: LLMHandlerDep):
     except Exception as e:
         error_code = "AD_HOC_LLM_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=error_code) from e
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_code) from e
 
 
 @router.get("/models/strategies", summary="Get Strategies", response_description="Active strategy map.")
@@ -773,7 +776,7 @@ def create_dimension(dim: DimensionDefinition, db: DatabaseDep):
     if table.search(Query().id == dim.id):
         error_code = "DIMENSION_EXISTS"
         logger.error(f"{error_code}: ID {dim.id}", exc_info=True)
-        raise HTTPException(status_code=400, detail=error_code)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_code)
     table.insert(dim.model_dump())
     return {"status": "created", "id": dim.id}
 
@@ -826,7 +829,7 @@ async def validate_flow(workflow: WorkflowCreate, db: DatabaseDep, registry: Reg
     except Exception as e:
         error_code = "FACTORY_ERROR"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=error_code) from e
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_code) from e
 
     known_keys = ["history_text", "product_text", "reflection_text", "bibliography_context"]
     errors = []

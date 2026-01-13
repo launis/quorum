@@ -9,10 +9,18 @@ import logging
 import traceback
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Body, HTTPException
-from fastapi import Query as APIQuery
+from fastapi import (
+    APIRouter,
+    Body,
+    HTTPException,
+    status,
+    Query as APIQuery,
+)
 from tinydb import Query
 
+# --- Local Imports ---
+# Rule 6: APIError must be the FIRST local import
+from backend.schemas.error import APIError
 from backend.database.wrapper import AbstractDatabase
 from backend.dependencies import DatabaseDep, RegistryDep
 
@@ -100,11 +108,11 @@ async def run_agent(
     except ValueError as e:
         error_code = "AGENT_NOT_FOUND"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise HTTPException(status_code=400, detail=error_code) from e
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_code) from e
     except Exception as e:
         error_code = "AGENT_EXECUTION_FAILED"
         logger.error(f"{error_code}: Execution of {agent_name} failed: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=error_code) from e
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_code) from e
 
 
 @router.get(
@@ -281,4 +289,4 @@ async def list_agents(
     except Exception as e:
         error_code = "AGENT_DISCOVERY_FAILED"
         logger.error(f"{error_code}: List Agents Failed: {e}\n{traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=error_code) from e
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_code) from e

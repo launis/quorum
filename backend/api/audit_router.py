@@ -7,6 +7,9 @@ import logging
 
 from fastapi import APIRouter, HTTPException, Query, status
 
+# --- Local Imports ---
+# Rule 6: APIError must be the FIRST local import
+from backend.schemas.error import APIError
 from backend.dependencies import AuditServiceDep, CurrentUserDep
 from backend.models.audit import AuditEvent
 from backend.models.auth import UserRole
@@ -61,4 +64,4 @@ async def get_audit_logs(
     except Exception as e:
         error_code = "AUDIT_LOG_RETRIEVAL_FAILED"
         logger.error(f"{error_code}: Failed to retrieve audit logs: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=error_code) from e
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_code) from e

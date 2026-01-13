@@ -10,8 +10,11 @@ import shutil
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, UploadFile, status
 
+# --- Local Imports ---
+# Rule 6: APIError must be the FIRST local import
+from backend.schemas.error import APIError
 from backend.dependencies import DatabaseDep, RegistryDep, RepositoryDep, get_document_service_dep
 from backend.services.document_service import DocumentService
 
@@ -56,7 +59,7 @@ async def extract_text(
             except Exception as e:
                 error_code = "TEXT_EXTRACTION_FAILED"
                 logger.error(f"{error_code}: {e}", exc_info=True)
-                raise HTTPException(status_code=500, detail=error_code) from e
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_code) from e
             finally:
                 if temp_path and os.path.exists(temp_path):
                     try:
@@ -67,7 +70,7 @@ async def extract_text(
     if not content:
         error_code = "NO_CONTENT_PROVIDED"
         logger.warning(f"{error_code}: No text or file provided.")
-        raise HTTPException(status_code=400, detail=error_code)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_code)
 
     return {"filename": filename, "text": content}
 
@@ -115,7 +118,7 @@ async def extract_concepts_from_file_or_text(
     if not content:
         error_code = "NO_CONTENT_PROVIDED"
         logger.warning(f"{error_code}: No text or file provided.")
-        raise HTTPException(status_code=400, detail=error_code)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_code)
 
     try:
         # Resolve config logic
@@ -145,7 +148,7 @@ async def extract_concepts_from_file_or_text(
     except Exception as e:
         error_code = "CONCEPT_EXTRACTION_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=error_code) from e
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_code) from e
 
 
 @router.post("/web-scrape", summary="Scrape Web Page", response_description="Scraped content.")
@@ -175,7 +178,7 @@ async def web_scrape(
         if ip_obj.is_loopback or ip_obj.is_private:
             error_code = "SSRF_PROTECTION_BLOCKED"
             logger.error(f"{error_code}: Access to private IP blocked: {ip}", exc_info=True)
-            raise HTTPException(status_code=400, detail=error_code)
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_code)
 
     except HTTPException:
         raise
@@ -185,18 +188,18 @@ async def web_scrape(
             # Try to map if possible, else generic
             error_code = "SSRF_PROTECTION_BLOCKED"
             logger.error(f"{error_code}: {e}", exc_info=True)
-            raise HTTPException(status_code=400, detail=error_code) from e
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_code) from e
 
         # Logic error in resolving might be 400 too
         if isinstance(e, ValueError):
             error_code = "INVALID_URL"
             logger.error(f"{error_code}: {e}", exc_info=True)
-            raise HTTPException(status_code=400, detail=error_code) from e
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_code) from e
 
         # Fallback
         error_code = "WEB_SCRAPE_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise HTTPException(status_code=400, detail=error_code) from e
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_code) from e
 
     # 2. Mock Implementation for now (or real if needed, but test only checks hardening)
     # Return dummy content
