@@ -12,7 +12,6 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from tinydb import Query
 
-from backend.schemas.error import APIError
 from backend.dependencies import DatabaseDep, LLMHandlerDep, RegistryDep
 from backend.llm.provider import LLMFactory
 

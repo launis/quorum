@@ -5,8 +5,11 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
-from pydantic import BaseModel
+# 2. Third Party
+from pydantic import BaseModel, ValidationError
 
+# 3. Local Imports
+from backend.exceptions import AgentExecutionError, FatalInterruption
 from backend.agents.base import BaseAgent
 from backend.models.domain import TaintedData
 
@@ -242,12 +245,23 @@ class GuardAgent(BaseAgent):
 
                 # We append it to product_text ensures it's part of the analyzed content
                 state.inputs.product_text += injection
+                
+                # ECHO PROTOCOL: Log Security Event
+                error_code = "SECURITY_BANNED_PHRASE_DETECTED"
+                logger.error(f"{error_code}: Banned phrases found - {distinct_phrases}", exc_info=True)
+                raise FatalInterruption(
+                    "GuardSecurityCheck", 
+                    f"Banned phrases detected: {distinct_phrases}", 
+                    {"code": error_code, "phrases": distinct_phrases}
+                )
 
         except Exception as e:
-            logger.error(f"[GuardAgent] Pre-hook scan failed: {e}")
-            from backend.exceptions import FatalInterruption
-
-            raise FatalInterruption("GuardPreHook", f"Pre-hook scan failed: {e}", {"error": str(e)}) from e
+            error_code = "SECURITY_CHECK_CRITICAL_FAILURE"
+            logger.error(f"{error_code}: Pre-hook scan failed - {e}", exc_info=True)
+            # Ensure we raise a clean exception if not already raised
+            if isinstance(e, FatalInterruption):
+                raise e
+            raise FatalInterruption("GuardPreHook", f"Pre-hook scan failed: {e}", {"error": str(e), "code": error_code}) from e
 
         return state
 

@@ -6,6 +6,8 @@ import json
 import logging
 from typing import TYPE_CHECKING
 
+# 3. Local Imports
+from backend.exceptions import AgentExecutionError, FatalInterruption
 from backend.agents.base import BaseAgent
 from backend.models.domain import PanelAudit
 
@@ -95,54 +97,64 @@ class PanelAgent(BaseAgent):
         """
         # 1. Construct User Prompt
         if state is None:
-            raise ValueError("PanelAgent requires a valid WorkflowState.")
+             raise ValueError("PanelAgent requires a valid WorkflowState.")
 
-        user_content = self.construct_user_prompt(state)
+        try:
+            user_content = self.construct_user_prompt(state)
 
-        # 2. Call LLM with strict PanelAudit schema
-        response = await self.llm_provider.generate(
-            prompt=user_content,
-            system_instruction=system_instruction,
-            response_schema=PanelAudit,
-            mock_identity="PanelAgent",
-            **kwargs,
-        )
-
-        # Extract content from LLMResponse
-        raw_content = response.content if hasattr(response, "content") else response
-
-        # Try parsing JSON if string
-        if isinstance(raw_content, str):
-            try:
-                # Remove markdown code blocks if present
-                clean_content = raw_content.replace("```json", "").replace("```", "").strip()
-                raw_content = json.loads(clean_content)
-            except json.JSONDecodeError:
-                logger.warning(f"[PanelAgent] Could not parse JSON string: {raw_content[:50]}...")
-                pass
-
-        # 3. Process Response
-        if isinstance(raw_content, PanelAudit) or (
-            isinstance(raw_content, dict) and "logiikka_auditointi" in raw_content
-        ):
-            # Verify and parse if it's a raw dict
-            panel_data = raw_content if isinstance(raw_content, PanelAudit) else PanelAudit(**raw_content)
-
-            # 4. Fan-Out: Populate individual state fields for compatibility with Judge/Coach
-            state.step_logician = panel_data.logiikka_auditointi
-            state.step_falsifier = panel_data.falsifiointi_auditointi
-            state.step_causal = panel_data.kausaalinen_auditointi
-            state.step_detector = panel_data.performatiivisuus_auditointi
-            state.step_overseer = panel_data.etiikka_ja_fakta
-
-            # 5. Populate the panel step itself (optional, but good for tracking)
-            state.step_panel = panel_data
-
-            logger.info("[PanelAgent] Successfully fanned out PanelAudit to 5 distinct state steps.")
-
-        else:
-            logger.error(
-                f"[PanelAgent] unexpected response content type: {type(raw_content)}. Content: {str(raw_content)[:100]}"
+            # 2. Call LLM with strict PanelAudit schema
+            response = await self.llm_provider.generate(
+                prompt=user_content,
+                system_instruction=system_instruction,
+                response_schema=PanelAudit,
+                mock_identity="PanelAgent",
+                **kwargs,
             )
 
-        return state
+            # Extract content from LLMResponse
+            raw_content = response.content if hasattr(response, "content") else response
+
+            # Try parsing JSON if string
+            if isinstance(raw_content, str):
+                try:
+                    # Remove markdown code blocks if present
+                    clean_content = raw_content.replace("```json", "").replace("```", "").strip()
+                    raw_content = json.loads(clean_content)
+                except json.JSONDecodeError as e:
+                    error_code = "PANEL_RESPONSE_MALFORMED"
+                    logger.warning(f"{error_code}: Could not parse JSON string - {e}")
+                    pass
+
+            # 3. Process Response
+            if isinstance(raw_content, PanelAudit) or (
+                isinstance(raw_content, dict) and "logiikka_auditointi" in raw_content
+            ):
+                # Verify and parse if it's a raw dict
+                panel_data = raw_content if isinstance(raw_content, PanelAudit) else PanelAudit(**raw_content)
+
+                # 4. Fan-Out: Populate individual state fields for compatibility with Judge/Coach
+                state.step_logician = panel_data.logiikka_auditointi
+                state.step_falsifier = panel_data.falsifiointi_auditointi
+                state.step_causal = panel_data.kausaalinen_auditointi
+                state.step_detector = panel_data.performatiivisuus_auditointi
+                state.step_overseer = panel_data.etiikka_ja_fakta
+
+                # 5. Populate the panel step itself (optional, but good for tracking)
+                state.step_panel = panel_data
+
+                logger.info("[PanelAgent] Successfully fanned out PanelAudit to 5 distinct state steps.")
+
+            else:
+                 error_code = "PANEL_RESPONSE_INVALID_TYPE"
+                 logger.error(
+                    f"{error_code}: Unexpected response content type: {type(raw_content)}. Content: {str(raw_content)[:100]}"
+                 )
+                 raise AgentExecutionError(detail=error_code, original_error=ValueError("Invalid response type"))
+
+            return state
+
+        except Exception as e:
+            # ECHO PROTOCOL: Safety Net
+            error_code = "PANEL_EXECUTION_CRITICAL"
+            logger.error(f"{error_code}: Unexpected failure - {e}", exc_info=True)
+            raise AgentExecutionError(detail=error_code, original_error=e) from e

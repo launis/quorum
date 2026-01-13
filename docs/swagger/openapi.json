@@ -804,6 +804,7 @@
           "Admin"
         ],
         "summary": "Export Seed Data",
+        "description": "Trigger seed data export task.",
         "operationId": "export_seed_data_admin_export_seed_data_post",
         "parameters": [
           {
@@ -853,6 +854,7 @@
           "Admin"
         ],
         "summary": "Rebuild Database",
+        "description": "Trigger database rebuild task.",
         "operationId": "rebuild_database_admin_database_rebuild_post",
         "parameters": [
           {
@@ -902,6 +904,7 @@
           "Admin"
         ],
         "summary": "Reset Mock Database",
+        "description": "Trigger mock database reset task.",
         "operationId": "reset_mock_db_admin_database_reset_mock_post",
         "parameters": [
           {
@@ -951,6 +954,7 @@
           "Admin"
         ],
         "summary": "Reset Production Database",
+        "description": "Trigger production database reset task.",
         "operationId": "reset_prod_db_admin_database_reset_prod_post",
         "parameters": [
           {
@@ -1000,6 +1004,7 @@
           "Admin"
         ],
         "summary": "Reset Firestore",
+        "description": "Trigger firestore database reset task.",
         "operationId": "reset_firestore_db_admin_database_reset_firestore_post",
         "parameters": [
           {
@@ -1071,6 +1076,7 @@
           "Admin"
         ],
         "summary": "Get Task Status",
+        "description": "Retrieves the status of a specific background task.",
         "operationId": "get_task_status_admin_status__job_id__get",
         "parameters": [
           {
@@ -1291,6 +1297,7 @@
           "Admin"
         ],
         "summary": "List Banned Phrases",
+        "description": "Retrieves all banned phrases from the repository.",
         "operationId": "get_banned_phrases_admin_banned_phrases_get",
         "responses": {
           "200": {
@@ -1315,6 +1322,7 @@
           "Admin"
         ],
         "summary": "Add Banned Phrase",
+        "description": "Adds a new phrase to the banned list.",
         "operationId": "add_banned_phrase_admin_banned_phrases_post",
         "requestBody": {
           "content": {
@@ -1356,6 +1364,7 @@
           "Admin"
         ],
         "summary": "Remove Banned Phrase",
+        "description": "Removes a phrase from the banned list.",
         "operationId": "delete_banned_phrase_admin_banned_phrases__phrase__delete",
         "parameters": [
           {
@@ -1507,6 +1516,7 @@
           "Admin"
         ],
         "summary": "Update User Role",
+        "description": "Updates a user's role (Enforces hierarchy).",
         "operationId": "update_user_role_admin_user__user_id__role_put",
         "parameters": [
           {
@@ -5015,7 +5025,8 @@
         "required": [
           "phrase"
         ],
-        "title": "BannedPhraseRequest"
+        "title": "BannedPhraseRequest",
+        "description": "Request model for adding a banned phrase."
       },
       "BannedPhraseResponse": {
         "properties": {
@@ -5033,7 +5044,8 @@
           "status",
           "phrase"
         ],
-        "title": "BannedPhraseResponse"
+        "title": "BannedPhraseResponse",
+        "description": "Response model for banned phrase operations."
       },
       "BatchCompletionRequest": {
         "properties": {
@@ -5650,7 +5662,8 @@
           }
         },
         "type": "object",
-        "title": "GeneratePhrasesRequest"
+        "title": "GeneratePhrasesRequest",
+        "description": "Request model for generating banned phrases using LLM."
       },
       "GeneratedPhrasesResponse": {
         "properties": {
@@ -5676,7 +5689,8 @@
           "message",
           "added_phrases"
         ],
-        "title": "GeneratedPhrasesResponse"
+        "title": "GeneratedPhrasesResponse",
+        "description": "Response model for generated banned phrases."
       },
       "GenericActionResponse": {
         "properties": {
@@ -5700,7 +5714,8 @@
         "required": [
           "status"
         ],
-        "title": "GenericActionResponse"
+        "title": "GenericActionResponse",
+        "description": "Response model for generic admin actions."
       },
       "GlobalModelConfig": {
         "properties": {
@@ -5788,7 +5803,8 @@
           }
         },
         "type": "object",
-        "title": "IngestRequest"
+        "title": "IngestRequest",
+        "description": "Request model for knowledge base ingestion."
       },
       "LLMCallRequest": {
         "properties": {
@@ -6352,7 +6368,8 @@
           "db_status",
           "details"
         ],
-        "title": "SelfTestResponse"
+        "title": "SelfTestResponse",
+        "description": "Response model for system self-test."
       },
       "StepUpdateRequest": {
         "properties": {

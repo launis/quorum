@@ -6,12 +6,13 @@ import json
 import logging
 from typing import TYPE_CHECKING, Any
 
-from pydantic import BaseModel
+# 2. Third Party
+from pydantic import BaseModel, ValidationError
 
+# 3. Local Imports
+from backend.exceptions import AgentExecutionError
 from backend.agents.base import BaseAgent
-from backend.models.domain import (
-    EvaluationResult,
-)
+from backend.models.domain import EvaluationResult
 
 if TYPE_CHECKING:
     from backend.models.state import WorkflowState
@@ -79,7 +80,7 @@ class JudgeAgent(BaseAgent):
         repo = kwargs.get("repository")
 
         if not matrix_id:
-            logger.warning("[JudgeAgent] No matrix_id configured.")
+            logger.warning("JUDGE_CONFIGURATION_MISSING: No matrix_id configured.")
             return None
 
         if not repo:
@@ -220,8 +221,9 @@ class JudgeAgent(BaseAgent):
             return state
 
         except Exception as e:
-            logger.error(f"[JudgeAgent] Error updating state: {e}")
-            raise e
+            error_code = "JUDGE_STATE_UPDATE_FAILED"
+            logger.error(f"{error_code}: Error updating state - {e}", exc_info=True)
+            raise AgentExecutionError(detail=error_code, original_error=e) from e
 
     def post_process(self, state: WorkflowState) -> WorkflowState:
         """Post-process hook."""

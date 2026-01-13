@@ -2,11 +2,18 @@
 
 from typing import Any
 
+from fastapi import status
+
 
 class AppException(Exception):
     """Base class for application exceptions."""
 
-    def __init__(self, message: str, status_code: int = 500, details: dict | None = None):
+    def __init__(
+        self,
+        message: str,
+        status_code: int = status.HTTP_500_INTERNAL_SERVER_ERROR,
+        details: dict | None = None,
+    ):
         """Initialize the exception."""
         super().__init__(message)
         self.message = message
@@ -21,7 +28,7 @@ class ResourceNotFoundError(AppException):
         """Initialize the exception."""
         super().__init__(
             message=f"{resource_type} with ID '{resource_id}' not found",
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             details={"resource_type": resource_type, "resource_id": resource_id},
         )
 
@@ -51,14 +58,43 @@ class ExecutionNotFoundError(ResourceNotFoundError):
 
 
 class AgentExecutionError(AppException):
-    """Raised when an agent fails to execute its task."""
+    """Raised when an agent fails to execute its task.
 
-    def __init__(self, agent_name: str, step_id: str, original_error: Exception):
-        """Initialize the exception."""
+    Adheres to Echo Protocol:
+    raise AgentExecutionError(detail=error_code, original_error=e)
+    """
+
+    def __init__(
+        self,
+        detail: str,
+        original_error: Exception | None = None,
+        agent_name: str | None = None,
+        step_id: str | None = None,
+    ):
+        """Initialize the exception.
+
+        Args:
+            detail (str): The error code or message (e.g. AGENT_EXECUTION_CRITICAL).
+            original_error (Optional[Exception]): The caught exception.
+            agent_name (Optional[str]): Legacy/Optional context.
+            step_id (Optional[str]): Legacy/Optional context.
+        """
+        msg = f"{detail}"
+        if original_error:
+            msg += f" - Cause: {str(original_error)}"
+
+        error_details = {"error_code": detail}
+        if original_error:
+            error_details["original_error"] = str(original_error)
+        if agent_name:
+            error_details["agent"] = agent_name
+        if step_id:
+            error_details["step_id"] = step_id
+
         super().__init__(
-            message=f"Agent '{agent_name}' failed at step '{step_id}': {str(original_error)}",
-            status_code=500,
-            details={"agent": agent_name, "step_id": step_id, "original_error": str(original_error)},
+            message=msg,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details=error_details,
         )
 
 
@@ -75,7 +111,11 @@ class FatalInterruption(AppException):
         # Ensure minimal structure
         details.update({"step": step_name, "reason": reason})
 
-        super().__init__(message=f"Fatal Interruption at {step_name}: {reason}", status_code=500, details=details)
+        super().__init__(
+            message=f"Fatal Interruption at {step_name}: {reason}",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details=details,
+        )
         self.step_name = step_name
         self.reason = reason
 
@@ -85,7 +125,7 @@ class ConfigurationError(AppException):
 
     def __init__(self, message: str):
         """Initialize the exception."""
-        super().__init__(message, status_code=500)
+        super().__init__(message, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class ConflictError(AppException):
@@ -93,7 +133,7 @@ class ConflictError(AppException):
 
     def __init__(self, message: str, details: dict | None = None):
         """Initialize the exception."""
-        super().__init__(message, status_code=409, details=details)
+        super().__init__(message, status_code=status.HTTP_409_CONFLICT, details=details)
 
 
 class PermissionDeniedError(AppException):
@@ -101,7 +141,7 @@ class PermissionDeniedError(AppException):
 
     def __init__(self, message: str = "Permission denied", details: dict | None = None):
         """Initialize the exception."""
-        super().__init__(message, status_code=403, details=details)
+        super().__init__(message, status_code=status.HTTP_403_FORBIDDEN, details=details)
 
 
 class ServiceUnavailableError(AppException):
@@ -109,7 +149,7 @@ class ServiceUnavailableError(AppException):
 
     def __init__(self, message: str = "Service unavailable", details: dict | None = None):
         """Initialize the exception."""
-        super().__init__(message, status_code=503, details=details)
+        super().__init__(message, status_code=status.HTTP_503_SERVICE_UNAVAILABLE, details=details)
 
 
 class AuthenticationError(AppException):
@@ -117,4 +157,4 @@ class AuthenticationError(AppException):
 
     def __init__(self, message: str = "Authentication failed", details: dict | None = None):
         """Initialize the exception."""
-        super().__init__(message, status_code=401, details=details)
+        super().__init__(message, status_code=status.HTTP_401_UNAUTHORIZED, details=details)

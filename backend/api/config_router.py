@@ -18,7 +18,6 @@ from tinydb import Query
 from backend.database.exporter import export_db_to_files
 from backend.dependencies import DatabaseDep, LLMHandlerDep, RegistryDep
 from backend.models import domain as schemas
-from backend.schemas.error import APIError
 from backend.seed.seeder import seed_database
 
 logger = logging.getLogger(__name__)

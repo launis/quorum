@@ -12,7 +12,6 @@ from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, UploadFile
 
-from backend.schemas.error import APIError
 from backend.dependencies import DatabaseDep, RegistryDep, RepositoryDep, get_document_service_dep
 from backend.services.document_service import DocumentService
 
@@ -187,13 +186,13 @@ async def web_scrape(
              error_code = "SSRF_PROTECTION_BLOCKED"
              logger.error(f"{error_code}: {e}", exc_info=True)
              raise HTTPException(status_code=400, detail=error_code) from e
-             
+
         # Logic error in resolving might be 400 too
         if isinstance(e, ValueError):
             error_code = "INVALID_URL"
             logger.error(f"{error_code}: {e}", exc_info=True)
             raise HTTPException(status_code=400, detail=error_code) from e
-            
+
         # Fallback
         error_code = "WEB_SCRAPE_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)

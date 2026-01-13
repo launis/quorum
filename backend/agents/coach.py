@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-from pydantic import BaseModel
+# 2. Third Party
+from pydantic import BaseModel, ValidationError
 
+# 3. Local Imports
+from backend.exceptions import AgentExecutionError
 from backend.agents.base import BaseAgent
 from backend.models.domain import CoachingPlan
 
@@ -117,7 +120,7 @@ class CoachAgent(BaseAgent):
             return context_output
 
         else:
-            logger.warning("[CoachAgent] No Repository provided in kwargs. Knowledge Base not loaded from DB.")
+            logger.warning("COACH_KNOWLEDGE_BASE_UNAVAILABLE: No Repository provided in kwargs. Knowledge Base not loaded from DB.")
             self.knowledge_base = {}
             return ""
 

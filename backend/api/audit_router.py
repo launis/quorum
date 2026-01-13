@@ -4,10 +4,10 @@ Provides endpoints for retrieving system audit logs.
 """
 
 import logging
+
 from fastapi import APIRouter, HTTPException, Query, status
 
 from backend.dependencies import AuditServiceDep, CurrentUserDep
-from backend.schemas.error import APIError
 from backend.models.audit import AuditEvent
 from backend.models.auth import UserRole
 

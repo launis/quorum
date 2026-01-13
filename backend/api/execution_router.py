@@ -25,7 +25,6 @@ from starlette.datastructures import UploadFile as StarletteUploadFile
 from backend.dependencies import CurrentUserDep, EngineDep
 from backend.models.auth import UserRole  # Required for role check
 from backend.models.state import WorkflowState  # Required for migration/hydration logic
-from backend.schemas.error import APIError
 from backend.schemas.execution import ExecutionRequest
 
 logger = logging.getLogger(__name__)
@@ -223,7 +222,7 @@ async def execute_workflow(
         # Propagate specific HTTP Exceptions
         if isinstance(e, HTTPException):
             raise e
-            
+
         error_code = "EXECUTION_SUBMISSION_FAILED"
         logger.exception(f"{error_code}: CRITICAL FAILURE IN EXECUTION SUBMISSION")
         # Convert 500s to 400s with visible messages for debugging

@@ -59,7 +59,7 @@ PART 2: BACKEND ARCHITECTURE & API STANDARDS (AAS-2026)
         * Group 1: StdLib (`os`, `logging`) -> Sorted alphabetically.
         * Group 2: 3rd Party (`fastapi`, `pydantic`) -> Sorted alphabetically.
           * **REQUIRED**: `from fastapi import APIRouter, HTTPException, status` (Use `status` constants).
-        * Group 3: Local. **CRITICAL**: `from backend.schemas.error import APIError` and `backend.exceptions` MUST be the first local imports.
+        * Group 3: Local. **CRITICAL**: `from backend.schemas.error import APIError` MUST be the first local import. **REQUIRED**: `from backend.exceptions import ...` must be imported alongside `APIError` to allow catching domain exceptions in the router logic.
     2.  **Logger & Router Instantiation**:
         * `logger = logging.getLogger(__name__)`
         * `router = APIRouter(...)`
@@ -113,31 +113,18 @@ PART 2: BACKEND ARCHITECTURE & API STANDARDS (AAS-2026)
             )
             ```
 
-    * **C. Exception Mapping Protocol (Non-HTTP Errors)**:
-        You must catch standard Python exceptions and map them to HTTP Status Codes + Domain Error Codes. Do not let 500 Internal Server Errors happen for predictable logic errors.
+    * **C. Domain Exception Mapping Protocol (The Translation Layer)**:
+        Backend logic (Services/Agents) must **NEVER** raise `HTTPException` directly. Instead, raise domain exceptions from `backend.exceptions`. The Router is responsible for catching these and converting them using this strict mapping:
 
-        *Example Flow:*
-        ```python
-        try:
-            perform_logic()
-        except ValueError as e:
-            # LOG before Raising!
-            logger.error(f"DOMAIN_INVALID_VALUE: Logic failed - {e}")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, 
-                detail="DOMAIN_INVALID_VALUE"
-            )
-        ```
-
-        | Python Exception | Reason | Mapped Status Constant | Example Code |
-        | :--- | :--- | :--- | :--- |
-        | `ValueError` | Invalid Argument | `status.HTTP_400_BAD_REQUEST` | `DOMAIN_INVALID_VALUE` |
-        | `KeyError` / `IndexError` | Missing Resource | `status.HTTP_404_NOT_FOUND` | `DOMAIN_RESOURCE_NOT_FOUND` |
-        | `TypeError` | Contract Violation | `status.HTTP_422_UNPROCESSABLE_ENTITY` | `DOMAIN_DATA_CONTRACT_VIOLATION` |
-        | `json.JSONDecodeError` | Bad Payload | `status.HTTP_400_BAD_REQUEST` | `REQUEST_MALFORMED_JSON` |
-        | `TimeoutError` | Latency | `status.HTTP_504_GATEWAY_TIMEOUT` | `SYSTEM_OPERATION_TIMEOUT` |
-        | `NotImplementedError` | WIP Feature | `status.HTTP_501_NOT_IMPLEMENTED` | `SYSTEM_FEATURE_NOT_IMPLEMENTED` |
-        | `PermissionError` | Security | `status.HTTP_403_FORBIDDEN` | `AUTH_PERMISSION_DENIED` |
+        | Domain Exception (`backend.exceptions`) | Log Code (Echo Protocol) | HTTP Status Constant |
+        | :--- | :--- | :--- |
+        | `WorkflowNotFoundError` | `DOMAIN_WORKFLOW_NOT_FOUND` | `status.HTTP_404_NOT_FOUND` |
+        | `StepNotFoundError` | `DOMAIN_STEP_NOT_FOUND` | `status.HTTP_404_NOT_FOUND` |
+        | `AgentExecutionError` | `AGENT_EXECUTION_CRITICAL` | `status.HTTP_500_INTERNAL_SERVER_ERROR` |
+        | `FatalInterruption` | `SYSTEM_FATAL_INTERRUPTION` | `status.HTTP_500_INTERNAL_SERVER_ERROR` |
+        | `ConflictError` | `DOMAIN_STATE_CONFLICT` | `status.HTTP_409_CONFLICT` |
+        | `PermissionDeniedError` | `AUTH_PERMISSION_DENIED` | `status.HTTP_403_FORBIDDEN` |
+        | `ConfigurationError` | `SYSTEM_CONFIG_ERROR` | `status.HTTP_500_INTERNAL_SERVER_ERROR` |
 
 --------------------------------------------------------------------------------
 PART 3: SHARED PROTOCOLS & INTEGRATION

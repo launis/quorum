@@ -10,7 +10,6 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
-from backend.schemas.error import APIError
 from backend.dependencies import AuthServiceDep, CurrentUserDep, RepositoryDep
 from backend.models.auth import Organization, SubscriptionStatus, TokenData, UserRole
 from backend.services.auth import AuthService

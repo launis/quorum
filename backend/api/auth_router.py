@@ -5,12 +5,12 @@ profile management, and organization administration.
 """
 
 import logging
-from fastapi import APIRouter, HTTPException, status
+
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from backend.dependencies import AuthServiceDep, CurrentUserDep
 from backend.models.auth import Organization, OrganizationCreate, User, UserCreate, UserRole, UserUpdate
-from backend.schemas.error import APIError
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +81,7 @@ async def verify_user_token(payload: TokenPayload, auth_service: AuthServiceDep)
             # Should match logic in verify_token, handled there usually,
             # but verify_token basic returns TokenData not full User object sometimes if simplified.
             # Our service logic handles auto-registration, so user should exist.
-            raise AuthenticationError("User profile not initialized")
+            raise HTTPException(status_code=401, detail="AUTH_PROFILE_NOT_INITIALIZED")
 
         return LoginResponse(
             user=user,
@@ -280,7 +280,7 @@ async def delete_user(uid: str, current_user: CurrentUserDep, auth_service: Auth
              error_code = "LAST_ADMIN_PROTECTION"
              logger.warning(f"{error_code}: {e}")
              raise HTTPException(status_code=409, detail=error_code) from e
-        
+
         error_code = "USER_DELETION_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=error_code) from e
@@ -316,7 +316,7 @@ async def update_user(uid: str, user_update: UserUpdate, current_user: CurrentUs
              error_code = "LAST_ADMIN_PROTECTION"
              logger.warning(f"{error_code}: {e}")
              raise HTTPException(status_code=409, detail=error_code) from e
-        
+
         error_code = "USER_UPDATE_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=error_code) from e

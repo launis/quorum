@@ -5,8 +5,11 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from pydantic import BaseModel
+# 2. Third Party
+from pydantic import BaseModel, ValidationError
 
+# 3. Local Imports
+from backend.exceptions import AgentExecutionError
 from backend.agents.base import BaseAgent
 from backend.models.domain import ArgumentaatioAnalyysi
 

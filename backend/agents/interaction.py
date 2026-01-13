@@ -5,8 +5,11 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from pydantic import BaseModel
+# 2. Third Party
+from pydantic import BaseModel, ValidationError
 
+# 3. Local Imports
+from backend.exceptions import AgentExecutionError
 from backend.agents.base import BaseAgent
 from backend.models.domain import InteractionAnalysis
 
@@ -91,7 +94,8 @@ class InteractionAnalystAgent(BaseAgent):
             state.step_interaction.input_control_ratio = ratio
             logger.info(f"[InteractionAnalystAgent] Calculated Ratio: {ratio:.2f}")
         except Exception as e:
-            logger.error(f"[InteractionAnalystAgent] Ratio calculation failed: {e}")
+            error_code = "INTERACTION_RATIO_CALCULATION_FAILED"
+            logger.error(f"{error_code}: Ratio calculation failed - {e}", exc_info=True)
             state.step_interaction.input_control_ratio = 0.0
 
         return state

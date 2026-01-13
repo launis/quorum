@@ -2,15 +2,20 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any
 
-from pydantic import BaseModel
+# 2. Third Party
+from pydantic import BaseModel, ValidationError
 
+# 3. Local Imports
+from backend.exceptions import AgentExecutionError
 from backend.core.component import BaseComponent
 from backend.llm.provider import LLMFactory, UnconfiguredProvider
-from backend.models.state import WorkflowState  # Runtime import for Generic
+from backend.models.state import WorkflowState
 
+# 4. Logger
 logger = logging.getLogger(__name__)
 
 
@@ -228,10 +233,16 @@ class BaseAgent(BaseComponent[WorkflowState]):
 
                 try:
                     response_data = json.loads(response_obj.content)
-                except Exception:
+                except json.JSONDecodeError as e:
                     # STRICT MODE: If json keys are malformed after provider, we fail.
-                    logger.error(f"[{self.__class__.__name__}] Failed to parse JSON content from provider.")
-                    raise ValueError("Critical: Failed to parse JSON content.") from None
+                    error_code = "AGENT_RESPONSE_MALFORMED"
+                    logger.error(f"{error_code}: Failed to parse JSON content from provider - {e}", exc_info=True)
+                    raise AgentExecutionError(detail=error_code, original_error=e) from e
+                except Exception as e:
+                     # General fallback for other errors during parsing
+                    error_code = "AGENT_RESPONSE_PARSING_FAILED"
+                    logger.error(f"{error_code}: Unexpected error during JSON parsing - {e}", exc_info=True)
+                    raise AgentExecutionError(detail=error_code, original_error=e) from e
             else:
                 response_data = response_obj.content
 
@@ -271,9 +282,17 @@ class BaseAgent(BaseComponent[WorkflowState]):
             logger.info(f"[{self.__class__.__name__}] Execution completed.")
             return updated_state
 
+        except ValidationError as e:
+            # ECHO PROTOCOL: Log First, Then Raise
+            error_code = "AGENT_SCHEMA_VALIDATION_FAILED"
+            logger.error(f"{error_code}: Output validation failed - {e}", exc_info=True)
+            raise AgentExecutionError(detail=error_code, original_error=e) from e
+
         except Exception as e:
-            logger.error(f"[{self.__class__.__name__}] Execution failed: {e}", exc_info=True)
-            raise e
+            # ECHO PROTOCOL: Safety Net
+            error_code = f"{self.__class__.__name__.upper()}_EXECUTION_CRITICAL"
+            logger.error(f"{error_code}: Unexpected failure - {e}", exc_info=True)
+            raise AgentExecutionError(detail=error_code, original_error=e) from e
 
     async def prepare_context(self, state: WorkflowState, **kwargs) -> str | None:
         """Lifecycle Hook: Pre-Execution.

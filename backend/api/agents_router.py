@@ -6,13 +6,13 @@ in isolation, and resolving agent capabilities dynamically.
 
 import importlib
 import logging
+import traceback
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Body, HTTPException
 from fastapi import Query as APIQuery
 from tinydb import Query
 
-from backend.schemas.error import APIError
 from backend.database.wrapper import AbstractDatabase
 from backend.dependencies import DatabaseDep, RegistryDep
 
@@ -133,7 +133,7 @@ async def list_agents(
         List[Dict]: A list of agent definition objects.
     """
     # Debug wrapper removed, proper DI used.
-    import traceback
+    # traceback moved to top level imports
 
     try:
         agents_list = []

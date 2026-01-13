@@ -15,7 +15,6 @@ from pydantic import BaseModel, Field
 
 from backend.dependencies import CurrentUserDep, EngineDep
 from backend.models.auth import UserRole
-from backend.schemas.error import APIError
 
 router = APIRouter(
     prefix="/builder",
@@ -287,7 +286,10 @@ async def update_workflow(
             raise HTTPException(status_code=403, detail=error_code)
         if wf_org != current_user.organization_id and current_user.role != UserRole.ROOT:
             error_code = "PERMISSION_DENIED_WORKFLOW_UPDATE"
-            logger.error(f"{error_code}: Org mismatch (WF: {wf_org} vs User: {current_user.organization_id}).", exc_info=True)
+            logger.error(
+                f"{error_code}: Org mismatch (WF: {wf_org} vs User: {current_user.organization_id}).",
+                exc_info=True,
+            )
             raise HTTPException(status_code=403, detail=error_code)
 
     # Public Check
@@ -383,7 +385,10 @@ async def delete_workflow(workflow_id: str, engine: EngineDep, current_user: Cur
 
     if related_execs:
         error_code = "WORKFLOW_HAS_EXECUTIONS"
-        logger.error(f"{error_code}: Workflow {workflow_id} has {len(related_execs)} executions. Deletion blocked.", exc_info=True)
+        logger.error(
+            f"{error_code}: Workflow {workflow_id} has {len(related_execs)} executions. Deletion blocked.",
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=409,
             detail=error_code,

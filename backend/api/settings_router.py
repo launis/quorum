@@ -1,11 +1,9 @@
 """API Router for Global System Settings."""
 
 import logging
-from typing import Annotated
 
 from fastapi import APIRouter, HTTPException
 
-from backend.schemas.error import APIError
 from backend.dependencies import AuditServiceDep, AuthService, CurrentUserDep, EngineDep
 from backend.models.auth import UserRole
 from backend.models.settings import SystemSettings
