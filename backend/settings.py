@@ -39,12 +39,10 @@ class Settings(BaseSettings):
     """
 
     # --- Feature Flags ---
-    use_mock_llm: Annotated[
-        bool, BeforeValidator(strip_whitespace), Field(description="Use Mock LLM Service")
-    ] = False
-    use_mock_db: Annotated[
-        bool, BeforeValidator(strip_whitespace), Field(description="Use Mock Database (TinyDB)")
-    ] = False
+    use_mock_llm: Annotated[bool, BeforeValidator(strip_whitespace), Field(description="Use Mock LLM Service")] = False
+    use_mock_db: Annotated[bool, BeforeValidator(strip_whitespace), Field(description="Use Mock Database (TinyDB)")] = (
+        False
+    )
 
     # --- API Keys ---
     google_api_key: Annotated[str | None, Field(description="Google AI Provider API Key")] = None
