@@ -26,6 +26,7 @@ from starlette.datastructures import UploadFile as StarletteUploadFile
 # --- Local Imports ---
 # Rule 6: APIError must be the FIRST local import
 from backend.schemas.error import APIError
+from backend.core.rate_limit import limiter
 from backend.dependencies import CurrentUserDep, EngineDep
 from backend.models.auth import UserRole  # Required for role check
 from backend.models.state import WorkflowState  # Required for migration/hydration logic
@@ -74,7 +75,8 @@ class WorkflowExecutionRequest(BaseModel):
 @router.post(
     "/workflows", summary="Create Workflow", response_description="A confirmation object with the new Workflow ID."
 )
-async def create_workflow(request: ExecutionWorkflowCreateRequest, engine: EngineDep):
+@limiter.limit("60/minute")
+async def create_workflow(request: Request, body: ExecutionWorkflowCreateRequest, engine: EngineDep):
     """Creates a new workflow definition in the database.
 
     Args:
@@ -238,7 +240,9 @@ async def execute_workflow(
     summary="List Recent Executions",
     response_description="A list of recent execution records, sorted by time (descending).",
 )
+@limiter.limit("60/minute")
 async def get_recent_executions(
+    request: Request,
     engine: EngineDep,
     current_user: CurrentUserDep,
     limit: int = APIQuery(5, description="Maximum number of executions to return."),
@@ -269,7 +273,8 @@ async def get_recent_executions(
     summary="Get Latest Execution",
     response_description="The single most recent execution record.",
 )
-async def get_latest_execution(engine: EngineDep):
+@limiter.limit("60/minute")
+async def get_latest_execution(request: Request, engine: EngineDep):
     """Retrieves the absolutely most recent execution record."""
     all_execs = await engine.repository.get_all_executions()
     if not all_execs:
@@ -285,8 +290,9 @@ async def get_latest_execution(engine: EngineDep):
     summary="Get Execution Status",
     response_description="The detailed status, result, and state of a specific execution.",
 )
+@limiter.limit("60/minute")
 async def get_execution_status(
-    engine: EngineDep, execution_id: str = Path(..., description="The UUID of the execution to retrieve.")
+    request: Request, engine: EngineDep, execution_id: str = Path(..., description="The UUID of the execution to retrieve.")
 ):
     """Retrieves the full status and result data for a specific execution ID.
 
@@ -338,7 +344,9 @@ async def get_execution_status(
     summary="Retry Execution",
     response_description="Confirmation that the execution is resuming.",
 )
+@limiter.limit("60/minute")
 async def retry_execution(
+    request: Request,
     background_tasks: BackgroundTasks,
     engine: EngineDep,
     execution_id: str = Path(..., description="The UUID of the execution to retry."),

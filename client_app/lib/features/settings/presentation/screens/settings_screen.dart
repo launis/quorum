@@ -1,6 +1,7 @@
 import 'package:client_app/features/auth/presentation/auth_controller.dart';
 import 'package:client_app/features/auth/domain/models/user.dart';
 import 'package:client_app/features/settings/presentation/widgets/usage_stats_card.dart';
+import 'package:client_app/features/settings/presentation/widgets/admin_limit_controls.dart';
 import 'package:client_app/features/settings/theme_provider.dart';
 import 'package:client_app/features/settings/locale_provider.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
@@ -48,6 +49,7 @@ class SettingsScreen extends ConsumerWidget {
                 const Divider(),
               ],
               const UsageStatsCard(),
+              const AdminLimitControls(),
               if (isAdmin) ...[
                 ListTile(
                   leading: const Icon(Icons.admin_panel_settings),

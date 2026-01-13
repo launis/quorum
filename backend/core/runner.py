@@ -6,7 +6,9 @@ from datetime import datetime
 from typing import Any
 
 from backend.exceptions import AgentExecutionError, FatalInterruption
+from backend.exceptions import AgentExecutionError, FatalInterruption
 from backend.models.state import InputData, WorkflowState
+from backend.services.usage_service import UsageService
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +30,11 @@ class PipelineRunner:
         """
         self.repository = repository
         self.registry = registry
+        self.repository = repository
+        self.registry = registry
         self.prompt_builder = prompt_builder
+        # Inject UsageService for cost tracking
+        self.usage_service = UsageService(repository)
 
     async def initialize_state(
         self,
@@ -135,6 +141,9 @@ class PipelineRunner:
             stage_name = step_doc.get("id", f"step_{step_num}")
             description = f"Step {step_num}/{total_steps}: {agent.__class__.__name__}"
 
+            # Assign Step ID to state for UI sync
+            current_state.current_step_name = stage_name
+            
             # Checkpoint: Save current state to DB (trace)
             trace_dump = current_state.model_dump(mode="json")
             await tracker.update(
@@ -142,6 +151,14 @@ class PipelineRunner:
             )
 
             current_state = await self._execute_step(current_state, agent, step_doc, execution_id)
+
+            # Checkpoint: Save state AFTER execution (Capture Usage/Outputs immediately)
+            trace_dump = current_state.model_dump(mode="json")
+            await tracker.update(
+                stage=stage_name, 
+                percent=percent, 
+                details={"trace": trace_dump, "description": f"{description} (Completed)"}
+            )
 
             # Check for Early Exit (Security)
             if isinstance(current_state, dict) and "security_alert" in current_state:
@@ -163,7 +180,7 @@ class PipelineRunner:
         """
         step_id = step_doc["id"]
         agent_name = agent.__class__.__name__
-        current_state.current_step_name = agent_name
+        # current_state.current_step_name = agent_name  <-- REMOVED (Handled in execute_loop with step_id)
         logger.info(f"[PipelineRunner] Running step: {agent_name} (Step ID: {step_id})")
 
         # 1. Pre-Hooks
@@ -174,7 +191,10 @@ class PipelineRunner:
             current_state = await self._execute_hook(hook, agent, current_state)
 
         # 2. Dynamic Model Selection
-        model_config = await self._configure_agent_model(agent, step_id, execution_id)
+        # Pass organization_id from state to ensure correct cost tracking
+        model_config = await self._configure_agent_model(
+            agent, step_id, execution_id, organization_id=current_state.organization_id
+        )
 
         # 3. Prompt Construction
         system_instruction = await self.prompt_builder.construct_prompt(step_id, current_state) if step_id else None
@@ -187,6 +207,7 @@ class PipelineRunner:
                 "system_instruction": system_instruction,
                 "repository": self.repository,
                 "output_key": step_doc.get("state_key"),  # Pass destination override
+                "usage_key": step_id,  # ENSURE GRANULAR COST TRACKING
                 "execution_config": config,
                 "step_id": step_id,
             }
@@ -273,7 +294,9 @@ class PipelineRunner:
                 )
             return state
 
-    async def _configure_agent_model(self, agent: Any, step_id: str, execution_id: str) -> dict[str, Any]:
+    async def _configure_agent_model(
+        self, agent: Any, step_id: str, execution_id: str, organization_id: str | None = None
+    ) -> dict[str, Any]:
         """Resolves the appropriate model strategy for the step and configures the agent.
 
         Args:
@@ -320,7 +343,12 @@ class PipelineRunner:
         resolved_provider = resolved_config.get("provider")
 
         if resolved_model_name and hasattr(agent, "set_model"):
-            agent.set_model(resolved_model_name, provider=resolved_provider)
+            agent.set_model(
+                resolved_model_name,
+                provider=resolved_provider,
+                usage_service=self.usage_service,
+                organization_id=organization_id,
+            )
             logger.debug(
                 f"[PipelineRunner] Configured {agent.__class__.__name__} with {resolved_model_name} "
                 f"(Provider: {resolved_provider})"

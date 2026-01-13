@@ -39,10 +39,8 @@ class Settings(BaseSettings):
     """
 
     # --- Feature Flags ---
-    use_mock_llm: Annotated[bool, BeforeValidator(strip_whitespace), Field(description="Use Mock LLM Service")] = False
-    use_mock_db: Annotated[bool, BeforeValidator(strip_whitespace), Field(description="Use Mock Database (TinyDB)")] = (
-        True
-    )
+    use_mock_llm: Annotated[bool, BeforeValidator(strip_whitespace), Field(description="Use Mock LLM Service")]
+    use_mock_db: Annotated[bool, BeforeValidator(strip_whitespace), Field(description="Use Mock Database (TinyDB)")]
 
     # --- API Keys ---
     google_api_key: Annotated[str | None, Field(description="Google AI Provider API Key")] = None
@@ -50,7 +48,7 @@ class Settings(BaseSettings):
     vertex_location: Annotated[str | None, Field(description="Google Cloud Region (e.g. europe-north1)")] = None
 
     # --- LLM Configuration ---
-    initial_model: Annotated[str, Field(description="Initial Model Strategy")] = "fast"
+    # initial_model REMOVED per Zero-Fallback Policy
     llm_default_timeout: Annotated[float, Field(description="LLM Timeout in seconds")] = 60.0
     llm_max_retries: Annotated[int, Field(description="Max retries for LLM calls")] = 3
     llm_retry_delay: Annotated[float, Field(description="Delay between retries in seconds")] = 4.0

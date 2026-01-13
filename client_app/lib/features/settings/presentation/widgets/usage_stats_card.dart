@@ -64,14 +64,25 @@ class UsageStatsCard extends ConsumerWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            l10n.tokensUsed(stats.usedTokens),
+                            'Used: \$${stats.usedCost.toStringAsFixed(4)}',
                             style: theme.textTheme.bodySmall,
                           ),
                           Text(
-                            l10n.quotaLimit(stats.tokenLimit),
+                            'Limit: \$${stats.costLimit.toStringAsFixed(2)}',
                             style: theme.textTheme.bodySmall,
                           ),
                         ],
+                      ),
+                      const Divider(height: 24),
+                      Text('Rate Limits', style: theme.textTheme.labelMedium),
+                      const SizedBox(height: 4),
+                      Text(
+                        'TPM: ${stats.tpmLimit} tokens / min',
+                        style: theme.textTheme.bodySmall,
+                      ),
+                      Text(
+                        'RPM: ${stats.rpmLimit} requests / min',
+                        style: theme.textTheme.bodySmall,
                       ),
                     ],
                   ),

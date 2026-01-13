@@ -10,6 +10,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
+from backend.schemas.error import APIError
 from backend.dependencies import AuthServiceDep, CurrentUserDep, RepositoryDep
 from backend.models.auth import Organization, SubscriptionStatus, TokenData, UserRole
 from backend.services.auth import AuthService
@@ -40,6 +41,8 @@ class OrganizationUpdate(BaseModel):
     billing_id: str | None = None
     subscription_status: SubscriptionStatus | None = None
     quota_limit: float | None = None
+    tpm_limit: int | None = None
+    rpm_limit: int | None = None
     settings_override: dict[str, Any] | None = None
 
 
@@ -54,6 +57,8 @@ class OrganizationResponse(BaseModel):
     billing_id: str | None = None
     subscription_status: SubscriptionStatus = SubscriptionStatus.TRIAL
     quota_limit: float = 10.0
+    tpm_limit: int = 100000
+    rpm_limit: int = 60
     status: str = "PENDING"  # Mapped from is_active
 
     @classmethod
@@ -236,6 +241,72 @@ async def get_organization(
         raise HTTPException(status_code=404, detail=error_code)
 
     return OrganizationResponse(**Organization(**org).model_dump())
+
+
+@router.get("/{org_id}/usage", response_model=dict[str, Any])
+async def get_organization_usage(
+    org_id: str,
+    user: CurrentUserDep,
+    repo: RepositoryDep,
+):
+    """Get current usage statistics and limits for an organization.
+
+    Args:
+        org_id (str): Organization ID.
+        user (CurrentUserDep): Requesting user.
+        repo (RepositoryDep): Repository dependency.
+
+    Returns:
+        dict: Usage stats (cost, limits, percentage).
+    """
+    # 1. Access Control
+    if user.role != UserRole.ROOT:
+        if user.organization_id != org_id:
+            error_code = "PERMISSION_DENIED"
+            logger.error(f"{error_code}: User {user.uid} denied usage view.", exc_info=True)
+            raise HTTPException(status_code=403, detail=error_code)
+
+    try:
+        # 2. Fetch Limits
+        org = await repo.get_organization(org_id)
+        if not org:
+            error_code = "ORGANIZATION_NOT_FOUND"
+            logger.error(f"{error_code}: ID {org_id}", exc_info=True)
+            raise HTTPException(status_code=404, detail=error_code)
+
+        org_model = Organization(**org)
+        
+        # 3. Calculate Usage
+        from backend.services.usage_service import UsageService
+        from datetime import datetime, UTC
+        
+        usage_service = UsageService(repo)
+        
+        # Current Month
+        now = datetime.now(UTC)
+        start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
+        
+        total_cost = await repo.get_org_usage_total(org_id, since=start_of_month)
+        
+        percentage = 0.0
+        if org_model.quota_limit > 0:
+            percentage = (total_cost / org_model.quota_limit) * 100
+            
+        return {
+            "total_cost_usd": round(total_cost, 4),
+            "quota_limit_usd": org_model.quota_limit,
+            "tpm_limit": org_model.tpm_limit,
+            "rpm_limit": org_model.rpm_limit,
+            "percentage_used": round(percentage, 2),
+            "period": f"{now.year}-{now.month:02d}"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        error_code = "USAGE_STATS_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=error_code) from e
 
 
 @router.put("/{org_id}", response_model=OrganizationResponse)

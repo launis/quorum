@@ -3245,17 +3245,35 @@
           "LLM"
         ],
         "summary": "Direct Completion",
-        "description": "Directly invokes the LLM using the specified strategy.\n\nSupports structured output if schema is provided.\n\nArgs:\n    request (CompletionRequest): The prompt and settings.\n    registry (RegistryDep): Registry dependency to resolve strategies.\n\nReturns:\n    dict: Result object containing the generated content.\n\nRaises:\n    HTTPException: If strategy is invalid (400) or generation fails (500).",
+        "description": "Directly invokes the LLM using the specified strategy.\n\nSupports structured output if schema is provided.\n\nArgs:\n    request (CompletionRequest): The prompt and settings.\n    registry (RegistryDep): Registry dependency to resolve strategies.\n    user (CurrentUserDep): Authenticated user (required for rate limits).\n    repo (RepositoryDep): Data repository.\n\nReturns:\n    dict: Result object containing the generated content.\n\nRaises:\n    HTTPException: If strategy is invalid (400) or generation fails (500).",
         "operationId": "generate_completion_llm_llm_completion_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CompletionRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -3286,17 +3304,35 @@
           "LLM"
         ],
         "summary": "Batch Completion",
-        "description": "Processes multiple completion requests in parallel.\n\nArgs:\n    batch (BatchCompletionRequest): List of requests.\n    registry (RegistryDep): Registry dependency.\n\nReturns:\n    dict: List of results (success or error) for each request.",
+        "description": "Processes multiple completion requests in parallel.\n\nArgs:\n    batch (BatchCompletionRequest): List of requests.\n    registry (RegistryDep): Registry dependency.\n    user (CurrentUserDep): Authenticated user.\n    repo (RepositoryDep): Data repository.\n\nReturns:\n    dict: List of results (success or error) for each request.",
         "operationId": "batch_completion_llm_llm_batch_completion_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/BatchCompletionRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -4548,6 +4584,67 @@
         "responses": {
           "204": {
             "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{org_id}/usage": {
+      "get": {
+        "tags": [
+          "Organizations"
+        ],
+        "summary": "Get Organization Usage",
+        "description": "Get current usage statistics and limits for an organization.\n\nArgs:\n    org_id (str): Organization ID.\n    user (CurrentUserDep): Requesting user.\n    repo (RepositoryDep): Repository dependency.\n\nReturns:\n    dict: Usage stats (cost, limits, percentage).",
+        "operationId": "get_organization_usage_organizations__org_id__usage_get",
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Org Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Organization Usage Organizations  Org Id  Usage Get"
+                }
+              }
+            }
           },
           "422": {
             "description": "Validation Error",
@@ -6017,6 +6114,20 @@
             "title": "Quota Limit",
             "description": "Monthly API call quota (USD)",
             "default": 10.0
+          },
+          "tpm_limit": {
+            "type": "integer",
+            "minimum": 1000.0,
+            "title": "Tpm Limit",
+            "description": "Tokens Per Minute Limit",
+            "default": 100000
+          },
+          "rpm_limit": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Rpm Limit",
+            "description": "Requests Per Minute Limit",
+            "default": 60
           }
         },
         "type": "object",
@@ -6045,6 +6156,16 @@
           "admin_name": {
             "type": "string",
             "title": "Admin Name"
+          },
+          "tpm_limit": {
+            "type": "integer",
+            "title": "Tpm Limit",
+            "default": 100000
+          },
+          "rpm_limit": {
+            "type": "integer",
+            "title": "Rpm Limit",
+            "default": 60
           }
         },
         "type": "object",
@@ -6186,6 +6307,16 @@
             "title": "Quota Limit",
             "default": 10.0
           },
+          "tpm_limit": {
+            "type": "integer",
+            "title": "Tpm Limit",
+            "default": 100000
+          },
+          "rpm_limit": {
+            "type": "integer",
+            "title": "Rpm Limit",
+            "default": 60
+          },
           "status": {
             "type": "string",
             "title": "Status",
@@ -6267,6 +6398,28 @@
               }
             ],
             "title": "Quota Limit"
+          },
+          "tpm_limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tpm Limit"
+          },
+          "rpm_limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rpm Limit"
           },
           "settings_override": {
             "anyOf": [

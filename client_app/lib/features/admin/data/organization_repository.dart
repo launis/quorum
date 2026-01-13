@@ -145,4 +145,30 @@ class OrganizationRepository {
       return left(AppError.unknown(e, stackTrace));
     }
   }
+
+  /// Get usage stats for an organization.
+  /// GET /api/v1/organizations/{id}/usage
+  Future<Either<AppError, Map<String, dynamic>>> getUsage(String id) async {
+    try {
+      final response = await _client.get<Map<String, dynamic>>(
+        '/organizations/$id/usage',
+      );
+
+      if (response.data == null) {
+        return left(const AppError.server('Response data was null'));
+      }
+
+      return right(response.data!);
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout ||
+          e.type == DioExceptionType.sendTimeout ||
+          e.type == DioExceptionType.connectionError) {
+        return left(AppError.network(e));
+      }
+      return left(AppError.server(e.message, e.response?.statusCode));
+    } catch (e, stackTrace) {
+      return left(AppError.unknown(e, stackTrace));
+    }
+  }
 }

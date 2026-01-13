@@ -23,11 +23,13 @@ from backend.api.execution_router import router as execution_router
 from backend.api.llm_router import router as llm_router
 from backend.api.organization_router import router as organization_router
 from backend.api.settings_router import router as settings_router
-
-# Routers
 from backend.api.tools_router import router as tools_router
 
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+
 # Dependencies
+from backend.core.rate_limit import limiter
 from backend.dependencies import DatabaseDep, EngineDep
 from backend.exceptions import AppException
 from backend.schemas.error import APIError
@@ -117,6 +119,14 @@ async def lifespan(app: FastAPI):
     if hasattr(app.state, "arq_pool"):
         pool = app.state.arq_pool
         # Check if it's a real pool or fake
+    # Note: Engine is lazy-loaded on first request to avoid complex manual DI here.
+    yield
+    # Shutdown
+    logger.info("Shutting down...")
+
+    if hasattr(app.state, "arq_pool"):
+        pool = app.state.arq_pool
+        # Check if it's a real pool or fake
         if hasattr(pool, "close"):
             await pool.close()
         logger.info("Arq Redis connection closed.")
@@ -128,6 +138,9 @@ app = FastAPI(
     version="2.1.0",
     lifespan=lifespan,
 )
+
+# Mount Limiter to App State
+app.state.limiter = limiter
 
 try:
     import logfire  # noqa: E402
@@ -234,6 +247,24 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
             error_code="VALIDATION_ERROR",
             message="Request validation failed",
             details=safe_errors,
+        ).model_dump(),
+    )
+
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    """Handler for SlowAPI RateLimitExceeded.
+
+    Returns 429 with standardized APIError.
+    """
+    logger.warning(f"RATE_LIMIT_EXCEEDED: {request.client.host if request.client else 'Unknown'} exceeded limit: {exc}")
+
+    return JSONResponse(
+        status_code=429,
+        content=APIError(
+            error_code="RATE_LIMIT_EXCEEDED",
+            message="Rate limit exceeded",
+            details=str(exc),
         ).model_dump(),
     )
 

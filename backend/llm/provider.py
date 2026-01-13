@@ -8,9 +8,11 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 import litellm
+from litellm import Router
 from pydantic import BaseModel
 from tenacity import retry, stop_after_attempt, wait_exponential
 
+from backend.llm.config import MODEL_LIMITS
 from backend.models.llm import LLMResponse
 from backend.services.usage_service import UsageService
 from backend.settings import get_settings
@@ -79,6 +81,7 @@ class LiteLLMProvider(LLMProvider):
         settings: Any = None,
         usage_service: UsageService | None = None,
         organization_id: str | None = None,
+        limits: dict[str, int] | None = None,
     ):
         """Initializes the LiteLLM provider.
 
@@ -88,14 +91,46 @@ class LiteLLMProvider(LLMProvider):
             settings (Any): System settings object.
             usage_service (Optional[UsageService]): Service for cost tracking.
             organization_id (Optional[str]): Context organization ID.
+            limits (Optional[dict]): Override TPM/RPM limits (e.g. from Organization).
         """
         self.model_name = model_name
         self.api_key = api_key
         self.settings = settings
         self.usage_service = usage_service
         self.organization_id = organization_id or "UNKNOWN_ORG"
-        # litellm configuration
+
+        # litellm general config
         litellm.drop_params = True
+
+        # --- Configure Router for Rate Limiting ---
+        # We construct a single-item model list for this provider instance
+        # to leverage Router's TPM/RPM enforcement logic.
+        
+        # 1. Determine Limits
+        # If dynamic limits are provided (e.g. per Organization), use them.
+        # Otherwise fallback to static MODEL_LIMITS.
+        static_defaults = MODEL_LIMITS.get(model_name, {"tpm": 10000, "rpm": 10})
+        
+        tpm = limits.get("tpm", static_defaults["tpm"]) if limits else static_defaults["tpm"]
+        rpm = limits.get("rpm", static_defaults["rpm"]) if limits else static_defaults["rpm"]
+
+        # 2. Build deployment config
+        model_config = {
+            "model_name": model_name,  # The alias we use
+            "litellm_params": {
+                "model": model_name,   # The actual provider model name
+                "api_key": api_key,
+                "tpm": tpm,
+                "rpm": rpm,
+            },
+        }
+
+        # 3. Initialize Router
+        # set_verbose=False to reduce noise, unless debugging
+        self.router = Router(
+            model_list=[model_config],
+            set_verbose=False,
+        )
 
     @retry_strategy
     async def generate(
@@ -185,7 +220,15 @@ class LiteLLMProvider(LLMProvider):
             logger.info(f"[LiteLLMProvider] Using Vertex Location: {v_loc}")
             call_kwargs["vertex_location"] = v_loc
 
-            response = await litellm.acompletion(**call_kwargs)
+            # --- ROUTER CALL ---
+            # Remove keys that shouldn't be passed directly to router.acompletion 
+            # if they are already in deployment config (like api_key), 
+            # BUT Router overrides usually merge.
+            # However, 'model' arg in kwargs MUST match the 'model_name' alias in model_list.
+            call_kwargs["model"] = self.model_name
+            
+            # Using router.acompletion instead of litellm.acompletion
+            response = await self.router.acompletion(**call_kwargs)
 
             # Extract basic content
             choice = response.choices[0]
@@ -242,6 +285,7 @@ class LiteLLMProvider(LLMProvider):
                         raise ValueError("Strict JSON parsing failed.") from e
 
             # --- COST TRACKING ---
+            cost = 0.0
             if self.usage_service:
                 try:
                     # Calculate cost using LiteLLM
@@ -259,6 +303,9 @@ class LiteLLMProvider(LLMProvider):
                     )
                 except Exception as e:
                     logger.warning(f"[LiteLLMProvider] Usage Tracking Failed: {e}")
+
+            # Inject cost into usage dict so BaseAgent can pick it up
+            usage["total_cost"] = cost
 
             return LLMResponse(
                 content=final_content,
@@ -279,9 +326,11 @@ class MockProvider(LLMProvider):
     Uses cached/simulated responses from MockLLMService.
     """
 
-    def __init__(self, model_name: str = "mock"):
+    def __init__(self, model_name: str = "mock", usage_service: UsageService | None = None, organization_id: str | None = None):
         """Initialize the Mock Provider."""
         self.model_name = model_name
+        self.usage_service = usage_service
+        self.organization_id = organization_id or "UNKNOWN_ORG"
 
     async def generate(
         self,
@@ -314,28 +363,35 @@ class MockProvider(LLMProvider):
             content_str = json.dumps(result, ensure_ascii=False)
         else:
             content_str = str(result)
+            
+        # Simulated Usage
+        usage_data = {
+            "prompt_tokens": 100,
+            "completion_tokens": 50,
+            "total_tokens": 150,
+            "total_cost": 0.002,
+        }
+
+        # --- COST TRACKING (Mock) ---
+        if self.usage_service:
+            try:
+                await self.usage_service.track_usage(
+                    org_id=self.organization_id,
+                    user_id=kwargs.get("user_id", "system_agent"),
+                    model=self.model_name,
+                    input_tokens=usage_data["prompt_tokens"],
+                    output_tokens=usage_data["completion_tokens"],
+                    cost_usd=usage_data["total_cost"],
+                )
+            except Exception as e:
+                logger.warning(f"[MockProvider] Usage Tracking Failed: {e}")
 
         return LLMResponse(
             content=content_str,
             reasoning_token="mock_thought_signature_123456",
-            token_usage={"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150},
+            token_usage=usage_data,
             tool_calls=[],
             provider_metadata={},
-        )
-
-
-class UnconfiguredProvider(LLMProvider):
-    """Placeholder provider for agents initialized without a specific model configuration.
-
-    Raises a strict runtime error if execution is attempted before configuration.
-    """
-
-    async def generate(self, *args, **kwargs) -> LLMResponse:
-        """Raise error on attempt to generate without configuration."""
-        raise RuntimeError(
-            "CRITICAL: Agent attempted execution with an UNCONFIGURED model. "
-            "The system requires Strategy Resolution (DB Config) before execution. "
-            "Check PipelineRunner or AgentRegistry model injection."
         )
 
 
@@ -349,85 +405,72 @@ class LLMFactory:
         context: dict[str, Any] | Any | None = None,
         organization_id: str | None = None,
         usage_service: UsageService | None = None,
+        limits: dict[str, int] | None = None,
     ) -> LLMProvider:
-        """Creates an LLM provider instance.
+        """Factory method to create an LLM Provider instance.
 
         Args:
-            provider_type (str): Type of provider (e.g., 'gemini', 'openai').
-            model_name (str): Specific model name.
-            context (Optional[Union[Dict[str, Any], Any]]): Workflow context or state object.
-            organization_id (Optional[str]): Explicit tenant/organization ID.
-            usage_service (Optional[UsageService]): Service for cost tracking.
+            provider_type (str): Type key (e.g. 'litellm', 'mock').
+            model_name (str): Model identifier.
+            context (Optional[dict]): Additional context or settings.
+            organization_id (Optional[str]): Organization ID for tracking.
+            usage_service (Optional[UsageService]): Usage service instance.
+            limits (Optional[dict]): Usage limits (tpm, rpm).
 
         Returns:
             LLMProvider: Configured provider instance.
-
-        Raises:
-            ValueError: If configuration is invalid.
-
         """
         settings = get_settings()
 
-        # Resolve Organization ID
-        org_id = organization_id
-        if not org_id and context:
-            if isinstance(context, dict):
-                org_id = context.get("organization_id")
-            elif hasattr(context, "organization_id"):
-                org_id = getattr(context, "organization_id", None)
-
         # Placeholder for BYOK (Bring Your Own Key) Logic
         tenant_api_key = None
-        if org_id:
-            logger.info(
-                f"[LLMFactory] Organization Context Found: {org_id}. "
-                "Checking for BYOK credentials... (Using Global Fallback for now)"
+
+        if provider_type == "mock" or settings.use_mock_llm:
+            return MockProvider(
+                model_name=model_name or "mock",
+                usage_service=usage_service,
+                organization_id=organization_id,
             )
-            pass
 
-        if settings.use_mock_llm:
-            return MockProvider(model_name=model_name or "mock-default")
-
-        # STRICT CONFIGURATION: If no model provided, return Unconfigured (Trap).
+        # STRICT CONFIGURATION: If no model provided, Raise Error.
         if not model_name:
-            logger.debug("[LLMFactory] No model_name provided. Returning UnconfiguredProvider (Execution Trap).")
-            return UnconfiguredProvider()
+            raise ValueError("Model name is required for LLMProvider creation.")
 
-        target_model = model_name
         api_key = None
+        if provider_type == "litellm":
+            if "gemini" in model_name:
+                api_key = tenant_api_key or settings.google_api_key
+            elif "gpt" in model_name or "o1" in model_name:
+                api_key = tenant_api_key or settings.openai_api_key
+            elif "claude" in model_name:
+                 api_key = tenant_api_key or settings.anthropic_api_key
 
+            return LiteLLMProvider(
+                model_name=model_name,
+                api_key=api_key,
+                settings=settings,
+                usage_service=usage_service,
+                organization_id=organization_id,
+                limits=limits,
+            )
+            
+        # Fallback for explicit strategies (legacy)
         match provider_type.lower():
             case "gemini" | "vertex_ai":
-                # STRICT MODE: Model name must come fully formed from DB (e.g. gemini/gemini-1.5-pro)
-                target_model = model_name
-                api_key = tenant_api_key or settings.google_api_key
-
+                 api_key = tenant_api_key or settings.google_api_key
             case "openai":
-                target_model = model_name
-                api_key = tenant_api_key or settings.openai_api_key
-                if not api_key and not tenant_api_key:
-                    api_key = os.getenv("OPENAI_API_KEY")
-
+                 api_key = tenant_api_key or settings.openai_api_key
+                 if not api_key:
+                     import os
+                     api_key = os.getenv("OPENAI_API_KEY") 
             case _:
-                # Fallback/Default handling.
-                # Previously we just set target_model = model_name and key=None implicitly.
-                # Let's keep it robust.
-                target_model = model_name
-                api_key = tenant_api_key
-
-        if not target_model:
-            # Should be caught by top check, but safe guard
-            return UnconfiguredProvider()
-
-        msg_key = "PRESENT" if api_key else "MISSING"
-        source_label = f"Tenant-{org_id}" if (org_id and tenant_api_key) else "Global"
-
-        logger.info(f"[LLMFactory] Creating Provider: {target_model} (Key: {msg_key}, Source: {source_label})")
-
+                 pass
+                 
         return LiteLLMProvider(
-            model_name=target_model,
+            model_name=model_name,
             api_key=api_key,
             settings=settings,
             usage_service=usage_service,
-            organization_id=org_id,
+            organization_id=organization_id,
+            limits=limits,
         )

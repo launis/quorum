@@ -12,8 +12,9 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from tinydb import Query
 
-from backend.dependencies import DatabaseDep, LLMHandlerDep, RegistryDep
+from backend.dependencies import DatabaseDep, LLMHandlerDep, RegistryDep, CurrentUserDep, RepositoryDep
 from backend.llm.provider import LLMFactory
+from backend.models.auth import Organization
 
 # from backend.llm.handler import LLMHandler # LLMHandlerDep already provides access to LLMHandler
 
@@ -63,7 +64,12 @@ class ModelRegistryUpdate(BaseModel):
 @router.post(
     "/completion", summary="Direct Completion", response_description="The generated text or structured object."
 )
-async def generate_completion(request: CompletionRequest, registry: RegistryDep):
+async def generate_completion(
+    request: CompletionRequest, 
+    registry: RegistryDep,
+    user: CurrentUserDep,
+    repo: RepositoryDep
+):
     """Directly invokes the LLM using the specified strategy.
 
     Supports structured output if schema is provided.
@@ -71,6 +77,8 @@ async def generate_completion(request: CompletionRequest, registry: RegistryDep)
     Args:
         request (CompletionRequest): The prompt and settings.
         registry (RegistryDep): Registry dependency to resolve strategies.
+        user (CurrentUserDep): Authenticated user (required for rate limits).
+        repo (RepositoryDep): Data repository.
 
     Returns:
         dict: Result object containing the generated content.
@@ -79,9 +87,27 @@ async def generate_completion(request: CompletionRequest, registry: RegistryDep)
         HTTPException: If strategy is invalid (400) or generation fails (500).
     """
     try:
+        # 0. Fetch Organization Limits
+        limits = None
+        if user.organization_id:
+            org = await repo.get_organization(user.organization_id)
+            if org:
+                # Default safety limits if missing in DB
+                limits = {
+                    "tpm": org.get("tpm_limit", 100000),
+                    "rpm": org.get("rpm_limit", 60)
+                }
+
         # 1. Resolve Provider via Registry
         config = await registry.resolve_model_config(request.model_strategy)
-        provider = LLMFactory.create_provider(config["provider"], config["model_name"])
+        
+        # 2. Create Provider with Dynamic Limits
+        provider = LLMFactory.create_provider(
+            provider_type=config["provider"], 
+            model_name=config["model_name"],
+            organization_id=user.organization_id,
+            limits=limits
+        )
 
         # 2. Call Generate
         # If response_schema is present, model_strategy must support JSON mode or structured generation
@@ -104,21 +130,44 @@ async def generate_completion(request: CompletionRequest, registry: RegistryDep)
 
 
 @router.post("/batch-completion", summary="Batch Completion", response_description="List of results.")
-async def batch_completion(batch: BatchCompletionRequest, registry: RegistryDep):
+async def batch_completion(
+    batch: BatchCompletionRequest, 
+    registry: RegistryDep,
+    user: CurrentUserDep,
+    repo: RepositoryDep
+):
     """Processes multiple completion requests in parallel.
 
     Args:
         batch (BatchCompletionRequest): List of requests.
         registry (RegistryDep): Registry dependency.
+        user (CurrentUserDep): Authenticated user.
+        repo (RepositoryDep): Data repository.
 
     Returns:
         dict: List of results (success or error) for each request.
     """
+    # 0. Fetch Organization Limits
+    limits = None
+    if user.organization_id:
+        org = await repo.get_organization(user.organization_id)
+        if org:
+            limits = {
+                "tpm": org.get("tpm_limit", 100000),
+                "rpm": org.get("rpm_limit", 60)
+            }
 
     async def _process_one(req: CompletionRequest):
         try:
             config = await registry.resolve_model_config(req.model_strategy)
-            provider = LLMFactory.create_provider(config["provider"], config["model_name"])
+            
+            provider = LLMFactory.create_provider(
+                provider_type=config["provider"], 
+                model_name=config["model_name"],
+                organization_id=user.organization_id,
+                limits=limits
+            )
+            
             return await provider.generate(
                 prompt=req.prompt, system_instruction=req.system_instruction, response_schema=req.response_schema
             )

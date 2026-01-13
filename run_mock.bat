@@ -24,7 +24,7 @@ IF %ERRORLEVEL% NEQ 0 (
 
 docker-compose up -d redis
 
-echo [2/3] Launching Backend & Worker (Uvicorn + Arq)...
+echo [2/3] Launching Backend ^& Worker (Uvicorn + Arq)...
 echo       Mode: MOCK (OFFLINE DEV)
 echo       Config: MOCK DB (db_mock.json), MOCK LLM, MOCK AUTH
 echo       Notes:  No external connections. Good for UI dev and unit testing logic.

@@ -6,12 +6,13 @@ profile management, and organization administration.
 
 import logging
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel
 
 # --- Local Imports ---
 # Rule 6: APIError must be the FIRST local import
 from backend.schemas.error import APIError
+from backend.core.rate_limit import limiter
 from backend.dependencies import AuthServiceDep, CurrentUserDep
 from backend.models.auth import Organization, OrganizationCreate, User, UserCreate, UserRole, UserUpdate
 
@@ -61,7 +62,8 @@ class ImpersonationResponse(BaseModel):
 
 
 @router.post("/verify", response_model=LoginResponse)
-async def verify_user_token(payload: TokenPayload, auth_service: AuthServiceDep):
+@limiter.limit("5/minute")
+async def verify_user_token(request: Request, payload: TokenPayload, auth_service: AuthServiceDep):
     """Exchanges a Firebase ID Token (or mock token) for the Backend User Profile.
 
     Args:
@@ -141,7 +143,8 @@ async def list_available_roles():
 
 
 @router.post("/users", response_model=User)
-async def create_user(user_data: UserCreate, current_user: CurrentUserDep, auth_service: AuthServiceDep):
+@limiter.limit("5/minute")
+async def create_user(request: Request, user_data: UserCreate, current_user: CurrentUserDep, auth_service: AuthServiceDep):
     """Create a new user.
 
     Args:

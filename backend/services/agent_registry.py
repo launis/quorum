@@ -42,7 +42,17 @@ class AgentRegistry:
 
         settings = get_settings()
         config = await self.resolve_model_config(model_identifier)
-        return config.get("model_name", settings.initial_model)
+        # ZERO-FALLBACK ENFORCEMENT:
+        # We expect 'resolve_model_config' to fully hydrate the dictionary or raise an error.
+        # We do NOT fallback to settings.initial_model anymore.
+        model_name = config.get("model_name")
+        if not model_name:
+             # This should overlap with validation in resolve_model_config, but safety net:
+             err = f"[AgentRegistry] Model Strategy '{model_identifier}' resolved but is missing 'model_name'."
+             logger.error(err)
+             raise ValueError(err)
+
+        return model_name
 
     async def resolve_model_config(self, model_identifier: str) -> dict[str, Any]:
         """Resolves a model identifier to a full configuration dictionary (name, tokens, temp, provider).

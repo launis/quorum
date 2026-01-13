@@ -167,6 +167,12 @@ class WorkflowState(BaseModel):
         dict[str, Any], Field(default_factory=dict, description="Temporary storage for hooks and side-effects.")
     ]
 
+    # Usage Metrics (Cost Tracking)
+    usage: Annotated[
+        dict[str, dict[str, float | int]],
+        Field(default_factory=dict, description="Accumulated usage stats per step (cost, tokens)."),
+    ]
+
     model_config = ConfigDict(validate_assignment=True)
 
     def get_previous_outputs_summary(self) -> str:

@@ -12,7 +12,7 @@ from backend.core.component import BaseComponent
 
 # 3. Local Imports
 from backend.exceptions import AgentExecutionError
-from backend.llm.provider import LLMFactory, UnconfiguredProvider
+from backend.llm.provider import LLMFactory
 from backend.models.state import WorkflowState
 
 # 4. Logger
@@ -48,26 +48,29 @@ class BaseAgent(BaseComponent[WorkflowState]):
         """
         self.model = model
         self.provider_type = provider or "vertex_ai"
+        
+        # ZERO-FALLBACK: Agents initialized via Factory might have model=None.
+        # We allow this, but execution will fail if model is not set via set_model().
+        
+        if model:
+            self.llm_provider = LLMFactory.create_provider(self.provider_type, model)
+        else:
+            self.llm_provider = None
 
-        # Ensure LLMProvider is ALWAYS initialized (Strict Mode)
-        # If no model provided, Factory returns UnconfiguredProvider (Execution Trap).
-        # The AgentRegistry/PipelineRunner MUST call set_model() before execution.
-        target_model = model or "unconfigured"
-
-        try:
-            self.llm_provider = LLMFactory.create_provider(self.provider_type, target_model)
-        except Exception as e:
-            # Fallback for extreme cases (should be caught by UnconfiguredProvider logic now)
-            logger.error(f"[BaseAgent] Failed to init provider: {e}. using Mock.")
-            self.llm_provider = LLMFactory.create_provider("mock", "mock-fallback")
-
-    def set_model(self, model_name: str, provider: str | None = None):
+    def set_model(
+        self,
+        model_name: str,
+        provider: str | None = None,
+        usage_service: Any = None,
+        organization_id: str | None = None,
+    ):
         """Dynamically updates the agent's model preference and ensures LLMProvider is ready.
 
         Args:
             model_name (str): The new model name.
             provider (Optional[str]): The provider type.
-
+            usage_service (Any): UsageService instance for tracking.
+            organization_id (Optional[str]): Contextual Org ID.
         """
         self.model = model_name
         if provider:
@@ -75,31 +78,41 @@ class BaseAgent(BaseComponent[WorkflowState]):
 
         current_provider_type = self.provider_type or "vertex_ai"
 
-        # TRAP CHECK: If current is Unconfigured, we MUST replace it.
-        is_unconfigured = isinstance(self.llm_provider, UnconfiguredProvider)
+        # Logic: If provider exists and matches usage, AND organization matches, keep it.
+        # But organization_id changes per execution, so we almost always need to update/recreate if context changes.
+        # Or we rely on the fact that we overwrite it.
+        # Ideally, we should check if current provider has same org_id.
+        
+        # Simpler approach: Always recreate if dependencies provided, to ensure context is fresh.
+        # Optimizing creation is secondary to correctness.
+        self._create_provider(current_provider_type, model_name, usage_service, organization_id)
 
-        if self.llm_provider and not is_unconfigured:
-            # Update existing provider
-            if hasattr(self.llm_provider, "model_name"):
-                self.llm_provider.model_name = model_name
-            else:
-                # Provider doesn't support dynamic update, recreate
-                logger.debug("[BaseAgent] Provider immutable, recreating...")
-                self._create_provider(current_provider_type, model_name)
-        else:
-            # Create new provider (Replaces UnconfiguredProvider)
-            self._create_provider(current_provider_type, model_name)
-
-    def _create_provider(self, provider_type: str, model_name: str):
+    def _create_provider(
+        self,
+        provider_type: str,
+        model_name: str,
+        usage_service: Any = None,
+        organization_id: str | None = None,
+    ):
         """Helper to instantiate and assign the LLM provider.
 
         Args:
             provider_type (str): Provider key (e.g. 'google', 'openai').
             model_name (str): The specific model ID.
+            usage_service (Any): usage service.
+            organization_id (str): org id.
         """
         try:
-            self.llm_provider = LLMFactory.create_provider(provider_type, model_name)
-            logger.debug(f"[BaseAgent] Provider initialized with {model_name} (Type: {provider_type})")
+            self.llm_provider = LLMFactory.create_provider(
+                provider_type=provider_type,
+                model_name=model_name,
+                usage_service=usage_service,
+                organization_id=organization_id,
+            )
+            logger.debug(
+                f"[BaseAgent] Provider initialized with {model_name} "
+                f"(Type: {provider_type}, Org: {organization_id})"
+            )
         except Exception as e:
             logger.error(f"[BaseAgent] Failed to create provider in set_model: {e}")
 
@@ -216,6 +229,11 @@ class BaseAgent(BaseComponent[WorkflowState]):
             logger.info(f"[{self.__class__.__name__}] MODEL: {conf_model} | TEMP: {conf_temp} | TOKENS: {conf_tokens}")
             # --------------------------------
 
+            if not self.llm_provider:
+                error_msg = f"[{self.__class__.__name__}] LLM Provider not configured. Call set_model() before execute()."
+                logger.error(error_msg)
+                raise AgentExecutionError(detail="AGENT_NOT_CONFIGURED", original_error=ValueError(error_msg))
+
             # 4. Call LLM (The "Mask" handles the details) — ASYNC WAIT
             kwargs["mock_identity"] = self.__class__.__name__
 
@@ -268,6 +286,24 @@ class BaseAgent(BaseComponent[WorkflowState]):
                     "model": self.model or "unknown",
                     "provider": self.provider_type or "google",
                 }
+
+            # 4.5 Capture Usage/Cost
+            # 4.5 Capture Usage/Cost
+            logger.info(f"[DEBUG] BaseAgent processing usage. Response token_usage: {response_obj.token_usage}")
+            if response_obj.token_usage:
+                # PRIORITIZE usage_key for unique tracking (e.g. step_id), fallback to output_key/class
+                step_key = kwargs.get("usage_key") or kwargs.get("output_key") or self.state_field or self.__class__.__name__
+                costs = response_obj.token_usage  # Should be dict from LiteLLMProvider
+                logger.info(f"[DEBUG] Processing costs for {step_key}: {costs}")
+                state.usage[step_key] = {
+                    "completion_tokens": costs.get("completion_tokens", 0),
+                    "prompt_tokens": costs.get("prompt_tokens", 0),
+                    "total_cost": costs.get("total_cost", 0.0),
+                    "model": self.model or "unknown",
+                }
+                logger.info(f"[{self.__class__.__name__}] Usage tracked: {costs.get('total_cost', 0.0)} USD")
+            else:
+                logger.info(f"[DEBUG] No token_usage found in response.")
 
             # 5. Update State
             output_key = kwargs.get("output_key")

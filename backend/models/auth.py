@@ -71,6 +71,8 @@ class Organization(BaseModel):
         SubscriptionStatus.TRIAL
     )
     quota_limit: Annotated[float, Field(ge=0.0, description="Monthly API call quota (USD)")] = 10.0
+    tpm_limit: Annotated[int, Field(ge=1000, description="Tokens Per Minute Limit")] = 100000
+    rpm_limit: Annotated[int, Field(ge=1, description="Requests Per Minute Limit")] = 60
 
 
 class UserBase(BaseModel):
@@ -160,7 +162,10 @@ class OrganizationCreate(BaseModel):
     name: str
     admin_email: EmailStr
     admin_password: str
+    admin_password: str
     admin_name: str
+    tpm_limit: int = 100000
+    rpm_limit: int = 60
 
 
 class UserUpdate(BaseModel):

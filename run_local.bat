@@ -24,10 +24,10 @@ IF %ERRORLEVEL% NEQ 0 (
 
 docker-compose up -d redis
 
-echo [2/3] Launching Backend & Worker (Uvicorn + Arq)...
+echo [2/3] Launching Backend ^& Worker (Uvicorn + Arq)...
 echo       Mode: LOCAL (POOR MAN'S PROD)
 echo       Config: MOCK DB (db.json), REAL LLM, FIREBASE AUTH
-echo       Notes:  Allows testing real logins & real LLM calls without touching Cloud Firestore.
+echo       Notes:  Allows testing real logins ^& real LLM calls without touching Cloud Firestore.
 
 set USE_FIREBASE_AUTH=true
 

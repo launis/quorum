@@ -34,6 +34,15 @@ class Organization {
 
   final String? tier;
 
+  @JsonKey(name: 'tpm_limit')
+  final int? tpmLimit;
+
+  @JsonKey(name: 'rpm_limit')
+  final int? rpmLimit;
+
+  @JsonKey(name: 'quota_limit')
+  final double? quotaLimit;
+
   const Organization({
     required this.id,
     required this.name,
@@ -42,6 +51,9 @@ class Organization {
     required this.status,
     this.contactEmail,
     this.tier,
+    this.tpmLimit,
+    this.rpmLimit,
+    this.quotaLimit,
   });
 
   factory Organization.fromJson(Map<String, dynamic> json) =>
