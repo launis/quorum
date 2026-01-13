@@ -32,7 +32,9 @@ def mock_repo():
     return mock
 
 @pytest.fixture
+
 def mock_db():
+    """Returns a MagicMock for the database client."""
     return MagicMock()
 
 @pytest.fixture

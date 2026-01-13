@@ -1,10 +1,12 @@
+"""Script to read and display backend errors from JSON logs."""
+
 import json
 
 try:
     try:
         with open("backend_errors.json", encoding="utf-16") as f:
             data = json.load(f)
-    except:
+    except Exception:
         with open("backend_errors.json", encoding="utf-8") as f:
             data = json.load(f)
 

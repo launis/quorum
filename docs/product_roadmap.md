@@ -169,16 +169,32 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 
 ---
 
-## 📍 Phase 4: Power Users (Platform Features, ROOT and MANAGER users)
-**Objective:** Enable deep customization for Enterprise clients.
+## 📍 Phase 4: Power Users (Manager Configuration Suite)
+**Objective:** Enable deep customization for Enterprise clients. Empower Managers to define *how* the AI works, not just *when* it works.
 
-### 4.1 Custom Workflow Management (Builder & CRUD)
+### 4.1 Component Management (Prompts & Rules)
+- [ ] **Component CRUD API**: Endpoints to Create/Read/Update/Delete reusable text components (Prompts, Instructions).
+- [ ] **Prompt Library UI**: A Flutter view for Managers to write and version-control their own system prompts.
+- [ ] **Dynamic Injection**: Update `WorkflowEngine` to fetch Prompts from DB at runtime instead of relying solely on `seed_data.json`.
+
+### 4.2 Step Configuration (The Workbench)
+- [ ] **Custom Step Builder**: UI where Managers create a new "Step" by combining a base Agent (e.g., *Judge*) with specific Prompts from their Library.
+- [x] **Step Cloning**: Backend capability to fork a System Step into a Tenant Step (Existing `clone_step`).
+- [ ] **Step Testing**: A "Test This Step" button to run a single step in isolation with sample input.
+
+### 4.3 Workflow Studio (The Assembly)
 - [x] **Clone Capability**: Allow Tenants to "Clone" a System Workflow (Implemented in `builder_router.py`).
-- [ ] **Workflow CRUD**: Full Create/Read/Update/Delete management for Tenant-specific workflows.
+- [x] **Workflow CRUD**: Full Create/Read/Update/Delete management for Tenant-specific workflows.
+- [ ] **Visual Editor**: Flutter-based drag-and-drop or reorderable list interface for chaining Steps.
 - [ ] **Tenant Repository**: Enable saving modified JSON configurations linked to `organization_id`.
-- [ ] **Builder UI**: (Long term) A visual editor for modifying prompts and steps.
+- [ ] **Simulation Mode (Sandbox)**: Run a workflow transiently (`dry_run=True`) to verify outputs before publishing.
+- [ ] **Version History**: Track changes to Workflows so Managers can rollback to a previous configuration.
 
-### 4.2 Advanced Collaboration
+### 4.4 Governance
+- [ ] **Scope Isolation**: Ensure Manager A cannot modify Manager B's components (Org-level isolation).
+- [ ] **Approval Gates**: (Optional) Allow Admin to "Lock" certain critical System Prompts so Managers cannot edit them.
+
+### 4.5 Advanced Collaboration
 - [ ] **Comments & Flagging**: Allow Viewers to comment on specific parts of a report.
 - [ ] **Approval Flow**: Manager must "Approve" an audit result before it is finalized.
 
@@ -201,18 +217,18 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 **New requirements identified during Phase 1-3 implementation:**
 
 1.  **Recovery UI**:
-    *   Current recovery relies on CLI tools (`reset_db_from_seed.py`).
-    *   **Need**: A "Factory Reset" button in the Root Admin Dashboard for non-technical recovery.
+    * Current recovery relies on CLI tools (`reset_db_from_seed.py`).
+    * **Need**: A "Factory Reset" button in the Root Admin Dashboard for non-technical recovery.
 2.  **SaaS Billing Integration**:
-    *   Backend has `billing_id` and `subscription_status`, but no payment gateway connection.
-    *   **Need**: Stripe/Paddle integration to automate status updates via Webhooks.
+    * Backend has `billing_id` and `subscription_status`, but no payment gateway connection.
+    * **Need**: Stripe/Paddle integration to automate status updates via Webhooks.
 
 3.  **Hyper-Dynamic Artifact Architecture**:
-    *   **Concept**: Shift from rigid "Slot-Based" inputs (`History`, `Product`) to a "Tag-Based Artifact Collection" (`List[Artifact]`).
-    *   **Enablement**: Allows arbitrary number of files, auto-routing via semantic tags, and mass-scale case law analysis.
-    *   **Effort**: High (Core Engine & Prompt Logic Refactor).
+    * **Concept**: Shift from rigid "Slot-Based" inputs (`History`, `Product`) to a "Tag-Based Artifact Collection" (`List[Artifact]`).
+    * **Enablement**: Allows arbitrary number of files, auto-routing via semantic tags, and mass-scale case law analysis.
+    * **Effort**: High (Core Engine & Prompt Logic Refactor).
 
 4.  **Database-Driven Workflow Definitions**:
-    *   **Current State**: Hardcoded logic in `execution_router.py` handles specific workflow cases (e.g., "Audit" expects 3 specific files).
-    *   **Interim Strategy**: Continue using hardcoded "Case Logic" where `audit = 3 files` is defined in code but executed via DB-stored steps.
-    *   **Future Goal**: Fully dynamic definition where the Database stores the *File Requirements* (input schema) alongside the steps, removing hardcoded logic from the router.
+    * **Current State**: Hardcoded logic in `execution_router.py` handles specific workflow cases (e.g., "Audit" expects 3 specific files).
+    * **Interim Strategy**: Continue using hardcoded "Case Logic" where `audit = 3 files` is defined in code but executed via DB-stored steps.
+    * **Future Goal**: Fully dynamic definition where the Database stores the *File Requirements* (input schema) alongside the steps, removing hardcoded logic from the router.

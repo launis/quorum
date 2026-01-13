@@ -38,7 +38,7 @@ class AgentRegistry:
             str: The concrete model identifier (e.g. 'gemini-1.5-flash').
 
         """
-        from backend.settings import get_settings
+
 
 
         config = await self.resolve_model_config(model_identifier)
