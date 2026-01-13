@@ -224,9 +224,7 @@ def delete_component(comp_id: str, db: DatabaseDep):
     if used_in:
         error_code = "COMPONENT_IN_USE"
         logger.error(f"{error_code}: ID {comp_id} used in {used_in}", exc_info=True)
-        raise HTTPException(
-            status_code=409, detail=error_code
-        )
+        raise HTTPException(status_code=409, detail=error_code)
 
     table.remove((Component.id == comp_id) | (Component.name == comp_id))
     return {"status": "deleted", "id": comp_id}
@@ -285,9 +283,7 @@ async def delete_step(step_id: str, db: DatabaseDep):
     if used_in:
         error_code = "STEP_IN_USE"
         logger.error(f"{error_code}: ID {step_id} used in {used_in}", exc_info=True)
-        raise HTTPException(
-            status_code=409, detail=error_code
-        )
+        raise HTTPException(status_code=409, detail=error_code)
 
     # 3. Delete
     table.remove(Query().id == step_id)

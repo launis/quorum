@@ -164,17 +164,17 @@ async def create_user(user_data: UserCreate, current_user: CurrentUserDep, auth_
         new_user = await auth_service.create_user(creator_full.uid, user_data)
         return new_user
     except PermissionError as e:
-         error_code = "PERMISSION_DENIED"
-         logger.warning(f"{error_code}: {e}")
-         raise HTTPException(status_code=403, detail=error_code) from e
+        error_code = "PERMISSION_DENIED"
+        logger.warning(f"{error_code}: {e}")
+        raise HTTPException(status_code=403, detail=error_code) from e
     except ValueError as e:
-         error_code = "INVALID_USER_DATA"
-         logger.warning(f"{error_code}: {e}")
-         raise HTTPException(status_code=400, detail=error_code) from e
+        error_code = "INVALID_USER_DATA"
+        logger.warning(f"{error_code}: {e}")
+        raise HTTPException(status_code=400, detail=error_code) from e
     except Exception as e:
-         error_code = "USER_CREATION_FAILED"
-         logger.error(f"{error_code}: {e}", exc_info=True)
-         raise HTTPException(status_code=500, detail=error_code) from e
+        error_code = "USER_CREATION_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=error_code) from e
 
 
 @router.post("/organizations", response_model=Organization)
@@ -277,9 +277,9 @@ async def delete_user(uid: str, current_user: CurrentUserDep, auth_service: Auth
         raise HTTPException(status_code=400, detail=error_code) from e
     except RuntimeError as e:
         if "LAST_ADMIN_PROTECTION" in str(e):
-             error_code = "LAST_ADMIN_PROTECTION"
-             logger.warning(f"{error_code}: {e}")
-             raise HTTPException(status_code=409, detail=error_code) from e
+            error_code = "LAST_ADMIN_PROTECTION"
+            logger.warning(f"{error_code}: {e}")
+            raise HTTPException(status_code=409, detail=error_code) from e
 
         error_code = "USER_DELETION_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
@@ -313,9 +313,9 @@ async def update_user(uid: str, user_update: UserUpdate, current_user: CurrentUs
         raise HTTPException(status_code=404, detail=error_code) from e
     except Exception as e:
         if "LAST_ADMIN_PROTECTION" in str(e):
-             error_code = "LAST_ADMIN_PROTECTION"
-             logger.warning(f"{error_code}: {e}")
-             raise HTTPException(status_code=409, detail=error_code) from e
+            error_code = "LAST_ADMIN_PROTECTION"
+            logger.warning(f"{error_code}: {e}")
+            raise HTTPException(status_code=409, detail=error_code) from e
 
         error_code = "USER_UPDATE_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)

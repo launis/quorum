@@ -131,6 +131,7 @@ def test_fork_step_safety(shared_engine_safe):
 def test_python_hooks_execution():
     """Test execution of python hooks (Profiler)."""
     import asyncio
+
     asyncio.run(_test_python_hooks_execution_async())
 
 
@@ -151,7 +152,7 @@ async def _test_python_hooks_execution_async():
                     "luontiaika": "2024-01-01T00:00:00Z",
                     "agentti": "TestAgent",
                     "vaihe": 2.5,
-                    "versio": "2.0"
+                    "versio": "2.0",
                 },
                 "metodologinen_loki": "Test Log",
                 "edellisen_vaiheen_validointi": "Valid",

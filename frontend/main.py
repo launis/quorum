@@ -151,10 +151,10 @@ def main():
         elif user_role == "admin":
             nav_options.extend(
                 [
-                    "Workflow Builder",       # Inherited
-                    "Audit Matrix Library",   # Inherited
+                    "Workflow Builder",  # Inherited
+                    "Audit Matrix Library",  # Inherited
                     "User Management",
-                    "🏢 Organization Settings"
+                    "🏢 Organization Settings",
                 ]
             )
 

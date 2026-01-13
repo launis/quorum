@@ -11,10 +11,12 @@ sys.path.append(os.getcwd())
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("verifier")
 
+
 def verify_exception_signature():
     """Verify AgentExecutionError signature matches Echo Protocol."""
     try:
         from backend.exceptions import AgentExecutionError
+
         e = AgentExecutionError(detail="TEST_CODE", original_error=ValueError("foo"))
         # Check compatibility with Echo Protocol expectations
         if e.details.get("error_code") == "TEST_CODE" and "foo" in e.details.get("original_error", ""):
@@ -25,6 +27,7 @@ def verify_exception_signature():
     except Exception as e:
         logger.error(f"FAIL: Could not instantiate AgentExecutionError: {e}")
         sys.exit(1)
+
 
 def verify_imports():
     """Verify all agents can be imported."""
@@ -50,12 +53,14 @@ def verify_imports():
             logger.error(f"FAIL: Failed to import {agent_module}: {e}")
             sys.exit(1)
 
+
 def main():
     """Run verification suite."""
     logger.info("Starting AAS-2026 Agent Verification...")
     verify_exception_signature()
     verify_imports()
     logger.info("ALL CHECKS PASSED.")
+
 
 if __name__ == "__main__":
     main()

@@ -239,7 +239,7 @@ class BaseAgent(BaseComponent[WorkflowState]):
                     logger.error(f"{error_code}: Failed to parse JSON content from provider - {e}", exc_info=True)
                     raise AgentExecutionError(detail=error_code, original_error=e) from e
                 except Exception as e:
-                     # General fallback for other errors during parsing
+                    # General fallback for other errors during parsing
                     error_code = "AGENT_RESPONSE_PARSING_FAILED"
                     logger.error(f"{error_code}: Unexpected error during JSON parsing - {e}", exc_info=True)
                     raise AgentExecutionError(detail=error_code, original_error=e) from e

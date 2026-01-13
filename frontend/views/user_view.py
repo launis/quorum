@@ -90,7 +90,7 @@ def render_user_view(api_client: APIClient):
         # Root Override: Organization ID
         new_org_id = None
         if user_role == "ROOT":
-             new_org_id = st.text_input("Organization ID (Override)", help="Leave empty to use your own.")
+            new_org_id = st.text_input("Organization ID (Override)", help="Leave empty to use your own.")
 
         st.caption("New users will be created in your organization.")
         submit = st.form_submit_button("Create User")
@@ -101,7 +101,7 @@ def render_user_view(api_client: APIClient):
             else:
                 payload = {"email": new_email, "password": new_password, "display_name": new_name, "role": new_role}
                 if new_org_id:
-                     payload["organization_id"] = new_org_id
+                    payload["organization_id"] = new_org_id
 
                 try:
                     res = api_client.create_user(token, payload)

@@ -52,61 +52,79 @@ router = APIRouter(prefix="/admin", tags=["Admin"])
 
 # --- Request/Response Models ---
 
+
 class AdminTaskResponse(BaseModel):
     """Standard response for initiating background admin tasks."""
+
     status: Literal["started", "starting", "failed"]
     job_id: str
     task: str
     message: str | None = None
 
+
 class TaskStatusResponse(BaseModel):
     """Response model for task progress."""
+
     status: str
     stage: str | None = None
     percent: int | float = 0
     error: APIError | None = None  # SSOT: Uses standardized Error Schema
 
+
 class IngestRequest(BaseModel):
     """Request model for knowledge base ingestion."""
-    file_path: Annotated[
-        str, Field(description="Path to the source document.", examples=["data/Doc.docx"])
-    ] = "data/Holistinen Mestaruus.docx"
-    reset_db: Annotated[
-        bool, Field(description="Clear DB before ingestion.")
-    ] = False
+
+    file_path: Annotated[str, Field(description="Path to the source document.", examples=["data/Doc.docx"])] = (
+        "data/Holistinen Mestaruus.docx"
+    )
+    reset_db: Annotated[bool, Field(description="Clear DB before ingestion.")] = False
+
 
 class BannedPhraseRequest(BaseModel):
     """Request model for adding a banned phrase."""
+
     phrase: Annotated[str, Field(min_length=2, description="The phrase to ban.")]
+
 
 class BannedPhraseResponse(BaseModel):
     """Response model for banned phrase operations."""
+
     status: str
     phrase: str
 
+
 class GenericActionResponse(BaseModel):
     """Response model for generic admin actions."""
+
     status: str
     uid: str | None = None
 
+
 class GeneratedPhrasesResponse(BaseModel):
     """Response model for generated banned phrases."""
+
     status: str
     message: str
     added_phrases: list[str]
 
+
 class GeneratePhrasesRequest(BaseModel):
     """Request model for generating banned phrases using LLM."""
+
     language: Annotated[str, Field(description="Target language code (e.g., 'en').")] = "en"
+
 
 class SelfTestResponse(BaseModel):
     """Response model for system self-test."""
+
     llm_status: str
     db_status: str
     details: dict[str, Any]
 
+
 class UpdateRoleRequest(BaseModel):
     """Request model for updating a user's role."""
+
     role: UserRole
 
 
@@ -116,12 +134,14 @@ admin_task_status: dict[str, dict[str, Any]] = {}
 
 # --- Dependencies ---
 
+
 def require_root(user: CurrentUserDep) -> CurrentUserDep:
     """Dependency to enforce ROOT role access."""
     if user.role != UserRole.ROOT:
         # SSOT: Raise Domain Exception. Global handler logs warning & returns 403.
         raise PermissionDeniedError("Root access required")
     return user
+
 
 def require_admin_or_root(user: CurrentUserDep) -> CurrentUserDep:
     """Dependency to enforce ADMIN or ROOT role access."""
@@ -132,11 +152,9 @@ def require_admin_or_root(user: CurrentUserDep) -> CurrentUserDep:
 
 # --- Helper Functions ---
 
+
 def _start_admin_task(
-    background_tasks: BackgroundTasks,
-    repo: AbstractWorkflowRepository,
-    method_name: str,
-    *args
+    background_tasks: BackgroundTasks, repo: AbstractWorkflowRepository, method_name: str, *args
 ) -> AdminTaskResponse:
     """Helper to start standard admin tasks in background.
 
@@ -182,11 +200,7 @@ def _start_admin_task(
             logger.error(f"{error_code}: Admin Task '{method_name}' [Job: {job_id}] CRASHED: {e}", exc_info=True)
 
             # Use SSOT APIError schema for status response
-            error_model = APIError(
-                error_code=error_code,
-                message=str(e),
-                details={"task": method_name}
-            )
+            error_model = APIError(error_code=error_code, message=str(e), details={"task": method_name})
             admin_task_status[job_id] = {"status": "failed", "error": error_model.model_dump()}
 
     background_tasks.add_task(_run_task)
@@ -194,6 +208,7 @@ def _start_admin_task(
 
 
 # --- Endpoints ---
+
 
 @router.get(
     "/users/roles",
@@ -293,9 +308,9 @@ async def delete_user(
         raise HTTPException(status_code=403, detail=error_code) from e
     except ValueError as e:
         if "Last Admin" in str(e):
-             error_code = "LAST_ADMIN_PROTECTION"
-             logger.error(f"{error_code}: {e}", exc_info=True)
-             raise HTTPException(status_code=409, detail=error_code) from e
+            error_code = "LAST_ADMIN_PROTECTION"
+            logger.error(f"{error_code}: {e}", exc_info=True)
+            raise HTTPException(status_code=409, detail=error_code) from e
 
         error_code = "USER_NOT_FOUND"
         logger.error(f"{error_code}: User {user_id} not found: {e}", exc_info=True)
@@ -386,6 +401,7 @@ async def run_self_test(db_client: DatabaseDep, llm_provider: LLMProviderFast):
     # 2. Test DB
     try:
         from backend.settings import get_settings
+
         settings = get_settings()
         count = len(db_client.table("workflows").all())
         report["db_status"] = "ok"
@@ -459,7 +475,7 @@ async def ingest_knowledge_base(
 
             # Ensure status is marked completed if service doesn't implicitly do it
             if admin_task_status[job_id].get("status") != "failed":
-                 admin_task_status[job_id]["status"] = "completed"
+                admin_task_status[job_id]["status"] = "completed"
 
         except Exception as e:
             # Background Task: Must Log
@@ -515,7 +531,7 @@ async def upload_knowledge_base(
             tracker = InMemoryProgressTracker(callback=lambda p: admin_task_status.update({job_id: p}))
             await service.ingest_from_bytes(content, filename, tracker=tracker, job_id=job_id, reset_db=reset_db)
             if admin_task_status[job_id].get("status") != "failed":
-                 admin_task_status[job_id]["status"] = "completed"
+                admin_task_status[job_id]["status"] = "completed"
         except Exception as e:
             error_code = "INGESTION_FAILED"
             logger.error(f"{error_code}: Upload ingestion failed: {e}", exc_info=True)
@@ -545,9 +561,9 @@ async def get_banned_phrases(repo: RepositoryDep):
 async def add_banned_phrase(request: BannedPhraseRequest, repo: RepositoryDep):
     """Adds a new phrase to the banned list."""
     if len(request.phrase.strip()) < 2:
-         error_code = "PHRASE_VALIDATION_FAILED"
-         logger.warning(f"{error_code}: Phrase too short: '{request.phrase}'")
-         raise HTTPException(status_code=400, detail=error_code)
+        error_code = "PHRASE_VALIDATION_FAILED"
+        logger.warning(f"{error_code}: Phrase too short: '{request.phrase}'")
+        raise HTTPException(status_code=400, detail=error_code)
 
     await repo.add_banned_phrase(request.phrase.strip())
     return BannedPhraseResponse(status="added", phrase=request.phrase.strip())
@@ -558,13 +574,11 @@ async def add_banned_phrase(request: BannedPhraseRequest, repo: RepositoryDep):
     summary="Remove Banned Phrase",
     response_model=BannedPhraseResponse,
 )
-async def delete_banned_phrase(
-    db: DatabaseDep,
-    phrase: Annotated[str, Path(description="Phrase to remove")]
-):
+async def delete_banned_phrase(db: DatabaseDep, phrase: Annotated[str, Path(description="Phrase to remove")]):
     """Removes a phrase from the banned list."""
     # Bubble up DB errors
     from tinydb import Query as TinyQuery
+
     table = db.table("banned_phrases")
     table.remove(TinyQuery().phrase == phrase)
     return BannedPhraseResponse(status="removed", phrase=phrase)
@@ -575,11 +589,7 @@ async def delete_banned_phrase(
     summary="Generate Banned Phrases",
     response_model=GeneratedPhrasesResponse,
 )
-async def generate_banned_phrases(
-    request: GeneratePhrasesRequest,
-    repo: RepositoryDep,
-    llm_provider: LLMProviderDeep
-):
+async def generate_banned_phrases(request: GeneratePhrasesRequest, repo: RepositoryDep, llm_provider: LLMProviderDeep):
     """Uses LLM to generate banned phrases."""
     try:
         existing_records = await repo.get_banned_phrases()
@@ -604,9 +614,7 @@ async def generate_banned_phrases(
                 added.append(phrase)
 
         return GeneratedPhrasesResponse(
-            status="success",
-            message=f"Generated {len(candidates)}, Added {len(added)}.",
-            added_phrases=added
+            status="success", message=f"Generated {len(candidates)}, Added {len(added)}.", added_phrases=added
         )
     except Exception as e:
         # LLM Failure -> Bubble?
@@ -657,9 +665,9 @@ async def update_user_role(
     except (PermissionError, ValueError, RuntimeError) as e:
         msg = str(e)
         if "LAST_ADMIN_PROTECTION" in msg:
-             error_code = "LAST_ADMIN_PROTECTION"
-             logger.error(f"{error_code}: {e}", exc_info=True)
-             raise HTTPException(status_code=409, detail=error_code) from e
+            error_code = "LAST_ADMIN_PROTECTION"
+            logger.error(f"{error_code}: {e}", exc_info=True)
+            raise HTTPException(status_code=409, detail=error_code) from e
         if isinstance(e, ValueError):
             error_code = "USER_NOT_FOUND"
             logger.error(f"{error_code}: {e}", exc_info=True)

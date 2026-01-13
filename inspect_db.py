@@ -1,4 +1,5 @@
 """Inspector for TinyDB mock database."""
+
 import json
 import os
 
@@ -32,13 +33,14 @@ def inspect_db():
                     # print(f"Sample user: {user}")
                     pass
         elif "_default" in data:
-             # Sometimes default table is used?
-             print("Checking _default table...")
+            # Sometimes default table is used?
+            print("Checking _default table...")
         else:
             print("No 'users' table found in top level.")
 
     except Exception as e:
         print(f"Error reading DB: {e}")
+
 
 if __name__ == "__main__":
     inspect_db()

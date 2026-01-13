@@ -182,10 +182,10 @@ async def web_scrape(
     except Exception as e:
         # Map specific SSRF errors to 400
         if "SSRF" in str(e):
-             # Try to map if possible, else generic
-             error_code = "SSRF_PROTECTION_BLOCKED"
-             logger.error(f"{error_code}: {e}", exc_info=True)
-             raise HTTPException(status_code=400, detail=error_code) from e
+            # Try to map if possible, else generic
+            error_code = "SSRF_PROTECTION_BLOCKED"
+            logger.error(f"{error_code}: {e}", exc_info=True)
+            raise HTTPException(status_code=400, detail=error_code) from e
 
         # Logic error in resolving might be 400 too
         if isinstance(e, ValueError):

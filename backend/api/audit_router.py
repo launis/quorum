@@ -50,9 +50,7 @@ async def get_audit_logs(
         else:
             error_code = "PERMISSION_DENIED"
             logger.warning(f"{error_code}: User {user.uid} with role {user.role} denied audit access")
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail=error_code
-            )
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_code)
 
         # 2. Fetch Logs
         logs = await audit_service.get_logs(organization_id=target_org, actor_uid=actor_uid, action=action, limit=limit)

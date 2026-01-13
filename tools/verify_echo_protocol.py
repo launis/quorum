@@ -11,6 +11,7 @@ RESET = "\033[0m"
 
 ROUTER_DIR = Path("c:/src/quorum/backend/api")
 
+
 def verify_echo_protocol(file_path):
     """Scan file for Echo Protocol violations."""
     with open(file_path, encoding="utf-8") as f:
@@ -37,11 +38,11 @@ def verify_echo_protocol(file_path):
                     found_logger = True
                     break
                 if (
-                    prev_line.endswith(":") or
-                    prev_line.startswith("if ") or
-                    prev_line.startswith("else") or
-                    prev_line.startswith("try") or
-                    prev_line.startswith("except")
+                    prev_line.endswith(":")
+                    or prev_line.startswith("if ")
+                    or prev_line.startswith("else")
+                    or prev_line.startswith("try")
+                    or prev_line.startswith("except")
                 ):
                     # Boundary hit, likely no logger in this block
                     break
@@ -51,9 +52,10 @@ def verify_echo_protocol(file_path):
                 # If "raise HTTPException" is alone in a block, it needs a log.
                 # Check if it has 'detail'
                 if "detail=" in line or "detail" in line:
-                    errors.append(f"Line {i+1}: raise HTTPException without preceding logger call.")
+                    errors.append(f"Line {i + 1}: raise HTTPException without preceding logger call.")
 
     return errors
+
 
 def main():
     """Run the verification."""
@@ -79,6 +81,7 @@ def main():
     else:
         print(f"\n{GREEN}All routers compliant!{RESET}")
         sys.exit(0)
+
 
 if __name__ == "__main__":
     main()

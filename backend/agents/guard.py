@@ -253,7 +253,7 @@ class GuardAgent(BaseAgent):
                 raise FatalInterruption(
                     "GuardSecurityCheck",
                     f"Banned phrases detected: {distinct_phrases}",
-                    {"code": error_code, "phrases": distinct_phrases}
+                    {"code": error_code, "phrases": distinct_phrases},
                 )
 
         except Exception as e:
@@ -263,9 +263,7 @@ class GuardAgent(BaseAgent):
             if isinstance(e, FatalInterruption):
                 raise e
             raise FatalInterruption(
-                "GuardPreHook",
-                f"Pre-hook scan failed: {e}",
-                {"error": str(e), "code": error_code}
+                "GuardPreHook", f"Pre-hook scan failed: {e}", {"error": str(e), "code": error_code}
             ) from e
 
         return state

@@ -5,6 +5,7 @@ Verifies:
 2. ADMIN cannot update organization_id.
 3. USER can update their own display_name.
 """
+
 import asyncio
 import os
 import sys
@@ -32,9 +33,12 @@ from backend.services.auth import AuthService  # noqa: E402
 
 def async_test(coro):
     """Decorator for running async tests."""
+
     def wrapper(*args, **kwargs):
         return asyncio.run(coro(*args, **kwargs))
+
     return wrapper
+
 
 @async_test
 async def test_rbac_simple():
@@ -49,8 +53,11 @@ async def test_rbac_simple():
 
     # Data Setup
     root_master = User(
-        uid="root_master", email="root_master@test.com", role=UserRole.ROOT, organization_id="system",
-        created_at="2024-01-01"
+        uid="root_master",
+        email="root_master@test.com",
+        role=UserRole.ROOT,
+        organization_id="system",
+        created_at="2024-01-01",
     )
     root_user = User(
         uid="root1", email="root@test.com", role=UserRole.ROOT, organization_id="org1", created_at="2024-01-01"
@@ -71,18 +78,16 @@ async def test_rbac_simple():
         "root1": root_user,
         "admin1": admin_user,
         "mem1": member_user,
-        "target1": target_user
+        "target1": target_user,
     }
     service.repo.get_by_uid.side_effect = lambda uid: user_map.get(uid)
-    service.repo.update.return_value = target_user # Simplified return
+    service.repo.update.return_value = target_user  # Simplified return
 
     # 1. ROOT Change Org -> ALLOWED
     print("1. Testing ROOT changing Organization ID...")
     try:
         await service.update_user(
-            initiator_uid="root1",
-            target_uid="target1",
-            updates=UserUpdate(organization_id="new_org")
+            initiator_uid="root1", target_uid="target1", updates=UserUpdate(organization_id="new_org")
         )
         print("   [PASS] ROOT Allowed.")
     except Exception as e:
@@ -92,23 +97,21 @@ async def test_rbac_simple():
     print("2. Testing ADMIN changing Organization ID...")
     try:
         await service.update_user(
-             initiator_uid="admin1",
-             target_uid="target1",
-             updates=UserUpdate(organization_id="bad_org")
+            initiator_uid="admin1", target_uid="target1", updates=UserUpdate(organization_id="bad_org")
         )
         pytest.fail("   [FAIL] ADMIN should have been blocked!")
     except PermissionError:
         print("   [PASS] ADMIN Blocked (PermissionError).")
     except Exception as e:
-         pytest.fail(f"   [FAIL] Expected PermissionError, got: {type(e).__name__}: {e}")
+        pytest.fail(f"   [FAIL] Expected PermissionError, got: {type(e).__name__}: {e}")
 
     # 3. SELF Update Name -> ALLOWED
     print("3. Testing Self-Service Update (Name)...")
     try:
         await service.update_user(
             initiator_uid="mem1",
-            target_uid="mem1", # Updating self
-            updates=UserUpdate(display_name="New Name")
+            target_uid="mem1",  # Updating self
+            updates=UserUpdate(display_name="New Name"),
         )
         print("   [PASS] Self-Update Allowed.")
     except Exception as e:
@@ -127,26 +130,22 @@ async def test_rbac_simple():
         # Check for ConflictError (simulated or real) or RuntimeError depending on implementation
         # The service raises ConflictError. In simple test with mocks, we verify the exception.
         if "LAST_ADMIN_PROTECTION" in str(e) or getattr(e, "message", "") == "LAST_ADMIN_PROTECTION":
-             print("   [PASS] Last Admin Deletion Blocked.")
+            print("   [PASS] Last Admin Deletion Blocked.")
         elif getattr(e, "details", {}).get("error_code") == "LAST_ADMIN_PROTECTION":
-             print("   [PASS] Last Admin Deletion Blocked (Error Code verified).")
+            print("   [PASS] Last Admin Deletion Blocked (Error Code verified).")
         else:
-             print(f"   [PASS] Last Admin Deletion Blocked (Exception: {e})")
+            print(f"   [PASS] Last Admin Deletion Blocked (Exception: {e})")
 
     # 5. LAST ADMIN PROTECTION (Demote) -> BLOCKED
     print("5. Testing Last Admin Demotion Protection...")
     try:
-        await service.update_user(
-            initiator_uid="root1",
-            target_uid="admin1",
-            updates=UserUpdate(role=UserRole.MEMBER)
-        )
+        await service.update_user(initiator_uid="root1", target_uid="admin1", updates=UserUpdate(role=UserRole.MEMBER))
         pytest.fail("   [FAIL] Should have blocked demotion of Last Admin!")
     except Exception as e:
-         if "LAST_ADMIN_PROTECTION" in str(e) or getattr(e, "details", {}).get("error_code") == "LAST_ADMIN_PROTECTION":
-             print("   [PASS] Last Admin Demotion Blocked.")
-         else:
-             print(f"   [PASS] Last Admin Demotion Blocked (Exception: {e})")
+        if "LAST_ADMIN_PROTECTION" in str(e) or getattr(e, "details", {}).get("error_code") == "LAST_ADMIN_PROTECTION":
+            print("   [PASS] Last Admin Demotion Blocked.")
+        else:
+            print(f"   [PASS] Last Admin Demotion Blocked (Exception: {e})")
 
     # 6. ROOT PROTECTION (Delete Root Master) -> BLOCKED
     print("6. Testing Root Master Deletion Protection...")
@@ -156,10 +155,10 @@ async def test_rbac_simple():
     except PermissionError:
         print("   [PASS] Root Master Deletion Blocked.")
     except Exception as e:
-        if "root_master" in str(e): # implementation dependent
-             print(f"   [PASS] Root Master Deletion Blocked ({e})")
+        if "root_master" in str(e):  # implementation dependent
+            print(f"   [PASS] Root Master Deletion Blocked ({e})")
         else:
-             pytest.fail(f"   [FAIL] Unexpected error for Root Deletion: {e}")
+            pytest.fail(f"   [FAIL] Unexpected error for Root Deletion: {e}")
 
     # 9. ROLE HIERARCHY PROTECTION
     print("9. Testing Role Hierarchy Protection...")
@@ -175,9 +174,13 @@ async def test_rbac_simple():
         # However, _create_user_internal calls creating in DB. We just check if it fails before that or at DB mock.
 
         from backend.models.auth import UserCreate
+
         payload = UserCreate(
-            email="new_root@test.com", password="pwd", display_name="New Root", role=UserRole.ROOT,
-            organization_id="org1"
+            email="new_root@test.com",
+            password="pwd",
+            display_name="New Root",
+            role=UserRole.ROOT,
+            organization_id="org1",
         )
 
         await service.create_user(creator_uid="admin1", user_data=payload)
@@ -189,9 +192,9 @@ async def test_rbac_simple():
         # _create_user_internal -> ... -> _enforce_hierarchy
         # _enforce_hierarchy checks Admin cannot create Roots.
         if "Admins cannot create Roots" in str(e) or isinstance(e, PermissionError):
-             print("   [PASS] Admin creating ROOT Blocked.")
+            print("   [PASS] Admin creating ROOT Blocked.")
         else:
-             print(f"   [PASS] Admin creating ROOT Blocked ({e}).")
+            print(f"   [PASS] Admin creating ROOT Blocked ({e}).")
 
     # 9b. Admin promotes Member to ROOT -> Blocked
     try:
@@ -203,7 +206,6 @@ async def test_rbac_simple():
         print("   [PASS] Admin Promoting to ROOT Blocked.")
     except Exception as e:
         pytest.fail(f"   [FAIL] Admin Promoting to ROOT unexpected error: {e}")
-
 
     # 7. Model Verification (UserAdminView)
     print("7. Verifying UserAdminView Model...")
@@ -219,8 +221,8 @@ async def test_rbac_simple():
         "role": "ADMIN",
         "organization_id": "test_org",
         "created_at": now_utc,
-        "last_login_at": now_utc.isoformat(), # Mix types
-        "execution_count": 5
+        "last_login_at": now_utc.isoformat(),  # Mix types
+        "execution_count": 5,
     }
     view_model = UserAdminView(**data)
     if view_model.uid == "view_uid" and view_model.execution_count == 5:
@@ -244,7 +246,7 @@ async def test_rbac_simple():
             creator_uid="root1",
             org_create=OrganizationCreate(
                 name="New Corp", admin_email="a@b.com", admin_password="password123", admin_name="A"
-            )
+            ),
         )
         print("   [PASS] Root Create Org Allowed.")
     except Exception as e:
@@ -256,7 +258,7 @@ async def test_rbac_simple():
             creator_uid="admin1",
             org_create=OrganizationCreate(
                 name="Fail Corp", admin_email="a@b.com", admin_password="password123", admin_name="A"
-            )
+            ),
         )
         pytest.fail("   [FAIL] Admin should be blocked from creating orgs!")
     except PermissionError:
@@ -275,10 +277,10 @@ async def test_rbac_simple():
 
     # 8d. Delete ADMIN -> Blocked
     try:
-         await service.delete_organization(initiator_uid="admin1", target_org_id="org1")
-         pytest.fail("   [FAIL] Admin deleting Org should be blocked!")
+        await service.delete_organization(initiator_uid="admin1", target_org_id="org1")
+        pytest.fail("   [FAIL] Admin deleting Org should be blocked!")
     except PermissionError:
-         print("   [PASS] Admin Deletion Blocked.")
+        print("   [PASS] Admin Deletion Blocked.")
 
     # 8e. Delete Non-Empty Org (Without Force) -> Blocked
     # Setup: list_all returns users in 'target_org'
@@ -290,14 +292,14 @@ async def test_rbac_simple():
         await service.delete_organization(initiator_uid="root1", target_org_id="target_org", force=False)
         pytest.fail("   [FAIL] Deleting non-empty org (no force) should fail!")
     except Exception as e:
-         # Expect ConflictError or similar (Service uses ConflictError or logic that implies it)
-         # In simplified test, checking we got an exception is good start, specific type matches implementation.
-         if "not empty" in str(e) or "ORG_NOT_EMPTY" in str(e) or getattr(e, "message", "") == "ORG_HAS_USERS":
-             print("   [PASS] Non-Empty Org Deletion Blocked.")
-         elif type(e).__name__ == "ConflictError":
-             print("   [PASS] Non-Empty Org Deletion Blocked (ConflictError).")
-         else:
-             print(f"   [PASS] Non-Empty Org Deletion Blocked ({e}).")
+        # Expect ConflictError or similar (Service uses ConflictError or logic that implies it)
+        # In simplified test, checking we got an exception is good start, specific type matches implementation.
+        if "not empty" in str(e) or "ORG_NOT_EMPTY" in str(e) or getattr(e, "message", "") == "ORG_HAS_USERS":
+            print("   [PASS] Non-Empty Org Deletion Blocked.")
+        elif type(e).__name__ == "ConflictError":
+            print("   [PASS] Non-Empty Org Deletion Blocked (ConflictError).")
+        else:
+            print(f"   [PASS] Non-Empty Org Deletion Blocked ({e}).")
 
     # 8f. Delete Non-Empty Org (With Force) -> Allowed
     try:
@@ -305,6 +307,7 @@ async def test_rbac_simple():
         print("   [PASS] Force Deletion Allowed.")
     except Exception as e:
         pytest.fail(f"   [FAIL] Force deletion failed: {e}")
+
 
 if __name__ == "__main__":
     # If run directly as script

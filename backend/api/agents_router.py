@@ -281,6 +281,4 @@ async def list_agents(
     except Exception as e:
         error_code = "AGENT_DISCOVERY_FAILED"
         logger.error(f"{error_code}: List Agents Failed: {e}\n{traceback.format_exc()}")
-        raise HTTPException(
-            status_code=500, detail=error_code
-        ) from e
+        raise HTTPException(status_code=500, detail=error_code) from e

@@ -196,7 +196,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 
     if is_error_code:
         error_code = detail_str
-        message = detail_str.replace("_", " ").title() # "PERMISSION_DENIED" -> "Permission Denied"
+        message = detail_str.replace("_", " ").title()  # "PERMISSION_DENIED" -> "Permission Denied"
     else:
         error_code = f"HTTP_{exc.status_code}"
         message = detail_str

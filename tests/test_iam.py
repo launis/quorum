@@ -15,16 +15,19 @@ from backend.models.auth import TokenData, UserRole
 
 # --- FIXTURES ---
 
+
 @pytest.fixture
 async def async_client():
     """Returns an AsyncClient bound to the app."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
 
+
 @pytest.fixture
 def mock_repo():
     """Returns a MagicMock for the Repository."""
     return MagicMock()
+
 
 @pytest.fixture
 def mock_deps(mock_repo):
@@ -36,6 +39,7 @@ def mock_deps(mock_repo):
     # 2. Mock Repository
     async def _get_mock_repo():
         return mock_repo
+
     app.dependency_overrides[get_async_repository] = _get_mock_repo
 
     yield
@@ -43,15 +47,15 @@ def mock_deps(mock_repo):
     # Cleanup
     app.dependency_overrides = {}
 
+
 def override_auth(role: UserRole, uid: str = "user", org_id: str = "org1"):
     """Helper to set the current user."""
     app.dependency_overrides[get_current_user_from_header] = lambda: TokenData(
         uid=uid, email=f"{uid}@test.com", role=role, organization_id=org_id
     )
 
+
 # --- TESTS ---
-
-
 
 
 @pytest.mark.asyncio
@@ -66,12 +70,14 @@ async def test_root_list_organizations_success(async_client):
     mock_repo = MagicMock()
     mock_repo.list_organizations.return_value = [
         {"id": "system", "name": "System", "tier": "root"},
-        {"id": "org-1", "name": "Test Org", "tier": "standard"}
+        {"id": "org-1", "name": "Test Org", "tier": "standard"},
     ]
 
     from backend.dependencies import get_async_repository
+
     async def _get_mock_repo():
         return mock_repo
+
     app.dependency_overrides[get_async_repository] = _get_mock_repo
 
     try:
@@ -111,8 +117,10 @@ async def test_create_organization_root_success(async_client):
     mock_repo.get_organization.return_value = None  # No conflict
 
     from backend.dependencies import get_async_repository
+
     async def _get_mock_repo():
         return mock_repo
+
     app.dependency_overrides[get_async_repository] = _get_mock_repo
 
     # We also need to mock AuthService because the endpoint uses it for 'require_role'
@@ -123,12 +131,7 @@ async def test_create_organization_root_success(async_client):
     mock_db = MagicMock()
     app.dependency_overrides[get_db_client_dep] = lambda: mock_db
 
-    payload = {
-        "id": "new-org",
-        "name": "New Org",
-        "tier": "starter",
-        "contact_email": "new@org.com"
-    }
+    payload = {"id": "new-org", "name": "New Org", "tier": "starter", "contact_email": "new@org.com"}
 
     try:
         response = await async_client.post("/organizations/", json=payload)
@@ -154,8 +157,10 @@ async def test_create_organization_duplicate_conflict(async_client):
     mock_repo.get_organization.return_value = {"id": "existing-org", "name": "Existing"}
 
     from backend.dependencies import get_async_repository
+
     async def _get_mock_repo():
         return mock_repo
+
     app.dependency_overrides[get_async_repository] = _get_mock_repo
 
     # Mock DB for AuthService safety

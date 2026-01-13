@@ -121,8 +121,7 @@ class CoachAgent(BaseAgent):
 
         else:
             logger.warning(
-                "COACH_KNOWLEDGE_BASE_UNAVAILABLE: No Repository provided in kwargs. "
-                "Knowledge Base not loaded from DB."
+                "COACH_KNOWLEDGE_BASE_UNAVAILABLE: No Repository provided in kwargs. Knowledge Base not loaded from DB."
             )
             self.knowledge_base = {}
             return ""

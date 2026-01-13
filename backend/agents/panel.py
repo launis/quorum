@@ -98,7 +98,7 @@ class PanelAgent(BaseAgent):
         """
         # 1. Construct User Prompt
         if state is None:
-             raise ValueError("PanelAgent requires a valid WorkflowState.")
+            raise ValueError("PanelAgent requires a valid WorkflowState.")
 
         try:
             user_content = self.construct_user_prompt(state)
@@ -146,12 +146,12 @@ class PanelAgent(BaseAgent):
                 logger.info("[PanelAgent] Successfully fanned out PanelAudit to 5 distinct state steps.")
 
             else:
-                 error_code = "PANEL_RESPONSE_INVALID_TYPE"
-                 logger.error(
+                error_code = "PANEL_RESPONSE_INVALID_TYPE"
+                logger.error(
                     f"{error_code}: Unexpected response content type: {type(raw_content)}. "
                     f"Content: {str(raw_content)[:100]}"
-                 )
-                 raise AgentExecutionError(detail=error_code, original_error=ValueError("Invalid response type"))
+                )
+                raise AgentExecutionError(detail=error_code, original_error=ValueError("Invalid response type"))
 
             return state
 

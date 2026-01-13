@@ -14,6 +14,7 @@ def get_auth_headers(role: UserRole = UserRole.ROOT):
     # Adjust if your system uses real token validation in tests.
     return {"Authorization": f"Bearer mock_token_{role.value}"}
 
+
 @pytest.mark.asyncio
 async def test_admin_create_user_permission_denied():
     """Verify create_user raises 403 PERMISSION_DENIED for non-admin."""
@@ -23,6 +24,7 @@ async def test_admin_create_user_permission_denied():
     # For this specific test, we'll verify the ERROR CODE contract.
     # We might need to mock the 'user' dependency if not already done by conftest.
     pass
+
 
 @pytest.mark.asyncio
 async def test_main_exception_handler_echo_protocol():
@@ -35,6 +37,7 @@ async def test_main_exception_handler_echo_protocol():
         # We need a user ID that triggers this.
         # Alternatively, we can mock the service to raise the exception.
         pass
+
 
 @pytest.mark.asyncio
 async def test_error_code_formatting():
@@ -55,13 +58,12 @@ async def test_error_code_formatting():
     app.include_router(test_router)
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-
         # Case A: Strict Code
         resp = await ac.get("/test_strict_code")
         assert resp.status_code == 400
         data = resp.json()
         assert data["error_code"] == "STRICT_TEST_ERROR"
-        assert data["message"] == "Strict Test Error" # formatted
+        assert data["message"] == "Strict Test Error"  # formatted
 
         # Case B: Sentence Fallback
         resp = await ac.get("/test_sentence")
