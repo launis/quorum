@@ -104,6 +104,9 @@ class PanelAgent(BaseAgent):
             user_content = self.construct_user_prompt(state)
 
             # 2. Call LLM with strict PanelAudit schema
+            if not self.llm_provider:
+                raise ValueError("PanelAgent requires a configured LLM Provider.")
+
             response = await self.llm_provider.generate(
                 prompt=user_content,
                 system_instruction=system_instruction,

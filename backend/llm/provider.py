@@ -385,8 +385,8 @@ class MockProvider(LLMProvider):
                     org_id=self.organization_id,
                     user_id=kwargs.get("user_id", "system_agent"),
                     model=self.model_name,
-                    input_tokens=usage_data["prompt_tokens"],
-                    output_tokens=usage_data["completion_tokens"],
+                    input_tokens=int(usage_data["prompt_tokens"]),
+                    output_tokens=int(usage_data["completion_tokens"]),
                     cost_usd=usage_data["total_cost"],
                 )
             except Exception as e:
