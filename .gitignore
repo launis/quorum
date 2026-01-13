@@ -264,3 +264,6 @@ app.*.map.json
 # MacOS
 **/macos/Flutter/ephemeral/
 
+
+# Data Files
+data/files/

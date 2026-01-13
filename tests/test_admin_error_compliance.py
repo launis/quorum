@@ -27,10 +27,10 @@ async def test_admin_create_user_permission_denied():
 @pytest.mark.asyncio
 async def test_main_exception_handler_echo_protocol():
     """Directly test the global exception handler logic.
-    
+
     Uses a dedicated router/endpoint OR calls a known failing endpoint in admin.
     """
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test"):
         # 1. Trigger LAST_ADMIN_PROTECTION (Conflict 409)
         # We need a user ID that triggers this.
         # Alternatively, we can mock the service to raise the exception.
@@ -69,4 +69,3 @@ async def test_error_code_formatting():
         data = resp.json()
         assert data["error_code"] == "HTTP_400"
         assert data["message"] == "This is a sentence."
-
