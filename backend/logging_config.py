@@ -82,6 +82,7 @@ def setup_logging(log_level=logging.INFO):
             pass
 
     # Create formatters
+    formatter: logging.Formatter
     if settings.environment.lower() == "production":
         formatter = JSONFormatter(
             "%(asctime)s | %(levelname)s | [%(execution_id)s] | %(name)s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S"

@@ -8,19 +8,17 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
-import 'package:mockito/annotations.dart';
-import 'package:mockito/mockito.dart';
+import 'package:mocktail/mocktail.dart';
 
-@GenerateNiceMocks([MockSpec<ExecutionRepository>()])
-import 'execution_controller_test.mocks.dart';
+class MockExecutionRepository extends Mock implements ExecutionRepository {}
 
 void main() {
   late MockExecutionRepository mockRepository;
   late ProviderContainer container;
 
   setUpAll(() {
-    provideDummy<TaskEither<AppError, String>>(
-      TaskEither.left(const AppError.unknown()),
+    registerFallbackValue(
+      const ExecutionInput(workflowId: 'fallback_workflow_id'),
     );
   });
 
@@ -99,7 +97,7 @@ void main() {
         const executionId = 'exec-123';
 
         when(
-          mockRepository.createExecution(any),
+          () => mockRepository.createExecution(any()),
         ).thenAnswer((_) => TaskEither<AppError, String>.right(executionId));
 
         final result = await controller.startAnalysis(
@@ -109,7 +107,7 @@ void main() {
         );
 
         expect(result, executionId);
-        verify(mockRepository.createExecution(any)).called(1);
+        verify(() => mockRepository.createExecution(any())).called(1);
       },
     );
 
@@ -119,7 +117,7 @@ void main() {
       final error = AppError.server('API Error');
 
       when(
-        mockRepository.createExecution(any),
+        () => mockRepository.createExecution(any()),
       ).thenAnswer((_) => TaskEither<AppError, String>.left(error));
 
       await expectLater(
@@ -146,7 +144,7 @@ void main() {
         final inputs = {'my_file': ioFile};
 
         when(
-          mockRepository.createExecution(any),
+          () => mockRepository.createExecution(any()),
         ).thenAnswer((_) => TaskEither<AppError, String>.right('exec-io'));
 
         await controller.startAnalysis(
@@ -156,7 +154,7 @@ void main() {
         );
 
         final captured =
-            verify(mockRepository.createExecution(captureAny)).captured;
+            verify(() => mockRepository.createExecution(captureAny())).captured;
         final input = captured.first as ExecutionInput;
 
         expect(input.files.containsKey('my_file'), isTrue);
@@ -183,7 +181,7 @@ void main() {
       final inputs = {'my_web_file': webFile};
 
       when(
-        mockRepository.createExecution(any),
+        () => mockRepository.createExecution(any()),
       ).thenAnswer((_) => TaskEither<AppError, String>.right('exec-web'));
 
       await controller.startAnalysis(
@@ -193,7 +191,7 @@ void main() {
       );
 
       final captured =
-          verify(mockRepository.createExecution(captureAny)).captured;
+          verify(() => mockRepository.createExecution(captureAny())).captured;
       final input = captured.first as ExecutionInput;
 
       expect(input.files.containsKey('my_web_file'), isTrue);
@@ -213,7 +211,7 @@ void main() {
       final inputs = {'file_1': file1};
 
       when(
-        mockRepository.createExecution(any),
+        () => mockRepository.createExecution(any()),
       ).thenAnswer((_) => TaskEither<AppError, String>.right('exec-1'));
 
       await controller.startAnalysis(
@@ -223,7 +221,7 @@ void main() {
       );
 
       final captured =
-          verify(mockRepository.createExecution(captureAny)).captured;
+          verify(() => mockRepository.createExecution(captureAny())).captured;
       final input = captured.first as ExecutionInput;
 
       expect(input.files.length, 1);
@@ -260,7 +258,7 @@ void main() {
         };
 
         when(
-          mockRepository.createExecution(any),
+          () => mockRepository.createExecution(any()),
         ).thenAnswer((_) => TaskEither<AppError, String>.right('exec-3'));
 
         await controller.startAnalysis(
@@ -270,7 +268,7 @@ void main() {
         );
 
         final captured =
-            verify(mockRepository.createExecution(captureAny)).captured;
+            verify(() => mockRepository.createExecution(captureAny())).captured;
         final input = captured.first as ExecutionInput;
 
         expect(input.files.length, 3);
