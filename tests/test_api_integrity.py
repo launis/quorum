@@ -46,7 +46,7 @@ async def test_delete_step_integrity_violation(client: AsyncClient, admin_token_
     # 3. Attempt to Delete Step -> EXPECT 409
     res = await client.delete("/config/steps/step_critical", headers=admin_token_headers)
     assert res.status_code == 409
-    assert "Used in workflows" in res.text
+    assert res.json()["error_code"] == "STEP_IN_USE"
 
     # 4. Clean up: Delete Workflow first
     await client.delete(f"/builder/workflows/{wf_id}", headers=admin_token_headers)
@@ -93,7 +93,7 @@ async def test_delete_workflow_integrity_violation(client: AsyncClient, admin_to
     if res.status_code == 200:
         res = await client.delete(f"/builder/workflows/{wf_id}", headers=admin_token_headers)
         assert res.status_code == 409
-        assert "record(s)" in res.text
+        assert res.json()["error_code"] == "WORKFLOW_HAS_EXECUTIONS"
     else:
         # Warn/Skip
         print(f"Skipping Delete Workflow check: Execution creation failed with {res.status_code} {res.text}")

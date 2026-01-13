@@ -1,6 +1,0 @@
-Status: 403
-Body: {
-  "error_code": "PERMISSION_DENIED_ROOT_ONLY",
-  "message": "Permission Denied Root Only",
-  "details": null
-}

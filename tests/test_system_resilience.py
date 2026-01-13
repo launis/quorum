@@ -38,7 +38,7 @@ class TestSystemResilienceAsync(unittest.IsolatedAsyncioTestCase):
         exc = cm.exception
         # Check for 403 (Auth) or 500 (DB)
         assert exc.status_code == 403 or exc.status_code == 500
-        assert "Simulated DB Crash" in exc.detail
+        assert exc.detail == "WORKFLOW_CREATION_FAILED"
 
 
 def test_reporting_hook_catches_exceptions():
