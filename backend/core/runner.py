@@ -202,7 +202,12 @@ class PipelineRunner:
             current_state = await agent.execute(current_state, **exec_kwargs)
 
         except Exception as e:
-            raise AgentExecutionError(agent_name, step_id, e) from e
+            raise AgentExecutionError(
+                detail="AGENT_EXECUTION_FAILED",
+                original_error=e,
+                agent_name=agent_name,
+                step_id=step_id,
+            ) from e
 
         # 5. Post-Hooks
         for hook in config.get("post_hooks") or []:
@@ -353,7 +358,12 @@ class PipelineRunner:
                             if missing:
                                 error_msg = f"Validation Failed: Missing fields {missing} in {agent_name}"
                                 logger.error(f"[PipelineRunner] {error_msg}")
-                                raise AgentExecutionError(agent_name, step_id, ValueError(error_msg))
+                                raise AgentExecutionError(
+                                    detail="OUTPUT_VALIDATION_FAILED",
+                                    original_error=ValueError(error_msg),
+                                    agent_name=agent_name,
+                                    step_id=step_id,
+                                )
 
     async def _handle_security_intervention(self, execution_id: str, state: WorkflowState) -> dict[str, Any]:
         """Handles a security check failure by creating a rejection result.
