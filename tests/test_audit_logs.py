@@ -23,7 +23,9 @@ async def test_audit_access_control(client_authenticated: AsyncClient):
     root_header = {"Authorization": "Bearer mock-token:root_master"}
 
     # Create Org
-    org_res = await client_authenticated.post("/organizations/", json={"name": "RBAC Corp", "tier": "standard"}, headers=root_header)
+    org_res = await client_authenticated.post(
+        "/organizations/", json={"name": "RBAC Corp", "tier": "standard"}, headers=root_header
+    )
     with open("test_progress.log", "a") as f:
         f.write(f"RBAC Setup Org: {org_res.status_code}\n")
     assert org_res.status_code == 201
@@ -32,7 +34,9 @@ async def test_audit_access_control(client_authenticated: AsyncClient):
     # Create Member
     try:
         member_payload = {"email": "mem@rbac.com", "display_name": "Mem", "role": "MEMBER", "password": "password123"}
-        mem_res = await client_authenticated.post(f"/organizations/{org_id}/users", json=member_payload, headers=root_header)
+        mem_res = await client_authenticated.post(
+            f"/organizations/{org_id}/users", json=member_payload, headers=root_header
+        )
         with open("test_progress.log", "a") as f:
             f.write(f"RBAC Setup Member: {mem_res.status_code}\n")
         if mem_res.status_code != 201:
@@ -113,7 +117,9 @@ async def test_audit_lifecycle_root(client_authenticated: AsyncClient, admin_tok
     org_id = res.json()["id"]
 
     # Verify Log: ORG_CREATED
-    res_logs = await client_authenticated.get(f"/audit/logs?organization_id={org_id}&action=ORG_CREATED", headers=admin_token_headers)
+    res_logs = await client_authenticated.get(
+        f"/audit/logs?organization_id={org_id}&action=ORG_CREATED", headers=admin_token_headers
+    )
     assert res_logs.status_code == 200
     logs = res_logs.json()
     assert len(logs) >= 1
@@ -127,7 +133,9 @@ async def test_audit_lifecycle_root(client_authenticated: AsyncClient, admin_tok
         "role": "MEMBER",
         "password": "password123",
     }
-    res = await client_authenticated.post(f"/organizations/{org_id}/users", json=user_payload, headers=admin_token_headers)
+    res = await client_authenticated.post(
+        f"/organizations/{org_id}/users", json=user_payload, headers=admin_token_headers
+    )
     assert res.status_code == 201
     user_uid = res.json()["uid"]
 
@@ -164,7 +172,9 @@ async def test_audit_lifecycle_root(client_authenticated: AsyncClient, admin_tok
     assert res.status_code == 204
 
     # Verify Log: ORG_DELETED
-    res_logs = await client_authenticated.get(f"/audit/logs?organization_id={org_id}&action=ORG_DELETED", headers=admin_token_headers)
+    res_logs = await client_authenticated.get(
+        f"/audit/logs?organization_id={org_id}&action=ORG_DELETED", headers=admin_token_headers
+    )
     with open("test_progress.log", "a") as f:
         f.write(f"Step 4 Audit Log Status: {res_logs.status_code}\n")
     assert res_logs.status_code == 200

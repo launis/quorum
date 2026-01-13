@@ -115,7 +115,8 @@ async def test_create_organization_root_success(async_client):
         return mock_repo
     app.dependency_overrides[get_async_repository] = _get_mock_repo
 
-    # We also need to mock AuthService because the endpoint uses it for 'require_role' (which we mocked via user override)
+    # We also need to mock AuthService because the endpoint uses it for 'require_role'
+    # (which we mocked via user override)
     # BUT the endpoint also accepts 'auth: AuthServiceDep'.
     # get_auth_service depends on get_db_client_dep.
     # Let's override get_db_client_dep too, just to be safe for AuthService.

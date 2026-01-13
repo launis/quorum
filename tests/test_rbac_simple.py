@@ -1,4 +1,5 @@
 """Simple RBAC Verification Test.
+
 Verifies:
 1. ROOT can update organization_id.
 2. ADMIN cannot update organization_id.
@@ -6,7 +7,7 @@ Verifies:
 """
 import os
 import sys
-from unittest.mock import MagicMock
+
 
 import pytest
 
@@ -22,27 +23,25 @@ parent_dir = os.path.dirname(script_dir)
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 
-print(f"DEBUG: sys.path[0] = {sys.path[0]}")
-try:
-    import backend
-    print("DEBUG: backend module found")
-except ImportError as e:
-    print(f"DEBUG: backend module NOT found: {e}")
+
 
 import asyncio
 from datetime import UTC
+from unittest.mock import MagicMock
 
 from backend.models.auth import User, UserRole, UserUpdate
 from backend.services.auth import AuthService
 
 
 def async_test(coro):
+    """Decorator for running async tests."""
     def wrapper(*args, **kwargs):
         return asyncio.run(coro(*args, **kwargs))
     return wrapper
 
 @async_test
 async def test_rbac_simple():
+    """Run simple RBAC verification test."""
     print("\n--- Starting Simple RBAC Test (Async) ---")
 
     # Mock Dependencies
@@ -52,11 +51,22 @@ async def test_rbac_simple():
     service.repo = MagicMock()
 
     # Data Setup
-    root_master = User(uid="root_master", email="root_master@test.com", role=UserRole.ROOT, organization_id="system", created_at="2024-01-01")
-    root_user = User(uid="root1", email="root@test.com", role=UserRole.ROOT, organization_id="org1", created_at="2024-01-01")
-    admin_user = User(uid="admin1", email="admin@test.com", role=UserRole.ADMIN, organization_id="org1", created_at="2024-01-01")
-    member_user = User(uid="mem1", email="mem@test.com", role=UserRole.MEMBER, organization_id="org1", created_at="2024-01-01")
-    target_user = User(uid="target1", email="target@test.com", role=UserRole.MEMBER, organization_id="org1", created_at="2024-01-01")
+    root_master = User(
+        uid="root_master", email="root_master@test.com", role=UserRole.ROOT, organization_id="system",
+        created_at="2024-01-01"
+    )
+    root_user = User(
+        uid="root1", email="root@test.com", role=UserRole.ROOT, organization_id="org1", created_at="2024-01-01"
+    )
+    admin_user = User(
+        uid="admin1", email="admin@test.com", role=UserRole.ADMIN, organization_id="org1", created_at="2024-01-01"
+    )
+    member_user = User(
+        uid="mem1", email="mem@test.com", role=UserRole.MEMBER, organization_id="org1", created_at="2024-01-01"
+    )
+    target_user = User(
+        uid="target1", email="target@test.com", role=UserRole.MEMBER, organization_id="org1", created_at="2024-01-01"
+    )
 
     # Mock get_by_uid lookup
     user_map = {
@@ -168,7 +178,10 @@ async def test_rbac_simple():
         # However, _create_user_internal calls creating in DB. We just check if it fails before that or at DB mock.
 
         from backend.models.auth import UserCreate
-        payload = UserCreate(email="new_root@test.com", password="pwd", display_name="New Root", role=UserRole.ROOT, organization_id="org1")
+        payload = UserCreate(
+            email="new_root@test.com", password="pwd", display_name="New Root", role=UserRole.ROOT,
+            organization_id="org1"
+        )
 
         await service.create_user(creator_uid="admin1", user_data=payload)
         pytest.fail("   [FAIL] Admin creating ROOT user should be blocked!")
@@ -178,7 +191,7 @@ async def test_rbac_simple():
         # Looking at auth.py:
         # _create_user_internal -> ... -> _enforce_hierarchy
         # _enforce_hierarchy checks Admin cannot create Roots.
-        if "Admins cannot create Roots" in str(e) or type(e) == PermissionError:
+        if "Admins cannot create Roots" in str(e) or isinstance(e, PermissionError):
              print("   [PASS] Admin creating ROOT Blocked.")
         else:
              print(f"   [PASS] Admin creating ROOT Blocked ({e}).")
@@ -223,14 +236,18 @@ async def test_rbac_simple():
 
     # Mock Org Repo
     service.org_repo = MagicMock()
-    service.org_repo.create.return_value = Organization(id="new_org_id", name="New Corp", created_at="2024-01-01", is_active=True)
+    service.org_repo.create.return_value = Organization(
+        id="new_org_id", name="New Corp", created_at="2024-01-01", is_active=True
+    )
     service.org_repo.get_by_id = MagicMock()
 
     # 8a. Create Org (ROOT -> Allowed)
     try:
         await service.create_organization(
             creator_uid="root1",
-            org_create=OrganizationCreate(name="New Corp", admin_email="a@b.com", admin_password="password123", admin_name="A")
+            org_create=OrganizationCreate(
+                name="New Corp", admin_email="a@b.com", admin_password="password123", admin_name="A"
+            )
         )
         print("   [PASS] Root Create Org Allowed.")
     except Exception as e:
@@ -240,7 +257,9 @@ async def test_rbac_simple():
     try:
         await service.create_organization(
             creator_uid="admin1",
-            org_create=OrganizationCreate(name="Fail Corp", admin_email="a@b.com", admin_password="password123", admin_name="A")
+            org_create=OrganizationCreate(
+                name="Fail Corp", admin_email="a@b.com", admin_password="password123", admin_name="A"
+            )
         )
         pytest.fail("   [FAIL] Admin should be blocked from creating orgs!")
     except PermissionError:
