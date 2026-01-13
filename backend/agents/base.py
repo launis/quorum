@@ -12,7 +12,9 @@ from backend.core.component import BaseComponent
 
 # 3. Local Imports
 from backend.exceptions import AgentExecutionError
-from backend.llm.provider import LLMFactory
+# Use string forward reference to avoid circular import if needed, or if Provider is defined there.
+# But LLMFactory is imported.
+from backend.llm.provider import LLMFactory, LLMProvider
 from backend.models.state import WorkflowState
 
 # 4. Logger
@@ -48,6 +50,7 @@ class BaseAgent(BaseComponent[WorkflowState]):
         """
         self.model = model
         self.provider_type = provider or "vertex_ai"
+        self.llm_provider: LLMProvider | None = None
 
         # ZERO-FALLBACK: Agents initialized via Factory might have model=None.
         # We allow this, but execution will fail if model is not set via set_model().

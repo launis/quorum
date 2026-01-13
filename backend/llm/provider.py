@@ -228,7 +228,8 @@ class LiteLLMProvider(LLMProvider):
             call_kwargs["model"] = self.model_name
 
             # Using router.acompletion instead of litellm.acompletion
-            response = await self.router.acompletion(**call_kwargs)
+            # mypy: Router.acompletion signature is complex, ignore overlap
+            response = await self.router.acompletion(**call_kwargs)  # type: ignore[call-overload]
 
             # Extract basic content
             choice = response.choices[0]
@@ -297,8 +298,9 @@ class LiteLLMProvider(LLMProvider):
                         org_id=self.organization_id,
                         user_id=kwargs.get("user_id", "system_agent"),
                         model=self.model_name,
-                        input_tokens=usage.get("prompt_tokens", 0),
-                        output_tokens=usage.get("completion_tokens", 0),
+                        model=self.model_name,
+                        input_tokens=int(usage.get("prompt_tokens", 0)),
+                        output_tokens=int(usage.get("completion_tokens", 0)),
                         cost_usd=cost,
                     )
                 except Exception as e:

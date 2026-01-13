@@ -78,7 +78,9 @@ class PipelineRunner:
                 audit_results={},
                 reasoning_context={},
                 last_reasoning_trace=None,
+                last_reasoning_trace=None,
                 aux_data={},
+                usage={},
             )
 
             # Inject Global Configuration

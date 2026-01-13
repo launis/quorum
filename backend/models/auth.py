@@ -162,7 +162,6 @@ class OrganizationCreate(BaseModel):
     name: str
     admin_email: EmailStr
     admin_password: str
-    admin_password: str
     admin_name: str
     tpm_limit: int = 100000
     rpm_limit: int = 60

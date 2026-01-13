@@ -39,12 +39,17 @@ class Settings(BaseSettings):
     """
 
     # --- Feature Flags ---
-    use_mock_llm: Annotated[bool, BeforeValidator(strip_whitespace), Field(description="Use Mock LLM Service")]
-    use_mock_db: Annotated[bool, BeforeValidator(strip_whitespace), Field(description="Use Mock Database (TinyDB)")]
+    use_mock_llm: Annotated[
+        bool, BeforeValidator(strip_whitespace), Field(description="Use Mock LLM Service")
+    ] = False
+    use_mock_db: Annotated[
+        bool, BeforeValidator(strip_whitespace), Field(description="Use Mock Database (TinyDB)")
+    ] = False
 
     # --- API Keys ---
     google_api_key: Annotated[str | None, Field(description="Google AI Provider API Key")] = None
     openai_api_key: Annotated[str | None, Field(description="OpenAI API Key (Optional)")] = None
+    anthropic_api_key: Annotated[str | None, Field(description="Anthropic API Key (Optional)")] = None
     vertex_location: Annotated[str | None, Field(description="Google Cloud Region (e.g. europe-north1)")] = None
 
     # --- LLM Configuration ---

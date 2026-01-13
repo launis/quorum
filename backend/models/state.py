@@ -169,7 +169,7 @@ class WorkflowState(BaseModel):
 
     # Usage Metrics (Cost Tracking)
     usage: Annotated[
-        dict[str, dict[str, float | int]],
+        dict[str, dict[str, float | int | str]],
         Field(default_factory=dict, description="Accumulated usage stats per step (cost, tokens)."),
     ]
 

@@ -89,7 +89,7 @@ async def create_workflow(request: Request, body: ExecutionWorkflowCreateRequest
         dict: The status and generated workflow_id.
 
     """
-    workflow_id = await engine.create_workflow(request.name, request.steps)
+    workflow_id = await engine.create_workflow(body.name, body.steps)
     return {"status": "created", "workflow_id": workflow_id}
 
 
@@ -308,18 +308,18 @@ async def get_execution_status(
 
     Performs on-the-fly hydration of legacy result structures if necessary.
     """
-    status = await engine.get_execution_status(execution_id)
-    if not status:
+    exec_status = await engine.get_execution_status(execution_id)
+    if not exec_status:
         error_code = "EXECUTION_NOT_FOUND"
         logger.error(f"{error_code}: ID {execution_id}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error_code)
 
     # If the workflow is complete and we have a final result state, flatten it for the UI
-    if status.get("status") == "completed" and "result" in status:
-        res = status["result"]
+    if exec_status.get("status") == "completed" and "result" in exec_status:
+        res = exec_status["result"]
 
         if hasattr(res, "to_flat_dict"):
-            status["result"] = res.to_flat_dict()
+            exec_status["result"] = res.to_flat_dict()
 
         elif isinstance(res, dict):
             # CHECK IF ALREADY FLAT (V2 Structure)
@@ -333,20 +333,20 @@ async def get_execution_status(
                     # INJECT MISSING REQUIRED FIELDS for hydration
                     hydration_data = res.copy()
                     if "execution_id" not in hydration_data:
-                        hydration_data["execution_id"] = status.get("execution_id", "unknown")
+                        hydration_data["execution_id"] = exec_status.get("execution_id", "unknown")
                     if "inputs" not in hydration_data:
-                        hydration_data["inputs"] = status.get("inputs", {})
+                        hydration_data["inputs"] = exec_status.get("inputs", {})
 
                     # Attempt to hydrate the dict back into a State Object
                     hydrated_state = WorkflowState(**hydration_data)
-                    status["result"] = hydrated_state.model_dump()
+                    exec_status["result"] = hydrated_state.model_dump()
 
                 except Exception as e:
                     logger.warning(f"Failed to migrate legacy execution result {execution_id}: {e}")
                     # Fallback: leave it as is, legacy UI might handle parts of it
                     pass
 
-    return status
+    return exec_status
 
 
 @router.post(
@@ -362,13 +362,13 @@ async def retry_execution(
     execution_id: str = Path(..., description="The UUID of the execution to retry."),
 ):
     """Resumes a failed, rejected, or interrupted execution from its last successful state."""
-    status = await engine.get_execution_status(execution_id)
-    if not status:
+    exec_status = await engine.get_execution_status(execution_id)
+    if not exec_status:
         error_code = "EXECUTION_NOT_FOUND"
         logger.error(f"{error_code}: ID {execution_id}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error_code)
 
-    current_status = status.get("status")
+    current_status = exec_status.get("status")
     if current_status not in ["failed", "rejected", "interrupted"]:
         error_code = "INVALID_RETRY_STATE"
         logger.error(f"{error_code}: Status '{current_status}' is not retriable.", exc_info=True)
