@@ -298,7 +298,6 @@ class LiteLLMProvider(LLMProvider):
                         org_id=self.organization_id,
                         user_id=kwargs.get("user_id", "system_agent"),
                         model=self.model_name,
-                        model=self.model_name,
                         input_tokens=int(usage.get("prompt_tokens", 0)),
                         output_tokens=int(usage.get("completion_tokens", 0)),
                         cost_usd=cost,
