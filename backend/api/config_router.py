@@ -18,6 +18,7 @@ from tinydb import Query
 from backend.database.exporter import export_db_to_files
 from backend.dependencies import DatabaseDep, LLMHandlerDep, RegistryDep
 from backend.models import domain as schemas
+from backend.schemas.error import APIError
 from backend.seed.seeder import seed_database
 
 logger = logging.getLogger(__name__)
@@ -137,7 +138,9 @@ def get_component(db: DatabaseDep, comp_id: str = Path(..., description="Compone
         res = db.table("components").search(Component.name == comp_id)
 
     if not res:
-        raise HTTPException(status_code=404, detail="Component not found")
+        error_code = "COMPONENT_NOT_FOUND"
+        logger.error(f"{error_code}: ID {comp_id}", exc_info=True)
+        raise HTTPException(status_code=404, detail=error_code)
     return res[0]
 
 
@@ -146,7 +149,9 @@ def create_component(comp: ComponentCreate, db: DatabaseDep):
     """Creates a new configuration component."""
     table = db.table("components")
     if table.search(Query().id == comp.id):
-        raise HTTPException(status_code=400, detail="Component ID already exists")
+        error_code = "COMPONENT_ID_EXISTS"
+        logger.error(f"{error_code}: ID {comp.id}", exc_info=True)
+        raise HTTPException(status_code=400, detail=error_code)
 
     new_comp = comp.model_dump()
     if "component_class" in new_comp:
@@ -176,7 +181,9 @@ def update_component(comp_id: str, update: ComponentUpdate, db: DatabaseDep):
 
     exists = table.search((Component.id == comp_id) | (Component.name == comp_id))
     if not exists:
-        raise HTTPException(status_code=404, detail="Component not found")
+        error_code = "COMPONENT_NOT_FOUND"
+        logger.error(f"{error_code}: ID {comp_id}", exc_info=True)
+        raise HTTPException(status_code=404, detail=error_code)
 
     update_data = {"content": update.content}
     if update.description:
@@ -200,7 +207,9 @@ def delete_component(comp_id: str, db: DatabaseDep):
 
     exists = table.search((Component.id == comp_id) | (Component.name == comp_id))
     if not exists:
-        raise HTTPException(status_code=404, detail="Component not found")
+        error_code = "COMPONENT_NOT_FOUND"
+        logger.error(f"{error_code}: ID {comp_id}", exc_info=True)
+        raise HTTPException(status_code=404, detail=error_code)
 
     # Referential Integrity Check
     steps = db.table("steps").all()
@@ -214,8 +223,10 @@ def delete_component(comp_id: str, db: DatabaseDep):
             used_in.append(s["id"])
 
     if used_in:
+        error_code = "COMPONENT_IN_USE"
+        logger.error(f"{error_code}: ID {comp_id} used in {used_in}", exc_info=True)
         raise HTTPException(
-            status_code=400, detail=f"Cannot delete component '{comp_id}'. Used in steps: {', '.join(used_in[:3])}..."
+            status_code=409, detail=error_code
         )
 
     table.remove((Component.id == comp_id) | (Component.name == comp_id))
@@ -233,7 +244,9 @@ def create_step(step: dict[str, Any], db: DatabaseDep):
     """Create a new step configuration."""
     table = db.table("steps")
     if table.search(Query().id == step.get("id")):
-        raise HTTPException(status_code=400, detail="Step ID already exists")
+        error_code = "STEP_ID_EXISTS"
+        logger.error(f"{error_code}: ID {step.get('id')}", exc_info=True)
+        raise HTTPException(status_code=400, detail=error_code)
     table.insert(step)
     return {"status": "created", "id": step.get("id")}
 
@@ -243,7 +256,9 @@ def update_step(step_id: str, step: dict[str, Any], db: DatabaseDep):
     """Update a step configuration."""
     table = db.table("steps")
     if not table.search(Query().id == step_id):
-        raise HTTPException(status_code=404, detail="Step not found")
+        error_code = "STEP_NOT_FOUND"
+        logger.error(f"{error_code}: ID {step_id}", exc_info=True)
+        raise HTTPException(status_code=404, detail=error_code)
     table.update(step, Query().id == step_id)
     return {"status": "updated", "id": step_id}
 
@@ -257,7 +272,9 @@ async def delete_step(step_id: str, db: DatabaseDep):
     # 1. Check Existence
     table = db.table("steps")
     if not table.search(Query().id == step_id):
-        raise HTTPException(status_code=404, detail="Step not found")
+        error_code = "STEP_NOT_FOUND"
+        logger.error(f"{error_code}: ID {step_id}", exc_info=True)
+        raise HTTPException(status_code=404, detail=error_code)
 
     # 2. Integrity Check: Workflow Usage
     workflows = db.table("workflows").all()
@@ -267,8 +284,10 @@ async def delete_step(step_id: str, db: DatabaseDep):
             used_in.append(wf.get("name", wf["id"]))
 
     if used_in:
+        error_code = "STEP_IN_USE"
+        logger.error(f"{error_code}: ID {step_id} used in {used_in}", exc_info=True)
         raise HTTPException(
-            status_code=409, detail=f"Cannot delete step '{step_id}'. Used in workflows: {', '.join(used_in[:3])}..."
+            status_code=409, detail=error_code
         )
 
     # 3. Delete
@@ -288,7 +307,9 @@ def get_workflow(wf_id: str, db: DatabaseDep):
     Workflow = Query()
     res = db.table("workflows").search(Workflow.id == wf_id)
     if not res:
-        raise HTTPException(status_code=404, detail="Workflow not found")
+        error_code = "WORKFLOW_NOT_FOUND"
+        logger.error(f"{error_code}: ID {wf_id}", exc_info=True)
+        raise HTTPException(status_code=404, detail=error_code)
     return res[0]
 
 
@@ -299,7 +320,9 @@ def update_workflow(wf_id: str, update: WorkflowUpdate, db: DatabaseDep):
     table = db.table("workflows")
 
     if not table.search(Workflow.id == wf_id):
-        raise HTTPException(status_code=404, detail="Workflow not found")
+        error_code = "WORKFLOW_NOT_FOUND"
+        logger.error(f"{error_code}: ID {wf_id}", exc_info=True)
+        raise HTTPException(status_code=404, detail=error_code)
 
     update_data: dict[str, Any] = {}
     if update.steps is not None:
@@ -312,7 +335,9 @@ def update_workflow(wf_id: str, update: WorkflowUpdate, db: DatabaseDep):
         update_data["default_model_mapping"] = update.default_model_mapping
 
     if not update_data:
-        raise HTTPException(status_code=400, detail="No data to update")
+        error_code = "NO_UPDATE_DATA"
+        logger.error(f"{error_code}: ID {wf_id}", exc_info=True)
+        raise HTTPException(status_code=400, detail=error_code)
 
     steps_to_check = update.steps if update.steps else update.sequence
     if steps_to_check:
@@ -320,7 +345,9 @@ def update_workflow(wf_id: str, update: WorkflowUpdate, db: DatabaseDep):
         for item in steps_to_check:
             sid = item if isinstance(item, str) else item.get("id")
             if sid and sid not in valid_steps:
-                raise HTTPException(status_code=400, detail=f"Invalid Step ID: '{sid}' does not exist.")
+                error_code = "INVALID_STEP_ID"
+                logger.error(f"{error_code}: Step {sid} not found.", exc_info=True)
+                raise HTTPException(status_code=400, detail=error_code)
 
     table.update(update_data, Workflow.id == wf_id)
     return {"status": "updated", "id": wf_id}
@@ -333,14 +360,18 @@ def create_workflow(workflow: WorkflowCreate, db: DatabaseDep):
     table = db.table("workflows")
 
     if table.search(Workflow.id == workflow.id):
-        raise HTTPException(status_code=400, detail="Workflow ID already exists")
+        error_code = "WORKFLOW_ID_EXISTS"
+        logger.error(f"{error_code}: ID {workflow.id}", exc_info=True)
+        raise HTTPException(status_code=400, detail=error_code)
 
     new_wf = workflow.model_dump()
     if workflow.sequence:
         valid_steps = {s["id"] for s in db.table("steps").all()}
         for step_id in workflow.sequence:
             if step_id not in valid_steps:
-                raise HTTPException(status_code=400, detail=f"Invalid Step ID: '{step_id}' does not exist.")
+                error_code = "INVALID_STEP_ID"
+                logger.error(f"{error_code}: Step {step_id} not found.", exc_info=True)
+                raise HTTPException(status_code=400, detail=error_code)
 
     table.insert(new_wf)
     return {"status": "created", "id": workflow.id}
@@ -352,7 +383,9 @@ def delete_workflow(wf_id: str, db: DatabaseDep):
     Workflow = Query()
     table = db.table("workflows")
     if not table.search(Workflow.id == wf_id):
-        raise HTTPException(status_code=404, detail="Workflow not found")
+        error_code = "WORKFLOW_NOT_FOUND"
+        logger.error(f"{error_code}: ID {wf_id}", exc_info=True)
+        raise HTTPException(status_code=404, detail=error_code)
     table.remove(Workflow.id == wf_id)
     return {"status": "deleted", "id": wf_id}
 
@@ -371,7 +404,9 @@ def reset_from_seed():
         seed_database()
         return {"status": "success", "message": "Database reset from seed data."}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        error_code = "DB_RESET_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=error_code) from e
 
 
 @router.post("/deploy-mock-to-prod", summary="Deploy Mock -> Prod", response_description="Deployment status.")
@@ -385,7 +420,9 @@ def deploy_mock_to_prod():
         seed_database(target_db_path=settings.prod_db_path)
         return {"status": "success", "message": "Mock environment deployed to Production DB."}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        error_code = "DB_DEPLOY_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=error_code) from e
 
 
 @router.post("/deploy-prod-to-mock", summary="Deploy Prod -> Mock", response_description="Deployment status.")
@@ -399,7 +436,9 @@ def deploy_prod_to_mock():
         seed_database(target_db_path=settings.mock_db_path)
         return {"status": "success", "message": "Production environment deployed to Mock DB."}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        error_code = "DB_DEPLOY_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=error_code) from e
 
 
 @router.get("/schemas", summary="List Schemas", response_description="All Pydantic Schemas.")
@@ -432,8 +471,9 @@ def get_unified_prompts(db: DatabaseDep):
         unified_text = _build_unified_view(all_components, schema_data)
         return {"content": unified_text}
     except Exception as e:
-        logger.error(f"Error generating unified prompts: {e}")
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        error_code = "UNIFIED_PROMPT_GENERATION_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=error_code) from e
 
 
 # Helpers (kept same)
@@ -584,8 +624,9 @@ async def call_llm_adhoc(request: LLMCallRequest, handler: LLMHandlerDep):
         )
         return {"content": response_text}
     except Exception as e:
-        logger.error(f"Ad-hoc LLM Call Failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        error_code = "AD_HOC_LLM_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=error_code) from e
 
 
 @router.get("/models/strategies", summary="Get Strategies", response_description="Active strategy map.")
@@ -735,7 +776,9 @@ def create_dimension(dim: DimensionDefinition, db: DatabaseDep):
     """Create a new evaluation dimension."""
     table = db.table("dimensions")
     if table.search(Query().id == dim.id):
-        raise HTTPException(status_code=400, detail=f"Dimension '{dim.id}' already exists.")
+        error_code = "DIMENSION_EXISTS"
+        logger.error(f"{error_code}: ID {dim.id}", exc_info=True)
+        raise HTTPException(status_code=400, detail=error_code)
     table.insert(dim.model_dump())
     return {"status": "created", "id": dim.id}
 
@@ -763,9 +806,11 @@ def delete_dimension(dim_id: str, db: DatabaseDep):
                 break
 
     if used_in:
+        error_code = "DIMENSION_IN_USE"
+        logger.error(f"{error_code}: ID {dim_id} used in {used_in}", exc_info=True)
         raise HTTPException(
-            status_code=400,
-            detail=f"Cannot delete dimension '{dim_id}'. It is used in {len(used_in)} matrices: {', '.join(used_in)}.",
+            status_code=409,
+            detail=error_code,
         )
 
     # 2. Delete
@@ -784,7 +829,9 @@ async def validate_flow(workflow: WorkflowCreate, db: DatabaseDep, registry: Reg
         config = await registry.resolve_model_config("fast")
         agents_map = AgentFactory.create_agents_map(initial_model=config["model_name"])
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Factory Error: {e}") from e
+        error_code = "FACTORY_ERROR"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=error_code) from e
 
     known_keys = ["history_text", "product_text", "reflection_text", "bibliography_context"]
     errors = []

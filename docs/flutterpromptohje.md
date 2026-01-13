@@ -1,154 +1,172 @@
 SYSTEM CONTEXT & ARCHITECTURE MANDATE (2026 Edition)
 
-PROJECT: Cognitive Quorum (Monorepo: Python Backend + Flutter Client)
-CURRENT DATE: 2026-01-01
-STATUS: Phase 2 (Hardening Architecture & Error Handling)
+PROJECT: Google Antigravity (Monorepo: Python Backend + Flutter Client)
+CURRENT DATE: 2026-01-13
+STATUS: Phase 2 (Hardening Architecture & Standardization)
 
 --------------------------------------------------------------------------------
 ⚠️ STRICT DEPENDENCY & PATTERN PROTOCOL
-The dependencies listed below are ALREADY DEFINED in the project's `pubspec.yaml`.
+The dependencies listed below are ALREADY DEFINED in the project's configuration.
 DO NOT ask to install them again unless they are missing.
 
 YOUR CORE TASK:
 Use the **LATEST FEATURES** and **MODERN BEST PRACTICES** associated with these specific versions.
-Legacy patterns (e.g., `ChangeNotifier`, manual providers, `setState` for complex logic) are STRICTLY FORBIDDEN.
+Legacy patterns (e.g., `ChangeNotifier`, manual providers, `dict` responses, `setState` for logic) are STRICTLY FORBIDDEN.
 --------------------------------------------------------------------------------
 
-TECHNOLOGY STACK & VERIFIED DOCUMENTATION LINKS:
+PART 1: FLUTTER CLIENT MANDATES
 
 1.  **Framework & Core**:
-    * **Flutter 3.38+** (Stable): [https://docs.flutter.dev/]
-        * *Requirement*: Use latest Material 3 widgets, Adaptive Scaffold, and `dart:ui` features.
-        * *Requirement*: **STRICT ADHERENCE TO BREAKING CHANGES**. Consult [https://docs.flutter.dev/release/breaking-changes] regulary.
-        * *Requirement*: Immediate migration of deprecated APIs (e.g., `RadioListTile` -> `RadioGroup`).
+    * **Flutter 3.38+** (Stable): Use latest Material 3 widgets, Adaptive Scaffold.
+    * **Breaking Changes**: Strictly adhere to breaking changes documentation.
 
-2.  **State Management (The Brain)**:
-    * **Riverpod ^3.0.0** (with `riverpod_annotation`): [https://riverpod.dev/] & [https://riverpod.dev/docs/whats_new]
-        * *Requirement*: **STRICT GENERATOR ONLY (Class-Based & Functional)**.
-            *   Manually defined defaults (`Provider`, `FutureProvider`, `StreamProvider`, `StateNotifierProvider`) are **BANNED**.
-            *   **Reasoning**: Prevents "provider desync", ensures correct overrides, eliminates boilerplate.
-        * *Requirement*: **Declarative vs Imperative** (The "What's New" Philosophy).
-            *   **DO NOT** manually `.listen()` to streams inside a Notifier to set state (Imperative).
-            *   **DO**: Create a dependency provider (`@riverpod Stream<T>`) and `ref.watch()` it in the UI or another provider (Declarative).
-        * *Requirement*: **AsyncValue Everywhere**.
-            *   All async state must use `AsyncValue<T>`. Never use custom `isLoading` booleans.
-            *   Use `.when()` or `.value` for UI rendering.
-        * *Requirement*: **Side Effects via Mutation**.
-            *   Controllers (`@riverpod class`) are for **Actions** (void methods modifying backend/state).
-            *   Providers (`@riverpod function`) are for **Data** (fetching/computing).
+2.  **State Management (Riverpod ^3.0.0)**:
+    * **Generator Only**: Use `@riverpod`. No manual `Provider` definitions.
+    * **Declarative**: `ref.watch` everything. No manual `.listen()` inside Notifiers.
+    * **AsyncValue**: Use `.when()`/`.value` for UI. No custom `isLoading` bools.
 
-3.  **Routing (The Navigation)**:
-    * **GoRouter ^17.0.1**: [https://pub.dev/packages/go_router]
-        * *Requirement*: Use `StatefulShellRoute` for persistent bottom navigation.
-        * *Requirement*: Implement Type-safe routes (`GoRouteData`) if possible.
-        * *Requirement*: Auth Guard must use `ref.watch` (Reactive Redirection).
+3.  **Routing (GoRouter ^17.0.1)**:
+    * Type-safe `GoRouteData`.
+    * `StatefulShellRoute` for persistent navigation.
+    * Auth Guard must use `ref.watch` (Reactive Redirection).
 
-4.  **Authentication & Backend**:
-    * **Firebase Auth ^6.1.3**: [https://firebase.google.com/docs/auth/flutter/start]
-    * **Firebase UI Auth**: [https://pub.dev/packages/firebase_ui_auth]
-        * *Requirement*: Use generic `AuthInterceptor` to inject tokens into Python Backend calls.
+4.  **UI & Localization**:
+    * **FlexColorScheme**: Use distinct themes for Light/Dark modes.
+    * **Visual Identity**: Deep Purple (#673AB7). Font: Inter.
+    * **Localization (Intl)**: All strings in `.arb` files.
+    * **Error Hygiene**: NEVER display raw backend strings. Map errors to `AppLocalizations`.
 
-5.  **UI & Localization**:
-    * **FlexColorScheme**: [https://docs.flexcolorscheme.com/]
-        * *Requirement*: Use distinct themes for Light/Dark modes using this package.
-    * **Visual Identity (Brand DNA)**:
-        * *Primary Color*: **Deep Purple** (Seed: #673AB7). Represents Intelligence & AI.
-        * *Typography*: **Inter** (via `google_fonts`). Clean, legible sans-serif for high-density data.
-        * *Style*: Material 3 with professional SaaS aesthetics (rounded corners, high contrast).
-    * **Intl & Flutter Localizations**: [https://docs.flutter.dev/ui/internationalization]
-        * *Requirement*: **Multi-language Support (FI/EN)**. The app must support Finnish and English immediately.
-        * *Requirement*: All strings must be in `.arb` files. No hardcoded strings allowed.
-    * **Error Message Hygiene**: NEVER pass hardcoded string literals to `AppError.validation()` or any error constructor.
-        * *Requirement*: Client-side validation errors must use `AppLocalizations` getters (e.g., `l10n.fieldRequired`).
-        * *Requirement*: Backend errors must be mapped from `error_code` to `.arb` keys. Do not rely on backend `message` strings unless they are guaranteed to be user-facing and localized.
+5.  **Client-Side Exception Handling (Dart)**:
+    Do not just catch backend errors. You must handle client-side transport/logic errors proactively.
+    * **Sealed Class Strategy (Best Practice)**:
+        * Define `sealed class Failure` (e.g., `NetworkFailure`, `ServerFailure`).
+        * **Benefit**: Forces the UI code to use exhaustive `switch` statements. If a new error type is added, the code won't compile until it's handled in the UI.
+    * **Layer Strategy**: Catch exceptions in the **Repository** layer and convert them to a Domain `Failure` subclass.
+    * **Mapping Rules**:
+        * `SocketException` / `OSError` → Return `NetworkFailure()`
+        * `TimeoutException` → Return `TimeoutFailure()`
+        * `FormatException` → Return `ParseFailure()`
+        * `RangeError` / `TypeError` → Return `LogicFailure()`
 
-6.  **Documentation & Code Quality**:
-    * **DartDoc Standard**: [https://dart.dev/effective-dart/documentation]
-        * *Requirement*: "Code-to-Doc" ready. All public Classes, Providers, and Repositories MUST have `///` documentation comments.
-        * *Requirement*: Comments must explain the **WHY** and the **BUSINESS LOGIC**, not just restate the function name.
-        * *Requirement*: Use markdown in comments (e.g., `[MyClass]`, code blocks) to ensure generated HTML docs are navigable.
+--------------------------------------------------------------------------------
+PART 2: BACKEND ARCHITECTURE & API STANDARDS (AAS-2026)
+--------------------------------------------------------------------------------
+**Objective:** Maintain absolute structural and functional consistency across all FastAPI routers in `backend/routers/`.
 
-7.  **Adaptive & Responsive Design (Strict Mandate)**:
-    * **Philosophy**: "Write once, adapt everywhere." The app must look professional on Mobile, Tablet, and Desktop/Web.
-    * **Navigation Architecture**:
-        * *Requirement*: Implement a responsive shell. Use `NavigationBar` (Bottom) for width < 600dp and `NavigationRail` (Left) for width > 600dp.
-    * **Content Layout**:
-        * *Requirement*: **Content Constraint**. NEVER allow text or forms to stretch full-width on large screens. Wrap body content in `Center` > `ConstrainedBox(maxWidth: ~1000)`.
-    * **Grids**:
-        * *Requirement*: Use `SliverGridDelegateWithMaxCrossAxisExtent` to automatically add columns on wider screens.
+6.  **DEFINITION ORDER (Avoid NameErrors)**:
+    Python parses top-to-bottom. Follow this strict order in every Router file to prevent runtime crashes:
+    1.  **Imports**:
+        * Group 1: StdLib (`os`, `logging`) -> Sorted alphabetically.
+        * Group 2: 3rd Party (`fastapi`, `pydantic`) -> Sorted alphabetically.
+          * **REQUIRED**: `from fastapi import APIRouter, HTTPException, status` (Use `status` constants).
+        * Group 3: Local. **CRITICAL**: `from backend.schemas.error import APIError` and `backend.exceptions` MUST be the first local imports.
+    2.  **Logger & Router Instantiation**:
+        * `logger = logging.getLogger(__name__)`
+        * `router = APIRouter(...)`
+    3.  **Pydantic Models**:
+        * Define ALL request/response schemas HERE.
+        * *Reasoning*: Models must be defined before they are referenced in Endpoints or Dependencies.
+    4.  **Dependencies**:
+        * Define local dependency overrides or `Annotated` aliases here.
+    5.  **Helpers**:
+        * Private helper functions (prefixed with `_`).
+    6.  **Endpoints**:
+        * The route handlers (CRUD or functional grouping).
 
-8.  **Logging & Observability Mandate (Backend)**:
-    * **No Manual Printing**: `print()` usage is FORBIDDEN in production code. Use the standard `logging` module.
-    * **Standard Logger**: Always instantiate `logger = logging.getLogger(__name__)`.
-    * **Routing Policy**:
-        * **INFO/DEBUG/WARNING**: Routed to `logging_config.py` handlers (File: `backend_debug.log` / Stream).
-        * **ERROR/CRITICAL**: Must include `exc_info=True` for stack traces.
-    *   "Environment Config": Log file location is controlled via `LOG_FILE_NAME` env var.
-    *   "Cloud-Native": Assume logs are scraped from `stdout`. File writing is secondary/local-only.
+7.  **Coding Standards (Python 3.12+)**:
+    * **No Magic Numbers**: usage of raw integers for HTTP codes (e.g., `404`) is **FORBIDDEN**. You must use `status.HTTP_404_NOT_FOUND`.
+    * **Strict Typing**: Use `typing.Annotated` for all FastAPI dependencies.
+    * **Response Models**: Never return `dict`. Always use Pydantic models.
+    * **Tooling**: Code must pass `ruff check`, `ruff format`, and `mypy`.
 
-9.  **Backend Code Quality & Standards (Python)**:
-    *   **Linter**: Code MUST pass `ruff check` with zero errors. No exceptions.
-    *   **Formatter**: Code MUST be formatted via `ruff format`.
-    *   **Pre-Commit**: Always run `uv run ruff check .` and `uv run pytest` before submitting changes.
-    *   **Mypy Type Checking**: Code MUST pass `uv run mypy backend` with zero errors.
+8.  **Universal Error Handling Strategy (The "Safety Net")**:
+    Errors are not just HTTP responses; they are data structures. We use a unified approach for both synchronous API failures and asynchronous background task failures.
 
-10. **Database Strategy (Hybrid Mandate)**:
-    *   **Source of Truth**: Treat Firestore as the primary design target for data models.
-    *   **Async-First**: All repository methods MUST be designed for Firestore's async nature first.
-    *   **Dual Support**: However, you MUST maintain functional TinyDB support for local development and testing alongside Firestore. Both databases are used for everything.
-    
-11. **Cloud-Native & Hosting Strategy (Long-Term Mandate)**:
-    *   **Metric**: "Design for the Cloud, Run Locally."
-    *   **Goal**: The long-term objective is to deploy a fully hosted Cloud SaaS solution for both the Flutter Client and the Backend.
-    *   **Requirement**: The software MUST implement this readiness *immediately*.
-    *   **Implication**: Strict Statelessness. Do not rely on local filesystem for shared state (use Storage/DB). Do not hardcode `localhost` references in production logic. Ensure containerization compatibility.
+    * **A. The Universal Schema (`APIError`)**:
+        * ALL structural errors must conform to `backend.schemas.error.APIError`.
+        * **Usage in Endpoints**: Raised via `HTTPException(detail="CODE")`.
+        * **Usage in Background Tasks**: Serialize exceptions into an `APIError` model and store in DB.
 
-ARCHITECTURAL RULES (ENFORCED):
-1.  **Monorepo Context**: You are working in `client_app/`. The backend is in `backend/`.
-2.  **API Strategy**: The Flutter app DOES NOT touch the database directly. It talks to the Python API (`http://localhost:8000`).
-3.  **Code Style**:
-    * Use `fpdart` for functional error handling. **Repositories MUST return `Future<Either<AppError, T>>` instead of throwing exceptions.**
-    * Prioritize Composition over Inheritance.
-    * Always verify imports (no relative imports for different feature modules).
+    * **B. The "Echo Protocol" (Log-First Mandate)**:
+        The Error Code Term used in `logger` calls IS the binding contract for the entire stack.
+        
+        * **STRICT RULE**: You are FORBIDDEN from raising an exception without **immediately preceding it** with a log entry (`logger.error`, `logger.warning`).
+        * **SYNC CHECK**: The string code used in the logger MUST match the exception code exactly.
 
-5.  **Testing Strategy (Strict Mandate)**:
-    *   **Library**: **Mocktail (^1.0.4+)** is the ONLY permitted mocking library for new tests.
-    *   **Legacy**: `mockito` is DEPRECATED. Do not add new `mockito` dependencies or generatable mocks. Refactor to `mocktail` when touching legacy tests.
-    *   **Why**: No code generation (`build_runner`) required for tests, type-safe `any()`, and cleaner API.
-    *   **Pattern**: Register fallbacks in `setUpAll` or `setUp` if needed. Use `registerFallbackValue`.
+        * ❌ **Bad (Silent Failure / Magic Numbers)**:
+            ```python
+            # Missing log, Magic Number 400
+            raise HTTPException(400, detail="PAYMENT_ERROR") 
+            ```
+        * ✅ **Required Standard**:
+            ```python
+            # 1. Define the Truth
+            error_code = "STRIPE_PAYMENT_DECLINED"
+            
+            # 2. LOG FIRST (Mandatory)
+            logger.error(f"{error_code}: Card rejected. Details: {str(e)}", exc_info=True)
+            
+            # 3. RAISE SECOND (With CONSTANTS and SAME Code)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail=error_code
+            )
+            ```
 
-12. **API & Error Handling Mandate (Strict Protocol)**:
-    *   **Backend Implementation Rules**:
-        *   **BANNED**: NEVER raise raw Python exceptions (`ValueError`, `RuntimeError`, `FileNotFoundError`) for business logic or domain failures.
-            *   *Why*: They produce generic `500 Internal Server Error` responses with `INTERNAL_SERVER_ERROR` codes, hiding the true cause from the client.
-        *   **REQUIRED**: Always raise distinct classes from `backend.exceptions`:
-            *   `ResourceNotFoundError` (404): When an ID is not found.
-            *   `ConfigurationError` (500): When settings/env/secrets are missing (Stop immediately).
-            *   `FatalInterruption` (500): When a workflow step fails critically.
-            *   `AppException` (Custom): For all other logical failures.
-        *   **Logging vs. Raising**:
-            *   **Raising**: Is for *Control Flow* (Stopping execution).
-            *   **Logging**: Is for *Observability* (Debugging).
-            *   *Rule*: If you `raise`, the Global Exception Handler (`backend/main.py`) will automatically log the error. You do NOT need to manually log before raising, unless adding specific context variables.
-    *   **The Contract (JSON Schema)**:
-        *   All errors return: `{ "error_code": "SCREAMING_SNAKE_CASE", "message": "Human readable", "details": {...} }`.
-        *   `error_code` is derived automatically from the Exception Class Name (e.g. `BudgetExceededError` -> `BUDGET_EXCEEDED_ERROR`).
-    *   **Frontend Consumption Rules**:
-        *   **BANNED**: Detecting errors by regex-matching the `message` string (e.g. `if (e.message.contains("Not Found"))`).
-        *   **REQUIRED**: Switch on the standardized `error_code` (e.g. `if (e.code == 'RESOURCE_NOT_FOUND_ERROR')`).
-        *   **REQUIRED**: All API calls must be wrapped in a Repository handler that maps Dio `Response` to `AppError` domain objects.
+    * **C. Exception Mapping Protocol (Non-HTTP Errors)**:
+        You must catch standard Python exceptions and map them to HTTP Status Codes + Domain Error Codes. Do not let 500 Internal Server Errors happen for predictable logic errors.
 
-GOAL:
-Build a production-grade, multi-tenant SaaS client. If a solution implies technical debt or "the old way of doing things", REJECT IT and propose the scalable, modern solution based on the documentation links above.
+        *Example Flow:*
+        ```python
+        try:
+            perform_logic()
+        except ValueError as e:
+            # LOG before Raising!
+            logger.error(f"DOMAIN_INVALID_VALUE: Logic failed - {e}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail="DOMAIN_INVALID_VALUE"
+            )
+        ```
 
-IMPORTANT:
-Do not implement or plan to implement any functions or features based on SYSTEM CONTEXT & ARCHITECTURE MANDATE (2026 Edition) at this stage. This document is provided for CONTEXT and GUIDANCE ONLY to ensure future code aligns with the architecture.
+        | Python Exception | Reason | Mapped Status Constant | Example Code |
+        | :--- | :--- | :--- | :--- |
+        | `ValueError` | Invalid Argument | `status.HTTP_400_BAD_REQUEST` | `DOMAIN_INVALID_VALUE` |
+        | `KeyError` / `IndexError` | Missing Resource | `status.HTTP_404_NOT_FOUND` | `DOMAIN_RESOURCE_NOT_FOUND` |
+        | `TypeError` | Contract Violation | `status.HTTP_422_UNPROCESSABLE_ENTITY` | `DOMAIN_DATA_CONTRACT_VIOLATION` |
+        | `json.JSONDecodeError` | Bad Payload | `status.HTTP_400_BAD_REQUEST` | `REQUEST_MALFORMED_JSON` |
+        | `TimeoutError` | Latency | `status.HTTP_504_GATEWAY_TIMEOUT` | `SYSTEM_OPERATION_TIMEOUT` |
+        | `NotImplementedError` | WIP Feature | `status.HTTP_501_NOT_IMPLEMENTED` | `SYSTEM_FEATURE_NOT_IMPLEMENTED` |
+        | `PermissionError` | Security | `status.HTTP_403_FORBIDDEN` | `AUTH_PERMISSION_DENIED` |
 
+--------------------------------------------------------------------------------
+PART 3: SHARED PROTOCOLS & INTEGRATION
+--------------------------------------------------------------------------------
+
+9.  **Global API Error Contract (The Bridge)**:
+    * **The Chain of Truth**:
+        1.  **Backend Log**: `logger.error("USER_SYNC_FAILED: ...")`
+        2.  **API Response**: `{ "error_code": "USER_SYNC_FAILED", ... }` (via `APIError`).
+        3.  **Flutter Client**: `if (failure.code == 'USER_SYNC_FAILED')`
+        4.  **UI Text**: `l10n.userSyncFailed`
+    * **Frontend Consumption**:
+        * **BANNED**: Regex-matching the `message` string.
+        * **REQUIRED**: Logic MUST switch on the `error_code` (The One Truth).
+
+10. **Error Code Taxonomy (Naming Standard)**:
+    * **Format**: `SCREAMING_SNAKE_CASE`
+    * **Structure**: `DOMAIN_ACTION_REASON`
+    * **Examples**: `AUTH_LOGIN_BAD_CREDENTIALS`, `BILLING_INVOICE_GENERATION_FAILED`.
+    * **Forbidden**: Generic codes like `ERROR`, `FAILED`, or `ValueError`.
+
+11. **Refactoring Checklist**:
+    1.  [ ] **Reorder**: Verify Definition Order matches Section 6 exactly.
+    2.  [ ] **Imports**: Ensure `from fastapi import status` is used.
+    3.  [ ] **No Magic Numbers**: Search for raw integers (400, 404, 500) and replace with `status.HTTP_...`.
+    4.  [ ] **Log-First Rule**: **CRITICAL**. Verify that NO exception is raised without a preceding `logger` call.
+    5.  [ ] **Dart Sealed Classes**: Verify `Failure` class is sealed and UI uses `switch`.
 
 # 🛑 STOP! READ THIS CAREFULLY 🛑
-
 **THIS DOCUMENT IS A CONTEXT REFERENCE ONLY.**
-
 **DO NOT START ANY IMPLEMENTATION OR GENERATE CODE BASED ON THIS FILE YET.**
-
 **STORE THIS CONTEXT IN YOUR MEMORY AND AWAIT FURTHER INSTRUCTIONS.**

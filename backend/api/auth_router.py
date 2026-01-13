@@ -4,18 +4,15 @@ This module provides endpoints for user login (token verification), registration
 profile management, and organization administration.
 """
 
-from fastapi import APIRouter
+import logging
+from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 
 from backend.dependencies import AuthServiceDep, CurrentUserDep
-from backend.exceptions import (
-    AppException,
-    AuthenticationError,
-    ConflictError,
-    PermissionDeniedError,
-    ResourceNotFoundError,
-)
 from backend.models.auth import Organization, OrganizationCreate, User, UserCreate, UserRole, UserUpdate
+from backend.schemas.error import APIError
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["Authentication & Users"])
 
@@ -92,7 +89,12 @@ async def verify_user_token(payload: TokenPayload, auth_service: AuthServiceDep)
             debug_msg="Authenticated via Firebase" if auth_service.use_firebase else "Authenticated via Mock",
         )
     except ValueError as e:
-        raise AuthenticationError(str(e)) from e
+        logger.warning(f"AUTH_INVALID_TOKEN: Token verification failed: {e}")
+        raise HTTPException(status_code=401, detail="AUTH_INVALID_TOKEN") from e
+    except Exception as e:
+        error_code = "AUTH_LOGIN_FAILED"
+        logger.error(f"{error_code}: Unexpected login failure: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=error_code) from e
 
 
 @router.post("/impersonate", response_model=ImpersonationResponse)
@@ -111,13 +113,16 @@ async def impersonate_user(request: ImpersonationRequest, current_user: CurrentU
         HTTPException: If permission denied (403) or target not found (404).
     """
     requester = auth_service.repo.get_by_uid(current_user.uid)
-    requester = auth_service.repo.get_by_uid(current_user.uid)
     if not requester or requester.role != UserRole.ROOT:
-        raise PermissionDeniedError("Only ROOT can impersonate users.")
+        error_code = "PERMISSION_DENIED_IMPERSONATION"
+        logger.warning(f"{error_code}: User {current_user.uid} attempted to impersonate without Root")
+        raise HTTPException(status_code=403, detail=error_code)
 
     target = auth_service.repo.get_by_uid(request.target_uid)
     if not target:
-        raise ResourceNotFoundError("User", request.target_uid)
+        error_code = "USER_NOT_FOUND"
+        logger.warning(f"{error_code}: Impersonation target {request.target_uid} not found")
+        raise HTTPException(status_code=404, detail=error_code)
 
     token = auth_service.create_impersonation_token(target.uid)
     return ImpersonationResponse(access_token=token)
@@ -150,17 +155,26 @@ async def create_user(user_data: UserCreate, current_user: CurrentUserDep, auth_
     # Authorization checks are handled inside auth_service._enforce_hierarchy,
     # but we need to fetch the full Creator User object first.
     creator_full = auth_service.repo.get_by_uid(current_user.uid)
-    creator_full = auth_service.repo.get_by_uid(current_user.uid)
     if not creator_full:
-        raise AuthenticationError("Creator not found")
+        error_code = "AUTH_USER_NOT_FOUND"
+        logger.warning(f"{error_code}: Creator {current_user.uid} not found")
+        raise HTTPException(status_code=401, detail=error_code)
 
     try:
         new_user = await auth_service.create_user(creator_full.uid, user_data)
         return new_user
     except PermissionError as e:
-        raise PermissionDeniedError(str(e)) from e
+         error_code = "PERMISSION_DENIED"
+         logger.warning(f"{error_code}: {e}")
+         raise HTTPException(status_code=403, detail=error_code) from e
     except ValueError as e:
-        raise AppException(str(e), status_code=400) from e
+         error_code = "INVALID_USER_DATA"
+         logger.warning(f"{error_code}: {e}")
+         raise HTTPException(status_code=400, detail=error_code) from e
+    except Exception as e:
+         error_code = "USER_CREATION_FAILED"
+         logger.error(f"{error_code}: {e}", exc_info=True)
+         raise HTTPException(status_code=500, detail=error_code) from e
 
 
 @router.post("/organizations", response_model=Organization)
@@ -180,12 +194,16 @@ async def create_organization(org_data: OrganizationCreate, current_user: Curren
     """
     creator = auth_service.repo.get_by_uid(current_user.uid)
     if not creator or creator.role != UserRole.ROOT:
-        raise PermissionDeniedError("Only Root can create Organizations.")
+        error_code = "PERMISSION_DENIED_ROOT_ONLY"
+        logger.warning(f"{error_code}: User {current_user.uid} attempted to create org")
+        raise HTTPException(status_code=403, detail=error_code)
 
     try:
         return await auth_service.create_organization(creator.uid, org_data)
     except Exception as e:
-        raise AppException(str(e), status_code=400) from e
+        error_code = "ORGANIZATION_CREATION_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise HTTPException(status_code=400, detail=error_code) from e
 
 
 @router.get("/users", response_model=list[User])
@@ -201,7 +219,9 @@ async def list_users(current_user: CurrentUserDep, auth_service: AuthServiceDep)
     """
     requester = auth_service.repo.get_by_uid(current_user.uid)
     if not requester:
-        raise AuthenticationError("User not found")
+        error_code = "AUTH_USER_NOT_FOUND"
+        logger.warning(f"{error_code}: User {current_user.uid} not found")
+        raise HTTPException(status_code=401, detail=error_code)
 
     all_users = auth_service.repo.list_all()
 
@@ -247,17 +267,23 @@ async def delete_user(uid: str, current_user: CurrentUserDep, auth_service: Auth
         await auth_service.delete_user(current_user.uid, uid)
         return {"status": "deleted", "uid": uid}
     except PermissionError as e:
-        raise PermissionDeniedError(str(e)) from e
+        error_code = "PERMISSION_DENIED"
+        logger.warning(f"{error_code}: {e}")
+        raise HTTPException(status_code=403, detail=error_code) from e
     except ValueError as e:
         # Business logic errors (Last Admin) usually 400
-        raise AppException(str(e), status_code=400) from e
+        error_code = "INVALID_USER_DATA"
+        logger.warning(f"{error_code}: {e}")
+        raise HTTPException(status_code=400, detail=error_code) from e
     except RuntimeError as e:
         if "LAST_ADMIN_PROTECTION" in str(e):
-            raise ConflictError(
-                message=str(e),
-                details={"error_code": "LAST_ADMIN_PROTECTION", "message": str(e)},
-            ) from e
-        raise e
+             error_code = "LAST_ADMIN_PROTECTION"
+             logger.warning(f"{error_code}: {e}")
+             raise HTTPException(status_code=409, detail=error_code) from e
+        
+        error_code = "USER_DELETION_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=error_code) from e
 
 
 @router.patch("/users/{uid}", response_model=User)
@@ -277,12 +303,23 @@ async def update_user(uid: str, user_update: UserUpdate, current_user: CurrentUs
         updated_user = await auth_service.update_user(current_user.uid, uid, user_update)
         return updated_user
     except PermissionError as e:
-        raise PermissionDeniedError(str(e)) from e
+        error_code = "PERMISSION_DENIED"
+        logger.warning(f"{error_code}: {e}")
+        raise HTTPException(status_code=403, detail=error_code) from e
     except ValueError as e:
         # User not found usually ValueError in update_user
-        raise ResourceNotFoundError("User", uid) from e
-    except ConflictError as e:
-        raise e
+        error_code = "USER_NOT_FOUND"
+        logger.warning(f"{error_code}: {e}")
+        raise HTTPException(status_code=404, detail=error_code) from e
+    except Exception as e:
+        if "LAST_ADMIN_PROTECTION" in str(e):
+             error_code = "LAST_ADMIN_PROTECTION"
+             logger.warning(f"{error_code}: {e}")
+             raise HTTPException(status_code=409, detail=error_code) from e
+        
+        error_code = "USER_UPDATE_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=error_code) from e
 
 
 @router.get("/me", response_model=User)
@@ -298,5 +335,7 @@ async def get_my_profile(current_user: CurrentUserDep, auth_service: AuthService
     """
     user = auth_service.repo.get_by_uid(current_user.uid)
     if not user:
-        raise ResourceNotFoundError("User", current_user.uid)
+        error_code = "AUTH_USER_NOT_FOUND"
+        logger.warning(f"{error_code}: Profile for {current_user.uid} not found")
+        raise HTTPException(status_code=404, detail=error_code)
     return user

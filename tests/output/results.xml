@@ -1,1 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="3" time="8.226" timestamp="2026-01-13T04:43:09.730616+02:00" hostname="Laptop-Risto"><testcase classname="tests.test_builder_api" name="test_list_agents_config" time="2.720" /><testcase classname="tests.test_builder_api" name="test_workflow_crud_lifecycle" time="2.783" /><testcase classname="tests.test_builder_api" name="test_orphan_step_deletion" time="2.665" /></testsuite></testsuites>
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="1" failures="0" skipped="0" tests="1" time="0.684" timestamp="2026-01-13T12:10:00.509480+02:00" hostname="Laptop-Risto"><testcase classname="" name="tests.test_admin_error_compliance" time="0.000"><error message="collection failure">tests\test_admin_error_compliance.py:12: in &lt;module&gt;
+    @pytest.mark.asyncio
+     ^^^^^^
+E   NameError: name 'pytest' is not defined</error></testcase></testsuite></testsuites>

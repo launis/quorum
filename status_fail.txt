@@ -1,0 +1,2 @@
+Status: 400
+Body: {'error_code': 'INVALID_USER_DATA', 'message': 'Invalid User Data', 'details': None}

@@ -560,7 +560,7 @@
           "Admin"
         ],
         "summary": "Get Assignable Roles",
-        "description": "Returns the list of roles the currently authenticated user is allowed to assign.\n\n- **Root**: Can assign ANY role (including ROOT).\n- **Admin**: Can assign ADMIN, MANAGER, MEMBER, VIEWER. Cannot assign ROOT.",
+        "description": "Returns the list of roles the currently authenticated user is allowed to assign.",
         "operationId": "get_assignable_roles_admin_users_roles_get",
         "parameters": [
           {
@@ -582,7 +582,7 @@
         ],
         "responses": {
           "200": {
-            "description": "List of roles the current user can assign.",
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
@@ -614,7 +614,7 @@
           "Admin"
         ],
         "summary": "Create User",
-        "description": "Creates a new user.\n\n- **Root**: Can create in any organization.\n- **Admin**: Can only create in their own organization.",
+        "description": "Creates a new user under the active organization constraints.",
         "operationId": "create_user_admin_users_post",
         "parameters": [
           {
@@ -645,11 +645,13 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "The created user.",
+          "201": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/UserAdminView"
+                }
               }
             }
           },
@@ -672,7 +674,7 @@
           "Admin"
         ],
         "summary": "Update User",
-        "description": "Updates an existing user.\n\n- **Root**: Can update anyone.\n- **Admin**: Can only update users in their organization (subject to hierarchy).",
+        "description": "Updates an existing user profile.",
         "operationId": "update_user_admin_users__user_id__patch",
         "parameters": [
           {
@@ -681,8 +683,10 @@
             "required": true,
             "schema": {
               "type": "string",
+              "description": "Target User UID",
               "title": "User Id"
-            }
+            },
+            "description": "Target User UID"
           },
           {
             "name": "authorization",
@@ -713,10 +717,12 @@
         },
         "responses": {
           "200": {
-            "description": "The updated user.",
+            "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/UserAdminView"
+                }
               }
             }
           },
@@ -737,7 +743,7 @@
           "Admin"
         ],
         "summary": "Delete User",
-        "description": "Deletes a user.\n\n- **Root**: Can delete anyone (except root_master).\n- **Admin**: Can only delete users in their organization.\n- **Protection**: Cannot delete the last Admin of an organization.",
+        "description": "Deletes a user (Enforces Last Admin Protection).",
         "operationId": "delete_user_admin_users__user_id__delete",
         "parameters": [
           {
@@ -746,8 +752,10 @@
             "required": true,
             "schema": {
               "type": "string",
+              "description": "Target User UID",
               "title": "User Id"
-            }
+            },
+            "description": "Target User UID"
           },
           {
             "name": "authorization",
@@ -768,10 +776,12 @@
         ],
         "responses": {
           "200": {
-            "description": "Confirmation of deletion.",
+            "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/GenericActionResponse"
+                }
               }
             }
           },
@@ -794,7 +804,6 @@
           "Admin"
         ],
         "summary": "Export Seed Data",
-        "description": "Triggers the seed data export process via AdministrationService in the background.\n\nArgs:\n    background_tasks (BackgroundTasks): FastAPI background task manager.\n    repo (RepositoryDep): The async repository dependency.\n\nReturns:\n    dict: A dictionary containing the job ID and status.",
         "operationId": "export_seed_data_admin_export_seed_data_post",
         "parameters": [
           {
@@ -816,10 +825,12 @@
         ],
         "responses": {
           "200": {
-            "description": "Confirmation that the export task has started.",
+            "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/AdminTaskResponse"
+                }
               }
             }
           },
@@ -842,7 +853,6 @@
           "Admin"
         ],
         "summary": "Rebuild Database",
-        "description": "Triggers a complete database rebuild (drop and re-seed) in the background.\n\nArgs:\n    background_tasks (BackgroundTasks): FastAPI background task manager.\n    repo (RepositoryDep): The async repository dependency.\n\nReturns:\n    dict: A dictionary containing the job ID and status.",
         "operationId": "rebuild_database_admin_database_rebuild_post",
         "parameters": [
           {
@@ -864,10 +874,12 @@
         ],
         "responses": {
           "200": {
-            "description": "Confirmation that the rebuild task has started.",
+            "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/AdminTaskResponse"
+                }
               }
             }
           },
@@ -890,7 +902,6 @@
           "Admin"
         ],
         "summary": "Reset Mock Database",
-        "description": "Triggers 'rebuild_mock_db.py' in the background.\n\nArgs:\n    background_tasks (BackgroundTasks): FastAPI background task manager.\n    repo (RepositoryDep): Database dependency.\n\nReturns:\n    dict: Job status and ID.",
         "operationId": "reset_mock_db_admin_database_reset_mock_post",
         "parameters": [
           {
@@ -912,10 +923,12 @@
         ],
         "responses": {
           "200": {
-            "description": "Confirmation that the Mock DB reset task has started.",
+            "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/AdminTaskResponse"
+                }
               }
             }
           },
@@ -937,8 +950,7 @@
         "tags": [
           "Admin"
         ],
-        "summary": "Reset Production Database (Local)",
-        "description": "Triggers 'rebuild_prod_db.py' in the background.\n\nWARNING: This wipes the local production database.\n\nArgs:\n    background_tasks (BackgroundTasks): FastAPI background task manager.\n    repo (RepositoryDep): Database dependency.\n\nReturns:\n    dict: Job status and ID.",
+        "summary": "Reset Production Database",
         "operationId": "reset_prod_db_admin_database_reset_prod_post",
         "parameters": [
           {
@@ -960,10 +972,12 @@
         ],
         "responses": {
           "200": {
-            "description": "Confirmation that the Prod (TinyDB) reset task has started.",
+            "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/AdminTaskResponse"
+                }
               }
             }
           },
@@ -985,8 +999,7 @@
         "tags": [
           "Admin"
         ],
-        "summary": "Reset Firestore Database",
-        "description": "Triggers 'seed_firestore.py' in the background.\n\nWARNING: This wipes the Firestore database!\n\nArgs:\n    background_tasks (BackgroundTasks): FastAPI background task manager.\n    repo (RepositoryDep): Database dependency.\n\nReturns:\n    dict: Job status and ID.",
+        "summary": "Reset Firestore",
         "operationId": "reset_firestore_db_admin_database_reset_firestore_post",
         "parameters": [
           {
@@ -1008,10 +1021,12 @@
         ],
         "responses": {
           "200": {
-            "description": "Confirmation that the Firestore reset task has started.",
+            "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/AdminTaskResponse"
+                }
               }
             }
           },
@@ -1034,14 +1049,16 @@
           "Admin"
         ],
         "summary": "Run System Self-Test",
-        "description": "Executes a quick self-test of the LLM connection and Database state.\n\nArgs:\n    db_client (DatabaseDep): Database dependency.\n    llm_provider (LLMProvider): LLM provider dependency.\n\nReturns:\n    dict: A health report with 'llm_status' and 'db_status'.",
+        "description": "Executes a self-test of LLM and Database connectivity.",
         "operationId": "run_self_test_admin_self_test_post",
         "responses": {
           "200": {
-            "description": "A health report detailing LLM and Database connectivity.",
+            "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/SelfTestResponse"
+                }
               }
             }
           }
@@ -1054,7 +1071,6 @@
           "Admin"
         ],
         "summary": "Get Task Status",
-        "description": "Retrieves the progress/status of a specific background task.\n\nArgs:\n    job_id (str): The unique identifier of the job.\n\nReturns:\n    dict: The status object (e.g., {'status': 'running', 'percent': 50}).\n\nRaises:\n    HTTPException: If the job ID is not found.",
         "operationId": "get_task_status_admin_status__job_id__get",
         "parameters": [
           {
@@ -1063,18 +1079,20 @@
             "required": true,
             "schema": {
               "type": "string",
-              "description": "UUID of the background job.",
+              "description": "UUID of the background job",
               "title": "Job Id"
             },
-            "description": "UUID of the background job."
+            "description": "UUID of the background job"
           }
         ],
         "responses": {
           "200": {
-            "description": "The current status and progress of the background task.",
+            "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/TaskStatusResponse"
+                }
               }
             }
           },
@@ -1097,7 +1115,7 @@
           "Admin"
         ],
         "summary": "Get Ingestion Status (Legacy)",
-        "description": "Legacy endpoint for checking ingestion status. Redirects to get_task_status.\n\nArgs:\n    job_id (str): The unique identifier of the job.\n\nReturns:\n    dict: The status object.",
+        "description": "Legacy endpoint redirection.",
         "operationId": "get_ingestion_status_admin_knowledge_base_status__job_id__get",
         "deprecated": true,
         "parameters": [
@@ -1107,15 +1125,15 @@
             "required": true,
             "schema": {
               "type": "string",
-              "description": "UUID of the background job.",
+              "description": "UUID of the background job",
               "title": "Job Id"
             },
-            "description": "UUID of the background job."
+            "description": "UUID of the background job"
           }
         ],
         "responses": {
           "200": {
-            "description": "The current status of the ingestion task.",
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
@@ -1141,7 +1159,7 @@
           "Admin"
         ],
         "summary": "Ingest from File (Path)",
-        "description": "Starts the process of ingesting a document into the knowledge base from a local file path.\n\nArgs:\n    request (IngestRequest): Ingestion configuration (file path, reset flag).\n    background_tasks (BackgroundTasks): FastAPI background task manager.\n    repo (RepositoryDep): Database dependency.\n    llm_provider (LLMProviderFast): LLM provider for embedding generation.\n\nReturns:\n    dict: Job status, ID, start confirmation message.",
+        "description": "Triggers ingestion from a local file path.",
         "operationId": "ingest_knowledge_base_admin_knowledge_base_ingest_post",
         "parameters": [
           {
@@ -1173,10 +1191,12 @@
         },
         "responses": {
           "200": {
-            "description": "Confirmation that ingestion has started.",
+            "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/AdminTaskResponse"
+                }
               }
             }
           },
@@ -1199,7 +1219,7 @@
           "Admin"
         ],
         "summary": "Upload and Ingest File",
-        "description": "Uploads a file and triggers the ingestion process.\n\nArgs:\n    file (UploadFile): The binary file to ingest.\n    reset_db (bool): If True, clear KB before ingestion.\n    background_tasks (BackgroundTasks): Background task manager.\n    repo (RepositoryDep): Database dependency.\n    llm_provider (LLMProviderFast): LLM provider dependency.\n\nReturns:\n    dict: Job status, ID, filename, and reset flag.",
+        "description": "Uploads and ingests a file into the knowledge base.",
         "operationId": "upload_knowledge_base_admin_knowledge_base_upload_post",
         "parameters": [
           {
@@ -1208,11 +1228,11 @@
             "required": false,
             "schema": {
               "type": "boolean",
-              "description": "Whether to clear the KB before ingestion.",
+              "description": "Clear KB first.",
               "default": false,
               "title": "Reset Db"
             },
-            "description": "Whether to clear the KB before ingestion."
+            "description": "Clear KB first."
           },
           {
             "name": "authorization",
@@ -1243,10 +1263,12 @@
         },
         "responses": {
           "200": {
-            "description": "Confirmation that upload ingestion has started.",
+            "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/AdminTaskResponse"
+                }
               }
             }
           },
@@ -1269,14 +1291,20 @@
           "Admin"
         ],
         "summary": "List Banned Phrases",
-        "description": "Retrieves all banned phrases from the database.\n\nArgs:\n    repo (RepositoryDep): Database dependency.\n\nReturns:\n    list[dict]: List of banned phrase objects (e.g. {'phrase': 'bad word'}).",
         "operationId": "get_banned_phrases_admin_banned_phrases_get",
         "responses": {
           "200": {
-            "description": "A list of all currently banned phrases.",
+            "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "type": "array",
+                  "title": "Response Get Banned Phrases Admin Banned Phrases Get"
+                }
               }
             }
           }
@@ -1287,7 +1315,6 @@
           "Admin"
         ],
         "summary": "Add Banned Phrase",
-        "description": "Adds a new phrase to the blocklist.\n\nArgs:\n    request (BannedPhraseRequest): The phrase to add.\n    repo (RepositoryDep): Database dependency.\n\nReturns:\n    dict: Status and the added phrase.\n\nRaises:\n    HTTPException: If the phrase is too short (400).",
         "operationId": "add_banned_phrase_admin_banned_phrases_post",
         "requestBody": {
           "content": {
@@ -1301,10 +1328,12 @@
         },
         "responses": {
           "200": {
-            "description": "Confirmation of the added phrase.",
+            "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/BannedPhraseResponse"
+                }
               }
             }
           },
@@ -1327,7 +1356,6 @@
           "Admin"
         ],
         "summary": "Remove Banned Phrase",
-        "description": "Remove a phrase from the banned list.\n\nArgs:\n    db (DatabaseDep): Database dependency.\n    phrase (str): The phrase string to remove.\n\nReturns:\n    dict: Status and the removed phrase.\n\nRaises:\n    HTTPException: If deletion fails (500).",
         "operationId": "delete_banned_phrase_admin_banned_phrases__phrase__delete",
         "parameters": [
           {
@@ -1336,18 +1364,20 @@
             "required": true,
             "schema": {
               "type": "string",
-              "description": "The URL-encoded phrase to delete.",
+              "description": "Phrase to remove",
               "title": "Phrase"
             },
-            "description": "The URL-encoded phrase to delete."
+            "description": "Phrase to remove"
           }
         ],
         "responses": {
           "200": {
-            "description": "Confirmation of removal.",
+            "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/BannedPhraseResponse"
+                }
               }
             }
           },
@@ -1370,13 +1400,13 @@
           "Admin"
         ],
         "summary": "Generate Banned Phrases",
-        "description": "Uses the LLM to generate new potential banned phrases based on common adversarial patterns.\n\nArgs:\n    request (GenerateBannedPhrasesRequest): Configuration for generation (e.g. language).\n    repo (RepositoryDep): Database dependency.\n    llm_provider (LLMProvider): LLM provider dependency.\n\nReturns:\n    dict: Report containing added phrases.\n\nRaises:\n    HTTPException: If generation fails.",
+        "description": "Uses LLM to generate banned phrases.",
         "operationId": "generate_banned_phrases_admin_banned_phrases_generate_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GenerateBannedPhrasesRequest"
+                "$ref": "#/components/schemas/GeneratePhrasesRequest"
               }
             }
           },
@@ -1384,10 +1414,12 @@
         },
         "responses": {
           "200": {
-            "description": "A list of newly generated and added banned phrases.",
+            "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/GeneratedPhrasesResponse"
+                }
               }
             }
           },
@@ -1410,7 +1442,7 @@
           "Admin"
         ],
         "summary": "List Organization Users",
-        "description": "Retrieve all users for a specific organization (Admin View).\n\nPermissions:\n- ROOT: Can view any organization.\n- ADMIN: Can view only their own organization.\n- MEMBER/MANAGER: Forbidden.",
+        "description": "Retrieve all users for a specific organization (Admin View).",
         "operationId": "list_organization_users_admin_org__organization_id__users_get",
         "parameters": [
           {
@@ -1419,8 +1451,10 @@
             "required": true,
             "schema": {
               "type": "string",
+              "description": "Organization ID",
               "title": "Organization Id"
-            }
+            },
+            "description": "Organization ID"
           },
           {
             "name": "authorization",
@@ -1441,7 +1475,7 @@
         ],
         "responses": {
           "200": {
-            "description": "List of all users in the specified organization.",
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
@@ -1473,7 +1507,6 @@
           "Admin"
         ],
         "summary": "Update User Role",
-        "description": "Updates the role of a user.\n\nEnforces stricter RBAC than standard update:\n- Initiator must have higher/equal hierarchy than Target.\n- Initiator must have higher/equal hierarchy than New Role.\n- Cannot demote valid Last Admin.",
         "operationId": "update_user_role_admin_user__user_id__role_put",
         "parameters": [
           {
@@ -1482,8 +1515,10 @@
             "required": true,
             "schema": {
               "type": "string",
+              "description": "User ID",
               "title": "User Id"
-            }
+            },
+            "description": "User ID"
           },
           {
             "name": "authorization",
@@ -1514,7 +1549,7 @@
         },
         "responses": {
           "200": {
-            "description": "The updated user in admin view.",
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
@@ -1542,7 +1577,7 @@
           "Admin"
         ],
         "summary": "Get Queue Statistics",
-        "description": "Retrieves current metrics from the ArQ Redis queue.\n\nPermissions:\n- ROOT: Allowed.\n- Other: Forbidden.",
+        "description": "Retrieves current metrics from the ArQ Redis queue.",
         "operationId": "get_queue_stats_admin_system_queue_get",
         "parameters": [
           {
@@ -1564,7 +1599,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Current statistics for the background job queue.",
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
@@ -4843,6 +4878,74 @@
   },
   "components": {
     "schemas": {
+      "APIError": {
+        "properties": {
+          "error_code": {
+            "type": "string",
+            "title": "Error Code"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "details": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          }
+        },
+        "type": "object",
+        "required": [
+          "error_code",
+          "message"
+        ],
+        "title": "APIError",
+        "description": "Standardized API Error response model.\n\nEnforces the 'API & Error Contract' defined in flutterpromptohje.md."
+      },
+      "AdminTaskResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "started",
+              "starting",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "job_id": {
+            "type": "string",
+            "title": "Job Id"
+          },
+          "task": {
+            "type": "string",
+            "title": "Task"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "job_id",
+          "task"
+        ],
+        "title": "AdminTaskResponse",
+        "description": "Standard response for initiating background admin tasks."
+      },
       "AuditEvent": {
         "properties": {
           "id": {
@@ -4903,16 +5006,34 @@
         "properties": {
           "phrase": {
             "type": "string",
+            "minLength": 2,
             "title": "Phrase",
-            "description": "The text phrase that should be banned from user inputs or agent outputs."
+            "description": "The phrase to ban."
           }
         },
         "type": "object",
         "required": [
           "phrase"
         ],
-        "title": "BannedPhraseRequest",
-        "description": "Request model for adding a banned phrase."
+        "title": "BannedPhraseRequest"
+      },
+      "BannedPhraseResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "phrase": {
+            "type": "string",
+            "title": "Phrase"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "phrase"
+        ],
+        "title": "BannedPhraseResponse"
       },
       "BatchCompletionRequest": {
         "properties": {
@@ -5067,7 +5188,7 @@
             "type": "string",
             "format": "binary",
             "title": "File",
-            "description": "The file to be uploaded and ingested."
+            "description": "File to ingest."
           }
         },
         "type": "object",
@@ -5519,18 +5640,67 @@
         "title": "ExecutionWorkflowCreateRequest",
         "description": "Payload for creating a new workflow definition.\n\nAttributes:\n    name (str): Human-readable name.\n    steps (list[dict]): List of step configurations."
       },
-      "GenerateBannedPhrasesRequest": {
+      "GeneratePhrasesRequest": {
         "properties": {
           "language": {
             "type": "string",
             "title": "Language",
-            "description": "The target language for generating banned phrases (e.g., 'en', 'fi').",
+            "description": "Target language code (e.g., 'en').",
             "default": "en"
           }
         },
         "type": "object",
-        "title": "GenerateBannedPhrasesRequest",
-        "description": "Request model for generating banned phrases."
+        "title": "GeneratePhrasesRequest"
+      },
+      "GeneratedPhrasesResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "added_phrases": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Added Phrases"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "message",
+          "added_phrases"
+        ],
+        "title": "GeneratedPhrasesResponse"
+      },
+      "GenericActionResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "uid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "GenericActionResponse"
       },
       "GlobalModelConfig": {
         "properties": {
@@ -5604,22 +5774,21 @@
           "file_path": {
             "type": "string",
             "title": "File Path",
-            "description": "The relative or absolute file path to the source document for ingestion.",
+            "description": "Path to the source document.",
             "default": "data/Holistinen Mestaruus.docx",
             "examples": [
-              "data/Holistinen Mestaruus.docx"
+              "data/Doc.docx"
             ]
           },
           "reset_db": {
             "type": "boolean",
             "title": "Reset Db",
-            "description": "If True, the existing knowledge base will be cleared before ingesting the new file.",
+            "description": "Clear DB before ingestion.",
             "default": false
           }
         },
         "type": "object",
-        "title": "IngestRequest",
-        "description": "Request model for knowledge base ingestion.\n\nAttributes:\n    file_path (str): Path to the source document.\n    reset_db (bool): Whether to clear the database before ingestion."
+        "title": "IngestRequest"
       },
       "LLMCallRequest": {
         "properties": {
@@ -6161,6 +6330,30 @@
         "title": "QueueStats",
         "description": "Statistics for the Async Job Queue (ArQ)."
       },
+      "SelfTestResponse": {
+        "properties": {
+          "llm_status": {
+            "type": "string",
+            "title": "Llm Status"
+          },
+          "db_status": {
+            "type": "string",
+            "title": "Db Status"
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Details"
+          }
+        },
+        "type": "object",
+        "required": [
+          "llm_status",
+          "db_status",
+          "details"
+        ],
+        "title": "SelfTestResponse"
+      },
       "StepUpdateRequest": {
         "properties": {
           "name": {
@@ -6252,6 +6445,53 @@
           "global_banner": "Scheduled maintenance at 02:00 UTC",
           "maintenance_mode": false
         }
+      },
+      "TaskStatusResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "stage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stage"
+          },
+          "percent": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "title": "Percent",
+            "default": 0
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/APIError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "TaskStatusResponse",
+        "description": "Response model for task progress."
       },
       "TokenPayload": {
         "properties": {

@@ -10,6 +10,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
+from backend.schemas.error import APIError
 from backend.dependencies import AuthServiceDep, CurrentUserDep, RepositoryDep
 from backend.models.auth import Organization, SubscriptionStatus, TokenData, UserRole
 from backend.services.auth import AuthService
@@ -117,7 +118,9 @@ async def create_organization(
     # Check existence
     existing = await repo.get_organization(org.id)
     if existing:
-        raise HTTPException(status_code=409, detail=f"Organization '{org.id}' already exists.")
+        error_code = "ORGANIZATION_ALREADY_EXISTS"
+        logger.error(f"{error_code}: ID {org.id}", exc_info=True)
+        raise HTTPException(status_code=409, detail=error_code)
 
     # Create
     item = org.model_dump()
@@ -145,8 +148,12 @@ async def create_organization(
         )
 
     except Exception as e:
-        logger.error(f"AUDIT ERROR: {e}", exc_info=True)
-        raise e
+        error_code = "AUDIT_LOG_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        # We generally don't block on audit failure, but if strict mode...
+        # For now, log but raise to fail the request if audit is critical?
+        # Actually, if audit fails, we should probably fail.
+        raise HTTPException(status_code=500, detail=error_code) from e
 
     # Return as response (Organization has logic to default fields if needed, but input covers it)
     return OrganizationResponse(**item)
@@ -167,11 +174,15 @@ async def get_my_organization(
         OrganizationResponse: organization details.
     """
     if not user.organization_id:
-        raise HTTPException(status_code=404, detail="User not assigned to an organization.")
+        error_code = "AUTH_USER_NO_ORG"
+        logger.error(f"{error_code}: User {user.uid} has no org.", exc_info=True)
+        raise HTTPException(status_code=404, detail=error_code)
 
     org = await repo.get_organization(user.organization_id)
     if not org:
-        raise HTTPException(status_code=404, detail="Organization not found")
+        error_code = "ORGANIZATION_NOT_FOUND"
+        logger.error(f"{error_code}: ID {user.organization_id}", exc_info=True)
+        raise HTTPException(status_code=404, detail=error_code)
 
     return OrganizationResponse(**Organization(**org).model_dump())
 
@@ -214,12 +225,16 @@ async def get_organization(
     # 1. Access Control
     if user.role != UserRole.ROOT:
         if user.organization_id != org_id:
-            raise HTTPException(status_code=403, detail="Access denied.")
+            error_code = "PERMISSION_DENIED"
+            logger.error(f"{error_code}: User {user.uid} denied access to {org_id}", exc_info=True)
+            raise HTTPException(status_code=403, detail=error_code)
 
     # 2. Fetch
     org = await repo.get_organization(org_id)
     if not org:
-        raise HTTPException(status_code=404, detail="Organization not found")
+        error_code = "ORGANIZATION_NOT_FOUND"
+        logger.error(f"{error_code}: ID {org_id}", exc_info=True)
+        raise HTTPException(status_code=404, detail=error_code)
 
     return OrganizationResponse(**Organization(**org).model_dump())
 
@@ -245,26 +260,36 @@ async def update_organization(
     # 1. Access Control
     if user.role != UserRole.ROOT:
         if user.organization_id != org_id:
-            raise HTTPException(status_code=403, detail="Access denied.")
+            error_code = "PERMISSION_DENIED"
+            logger.error(f"{error_code}: User {user.uid} denied update.", exc_info=True)
+            raise HTTPException(status_code=403, detail=error_code)
         if user.role != UserRole.ADMIN:
-            raise HTTPException(status_code=403, detail="Organization Admin required.")
+            error_code = "PERMISSION_DENIED_ORG_ADMIN"
+            logger.error(f"{error_code}: User {user.uid} not admin.", exc_info=True)
+            raise HTTPException(status_code=403, detail=error_code)
 
     # 2. Update
     try:
         current_data = await repo.get_organization(org_id)
         if not current_data:
-            raise HTTPException(status_code=404, detail="Organization not found")
+            error_code = "ORGANIZATION_NOT_FOUND"
+            logger.error(f"{error_code}: ID {org_id}", exc_info=True)
+            raise HTTPException(status_code=404, detail=error_code)
 
         # Merge
         updates = organization_update.model_dump(exclude_unset=True)
         await repo.update_organization(org_id, updates)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        error_code = "ORGANIZATION_UPDATE_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=error_code) from e
 
     # Fetch fresh
     fresh = await repo.get_organization(org_id)
     if not fresh:
-        raise HTTPException(status_code=404, detail="Organization disappeared after update.")
+        error_code = "ORGANIZATION_NOT_FOUND"
+        logger.error(f"{error_code}: ID {org_id}", exc_info=True)
+        raise HTTPException(status_code=404, detail=error_code)
     return OrganizationResponse(**Organization(**fresh).model_dump())
 
 
@@ -285,20 +310,26 @@ async def delete_organization(
     """
     # 1. Access Control
     if user.role != UserRole.ROOT:
-        raise HTTPException(status_code=403, detail="Only ROOT can delete organizations.")
+        error_code = "PERMISSION_DENIED_ROOT_ONLY"
+        logger.error(f"{error_code}: User {user.uid} denied.", exc_info=True)
+        raise HTTPException(status_code=403, detail=error_code)
 
     # 2. System Protection
     if org_id == "system":
-        raise HTTPException(status_code=403, detail="Cannot delete System Organization.")
+        error_code = "PERMISSION_DENIED_SYSTEM_ORG"
+        logger.error(f"{error_code}: Cannot delete system org.", exc_info=True)
+        raise HTTPException(status_code=403, detail=error_code)
 
     # 3. Validation
     if not force:
         # Check for users
         users = await repo.list_users(org_id)
         if users:
+            error_code = "ORGANIZATION_NOT_EMPTY"
+            logger.error(f"{error_code}: Org {org_id} has users.", exc_info=True)
             raise HTTPException(
                 status_code=409,
-                detail=f"Organization not empty (ORG_HAS_USERS). Found {len(users)} users. Use force=true.",
+                detail=error_code,
             )
 
     # 4. Execute
@@ -324,7 +355,9 @@ async def delete_organization(
             logger.error(f"AUDIT ERROR: {e}", exc_info=True)
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        error_code = "ORGANIZATION_DELETE_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=error_code) from e
 
 
 @router.post("/{org_id}/users", status_code=status.HTTP_201_CREATED)
@@ -344,9 +377,13 @@ async def create_organization_user(
     # 1. Access Control
     if user.role != UserRole.ROOT:
         if user.organization_id != org_id:
-            raise HTTPException(status_code=403, detail="Access denied.")
+            error_code = "PERMISSION_DENIED"
+            logger.error(f"{error_code}: User {user.uid} denied.", exc_info=True)
+            raise HTTPException(status_code=403, detail=error_code)
         if user.role != UserRole.ADMIN:
-            raise HTTPException(status_code=403, detail="Organization Admin required.")
+            error_code = "PERMISSION_DENIED_ORG_ADMIN"
+            logger.error(f"{error_code}: User {user.uid} not admin.", exc_info=True)
+            raise HTTPException(status_code=403, detail=error_code)
 
     # 2. Logic Delegate to AuthService (for consisten creation logic)
     # We map Strict model to internal UserCreate model
@@ -383,9 +420,13 @@ async def create_organization_user(
 
         return new_user
     except PermissionError as e:
-        raise HTTPException(status_code=403, detail=str(e)) from e
+        error_code = "PERMISSION_DENIED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise HTTPException(status_code=403, detail=error_code) from e
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
+        error_code = "USER_CREATION_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise HTTPException(status_code=400, detail=error_code) from e
 
 
 @router.delete("/{org_id}/users/{target_uid}", status_code=status.HTTP_204_NO_CONTENT)
@@ -400,9 +441,13 @@ async def delete_organization_user(
     # 1. Access Control
     if user.role != UserRole.ROOT:
         if user.organization_id != org_id:
-            raise HTTPException(status_code=403, detail="Access denied.")
+            error_code = "PERMISSION_DENIED"
+            logger.error(f"{error_code}: User {user.uid} denied.", exc_info=True)
+            raise HTTPException(status_code=403, detail=error_code)
         if user.role != UserRole.ADMIN:
-            raise HTTPException(status_code=403, detail="Organization Admin required.")
+            error_code = "PERMISSION_DENIED_ORG_ADMIN"
+            logger.error(f"{error_code}: User {user.uid} not admin.", exc_info=True)
+            raise HTTPException(status_code=403, detail=error_code)
 
     # 2. Integrity Check: Active Ownership
     # Users own Executions. If they have active ones, block delete.
@@ -413,9 +458,11 @@ async def delete_organization_user(
     ]
 
     if active_user_execs:
+        error_code = "USER_HAS_ACTIVE_EXECUTIONS"
+        logger.error(f"{error_code}: User {target_uid} has active execs.", exc_info=True)
         raise HTTPException(
             status_code=409,
-            detail=f"Cannot delete user '{target_uid}'. They have {len(active_user_execs)} active execution(s).",
+            detail=error_code,
         )
 
     # 3. Delete via AuthService
@@ -434,6 +481,8 @@ async def delete_organization_user(
             pass
 
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
+        error_code = "USER_DELETE_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise HTTPException(status_code=400, detail=error_code) from e
 
     return None

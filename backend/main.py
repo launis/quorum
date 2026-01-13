@@ -185,12 +185,27 @@ async def http_exception_handler(request: Request, exc: HTTPException):
     """Handler for FastAPI/Starlette HTTPExceptions.
 
     Converts them to standardized APIError format.
+    If `exc.detail` looks like an error code (UPPER_CASE_WITH_UNDERSCORES), it is used as the code.
+    Otherwise, a fallback code based on the status (e.g. HTTP_404) is used, and detail is the message.
     """
+    detail_str = str(exc.detail)
+    
+    # Heuristic: If detail is upper snake_case and no spaces, treat as Error Code (Echo Protocol).
+    # e.g. "PERMISSION_DENIED" -> error_code="PERMISSION_DENIED"
+    is_error_code = detail_str.isupper() and " " not in detail_str and len(detail_str) > 3
+
+    if is_error_code:
+        error_code = detail_str
+        message = detail_str.replace("_", " ").title() # "PERMISSION_DENIED" -> "Permission Denied"
+    else:
+        error_code = f"HTTP_{exc.status_code}"
+        message = detail_str
+
     return JSONResponse(
         status_code=exc.status_code,
         content=APIError(
-            error_code=f"HTTP_{exc.status_code}",
-            message=str(exc.detail),
+            error_code=error_code,
+            message=message,
             details=None,
         ).model_dump(),
     )

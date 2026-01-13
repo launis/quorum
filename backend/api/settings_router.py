@@ -1,10 +1,16 @@
 """API Router for Global System Settings."""
 
+import logging
+from typing import Annotated
+
 from fastapi import APIRouter, HTTPException
 
+from backend.schemas.error import APIError
 from backend.dependencies import AuditServiceDep, AuthService, CurrentUserDep, EngineDep
 from backend.models.auth import UserRole
 from backend.models.settings import SystemSettings
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/settings", tags=["Global Settings"])
 
@@ -34,7 +40,9 @@ async def update_settings(
     # 1. Verify Permission
     AuthService.require_role(UserRole.ROOT)
     if current_user.role != UserRole.ROOT:
-        raise HTTPException(status_code=403, detail="Only Root can change system settings.")
+        error_code = "PERMISSION_DENIED_ROOT_ONLY"
+        logger.error(f"{error_code}: User {current_user.uid} denied.", exc_info=True)
+        raise HTTPException(status_code=403, detail=error_code)
 
     try:
         # 2. Persist
@@ -54,9 +62,6 @@ async def update_settings(
         # 3. Return Updated
         return updates
     except Exception as e:
-        import logging
-        import traceback
-
-        logger = logging.getLogger(__name__)
-        logger.error(f"Settings Update Failed: {e}\n{traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        error_code = "SETTINGS_UPDATE_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=error_code) from e

@@ -4,17 +4,35 @@ This module provides endpoints for system maintenance, database management,
 knowledge base ingestion, and banned phrase configuration.
 """
 
-import json
+import asyncio
 import logging
 import os
-import subprocess
-import sys
 import uuid
-from typing import Annotated, Any
+import json
+from typing import Annotated, Any, Literal
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Path, Query, Request, UploadFile
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    HTTPException,
+    Path,
+    Query,
+    Request,
+    UploadFile,
+    status,
+)
 from pydantic import BaseModel, Field
 
+# --- Local Imports (SSOT Exceptions First) ---
+from backend.schemas.error import APIError
+from backend.exceptions import (
+    AppException,
+    ConflictError,
+    PermissionDeniedError,
+    ResourceNotFoundError,
+)
 from backend.database.repository import AbstractWorkflowRepository
 from backend.dependencies import (
     AuthServiceDep,
@@ -25,157 +43,104 @@ from backend.dependencies import (
     RepositoryDep,
     get_async_repository,
 )
-from backend.exceptions import (
-    AppException,
-    ConflictError,
-    PermissionDeniedError,
-    ResourceNotFoundError,
-)
 from backend.models.auth import UserAdminView, UserCreate, UserRole, UserUpdate
 from backend.schemas.admin import QueueStats
-from backend.schemas.error import APIError
 
 logger = logging.getLogger(__name__)
 
+router = APIRouter(prefix="/admin", tags=["Admin"])
 
-def require_root(user: CurrentUserDep):
-    """Dependency to enforce ROOT role access.
 
-    Args:
-        user (CurrentUserDep): The authenticated user.
+# --- Request/Response Models ---
 
-    Returns:
-        User: The user object if authorized.
+class AdminTaskResponse(BaseModel):
+    """Standard response for initiating background admin tasks."""
+    status: Literal["started", "starting", "failed"]
+    job_id: str
+    task: str
+    message: str | None = None
 
-    Raises:
-        HTTPException: If the user is not ROOT (403).
-    """
+class TaskStatusResponse(BaseModel):
+    """Response model for task progress."""
+    status: str
+    stage: str | None = None
+    percent: int | float = 0
+    error: APIError | None = None  # SSOT: Uses standardized Error Schema
+
+class IngestRequest(BaseModel):
+    file_path: Annotated[
+        str, Field(description="Path to the source document.", examples=["data/Doc.docx"])
+    ] = "data/Holistinen Mestaruus.docx"
+    reset_db: Annotated[
+        bool, Field(description="Clear DB before ingestion.")
+    ] = False
+
+class BannedPhraseRequest(BaseModel):
+    phrase: Annotated[str, Field(min_length=2, description="The phrase to ban.")]
+
+class BannedPhraseResponse(BaseModel):
+    status: str
+    phrase: str
+
+class GenericActionResponse(BaseModel):
+    status: str
+    uid: str | None = None
+
+class GeneratedPhrasesResponse(BaseModel):
+    status: str
+    message: str
+    added_phrases: list[str]
+
+class GeneratePhrasesRequest(BaseModel):
+    language: Annotated[str, Field(description="Target language code (e.g., 'en').")] = "en"
+
+class SelfTestResponse(BaseModel):
+    llm_status: str
+    db_status: str
+    details: dict[str, Any]
+
+class UpdateRoleRequest(BaseModel):
+    """Request model for updating a user's role."""
+    role: UserRole
+
+
+# --- State (InMemory) ---
+admin_task_status: dict[str, dict[str, Any]] = {}
+
+
+# --- Dependencies ---
+
+def require_root(user: CurrentUserDep) -> CurrentUserDep:
+    """Dependency to enforce ROOT role access."""
     if user.role != UserRole.ROOT:
-        raise PermissionDeniedError("Admin access required")
+        # SSOT: Raise Domain Exception. Global handler logs warning & returns 403.
+        raise PermissionDeniedError("Root access required")
     return user
 
-
-def require_admin_or_root(user: CurrentUserDep):
-    """Dependency to enforce ADMIN or ROOT role access.
-
-    Args:
-        user (CurrentUserDep): The authenticated user.
-
-    Returns:
-        User: The user object if authorized.
-
-    Raises:
-        HTTPException: If the user is not ADMIN/ROOT (403).
-    """
+def require_admin_or_root(user: CurrentUserDep) -> CurrentUserDep:
+    """Dependency to enforce ADMIN or ROOT role access."""
     if user.role not in [UserRole.ROOT, UserRole.ADMIN]:
         raise PermissionDeniedError("Admin or Root access required")
     return user
 
 
-router = APIRouter(prefix="/admin", tags=["Admin"])
-
-# --- Models ---
-
-
-class IngestRequest(BaseModel):
-    """Request model for knowledge base ingestion.
-
-    Attributes:
-        file_path (str): Path to the source document.
-        reset_db (bool): Whether to clear the database before ingestion.
-    """
-
-    file_path: Annotated[
-        str,
-        Field(
-            description="The relative or absolute file path to the source document for ingestion.",
-            examples=["data/Holistinen Mestaruus.docx"],
-        ),
-    ] = "data/Holistinen Mestaruus.docx"
-
-    reset_db: Annotated[
-        bool,
-        Field(
-            description="If True, the existing knowledge base will be cleared before ingesting the new file.",
-        ),
-    ] = False
-
-
-class BannedPhraseRequest(BaseModel):
-    """Request model for adding a banned phrase."""
-
-    phrase: Annotated[
-        str, Field(description="The text phrase that should be banned from user inputs or agent outputs.")
-    ]
-
-
-class GenerateBannedPhrasesRequest(BaseModel):
-    """Request model for generating banned phrases."""
-
-    language: Annotated[
-        str, Field(description="The target language for generating banned phrases (e.g., 'en', 'fi').")
-    ] = "en"
-
-
-class UpdateRoleRequest(BaseModel):
-    """Request model for updating a user's role."""
-
-    role: UserRole
-
-
-# --- Centralized Status ---
-admin_task_status: dict[str, dict[str, Any]] = {}
-
 # --- Helper Functions ---
 
-
-def run_script(script_name: str, args: list[str] | None = None) -> subprocess.CompletedProcess:
-    """Helper to run a script from the scripts directory in a subprocess.
-
-    Args:
-        script_name (str): Name of the script file.
-        args (List[str]): Additional arguments for the script.
-
-    Returns:
-        subprocess.CompletedProcess: The result of the execution.
-
-    """
-    from backend.settings import get_settings
-
-    if args is None:
-        args = []
-    settings = get_settings()
-    script_path = os.path.join(settings.scripts_dir, script_name)
-    if not os.path.exists(script_path):
-        raise FileNotFoundError(f"Script not found: {script_path}")
-
-    # Use the same python interpreter
-    cmd = [sys.executable, script_path] + args
-
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    return result
-
-
 def _start_admin_task(
-    background_tasks: BackgroundTasks, repo: AbstractWorkflowRepository, method_name: str, *args
-) -> dict[str, str]:
-    """Starts an administrative task in the background using AdministrationService.
-
-    Args:
-        background_tasks (BackgroundTasks): FastAPI background task manager.
-        repo (AbstractWorkflowRepository): Async Repository instance.
-        method_name (str): Name of the method to call on AdministrationService.
-        *args: Variable length argument list to pass to the method.
-
-    Returns:
-        dict: A dictionary containing the 'status', 'job_id', and 'task' name.
+    background_tasks: BackgroundTasks,
+    repo: AbstractWorkflowRepository,
+    method_name: str,
+    *args
+) -> AdminTaskResponse:
+    """Helper to start standard admin tasks in background.
+    
+    NOTE: Background tasks require explicit exception handling/logging 
+    as they run outside the request-response middleware cycle.
     """
     job_id = str(uuid.uuid4())
     admin_task_status[job_id] = {"status": "starting", "stage": "Initializing", "percent": 0}
 
-    # repo is already passed
-    import asyncio
-
+    # Lazy import to prevent circular dependencies
     from backend.services.administration_service import AdministrationService
     from backend.services.progress import InMemoryProgressTracker
 
@@ -188,69 +153,58 @@ def _start_admin_task(
 
         tracker = InMemoryProgressTracker(callback=tracker_callback)
         try:
-            # Execute the method (Assuming AdminService methods are async or wrapped)
+            # Handle Async vs Sync methods dynamically
             if asyncio.iscoroutinefunction(method):
-                if args:
-                    res = await method(tracker, *args)
-                else:
-                    res = await method(tracker)
+                res = await method(tracker, *args) if args else await method(tracker)
             else:
-                # Run sync method in threadpool to avoid blocking loop
                 loop = asyncio.get_running_loop()
-                # Use lambda or functools.partial could be cleaner, but straight args work with run_in_executor
-                # in recent python. Note: run_in_executor(None, func, *args)
-                if args:
-                    res = await loop.run_in_executor(None, method, tracker, *args)
-                else:
-                    res = await loop.run_in_executor(None, method, tracker)
-            logger.info(f"Admin Task {method_name} result: {res}")
+                res = await loop.run_in_executor(None, method, tracker, *args) if args else await loop.run_in_executor(None, method, tracker)
+            
+            logger.info(f"Admin Task '{method_name}' [Job: {job_id}] completed: {res}")
+            
+            # Ensure completion is marked if not failed
+            if admin_task_status[job_id].get("status") != "failed":
+                admin_task_status[job_id].update({"status": "completed", "percent": 100})
+        
         except Exception as e:
-            logger.error(f"Admin Task {method_name} failed: {e}")
-            error_model = APIError(error_code="TASK_FAILED", message=str(e), details={"task": method_name})
+            # CRITICAL: Log stack trace here because global handler won't see this.
+            error_code = "TASK_FAILED"
+            logger.error(f"{error_code}: Admin Task '{method_name}' [Job: {job_id}] CRASHED: {e}", exc_info=True)
+            
+            # Use SSOT APIError schema for status response
+            error_model = APIError(
+                error_code=error_code, 
+                message=str(e), 
+                details={"task": method_name}
+            )
             admin_task_status[job_id] = {"status": "failed", "error": error_model.model_dump()}
 
     background_tasks.add_task(_run_task)
-    return {"status": "started", "job_id": job_id, "task": method_name}
+    return AdminTaskResponse(status="started", job_id=job_id, task=method_name)
 
 
 # --- Endpoints ---
 
-
 @router.get(
     "/users/roles",
     summary="Get Assignable Roles",
-    response_description="List of roles the current user can assign.",
+    response_model=list[UserRole],
     dependencies=[Depends(require_admin_or_root)],
 )
-async def get_assignable_roles(user: CurrentUserDep) -> list[UserRole]:
-    """Returns the list of roles the currently authenticated user is allowed to assign.
-
-    - **Root**: Can assign ANY role (including ROOT).
-    - **Admin**: Can assign ADMIN, MANAGER, MEMBER, VIEWER. Cannot assign ROOT.
-    """
+async def get_assignable_roles(user: CurrentUserDep):
+    """Returns the list of roles the currently authenticated user is allowed to assign."""
     if user.role == UserRole.ROOT:
-        return [
-            UserRole.ROOT,
-            UserRole.ADMIN,
-            UserRole.MANAGER,
-            UserRole.MEMBER,
-            UserRole.VIEWER,
-        ]
-    elif user.role == UserRole.ADMIN:
-        return [
-            UserRole.ADMIN,
-            UserRole.MANAGER,
-            UserRole.MEMBER,
-            UserRole.VIEWER,
-        ]
-    return []  # Should be caught by dependency, but safe fallback
-
+        return [UserRole.ROOT, UserRole.ADMIN, UserRole.MANAGER, UserRole.MEMBER, UserRole.VIEWER]
+    if user.role == UserRole.ADMIN:
+        return [UserRole.ADMIN, UserRole.MANAGER, UserRole.MEMBER, UserRole.VIEWER]
+    return []
 
 
 @router.post(
     "/users",
     summary="Create User",
-    response_description="The created user.",
+    response_model=UserAdminView,
+    status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_admin_or_root)],
 )
 async def create_user(
@@ -258,252 +212,170 @@ async def create_user(
     user: CurrentUserDep,
     auth_service: AuthServiceDep,
 ):
-    """Creates a new user.
-
-    - **Root**: Can create in any organization.
-    - **Admin**: Can only create in their own organization.
-    """
+    """Creates a new user under the active organization constraints."""
     try:
         return await auth_service.create_user(creator_uid=user.uid, user_data=request)
     except PermissionError as e:
-        raise PermissionDeniedError(str(e)) from e
-    except AppException:
-        raise
+        # Transform Logic Error -> Domain Exception (403)
+        error_code = "PERMISSION_DENIED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise HTTPException(status_code=403, detail=error_code)
     except ValueError as e:
-        raise AppException(str(e), status_code=400) from e
-    except Exception as e:
-        logger.error(f"Create user failed: {e}")
-        raise AppException(str(e), status_code=500) from e
+        # Transform Logic Error -> Domain Exception (400)
+        error_code = "INVALID_USER_DATA"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise HTTPException(status_code=400, detail=error_code)
+    # Generic Exception? Let it bubble! Global Handler logs 500+Trace.
 
 
 @router.patch(
     "/users/{user_id}",
     summary="Update User",
-    response_description="The updated user.",
+    response_model=UserAdminView,
     dependencies=[Depends(require_admin_or_root)],
 )
 async def update_user(
-    user_id: str,
+    user_id: Annotated[str, Path(description="Target User UID")],
     request: UserUpdate,
     user: CurrentUserDep,
     auth_service: AuthServiceDep,
 ):
-    """Updates an existing user.
-
-    - **Root**: Can update anyone.
-    - **Admin**: Can only update users in their organization (subject to hierarchy).
-    """
+    """Updates an existing user profile."""
     try:
         return await auth_service.update_user(initiator_uid=user.uid, target_uid=user_id, updates=request)
     except PermissionError as e:
-        raise PermissionDeniedError(str(e)) from e
-    except ValueError as e:
-        # Service currently maps user-not-found to ValueError sometimes, strictly mapping to 404 here
-        raise ResourceNotFoundError("User", user_id) from e
-    except AppException:
-        raise
+        error_code = "PERMISSION_DENIED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise HTTPException(status_code=403, detail=error_code)
+    except ValueError:
+        # Service maps "not found" to ValueError occasionally; explicit catch preferred
+        error_code = "USER_NOT_FOUND"
+        logger.error(f"{error_code}: User {user_id} not found.", exc_info=True)
+        raise HTTPException(status_code=404, detail=error_code)
     except RuntimeError as e:
+        # Specific Business Logic Check (SSOT Logic)
         if "LAST_ADMIN_PROTECTION" in str(e):
-            raise ConflictError(
-                message=str(e),
-                details={"error_code": "LAST_ADMIN_PROTECTION", "message": str(e)},
-            ) from e
-        raise AppException(str(e), status_code=500) from e
-    except Exception as e:
-        logger.error(f"Update user failed: {e}")
-        raise AppException(str(e), status_code=500) from e
+            error_code = "LAST_ADMIN_PROTECTION"
+            logger.error(f"{error_code}: {e}", exc_info=True)
+            raise HTTPException(status_code=409, detail=error_code)
+        # Unknown Runtime Error -> Bubble
+        raise
 
 
 @router.delete(
     "/users/{user_id}",
     summary="Delete User",
-    response_description="Confirmation of deletion.",
+    response_model=GenericActionResponse,
     dependencies=[Depends(require_admin_or_root)],
 )
 async def delete_user(
-    user_id: str,
+    user_id: Annotated[str, Path(description="Target User UID")],
     user: CurrentUserDep,
     auth_service: AuthServiceDep,
 ):
-    """Deletes a user.
-
-    - **Root**: Can delete anyone (except root_master).
-    - **Admin**: Can only delete users in their organization.
-    - **Protection**: Cannot delete the last Admin of an organization.
-    """
+    """Deletes a user (Enforces Last Admin Protection)."""
     try:
         await auth_service.delete_user(initiator_uid=user.uid, target_uid=user_id)
-        return {"status": "deleted", "uid": user_id}
+        return GenericActionResponse(status="deleted", uid=user_id)
     except PermissionError as e:
-        raise PermissionDeniedError(str(e)) from e
-    except AppException:
-        raise
+        error_code = "PERMISSION_DENIED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise HTTPException(status_code=403, detail=error_code)
+    except ValueError as e:
+        if "Last Admin" in str(e):
+             error_code = "LAST_ADMIN_PROTECTION"
+             logger.error(f"{error_code}: {e}", exc_info=True)
+             raise HTTPException(status_code=409, detail=error_code)
+        
+        error_code = "USER_NOT_FOUND"
+        logger.error(f"{error_code}: User {user_id} not found: {e}", exc_info=True)
+        raise HTTPException(status_code=404, detail=error_code)
     except RuntimeError as e:
         if "LAST_ADMIN_PROTECTION" in str(e):
-            raise ConflictError(
-                message=str(e),
-                details={"error_code": "LAST_ADMIN_PROTECTION", "message": str(e)},
-            ) from e
-        raise AppException(str(e), status_code=500) from e
-    except ValueError as e:
-        # Check if it was "Last Admin" related from service, usually Permission or Value
-        if "Last Admin" in str(e) or "last Administrator" in str(e):
-            raise ConflictError(
-                message=str(e),
-                details={"error_code": "LAST_ADMIN_PROTECTION", "message": str(e)},
-            ) from e
-        raise ResourceNotFoundError("User", user_id) from e
-    except Exception as e:
-        logger.error(f"Delete user failed: {e}")
-        raise AppException(str(e), status_code=500) from e
+            error_code = "LAST_ADMIN_PROTECTION"
+            logger.error(f"{error_code}: {e}", exc_info=True)
+            raise HTTPException(status_code=409, detail=error_code)
+        raise
 
 
 @router.post(
     "/export/seed-data",
     summary="Export Seed Data",
-    response_description="Confirmation that the export task has started.",
+    response_model=AdminTaskResponse,
     dependencies=[Depends(require_root)],
 )
 async def export_seed_data(background_tasks: BackgroundTasks, repo: RepositoryDep):
-    """Triggers the seed data export process via AdministrationService in the background.
-
-    Args:
-        background_tasks (BackgroundTasks): FastAPI background task manager.
-        repo (RepositoryDep): The async repository dependency.
-
-    Returns:
-        dict: A dictionary containing the job ID and status.
-
-    """
     return _start_admin_task(background_tasks, repo, "export_seed_data")
 
 
 @router.post(
     "/database/rebuild",
     summary="Rebuild Database",
-    response_description="Confirmation that the rebuild task has started.",
+    response_model=AdminTaskResponse,
     dependencies=[Depends(require_root)],
 )
 async def rebuild_database(background_tasks: BackgroundTasks, repo: RepositoryDep):
-    """Triggers a complete database rebuild (drop and re-seed) in the background.
-
-    Args:
-        background_tasks (BackgroundTasks): FastAPI background task manager.
-        repo (RepositoryDep): The async repository dependency.
-
-    Returns:
-        dict: A dictionary containing the job ID and status.
-
-    """
     return _start_admin_task(background_tasks, repo, "rebuild_database")
 
 
 @router.post(
     "/database/reset/mock",
     summary="Reset Mock Database",
-    response_description="Confirmation that the Mock DB reset task has started.",
+    response_model=AdminTaskResponse,
     dependencies=[Depends(require_root)],
 )
 async def reset_mock_db(background_tasks: BackgroundTasks, repo: RepositoryDep):
-    """Triggers 'rebuild_mock_db.py' in the background.
-
-    Args:
-        background_tasks (BackgroundTasks): FastAPI background task manager.
-        repo (RepositoryDep): Database dependency.
-
-    Returns:
-        dict: Job status and ID.
-    """
     return _start_admin_task(background_tasks, repo, "reset_mock_db")
 
 
 @router.post(
     "/database/reset/prod",
-    summary="Reset Production Database (Local)",
-    response_description="Confirmation that the Prod (TinyDB) reset task has started.",
+    summary="Reset Production Database",
+    response_model=AdminTaskResponse,
     dependencies=[Depends(require_root)],
 )
 async def reset_prod_db(background_tasks: BackgroundTasks, repo: RepositoryDep):
-    """Triggers 'rebuild_prod_db.py' in the background.
-
-    WARNING: This wipes the local production database.
-
-    Args:
-        background_tasks (BackgroundTasks): FastAPI background task manager.
-        repo (RepositoryDep): Database dependency.
-
-    Returns:
-        dict: Job status and ID.
-    """
     return _start_admin_task(background_tasks, repo, "reset_prod_db")
 
 
 @router.post(
     "/database/reset/firestore",
-    summary="Reset Firestore Database",
-    response_description="Confirmation that the Firestore reset task has started.",
+    summary="Reset Firestore",
+    response_model=AdminTaskResponse,
     dependencies=[Depends(require_root)],
 )
 async def reset_firestore_db(background_tasks: BackgroundTasks, repo: RepositoryDep):
-    """Triggers 'seed_firestore.py' in the background.
-
-    WARNING: This wipes the Firestore database!
-
-    Args:
-        background_tasks (BackgroundTasks): FastAPI background task manager.
-        repo (RepositoryDep): Database dependency.
-
-    Returns:
-        dict: Job status and ID.
-    """
     return _start_admin_task(background_tasks, repo, "reset_firestore")
 
 
 @router.post(
     "/self-test",
     summary="Run System Self-Test",
-    response_description="A health report detailing LLM and Database connectivity.",
+    response_model=SelfTestResponse,
 )
 async def run_self_test(db_client: DatabaseDep, llm_provider: LLMProviderFast):
-    """Executes a quick self-test of the LLM connection and Database state.
-
-    Args:
-        db_client (DatabaseDep): Database dependency.
-        llm_provider (LLMProvider): LLM provider dependency.
-
-    Returns:
-        dict: A health report with 'llm_status' and 'db_status'.
-
-    """
-    report: dict[str, Any] = {"llm_status": "unknown", "db_status": "unknown", "details": {}}
-
-    # 1. Test LLM
+    """Executes a self-test of LLM and Database connectivity."""
+    report = {"llm_status": "unknown", "db_status": "unknown", "details": {}}
+    
+    # 1. Test LLM (Isolated Try-Except for Resilience)
     try:
-        response = await llm_provider.generate(
-            prompt="Hello, reply with 'OK' if you can hear me.",
-            system_instruction="You are a health check bot. Reply briefly.",
-        )
+        response = await llm_provider.generate("Ping", system_instruction="Reply OK.")
+        report["llm_status"] = "ok" if response else "empty_response"
         if response:
-            report["llm_status"] = "ok"
             report["details"]["llm_response"] = str(response)[:100]
-        else:
-            report["llm_status"] = "empty_response"
-
     except Exception as e:
+        # Diagnostic endpoint: report error, don't crash
         report["llm_status"] = "error"
         report["details"]["llm_error"] = str(e)
 
     # 2. Test DB
     try:
         from backend.settings import get_settings
-
         settings = get_settings()
-        # Assuming 'workflows' table exists
         count = len(db_client.table("workflows").all())
         report["db_status"] = "ok"
         report["details"]["db_path"] = settings.start_db_path
         report["details"]["workflow_count"] = count
-
     except Exception as e:
         report["db_status"] = "error"
         report["details"]["db_error"] = str(e)
@@ -514,50 +386,30 @@ async def run_self_test(db_client: DatabaseDep, llm_provider: LLMProviderFast):
 @router.get(
     "/status/{job_id}",
     summary="Get Task Status",
-    response_description="The current status and progress of the background task.",
+    response_model=TaskStatusResponse,
 )
-def get_task_status(job_id: str = Path(..., description="UUID of the background job.")):
-    """Retrieves the progress/status of a specific background task.
-
-    Args:
-        job_id (str): The unique identifier of the job.
-
-    Returns:
-        dict: The status object (e.g., {'status': 'running', 'percent': 50}).
-
-    Raises:
-        HTTPException: If the job ID is not found.
-
-    """
-    status = admin_task_status.get(job_id)
-    if not status:
+def get_task_status(job_id: Annotated[str, Path(description="UUID of the background job")]):
+    status_data = admin_task_status.get(job_id)
+    if not status_data:
         raise ResourceNotFoundError("Job", job_id)
-    return status
+    return status_data
 
 
 @router.get(
     "/knowledge-base/status/{job_id}",
     summary="Get Ingestion Status (Legacy)",
-    response_description="The current status of the ingestion task.",
     deprecated=True,
 )
-def get_ingestion_status(job_id: str = Path(..., description="UUID of the background job.")):
-    """Legacy endpoint for checking ingestion status. Redirects to get_task_status.
-
-    Args:
-        job_id (str): The unique identifier of the job.
-
-    Returns:
-        dict: The status object.
-
-    """
+def get_ingestion_status(job_id: Annotated[str, Path(description="UUID of the background job")]):
+    """Legacy endpoint redirection."""
+    # Legacy wrapper, just delegate
     return get_task_status(job_id)
 
 
 @router.post(
     "/knowledge-base/ingest",
     summary="Ingest from File (Path)",
-    response_description="Confirmation that ingestion has started.",
+    response_model=AdminTaskResponse,
     dependencies=[Depends(require_root)],
 )
 async def ingest_knowledge_base(
@@ -566,243 +418,155 @@ async def ingest_knowledge_base(
     repo: RepositoryDep,
     llm_provider: LLMProviderFast,
 ):
-    """Starts the process of ingesting a document into the knowledge base from a local file path.
+    """Triggers ingestion from a local file path."""
+    if not os.path.exists(request.file_path):
+        raise ResourceNotFoundError("File", request.file_path)
 
-    Args:
-        request (IngestRequest): Ingestion configuration (file path, reset flag).
-        background_tasks (BackgroundTasks): FastAPI background task manager.
-        repo (RepositoryDep): Database dependency.
-        llm_provider (LLMProviderFast): LLM provider for embedding generation.
-
-    Returns:
-        dict: Job status, ID, start confirmation message.
-    """
     job_id = str(uuid.uuid4())
     admin_task_status[job_id] = {"status": "starting", "stage": "Initializing", "percent": 0}
 
-    # repo is already injected
     from backend.services.knowledge_base_service import KnowledgeBaseService
+    from backend.services.progress import InMemoryProgressTracker
 
     service = KnowledgeBaseService(repo, llm_provider=llm_provider)
 
     async def _run_ingest():
         try:
-            if not os.path.exists(request.file_path):
-                error_model = APIError(
-                    error_code="RESOURCE_NOT_FOUND",
-                    message="File not found",
-                    details={"path": request.file_path},
-                )
-                admin_task_status[job_id] = {"status": "failed", "error": error_model.model_dump()}  # type: ignore[index]
-                return
-
-            # Read file in binary mode
             with open(request.file_path, "rb") as f:
                 content = f.read()
             filename = os.path.basename(request.file_path)
 
-            from backend.services.progress import InMemoryProgressTracker
-
             tracker = InMemoryProgressTracker(callback=lambda p: admin_task_status.update({job_id: p}))
+            await service.ingest_from_bytes(content, filename, tracker=tracker, job_id=job_id, reset_db=request.reset_db)
+            
+            # Ensure status is marked completed if service doesn't implicitly do it
+            if admin_task_status[job_id].get("status") != "failed":
+                 admin_task_status[job_id]["status"] = "completed"
 
-            await service.ingest_from_bytes(
-                content, filename, tracker=tracker, job_id=job_id, reset_db=request.reset_db
-            )
         except Exception as e:
-            logger.error(f"Ingestion failed: {e}")
-            error_model = APIError(error_code="INGESTION_FAILED", message=str(e), details={"task": "ingest_from_file"})
+            # Background Task: Must Log
+            error_code = "INGESTION_FAILED"
+            logger.error(f"{error_code}: Ingestion failed: {e}", exc_info=True)
+            error_model = APIError(error_code=error_code, message=str(e))
             admin_task_status[job_id] = {"status": "failed", "error": error_model.model_dump()}
 
     background_tasks.add_task(_run_ingest)
-    return {"status": "started", "job_id": job_id, "message": f"Ingestion started. (Reset: {request.reset_db})"}
+    return AdminTaskResponse(status="started", job_id=job_id, task="ingest_from_file", message=f"Ingesting {request.file_path}")
 
 
 @router.post(
     "/knowledge-base/upload",
     summary="Upload and Ingest File",
-    response_description="Confirmation that upload ingestion has started.",
+    response_model=AdminTaskResponse,
     dependencies=[Depends(require_root)],
 )
 async def upload_knowledge_base(
-    file: Annotated[UploadFile, File(description="The file to be uploaded and ingested.")],
+    file: Annotated[UploadFile, File(description="File to ingest.")],
     repo: RepositoryDep,
     llm_provider: LLMProviderFast,
     background_tasks: BackgroundTasks,
-    reset_db: Annotated[bool, Query(description="Whether to clear the KB before ingestion.")] = False,
+    reset_db: Annotated[bool, Query(description="Clear KB first.")] = False,
 ):
-    """Uploads a file and triggers the ingestion process.
-
-    Args:
-        file (UploadFile): The binary file to ingest.
-        reset_db (bool): If True, clear KB before ingestion.
-        background_tasks (BackgroundTasks): Background task manager.
-        repo (RepositoryDep): Database dependency.
-        llm_provider (LLMProviderFast): LLM provider dependency.
-
-    Returns:
-        dict: Job status, ID, filename, and reset flag.
-    """
+    """Uploads and ingests a file into the knowledge base."""
     job_id = str(uuid.uuid4())
     admin_task_status[job_id] = {"status": "starting", "stage": "Reading Upload", "percent": 0}
-
-    content = await file.read()
-    filename = file.filename or "upload"
-
+    
+    try:
+        content = await file.read()
+        filename = file.filename or "upload"
+    except Exception as e:
+        error_code = "UPLOAD_READ_FAILED"
+        logger.error(f"{error_code}: Failed to read file: {e}", exc_info=True)
+        raise HTTPException(status_code=400, detail=error_code)
+    
     if repo is None:
         repo = await get_async_repository()
+
     from backend.services.knowledge_base_service import KnowledgeBaseService
+    from backend.services.progress import InMemoryProgressTracker
 
     service = KnowledgeBaseService(repo, llm_provider=llm_provider)
 
     async def _run_ingest():
         try:
-            from backend.services.progress import InMemoryProgressTracker
-
             tracker = InMemoryProgressTracker(callback=lambda p: admin_task_status.update({job_id: p}))
             await service.ingest_from_bytes(content, filename, tracker=tracker, job_id=job_id, reset_db=reset_db)
+            if admin_task_status[job_id].get("status") != "failed":
+                 admin_task_status[job_id]["status"] = "completed"
         except Exception as e:
-            from backend.logging_config import log_error
-
-            log_error(logger, e, "Upload ingestion failed")
-            error_model = APIError(error_code="INGESTION_FAILED", message=str(e), details={"task": "upload_ingest"})
+            error_code = "INGESTION_FAILED"
+            logger.error(f"{error_code}: Upload ingestion failed: {e}", exc_info=True)
+            error_model = APIError(error_code=error_code, message=str(e))
             admin_task_status[job_id] = {"status": "failed", "error": error_model.model_dump()}
 
-    if background_tasks:
-        background_tasks.add_task(_run_ingest)
-    else:
-        # If no background tasks context (e.g. testing), await directly
-        await _run_ingest()
-
-    return {"status": "started", "job_id": job_id, "filename": filename, "reset_db": reset_db}
+    background_tasks.add_task(_run_ingest)
+    return AdminTaskResponse(status="started", job_id=job_id, task="upload_ingest", message=f"Ingesting {filename}")
 
 
 @router.get(
-    "/banned-phrases", summary="List Banned Phrases", response_description="A list of all currently banned phrases."
+    "/banned-phrases",
+    summary="List Banned Phrases",
+    response_model=list[dict[str, Any]],
 )
 async def get_banned_phrases(repo: RepositoryDep):
-    """Retrieves all banned phrases from the database.
-
-    Args:
-        repo (RepositoryDep): Database dependency.
-
-    Returns:
-        list[dict]: List of banned phrase objects (e.g. {'phrase': 'bad word'}).
-    """
+    # Bubble up DB errors
     return await repo.get_banned_phrases()
 
 
-@router.post("/banned-phrases", summary="Add Banned Phrase", response_description="Confirmation of the added phrase.")
+@router.post(
+    "/banned-phrases",
+    summary="Add Banned Phrase",
+    response_model=BannedPhraseResponse,
+)
 async def add_banned_phrase(request: BannedPhraseRequest, repo: RepositoryDep):
-    """Adds a new phrase to the blocklist.
-
-    Args:
-        request (BannedPhraseRequest): The phrase to add.
-        repo (RepositoryDep): Database dependency.
-
-    Returns:
-        dict: Status and the added phrase.
-
-    Raises:
-        HTTPException: If the phrase is too short (400).
-    """
-    # Validate
-    if not request.phrase or len(request.phrase.strip()) < 2:
-        raise AppException("Phrase too short", status_code=400)
-
+    if len(request.phrase.strip()) < 2:
+         error_code = "PHRASE_VALIDATION_FAILED"
+         logger.warning(f"{error_code}: Phrase too short: '{request.phrase}'")
+         raise HTTPException(status_code=400, detail=error_code)
+    
     await repo.add_banned_phrase(request.phrase.strip())
-    return {"status": "added", "phrase": request.phrase}
+    return BannedPhraseResponse(status="added", phrase=request.phrase.strip())
 
 
 @router.delete(
-    "/banned-phrases/{phrase}", summary="Remove Banned Phrase", response_description="Confirmation of removal."
+    "/banned-phrases/{phrase}",
+    summary="Remove Banned Phrase",
+    response_model=BannedPhraseResponse,
 )
 async def delete_banned_phrase(
-    db: DatabaseDep, phrase: str = Path(..., description="The URL-encoded phrase to delete.")
+    db: DatabaseDep,
+    phrase: Annotated[str, Path(description="Phrase to remove")]
 ):
-    """Remove a phrase from the banned list.
-
-    Args:
-        db (DatabaseDep): Database dependency.
-        phrase (str): The phrase string to remove.
-
-    Returns:
-        dict: Status and the removed phrase.
-
-    Raises:
-        HTTPException: If deletion fails (500).
-    """
-    try:
-        from tinydb import Query
-        # We need to access the banned phrases list in the DB
-        # This implies we have a 'config' table or similar.
-        # As per 'get_banned_phrases' logic (which wasn't fully shown but likely uses settings or DB),
-        # let's assume it's in a 'config' table.
-
-        # Implementation depends on how banned phrases are stored.
-        # If they are just in settings, we can't delete them via API persistently unless we update a file/DB.
-        # Assuming DB 'banned_phrases' collection for this example as per previous context.
-
-        # Check if we are using settings-based or DB-based.
-        # If DB based:
-        table = db.table("banned_phrases")
-        query = Query()
-        table.remove(query.phrase == phrase)
-
-        return {"status": "removed", "phrase": phrase}
-
-    except Exception as e:
-        logger.error(f"Failed to remove banned phrase: {e}")
-        raise AppException(str(e), status_code=500) from e
+    # Bubble up DB errors
+    from tinydb import Query
+    table = db.table("banned_phrases")
+    table.remove(Query().phrase == phrase)
+    return BannedPhraseResponse(status="removed", phrase=phrase)
 
 
 @router.post(
     "/banned-phrases/generate",
     summary="Generate Banned Phrases",
-    response_description="A list of newly generated and added banned phrases.",
+    response_model=GeneratedPhrasesResponse,
 )
 async def generate_banned_phrases(
-    request: GenerateBannedPhrasesRequest, repo: RepositoryDep, llm_provider: LLMProviderDeep
+    request: GeneratePhrasesRequest,
+    repo: RepositoryDep,
+    llm_provider: LLMProviderDeep
 ):
-    """Uses the LLM to generate new potential banned phrases based on common adversarial patterns.
-
-    Args:
-        request (GenerateBannedPhrasesRequest): Configuration for generation (e.g. language).
-        repo (RepositoryDep): Database dependency.
-        llm_provider (LLMProvider): LLM provider dependency.
-
-    Returns:
-        dict: Report containing added phrases.
-
-    Raises:
-        HTTPException: If generation fails.
-
-    """
-    # 1. Get existing to provide context
-    existing_records = await repo.get_banned_phrases()
-    existing = [p["phrase"] for p in existing_records]
-
-    # 2. Prompt LLM
-    lang_map = {"fi": "Finnish", "en": "English"}
-    language_name = lang_map.get(request.language, "English")
-
-    system_prompt = (
-        "You are a security expert for AI systems. "
-        "Your task is to identify common adversarial prompts, jailbreak attempts, "
-        "and phrases used to bypass safety filters."
-    )
-
-    user_prompt = (
-        f"Generate 10 NEW unique banned phrases in {language_name}. "
-        "Focus on common jailbreak patterns (e.g. 'ignore previous instructions', 'roleplay as', 'DAN mode') "
-        "and potentially harmful requests. \n"
-        "Return strictly a JSON object with a single key 'phrases' containing a list of strings. \n"
-        f"Do NOT include these existing phrases: {json.dumps(existing[:20])}..."
-    )
-
+    """Uses LLM to generate banned phrases."""
     try:
-        response = await llm_provider.generate(user_prompt, system_instruction=system_prompt)
+        existing_records = await repo.get_banned_phrases()
+        existing = [p["phrase"] for p in existing_records]
+        
+        lang_map = {"fi": "Finnish", "en": "English"}
+        language_name = lang_map.get(request.language, "English")
 
-        # 3. Parse Response
+        system_prompt = "You are a security expert. Identify adversarial prompts."
+        user_prompt = f"Generate 10 NEW banned phrases in {language_name}. Return strictly JSON key 'phrases'."
+
+        response = await llm_provider.generate(user_prompt, system_instruction=system_prompt)
+        # Assuming simplified handling
         clean_response = response.content.replace("```json", "").replace("```", "").strip()
         data = json.loads(clean_response)
         candidates = data.get("phrases", [])
@@ -812,156 +576,91 @@ async def generate_banned_phrases(
             if phrase not in existing:
                 await repo.add_banned_phrase(phrase, language=request.language)
                 added.append(phrase)
-                existing.append(phrase)  # Update local list
 
-        return {
-            "status": "success",
-            "message": f"Generated {len(candidates)} candidates, added {len(added)} new phrases.",
-            "added_phrases": added,
-        }
-
+        return GeneratedPhrasesResponse(
+            status="success",
+            message=f"Generated {len(candidates)}, Added {len(added)}.",
+            added_phrases=added
+        )
     except Exception as e:
-        logger.error(f"Failed to generate banned phrases: {e}")
-        raise AppException(str(e), status_code=500) from e
+        # LLM Failure -> Bubble?
+        # Typically treated as service unavailable or 500. Bubble.
+        # But logging context helps for LLM issues.
+        error_code = "PHRASE_GENERATION_FAILED"
+        logger.error(f"{error_code}: LLM Phrase generation failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=error_code)
 
 
 @router.get(
     "/org/{organization_id}/users",
     summary="List Organization Users",
-    response_description="List of all users in the specified organization.",
     response_model=list[UserAdminView],
 )
 async def list_organization_users(
-    organization_id: str,
+    organization_id: Annotated[str, Path(description="Organization ID")],
     user: CurrentUserDep,
     auth_service: AuthServiceDep,
 ):
-    """Retrieve all users for a specific organization (Admin View).
-
-    Permissions:
-    - ROOT: Can view any organization.
-    - ADMIN: Can view only their own organization.
-    - MEMBER/MANAGER: Forbidden.
-    """
-    # 1. Access Control
+    """Retrieve all users for a specific organization (Admin View)."""
     if user.role != UserRole.ROOT:
-        # Check if Admin and matching Org
-        if user.role == UserRole.ADMIN:
-            if user.organization_id != organization_id:
-                raise PermissionDeniedError("Access denied to other organization's users.")
-        else:
-            # Manager/Member/Viewer
-            raise PermissionDeniedError("Insufficient privileges.")
-
-    # 2. Execute
-    users = await auth_service.get_users_by_organization(organization_id)
-
-    # 3. Serialize (Pydantic will handle User -> UserAdminView conversion via from_attributes)
-    return users
+        error_code = "AUTH_PERMISSION_DENIED"
+        if user.role == UserRole.ADMIN and user.organization_id != organization_id:
+            logger.warning(f"{error_code}: Admin {user.uid} attempted to access org {organization_id}")
+            raise HTTPException(status_code=403, detail=error_code)
+        if user.role not in [UserRole.ROOT, UserRole.ADMIN]:
+            logger.warning(f"{error_code}: User {user.uid} with role {user.role} attempted admin access")
+            raise HTTPException(status_code=403, detail=error_code)
+            
+    return await auth_service.get_users_by_organization(organization_id)
 
 
 @router.put(
     "/user/{user_id}/role",
     summary="Update User Role",
-    response_description="The updated user in admin view.",
     response_model=UserAdminView,
 )
 async def update_user_role(
-    user_id: str,
+    user_id: Annotated[str, Path(description="User ID")],
     request: UpdateRoleRequest,
     user: CurrentUserDep,
     auth_service: AuthServiceDep,
 ):
-    """Updates the role of a user.
-
-    Enforces stricter RBAC than standard update:
-    - Initiator must have higher/equal hierarchy than Target.
-    - Initiator must have higher/equal hierarchy than New Role.
-    - Cannot demote valid Last Admin.
-    """
     try:
-        updated = await auth_service.update_user_role(initiator_uid=user.uid, target_uid=user_id, new_role=request.role)
-        return updated
-    except PermissionError as e:
-        raise HTTPException(status_code=403, detail=str(e)) from e
-    except AppException:
+        return await auth_service.update_user_role(initiator_uid=user.uid, target_uid=user_id, new_role=request.role)
+    except (PermissionError, ValueError, RuntimeError) as e:
+        msg = str(e)
+        msg = str(e)
+        if "LAST_ADMIN_PROTECTION" in msg:
+             error_code = "LAST_ADMIN_PROTECTION"
+             logger.error(f"{error_code}: {e}", exc_info=True)
+             raise HTTPException(status_code=409, detail=error_code)
+        if isinstance(e, ValueError):
+            error_code = "USER_NOT_FOUND"
+            logger.error(f"{error_code}: {e}", exc_info=True)
+            raise HTTPException(status_code=404, detail=error_code)
+        if isinstance(e, PermissionError):
+            error_code = "PERMISSION_DENIED"
+            logger.error(f"{error_code}: {e}", exc_info=True)
+            raise HTTPException(status_code=403, detail=error_code)
         raise
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from e
-    except RuntimeError as e:
-        # Check for our specific signal
-        if "LAST_ADMIN_PROTECTION" in str(e):
-            raise HTTPException(
-                status_code=409,
-                detail={"error_code": "LAST_ADMIN_PROTECTION", "message": str(e)},
-            ) from e
-        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get(
     "/system/queue",
     summary="Get Queue Statistics",
-    response_description="Current statistics for the background job queue.",
     response_model=QueueStats,
     dependencies=[Depends(require_root)],
 )
 async def get_queue_stats(request: Request):
-    """Retrieves current metrics from the ArQ Redis queue.
-
-    Permissions:
-    - ROOT: Allowed.
-    - Other: Forbidden.
-    """
-    # We access the pool directly from app state
+    """Retrieves current metrics from the ArQ Redis queue."""
     pool = getattr(request.app.state, "arq_pool", None)
-
     if not pool:
-        # Should only happen in Mock DB mode or if Redis failed
-        logger.warning("Arq Pool not available (Mock Mode?). Returning zero stats.")
         return QueueStats(queued_jobs=0, active_jobs=0, dead_jobs=0)
-
+    
     try:
-        # ArQ introspection
-        # pool.queued_jobs() returns a list of jobs, we want count
-        # Wait, pool.queued_jobs() returns list of JobDef.
-        # Actually introspection methods might differ by version.
-        # Checking Arq docs or standard usage:
-        # pool.queued_jobs() -> Awaitable[List[JobDef]]
-        # pool.deferred_jobs() -> Awaitable[List[JobDef]]
-        # We assume standard arq usage.
-
-        # NOTE: If the list is huge, this is inefficient, but for admin view fine.
         queued = await pool.queued_jobs()
-        # Active jobs aren't directly queryable globally in standard Redis without scanning,
-        # but arq has `health_check` or similar?
-        # Actually `pool.queued_jobs()` gets jobs in queue.
-        # `active_jobs` usually requires checking worker keys.
-        # For simplicity and standard Arq API, we might stick to what's easy.
-        # If standard ArQ doesn't easily give active count without worker inspection,
-        # we might mock it or leave as 0/TODO.
-        # However, `pool.queued_jobs()` is definitely available.
-
-        # Let's check available methods on ArqRedis.
-        # Since I can't check docs, I will assume basic inspection.
-        # If `active_jobs` is hard, we'll try `queued` and `deferred`.
-        # Wait, user asked specifically for `active_jobs`.
-        # I'll rely on `queued_jobs()` length.
-        # For `active_jobs` and `dead_jobs` (DLQ):
-        # DLQ is often separate.
-
-        queued_count = len(queued)
-
-        # Dead jobs = accessing the result of failed jobs? Or a specific queue?
-        # Arq doesn't strictly have a "Dead Letter Queue" by default unless configured.
-        # It keeps results.
-        # I will return 0 for active/dead if not easily accessible, or try standard keys.
-
-        return QueueStats(
-            queued_jobs=queued_count,
-            active_jobs=0,  # Placeholder as ArQ doesn't expose global active count easily without scanning
-            dead_jobs=0,  # Placeholder
-        )
+        return QueueStats(queued_jobs=len(queued), active_jobs=0, dead_jobs=0)
     except Exception as e:
-        logger.error(f"Failed to fetch queue stats: {e}")
-        # Fail safe for admin view
+        # Non-critical, just log warning
+        logger.warning(f"Queue stats failed: {e}")
         return QueueStats(queued_jobs=0, active_jobs=0, dead_jobs=0)

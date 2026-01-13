@@ -1,0 +1,12 @@
+PASS: admin_router.py
+PASS: agents_router.py
+PASS: audit_router.py
+PASS: auth_router.py
+PASS: builder_router.py
+PASS: config_router.py
+FAIL: execution_router.py
+  - Line 229: raise HTTPException without preceding logger call.
+PASS: llm_router.py
+PASS: organization_router.py
+PASS: settings_router.py
+PASS: tools_router.py

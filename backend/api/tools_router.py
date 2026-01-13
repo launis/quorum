@@ -12,6 +12,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, UploadFile
 
+from backend.schemas.error import APIError
 from backend.dependencies import DatabaseDep, RegistryDep, RepositoryDep, get_document_service_dep
 from backend.services.document_service import DocumentService
 
@@ -54,8 +55,9 @@ async def extract_text(
                     shutil.copyfileobj(file.file, buffer)
                 content = doc_service.extract_text(temp_path)
             except Exception as e:
-                logger.error(f"Text extraction failed: {e}", exc_info=True)
-                raise HTTPException(status_code=500, detail=str(e)) from e
+                error_code = "TEXT_EXTRACTION_FAILED"
+                logger.error(f"{error_code}: {e}", exc_info=True)
+                raise HTTPException(status_code=500, detail=error_code) from e
             finally:
                 if temp_path and os.path.exists(temp_path):
                     try:
@@ -64,7 +66,9 @@ async def extract_text(
                         pass
 
     if not content:
-        raise HTTPException(status_code=400, detail="No text or file provided.")
+        error_code = "NO_CONTENT_PROVIDED"
+        logger.warning(f"{error_code}: No text or file provided.")
+        raise HTTPException(status_code=400, detail=error_code)
 
     return {"filename": filename, "text": content}
 
@@ -110,7 +114,9 @@ async def extract_concepts_from_file_or_text(
                     pass
 
     if not content:
-        raise HTTPException(status_code=400, detail="No text or file provided.")
+        error_code = "NO_CONTENT_PROVIDED"
+        logger.warning(f"{error_code}: No text or file provided.")
+        raise HTTPException(status_code=400, detail=error_code)
 
     try:
         # Resolve config logic
@@ -138,8 +144,9 @@ async def extract_concepts_from_file_or_text(
         return {"source_length": len(content), "concepts": []}  # Placeholder return if logic is disabled/broken
 
     except Exception as e:
-        logger.error(f"Concept extraction failed: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        error_code = "CONCEPT_EXTRACTION_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=error_code) from e
 
 
 @router.post("/web-scrape", summary="Scrape Web Page", response_description="Scraped content.")
@@ -167,20 +174,30 @@ async def web_scrape(
         ip_obj = ipaddress.ip_address(ip)
 
         if ip_obj.is_loopback or ip_obj.is_private:
-            raise HTTPException(status_code=400, detail="SSRF Protection: Access to private IP is blocked.")
+            error_code = "SSRF_PROTECTION_BLOCKED"
+            logger.error(f"{error_code}: Access to private IP blocked: {ip}", exc_info=True)
+            raise HTTPException(status_code=400, detail=error_code)
 
     except HTTPException:
         raise
     except Exception as e:
         # Map specific SSRF errors to 400
         if "SSRF" in str(e):
-            raise HTTPException(status_code=400, detail=str(e)) from e
+             # Try to map if possible, else generic
+             error_code = "SSRF_PROTECTION_BLOCKED"
+             logger.error(f"{error_code}: {e}", exc_info=True)
+             raise HTTPException(status_code=400, detail=error_code) from e
+             
         # Logic error in resolving might be 400 too
         if isinstance(e, ValueError):
-            raise HTTPException(status_code=400, detail="Invalid URL structure.") from e
+            error_code = "INVALID_URL"
+            logger.error(f"{error_code}: {e}", exc_info=True)
+            raise HTTPException(status_code=400, detail=error_code) from e
+            
         # Fallback
-        # If socket fails, it's 400 usually (invalid host)
-        raise HTTPException(status_code=400, detail=f"SSRF Check Failed: {e}") from e
+        error_code = "WEB_SCRAPE_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise HTTPException(status_code=400, detail=error_code) from e
 
     # 2. Mock Implementation for now (or real if needed, but test only checks hardening)
     # Return dummy content
@@ -225,5 +242,6 @@ async def citation_lookup(
         return results
 
     except Exception as e:
-        logger.error(f"Citation lookup failed: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        error_code = "CITATION_LOOKUP_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=error_code) from e

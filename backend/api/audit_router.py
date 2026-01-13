@@ -3,11 +3,15 @@
 Provides endpoints for retrieving system audit logs.
 """
 
+import logging
 from fastapi import APIRouter, HTTPException, Query, status
 
 from backend.dependencies import AuditServiceDep, CurrentUserDep
+from backend.schemas.error import APIError
 from backend.models.audit import AuditEvent
 from backend.models.auth import UserRole
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/audit", tags=["Audit"])
 
@@ -29,23 +33,34 @@ async def get_audit_logs(
     - MEMBER: Cannot see audit logs (403).
     """
     # 1. Access Control
-    if user.role == UserRole.ROOT:
-        # ROOT can filter by anything.
-        target_org = organization_id
-    elif user.role == UserRole.ADMIN:
-        # ADMIN is forced to their own org.
-        if organization_id and organization_id != user.organization_id:
+    try:
+        if user.role == UserRole.ROOT:
+            # ROOT can filter by anything.
+            target_org = organization_id
+        elif user.role == UserRole.ADMIN:
+            # ADMIN is forced to their own org.
+            if organization_id and organization_id != user.organization_id:
+                error_code = "ACCESS_DENIED_ORGANIZATION_MISMATCH"
+                logger.warning(f"{error_code}: Admin {user.uid} tried to access org {organization_id}")
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=error_code,
+                )
+            target_org = user.organization_id
+        else:
+            error_code = "PERMISSION_DENIED"
+            logger.warning(f"{error_code}: User {user.uid} with role {user.role} denied audit access")
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access denied. You can only view logs for your own organization.",
+                status_code=status.HTTP_403_FORBIDDEN, detail=error_code
             )
-        target_org = user.organization_id
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied. Insufficient privileges to view audit logs."
-        )
 
-    # 2. Fetch Logs
-    logs = await audit_service.get_logs(organization_id=target_org, actor_uid=actor_uid, action=action, limit=limit)
+        # 2. Fetch Logs
+        logs = await audit_service.get_logs(organization_id=target_org, actor_uid=actor_uid, action=action, limit=limit)
+        return logs
 
-    return logs
+    except HTTPException:
+        raise
+    except Exception as e:
+        error_code = "AUDIT_LOG_RETRIEVAL_FAILED"
+        logger.error(f"{error_code}: Failed to retrieve audit logs: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=error_code) from e

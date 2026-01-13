@@ -12,6 +12,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from tinydb import Query
 
+from backend.schemas.error import APIError
 from backend.dependencies import DatabaseDep, LLMHandlerDep, RegistryDep
 from backend.llm.provider import LLMFactory
 
@@ -94,10 +95,13 @@ async def generate_completion(request: CompletionRequest, registry: RegistryDep)
         return {"result": response}
 
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
+        error_code = "INVALID_MODEL_STRATEGY"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise HTTPException(status_code=400, detail=error_code) from e
     except Exception as e:
-        logger.error(f"Completion failed: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        error_code = "LLM_COMPLETION_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=error_code) from e
 
 
 @router.post("/batch-completion", summary="Batch Completion", response_description="List of results.")
@@ -120,7 +124,9 @@ async def batch_completion(batch: BatchCompletionRequest, registry: RegistryDep)
                 prompt=req.prompt, system_instruction=req.system_instruction, response_schema=req.response_schema
             )
         except Exception as e:
-            return {"error": str(e)}
+            error_code = "LLM_BATCH_ITEM_FAILED"
+            logger.error(f"{error_code}: {e}", exc_info=True)
+            return {"error": str(e), "error_code": error_code}
 
     results = await asyncio.gather(*[_process_one(r) for r in batch.requests])
     return {"results": results}
@@ -189,4 +195,6 @@ def update_model_config(update: ModelRegistryUpdate, db_client: DatabaseDep):
         table.upsert({"type": "model_registry", "models": update.registry}, Config.type == "model_registry")
         return {"status": "success", "registry": update.registry}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        error_code = "MODEL_REGISTRY_UPDATE_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=error_code) from e

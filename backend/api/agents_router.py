@@ -12,6 +12,7 @@ from fastapi import APIRouter, Body, HTTPException
 from fastapi import Query as APIQuery
 from tinydb import Query
 
+from backend.schemas.error import APIError
 from backend.database.wrapper import AbstractDatabase
 from backend.dependencies import DatabaseDep, RegistryDep
 
@@ -97,9 +98,13 @@ async def run_agent(
         return {"agent": agent_name, "result": result}
 
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
+        error_code = "AGENT_NOT_FOUND"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise HTTPException(status_code=400, detail=error_code) from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        error_code = "AGENT_EXECUTION_FAILED"
+        logger.error(f"{error_code}: Execution of {agent_name} failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=error_code) from e
 
 
 @router.get(
@@ -274,7 +279,8 @@ async def list_agents(
         return agents_list
 
     except Exception as e:
-        logger.error(f"List Agents Failed: {e}\n{traceback.format_exc()}")
+        error_code = "AGENT_DISCOVERY_FAILED"
+        logger.error(f"{error_code}: List Agents Failed: {e}\n{traceback.format_exc()}")
         raise HTTPException(
-            status_code=500, detail=f"Internal Error in list_agents: {str(e)} | TRACE: {traceback.format_exc()}"
+            status_code=500, detail=error_code
         ) from e
