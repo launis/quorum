@@ -27,6 +27,7 @@ from frontend.views.org_admin_view import render_org_admin_view
 from frontend.views.system_admin_view import render_system_admin_view
 from frontend.views.system_view import render_system_view
 from frontend.views.user_view import render_user_view
+from frontend.views.profile_view import render_profile_view
 
 # Config
 BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
@@ -128,7 +129,7 @@ def main():
 
         st.markdown("### Navigation")
         # Filter views
-        nav_options = ["Dashboard", "Assessment"]
+        nav_options = ["Dashboard", "Assessment", "My Profile"]  # Everyone sees Profile
 
         user_role = st.session_state.user["role"].lower()  # normalize
 
@@ -146,9 +147,16 @@ def main():
                 ]
             )
 
-        # ADMIN: Users (Team) - Org Level User Management
+        # ADMIN: Users + Workflows (Inherited from Manager)
         elif user_role == "admin":
-            nav_options.extend(["User Management", "🏢 Organization Settings"])
+            nav_options.extend(
+                [
+                    "Workflow Builder",       # Inherited
+                    "Audit Matrix Library",   # Inherited
+                    "User Management",
+                    "🏢 Organization Settings"
+                ]
+            )
 
         # MANAGER: Workflow Config - Technical Lead
         elif user_role == "manager":
@@ -175,6 +183,9 @@ def main():
     elif page == "Assessment":
         # Pass backend_url if needed by view, though we are moving away from it.
         render_audit_view(api_client, BACKEND_URL, workflow_options)
+    
+    elif page == "My Profile":
+        render_profile_view(api_client)
 
     elif page == "Workflow Builder":
         render_workflow_builder(api_client)

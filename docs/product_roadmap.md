@@ -39,7 +39,8 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 ---
 
 ## 📍 Phase 1: SaaS Foundation (Backend Hardening)
-**Objective:** Secure the backend, enforce multi-tenancy, and ensure the system is "Cloud Ready" before building the client apps.
+**Objective:** Secure the backend, enforce multi-tenancy, and ensure the system is "Cloud Ready".
+**Milestone:** Jan 13, 2026 - Absolute Triple Green (Ruff/Mypy/Tests) & V2.9 Standards enforced.
 
 ### 1.1 Authentication & Identity (✅ Completed)
 - [x] **Hybrid Auth Service**: Support for both Firebase Auth (Production) and Local Mock Auth (Dev).
@@ -67,7 +68,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **Operational Hardening**: Implemented URL Safety (SSRF), Quota Checks, and Integrity Audits.
 - [x] **Crash Recovery**: Established standardized DB Reset protocols (`seed_prod.py`) and Integrity Checks.
 - [x] **Containerization**: Full Docker support (Virtual Environment Parity, Strict `.dockerignore`, Multi-stage Builds).
-- [ ] **Config SSOT**: Refactor `docker-compose.yml` to use `.env` interpolation (Single Source of Truth) to avoid configuration drift.
+- [x] **Config SSOT**: Refactor `docker-compose.yml` to use `.env` interpolation (Single Source of Truth) via `env_file`.
 - [x] **Worker Environment Parity**: Worker successfully verified in Local (TinyDB), Local (Firestore), and Docker (Firestore) environments.
 
 ### 1.4 Scalability Architecture (Future)
@@ -85,6 +86,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **Riverpod & State**: Initialize `ProviderScope` and setup `json_serializable` / `riverpod_generator` build runners.
 - [x] **Router Architecture**: Implement `GoRouter` with `StatefulShellRoute` (Nested Navigation) and Type-safe Routes (`GoRouteData`).
 - [x] **Adaptive Layout**: Implemented NavigationRail/Bar switching and max-width constraints for Desktop/Web support.
+- [x] **Adaptive Design Mandate**: Strict "Write once, adapt everywhere" policy (ConstrainedBox, SliverGrid, Responsive Shell).
 
 ### 2.2 Connectivity & Auth
 - [x] **Secure HTTP Client**: Implement `Dio` with a generic `AuthInterceptor` to inject Firebase Tokens into Backend requests.
@@ -121,9 +123,9 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **Admin Portal Separation**:
     - **Workflow vs. Admin**: Strict visual and navigational separation between *Technical Configuration* (Workflow Builder, Matrix) and *Governance* (Users, Org, System).
     - **Dedicated Admin Route**: `/admin` dashboard with a distinct visual theme (ShellRoute + NavigationRail/NavigationBar Adaptive).
-- [ ] **Advanced User Management**:
-    - **Access Lifecycle**: UI strategies for Granting, Renewing, and Revoking access with clear expiry visualizations.
-    - **Role Matrix**: Interactive permission table for assigning Roles (Viewer, Member, Manager, Admin) with "Best Practice" visual feedback.
+- [x] **Advanced User Management**:
+    - **Access Lifecycle**: UI strategies for Granting, Renewing, and Revoking access (`UserManagementScreen`).
+    - **Role Matrix**: Interactive permission table for assigning Roles (Viewer, Member, Manager, Admin).
     - **Organization Roster**: Searchable, filterable list of all Users within the Organization.
 - [x] **Organization Governance**:
     - **Organization Management**: Full CRUD (Create, List, Delete) for Root Users.
@@ -173,6 +175,19 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 ### 4.2 Advanced Collaboration
 - [ ] **Comments & Flagging**: Allow Viewers to comment on specific parts of a report.
 - [ ] **Approval Flow**: Manager must "Approve" an audit result before it is finalized.
+
+---
+
+## 📍 Phase 5: Self-Service & Refinement (✅ Completed)
+**Objective:** Empower users to manage their own identity and streamline Admin workflows.
+
+### 5.1 User Self-Service
+- [x] **Profile Editing**: Users can update their own Display Name and basic settings (`SettingsScreen` / `profile_view.py`).
+- [x] **RBAC Hardening**: Strict enforcement of Organization boundaries (Root-only moves).
+
+### 5.2 Admin Experience
+- [x] **Workflow Builder Access**: Admins granted access to Workflow Builder (inherited from Manager) for template management.
+- [x] **Simplified Verification**: Implemented single-file verification strategy (`tests/test_rbac_simple.py`) for rapid CI/CD checks.
 
 ---
 

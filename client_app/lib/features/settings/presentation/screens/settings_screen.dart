@@ -7,6 +7,7 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:client_app/features/auth/data/repositories/user_repository.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -34,6 +35,18 @@ class SettingsScreen extends ConsumerWidget {
                   subtitle: Text('UID: ${user.uid}'),
                   tileColor: Colors.amber.withValues(alpha: 0.2),
                 ),
+              if (user != null) ...[
+                ListTile(
+                  leading: const Icon(Icons.person),
+                  title: Text(user.displayName ?? 'No Name'),
+                  subtitle: Text(user.email),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.edit),
+                    onPressed: () => _showEditProfileDialog(context, ref, user),
+                  ),
+                ),
+                const Divider(),
+              ],
               const UsageStatsCard(),
               if (isAdmin) ...[
                 ListTile(
@@ -103,6 +116,60 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _showEditProfileDialog(
+    BuildContext context,
+    WidgetRef ref,
+    User user,
+  ) async {
+    final nameController = TextEditingController(text: user.displayName ?? '');
+
+    await showDialog<void>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Edit Profile'),
+            content: TextField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: 'Display Name'),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  final newName = nameController.text.trim();
+                  if (newName.isNotEmpty && newName != user.displayName) {
+                    // Call Repo
+                    final result = await ref
+                        .read(userRepositoryProvider)
+                        .updateCurrentUser(user.uid, {'display_name': newName});
+
+                    result.fold(
+                      (err) => ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Update failed: $err')),
+                      ),
+                      (updatedUser) {
+                        Navigator.of(context).pop();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Profile updated!')),
+                        );
+                        // Force refresh auth state
+                        ref.invalidate(authControllerProvider);
+                      },
+                    );
+                  } else {
+                    Navigator.of(context).pop();
+                  }
+                },
+                child: const Text('Save'),
+              ),
+            ],
+          ),
     );
   }
 

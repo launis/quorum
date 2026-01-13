@@ -554,6 +554,60 @@
         }
       }
     },
+    "/admin/users/roles": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Get Assignable Roles",
+        "description": "Returns the list of roles the currently authenticated user is allowed to assign.\n\n- **Root**: Can assign ANY role (including ROOT).\n- **Admin**: Can assign ADMIN, MANAGER, MEMBER, VIEWER. Cannot assign ROOT.",
+        "operationId": "get_assignable_roles_admin_users_roles_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of roles the current user can assign.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserRole"
+                  },
+                  "title": "Response Get Assignable Roles Admin Users Roles Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/admin/users": {
       "post": {
         "tags": [
@@ -3380,7 +3434,7 @@
           "Builder"
         ],
         "summary": "Create Workflow",
-        "description": "Create a new workflow.\n\nArgs:\n    request (BuilderWorkflowCreateRequest): Workflow definition.\n    engine (EngineDep): Engine dependency.\n    current_user (CurrentUserDep): Requesting user (ROOT/MANAGER).\n\nReturns:\n    dict: The created workflow object.\n\nRaises:\n    HTTPException: If permission denied (403) or creation fails (500).",
+        "description": "Create a new workflow.\n\nArgs:\n    request (BuilderWorkflowCreateRequest): Workflow definition.\n    engine (EngineDep): Engine dependency.\n    current_user (CurrentUserDep): Requesting user (ROOT/ADMIN/MANAGER).\n\nReturns:\n    dict: The created workflow object.\n\nRaises:\n    HTTPException: If permission denied (403) or creation fails (500).",
         "operationId": "create_workflow_builder_workflows_post",
         "parameters": [
           {

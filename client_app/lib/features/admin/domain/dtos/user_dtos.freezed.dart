@@ -290,7 +290,7 @@ as String?,
 /// @nodoc
 mixin _$UserUpdateDto {
 
-@JsonKey(name: 'display_name') String? get displayName; UserRole? get role;@JsonKey(name: 'is_active') bool? get isActive;
+@JsonKey(name: 'display_name') String? get displayName; UserRole? get role;@JsonKey(name: 'is_active') bool? get isActive;@JsonKey(name: 'organization_id') String? get organizationId;
 /// Create a copy of UserUpdateDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -303,16 +303,16 @@ $UserUpdateDtoCopyWith<UserUpdateDto> get copyWith => _$UserUpdateDtoCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserUpdateDto&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.role, role) || other.role == role)&&(identical(other.isActive, isActive) || other.isActive == isActive));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserUpdateDto&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.role, role) || other.role == role)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,displayName,role,isActive);
+int get hashCode => Object.hash(runtimeType,displayName,role,isActive,organizationId);
 
 @override
 String toString() {
-  return 'UserUpdateDto(displayName: $displayName, role: $role, isActive: $isActive)';
+  return 'UserUpdateDto(displayName: $displayName, role: $role, isActive: $isActive, organizationId: $organizationId)';
 }
 
 
@@ -323,7 +323,7 @@ abstract mixin class $UserUpdateDtoCopyWith<$Res>  {
   factory $UserUpdateDtoCopyWith(UserUpdateDto value, $Res Function(UserUpdateDto) _then) = _$UserUpdateDtoCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'display_name') String? displayName, UserRole? role,@JsonKey(name: 'is_active') bool? isActive
+@JsonKey(name: 'display_name') String? displayName, UserRole? role,@JsonKey(name: 'is_active') bool? isActive,@JsonKey(name: 'organization_id') String? organizationId
 });
 
 
@@ -340,12 +340,13 @@ class _$UserUpdateDtoCopyWithImpl<$Res>
 
 /// Create a copy of UserUpdateDto
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? displayName = freezed,Object? role = freezed,Object? isActive = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? displayName = freezed,Object? role = freezed,Object? isActive = freezed,Object? organizationId = freezed,}) {
   return _then(_self.copyWith(
 displayName: freezed == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
 as String?,role: freezed == role ? _self.role : role // ignore: cast_nullable_to_non_nullable
 as UserRole?,isActive: freezed == isActive ? _self.isActive : isActive // ignore: cast_nullable_to_non_nullable
-as bool?,
+as bool?,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -430,10 +431,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'display_name')  String? displayName,  UserRole? role, @JsonKey(name: 'is_active')  bool? isActive)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'display_name')  String? displayName,  UserRole? role, @JsonKey(name: 'is_active')  bool? isActive, @JsonKey(name: 'organization_id')  String? organizationId)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _UserUpdateDto() when $default != null:
-return $default(_that.displayName,_that.role,_that.isActive);case _:
+return $default(_that.displayName,_that.role,_that.isActive,_that.organizationId);case _:
   return orElse();
 
 }
@@ -451,10 +452,10 @@ return $default(_that.displayName,_that.role,_that.isActive);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'display_name')  String? displayName,  UserRole? role, @JsonKey(name: 'is_active')  bool? isActive)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'display_name')  String? displayName,  UserRole? role, @JsonKey(name: 'is_active')  bool? isActive, @JsonKey(name: 'organization_id')  String? organizationId)  $default,) {final _that = this;
 switch (_that) {
 case _UserUpdateDto():
-return $default(_that.displayName,_that.role,_that.isActive);case _:
+return $default(_that.displayName,_that.role,_that.isActive,_that.organizationId);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -471,10 +472,10 @@ return $default(_that.displayName,_that.role,_that.isActive);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'display_name')  String? displayName,  UserRole? role, @JsonKey(name: 'is_active')  bool? isActive)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'display_name')  String? displayName,  UserRole? role, @JsonKey(name: 'is_active')  bool? isActive, @JsonKey(name: 'organization_id')  String? organizationId)?  $default,) {final _that = this;
 switch (_that) {
 case _UserUpdateDto() when $default != null:
-return $default(_that.displayName,_that.role,_that.isActive);case _:
+return $default(_that.displayName,_that.role,_that.isActive,_that.organizationId);case _:
   return null;
 
 }
@@ -486,12 +487,13 @@ return $default(_that.displayName,_that.role,_that.isActive);case _:
 
 @JsonSerializable(includeIfNull: false)
 class _UserUpdateDto implements UserUpdateDto {
-  const _UserUpdateDto({@JsonKey(name: 'display_name') this.displayName, this.role, @JsonKey(name: 'is_active') this.isActive});
+  const _UserUpdateDto({@JsonKey(name: 'display_name') this.displayName, this.role, @JsonKey(name: 'is_active') this.isActive, @JsonKey(name: 'organization_id') this.organizationId});
   factory _UserUpdateDto.fromJson(Map<String, dynamic> json) => _$UserUpdateDtoFromJson(json);
 
 @override@JsonKey(name: 'display_name') final  String? displayName;
 @override final  UserRole? role;
 @override@JsonKey(name: 'is_active') final  bool? isActive;
+@override@JsonKey(name: 'organization_id') final  String? organizationId;
 
 /// Create a copy of UserUpdateDto
 /// with the given fields replaced by the non-null parameter values.
@@ -506,16 +508,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserUpdateDto&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.role, role) || other.role == role)&&(identical(other.isActive, isActive) || other.isActive == isActive));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserUpdateDto&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.role, role) || other.role == role)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,displayName,role,isActive);
+int get hashCode => Object.hash(runtimeType,displayName,role,isActive,organizationId);
 
 @override
 String toString() {
-  return 'UserUpdateDto(displayName: $displayName, role: $role, isActive: $isActive)';
+  return 'UserUpdateDto(displayName: $displayName, role: $role, isActive: $isActive, organizationId: $organizationId)';
 }
 
 
@@ -526,7 +528,7 @@ abstract mixin class _$UserUpdateDtoCopyWith<$Res> implements $UserUpdateDtoCopy
   factory _$UserUpdateDtoCopyWith(_UserUpdateDto value, $Res Function(_UserUpdateDto) _then) = __$UserUpdateDtoCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'display_name') String? displayName, UserRole? role,@JsonKey(name: 'is_active') bool? isActive
+@JsonKey(name: 'display_name') String? displayName, UserRole? role,@JsonKey(name: 'is_active') bool? isActive,@JsonKey(name: 'organization_id') String? organizationId
 });
 
 
@@ -543,12 +545,13 @@ class __$UserUpdateDtoCopyWithImpl<$Res>
 
 /// Create a copy of UserUpdateDto
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? displayName = freezed,Object? role = freezed,Object? isActive = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? displayName = freezed,Object? role = freezed,Object? isActive = freezed,Object? organizationId = freezed,}) {
   return _then(_UserUpdateDto(
 displayName: freezed == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
 as String?,role: freezed == role ? _self.role : role // ignore: cast_nullable_to_non_nullable
 as UserRole?,isActive: freezed == isActive ? _self.isActive : isActive // ignore: cast_nullable_to_non_nullable
-as bool?,
+as bool?,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

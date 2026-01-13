@@ -148,5 +148,6 @@
   "organizationMembers": "Organisaation jäsenet",
   "refresh": "Päivitä",
   "noUsersFound": "Käyttäjiä ei löytynyt.",
-  "loginRequired": "Kirjautuminen vaaditaan"
+  "loginRequired": "Kirjautuminen vaaditaan",
+  "organizationId": "Organisaatio ID"
 }

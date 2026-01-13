@@ -1,48 +1,56 @@
-"""IAM Tests (Clean Slate).
+"""IAM Tests (Clean & Simplified).
 
-Verifies Role-Based Access Control (RBAC) and Organization boundaries.
-Uses strictly isolated dependency overrides with NO shared fixtures unless explicit.
+Verifies Organization Router RBAC and Conflicts.
+Uses strict dependency injection overrides for isolation.
 """
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 from unittest.mock import MagicMock
 
-from backend.api.organization_router import get_db_client_dep
-from backend.dependencies import get_async_repository, get_current_user_from_header
+from backend.dependencies import get_async_repository, get_current_user_from_header, get_db_client_dep
 from backend.main import app
 from backend.models.auth import TokenData, UserRole
-
-# --- CONSTANTS ---
-ROOT_USER = {"uid": "root_master", "email": "root@system", "role": "ROOT"}
-ADMIN_USER = {"uid": "admin", "email": "admin@org", "role": "ADMIN"}
-MEMBER_USER = {"uid": "member", "email": "member@org", "role": "MEMBER"}
 
 # --- FIXTURES ---
 
 @pytest.fixture
-def async_client():
-    """Returns an AsyncClient for the app."""
-    return AsyncClient(transport=ASGITransport(app=app), base_url="http://test")
+async def async_client():
+    """Returns an AsyncClient bound to the app."""
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        yield ac
 
 @pytest.fixture
-def mock_auth_dep_factory():
-    """Factory to create dynamic auth overrides per test."""
-    def _create_override(role: UserRole, uid: str, org_id: str):
-        async def _mock_auth():
-            return TokenData(
-                uid=uid,
-                email=f"{uid}@example.com",
-                role=role,
-                organization_id=org_id,
-            )
-        return _mock_auth
-    return _create_override
+def mock_repo():
+    """Returns a MagicMock for the Repository."""
+    return MagicMock()
 
-# --- ACTUAL IMPLEMENTATION ---
-# To avoid singleton hell, we will mock the `OrganizationService` dependency
-# if possible, or just seed a fresh temporary DB.
-# For simplicity and strictness: MOCK THE REPO.
+@pytest.fixture
+def mock_deps(mock_repo):
+    """Setup and Teardown Dependency Overrides."""
+    # 1. Mock DB (for AuthService safety)
+    mock_db = MagicMock()
+    app.dependency_overrides[get_db_client_dep] = lambda: mock_db
+    
+    # 2. Mock Repository
+    async def _get_mock_repo():
+        return mock_repo
+    app.dependency_overrides[get_async_repository] = _get_mock_repo
+
+    yield
+
+    # Cleanup
+    app.dependency_overrides = {}
+
+def override_auth(role: UserRole, uid: str = "user", org_id: str = "org1"):
+    """Helper to set the current user."""
+    app.dependency_overrides[get_current_user_from_header] = lambda: TokenData(
+        uid=uid, email=f"{uid}@test.com", role=role, organization_id=org_id
+    )
+
+# --- TESTS ---
+
+
 
 
 @pytest.mark.asyncio

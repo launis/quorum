@@ -36,6 +36,7 @@ abstract class UserUpdateDto with _$UserUpdateDto {
     @JsonKey(name: 'display_name') String? displayName,
     UserRole? role,
     @JsonKey(name: 'is_active') bool? isActive,
+    @JsonKey(name: 'organization_id') String? organizationId,
   }) = _UserUpdateDto;
 
   factory UserUpdateDto.fromJson(Map<String, dynamic> json) =>

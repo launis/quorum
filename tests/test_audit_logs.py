@@ -7,8 +7,8 @@ from backend.dependencies import get_current_user_from_header
 from backend.main import app
 
 
-@pytest.mark.asyncio
-async def test_audit_access_control(client: AsyncClient):
+@pytest.mark.asyncio(loop_scope="function")
+async def test_audit_access_control(client_authenticated: AsyncClient):
     """Verify RBAC for Audit Logs.
 
     1. Setup: Create Org, Admin, Member using Root (via mock token).
@@ -23,7 +23,7 @@ async def test_audit_access_control(client: AsyncClient):
     root_header = {"Authorization": "Bearer mock-token:root_master"}
 
     # Create Org
-    org_res = await client.post("/organizations/", json={"name": "RBAC Corp", "tier": "standard"}, headers=root_header)
+    org_res = await client_authenticated.post("/organizations/", json={"name": "RBAC Corp", "tier": "standard"}, headers=root_header)
     with open("test_progress.log", "a") as f:
         f.write(f"RBAC Setup Org: {org_res.status_code}\n")
     assert org_res.status_code == 201
@@ -32,7 +32,7 @@ async def test_audit_access_control(client: AsyncClient):
     # Create Member
     try:
         member_payload = {"email": "mem@rbac.com", "display_name": "Mem", "role": "MEMBER", "password": "password123"}
-        mem_res = await client.post(f"/organizations/{org_id}/users", json=member_payload, headers=root_header)
+        mem_res = await client_authenticated.post(f"/organizations/{org_id}/users", json=member_payload, headers=root_header)
         with open("test_progress.log", "a") as f:
             f.write(f"RBAC Setup Member: {mem_res.status_code}\n")
         if mem_res.status_code != 201:
@@ -47,7 +47,7 @@ async def test_audit_access_control(client: AsyncClient):
 
     # Create Admin
     admin_payload = {"email": "adm@rbac.com", "display_name": "Adm", "role": "ADMIN", "password": "password123"}
-    adm_res = await client.post(f"/organizations/{org_id}/users", json=admin_payload, headers=root_header)
+    adm_res = await client_authenticated.post(f"/organizations/{org_id}/users", json=admin_payload, headers=root_header)
     with open("test_progress.log", "a") as f:
         f.write(f"RBAC Setup Admin: {adm_res.status_code}\n")
     assert adm_res.status_code == 201
@@ -57,20 +57,20 @@ async def test_audit_access_control(client: AsyncClient):
     admin_header = {"Authorization": f"Bearer mock-token:{adm_uid}"}
 
     # 2. MEMBER Access -> 403 (Assuming Members cannot read audit logs)
-    res = await client.get(f"/audit/logs?organization_id={org_id}", headers=member_header)
+    res = await client_authenticated.get(f"/audit/logs?organization_id={org_id}", headers=member_header)
     with open("test_progress.log", "a") as f:
         f.write(f"RBAC Step 2 Member Status: {res.status_code}\n")
     assert res.status_code == 403, f"Member should be forbidden. Got {res.status_code}"
 
     # 3. ADMIN Access -> 200
-    res = await client.get(f"/audit/logs?organization_id={org_id}", headers=admin_header)
+    res = await client_authenticated.get(f"/audit/logs?organization_id={org_id}", headers=admin_header)
     with open("test_progress.log", "a") as f:
         f.write(f"RBAC Step 3 Admin Status: {res.status_code}\n")
     assert res.status_code == 200
     assert len(res.json()) >= 2  # Member creation, Admin creation logs
 
     # 4. ROOT Access -> 200
-    res = await client.get("/audit/logs", headers=root_header)
+    res = await client_authenticated.get("/audit/logs", headers=root_header)
     with open("test_progress.log", "a") as f:
         f.write(f"RBAC Step 4 Root Status: {res.status_code}\n")
     assert res.status_code == 200
@@ -89,7 +89,7 @@ def member_token_headers():
 
 
 @pytest.fixture
-def admin_token_headers_custom(client):
+def admin_token_headers_custom():
     """Headers for an ADMIN of a specific org (not ROOT)."""
     return {"Authorization": "Bearer mock_token_admin_custom"}
 
@@ -97,8 +97,8 @@ def admin_token_headers_custom(client):
 # --- Tests ---
 
 
-@pytest.mark.asyncio
-async def test_audit_lifecycle_root(client: AsyncClient, admin_token_headers):
+@pytest.mark.asyncio(loop_scope="function")
+async def test_audit_lifecycle_root(client_authenticated: AsyncClient, admin_token_headers):
     """Verify the full audit lifecycle as ROOT.
 
     1. Create Organization -> Expect ORG_CREATED log.
@@ -108,12 +108,12 @@ async def test_audit_lifecycle_root(client: AsyncClient, admin_token_headers):
     """
     # 1. Create Organization
     org_payload = {"name": "Audit Test Corp", "tier": "standard", "quota_limit": 50.0}
-    res = await client.post("/organizations/", json=org_payload, headers=admin_token_headers)
+    res = await client_authenticated.post("/organizations/", json=org_payload, headers=admin_token_headers)
     assert res.status_code == 201
     org_id = res.json()["id"]
 
     # Verify Log: ORG_CREATED
-    res_logs = await client.get(f"/audit/logs?organization_id={org_id}&action=ORG_CREATED", headers=admin_token_headers)
+    res_logs = await client_authenticated.get(f"/audit/logs?organization_id={org_id}&action=ORG_CREATED", headers=admin_token_headers)
     assert res_logs.status_code == 200
     logs = res_logs.json()
     assert len(logs) >= 1
@@ -127,12 +127,12 @@ async def test_audit_lifecycle_root(client: AsyncClient, admin_token_headers):
         "role": "MEMBER",
         "password": "password123",
     }
-    res = await client.post(f"/organizations/{org_id}/users", json=user_payload, headers=admin_token_headers)
+    res = await client_authenticated.post(f"/organizations/{org_id}/users", json=user_payload, headers=admin_token_headers)
     assert res.status_code == 201
     user_uid = res.json()["uid"]
 
     # Verify Log: USER_CREATED
-    res_logs = await client.get(
+    res_logs = await client_authenticated.get(
         f"/audit/logs?organization_id={org_id}&action=USER_CREATED", headers=admin_token_headers
     )
     assert res_logs.status_code == 200
@@ -141,13 +141,13 @@ async def test_audit_lifecycle_root(client: AsyncClient, admin_token_headers):
     assert found, "USER_CREATED log not found for new user"
 
     # 3. Delete User
-    res = await client.delete(f"/organizations/{org_id}/users/{user_uid}", headers=admin_token_headers)
+    res = await client_authenticated.delete(f"/organizations/{org_id}/users/{user_uid}", headers=admin_token_headers)
     with open("test_progress.log", "a") as f:
         f.write(f"Step 3 User Delete Status: {res.status_code}\n")
     assert res.status_code == 204, f"Delete failed: {res.status_code}"
 
     # Verify Log: USER_DELETED
-    res_logs = await client.get(
+    res_logs = await client_authenticated.get(
         f"/audit/logs?organization_id={org_id}&action=USER_DELETED", headers=admin_token_headers
     )
     with open("test_progress.log", "a") as f:
@@ -158,13 +158,13 @@ async def test_audit_lifecycle_root(client: AsyncClient, admin_token_headers):
     assert found, "USER_DELETED log not found"
 
     # 4. Delete Organization
-    res = await client.delete(f"/organizations/{org_id}", headers=admin_token_headers)
+    res = await client_authenticated.delete(f"/organizations/{org_id}", headers=admin_token_headers)
     with open("test_progress.log", "a") as f:
         f.write(f"Step 4 Org Delete Status: {res.status_code}\n")
     assert res.status_code == 204
 
     # Verify Log: ORG_DELETED
-    res_logs = await client.get(f"/audit/logs?organization_id={org_id}&action=ORG_DELETED", headers=admin_token_headers)
+    res_logs = await client_authenticated.get(f"/audit/logs?organization_id={org_id}&action=ORG_DELETED", headers=admin_token_headers)
     with open("test_progress.log", "a") as f:
         f.write(f"Step 4 Audit Log Status: {res_logs.status_code}\n")
     assert res_logs.status_code == 200

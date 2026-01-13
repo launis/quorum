@@ -172,7 +172,7 @@ async def create_workflow(request: BuilderWorkflowCreateRequest, engine: EngineD
     Args:
         request (BuilderWorkflowCreateRequest): Workflow definition.
         engine (EngineDep): Engine dependency.
-        current_user (CurrentUserDep): Requesting user (ROOT/MANAGER).
+        current_user (CurrentUserDep): Requesting user (ROOT/ADMIN/MANAGER).
 
     Returns:
         dict: The created workflow object.
@@ -181,7 +181,7 @@ async def create_workflow(request: BuilderWorkflowCreateRequest, engine: EngineD
         HTTPException: If permission denied (403) or creation fails (500).
     """
     # 1. RBAC Check
-    if current_user.role not in [UserRole.ROOT, UserRole.MANAGER]:
+    if current_user.role not in [UserRole.ROOT, UserRole.ADMIN, UserRole.MANAGER]:
         raise HTTPException(status_code=403, detail="Only ROOT or MANAGER can create workflows.")
 
     # 2. Org Assignment
@@ -268,7 +268,7 @@ async def update_workflow(
             raise HTTPException(status_code=403, detail="Only ROOT can modify System Workflows.")
     else:
         # Tenant Workflow
-        if current_user.role not in [UserRole.ROOT, UserRole.MANAGER]:
+        if current_user.role not in [UserRole.ROOT, UserRole.ADMIN, UserRole.MANAGER]:
             raise HTTPException(status_code=403, detail="Insufficient role to modify workflow.")
         if wf_org != current_user.organization_id and current_user.role != UserRole.ROOT:
             raise HTTPException(status_code=403, detail="Cannot modify other organization's workflow.")
@@ -344,7 +344,7 @@ async def delete_workflow(workflow_id: str, engine: EngineDep, current_user: Cur
         if current_user.role != UserRole.ROOT:
             raise HTTPException(status_code=403, detail="Only ROOT can delete System Workflows.")
     else:
-        if current_user.role not in [UserRole.ROOT, UserRole.MANAGER]:
+        if current_user.role not in [UserRole.ROOT, UserRole.ADMIN, UserRole.MANAGER]:
             raise HTTPException(status_code=403, detail="Insufficient role to delete workflow.")
         if wf_org != current_user.organization_id and current_user.role != UserRole.ROOT:
             raise HTTPException(status_code=403, detail="Cannot delete other organization's workflow.")

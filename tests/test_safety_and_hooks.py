@@ -127,15 +127,35 @@ def test_fork_step_safety(shared_engine_safe):
 
 
 # --- TEST: Python Hooks (Mock Execution) ---
-@pytest.mark.asyncio
-async def test_python_hooks_execution():
+# --- TEST: Python Hooks (Mock Execution) ---
+def test_python_hooks_execution():
     """Test execution of python hooks (Profiler)."""
+    import asyncio
+    asyncio.run(_test_python_hooks_execution_async())
+
+
+async def _test_python_hooks_execution_async():
     from backend.agents.profiler import ProfilerAgent
 
     # Mock Provider
     class MockProvider:
         async def generate(self, prompt, system_instruction, response_schema, **kwargs):
-            return {
+            # BaseAgent expects an object with .content and .reasoning_token
+            class MockResponse:
+                def __init__(self, content):
+                    self.content = content
+                    self.reasoning_token = None
+
+            data = {
+                "metadata": {
+                    "luontiaika": "2024-01-01T00:00:00Z",
+                    "agentti": "TestAgent",
+                    "vaihe": 2.5,
+                    "versio": "2.0"
+                },
+                "metodologinen_loki": "Test Log",
+                "edellisen_vaiheen_validointi": "Valid",
+                "semanttinen_tarkistussumma": "hash123",
                 "intentio_analyysi": "Test",
                 "tunnetila_ja_savy": "Neutral",
                 "tunnistetut_vinoumat": [],
@@ -143,9 +163,11 @@ async def test_python_hooks_execution():
                 "manipulaatio_yritykset": "None",
                 "teksti_metriikka": None,
             }
+            return MockResponse(json.dumps(data))
 
     # Initialize Agent
     agent = ProfilerAgent(model="test", provider="mock")
+    agent.llm_provider = MockProvider()
 
     # State
     state = WorkflowState(

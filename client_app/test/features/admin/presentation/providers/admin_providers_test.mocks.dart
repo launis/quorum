@@ -118,6 +118,21 @@ class MockAdminRepository extends _i1.Mock implements _i2.AdminRepository {
           as _i3.Future<_i4.Either<_i5.AppError, void>>);
 
   @override
+  _i3.Future<_i4.Either<_i5.AppError, List<_i6.UserRole>>>
+  fetchAssignableRoles() =>
+      (super.noSuchMethod(
+            Invocation.method(#fetchAssignableRoles, []),
+            returnValue:
+                _i3.Future<_i4.Either<_i5.AppError, List<_i6.UserRole>>>.value(
+                  _i7.dummyValue<_i4.Either<_i5.AppError, List<_i6.UserRole>>>(
+                    this,
+                    Invocation.method(#fetchAssignableRoles, []),
+                  ),
+                ),
+          )
+          as _i3.Future<_i4.Either<_i5.AppError, List<_i6.UserRole>>>);
+
+  @override
   _i3.Future<_i4.Either<_i5.AppError, _i9.QueueStats>> getQueueStats() =>
       (super.noSuchMethod(
             Invocation.method(#getQueueStats, []),

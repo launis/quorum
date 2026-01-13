@@ -1,3 +1,0 @@
-Running pytest via subprocess...
---- STDOUT ---
-Error running pytest: write() argument must be str, not None

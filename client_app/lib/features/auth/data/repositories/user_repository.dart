@@ -70,4 +70,36 @@ class UserRepository {
       return left(AppError.unknown(e, stackTrace));
     }
   }
+
+  /// **Update Current User Profile**
+  ///
+  /// Allows the user to update their own profile (e.g. display name).
+  ///
+  /// **Args**:
+  /// - [uid]: The user's UID (must match current auth, though backend validates this).
+  /// - [updates]: The fields to update.
+  Future<Either<AppError, User>> updateCurrentUser(
+    String uid,
+    Map<String, dynamic> updates,
+  ) async {
+    try {
+      // Use the generic admin endpoint rule or the specific self-update one?
+      // Backend: PUT /admin/users/{uid} allows self-update if initiator==target.
+      // So we can hit that.
+      final response = await _client.put<Map<String, dynamic>>(
+        '/admin/users/$uid',
+        data: updates,
+      );
+
+      if (response.data == null) {
+        return left(const AppError.server('Update returned null data.'));
+      }
+
+      return right(User.fromJson(response.data!));
+    } on DioException catch (e) {
+      return left(AppError.network(e));
+    } catch (e, stackTrace) {
+      return left(AppError.unknown(e, stackTrace));
+    }
+  }
 }

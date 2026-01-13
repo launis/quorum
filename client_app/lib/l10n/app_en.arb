@@ -240,5 +240,6 @@
   },
   "userCreatedSuccess": "User created successfully.",
   "userUpdatedSuccess": "User updated successfully.",
-  "userDeletedSuccess": "User deleted successfully."
+  "userDeletedSuccess": "User deleted successfully.",
+  "organizationId": "Organization ID"
 }

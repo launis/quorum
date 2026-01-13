@@ -122,6 +122,38 @@ class AdminRepository {
     }
   }
 
+  /// **Fetch Assignable Roles**
+  ///
+  /// Fetches the list of roles the current user acts as an admin for.
+  ///
+  /// **Endpoint**: `GET /api/v1/admin/users/roles`
+  Future<Either<AppError, List<UserRole>>> fetchAssignableRoles() async {
+    try {
+      final response = await _client.get<List<dynamic>>('/admin/users/roles');
+
+      final data = response.data;
+      if (data == null) return const Right([]);
+
+      final roles =
+          data
+              .map((e) {
+                return UserRole.values.firstWhere(
+                  // Match annotation-like strings "ROOT" == "ROOT", "admin" -> "ADMIN"??
+                  // Backend sends "ROOT". Dart UserRole.root.name is "root".
+                  // We check uppercase since we know Backend sends uppercase.
+                  (r) => r.name.toUpperCase() == e.toString(),
+                  orElse: () => UserRole.unknown,
+                );
+              })
+              .where((r) => r != UserRole.unknown)
+              .toList();
+
+      return Right(roles);
+    } catch (e, st) {
+      return Left(_handleError(e, st));
+    }
+  }
+
   /// **Get Queue Statistics**
   ///
   /// Fetches real-time status of the system job queue (ArQ).

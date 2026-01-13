@@ -216,6 +216,37 @@ def _start_admin_task(
 # --- Endpoints ---
 
 
+@router.get(
+    "/users/roles",
+    summary="Get Assignable Roles",
+    response_description="List of roles the current user can assign.",
+    dependencies=[Depends(require_admin_or_root)],
+)
+async def get_assignable_roles(user: CurrentUserDep) -> list[UserRole]:
+    """Returns the list of roles the currently authenticated user is allowed to assign.
+
+    - **Root**: Can assign ANY role (including ROOT).
+    - **Admin**: Can assign ADMIN, MANAGER, MEMBER, VIEWER. Cannot assign ROOT.
+    """
+    if user.role == UserRole.ROOT:
+        return [
+            UserRole.ROOT,
+            UserRole.ADMIN,
+            UserRole.MANAGER,
+            UserRole.MEMBER,
+            UserRole.VIEWER,
+        ]
+    elif user.role == UserRole.ADMIN:
+        return [
+            UserRole.ADMIN,
+            UserRole.MANAGER,
+            UserRole.MEMBER,
+            UserRole.VIEWER,
+        ]
+    return []  # Should be caught by dependency, but safe fallback
+
+
+
 @router.post(
     "/users",
     summary="Create User",

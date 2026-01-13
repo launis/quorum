@@ -564,6 +564,11 @@ class AuthService:
             else:
                 raise PermissionError("Insufficient permissions to update users")
 
+        # Organization Change Protection (Only ROOT can move users)
+        if updates.organization_id is not None and updates.organization_id != target.organization_id:
+            if initiator.role != UserRole.ROOT:
+                raise PermissionError("Only ROOT can transfer users between organizations.")
+
         # LAST ADMIN PROTECTION (Role Change)
         if updates.role is not None and target.role == UserRole.ADMIN:
             # If we are changing FROM Admin TO something else
