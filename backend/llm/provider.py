@@ -118,7 +118,7 @@ class LiteLLMProvider(LLMProvider):
         model_config = {
             "model_name": model_name,  # The alias we use
             "litellm_params": {
-                "model": model_name,   # The actual provider model name
+                "model": model_name,  # The actual provider model name
                 "api_key": api_key,
                 "tpm": tpm,
                 "rpm": rpm,
@@ -448,7 +448,7 @@ class LLMFactory:
             elif "gpt" in model_name or "o1" in model_name:
                 api_key = tenant_api_key or settings.openai_api_key
             elif "claude" in model_name:
-                 api_key = tenant_api_key or settings.anthropic_api_key
+                api_key = tenant_api_key or settings.anthropic_api_key
 
             return LiteLLMProvider(
                 model_name=model_name,
@@ -462,14 +462,15 @@ class LLMFactory:
         # Fallback for explicit strategies (legacy)
         match provider_type.lower():
             case "gemini" | "vertex_ai":
-                 api_key = tenant_api_key or settings.google_api_key
+                api_key = tenant_api_key or settings.google_api_key
             case "openai":
-                 api_key = tenant_api_key or settings.openai_api_key
-                 if not api_key:
-                     import os
-                     api_key = os.getenv("OPENAI_API_KEY")
+                api_key = tenant_api_key or settings.openai_api_key
+                if not api_key:
+                    import os
+
+                    api_key = os.getenv("OPENAI_API_KEY")
             case _:
-                 pass
+                pass
 
         return LiteLLMProvider(
             model_name=model_name,

@@ -154,7 +154,7 @@ class PipelineRunner:
             await tracker.update(
                 stage=stage_name,
                 percent=percent,
-                details={"trace": trace_dump, "description": f"{description} (Completed)"}
+                details={"trace": trace_dump, "description": f"{description} (Completed)"},
             )
 
             # Check for Early Exit (Security)

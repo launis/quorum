@@ -8,6 +8,7 @@ from typing import TypedDict
 
 class ModelLimit(TypedDict):
     """Type definition for Token and Request Rate Limits."""
+
     tpm: int
     rpm: int
 

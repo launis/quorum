@@ -51,9 +51,7 @@ async def test_audit_access_control(client_authenticated: AsyncClient):
 
     # Create Admin
     admin_payload = {"email": "adm@rbac.com", "display_name": "Adm", "role": "ADMIN", "password": "password123"}
-    adm_res = await client_authenticated.post(
-        f"/organizations/{org_id}/users", json=admin_payload, headers=root_header
-    )
+    adm_res = await client_authenticated.post(f"/organizations/{org_id}/users", json=admin_payload, headers=root_header)
     with open("test_progress.log", "a") as f:
         f.write(f"RBAC Setup Admin: {adm_res.status_code}\n")
     assert adm_res.status_code == 201
@@ -151,9 +149,7 @@ async def test_audit_lifecycle_root(client_authenticated: AsyncClient, admin_tok
     assert found, "USER_CREATED log not found for new user"
 
     # 3. Delete User
-    res = await client_authenticated.delete(
-        f"/organizations/{org_id}/users/{user_uid}", headers=admin_token_headers
-    )
+    res = await client_authenticated.delete(f"/organizations/{org_id}/users/{user_uid}", headers=admin_token_headers)
     with open("test_progress.log", "a") as f:
         f.write(f"Step 3 User Delete Status: {res.status_code}\n")
     assert res.status_code == 204, f"Delete failed: {res.status_code}"

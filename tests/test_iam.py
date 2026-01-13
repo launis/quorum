@@ -16,11 +16,13 @@ from backend.models.auth import TokenData, UserRole
 
 # --- FIXTURES ---
 
+
 @pytest.fixture
 async def async_client():
     """Returns an AsyncClient bound to the app."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
+
 
 @pytest.fixture
 def mock_repo():
@@ -31,15 +33,17 @@ def mock_repo():
     mock.list_organizations = AsyncMock(return_value=[])
     return mock
 
-@pytest.fixture
 
+@pytest.fixture
 def mock_db():
     """Returns a MagicMock for the database client."""
     return MagicMock()
 
+
 @pytest.fixture
 def setup_overrides(mock_repo, mock_db):
     """Setup and Teardown Dependency Overrides & Singleton Injection."""
+
     # 1. Override dependencies
     async def _get_mock_repo():
         return mock_repo
@@ -57,13 +61,16 @@ def setup_overrides(mock_repo, mock_db):
     app.dependency_overrides = {}
     backend.dependencies._repository_instance = original_repo
 
+
 def override_auth(role: UserRole, uid: str = "user", org_id: str = "org1"):
     """Helper to set the current user."""
     app.dependency_overrides[get_current_user_from_header] = lambda: TokenData(
         uid=uid, email=f"{uid}@test.com", role=role, organization_id=org_id
     )
 
+
 # --- TESTS ---
+
 
 @pytest.mark.asyncio
 async def test_root_list_organizations_success(async_client, mock_repo, setup_overrides):
@@ -81,6 +88,7 @@ async def test_root_list_organizations_success(async_client, mock_repo, setup_ov
     assert len(data) == 2
     assert data[0]["id"] == "system"
 
+
 @pytest.mark.asyncio
 async def test_admin_list_organizations_forbidden(async_client, setup_overrides):
     """Verify ADMIN cannot list all organizations."""
@@ -88,6 +96,7 @@ async def test_admin_list_organizations_forbidden(async_client, setup_overrides)
 
     response = await async_client.get("/organizations/")
     assert response.status_code == 403
+
 
 @pytest.mark.asyncio
 async def test_create_organization_root_success(async_client, mock_repo, setup_overrides):
@@ -105,6 +114,7 @@ async def test_create_organization_root_success(async_client, mock_repo, setup_o
     data = response.json()
     assert data["id"] == "new-org"
     mock_repo.create_organization.assert_called_once()
+
 
 @pytest.mark.asyncio
 async def test_create_organization_duplicate_conflict(async_client, mock_repo, setup_overrides):

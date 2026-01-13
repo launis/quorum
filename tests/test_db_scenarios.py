@@ -16,8 +16,8 @@ def test_db_path(tmp_path):
     """Create temp DB path."""
     return str(tmp_path / "test_db.json")
 
-pytestmark = pytest.mark.skip(reason="Environment issues causing FileNotFoundError on Windows CI")
 
+pytestmark = pytest.mark.skip(reason="Environment issues causing FileNotFoundError on Windows CI")
 
 
 @pytest.fixture

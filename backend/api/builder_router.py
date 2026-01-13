@@ -43,13 +43,9 @@ class BuilderWorkflowCreateRequest(BaseModel):
     name: Annotated[str, Field(description="Name of the new workflow.")]
     description: Annotated[str | None, Field(description="Optional description.")] = None
     steps: Annotated[list[str], Field(description="List of step IDs.")] = []
-    default_model_mapping: Annotated[
-        dict[str, str] | None, Field(description="Initial model mapping.")
-    ] = {}
+    default_model_mapping: Annotated[dict[str, str] | None, Field(description="Initial model mapping.")] = {}
     ui_schema: Annotated[dict[str, Any] | None, Field(description="UI Layout metadata.")] = {}
-    is_public: Annotated[
-        bool, Field(description="If True, visible to all tenants (System Only).")
-    ] = False
+    is_public: Annotated[bool, Field(description="If True, visible to all tenants (System Only).")] = False
 
 
 class WorkflowUpdateRequest(BaseModel):
@@ -294,8 +290,7 @@ async def update_workflow(
         if wf_org != current_user.organization_id and current_user.role != UserRole.ROOT:
             error_code = "PERMISSION_DENIED_WORKFLOW_UPDATE"
             logger.error(
-                f"{error_code}: Org mismatch "
-                f"(WF: {wf_org} vs User: {current_user.organization_id}).",
+                f"{error_code}: Org mismatch (WF: {wf_org} vs User: {current_user.organization_id}).",
                 exc_info=True,
             )
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_code)

@@ -278,8 +278,6 @@ async def get_organization_usage(
         # 3. Calculate Usage
         from datetime import UTC, datetime
 
-
-
         # Current Month
         now = datetime.now(UTC)
         start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
@@ -296,7 +294,7 @@ async def get_organization_usage(
             "tpm_limit": org_model.tpm_limit,
             "rpm_limit": org_model.rpm_limit,
             "percentage_used": round(percentage, 2),
-            "period": f"{now.year}-{now.month:02d}"
+            "period": f"{now.year}-{now.month:02d}",
         }
 
     except HTTPException:

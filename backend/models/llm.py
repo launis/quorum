@@ -47,7 +47,5 @@ class LLMResponse(BaseModel):
     ]
     provider_metadata: Annotated[
         dict[str, Any],
-        Field(
-            default_factory=dict, description="Provider-specific raw metadata (e.g. finish_reason, safety_ratings)."
-        ),
+        Field(default_factory=dict, description="Provider-specific raw metadata (e.g. finish_reason, safety_ratings)."),
     ]

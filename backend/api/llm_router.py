@@ -64,10 +64,7 @@ class ModelRegistryUpdate(BaseModel):
     "/completion", summary="Direct Completion", response_description="The generated text or structured object."
 )
 async def generate_completion(
-    request: CompletionRequest,
-    registry: RegistryDep,
-    user: CurrentUserDep,
-    repo: RepositoryDep
+    request: CompletionRequest, registry: RegistryDep, user: CurrentUserDep, repo: RepositoryDep
 ):
     """Directly invokes the LLM using the specified strategy.
 
@@ -92,10 +89,7 @@ async def generate_completion(
             org = await repo.get_organization(user.organization_id)
             if org:
                 # Default safety limits if missing in DB
-                limits = {
-                    "tpm": org.get("tpm_limit", 100000),
-                    "rpm": org.get("rpm_limit", 60)
-                }
+                limits = {"tpm": org.get("tpm_limit", 100000), "rpm": org.get("rpm_limit", 60)}
 
         # 1. Resolve Provider via Registry
         config = await registry.resolve_model_config(request.model_strategy)
@@ -105,7 +99,7 @@ async def generate_completion(
             provider_type=config["provider"],
             model_name=config["model_name"],
             organization_id=user.organization_id,
-            limits=limits
+            limits=limits,
         )
 
         # 2. Call Generate
@@ -130,10 +124,7 @@ async def generate_completion(
 
 @router.post("/batch-completion", summary="Batch Completion", response_description="List of results.")
 async def batch_completion(
-    batch: BatchCompletionRequest,
-    registry: RegistryDep,
-    user: CurrentUserDep,
-    repo: RepositoryDep
+    batch: BatchCompletionRequest, registry: RegistryDep, user: CurrentUserDep, repo: RepositoryDep
 ):
     """Processes multiple completion requests in parallel.
 
@@ -151,10 +142,7 @@ async def batch_completion(
     if user.organization_id:
         org = await repo.get_organization(user.organization_id)
         if org:
-            limits = {
-                "tpm": org.get("tpm_limit", 100000),
-                "rpm": org.get("rpm_limit", 60)
-            }
+            limits = {"tpm": org.get("tpm_limit", 100000), "rpm": org.get("rpm_limit", 60)}
 
     async def _process_one(req: CompletionRequest):
         try:
@@ -164,7 +152,7 @@ async def batch_completion(
                 provider_type=config["provider"],
                 model_name=config["model_name"],
                 organization_id=user.organization_id,
-                limits=limits
+                limits=limits,
             )
 
             return await provider.generate(

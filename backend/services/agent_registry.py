@@ -44,10 +44,10 @@ class AgentRegistry:
         # We do NOT fallback to settings.initial_model anymore.
         model_name = config.get("model_name")
         if not model_name:
-             # This should overlap with validation in resolve_model_config, but safety net:
-             err = f"[AgentRegistry] Model Strategy '{model_identifier}' resolved but is missing 'model_name'."
-             logger.error(err)
-             raise ValueError(err)
+            # This should overlap with validation in resolve_model_config, but safety net:
+            err = f"[AgentRegistry] Model Strategy '{model_identifier}' resolved but is missing 'model_name'."
+            logger.error(err)
+            raise ValueError(err)
 
         return model_name
 

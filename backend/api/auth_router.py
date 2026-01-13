@@ -188,9 +188,7 @@ async def create_user(
 
 
 @router.post("/organizations", response_model=Organization)
-async def create_organization(
-    org_data: OrganizationCreate, current_user: CurrentUserDep, auth_service: AuthServiceDep
-):
+async def create_organization(org_data: OrganizationCreate, current_user: CurrentUserDep, auth_service: AuthServiceDep):
     """Create a new Tenant Organization.
 
     Args:

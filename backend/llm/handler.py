@@ -82,17 +82,17 @@ class LLMHandler:
 
         # Normalize providers list
         if not providers:
-             # Zero-Fallback: We do not assume default providers.
-             # If caller didn't specify, we return empty or raise.
-             # But for discovery, maybe we want to see what's available?
-             # Let's keep it but ensure MOCK is not added silently.
-             providers = ["google", "openai"]
+            # Zero-Fallback: We do not assume default providers.
+            # If caller didn't specify, we return empty or raise.
+            # But for discovery, maybe we want to see what's available?
+            # Let's keep it but ensure MOCK is not added silently.
+            providers = ["google", "openai"]
 
         providers = [p.lower() for p in providers]
         # Strict checking: Only add mock if explicitly requested
         if "mock" in providers or settings.use_mock_llm:
-             # Only then we consider mock logic
-             pass
+            # Only then we consider mock logic
+            pass
 
         # --- MOCK ---
         if settings.use_mock_llm or "mock" in providers:

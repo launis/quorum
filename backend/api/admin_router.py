@@ -75,9 +75,9 @@ class TaskStatusResponse(BaseModel):
 class IngestRequest(BaseModel):
     """Request model for knowledge base ingestion."""
 
-    file_path: Annotated[
-        str, Field(description="Path to the source document.", examples=["data/Doc.docx"])
-    ] = "data/Holistinen Mestaruus.docx"
+    file_path: Annotated[str, Field(description="Path to the source document.", examples=["data/Doc.docx"])] = (
+        "data/Holistinen Mestaruus.docx"
+    )
     reset_db: Annotated[bool, Field(description="Clear DB before ingestion.")] = False
 
 

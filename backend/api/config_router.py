@@ -78,9 +78,9 @@ class WorkflowUpdate(BaseModel):
     steps: Annotated[list[dict[str, Any]] | None, Field(description="Complete list of step configurations.")] = None
     sequence: Annotated[list[str] | None, Field(description="Ordered list of step IDs.")] = None
     description: Annotated[str | None, Field(description="User-facing workflow description.")] = None
-    default_model_mapping: Annotated[
-        dict[str, str] | None, Field(description="Map of StepID -> ModelStrategyKey.")
-    ] = None
+    default_model_mapping: Annotated[dict[str, str] | None, Field(description="Map of StepID -> ModelStrategyKey.")] = (
+        None
+    )
 
 
 class ComponentCreate(BaseModel):
@@ -552,12 +552,8 @@ def _build_unified_view(components: list, schema_data: dict[str, Any]) -> str:
 )
 def list_available_models(
     handler: LLMHandlerDep,
-    providers: Annotated[
-        list[str] | None, APIQuery(description="List of providers (google, openai, mock)")
-    ] = None,
-    location: Annotated[
-        str | None, APIQuery(description="Region for Google Cloud (defaults to env config)")
-    ] = None,
+    providers: Annotated[list[str] | None, APIQuery(description="List of providers (google, openai, mock)")] = None,
+    location: Annotated[str | None, APIQuery(description="Region for Google Cloud (defaults to env config)")] = None,
 ):
     """Returns a dynamic dictionary of models found via provider APIs.
 

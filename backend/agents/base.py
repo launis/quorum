@@ -110,8 +110,7 @@ class BaseAgent(BaseComponent[WorkflowState]):
                 organization_id=organization_id,
             )
             logger.debug(
-                f"[BaseAgent] Provider initialized with {model_name} "
-                f"(Type: {provider_type}, Org: {organization_id})"
+                f"[BaseAgent] Provider initialized with {model_name} (Type: {provider_type}, Org: {organization_id})"
             )
         except Exception as e:
             logger.error(f"[BaseAgent] Failed to create provider in set_model: {e}")
@@ -167,9 +166,7 @@ class BaseAgent(BaseComponent[WorkflowState]):
                 logger.error(f"[{self.__class__.__name__}] Generic state update failed: {e}")
                 raise e
 
-        raise NotImplementedError(
-            f"[{self.__class__.__name__}] must define 'state_field' or override '_update_state'."
-        )
+        raise NotImplementedError(f"[{self.__class__.__name__}] must define 'state_field' or override '_update_state'.")
 
     async def execute(
         self,
@@ -236,9 +233,7 @@ class BaseAgent(BaseComponent[WorkflowState]):
                     f"[{self.__class__.__name__}] LLM Provider not configured. Call set_model() before execute()."
                 )
                 logger.error(error_msg)
-                raise AgentExecutionError(
-                    detail="AGENT_NOT_CONFIGURED", original_error=ValueError(error_msg)
-                )
+                raise AgentExecutionError(detail="AGENT_NOT_CONFIGURED", original_error=ValueError(error_msg))
 
             # 4. Call LLM (The "Mask" handles the details) — ASYNC WAIT
             kwargs["mock_identity"] = self.__class__.__name__
@@ -274,8 +269,7 @@ class BaseAgent(BaseComponent[WorkflowState]):
             reasoning_source = None
             if response_obj.reasoning_token:
                 logger.info(
-                    f"[{self.__class__.__name__}] Reasoning Token captured "
-                    f"(Size: {len(response_obj.reasoning_token)})"
+                    f"[{self.__class__.__name__}] Reasoning Token captured (Size: {len(response_obj.reasoning_token)})"
                 )
                 state.last_reasoning_trace = response_obj.reasoning_token
                 reasoning_source = response_obj.reasoning_token
@@ -299,10 +293,7 @@ class BaseAgent(BaseComponent[WorkflowState]):
             if response_obj.token_usage:
                 # PRIORITIZE usage_key for unique tracking (e.g. step_id), fallback to output_key/class
                 step_key = (
-                    kwargs.get("usage_key")
-                    or kwargs.get("output_key")
-                    or self.state_field
-                    or self.__class__.__name__
+                    kwargs.get("usage_key") or kwargs.get("output_key") or self.state_field or self.__class__.__name__
                 )
                 costs = response_obj.token_usage  # Should be dict from LiteLLMProvider
                 logger.info(f"[DEBUG] Processing costs for {step_key}: {costs}")
