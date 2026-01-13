@@ -7,12 +7,12 @@ import logging
 
 from fastapi import APIRouter, HTTPException, Query, status
 
-# --- Local Imports ---
-# Rule 6: APIError must be the FIRST local import
-from backend.schemas.error import APIError
 from backend.dependencies import AuditServiceDep, CurrentUserDep
 from backend.models.audit import AuditEvent
 from backend.models.auth import UserRole
+
+# --- Local Imports ---
+# Rule 6: APIError must be the FIRST local import
 
 logger = logging.getLogger(__name__)
 

@@ -40,7 +40,7 @@ class AgentRegistry:
         """
         from backend.settings import get_settings
 
-        settings = get_settings()
+
         config = await self.resolve_model_config(model_identifier)
         # ZERO-FALLBACK ENFORCEMENT:
         # We expect 'resolve_model_config' to fully hydrate the dictionary or raise an error.
@@ -205,7 +205,9 @@ class AgentRegistry:
 
             logger.critical(f"[AgentRegistry] FATAL: AgentFactory failed: {e}")
             raise FatalInterruption(
-                step_name="AgentDiscovery", reason="AgentFactory Initialization Failed", details={"error": str(e)}
+                step_name="AgentDiscovery",
+                reason="AgentFactory Initialization Failed",
+                details={"error": str(e)},
             ) from e
 
     def get_agent(self, agent_name: str) -> BaseAgent | None:

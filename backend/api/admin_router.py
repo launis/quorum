@@ -25,13 +25,6 @@ from fastapi import (
 )
 from pydantic import BaseModel, Field
 
-# --- Local Imports ---
-# Rule 6: APIError must be the FIRST local import to avoid circular dependencies.
-from backend.schemas.error import APIError
-from backend.exceptions import (
-    PermissionDeniedError,
-    ResourceNotFoundError,
-)
 from backend.database.repository import AbstractWorkflowRepository
 from backend.dependencies import (
     AuthServiceDep,
@@ -42,8 +35,16 @@ from backend.dependencies import (
     RepositoryDep,
     get_async_repository,
 )
+from backend.exceptions import (
+    PermissionDeniedError,
+    ResourceNotFoundError,
+)
 from backend.models.auth import UserAdminView, UserCreate, UserRole, UserUpdate
 from backend.schemas.admin import QueueStats
+
+# --- Local Imports ---
+# Rule 6: APIError must be the FIRST local import to avoid circular dependencies.
+from backend.schemas.error import APIError
 
 logger = logging.getLogger(__name__)
 
@@ -74,9 +75,9 @@ class TaskStatusResponse(BaseModel):
 class IngestRequest(BaseModel):
     """Request model for knowledge base ingestion."""
 
-    file_path: Annotated[str, Field(description="Path to the source document.", examples=["data/Doc.docx"])] = (
-        "data/Holistinen Mestaruus.docx"
-    )
+    file_path: Annotated[
+        str, Field(description="Path to the source document.", examples=["data/Doc.docx"])
+    ] = "data/Holistinen Mestaruus.docx"
     reset_db: Annotated[bool, Field(description="Clear DB before ingestion.")] = False
 
 

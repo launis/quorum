@@ -48,10 +48,10 @@ class BaseAgent(BaseComponent[WorkflowState]):
         """
         self.model = model
         self.provider_type = provider or "vertex_ai"
-        
+
         # ZERO-FALLBACK: Agents initialized via Factory might have model=None.
         # We allow this, but execution will fail if model is not set via set_model().
-        
+
         if model:
             self.llm_provider = LLMFactory.create_provider(self.provider_type, model)
         else:
@@ -82,7 +82,7 @@ class BaseAgent(BaseComponent[WorkflowState]):
         # But organization_id changes per execution, so we almost always need to update/recreate if context changes.
         # Or we rely on the fact that we overwrite it.
         # Ideally, we should check if current provider has same org_id.
-        
+
         # Simpler approach: Always recreate if dependencies provided, to ensure context is fresh.
         # Optimizing creation is secondary to correctness.
         self._create_provider(current_provider_type, model_name, usage_service, organization_id)
@@ -167,7 +167,9 @@ class BaseAgent(BaseComponent[WorkflowState]):
                 logger.error(f"[{self.__class__.__name__}] Generic state update failed: {e}")
                 raise e
 
-        raise NotImplementedError(f"[{self.__class__.__name__}] must define 'state_field' or override '_update_state'.")
+        raise NotImplementedError(
+            f"[{self.__class__.__name__}] must define 'state_field' or override '_update_state'."
+        )
 
     async def execute(
         self,
@@ -230,9 +232,13 @@ class BaseAgent(BaseComponent[WorkflowState]):
             # --------------------------------
 
             if not self.llm_provider:
-                error_msg = f"[{self.__class__.__name__}] LLM Provider not configured. Call set_model() before execute()."
+                error_msg = (
+                    f"[{self.__class__.__name__}] LLM Provider not configured. Call set_model() before execute()."
+                )
                 logger.error(error_msg)
-                raise AgentExecutionError(detail="AGENT_NOT_CONFIGURED", original_error=ValueError(error_msg))
+                raise AgentExecutionError(
+                    detail="AGENT_NOT_CONFIGURED", original_error=ValueError(error_msg)
+                )
 
             # 4. Call LLM (The "Mask" handles the details) — ASYNC WAIT
             kwargs["mock_identity"] = self.__class__.__name__
@@ -268,7 +274,8 @@ class BaseAgent(BaseComponent[WorkflowState]):
             reasoning_source = None
             if response_obj.reasoning_token:
                 logger.info(
-                    f"[{self.__class__.__name__}] Reasoning Token captured (Size: {len(response_obj.reasoning_token)})"
+                    f"[{self.__class__.__name__}] Reasoning Token captured "
+                    f"(Size: {len(response_obj.reasoning_token)})"
                 )
                 state.last_reasoning_trace = response_obj.reasoning_token
                 reasoning_source = response_obj.reasoning_token
@@ -288,11 +295,15 @@ class BaseAgent(BaseComponent[WorkflowState]):
                 }
 
             # 4.5 Capture Usage/Cost
-            # 4.5 Capture Usage/Cost
             logger.info(f"[DEBUG] BaseAgent processing usage. Response token_usage: {response_obj.token_usage}")
             if response_obj.token_usage:
                 # PRIORITIZE usage_key for unique tracking (e.g. step_id), fallback to output_key/class
-                step_key = kwargs.get("usage_key") or kwargs.get("output_key") or self.state_field or self.__class__.__name__
+                step_key = (
+                    kwargs.get("usage_key")
+                    or kwargs.get("output_key")
+                    or self.state_field
+                    or self.__class__.__name__
+                )
                 costs = response_obj.token_usage  # Should be dict from LiteLLMProvider
                 logger.info(f"[DEBUG] Processing costs for {step_key}: {costs}")
                 state.usage[step_key] = {
@@ -303,7 +314,7 @@ class BaseAgent(BaseComponent[WorkflowState]):
                 }
                 logger.info(f"[{self.__class__.__name__}] Usage tracked: {costs.get('total_cost', 0.0)} USD")
             else:
-                logger.info(f"[DEBUG] No token_usage found in response.")
+                logger.info("[DEBUG] No token_usage found in response.")
 
             # 5. Update State
             output_key = kwargs.get("output_key")

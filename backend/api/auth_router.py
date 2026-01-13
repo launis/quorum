@@ -9,12 +9,12 @@ import logging
 from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel
 
-# --- Local Imports ---
-# Rule 6: APIError must be the FIRST local import
-from backend.schemas.error import APIError
 from backend.core.rate_limit import limiter
 from backend.dependencies import AuthServiceDep, CurrentUserDep
 from backend.models.auth import Organization, OrganizationCreate, User, UserCreate, UserRole, UserUpdate
+
+# --- Local Imports ---
+# Rule 6: APIError must be the FIRST local import
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +67,7 @@ async def verify_user_token(request: Request, payload: TokenPayload, auth_servic
     """Exchanges a Firebase ID Token (or mock token) for the Backend User Profile.
 
     Args:
+        request (Request): The HTTP Request object.
         payload (TokenPayload): The token payload.
         auth_service (AuthServiceDep): Authentication service dependency.
 
@@ -144,10 +145,13 @@ async def list_available_roles():
 
 @router.post("/users", response_model=User)
 @limiter.limit("5/minute")
-async def create_user(request: Request, user_data: UserCreate, current_user: CurrentUserDep, auth_service: AuthServiceDep):
+async def create_user(
+    request: Request, user_data: UserCreate, current_user: CurrentUserDep, auth_service: AuthServiceDep
+):
     """Create a new user.
 
     Args:
+        request (Request): The HTTP Request object.
         user_data (UserCreate): Payload for the new user.
         current_user (CurrentUserDep): The requesting user (must be ROOT, ADMIN, or MANAGER).
         auth_service (AuthServiceDep): Authentication service dependency.
@@ -184,7 +188,9 @@ async def create_user(request: Request, user_data: UserCreate, current_user: Cur
 
 
 @router.post("/organizations", response_model=Organization)
-async def create_organization(org_data: OrganizationCreate, current_user: CurrentUserDep, auth_service: AuthServiceDep):
+async def create_organization(
+    org_data: OrganizationCreate, current_user: CurrentUserDep, auth_service: AuthServiceDep
+):
     """Create a new Tenant Organization.
 
     Args:

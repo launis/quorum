@@ -4,14 +4,15 @@ Verifies Organization Router RBAC and Conflicts.
 Uses strict dependency injection overrides for isolation.
 """
 
-from unittest.mock import MagicMock, AsyncMock
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+import backend.dependencies
 from backend.dependencies import get_async_repository, get_current_user_from_header, get_db_client_dep
 from backend.main import app
 from backend.models.auth import TokenData, UserRole
-import backend.dependencies
 
 # --- FIXTURES ---
 
@@ -66,7 +67,7 @@ def override_auth(role: UserRole, uid: str = "user", org_id: str = "org1"):
 async def test_root_list_organizations_success(async_client, mock_repo, setup_overrides):
     """Verify ROOT can list organizations."""
     override_auth(UserRole.ROOT, uid="root", org_id="system")
-    
+
     mock_repo.list_organizations.return_value = [
         {"id": "system", "name": "System", "tier": "root"},
         {"id": "org-1", "name": "Test Org", "tier": "standard"},
@@ -90,7 +91,7 @@ async def test_admin_list_organizations_forbidden(async_client, setup_overrides)
 async def test_create_organization_root_success(async_client, mock_repo, setup_overrides):
     """Verify ROOT can create organization."""
     override_auth(UserRole.ROOT, uid="root", org_id="system")
-    
+
     mock_repo.get_organization.return_value = None  # No conflict
 
     payload = {"id": "new-org", "name": "New Org", "tier": "starter", "contact_email": "new@org.com"}
@@ -107,7 +108,7 @@ async def test_create_organization_root_success(async_client, mock_repo, setup_o
 async def test_create_organization_duplicate_conflict(async_client, mock_repo, setup_overrides):
     """Verify duplicate ID returns 409."""
     override_auth(UserRole.ROOT, uid="root", org_id="system")
-    
+
     mock_repo.get_organization.return_value = {"id": "existing-org", "name": "Existing"}
 
     payload = {"id": "existing-org", "name": "Fail", "tier": "standard"}

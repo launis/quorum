@@ -105,12 +105,12 @@ class LiteLLMProvider(LLMProvider):
         # --- Configure Router for Rate Limiting ---
         # We construct a single-item model list for this provider instance
         # to leverage Router's TPM/RPM enforcement logic.
-        
+
         # 1. Determine Limits
         # If dynamic limits are provided (e.g. per Organization), use them.
         # Otherwise fallback to static MODEL_LIMITS.
         static_defaults = MODEL_LIMITS.get(model_name, {"tpm": 10000, "rpm": 10})
-        
+
         tpm = limits.get("tpm", static_defaults["tpm"]) if limits else static_defaults["tpm"]
         rpm = limits.get("rpm", static_defaults["rpm"]) if limits else static_defaults["rpm"]
 
@@ -221,12 +221,12 @@ class LiteLLMProvider(LLMProvider):
             call_kwargs["vertex_location"] = v_loc
 
             # --- ROUTER CALL ---
-            # Remove keys that shouldn't be passed directly to router.acompletion 
-            # if they are already in deployment config (like api_key), 
+            # Remove keys that shouldn't be passed directly to router.acompletion
+            # if they are already in deployment config (like api_key),
             # BUT Router overrides usually merge.
             # However, 'model' arg in kwargs MUST match the 'model_name' alias in model_list.
             call_kwargs["model"] = self.model_name
-            
+
             # Using router.acompletion instead of litellm.acompletion
             response = await self.router.acompletion(**call_kwargs)
 
@@ -326,7 +326,12 @@ class MockProvider(LLMProvider):
     Uses cached/simulated responses from MockLLMService.
     """
 
-    def __init__(self, model_name: str = "mock", usage_service: UsageService | None = None, organization_id: str | None = None):
+    def __init__(
+        self,
+        model_name: str = "mock",
+        usage_service: UsageService | None = None,
+        organization_id: str | None = None,
+    ):
         """Initialize the Mock Provider."""
         self.model_name = model_name
         self.usage_service = usage_service
@@ -363,7 +368,7 @@ class MockProvider(LLMProvider):
             content_str = json.dumps(result, ensure_ascii=False)
         else:
             content_str = str(result)
-            
+
         # Simulated Usage
         usage_data = {
             "prompt_tokens": 100,
@@ -453,7 +458,7 @@ class LLMFactory:
                 organization_id=organization_id,
                 limits=limits,
             )
-            
+
         # Fallback for explicit strategies (legacy)
         match provider_type.lower():
             case "gemini" | "vertex_ai":
@@ -462,10 +467,10 @@ class LLMFactory:
                  api_key = tenant_api_key or settings.openai_api_key
                  if not api_key:
                      import os
-                     api_key = os.getenv("OPENAI_API_KEY") 
+                     api_key = os.getenv("OPENAI_API_KEY")
             case _:
                  pass
-                 
+
         return LiteLLMProvider(
             model_name=model_name,
             api_key=api_key,

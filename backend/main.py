@@ -12,6 +12,7 @@ from fastapi import FastAPI, HTTPException, Path, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from slowapi.errors import RateLimitExceeded
 
 from backend.api.admin_router import router as admin_router
 from backend.api.agents_router import router as agents_router
@@ -24,9 +25,6 @@ from backend.api.llm_router import router as llm_router
 from backend.api.organization_router import router as organization_router
 from backend.api.settings_router import router as settings_router
 from backend.api.tools_router import router as tools_router
-
-from slowapi import _rate_limit_exceeded_handler
-from slowapi.errors import RateLimitExceeded
 
 # Dependencies
 from backend.core.rate_limit import limiter

@@ -6,7 +6,6 @@ from datetime import datetime
 from typing import Any
 
 from backend.exceptions import AgentExecutionError, FatalInterruption
-from backend.exceptions import AgentExecutionError, FatalInterruption
 from backend.models.state import InputData, WorkflowState
 from backend.services.usage_service import UsageService
 
@@ -28,8 +27,6 @@ class PipelineRunner:
             prompt_builder: Service for dynamic prompt construction.
 
         """
-        self.repository = repository
-        self.registry = registry
         self.repository = repository
         self.registry = registry
         self.prompt_builder = prompt_builder
@@ -143,7 +140,7 @@ class PipelineRunner:
 
             # Assign Step ID to state for UI sync
             current_state.current_step_name = stage_name
-            
+
             # Checkpoint: Save current state to DB (trace)
             trace_dump = current_state.model_dump(mode="json")
             await tracker.update(
@@ -155,8 +152,8 @@ class PipelineRunner:
             # Checkpoint: Save state AFTER execution (Capture Usage/Outputs immediately)
             trace_dump = current_state.model_dump(mode="json")
             await tracker.update(
-                stage=stage_name, 
-                percent=percent, 
+                stage=stage_name,
+                percent=percent,
                 details={"trace": trace_dump, "description": f"{description} (Completed)"}
             )
 
@@ -302,7 +299,10 @@ class PipelineRunner:
         Args:
             agent (Any): The Agent instance.
             step_id (str): Step ID.
+            agent (Any): The Agent instance.
+            step_id (str): Step ID.
             execution_id (str): Execution ID.
+            organization_id (Optional[str]): Organization ID for tracking.
 
         Returns:
             Dict[str, Any]: The resolved model configuration.

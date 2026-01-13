@@ -14,15 +14,17 @@ from fastapi import (
     Body,
     HTTPException,
     status,
+)
+from fastapi import (
     Query as APIQuery,
 )
 from tinydb import Query
 
-# --- Local Imports ---
-# Rule 6: APIError must be the FIRST local import
-from backend.schemas.error import APIError
 from backend.database.wrapper import AbstractDatabase
 from backend.dependencies import DatabaseDep, RegistryDep
+
+# --- Local Imports ---
+# Rule 6: APIError must be the FIRST local import
 
 logger = logging.getLogger(__name__)
 

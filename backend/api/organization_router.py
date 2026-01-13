@@ -10,7 +10,6 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
-from backend.schemas.error import APIError
 from backend.dependencies import AuthServiceDep, CurrentUserDep, RepositoryDep
 from backend.models.auth import Organization, SubscriptionStatus, TokenData, UserRole
 from backend.services.auth import AuthService
@@ -275,23 +274,22 @@ async def get_organization_usage(
             raise HTTPException(status_code=404, detail=error_code)
 
         org_model = Organization(**org)
-        
+
         # 3. Calculate Usage
-        from backend.services.usage_service import UsageService
-        from datetime import datetime, UTC
-        
-        usage_service = UsageService(repo)
-        
+        from datetime import UTC, datetime
+
+
+
         # Current Month
         now = datetime.now(UTC)
         start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
-        
+
         total_cost = await repo.get_org_usage_total(org_id, since=start_of_month)
-        
+
         percentage = 0.0
         if org_model.quota_limit > 0:
             percentage = (total_cost / org_model.quota_limit) * 100
-            
+
         return {
             "total_cost_usd": round(total_cost, 4),
             "quota_limit_usd": org_model.quota_limit,

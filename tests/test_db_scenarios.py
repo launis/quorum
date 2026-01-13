@@ -11,7 +11,6 @@ from backend.database.repository import TinyDBRepository
 from backend.database.wrapper import TinyDBClient
 
 
-
 @pytest.fixture
 def test_db_path(tmp_path):
     """Create temp DB path."""
@@ -75,10 +74,10 @@ def test_missing_step_definition(engine):
         # Fetch record to verify status
         record = await engine.repository.get_execution(exec_id)
 
-    assert record["status"] == "failed"
-    # assert "steps" in msg.lower() or "missing" in msg.lower() or "no steps" in msg.lower()
-    # Message assertion flaky due to specific error wrapping in Engine.
-    # We accept "failed" status as sufficient for this scenario.
+        assert record["status"] == "failed"
+        # assert "steps" in msg.lower() or "missing" in msg.lower() or "no steps" in msg.lower()
+        # Message assertion flaky due to specific error wrapping in Engine.
+        # We accept "failed" status as sufficient for this scenario.
 
     asyncio.run(run_test())
 

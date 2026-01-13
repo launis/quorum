@@ -15,12 +15,12 @@ from fastapi import Query as APIQuery
 from pydantic import BaseModel, Field
 from tinydb import Query
 
-# --- Local Imports ---
-# Rule 6: APIError must be the FIRST local import
-from backend.schemas.error import APIError
 from backend.database.exporter import export_db_to_files
 from backend.dependencies import DatabaseDep, LLMHandlerDep, RegistryDep
 from backend.models import domain as schemas
+
+# --- Local Imports ---
+# Rule 6: APIError must be the FIRST local import
 from backend.seed.seeder import seed_database
 
 logger = logging.getLogger(__name__)
@@ -50,7 +50,8 @@ class ComponentUpdate(BaseModel):
     citation: Annotated[str | None, Field(description="Short citation anchor.")] = None
     citation_full: Annotated[str | None, Field(description="Complete bibliographic reference.")] = None
     type: Annotated[
-        str | None, Field(description="Component categorization (e.g. 'mandate', 'prompt', 'evaluation_matrix').")
+        str | None,
+        Field(description="Component categorization (e.g. 'mandate', 'prompt', 'evaluation_matrix')."),
     ] = None
 
 
@@ -77,9 +78,9 @@ class WorkflowUpdate(BaseModel):
     steps: Annotated[list[dict[str, Any]] | None, Field(description="Complete list of step configurations.")] = None
     sequence: Annotated[list[str] | None, Field(description="Ordered list of step IDs.")] = None
     description: Annotated[str | None, Field(description="User-facing workflow description.")] = None
-    default_model_mapping: Annotated[dict[str, str] | None, Field(description="Map of StepID -> ModelStrategyKey.")] = (
-        None
-    )
+    default_model_mapping: Annotated[
+        dict[str, str] | None, Field(description="Map of StepID -> ModelStrategyKey.")
+    ] = None
 
 
 class ComponentCreate(BaseModel):
@@ -551,8 +552,12 @@ def _build_unified_view(components: list, schema_data: dict[str, Any]) -> str:
 )
 def list_available_models(
     handler: LLMHandlerDep,
-    providers: Annotated[list[str] | None, APIQuery(description="List of providers (google, openai, mock)")] = None,
-    location: Annotated[str | None, APIQuery(description="Region for Google Cloud (defaults to env config)")] = None,
+    providers: Annotated[
+        list[str] | None, APIQuery(description="List of providers (google, openai, mock)")
+    ] = None,
+    location: Annotated[
+        str | None, APIQuery(description="Region for Google Cloud (defaults to env config)")
+    ] = None,
 ):
     """Returns a dynamic dictionary of models found via provider APIs.
 

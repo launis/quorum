@@ -12,9 +12,8 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from tinydb import Query
 
-from backend.dependencies import DatabaseDep, LLMHandlerDep, RegistryDep, CurrentUserDep, RepositoryDep
+from backend.dependencies import CurrentUserDep, DatabaseDep, LLMHandlerDep, RegistryDep, RepositoryDep
 from backend.llm.provider import LLMFactory
-from backend.models.auth import Organization
 
 # from backend.llm.handler import LLMHandler # LLMHandlerDep already provides access to LLMHandler
 
@@ -65,7 +64,7 @@ class ModelRegistryUpdate(BaseModel):
     "/completion", summary="Direct Completion", response_description="The generated text or structured object."
 )
 async def generate_completion(
-    request: CompletionRequest, 
+    request: CompletionRequest,
     registry: RegistryDep,
     user: CurrentUserDep,
     repo: RepositoryDep
@@ -100,10 +99,10 @@ async def generate_completion(
 
         # 1. Resolve Provider via Registry
         config = await registry.resolve_model_config(request.model_strategy)
-        
+
         # 2. Create Provider with Dynamic Limits
         provider = LLMFactory.create_provider(
-            provider_type=config["provider"], 
+            provider_type=config["provider"],
             model_name=config["model_name"],
             organization_id=user.organization_id,
             limits=limits
@@ -131,7 +130,7 @@ async def generate_completion(
 
 @router.post("/batch-completion", summary="Batch Completion", response_description="List of results.")
 async def batch_completion(
-    batch: BatchCompletionRequest, 
+    batch: BatchCompletionRequest,
     registry: RegistryDep,
     user: CurrentUserDep,
     repo: RepositoryDep
@@ -160,14 +159,14 @@ async def batch_completion(
     async def _process_one(req: CompletionRequest):
         try:
             config = await registry.resolve_model_config(req.model_strategy)
-            
+
             provider = LLMFactory.create_provider(
-                provider_type=config["provider"], 
+                provider_type=config["provider"],
                 model_name=config["model_name"],
                 organization_id=user.organization_id,
                 limits=limits
             )
-            
+
             return await provider.generate(
                 prompt=req.prompt, system_instruction=req.system_instruction, response_schema=req.response_schema
             )

@@ -29,7 +29,9 @@ class MockAgent(BaseAgent):
 @pytest.fixture
 def mock_state():
     """Create mock state."""
-    return WorkflowState(execution_id="test", inputs=InputData(history_text="H", product_text="P", reflection_text="R"))
+    return WorkflowState(
+        execution_id="test", inputs=InputData(history_text="H", product_text="P", reflection_text="R")
+    )
 
 
 @pytest.mark.asyncio

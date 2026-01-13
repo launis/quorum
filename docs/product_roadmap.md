@@ -72,8 +72,14 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **Worker Environment Parity**: Worker successfully verified in Local (TinyDB), Local (Firestore), and Docker (Firestore) environments.
 
 ### 1.4 Scalability Architecture (Future)
-- [x] **Distributed Task Queue**: `Arq` with Redis implementation (`backend/worker.py`) for durable job execution.
+- [x] **Distribute Task Queue**: `Arq` with Redis implementation (`backend/worker.py`) for durable job execution.
 - [x] **Decoupled Workers**: Initial separation of `execute_workflow_task` accessible via `worker.py`.
+
+### 1.5 Reliability Hardening (Zero-Fallback & Seeding) (✅ Completed)
+- [x] **Zero-Fallback Architecture**: Removed default models; system now fails fast if configuration is missing.
+- [x] **Seed Synchronization**: Standardized `db.json` -> `seed_data.json` migration, making Seed Data the authoritative source of truth.
+- [x] **UI Step Synchronization**: Fixed race conditions in `PipelineRunner` ensuring "Pallukat" (UI indicators) update correctly.
+- [x] **Linting & Hygiene**: Achieved 100% pass rate on `ruff` checks across the entire backend codebase.
 
 ---
 

@@ -23,13 +23,13 @@ from fastapi import (
 from pydantic import BaseModel, Field
 from starlette.datastructures import UploadFile as StarletteUploadFile
 
-# --- Local Imports ---
-# Rule 6: APIError must be the FIRST local import
-from backend.schemas.error import APIError
 from backend.core.rate_limit import limiter
 from backend.dependencies import CurrentUserDep, EngineDep
 from backend.models.auth import UserRole  # Required for role check
 from backend.models.state import WorkflowState  # Required for migration/hydration logic
+
+# --- Local Imports ---
+# Rule 6: APIError must be the FIRST local import
 from backend.schemas.execution import ExecutionRequest
 
 logger = logging.getLogger(__name__)
@@ -50,7 +50,8 @@ class ExecutionWorkflowCreateRequest(BaseModel):
 
     name: Annotated[str, Field(description="The unique, human-readable name for the new workflow.")]
     steps: Annotated[
-        list[dict[str, Any]], Field(description="A sequential list of step configurations defining the workflow logic.")
+        list[dict[str, Any]],
+        Field(description="A sequential list of step configurations defining the workflow logic."),
     ]
 
 
@@ -80,7 +81,8 @@ async def create_workflow(request: Request, body: ExecutionWorkflowCreateRequest
     """Creates a new workflow definition in the database.
 
     Args:
-        request (ExecutionWorkflowCreateRequest): The workflow payload containing name and steps.
+        request (Request): The raw request.
+        body (ExecutionWorkflowCreateRequest): The workflow payload containing name and steps.
         engine (WorkflowEngine): The workflow engine dependency.
 
     Returns:
@@ -206,7 +208,10 @@ async def execute_workflow(
         rec = await engine.repository.get_execution(execution_id)
         if not rec:
             error_code = "EXECUTION_CREATION_FAILED"
-            logger.error(f"{error_code}: Execution {execution_id} not found immediately after creation.", exc_info=True)
+            logger.error(
+                f"{error_code}: Execution {execution_id} not found immediately after creation.",
+                exc_info=True,
+            )
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_code)
         cleaned_inputs = rec.get("inputs", {})
 
@@ -218,7 +223,10 @@ async def execute_workflow(
         )
 
         background_tasks.add_task(
-            engine.run_execution, execution_id, cleaned_inputs, arq_pool=getattr(request.app.state, "arq_pool", None)
+            engine.run_execution,
+            execution_id,
+            cleaned_inputs,
+            arq_pool=getattr(request.app.state, "arq_pool", None),
         )
 
         logger.info("[Router] Trace: 5. Background Task Queued. Returning Response.")
@@ -292,7 +300,9 @@ async def get_latest_execution(request: Request, engine: EngineDep):
 )
 @limiter.limit("60/minute")
 async def get_execution_status(
-    request: Request, engine: EngineDep, execution_id: str = Path(..., description="The UUID of the execution to retrieve.")
+    request: Request,
+    engine: EngineDep,
+    execution_id: str = Path(..., description="The UUID of the execution to retrieve."),
 ):
     """Retrieves the full status and result data for a specific execution ID.
 

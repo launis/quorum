@@ -12,10 +12,10 @@ from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, UploadFile, status
 
+from backend.dependencies import DatabaseDep, RegistryDep, RepositoryDep, get_document_service_dep
+
 # --- Local Imports ---
 # Rule 6: APIError must be the FIRST local import
-from backend.schemas.error import APIError
-from backend.dependencies import DatabaseDep, RegistryDep, RepositoryDep, get_document_service_dep
 from backend.services.document_service import DocumentService
 
 logger = logging.getLogger(__name__)

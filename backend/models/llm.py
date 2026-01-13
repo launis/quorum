@@ -42,9 +42,12 @@ class LLMResponse(BaseModel):
         Field(default=None, description="List of tool use requests invoked by the model."),
     ]
     token_usage: Annotated[
-        dict[str, float | int], Field(default_factory=dict, description="Token usage statistics (prompt, completion, total, cost).")
+        dict[str, float | int],
+        Field(default_factory=dict, description="Token usage statistics (prompt, completion, total, cost)."),
     ]
     provider_metadata: Annotated[
         dict[str, Any],
-        Field(default_factory=dict, description="Provider-specific raw metadata (e.g. finish_reason, safety_ratings)."),
+        Field(
+            default_factory=dict, description="Provider-specific raw metadata (e.g. finish_reason, safety_ratings)."
+        ),
     ]

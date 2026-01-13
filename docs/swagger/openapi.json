@@ -170,7 +170,7 @@
           "Orchestration"
         ],
         "summary": "Create Workflow",
-        "description": "Creates a new workflow definition in the database.\n\nArgs:\n    request (ExecutionWorkflowCreateRequest): The workflow payload containing name and steps.\n    engine (WorkflowEngine): The workflow engine dependency.\n\nReturns:\n    dict: The status and generated workflow_id.",
+        "description": "Creates a new workflow definition in the database.\n\nArgs:\n    request (Request): The raw request.\n    body (ExecutionWorkflowCreateRequest): The workflow payload containing name and steps.\n    engine (WorkflowEngine): The workflow engine dependency.\n\nReturns:\n    dict: The status and generated workflow_id.",
         "operationId": "create_workflow_workflows_post",
         "requestBody": {
           "content": {
@@ -2650,7 +2650,7 @@
           "Authentication & Users"
         ],
         "summary": "Verify User Token",
-        "description": "Exchanges a Firebase ID Token (or mock token) for the Backend User Profile.\n\nArgs:\n    payload (TokenPayload): The token payload.\n    auth_service (AuthServiceDep): Authentication service dependency.\n\nReturns:\n    LoginResponse: The authenticated user profile and status.\n\nRaises:\n    HTTPException: If the user is found in Firebase but not in the DB (404),\n                   or if the token is invalid (401).",
+        "description": "Exchanges a Firebase ID Token (or mock token) for the Backend User Profile.\n\nArgs:\n    request (Request): The HTTP Request object.\n    payload (TokenPayload): The token payload.\n    auth_service (AuthServiceDep): Authentication service dependency.\n\nReturns:\n    LoginResponse: The authenticated user profile and status.\n\nRaises:\n    HTTPException: If the user is found in Firebase but not in the DB (404),\n                   or if the token is invalid (401).",
         "operationId": "verify_user_token_auth_verify_post",
         "requestBody": {
           "content": {
@@ -2778,7 +2778,7 @@
           "Authentication & Users"
         ],
         "summary": "Create User",
-        "description": "Create a new user.\n\nArgs:\n    user_data (UserCreate): Payload for the new user.\n    current_user (CurrentUserDep): The requesting user (must be ROOT, ADMIN, or MANAGER).\n    auth_service (AuthServiceDep): Authentication service dependency.\n\nReturns:\n    User: The created user profile.\n\nRaises:\n    HTTPException: If permission denied (403) or validation fails (400).",
+        "description": "Create a new user.\n\nArgs:\n    request (Request): The HTTP Request object.\n    user_data (UserCreate): Payload for the new user.\n    current_user (CurrentUserDep): The requesting user (must be ROOT, ADMIN, or MANAGER).\n    auth_service (AuthServiceDep): Authentication service dependency.\n\nReturns:\n    User: The created user profile.\n\nRaises:\n    HTTPException: If permission denied (403) or validation fails (400).",
         "operationId": "create_user_auth_users_post",
         "parameters": [
           {
