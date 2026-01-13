@@ -1,6 +1,8 @@
-import sys
+"""Verify AAS-2026 Agent Compliance."""
+
 import logging
 import os
+import sys
 
 # Ensure backend can be imported
 sys.path.append(os.getcwd())
@@ -10,6 +12,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("verifier")
 
 def verify_exception_signature():
+    """Verify AgentExecutionError signature matches Echo Protocol."""
     try:
         from backend.exceptions import AgentExecutionError
         e = AgentExecutionError(detail="TEST_CODE", original_error=ValueError("foo"))
@@ -24,6 +27,7 @@ def verify_exception_signature():
         sys.exit(1)
 
 def verify_imports():
+    """Verify all agents can be imported."""
     agents = [
         "backend.agents.base",
         "backend.agents.guard",
@@ -47,6 +51,7 @@ def verify_imports():
             sys.exit(1)
 
 def main():
+    """Run verification suite."""
     logger.info("Starting AAS-2026 Agent Verification...")
     verify_exception_signature()
     verify_imports()

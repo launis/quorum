@@ -5,9 +5,11 @@ Verifies:
 2. ADMIN cannot update organization_id.
 3. USER can update their own display_name.
 """
+import asyncio
 import os
 import sys
-
+from datetime import UTC
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -24,13 +26,8 @@ if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 
 
-
-import asyncio
-from datetime import UTC
-from unittest.mock import MagicMock
-
-from backend.models.auth import User, UserRole, UserUpdate
-from backend.services.auth import AuthService
+from backend.models.auth import User, UserRole, UserUpdate  # noqa: E402
+from backend.services.auth import AuthService  # noqa: E402
 
 
 def async_test(coro):

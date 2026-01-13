@@ -1,12 +1,15 @@
+"""Verify Admin Router Echo Protocol Compliance."""
 
 import asyncio
-from fastapi import FastAPI, HTTPException
-from httpx import AsyncClient, ASGITransport
-from backend.main import http_exception_handler
-from backend.api.admin_router import router as admin_router
-from backend.models.auth import UserCreate, UserUpdate, UserRole, UserAdminView
-from backend.dependencies import CurrentUserDep, AuthServiceDep
 import logging
+
+from fastapi import FastAPI, HTTPException
+from httpx import ASGITransport, AsyncClient
+
+from backend.api.admin_router import router as admin_router
+from backend.dependencies import get_auth_service, get_current_user_from_header
+from backend.main import http_exception_handler
+from backend.models.auth import UserAdminView, UserRole
 
 # Setup Logger to verify capture
 logging.basicConfig(level=logging.ERROR)
@@ -17,6 +20,7 @@ app.exception_handler(HTTPException)(http_exception_handler)
 
 # Mocks
 async def override_auth_service():
+    """Mock AuthService dependency."""
     class MockAuthService:
         async def create_user(self, creator_uid, user_data):
             if user_data.email == "exists@test.com":
@@ -32,7 +36,7 @@ async def override_auth_service():
             if target_uid == "protected":
                  raise RuntimeError("LAST_ADMIN_PROTECTION")
             return UserAdminView(uid=target_uid, email="test@test.com", role=UserRole.ADMIN, organization_id="org1")
-            
+
         async def delete_user(self, initiator_uid, target_uid):
              if target_uid == "protected":
                  raise RuntimeError("LAST_ADMIN_PROTECTION")
@@ -41,24 +45,32 @@ async def override_auth_service():
     return MockAuthService()
 
 async def override_current_user_root():
+    """Mock CurrentUser dependency."""
     class Dummy:
          uid = "root_uid"
          role = UserRole.ROOT
          organization_id = "org1"
     return Dummy()
 
-from backend.dependencies import get_current_user_from_header, get_auth_service
-
 app.dependency_overrides[get_auth_service] = override_auth_service
 app.dependency_overrides[get_current_user_from_header] = override_current_user_root
 
 async def main():
+    """Run verification tests."""
     print("Verifying Admin Router Internal Echo Protocol...")
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-        
+
         # Test 1: Create User -> PermissionError -> 403 PERMISSION_DENIED
         print("Test 1: Create User -> PermissionError")
-        resp = await ac.post("/admin/users", json={"email": "exists@test.com", "role": "MEMBER", "name": "Test", "organization_id": "org1"})
+        resp = await ac.post(
+            "/admin/users",
+            json={
+                "email": "exists@test.com",
+                "role": "MEMBER",
+                "name": "Test",
+                "organization_id": "org1"
+            }
+        )
         data = resp.json()
         print(f"Response: {data}")
         if resp.status_code != 403:
@@ -72,7 +84,15 @@ async def main():
 
         # Test 2: Create User -> ValueError -> 400 INVALID_USER_DATA
         print("Test 2: Create User -> ValueError")
-        resp = await ac.post("/admin/users", json={"email": "invalid@test.com", "role": "MEMBER", "name": "Test", "organization_id": "org1"})
+        resp = await ac.post(
+            "/admin/users",
+            json={
+                "email": "invalid@test.com",
+                "role": "MEMBER",
+                "name": "Test",
+                "organization_id": "org1"
+            }
+        )
         data = resp.json()
         print(f"Response: {data}")
         if resp.status_code != 400:
@@ -99,7 +119,7 @@ async def main():
              raise RuntimeError(f"FAILED Test 4: Status {resp.status_code} != 409. Body: {data}")
         if data["error_code"] != "LAST_ADMIN_PROTECTION":
              raise RuntimeError(f"FAILED Test 4: Code {data['error_code']} != LAST_ADMIN_PROTECTION")
-        
+
         # Test 5: Delete User -> Protected -> 409 LAST_ADMIN_PROTECTION
         print("Test 5: Delete User -> Protected")
         resp = await ac.delete("/admin/users/protected")

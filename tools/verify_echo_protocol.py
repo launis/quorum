@@ -1,4 +1,5 @@
-import os
+"""Verify Echo Protocol Compliance."""
+
 import re
 import sys
 from pathlib import Path
@@ -11,40 +12,19 @@ RESET = "\033[0m"
 ROUTER_DIR = Path("c:/src/quorum/backend/api")
 
 def verify_echo_protocol(file_path):
-    with open(file_path, "r", encoding="utf-8") as f:
+    """Scan file for Echo Protocol violations."""
+    with open(file_path, encoding="utf-8") as f:
         lines = f.readlines()
 
     errors = []
-    
-    # 1. Check Import Order (Heuristic)
-    # APIError must be first local
-    has_api_error = False
-    local_imports_started = False
-    
-    for i, line in enumerate(lines):
-        line = line.strip()
-        if line.startswith("from backend.schemas.error import APIError"):
-            has_api_error = True
-            if local_imports_started:
-                 # This checking is tricky with mixed blocks. 
-                 # Let's rely on the "Echo Protocol" logic strictly for now.
-                 pass
-        
-        if line.startswith("from backend.") and "schemas.error" not in line:
-            local_imports_started = True
-            if not has_api_error and "backend.exceptions" not in line:
-                # If we see other backend imports before APIError, might be violation.
-                # But imports might be split. Let's just warn if APIError is missing or late?
-                # Actually, simpler: just check textual order in the block.
-                pass
 
-    # 2. Check Echo Protocol (Logger before Raise)
+    # 1. Check Echo Protocol (Logger before Raise)
     # Pattern: raise HTTPException(..., detail="ERROR_CODE")
     # or detail=error_code
-    
+
     raise_pattern = re.compile(r"raise HTTPException\s*\(")
     log_pattern = re.compile(r"logger\.(error|warning|exception|critical)\s*\(")
-    
+
     for i, line in enumerate(lines):
         if raise_pattern.search(line):
             # Scan backwards for logger
@@ -56,10 +36,16 @@ def verify_echo_protocol(file_path):
                 if log_pattern.search(prev_line):
                     found_logger = True
                     break
-                if prev_line.endswith(":") or prev_line.startswith("if ") or prev_line.startswith("else") or prev_line.startswith("try") or prev_line.startswith("except"):
+                if (
+                    prev_line.endswith(":") or
+                    prev_line.startswith("if ") or
+                    prev_line.startswith("else") or
+                    prev_line.startswith("try") or
+                    prev_line.startswith("except")
+                ):
                     # Boundary hit, likely no logger in this block
                     break
-            
+
             if not found_logger:
                 # Exclude re-raises that might match?
                 # If "raise HTTPException" is alone in a block, it needs a log.
@@ -70,11 +56,12 @@ def verify_echo_protocol(file_path):
     return errors
 
 def main():
+    """Run the verification."""
     print(f"Scanning {ROUTER_DIR} for Echo Protocol compliance...")
-    
+
     files = list(ROUTER_DIR.glob("*_router.py"))
     total_errors = 0
-    
+
     with open("tools/verification_result.txt", "w", encoding="utf-8") as out:
         for file_path in files:
             file_errors = verify_echo_protocol(file_path)

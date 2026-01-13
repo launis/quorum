@@ -189,7 +189,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
     Otherwise, a fallback code based on the status (e.g. HTTP_404) is used, and detail is the message.
     """
     detail_str = str(exc.detail)
-    
+
     # Heuristic: If detail is upper snake_case and no spaces, treat as Error Code (Echo Protocol).
     # e.g. "PERMISSION_DENIED" -> error_code="PERMISSION_DENIED"
     is_error_code = detail_str.isupper() and " " not in detail_str and len(detail_str) > 3

@@ -6,9 +6,10 @@ import json
 import logging
 from typing import TYPE_CHECKING
 
-# 3. Local Imports
-from backend.exceptions import AgentExecutionError, FatalInterruption
 from backend.agents.base import BaseAgent
+
+# 3. Local Imports
+from backend.exceptions import AgentExecutionError
 from backend.models.domain import PanelAudit
 
 if TYPE_CHECKING:
@@ -147,7 +148,8 @@ class PanelAgent(BaseAgent):
             else:
                  error_code = "PANEL_RESPONSE_INVALID_TYPE"
                  logger.error(
-                    f"{error_code}: Unexpected response content type: {type(raw_content)}. Content: {str(raw_content)[:100]}"
+                    f"{error_code}: Unexpected response content type: {type(raw_content)}. "
+                    f"Content: {str(raw_content)[:100]}"
                  )
                  raise AgentExecutionError(detail=error_code, original_error=ValueError("Invalid response type"))
 

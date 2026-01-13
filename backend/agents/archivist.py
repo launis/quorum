@@ -4,11 +4,11 @@ import logging
 from typing import Any
 
 # 2. Third Party
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
+
+from backend.agents.base import BaseAgent
 
 # 3. Local Imports
-from backend.exceptions import AgentExecutionError
-from backend.agents.base import BaseAgent
 from backend.models.domain import CaseLawContext
 from backend.models.state import WorkflowState
 

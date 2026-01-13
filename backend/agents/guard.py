@@ -6,11 +6,12 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 # 2. Third Party
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
+
+from backend.agents.base import BaseAgent
 
 # 3. Local Imports
-from backend.exceptions import AgentExecutionError, FatalInterruption
-from backend.agents.base import BaseAgent
+from backend.exceptions import FatalInterruption
 from backend.models.domain import TaintedData
 
 if TYPE_CHECKING:
@@ -245,13 +246,13 @@ class GuardAgent(BaseAgent):
 
                 # We append it to product_text ensures it's part of the analyzed content
                 state.inputs.product_text += injection
-                
+
                 # ECHO PROTOCOL: Log Security Event
                 error_code = "SECURITY_BANNED_PHRASE_DETECTED"
                 logger.error(f"{error_code}: Banned phrases found - {distinct_phrases}", exc_info=True)
                 raise FatalInterruption(
-                    "GuardSecurityCheck", 
-                    f"Banned phrases detected: {distinct_phrases}", 
+                    "GuardSecurityCheck",
+                    f"Banned phrases detected: {distinct_phrases}",
                     {"code": error_code, "phrases": distinct_phrases}
                 )
 
@@ -261,7 +262,11 @@ class GuardAgent(BaseAgent):
             # Ensure we raise a clean exception if not already raised
             if isinstance(e, FatalInterruption):
                 raise e
-            raise FatalInterruption("GuardPreHook", f"Pre-hook scan failed: {e}", {"error": str(e), "code": error_code}) from e
+            raise FatalInterruption(
+                "GuardPreHook",
+                f"Pre-hook scan failed: {e}",
+                {"error": str(e), "code": error_code}
+            ) from e
 
         return state
 

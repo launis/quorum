@@ -7,11 +7,12 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 # 2. Third Party
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
+
+from backend.agents.base import BaseAgent
 
 # 3. Local Imports
 from backend.exceptions import AgentExecutionError
-from backend.agents.base import BaseAgent
 from backend.models.domain import EvaluationResult
 
 if TYPE_CHECKING:

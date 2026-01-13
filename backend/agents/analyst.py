@@ -6,11 +6,11 @@ import logging
 from typing import TYPE_CHECKING
 
 # 2. Third Party
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
+
+from backend.agents.base import BaseAgent
 
 # 3. Local Imports
-from backend.exceptions import AgentExecutionError
-from backend.agents.base import BaseAgent
 from backend.models.domain import TodistusKartta
 
 if TYPE_CHECKING:
