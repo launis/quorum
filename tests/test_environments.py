@@ -19,7 +19,7 @@ def clear_settings_cache():
 def test_env_mock_db_default():
     """Test Default Behavior: Should use Mock DB (Visualized as run_mock_locally.bat)."""
     # Clear env vars to allow defaults to take over, BUT Keep LLM Mocked
-    with patch.dict(os.environ, {"USE_MOCK_LLM": "true"}, clear=True):
+    with patch.dict(os.environ, {"USE_MOCK_LLM": "true", "USE_MOCK_DB": "true"}, clear=True):
         client = db_wrapper.get_db_client()
         assert isinstance(client, db_wrapper.TinyDBClient)
         # Verify it points to db_mock.json

@@ -63,8 +63,10 @@ def client_fixture():
     app.dependency_overrides[get_current_user_from_header] = mock_user
 
     # 4. Return Client
-    with TestClient(app) as c:
-        yield c
+    # Use TestClient without context manager to avoid lifespan/loop conflict
+    # (Since we override DB, we don't strictly need app startup events here)
+    c = TestClient(app)
+    yield c
 
     # 5. Cleanup
     app.dependency_overrides.clear()

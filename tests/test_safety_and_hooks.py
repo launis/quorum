@@ -146,6 +146,12 @@ async def _test_python_hooks_execution_async():
                 def __init__(self, content):
                     self.content = content
                     self.reasoning_token = None
+                    self.token_usage = {
+                        "prompt_tokens": 10,
+                        "completion_tokens": 10,
+                        "total_tokens": 20,
+                        "total_cost": 0.001,
+                    }
 
             data = {
                 "metadata": {
