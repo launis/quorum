@@ -10,9 +10,9 @@ from backend.core.runner import PipelineRunner
 from backend.database.repository import AbstractWorkflowRepository
 from backend.exceptions import AgentExecutionError, ExecutionNotFoundError, FatalInterruption, WorkflowNotFoundError
 from backend.models.state import WorkflowState
+from backend.schemas.error import APIError
 from backend.services.agent_registry import AgentRegistry
 from backend.services.prompt_builder import PromptBuilder
-from backend.schemas.error import APIError
 
 logger = logging.getLogger(__name__)
 

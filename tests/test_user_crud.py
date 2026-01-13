@@ -25,8 +25,6 @@ async def setup_auth_override(client: AsyncClient):
     """
     from fastapi import HTTPException, Request
 
-    from backend import dependencies
-
     # 1. Access the Mock/Temp DB via Overrides (Crucial for verifying against the same DB)
     db_provider = app.dependency_overrides.get(get_db_client_dep)
     if db_provider:

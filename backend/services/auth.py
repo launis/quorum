@@ -438,7 +438,8 @@ class AuthService:
             admin_count = await asyncio.to_thread(self._count_org_admins, target.organization_id)
             if admin_count <= 1:
                 raise ConflictError(
-                    message="LAST_ADMIN_PROTECTION: Cannot delete the last Administrator of an Organization. Promote another user first.",
+                    message="LAST_ADMIN_PROTECTION: Cannot delete the last Administrator of an Organization. "
+                    "Promote another user first.",
                     details={"error_code": "LAST_ADMIN_PROTECTION"},
                 )
 
@@ -597,9 +598,6 @@ class AuthService:
     async def update_user_role(self, initiator_uid: str, target_uid: str, new_role: UserRole) -> User:
         """Updates a user's role with strict Last Admin Protection.
 
-        Raises:
-            PermissionError: If hierarchy is violated.
-            ValueError: If user not found.
         Raises:
             PermissionError: If hierarchy is violated.
             ValueError: If user not found.

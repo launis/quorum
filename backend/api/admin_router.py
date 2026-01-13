@@ -25,16 +25,15 @@ from backend.dependencies import (
     RepositoryDep,
     get_async_repository,
 )
-from backend.models.auth import UserAdminView, UserCreate, UserRole, UserUpdate
-from backend.schemas.admin import QueueStats
-from backend.schemas.error import APIError
 from backend.exceptions import (
     AppException,
     ConflictError,
     PermissionDeniedError,
     ResourceNotFoundError,
-    ConfigurationError,
 )
+from backend.models.auth import UserAdminView, UserCreate, UserRole, UserUpdate
+from backend.schemas.admin import QueueStats
+from backend.schemas.error import APIError
 
 logger = logging.getLogger(__name__)
 
