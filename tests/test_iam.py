@@ -5,12 +5,11 @@ Uses strictly isolated dependency overrides with NO shared fixtures unless expli
 """
 
 import pytest
+from httpx import ASGITransport, AsyncClient
 from unittest.mock import MagicMock
 
-from httpx import AsyncClient, ASGITransport
-
 from backend.api.organization_router import get_db_client_dep
-from backend.dependencies import get_current_user_from_header
+from backend.dependencies import get_async_repository, get_current_user_from_header
 from backend.main import app
 from backend.models.auth import TokenData, UserRole
 

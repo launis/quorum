@@ -2,9 +2,10 @@
 
 import pytest
 from unittest.mock import AsyncMock
+
 from backend.api.auth_router import update_user
-from backend.models.auth import TokenData, UserAdminView, UserRole, UserUpdate, User
 from backend.exceptions import ConflictError, PermissionDeniedError, ResourceNotFoundError
+from backend.models.auth import TokenData, User, UserRole, UserUpdate
 
 @pytest.mark.asyncio
 async def test_update_role_success():
@@ -70,7 +71,10 @@ async def test_update_role_last_admin_conflict():
     auth_service = AsyncMock()
     # ConflictError takes (message, details)
     # Raising with specific message
-    auth_service.update_user.side_effect = ConflictError("LAST_ADMIN_PROTECTION: Cannot demote", details={"reason": "last_admin"})
+    auth_service.update_user.side_effect = ConflictError(
+        "LAST_ADMIN_PROTECTION: Cannot demote",
+        details={"reason": "last_admin"}
+    )
 
     user = TokenData(uid="admin", role=UserRole.ADMIN, organization_id="org1", email="a@a")
     req = UserUpdate(role=UserRole.MEMBER)

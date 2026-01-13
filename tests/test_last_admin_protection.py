@@ -5,7 +5,7 @@ Uses strictly isolated dependency overrides.
 """
 
 import pytest
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
 
 from backend.dependencies import get_current_user_from_header
 from backend.main import app
@@ -104,10 +104,12 @@ async def test_cannot_delete_last_admin(async_client):
 
     # 1. Mock Auth Dependency (Target Logic)
     # We construct a real AuthService but backed by FakeDB
+    # 1. Mock Auth Dependency (Target Logic)
+    # We construct a real AuthService but backed by FakeDB
+    from backend.dependencies import get_auth_service
     from backend.services.auth import AuthService
 
     # Override get_auth_service (used by Router)
-    from backend.dependencies import get_auth_service
     app.dependency_overrides[get_auth_service] = lambda: AuthService(fake_db)
 
     # 2. Mock Current User (Router Access Control)
@@ -181,12 +183,12 @@ async def test_cannot_demote_last_admin(async_client):
         return [1]
 
     fake_db.users.update = _fake_update
-    
+
     payload = {"role": "MEMBER"}
-    
+
     try:
         response = await async_client.patch(f"/auth/users/{LAST_ADMIN.uid}", json=payload)
-        # NOTE: PATCH logic might be different. 
+        # NOTE: PATCH logic might be different.
         # But generally triggers same protection.
         assert response.status_code == 409
         data = response.json()
