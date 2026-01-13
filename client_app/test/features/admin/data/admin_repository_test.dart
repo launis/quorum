@@ -96,7 +96,9 @@ void main() {
               requestOptions: RequestOptions(path: ''),
               statusCode: 409,
               data: {
-                'detail': {'error_code': 'LAST_ADMIN_PROTECTION'},
+                'error_code': 'CONFLICT_ERROR',
+                'message': 'LAST_ADMIN_PROTECTION',
+                'details': {'error_code': 'LAST_ADMIN_PROTECTION'},
               },
             ),
             type: DioExceptionType.badResponse,

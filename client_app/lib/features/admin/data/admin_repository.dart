@@ -152,19 +152,29 @@ class AdminRepository {
 
         // 1. Check for specific business rule violations
         if (statusCode == 409 && data is Map<String, dynamic>) {
-          final detail = data['detail'];
-
-          if (detail is Map &&
-              detail['error_code'] == 'LAST_ADMIN_PROTECTION') {
+          // New APIError Schema Support
+          if (data['message'] == 'LAST_ADMIN_PROTECTION' ||
+              (data['details'] is Map &&
+                  data['details']['error_code'] == 'LAST_ADMIN_PROTECTION')) {
             return const AppError.validation(
               ValidationErrorReason.demoteLastAdmin,
             );
           }
 
-          if (detail == 'LAST_ADMIN_PROTECTION') {
-            return const AppError.validation(
-              ValidationErrorReason.demoteLastAdmin,
-            );
+          // Legacy Support (keep for transition if needed, or remove if strict)
+          if (data.containsKey('detail')) {
+            final detail = data['detail'];
+            if (detail is Map &&
+                detail['error_code'] == 'LAST_ADMIN_PROTECTION') {
+              return const AppError.validation(
+                ValidationErrorReason.demoteLastAdmin,
+              );
+            }
+            if (detail == 'LAST_ADMIN_PROTECTION') {
+              return const AppError.validation(
+                ValidationErrorReason.demoteLastAdmin,
+              );
+            }
           }
         }
 

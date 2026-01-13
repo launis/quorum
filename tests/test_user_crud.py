@@ -27,11 +27,6 @@ async def setup_auth_override(client: AsyncClient):
 
     from backend import dependencies
 
-    # 0. Singleton Reset (CRITICAL for isolating DB overrides and ensuring AuthService uses the new DB)
-    dependencies._db_client_instance = None
-    dependencies._repository_instance = None
-    dependencies._auth_service_instance = None
-
     # 1. Access the Mock/Temp DB via Overrides (Crucial for verifying against the same DB)
     db_provider = app.dependency_overrides.get(get_db_client_dep)
     if db_provider:

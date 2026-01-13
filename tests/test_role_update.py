@@ -1,11 +1,4 @@
-"""Tests for Role Update Endpoint."""
-
-from unittest.mock import AsyncMock
-
-import pytest
-from fastapi import HTTPException
-
-from backend.api.admin_router import UpdateRoleRequest, update_user_role
+from backend.exceptions import ConflictError, PermissionDeniedError, ResourceNotFoundError
 from backend.models.auth import TokenData, UserAdminView, UserRole
 
 
@@ -40,28 +33,28 @@ async def test_update_role_success():
 async def test_update_role_permission_error():
     """Test permission denial (mapped to 403)."""
     auth_service = AsyncMock()
-    auth_service.update_user_role.side_effect = PermissionError("Hierarchy violation")
+    auth_service.update_user_role.side_effect = PermissionDeniedError("Hierarchy violation")
 
     user = TokenData(uid="mem", role=UserRole.MEMBER, organization_id="org1", email="m@m")
     req = UpdateRoleRequest(role=UserRole.ADMIN)
 
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(PermissionDeniedError) as exc:
         await update_user_role(user_id="target", request=req, user=user, auth_service=auth_service)
 
     assert exc.value.status_code == 403
-    assert "Hierarchy violation" in exc.value.detail
+    assert "Hierarchy violation" in exc.value.message
 
 
 @pytest.mark.asyncio
 async def test_update_role_not_found():
     """Test user not found (mapped to 404)."""
     auth_service = AsyncMock()
-    auth_service.update_user_role.side_effect = ValueError("User not found")
+    auth_service.update_user_role.side_effect = ResourceNotFoundError("User not found")
 
     user = TokenData(uid="root", role=UserRole.ROOT, organization_id="sys", email="r@s")
     req = UpdateRoleRequest(role=UserRole.ADMIN)
 
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(ResourceNotFoundError) as exc:
         await update_user_role(user_id="unknown", request=req, user=user, auth_service=auth_service)
 
     assert exc.value.status_code == 404
@@ -71,15 +64,15 @@ async def test_update_role_not_found():
 async def test_update_role_last_admin_conflict():
     """Test Last Admin Protection (mapped to 409)."""
     auth_service = AsyncMock()
-    # Simulate the special RuntimeError raised by logic
-    auth_service.update_user_role.side_effect = RuntimeError("LAST_ADMIN_PROTECTION: Cannot demote...")
+    # ConflictError takes (message, details)
+    # Raising with specific message
+    auth_service.update_user_role.side_effect = ConflictError("LAST_ADMIN_PROTECTION: Cannot demote", details={"reason": "last_admin"})
 
     user = TokenData(uid="admin", role=UserRole.ADMIN, organization_id="org1", email="a@a")
     req = UpdateRoleRequest(role=UserRole.MEMBER)
 
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(ConflictError) as exc:
         await update_user_role(user_id="self", request=req, user=user, auth_service=auth_service)
 
     assert exc.value.status_code == 409
-    assert exc.value.detail["error_code"] == "LAST_ADMIN_PROTECTION"
-    assert "Cannot demote" in exc.value.detail["message"]
+    assert "LAST_ADMIN_PROTECTION" in exc.value.message

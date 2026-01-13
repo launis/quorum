@@ -12,6 +12,7 @@ import jwt
 from tinydb import Query
 
 from backend.database.wrapper import AbstractDatabase, AbstractTable
+from backend.exceptions import ConflictError
 from backend.models.auth import Organization, OrganizationCreate, TokenData, User, UserCreate, UserRole, UserUpdate
 
 # Secure Secret for Local Tokens (Impersonation)
@@ -436,9 +437,9 @@ class AuthService:
             # Run Admin Count in thread -> Count iterates list_all
             admin_count = await asyncio.to_thread(self._count_org_admins, target.organization_id)
             if admin_count <= 1:
-                raise RuntimeError(
-                    "LAST_ADMIN_PROTECTION: Cannot delete the last Administrator of an Organization. "
-                    "Promote another user first."
+                raise ConflictError(
+                    message="LAST_ADMIN_PROTECTION: Cannot delete the last Administrator of an Organization. Promote another user first.",
+                    details={"error_code": "LAST_ADMIN_PROTECTION"},
                 )
 
         # Execute
@@ -497,10 +498,15 @@ class AuthService:
 
         if user_count > 0 and not force:
             # Revert to standard ValueError (which FastAPI can allow routing exceptions for,
+            # 2. Check strict non-empty rule (unless force=False/True?)
+            # Usually we block unless force provided.
             # or we map it to 409 Conflict in router).
             # The client needs a specific code. We'll rely on the exception message or type.
             # Best practice: Custom exception, but ValueError is standard for logic.
-            raise ValueError(f"Organization is not empty ({user_count} users). Use force=True to delete.")
+            raise ConflictError(
+                message=f"Organization is not empty ({user_count} users). Use force=True to delete.",
+                details={"error_code": "ORG_NOT_EMPTY", "count": user_count},
+            )
 
         # 3. Delete Logic (Cascading)
         if user_count > 0:
@@ -564,7 +570,10 @@ class AuthService:
                 if target.organization_id:
                     admin_count = self._count_org_admins(target.organization_id)
                     if admin_count <= 1:
-                        raise ValueError("Cannot demote the last Administrator of an Organization.")
+                        raise ConflictError(
+                            message="Cannot demote the last Administrator of an Organization.",
+                            details={"error_code": "LAST_ADMIN_PROTECTION"},
+                        )
 
         updated_user = self.repo.update(target_uid, updates)
 
@@ -591,7 +600,10 @@ class AuthService:
         Raises:
             PermissionError: If hierarchy is violated.
             ValueError: If user not found.
-            RuntimeError: If Last Admin Protection is triggered (Client should map to 409).
+        Raises:
+            PermissionError: If hierarchy is violated.
+            ValueError: If user not found.
+            ConflictError: If Last Admin Protection is triggered.
         """
         initiator = self.repo.get_by_uid(initiator_uid)
         target = self.repo.get_by_uid(target_uid)

@@ -167,7 +167,9 @@ async def global_exception_handler(request: Request, exc: Exception):
 
     Returns 500 INTERNAL_SERVER_ERROR with standardized APIError.
     """
-    logger.error(f"Global Exception: {exc}", exc_info=True)
+    from backend.logging_config import log_error
+
+    log_error(logger, exc, "Global Exception")
     return JSONResponse(
         status_code=500,
         content=APIError(

@@ -82,9 +82,15 @@ def setup_logging(log_level=logging.INFO):
             pass
 
     # Create formatters
-    formatter = logging.Formatter(
-        "%(asctime)s | %(levelname)s | [%(execution_id)s] | %(name)s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
-    )
+    if settings.environment.lower() == "production":
+        formatter = JSONFormatter(
+            "%(asctime)s | %(levelname)s | [%(execution_id)s] | %(name)s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+        )
+    else:
+        # Standard Dev Formatter
+        formatter = logging.Formatter(
+            "%(asctime)s | %(levelname)s | [%(execution_id)s] | %(name)s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+        )
 
     # Context Filter
     context_filter = ContextFilter()
@@ -129,3 +135,66 @@ def setup_logging(log_level=logging.INFO):
         pass
 
     logging.info(f"Logging configured. Writing to: {log_file_path}")
+
+
+class JSONFormatter(logging.Formatter):
+    """JSON Formatter for Production Logging."""
+
+    def format(self, record):
+        """Format the record as JSON."""
+        log_record = {
+            "timestamp": self.formatTime(record, self.datefmt),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+            "execution_id": getattr(record, "execution_id", "SYSTEM"),
+        }
+
+        if record.exc_info:
+            log_record["exc_info"] = self.formatException(record.exc_info)
+
+        # Merge 'extra' context (e.g. error_code, details)
+        if hasattr(record, "error_code"):
+            log_record["error_code"] = record.error_code
+        if hasattr(record, "details"):
+            log_record["details"] = record.details
+
+        import json
+
+        return json.dumps(log_record)
+
+
+def log_error(logger: logging.Logger, exc: Exception, message: str = "An error occurred"):
+    """Standardized error logging helper.
+
+    Extracts error_code and details from the exception if available,
+    aligning the log output with the APIError schema.
+    """
+    import re
+
+    error_code = "INTERNAL_ERROR"
+    details = None
+
+    # 1. Try to extract from AppException (duck typing)
+    if hasattr(exc, "error_code"):
+        error_code = exc.error_code  # type: ignore
+    elif hasattr(exc, "details"):
+        # FastAPI HTTPException doesn't have error_code but might have detail
+        pass
+    else:
+        # 2. Fallback: Derive from Class Name
+        class_name = exc.__class__.__name__
+        # CameCase -> SNAKE_CASE
+        error_code = re.sub(r"(?<!^)(?=[A-Z])", "_", class_name).upper()
+
+    # 3. Extract Details
+    if hasattr(exc, "details"):
+        details = exc.details  # type: ignore
+    elif hasattr(exc, "detail"):
+        details = exc.detail  # type: ignore
+
+    extra = {"error_code": error_code}
+    if details:
+        extra["details"] = details
+
+    logger.error(f"{message}: {str(exc)}", exc_info=True, extra=extra)

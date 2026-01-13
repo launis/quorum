@@ -27,6 +27,14 @@ from backend.dependencies import (
 )
 from backend.models.auth import UserAdminView, UserCreate, UserRole, UserUpdate
 from backend.schemas.admin import QueueStats
+from backend.schemas.error import APIError
+from backend.exceptions import (
+    AppException,
+    ConflictError,
+    PermissionDeniedError,
+    ResourceNotFoundError,
+    ConfigurationError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +52,7 @@ def require_root(user: CurrentUserDep):
         HTTPException: If the user is not ROOT (403).
     """
     if user.role != UserRole.ROOT:
-        raise HTTPException(status_code=403, detail="Admin access required")
+        raise PermissionDeniedError("Admin access required")
     return user
 
 
@@ -61,7 +69,7 @@ def require_admin_or_root(user: CurrentUserDep):
         HTTPException: If the user is not ADMIN/ROOT (403).
     """
     if user.role not in [UserRole.ROOT, UserRole.ADMIN]:
-        raise HTTPException(status_code=403, detail="Admin or Root access required")
+        raise PermissionDeniedError("Admin or Root access required")
     return user
 
 
@@ -199,7 +207,8 @@ def _start_admin_task(
             logger.info(f"Admin Task {method_name} result: {res}")
         except Exception as e:
             logger.error(f"Admin Task {method_name} failed: {e}")
-            admin_task_status[job_id] = {"status": "failed", "error": str(e)}
+            error_model = APIError(error_code="TASK_FAILED", message=str(e), details={"task": method_name})
+            admin_task_status[job_id] = {"status": "failed", "error": error_model.model_dump()}
 
     background_tasks.add_task(_run_task)
     return {"status": "started", "job_id": job_id, "task": method_name}
@@ -227,12 +236,14 @@ async def create_user(
     try:
         return await auth_service.create_user(creator_uid=user.uid, user_data=request)
     except PermissionError as e:
-        raise HTTPException(status_code=403, detail=str(e)) from e
+        raise PermissionDeniedError(str(e)) from e
+    except AppException:
+        raise
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
+        raise AppException(str(e), status_code=400) from e
     except Exception as e:
         logger.error(f"Create user failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        raise AppException(str(e), status_code=500) from e
 
 
 @router.patch(
@@ -255,19 +266,22 @@ async def update_user(
     try:
         return await auth_service.update_user(initiator_uid=user.uid, target_uid=user_id, updates=request)
     except PermissionError as e:
-        raise HTTPException(status_code=403, detail=str(e)) from e
+        raise PermissionDeniedError(str(e)) from e
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from e
+        # Service currently maps user-not-found to ValueError sometimes, strictly mapping to 404 here
+        raise ResourceNotFoundError("User", user_id) from e
+    except AppException:
+        raise
     except RuntimeError as e:
         if "LAST_ADMIN_PROTECTION" in str(e):
-            raise HTTPException(
-                status_code=409,
-                detail={"error_code": "LAST_ADMIN_PROTECTION", "message": str(e)},
+            raise ConflictError(
+                message=str(e),
+                details={"error_code": "LAST_ADMIN_PROTECTION", "message": str(e)},
             ) from e
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        raise AppException(str(e), status_code=500) from e
     except Exception as e:
         logger.error(f"Update user failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        raise AppException(str(e), status_code=500) from e
 
 
 @router.delete(
@@ -291,23 +305,27 @@ async def delete_user(
         await auth_service.delete_user(initiator_uid=user.uid, target_uid=user_id)
         return {"status": "deleted", "uid": user_id}
     except PermissionError as e:
-        raise HTTPException(status_code=403, detail=str(e)) from e
+        raise PermissionDeniedError(str(e)) from e
+    except AppException:
+        raise
     except RuntimeError as e:
         if "LAST_ADMIN_PROTECTION" in str(e):
-            raise HTTPException(
-                status_code=409, detail={"error_code": "LAST_ADMIN_PROTECTION", "message": str(e)}
+            raise ConflictError(
+                message=str(e),
+                details={"error_code": "LAST_ADMIN_PROTECTION", "message": str(e)},
             ) from e
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        raise AppException(str(e), status_code=500) from e
     except ValueError as e:
         # Check if it was "Last Admin" related from service, usually Permission or Value
         if "Last Admin" in str(e) or "last Administrator" in str(e):
-            raise HTTPException(
-                status_code=409, detail={"error_code": "LAST_ADMIN_PROTECTION", "message": str(e)}
+            raise ConflictError(
+                message=str(e),
+                details={"error_code": "LAST_ADMIN_PROTECTION", "message": str(e)},
             ) from e
-        raise HTTPException(status_code=404, detail=str(e)) from e
+        raise ResourceNotFoundError("User", user_id) from e
     except Exception as e:
         logger.error(f"Delete user failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        raise AppException(str(e), status_code=500) from e
 
 
 @router.post(
@@ -483,7 +501,7 @@ def get_task_status(job_id: str = Path(..., description="UUID of the background 
     """
     status = admin_task_status.get(job_id)
     if not status:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise ResourceNotFoundError("Job", job_id)
     return status
 
 
@@ -540,7 +558,12 @@ async def ingest_knowledge_base(
     async def _run_ingest():
         try:
             if not os.path.exists(request.file_path):
-                admin_task_status[job_id] = {"status": "failed", "error": "File not found"}  # type: ignore[index]
+                error_model = APIError(
+                    error_code="RESOURCE_NOT_FOUND",
+                    message="File not found",
+                    details={"path": request.file_path},
+                )
+                admin_task_status[job_id] = {"status": "failed", "error": error_model.model_dump()}  # type: ignore[index]
                 return
 
             # Read file in binary mode
@@ -557,7 +580,8 @@ async def ingest_knowledge_base(
             )
         except Exception as e:
             logger.error(f"Ingestion failed: {e}")
-            admin_task_status[job_id] = {"status": "failed", "error": str(e)}
+            error_model = APIError(error_code="INGESTION_FAILED", message=str(e), details={"task": "ingest_from_file"})
+            admin_task_status[job_id] = {"status": "failed", "error": error_model.model_dump()}
 
     background_tasks.add_task(_run_ingest)
     return {"status": "started", "job_id": job_id, "message": f"Ingestion started. (Reset: {request.reset_db})"}
@@ -607,8 +631,11 @@ async def upload_knowledge_base(
             tracker = InMemoryProgressTracker(callback=lambda p: admin_task_status.update({job_id: p}))
             await service.ingest_from_bytes(content, filename, tracker=tracker, job_id=job_id, reset_db=reset_db)
         except Exception as e:
-            logger.error(f"Upload ingestion failed: {e}")
-            admin_task_status[job_id] = {"status": "failed", "error": str(e)}
+            from backend.logging_config import log_error
+
+            log_error(logger, e, "Upload ingestion failed")
+            error_model = APIError(error_code="INGESTION_FAILED", message=str(e), details={"task": "upload_ingest"})
+            admin_task_status[job_id] = {"status": "failed", "error": error_model.model_dump()}
 
     if background_tasks:
         background_tasks.add_task(_run_ingest)
@@ -650,7 +677,7 @@ async def add_banned_phrase(request: BannedPhraseRequest, repo: RepositoryDep):
     """
     # Validate
     if not request.phrase or len(request.phrase.strip()) < 2:
-        raise HTTPException(status_code=400, detail="Phrase too short")
+        raise AppException("Phrase too short", status_code=400)
 
     await repo.add_banned_phrase(request.phrase.strip())
     return {"status": "added", "phrase": request.phrase}
@@ -695,7 +722,7 @@ async def delete_banned_phrase(
 
     except Exception as e:
         logger.error(f"Failed to remove banned phrase: {e}")
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        raise AppException(str(e), status_code=500) from e
 
 
 @router.post(
@@ -765,7 +792,7 @@ async def generate_banned_phrases(
 
     except Exception as e:
         logger.error(f"Failed to generate banned phrases: {e}")
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        raise AppException(str(e), status_code=500) from e
 
 
 @router.get(
@@ -791,10 +818,10 @@ async def list_organization_users(
         # Check if Admin and matching Org
         if user.role == UserRole.ADMIN:
             if user.organization_id != organization_id:
-                raise HTTPException(status_code=403, detail="Access denied to other organization's users.")
+                raise PermissionDeniedError("Access denied to other organization's users.")
         else:
             # Manager/Member/Viewer
-            raise HTTPException(status_code=403, detail="Insufficient privileges.")
+            raise PermissionDeniedError("Insufficient privileges.")
 
     # 2. Execute
     users = await auth_service.get_users_by_organization(organization_id)
@@ -827,6 +854,8 @@ async def update_user_role(
         return updated
     except PermissionError as e:
         raise HTTPException(status_code=403, detail=str(e)) from e
+    except AppException:
+        raise
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
     except RuntimeError as e:

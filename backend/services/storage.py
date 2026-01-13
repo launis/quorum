@@ -139,7 +139,9 @@ class NoOpStorage(AbstractStorage):
 
     def read(self, path: str) -> bytes:
         """Mock read."""
-        raise FileNotFoundError(f"NoOpStorage does not store files: {path}")
+        from backend.exceptions import ConfigurationError
+
+        raise ConfigurationError(f"Storage is disabled (NoOp): Cannot read {path}")
 
     def exists(self, path: str) -> bool:
         """Mock exists."""

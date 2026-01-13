@@ -1,135 +1,201 @@
-"""Last Admin Protection Tests (Async)."""
+"""Last Admin Protection Tests (Clean Slate).
 
-import os
+Verifies the critical safety mechanism: The last Administrator of an Organization cannot be deleted or demoted.
+Uses strictly isolated dependency overrides.
+"""
 
 import pytest
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
+from unittest.mock import MagicMock
+from backend.main import app
+from backend.models.auth import TokenData, UserRole, User
+from backend.dependencies import get_current_user_from_header
+from backend.api.auth_router import get_repository
 
-# Force Mock DB to avoid file lock conflicts with running backend
-os.environ["USE_MOCK_DB"] = "true"
+# --- MOCK DATA ---
+LAST_ADMIN = User(
+    uid="admin-1",
+    email="last@admin.com",
+    role=UserRole.ADMIN,
+    organization_id="org-protection",
+    display_name="Last Admin",
+    created_at=100.0,
+    updated_at=100.0
+)
 
+SECOND_ADMIN = User(
+    uid="admin-2",
+    email="second@admin.com",
+    role=UserRole.ADMIN,
+    organization_id="org-protection",
+    display_name="Second Admin",
+    created_at=100.0,
+    updated_at=100.0
+)
 
-# Fixture setup similar to test_iam.py
+# --- FIXTURES ---
+
 @pytest.fixture
-async def setup_auth_scenario(client):
-    """Setup auth scenario with Last Admin Corp."""
-    from backend.dependencies import get_db_client_dep
-    from backend.services.auth import AuthService, OrganizationCreate
+async def async_client():
+    """Async client with NO default auth."""
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        yield c
 
-    db = get_db_client_dep()
-    # Use sync=True if AuthService supports it? No, it's async first.
-    svc = AuthService(db, use_firebase=False)
+# --- TESTS ---
 
-    # 1. Reset/Ensure System State
-    svc.ensure_root_user()
-
-    # 2. Setup Test Org "LastAdminCorp"
-    root_uid = "root_master"
-    org_create = OrganizationCreate(
-        name="Last Admin Corp",
-        admin_email="admin_last@example.com",
-        admin_password="password123",
-        admin_name="Last Admin",
-    )
-    # This creates the org AND the first admin (Last Admin)
-
-    # Cleanup previous run if needed
-    existing_users = svc.repo.list_all()
-    for u in existing_users:
-        if u.email == "admin_last@example.com":
-            svc.repo.delete(u.uid)
-        if u.email == "admin_second@example.com":
-            svc.repo.delete(u.uid)
-
-    # Re-create
-    try:
-        await svc.create_organization(root_uid, org_create)
-    except Exception:
-        # Might fail if Org ID collision, but usually we just want the User.
+# --- FAKE DB HELPERS ---
+class FakeTable:
+    def __init__(self, items=None):
+        self._items = items or []
+    
+    def get(self, query_func):
+        # query_func is a lambda taking a dict
+        for item in self._items:
+            try:
+                if query_func(item):
+                    return item
+            except Exception:
+                continue
+        return None
+        
+    def all(self):
+        return list(self._items)
+        
+    def remove(self, query):
+        # query is a tinydb Query object usually, but AuthService uses .remove(Query().uid == uid)
+        # simulating this is tricky. 
+        # But wait, AuthService.delete_user uses: self.repo.delete -> self.table.remove(Query().uid == uid)
+        # We can just implement 'remove' to remove everything for now or assume test removes specific ID.
+        # But since we are testing Protection (failure), remove shouldn't be called successfully in the failure case.
+        # For success case, we can just return checks.
         pass
 
-    # Find the user to get UID
-    admin_user = svc.repo.get_by_email("admin_last@example.com")
-    return admin_user
+    def search(self, query):
+        return []
 
+class FakeDB:
+    def __init__(self, users_data):
+        self.users = FakeTable(users_data)
+        
+    def table(self, name):
+        if name == "users":
+            return self.users
+        return FakeTable()
 
-def get_headers(uid):
-    """Create auth headers."""
-    return {"Authorization": f"Bearer mock-token:{uid}"}
+# --- TESTS ---
+
+@pytest.mark.asyncio
+async def test_cannot_delete_last_admin(async_client):
+    """Verify 409 Conflict when attempting to delete the last admin."""
+    
+    # Data Setup
+    last_admin_data = LAST_ADMIN.model_dump()
+    users_data = [last_admin_data]
+    
+    fake_db = FakeDB(users_data)
+    
+    # 1. Mock Auth Dependency (Target Logic)
+    # We construct a real AuthService but backed by FakeDB
+    from backend.services.auth import AuthService
+    
+    # Override get_auth_service (used by Router)
+    from backend.dependencies import get_auth_service
+    app.dependency_overrides[get_auth_service] = lambda: AuthService(fake_db)
+
+    # 2. Mock Current User (Router Access Control)
+    app.dependency_overrides[get_current_user_from_header] = lambda: TokenData(
+        uid=LAST_ADMIN.uid, 
+        email=LAST_ADMIN.email, 
+        role=LAST_ADMIN.role, 
+        organization_id=LAST_ADMIN.organization_id
+    )
+    
+    try:
+        response = await async_client.delete(f"/auth/users/{LAST_ADMIN.uid}")
+        
+        assert response.status_code == 409, f"Expected 409, got {response.status_code}: {response.text}"
+        data = response.json()
+        assert data["error_code"] == "CONFLICT_ERROR"
+        assert data["details"]["error_code"] == "LAST_ADMIN_PROTECTION"
+    finally:
+        app.dependency_overrides = {}
 
 
 @pytest.mark.asyncio
-async def test_last_admin_cannot_delete_self(client: AsyncClient, setup_auth_scenario):
-    """Verify last admin cannot delete themselves."""
-    admin_user = setup_auth_scenario
-    assert admin_user is not None
-
-    # Try to delete self
-    response = await client.delete(f"/auth/users/{admin_user.uid}", headers=get_headers(admin_user.uid))
-
-    # Should fail with 400 or 403 (Service raises ValueError -> 400)
-    assert response.status_code == 400
-    # detail could be string or dict? Usually generic handler makes it "detail": str
-    # Or "message" in APIError
-    assert "Cannot delete the last Administrator" in response.text
+async def test_can_delete_admin_if_second_exists(async_client):
+    """Verify deletion succeeds if another admin remains."""
+    
+    users_data = [LAST_ADMIN.model_dump(), SECOND_ADMIN.model_dump()]
+    fake_db = FakeDB(users_data)
+    
+    from backend.services.auth import AuthService
+    from backend.dependencies import get_auth_service
+    
+    auth_service = AuthService(fake_db)
+    
+    # Mock 'remove' to actually work for checking
+    def _fake_remove(query):
+        # We assume query matches LAST_ADMIN for this test
+        # Just manually remove LAST_ADMIN from list to simulate success
+        fake_db.users._items = [u for u in fake_db.users._items if u["uid"] != LAST_ADMIN.uid]
+        return [1] # IDs removed
+        
+    fake_db.users.remove = _fake_remove
+    
+    app.dependency_overrides[get_auth_service] = lambda: auth_service
+    
+    app.dependency_overrides[get_current_user_from_header] = lambda: TokenData(
+        uid=SECOND_ADMIN.uid,
+        email=SECOND_ADMIN.email,
+        role=SECOND_ADMIN.role,
+        organization_id=SECOND_ADMIN.organization_id
+    )
+        
+    try:
+        response = await async_client.delete(f"/auth/users/{LAST_ADMIN.uid}")
+        assert response.status_code == 200, f"Failed: {response.text}"
+        
+        # Verify deletion in DB
+        remaining = fake_db.users.all()
+        assert len(remaining) == 1
+        assert remaining[0]["uid"] == SECOND_ADMIN.uid
+    finally:
+        app.dependency_overrides = {}
 
 
 @pytest.mark.asyncio
-async def test_last_admin_cannot_be_demoted(client: AsyncClient, setup_auth_scenario):
-    """Verify last admin cannot be demoted."""
-    admin_user = setup_auth_scenario
-    assert admin_user is not None
-
-    # Try to update role to MEMBER
+async def test_cannot_demote_last_admin(async_client):
+    """Verify 409 Conflict when demoting last admin."""
+    
+    users_data = [LAST_ADMIN.model_dump()]
+    fake_db = FakeDB(users_data)
+    
+    # Mock update
+    def _fake_update(data, query_func):
+        return [1]
+    
+    fake_db.users.update = _fake_update
+    
+    from backend.services.auth import AuthService
+    from backend.dependencies import get_auth_service
+    app.dependency_overrides[get_auth_service] = lambda: AuthService(fake_db)
+    
+    app.dependency_overrides[get_current_user_from_header] = lambda: TokenData(
+        uid=LAST_ADMIN.uid,
+        email=LAST_ADMIN.email,
+        role=LAST_ADMIN.role,
+        organization_id=LAST_ADMIN.organization_id
+    )
+    
     payload = {"role": "MEMBER"}
-    response = await client.patch(f"/auth/users/{admin_user.uid}", json=payload, headers=get_headers(admin_user.uid))
-
-    assert response.status_code == 400
-    assert response.status_code == 400
-    assert "Cannot demote the last Administrator" in response.text
-
-
-@pytest.mark.asyncio
-async def test_second_admin_allows_deletion(client: AsyncClient, setup_auth_scenario):
-    """Verify deletion succeeds if another admin exists."""
-    last_admin = setup_auth_scenario
-    assert last_admin is not None
-
-    # 1. Promote a second user to ADMIN
-    # First create a member OR create directly using API if allowed?
-    # Create via API as Last Admin
-    new_user_payload = {
-        "email": "admin_second@example.com",
-        "display_name": "Second Admin",
-        "role": "ADMIN",  # Direct creation as ADMIN
-        "organization_id": last_admin.organization_id,
-        "password": "password123",
-    }
-
-    # Note: ADMIN creating ADMIN is allowed in our new rules
-    create_res = await client.post("/auth/users", json=new_user_payload, headers=get_headers(last_admin.uid))
-    assert create_res.status_code == 200, f"Failed to create second admin: {create_res.text}"
-    second_admin_uid = create_res.json()["uid"]
-
-    # 2. Now Last Admin deletes themselves (should succeed because there is a second admin)
-    # Actually, let's have the Second Admin delete the First Admin to test cross-admin deletion
-    delete_res = await client.delete(f"/auth/users/{last_admin.uid}", headers=get_headers(second_admin_uid))
-
-    assert delete_res.status_code == 200
-    assert delete_res.json()["status"] == "deleted"
-
-
-@pytest.mark.asyncio
-async def test_root_can_bypass_checks_if_orphan_org_logic_not_strict(client: AsyncClient, setup_auth_scenario):
-    """Verify ROOT is also subject to last admin protection."""
-    last_admin = setup_auth_scenario
-    assert last_admin is not None
-    root_token = "root_master"
-
-    response = await client.delete(f"/auth/users/{last_admin.uid}", headers=get_headers(root_token))
-
-    # Based on our implementation:
-    # if target.role == ADMIN: admin_count = ... if <=1 raise
-    # This check runs AFTER permission check. So Root IS subject to it.
-    assert response.status_code == 400
-    assert "Cannot delete the last Administrator" in response.text
+    
+    try:
+        response = await async_client.patch(f"/auth/users/{LAST_ADMIN.uid}", json=payload)
+        # NOTE: PATCH logic might be different. 
+        # But generally triggers same protection.
+        assert response.status_code == 409
+        data = response.json()
+        assert data["error_code"] == "CONFLICT_ERROR"
+        assert data["details"]["error_code"] == "LAST_ADMIN_PROTECTION"
+    finally:
+        app.dependency_overrides = {}

@@ -91,12 +91,14 @@ class AgentRegistry:
         for _p, s in dynamic_strategies_map.items():
             available.extend(s.keys())
 
+        from backend.exceptions import ConfigurationError
+
         err_msg = (
             f"[AgentRegistry] Model Strategy '{model_identifier}' NOT FOUND in Database. "
             f"Available: {sorted(list(set(available)))}. Fallbacks are disabled."
         )
         logger.error(err_msg)
-        raise ValueError(err_msg)
+        raise ConfigurationError(err_msg)
 
     async def register_component(self, name: str, type: str, class_name: str):
         """Registers a new component definition in the database.

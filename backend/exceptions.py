@@ -86,3 +86,35 @@ class ConfigurationError(AppException):
     def __init__(self, message: str):
         """Initialize the exception."""
         super().__init__(message, status_code=500)
+
+
+class ConflictError(AppException):
+    """Raised when a request conflicts with the current state of the server (409)."""
+
+    def __init__(self, message: str, details: dict | None = None):
+        """Initialize the exception."""
+        super().__init__(message, status_code=409, details=details)
+
+
+class PermissionDeniedError(AppException):
+    """Raised when the user does not have permission to access the resource (403)."""
+
+    def __init__(self, message: str = "Permission denied", details: dict | None = None):
+        """Initialize the exception."""
+        super().__init__(message, status_code=403, details=details)
+
+
+class ServiceUnavailableError(AppException):
+    """Raised when a service is temporarily unavailable (503)."""
+
+    def __init__(self, message: str = "Service unavailable", details: dict | None = None):
+        """Initialize the exception."""
+        super().__init__(message, status_code=503, details=details)
+
+
+class AuthenticationError(AppException):
+    """Raised when authentication fails (401)."""
+
+    def __init__(self, message: str = "Authentication failed", details: dict | None = None):
+        """Initialize the exception."""
+        super().__init__(message, status_code=401, details=details)

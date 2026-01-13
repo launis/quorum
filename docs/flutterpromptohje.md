@@ -117,15 +117,26 @@ ARCHITECTURAL RULES (ENFORCED):
     *   **Why**: No code generation (`build_runner`) required for tests, type-safe `any()`, and cleaner API.
     *   **Pattern**: Register fallbacks in `setUpAll` or `setUp` if needed. Use `registerFallbackValue`.
 
-4.  **API & Error Contract (ENFORCED)**:
-    * "**API Error Handling**: Backend follows a strict JSON error schema `{ "error_code": "...", "message": "...", "details": ... }`."
-    * "**Standard Error Codes**:
-        * `VALIDATION_ERROR`: Pydantic/FastAPI validation failure (422).
-        * `RESOURCE_NOT_FOUND_ERROR`: Standard 404.
-        * `INTERNAL_SERVER_ERROR`: Uncaught exceptions (500).
-        * *Custom Errors*: Derived from Exception Class Name (e.g. `BudgetExceededError` -> `BUDGET_EXCEEDED_ERROR`)."
-    * " *Requirement*: The Frontend must NOT parse error strings using `contains()`. It must switch on the `error_code` provided by the API."
-    * " *Requirement*: All API calls must be wrapped in a repository-level handler that converts Dio `Response` (RFC 7807 style) into domain-specific `AppError` types."
+12. **API & Error Handling Mandate (Strict Protocol)**:
+    *   **Backend Implementation Rules**:
+        *   **BANNED**: NEVER raise raw Python exceptions (`ValueError`, `RuntimeError`, `FileNotFoundError`) for business logic or domain failures.
+            *   *Why*: They produce generic `500 Internal Server Error` responses with `INTERNAL_SERVER_ERROR` codes, hiding the true cause from the client.
+        *   **REQUIRED**: Always raise distinct classes from `backend.exceptions`:
+            *   `ResourceNotFoundError` (404): When an ID is not found.
+            *   `ConfigurationError` (500): When settings/env/secrets are missing (Stop immediately).
+            *   `FatalInterruption` (500): When a workflow step fails critically.
+            *   `AppException` (Custom): For all other logical failures.
+        *   **Logging vs. Raising**:
+            *   **Raising**: Is for *Control Flow* (Stopping execution).
+            *   **Logging**: Is for *Observability* (Debugging).
+            *   *Rule*: If you `raise`, the Global Exception Handler (`backend/main.py`) will automatically log the error. You do NOT need to manually log before raising, unless adding specific context variables.
+    *   **The Contract (JSON Schema)**:
+        *   All errors return: `{ "error_code": "SCREAMING_SNAKE_CASE", "message": "Human readable", "details": {...} }`.
+        *   `error_code` is derived automatically from the Exception Class Name (e.g. `BudgetExceededError` -> `BUDGET_EXCEEDED_ERROR`).
+    *   **Frontend Consumption Rules**:
+        *   **BANNED**: Detecting errors by regex-matching the `message` string (e.g. `if (e.message.contains("Not Found"))`).
+        *   **REQUIRED**: Switch on the standardized `error_code` (e.g. `if (e.code == 'RESOURCE_NOT_FOUND_ERROR')`).
+        *   **REQUIRED**: All API calls must be wrapped in a Repository handler that maps Dio `Response` to `AppError` domain objects.
 
 GOAL:
 Build a production-grade, multi-tenant SaaS client. If a solution implies technical debt or "the old way of doing things", REJECT IT and propose the scalable, modern solution based on the documentation links above.

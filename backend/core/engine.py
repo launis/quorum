@@ -12,6 +12,7 @@ from backend.exceptions import AgentExecutionError, ExecutionNotFoundError, Fata
 from backend.models.state import WorkflowState
 from backend.services.agent_registry import AgentRegistry
 from backend.services.prompt_builder import PromptBuilder
+from backend.schemas.error import APIError
 
 logger = logging.getLogger(__name__)
 
@@ -264,15 +265,15 @@ class WorkflowEngine:
         except AgentExecutionError as ae:
             c_state = locals().get("current_state", None)
             await self._handle_execution_error(execution_id, ae, c_state)
-            # We assume handle_execution_error updates DB. We return None or empty dict?
-            # Better to re-raise or return a status?
-            # The caller might expect a result dict.
-            # Usually we return the partial result from DB or just None.
-            return {"status": "failed", "error": ae.message}
+            error_model = APIError(
+                error_code="AGENT_EXECUTION_ERROR", message=ae.message, details={"workflow_id": workflow_id}
+            )
+            return {"status": "failed", "error": error_model.model_dump()}
         except Exception as e:
             c_state = locals().get("current_state", None)
             await self._handle_execution_error(execution_id, e, c_state)
-            return {"status": "failed", "error": str(e)}
+            error_model = APIError(error_code="EXECUTION_CRASH", message=str(e), details={"workflow_id": workflow_id})
+            return {"status": "failed", "error": error_model.model_dump()}
         finally:
             clear_execution_context()
 
@@ -620,11 +621,19 @@ class WorkflowEngine:
         if isinstance(error, AgentExecutionError):
             logger.error(f"[WorkflowEngine] Agent Error: {error.message}")
             msg = error.message
+            code = "AGENT_EXECUTION_ERROR"
         else:
             logger.error(f"[WorkflowEngine] Critical Failure: {str(error)}", exc_info=True)
             msg = str(error)
+            code = "CRITICAL_FAILURE"
 
-        update_data: dict[str, Any] = {"status": "failed", "error": msg, "end_time": datetime.now().isoformat()}
+        # Serialize error as APIError for consistency in DB
+        error_struct = APIError(error_code=code, message=msg).model_dump()
+        update_data: dict[str, Any] = {
+            "status": "failed",
+            "error": error_struct,
+            "end_time": datetime.now().isoformat(),
+        }
 
         # Save trace if available so we can resume later
         if state:

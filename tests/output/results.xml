@@ -1,56 +1,23 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="4" skipped="0" tests="6" time="3.225" timestamp="2026-01-13T00:22:44.077283+02:00" hostname="Laptop-Risto"><testcase classname="tests.test_user_crud" name="test_root_create_user_any_org" time="1.711"><failure message="assert 400 == 200&#10; +  where 400 = &lt;Response [400 Bad Request]&gt;.status_code">client = &lt;httpx.AsyncClient object at 0x0000018AA6EA4050&gt;
-
-    @pytest.mark.asyncio
-    async def test_root_create_user_any_org(client: AsyncClient):
-        """Root should be able to create a user in any organization."""
-        payload = {
-            "email": "new_root_created@example.com",
-            "display_name": "Root Created",
-            "role": "MEMBER",
-            "organization_id": "org-1",
-            "password": "password123",
-        }
-        response = await client.post("/admin/users", json=payload, headers=get_headers(ROOT_TOKEN))
-&gt;       assert response.status_code == 200
-E       assert 400 == 200
-E        +  where 400 = &lt;Response [400 Bad Request]&gt;.status_code
-
-tests\test_user_crud.py:142: AssertionError</failure></testcase><testcase classname="tests.test_user_crud" name="test_admin_create_user_own_org" time="0.127"><failure message="assert 400 == 200&#10; +  where 400 = &lt;Response [400 Bad Request]&gt;.status_code">client = &lt;httpx.AsyncClient object at 0x0000018AA6D26450&gt;
-
-    @pytest.mark.asyncio
-    async def test_admin_create_user_own_org(client: AsyncClient):
-        """Admin should be able to create a user in their own organization."""
-        payload = {
-            "email": "new_admin_created@example.com",
-            "display_name": "Admin Created",
-            "role": "MEMBER",
-            "organization_id": "org-1",  # Matches admin_1 org
-            "password": "password123",
-        }
-        response = await client.post("/admin/users", json=payload, headers=get_headers(ADMIN_TOKEN))
-&gt;       assert response.status_code == 200
-E       assert 400 == 200
-E        +  where 400 = &lt;Response [400 Bad Request]&gt;.status_code
-
-tests\test_user_crud.py:159: AssertionError</failure></testcase><testcase classname="tests.test_user_crud" name="test_admin_cannot_create_user_other_org" time="0.128" /><testcase classname="tests.test_user_crud" name="test_update_user" time="0.115"><failure message="assert 404 == 200&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">client = &lt;httpx.AsyncClient object at 0x0000018AC76517B0&gt;
-
-    @pytest.mark.asyncio
-    async def test_update_user(client: AsyncClient):
-        """Admin can update a user in their org."""
-        payload = {"display_name": "Updated Name"}
-        response = await client.patch("/admin/users/target_user", json=payload, headers=get_headers(ADMIN_TOKEN))
-&gt;       assert response.status_code == 200
-E       assert 404 == 200
-E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
-
-tests\test_user_crud.py:184: AssertionError</failure></testcase><testcase classname="tests.test_user_crud" name="test_delete_user" time="0.125"><failure message="assert 404 == 200&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">client = &lt;httpx.AsyncClient object at 0x0000018AC7838D50&gt;
-
-    @pytest.mark.asyncio
-    async def test_delete_user(client: AsyncClient):
-        """Admin can delete a user in their org."""
-        response = await client.delete("/admin/users/target_user", headers=get_headers(ADMIN_TOKEN))
-&gt;       assert response.status_code == 200
-E       assert 404 == 200
-E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
-
-tests\test_user_crud.py:192: AssertionError</failure></testcase><testcase classname="tests.test_user_crud" name="test_last_admin_protection_delete" time="0.101" /></testsuite></testsuites>
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="1" failures="0" skipped="0" tests="1" time="0.472" timestamp="2026-01-13T02:16:19.540686+02:00" hostname="Laptop-Risto"><testcase classname="" name="tests.test_last_admin_protection" time="0.000"><error message="collection failure">ImportError while importing test module 'C:\src\quorum\tests\test_last_admin_protection.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+C:\Users\risto\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\_pytest\python.py:507: in importtestmodule
+    mod = import_path(
+C:\Users\risto\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\_pytest\pathlib.py:587: in import_path
+    importlib.import_module(module_name)
+C:\Users\risto\AppData\Local\Python\pythoncore-3.14-64\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1398: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1371: in _find_and_load
+    ???
+&lt;frozen importlib._bootstrap&gt;:1342: in _find_and_load_unlocked
+    ???
+&lt;frozen importlib._bootstrap&gt;:938: in _load_unlocked
+    ???
+C:\Users\risto\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\_pytest\assertion\rewrite.py:197: in exec_module
+    exec(co, module.__dict__)
+tests\test_last_admin_protection.py:13: in &lt;module&gt;
+    from backend.api.auth_router import get_repository
+E   ImportError: cannot import name 'get_repository' from 'backend.api.auth_router' (C:\src\quorum\backend\api\auth_router.py)</error></testcase></testsuite></testsuites>
