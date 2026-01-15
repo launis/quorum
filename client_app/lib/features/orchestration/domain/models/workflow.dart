@@ -1,3 +1,4 @@
+import 'package:client_app/features/orchestration/domain/models/workflow_step.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'workflow.freezed.dart';
@@ -9,7 +10,7 @@ sealed class Workflow with _$Workflow {
     required String id,
     required String name,
     @Default('') String description,
-    @Default([]) List<String> steps,
+    @Default([]) List<WorkflowStep> steps,
     @JsonKey(name: 'organization_id') String? organizationId,
     @JsonKey(name: 'is_public') @Default(false) bool isPublic,
     @JsonKey(name: 'ui_schema') Map<String, dynamic>? uiSchema,

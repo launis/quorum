@@ -12,7 +12,7 @@ from typing import Annotated, Any
 
 from fastapi import Depends, Header, HTTPException
 
-from backend.core.engine import WorkflowEngine
+from backend.core.engine import GraphEngine
 from backend.database.factory import get_repository
 from backend.database.repository import AbstractWorkflowRepository
 from backend.database.wrapper import AbstractDatabase, get_db_client
@@ -25,6 +25,9 @@ from backend.services.prompt_builder import PromptBuilder
 from backend.services.storage import AbstractStorage
 from backend.services.usage_service import UsageService
 from backend.settings import Settings, get_settings
+
+from arq.connections import ArqRedis, RedisSettings, create_pool
+
 
 # Alias for consistent dependency naming
 get_settings_dep = get_settings
@@ -41,7 +44,7 @@ _document_service_instance: Any | None = None
 _audit_service_instance: AuditService | None = None
 _auth_service_instance: AuthService | None = None
 _usage_service_instance: UsageService | None = None
-_engine_instance: WorkflowEngine | None = None
+_engine_instance: GraphEngine | None = None
 
 
 def get_db_client_dep() -> AbstractDatabase:
@@ -190,8 +193,8 @@ def get_auth_service(
         logger.info(f"[Dependencies] Initializing AuthService (Firebase={use_firebase})...")
         _auth_service_instance = AuthService(db_client, use_firebase=use_firebase, audit_service=audit_service)
 
-        # Bootstrap Root User - DISABLED (Manual Seeding Required per Security Policy)
-        # _auth_service_instance.ensure_root_user()
+        if settings.use_mock_db or settings.active_backend == "LOCAL":
+            _auth_service_instance.ensure_root_user()
 
     return _auth_service_instance
 
@@ -206,42 +209,12 @@ def get_usage_service(
     return _usage_service_instance
 
 
-async def get_engine(
-    repository: Annotated[AbstractWorkflowRepository, Depends(get_async_repository)],
-    registry: Annotated[AgentRegistry, Depends(get_agent_registry_dep)],
-    prompt_builder: Annotated[PromptBuilder, Depends(get_prompt_builder_dep)],
-    storage_service: Annotated[AbstractStorage, Depends(get_storage_service_dep)],
-    document_service: Annotated[Any, Depends(get_document_service_dep)],
-) -> WorkflowEngine:
-    """Dependency to provide a Singleton WorkflowEngine."""
+async def get_engine() -> GraphEngine:
+    """Dependency to provide a Singleton GraphEngine."""
     global _engine_instance
     if _engine_instance is None:
-        logger.info("[Dependencies] Initializing Singleton WorkflowEngine (Async Mode)...")
-
-        # Ensure Auth Service is explicitly initialized (sidesteps circular dependency issues)
-        # This guarantees Root user exists before Engine starts working
-        try:
-            # We manually resolve dependencies for the auth service if needed,
-            # but usually easiest just to let get_auth_service handle it if called via API.
-            # However, let's allow lazy loading for Auth.
-            pass
-        except Exception as e:
-            logger.warning(f"Could not pre-warm Auth Service: {e}")
-
-        settings = get_settings()
-
-        # Inject Services
-        _engine_instance = WorkflowEngine(
-            db_path=settings.start_db_path,
-            repository=repository,
-            registry=registry,
-            prompt_builder=prompt_builder,
-            storage_client=storage_service,
-            document_service=document_service,
-        )
-
-        await registry.register_component("DocumentProcessor", "processor", "DocumentProcessor")
-
+        logger.info("[Dependencies] Initializing Singleton GraphEngine...")
+        _engine_instance = GraphEngine()
     return _engine_instance
 
 
@@ -294,6 +267,15 @@ def get_llm_factory_dep():
     return LLMFactory
 
 
+async def get_arq_pool() -> ArqRedis:
+    """Dependency to provide Arq Redis Pool."""
+    settings = get_settings()
+    return await create_pool(
+        RedisSettings(host=settings.redis_host, port=settings.redis_port)
+    )
+
+
+
 # --- Type Aliases for Clean Injection (Dependency Injection Standards) ---
 # These aliases facilitate cleaner function signatures in FastAPI router endpoints.
 # Instead of `engine: WorkflowEngine = Depends(get_engine)`, use `engine: EngineDep`.
@@ -334,8 +316,8 @@ StorageDep = Annotated[AbstractStorage, Depends(get_storage_service_dep)]
 # Provides the Document Service (handles text extraction and ingestion).
 DocumentServiceDep = Annotated[Any, Depends(get_document_service_dep)]
 
-# Provides the central Workflow Engine (orchestrates agents and execution).
-EngineDep = Annotated[WorkflowEngine, Depends(get_engine)]
+# Provides the central Graph Engine.
+EngineDep = Annotated[GraphEngine, Depends(get_engine)]
 
 # Provides the LLM Handler (manages conversational state and high-level LLM interactions).
 # Note: Requires importing LLMHandler inside the file or using TYPE_CHECKING to avoid circular imports if lazily loaded.

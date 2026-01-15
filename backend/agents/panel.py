@@ -29,15 +29,26 @@ class PanelAgent(BaseAgent):
     REQUIRES_KEYS = ["step_analyst", "step_profiler"]
     PRODUCES_KEYS = ["step_panel", "step_logician", "step_falsifier", "step_causal", "step_detector", "step_overseer"]
 
+    def __init__(self, model: str | None = None, provider: str | None = None, **kwargs):
+        """Initializes PanelAgent with strict configuration (Zero-Fallback)."""
+        # ZERO-FALLBACK RULE: Fail fast if configuration is missing
+        if not model:
+            # We allow None during init if it's injected later via Registry, 
+            # but we do NOT provide a hardcoded default string here.
+            # The Registry/Factory logic must ensure 'model' is passed.
+            pass
+        
+        super().__init__(model=model, provider=provider)
+
+
     def construct_user_prompt(self, state: WorkflowState) -> str:
         """Constructs the user prompt for the Panel Agent by aggregating input data and prior step results.
-
+        
         Args:
             state (WorkflowState): The current workflow state.
-
+            
         Returns:
             str: The constructed user prompt string.
-
         """
         # Collect all relevant data for all potential critics from the state
         # Utilizing previous steps' outputs if available
@@ -107,6 +118,10 @@ class PanelAgent(BaseAgent):
             if not self.llm_provider:
                 raise ValueError("PanelAgent requires a configured LLM Provider.")
 
+            # ENFORCEMENT: Model must be configured
+            if not self.model:
+                 raise ValueError("PanelAgent requires a configured Model string (Zero-Fallback Violation).")
+
             response = await self.llm_provider.generate(
                 prompt=user_content,
                 system_instruction=system_instruction,
@@ -115,27 +130,32 @@ class PanelAgent(BaseAgent):
                 **kwargs,
             )
 
-            # Extract content from LLMResponse
-            raw_content = response.content if hasattr(response, "content") else response
+            # 3. Process Response (Structured Output)
+            panel_data = None
+            
+            # OPTIMIZATION: Use pre-parsed content if available (Instructor Pattern)
+            if response.parsed_content is not None:
+                if isinstance(response.parsed_content, PanelAudit):
+                    panel_data = response.parsed_content
+                elif isinstance(response.parsed_content, dict):
+                    panel_data = PanelAudit(**response.parsed_content)
+                else:
+                    logger.warning(f"[PanelAgent] parsed_content was {type(response.parsed_content)}, expected Dict or PanelAudit. Trying legacy parsing.")
+            
+            # Fallback (Legacy) - Only used if Provider didn't parse
+            if not panel_data:
+                raw_content = response.content if hasattr(response, "content") else response
+                if isinstance(raw_content, str):
+                    try:
+                        clean_content = raw_content.replace("```json", "").replace("```", "").strip()
+                        raw_dict = json.loads(clean_content)
+                        panel_data = PanelAudit(**raw_dict)
+                    except json.JSONDecodeError as e:
+                         error_code = "PANEL_RESPONSE_MALFORMED"
+                         logger.error(f"{error_code}: Could not parse JSON string - {e}")
+                         raise AgentExecutionError(detail=error_code, original_error=e) from e
 
-            # Try parsing JSON if string
-            if isinstance(raw_content, str):
-                try:
-                    # Remove markdown code blocks if present
-                    clean_content = raw_content.replace("```json", "").replace("```", "").strip()
-                    raw_content = json.loads(clean_content)
-                except json.JSONDecodeError as e:
-                    error_code = "PANEL_RESPONSE_MALFORMED"
-                    logger.warning(f"{error_code}: Could not parse JSON string - {e}")
-                    pass
-
-            # 3. Process Response
-            if isinstance(raw_content, PanelAudit) or (
-                isinstance(raw_content, dict) and "logiikka_auditointi" in raw_content
-            ):
-                # Verify and parse if it's a raw dict
-                panel_data = raw_content if isinstance(raw_content, PanelAudit) else PanelAudit(**raw_content)
-
+            if panel_data:
                 # 4. Fan-Out: Populate individual state fields for compatibility with Judge/Coach
                 state.step_logician = panel_data.logiikka_auditointi
                 state.step_falsifier = panel_data.falsifiointi_auditointi
@@ -147,14 +167,8 @@ class PanelAgent(BaseAgent):
                 state.step_panel = panel_data
 
                 logger.info("[PanelAgent] Successfully fanned out PanelAudit to 5 distinct state steps.")
-
             else:
-                error_code = "PANEL_RESPONSE_INVALID_TYPE"
-                logger.error(
-                    f"{error_code}: Unexpected response content type: {type(raw_content)}. "
-                    f"Content: {str(raw_content)[:100]}"
-                )
-                raise AgentExecutionError(detail=error_code, original_error=ValueError("Invalid response type"))
+                 raise AgentExecutionError(detail="PANEL_RESPONSE_EMPTY", original_error=ValueError("No data returned"))
 
             return state
 

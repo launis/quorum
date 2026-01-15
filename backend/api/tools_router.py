@@ -57,20 +57,23 @@ async def extract_text(
                     shutil.copyfileobj(file.file, buffer)
                 content = doc_service.extract_text(temp_path)
             except Exception as e:
+                from backend.exceptions import AppException
                 error_code = "TEXT_EXTRACTION_FAILED"
                 logger.error(f"{error_code}: {e}", exc_info=True)
-                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_code) from e
+                raise AppException(message=error_code, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR) from e
             finally:
                 if temp_path and os.path.exists(temp_path):
                     try:
                         os.remove(temp_path)
-                    except Exception:
+                    except Exception as clean_err:
+                        logger.debug(f"Failed to cleanup temp file {temp_path}: {clean_err}")
                         pass
 
     if not content:
+        from backend.exceptions import AppException
         error_code = "NO_CONTENT_PROVIDED"
         logger.warning(f"{error_code}: No text or file provided.")
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_code)
+        raise AppException(message=error_code, status_code=status.HTTP_400_BAD_REQUEST)
 
     return {"filename": filename, "text": content}
 
@@ -78,10 +81,10 @@ async def extract_text(
 @router.post("/extract-concepts", summary="Extract Concepts from Content")
 async def extract_concepts_from_file_or_text(
     registry: RegistryDep,
+    repo: RepositoryDep,
     doc_service: Annotated[DocumentService, Depends(get_document_service_dep)],
     text: str = Form(None),
     file: UploadFile = File(None),  # noqa: B008
-    llm_provider: str | None = Form(None),
 ):
     """Extracts domain concepts from either raw text or an uploaded file.
 
@@ -112,43 +115,39 @@ async def extract_concepts_from_file_or_text(
             if os.path.exists(temp_path):
                 try:
                     os.remove(temp_path)
-                except Exception:
+                except Exception as clean_err:
+                    logger.debug(f"Failed to cleanup temp file {temp_path}: {clean_err}")
                     pass
 
     if not content:
+        from backend.exceptions import AppException
         error_code = "NO_CONTENT_PROVIDED"
         logger.warning(f"{error_code}: No text or file provided.")
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_code)
+        raise AppException(message=error_code, status_code=status.HTTP_400_BAD_REQUEST)
 
     try:
-        # Resolve config logic
-        # config = await registry.resolve_model_config("deep")
+        # Resolve config logic (Dynamic)
+        config = await registry.resolve_model_config("AnalystAgent") # Strategy: 'deep' analysis
 
-        # from backend.llm.provider import LLMFactory
-        # from backend.services.knowledge_base_service import KnowledgeBaseService
+        from backend.llm.provider import LLMFactory
+        from backend.services.knowledge_base_service import KnowledgeBaseService
 
-        # Using KnowledgeBaseService for extraction as it likely has the logic 'extract_concepts_with_llm'
-        # Check previous usage: 'service.extract_concepts_with_llm(final_text, tracker)'
+        provider = LLMFactory.create_provider(config["provider"], config["model_name"])
+        
+        # Initialize Service
+        service = KnowledgeBaseService(repo, llm_provider=provider)
+        
+        # Execute Extraction
+        concepts = await service.extract_concepts_with_llm(content)
+        
+        return {"source_length": len(content), "concepts": concepts}
 
-        # provider = LLMFactory.create_provider(config["provider"], config["model_name"])
-
-        # We need a repository for the service even if just extracting concepts
-        # If we didn't inject it, try to get it (but better to inject)
-        # However, for pure extraction without storage, we might pass a dummy or just None if safe
-        # KBService.__init__ type hint says repository: AbstractWorkflowRepository
-        # Let's get the standard one to be safe, though extraction might not use it if we don't call store
-
-        # NOTE: Injected 'registry' is used for config, but we need 'repo' for service init if not passed.
-        # We inject it via dependencies now or fix the logic later if needed.
-        # For now, avoiding the unused import error by not importing it if not used.
-        pass
-
-        return {"source_length": len(content), "concepts": []}  # Placeholder return if logic is disabled/broken
 
     except Exception as e:
+        from backend.exceptions import AppException
         error_code = "CONCEPT_EXTRACTION_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_code) from e
+        raise AppException(message=error_code, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"original_error": str(e)}) from e
 
 
 @router.post("/web-scrape", summary="Scrape Web Page", response_description="Scraped content.")
@@ -178,28 +177,30 @@ async def web_scrape(
         if ip_obj.is_loopback or ip_obj.is_private:
             error_code = "SSRF_PROTECTION_BLOCKED"
             logger.error(f"{error_code}: Access to private IP blocked: {ip}", exc_info=True)
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_code)
+            raise AppException(message=error_code, status_code=status.HTTP_400_BAD_REQUEST)
 
-    except HTTPException:
-        raise
     except Exception as e:
+        if isinstance(e, AppException):
+            raise
+            
         # Map specific SSRF errors to 400
+        from backend.exceptions import AppException
         if "SSRF" in str(e):
             # Try to map if possible, else generic
             error_code = "SSRF_PROTECTION_BLOCKED"
             logger.error(f"{error_code}: {e}", exc_info=True)
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_code) from e
+            raise AppException(message=error_code, status_code=status.HTTP_400_BAD_REQUEST) from e
 
         # Logic error in resolving might be 400 too
         if isinstance(e, ValueError):
             error_code = "INVALID_URL"
             logger.error(f"{error_code}: {e}", exc_info=True)
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_code) from e
+            raise AppException(message=error_code, status_code=status.HTTP_400_BAD_REQUEST) from e
 
         # Fallback
         error_code = "WEB_SCRAPE_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_code) from e
+        raise AppException(message=error_code, status_code=status.HTTP_400_BAD_REQUEST, details={"original_error": str(e)}) from e
 
     # 2. Mock Implementation for now (or real if needed, but test only checks hardening)
     # Return dummy content
@@ -244,6 +245,7 @@ async def citation_lookup(
         return results
 
     except Exception as e:
+        from backend.exceptions import AppException
         error_code = "CITATION_LOOKUP_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=error_code) from e
+        raise AppException(message=error_code, status_code=500, details={"original_error": str(e)}) from e

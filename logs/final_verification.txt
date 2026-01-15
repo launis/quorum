@@ -1,0 +1,250 @@
+
+=== DIAGNOSTIC: TODISTUSKARTTA SCHEMA ===
+
+{
+  "$defs": {
+    "Hypoteesi": {
+      "description": "A research hypothesis formulated by the Analyst.\n\nAttributes:\n    id (str): Unique ID for the hypothesis.\n    vaite_teksti (str): The hypothesis claim text.\n    loytyyko_todisteita (bool): Whether evidence was found.\n    hakusana_ehdotus (Optional[str]): Suggested Google search query.",
+      "properties": {
+        "id": {
+          "description": "Unique ID for the hypothesis.",
+          "title": "Id",
+          "type": "string"
+        },
+        "vaite_teksti": {
+          "description": "The hypothesis claim text.",
+          "title": "Vaite Teksti",
+          "type": "string"
+        },
+        "loytyyko_todisteita": {
+          "description": "Whether evidence was found.",
+          "title": "Loytyyko Todisteita",
+          "type": "boolean"
+        },
+        "hakusana_ehdotus": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Suggested Google search query.",
+          "title": "Hakusana Ehdotus"
+        }
+      },
+      "required": [
+        "id",
+        "vaite_teksti",
+        "loytyyko_todisteita"
+      ],
+      "title": "Hypoteesi",
+      "type": "object"
+    },
+    "Metadata": {
+      "description": "Metadata for execution tracking.\n\nAttributes:\n    luontiaika (str): Timestamp of creation (ISO 8601).\n    agentti (str): Name of the agent producing this result.\n    vaihe (Union[float, int]): Step number in the workflow.\n    versio (Literal[\"1.0\", \"2.0\"]): Schema version.\n    suoritus_ymparisto (Optional[Literal]): Execution environment context.",
+      "properties": {
+        "luontiaika": {
+          "description": "Timestamp of creation (ISO 8601).",
+          "title": "Luontiaika",
+          "type": "string"
+        },
+        "agentti": {
+          "description": "Name of the agent producing this result.",
+          "title": "Agentti",
+          "type": "string"
+        },
+        "vaihe": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "description": "Step number in the workflow.",
+          "title": "Vaihe"
+        },
+        "versio": {
+          "default": "2.0",
+          "description": "Schema version.",
+          "enum": [
+            "1.0",
+            "2.0"
+          ],
+          "title": "Versio",
+          "type": "string"
+        },
+        "suoritus_ymparisto": {
+          "anyOf": [
+            {
+              "enum": [
+                "Kriitikkoryhma_External",
+                "Internal"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Execution environment context.",
+          "title": "Suoritus Ymparisto"
+        }
+      },
+      "required": [
+        "luontiaika",
+        "agentti",
+        "vaihe"
+      ],
+      "title": "Metadata",
+      "type": "object"
+    },
+    "RagTodiste": {
+      "description": "Evidence retrieved via RAG.",
+      "properties": {
+        "viittaa_hypoteesiin_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          ],
+          "description": "ID(s) of the hypothesis this evidence supports.",
+          "title": "Viittaa Hypoteesiin Id"
+        },
+        "perusteet": {
+          "description": "Reasoning why this evidence is relevant.",
+          "title": "Perusteet",
+          "type": "string"
+        },
+        "konteksti_segmentti": {
+          "description": "The concise text excerpt (quote).",
+          "title": "Konteksti Segmentti",
+          "type": "string"
+        },
+        "relevanssi_score": {
+          "description": "Relevance score (1-100).",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Relevanssi Score",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "viittaa_hypoteesiin_id",
+        "perusteet",
+        "konteksti_segmentti",
+        "relevanssi_score"
+      ],
+      "title": "RagTodiste",
+      "type": "object"
+    }
+  },
+  "additionalProperties": true,
+  "description": "Output schema for the Analyst Agent.\n\nAttributes:\n    hypoteesit (list[Hypoteesi]): List of formulated hypotheses.\n    rag_todisteet (list[RagTodiste]): Evidence collected from RAG.",
+  "properties": {
+    "metadata": {
+      "$ref": "#/$defs/Metadata",
+      "description": "Execution metadata."
+    },
+    "reasoning_trace": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Chain-of-Thought: Step-by-step reasoning BEFORE the final conclusion.",
+      "title": "Reasoning Trace"
+    },
+    "metodologinen_loki": {
+      "description": "Log of methods applied during analysis.",
+      "title": "Metodologinen Loki",
+      "type": "string"
+    },
+    "edellisen_vaiheen_validointi": {
+      "description": "Validation result of the previous step's output.",
+      "title": "Edellisen Vaiheen Validointi",
+      "type": "string"
+    },
+    "semanttinen_tarkistussumma": {
+      "description": "Checksum or integrity hash of the content.",
+      "title": "Semanttinen Tarkistussumma",
+      "type": "string"
+    },
+    "hypoteesit": {
+      "description": "List of formulated hypotheses.",
+      "items": {
+        "$ref": "#/$defs/Hypoteesi"
+      },
+      "title": "Hypoteesit",
+      "type": "array"
+    },
+    "rag_todisteet": {
+      "description": "Evidence collected from RAG.",
+      "items": {
+        "$ref": "#/$defs/RagTodiste"
+      },
+      "title": "Rag Todisteet",
+      "type": "array"
+    }
+  },
+  "required": [
+    "metadata",
+    "metodologinen_loki",
+    "edellisen_vaiheen_validointi",
+    "semanttinen_tarkistussumma",
+    "hypoteesit",
+    "rag_todisteet"
+  ],
+  "title": "TodistusKartta",
+  "type": "object"
+}
+
+
+=== 1. VERIFYING INPUT OPTIMIZATION (CONTEXT_DEDUCTIVE) ===
+
+Traceback (most recent call last):
+  File "C:\src\quorum\tests\verify_logician_optimization.py", line 65, in verify_logic
+    print("\n\u2705 TodistusKartta instantiation SUCCESS")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\risto\AppData\Local\Python\pythoncore-3.14-64\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2705' in position 2: character maps to <undefined>
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\src\quorum\tests\verify_logician_optimization.py", line 127, in <module>
+    asyncio.run(verify_logic())
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "C:\Users\risto\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\runners.py", line 204, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "C:\Users\risto\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\runners.py", line 127, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\risto\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\base_events.py", line 719, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "C:\src\quorum\tests\verify_logician_optimization.py", line 67, in verify_logic
+    print("\n\u274c TodistusKartta instantiation FAILED")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\risto\AppData\Local\Python\pythoncore-3.14-64\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u274c' in position 2: character maps to <undefined>

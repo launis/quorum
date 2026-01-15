@@ -39,6 +39,34 @@ class LogicianAgent(BaseAgent):
         """
         return ArgumentaatioAnalyysi
 
+    async def prepare_context(self, state: WorkflowState, **kwargs) -> str | None:
+        """Lifecycle Hook: Pre-Execution.
+
+        Injects the Evidence Map (TodistusKartta) from the Analyst step.
+
+        Args:
+            state (WorkflowState): Current state.
+            **kwargs: execution arguments.
+
+        Returns:
+            Optional[str]: Formatted context.
+        """
+        # 1. Resolve Input (Prefer kwargs from wiring, then state)
+        todistus_kartta = kwargs.get("todistus_kartta")
+        if not todistus_kartta and state:
+            todistus_kartta = getattr(state, "step_analyst", None)
+
+        # 2. Format Context
+        if todistus_kartta:
+            content = (
+                todistus_kartta.model_dump_json(indent=2)
+                if hasattr(todistus_kartta, "model_dump_json")
+                else str(todistus_kartta)
+            )
+            return f"### TODISTUSKARTTA (EVIDENCE MAP):\n{content}"
+
+        return None
+
     async def execute(
         self,
         state: WorkflowState | None = None,

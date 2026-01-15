@@ -1,234 +1,213 @@
 """Main Seeder Entrypoint.
 
 Reads from backend/seed/seed_data.json and populates the target database.
+Includes MIGRATION LOGIC to transform Legacy Workflows -> V2.9 GraphEngine Workflows.
 """
 
 import json
 import os
+import logging
+from typing import List, Dict, Any
 
 from tinydb import Query, TinyDB
 
+logger = logging.getLogger(__name__)
 
 def seed_database(target_env: str = "LOCAL", target_db_path: str | None = None):
-    """Supports both TinyDB (local) and Firestore (cloud) based on settings.
-
-    Args:
-        target_env (str): The target environment ('LOCAL' or 'FIRESTORE').
-        target_db_path (str | None): Path to the database file (TinyDB only).
-
-    """
     from backend.settings import get_settings
-
     settings = get_settings()
 
-    # 1. Load Seed Data
     print(f"[Seeder] Loading seed data from: {settings.seed_data_path}")
     if not os.path.exists(settings.seed_data_path):
-        print(f"[Seeder] Error: Seed data file not found at {settings.seed_data_path}")
+        print(f"[Seeder] Error: File not found {settings.seed_data_path}")
         return
 
     try:
         with open(settings.seed_data_path, encoding="utf-8") as f:
             seed_data = json.load(f)
     except Exception as e:
-        print(f"[Seeder] Error loading seed data: {e}")
+        print(f"[Seeder] Error loading JSON: {e}")
         return
 
-    # 2. Inject Code-Conf (Matrices)
-    try:
-        from backend.config.matrices import MATRICES
+    # --- MIGRATION LOGIC ---
+    print("[Seeder] Generating V2.9 Standard Data Flow Mappings...")
+    _apply_migrations(seed_data)
 
-        print(f"[Seeder] Injecting {len(MATRICES)} Python-defined matrices.")
-        for mat_id, mat_config in MATRICES.items():
-            mat_dict = mat_config.model_dump()
-            # Ensure ID and Type are set for the Component Table
-            component_entry = {
-                "id": mat_id,
-                "type": "evaluation_matrix",
-                "name": mat_dict.get("name", mat_id),
-                "description": mat_dict.get("description", ""),
-                "content": mat_dict,  # Store the full config as content
-            }
-
-            # Remove existing if present (to enforce code-conf authority)
-            seed_data["components"] = [c for c in seed_data.get("components", []) if c.get("id") != mat_id]
-            seed_data["components"].append(component_entry)
-
-    except ImportError:
-        print("[Seeder] Warning: could not import backend.config.matrices")
-    except Exception as e:
-        print(f"[Seeder] Error injecting matrices: {e}")
-
-    # 3. Determine Mode
+    # Determine backend
     is_firestore = settings.storage_backend.upper() == "FIRESTORE" and not settings.use_mock_db
 
     if is_firestore:
-        print("[Seeder] Target: FIRESTORE (Cloud)")
+        print("[Seeder] Target: FIRESTORE")
         _seed_firestore(seed_data)
     else:
-        final_db_path = target_db_path or settings.start_db_path
-        print(f"[Seeder] Target: TinyDB (Local) at {final_db_path}")
-        _seed_tinydb(final_db_path, seed_data)
+        path = target_db_path or settings.start_db_path
+        print(f"[Seeder] Target: TinyDB at {path}")
+        _seed_tinydb(path, seed_data)
+
+
+def _apply_migrations(seed_data: Dict[str, Any]):
+    """Transforms legacy workflow definitions to GraphEngine V2.9 format."""
+    
+    # 1. Map Component IDs to Task Keys
+    task_map = {
+        "GuardAgent": "guard",
+        "AnalystAgent": "analyst",
+        "InteractionAnalystAgent": "interaction",
+        "ProfilerAgent": "profiler",
+        "LogicianAgent": "logician",
+        "LogicalFalsifierAgent": "falsifier",
+        "CausalAnalystAgent": "causal",
+        "PerformativityDetectorAgent": "detector",
+        "FactualOverseerAgent": "overseer",
+        "ArchivistAgent": "archivist",
+        "JudgeAgent": "judge",
+        "CoachAgent": "coach",
+        "XAIReporterAgent": "xai",
+        "PanelAgent": "panel"
+    }
+    
+    # 2. Lookup Table for Steps
+    steps_lookup = {s["id"]: s for s in seed_data.get("steps", [])}
+    
+    # 3. Process Workflows
+    processed_workflows = []
+    
+    for wf in seed_data.get("workflows", []):
+        legacy_step_ids = wf.get("steps", [])
+        
+        # --- V2.9 RE-SEEDING BYPASS ---
+        # If steps are already objects (dicts), this is a V2.9 seed.
+        if legacy_step_ids and isinstance(legacy_step_ids[0], dict):
+            # Already migrated. Use as is.
+            # Ensure 'ui_schema' is preserved or defaulted
+            if "ui_schema" not in wf:
+                wf["ui_schema"] = {}
+            processed_workflows.append(wf)
+            continue
+        # ------------------------------
+
+        # Construct new workflow for Legacy Migration
+        new_workflow = {
+            "id": wf["id"],
+            "name": wf.get("name", "Untitled Workflow"),
+            "description": wf.get("description", "Migrated Workflow"),
+            "ui_schema": wf.get("ui_schema", {}), 
+            # 'steps' will be replaced by list of objects
+            "steps": [] 
+        }
+        
+        # Track previous step for chaining
+        prev_step_id = None
+        
+        for step_id in legacy_step_ids:
+            if step_id not in steps_lookup:
+                print(f"[Seeder] Warning: Step {step_id} not found in steps list. Skipping.")
+                continue
+                
+            legacy_step = steps_lookup[step_id]
+            component_id = legacy_step.get("component")
+            task_key = task_map.get(component_id, "unknown_task")
+
+            # -- DATA FLOW MAPPING ($ syntax) --
+            inputs = {}
+            
+            # Base Context (Always needed)
+            inputs["history_text"] = "$inputs.history_text"
+            inputs["product_text"] = "$inputs.product_text"
+            inputs["reflection_text"] = "$inputs.reflection_text"
+            
+            # Chain logic
+            if task_key == "guard":
+                # Guard takes raw inputs directly mapped above
+                pass
+            elif task_key == "analyst":
+                # Analyst takes Guard's sanitized output if available, else raw
+                # But to maintain simple flow, we usually use raw or sanitized.
+                # Guard outputs `sanitized_inputs` dict.
+                inputs["history_text"] = "$step_guard.sanitized_inputs.history_text"
+                inputs["product_text"] = "$step_guard.sanitized_inputs.product_text"
+                inputs["reflection_text"] = "$step_guard.sanitized_inputs.reflektiodokumentti" # Note key diff
+            elif task_key == "interaction":
+                inputs["history_text"] = "$step_guard.sanitized_inputs.history_text"
+            elif task_key == "profiler":
+                inputs["history_text"] = "$step_guard.sanitized_inputs.history_text"
+            elif task_key in ["logician", "falsifier", "causal", "detector", "overseer"]:
+                # Critics need TodistusKartta from Analyst
+                inputs["todistus_kartta"] = "$step_analyst"
+            elif task_key == "panel":
+                inputs = {"todistus_kartta": "$step_analyst"} # Panel task takes TodistusKartta directly as model
+            elif task_key == "judge":
+                inputs["todistus_kartta"] = "$step_analyst"
+                # Ideally pass critics outputs too.
+                # But judge typically needs summary.
+                # In legacy, Judge reads "Panel Audit" or individual outputs.
+                # Let's map whatever steps exist previously.
+                if "step_panel" in legacy_step_ids:
+                    inputs["panel_audit"] = "$step_panel"
+                else:
+                    # Sequential mode: Pass previous critics?
+                    # Currently MigrationInput has `prev_step_output`.
+                    pass
+            elif task_key == "coach":
+                inputs["tuomio"] = "$step_judge"
+            elif task_key == "xai":
+                inputs["tuomio"] = "$step_judge"
+                inputs["coaching_plan"] = "$step_coach"
+
+            
+            new_step = {
+                "id": step_id,
+                "task_key": task_key,
+                "inputs": inputs,
+                "config": legacy_step.get("execution_config", {})
+            }
+            
+            new_workflow["steps"].append(new_step)
+            prev_step_id = step_id
+            
+        processed_workflows.append(new_workflow)
+        
+    # REPLACE workflows in seed_data
+    seed_data["workflows"] = processed_workflows
+    print(f"[Seeder] Migrated {len(processed_workflows)} workflows to V2.9 format.")
 
 
 def _seed_tinydb(db_path: str, seed_data: dict):
     try:
         db = TinyDB(db_path, encoding="utf-8")
-        db.drop_tables()
-        print("[Seeder] Cleared existing TinyDB tables.")
+        db.drop_tables() # CLEAN SLATE
+        print("[Seeder] Cleared TinyDB.")
     except Exception as e:
         print(f"[Seeder] Error initializing TinyDB: {e}")
         return
 
-    # Seed Tables
-    components_table = db.table("components")
-    steps_table = db.table("steps")
+    # Seed Workflows (New Format)
     workflows_table = db.table("workflows")
-    banned_phrases_table = db.table("banned_phrases")
-    system_config_table = db.table("system_config")
-    kb_table = db.table("knowledge_base")
-    organizations_table = db.table("organizations")
-    users_table = db.table("users")
-    organizations_table = db.table("organizations")
-    users_table = db.table("users")
-    model_registry_table = db.table("model_registry")
-    dimensions_table = db.table("dimensions")
-
-    # Seed Components
-    Component = Query()
-    components_count = 0
-    for component in seed_data.get("components", []):
-        try:
-            comp_id = component.get("id") or component.get("name")
-            if not comp_id:
-                continue
-
-            if "id" in component:
-                components_table.upsert(component, Component.id == comp_id)
-            else:
-                components_table.upsert(component, Component.name == comp_id)
-            components_count += 1
-        except Exception:
-            pass
-    print(f"[Seeder] Upserted {components_count} components.")
-
-    # Seed Steps
-    Step = Query()
-    count = 0
-    for step in seed_data.get("steps", []):
-        try:
-            steps_table.upsert(step, Step.id == step["id"])
-            count += 1
-        except Exception:
-            pass
-    print(f"[Seeder] Upserted {count} steps.")
-
-    # Seed Workflows
-    Workflow = Query()
     count = 0
     for wf in seed_data.get("workflows", []):
         try:
-            workflows_table.upsert(wf, Workflow.id == wf["id"])
+            workflows_table.upsert(wf, Query().id == wf["id"])
             count += 1
         except Exception:
             pass
     print(f"[Seeder] Upserted {count} workflows.")
-
-    # Seed Banned Phrases
-    if "banned_phrases" in seed_data:
-        Phrase = Query()
-        count = 0
-        for item in seed_data["banned_phrases"]:
-            try:
-                banned_phrases_table.upsert(item, Phrase.phrase == item["phrase"])
+    
+    # Seed Components (For prompts - required for task mandates)
+    components_table = db.table("components")
+    count = 0
+    for c in seed_data.get("components", []):
+        try:
+            # Use ID or Name as ID
+            cid = c.get("id") or c.get("name")
+            if cid:
+                c["id"] = cid
+                components_table.upsert(c, Query().id == cid)
                 count += 1
-            except Exception:
-                pass
-        print(f"[Seeder] Upserted {count} banned phrases.")
-
-    # Seed System Config
-    if "system_config" in seed_data:
-        Config = Query()
-        count = 0
-        for item in seed_data["system_config"]:
-            try:
-                system_config_table.upsert(item, Config.type == item["type"])
-                count += 1
-            except Exception:
-                pass
-        print(f"[Seeder] Upserted {count} system_config items.")
-
-    # Seed Knowledge Base
-    if "knowledge_base" in seed_data:
-        KB = Query()
-        count = 0
-        for item in seed_data["knowledge_base"]:
-            try:
-                if "term" in item:
-                    kb_table.upsert(item, KB.term == item["term"])
-                else:
-                    kb_table.insert(item)
-                count += 1
-            except Exception:
-                pass
-    # Seed Model Registry
-    if "model_registry" in seed_data:
-        Model = Query()
-        count = 0
-        for item in seed_data["model_registry"]:
-            try:
-                model_registry_table.upsert(item, Model.id == item["id"])
-                count += 1
-            except Exception:
-                pass
-        print(f"[Seeder] Upserted {count} model_registry items.")
-
-    # Seed Organizations
-    if "organizations" in seed_data:
-        Org = Query()
-        count = 0
-        for item in seed_data["organizations"]:
-            try:
-                organizations_table.upsert(item, Org.id == item["id"])
-                count += 1
-            except Exception:
-                pass
-        print(f"[Seeder] Upserted {count} organizations.")
-
-    # Seed Users
-    if "users" in seed_data:
-        User = Query()
-        count = 0
-        for item in seed_data["users"]:
-            try:
-                users_table.upsert(item, User.uid == item["uid"])
-                count += 1
-            except Exception:
-                pass
-    print(f"[Seeder] Upserted {count} users.")
-
-    # Seed Dimensions
-    if "dimensions" in seed_data:
-        Dim = Query()
-        count = 0
-        for item in seed_data["dimensions"]:
-            try:
-                # Dimensions seem to lack ID in some dumps, using generated key logic or name if possible?
-                # Based on db.json they are keyed by ID string in TinyDB.
-                # In seed_data list, they should have IDs.
-                # If they are just dicts inside a list, we need an ID.
-                # Re-using the logic:
-                dim_id = item.get("id")
-                if dim_id:
-                    dimensions_table.upsert(item, Dim.id == dim_id)
-                    count += 1
-            except Exception:
-                pass
-    print(f"[Seeder] Upserted {count} dimensions.")
-
-    print(f"[Seeder] Upserted {count} knowledge_base items.")
-
-    print("[Seeder] TinyDB seeding completed.")
+        except Exception:
+            pass
+    print(f"[Seeder] Upserted {count} components.")
+    
+    # We ignore 'steps' table for V2, as they are embedded in workflows now.
 
 
 def _seed_firestore(seed_data: dict):
@@ -236,189 +215,63 @@ def _seed_firestore(seed_data: dict):
         import firebase_admin
         from firebase_admin import credentials, firestore
     except ImportError:
-        print("[Seeder] Error: firebase-admin not installed. Cannot seed Firestore.")
+        print("Firebase Admin not installed.")
         return
 
-    # Initialize App (if not already)
     if not firebase_admin._apps:
-        try:
-            cred = credentials.ApplicationDefault()
-            firebase_admin.initialize_app(cred)
-        except Exception as e:
-            print(f"[Seeder] Error initializing Firebase: {e}")
-            print("Ensure GOOGLE_APPLICATION_CREDENTIALS is set.")
-            return
-
+        cred = credentials.ApplicationDefault()
+        firebase_admin.initialize_app(cred)
+    
     db = firestore.client()
-
-    # 0. Clear existing collections (like drop_tables)
-    print("[Seeder] Clearing existing Firestore collections...")
-    collections_to_clear = [
-        "components",
-        "steps",
-        "workflows",
-        "system_config",
-        "banned_phrases",
-        "knowledge_base",
-        "model_registry",
-        "organizations",
-        "users",
-        "dimensions",
-    ]
-
-    def delete_collection(coll_ref, batch_size=400):
-        docs = list(coll_ref.limit(batch_size).stream())
-        deleted = 0
-        for doc in docs:
-            doc.reference.delete()
-            deleted += 1
-
-        if deleted >= batch_size:
-            return delete_collection(coll_ref, batch_size)
-
-    for col_name in collections_to_clear:
-        print(f"[Seeder] ...clearing {col_name}")
-        delete_collection(db.collection(col_name))
-
+    
+    # Clear collections
+    for col in ["workflows", "components", "steps"]:
+        _delete_collection(db.collection(col))
+        
+    # Seed Workflows
     batch = db.batch()
-
-    # Note: Firestore Batch limit is 500. We flush periodically.
-    op_count = 0
-
-    def commit_batch_if_full():
-        nonlocal op_count, batch
-        if op_count >= 400:
+    count = 0
+    for wf in seed_data.get("workflows", []):
+        ref = db.collection("workflows").document(wf["id"])
+        batch.set(ref, wf)
+        count += 1
+        if count >= 400:
             batch.commit()
             batch = db.batch()
-            op_count = 0
-            print("[Seeder] ...Committing intermediate batch...")
-
-    # 1. Components
-    for item in seed_data.get("components", []):
-        if not isinstance(item, dict):
-            print(f"[Seeder] Warning: Skipping non-dict item in components: {str(item)[:50]}")
-            continue
-        doc_id = item.get("id") or item.get("name")
-        if doc_id:
-            ref = db.collection("components").document(doc_id)
-            batch.set(ref, item, merge=True)
-            op_count += 1
-            commit_batch_if_full()
-
-    # 2. Steps
-    for item in seed_data.get("steps", []):
-        if not isinstance(item, dict):
-            continue
-        doc_id = item.get("id")
-        if doc_id:
-            ref = db.collection("steps").document(doc_id)
-            batch.set(ref, item, merge=True)
-            op_count += 1
-            commit_batch_if_full()
-
-    # 3. Workflows
-    for item in seed_data.get("workflows", []):
-        if not isinstance(item, dict):
-            continue
-        doc_id = item.get("id")
-        if doc_id:
-            ref = db.collection("workflows").document(doc_id)
-            batch.set(ref, item, merge=True)
-            op_count += 1
-            commit_batch_if_full()
-
-    # 4. System Config
-    for item in seed_data.get("system_config", []):
-        if not isinstance(item, dict):
-            continue
-        doc_id = item.get("type")
-        if doc_id:
-            ref = db.collection("system_config").document(doc_id)
-            batch.set(ref, item, merge=True)
-            op_count += 1
-            commit_batch_if_full()
-
-    # 5. Banned Phrases
-    for item in seed_data.get("banned_phrases", []):
-        if not isinstance(item, dict):
-            continue
-        phrase = item.get("phrase")
-        if phrase:
-            import hashlib
-
-            doc_id = hashlib.md5(phrase.encode()).hexdigest()
-            ref = db.collection("banned_phrases").document(doc_id)
-            batch.set(ref, item, merge=True)
-            op_count += 1
-            commit_batch_if_full()
-
-    # 6. Knowledge Base
-    for item in seed_data.get("knowledge_base", []):
-        if not isinstance(item, dict):
-            print(f"[Seeder] Warning: Skipping non-dict item in KB: {str(item)[:50]}")
-            continue
-        doc_id = item.get("term") or item.get("id")
-        if not doc_id:
-            import json
-
-            doc_id = hashlib.md5(json.dumps(item, sort_keys=True).encode()).hexdigest()
-
-        doc_id = str(doc_id).replace("/", "_")
-        ref = db.collection("knowledge_base").document(doc_id)
-        batch.set(ref, item, merge=True)
-        op_count += 1
-        commit_batch_if_full()
-
-    # 7. Model Registry
-    for item in seed_data.get("model_registry", []):
-        if not isinstance(item, dict):
-            continue
-        doc_id = item.get("id")
-        if doc_id:
-            ref = db.collection("model_registry").document(doc_id)
-            batch.set(ref, item, merge=True)
-            op_count += 1
-            commit_batch_if_full()
-
-    # 8. Organizations
-    for item in seed_data.get("organizations", []):
-        if not isinstance(item, dict):
-            continue
-        doc_id = item.get("id")
-        if doc_id:
-            ref = db.collection("organizations").document(doc_id)
-            batch.set(ref, item, merge=True)
-            op_count += 1
-            commit_batch_if_full()
-
-    # 9. Users
-    for item in seed_data.get("users", []):
-        if not isinstance(item, dict):
-            continue
-        doc_id = item.get("uid")
-        if doc_id:
-            ref = db.collection("users").document(doc_id)
-            batch.set(ref, item, merge=True)
-            op_count += 1
-            commit_batch_if_full()
-
-    # 10. Dimensions
-    for item in seed_data.get("dimensions", []):
-        if not isinstance(item, dict):
-            continue
-        doc_id = item.get("id")
-        if doc_id:
-            ref = db.collection("dimensions").document(doc_id)
-            batch.set(ref, item, merge=True)
-            op_count += 1
-            commit_batch_if_full()
-
-    # Commit any remaining operations
-    if op_count > 0:
+            count = 0
+    if count > 0:
+        batch.commit()
+        
+    print(f"[Seeder] Upserted workflows to Firestore.")
+    
+    # Seed Components
+    # (Similar logic for components...)
+    # For brevity, implementing component seeding same as workflows
+    batch = db.batch()
+    count = 0
+    for c in seed_data.get("components", []):
+        cid = c.get("id") or c.get("name")
+        if cid:
+            c["id"] = cid
+            ref = db.collection("components").document(cid)
+            batch.set(ref, c)
+            count += 1
+            if count >= 400:
+                batch.commit()
+                batch = db.batch()
+                count = 0
+    if count > 0:
         batch.commit()
 
-    print("[Seeder] Firestore seeding completed successfully.")
 
+def _delete_collection(coll_ref, batch_size=50):
+    docs = list(coll_ref.limit(batch_size).stream())
+    deleted = 0
+    for doc in docs:
+        doc.reference.delete()
+        deleted += 1
+    if deleted >= batch_size:
+        return _delete_collection(coll_ref, batch_size)
 
 if __name__ == "__main__":
     seed_database()

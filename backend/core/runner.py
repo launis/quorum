@@ -95,8 +95,9 @@ class PipelineRunner:
             logger.debug(f"[PipelineRunner] State initialized with inputs: {raw_inputs.keys()}")
             return current_state
         except Exception as e:
-            logger.error(f"[PipelineRunner] Failed to initialize state: {e}")
-            raise FatalInterruption("StateInitialization", f"Failed to initialize state: {e}", {"error": str(e)}) from e
+            error_code = "STATE_INIT_FAILED"
+            logger.error(f"{error_code}: Failed to initialize state - {e}", exc_info=True)
+            raise FatalInterruption("StateInitialization", f"Failed to initialize state: {e}", {"error": str(e), "error_code": error_code}) from e
 
     async def execute_loop(
         self,
@@ -221,8 +222,10 @@ class PipelineRunner:
             current_state = await agent.execute(current_state, **exec_kwargs)
 
         except Exception as e:
+            error_code = "AGENT_EXECUTION_FAILED"
+            logger.error(f"{error_code}: Step '{step_id}' ({agent_name}) failed - {e}", exc_info=True)
             raise AgentExecutionError(
-                detail="AGENT_EXECUTION_FAILED",
+                detail=error_code,
                 original_error=e,
                 agent_name=agent_name,
                 step_id=step_id,
@@ -246,51 +249,88 @@ class PipelineRunner:
         return current_state
 
     async def _execute_hook(self, hook_name: str, agent: Any, state: WorkflowState) -> WorkflowState:
-        """Executes a named hook method on the agent instance.
+        """Executes a hook by name using the centralized HOOK_MAPPING.
+
+        NOTE: The old mechanism looked for methods on agent instances.
+        The new mechanism (Jan 2026) uses HOOK_MAPPING for all hooks.
 
         Args:
-            hook_name (str): Name of the method.
-            agent (Any): Agent instance.
+            hook_name (str): Name of the hook (must exist in HOOK_MAPPING).
+            agent (Any): Agent instance (unused in new mechanism, kept for signature compatibility).
             state (WorkflowState): Current state.
 
         Returns:
             WorkflowState: Updated state.
 
         """
-        if hasattr(agent, hook_name):
-            logger.debug(f"[PipelineRunner] Executing Hook: {agent.__class__.__name__}.{hook_name}")
-            try:
-                hook_method = getattr(agent, hook_name)
+        # Centralized Hook Mapping (Single Source of Truth)
+        HOOK_MAPPING = {
+            # Reporting & Output
+            "generate_report": ("backend.hooks.reporting", "generate_report"),
+            # Validation & Structure
+            "verify_structure": ("backend.hooks.validation", "verify_structure"),
+            # Search & External
+            "execute_google_search": ("backend.hooks.search", "execute_google_search"),
+            # Security & PII (use wrapper functions)
+            "sanitize_text": ("backend.hooks.security", "sanitize_text_hook"),
+            "check_banned_phrases": ("backend.hooks.security", "check_banned_phrases_hook"),
+            # Metrics & Analysis (use wrapper functions)
+            "calculate_text_metrics": ("backend.hooks.metrics", "calculate_text_metrics_hook"),
+            "calculate_control_ratio": ("backend.hooks.metrics", "calculate_control_ratio_hook"),
+            # Linguistics
+            "detect_performative_patterns": ("backend.hooks.linguistics", "detect_performative_patterns"),
+            # Scoring
+            "apply_scoring_logic": ("backend.hooks.scoring", "apply_scoring_logic"),
+            # Archival
+            "retrieve_precedent": ("backend.hooks.archival", "retrieve_precedent"),
+            # References (use wrapper function)
+            "generate_bibliography": ("backend.hooks.references", "generate_bibliography_hook"),
+        }
 
-                # Inspect signature
-                sig = inspect.signature(hook_method)
-                kwargs = {}
-
-                if "repository" in sig.parameters:
-                    kwargs["repository"] = self.repository
-
-                # Check if hook_method is a coroutine function
-                if inspect.iscoroutinefunction(hook_method):
-                    if kwargs:
-                        return await hook_method(state, **kwargs)
-                    else:
-                        return await hook_method(state)
-                else:
-                    # Run sync method
-                    if kwargs:
-                        return hook_method(state, **kwargs)
-                    else:
-                        return hook_method(state)
-            except Exception as e:
-                logger.error(f"[PipelineRunner] Hook {hook_name} failed: {e}")
-                return state
-        else:
-            if not hook_name.startswith("parse_"):
-                logger.warning(
-                    f"[PipelineRunner] Warning: Hook '{hook_name}' not found on Agent "
-                    f"{agent.__class__.__name__}. Skipping."
-                )
+        if hook_name not in HOOK_MAPPING:
+            logger.warning(
+                f"[PipelineRunner] Hook '{hook_name}' not found in HOOK_MAPPING. "
+                f"Available hooks: {list(HOOK_MAPPING.keys())}"
+            )
             return state
+
+        module_path, func_name = HOOK_MAPPING[hook_name]
+        
+        try:
+            import importlib
+            module = importlib.import_module(module_path)
+            
+            if not hasattr(module, func_name):
+                logger.error(f"[PipelineRunner] Function '{func_name}' not found in module '{module_path}'")
+                return state
+            
+            hook_func = getattr(module, func_name)
+            
+            # Inspect signature for special parameters (e.g., repository)
+            sig = inspect.signature(hook_func)
+            kwargs = {}
+            
+            if "repository" in sig.parameters:
+                kwargs["repository"] = self.repository
+            
+            # Execute hook (supports both sync and async)
+            if inspect.iscoroutinefunction(hook_func):
+                if kwargs:
+                    state = await hook_func(state, **kwargs)
+                else:
+                    state = await hook_func(state)
+            else:
+                if kwargs:
+                    state = hook_func(state, **kwargs)
+                else:
+                    state = hook_func(state)
+            
+            logger.info(f"[PipelineRunner] Executed hook '{hook_name}' successfully.")
+            
+        except Exception as e:
+            logger.error(f"[PipelineRunner] Hook '{hook_name}' failed: {e}", exc_info=True)
+        
+        return state
 
     async def _configure_agent_model(
         self, agent: Any, step_id: str, execution_id: str, organization_id: str | None = None
@@ -319,7 +359,8 @@ class PipelineRunner:
                     mapping = wf_rec.get("default_model_mapping", {})
                     step_model_key = mapping.get(step_id)
         except Exception as e:
-            logger.error(f"[PipelineRunner] Model lookup failed: {e}")
+            error_code = "MODEL_LOOKUP_FAILED"
+            logger.error(f"{error_code}: Model lookup failed for execution {execution_id} - {e}", exc_info=True)
             raise e
 
         # If still not found (e.g. mapping missing), we could check step_doc

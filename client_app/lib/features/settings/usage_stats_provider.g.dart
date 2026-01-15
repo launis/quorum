@@ -45,4 +45,4 @@ final class UsageStatsProvider
   }
 }
 
-String _$usageStatsHash() => r'bb43da469ab73aadeca226277253f0294dd559fe';
+String _$usageStatsHash() => r'2e7517f7c2c1312d5857bfd4dbbf6ee9c1c47856';

@@ -255,7 +255,8 @@ class AuthService:
             return TokenData(uid=user.uid, role=user.role, email=user.email, organization_id=user.organization_id)
 
         except Exception as e:
-            logger.error(f"Token verification failed: {e}")
+            error_code = "AUTH_TOKEN_VERIFICATION_FAILED"
+            logger.error(f"{error_code}: {e}", exc_info=True)
             raise ValueError("Invalid credentials") from e
 
     async def create_organization(self, creator_uid: str, org_create: OrganizationCreate) -> Organization:
@@ -589,7 +590,7 @@ class AuthService:
         # Audit
         if self.audit_service:
             # Determine what changed for details
-            changed_fields = updates.dict(exclude_unset=True)
+            changed_fields = updates.model_dump(exclude_unset=True)
             await self.audit_service.log_event(
                 actor_uid=initiator_uid,
                 action="USER_UPDATED",
@@ -719,7 +720,8 @@ class AuthService:
                 return user
 
             if user.role != required_role:
-                raise HTTPException(status_code=403, detail=f"Insufficient privileges. Required: {required_role.value}")
+                from backend.exceptions import PermissionDeniedError
+                raise PermissionDeniedError(message=f"Insufficient privileges. Required: {required_role.value}", details={"required_role": required_role.value, "current_role": user.role.value})
             return user
 
         return _role_checker

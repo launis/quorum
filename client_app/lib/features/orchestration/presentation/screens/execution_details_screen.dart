@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -334,14 +336,122 @@ class _ReportTab extends StatelessWidget {
   }
 }
 
-class _RawDataTab extends StatelessWidget {
+class _RawDataTab extends ConsumerWidget {
   final Execution execution;
 
   const _RawDataTab({required this.execution});
 
   @override
-  Widget build(BuildContext context) {
-    // Sanitize inputs and results to avoid dumping massive text files
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    
+    // Try to fetch raw data from API
+    final rawDataAsync = ref.watch(executionRawDataProvider(execution.id));
+    
+    return rawDataAsync.when(
+      data: (rawData) => _buildRawDataView(context, rawData),
+      loading: () => const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Loading raw data from API...'),
+          ],
+        ),
+      ),
+      error: (err, stack) => _buildFallbackView(context, l10n, err),
+    );
+  }
+
+  Widget _buildRawDataView(BuildContext context, Map<String, dynamic> rawData) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        // Summary Card
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Execution Summary',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const Divider(),
+                _infoRow('Duration', '${rawData['duration_seconds']?.toStringAsFixed(1) ?? 'N/A'} seconds'),
+                _infoRow('Status', rawData['status'] ?? 'Unknown'),
+                _infoRow('Workflow', rawData['workflow_id'] ?? 'Unknown'),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Agent Outputs Section
+        if (rawData['agent_outputs'] != null && (rawData['agent_outputs'] as Map).isNotEmpty) ...[
+          Text(
+            'Agent Outputs (${(rawData['agent_outputs'] as Map).length})',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 8),
+          ...((rawData['agent_outputs'] as Map).entries.map((e) => 
+            ExpansionTile(
+              title: Text(e.key),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: SelectableText(
+                    _prettyPrint(e.value),
+                    style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                  ),
+                ),
+              ],
+            )
+          )),
+          const SizedBox(height: 16),
+        ],
+
+        // Hook Outputs Section
+        if (rawData['hook_outputs'] != null && (rawData['hook_outputs'] as Map).isNotEmpty) ...[
+          Text(
+            'Hook Outputs (aux_data)',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 8),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: SelectableText(
+                _prettyPrint(rawData['hook_outputs']),
+                style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+
+        // Full JSON (collapsible)
+        ExpansionTile(
+          title: const Text('Full Raw JSON'),
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              color: Colors.grey.shade100,
+              child: SelectableText(
+                _prettyPrint(rawData),
+                style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFallbackView(BuildContext context, AppLocalizations l10n, Object err) {
+    // Fallback to local data if API fails
     final safeInputs = _sanitizeMap(execution.inputs);
     final safeResult = execution.mapOrNull(
       completed: (c) => _sanitizeMap(c.result),
@@ -353,13 +463,46 @@ class _RawDataTab extends StatelessWidget {
       'status': execution.status.name,
       'inputs': safeInputs,
       'result': safeResult,
+      '_note': 'Fallback view (API error: $err)',
     };
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
-      child: SelectableText(
-        _prettyPrint(content),
-        style: const TextStyle(fontFamily: 'monospace'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Card(
+            color: Colors.orange.shade50,
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Row(
+                children: [
+                  const Icon(Icons.warning, color: Colors.orange),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text('Raw API unavailable. Showing local data.')),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          SelectableText(
+            _prettyPrint(content),
+            style: const TextStyle(fontFamily: 'monospace'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _infoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+          Text(value),
+        ],
       ),
     );
   }
@@ -374,12 +517,12 @@ class _RawDataTab extends StatelessWidget {
     });
   }
 
-  String _prettyPrint(Map<String, dynamic> json) {
-    var str = json.toString();
-    // Simple naive formatting for MVP
-    str = str.replaceAll(',', ',\n  ');
-    str = str.replaceAll('{', '{\n  ');
-    str = str.replaceAll('}', '\n}');
-    return str;
+  String _prettyPrint(dynamic json) {
+    try {
+      const encoder = JsonEncoder.withIndent('  ');
+      return encoder.convert(json);
+    } catch (_) {
+      return json.toString();
+    }
   }
 }

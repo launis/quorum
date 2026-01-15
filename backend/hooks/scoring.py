@@ -28,8 +28,10 @@ def apply_scoring_logic(state: WorkflowState) -> WorkflowState:
     if state.step_judge and state.step_judge.pisteet:
         target_steps.append(state.step_judge)
 
-    if state.step_judge_cognitive and state.step_judge_cognitive.pisteet:
-        target_steps.append(state.step_judge_cognitive)
+    # Check for cognitive judge (optional field)
+    if hasattr(state, "step_judge_cognitive") and state.step_judge_cognitive:
+        if hasattr(state.step_judge_cognitive, "pisteet") and state.step_judge_cognitive.pisteet:
+            target_steps.append(state.step_judge_cognitive)
 
     if not target_steps:
         logger.warning("   [ScoringHook] No scores to calculate (checked step_judge and step_judge_cognitive).")

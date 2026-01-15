@@ -167,8 +167,9 @@ class BaseAgent(BaseComponent[WorkflowState]):
 
                 return state
             except Exception as e:
-                logger.error(f"[{self.__class__.__name__}] Generic state update failed: {e}")
-                raise e
+                error_code = "STATE_UPDATE_FAILED"
+                logger.error(f"{error_code}: Generic state update failed - {e}", exc_info=True)
+                raise AgentExecutionError(detail=error_code, original_error=e) from e
 
         raise NotImplementedError(f"[{self.__class__.__name__}] must define 'state_field' or override '_update_state'.")
 
@@ -251,21 +252,26 @@ class BaseAgent(BaseComponent[WorkflowState]):
 
             # Handle Response Content
             if response_schema:
-                # Provider ensures content is valid JSON string if schema was used
-                import json
+                # OPTIMIZATION: Use pre-parsed content if available (Instructor Pattern)
+                if response_obj.parsed_content is not None:
+                     logger.debug(f"[{self.__class__.__name__}] Structured Output used directly (No re-parsing).")
+                     response_data = response_obj.parsed_content
+                else:
+                    # Provider ensures content is valid JSON string if schema was used
+                    import json
 
-                try:
-                    response_data = json.loads(response_obj.content)
-                except json.JSONDecodeError as e:
-                    # STRICT MODE: If json keys are malformed after provider, we fail.
-                    error_code = "AGENT_RESPONSE_MALFORMED"
-                    logger.error(f"{error_code}: Failed to parse JSON content from provider - {e}", exc_info=True)
-                    raise AgentExecutionError(detail=error_code, original_error=e) from e
-                except Exception as e:
-                    # General fallback for other errors during parsing
-                    error_code = "AGENT_RESPONSE_PARSING_FAILED"
-                    logger.error(f"{error_code}: Unexpected error during JSON parsing - {e}", exc_info=True)
-                    raise AgentExecutionError(detail=error_code, original_error=e) from e
+                    try:
+                        response_data = json.loads(response_obj.content)
+                    except json.JSONDecodeError as e:
+                        # STRICT MODE: If json keys are malformed after provider, we fail.
+                        error_code = "AGENT_RESPONSE_MALFORMED"
+                        logger.error(f"{error_code}: Failed to parse JSON content from provider - {e}", exc_info=True)
+                        raise AgentExecutionError(detail=error_code, original_error=e) from e
+                    except Exception as e:
+                        # General fallback for other errors during parsing
+                        error_code = "AGENT_RESPONSE_PARSING_FAILED"
+                        logger.error(f"{error_code}: Unexpected error during JSON parsing - {e}", exc_info=True)
+                        raise AgentExecutionError(detail=error_code, original_error=e) from e
             else:
                 response_data = response_obj.content
 

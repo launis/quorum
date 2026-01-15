@@ -7,7 +7,10 @@ audit report components.
 
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, ValidationInfo, AfterValidator
+from typing import Annotated, Any, Literal
+from backend.hooks.security import check_banned_phrases, sanitize_text
+
 
 # --- Base Schema ---
 
@@ -57,6 +60,30 @@ class BaseJSON(BaseModel):
 
 
 # --- Step 1: Guard Agent ---
+
+
+def validate_guard_input(v: str, info: ValidationInfo) -> str:
+    """Validator to check for banned phrases using context."""
+    if not v:
+        return v
+    
+    # Context is passed from the Agent via model_validate(..., context={...})
+    if info.context and "banned_phrases" in info.context:
+        banned = info.context["banned_phrases"]
+        detected = check_banned_phrases(v, banned)
+        if detected:
+             # We use a specific Error Code prefix for handling upstream
+             raise ValueError(f"SECURITY_BANNED_PHRASE_DETECTED: {detected}")
+    return v
+
+class GuardInput(BaseModel):
+    """Input schema for Guard Agent Validation."""
+    history_text: Annotated[str, AfterValidator(validate_guard_input)]
+    product_text: Annotated[str, AfterValidator(validate_guard_input)]
+    reflection_text: Annotated[str | None, AfterValidator(validate_guard_input)] = None
+
+    model_config = ConfigDict(extra="ignore")
+
 
 
 class SecurityCheck(BaseModel):
@@ -531,7 +558,7 @@ class AitousEpaily(BaseModel):
     automaattinen_lippu: Annotated[bool, Field(description="Automatic flag?")]
     viesti_hitl_lle: Annotated[str, Field(alias="viesti_hitl:lle", description="Message for human reviewer.")]
 
-    model_config = ConfigDict(validate_assignment=True)
+    model_config = ConfigDict(validate_assignment=True, populate_by_name=True)
 
 
 class PisteetKriteeri(BaseModel):
@@ -597,6 +624,20 @@ class CaseLawContext(BaseJSON):
     viitatut_ennakkotapaukset: Annotated[list[str], Field(description="Referenced cases.")]
 
 
+class ArchivistOutput(BaseJSON):
+    """Output schema for the Archivist Agent (Step 8a) - Standardized.
+
+    Attributes:
+        analysis (str): Analysis of alignment.
+        compliance_score (int): Compliance score (0-100).
+        recommendations (list[str]): List of recommendations.
+    """
+
+    analysis: Annotated[str, Field(description="Analysis of alignment.")]
+    compliance_score: Annotated[int, Field(description="Compliance score (0-100).")]
+    recommendations: Annotated[list[str], Field(description="List of recommendations.")]
+
+
 # --- Step 8c: Coach Agent ---
 
 
@@ -639,6 +680,10 @@ class CoachingPlan(BaseJSON):
     lahdeluettelo: Annotated[
         list[str], Field(default_factory=list, description="Bibliography references used in this plan")
     ]
+    # V2 Support (Cognitive Quorum 2.0)
+    analyysi_haasteista: Annotated[str | None, Field(description="Analysis of challenges (V2).")] = None
+    toimenpiteet: Annotated[list[str] | None, Field(description="List of actions (V2).")] = None
+    motivaatio: Annotated[str | None, Field(description="Motivation for improvement (V2).")] = None
 
 
 # --- Step 9: XAI Reporter ---
@@ -690,7 +735,25 @@ class InteractionAnalysis(BaseJSON):
         Literal["Matkustaja", "Kartanlukija", "Kuski", "Arkkitehti"],
         Field(description="Driver profile classification."),
     ]
-    input_control_ratio: Annotated[float | None, Field(description="Control ratio.")] = None
+    input_control_ratio: Annotated[float | None, Field(description="Control ratio (Calculated from imperative_count / total_turn_count).")] = None
+    imperative_command_count: Annotated[int, Field(default=0, description="Count of imperative commands (e.g. 'Tee', 'Korjaa').")]
+    total_turn_count: Annotated[int, Field(default=1, description="Total number of user turns analysed.")]
+
+    @field_validator("input_control_ratio", mode="before")
+    @classmethod
+    def compute_ratio(cls, v: Any, info: ValidationInfo) -> float | None:
+        """Compute ratio if not provided, based on counts."""
+        if v is not None:
+            return v
+        
+        values = info.data
+        cmd = values.get("imperative_command_count", 0)
+        total = values.get("total_turn_count", 1)
+        
+        if total == 0:
+            return 0.0
+        return round(cmd / total, 2)
+
 
 
 # --- Step 5 (Parallel): Panel Agent ---
@@ -771,6 +834,53 @@ class EvaluationResult(BaseJSON):  # Inherits metadata from BaseJSON
     total_score: Annotated[int | float, Field(description="Calculated total/average score.")]
     dimensions: Annotated[list[DimensionResultItem], Field(description="Breakdown by dimension.")]
     critical_findings: Annotated[list[str], Field(default_factory=list, description="Critical observations.")]
+
+
+# --- Reporting Context Models (Internal) ---
+
+
+class ReportScore(BaseModel):
+    """Normalized score structure for the report context."""
+
+    score: Annotated[int | float | str | None, Field(description="Numerical or text score.")] = None
+    reasoning: Annotated[str, Field(description="Explanation.")] = ""
+    
+    # V2 Finnish Keys (Standard)
+    arvosana: Annotated[int | float | str | None, Field(description="Grade (Finnish key).")] = None
+    perustelu: Annotated[str, Field(description="Reasoning (Finnish key).")] = ""
+
+    model_config = ConfigDict(validate_assignment=True, extra="allow")
+
+
+class ReportContext(BaseModel):
+    """The 'Flat File' structure for Jinja2 rendering.
+
+    Replacing the loose dictionary in `hooks/reporting.py`.
+    """
+
+    summary: Annotated[str, Field(description="Executive Summary.")]
+    critical_findings: Annotated[list[str | dict[str, Any]], Field(default_factory=list)]
+    pre_mortem_signals: Annotated[list[str], Field(default_factory=list)]
+    hitl_required: Annotated[bool, Field(default=False)]
+    ethical_issues: Annotated[list[dict[str, Any]], Field(default_factory=list)]
+    audit_questions: Annotated[list[dict[str, Any]], Field(default_factory=list)]
+    uncertainty: Annotated[dict[str, Any], Field(default_factory=dict)]
+    scores: Annotated[dict[str, ReportScore], Field(default_factory=dict)]
+    average_score: Annotated[float, Field(default=0.0, description="Calculated average score.")]
+    timestamp: Annotated[str, Field(description="Generation timestamp.")]
+    coaching_plan: Annotated[dict[str, Any] | None, Field(default=None)] = None
+    
+    # New fields from hooks (Jan 2026)
+    penalties_applied: Annotated[list[str], Field(default_factory=list, description="List of penalties applied by scoring hook.")]
+    score_summary: Annotated[str | None, Field(default=None, description="Full score summary from scoring hook.")]
+    input_control_ratio: Annotated[float | None, Field(default=None, description="Human/AI control ratio (0.0-1.0).")]
+    
+    # Hook outputs (Jan 2026 - Expanded)
+    structural_warnings: Annotated[list[str], Field(default_factory=list, description="Validation warnings for short/missing inputs.")]
+    archivist_precedents: Annotated[str | None, Field(default=None, description="Historical context from past executions.")]
+    google_search_results: Annotated[list[dict[str, Any]], Field(default_factory=list, description="Fact-checking sources from Google Search.")]
+
+    model_config = ConfigDict(validate_assignment=True)
 
 
 # --- USAGE TRACKING ---

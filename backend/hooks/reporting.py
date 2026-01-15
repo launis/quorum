@@ -172,7 +172,11 @@ def generate_report(state: WorkflowState) -> WorkflowState:
                 # V2
                 if hasattr(data, "dimensions") and isinstance(data.dimensions, list):
                     for d in data.dimensions:
-                        scores[d.dimension_id] = {"score": d.score, "reasoning": d.reasoning}
+                        # Map to Finnish keys for Frontend/Template compatibility
+                        scores[d.dimension_id] = {
+                            "arvosana": d.score, 
+                            "perustelu": d.reasoning
+                        }
                     return
                 # V1
                 p = safe_get(data, "pisteet")
@@ -183,12 +187,20 @@ def generate_report(state: WorkflowState) -> WorkflowState:
                             val = safe_get(v, "arvosana")
                             reason = safe_get(v, "perustelu")
                             if val is not None:
-                                scores[k] = {"score": val, "reasoning": reason or ""}
+                                scores[k] = {"arvosana": val, "perustelu": reason or ""}
 
             try:
                 normalize_scores(primary_eval)
             except Exception as e:
                 logger.warning(f"[ReportingHook] Failed to normalize scores: {e}")
+
+        # Calculate Average Score
+        valid_scores = [
+            float(v["arvosana"]) 
+            for v in scores.values() 
+            if isinstance(v, dict) and "arvosana" in v and v["arvosana"] is not None
+        ]
+        average_score = round(sum(valid_scores) / len(valid_scores), 2) if valid_scores else 0.0
 
         # Helper to safely get list or empty list
         def get_list(val):
@@ -202,25 +214,107 @@ def generate_report(state: WorkflowState) -> WorkflowState:
         elif judge_step and hasattr(judge_step, "critical_findings"):  # V2
             critical_findings = getattr(judge_step, "critical_findings", [])
 
+        # Import ReportContext (Local import to avoid circular deps if any, though top-level is better)
+        from backend.models.domain import ReportContext, ReportScore
+
         exec_summary = safe_get(xai_data, "executive_summary") or "Yhteenveto puuttuu."
 
-        report_data = {
+        # Construct ReportContext
+        # Note: 'scores' needs to be converted to ReportScore objects
+        # Update ReportScore to accept Finnish keys if needed, OR we map back to english for the Typed Model
+        # BUT wait: Domain model likely expects English keys if I didn't change it.
+        # Let's check domain.py next. For now, I will pass the dicts as-is if ReportScore allows it,
+        # OR I must update ReportScore definition.
+        # Assuming ReportScore is strictly typed, I need to check it.
+        # However, for the Template (Jinja), we are passing 'report_context' which is a Pydantic model.
+        # So I *MUST* update domain.py to support 'arvosana'/'perustelu' in ReportScore.
+        
+        typed_scores = {}
+        for k, v in scores.items():
+            # Pass as raw dict if model allows, or update model
+            typed_scores[k] = v 
+
+        # Prepare arguments for ReportContext
+        ctx_args = {
             "summary": exec_summary,
             "critical_findings": critical_findings,
-            "pre_mortem_signals": state.aux_data.get("performative_patterns_detected", []),  # Or similar
-            "hitl_required": False,  # Could check logic
-            "ethical_issues": [],  # Could fetch from Overseer Step 5
-            "audit_questions": [],  # Could fetch from Overseer Step 5
+            "pre_mortem_signals": (
+                state.aux_data.get("performative_patterns_detected", [])
+                if isinstance(state.aux_data, dict)
+                else getattr(state.aux_data, "performative_patterns_detected", [])
+            ),
+            "hitl_required": False,
+            "ethical_issues": [],
+            "audit_questions": [],
             "uncertainty": {},
-            "scores": scores,
+            "scores": typed_scores,
+            "average_score": average_score, # New Field
             "timestamp": datetime.now().strftime("%d.%m.%Y %H:%M"),
+            "coaching_plan": None,
+            # Hook-injected data (Jan 2026)
+            "penalties_applied": (
+                state.aux_data.get("penalties_applied", [])
+                if isinstance(state.aux_data, dict)
+                else getattr(state.aux_data, "penalties_applied", [])
+            ),
+            "score_summary": (
+                state.aux_data.get("score_summary")
+                if isinstance(state.aux_data, dict)
+                else getattr(state.aux_data, "score_summary", None)
+            ),
+            "input_control_ratio": (
+                state.aux_data.get("input_control_ratio")
+                if isinstance(state.aux_data, dict)
+                else getattr(state.aux_data, "input_control_ratio", None)
+            ),
+            # Hook outputs (Jan 2026 - Expanded)
+            "structural_warnings": (
+                state.aux_data.get("structural_warnings", [])
+                if isinstance(state.aux_data, dict)
+                else getattr(state.aux_data, "structural_warnings", [])
+            ),
+            "archivist_precedents": (
+                state.aux_data.get("archivist_precedents")
+                if isinstance(state.aux_data, dict)
+                else getattr(state.aux_data, "archivist_precedents", None)
+            ),
+            "google_search_results": (
+                state.aux_data.get("google_search_results", [])
+                if isinstance(state.aux_data, dict)
+                else getattr(state.aux_data, "google_search_results", [])
+            ),
         }
 
         # Add Overseer Data if available
+        # Add Overseer Data if available
         if state.step_overseer:
-            report_data["ethical_issues"] = get_list(state.step_overseer.eettiset_havainnot)
-            report_data["audit_questions"] = get_list(state.step_overseer.faktantarkistus_rfi)
+            # Helper to serialize list of models
+            def serialize_list(items):
+                serialized = []
+                for item in get_list(items):
+                    if hasattr(item, "model_dump"):
+                        serialized.append(item.model_dump())
+                    elif isinstance(item, dict):
+                        serialized.append(item)
+                    else:
+                        serialized.append(item.__dict__)
+                return serialized
 
+            ctx_args["ethical_issues"] = serialize_list(state.step_overseer.eettiset_havainnot)
+            ctx_args["audit_questions"] = serialize_list(state.step_overseer.faktantarkistus_rfi)
+
+        # Add Coaching Plan
+        if state.step_coach:
+             # V1 vs V2 check
+             cp = safe_get(state.step_coach, "coaching_plan") or state.step_coach
+             if hasattr(cp, "model_dump"):
+                 ctx_args["coaching_plan"] = cp.model_dump()
+             else:
+                 ctx_args["coaching_plan"] = cp
+        
+        # Instantiate Model to validate
+        report_context = ReportContext(**ctx_args)
+        
         # 3. Render
         disclaimer = "Tämä on automaattisesti generoitu raportti."
 
@@ -228,19 +322,21 @@ def generate_report(state: WorkflowState) -> WorkflowState:
         confidence_score = safe_get(xai_data, "confidence_score")
 
         output_text = template.render(
-            report_content=report_data,
+            report_content=report_context, # Pass Pydantic object directly
             final_verdict=final_verdict,
             reliability_score=str(confidence_score) if confidence_score else "KORKEA",
             disclaimer=disclaimer,
         )
 
         # 4. Save to State
-        # Usage: XAIReport.xai_report_formatted
+        # Usage: XAIReport.xai_report_formatted AND WorkflowState.xai_report_formatted (Top-Level)
         if state.step_reporter:
             state.step_reporter.xai_report_formatted = output_text
-            logger.info("[ReportingHook] Report generated and saved to step_reporter.xai_report_formatted")
+            state.xai_report_formatted = output_text  # <--- CRITICAL FIX: Hoist to top-level for Frontend
+            logger.info("[ReportingHook] Report generated and saved to state.xai_report_formatted")
         else:
             state.aux_data["final_report_markdown"] = output_text
+            state.xai_report_formatted = output_text  # Fallback hoist
 
     except Exception as e:
         err_msg = f"⚠️ [ReportingHook] Report generation failed: {str(e)}"

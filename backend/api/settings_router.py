@@ -19,8 +19,9 @@ async def get_settings(engine: EngineDep):
     try:
         raw_settings = await engine.repository.get_system_settings()
         return SystemSettings(**raw_settings)
-    except Exception:
-        # If empty or error, return defaults
+    except Exception as e:
+        logger.warning(f"Failed to fetch system settings, using defaults: {e}")
+        # If empty or error, return default
         return SystemSettings()
 
 
@@ -38,9 +39,10 @@ async def update_settings(
     # 1. Verify Permission
     AuthService.require_role(UserRole.ROOT)
     if current_user.role != UserRole.ROOT:
+        from backend.exceptions import PermissionDeniedError
         error_code = "PERMISSION_DENIED_ROOT_ONLY"
         logger.error(f"{error_code}: User {current_user.uid} denied.", exc_info=True)
-        raise HTTPException(status_code=403, detail=error_code)
+        raise PermissionDeniedError(message="ROOT access required", details={"error_code": error_code})
 
     try:
         # 2. Persist
@@ -60,6 +62,7 @@ async def update_settings(
         # 3. Return Updated
         return updates
     except Exception as e:
+        from backend.exceptions import AppException
         error_code = "SETTINGS_UPDATE_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=error_code) from e
+        raise AppException(message="Settings update failed", status_code=500, details={"error_code": error_code, "original_error": str(e)}) from e

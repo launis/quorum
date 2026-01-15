@@ -52,6 +52,7 @@ The backend is split into two primary runtime components:
 Unlike many agent frameworks that pass free-form dictionaries, Quorum uses a strict **`WorkflowState`** Pydantic model (`backend/models/state.py`).
 
 *   **Atomic Updates:** Each agent writes to a specific field (e.g., `step_guard`, `step_judge`).
+    > **Note:** This structure is currently rigid/hardcoded (one slot per agent). Phase 7 Cleanup aims to make this fully dynamic.
 *   **Persisted & Replayable:** The entire state is serialized to JSON after every step, allowing execution resumption.
 *   **Type Safe:** Agents cannot write invalid data to the state; Pydantic validation enforces schema compliance.
 *   **Optimistic Locking:** The `WorkflowState` includes a `version` field (UUID/Timestamp) to prevent race conditions during distributed execution. Workers compare the version before writing to the database.

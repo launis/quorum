@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Workflow {
 
- String get id; String get name; String get description; List<String> get steps;@JsonKey(name: 'organization_id') String? get organizationId;@JsonKey(name: 'is_public') bool get isPublic;@JsonKey(name: 'ui_schema') Map<String, dynamic>? get uiSchema;
+ String get id; String get name; String get description; List<WorkflowStep> get steps;@JsonKey(name: 'organization_id') String? get organizationId;@JsonKey(name: 'is_public') bool get isPublic;@JsonKey(name: 'ui_schema') Map<String, dynamic>? get uiSchema;
 /// Create a copy of Workflow
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -48,7 +48,7 @@ abstract mixin class $WorkflowCopyWith<$Res>  {
   factory $WorkflowCopyWith(Workflow value, $Res Function(Workflow) _then) = _$WorkflowCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, String description, List<String> steps,@JsonKey(name: 'organization_id') String? organizationId,@JsonKey(name: 'is_public') bool isPublic,@JsonKey(name: 'ui_schema') Map<String, dynamic>? uiSchema
+ String id, String name, String description, List<WorkflowStep> steps,@JsonKey(name: 'organization_id') String? organizationId,@JsonKey(name: 'is_public') bool isPublic,@JsonKey(name: 'ui_schema') Map<String, dynamic>? uiSchema
 });
 
 
@@ -71,7 +71,7 @@ id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String,steps: null == steps ? _self.steps : steps // ignore: cast_nullable_to_non_nullable
-as List<String>,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
+as List<WorkflowStep>,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
 as String?,isPublic: null == isPublic ? _self.isPublic : isPublic // ignore: cast_nullable_to_non_nullable
 as bool,uiSchema: freezed == uiSchema ? _self.uiSchema : uiSchema // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>?,
@@ -156,7 +156,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String description,  List<String> steps, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'is_public')  bool isPublic, @JsonKey(name: 'ui_schema')  Map<String, dynamic>? uiSchema)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String description,  List<WorkflowStep> steps, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'is_public')  bool isPublic, @JsonKey(name: 'ui_schema')  Map<String, dynamic>? uiSchema)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Workflow() when $default != null:
 return $default(_that.id,_that.name,_that.description,_that.steps,_that.organizationId,_that.isPublic,_that.uiSchema);case _:
@@ -177,7 +177,7 @@ return $default(_that.id,_that.name,_that.description,_that.steps,_that.organiza
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String description,  List<String> steps, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'is_public')  bool isPublic, @JsonKey(name: 'ui_schema')  Map<String, dynamic>? uiSchema)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String description,  List<WorkflowStep> steps, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'is_public')  bool isPublic, @JsonKey(name: 'ui_schema')  Map<String, dynamic>? uiSchema)  $default,) {final _that = this;
 switch (_that) {
 case _Workflow():
 return $default(_that.id,_that.name,_that.description,_that.steps,_that.organizationId,_that.isPublic,_that.uiSchema);}
@@ -194,7 +194,7 @@ return $default(_that.id,_that.name,_that.description,_that.steps,_that.organiza
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String description,  List<String> steps, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'is_public')  bool isPublic, @JsonKey(name: 'ui_schema')  Map<String, dynamic>? uiSchema)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String description,  List<WorkflowStep> steps, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'is_public')  bool isPublic, @JsonKey(name: 'ui_schema')  Map<String, dynamic>? uiSchema)?  $default,) {final _that = this;
 switch (_that) {
 case _Workflow() when $default != null:
 return $default(_that.id,_that.name,_that.description,_that.steps,_that.organizationId,_that.isPublic,_that.uiSchema);case _:
@@ -209,14 +209,14 @@ return $default(_that.id,_that.name,_that.description,_that.steps,_that.organiza
 @JsonSerializable()
 
 class _Workflow implements Workflow {
-  const _Workflow({required this.id, required this.name, this.description = '', final  List<String> steps = const [], @JsonKey(name: 'organization_id') this.organizationId, @JsonKey(name: 'is_public') this.isPublic = false, @JsonKey(name: 'ui_schema') final  Map<String, dynamic>? uiSchema}): _steps = steps,_uiSchema = uiSchema;
+  const _Workflow({required this.id, required this.name, this.description = '', final  List<WorkflowStep> steps = const [], @JsonKey(name: 'organization_id') this.organizationId, @JsonKey(name: 'is_public') this.isPublic = false, @JsonKey(name: 'ui_schema') final  Map<String, dynamic>? uiSchema}): _steps = steps,_uiSchema = uiSchema;
   factory _Workflow.fromJson(Map<String, dynamic> json) => _$WorkflowFromJson(json);
 
 @override final  String id;
 @override final  String name;
 @override@JsonKey() final  String description;
- final  List<String> _steps;
-@override@JsonKey() List<String> get steps {
+ final  List<WorkflowStep> _steps;
+@override@JsonKey() List<WorkflowStep> get steps {
   if (_steps is EqualUnmodifiableListView) return _steps;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_steps);
@@ -267,7 +267,7 @@ abstract mixin class _$WorkflowCopyWith<$Res> implements $WorkflowCopyWith<$Res>
   factory _$WorkflowCopyWith(_Workflow value, $Res Function(_Workflow) _then) = __$WorkflowCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String description, List<String> steps,@JsonKey(name: 'organization_id') String? organizationId,@JsonKey(name: 'is_public') bool isPublic,@JsonKey(name: 'ui_schema') Map<String, dynamic>? uiSchema
+ String id, String name, String description, List<WorkflowStep> steps,@JsonKey(name: 'organization_id') String? organizationId,@JsonKey(name: 'is_public') bool isPublic,@JsonKey(name: 'ui_schema') Map<String, dynamic>? uiSchema
 });
 
 
@@ -290,7 +290,7 @@ id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String,steps: null == steps ? _self._steps : steps // ignore: cast_nullable_to_non_nullable
-as List<String>,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
+as List<WorkflowStep>,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
 as String?,isPublic: null == isPublic ? _self.isPublic : isPublic // ignore: cast_nullable_to_non_nullable
 as bool,uiSchema: freezed == uiSchema ? _self._uiSchema : uiSchema // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>?,

@@ -1,8 +1,8 @@
 setuptools>=70.0.0
-fastapi
+fastapi>=0.115.0
 uvicorn
 tinydb
-pydantic[email]
+pydantic[email]>=2.5.0
 python-multipart
 pymupdf
 jinja2
@@ -28,3 +28,5 @@ watchfiles>=1.1.1
 fakeredis>=2.33.0
 pyjwt>=2.10.1
 slowapi
+instructor>=1.0.0
+networkx>=3.0

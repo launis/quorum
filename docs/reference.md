@@ -13,7 +13,7 @@ quorum/
 │   ├── api/                # FastAPI Routers (Control Plane)
 │   ├── core/               # Workflow Engine & Pipeline Runner (Logic)
 │   ├── database/           # Abstracted DB Wrapper (TinyDB / Firestore)
-│   ├── hooks/              # Deterministic Logic (PII, Causal, Search)
+│   ├── hooks/              # [LEGACY] Deterministic Logic (Moving to lib/ tools/)
 │   ├── llm/                # LLM Provider Adapters (Gemini 2.5, Vertex AI)
 │   ├── models/             # Pydantic V2 Data Models (State, Domain)
 │   ├── services/           # Business Logic Services (Auth, IAM, PromptBuilder)

@@ -30,6 +30,12 @@ class ExecutionResultScreen extends ConsumerWidget {
             tooltip: l10n.viewLogTooltip,
           ),
           IconButton(
+            onPressed:
+                () => context.go('/dashboard/executions/$executionId/details'),
+            icon: const Icon(Icons.code),
+            tooltip: l10n.rawData,
+          ),
+          IconButton(
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text(l10n.downloadNotImplementedPdf)),

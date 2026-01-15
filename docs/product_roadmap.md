@@ -213,6 +213,38 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 
 ---
 
+## 📍 Phase 6: Flutter Frontend (The Face)
+**Objective:** Modernization (Riverpod 3.0, GoRouter, SDUI).
+
+### 6.1 Data Models (Freezed)
+- [ ] **Model Parity**: Varmista, että Dart-mallit vastaavat 1:1 backendin Pydantic-malleja.
+- [ ] **Code Gen**: `dart run build_runner build -d`.
+
+### 6.2 Server-Driven Form Widget
+- [ ] **DynamicForm Widget**: Implement `client_app/lib/features/orchestration/presentation/widgets/dynamic_form.dart`.
+    - Logic: Parse JSON Schema from backend.
+    - `type == 'string' && format == 'binary'` -> `FileUploader`
+    - `type == 'string'` -> `TextFormField`
+    - `enum` -> `DropdownButton`
+
+### 6.3 Riverpod Orchestration
+- [ ] **WorkflowExecutionProvider**: Implement `client_app/lib/features/orchestration/providers/workflow_execution_provider.dart`.
+    - Use `@riverpod` annotation.
+    - Handle `DioException` and map to `AppException`.
+
+---
+
+## 📍 Phase 7: Cleanup (Siivous)
+**Objective:** Poista Legacy-koodi ja siirry täysin dynaamiseen arkkitehtuuriin.
+
+### 7.1 Legacy Removal
+- [ ] **Delete**: `backend/agents/base.py` (Old BaseAgent).
+- [ ] **Delete**: `backend/core/runner.py` (Old Runner).
+- [ ] **Delete**: `backend/hooks/` directory (Moved to `lib/`, `core/`, `tools/`).
+- [ ] **Delete**: `backend/components/` (If unused).
+
+---
+
 ## 🔮 Future Findings (Q1 2026)
 **New requirements identified during Phase 1-3 implementation:**
 
@@ -231,4 +263,4 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 4.  **Database-Driven Workflow Definitions**:
     * **Current State**: Hardcoded logic in `execution_router.py` handles specific workflow cases (e.g., "Audit" expects 3 specific files).
     * **Interim Strategy**: Continue using hardcoded "Case Logic" where `audit = 3 files` is defined in code but executed via DB-stored steps.
-    * **Future Goal**: Fully dynamic definition where the Database stores the *File Requirements* (input schema) alongside the steps, removing hardcoded logic from the router.
+    *   **Future Goal**: Fully dynamic definition where the Database stores the *File Requirements* (input schema) alongside the steps, removing hardcoded logic from the router.

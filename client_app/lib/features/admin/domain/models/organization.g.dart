@@ -20,6 +20,9 @@ Organization _$OrganizationFromJson(Map<String, dynamic> json) => Organization(
       OrganizationStatus.unknown,
   contactEmail: json['contact_email'] as String?,
   tier: json['tier'] as String?,
+  tpmLimit: (json['tpm_limit'] as num?)?.toInt(),
+  rpmLimit: (json['rpm_limit'] as num?)?.toInt(),
+  quotaLimit: (json['quota_limit'] as num?)?.toDouble(),
 );
 
 Map<String, dynamic> _$OrganizationToJson(Organization instance) =>
@@ -31,6 +34,9 @@ Map<String, dynamic> _$OrganizationToJson(Organization instance) =>
       'status': _$OrganizationStatusEnumMap[instance.status]!,
       'contact_email': instance.contactEmail,
       'tier': instance.tier,
+      'tpm_limit': instance.tpmLimit,
+      'rpm_limit': instance.rpmLimit,
+      'quota_limit': instance.quotaLimit,
     };
 
 const _$OrganizationStatusEnumMap = {

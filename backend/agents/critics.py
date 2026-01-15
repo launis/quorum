@@ -42,6 +42,22 @@ class LogicalFalsifierAgent(BaseAgent):
         """
         return LogiikkaAuditointi
 
+    async def prepare_context(self, state: WorkflowState, **kwargs) -> str | None:
+        """Lifecycle Hook: Pre-Execution."""
+        todistus_kartta = kwargs.get("todistus_kartta")
+        if not todistus_kartta and state:
+            todistus_kartta = getattr(state, "step_analyst", None)
+
+        if todistus_kartta:
+            content = (
+                todistus_kartta.model_dump_json(indent=2)
+                if hasattr(todistus_kartta, "model_dump_json")
+                else str(todistus_kartta)
+            )
+            return f"### TODISTUSKARTTA (EVIDENCE MAP):\n{content}"
+
+        return None
+
     async def execute(
         self,
         state: WorkflowState | None = None,
@@ -79,6 +95,32 @@ class FactualOverseerAgent(BaseAgent):
 
         """
         return EtiikkaJaFakta
+
+    async def prepare_context(self, state: WorkflowState, **kwargs) -> str | None:
+        """Lifecycle Hook: Pre-Execution."""
+        todistus_kartta = kwargs.get("todistus_kartta")
+        if not todistus_kartta and state:
+            todistus_kartta = getattr(state, "step_analyst", None)
+
+        context_parts = []
+        
+        if todistus_kartta:
+            content = (
+                todistus_kartta.model_dump_json(indent=2)
+                if hasattr(todistus_kartta, "model_dump_json")
+                else str(todistus_kartta)
+            )
+            context_parts.append(f"### TODISTUSKARTTA (EVIDENCE MAP):\n{content}")
+
+        # Inject Google Search Results if available
+        if state and state.aux_data and "google_search_results" in state.aux_data:
+            search_results = state.aux_data["google_search_results"]
+            context_parts.append(f"### HAKUTULOKSET (GOOGLE SEARCH RESULTS):\n{search_results}")
+
+        if context_parts:
+            return "\n\n".join(context_parts)
+
+        return None
 
     async def execute(
         self,
@@ -137,6 +179,22 @@ class CausalAnalystAgent(BaseAgent):
         """
         return KausaalinenAuditointi
 
+    async def prepare_context(self, state: WorkflowState, **kwargs) -> str | None:
+        """Lifecycle Hook: Pre-Execution."""
+        todistus_kartta = kwargs.get("todistus_kartta")
+        if not todistus_kartta and state:
+            todistus_kartta = getattr(state, "step_analyst", None)
+
+        if todistus_kartta:
+            content = (
+                todistus_kartta.model_dump_json(indent=2)
+                if hasattr(todistus_kartta, "model_dump_json")
+                else str(todistus_kartta)
+            )
+            return f"### TODISTUSKARTTA (EVIDENCE MAP):\n{content}"
+
+        return None
+
     async def execute(
         self,
         state: WorkflowState | None = None,
@@ -174,6 +232,22 @@ class PerformativityDetectorAgent(BaseAgent):
 
         """
         return PerformatiivisuusAuditointi
+
+    async def prepare_context(self, state: WorkflowState, **kwargs) -> str | None:
+        """Lifecycle Hook: Pre-Execution."""
+        todistus_kartta = kwargs.get("todistus_kartta")
+        if not todistus_kartta and state:
+            todistus_kartta = getattr(state, "step_analyst", None)
+
+        if todistus_kartta:
+            content = (
+                todistus_kartta.model_dump_json(indent=2)
+                if hasattr(todistus_kartta, "model_dump_json")
+                else str(todistus_kartta)
+            )
+            return f"### TODISTUSKARTTA (EVIDENCE MAP):\n{content}"
+
+        return None
 
     async def execute(
         self,

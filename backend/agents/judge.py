@@ -80,88 +80,59 @@ class JudgeAgent(BaseAgent):
         matrix_id = config.get("matrix_id")
         repo = kwargs.get("repository")
 
+        # FAIL FAST: Configuration Check
         if not matrix_id:
-            logger.warning("JUDGE_CONFIGURATION_MISSING: No matrix_id configured.")
-            return None
+            msg = "JUDGE_CONFIGURATION_MISSING: No matrix_id configured."
+            logger.error(msg)
+            raise AgentExecutionError(detail="JUDGE_CONFIGURATION_MISSING", original_error=ValueError(msg))
 
         if not repo:
-            return None
+            # Should hopefully not happen if framework is robust, but for typed safety:
+            raise AgentExecutionError(detail="REPOSITORY_MISSING", original_error=ValueError("Repository not injected."))
 
         component = await repo.get_component_by_id(matrix_id)
         if not component:
-            return f"ERROR: Matrix '{matrix_id}' not found."
+            raise AgentExecutionError(detail="MATRIX_NOT_FOUND", original_error=ValueError(f"Matrix '{matrix_id}' not found."))
 
-        base_prompt = self._format_matrix_prompt(component)
+        # Use shared formatter service (Metadata-Driven)
+        from backend.services.matrix_formatter import format_matrix_component
+        base_prompt = format_matrix_component(component)
 
         # Inject Context/Inputs to be evaluated
         eval_ctx = []
-        try:
-            if hasattr(state, "inputs") and state.inputs:
-                if getattr(state.inputs, "history_text", None):
-                    eval_ctx.append(f"### CHAT HISTORY TO EVALUATE:\n{state.inputs.history_text}")
-                if getattr(state.inputs, "product_text", None):
-                    eval_ctx.append(f"### PRODUCT TO EVALUATE:\n{state.inputs.product_text}")
-                if getattr(state.inputs, "reflection_text", None):
-                    eval_ctx.append(f"### STUDENT REFLECTION:\n{state.inputs.reflection_text}")
-        except Exception:
-            # Tolerated failure in prompt decoration
-            pass
+        
+        # 1. Prefer Processed Evidence (Token Optimization)
+        todistus_kartta = kwargs.get("todistus_kartta")
+        if not todistus_kartta and state:
+            todistus_kartta = getattr(state, "step_analyst", None)
+
+        if todistus_kartta:
+            content = (
+                todistus_kartta.model_dump_json(indent=2)
+                if hasattr(todistus_kartta, "model_dump_json")
+                else str(todistus_kartta)
+            )
+            eval_ctx.append(f"### TODISTUSKARTTA (PROCESSED EVIDENCE):\n{content}")
+            logger.info("[JudgeAgent] Using TodistusKartta for evaluation (Token Optimization Active).")
+        
+        # 2. Fallback to Raw Inputs only if no Map (or if specifically required, but here we optimize)
+        else:
+            try:
+                if hasattr(state, "inputs") and state.inputs:
+                    if getattr(state.inputs, "history_text", None):
+                        eval_ctx.append(f"### CHAT HISTORY TO EVALUATE:\n{state.inputs.history_text}")
+                    if getattr(state.inputs, "product_text", None):
+                        eval_ctx.append(f"### PRODUCT TO EVALUATE:\n{state.inputs.product_text}")
+                    if getattr(state.inputs, "reflection_text", None):
+                        eval_ctx.append(f"### STUDENT REFLECTION:\n{state.inputs.reflection_text}")
+            except Exception:
+                # Tolerated failure in prompt decoration
+                pass
 
         if eval_ctx:
             return base_prompt + "\n\n" + "\n\n".join(eval_ctx)
 
         return base_prompt
-
-    def _format_matrix_prompt(self, component: dict) -> str:
-        """Formats a JSON-based Evaluation Matrix into a human-readable prompt string.
-
-        Args:
-            component (dict): The matrix component structure.
-
-        Returns:
-            str: The formatted string.
-        """
-        content = component.get("content", {})
-        if isinstance(content, str):
-            try:
-                content = json.loads(content)
-            except Exception:
-                return "Error parsing matrix."
-
-        name = content.get("name", "Audit Matrix")
-        desc = content.get("description", "")
-        role = content.get("role_description", "You are the Evaluator.")
-        criteria = content.get("criteria", [])
-        scale = content.get("scale", {"min": 1, "max": 4})
-
-        prompt_lines = [
-            f"### ROLE: {role}",
-            f"### EVALUATION MATRIX: {name}",
-            f"Description: {desc}",
-            f"Scale: {scale.get('min')}-{scale.get('max')}",
-            "",
-            "### CRITERIA FOR EVALUATION:",
-        ]
-
-        for crit in criteria:
-            c_label = crit.get("label", "Unknown")
-            c_instr = crit.get("instruction", "")
-            c_id = crit.get("id", "unknown")
-            c_anchors = crit.get("anchors", {})
-
-            prompt_lines.append(f"#### Dimension: {c_label} (ID: {c_id})")
-            prompt_lines.append(f"Instruction: {c_instr}")
-            prompt_lines.append("Proficiency Levels (Anchors):")
-            try:
-                sorted_anchors = sorted(c_anchors.items(), key=lambda x: int(x[0]))
-            except Exception:
-                sorted_anchors = c_anchors.items()
-
-            for lvl, text in sorted_anchors:
-                prompt_lines.append(f"  - Level {lvl}: {text}")
-            prompt_lines.append("")
-
-        return "\n".join(prompt_lines)
 
     async def _update_state(
         self, state: WorkflowState, response_data: Any, output_key: str | None = None, **kwargs
@@ -212,11 +183,18 @@ class JudgeAgent(BaseAgent):
 
                 res_obj = EvaluationResult(**response_data)
 
+
                 # 1. Update Dynamic Store
                 state.audit_results[step_id] = res_obj
+                
+                # 2. Update Primary State Field (CRITICAL FIX)
+                # Without this, downstream agents (Reporter/Coach) see None for 'step_judge'
+                if hasattr(state, self.state_field):
+                    setattr(state, self.state_field, res_obj)
+                
                 logger.info(
                     f"[JudgeAgent] Saved EvaluationResult to state.audit_results['{step_id}'] "
-                    f"(Scale: {res_obj.scale_min}-{res_obj.scale_max})"
+                    f"and state.{self.state_field} (Scale: {res_obj.scale_min}-{res_obj.scale_max})"
                 )
 
             return state
@@ -227,6 +205,8 @@ class JudgeAgent(BaseAgent):
             raise AgentExecutionError(detail=error_code, original_error=e) from e
 
     def post_process(self, state: WorkflowState) -> WorkflowState:
-        """Post-process hook."""
-        # We rely on _update_state for population.
+        """Post-process hook.
+        
+        Note: Scoring logic is now applied via centralized HOOK_MAPPING (post_hooks in seed_data.json).
+        """
         return state

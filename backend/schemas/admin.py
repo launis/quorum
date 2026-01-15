@@ -1,4 +1,4 @@
-"""Admin Schemas."""
+from typing import Optional, Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -11,3 +11,12 @@ class QueueStats(BaseModel):
     queued_jobs: int = Field(..., description="Number of jobs currently waiting in the queue.")
     active_jobs: int = Field(..., description="Number of jobs currently being processed.")
     dead_jobs: int = Field(..., description="Number of jobs in the dead letter queue (failed).")
+
+
+class AdminOperationResponse(BaseModel):
+    """Generic response for administrative operations."""
+    
+    status: str = Field(..., description="Status of the operation (e.g. 'completed', 'failed').")
+    message: str = Field(..., description="Human readable result message.")
+    output: Optional[str] = Field(None, description="Optional command output or details.")
+    details: Optional[Any] = Field(None, description="Additional structured details.")

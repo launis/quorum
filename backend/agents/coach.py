@@ -63,17 +63,18 @@ class CoachAgent(BaseAgent):
     async def prepare_context(self, state: WorkflowState, **kwargs) -> str:
         """PRE-HOOK: prepare_context.
 
-        Loads Domain Knowledge from the Repository (Database) into the Agent instance.
-        This ensures the CoachAgent uses the same Unified DB as the Ingestion Service.
+        Loads Domain Knowledge AND the Judge's Verdict (Tuomio).
 
         Args:
             state (WorkflowState): The current workflow state.
-            **kwargs: Additional arguments, expected to contain 'repository'.
+            **kwargs: Additional arguments.
 
         Returns:
-            str: The formatted context string containing external sources.
-
+            str: The formatted context string.
         """
+        parts = []
+
+        # 1. Load Knowledge Base
         repository = kwargs.get("repository")
         if repository:
             # Load items from DB
@@ -91,12 +92,9 @@ class CoachAgent(BaseAgent):
                     if term and defn:
                         concepts[term] = defn
                 elif i_type == "reference":
-                    # Support both old string format and new dict format
-                    # enrich_learning_plan expects list of strings OR list of dicts.
-                    # Let's populate list of dicts for better data.
                     ref_obj = {
-                        "citation": item.get("definition"),  # Full citation stored in definition
-                        "short_citation": item.get("term"),  # Short citation stored in term (e.g. "Smith 2020...")
+                        "citation": item.get("definition"),
+                        "short_citation": item.get("term"),
                         "doi": item.get("doi_link"),
                     }
                     references.append(ref_obj)
@@ -104,27 +102,41 @@ class CoachAgent(BaseAgent):
             # Populate self.knowledge_base
             self.knowledge_base = {
                 "concepts": concepts,
-                "references": references,  # List of dicts
+                "references": references,
             }
             logger.info(
                 f"[CoachAgent] Loaded {len(concepts)} concepts and {len(references)} references from Unified Database."
             )
 
             # Formulate the Context String for the Prompt
-            context_output = "\nEXTERNAL SOURCES (KNOWLEDGE BASE):\n"
+            kb_str = "EXTERNAL SOURCES (KNOWLEDGE BASE):\n"
             for ref in references:
                 citation = ref.get("citation", "")
                 if citation:
-                    context_output += f"- {citation}\n"
-
-            return context_output
+                    kb_str += f"- {citation}\n"
+            parts.append(kb_str)
 
         else:
             logger.warning(
                 "COACH_KNOWLEDGE_BASE_UNAVAILABLE: No Repository provided in kwargs. Knowledge Base not loaded from DB."
             )
             self.knowledge_base = {}
-            return ""
+        
+        # 2. Inject Verdict (Tuomio)
+        tuomio = kwargs.get("tuomio")
+        if not tuomio and state:
+            tuomio = getattr(state, "step_judge", None)
+        
+        if tuomio:
+            content = (
+                tuomio.model_dump_json(indent=2)
+                if hasattr(tuomio, "model_dump_json")
+                else str(tuomio)
+            )
+            parts.append(f"### TUOMIO (VERDICT):\n{content}")
+            logger.info("[CoachAgent] Injected Verdict (Tuomio) into context.")
+
+        return "\n\n".join(parts)
 
     def post_process(self, state: WorkflowState) -> WorkflowState:
         """Lifecycle Hook: Post-Execution.

@@ -115,3 +115,58 @@ def calculate_control_ratio(text: str) -> float:
         return 0.0
 
     return round(user_chars / total_chars, 4)
+
+
+# --- WORKFLOW STATE WRAPPERS (for HOOK_MAPPING compatibility) ---
+
+def calculate_text_metrics_hook(state) -> "WorkflowState":
+    """WorkflowState wrapper for calculate_text_metrics.
+    
+    Extracts text from state.inputs, calculates metrics, and stores in aux_data.
+    """
+    from backend.models.state import WorkflowState
+    
+    logger.info("[MetricsHook] Running calculate_text_metrics_hook...")
+    
+    if not hasattr(state, "inputs") or not state.inputs:
+        return state
+    
+    # Combine history and product text
+    history = getattr(state.inputs, "history_text", "") or ""
+    product = getattr(state.inputs, "product_text", "") or ""
+    text = history + "\n" + product
+    
+    if not text.strip():
+        logger.warning("[MetricsHook] No text to analyze.")
+        return state
+    
+    metrics = calculate_text_metrics(text)
+    state.aux_data["profiler_metrics"] = metrics
+    logger.info(f"[MetricsHook] Metrics calculated: {metrics}")
+    
+    return state
+
+
+def calculate_control_ratio_hook(state) -> "WorkflowState":
+    """WorkflowState wrapper for calculate_control_ratio.
+    
+    Extracts history_text from state.inputs, calculates ratio, and stores in aux_data.
+    """
+    from backend.models.state import WorkflowState
+    
+    logger.info("[MetricsHook] Running calculate_control_ratio_hook...")
+    
+    if not hasattr(state, "inputs") or not state.inputs:
+        return state
+    
+    history_text = getattr(state.inputs, "history_text", "") or ""
+    
+    if not history_text.strip():
+        logger.warning("[MetricsHook] No history text to analyze.")
+        return state
+    
+    ratio = calculate_control_ratio(history_text)
+    state.aux_data["input_control_ratio"] = ratio
+    logger.info(f"[MetricsHook] Control ratio calculated: {ratio:.4f}")
+    
+    return state

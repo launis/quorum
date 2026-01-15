@@ -7,7 +7,7 @@ import logging
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-import requests
+
 
 from backend.database.repository import AbstractWorkflowRepository
 from backend.exceptions import StepNotFoundError, WorkflowNotFoundError
@@ -61,7 +61,7 @@ class PromptBuilder:
                     content = self._inject_state_variables(content, current_state)
 
                 # Global Variables
-                content = self._inject_global_variables(content)
+                content = await self._inject_global_variables(content)
 
                 # Schema Examples
                 content = self._inject_schema_example(content, step_data)
@@ -121,7 +121,7 @@ class PromptBuilder:
             return content.replace("{{BANNED_PHRASES}}", phrases_str)
         return content
 
-    def _inject_global_variables(self, content: str) -> str:
+    async def _inject_global_variables(self, content: str) -> str:
         """Injects environment data (Date, Time, Location) into placeholders.
 
         Args:
@@ -142,15 +142,17 @@ class PromptBuilder:
         if "{{DYNAMIC_LOCATION}}" in content:
             location_str = ""
             try:
+                import httpx
                 # Short timeout to avoid blocking execution
                 global_ip_api = "https://ipapi.co/json/"
-                response = requests.get(global_ip_api, timeout=2)
-                if response.status_code == 200:
-                    data = response.json()
-                    city = data.get("city")
-                    country = data.get("country_name")
-                    if city and country:
-                        location_str = f"SIJAINTI: {city}, {country}."
+                async with httpx.AsyncClient() as client:
+                    response = await client.get(global_ip_api, timeout=2.0)
+                    if response.status_code == 200:
+                        data = response.json()
+                        city = data.get("city")
+                        country = data.get("country_name")
+                        if city and country:
+                            location_str = f"SIJAINTI: {city}, {country}."
             except Exception as e:
                 # Fail silently/gracefully if no connection or timeout
                 logger.warning(f"Failed to fetch dynamic location: {e}")

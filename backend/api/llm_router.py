@@ -113,13 +113,15 @@ async def generate_completion(
         return {"result": response}
 
     except ValueError as e:
+        from backend.exceptions import AppException
         error_code = "INVALID_MODEL_STRATEGY"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise HTTPException(status_code=400, detail=error_code) from e
+        raise AppException(message=error_code, status_code=400, details={"original_error": str(e)}) from e
     except Exception as e:
+        from backend.exceptions import ServiceUnavailableError
         error_code = "LLM_COMPLETION_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=error_code) from e
+        raise ServiceUnavailableError(message=error_code, details={"original_error": str(e)}) from e
 
 
 @router.post("/batch-completion", summary="Batch Completion", response_description="List of results.")
@@ -230,6 +232,7 @@ def update_model_config(update: ModelRegistryUpdate, db_client: DatabaseDep):
         table.upsert({"type": "model_registry", "models": update.registry}, Config.type == "model_registry")
         return {"status": "success", "registry": update.registry}
     except Exception as e:
+        from backend.exceptions import AppException
         error_code = "MODEL_REGISTRY_UPDATE_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=error_code) from e
+        raise AppException(message=error_code, status_code=500, details={"original_error": str(e)}) from e

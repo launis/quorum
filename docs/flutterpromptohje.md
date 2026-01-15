@@ -14,7 +14,99 @@ Use the **LATEST FEATURES** and **MODERN BEST PRACTICES** associated with these 
 Legacy patterns (e.g., `ChangeNotifier`, manual providers, `dict` responses, `setState` for logic) are STRICTLY FORBIDDEN.
 --------------------------------------------------------------------------------
 
-PART 1: FLUTTER CLIENT MANDATES
+PART 1: FUTURE-PROOFING & DYNAMIC ARCHITECTURE (2026 STANDARDS)
+*Applies to all new "Greenfield" modules and Refactoring efforts.*
+
+1.  **Philosophy: "Schema is King" (Contract-First Design)**:
+    * **Single Source of Truth**: Pydantic V2 models drive everything.
+    * **Code Generation**: Backend Pydantic models MUST auto-generate:
+        * OpenAPI/Swagger specs.
+        * Frontend entities (via `openapi-generator` or equivalent).
+        * No manual duplication of data classes between Python and Dart.
+
+2.  **Backend: The Generic Engine**:
+    * **BANNED**: Hardcoded step logic (e.g., `if step == 'guard'`).
+    * **REQUIRED**: Metadata-Driven execution.
+        * **Workflow Definition**: Stored as JSON in DB.
+        * **Task Registry**: A decorator-based registry mapping string keys to Pydantic Schemas & Handlers.
+        * **Generic Executor**: A single loop that looks up the handler by string key and executes it.
+    * **Zero-Fallback Rule**: 
+        * **BANNED**: Hardcoded default values or fallbacks in code (e.g., `prompts = [...]` if DB is empty).
+        * **REQUIRED**: System must fail fast if configuration is missing in the database. All logic, prompts, and configurations MUST be fetched dynamically from the database.
+
+3.  **AI Layer: Reliability & Structure**:
+    * **Tooling**: Use `instructor` library (Python) for all LLM interactions.
+    * **Pattern**: `Structured Output` only. No regex parsing of raw text.
+    * **Self-Correction**: Pipeline must catch Pydantic validation errors and feed them back to the LLM for auto-correction.
+
+4.  **Frontend: Server-Driven UI (SDUI)**:
+    * **Dynamic Forms**: Client never hardcodes form fields for steps.
+    * **Protocol**: Backend sends a `UI_Schema` (JSON) defining inputs.
+    * **Implementation**: Flutter implements a generic `DynamicFormWidget` that maps schema types (`text`, `file`, `select`) to Riverpod-controlled Widgets.
+
+5.  **Self-Documentation**:
+    * **Code as Docs**: All Pydantic fields must have `description="..."` (populates Swagger).
+    * **Visuals**: CI/CD must generate Mermaid.js diagrams from class relationships.
+
+--------------------------------------------------------------------------------
+
+PART 2: PYTHON BACKEND MANDATES
+
+1.  **Framework (FastAPI 0.115+)**:
+    * **Lifespan**: Use `async contextmanager` for startup/shutdown. No `@app.on_event`.
+    * **Annotated**: Use `Annotated[Dep, Depends()]` for everything.
+    * **Pydantic V2**: Use `model_validate`, `model_dump`. No `.dict()`, no `.parse_obj()`.
+
+2.  **Async & Concurrency**:
+    * **Async/Await**: ALL I/O bound routes must be `async def`.
+    * **Blocking Code**: Run CPU-heavy tasks in `run_in_threadpool` or background workers.
+
+3.  **Database (TinyDB / Firestore)**:
+    * **Abstraction**: Use `AbstractRepository` pattern. No direct DB calls in routers.
+    * **Dependency Injection**: Inject repositories via `Depends()`.
+
+4.  **Testing (Pytest + AsyncIO)**:
+    * **Fixtures**: Use `conftest.py` for shared resources.
+    * **Async Tests**: `@pytest.mark.asyncio` for all async code.
+
+--------------------------------------------------------------------------------
+
+PART 3: ERROR HANDLING CONTRACT (The "One Truth")
+
+1.  **Backend -> Frontend Protocol**:
+    * **Status Code**: Use HTTP standards (400, 401, 403, 404, 429, 500).
+    * **Body Format**:
+        ```json
+        {
+          "error_code": "DOMAIN_REASON_DETAIL", // e.g. "AUTH_TOKEN_EXPIRED"
+          "message": "Human readable debug message",
+          "details": { ... } // Optional context
+        }
+        ```
+
+2.  **Handling Flow**:
+    * **Backend Raise** (MANDATORY PATTERN):
+        ```python
+        from backend.exceptions import AppException
+        from fastapi import status
+        
+        error_code = "DOMAIN_REASON_DETAIL"  # e.g. "RAW_DATA_FETCH_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise AppException(
+            message=str(e),
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": error_code}
+        ) from e
+        ```
+    * **BANNED**: `raise HTTPException(status_code=..., detail=str(e))` - This loses error_code!
+    * **Frontend Catch**: `DioException` -> `AppError` (mapped by `error_code` from `details`).
+    * **UI Display**: Map `AppError.code` to `AppLocalizations` key.
+
+3.  **Strict Rule**: NEVER show the raw `message` from Backend to the User. Always map `error_code` to a localized string.
+
+--------------------------------------------------------------------------------
+
+PART 4: FLUTTER CLIENT MANDATES
 
 1.  **Framework & Core**:
     * **Flutter 3.38+** (Stable): Use latest Material 3 widgets, Adaptive Scaffold.
@@ -26,133 +118,28 @@ PART 1: FLUTTER CLIENT MANDATES
     * **AsyncValue**: Use `.when()`/`.value` for UI. No custom `isLoading` bools.
 
 3.  **Routing (GoRouter ^17.0.1)**:
-    * Type-safe `GoRouteData`.
-    * `StatefulShellRoute` for persistent navigation.
-    * Auth Guard must use `ref.watch` (Reactive Redirection).
+    * Type-safe `GoRouteData`. No raw string paths (`/home`).
+    * **ShellRoute**: For persistent navigation bars.
+    * **Guards**: Redirect logic inside `redirect` callback, not `build()`.
 
-4.  **UI & Localization**:
-    * **FlexColorScheme**: Use distinct themes for Light/Dark modes.
-    * **Visual Identity**: Deep Purple (#673AB7). Font: Inter.
-    * **Localization (Intl)**: All strings in `.arb` files.
-    * **Error Hygiene**: NEVER display raw backend strings. Map errors to `AppLocalizations`.
+4.  **Network (Dio ^5.7.0)**:
+    * **Interceptors**: Centralized auth token injection.
+    * **Transformers**: Background JSON parsing (`compute`).
+    * **Exceptions**: Catch `DioException` and map to Domain Failures.
 
-5.  **Client-Side Exception Handling (Dart)**:
-    Do not just catch backend errors. You must handle client-side transport/logic errors proactively.
-    * **Sealed Class Strategy (Best Practice)**:
-        * Define `sealed class Failure` (e.g., `NetworkFailure`, `ServerFailure`).
-        * **Benefit**: Forces the UI code to use exhaustive `switch` statements. If a new error type is added, the code won't compile until it's handled in the UI.
-    * **Layer Strategy**: Catch exceptions in the **Repository** layer and convert them to a Domain `Failure` subclass.
-    * **Mapping Rules**:
-        * `SocketException` / `OSError` → Return `NetworkFailure()`
-        * `TimeoutException` → Return `TimeoutFailure()`
-        * `FormatException` → Return `ParseFailure()`
-        * `RangeError` / `TypeError` → Return `LogicFailure()`
+5.  **Data Modeling (Freezed ^2.5.0 + JsonSerializable)**:
+    * **Unions**: Use Freezed unions for States (`Initial`, `Loading`, `Success`, `Error`).
+    * **Immutability**: All domain models must be `@freezed`.
+    * **Methods**: No logic in data classes. Pure data holders.
 
---------------------------------------------------------------------------------
-PART 2: BACKEND ARCHITECTURE & API STANDARDS (AAS-2026)
---------------------------------------------------------------------------------
-**Objective:** Maintain absolute structural and functional consistency across all FastAPI routers in `backend/routers/`.
+6.  **UI/UX (FlexColorScheme ^8.0.0 + Google Fonts)**:
+    * **Theming**: Use `FlexColorScheme.light` / `.dark`. No manual `ThemeData` construction.
+    * **Typography**: `GoogleFonts.inter()` as default.
 
-6.  **DEFINITION ORDER (Avoid NameErrors)**:
-    Python parses top-to-bottom. Follow this strict order in every Router file to prevent runtime crashes:
-    1.  **Imports**:
-        * Group 1: StdLib (`os`, `logging`) -> Sorted alphabetically.
-        * Group 2: 3rd Party (`fastapi`, `pydantic`) -> Sorted alphabetically.
-          * **REQUIRED**: `from fastapi import APIRouter, HTTPException, status` (Use `status` constants).
-        * Group 3: Local. **CRITICAL**: `from backend.schemas.error import APIError` MUST be the first local import. **REQUIRED**: `from backend.exceptions import ...` must be imported alongside `APIError` to allow catching domain exceptions in the router logic.
-    2.  **Logger & Router Instantiation**:
-        * `logger = logging.getLogger(__name__)`
-        * `router = APIRouter(...)`
-    3.  **Pydantic Models**:
-        * Define ALL request/response schemas HERE.
-        * *Reasoning*: Models must be defined before they are referenced in Endpoints or Dependencies.
-    4.  **Dependencies**:
-        * Define local dependency overrides or `Annotated` aliases here.
-    5.  **Helpers**:
-        * Private helper functions (prefixed with `_`).
-    6.  **Endpoints**:
-        * The route handlers (CRUD or functional grouping).
-
-7.  **Coding Standards (Python 3.12+)**:
-    * **No Magic Numbers**: usage of raw integers for HTTP codes (e.g., `404`) is **FORBIDDEN**. You must use `status.HTTP_404_NOT_FOUND`.
-    * **Strict Typing**: Use `typing.Annotated` for all FastAPI dependencies.
-    * **Response Models**: Never return `dict`. Always use Pydantic models.
-    * **Tooling**: Code must pass `ruff check`, `ruff format`, and `mypy`.
-
-8.  **Universal Error Handling Strategy (The "Safety Net")**:
-    Errors are not just HTTP responses; they are data structures. We use a unified approach for both synchronous API failures and asynchronous background task failures.
-
-    * **A. The Universal Schema (`APIError`)**:
-        * ALL structural errors must conform to `backend.schemas.error.APIError`.
-        * **Usage in Endpoints**: Raised via `HTTPException(detail="CODE")`.
-        * **Usage in Background Tasks**: Serialize exceptions into an `APIError` model and store in DB.
-
-    * **B. The "Echo Protocol" (Log-First Mandate)**:
-        The Error Code Term used in `logger` calls IS the binding contract for the entire stack.
-        
-        * **STRICT RULE**: You are FORBIDDEN from raising an exception without **immediately preceding it** with a log entry (`logger.error`, `logger.warning`).
-        * **SYNC CHECK**: The string code used in the logger MUST match the exception code exactly.
-
-        * ❌ **Bad (Silent Failure / Magic Numbers)**:
-            ```python
-            # Missing log, Magic Number 400
-            raise HTTPException(400, detail="PAYMENT_ERROR") 
-            ```
-        * ✅ **Required Standard**:
-            ```python
-            # 1. Define the Truth
-            error_code = "STRIPE_PAYMENT_DECLINED"
-            
-            # 2. LOG FIRST (Mandatory)
-            logger.error(f"{error_code}: Card rejected. Details: {str(e)}", exc_info=True)
-            
-            # 3. RAISE SECOND (With CONSTANTS and SAME Code)
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, 
-                detail=error_code
-            )
-            ```
-
-    * **C. Domain Exception Mapping Protocol (The Translation Layer)**:
-        Backend logic (Services/Agents) must **NEVER** raise `HTTPException` directly. Instead, raise domain exceptions from `backend.exceptions`. The Router is responsible for catching these and converting them using this strict mapping:
-
-        | Domain Exception (`backend.exceptions`) | Log Code (Echo Protocol) | HTTP Status Constant |
-        | :--- | :--- | :--- |
-        | `WorkflowNotFoundError` | `DOMAIN_WORKFLOW_NOT_FOUND` | `status.HTTP_404_NOT_FOUND` |
-        | `StepNotFoundError` | `DOMAIN_STEP_NOT_FOUND` | `status.HTTP_404_NOT_FOUND` |
-        | `AgentExecutionError` | `AGENT_EXECUTION_CRITICAL` | `status.HTTP_500_INTERNAL_SERVER_ERROR` |
-        | `FatalInterruption` | `SYSTEM_FATAL_INTERRUPTION` | `status.HTTP_500_INTERNAL_SERVER_ERROR` |
-        | `ConflictError` | `DOMAIN_STATE_CONFLICT` | `status.HTTP_409_CONFLICT` |
-        | `PermissionDeniedError` | `AUTH_PERMISSION_DENIED` | `status.HTTP_403_FORBIDDEN` |
-        | `ConfigurationError` | `SYSTEM_CONFIG_ERROR` | `status.HTTP_500_INTERNAL_SERVER_ERROR` |
-
---------------------------------------------------------------------------------
-PART 3: SHARED PROTOCOLS & INTEGRATION
---------------------------------------------------------------------------------
-
-9.  **Global API Error Contract (The Bridge)**:
-    * **The Chain of Truth**:
-        1.  **Backend Log**: `logger.error("USER_SYNC_FAILED: ...")`
-        2.  **API Response**: `{ "error_code": "USER_SYNC_FAILED", ... }` (via `APIError`).
-        3.  **Flutter Client**: `if (failure.code == 'USER_SYNC_FAILED')`
-        4.  **UI Text**: `l10n.userSyncFailed`
-    * **Frontend Consumption**:
-        * **BANNED**: Regex-matching the `message` string.
-        * **REQUIRED**: Logic MUST switch on the `error_code` (The One Truth).
-
-10. **Error Code Taxonomy (Naming Standard)**:
-    * **Format**: `SCREAMING_SNAKE_CASE`
-    * **Structure**: `DOMAIN_ACTION_REASON`
-    * **Examples**: `AUTH_LOGIN_BAD_CREDENTIALS`, `BILLING_INVOICE_GENERATION_FAILED`.
-    * **Forbidden**: Generic codes like `ERROR`, `FAILED`, or `ValueError`.
-
-11. **Refactoring Checklist**:
-    1.  [ ] **Reorder**: Verify Definition Order matches Section 6 exactly.
-    2.  [ ] **Imports**: Ensure `from fastapi import status` is used.
-    3.  [ ] **No Magic Numbers**: Search for raw integers (400, 404, 500) and replace with `status.HTTP_...`.
-    4.  [ ] **Log-First Rule**: **CRITICAL**. Verify that NO exception is raised without a preceding `logger` call.
-    5.  [ ] **Dart Sealed Classes**: Verify `Failure` class is sealed and UI uses `switch`.
-
+7.  **Localization (Flutter Localizations)**:
+    * **ARB Files**: `app_en.arb` is the Source of Truth.
+    * **Code Gen**: Use `AppLocalizations.of(context)`. No hardcoded strings.
+    
 # 🛑 STOP! READ THIS CAREFULLY 🛑
 **THIS DOCUMENT IS A CONTEXT REFERENCE ONLY.**
 **DO NOT START ANY IMPLEMENTATION OR GENERATE CODE BASED ON THIS FILE YET.**

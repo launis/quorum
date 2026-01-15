@@ -12,7 +12,7 @@ from litellm import Router
 from pydantic import BaseModel
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-from backend.llm.config import MODEL_LIMITS
+
 from backend.models.llm import LLMResponse
 from backend.services.usage_service import UsageService
 from backend.settings import get_settings
@@ -108,11 +108,11 @@ class LiteLLMProvider(LLMProvider):
 
         # 1. Determine Limits
         # If dynamic limits are provided (e.g. per Organization), use them.
-        # Otherwise fallback to static MODEL_LIMITS.
-        static_defaults = MODEL_LIMITS.get(model_name, {"tpm": 10000, "rpm": 10})
+        # Otherwise fallback to generic defaults.
+        generic_defaults = {"tpm": 10000, "rpm": 10}
 
-        tpm = limits.get("tpm", static_defaults["tpm"]) if limits else static_defaults["tpm"]
-        rpm = limits.get("rpm", static_defaults["rpm"]) if limits else static_defaults["rpm"]
+        tpm = limits.get("tpm", generic_defaults["tpm"]) if limits else generic_defaults["tpm"]
+        rpm = limits.get("rpm", generic_defaults["rpm"]) if limits else generic_defaults["rpm"]
 
         # 2. Build deployment config
         model_config = {
@@ -220,6 +220,16 @@ class LiteLLMProvider(LLMProvider):
             logger.info(f"[LiteLLMProvider] Using Vertex Location: {v_loc}")
             call_kwargs["vertex_location"] = v_loc
 
+            # --- DIAGNOSTIC DUMP ---
+            dump_file = os.getenv("DUMP_PROMPTS_FILE")
+            if dump_file:
+                try:
+                    with open(dump_file, "a", encoding="utf-8") as f:
+                        f.write(f"\n\n--- [LiteLLM] {self.model_name} ---\n")
+                        f.write(json.dumps(messages, indent=2, ensure_ascii=False))
+                except Exception as e:
+                    logger.warning(f"Failed to dump prompt: {e}")
+
             # --- ROUTER CALL ---
             # Remove keys that shouldn't be passed directly to router.acompletion
             # if they are already in deployment config (like api_key),
@@ -268,22 +278,40 @@ class LiteLLMProvider(LLMProvider):
                 if hasattr(message, "parsed") and message.parsed:
                     # If LiteLLM parsed it, dump back to JSON string for consistency
                     obj = message.parsed.dict() if hasattr(message.parsed, "dict") else message.parsed
+                    parsed_obj = obj # Keep reference to object
                     final_content = json.dumps(obj, ensure_ascii=False)
                 else:
-                    # STRICT MODE: Fail Fast if not valid JSON
+                    # STRICT MODE REFACTOR: Robust Parsing (Jan 2026)
+                    # Previous "hardening" was too brittle (string replace).
+                    # We now use Regex to extract ```json ... ``` blocks reliably.
+                    import re
+
                     try:
-                        # Attempt standard parsing
-                        # Note: Some models return Markdown ```json ... ``` even with strict mode
-                        # We do minimal stripping of code blocks only, no heuristic repair.
-                        clean_text = raw_content
-                        if "```" in raw_content:
-                            clean_text = raw_content.replace("```json", "").replace("```", "").strip()
+                        # 1. Try to find JSON code block
+                        json_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", raw_content, re.DOTALL)
+                        
+                        if json_match:
+                            clean_text = json_match.group(1)
+                        else:
+                            # 2. Fallback: Try to find first pair of braces { ... }
+                            # This handles "Here is the JSON: { ... }" without markdown tags
+                            brace_match = re.search(r"(\{.*\})", raw_content, re.DOTALL)
+                            if brace_match:
+                                clean_text = brace_match.group(1)
+                            else:
+                                # 3. Last Resort: Assume it's raw JSON
+                                clean_text = raw_content.strip()
 
                         obj = json.loads(clean_text)
+                        parsed_obj = obj # Keep reference to object
                         final_content = json.dumps(obj, ensure_ascii=False)
+                        
                     except json.JSONDecodeError as e:
-                        logger.error(f"[LiteLLM] Strict JSON Parse Failed: {e}")
-                        raise ValueError("Strict JSON parsing failed.") from e
+                        logger.error(f"[LiteLLM] JSON Parse Failed. Raw: {raw_content[:200]}... Error: {e}")
+                        # We do NOT raise here if we want to support partial failure, 
+                        # but for "Structured Task" agents, this IS a failure.
+                        # We raise a clearer error.
+                        raise ValueError(f"Failed to parse structured output from model. content-length: {len(raw_content)}") from e
 
             # --- COST TRACKING ---
             cost = 0.0
@@ -310,6 +338,7 @@ class LiteLLMProvider(LLMProvider):
 
             return LLMResponse(
                 content=final_content,
+                parsed_content=parsed_obj if response_schema else None,
                 reasoning_token=reasoning_token,
                 token_usage=usage,
                 provider_metadata=response.model_dump() if hasattr(response, "model_dump") else {},
@@ -353,6 +382,18 @@ class MockProvider(LLMProvider):
 
         logger.info(f"[MockProvider] Calling Mock Service (Simulating Async)... {kwargs}")
 
+        # --- DIAGNOSTIC DUMP ---
+        dump_file = os.getenv("DUMP_PROMPTS_FILE")
+        if dump_file:
+            try:
+                with open(dump_file, "a", encoding="utf-8") as f:
+                    f.write(f"\n\n--- [MockProvider] {self.model_name} ---\n")
+                    f.write(f"PROMPT:\n{prompt}\n")
+                    if system_instruction:
+                        f.write(f"SYSTEM:\n{system_instruction}\n")
+            except Exception as e:
+                logger.warning(f"Failed to dump prompt: {e}")
+
         # Simulate network delay for verification of async behavior
         await asyncio.sleep(0.5)
 
@@ -361,14 +402,33 @@ class MockProvider(LLMProvider):
         # Extract explicit identity if provided
         agent_identity = kwargs.get("mock_identity")
 
-        result = mock.generate_content(prompt, system_instruction, agent_identity=agent_identity)
+        result = mock.generate_content(
+            prompt,
+            system_instruction,
+            agent_identity=agent_identity,
+            response_schema=response_schema,
+        )
 
-        # Determine content string
+        # Determine content string and parsed object
         content_str = ""
+        parsed_result = None
+
         if isinstance(result, dict):
             content_str = json.dumps(result, ensure_ascii=False)
+            parsed_result = result
+        elif isinstance(result, BaseModel):
+            content_str = result.model_dump_json()
+            parsed_result = result.model_dump()
         else:
+            # Assume it's a string (JSON)
             content_str = str(result)
+            try:
+                parsed_result = json.loads(content_str)
+            except Exception:
+                # If it's not JSON, it's just text
+                parsed_result = None
+
+        # Simulated Usage
 
         # Simulated Usage
         usage_data = {
@@ -394,6 +454,7 @@ class MockProvider(LLMProvider):
 
         return LLMResponse(
             content=content_str,
+            parsed_content=parsed_result,
             reasoning_token="mock_thought_signature_123456",
             token_usage=usage_data,
             tool_calls=[],

@@ -15,8 +15,32 @@
 | Kategoria | Arvosana | Perustelu |
 | :--- | :---: | :--- |
 {% for key, val in report_content.scores.items() %}
-| **{{ key | capitalize }}** | {{ val.score if val.score is not none else "-" }} | {{ val.reasoning }} |
+| **{{ key | capitalize }}** | {{ val.arvosana if val.arvosana is not none else "-" }} | {{ val.perustelu }} |
 {% endfor %}
+
+**Keskiarvo:** {{ report_content.average_score }}
+{% if report_content.score_summary %}
+**Yhteenveto:** {{ report_content.score_summary }}
+{% endif %}
+
+{% if report_content.penalties_applied %}
+### ⚠️ Rangaistukset
+{% for penalty in report_content.penalties_applied %}
+- {{ penalty }}
+{% endfor %}
+{% endif %}
+
+{% if report_content.input_control_ratio is not none %}
+### 📊 Vuorovaikutusanalyysi
+**Käyttäjän aktiivisuusaste:** {{ (report_content.input_control_ratio * 100) | round(1) }}%
+{% if report_content.input_control_ratio < 0.3 %}
+*⚠️ Matala aktiivisuus: Käyttäjä oli pääosin passiivinen (Matkustaja).*
+{% elif report_content.input_control_ratio > 0.7 %}
+*✓ Korkea aktiivisuus: Käyttäjä ohjasi prosessia aktiivisesti (Kuski/Arkkitehti).*
+{% else %}
+*Tasainen vuorovaikutus: Käyttäjä ja AI jakoivat vastuuta.*
+{% endif %}
+{% endif %}
 
 ---
 
@@ -31,6 +55,26 @@
 {% endif %}
 {% else %}
 Ei merkittäviä kriittisiä havaintoja.
+{% endif %}
+
+---
+
+---
+
+## 3b. Valmennussuunnitelma (Coaching Plan)
+{% if report_content.coaching_plan %}
+### 🔍 Analyysi Haasteista
+{{ report_content.coaching_plan.analyysi_haasteista }}
+
+### 🚀 Toimenpiteet
+{% for action in report_content.coaching_plan.toimenpiteet %}
+- **Tehtävä:** {{ action }}
+{% endfor %}
+
+### 💡 Motivaatio
+{{ report_content.coaching_plan.motivaatio }}
+{% else %}
+Ei erillistä valmennussuunnitelmaa.
 {% endif %}
 
 ---
@@ -58,4 +102,44 @@ Ei avoimia kysymyksiä.
 
 ---
 
+{% if report_content.structural_warnings %}
+## 6. Rakenteelliset Varoitukset
+
+⚠️ **Syötteiden validoinnissa havaittiin ongelmia:**
+
+{% for warning in report_content.structural_warnings %}
+- {{ warning }}
+{% endfor %}
+
+---
+
+{% endif %}
+{% if report_content.archivist_precedents %}
+## 7. Historiallinen Konteksti (Ennakkotapaukset)
+
+📚 Aiempien suoritusten perusteella:
+
+{{ report_content.archivist_precedents }}
+
+---
+
+{% endif %}
+{% if report_content.google_search_results %}
+## 8. Faktantarkistuksen Lähteet
+
+🔍 **Ulkoiset lähteet arviointitueksi:**
+
+{% for result in report_content.google_search_results %}
+{% if result is mapping %}
+- **{{ result.title | default("Lähde") }}**
+  - URL: [{{ result.link | default(result.url | default("Ei linkkiä")) }}]({{ result.link | default(result.url | default("#")) }})
+  - {{ result.snippet | default(result.description | default("")) | truncate(200) }}
+{% else %}
+- {{ result }}
+{% endif %}
+{% endfor %}
+
+---
+
+{% endif %}
 *{{ disclaimer }}*

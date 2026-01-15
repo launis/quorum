@@ -84,42 +84,9 @@ class ProfilerAgent(BaseAgent):
 
         return await super()._update_state(state, response_data, output_key=output_key, **kwargs)
 
-    # --- PYTHON HOOKS ---
-
-    def analyze_text_metrics(self, state: WorkflowState) -> WorkflowState:
-        """Pre-hook: Calculates objective text metrics from the input history/product.
-
-        Delegates underlying logic to 'backend.hooks.metrics.calculate_text_metrics'.
-        Delegates underlying logic to 'backend.hooks.metrics.calculate_text_metrics'.
-
-        Args:
-            state (WorkflowState): Current workflow state.
-
-        Returns:
-            WorkflowState: Updated state with calculated metrics.
-
-        """
-        logger.info("[ProfilerAgent] Delegating to Metrics Hook...")
-
-        # 1. Get Text to Analyze
-        text = (state.inputs.history_text or "") + "\n" + (state.inputs.product_text or "")
-        if not text.strip():
-            logger.warning("[ProfilerAgent] No text to analyze.")
-            return state
-
-        # 2. Calculate Metrics using Hook
-        from backend.hooks.metrics import calculate_text_metrics
-
-        raw_metrics = calculate_text_metrics(text)
-
-        metrics = TextMetrics(**raw_metrics)
-
-        logger.info(f"[ProfilerAgent] Metrics calculated: {metrics}")
-
-        # 3. Inject into State (aux_data)
-        state.aux_data["profiler_metrics"] = metrics.model_dump()
-
-        return state
+    # NOTE: The analyze_text_metrics hook has been removed (Jan 2026).
+    # Hooks are now executed via centralized HOOK_MAPPING in runner.py.
+    # The 'calculate_text_metrics' hook is called directly from seed_data.json config.
 
     def get_user_prompt_template(self) -> str:
         """Returns the user prompt template.

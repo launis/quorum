@@ -195,4 +195,22 @@ class ExecutionRepository {
       _ => false,
     };
   }
+
+  /// Fetches complete raw execution data for debugging/reporting.
+  ///
+  /// Endpoint: `GET /executions/{id}/raw`
+  ///
+  /// Returns:
+  /// - All agent outputs (step_guard, step_analyst, etc.)
+  /// - Hook outputs (aux_data)
+  /// - Timing information (duration_seconds)
+  /// - Full workflow state
+  TaskEither<AppError, Map<String, dynamic>> getRawExecutionData(String id) {
+    return TaskEither.tryCatch(() async {
+      final response = await _client.get<Map<String, dynamic>>(
+        '/executions/$id/raw',
+      );
+      return response.data!;
+    }, (error, stackTrace) => _mapError(error));
+  }
 }

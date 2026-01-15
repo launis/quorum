@@ -1,0 +1,631 @@
+{
+  "id": "32788480-90ec-4716-bbd1-37d742af5dad",
+  "workflow_id": "sequential_audit_chain",
+  "status": "completed",
+  "started_at": "2026-01-14T20:24:24.883508+00:00",
+  "completed_at": "2026-01-14T20:24:36.256102+00:00",
+  "results": {
+    "history_text": "Test History",
+    "product_text": "Test Product",
+    "reflection_text": "Test Reflection",
+    "step_guard": {
+      "is_safe": true,
+      "sanitized_inputs": {},
+      "threats_detected": []
+    },
+    "step_analyst": {
+      "metadata": {
+        "luontiaika": "2026-01-01T12:00:00Z",
+        "agentti": "Analyst",
+        "vaihe": 3,
+        "versio": "2.0",
+        "suoritus_ymparisto": "Internal"
+      },
+      "reasoning_trace": "Mock reasoning trace...",
+      "metodologinen_loki": "Mock Analysis applied.",
+      "edellisen_vaiheen_validointi": "Pass",
+      "semanttinen_tarkistussumma": "hash_123",
+      "hypoteesit": [
+        {
+          "id": "H1",
+          "vaite_teksti": "Mock Hypothesis 1: The architecture is robust.",
+          "loytyyko_todisteita": true,
+          "hakusana_ehdotus": "architecture robustness"
+        }
+      ],
+      "rag_todisteet": [
+        {
+          "viittaa_hypoteesiin_id": "H1",
+          "perusteet": "Mock evidence supports the hypothesis about architecture robustness.",
+          "konteksti_segmentti": "The architecture handles high load efficiently.",
+          "relevanssi_score": 95
+        }
+      ]
+    },
+    "step_interaction": {
+      "metadata": {
+        "luontiaika": "2026-01-01T12:00:00Z",
+        "agentti": "Interaction",
+        "vaihe": 3,
+        "versio": "2.0",
+        "suoritus_ymparisto": "Internal"
+      },
+      "reasoning_trace": null,
+      "metodologinen_loki": "Mock Interaction Audit",
+      "edellisen_vaiheen_validointi": "Pass",
+      "semanttinen_tarkistussumma": "hash_int",
+      "tunnistetut_strategiat": [
+        "Few-Shot",
+        "Korjaava"
+      ],
+      "ohjausliikkeet": 5,
+      "driver_classification": "Kuski",
+      "input_control_ratio": 0.8,
+      "imperative_command_count": 0,
+      "total_turn_count": 1
+    },
+    "step_profiler": {
+      "metadata": {
+        "luontiaika": "2026-01-01T12:00:00Z",
+        "agentti": "Profiler",
+        "vaihe": 4,
+        "versio": "2.0",
+        "suoritus_ymparisto": "Internal"
+      },
+      "reasoning_trace": null,
+      "metodologinen_loki": "Mock Profiler",
+      "edellisen_vaiheen_validointi": "Pass",
+      "semanttinen_tarkistussumma": "hash_prof",
+      "intentio_analyysi": "Co-Creation",
+      "tunnetila_ja_savy": "Neutral",
+      "tunnistetut_vinoumat": [],
+      "psykologinen_profiili": "Analytical",
+      "manipulaatio_yritykset": "None",
+      "teksti_metriikka": null
+    },
+    "step_logician": {
+      "metadata": {
+        "luontiaika": "2026-01-01T12:00:00Z",
+        "agentti": "MOCK_AGENT",
+        "vaihe": 1,
+        "versio": "2.0",
+        "suoritus_ymparisto": "Internal"
+      },
+      "reasoning_trace": null,
+      "metodologinen_loki": "Logician",
+      "edellisen_vaiheen_validointi": "OK",
+      "semanttinen_tarkistussumma": "h1",
+      "toulmin_analyysi": [
+        {
+          "vaite_id": "H1",
+          "claim": "Robust",
+          "data": "Docs",
+          "warrant": "Standard",
+          "backing": "Verify"
+        }
+      ],
+      "kognitiivinen_taso": {
+        "bloom_taso": "Evaluation",
+        "strateginen_syvyys": "Deep"
+      },
+      "walton_skeema": {
+        "tunnistettu_skeema": "Expert Opinion",
+        "kriittiset_kysymykset": [
+          "Is expert credible?"
+        ]
+      }
+    },
+    "step_falsifier": {
+      "metadata": {
+        "luontiaika": "2026-01-01T12:00:00Z",
+        "agentti": "MOCK_AGENT",
+        "vaihe": 1,
+        "versio": "2.0",
+        "suoritus_ymparisto": "Internal"
+      },
+      "reasoning_trace": null,
+      "metodologinen_loki": "Falsifier",
+      "edellisen_vaiheen_validointi": "OK",
+      "semanttinen_tarkistussumma": "h2",
+      "walton_stressitesti_loydokset": [
+        {
+          "kysymys": "Bias?",
+          "kestiko_todistusaineisto": true,
+          "havainto": "No bias"
+        }
+      ],
+      "paattelyketjun_uskollisuus_auditointi": {
+        "onko_post_hoc_rationalisointia": false,
+        "perustelu": "Clean deduction",
+        "uskollisuus_score": "KORKEA"
+      }
+    },
+    "step_causal": {
+      "metadata": {
+        "luontiaika": "2026-01-01T12:00:00Z",
+        "agentti": "MOCK_AGENT",
+        "vaihe": 1,
+        "versio": "2.0",
+        "suoritus_ymparisto": "Internal"
+      },
+      "reasoning_trace": null,
+      "metodologinen_loki": "Causal",
+      "edellisen_vaiheen_validointi": "OK",
+      "semanttinen_tarkistussumma": "h3",
+      "kausaalinen_auditointi": {
+        "aikajana_validi": true,
+        "havainnot": "Linear"
+      },
+      "kontrafaktuaalinen_testi": {
+        "skenaario_A_toteutunut": "A",
+        "skenaario_B_simulaatio": "B",
+        "uskottavuus_arvio": "Plausible"
+      },
+      "abduktiivinen_paatelma": "Aito Oivallus"
+    },
+    "step_detector": {
+      "metadata": {
+        "luontiaika": "2026-01-01T12:00:00Z",
+        "agentti": "MOCK_AGENT",
+        "vaihe": 1,
+        "versio": "2.0",
+        "suoritus_ymparisto": "Internal"
+      },
+      "reasoning_trace": null,
+      "metodologinen_loki": "Detector",
+      "edellisen_vaiheen_validointi": "OK",
+      "semanttinen_tarkistussumma": "h4",
+      "performatiivisuus_heuristiikat": [
+        {
+          "heuristiikka": "Buzzwords",
+          "lippu_nostettu": false,
+          "kuvaus": "Clean"
+        }
+      ],
+      "pre_mortem_analyysi": {
+        "suoritettu": true,
+        "hiljaiset_signaalit": [
+          "None"
+        ]
+      },
+      "yleisarvio_aitoudesta": "Orgaaninen"
+    },
+    "step_overseer": {
+      "metadata": {
+        "luontiaika": "2026-01-01T12:00:00Z",
+        "agentti": "MOCK_AGENT",
+        "vaihe": 1,
+        "versio": "2.0",
+        "suoritus_ymparisto": "Internal"
+      },
+      "reasoning_trace": null,
+      "metodologinen_loki": "Overseer",
+      "edellisen_vaiheen_validointi": "OK",
+      "semanttinen_tarkistussumma": "h5",
+      "faktantarkistus_rfi": [
+        {
+          "vaite": "Sky is blue",
+          "verifiointi_tulos": "Vahvistettu",
+          "lahde_tai_paattely": "Visual"
+        }
+      ],
+      "eettiset_havainnot": [
+        {
+          "tyyppi": "Ei havaittu",
+          "vakavuus": "N/A",
+          "kuvaus": "Safe"
+        }
+      ]
+    },
+    "step_archivist": {
+      "metadata": {
+        "luontiaika": "2026-01-01T12:00:00Z",
+        "agentti": "Archivist",
+        "vaihe": 8,
+        "versio": "2.0",
+        "suoritus_ymparisto": "Internal"
+      },
+      "reasoning_trace": null,
+      "metodologinen_loki": "Mock Archivist",
+      "edellisen_vaiheen_validointi": "Pass",
+      "semanttinen_tarkistussumma": "hash_arch",
+      "linjakkuus_analyysi": "Aligned with precedents.",
+      "poikkeamat_linjasta": "None.",
+      "suositus_tuomarille": "Adhere to standard.",
+      "viitatut_ennakkotapaukset": [
+        "Case A",
+        "Case B"
+      ]
+    },
+    "step_judge": {
+      "metadata": {
+        "luontiaika": "2026-01-01T12:00:00Z",
+        "agentti": "Judge",
+        "vaihe": 9,
+        "versio": "2.0",
+        "suoritus_ymparisto": "Internal"
+      },
+      "reasoning_trace": null,
+      "metodologinen_loki": "Mock Judge",
+      "edellisen_vaiheen_validointi": "Pass",
+      "semanttinen_tarkistussumma": "hash_judge",
+      "matrix_id": "mock_matrix",
+      "scale_min": 1,
+      "scale_max": 5,
+      "total_score": 4.5,
+      "dimensions": [
+        {
+          "dimension_id": "dim1",
+          "score": 5,
+          "reasoning": "Excellent"
+        },
+        {
+          "dimension_id": "dim2",
+          "score": 4,
+          "reasoning": "Good"
+        }
+      ],
+      "critical_findings": [
+        "Mock finding"
+      ]
+    },
+    "step_coach": {
+      "metadata": {
+        "luontiaika": "2026-01-01T12:00:00Z",
+        "agentti": "Coach",
+        "vaihe": 12,
+        "versio": "2.0",
+        "suoritus_ymparisto": "Internal"
+      },
+      "reasoning_trace": null,
+      "metodologinen_loki": "Mock Coach",
+      "edellisen_vaiheen_validointi": "Pass",
+      "semanttinen_tarkistussumma": "hash_coach",
+      "kannustava_palaute": "Excellent driver behavior.",
+      "kehityskohteet_konkreettisesti": [],
+      "lopputuloksen_kehitysehdotukset": [
+        "Polish the tone."
+      ],
+      "lahdeluettelo": []
+    },
+    "step_reporter": {
+      "metadata": {
+        "luontiaika": "2026-01-01T12:00:00Z",
+        "agentti": "XAI",
+        "vaihe": 13,
+        "versio": "2.0",
+        "suoritus_ymparisto": "Internal"
+      },
+      "reasoning_trace": null,
+      "metodologinen_loki": "Mock XAI",
+      "edellisen_vaiheen_validointi": "Pass",
+      "semanttinen_tarkistussumma": "hash_xai",
+      "executive_summary": "Passed all checks.",
+      "analysis_strengths": "Strong logic.",
+      "analysis_weaknesses": "None.",
+      "analysis_opportunities": "None.",
+      "analysis_recommendations": "Deploy.",
+      "final_verdict": "Approved",
+      "confidence_score": 0.99,
+      "xai_report_formatted": "# Kognitiivinen Auditointiraportti\n\n**Luontiaika:** 14.01.2026 22:24\n**Luottamusaste:** 0.99\n\n---\n\n## 1. Yhteenveto\nPassed all checks.\n\n---\n\n## 2. Pisteytys (BARS 1-4)\n\n| Kategoria | Arvosana | Perustelu |\n| :--- | :---: | :--- |\n\n\n---\n\n## 3. Kriittiset Havainnot ja Riske\n\nEi merkitt\u00e4vi\u00e4 kriittisi\u00e4 havaintoja.\n\n\n---\n\n---\n\n## 3b. Valmennussuunnitelma (Coaching Plan)\n\nEi erillist\u00e4 valmennussuunnitelmaa.\n\n\n---\n\n## 4. Eettiset Havainnot\n\nEi eettisi\u00e4 huomioita.\n\n\n---\n\n## 5. Auditointikysymykset (RFI)\n\nEi avoimia kysymyksi\u00e4.\n\n\n---\n\n*T\u00e4m\u00e4 on automaattisesti generoitu raportti.*",
+      "comparison_data": null
+    }
+  },
+  "inputs": {
+    "history_text": "Test History",
+    "product_text": "Test Product",
+    "reflection_text": "Test Reflection"
+  },
+  "user_id": "root_master",
+  "current_step": "step_reporter",
+  "current_step_name": "step_reporter",
+  "execution_id": "32788480-90ec-4716-bbd1-37d742af5dad",
+  "start_time": "2026-01-14T20:24:24.883508+00:00",
+  "result": {
+    "history_text": "Test History",
+    "product_text": "Test Product",
+    "reflection_text": "Test Reflection",
+    "step_guard": {
+      "is_safe": true,
+      "sanitized_inputs": {},
+      "threats_detected": []
+    },
+    "step_analyst": {
+      "metadata": {
+        "luontiaika": "2026-01-01T12:00:00Z",
+        "agentti": "Analyst",
+        "vaihe": 3,
+        "versio": "2.0",
+        "suoritus_ymparisto": "Internal"
+      },
+      "reasoning_trace": "Mock reasoning trace...",
+      "metodologinen_loki": "Mock Analysis applied.",
+      "edellisen_vaiheen_validointi": "Pass",
+      "semanttinen_tarkistussumma": "hash_123",
+      "hypoteesit": [
+        {
+          "id": "H1",
+          "vaite_teksti": "Mock Hypothesis 1: The architecture is robust.",
+          "loytyyko_todisteita": true,
+          "hakusana_ehdotus": "architecture robustness"
+        }
+      ],
+      "rag_todisteet": [
+        {
+          "viittaa_hypoteesiin_id": "H1",
+          "perusteet": "Mock evidence supports the hypothesis about architecture robustness.",
+          "konteksti_segmentti": "The architecture handles high load efficiently.",
+          "relevanssi_score": 95
+        }
+      ]
+    },
+    "step_interaction": {
+      "metadata": {
+        "luontiaika": "2026-01-01T12:00:00Z",
+        "agentti": "Interaction",
+        "vaihe": 3,
+        "versio": "2.0",
+        "suoritus_ymparisto": "Internal"
+      },
+      "reasoning_trace": null,
+      "metodologinen_loki": "Mock Interaction Audit",
+      "edellisen_vaiheen_validointi": "Pass",
+      "semanttinen_tarkistussumma": "hash_int",
+      "tunnistetut_strategiat": [
+        "Few-Shot",
+        "Korjaava"
+      ],
+      "ohjausliikkeet": 5,
+      "driver_classification": "Kuski",
+      "input_control_ratio": 0.8,
+      "imperative_command_count": 0,
+      "total_turn_count": 1
+    },
+    "step_profiler": {
+      "metadata": {
+        "luontiaika": "2026-01-01T12:00:00Z",
+        "agentti": "Profiler",
+        "vaihe": 4,
+        "versio": "2.0",
+        "suoritus_ymparisto": "Internal"
+      },
+      "reasoning_trace": null,
+      "metodologinen_loki": "Mock Profiler",
+      "edellisen_vaiheen_validointi": "Pass",
+      "semanttinen_tarkistussumma": "hash_prof",
+      "intentio_analyysi": "Co-Creation",
+      "tunnetila_ja_savy": "Neutral",
+      "tunnistetut_vinoumat": [],
+      "psykologinen_profiili": "Analytical",
+      "manipulaatio_yritykset": "None",
+      "teksti_metriikka": null
+    },
+    "step_logician": {
+      "metadata": {
+        "luontiaika": "2026-01-01T12:00:00Z",
+        "agentti": "MOCK_AGENT",
+        "vaihe": 1,
+        "versio": "2.0",
+        "suoritus_ymparisto": "Internal"
+      },
+      "reasoning_trace": null,
+      "metodologinen_loki": "Logician",
+      "edellisen_vaiheen_validointi": "OK",
+      "semanttinen_tarkistussumma": "h1",
+      "toulmin_analyysi": [
+        {
+          "vaite_id": "H1",
+          "claim": "Robust",
+          "data": "Docs",
+          "warrant": "Standard",
+          "backing": "Verify"
+        }
+      ],
+      "kognitiivinen_taso": {
+        "bloom_taso": "Evaluation",
+        "strateginen_syvyys": "Deep"
+      },
+      "walton_skeema": {
+        "tunnistettu_skeema": "Expert Opinion",
+        "kriittiset_kysymykset": [
+          "Is expert credible?"
+        ]
+      }
+    },
+    "step_falsifier": {
+      "metadata": {
+        "luontiaika": "2026-01-01T12:00:00Z",
+        "agentti": "MOCK_AGENT",
+        "vaihe": 1,
+        "versio": "2.0",
+        "suoritus_ymparisto": "Internal"
+      },
+      "reasoning_trace": null,
+      "metodologinen_loki": "Falsifier",
+      "edellisen_vaiheen_validointi": "OK",
+      "semanttinen_tarkistussumma": "h2",
+      "walton_stressitesti_loydokset": [
+        {
+          "kysymys": "Bias?",
+          "kestiko_todistusaineisto": true,
+          "havainto": "No bias"
+        }
+      ],
+      "paattelyketjun_uskollisuus_auditointi": {
+        "onko_post_hoc_rationalisointia": false,
+        "perustelu": "Clean deduction",
+        "uskollisuus_score": "KORKEA"
+      }
+    },
+    "step_causal": {
+      "metadata": {
+        "luontiaika": "2026-01-01T12:00:00Z",
+        "agentti": "MOCK_AGENT",
+        "vaihe": 1,
+        "versio": "2.0",
+        "suoritus_ymparisto": "Internal"
+      },
+      "reasoning_trace": null,
+      "metodologinen_loki": "Causal",
+      "edellisen_vaiheen_validointi": "OK",
+      "semanttinen_tarkistussumma": "h3",
+      "kausaalinen_auditointi": {
+        "aikajana_validi": true,
+        "havainnot": "Linear"
+      },
+      "kontrafaktuaalinen_testi": {
+        "skenaario_A_toteutunut": "A",
+        "skenaario_B_simulaatio": "B",
+        "uskottavuus_arvio": "Plausible"
+      },
+      "abduktiivinen_paatelma": "Aito Oivallus"
+    },
+    "step_detector": {
+      "metadata": {
+        "luontiaika": "2026-01-01T12:00:00Z",
+        "agentti": "MOCK_AGENT",
+        "vaihe": 1,
+        "versio": "2.0",
+        "suoritus_ymparisto": "Internal"
+      },
+      "reasoning_trace": null,
+      "metodologinen_loki": "Detector",
+      "edellisen_vaiheen_validointi": "OK",
+      "semanttinen_tarkistussumma": "h4",
+      "performatiivisuus_heuristiikat": [
+        {
+          "heuristiikka": "Buzzwords",
+          "lippu_nostettu": false,
+          "kuvaus": "Clean"
+        }
+      ],
+      "pre_mortem_analyysi": {
+        "suoritettu": true,
+        "hiljaiset_signaalit": [
+          "None"
+        ]
+      },
+      "yleisarvio_aitoudesta": "Orgaaninen"
+    },
+    "step_overseer": {
+      "metadata": {
+        "luontiaika": "2026-01-01T12:00:00Z",
+        "agentti": "MOCK_AGENT",
+        "vaihe": 1,
+        "versio": "2.0",
+        "suoritus_ymparisto": "Internal"
+      },
+      "reasoning_trace": null,
+      "metodologinen_loki": "Overseer",
+      "edellisen_vaiheen_validointi": "OK",
+      "semanttinen_tarkistussumma": "h5",
+      "faktantarkistus_rfi": [
+        {
+          "vaite": "Sky is blue",
+          "verifiointi_tulos": "Vahvistettu",
+          "lahde_tai_paattely": "Visual"
+        }
+      ],
+      "eettiset_havainnot": [
+        {
+          "tyyppi": "Ei havaittu",
+          "vakavuus": "N/A",
+          "kuvaus": "Safe"
+        }
+      ]
+    },
+    "step_archivist": {
+      "metadata": {
+        "luontiaika": "2026-01-01T12:00:00Z",
+        "agentti": "Archivist",
+        "vaihe": 8,
+        "versio": "2.0",
+        "suoritus_ymparisto": "Internal"
+      },
+      "reasoning_trace": null,
+      "metodologinen_loki": "Mock Archivist",
+      "edellisen_vaiheen_validointi": "Pass",
+      "semanttinen_tarkistussumma": "hash_arch",
+      "linjakkuus_analyysi": "Aligned with precedents.",
+      "poikkeamat_linjasta": "None.",
+      "suositus_tuomarille": "Adhere to standard.",
+      "viitatut_ennakkotapaukset": [
+        "Case A",
+        "Case B"
+      ]
+    },
+    "step_judge": {
+      "metadata": {
+        "luontiaika": "2026-01-01T12:00:00Z",
+        "agentti": "Judge",
+        "vaihe": 9,
+        "versio": "2.0",
+        "suoritus_ymparisto": "Internal"
+      },
+      "reasoning_trace": null,
+      "metodologinen_loki": "Mock Judge",
+      "edellisen_vaiheen_validointi": "Pass",
+      "semanttinen_tarkistussumma": "hash_judge",
+      "matrix_id": "mock_matrix",
+      "scale_min": 1,
+      "scale_max": 5,
+      "total_score": 4.5,
+      "dimensions": [
+        {
+          "dimension_id": "dim1",
+          "score": 5,
+          "reasoning": "Excellent"
+        },
+        {
+          "dimension_id": "dim2",
+          "score": 4,
+          "reasoning": "Good"
+        }
+      ],
+      "critical_findings": [
+        "Mock finding"
+      ]
+    },
+    "step_coach": {
+      "metadata": {
+        "luontiaika": "2026-01-01T12:00:00Z",
+        "agentti": "Coach",
+        "vaihe": 12,
+        "versio": "2.0",
+        "suoritus_ymparisto": "Internal"
+      },
+      "reasoning_trace": null,
+      "metodologinen_loki": "Mock Coach",
+      "edellisen_vaiheen_validointi": "Pass",
+      "semanttinen_tarkistussumma": "hash_coach",
+      "kannustava_palaute": "Excellent driver behavior.",
+      "kehityskohteet_konkreettisesti": [],
+      "lopputuloksen_kehitysehdotukset": [
+        "Polish the tone."
+      ],
+      "lahdeluettelo": []
+    },
+    "step_reporter": {
+      "metadata": {
+        "luontiaika": "2026-01-01T12:00:00Z",
+        "agentti": "XAI",
+        "vaihe": 13,
+        "versio": "2.0",
+        "suoritus_ymparisto": "Internal"
+      },
+      "reasoning_trace": null,
+      "metodologinen_loki": "Mock XAI",
+      "edellisen_vaiheen_validointi": "Pass",
+      "semanttinen_tarkistussumma": "hash_xai",
+      "executive_summary": "Passed all checks.",
+      "analysis_strengths": "Strong logic.",
+      "analysis_weaknesses": "None.",
+      "analysis_opportunities": "None.",
+      "analysis_recommendations": "Deploy.",
+      "final_verdict": "Approved",
+      "confidence_score": 0.99,
+      "xai_report_formatted": "# Kognitiivinen Auditointiraportti\n\n**Luontiaika:** 14.01.2026 22:24\n**Luottamusaste:** 0.99\n\n---\n\n## 1. Yhteenveto\nPassed all checks.\n\n---\n\n## 2. Pisteytys (BARS 1-4)\n\n| Kategoria | Arvosana | Perustelu |\n| :--- | :---: | :--- |\n\n\n---\n\n## 3. Kriittiset Havainnot ja Riske\n\nEi merkitt\u00e4vi\u00e4 kriittisi\u00e4 havaintoja.\n\n\n---\n\n---\n\n## 3b. Valmennussuunnitelma (Coaching Plan)\n\nEi erillist\u00e4 valmennussuunnitelmaa.\n\n\n---\n\n## 4. Eettiset Havainnot\n\nEi eettisi\u00e4 huomioita.\n\n\n---\n\n## 5. Auditointikysymykset (RFI)\n\nEi avoimia kysymyksi\u00e4.\n\n\n---\n\n*T\u00e4m\u00e4 on automaattisesti generoitu raportti.*",
+      "comparison_data": null
+    }
+  }
+}

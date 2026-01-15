@@ -6,7 +6,7 @@ in isolation, and resolving agent capabilities dynamically.
 
 import importlib
 import logging
-import traceback
+
 from typing import Annotated, Any
 
 from fastapi import (
@@ -108,13 +108,15 @@ async def run_agent(
         return {"agent": agent_name, "result": result}
 
     except ValueError as e:
+        from backend.exceptions import ResourceNotFoundError
         error_code = "AGENT_NOT_FOUND"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_code) from e
+        raise ResourceNotFoundError("Agent", agent_name, details={"error_code": error_code, "original_error": str(e)}) from e
     except Exception as e:
+        from backend.exceptions import AppException
         error_code = "AGENT_EXECUTION_FAILED"
-        logger.error(f"{error_code}: Execution of {agent_name} failed: {e}", exc_info=True)
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_code) from e
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise AppException(message=error_code, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"original_error": str(e)}) from e
 
 
 @router.get(
@@ -156,7 +158,8 @@ async def list_agents(
         try:
             fast_model = await registry.resolve_model_name("fast")
             deep_model = await registry.resolve_model_name("deep")
-        except Exception:
+        except Exception as e:
+            logger.debug(f"Failed to resolve global models: {e}")
             fast_model = "unknown"
             deep_model = "unknown"
 
@@ -198,8 +201,8 @@ async def list_agents(
                     schema_cls = agent_instance.get_input_schema()
                     if schema_cls and hasattr(schema_cls, "model_json_schema"):
                         input_schema = schema_cls.model_json_schema()
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug(f"Failed to get input_schema for {name}: {e}")
 
             response_schema = None
             if hasattr(agent_instance, "get_response_schema"):
@@ -210,8 +213,8 @@ async def list_agents(
                             response_schema = schema_cls.model_json_schema()
                         elif hasattr(schema_cls, "schema"):
                             response_schema = schema_cls.schema()
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug(f"Failed to get response_schema for {name}: {e}")
 
             # Determine Model Name (Workflow > Global Default)
             current_model = agent_instance.model
@@ -289,6 +292,7 @@ async def list_agents(
         return agents_list
 
     except Exception as e:
+        from backend.exceptions import AppException
         error_code = "AGENT_DISCOVERY_FAILED"
-        logger.error(f"{error_code}: List Agents Failed: {e}\n{traceback.format_exc()}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_code) from e
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise AppException(message=error_code, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"error_code": error_code, "original_error": str(e)}) from e

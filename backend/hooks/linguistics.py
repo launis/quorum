@@ -24,6 +24,8 @@ def detect_performative_patterns(state: WorkflowState) -> WorkflowState:
     """
     logger.info("[LinguisticsHook] Running detect_performative_patterns...")
 
+    # TODO (Zero-Fallback compliance): Move patterns to database configuration
+    # For now, these are static linguistic markers for AI-generated text detection
     suspect_patterns = [
         "delve into",
         "tapestry",

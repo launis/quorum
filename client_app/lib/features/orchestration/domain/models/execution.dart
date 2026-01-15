@@ -1,3 +1,4 @@
+import 'package:client_app/features/orchestration/domain/models/evaluation_result.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'execution.freezed.dart';
@@ -96,6 +97,34 @@ sealed class Execution with _$Execution {
 
     /// Optional formatted markdown report, if pre-rendered.
     @JsonKey(name: 'xai_report_formatted') String? xaiReport,
+
+    /// Dynamic Evaluation Results (New Multi-Matrix System)
+    /// Key = Step ID (e.g. "step_judge_cognitive")
+    @JsonKey(name: 'audit_results')
+    @Default({})
+    Map<String, EvaluationResult> auditResults,
+
+    /// Usage Metrics (Cost Tracking)
+    @Default({}) Map<String, dynamic> usage,
+
+    /// Agent Outputs (Typed as Maps for now, or generic structures)
+    @JsonKey(name: 'step_guard') Map<String, dynamic>? stepGuard,
+    @JsonKey(name: 'step_analyst') Map<String, dynamic>? stepAnalyst,
+    @JsonKey(name: 'step_profiler') Map<String, dynamic>? stepProfiler,
+    @JsonKey(name: 'step_logician') Map<String, dynamic>? stepLogician,
+    @JsonKey(name: 'step_falsifier') Map<String, dynamic>? stepFalsifier,
+    @JsonKey(name: 'step_overseer') Map<String, dynamic>? stepOverseer,
+    @JsonKey(name: 'step_causal') Map<String, dynamic>? stepCausal,
+    @JsonKey(name: 'step_detector') Map<String, dynamic>? stepDetector,
+    @JsonKey(name: 'step_judge') Map<String, dynamic>? stepJudge,
+    @JsonKey(name: 'step_judge_cognitive')
+    Map<String, dynamic>? stepJudgeCognitive,
+    @JsonKey(name: 'step_archivist') Map<String, dynamic>? stepArchivist,
+    @JsonKey(name: 'step_coach') Map<String, dynamic>? stepCoach,
+    @JsonKey(name: 'step_interaction') Map<String, dynamic>? stepInteraction,
+    @JsonKey(name: 'step_panel') Map<String, dynamic>? stepPanel,
+    @JsonKey(name: 'step_reporter') Map<String, dynamic>? stepReporter,
+
     @Default(ExecutionStatus.completed) ExecutionStatus status,
   }) = ExecutionCompleted;
 

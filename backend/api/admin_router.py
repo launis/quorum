@@ -245,12 +245,13 @@ async def create_user(
         # Transform Logic Error -> Domain Exception (403)
         error_code = "PERMISSION_DENIED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_code) from e
+        raise PermissionDeniedError(message=str(e), details={"error_code": error_code}) from e
     except ValueError as e:
         # Transform Logic Error -> Domain Exception (400)
+        from backend.exceptions import AppException
         error_code = "INVALID_USER_DATA"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_code) from e
+        raise AppException(message=str(e), status_code=status.HTTP_400_BAD_REQUEST, details={"error_code": error_code}) from e
     # Generic Exception? Let it bubble! Global Handler logs 500+Trace.
 
 
@@ -272,18 +273,20 @@ async def update_user(
     except PermissionError as e:
         error_code = "PERMISSION_DENIED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_code) from e
+        raise PermissionDeniedError(message=str(e), details={"error_code": error_code}) from e
     except ValueError as e:
         # Service maps "not found" to ValueError occasionally; explicit catch preferred
+        from backend.exceptions import AppException
         error_code = "USER_NOT_FOUND"
         logger.error(f"{error_code}: User {user_id} not found: {e}", exc_info=True)
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error_code) from e
+        raise ResourceNotFoundError("User", user_id) from e
     except RuntimeError as e:
         # Specific Business Logic Check (SSOT Logic)
         if "LAST_ADMIN_PROTECTION" in str(e):
+            from backend.exceptions import ConflictError
             error_code = "LAST_ADMIN_PROTECTION"
             logger.error(f"{error_code}: {e}", exc_info=True)
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=error_code) from e
+            raise ConflictError(message=str(e), details={"error_code": error_code}) from e
         # Unknown Runtime Error -> Bubble
         raise
 
@@ -306,21 +309,23 @@ async def delete_user(
     except PermissionError as e:
         error_code = "PERMISSION_DENIED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_code) from e
+        raise PermissionDeniedError(message=str(e), details={"error_code": error_code}) from e
     except ValueError as e:
         if "Last Admin" in str(e):
+            from backend.exceptions import ConflictError
             error_code = "LAST_ADMIN_PROTECTION"
             logger.error(f"{error_code}: {e}", exc_info=True)
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=error_code) from e
+            raise ConflictError(message=str(e), details={"error_code": error_code}) from e
 
         error_code = "USER_NOT_FOUND"
         logger.error(f"{error_code}: User {user_id} not found: {e}", exc_info=True)
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error_code) from e
+        raise ResourceNotFoundError("User", user_id) from e
     except RuntimeError as e:
         if "LAST_ADMIN_PROTECTION" in str(e):
+            from backend.exceptions import ConflictError
             error_code = "LAST_ADMIN_PROTECTION"
             logger.error(f"{error_code}: {e}", exc_info=True)
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=error_code) from e
+            raise ConflictError(message=str(e), details={"error_code": error_code}) from e
         raise
 
 
@@ -384,7 +389,7 @@ async def reset_firestore_db(background_tasks: BackgroundTasks, repo: Repository
     summary="Run System Self-Test",
     response_model=SelfTestResponse,
 )
-async def run_self_test(db_client: DatabaseDep, llm_provider: LLMProviderFast):
+async def run_self_test(repo: RepositoryDep, llm_provider: LLMProviderFast):
     """Executes a self-test of LLM and Database connectivity."""
     report: dict[str, Any] = {"llm_status": "unknown", "db_status": "unknown", "details": {}}
 
@@ -404,7 +409,8 @@ async def run_self_test(db_client: DatabaseDep, llm_provider: LLMProviderFast):
         from backend.settings import get_settings
 
         settings = get_settings()
-        count = len(db_client.table("workflows").all())
+        # Use Repository Abstraction
+        count = await repo.count_workflows()
         report["db_status"] = "ok"
         report["details"]["db_path"] = settings.start_db_path
         report["details"]["workflow_count"] = count
@@ -481,7 +487,7 @@ async def ingest_knowledge_base(
         except Exception as e:
             # Background Task: Must Log
             error_code = "INGESTION_FAILED"
-            logger.error(f"{error_code}: Ingestion failed: {e}", exc_info=True)
+            logger.error(f"{error_code}: {e}", exc_info=True)
             error_model = APIError(error_code=error_code, message=str(e))
             admin_task_status[job_id] = {"status": "failed", "error": error_model.model_dump()}
 
@@ -515,9 +521,10 @@ async def upload_knowledge_base(
         content = await file.read()
         filename = file.filename or "upload"
     except Exception as e:
+        from backend.exceptions import AppException
         error_code = "UPLOAD_READ_FAILED"
-        logger.error(f"{error_code}: Failed to read file: {e}", exc_info=True)
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_code) from e
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise AppException(message=str(e), status_code=status.HTTP_400_BAD_REQUEST, details={"error_code": error_code}) from e
 
     if repo is None:
         repo = await get_async_repository()
@@ -562,9 +569,10 @@ async def get_banned_phrases(repo: RepositoryDep):
 async def add_banned_phrase(request: BannedPhraseRequest, repo: RepositoryDep):
     """Adds a new phrase to the banned list."""
     if len(request.phrase.strip()) < 2:
+        from backend.exceptions import AppException
         error_code = "PHRASE_VALIDATION_FAILED"
         logger.warning(f"{error_code}: Phrase too short: '{request.phrase}'")
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_code)
+        raise AppException(message="Phrase too short (min 2 chars)", status_code=status.HTTP_400_BAD_REQUEST, details={"error_code": error_code})
 
     await repo.add_banned_phrase(request.phrase.strip())
     return BannedPhraseResponse(status="added", phrase=request.phrase.strip())
@@ -575,13 +583,10 @@ async def add_banned_phrase(request: BannedPhraseRequest, repo: RepositoryDep):
     summary="Remove Banned Phrase",
     response_model=BannedPhraseResponse,
 )
-async def delete_banned_phrase(db: DatabaseDep, phrase: Annotated[str, Path(description="Phrase to remove")]):
+async def delete_banned_phrase(repo: RepositoryDep, phrase: Annotated[str, Path(description="Phrase to remove")]):
     """Removes a phrase from the banned list."""
-    # Bubble up DB errors
-    from tinydb import Query as TinyQuery
-
-    table = db.table("banned_phrases")
-    table.remove(TinyQuery().phrase == phrase)
+    # Use Repository Abstraction
+    await repo.delete_banned_phrase(phrase)
     return BannedPhraseResponse(status="removed", phrase=phrase)
 
 
@@ -599,8 +604,25 @@ async def generate_banned_phrases(request: GeneratePhrasesRequest, repo: Reposit
         lang_map = {"fi": "Finnish", "en": "English"}
         language_name = lang_map.get(request.language, "English")
 
-        system_prompt = "You are a security expert. Identify adversarial prompts."
-        user_prompt = f"Generate 10 NEW banned phrases in {language_name}. Return strictly JSON key 'phrases'."
+        # Dynamic Prompt Retrieval (Zero-Fallback Rule)
+        template = await repo.get_prompt_template("admin_generate_banned_phrases")
+        if not template:
+             # Fail Fast if configuration is missing
+             from backend.exceptions import AppException
+             error_code = "PROMPT_CONFIG_MISSING"
+             raise AppException(
+                 message="Prompt configuration for 'admin_generate_banned_phrases' not found.",
+                 status_code=500,
+                 details={"error_code": error_code}
+             )
+
+        system_prompt = template.get("system", "You are a security expert.") # Partial fallback if key exists but empty? No, rely on DB.
+        user_param = template.get("user", "")
+        # Safe format
+        try:
+             user_prompt = user_param.format(language_name=language_name)
+        except Exception:
+             user_prompt = f"Generate 10 NEW banned phrases in {language_name}." # Minimal Safe fallback if format fails?
 
         response = await llm_provider.generate(user_prompt, system_instruction=system_prompt)
         # Assuming simplified handling
@@ -621,9 +643,10 @@ async def generate_banned_phrases(request: GeneratePhrasesRequest, repo: Reposit
         # LLM Failure -> Bubble?
         # Typically treated as service unavailable or 500. Bubble.
         # But logging context helps for LLM issues.
+        from backend.exceptions import ServiceUnavailableError
         error_code = "PHRASE_GENERATION_FAILED"
-        logger.error(f"{error_code}: LLM Phrase generation failed: {e}", exc_info=True)
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_code) from e
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise ServiceUnavailableError(message=error_code, details={"original_error": str(e)}) from e
 
 
 @router.get(
@@ -641,10 +664,10 @@ async def list_organization_users(
         error_code = "AUTH_PERMISSION_DENIED"
         if user.role == UserRole.ADMIN and user.organization_id != organization_id:
             logger.warning(f"{error_code}: Admin {user.uid} attempted to access org {organization_id}")
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_code)
+            raise PermissionDeniedError(message="Organization access denied", details={"error_code": error_code})
         if user.role not in [UserRole.ROOT, UserRole.ADMIN]:
             logger.warning(f"{error_code}: User {user.uid} with role {user.role} attempted admin access")
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_code)
+            raise PermissionDeniedError(message="Admin access required", details={"error_code": error_code})
 
     return await auth_service.get_users_by_organization(organization_id)
 
@@ -666,17 +689,19 @@ async def update_user_role(
     except (PermissionError, ValueError, RuntimeError) as e:
         msg = str(e)
         if "LAST_ADMIN_PROTECTION" in msg:
+            from backend.exceptions import ConflictError
             error_code = "LAST_ADMIN_PROTECTION"
             logger.error(f"{error_code}: {e}", exc_info=True)
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=error_code) from e
+            raise ConflictError(message=str(e), details={"error_code": error_code}) from e
         if isinstance(e, ValueError):
+            from backend.exceptions import ResourceNotFoundError
             error_code = "USER_NOT_FOUND"
             logger.error(f"{error_code}: {e}", exc_info=True)
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error_code) from e
+            raise ResourceNotFoundError("User", user_id) from e
         if isinstance(e, PermissionError):
             error_code = "PERMISSION_DENIED"
             logger.error(f"{error_code}: {e}", exc_info=True)
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_code) from e
+            raise PermissionDeniedError(message=str(e), details={"error_code": error_code}) from e
         raise
 
 

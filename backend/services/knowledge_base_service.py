@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Any
 
 from backend.database.repository import AbstractWorkflowRepository
+from backend.schemas.knowledge import IngestionSummary
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +56,7 @@ class KnowledgeBaseService:
 
     async def ingest_from_bytes(
         self, file_content: bytes, filename: str, tracker: Any, job_id: str | None = None, reset_db: bool = False
-    ) -> dict[str, Any]:
+    ) -> IngestionSummary:
         """Ingests content from memory (bytes). Archives to storage, parses structure, and persists to DB.
 
         Workflow:
@@ -72,7 +73,7 @@ class KnowledgeBaseService:
             reset_db (bool): If True, clears existing KB before ingestion.
 
         Returns:
-            Dict[str, Any]: Summary stats (counts of concepts, refs, claims).
+            IngestionSummary: Summary stats (counts of concepts, refs, claims).
 
         Raises:
             Exception: On ingestion failure.
@@ -141,7 +142,7 @@ class KnowledgeBaseService:
             result = await self._store_parsed_data(parsed_data, source_name=filename, job_id=job_id, tracker=tracker)
 
             # Unified Success
-            tracker.complete(result)
+            tracker.complete(result.model_dump())
             return result
 
         except Exception as e:
@@ -187,36 +188,28 @@ class KnowledgeBaseService:
             current_pct = 20 + int((i / total_chunks) * 40)  # 20% to 60%
             tracker.update(stage=f"AI Analysis (Chunk {i + 1}/{total_chunks})", percent=current_pct)
 
+            # New Pattern: Structured Output via Schema
+            from backend.schemas.knowledge import ConceptResponse
+
             prompt = f"""
             You are an expert academic research assistant.
             Analyze the following text chunk. Extract theoretical concepts, models, or frameworks defined in the text.
-
-            Return a JSON object with a key "concepts" which is a list of objects.
-            Each object must have:
-            - "term": The name of the concept (Capitalized).
-            - "definition": A precise definition or explanation found in the text.
-              Preferably include citations (Author Year) if present in the text.
-
-            If no concepts are found, return {{"concepts": []}}.
-
+            
             TEXT CHUNK:
             {chunk}
             """
 
             try:
-                # We use the provider directly
+                # We use the provider directly with Pydantic Schema
                 response = await self.llm_provider.generate(
-                    prompt=prompt, system_instruction="You are a strict JSON extraction engine. Output valid JSON only."
+                    prompt=prompt, 
+                    system_instruction="Extract concepts strictly conforming to the schema.",
+                    response_schema=ConceptResponse
                 )
 
-                # Parse JSON
-                cleaned = str(response).strip()
-                if "```json" in cleaned:
-                    cleaned = cleaned.split("```json")[1].split("```")[0].strip()
-                elif "```" in cleaned:
-                    cleaned = cleaned.split("```")[1].split("```")[0].strip()
-
-                data = json.loads(cleaned)
+                # LiteLLMProvider guarantees valid JSON in content when response_schema is used
+                import json
+                data = json.loads(response.content)
                 chunk_concepts = data.get("concepts", [])
                 extracted_concepts.extend(chunk_concepts)
 
@@ -242,7 +235,7 @@ class KnowledgeBaseService:
 
     async def _store_parsed_data(
         self, parsed_data: dict[str, Any], source_name: str, job_id: str, tracker: Any = None
-    ) -> dict[str, Any]:
+    ) -> IngestionSummary:
         """Internal: Converts parsed data structures into Database Records and inserts them.
 
         Args:
@@ -330,13 +323,14 @@ class KnowledgeBaseService:
             f"[KBService] Ingestion complete. Concepts: {count_concepts}, Refs: {count_refs}, Claims: {count_claims}"
         )
 
-        return {
-            "job_id": job_id,
-            "status": "completed",
-            "concepts_count": count_concepts,
-            "references_count": count_refs,
-            "claims_count": count_claims,
-        }
+        return IngestionSummary(
+            job_id=job_id,
+            status="completed",
+            concepts_count=count_concepts,
+            references_count=count_refs,
+            claims_count=count_claims,
+            filename=source_name
+        )
 
     async def retrieve_context(self, query: str) -> str:
         """Retrieves context for a query.

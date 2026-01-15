@@ -164,3 +164,104 @@ abstract class _$ExecutionController extends $AsyncNotifier<void> {
     element.handleCreate(ref, build);
   }
 }
+
+/// **Execution Raw Data Provider**
+///
+/// Fetches complete raw execution data from the /raw API endpoint.
+/// This includes all agent outputs, hook outputs, and timing information.
+
+@ProviderFor(executionRawData)
+final executionRawDataProvider = ExecutionRawDataFamily._();
+
+/// **Execution Raw Data Provider**
+///
+/// Fetches complete raw execution data from the /raw API endpoint.
+/// This includes all agent outputs, hook outputs, and timing information.
+
+final class ExecutionRawDataProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<Map<String, dynamic>>,
+          Map<String, dynamic>,
+          FutureOr<Map<String, dynamic>>
+        >
+    with
+        $FutureModifier<Map<String, dynamic>>,
+        $FutureProvider<Map<String, dynamic>> {
+  /// **Execution Raw Data Provider**
+  ///
+  /// Fetches complete raw execution data from the /raw API endpoint.
+  /// This includes all agent outputs, hook outputs, and timing information.
+  ExecutionRawDataProvider._({
+    required ExecutionRawDataFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'executionRawDataProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$executionRawDataHash();
+
+  @override
+  String toString() {
+    return r'executionRawDataProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<Map<String, dynamic>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<Map<String, dynamic>> create(Ref ref) {
+    final argument = this.argument as String;
+    return executionRawData(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is ExecutionRawDataProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$executionRawDataHash() => r'935a6ab9b4b19a9a341082f6068f1715e6d6a59e';
+
+/// **Execution Raw Data Provider**
+///
+/// Fetches complete raw execution data from the /raw API endpoint.
+/// This includes all agent outputs, hook outputs, and timing information.
+
+final class ExecutionRawDataFamily extends $Family
+    with $FunctionalFamilyOverride<FutureOr<Map<String, dynamic>>, String> {
+  ExecutionRawDataFamily._()
+    : super(
+        retry: null,
+        name: r'executionRawDataProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// **Execution Raw Data Provider**
+  ///
+  /// Fetches complete raw execution data from the /raw API endpoint.
+  /// This includes all agent outputs, hook outputs, and timing information.
+
+  ExecutionRawDataProvider call(String executionId) =>
+      ExecutionRawDataProvider._(argument: executionId, from: this);
+
+  @override
+  String toString() => r'executionRawDataProvider';
+}

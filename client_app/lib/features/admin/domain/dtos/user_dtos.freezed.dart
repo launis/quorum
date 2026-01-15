@@ -210,8 +210,8 @@ return $default(_that.email,_that.password,_that.displayName,_that.role,_that.or
 }
 
 /// @nodoc
+@JsonSerializable()
 
-@JsonSerializable(includeIfNull: false)
 class _UserCreateDto implements UserCreateDto {
   const _UserCreateDto({required this.email, required this.password, @JsonKey(name: 'display_name') required this.displayName, required this.role, @JsonKey(name: 'organization_id') this.organizationId});
   factory _UserCreateDto.fromJson(Map<String, dynamic> json) => _$UserCreateDtoFromJson(json);
@@ -484,8 +484,8 @@ return $default(_that.displayName,_that.role,_that.isActive,_that.organizationId
 }
 
 /// @nodoc
+@JsonSerializable()
 
-@JsonSerializable(includeIfNull: false)
 class _UserUpdateDto implements UserUpdateDto {
   const _UserUpdateDto({@JsonKey(name: 'display_name') this.displayName, this.role, @JsonKey(name: 'is_active') this.isActive, @JsonKey(name: 'organization_id') this.organizationId});
   factory _UserUpdateDto.fromJson(Map<String, dynamic> json) => _$UserUpdateDtoFromJson(json);

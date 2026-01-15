@@ -9,6 +9,7 @@ import 'package:client_app/router/scaffold_with_nav.dart';
 import 'package:client_app/features/orchestration/presentation/screens/analysis_wizard_screen.dart';
 import 'package:client_app/features/orchestration/presentation/screens/execution_monitor_screen.dart';
 import 'package:client_app/features/orchestration/presentation/screens/execution_result_screen.dart';
+import 'package:client_app/features/orchestration/presentation/screens/execution_details_screen.dart';
 import 'package:client_app/features/admin/presentation/screens/admin_dashboard_screen.dart';
 import 'package:client_app/features/admin/presentation/screens/user_management_screen.dart';
 import 'package:client_app/features/admin/presentation/screens/organization_list_screen.dart';
@@ -111,7 +112,8 @@ GoRouter router(Ref ref) {
                     redirect: (context, state) {
                       final path = state.uri.toString();
                       if (path.endsWith('/monitor') ||
-                          path.endsWith('/report')) {
+                          path.endsWith('/report') ||
+                          path.endsWith('/details')) {
                         return null;
                       }
                       return '$path/monitor';
@@ -129,6 +131,13 @@ GoRouter router(Ref ref) {
                         builder: (context, state) {
                           final id = state.pathParameters['id']!;
                           return ExecutionResultScreen(executionId: id);
+                        },
+                      ),
+                      GoRoute(
+                        path: 'details',
+                        builder: (context, state) {
+                          final id = state.pathParameters['id']!;
+                          return ExecutionDetailsScreen(executionId: id);
                         },
                       ),
                     ],

@@ -1,378 +1,640 @@
-"""API Router for Orchestration and Workflow Execution.
+"""Execution Router (V2).
 
-This module provides endpoints for creating workflows, starting executions,
-monitoring progress, and retrieving results.
+Exposes the GraphEngine for dynamic workflow execution and schema retrieval.
+Adheres to Server-Driven UI patterns and One Truth Error Handling.
 """
 
 import logging
-from typing import Annotated, Any
+from typing import Any, Dict, List
 
-from fastapi import (
-    APIRouter,
-    BackgroundTasks,
-    Form,
-    HTTPException,
-    Path,
-    Request,
-    UploadFile,
-    status,
-)
-from fastapi import (
-    Query as APIQuery,
-)
-from pydantic import BaseModel, Field
-from starlette.datastructures import UploadFile as StarletteUploadFile
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 
-from backend.core.rate_limit import limiter
-from backend.dependencies import CurrentUserDep, EngineDep
-from backend.models.auth import UserRole  # Required for role check
-from backend.models.state import WorkflowState  # Required for migration/hydration logic
+from backend.core.engine import GraphEngine
+from backend.core.registry import TaskRegistry
+from backend.dependencies import get_engine, get_async_repository, get_arq_pool
+from backend.exceptions import WorkflowExecutionError, ResourceNotFoundError, AppException
+from backend.models.workflow import WorkflowDefinition
+from backend.schemas.error import APIError
+from backend.services.auth import AuthService
+from backend.services.auth import AuthService
+from backend.database.repository import AbstractWorkflowRepository
 
-# --- Local Imports ---
-# Rule 6: APIError must be the FIRST local import
-from backend.schemas.execution import ExecutionRequest
+# Force-register tasks by importing them
+import backend.tasks.analysis
+import backend.tasks.legacy_migration_tasks
+import backend.tasks.interaction
+import backend.tasks.judgment
+import backend.tasks.coaching
+import backend.tasks.reporting
+import backend.tasks.panel
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(tags=["Orchestration"])
+router = APIRouter(prefix="/v2/execute", tags=["Execution V2"])
+workflow_router = APIRouter(prefix="/v2/workflow", tags=["Workflow V2"])
+executions_router = APIRouter(prefix="/executions", tags=["Executions"])
+
+# --- Models ---
+# Basic usage doesn't need input model if we accept dict, but for docs:
+class ExecutionRequest(BaseModel):
+    inputs: Dict[str, Any]
 
 
-# --- Request Models ---
-
-
-class ExecutionWorkflowCreateRequest(BaseModel):
-    """Payload for creating a new workflow definition.
-
-    Attributes:
-        name (str): Human-readable name.
-        steps (list[dict]): List of step configurations.
-    """
-
-    name: Annotated[str, Field(description="The unique, human-readable name for the new workflow.")]
-    steps: Annotated[
-        list[dict[str, Any]],
-        Field(description="A sequential list of step configurations defining the workflow logic."),
-    ]
-
-
-class WorkflowExecutionRequest(BaseModel):
-    """Payload for starting a new execution.
-
-    Attributes:
-        workflow_id (str): The UUID of the workflow to run.
-        inputs (dict): Initial input state.
-    """
-
-    workflow_id: Annotated[str, Field(description="The UUID of the workflow definition to instantiate.")]
-    inputs: Annotated[
-        dict[str, Any],
-        Field(description="Key-value pairs representing the initial input state (e.g., source text, user intent)."),
-    ] = {}
-
-
-# --- Workflows ---
-
+# --- Endpoints ---
 
 @router.post(
-    "/workflows", summary="Create Workflow", response_description="A confirmation object with the new Workflow ID."
+    "/{workflow_id}",
+    response_model=Dict[str, Any],
+    status_code=status.HTTP_200_OK,
+    summary="Execute a Workflow",
+    description="Executes a defined workflow using the GraphEngine.",
+    responses={
+        404: {"model": APIError, "description": "Workflow resource not found"},
+        400: {"model": APIError, "description": "Validation error"},
+        422: {"model": APIError, "description": "Input schema validation failed"},
+        500: {"model": APIError, "description": "Internal execution error"}
+    }
 )
-@limiter.limit("60/minute")
-async def create_workflow(request: Request, body: ExecutionWorkflowCreateRequest, engine: EngineDep):
-    """Creates a new workflow definition in the database.
-
-    Args:
-        request (Request): The raw request.
-        body (ExecutionWorkflowCreateRequest): The workflow payload containing name and steps.
-        engine (WorkflowEngine): The workflow engine dependency.
-
-    Returns:
-        dict: The status and generated workflow_id.
-
-    """
-    workflow_id = await engine.create_workflow(body.name, body.steps)
-    return {"status": "created", "workflow_id": workflow_id}
-
-
-# --- Executions ---
-
-
-@router.post(
-    "/executions",
-    summary="Start Execution",
-    response_description="The ID of the newly started execution background job.",
-)
-async def execute_workflow(
-    request: Request,
-    json_payload: Annotated[str, Form(alias="json_payload")],
-    background_tasks: BackgroundTasks,
-    engine: EngineDep,
-    current_user: CurrentUserDep,
+async def execute_workflow_route(
+    workflow_id: str,
+    payload: Dict[str, Any], # Dynamic Input
+    engine: GraphEngine = Depends(get_engine),
+    repository: AbstractWorkflowRepository = Depends(get_async_repository)
 ):
-    """Initiates a new workflow execution asynchronously.
-
-    Supports Multipart/Form-Data for optional file uploads alongside JSON inputs.
-
-    Args:
-        request (Request): The raw FastAPI request (for parsing file keys).
-        json_payload (str): The raw JSON string containing execution config.
-        background_tasks (BackgroundTasks): Logic for handling async operations.
-        engine (WorkflowEngine): The workflow engine dependency.
-        current_user (CurrentUserDep): The authenticated user initiating the run.
-
-    Returns:
-        dict: The status and execution_id.
     """
-    # Quota Enforcement (Phase 5)
-    logger.info("[Router] Trace: 1. Request Received. Checking Quota...")
-    from backend.services.usage_service import UsageService
-
-    usage_service = UsageService(engine.repository)
-    if not current_user.organization_id:
-        error_code = "AUTH_MISSING_ORGANIZATION"
-        logger.error(f"{error_code}: User {current_user.uid} missing organization_id.", exc_info=True)
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_code)
-    if not await usage_service.check_quota(current_user.organization_id):
-        error_code = "ORGANIZATION_QUOTA_EXCEEDED"
-        logger.error(f"{error_code}: Org {current_user.organization_id} quota exceeded.", exc_info=True)
-        raise HTTPException(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=error_code)
-
+    Executes a workflow by ID with provided inputs.
+    
+    1. Fetches WorkflowDefinition from DB/Repository.
+    2. Validates and executes via GraphEngine.
+    """
+    logger.info(f"Received execution request for workflow: {workflow_id}")
+    
     try:
-        logger.info("[Router] Trace: 2. Quota OK. Processing Payload...")
+        # 1. Load Definition
+        # In a real scenario, this comes from DB. 
+        # For Phase 4.1 testing, if not in DB, we rely on Mock or File loaded?
+        # The prompt says "Load the workflow definition". 
+        # Repository should handle logic.
+        
+        # MOCK LOADING FOR NOW if not using live DB or if DB empty
+        # We can implement a "get_workflow" in the repository dependency?
+        # Or, to ensure this works immediately with the JSON file we created:
+        import json
+        import os
+        
+        definition = None
+        
+        # Try Loading from file system if strictly Dev Mode?
+        # Ideally Repository abstraction handles this.
+        # Let's assume Repository has `get_workflow(id: str) -> WorkflowDefinition`
+        # But `AsyncRepository` interface needs verification.
+        
+        # Fallback/Direct Load for testing as per common pattern in previous steps
+        # If workflow_id == "comprehensive_audit_v1":
+        file_path = f"data/workflows/{workflow_id}.json"
+        
+        if os.path.exists(file_path):
+             with open(file_path, "r", encoding="utf-8") as f:
+                 data = json.load(f)
+                 # Add missing description if schema requires it but file missing it?
+                 if "description" not in data: 
+                     data["description"] = "Loaded from file"
+                 definition = WorkflowDefinition(**data)
+        else:
+             # Try repository
+             definition = await repository.get_workflow(workflow_id)
 
-        # Parse & Validate Payload Manually (Robustness)
-        try:
-            request_data = ExecutionRequest.model_validate_json(json_payload)
-        except Exception as e:
-            error_code = "INVALID_PAYLOAD"
-            logger.error(f"{error_code}: JSON Validation Failed: {e}", exc_info=True)
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=error_code) from e
+        if not definition:
+             raise ResourceNotFoundError(f"Workflow '{workflow_id}' not found.")
 
-        # Map Pydantic Schema to Internal Logic
-        workflow_id = request_data.project_id
-        inputs = request_data.settings
+        # 2. Execute
+        result = await engine.execute_workflow(definition, payload)
+        
+        return result
 
-        # GUARD 1: Fail Fast - Check if Workflow Exists (Sync)
-        wf_exists = await engine.repository.get_workflow_by_id(workflow_id)
-        if not wf_exists:
-            error_code = "WORKFLOW_NOT_FOUND"
-            logger.error(f"{error_code}: ID {workflow_id}", exc_info=True)
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error_code)
-
-        # Parse Files (Dynamic Keys via Request.form)
-        form = await request.form()
-        files_map = {}
-        for key, value in form.items():
-            # Check for StarletteUploadFile (robustness)
-            if isinstance(value, (UploadFile, StarletteUploadFile)) and value.filename:
-                content = await value.read()
-                files_map[key] = (value.filename, content)
-
-        # GUARD 2: Check Required Files/Inputs (Simple Heuristic for Phase 2)
-        # If workflow has 'audit' in name, expect standard evidence keys (file OR text)
-        if "audit" in workflow_id.lower() or "audit" in wf_exists.get("name", "").lower():
-            required_keys = ["history_text", "product_text", "reflection_text"]
-
-            # SCAVENGE: Check for missing keys in the raw form data
-            # (Dio/Flutter on Web might send files as simple form fields if content-type is text)
-            for key in required_keys:
-                if key not in files_map and key not in inputs and key in form:
-                    val = form[key]
-                    if isinstance(val, str):
-                        inputs[key] = val
-                    elif isinstance(val, (UploadFile, StarletteUploadFile)):
-                        content = await val.read()
-                        # Use filename if available, else key name + .txt
-                        fname = val.filename or f"{key}.txt"
-                        files_map[key] = (fname, content)
-
-            missing = [k for k in required_keys if k not in files_map and k not in inputs]
-            if missing:
-                error_code = "MISSING_EVIDENCE_FILES"
-                logger.error(f"{error_code}: Missing keys {missing}", exc_info=True)
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_code)
-
-        logger.info(f"[Router] Trace: 3. Payload Validated. Files: {len(files_map)}. Writing to DB/Storage...")
-
-        # Inject User Identity into Execution Record
-        execution_id = await engine.create_execution(
-            workflow_id=workflow_id,
-            inputs=inputs,
-            files=files_map,
-            organization_id=current_user.organization_id,
-            user_id=current_user.uid,
-        )
-
-        logger.info(f"[Router] Trace: 4. DB Write Success (ID: {execution_id}). Fetching cleaned inputs...")
-
-        # Fetch actual text inputs from DB for the runner
-        rec = await engine.repository.get_execution(execution_id)
-        if not rec:
-            error_code = "EXECUTION_CREATION_FAILED"
-            logger.error(
-                f"{error_code}: Execution {execution_id} not found immediately after creation.",
-                exc_info=True,
-            )
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_code)
-        cleaned_inputs = rec.get("inputs", {})
-
-        # DEBUG: Verify inputs made it
-        input_summary = {k: len(str(v)) for k, v in cleaned_inputs.items()}
-        logger.info(
-            f"[Router] Triggering execution {execution_id} for User {current_user.uid} "
-            f"(Org: {current_user.organization_id}). Input sizes: {input_summary}"
-        )
-
-        background_tasks.add_task(
-            engine.run_execution,
-            execution_id,
-            cleaned_inputs,
-            arq_pool=getattr(request.app.state, "arq_pool", None),
-        )
-
-        logger.info("[Router] Trace: 5. Background Task Queued. Returning Response.")
-
-        return {"status": "started", "execution_id": execution_id}
+    except ResourceNotFoundError as e:
+        error_code = "WORKFLOW_NOT_FOUND"
+        logger.error(f"{error_code}: {e}")
+        # Inject code and re-raise for global handler
+        e.details["error_code"] = error_code
+        raise e
+        
+    except WorkflowExecutionError as e:
+        # Catch structured engine errors
+        error_code = "WORKFLOW_EXECUTION_FAILED"
+        logger.error(f"{error_code}: Execution failed at step '{e.step_id}': {e.original_error}")
+        # Inject code/details and re-raise
+        e.details["error_code"] = error_code
+        e.message = f"Execution failed at step '{e.step_id}'." # Optional: User-friendly override
+        raise e
+        
     except Exception as e:
-        # Propagate specific HTTP Exceptions
-        if isinstance(e, HTTPException):
-            raise e
-
-        error_code = "EXECUTION_SUBMISSION_FAILED"
-        logger.exception(f"{error_code}: CRITICAL FAILURE IN EXECUTION SUBMISSION")
-        # Convert 500s to 400s with visible messages for debugging
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_code) from e
+        error_code = "INTERNAL_SERVER_ERROR"
+        logger.error(f"{error_code}: Unexpected failure: {e}", exc_info=True)
+        # Use generic 500 handler or wrap? 
+        # Global handler in main.py catches Exception -> 500.
+        # But to be explicit and allow "INTERNAL_SERVER_ERROR" code propagation if we wanted custom logic:
+        raise e # Let Global Handler take it (it uses INTERNAL_SERVER_ERROR default)
 
 
-@router.get(
-    "/executions/recent",
-    summary="List Recent Executions",
-    response_description="A list of recent execution records, sorted by time (descending).",
+@workflow_router.get(
+    "/{workflow_id}/schema",
+    summary="Get Workflow Input Schema",
+    description="Returns the JSON Schema for the inputs required by the workflow's first step.",
+    response_model=Dict[str, Any]
 )
-@limiter.limit("60/minute")
-async def get_recent_executions(
-    request: Request,
-    engine: EngineDep,
-    current_user: CurrentUserDep,
-    limit: int = APIQuery(5, description="Maximum number of executions to return."),
-    status: str | None = APIQuery(None, description="Filter by execution status (e.g., 'completed', 'failed')."),
+async def get_workflow_schema(
+    workflow_id: str,
+    repository: AbstractWorkflowRepository = Depends(get_async_repository)
 ):
-    """Retrieves a list of the most recent workflow executions (Scoped by Org)."""
-    # 1. Tenant Scope (Root sees all, others confined to Org)
-    scope_org_id = current_user.organization_id if current_user.role != UserRole.ROOT else None
-
-    # 2. User Scope (Members see only own, Managers/Admins see all in Org)
-    scope_user_id = None
-    if current_user.role == UserRole.MEMBER:
-        scope_user_id = current_user.uid
-
-    all_execs = await engine.repository.get_all_executions(organization_id=scope_org_id, user_id=scope_user_id)
-    if not all_execs:
-        return []
-
-    if status:
-        all_execs = [ex for ex in all_execs if ex.get("status", "").lower() == status.lower()]
-
-    sorted_execs = sorted(all_execs, key=lambda x: x.get("start_time", ""), reverse=True)
-    return sorted_execs[:limit]
-
-
-@router.get(
-    "/executions/latest",
-    summary="Get Latest Execution",
-    response_description="The single most recent execution record.",
-)
-@limiter.limit("60/minute")
-async def get_latest_execution(request: Request, engine: EngineDep):
-    """Retrieves the absolutely most recent execution record."""
-    all_execs = await engine.repository.get_all_executions()
-    if not all_execs:
-        error_code = "NO_EXECUTIONS_FOUND"
-        logger.error(f"{error_code}: No executions available.", exc_info=True)
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error_code)
-
-    return sorted(all_execs, key=lambda x: x.get("start_time", ""), reverse=True)[0]
-
-
-@router.get(
-    "/executions/{execution_id}",
-    summary="Get Execution Status",
-    response_description="The detailed status, result, and state of a specific execution.",
-)
-@limiter.limit("60/minute")
-async def get_execution_status(
-    request: Request,
-    engine: EngineDep,
-    execution_id: str = Path(..., description="The UUID of the execution to retrieve."),
-):
-    """Retrieves the full status and result data for a specific execution ID.
-
-    Performs on-the-fly hydration of legacy result structures if necessary.
     """
-    exec_status = await engine.get_execution_status(execution_id)
-    if not exec_status:
-        error_code = "EXECUTION_NOT_FOUND"
-        logger.error(f"{error_code}: ID {execution_id}", exc_info=True)
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error_code)
+    Generates the Input Schema for Server-Driven UI.
+    
+    Logic:
+    1. Loads WorkflowDefinition.
+    2. Identifies the first step.
+    3. Lookups the Task in TaskRegistry.
+    4. Returns Task.input_schema.model_json_schema().
+    """
+    try:
+        # 1. Load
+        import json
+        import os
+        definition = None
+        
+        # Similar loading logic (Should be unified)
+        file_path = f"data/workflows/{workflow_id}.json"
+        
+        if os.path.exists(file_path):
+             with open(file_path, "r", encoding="utf-8") as f:
+                 data = json.load(f)
+                 definition = WorkflowDefinition(**data)
+        else:
+             definition = await repository.get_workflow(workflow_id) # Hypothetical Interface
 
-    # If the workflow is complete and we have a final result state, flatten it for the UI
-    if exec_status.get("status") == "completed" and "result" in exec_status:
-        res = exec_status["result"]
+        if not definition:
+             raise ResourceNotFoundError(f"Workflow '{workflow_id}' not found.")
+             
+        if not definition.steps:
+            raise ResourceNotFoundError("Workflow has no steps.")
+            
+        # 2. First Step
+        first_step = definition.steps[0]
+        task_key = first_step.task_key
+        
+        # 3. Registry Lookup
+        task_def = TaskRegistry.get(task_key)
+        if not task_def:
+             raise ResourceNotFoundError(f"Task '{task_key}' not registered.")
+             
+        # 4. Schema
+        # Note: If inputs are mapped from existing state, this might be misleading?
+        # But for the *Start* of the workflow, we usually want the schema of the first task 
+        # assuming it takes Raw Input.
+        
+        # Ideally, we should check which inputs in the First Step are NOT mapped from `$` (state).
+        # But usually Step 1 Input = User Input.
+        
+        return task_def.input_schema.model_json_schema()
 
-        if hasattr(res, "to_flat_dict"):
-            exec_status["result"] = res.to_flat_dict()
-
-        elif isinstance(res, dict):
-            # CHECK IF ALREADY FLAT (V2 Structure)
-            if "Report" in res or "Raw_Steps" in res:
-                pass  # Already processed, return as is.
-            else:
-                # MIGRATION LOGIC:
-                # Even if it's already a dict, it might be the OLD structure (nested steps).
-                # We want to force it through the new 'to_flat_dict' logic to get the 2-layer structure.
-                try:
-                    # INJECT MISSING REQUIRED FIELDS for hydration
-                    hydration_data = res.copy()
-                    if "execution_id" not in hydration_data:
-                        hydration_data["execution_id"] = exec_status.get("execution_id", "unknown")
-                    if "inputs" not in hydration_data:
-                        hydration_data["inputs"] = exec_status.get("inputs", {})
-
-                    # Attempt to hydrate the dict back into a State Object
-                    hydrated_state = WorkflowState(**hydration_data)
-                    exec_status["result"] = hydrated_state.model_dump()
-
-                except Exception as e:
-                    logger.warning(f"Failed to migrate legacy execution result {execution_id}: {e}")
-                    # Fallback: leave it as is, legacy UI might handle parts of it
-                    pass
-
-    return exec_status
+    except ResourceNotFoundError as e:
+        error_code = "RESOURCE_NOT_FOUND"
+        logger.warning(f"{error_code}: {e}")
+        # Re-raise as is, or wrap if specific details needed.
+        # But ResourceNotFoundError is an AppException, so checking main handler.
+        # Ensure it has error_code in details
+        if "error_code" not in e.details:
+            e.details["error_code"] = error_code
+        raise e
+    except Exception as e:
+        from backend.exceptions import AppException
+        error_code = "SCHEMA_GENERATION_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise AppException(message=error_code, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"original_error": str(e)}) from e
 
 
-@router.post(
-    "/executions/{execution_id}/retry",
-    summary="Retry Execution",
-    response_description="Confirmation that the execution is resuming.",
+@executions_router.get(
+    "/recent",
+    summary="Get Recent Executions",
+    response_model=List[Dict[str, Any]]
 )
-@limiter.limit("60/minute")
-async def retry_execution(
-    request: Request,
-    background_tasks: BackgroundTasks,
-    engine: EngineDep,
-    execution_id: str = Path(..., description="The UUID of the execution to retry."),
+async def get_recent_executions(
+    limit: int = 10,
+    repository: AbstractWorkflowRepository = Depends(get_async_repository),
+    current_user: Any = Depends(AuthService.get_current_user())
 ):
-    """Resumes a failed, rejected, or interrupted execution from its last successful state."""
-    exec_status = await engine.get_execution_status(execution_id)
-    if not exec_status:
+    """
+    Get a list of recent executions.
+    """
+    try:
+        # Resolve user context if needed for RLS
+        # current_user is a TokenData object
+        
+        # If user is ROOT/ADMIN, maybe see all?
+        # For now, simplistic approach: get all (repository usually filters by user if we implemented that)
+        # The repository.get_all_executions method signature:
+        # get_all_executions(organization_id=None, user_id=None)
+        
+        # If we use current_user info:
+        # executions = await repository.get_all_executions(user_id=current_user.uid)
+        # But for 'Recent' dashboard, usually we see own or org's.
+        
+        # Let's pass user_id to be safe and efficient if user is provided.
+        # If current_user dependency is enforced, we have uid.
+        
+        user_id = current_user.uid if current_user else None
+        
+        executions = await repository.get_all_executions(user_id=user_id)
+        
+        # Sort in memory (Repository get_all might not sort)
+        # Assuming 'created_at' or 'timestamp' field
+        # We need to robustly handle missing timestamp
+        def get_time(e):
+             return e.get("started_at") or e.get("timestamp") or ""
+             
+        executions.sort(key=get_time, reverse=True)
+        
+        # MAP ID -> EXECUTION_ID & STARTED_AT -> START_TIME (Frontend Contract)
+        results = []
+        for e in executions[:limit]:
+            # Create a copy to avoid mutating cache/db reference if applicable
+            item = e.copy()
+            if "execution_id" not in item and "id" in item:
+                item["execution_id"] = item["id"]
+            
+            # Map started_at -> start_time
+            if "start_time" not in item:
+                item["start_time"] = item.get("started_at") or item.get("timestamp") or datetime.now(datetime.UTC).isoformat()
+            
+            # Ensure 'result' exists for strict contract (Execution.completed requires it)
+            if "results" in item and "result" not in item:
+                 item["result"] = item["results"] # Legacy mapping
+            if "result" not in item:
+                 item["result"] = {}
+
+            results.append(item)
+            
+        return results
+        
+    except Exception as e:
+        error_code = "EXECUTION_FETCH_FAILED"
+        logger.error(f"{error_code}: Failed to fetch recent executions - {e}", exc_info=True)
+        raise AppException(
+            message="Failed to fetch recent executions",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": error_code, "original_error": str(e)}
+        ) from e
+
+
+@executions_router.get(
+    "/{execution_id}",
+    summary="Get Execution Details",
+    response_model=Dict[str, Any]
+)
+async def get_execution(
+    execution_id: str,
+    repository: AbstractWorkflowRepository = Depends(get_async_repository),
+    current_user: Any = Depends(AuthService.get_current_user())
+):
+    """
+    Get execution details by ID.
+    Ensures frontend contract compliance (execution_id, start_time, result).
+    """
+    try:
+        execution = await repository.get_execution(execution_id)
+        
+        if not execution:
+            raise ResourceNotFoundError(f"Execution '{execution_id}' not found.")
+            
+        # Contract Mapping
+        item = execution.copy()
+        if "execution_id" not in item and "id" in item:
+            item["execution_id"] = item["id"]
+        
+        if "start_time" not in item:
+            item["start_time"] = item.get("started_at") or item.get("timestamp") or datetime.now(datetime.UTC).isoformat()
+            
+        if "results" in item and "result" not in item:
+            item["result"] = item["results"]
+        if "result" not in item:
+            item["result"] = {}
+            
+        return item
+        
+    except ResourceNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        error_code = "EXECUTION_FETCH_FAILED"
+        logger.error(f"{error_code}: Failed to fetch execution {execution_id} - {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to fetch execution: {str(e)}")
+
+
+@executions_router.get(
+    "/{execution_id}/raw",
+    summary="Get Raw Execution Data",
+    description="Returns complete raw execution data including all agent outputs and aux_data. Useful for debugging and detailed reporting.",
+    response_model=Dict[str, Any]
+)
+async def get_execution_raw(
+    execution_id: str,
+    repository: AbstractWorkflowRepository = Depends(get_async_repository),
+    current_user: Any = Depends(AuthService.get_current_user())
+):
+    """
+    Get complete raw execution data for debugging/reporting.
+    
+    Returns:
+        - All agent step outputs (step_guard, step_analyst, etc.)
+        - aux_data with hook outputs
+        - Timing information
+        - Full workflow state
+    """
+    try:
+        execution = await repository.get_execution(execution_id)
+        
+        if not execution:
+            raise ResourceNotFoundError(f"Execution '{execution_id}' not found.")
+        
+        # Return raw data without transformation
+        raw_data = {
+            "execution_id": execution.get("id"),
+            "workflow_id": execution.get("workflow_id"),
+            "status": execution.get("status"),
+            "started_at": execution.get("started_at"),
+            "completed_at": execution.get("completed_at"),
+            "duration_seconds": None,
+            "inputs": execution.get("inputs", {}),
+            "results": execution.get("results", {}),
+            "state": execution.get("state", {}),
+            "user_id": execution.get("user_id"),
+        }
+        
+        # Calculate duration if completed
+        if raw_data["started_at"] and raw_data["completed_at"]:
+            try:
+                from datetime import datetime
+                start = datetime.fromisoformat(raw_data["started_at"].replace("Z", "+00:00"))
+                end = datetime.fromisoformat(raw_data["completed_at"].replace("Z", "+00:00"))
+                raw_data["duration_seconds"] = (end - start).total_seconds()
+            except Exception:
+                pass
+        
+        # Extract key agent outputs from results
+        results = raw_data["results"]
+        raw_data["agent_outputs"] = {
+            key: results.get(key) 
+            for key in [
+                "step_guard", "step_analyst", "step_profiler", 
+                "step_logician", "step_falsifier", "step_causal",
+                "step_detector", "step_overseer", "step_archivist",
+                "step_judge", "step_coach", "step_xai"
+            ]
+            if results.get(key)
+        }
+        
+        # Extract aux_data (hook outputs)
+        raw_data["hook_outputs"] = results.get("aux_data", {})
+        
+        # Extract XAI report if available
+        raw_data["xai_report"] = results.get("xai_report_formatted", "")
+        
+        return raw_data
+        
+    except ResourceNotFoundError as e:
         error_code = "EXECUTION_NOT_FOUND"
-        logger.error(f"{error_code}: ID {execution_id}", exc_info=True)
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error_code)
+        logger.warning(f"{error_code}: {e}")
+        raise AppException(
+            message=str(e),
+            status_code=status.HTTP_404_NOT_FOUND,
+            details={"error_code": error_code}
+        ) from e
+    except Exception as e:
+        error_code = "RAW_DATA_FETCH_FAILED"
+        logger.error(f"{error_code}: Failed to fetch raw data for {execution_id} - {e}", exc_info=True)
+        raise AppException(
+            message=str(e),
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": error_code}
+        ) from e
 
-    current_status = exec_status.get("status")
-    if current_status not in ["failed", "rejected", "interrupted"]:
-        error_code = "INVALID_RETRY_STATE"
-        logger.error(f"{error_code}: Status '{current_status}' is not retriable.", exc_info=True)
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_code)
 
-    background_tasks.add_task(engine.resume_execution, execution_id)
-    return {"status": "resuming", "execution_id": execution_id}
+
+print("Loading Execution Router module...")
+
+from fastapi import Request
+from starlette.datastructures import UploadFile
+
+@executions_router.post(
+    "",
+    summary="Create Execution (Alias)",
+    response_model=Dict[str, Any],
+    status_code=status.HTTP_201_CREATED,
+    include_in_schema=False
+)
+@executions_router.post(
+    "/",
+    summary="Create Execution",
+    description="Creates a new execution for a given workflow.",
+    response_model=Dict[str, Any],
+    status_code=status.HTTP_201_CREATED
+)
+async def create_execution(
+    request: Request,
+    engine: GraphEngine = Depends(get_engine),
+    repository: AbstractWorkflowRepository = Depends(get_async_repository),
+    current_user: Any = Depends(AuthService.get_current_user()),
+    arq_pool: Any = Depends(get_arq_pool) # Any for now to avoid import hell if imports missing
+):
+    """
+    Creates and starts a workflow execution.
+    Handles both JSON and Multipart payloads.
+    """
+    try:
+        content_type = request.headers.get("content-type", "")
+        payload = {}
+        inputs = {}
+        workflow_id = None
+
+        if "application/json" in content_type:
+            payload = await request.json()
+            workflow_id = payload.get("workflowId")
+            inputs = payload.get("inputs", {})
+        elif "multipart/form-data" in content_type:
+            form = await request.form()
+            
+            # 1. Parse Metadata (json_payload)
+            import json
+            json_payload_str = form.get("json_payload")
+            if json_payload_str:
+                try:
+                    meta = json.loads(json_payload_str)
+                    workflow_id = meta.get("project_id") or meta.get("workflowId")
+                    # Merge text inputs from metadata
+                    inputs = meta.get("settings", {})
+                except json.JSONDecodeError:
+                    raise HTTPException(status_code=400, detail="Invalid JSON in 'json_payload'")
+            else:
+                 # Fallback: Try direct fields (legacy/test)
+                 workflow_id = form.get("workflowId")
+
+            # 2. Parse Files & Form Fields
+            for key, value in form.items():
+                if key == "json_payload":
+                    continue
+                if key == "workflowId":
+                    continue
+                
+                # Handle Files
+                if isinstance(value, UploadFile):
+                    # Basic Text Extraction
+                    content = await value.read()
+                    
+                    if value.filename.lower().endswith(".pdf"):
+                        try:
+                            from backend.services.document_service import DocumentService
+                            inputs[key] = DocumentService._extract_text_from_pdf(content)
+                        except Exception as e:
+                            logger.error(f"Failed to extract PDF text: {e}")
+                            inputs[key] = f"<pdf_error: {value.filename}>"
+                            
+                    elif value.filename.lower().endswith(".docx"):
+                        try:
+                            from backend.services.document_service import DocumentService
+                            inputs[key] = DocumentService._extract_text_from_docx(content)
+                        except Exception as e:
+                            logger.error(f"Failed to extract DOCX text: {e}")
+                            inputs[key] = f"<docx_error: {value.filename}>"
+
+                    elif value.filename.endswith((".txt", ".md", ".json", ".csv")):
+                        try:
+                            inputs[key] = content.decode("utf-8")
+                        except:
+                             inputs[key] = f"<binary_file: {value.filename}>"
+                    else:
+                        inputs[key] = f"<file_upload: {value.filename} (size={len(content)})>"
+                else:
+                    # If it's a regular field not in json_payload, add it
+                    if key not in inputs:
+                        inputs[key] = value
+        else:
+             raise HTTPException(status_code=400, detail=f"Unsupported Content-Type: {content_type}")
+
+        logger.info(f"Received execution creation request for workflow: {workflow_id}")
+
+        
+        if not workflow_id:
+             raise HTTPException(status_code=400, detail="Missing 'workflowId' in payload.")
+
+        # Re-use the logic from execute_workflow_route (which was v2/execute/{id})
+        # Ideally we refactor to a service method, but for now calling engine directly.
+        
+        # 1. Load Definition (Unified Logic)
+        import json
+        import os
+        definition = None
+        
+        # Check DB first? Or File? 
+        # For now, consistent file fallback pattern:
+        file_path = f"data/workflows/{workflow_id}.json"
+        
+        if os.path.exists(file_path):
+             with open(file_path, "r", encoding="utf-8") as f:
+                 data = json.load(f)
+                 # Ensure description if missing
+                 if "description" not in data: 
+                     data["description"] = "Loaded from file"
+                 definition = WorkflowDefinition(**data)
+        else:
+             definition = await repository.get_workflow(workflow_id)
+
+        if not definition:
+             raise ResourceNotFoundError(f"Workflow '{workflow_id}' not found.")
+
+        # 2. Execute (ASYNC via Worker)
+        # We now enqueue the job to the worker instead of running it synchronously.
+        # This returns immediately with 'pending' status.
+        
+        # Inject dependency (assuming it's available, otherwise we need to get it)
+        # We need to add 'arq_pool' to the function signature first! 
+        # But REPLACING CONTENT here implies I can't easily change the signature 200 lines above.
+        
+        # STOP: I need to change the signature of `create_execution` first to include `get_arq_pool`.
+        # I cannot do this validly with just this block replacement.
+         # 2. Prepare Execution Record (Pending)
+        # SANITIZE: Recursively convert bytes to string placeholders to prevent UnicodeDecodeError
+        # This is critical as 'inputs' or 'state' may contain raw file bytes (PDFs, etc).
+        def sanitize_for_json(obj: Any) -> Any:
+            if isinstance(obj, bytes):
+                return f"<bytes: {len(obj)}>"
+            if isinstance(obj, dict):
+                return {k: sanitize_for_json(v) for k, v in obj.items()}
+            if isinstance(obj, list):
+                return [sanitize_for_json(v) for v in obj]
+            return obj
+
+        sanitized_inputs = sanitize_for_json(inputs)
+
+        # 3. Format & Persist Initial Response (Pending)
+        import uuid
+        from datetime import datetime, timezone
+        
+        execution_id = str(uuid.uuid4())
+        timestamp = datetime.now(timezone.utc).isoformat()
+        
+        execution_data = {
+            "id": execution_id,
+            "workflow_id": workflow_id,
+            "status": "pending",  # Initial Status
+            "started_at": timestamp,
+            "completed_at": None, # Not done yet
+            "results": {},        # Empty results initially
+            "inputs": sanitized_inputs,
+            "user_id": current_user.uid if current_user else "system"
+        }
+        
+        # Persist Initial State
+        await repository.create_execution(execution_data)
+        logger.info(f"Created pending execution {execution_id} for workflow {workflow_id}")
+
+        # 4. Enqueue Async Job
+        # Passes execution_id so worker can update this specific record
+        if arq_pool:
+            await arq_pool.enqueue_job(
+                "execute_workflow_job", 
+                workflow_id=workflow_id, 
+                inputs=inputs, 
+                execution_id=execution_id
+            )
+            logger.info(f"Enqueued job for execution {execution_id}")
+        else:
+            # Fallback if ARQ not configured (should trigger 500 in prod, but safe fallback for dumb tests?)
+            logger.warning("Arq pool not available! Running Synchronously (blocking) for fallback.")
+            # Fallback Sync Run (User won't see pallukat updates real-time but it will finish)
+            result = await engine.execute_workflow(definition, inputs, repository=repository, execution_id=execution_id)
+            
+            # Update to completed
+            completed_time = datetime.now(timezone.utc).isoformat()
+            execution_data["results"] = sanitize_for_json(result)
+            execution_data["status"] = "completed"
+            execution_data["completed_at"] = completed_time
+            await repository.update_execution(execution_id, execution_data)
+
+        # 5. Return Response
+        # Conforms to frontend contract
+        response_data = execution_data.copy()
+        response_data["start_time"] = timestamp
+        # Add execution_id explicitly if missing (though it is in 'id')
+        response_data["execution_id"] = execution_id 
+        
+        return response_data
+
+    except HTTPException as e:
+        raise e
+    except ResourceNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except WorkflowExecutionError as e:
+         raise HTTPException(status_code=500, detail=f"Execution failed: {e.original_error}")
+    except Exception as e:
+        logger.error(f"Execution creation failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))

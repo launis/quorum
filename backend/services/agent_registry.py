@@ -227,3 +227,16 @@ class AgentRegistry:
 
         """
         return self.agents_map.copy()
+
+    def get_agent_config(self, agent_name: str) -> BaseAgent | None:
+        """Retrieves agent configuration (the Agent Instance itself).
+        
+        Used by functional tasks to resolve model strategies.
+        
+        Args:
+            agent_name (str): Agent name.
+            
+        Returns:
+            Optional[BaseAgent]: The agent instance if found.
+        """
+        return self.get_agent(agent_name)

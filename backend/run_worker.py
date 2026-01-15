@@ -16,13 +16,14 @@ from backend.worker import WorkerSettings
 async def main():
     """Manual entrypoint for Arq Worker to avoid CLI loop issues."""
     try:
+        # Cast to Any to satisfy type checker if WorkerSettings structure is strict
         worker = create_worker(cast(Any, WorkerSettings))
         logging.info("Starting Arq Worker (Manual Script)...")
         await worker.async_run()
     except KeyboardInterrupt:
         logging.info("Worker stopped by user.")
     except Exception as e:
-        logging.error(f"Worker crashed: {e}")
+        logging.error(f"Worker crashed: {e}", exc_info=True)
 
 
 if __name__ == "__main__":

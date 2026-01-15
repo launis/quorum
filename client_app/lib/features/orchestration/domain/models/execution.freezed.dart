@@ -209,13 +209,13 @@ return unknown(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function(@JsonKey(name: 'execution_id')  String id, @JsonKey(name: 'start_time')  DateTime createdAt, @JsonKey(name: 'workflow_name')  String? workflowName, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId,  Map<String, dynamic> inputs, @JsonKey(name: 'current_step_name')  String? currentStepName,  ExecutionStatus status)?  pending,TResult Function(@JsonKey(name: 'execution_id')  String id, @JsonKey(name: 'start_time')  DateTime createdAt, @JsonKey(name: 'workflow_name')  String? workflowName, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId,  Map<String, dynamic> inputs, @JsonKey(name: 'current_step_name')  String? currentStepName,  ExecutionStatus status)?  started,TResult Function(@JsonKey(name: 'execution_id')  String id, @JsonKey(name: 'start_time')  DateTime createdAt, @JsonKey(name: 'workflow_name')  String? workflowName, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId,  Map<String, dynamic> inputs, @JsonKey(name: 'current_step_name')  String? currentStepName,  ExecutionStatus status)?  running,TResult Function(@JsonKey(name: 'execution_id')  String id, @JsonKey(name: 'start_time')  DateTime createdAt, @JsonKey(name: 'workflow_name')  String? workflowName, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId,  Map<String, dynamic> inputs, @JsonKey(name: 'current_step_name')  String? currentStepName,  Map<String, dynamic> result, @JsonKey(name: 'xai_report_formatted')  String? xaiReport,  ExecutionStatus status)?  completed,TResult Function(@JsonKey(name: 'execution_id')  String id, @JsonKey(name: 'start_time')  DateTime createdAt, @JsonKey(name: 'workflow_name')  String? workflowName, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId,  Map<String, dynamic> inputs, @JsonKey(name: 'current_step_name')  String? currentStepName,  String? error,  ExecutionStatus status)?  failed,TResult Function(@JsonKey(name: 'execution_id')  String id, @JsonKey(name: 'start_time')  DateTime createdAt, @JsonKey(name: 'workflow_name')  String? workflowName,  Map<String, dynamic> inputs, @JsonKey(name: 'current_step_name')  String? currentStepName,  ExecutionStatus status,  Map<String, dynamic>? result,  String? error)?  unknown,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function(@JsonKey(name: 'execution_id')  String id, @JsonKey(name: 'start_time')  DateTime createdAt, @JsonKey(name: 'workflow_name')  String? workflowName, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId,  Map<String, dynamic> inputs, @JsonKey(name: 'current_step_name')  String? currentStepName,  ExecutionStatus status)?  pending,TResult Function(@JsonKey(name: 'execution_id')  String id, @JsonKey(name: 'start_time')  DateTime createdAt, @JsonKey(name: 'workflow_name')  String? workflowName, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId,  Map<String, dynamic> inputs, @JsonKey(name: 'current_step_name')  String? currentStepName,  ExecutionStatus status)?  started,TResult Function(@JsonKey(name: 'execution_id')  String id, @JsonKey(name: 'start_time')  DateTime createdAt, @JsonKey(name: 'workflow_name')  String? workflowName, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId,  Map<String, dynamic> inputs, @JsonKey(name: 'current_step_name')  String? currentStepName,  ExecutionStatus status)?  running,TResult Function(@JsonKey(name: 'execution_id')  String id, @JsonKey(name: 'start_time')  DateTime createdAt, @JsonKey(name: 'workflow_name')  String? workflowName, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId,  Map<String, dynamic> inputs, @JsonKey(name: 'current_step_name')  String? currentStepName,  Map<String, dynamic> result, @JsonKey(name: 'xai_report_formatted')  String? xaiReport, @JsonKey(name: 'audit_results')  Map<String, EvaluationResult> auditResults,  Map<String, dynamic> usage, @JsonKey(name: 'step_guard')  Map<String, dynamic>? stepGuard, @JsonKey(name: 'step_analyst')  Map<String, dynamic>? stepAnalyst, @JsonKey(name: 'step_profiler')  Map<String, dynamic>? stepProfiler, @JsonKey(name: 'step_logician')  Map<String, dynamic>? stepLogician, @JsonKey(name: 'step_falsifier')  Map<String, dynamic>? stepFalsifier, @JsonKey(name: 'step_overseer')  Map<String, dynamic>? stepOverseer, @JsonKey(name: 'step_causal')  Map<String, dynamic>? stepCausal, @JsonKey(name: 'step_detector')  Map<String, dynamic>? stepDetector, @JsonKey(name: 'step_judge')  Map<String, dynamic>? stepJudge, @JsonKey(name: 'step_judge_cognitive')  Map<String, dynamic>? stepJudgeCognitive, @JsonKey(name: 'step_archivist')  Map<String, dynamic>? stepArchivist, @JsonKey(name: 'step_coach')  Map<String, dynamic>? stepCoach, @JsonKey(name: 'step_interaction')  Map<String, dynamic>? stepInteraction, @JsonKey(name: 'step_panel')  Map<String, dynamic>? stepPanel, @JsonKey(name: 'step_reporter')  Map<String, dynamic>? stepReporter,  ExecutionStatus status)?  completed,TResult Function(@JsonKey(name: 'execution_id')  String id, @JsonKey(name: 'start_time')  DateTime createdAt, @JsonKey(name: 'workflow_name')  String? workflowName, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId,  Map<String, dynamic> inputs, @JsonKey(name: 'current_step_name')  String? currentStepName,  String? error,  ExecutionStatus status)?  failed,TResult Function(@JsonKey(name: 'execution_id')  String id, @JsonKey(name: 'start_time')  DateTime createdAt, @JsonKey(name: 'workflow_name')  String? workflowName,  Map<String, dynamic> inputs, @JsonKey(name: 'current_step_name')  String? currentStepName,  ExecutionStatus status,  Map<String, dynamic>? result,  String? error)?  unknown,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case ExecutionPending() when pending != null:
 return pending(_that.id,_that.createdAt,_that.workflowName,_that.organizationId,_that.userId,_that.inputs,_that.currentStepName,_that.status);case ExecutionStarted() when started != null:
 return started(_that.id,_that.createdAt,_that.workflowName,_that.organizationId,_that.userId,_that.inputs,_that.currentStepName,_that.status);case ExecutionRunning() when running != null:
 return running(_that.id,_that.createdAt,_that.workflowName,_that.organizationId,_that.userId,_that.inputs,_that.currentStepName,_that.status);case ExecutionCompleted() when completed != null:
-return completed(_that.id,_that.createdAt,_that.workflowName,_that.organizationId,_that.userId,_that.inputs,_that.currentStepName,_that.result,_that.xaiReport,_that.status);case ExecutionFailed() when failed != null:
+return completed(_that.id,_that.createdAt,_that.workflowName,_that.organizationId,_that.userId,_that.inputs,_that.currentStepName,_that.result,_that.xaiReport,_that.auditResults,_that.usage,_that.stepGuard,_that.stepAnalyst,_that.stepProfiler,_that.stepLogician,_that.stepFalsifier,_that.stepOverseer,_that.stepCausal,_that.stepDetector,_that.stepJudge,_that.stepJudgeCognitive,_that.stepArchivist,_that.stepCoach,_that.stepInteraction,_that.stepPanel,_that.stepReporter,_that.status);case ExecutionFailed() when failed != null:
 return failed(_that.id,_that.createdAt,_that.workflowName,_that.organizationId,_that.userId,_that.inputs,_that.currentStepName,_that.error,_that.status);case ExecutionUnknown() when unknown != null:
 return unknown(_that.id,_that.createdAt,_that.workflowName,_that.inputs,_that.currentStepName,_that.status,_that.result,_that.error);case _:
   return orElse();
@@ -235,13 +235,13 @@ return unknown(_that.id,_that.createdAt,_that.workflowName,_that.inputs,_that.cu
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function(@JsonKey(name: 'execution_id')  String id, @JsonKey(name: 'start_time')  DateTime createdAt, @JsonKey(name: 'workflow_name')  String? workflowName, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId,  Map<String, dynamic> inputs, @JsonKey(name: 'current_step_name')  String? currentStepName,  ExecutionStatus status)  pending,required TResult Function(@JsonKey(name: 'execution_id')  String id, @JsonKey(name: 'start_time')  DateTime createdAt, @JsonKey(name: 'workflow_name')  String? workflowName, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId,  Map<String, dynamic> inputs, @JsonKey(name: 'current_step_name')  String? currentStepName,  ExecutionStatus status)  started,required TResult Function(@JsonKey(name: 'execution_id')  String id, @JsonKey(name: 'start_time')  DateTime createdAt, @JsonKey(name: 'workflow_name')  String? workflowName, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId,  Map<String, dynamic> inputs, @JsonKey(name: 'current_step_name')  String? currentStepName,  ExecutionStatus status)  running,required TResult Function(@JsonKey(name: 'execution_id')  String id, @JsonKey(name: 'start_time')  DateTime createdAt, @JsonKey(name: 'workflow_name')  String? workflowName, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId,  Map<String, dynamic> inputs, @JsonKey(name: 'current_step_name')  String? currentStepName,  Map<String, dynamic> result, @JsonKey(name: 'xai_report_formatted')  String? xaiReport,  ExecutionStatus status)  completed,required TResult Function(@JsonKey(name: 'execution_id')  String id, @JsonKey(name: 'start_time')  DateTime createdAt, @JsonKey(name: 'workflow_name')  String? workflowName, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId,  Map<String, dynamic> inputs, @JsonKey(name: 'current_step_name')  String? currentStepName,  String? error,  ExecutionStatus status)  failed,required TResult Function(@JsonKey(name: 'execution_id')  String id, @JsonKey(name: 'start_time')  DateTime createdAt, @JsonKey(name: 'workflow_name')  String? workflowName,  Map<String, dynamic> inputs, @JsonKey(name: 'current_step_name')  String? currentStepName,  ExecutionStatus status,  Map<String, dynamic>? result,  String? error)  unknown,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function(@JsonKey(name: 'execution_id')  String id, @JsonKey(name: 'start_time')  DateTime createdAt, @JsonKey(name: 'workflow_name')  String? workflowName, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId,  Map<String, dynamic> inputs, @JsonKey(name: 'current_step_name')  String? currentStepName,  ExecutionStatus status)  pending,required TResult Function(@JsonKey(name: 'execution_id')  String id, @JsonKey(name: 'start_time')  DateTime createdAt, @JsonKey(name: 'workflow_name')  String? workflowName, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId,  Map<String, dynamic> inputs, @JsonKey(name: 'current_step_name')  String? currentStepName,  ExecutionStatus status)  started,required TResult Function(@JsonKey(name: 'execution_id')  String id, @JsonKey(name: 'start_time')  DateTime createdAt, @JsonKey(name: 'workflow_name')  String? workflowName, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId,  Map<String, dynamic> inputs, @JsonKey(name: 'current_step_name')  String? currentStepName,  ExecutionStatus status)  running,required TResult Function(@JsonKey(name: 'execution_id')  String id, @JsonKey(name: 'start_time')  DateTime createdAt, @JsonKey(name: 'workflow_name')  String? workflowName, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId,  Map<String, dynamic> inputs, @JsonKey(name: 'current_step_name')  String? currentStepName,  Map<String, dynamic> result, @JsonKey(name: 'xai_report_formatted')  String? xaiReport, @JsonKey(name: 'audit_results')  Map<String, EvaluationResult> auditResults,  Map<String, dynamic> usage, @JsonKey(name: 'step_guard')  Map<String, dynamic>? stepGuard, @JsonKey(name: 'step_analyst')  Map<String, dynamic>? stepAnalyst, @JsonKey(name: 'step_profiler')  Map<String, dynamic>? stepProfiler, @JsonKey(name: 'step_logician')  Map<String, dynamic>? stepLogician, @JsonKey(name: 'step_falsifier')  Map<String, dynamic>? stepFalsifier, @JsonKey(name: 'step_overseer')  Map<String, dynamic>? stepOverseer, @JsonKey(name: 'step_causal')  Map<String, dynamic>? stepCausal, @JsonKey(name: 'step_detector')  Map<String, dynamic>? stepDetector, @JsonKey(name: 'step_judge')  Map<String, dynamic>? stepJudge, @JsonKey(name: 'step_judge_cognitive')  Map<String, dynamic>? stepJudgeCognitive, @JsonKey(name: 'step_archivist')  Map<String, dynamic>? stepArchivist, @JsonKey(name: 'step_coach')  Map<String, dynamic>? stepCoach, @JsonKey(name: 'step_interaction')  Map<String, dynamic>? stepInteraction, @JsonKey(name: 'step_panel')  Map<String, dynamic>? stepPanel, @JsonKey(name: 'step_reporter')  Map<String, dynamic>? stepReporter,  ExecutionStatus status)  completed,required TResult Function(@JsonKey(name: 'execution_id')  String id, @JsonKey(name: 'start_time')  DateTime createdAt, @JsonKey(name: 'workflow_name')  String? workflowName, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId,  Map<String, dynamic> inputs, @JsonKey(name: 'current_step_name')  String? currentStepName,  String? error,  ExecutionStatus status)  failed,required TResult Function(@JsonKey(name: 'execution_id')  String id, @JsonKey(name: 'start_time')  DateTime createdAt, @JsonKey(name: 'workflow_name')  String? workflowName,  Map<String, dynamic> inputs, @JsonKey(name: 'current_step_name')  String? currentStepName,  ExecutionStatus status,  Map<String, dynamic>? result,  String? error)  unknown,}) {final _that = this;
 switch (_that) {
 case ExecutionPending():
 return pending(_that.id,_that.createdAt,_that.workflowName,_that.organizationId,_that.userId,_that.inputs,_that.currentStepName,_that.status);case ExecutionStarted():
 return started(_that.id,_that.createdAt,_that.workflowName,_that.organizationId,_that.userId,_that.inputs,_that.currentStepName,_that.status);case ExecutionRunning():
 return running(_that.id,_that.createdAt,_that.workflowName,_that.organizationId,_that.userId,_that.inputs,_that.currentStepName,_that.status);case ExecutionCompleted():
-return completed(_that.id,_that.createdAt,_that.workflowName,_that.organizationId,_that.userId,_that.inputs,_that.currentStepName,_that.result,_that.xaiReport,_that.status);case ExecutionFailed():
+return completed(_that.id,_that.createdAt,_that.workflowName,_that.organizationId,_that.userId,_that.inputs,_that.currentStepName,_that.result,_that.xaiReport,_that.auditResults,_that.usage,_that.stepGuard,_that.stepAnalyst,_that.stepProfiler,_that.stepLogician,_that.stepFalsifier,_that.stepOverseer,_that.stepCausal,_that.stepDetector,_that.stepJudge,_that.stepJudgeCognitive,_that.stepArchivist,_that.stepCoach,_that.stepInteraction,_that.stepPanel,_that.stepReporter,_that.status);case ExecutionFailed():
 return failed(_that.id,_that.createdAt,_that.workflowName,_that.organizationId,_that.userId,_that.inputs,_that.currentStepName,_that.error,_that.status);case ExecutionUnknown():
 return unknown(_that.id,_that.createdAt,_that.workflowName,_that.inputs,_that.currentStepName,_that.status,_that.result,_that.error);}
 }
@@ -257,13 +257,13 @@ return unknown(_that.id,_that.createdAt,_that.workflowName,_that.inputs,_that.cu
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function(@JsonKey(name: 'execution_id')  String id, @JsonKey(name: 'start_time')  DateTime createdAt, @JsonKey(name: 'workflow_name')  String? workflowName, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId,  Map<String, dynamic> inputs, @JsonKey(name: 'current_step_name')  String? currentStepName,  ExecutionStatus status)?  pending,TResult? Function(@JsonKey(name: 'execution_id')  String id, @JsonKey(name: 'start_time')  DateTime createdAt, @JsonKey(name: 'workflow_name')  String? workflowName, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId,  Map<String, dynamic> inputs, @JsonKey(name: 'current_step_name')  String? currentStepName,  ExecutionStatus status)?  started,TResult? Function(@JsonKey(name: 'execution_id')  String id, @JsonKey(name: 'start_time')  DateTime createdAt, @JsonKey(name: 'workflow_name')  String? workflowName, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId,  Map<String, dynamic> inputs, @JsonKey(name: 'current_step_name')  String? currentStepName,  ExecutionStatus status)?  running,TResult? Function(@JsonKey(name: 'execution_id')  String id, @JsonKey(name: 'start_time')  DateTime createdAt, @JsonKey(name: 'workflow_name')  String? workflowName, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId,  Map<String, dynamic> inputs, @JsonKey(name: 'current_step_name')  String? currentStepName,  Map<String, dynamic> result, @JsonKey(name: 'xai_report_formatted')  String? xaiReport,  ExecutionStatus status)?  completed,TResult? Function(@JsonKey(name: 'execution_id')  String id, @JsonKey(name: 'start_time')  DateTime createdAt, @JsonKey(name: 'workflow_name')  String? workflowName, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId,  Map<String, dynamic> inputs, @JsonKey(name: 'current_step_name')  String? currentStepName,  String? error,  ExecutionStatus status)?  failed,TResult? Function(@JsonKey(name: 'execution_id')  String id, @JsonKey(name: 'start_time')  DateTime createdAt, @JsonKey(name: 'workflow_name')  String? workflowName,  Map<String, dynamic> inputs, @JsonKey(name: 'current_step_name')  String? currentStepName,  ExecutionStatus status,  Map<String, dynamic>? result,  String? error)?  unknown,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function(@JsonKey(name: 'execution_id')  String id, @JsonKey(name: 'start_time')  DateTime createdAt, @JsonKey(name: 'workflow_name')  String? workflowName, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId,  Map<String, dynamic> inputs, @JsonKey(name: 'current_step_name')  String? currentStepName,  ExecutionStatus status)?  pending,TResult? Function(@JsonKey(name: 'execution_id')  String id, @JsonKey(name: 'start_time')  DateTime createdAt, @JsonKey(name: 'workflow_name')  String? workflowName, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId,  Map<String, dynamic> inputs, @JsonKey(name: 'current_step_name')  String? currentStepName,  ExecutionStatus status)?  started,TResult? Function(@JsonKey(name: 'execution_id')  String id, @JsonKey(name: 'start_time')  DateTime createdAt, @JsonKey(name: 'workflow_name')  String? workflowName, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId,  Map<String, dynamic> inputs, @JsonKey(name: 'current_step_name')  String? currentStepName,  ExecutionStatus status)?  running,TResult? Function(@JsonKey(name: 'execution_id')  String id, @JsonKey(name: 'start_time')  DateTime createdAt, @JsonKey(name: 'workflow_name')  String? workflowName, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId,  Map<String, dynamic> inputs, @JsonKey(name: 'current_step_name')  String? currentStepName,  Map<String, dynamic> result, @JsonKey(name: 'xai_report_formatted')  String? xaiReport, @JsonKey(name: 'audit_results')  Map<String, EvaluationResult> auditResults,  Map<String, dynamic> usage, @JsonKey(name: 'step_guard')  Map<String, dynamic>? stepGuard, @JsonKey(name: 'step_analyst')  Map<String, dynamic>? stepAnalyst, @JsonKey(name: 'step_profiler')  Map<String, dynamic>? stepProfiler, @JsonKey(name: 'step_logician')  Map<String, dynamic>? stepLogician, @JsonKey(name: 'step_falsifier')  Map<String, dynamic>? stepFalsifier, @JsonKey(name: 'step_overseer')  Map<String, dynamic>? stepOverseer, @JsonKey(name: 'step_causal')  Map<String, dynamic>? stepCausal, @JsonKey(name: 'step_detector')  Map<String, dynamic>? stepDetector, @JsonKey(name: 'step_judge')  Map<String, dynamic>? stepJudge, @JsonKey(name: 'step_judge_cognitive')  Map<String, dynamic>? stepJudgeCognitive, @JsonKey(name: 'step_archivist')  Map<String, dynamic>? stepArchivist, @JsonKey(name: 'step_coach')  Map<String, dynamic>? stepCoach, @JsonKey(name: 'step_interaction')  Map<String, dynamic>? stepInteraction, @JsonKey(name: 'step_panel')  Map<String, dynamic>? stepPanel, @JsonKey(name: 'step_reporter')  Map<String, dynamic>? stepReporter,  ExecutionStatus status)?  completed,TResult? Function(@JsonKey(name: 'execution_id')  String id, @JsonKey(name: 'start_time')  DateTime createdAt, @JsonKey(name: 'workflow_name')  String? workflowName, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId,  Map<String, dynamic> inputs, @JsonKey(name: 'current_step_name')  String? currentStepName,  String? error,  ExecutionStatus status)?  failed,TResult? Function(@JsonKey(name: 'execution_id')  String id, @JsonKey(name: 'start_time')  DateTime createdAt, @JsonKey(name: 'workflow_name')  String? workflowName,  Map<String, dynamic> inputs, @JsonKey(name: 'current_step_name')  String? currentStepName,  ExecutionStatus status,  Map<String, dynamic>? result,  String? error)?  unknown,}) {final _that = this;
 switch (_that) {
 case ExecutionPending() when pending != null:
 return pending(_that.id,_that.createdAt,_that.workflowName,_that.organizationId,_that.userId,_that.inputs,_that.currentStepName,_that.status);case ExecutionStarted() when started != null:
 return started(_that.id,_that.createdAt,_that.workflowName,_that.organizationId,_that.userId,_that.inputs,_that.currentStepName,_that.status);case ExecutionRunning() when running != null:
 return running(_that.id,_that.createdAt,_that.workflowName,_that.organizationId,_that.userId,_that.inputs,_that.currentStepName,_that.status);case ExecutionCompleted() when completed != null:
-return completed(_that.id,_that.createdAt,_that.workflowName,_that.organizationId,_that.userId,_that.inputs,_that.currentStepName,_that.result,_that.xaiReport,_that.status);case ExecutionFailed() when failed != null:
+return completed(_that.id,_that.createdAt,_that.workflowName,_that.organizationId,_that.userId,_that.inputs,_that.currentStepName,_that.result,_that.xaiReport,_that.auditResults,_that.usage,_that.stepGuard,_that.stepAnalyst,_that.stepProfiler,_that.stepLogician,_that.stepFalsifier,_that.stepOverseer,_that.stepCausal,_that.stepDetector,_that.stepJudge,_that.stepJudgeCognitive,_that.stepArchivist,_that.stepCoach,_that.stepInteraction,_that.stepPanel,_that.stepReporter,_that.status);case ExecutionFailed() when failed != null:
 return failed(_that.id,_that.createdAt,_that.workflowName,_that.organizationId,_that.userId,_that.inputs,_that.currentStepName,_that.error,_that.status);case ExecutionUnknown() when unknown != null:
 return unknown(_that.id,_that.createdAt,_that.workflowName,_that.inputs,_that.currentStepName,_that.status,_that.result,_that.error);case _:
   return null;
@@ -544,7 +544,7 @@ as ExecutionStatus,
 @JsonSerializable()
 
 class ExecutionCompleted implements Execution {
-  const ExecutionCompleted({@JsonKey(name: 'execution_id') required this.id, @JsonKey(name: 'start_time') required this.createdAt, @JsonKey(name: 'workflow_name') this.workflowName, @JsonKey(name: 'organization_id') this.organizationId, @JsonKey(name: 'user_id') this.userId, final  Map<String, dynamic> inputs = const {}, @JsonKey(name: 'current_step_name') this.currentStepName, final  Map<String, dynamic> result = const {}, @JsonKey(name: 'xai_report_formatted') this.xaiReport, this.status = ExecutionStatus.completed}): _inputs = inputs,_result = result;
+  const ExecutionCompleted({@JsonKey(name: 'execution_id') required this.id, @JsonKey(name: 'start_time') required this.createdAt, @JsonKey(name: 'workflow_name') this.workflowName, @JsonKey(name: 'organization_id') this.organizationId, @JsonKey(name: 'user_id') this.userId, final  Map<String, dynamic> inputs = const {}, @JsonKey(name: 'current_step_name') this.currentStepName, final  Map<String, dynamic> result = const {}, @JsonKey(name: 'xai_report_formatted') this.xaiReport, @JsonKey(name: 'audit_results') final  Map<String, EvaluationResult> auditResults = const {}, final  Map<String, dynamic> usage = const {}, @JsonKey(name: 'step_guard') final  Map<String, dynamic>? stepGuard, @JsonKey(name: 'step_analyst') final  Map<String, dynamic>? stepAnalyst, @JsonKey(name: 'step_profiler') final  Map<String, dynamic>? stepProfiler, @JsonKey(name: 'step_logician') final  Map<String, dynamic>? stepLogician, @JsonKey(name: 'step_falsifier') final  Map<String, dynamic>? stepFalsifier, @JsonKey(name: 'step_overseer') final  Map<String, dynamic>? stepOverseer, @JsonKey(name: 'step_causal') final  Map<String, dynamic>? stepCausal, @JsonKey(name: 'step_detector') final  Map<String, dynamic>? stepDetector, @JsonKey(name: 'step_judge') final  Map<String, dynamic>? stepJudge, @JsonKey(name: 'step_judge_cognitive') final  Map<String, dynamic>? stepJudgeCognitive, @JsonKey(name: 'step_archivist') final  Map<String, dynamic>? stepArchivist, @JsonKey(name: 'step_coach') final  Map<String, dynamic>? stepCoach, @JsonKey(name: 'step_interaction') final  Map<String, dynamic>? stepInteraction, @JsonKey(name: 'step_panel') final  Map<String, dynamic>? stepPanel, @JsonKey(name: 'step_reporter') final  Map<String, dynamic>? stepReporter, this.status = ExecutionStatus.completed}): _inputs = inputs,_result = result,_auditResults = auditResults,_usage = usage,_stepGuard = stepGuard,_stepAnalyst = stepAnalyst,_stepProfiler = stepProfiler,_stepLogician = stepLogician,_stepFalsifier = stepFalsifier,_stepOverseer = stepOverseer,_stepCausal = stepCausal,_stepDetector = stepDetector,_stepJudge = stepJudge,_stepJudgeCognitive = stepJudgeCognitive,_stepArchivist = stepArchivist,_stepCoach = stepCoach,_stepInteraction = stepInteraction,_stepPanel = stepPanel,_stepReporter = stepReporter;
   factory ExecutionCompleted.fromJson(Map<String, dynamic> json) => _$ExecutionCompletedFromJson(json);
 
 @override@JsonKey(name: 'execution_id') final  String id;
@@ -573,6 +573,163 @@ class ExecutionCompleted implements Execution {
 
 /// Optional formatted markdown report, if pre-rendered.
 @JsonKey(name: 'xai_report_formatted') final  String? xaiReport;
+/// Dynamic Evaluation Results (New Multi-Matrix System)
+/// Key = Step ID (e.g. "step_judge_cognitive")
+ final  Map<String, EvaluationResult> _auditResults;
+/// Dynamic Evaluation Results (New Multi-Matrix System)
+/// Key = Step ID (e.g. "step_judge_cognitive")
+@JsonKey(name: 'audit_results') Map<String, EvaluationResult> get auditResults {
+  if (_auditResults is EqualUnmodifiableMapView) return _auditResults;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_auditResults);
+}
+
+/// Usage Metrics (Cost Tracking)
+ final  Map<String, dynamic> _usage;
+/// Usage Metrics (Cost Tracking)
+@JsonKey() Map<String, dynamic> get usage {
+  if (_usage is EqualUnmodifiableMapView) return _usage;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_usage);
+}
+
+/// Agent Outputs (Typed as Maps for now, or generic structures)
+ final  Map<String, dynamic>? _stepGuard;
+/// Agent Outputs (Typed as Maps for now, or generic structures)
+@JsonKey(name: 'step_guard') Map<String, dynamic>? get stepGuard {
+  final value = _stepGuard;
+  if (value == null) return null;
+  if (_stepGuard is EqualUnmodifiableMapView) return _stepGuard;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(value);
+}
+
+ final  Map<String, dynamic>? _stepAnalyst;
+@JsonKey(name: 'step_analyst') Map<String, dynamic>? get stepAnalyst {
+  final value = _stepAnalyst;
+  if (value == null) return null;
+  if (_stepAnalyst is EqualUnmodifiableMapView) return _stepAnalyst;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(value);
+}
+
+ final  Map<String, dynamic>? _stepProfiler;
+@JsonKey(name: 'step_profiler') Map<String, dynamic>? get stepProfiler {
+  final value = _stepProfiler;
+  if (value == null) return null;
+  if (_stepProfiler is EqualUnmodifiableMapView) return _stepProfiler;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(value);
+}
+
+ final  Map<String, dynamic>? _stepLogician;
+@JsonKey(name: 'step_logician') Map<String, dynamic>? get stepLogician {
+  final value = _stepLogician;
+  if (value == null) return null;
+  if (_stepLogician is EqualUnmodifiableMapView) return _stepLogician;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(value);
+}
+
+ final  Map<String, dynamic>? _stepFalsifier;
+@JsonKey(name: 'step_falsifier') Map<String, dynamic>? get stepFalsifier {
+  final value = _stepFalsifier;
+  if (value == null) return null;
+  if (_stepFalsifier is EqualUnmodifiableMapView) return _stepFalsifier;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(value);
+}
+
+ final  Map<String, dynamic>? _stepOverseer;
+@JsonKey(name: 'step_overseer') Map<String, dynamic>? get stepOverseer {
+  final value = _stepOverseer;
+  if (value == null) return null;
+  if (_stepOverseer is EqualUnmodifiableMapView) return _stepOverseer;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(value);
+}
+
+ final  Map<String, dynamic>? _stepCausal;
+@JsonKey(name: 'step_causal') Map<String, dynamic>? get stepCausal {
+  final value = _stepCausal;
+  if (value == null) return null;
+  if (_stepCausal is EqualUnmodifiableMapView) return _stepCausal;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(value);
+}
+
+ final  Map<String, dynamic>? _stepDetector;
+@JsonKey(name: 'step_detector') Map<String, dynamic>? get stepDetector {
+  final value = _stepDetector;
+  if (value == null) return null;
+  if (_stepDetector is EqualUnmodifiableMapView) return _stepDetector;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(value);
+}
+
+ final  Map<String, dynamic>? _stepJudge;
+@JsonKey(name: 'step_judge') Map<String, dynamic>? get stepJudge {
+  final value = _stepJudge;
+  if (value == null) return null;
+  if (_stepJudge is EqualUnmodifiableMapView) return _stepJudge;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(value);
+}
+
+ final  Map<String, dynamic>? _stepJudgeCognitive;
+@JsonKey(name: 'step_judge_cognitive') Map<String, dynamic>? get stepJudgeCognitive {
+  final value = _stepJudgeCognitive;
+  if (value == null) return null;
+  if (_stepJudgeCognitive is EqualUnmodifiableMapView) return _stepJudgeCognitive;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(value);
+}
+
+ final  Map<String, dynamic>? _stepArchivist;
+@JsonKey(name: 'step_archivist') Map<String, dynamic>? get stepArchivist {
+  final value = _stepArchivist;
+  if (value == null) return null;
+  if (_stepArchivist is EqualUnmodifiableMapView) return _stepArchivist;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(value);
+}
+
+ final  Map<String, dynamic>? _stepCoach;
+@JsonKey(name: 'step_coach') Map<String, dynamic>? get stepCoach {
+  final value = _stepCoach;
+  if (value == null) return null;
+  if (_stepCoach is EqualUnmodifiableMapView) return _stepCoach;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(value);
+}
+
+ final  Map<String, dynamic>? _stepInteraction;
+@JsonKey(name: 'step_interaction') Map<String, dynamic>? get stepInteraction {
+  final value = _stepInteraction;
+  if (value == null) return null;
+  if (_stepInteraction is EqualUnmodifiableMapView) return _stepInteraction;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(value);
+}
+
+ final  Map<String, dynamic>? _stepPanel;
+@JsonKey(name: 'step_panel') Map<String, dynamic>? get stepPanel {
+  final value = _stepPanel;
+  if (value == null) return null;
+  if (_stepPanel is EqualUnmodifiableMapView) return _stepPanel;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(value);
+}
+
+ final  Map<String, dynamic>? _stepReporter;
+@JsonKey(name: 'step_reporter') Map<String, dynamic>? get stepReporter {
+  final value = _stepReporter;
+  if (value == null) return null;
+  if (_stepReporter is EqualUnmodifiableMapView) return _stepReporter;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(value);
+}
+
 @override@JsonKey() final  ExecutionStatus status;
 
 /// Create a copy of Execution
@@ -588,16 +745,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ExecutionCompleted&&(identical(other.id, id) || other.id == id)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.workflowName, workflowName) || other.workflowName == workflowName)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.userId, userId) || other.userId == userId)&&const DeepCollectionEquality().equals(other._inputs, _inputs)&&(identical(other.currentStepName, currentStepName) || other.currentStepName == currentStepName)&&const DeepCollectionEquality().equals(other._result, _result)&&(identical(other.xaiReport, xaiReport) || other.xaiReport == xaiReport)&&(identical(other.status, status) || other.status == status));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ExecutionCompleted&&(identical(other.id, id) || other.id == id)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.workflowName, workflowName) || other.workflowName == workflowName)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.userId, userId) || other.userId == userId)&&const DeepCollectionEquality().equals(other._inputs, _inputs)&&(identical(other.currentStepName, currentStepName) || other.currentStepName == currentStepName)&&const DeepCollectionEquality().equals(other._result, _result)&&(identical(other.xaiReport, xaiReport) || other.xaiReport == xaiReport)&&const DeepCollectionEquality().equals(other._auditResults, _auditResults)&&const DeepCollectionEquality().equals(other._usage, _usage)&&const DeepCollectionEquality().equals(other._stepGuard, _stepGuard)&&const DeepCollectionEquality().equals(other._stepAnalyst, _stepAnalyst)&&const DeepCollectionEquality().equals(other._stepProfiler, _stepProfiler)&&const DeepCollectionEquality().equals(other._stepLogician, _stepLogician)&&const DeepCollectionEquality().equals(other._stepFalsifier, _stepFalsifier)&&const DeepCollectionEquality().equals(other._stepOverseer, _stepOverseer)&&const DeepCollectionEquality().equals(other._stepCausal, _stepCausal)&&const DeepCollectionEquality().equals(other._stepDetector, _stepDetector)&&const DeepCollectionEquality().equals(other._stepJudge, _stepJudge)&&const DeepCollectionEquality().equals(other._stepJudgeCognitive, _stepJudgeCognitive)&&const DeepCollectionEquality().equals(other._stepArchivist, _stepArchivist)&&const DeepCollectionEquality().equals(other._stepCoach, _stepCoach)&&const DeepCollectionEquality().equals(other._stepInteraction, _stepInteraction)&&const DeepCollectionEquality().equals(other._stepPanel, _stepPanel)&&const DeepCollectionEquality().equals(other._stepReporter, _stepReporter)&&(identical(other.status, status) || other.status == status));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,createdAt,workflowName,organizationId,userId,const DeepCollectionEquality().hash(_inputs),currentStepName,const DeepCollectionEquality().hash(_result),xaiReport,status);
+int get hashCode => Object.hashAll([runtimeType,id,createdAt,workflowName,organizationId,userId,const DeepCollectionEquality().hash(_inputs),currentStepName,const DeepCollectionEquality().hash(_result),xaiReport,const DeepCollectionEquality().hash(_auditResults),const DeepCollectionEquality().hash(_usage),const DeepCollectionEquality().hash(_stepGuard),const DeepCollectionEquality().hash(_stepAnalyst),const DeepCollectionEquality().hash(_stepProfiler),const DeepCollectionEquality().hash(_stepLogician),const DeepCollectionEquality().hash(_stepFalsifier),const DeepCollectionEquality().hash(_stepOverseer),const DeepCollectionEquality().hash(_stepCausal),const DeepCollectionEquality().hash(_stepDetector),const DeepCollectionEquality().hash(_stepJudge),const DeepCollectionEquality().hash(_stepJudgeCognitive),const DeepCollectionEquality().hash(_stepArchivist),const DeepCollectionEquality().hash(_stepCoach),const DeepCollectionEquality().hash(_stepInteraction),const DeepCollectionEquality().hash(_stepPanel),const DeepCollectionEquality().hash(_stepReporter),status]);
 
 @override
 String toString() {
-  return 'Execution.completed(id: $id, createdAt: $createdAt, workflowName: $workflowName, organizationId: $organizationId, userId: $userId, inputs: $inputs, currentStepName: $currentStepName, result: $result, xaiReport: $xaiReport, status: $status)';
+  return 'Execution.completed(id: $id, createdAt: $createdAt, workflowName: $workflowName, organizationId: $organizationId, userId: $userId, inputs: $inputs, currentStepName: $currentStepName, result: $result, xaiReport: $xaiReport, auditResults: $auditResults, usage: $usage, stepGuard: $stepGuard, stepAnalyst: $stepAnalyst, stepProfiler: $stepProfiler, stepLogician: $stepLogician, stepFalsifier: $stepFalsifier, stepOverseer: $stepOverseer, stepCausal: $stepCausal, stepDetector: $stepDetector, stepJudge: $stepJudge, stepJudgeCognitive: $stepJudgeCognitive, stepArchivist: $stepArchivist, stepCoach: $stepCoach, stepInteraction: $stepInteraction, stepPanel: $stepPanel, stepReporter: $stepReporter, status: $status)';
 }
 
 
@@ -608,7 +765,7 @@ abstract mixin class $ExecutionCompletedCopyWith<$Res> implements $ExecutionCopy
   factory $ExecutionCompletedCopyWith(ExecutionCompleted value, $Res Function(ExecutionCompleted) _then) = _$ExecutionCompletedCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'execution_id') String id,@JsonKey(name: 'start_time') DateTime createdAt,@JsonKey(name: 'workflow_name') String? workflowName,@JsonKey(name: 'organization_id') String? organizationId,@JsonKey(name: 'user_id') String? userId, Map<String, dynamic> inputs,@JsonKey(name: 'current_step_name') String? currentStepName, Map<String, dynamic> result,@JsonKey(name: 'xai_report_formatted') String? xaiReport, ExecutionStatus status
+@JsonKey(name: 'execution_id') String id,@JsonKey(name: 'start_time') DateTime createdAt,@JsonKey(name: 'workflow_name') String? workflowName,@JsonKey(name: 'organization_id') String? organizationId,@JsonKey(name: 'user_id') String? userId, Map<String, dynamic> inputs,@JsonKey(name: 'current_step_name') String? currentStepName, Map<String, dynamic> result,@JsonKey(name: 'xai_report_formatted') String? xaiReport,@JsonKey(name: 'audit_results') Map<String, EvaluationResult> auditResults, Map<String, dynamic> usage,@JsonKey(name: 'step_guard') Map<String, dynamic>? stepGuard,@JsonKey(name: 'step_analyst') Map<String, dynamic>? stepAnalyst,@JsonKey(name: 'step_profiler') Map<String, dynamic>? stepProfiler,@JsonKey(name: 'step_logician') Map<String, dynamic>? stepLogician,@JsonKey(name: 'step_falsifier') Map<String, dynamic>? stepFalsifier,@JsonKey(name: 'step_overseer') Map<String, dynamic>? stepOverseer,@JsonKey(name: 'step_causal') Map<String, dynamic>? stepCausal,@JsonKey(name: 'step_detector') Map<String, dynamic>? stepDetector,@JsonKey(name: 'step_judge') Map<String, dynamic>? stepJudge,@JsonKey(name: 'step_judge_cognitive') Map<String, dynamic>? stepJudgeCognitive,@JsonKey(name: 'step_archivist') Map<String, dynamic>? stepArchivist,@JsonKey(name: 'step_coach') Map<String, dynamic>? stepCoach,@JsonKey(name: 'step_interaction') Map<String, dynamic>? stepInteraction,@JsonKey(name: 'step_panel') Map<String, dynamic>? stepPanel,@JsonKey(name: 'step_reporter') Map<String, dynamic>? stepReporter, ExecutionStatus status
 });
 
 
@@ -625,7 +782,7 @@ class _$ExecutionCompletedCopyWithImpl<$Res>
 
 /// Create a copy of Execution
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? createdAt = null,Object? workflowName = freezed,Object? organizationId = freezed,Object? userId = freezed,Object? inputs = null,Object? currentStepName = freezed,Object? result = null,Object? xaiReport = freezed,Object? status = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? createdAt = null,Object? workflowName = freezed,Object? organizationId = freezed,Object? userId = freezed,Object? inputs = null,Object? currentStepName = freezed,Object? result = null,Object? xaiReport = freezed,Object? auditResults = null,Object? usage = null,Object? stepGuard = freezed,Object? stepAnalyst = freezed,Object? stepProfiler = freezed,Object? stepLogician = freezed,Object? stepFalsifier = freezed,Object? stepOverseer = freezed,Object? stepCausal = freezed,Object? stepDetector = freezed,Object? stepJudge = freezed,Object? stepJudgeCognitive = freezed,Object? stepArchivist = freezed,Object? stepCoach = freezed,Object? stepInteraction = freezed,Object? stepPanel = freezed,Object? stepReporter = freezed,Object? status = null,}) {
   return _then(ExecutionCompleted(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
@@ -636,7 +793,24 @@ as String?,inputs: null == inputs ? _self._inputs : inputs // ignore: cast_nulla
 as Map<String, dynamic>,currentStepName: freezed == currentStepName ? _self.currentStepName : currentStepName // ignore: cast_nullable_to_non_nullable
 as String?,result: null == result ? _self._result : result // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>,xaiReport: freezed == xaiReport ? _self.xaiReport : xaiReport // ignore: cast_nullable_to_non_nullable
-as String?,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as String?,auditResults: null == auditResults ? _self._auditResults : auditResults // ignore: cast_nullable_to_non_nullable
+as Map<String, EvaluationResult>,usage: null == usage ? _self._usage : usage // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>,stepGuard: freezed == stepGuard ? _self._stepGuard : stepGuard // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>?,stepAnalyst: freezed == stepAnalyst ? _self._stepAnalyst : stepAnalyst // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>?,stepProfiler: freezed == stepProfiler ? _self._stepProfiler : stepProfiler // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>?,stepLogician: freezed == stepLogician ? _self._stepLogician : stepLogician // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>?,stepFalsifier: freezed == stepFalsifier ? _self._stepFalsifier : stepFalsifier // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>?,stepOverseer: freezed == stepOverseer ? _self._stepOverseer : stepOverseer // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>?,stepCausal: freezed == stepCausal ? _self._stepCausal : stepCausal // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>?,stepDetector: freezed == stepDetector ? _self._stepDetector : stepDetector // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>?,stepJudge: freezed == stepJudge ? _self._stepJudge : stepJudge // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>?,stepJudgeCognitive: freezed == stepJudgeCognitive ? _self._stepJudgeCognitive : stepJudgeCognitive // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>?,stepArchivist: freezed == stepArchivist ? _self._stepArchivist : stepArchivist // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>?,stepCoach: freezed == stepCoach ? _self._stepCoach : stepCoach // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>?,stepInteraction: freezed == stepInteraction ? _self._stepInteraction : stepInteraction // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>?,stepPanel: freezed == stepPanel ? _self._stepPanel : stepPanel // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>?,stepReporter: freezed == stepReporter ? _self._stepReporter : stepReporter // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>?,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as ExecutionStatus,
   ));
 }

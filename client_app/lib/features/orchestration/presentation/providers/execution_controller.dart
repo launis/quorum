@@ -121,3 +121,18 @@ class ExecutionController extends _$ExecutionController {
     );
   }
 }
+
+/// **Execution Raw Data Provider**
+///
+/// Fetches complete raw execution data from the /raw API endpoint.
+/// This includes all agent outputs, hook outputs, and timing information.
+@riverpod
+Future<Map<String, dynamic>> executionRawData(Ref ref, String executionId) async {
+  final repository = ref.watch(executionRepositoryProvider);
+  final result = await repository.getRawExecutionData(executionId).run();
+  
+  return result.fold(
+    (error) => throw error,
+    (data) => data,
+  );
+}

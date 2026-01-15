@@ -24,12 +24,16 @@ class AppException(Exception):
 class ResourceNotFoundError(AppException):
     """Raised when a requested resource (Workflow, Step, Execution) is not found."""
 
-    def __init__(self, resource_type: str, resource_id: str):
+    def __init__(self, resource_type: str, resource_id: str = "", details: dict | None = None):
         """Initialize the exception."""
+        error_details = {"resource_type": resource_type, "resource_id": resource_id}
+        if details:
+            error_details.update(details)
+        
         super().__init__(
-            message=f"{resource_type} with ID '{resource_id}' not found",
+            message=f"{resource_type} with ID '{resource_id}' not found" if resource_id else resource_type,
             status_code=status.HTTP_404_NOT_FOUND,
-            details={"resource_type": resource_type, "resource_id": resource_id},
+            details=error_details,
         )
 
 
@@ -158,3 +162,31 @@ class AuthenticationError(AppException):
     def __init__(self, message: str = "Authentication failed", details: dict | None = None):
         """Initialize the exception."""
         super().__init__(message, status_code=status.HTTP_401_UNAUTHORIZED, details=details)
+
+
+class WorkflowExecutionError(AppException):
+    """Raised when a specific step in a workflow fails."""
+
+    def __init__(
+        self,
+        step_id: str,
+        task_key: str,
+        original_error: Exception,
+        details: dict | None = None,
+    ):
+        """Initialize the exception."""
+        msg = f"Step '{step_id}' (Task: '{task_key}') failed: {str(original_error)}"
+        
+        error_details = details or {}
+        error_details.update({
+            "step_id": step_id,
+            "task_key": task_key,
+            "cause": str(original_error)
+        })
+
+        super().__init__(
+            message=msg,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details=error_details,
+        )
+        self.original_error = original_error

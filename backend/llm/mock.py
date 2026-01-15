@@ -5,7 +5,7 @@ import logging
 import random
 import re
 
-from backend.llm.mock_data import AGENT_CLASS_TO_MOCK_KEY, get_fallback_data
+from backend.llm.mock_data import AGENT_CLASS_TO_MOCK_KEY, get_fallback_data, MOCK_REGISTRY
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,11 @@ class MockLLMService:
         self.agent_identity_map = AGENT_CLASS_TO_MOCK_KEY
 
     def generate_content(
-        self, prompt: str, system_instruction: str | None = None, agent_identity: str | None = None
+        self,
+        prompt: str,
+        system_instruction: str | None = None,
+        agent_identity: str | None = None,
+        response_schema: Any | None = None,
     ) -> str:
         """Generates mocked content based on the input prompt and identity.
 
@@ -31,12 +35,20 @@ class MockLLMService:
             prompt (str): The user prompt.
             system_instruction (Optional[str]): The system instruction prompting the specific agent persona.
             agent_identity (Optional[str]): Explicit agent identifier (e.g. 'AnalystAgent') to bypass heuristics.
+            response_schema (Optional[Type[BaseModel]]): The expected Pydantic schema class.
 
         Returns:
             str: JSON string representing the mocked agent output.
 
         """
         logger.info(f"[MockLLM] Intercepted call. Prompt length: {len(prompt)}")
+
+        # 0. DIRECT REGISTRY LOOKUP (Robust)
+        if response_schema and response_schema in MOCK_REGISTRY:
+            logger.info(f"[MockLLM] Registry Hit: Returning mock data for schema '{response_schema.__name__}'.")
+            mock_obj = MOCK_REGISTRY[response_schema]
+            # Use model_dump_json for Pydantic v2 consistency
+            return mock_obj.model_dump_json()
 
         # 1. Determine Identity
         key = None

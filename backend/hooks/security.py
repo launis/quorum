@@ -71,3 +71,91 @@ def check_banned_phrases(text: str, phrases: list[str]) -> list[str]:
             detected.append(phrase)
 
     return list(set(detected))
+
+
+# --- WORKFLOW STATE WRAPPERS (for HOOK_MAPPING compatibility) ---
+
+# NOTE (Jan 2026): Removed DEFAULT_BANNED_PHRASES per Zero-Fallback Rule.
+# Banned phrases MUST be fetched from database.
+
+
+def sanitize_text_hook(state) -> "WorkflowState":
+    """WorkflowState wrapper for sanitize_text.
+    
+    Sanitizes all text inputs and stores results in aux_data.
+    """
+    logger.info("[SecurityHook] Running sanitize_text_hook...")
+    
+    if not hasattr(state, "inputs") or not state.inputs:
+        return state
+    
+    sanitized_inputs = {}
+    threats_summary = []
+    
+    for field in ["history_text", "product_text", "reflection_text"]:
+        original = getattr(state.inputs, field, "") or ""
+        if original.strip():
+            sanitized, threats = sanitize_text(original)
+            sanitized_inputs[field] = sanitized
+            if threats:
+                threats_summary.extend(threats)
+        else:
+            sanitized_inputs[field] = original
+    
+    state.aux_data["sanitized_inputs"] = sanitized_inputs
+    state.aux_data["pii_threats_detected"] = threats_summary
+    
+    if threats_summary:
+        logger.warning(f"[SecurityHook] PII detected and redacted: {threats_summary}")
+    else:
+        logger.info("[SecurityHook] No PII detected.")
+    
+    return state
+
+
+async def check_banned_phrases_hook(state, repository=None) -> "WorkflowState":
+    """WorkflowState wrapper for check_banned_phrases.
+    
+    Scans all text inputs for banned phrases fetched from database.
+    
+    NOTE: This hook requires repository parameter to fetch banned phrases.
+    Falls back to empty list if repository not provided (Zero-Fallback compliance).
+    """
+    logger.info("[SecurityHook] Running check_banned_phrases_hook...")
+    
+    if not hasattr(state, "inputs") or not state.inputs:
+        return state
+    
+    # Fetch banned phrases from database (Zero-Fallback compliance)
+    banned_phrases = []
+    if repository:
+        try:
+            phrases_records = await repository.get_banned_phrases()
+            banned_phrases = [p.get("phrase", "") for p in phrases_records if p.get("phrase")]
+            logger.info(f"[SecurityHook] Loaded {len(banned_phrases)} banned phrases from DB.")
+        except Exception as e:
+            logger.error(f"[SecurityHook] Failed to fetch banned phrases: {e}")
+            # Zero-Fallback: Fail explicitly, don't use hardcoded defaults
+            state.aux_data["banned_phrases_error"] = str(e)
+            return state
+    else:
+        logger.warning("[SecurityHook] No repository provided - skipping banned phrase check.")
+        state.aux_data["banned_phrases_detected"] = []
+        return state
+    
+    all_text = ""
+    for field in ["history_text", "product_text", "reflection_text"]:
+        text = getattr(state.inputs, field, "") or ""
+        all_text += text + "\n"
+    
+    detected = check_banned_phrases(all_text, banned_phrases)
+    
+    state.aux_data["banned_phrases_detected"] = detected
+    
+    if detected:
+        logger.warning(f"[SecurityHook] Banned phrases detected: {detected}")
+        state.aux_data["security_threat"] = True
+    else:
+        logger.info("[SecurityHook] No banned phrases detected.")
+    
+    return state

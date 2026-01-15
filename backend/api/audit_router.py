@@ -43,25 +43,26 @@ async def get_audit_logs(
         elif user.role == UserRole.ADMIN:
             # ADMIN is forced to their own org.
             if organization_id and organization_id != user.organization_id:
+                from backend.exceptions import PermissionDeniedError
                 error_code = "ACCESS_DENIED_ORGANIZATION_MISMATCH"
                 logger.warning(f"{error_code}: Admin {user.uid} tried to access org {organization_id}")
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail=error_code,
-                )
+                raise PermissionDeniedError(message="Organization mismatch", details={"error_code": error_code})
             target_org = user.organization_id
         else:
+            from backend.exceptions import PermissionDeniedError
             error_code = "PERMISSION_DENIED"
             logger.warning(f"{error_code}: User {user.uid} with role {user.role} denied audit access")
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error_code)
+            raise PermissionDeniedError(message="Audit access denied", details={"error_code": error_code})
 
         # 2. Fetch Logs
         logs = await audit_service.get_logs(organization_id=target_org, actor_uid=actor_uid, action=action, limit=limit)
         return logs
 
-    except HTTPException:
-        raise
     except Exception as e:
+        from backend.exceptions import AppException
+        if isinstance(e, AppException):
+            raise
+
         error_code = "AUDIT_LOG_RETRIEVAL_FAILED"
-        logger.error(f"{error_code}: Failed to retrieve audit logs: {e}", exc_info=True)
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_code) from e
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise AppException(message=error_code, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"original_error": str(e)}) from e

@@ -26,17 +26,90 @@ class ResultDashboard extends StatelessWidget {
     final rawResult = (execution as ExecutionCompleted).result;
     final data = Map<String, dynamic>.from(rawResult);
 
-    final reportRaw = data['Report'];
-    final report =
-        (reportRaw is Map)
-            ? Map<String, dynamic>.from(reportRaw)
+    // --- V2 State Adapter (Jan 2026) ---
+    // Maps the flat V2 WorkflowState to the legacy "Report" structure expected by widgets.
+    Map<String, dynamic> report;
+    Map<String, dynamic> sysStatus;
+
+    if (data.containsKey('Report')) {
+      // Legacy V1 Structure
+      report = Map<String, dynamic>.from(data['Report'] as Map);
+      sysStatus = Map<String, dynamic>.from(data['System_Status'] as Map? ?? {});
+    } else {
+      // V2 Structure (GraphEngine State)
+      final stepReporter =
+          data['step_reporter'] != null
+              ? Map<String, dynamic>.from(data['step_reporter'] as Map)
+              : <String, dynamic>{};
+      
+      final stepJudge =
+          data['step_judge'] != null
+              ? Map<String, dynamic>.from(data['step_judge'] as Map)
+              : <String, dynamic>{};
+      
+      final stepCoach =
+          data['step_coach'] != null
+              ? Map<String, dynamic>.from(data['step_coach'] as Map)
+              : <String, dynamic>{};
+
+      final stepOverseer =
+        data['step_overseer'] != null
+            ? Map<String, dynamic>.from(data['step_overseer'] as Map)
             : <String, dynamic>{};
 
-    final sysStatusRaw = data['System_Status'];
-    final sysStatus =
-        (sysStatusRaw is Map)
-            ? Map<String, dynamic>.from(sysStatusRaw)
-            : <String, dynamic>{};
+      // 1. Map High-Level Metrics
+      // Hoisted fields take precedence, then step_reporter
+      final verdict = data['final_verdict'] ?? stepReporter['final_verdict'];
+      final confidence = data['confidence_score'] ?? stepReporter['confidence_score'];
+      final xaiMarkdown = data['xai_report_formatted'] ?? stepReporter['xai_report_formatted'];
+      
+      // 2. Map Scores (Legacy Pisteet)
+      // V2 TuomioJaPisteet.pisteet is typically a Map { "analyysi": {...}, ... }
+      final scores = stepJudge['pisteet'] ?? {};
+
+      // 3. Map Feedback
+      // Flatten Coach ActionGroups for legacy list view
+      List<String> actions = [];
+      if (stepCoach['kehityskohteet_konkreettisesti'] is List) {
+        for (var group in stepCoach['kehityskohteet_konkreettisesti']) {
+           if (group is Map && group['kohdat'] is List) {
+             for (var item in group['kohdat']) {
+               if (item is Map) actions.add(item['otsikko'] ?? '');
+             }
+           }
+        }
+      }
+      
+      report = {
+         'final_verdict': verdict,
+         'confidence': confidence,
+         'xai_report_formatted': xaiMarkdown,
+         'comparison_data': stepReporter['comparison_data'],
+         'scores': scores,
+         'kehitystoimenpiteet': actions, // Mapped from ActionGroups
+         'kehitysehdotukset': stepCoach['lopputuloksen_kehitysehdotukset'] ?? [],
+         // Pass through other step data for deep dives
+         'psykologinen_profiili': data['step_profiler'],
+         'vuorovaikutus_analyysi': data['step_interaction'],
+         // For Evidence Dashboard
+         'rag_todisteet': (data['step_analyst'] as Map?)?['rag_todisteet'],
+         'toulmin_analyysi': (data['step_logician'] as Map?)?['toulmin_analyysi'],
+         // For Pre-Mortem
+         'pre_mortem_analyysi': (data['step_detector'] as Map?)?['pre_mortem_analyysi'],
+      };
+
+      // 4. Map System Status
+      // Derive risk level from Security or Overseer
+      String riskLevel = 'N/A';
+      if (data['step_guard'] != null) {
+         riskLevel = (data['step_guard'] as Map?)?['security_check']?['riski_taso'] ?? 'N/A';
+      }
+      
+      sysStatus = {
+        'status': 'Done',
+        'riski_taso': riskLevel
+      };
+    }
 
     // Check for Dual Matrix Data (Comparison)
     // Logic from renderer.py: Check comparison_data in Report OR in Raw_Steps fallback

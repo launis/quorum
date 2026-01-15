@@ -1,462 +1,310 @@
-"""Mock data generator for LLM responses."""
+"""Mock Data Store for AI Layer Testing (Zero-Token Cost)."""
 
-from typing import Any
+from typing import Any, Dict, Type
+
+from backend.models.domain import (
+    Metadata,
+    TodistusKartta, Hypoteesi, RagTodiste,
+    PanelAudit, ArgumentaatioAnalyysi, LogiikkaAuditointi, KausaalinenAuditointi, PerformatiivisuusAuditointi, EtiikkaJaFakta,
+    ToulminKomponentti, KognitiivinenTaso, WaltonSkeema,
+    WaltonStressitesti, PaattelyketjunUskollisuus,
+    KausaalinenAuditointiData, KontrafaktuaalinenTesti,
+    PerformatiivisuusHeuristiikka, PreMortemAnalyysi,
+    FaktantarkistusRFI, EettinenHavainto,
+    FaktantarkistusRFI, EettinenHavainto,
+    InteractionAnalysis, ProfilerAnalysis, ArchivistOutput, CaseLawContext,
+    TuomioJaPisteet, CoachingPlan, XAIReport, EvaluationResult, DimensionResultItem,
+    MestaruusPoikkeama, AitousEpaily, Pisteet, KonfliktinRatkaisu,
+    ActionGroup, ActionItem,
+    TaintedData, TaintedDataContent, SafeDataContent, SecurityCheck
+)
+from backend.tasks.security import GuardResult
+
+# --- Common Metadata ---
+MOCK_METADATA = Metadata(
+    luontiaika="2026-01-01T12:00:00Z",
+    agentti="MOCK_AGENT",
+    vaihe=1,
+    versio="2.0",
+    suoritus_ymparisto="Internal"
+)
+
+# --- Task Outputs ---
+
+# 1. Guard (Usually logic-based, but if LLM used in future)
+# Note: Current Guard is functional regex, but user requested consistent mocking logic.
+MOCK_GUARD_OUTPUT = GuardResult(
+    is_safe=True,
+    sanitized_inputs={"history_text": "Sanitized...", "product_text": "Sanitized product..."},
+    threats_detected=[]
+)
+
+# 2. Analyst (TodistusKartta)
+MOCK_ANALYST_OUTPUT = TodistusKartta(
+    metadata=MOCK_METADATA.model_copy(update={"agentti": "Analyst", "vaihe": 3}),
+    metodologinen_loki="Mock Analysis applied.",
+    edellisen_vaiheen_validointi="Pass",
+    semanttinen_tarkistussumma="hash_123",
+    reasoning_trace="Mock reasoning trace...",
+    hypoteesit=[
+        Hypoteesi(
+            id="H1",
+            vaite_teksti="Mock Hypothesis 1: The architecture is robust.",
+            loytyyko_todisteita=True,
+            hakusana_ehdotus="architecture robustness"
+        )
+    ],
+    rag_todisteet=[
+        RagTodiste(
+            viittaa_hypoteesiin_id="H1",
+            perusteet="Mock evidence supports the hypothesis about architecture robustness.",
+            konteksti_segmentti="The architecture handles high load efficiently.",
+            relevanssi_score=95
+        )
+    ]
+)
+
+# 3. Panel (PanelAudit - Composite)
+MOCK_PANEL_OUTPUT = PanelAudit(
+    metadata=MOCK_METADATA.model_copy(update={"agentti": "Panel", "vaihe": 4}),
+    metodologinen_loki="Mock Panel Review.",
+    edellisen_vaiheen_validointi="Pass",
+    semanttinen_tarkistussumma="hash_456",
+    
+    # Logician
+    logiikka_auditointi=ArgumentaatioAnalyysi(
+        metadata=MOCK_METADATA, metodologinen_loki="Logician", edellisen_vaiheen_validointi="OK", semanttinen_tarkistussumma="h1",
+        toulmin_analyysi=[
+            ToulminKomponentti(vaite_id="H1", claim="Robust", data="Docs", warrant="Standard", backing="Verify")
+        ],
+        kognitiivinen_taso=KognitiivinenTaso(bloom_taso="Evaluation", strateginen_syvyys="Deep"),
+        walton_skeema=WaltonSkeema(tunnistettu_skeema="Expert Opinion", kriittiset_kysymykset=["Is expert credible?"])
+    ),
+    
+    # Falsifier
+    falsifiointi_auditointi=LogiikkaAuditointi(
+        metadata=MOCK_METADATA, metodologinen_loki="Falsifier", edellisen_vaiheen_validointi="OK", semanttinen_tarkistussumma="h2",
+        walton_stressitesti_loydokset=[
+            WaltonStressitesti(kysymys="Bias?", kestiko_todistusaineisto=True, havainto="No bias")
+        ],
+        paattelyketjun_uskollisuus_auditointi=PaattelyketjunUskollisuus(
+            onko_post_hoc_rationalisointia=False, perustelu="Clean deduction", uskollisuus_score="KORKEA"
+        )
+    ),
+    
+    # Causal
+    kausaalinen_auditointi=KausaalinenAuditointi(
+        metadata=MOCK_METADATA, metodologinen_loki="Causal", edellisen_vaiheen_validointi="OK", semanttinen_tarkistussumma="h3",
+        kausaalinen_auditointi=KausaalinenAuditointiData(aikajana_validi=True, havainnot="Linear"),
+        kontrafaktuaalinen_testi=KontrafaktuaalinenTesti(
+            skenaario_A_toteutunut="A", skenaario_B_simulaatio="B", uskottavuus_arvio="Plausible"
+        ),
+        abduktiivinen_paatelma="Aito Oivallus"
+    ),
+    
+    # Detector
+    performatiivisuus_auditointi=PerformatiivisuusAuditointi(
+        metadata=MOCK_METADATA, metodologinen_loki="Detector", edellisen_vaiheen_validointi="OK", semanttinen_tarkistussumma="h4",
+        performatiivisuus_heuristiikat=[
+            PerformatiivisuusHeuristiikka(heuristiikka="Buzzwords", lippu_nostettu=False, kuvaus="Clean")
+        ],
+        pre_mortem_analyysi=PreMortemAnalyysi(suoritettu=True, hiljaiset_signaalit=["None"]),
+        yleisarvio_aitoudesta="Orgaaninen"
+    ),
+    
+    # Overseer
+    etiikka_ja_fakta=EtiikkaJaFakta(
+        metadata=MOCK_METADATA, metodologinen_loki="Overseer", edellisen_vaiheen_validointi="OK", semanttinen_tarkistussumma="h5",
+        faktantarkistus_rfi=[
+            FaktantarkistusRFI(vaite="Sky is blue", verifiointi_tulos="Vahvistettu", lahde_tai_paattely="Visual")
+        ],
+        eettiset_havainnot=[
+            EettinenHavainto(tyyppi="Ei havaittu", vakavuus="N/A", kuvaus="Safe")
+        ]
+    )
+)
+
+# 4. Interaction Analysis
+MOCK_INTERACTION_OUTPUT = InteractionAnalysis(
+    metadata=MOCK_METADATA.model_copy(update={"agentti": "Interaction", "vaihe": 3}),
+    metodologinen_loki="Mock Interaction Audit",
+    edellisen_vaiheen_validointi="Pass",
+    semanttinen_tarkistussumma="hash_int",
+    tunnistetut_strategiat=["Few-Shot", "Korjaava"],
+    ohjausliikkeet=5,
+    driver_classification="Kuski",
+    input_control_ratio=0.8
+)
+
+# 5. Profiler Analysis
+MOCK_PROFILER_OUTPUT = ProfilerAnalysis(
+    metadata=MOCK_METADATA.model_copy(update={"agentti": "Profiler", "vaihe": 4}),
+    metodologinen_loki="Mock Profiler",
+    edellisen_vaiheen_validointi="Pass",
+    semanttinen_tarkistussumma="hash_prof",
+    intentio_analyysi="Co-Creation",
+    tunnetila_ja_savy="Neutral",
+    tunnistetut_vinoumat=[],
+    psykologinen_profiili="Analytical",
+    manipulaatio_yritykset="None"
+)
+
+# 6. Archivist Output (CaseLawContext)
+MOCK_ARCHIVIST_OUTPUT = CaseLawContext(
+    metadata=MOCK_METADATA.model_copy(update={"agentti": "Archivist", "vaihe": 8}),
+    metodologinen_loki="Mock Archivist",
+    edellisen_vaiheen_validointi="Pass",
+    semanttinen_tarkistussumma="hash_arch",
+    linjakkuus_analyysi="Aligned with precedents.",
+    poikkeamat_linjasta="None.",
+    suositus_tuomarille="Adhere to standard.",
+    viitatut_ennakkotapaukset=["Case A", "Case B"]
+)
+
+# 7. Judge Output
+# 7. Judge Output (EvaluationResult)
+MOCK_JUDGE_OUTPUT = EvaluationResult(
+    metadata=MOCK_METADATA.model_copy(update={"agentti": "Judge", "vaihe": 9}),
+    metodologinen_loki="Mock Judge",
+    edellisen_vaiheen_validointi="Pass",
+    semanttinen_tarkistussumma="hash_judge",
+    matrix_id="mock_matrix",
+    scale_min=1,
+    scale_max=5,
+    total_score=4.5,
+    dimensions=[
+        DimensionResultItem(dimension_id="dim1", score=5, reasoning="Excellent"),
+        DimensionResultItem(dimension_id="dim2", score=4, reasoning="Good")
+    ],
+    critical_findings=["Mock finding"]
+)
+
+# 8. Coach Output
+MOCK_COACH_OUTPUT = CoachingPlan(
+    metadata=MOCK_METADATA.model_copy(update={"agentti": "Coach", "vaihe": 12}),
+    metodologinen_loki="Mock Coach",
+    edellisen_vaiheen_validointi="Pass",
+    semanttinen_tarkistussumma="hash_coach",
+    kannustava_palaute="Excellent driver behavior.",
+    kehityskohteet_konkreettisesti=[],
+    lopputuloksen_kehitysehdotukset=["Polish the tone."],
+    lahdeluettelo=[]
+)
+
+# 9. XAI Report
+MOCK_XAI_OUTPUT = XAIReport(
+    metadata=MOCK_METADATA.model_copy(update={"agentti": "XAI", "vaihe": 13}),
+    metodologinen_loki="Mock XAI",
+    edellisen_vaiheen_validointi="Pass",
+    semanttinen_tarkistussumma="hash_xai",
+    executive_summary="Passed all checks.",
+    analysis_strengths="Strong logic.",
+    analysis_weaknesses="None.",
+    analysis_opportunities="None.",
+    analysis_recommendations="Deploy.",
+    final_verdict="Approved",
+    confidence_score=0.99
+)
+
+
+# 10. Tainted Data (Guard Agent Model)
+MOCK_TAINTED_DATA = TaintedData(
+    metadata=MOCK_METADATA.model_copy(update={"agentti": "GuardAgent", "vaihe": 1}),
+    metodologinen_loki="Mock Guard Scan",
+    edellisen_vaiheen_validointi="N/A",
+    semanttinen_tarkistussumma="hash_guard",
+    data=TaintedDataContent(
+        keskusteluhistoria="{{FILE: Keskusteluhistoria.pdf}}",
+        lopputuote="{{FILE: Lopputuote.pdf}}",
+        reflektiodokumentti="{{FILE: Reflektiodokumentti.pdf}}"
+    ),
+    security_check=SecurityCheck(
+        uhka_havaittu=False,
+        adversariaalinen_simulaatio_tulos="No threats detected in simulation.",
+        riski_taso="MATALA",
+        anonymisointi_tehty=True,
+        tietosuoja_raportti="Mock data redacted."
+    ),
+    safe_data=SafeDataContent(
+        keskusteluhistoria="Sanitized history",
+        lopputuote="Sanitized product",
+        reflektiodokumentti="Sanitized reflection"
+    )
+)
+
+
+# Registry Mapping
+# Maps the Pydantic MODEL CLASS to the instance
+MOCK_REGISTRY: Dict[Type[Any], Any] = {
+    TodistusKartta: MOCK_ANALYST_OUTPUT,
+    PanelAudit: MOCK_PANEL_OUTPUT,
+    GuardResult: MOCK_GUARD_OUTPUT,
+    TaintedData: MOCK_TAINTED_DATA,
+    InteractionAnalysis: MOCK_INTERACTION_OUTPUT,
+    ProfilerAnalysis: MOCK_PROFILER_OUTPUT,
+    CaseLawContext: MOCK_ARCHIVIST_OUTPUT,
+    EvaluationResult: MOCK_JUDGE_OUTPUT,
+    TuomioJaPisteet: MOCK_JUDGE_OUTPUT, # Legacy fallback
+    CoachingPlan: MOCK_COACH_OUTPUT,
+    XAIReport: MOCK_XAI_OUTPUT,
+    
+    # Expose Panel Components individually in case tasks are run in isolation
+    ArgumentaatioAnalyysi: MOCK_PANEL_OUTPUT.logiikka_auditointi,
+    LogiikkaAuditointi: MOCK_PANEL_OUTPUT.falsifiointi_auditointi,
+    KausaalinenAuditointi: MOCK_PANEL_OUTPUT.kausaalinen_auditointi,
+    PerformatiivisuusAuditointi: MOCK_PANEL_OUTPUT.performatiivisuus_auditointi,
+    EtiikkaJaFakta: MOCK_PANEL_OUTPUT.etiikka_ja_fakta
+}
+
+# --- Lookups & Helpers ---
 
 AGENT_CLASS_TO_MOCK_KEY = {
     "GuardAgent": "guard_agent",
     "AnalystAgent": "analyst_agent",
-    "ProfilerAgent": "profiler_agent",
+    "InteractionAnalystAgent": "interaction_agent",
     "LogicianAgent": "logician_agent",
     "LogicalFalsifierAgent": "falsifier_agent",
-    "FactualOverseerAgent": "fact_checker_agent",
     "CausalAnalystAgent": "causal_agent",
     "PerformativityDetectorAgent": "performativity_agent",
-    "JudgeAgent": "judge_agent",
-    "XAIReporterAgent": "xai_agent",
+    "FactualOverseerAgent": "fact_checker_agent",
+    "ProfilerAgent": "profiler_agent",
     "ArchivistAgent": "archivist_agent",
+    "JudgeAgent": "judge_agent",
     "CoachAgent": "coach_agent",
-    "PanelAgent": "panel_agent",
-    "InteractionAnalystAgent": "interaction_agent",
+    "XAIReporterAgent": "xai_agent",
+    "PanelAgent": "panel_agent"
 }
 
+def get_fallback_data(key: str) -> Dict[str, Any]:
+    """Retrieves the default mock data for a given agent key."""
+    if key == "guard_agent":
+        return MOCK_GUARD_OUTPUT.model_dump()
+    elif key == "analyst_agent":
+        return MOCK_ANALYST_OUTPUT.model_dump()
+    elif key == "interaction_agent":
+        return MOCK_INTERACTION_OUTPUT.model_dump()
+    elif key == "logician_agent":
+        return MOCK_PANEL_OUTPUT.logiikka_auditointi.model_dump()
+    elif key == "falsifier_agent":
+        return MOCK_PANEL_OUTPUT.falsifiointi_auditointi.model_dump()
+    elif key == "causal_agent":
+        return MOCK_PANEL_OUTPUT.kausaalinen_auditointi.model_dump()
+    elif key == "performativity_agent":
+        return MOCK_PANEL_OUTPUT.performatiivisuus_auditointi.model_dump()
+    elif key == "fact_checker_agent":
+        return MOCK_PANEL_OUTPUT.etiikka_ja_fakta.model_dump()
+    elif key == "profiler_agent":
+        return MOCK_PROFILER_OUTPUT.model_dump()
+    elif key == "archivist_agent":
+        return MOCK_ARCHIVIST_OUTPUT.model_dump()
+    elif key == "panel_agent":
+        return MOCK_PANEL_OUTPUT.model_dump()
+    elif key == "judge_agent":
+        return MOCK_JUDGE_OUTPUT.model_dump()
+    elif key == "coach_agent":
+        return MOCK_COACH_OUTPUT.model_dump()
+    elif key == "xai_agent":
+        return MOCK_XAI_OUTPUT.model_dump()
+    
+    return {"message": "Mock data not found for key", "key": key}
 
-def get_fallback_data(key: str) -> dict[str, Any]:
-    """Returns generic valid JSON for the given proper mock key.
-
-    Used when specific mock responses are missing from data/mock_responses.json.
-
-    Args:
-        key (str): The mock key (e.g. 'analyst_agent').
-
-    Returns:
-        Dict[str, Any]: A dictionary representing the mock response.
-
-    """
-    match key:
-        case "guard_agent":
-            return _generate_guard_data()
-        case "analyst_agent":
-            return _generate_analyst_data()
-        case "interaction_agent":
-            return _generate_interaction_data()
-        case "profiler_agent":
-            return _generate_profiler_data()
-        case "logician_agent":
-            return _generate_logician_data()
-        case "falsifier_agent":
-            return _generate_falsifier_data()
-        case "fact_checker_agent":
-            return _generate_fact_checker_data()
-        case "causal_agent":
-            return _generate_causal_data()
-        case "archivist_agent":
-            return _generate_archivist_data()
-        case "performativity_agent":
-            return _generate_performativity_data()
-        case "judge_agent":
-            return _generate_judge_data()
-        case "xai_agent":
-            return _generate_xai_data()
-        case "coach_agent":
-            return _generate_coach_data()
-        case "panel_agent":
-            return _generate_panel_data()
-        case _:
-            return {"error": "No mock data available", "mock_key": key}
-
-
-def get_example_for_agent(agent_class_name: str) -> dict[str, Any] | None:
-    """Retrieves the mock data example for a given agent class name.
-
-    Args:
-        agent_class_name (str): The class name of the agent.
-
-    Returns:
-        Optional[Dict[str, Any]]: The mock example or None if not found.
-
-    """
-    key = AGENT_CLASS_TO_MOCK_KEY.get(agent_class_name)
-    if key:
-        return get_fallback_data(key)
-    return None
-
-
-def _clone(base: dict, agent: str, vaihe: float) -> dict:
-    """Helper to deep copy and set base metadata.
-
-    Args:
-        base (Dict): The base dictionary structure.
-        agent (str): The agent name to inject.
-        vaihe (float): The step number (phase).
-
-    Returns:
-        Dict: cloned and updated dictionary.
-
-    """
-    import copy
-
-    new_data = copy.deepcopy(base)
-    new_data["metadata"]["agentti"] = agent
-    new_data["metadata"]["vaihe"] = vaihe
-    return new_data
-
-
-def _get_common_base() -> dict[str, Any]:
-    """Helper to get common base data for fallback generators.
-
-    Returns:
-        Dict[str, Any]: Common base structure with metadata.
-
-    """
-    common_metadata = {
-        "luontiaika": "2024-01-01T00:00:00Z",
-        "agentti": "MockAgent",
-        "vaihe": 0,
-        "versio": "2.0",
-        "suoritus_ymparisto": "Internal",
-    }
-
-    return {
-        "metadata": common_metadata,
-        "metodologinen_loki": "[MOCK] Fallback generation",
-        "edellisen_vaiheen_validointi": "N/A",
-        "semanttinen_tarkistussumma": "mock_hash",
-    }
-
-
-# --- Generator Functions ---
-
-
-def _generate_guard_data() -> dict[str, Any]:
-    data = _clone(_get_common_base(), agent="Vartija", vaihe=1)
-    data.update(
-        {
-            "data": {
-                "keskusteluhistoria": "{{FILE: Keskusteluhistoria.pdf}}",
-                "lopputuote": "{{FILE: Lopputuote.pdf}}",
-                "reflektiodokumentti": "{{FILE: Reflektiodokumentti.pdf}}",
-            },
-            "security_check": {
-                "uhka_havaittu": False,
-                "adversariaalinen_simulaatio_tulos": "Clean",
-                "riski_taso": "MATALA",
-            },
-            "safe_data": {
-                "keskusteluhistoria": "Puhdistettu historia...",
-                "lopputuote": "Puhdistettu tuotos...",
-                "reflektiodokumentti": "Puhdistettu reflektio...",
-            },
-        }
-    )
-    return data
-
-
-def _generate_analyst_data() -> dict[str, Any]:
-    data = _clone(_get_common_base(), agent="Analyytikko", vaihe=2)
-    data.update(
-        {
-            "hypoteesit": [
-                {
-                    "id": "H1",
-                    "vaite_teksti": "Opiskelija osoittaa kriittistä ajattelua.",
-                    "loytyyko_todisteita": True,
-                    "hakusana_ehdotus": "kriittinen ajattelu pedagogiikka",
-                },
-                {
-                    "id": "H2",
-                    "vaite_teksti": "Argumentaatio on puutteellista.",
-                    "loytyyko_todisteita": False,
-                    "hakusana_ehdotus": None,
-                },
-            ],
-            "rag_todisteet": [
-                {
-                    "viittaa_hypoteesiin_id": "H1",
-                    "perusteet": "Löytyy reflektiosta.",
-                    "konteksti_segmentti": "Oivalsin, että argumentaatio vaatii tukea...",
-                    "relevanssi_score": 90,
-                }
-            ],
-        }
-    )
-    return data
-
-
-def _generate_interaction_data() -> dict[str, Any]:
-    data = _clone(_get_common_base(), agent="Vuorovaikutus", vaihe=2.2)
-    data.update(
-        {
-            "tunnistetut_strategiat": ["Iterative refinement", "Constraint-based"],
-            "ohjausliikkeet": 3,
-            "driver_classification": "Kartanlukija",
-            "input_control_ratio": 0.35,
-        }
-    )
-    return data
-
-
-def _generate_profiler_data() -> dict[str, Any]:
-    data = _clone(_get_common_base(), agent="Profiloija", vaihe=2.5)
-    data.update(
-        {
-            "intentio_analyysi": "Kirjoittajan intentio on vaikuttaa tunteisiin ja vakuuttaa.",
-            "tunnetila_ja_savy": "Ahdistunut mutta toiveikas.",
-            "tunnistetut_vinoumat": [
-                {
-                    "nimi": "Vahvistusharha",
-                    "selitys": "Analyysi painottaa vain omaa puolta jättäen vasta-argumentit huomiotta.",
-                }
-            ],
-            "psykologinen_profiili": "Puolustuskannalla oleva oppija, joka hakee hyväksyntää.",
-            "manipulaatio_yritykset": "Ei havaittu.",
-            "teksti_metriikka": {
-                "word_count": 150,
-                "sentence_count": 15,
-                "avg_sentence_length": 10.0,
-                "lexical_diversity": 0.6,
-                "capitalization_ratio": 0.05,
-            },
-        }
-    )
-    return data
-
-
-def _generate_logician_data() -> dict[str, Any]:
-    data = _clone(_get_common_base(), agent="Loogikko", vaihe=3)
-    data.update(
-        {
-            "toulmin_analyysi": [
-                {
-                    "vaite_id": "H1",
-                    "claim": "Tekoäly on hyödyllinen.",
-                    "data": "Se nopeuttaa työtä.",
-                    "warrant": "Nopeus on hyödyllistä.",
-                    "backing": "Tutkimukset osoittavat tehokkuuden kasvun.",
-                }
-            ],
-            "kognitiivinen_taso": {"bloom_taso": "Analyze", "strateginen_syvyys": "Syvä"},
-            "walton_skeema": {
-                "tunnistettu_skeema": "Argument from Expert Opinion",
-                "kriittiset_kysymykset": [
-                    "Onko asiantuntija luotettava?",
-                    "Onko lausunto ristiriidassa muiden kanssa?",
-                ],
-            },
-        }
-    )
-    return data
-
-
-def _generate_falsifier_data() -> dict[str, Any]:
-    data = _clone(_get_common_base(), agent="Falsifioija", vaihe=4)
-    data.update(
-        {
-            "walton_stressitesti_loydokset": [
-                {
-                    "kysymys": "Mitä jos oletus X on väärä?",
-                    "kestiko_todistusaineisto": True,
-                    "havainto": "Perustelu nojaa vahvaan dataan.",
-                }
-            ],
-            "paattelyketjun_uskollisuus_auditointi": {
-                "onko_post_hoc_rationalisointia": False,
-                "perustelu": "Päättely etenee loogisesti premisseistä johtopäätökseen.",
-                "uskollisuus_score": "KORKEA",
-            },
-        }
-    )
-    return data
-
-
-def _generate_fact_checker_data() -> dict[str, Any]:
-    data = _clone(_get_common_base(), agent="Valvoja", vaihe=5)
-    data.update(
-        {
-            "faktantarkistus_rfi": [
-                {
-                    "vaite": "Maa on pyöreä.",
-                    "verifiointi_tulos": "Vahvistettu",
-                    "lahde_tai_paattely": "Yleistieto / NASA",
-                },
-                {"vaite": "Kuu on juustoa.", "verifiointi_tulos": "Kumottu", "lahde_tai_paattely": "Apollo-lennot"},
-            ],
-            "eettiset_havainnot": [
-                {"tyyppi": "Ei havaittu", "vakavuus": "N/A", "kuvaus": "Sisältö noudattaa turvallisuusohjeita."}
-            ],
-        }
-    )
-    return data
-
-
-def _generate_causal_data() -> dict[str, Any]:
-    data = _clone(_get_common_base(), agent="Kausaalinen", vaihe=6)
-    data.update(
-        {
-            "kausaalinen_auditointi": {
-                "aikajana_validi": True,
-                "havainnot": "Syys-seuraussuhteet ovat johdonmukaisia.",
-            },
-            "kontrafaktuaalinen_testi": {
-                "skenaario_A_toteutunut": "Opiskelija käytti tekoälyä.",
-                "skenaario_B_simulaatio": "Jos opiskelija ei olisi käyttänyt tekoälyä, tulos olisi ollut suppeampi.",
-                "uskottavuus_arvio": "Uskottava",
-            },
-            "abduktiivinen_paatelma": "Aito Oivallus",
-        }
-    )
-    return data
-
-
-def _generate_performativity_data() -> dict[str, Any]:
-    data = _clone(_get_common_base(), agent="Performatiivisuus", vaihe=7)
-    data.update(
-        {
-            "performatiivisuus_heuristiikat": [
-                {"heuristiikka": "Buzzwords", "lippu_nostettu": False, "kuvaus": "Kieli on luonnollista."}
-            ],
-            "pre_mortem_analyysi": {"suoritettu": True, "hiljaiset_signaalit": ["Ei havaittu hälyttäviä signaaleja."]},
-            "yleisarvio_aitoudesta": "Orgaaninen",
-        }
-    )
-    return data
-
-
-def _generate_judge_data() -> dict[str, Any]:
-    data = _clone(_get_common_base(), agent="Tuomari", vaihe=9)
-    # UPDATED: Matches EvaluationResult schema (Dynamic Matrix) with explicit scale
-    data.update(
-        {
-            "matrix_id": "matrix_standard_v1",
-            "scale_min": 1,
-            "scale_max": 5,
-            "total_score": 3.3,
-            "dimensions": [
-                {
-                    "dimension_id": "agency",
-                    "score": 3,
-                    "reasoning": "Käyttäjä ajoi prosessia (Kuski), mutta korjaukset olivat reaktiivisia.",
-                },
-                {
-                    "dimension_id": "synteesi",
-                    "score": 4,
-                    "reasoning": "Synteesi on vahva ja luo uutta tietoa ('Supermegatrendit').",
-                },
-                {"dimension_id": "falsification", "score": 3, "reasoning": "Käyttäjä haastoi tekoälyä kohtuullisesti."},
-            ],
-            "critical_findings": ["Prosessin hallinta parani lopussa.", "Argumentaatio on vahvaa."],
-        }
-    )
-    return data
-
-
-def _generate_xai_data() -> dict[str, Any]:
-    data = _clone(_get_common_base(), agent="XAI-Raportoija", vaihe=13)
-    data.update(
-        {
-            "executive_summary": "Tämä on MOCK-yhteenveto. Järjestelmä on arvioinut suorituksen hyväksyttäväksi.",
-            "final_verdict": "Hyväksytty (Kuski)",
-            "confidence_score": 0.95,
-            "analysis_strengths": "Vahva looginen päättely ja hyvä lähdekritiikki.",
-            "analysis_weaknesses": "Hieman toistuvaa kieltä paikoitellen.",
-            "analysis_opportunities": "Voisi syventää kausaalianalyysiä.",
-            "analysis_recommendations": "Jatka samaan malliin, mutta kiinnitä huomiota kielen variaatioon.",
-            "xai_report_formatted": (
-                "# XAI Raportti\\n\\n**Päätös:** Hyväksytty.\\n\\nAnalyysi osoittaa vahvaa suoriutumista."
-            ),
-        }
-    )
-    return data
-
-
-def _generate_archivist_data() -> dict[str, Any]:
-    data = _clone(_get_common_base(), agent="Arkistonhoitaja", vaihe=10)
-    data.update(
-        {
-            "linjakkuus_analyysi": "Linjassa aiemman oikeuskäytännön kanssa.",
-            "poikkeamat_linjasta": "Ei merkittäviä poikkeamia.",
-            "suositus_tuomarille": "Hyväksy sellaisenaan.",
-            "viitatut_ennakkotapaukset": ["Case-2023-001", "Case-2024-055"],
-        }
-    )
-    return data
-
-
-def _generate_coach_data() -> dict[str, Any]:
-    data = _clone(_get_common_base(), agent="Valmentaja", vaihe=12)
-    # Matches CoachingPlan(BaseJSON)
-    data.update(
-        {
-            "kannustava_palaute": "Erinomaista työtä 'Supermegatrendit'-konseptin kanssa! "
-            "Tämä oli kriittinen oivallus ('Mestaruus'-hetki), joka pakottaa tekoälyn siirtymään "
-            "yksinkertaisesta tiivistämisestä korkeamman tason synteesiin (vrt. Toulmin 2003). "
-            "Ilman tätä ohjausta raportti olisi jäänyt geneeriseksi listaukseksi.",
-            "kehityskohteet_konkreettisesti": [
-                {
-                    "kategoria": "Prompt Engineering & Tehokkuus",
-                    "kohdat": [
-                        {
-                            "otsikko": "Kontekstin Etupainotteisuus",
-                            "kuvaus": (
-                                "Määrittele rooli (neuvonantaja), kohderyhmä (johtoryhmä) ja tavoite heti alussa. "
-                                "Tämä vähentää iteraatioita."
-                            ),
-                            "resurssit": ["Prompt Engineering: The CO-STAR Method"],
-                        },
-                        {
-                            "otsikko": "Suunniteltu Rakenne",
-                            "kuvaus": "Pyydä ensin sisällysluettelo hyväksyttäväksi ennen tekstin generointia.",
-                            "resurssit": [],
-                        },
-                    ],
-                },
-                {
-                    "kategoria": "Datan Validointi",
-                    "kohdat": [
-                        {
-                            "otsikko": "Syötedatan Eheystarkistus",
-                            "kuvaus": "Tee tarkistuslista (Checklist) syötedatalle. Huomioi puuttuvat raportit.",
-                            "resurssit": ["Data Integrity Checklists"],
-                        }
-                    ],
-                },
-            ],
-            "lopputuloksen_kehitysehdotukset": [
-                "Lisää konkreettisia KPI-mittareita 'Kaupalliset Vaikutukset' -osioon.",
-                "Täsmennä 'Supermegatrendien' keskinäisiä ristiriitoja (esim. Resurssiniukkuus vs. Teknologia).",
-                "Huomioi myös kognitiiviset vinoumat (ks. Kahneman 2011) päätöksenteossa.",
-            ],
-            "lahdeluettelo": [
-                "Toulmin, Stephen E. 2003: The uses of argument. Päivitetty painos. "
-                "Cambridge: Cambridge University Press. DOI: 10.1017/CBO9780511802031.",
-                "Kahneman, Daniel. 2011: Thinking, fast and slow. New York: Farrar, Straus and Giroux.",
-            ],
-        }
-    )
-    return data
-
-
-def _generate_panel_data() -> dict[str, Any]:
-    """Generates a COMPOSITE response for the PanelAgent.
-
-    Must match the complex schema of PanelAgent output.
-
-    Returns:
-        Dict[str, Any]: Composite panel data.
-
-    """
-    data = _clone(_get_common_base(), agent="Tiedepaneeli", vaihe=6)
-
-    # We essentially execute the sub-generators and merge them.
-    # The keys must match what PanelAgent parser expects (snake_case of field names)
-
-    data.update(
-        {
-            "logiikka_auditointi": _generate_logician_data(),
-            "falsifiointi_auditointi": _generate_falsifier_data(),
-            "etiikka_ja_fakta": _generate_fact_checker_data(),
-            "kausaalinen_auditointi": _generate_causal_data(),
-            "performatiivisuus_auditointi": _generate_performativity_data(),
-        }
-    )
-
-    return data

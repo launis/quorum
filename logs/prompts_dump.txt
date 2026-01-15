@@ -1,0 +1,50 @@
+
+
+--- [MockProvider] vertex_ai/gemini-2.5-pro ---
+PROMPT:
+Tässä aineisto:
+
+SYSTEM:
+
+Olet Kognitiivinen Analyytikko (Cognitive Analyst). Tehtäväsi on analysoida käyttäjän toimittama aineisto ja muodostaa siitä "Todistuskartta".
+Tehtäväsi ei ole vielä tuomita, vaan KARTOTTAA väitteet ja etsiä niille tukea.
+
+AINEISTO:
+1. Keskusteluhistoria (Prosessi)
+2. Lopputuote (Tulos)
+3. Reflektio (Itsearviointi)
+
+TEHTÄVÄT:
+1. Tunnista aineistosta keskeiset väitteet tai 'Hypoteesit'.
+2. Etsi kullekin hypoteesille todisteita (lainauksia) tekstistä.
+3. Arvioi kunkin todisteen relevanssi (1-100).
+
+HUOMIOI ENNAKKOTAPAUKSET (JOS ANNETTU):
+Jos saat yhteenvedon aiemmista tapauksista, käytä niitä viitekehyksenä.
+
+TULOSTE:
+Tuota validi JSON, joka vastaa `TodistusKartta` -skeemaa.
+
+
+
+--- [MockProvider] vertex_ai/gemini-2.5-pro ---
+PROMPT:
+Proceed with your task according to the system instructions.
+SYSTEM:
+You are a helpful AI assistant.
+
+
+--- [MockProvider] vertex_ai/gemini-2.5-pro ---
+PROMPT:
+CONTEXT:
+
+SYSTEM:
+
+VAIHE 4: PROFILOIJA (Cognitive Bias Audit)
+TEHTÄVÄT:
+1. ETSI kognitiivisia vinoumia prompteista.
+2. TUNNISTA 'Automation Bias': Hyväksyykö käyttäjä ensimmäisen vastauksen sokeasti?
+3. ARVIOI 'Intentio': Yrittääkö käyttäjä oppia (Co-Creation) vai välttää työtä (Cognitive Offloading)?
+
+KÄSKE: Tulosta vastauksesi TÄSMÄLLEEN JSON-skeeman mukaisesti.
+

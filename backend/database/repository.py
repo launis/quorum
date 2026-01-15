@@ -1,677 +1,427 @@
-"""Abstract Repository Helper Types."""
+"""Abstract Repository Interface."""
 
-import asyncio
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 from tinydb import Query
 
 from backend.database.wrapper import AbstractDatabase
+from backend.models.workflow import WorkflowDefinition
 
 
 class AbstractWorkflowRepository(ABC):
-    """Universal Async Interface for Workflow Data Access.
+    """Abstract base class for asynchronous data access."""
 
-    Async-First architecture. TinyDB implementations use asyncio.to_thread internally.
-    """
-
-    # --- Components ---
     @abstractmethod
-    async def get_component_by_id(self, component_id: str) -> dict[str, Any] | None:
-        """Retrieve a component by its unique identifier."""
+    async def get_execution(self, execution_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieve an execution record by ID."""
         pass
 
     @abstractmethod
-    async def get_component_by_name(self, name: str) -> dict[str, Any] | None:
-        """Retrieve a component by its name."""
+    async def create_execution(self, execution_data: Dict[str, Any]) -> str:
+        """Create a new execution record."""
         pass
 
     @abstractmethod
-    async def register_component(self, component_data: dict[str, Any]):
-        """Register a new component in the repository."""
+    async def update_execution(self, execution_id: str, updates: Dict[str, Any]) -> bool:
+        """Update an existing execution record."""
         pass
 
     @abstractmethod
-    async def update_component_metadata(self, name: str, module: str, component_class: str):
-        """Update metadata for an existing component."""
+    async def get_all_executions(
+        self, organization_id: Optional[str] = None, user_id: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """Retrieve all executions, optionally filtered."""
+        pass
+
+    # --- New Methods for V2.9 GraphEngine ---
+
+    @abstractmethod
+    async def get_workflow_definition(self, workflow_id: str) -> Optional[WorkflowDefinition]:
+        """
+        Retrieve a workflow definition by ID. 
+        Should support fallback to disk if not in DB (implementation detail).
+        """
+        pass
+        
+    # Alias for compatibility if needed or strictly mapped
+    async def get_workflow(self, workflow_id: str) -> Optional[WorkflowDefinition]:
+         return await self.get_workflow_definition(workflow_id)
+
+    @abstractmethod
+    async def log_audit_event(self, event_data: Dict[str, Any]) -> None:
+        """Log an audit event."""
         pass
 
     @abstractmethod
-    async def get_all_components(self) -> list[dict[str, Any]]:
-        """Retrieve all registered components."""
-        pass
-
-    # --- Steps ---
-    @abstractmethod
-    async def get_step_by_id(self, step_id: str) -> dict[str, Any] | None:
-        """Retrieve a step by its ID."""
-        pass
-
-    @abstractmethod
-    async def get_all_steps(self) -> list[dict[str, Any]]:
-        """Retrieve all steps."""
-        pass
-
-    @abstractmethod
-    async def create_step(self, step_data: dict[str, Any]) -> str:
-        """Create a new step."""
-        pass
-
-    @abstractmethod
-    async def update_step(self, step_id: str, updates: dict[str, Any]):
-        """Update an existing step."""
-        pass
-
-    @abstractmethod
-    async def delete_step(self, step_id: str):
-        """Delete a step."""
-        pass
-
-    # --- Workflows ---
-    @abstractmethod
-    async def get_workflow_by_id(self, workflow_id: str) -> dict[str, Any] | None:
-        """Retrieve a workflow by its ID."""
-        pass
-
-    @abstractmethod
-    async def create_workflow(self, workflow_data: dict[str, Any]) -> int | str:
-        """Create a new workflow."""
+    async def get_audit_logs(
+        self,
+        organization_id: Optional[str] = None,
+        actor_uid: Optional[str] = None,
+        action: Optional[str] = None,
+        limit: int = 100,
+    ) -> List[Dict[str, Any]]:
+        """Retrieve audit logs."""
         pass
 
     @abstractmethod
     async def get_all_workflows(
-        self, organization_id: str | None = None, role: str | None = None
-    ) -> list[dict[str, Any]]:
+        self, organization_id: Optional[str] = None, role: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
         """Retrieve all workflows, optionally filtered."""
         pass
 
     @abstractmethod
-    async def update_workflow(self, workflow_id: str, updates: dict[str, Any]):
-        """Update an existing workflow."""
+    async def get_workflow_by_id(self, workflow_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieve a workflow as a dictionary."""
         pass
 
     @abstractmethod
-    async def delete_workflow(self, workflow_id: str):
+    async def create_workflow(self, workflow_data: Dict[str, Any]) -> str:
+        """Create a new workflow."""
+        pass
+
+    @abstractmethod
+    async def update_workflow(self, workflow_id: str, updates: Dict[str, Any]) -> bool:
+        """Update a workflow."""
+        pass
+
+    @abstractmethod
+    async def delete_workflow(self, workflow_id: str) -> bool:
         """Delete a workflow."""
         pass
 
-    # --- Executions ---
     @abstractmethod
-    async def create_execution(self, execution_data: dict[str, Any]) -> int | str:
-        """Create a new execution."""
+    async def get_all_steps(self) -> List[Dict[str, Any]]:
+        """Retrieve all steps."""
         pass
 
     @abstractmethod
-    async def get_execution(self, execution_id: str) -> dict[str, Any] | None:
-        """Retrieve an execution by ID."""
+    async def get_step_by_id(self, step_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieve a step by ID."""
         pass
 
     @abstractmethod
-    async def update_execution(self, execution_id: str, updates: dict[str, Any]):
-        """Update an execution."""
+    async def create_step(self, step_data: Dict[str, Any]) -> str:
+        """Create a new step."""
         pass
 
     @abstractmethod
-    async def get_all_executions(
-        self, organization_id: str | None = None, user_id: str | None = None
-    ) -> list[dict[str, Any]]:
-        """Retrieve all executions."""
-        pass
-
-    # --- Config ---
-    @abstractmethod
-    async def get_model_registry(self) -> dict[str, Any] | None:
-        """Retrieve the model registry."""
+    async def update_step(self, step_id: str, updates: Dict[str, Any]) -> bool:
+        """Update a step."""
         pass
 
     @abstractmethod
-    async def get_banned_phrases(self) -> list[dict[str, Any]]:
-        """Retrieve banned phrases."""
+    async def delete_step(self, step_id: str) -> bool:
+        """Delete a step."""
         pass
 
     @abstractmethod
-    async def add_banned_phrase(self, phrase: str, **kwargs):
+    async def get_all_components(self) -> List[Dict[str, Any]]:
+        """Retrieve all components."""
+        pass
+
+    @abstractmethod
+    async def get_component_by_id(self, component_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieve a component by ID."""
+        pass
+
+    @abstractmethod
+    async def get_component_by_name(self, name: str) -> Optional[Dict[str, Any]]:
+        """Retrieve a component by name."""
+        pass
+
+    @abstractmethod
+    async def update_component_metadata(self, component_id: str, module: str, component_class: str) -> bool:
+        """Update component metadata."""
+        pass
+
+    @abstractmethod
+    async def get_banned_phrases(self) -> List[Dict[str, Any]]:
+        """Retrieve all banned phrases."""
+        pass
+
+    @abstractmethod
+    async def add_banned_phrase(self, phrase: str, language: str = "en") -> None:
         """Add a banned phrase."""
         pass
 
     @abstractmethod
-    async def remove_banned_phrase(self, phrase: str):
-        """Remove a banned phrase."""
+    async def delete_banned_phrase(self, phrase: str) -> bool:
+        """Delete a banned phrase."""
         pass
 
-    # --- Knowledge Base ---
     @abstractmethod
-    async def get_knowledge_base_items(self) -> list[dict[str, Any]]:
+    async def count_workflows(self) -> int:
+        """Count total workflows."""
+        pass
+
+    @abstractmethod
+    async def get_prompt_template(self, template_id: str) -> Optional[Dict[str, str]]:
+        """Retrieve a prompt template by ID (returns dict with 'system', 'user')."""
+        pass
+
+    @abstractmethod
+    async def get_knowledge_base_items(self) -> List[Dict[str, Any]]:
         """Retrieve all knowledge base items."""
-        pass
-
-    @abstractmethod
-    async def add_knowledge_base_item(self, item_data: dict[str, Any]):
-        """Add an item to the knowledge base."""
-        pass
-
-    @abstractmethod
-    async def clear_knowledge_base(self):
-        """Clear the knowledge base."""
-        pass
-
-    # --- Organization Management ---
-    @abstractmethod
-    async def create_organization(self, org_data: dict[str, Any]) -> str:
-        """Create a new organization."""
-        pass
-
-    @abstractmethod
-    async def get_organization(self, org_id: str) -> dict[str, Any] | None:
-        """Retrieve an organization by ID."""
-        pass
-
-    @abstractmethod
-    async def update_organization(self, org_id: str, updates: dict[str, Any]):
-        """Update an organization."""
-        pass
-
-    @abstractmethod
-    async def list_organizations(self) -> list[dict[str, Any]]:
-        """List all organizations."""
-        pass
-
-    @abstractmethod
-    async def delete_organization(self, org_id: str):
-        """Delete an organization."""
-        pass
-
-    @abstractmethod
-    async def delete_org_data(self, org_id: str):
-        """Clean up all data associated with an organization."""
-        pass
-
-    @abstractmethod
-    async def log_usage(self, record: Any):
-        """Log usage data."""
-        pass
-
-    # --- System Settings (Phase 2) ---
-    @abstractmethod
-    async def get_system_settings(self) -> dict[str, Any]:
-        """Retrieves global system settings singleton."""
-        pass
-
-    @abstractmethod
-    async def update_system_settings(self, updates: dict[str, Any]):
-        """Updates global system settings."""
-        pass
-
-    # --- Audit Logs ---
-    @abstractmethod
-    async def log_audit_event(self, entry: dict[str, Any]):
-        """Persists a structured audit log entry."""
-        pass
-
-    @abstractmethod
-    async def get_audit_logs(
-        self,
-        organization_id: str | None = None,
-        actor_uid: str | None = None,
-        action: str | None = None,
-        limit: int = 100,
-    ) -> list[dict[str, Any]]:
-        """Retrieves audit logs with optional filtering."""
-        pass
-
-    # --- User Management (Organization Context) ---
-    @abstractmethod
-    async def get_user(self, uid: str) -> dict[str, Any] | None:
-        """Retrieve a user by UID."""
-        pass
-
-    @abstractmethod
-    async def list_users(self, organization_id: str | None = None) -> list[dict[str, Any]]:
-        """List users, optionally filtered by organization."""
-        pass
-
-    # --- Quota Management (Phase 5) ---
-    @abstractmethod
-    async def get_org_usage_total(self, org_id: str, since: str | None = None) -> float:
-        """Calculates total cost_usd for an organization, optionally filtered by start date (ISO)."""
         pass
 
 
 class TinyDBRepository(AbstractWorkflowRepository):
-    """Async-First TinyDB Repository.
-
-    DEPRECATION NOTICE:
-    This repository implementation is for Local Development and Mocking only.
-    The primary production database is Firestore.
-    New features must prioritize `FirestoreWorkflowRepository` implementation.
-    This module is slated for removal in future phases.
-
-    Wraps synchronous TinyDB calls in asyncio.to_thread.
-    """
-
-    def __init__(self, db_client: AbstractDatabase):
-        """Initialize the repository."""
-        self.db = db_client
-        self.components = self.db.table("components")
-        self.steps = self.db.table("steps")
-        self.workflows = self.db.table("workflows")
-        self.executions = self.db.table("executions")
-        self.banned_phrases = self.db.table("banned_phrases")
-        self.knowledge_base = self.db.table("knowledge_base")
-        self.system_config = self.db.table("system_config")
-        self.organizations = self.db.table("organizations")
-        self.usage_logs = self.db.table("usage_logs")
-        self.settings = self.db.table("settings")
-        self.users = self.db.table("users")
-        self.audit_logs = self.db.table("audit_logs")
-        import logging
-
-        self.logger = logging.getLogger(__name__)
-
-    async def _run(self, func, *args, **kwargs):
-        """Helper to run sync DB calls in thread."""
-        return await asyncio.to_thread(func, *args, **kwargs)
-
-    # --- Components ---
-    async def get_component_by_id(self, component_id: str) -> dict[str, Any] | None:
-        """Get component by ID."""
-
-        def _get():
-            Q = Query()
-            res = self.components.search(Q.id == component_id)
-            return res[0] if res else None
-
-        return await self._run(_get)
-
-    async def get_component_by_name(self, name: str) -> dict[str, Any] | None:
-        """Get component by name."""
-
-        def _get():
-            Q = Query()
-            res = self.components.search(Q.name == name)
-            return res[0] if res else None
-
-        return await self._run(_get)
-
-    async def register_component(self, component_data: dict[str, Any]):
-        """Register component."""
-        await self._run(self.components.insert, component_data)
-
-    async def update_component_metadata(self, name: str, module: str, component_class: str):
-        """Update component metadata."""
-
-        def _update():
-            Q = Query()
-            self.components.update({"module": module, "class": component_class}, Q.name == name)
-
-        await self._run(_update)
-
-    async def get_all_components(self) -> list[dict[str, Any]]:
-        """Get all components."""
-        return await self._run(self.components.all)
-
-    # --- Steps ---
-    async def get_step_by_id(self, step_id: str) -> dict[str, Any] | None:
-        """Get step by ID."""
-
-        def _get():
-            Q = Query()
-            res = self.steps.search(Q.id == step_id)
-            return res[0] if res else None
-
-        return await self._run(_get)
-
-    async def get_all_steps(self) -> list[dict[str, Any]]:
-        """Get all steps."""
-        return await self._run(self.steps.all)
-
-    async def create_step(self, step_data: dict[str, Any]) -> str:
-        """Create step."""
-        # TinyDB insert returns document ID (int), we convert to str/int
-        res = await self._run(self.steps.insert, step_data)
-        return str(res)
-
-    async def update_step(self, step_id: str, updates: dict[str, Any]):
-        """Update step."""
-
-        def _update():
-            Q = Query()
-            self.steps.update(updates, Q.id == step_id)
-
-        await self._run(_update)
-
-    async def delete_step(self, step_id: str):
-        """Delete step."""
-
-        def _delete():
-            Q = Query()
-            self.steps.remove(Q.id == step_id)
-
-        await self._run(_delete)
-
-    # --- Workflows ---
-    async def get_workflow_by_id(self, workflow_id: str) -> dict[str, Any] | None:
-        """Get workflow by ID."""
-
-        def _get():
-            Q = Query()
-            res = self.workflows.search(Q.id == workflow_id)
-            return res[0] if res else None
-
-        return await self._run(_get)
-
-    async def create_workflow(self, workflow_data: dict[str, Any]) -> int | str:
-        """Create workflow."""
-        return await self._run(self.workflows.insert, workflow_data)
-
-    async def get_all_workflows(
-        self, organization_id: str | None = None, role: str | None = None
-    ) -> list[dict[str, Any]]:
-        """Get all workflows."""
-
-        def _get():
-            all_wfs = self.workflows.all()
-
-            # Root View: See EVERYTHING if filtering by system/root
-            if role == "ROOT":
-                return all_wfs
-
-            # Tenant View
-            filtered = []
-            for wf in all_wfs:
-                wf_org = wf.get("organization_id")
-                is_system = wf_org is None or wf_org == "system"
-                is_public = wf.get("is_public", False)
-
-                # 1. Own Org Workflows
-                if organization_id and wf_org == organization_id:
-                    filtered.append(wf)
-
-                # 2. System Workflows (Public Only, unless Root handled above)
-                elif is_system and is_public:
-                    filtered.append(wf)
-
-            return filtered
-
-        return await self._run(_get)
-
-    async def update_workflow(self, workflow_id: str, updates: dict[str, Any]):
-        """Update workflow."""
-
-        def _update():
-            Q = Query()
-            self.workflows.update(updates, Q.id == workflow_id)
-
-        await self._run(_update)
-
-    async def delete_workflow(self, workflow_id: str):
-        """Delete workflow."""
-
-        def _delete():
-            Q = Query()
-            self.workflows.remove(Q.id == workflow_id)
-
-        await self._run(_delete)
-
-    # --- Executions ---
-    async def create_execution(self, execution_data: dict[str, Any]) -> int | str:
-        """Create execution."""
-        return await self._run(self.executions.insert, execution_data)
-
-    async def get_execution(self, execution_id: str) -> dict[str, Any] | None:
-        """Get execution."""
-
-        def _get():
-            Q = Query()
-            res = self.executions.search(Q.execution_id == str(execution_id))
-            return res[0] if res else None
-
-        return await self._run(_get)
-
-    async def update_execution(self, execution_id: str, updates: dict[str, Any]):
-        """Update execution."""
-
-        def _update():
-            Q = Query()
-            self.executions.update(updates, Q.execution_id == str(execution_id))
-
-        await self._run(_update)
-
-    async def get_all_executions(
-        self, organization_id: str | None = None, user_id: str | None = None
-    ) -> list[dict[str, Any]]:
-        """Get all executions."""
-
-        def _get():
-            all_execs = self.executions.all()
-
-            # 1. Tenant Filter
-            if organization_id:
-                all_execs = [e for e in all_execs if e.get("organization_id") == organization_id]
-
-            # 2. User Filter (Member Role)
-            if user_id:
-                all_execs = [e for e in all_execs if e.get("user_id") == user_id]
-
-            return all_execs
-
-        return await self._run(_get)
-
-    # --- Config ---
-    async def get_model_registry(self) -> dict[str, Any] | None:
-        """Get model registry."""
-
-        def _get():
-            Q = Query()
-            res = self.system_config.search(Q.type == "model_registry")
-            return res[0] if res else None
-
-        return await self._run(_get)
-
-    async def get_banned_phrases(self) -> list[dict[str, Any]]:
-        """Get banned phrases."""
-        return await self._run(self.banned_phrases.all)
-
-    async def add_banned_phrase(self, phrase: str, **kwargs):
-        """Add banned phrase."""
-
-        def _add():
-            existing = self.banned_phrases.search(Query().phrase == phrase)
-            if not existing:
-                data = {"phrase": phrase}
-                data.update(kwargs)
-                return self.banned_phrases.insert(data)
-
-        await self._run(_add)
-
-    async def remove_banned_phrase(self, phrase: str):
-        """Remove banned phrase."""
-
-        def _remove():
-            self.banned_phrases.remove(Query().phrase == phrase)
-
-        await self._run(_remove)
-
-    # --- Knowledge Base ---
-    async def get_knowledge_base_items(self) -> list[dict[str, Any]]:
-        """Get knowledge base items."""
-        return await self._run(self.knowledge_base.all)
-
-    async def add_knowledge_base_item(self, item_data: dict[str, Any]):
-        """Add item to knowledge base."""
-        await self._run(self.knowledge_base.insert, item_data)
-
-    async def clear_knowledge_base(self):
-        """Clear knowledge base."""
-        await self._run(self.knowledge_base.truncate)
-
-    # --- Organization Management ---
-    async def create_organization(self, org_data: dict[str, Any]) -> str:
-        """Create organization."""
-        # For simplicity, we assume org_data already has 'id' or we let TinyDB trigger one.
-        # But our ABC expects a string return ID.
-        result = await self._run(self.organizations.insert, org_data)
-        return str(result)
-
-    async def get_organization(self, org_id: str) -> dict[str, Any] | None:
-        """Get organization."""
-
-        def _get():
-            Q = Query()
-            res = self.organizations.search(Q.id == org_id)
-            return res[0] if res else None
-
-        return await self._run(_get)
-
-    async def update_organization(self, org_id: str, updates: dict[str, Any]):
-        """Update organization."""
-
-        def _update():
-            Q = Query()
-            self.organizations.update(updates, Q.id == org_id)
-
-        await self._run(_update)
-
-    async def list_organizations(self) -> list[dict[str, Any]]:
-        """List organizations."""
-        return await self._run(self.organizations.all)
-
-    async def delete_organization(self, org_id: str):
-        """Delete organization."""
-
-        def _delete():
-            Q = Query()
-            self.organizations.remove(Q.id == org_id)
-
-        await self._run(_delete)
-
-    async def delete_org_data(self, org_id: str):
-        """Cascading delete for organization data (Workflows, Executions)."""
-
-        def _delete_data():
-            # 1. Delete Workflows
-            self.workflows.remove(Query().organization_id == org_id)
-            # 2. Delete Executions
-            self.executions.remove(Query().organization_id == org_id)
-
-        await self._run(_delete_data)
-
-    async def get_org_usage_total(self, org_id: str, since: str | None = None) -> float:
-        """Calculate total usage cost."""
-
-        def _calc():
-            # Filter by Org
-            logs = self.usage_logs.search(Query().org_id == org_id)
-            total = 0.0
-            for log in logs:
-                if since:
-                    if log.get("timestamp", "") < since:
-                        continue
-                total += float(log.get("cost_usd", 0.0))
-            return total
-
-        return await self._run(_calc)
-
-    async def log_usage(self, record: Any):
-        """Logs usage record to the database."""
-        # TinyDB stores dicts, so we dump the model.
-        # record is expected to be a Pydantic model (UsageRecord)
-        data = record.model_dump()
-        await self._run(self.usage_logs.insert, data)
-
-    # --- System Settings ---
-    async def get_system_settings(self) -> dict[str, Any]:
-        """Get system settings."""
-
-        def _get():
-            # Singleton: ID=1 or just the first record
-            res = self.settings.all()
-            if res:
-                return res[0]
-            # Default empty, caller handles defaults
-            return {}
-
-        return await self._run(_get)
-
-    async def update_system_settings(self, updates: dict[str, Any]):
-        """Update system settings."""
-
-        def _update():
-            # Check existence
-            existing = self.settings.all()
-            if not existing:
-                self.settings.insert(updates)
-            else:
-                # Update all (singleton)
-                self.settings.update(updates)
-
-        await self._run(_update)
-
-    # --- Audit Logs ---
-    async def log_audit_event(self, entry: dict[str, Any]):
-        """Log audit event."""
-        self.logger.debug(f"REPO: log_audit_event called with {entry}")
-        await self._run(self.audit_logs.insert, entry)
+    """TinyDB implementation of the Workflow Repository."""
+
+    def __init__(self, client: AbstractDatabase):
+        self.client = client
+        self.executions = client.table("executions")
+        self.workflows = client.table("workflows")
+        self.steps = client.table("steps")
+        self.components = client.table("components")
+        self.audit_logs = client.table("audit_logs")
+        self.banned_phrases = client.table("banned_phrases")
+        self.prompts = client.table("prompts")
+        self.knowledge_base = client.table("knowledge_base")
+
+    async def get_banned_phrases(self) -> List[Dict[str, Any]]:
+        return self.banned_phrases.all()
+
+    async def add_banned_phrase(self, phrase: str, language: str = "en") -> None:
+        from tinydb import Query
+        # Check duplicate
+        if not self.banned_phrases.contains(Query().phrase == phrase):
+            self.banned_phrases.insert({"phrase": phrase, "language": language})
+
+    async def delete_banned_phrase(self, phrase: str) -> bool:
+        res = self.banned_phrases.remove(Query().phrase == phrase)
+        return bool(res)
+
+    async def count_workflows(self) -> int:
+        return len(self.workflows.all())
+        
+    async def get_prompt_template(self, template_id: str) -> Optional[Dict[str, str]]:
+        # Look in prompts table first
+        res = self.prompts.get(Query().id == template_id)
+        if res:
+            return {"system": res.get("system_prompt", ""), "user": res.get("user_prompt", "")}
+        return None
+
+    async def get_knowledge_base_items(self) -> List[Dict[str, Any]]:
+        """Retrieve all knowledge base items."""
+        return self.knowledge_base.all()
+
+    async def log_audit_event(self, event_data: Dict[str, Any]) -> None:
+        self.audit_logs.insert(event_data)
 
     async def get_audit_logs(
         self,
-        organization_id: str | None = None,
-        actor_uid: str | None = None,
-        action: str | None = None,
+        organization_id: Optional[str] = None,
+        actor_uid: Optional[str] = None,
+        action: Optional[str] = None,
         limit: int = 100,
-    ) -> list[dict[str, Any]]:
-        """Get audit logs."""
+    ) -> List[Dict[str, Any]]:
+        all_logs = self.audit_logs.all()
+        
+        # Filter in memory
+        filtered = []
+        for log in all_logs:
+            if organization_id and log.get("organization_id") != organization_id:
+                continue
+            if actor_uid and log.get("actor_uid") != actor_uid:
+                continue
+            if action and log.get("action") != action:
+                continue
+            filtered.append(log)
+        
+        # Sort by timestamp desc (assuming ISO string sort works approx correctly)
+        filtered.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+        return filtered[:limit]
 
-        def _get():
-            # TinyDB doesn't do complex querying efficiently, so we filter in Python for now.
-            # In a real DB we'd index this.
-            all_logs = self.audit_logs.all()
+    async def get_all_workflows(
+        self, organization_id: Optional[str] = None, role: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        all_wfs = self.workflows.all()
+        # Filter logic
+        filtered = []
+        for wf in all_wfs:
+            # Role-based visibility check (Root sees all)
+            if role == "ROOT":
+                filtered.append(wf)
+                continue
+            
+            # Org check
+            wf_org = wf.get("organization_id")
+            if wf_org and organization_id and wf_org != organization_id and wf_org != "system":
+                continue
+            
+            filtered.append(wf)
+        return filtered
 
-            self.logger.debug(
-                f"REPO: get_audit_logs found {len(all_logs)} entries. Requested: org={organization_id}, action={action}"
-            )
-            if len(all_logs) > 0:
-                self.logger.debug(f"REPO: last log: {all_logs[-1]}")
+    async def get_workflow_by_id(self, workflow_id: str) -> Optional[Dict[str, Any]]:
+        return self.workflows.get(Query().id == workflow_id)
 
-            # Filter
-            filtered = []
-            for log in all_logs:
-                if organization_id and log.get("organization_id") != organization_id:
-                    continue
-                if actor_uid and log.get("actor_uid") != actor_uid:
-                    continue
-                if action and log.get("action") != action:
-                    continue
-                filtered.append(log)
+    async def create_workflow(self, workflow_data: Dict[str, Any]) -> str:
+        self.workflows.upsert(workflow_data, Query().id == workflow_data["id"])
+        return workflow_data["id"]
 
-            # Sort by timestamp desc (newest first)
-            filtered.sort(key=lambda x: x.get("timestamp", 0), reverse=True)
-            return filtered[:limit]
+    async def update_workflow(self, workflow_id: str, updates: Dict[str, Any]) -> bool:
+        res = self.workflows.update(updates, Query().id == workflow_id)
+        return bool(res)
 
-        return await self._run(_get)
+    async def delete_workflow(self, workflow_id: str) -> bool:
+        res = self.workflows.remove(Query().id == workflow_id)
+        return bool(res)
 
-    # --- User Management ---
-    async def get_user(self, uid: str) -> dict[str, Any] | None:
-        """Get user by UID."""
+    async def get_all_steps(self) -> List[Dict[str, Any]]:
+        return self.steps.all()
 
-        def _get():
-            Q = Query()
-            # Assuming 'uid' is the key in users table
-            res = self.users.search(Q.uid == uid)
-            return res[0] if res else None
+    async def get_step_by_id(self, step_id: str) -> Optional[Dict[str, Any]]:
+        return self.steps.get(Query().id == step_id)
 
-        return await self._run(_get)
+    async def create_step(self, step_data: Dict[str, Any]) -> str:
+        self.steps.upsert(step_data, Query().id == step_data["id"])
+        return step_data["id"]
 
-    async def list_users(self, organization_id: str | None = None) -> list[dict[str, Any]]:
-        """List users."""
+    async def update_step(self, step_id: str, updates: Dict[str, Any]) -> bool:
+        res = self.steps.update(updates, Query().id == step_id)
+        return bool(res)
 
-        def _list():
-            if organization_id:
-                return self.users.search(Query().organization_id == organization_id)
-            return self.users.all()
+    async def delete_step(self, step_id: str) -> bool:
+        res = self.steps.remove(Query().id == step_id)
+        return bool(res)
 
-        return await self._run(_list)
+    async def get_all_components(self) -> List[Dict[str, Any]]:
+        return self.components.all()
 
+    async def get_component_by_id(self, component_id: str) -> Optional[Dict[str, Any]]:
+        return self.components.get(Query().id == component_id)
 
-# Backward compatibility alias
-WorkflowRepository = TinyDBRepository
+    async def get_component_by_name(self, name: str) -> Optional[Dict[str, Any]]:
+        # This might be slow on TinyDB without index but OK for mock
+        res = self.components.search(Query().name == name)
+        return res[0] if res else None
+
+    async def update_component_metadata(self, component_id: str, module: str, component_class: str) -> bool:
+        """Update component metadata."""
+        updates = {"module": module, "class_name": component_class}
+        res = self.components.update(updates, Query().id == component_id)
+        return bool(res)
+
+    async def get_execution(self, execution_id: str) -> Optional[Dict[str, Any]]:
+        return self.executions.get(Query().id == execution_id)
+
+    async def create_execution(self, execution_data: Dict[str, Any]) -> str:
+        # Generate ID if missing? Usually handled by caller or DB.
+        # TinyDB wrapper 'insert' returns document ID (int), but we want string UUIDs from data.
+        # If 'id' is in data, we use upsert/insert.
+        
+        # We assume execution_data has 'id' (UUID).
+        if "id" not in execution_data:
+             # Fallback or error? For now assume it's there as per schema.
+             pass
+             
+        # We use upsert to ensure we use the UUID as key if possible, or just insert.
+        # Wrapper 'insert' just appends. 'upsert' needs a query.
+        eid = execution_data.get("id")
+        if eid:
+            self.executions.upsert(execution_data, Query().id == eid)
+            return eid
+        else:
+            # Native insert, returns int ID, might not be what we want if we expect UUIDs.
+            # But let's trust the input data has ID.
+            result = self.executions.insert(execution_data)
+            return str(result)
+
+    async def update_execution(self, execution_id: str, updates: Dict[str, Any]) -> bool:
+        # Wrapper 'update' takes dict of fields and query
+        result = self.executions.update(updates, Query().id == execution_id)
+        return len(result) > 0
+
+    async def get_all_executions(
+        self, organization_id: Optional[str] = None, user_id: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        all_docs = self.executions.all()
+        
+        # Memory filter (TinyDB style)
+        filtered = []
+        for doc in all_docs:
+            if organization_id and doc.get("organization_id") != organization_id:
+                continue
+            if user_id and doc.get("user_id") != user_id:
+                continue
+            filtered.append(doc)
+            
+        return filtered
+
+    async def get_workflow_definition(self, workflow_id: str) -> Optional[WorkflowDefinition]:
+        data = self.workflows.get(Query().id == workflow_id)
+        if data:
+            return WorkflowDefinition(**data)
+            
+        # Fallback to Disk? 
+        # The AbstractRepository docstring mentions fallback.
+        # Ideally this logic matches Firestore's fallback or is centralized.
+        # For simplicity, if not in DB, return None. 
+        # (Or implement disk read if critical for TinyDB mode too)
+        
+        import os
+        import json
+        import logging
+        logger = logging.getLogger(__name__)
+
+        file_path = f"data/workflows/{workflow_id}.json"
+        if os.path.exists(file_path):
+             try:
+                 with open(file_path, "r", encoding="utf-8") as f:
+                     data = json.load(f)
+                     if "description" not in data:
+                         data["description"] = "Loaded from file"
+                     return WorkflowDefinition(**data)
+             except Exception as e:
+                 logger.error(f"Failed to load workflow from disk: {e}")
+        
+        return None
+
+    async def get_model_registry(self) -> Dict[str, Any]:
+        """Retrieve the model registry configuration.
+        
+        Prioritizes configuration stored in 'components' table (id='model_registry').
+        Fallbacks to hardcoded defaults if missing.
+        """
+        # 1. Try to fetch from DB
+        try:
+            # We assume the seeder might have created a component with id="model_registry"
+            # Since get_component_by_id returns optional dict
+            config_component = await self.get_component_by_id("model_registry")
+            if config_component and "models" in config_component:
+                 return config_component
+        except Exception:
+            # Fallback on any DB error
+            pass
+            
+        # 2. Return Hardcoded Fallback (Updated Jan 2026 for SOTA Agents)
+        return {
+            "models": {
+                "google": {
+                    # Generic Strategies
+                    "fast": {"model_name": "vertex_ai/gemini-2.5-flash", "provider": "google"},
+                    "deep": {"model_name": "vertex_ai/gemini-2.5-pro", "provider": "google"},
+                    "default": {"model_name": "vertex_ai/gemini-2.5-flash", "provider": "google"},
+                    
+                    # Agent-Specific Strategies (Mapping ClassName -> Model Setup)
+                    "GuardAgent": {"model_name": "vertex_ai/gemini-2.5-flash", "provider": "google"},
+                    "AnalystAgent": {"model_name": "vertex_ai/gemini-2.5-pro", "provider": "google"},
+                    "InteractionAnalystAgent": {"model_name": "vertex_ai/gemini-2.5-pro", "provider": "google"},
+                    "ProfilerAgent": {"model_name": "vertex_ai/gemini-2.5-pro", "provider": "google"},
+                    "LogicianAgent": {"model_name": "vertex_ai/gemini-2.5-pro", "provider": "google"},
+                    "LogicalFalsifierAgent": {"model_name": "vertex_ai/gemini-2.5-pro", "provider": "google"},
+                    "CausalAnalystAgent": {"model_name": "vertex_ai/gemini-2.5-pro", "provider": "google"},
+                    "PerformativityDetectorAgent": {"model_name": "vertex_ai/gemini-2.5-pro", "provider": "google"},
+                    "FactualOverseerAgent": {"model_name": "vertex_ai/gemini-2.5-pro", "provider": "google"},
+                    "ArchivistAgent": {"model_name": "vertex_ai/gemini-2.5-flash", "provider": "google"},
+                    "JudgeAgent": {"model_name": "vertex_ai/gemini-2.5-pro", "provider": "google"},
+                    "CoachAgent": {"model_name": "vertex_ai/gemini-2.5-pro", "provider": "google"},
+                    "XAIReporterAgent": {"model_name": "vertex_ai/gemini-2.5-pro", "provider": "google"},
+                    "PanelAgent": {"model_name": "vertex_ai/gemini-2.5-pro", "provider": "google"}
+                }
+            }
+        }
+
