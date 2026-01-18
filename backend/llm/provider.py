@@ -12,7 +12,6 @@ from litellm import Router
 from pydantic import BaseModel
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-
 from backend.models.llm import LLMResponse
 from backend.services.usage_service import UsageService
 from backend.settings import get_settings
@@ -174,6 +173,28 @@ class LiteLLMProvider(LLMProvider):
                 pass
 
         try:
+            # --- DEBUG LOGGING (Manual request) ---
+            def _truncate_for_debug(text: str, label: str) -> None:
+                if not text:
+                    logger.info(f"[LiteLLM] DEBUG [{label}]: <empty>")
+                    return
+                
+                # Format for log
+                header = f"\n{'='*20} DEBUG: {label} {'='*20}"
+                footer = f"{'='*50}\n"
+                
+                if len(text) > 3000:
+                    content = f"{text[:1000]}\n\n... [TRUNCATED {len(text)-1500} CHARS] ...\n\n{text[-500:]}"
+                else:
+                    content = text
+                
+                # Log as a single block to keep it together
+                logger.info(f"{header}\n{content}\n{footer}")
+
+            if system_instruction:
+                _truncate_for_debug(system_instruction, "SYSTEM INSTRUCTION")
+            _truncate_for_debug(prompt, "USER PROMPT")
+
             logger.info(f"[LiteLLM] Calling {self.model_name}...")
 
             # Prepare arguments
@@ -278,7 +299,7 @@ class LiteLLMProvider(LLMProvider):
                 if hasattr(message, "parsed") and message.parsed:
                     # If LiteLLM parsed it, dump back to JSON string for consistency
                     obj = message.parsed.dict() if hasattr(message.parsed, "dict") else message.parsed
-                    parsed_obj = obj # Keep reference to object
+                    parsed_obj = obj  # Keep reference to object
                     final_content = json.dumps(obj, ensure_ascii=False)
                 else:
                     # STRICT MODE REFACTOR: Robust Parsing (Jan 2026)
@@ -289,7 +310,7 @@ class LiteLLMProvider(LLMProvider):
                     try:
                         # 1. Try to find JSON code block
                         json_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", raw_content, re.DOTALL)
-                        
+
                         if json_match:
                             clean_text = json_match.group(1)
                         else:
@@ -303,15 +324,38 @@ class LiteLLMProvider(LLMProvider):
                                 clean_text = raw_content.strip()
 
                         obj = json.loads(clean_text)
-                        parsed_obj = obj # Keep reference to object
-                        final_content = json.dumps(obj, ensure_ascii=False)
                         
+                        # FORCE MODERNIZATION: Hydrate Pydantic Model from Dict
+                        if response_schema and isinstance(obj, dict):
+                             # Check if response_schema is a Class (type[BaseModel])
+                             if isinstance(response_schema, type) and issubclass(response_schema, BaseModel):
+                                 try:
+                                     # Hydrate
+                                     logger.debug(f"[LiteLLM] Hydrating {response_schema.__name__} from dict.")
+                                     parsed_obj = response_schema(**obj)
+                                 except Exception as e:
+                                     logger.warning(f"[LiteLLM] Failed to hydrate model {response_schema.__name__}: {e}")
+                                     parsed_obj = obj
+                             else:
+                                 parsed_obj = obj
+                        else:
+                             parsed_obj = obj
+
+                        final_content = json.dumps(obj, ensure_ascii=False)
+
+                        # --- DEBUG LOGGING (OUTPUT) ---
+                        print(f"\n{'#'*20} DEBUG: LLM RESPONSE (PARSED JSON) {'#'*20}")
+                        print(final_content)
+                        print(f"{'#'*60}\n")
+
                     except json.JSONDecodeError as e:
                         logger.error(f"[LiteLLM] JSON Parse Failed. Raw: {raw_content[:200]}... Error: {e}")
-                        # We do NOT raise here if we want to support partial failure, 
+                        # We do NOT raise here if we want to support partial failure,
                         # but for "Structured Task" agents, this IS a failure.
                         # We raise a clearer error.
-                        raise ValueError(f"Failed to parse structured output from model. content-length: {len(raw_content)}") from e
+                        raise ValueError(
+                            f"Failed to parse structured output from model. content-length: {len(raw_content)}"
+                        ) from e
 
             # --- COST TRACKING ---
             cost = 0.0
@@ -492,7 +536,10 @@ class LLMFactory:
         # Placeholder for BYOK (Bring Your Own Key) Logic
         tenant_api_key = None
 
-        if provider_type == "mock" or settings.use_mock_llm:
+        # STRICT EXECUTION AUTHORITY:
+        # We DO NOT allow 'settings.use_mock_llm' to silently override the requested provider.
+        # This ensures that if 'vertex_ai' is requested, we get Vertex (or fail), never a mock.
+        if provider_type == "mock":
             return MockProvider(
                 model_name=model_name or "mock",
                 usage_service=usage_service,

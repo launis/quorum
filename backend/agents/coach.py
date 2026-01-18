@@ -121,18 +121,14 @@ class CoachAgent(BaseAgent):
                 "COACH_KNOWLEDGE_BASE_UNAVAILABLE: No Repository provided in kwargs. Knowledge Base not loaded from DB."
             )
             self.knowledge_base = {}
-        
+
         # 2. Inject Verdict (Tuomio)
         tuomio = kwargs.get("tuomio")
         if not tuomio and state:
             tuomio = getattr(state, "step_judge", None)
-        
+
         if tuomio:
-            content = (
-                tuomio.model_dump_json(indent=2)
-                if hasattr(tuomio, "model_dump_json")
-                else str(tuomio)
-            )
+            content = tuomio.model_dump_json(indent=2) if hasattr(tuomio, "model_dump_json") else str(tuomio)
             parts.append(f"### TUOMIO (VERDICT):\n{content}")
             logger.info("[CoachAgent] Injected Verdict (Tuomio) into context.")
 

@@ -142,9 +142,12 @@ async def get_available_agents(engine: EngineDep):
         return agents_meta
     except Exception as e:
         from backend.exceptions import AppException
+
         error_code = "AGENT_LISTING_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=error_code, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"original_error": str(e)}) from e
+        raise AppException(
+            message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"error_code": error_code}
+        ) from e
 
 
 @router.get("/workflows", summary="List Workflows", response_description="All Workflows.")
@@ -158,9 +161,7 @@ async def list_workflows(repository: RepositoryDep, current_user: CurrentUserDep
     Returns:
         list[dict]: A list of workflow definitions.
     """
-    return await repository.get_all_workflows(
-        organization_id=current_user.organization_id, role=current_user.role
-    )
+    return await repository.get_all_workflows(organization_id=current_user.organization_id, role=current_user.role)
 
 
 @router.get("/steps", summary="List Steps", response_description="All Steps.")
@@ -174,7 +175,9 @@ async def list_steps(repository: RepositoryDep):
 
 
 @router.post("/workflows", summary="Create Workflow", response_description="Created workflow data.")
-async def create_workflow(request: BuilderWorkflowCreateRequest, repository: RepositoryDep, current_user: CurrentUserDep):
+async def create_workflow(
+    request: BuilderWorkflowCreateRequest, repository: RepositoryDep, current_user: CurrentUserDep
+):
     """Create a new workflow.
 
     Args:
@@ -191,6 +194,7 @@ async def create_workflow(request: BuilderWorkflowCreateRequest, repository: Rep
     # 1. RBAC Check
     if current_user.role not in [UserRole.ROOT, UserRole.ADMIN, UserRole.MANAGER]:
         from backend.exceptions import PermissionDeniedError
+
         error_code = "PERMISSION_DENIED_WORKFLOW_CREATE"
         logger.error(f"{error_code}: User {current_user.uid} (Role {current_user.role}) denied.", exc_info=True)
         raise PermissionDeniedError(message="Permission denied", details={"error_code": error_code})
@@ -205,9 +209,12 @@ async def create_workflow(request: BuilderWorkflowCreateRequest, repository: Rep
     if request.is_public:
         if current_user.role != UserRole.ROOT:
             from backend.exceptions import PermissionDeniedError
+
             error_code = "PERMISSION_DENIED_PUBLIC_VISIBILITY"
             logger.error(f"{error_code}: Non-ROOT user {current_user.uid} tried setting public.", exc_info=True)
-            raise PermissionDeniedError(message="Public visibility restricted to ROOT", details={"error_code": error_code})
+            raise PermissionDeniedError(
+                message="Public visibility restricted to ROOT", details={"error_code": error_code}
+            )
         is_public_val = True
 
     try:
@@ -228,9 +235,12 @@ async def create_workflow(request: BuilderWorkflowCreateRequest, repository: Rep
         return workflow_data
     except Exception as e:
         from backend.exceptions import AppException
+
         error_code = "WORKFLOW_CREATION_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=error_code, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"original_error": str(e)}) from e
+        raise AppException(
+            message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"error_code": error_code}
+        ) from e
 
 
 @router.get("/workflows/{workflow_id}", summary="Get Workflow", response_description="Workflow details.")
@@ -250,6 +260,7 @@ async def get_workflow(workflow_id: str, repository: RepositoryDep):
     wf = await repository.get_workflow_by_id(workflow_id)
     if not wf:
         from backend.exceptions import ResourceNotFoundError
+
         error_code = "WORKFLOW_NOT_FOUND"
         logger.error(f"{error_code}: ID {workflow_id}", exc_info=True)
         raise ResourceNotFoundError("Workflow", workflow_id, details={"error_code": error_code})
@@ -277,6 +288,7 @@ async def update_workflow(
     wf = await repository.get_workflow_by_id(workflow_id)
     if not wf:
         from backend.exceptions import ResourceNotFoundError
+
         error_code = "WORKFLOW_NOT_FOUND"
         logger.error(f"{error_code}: ID {workflow_id}", exc_info=True)
         raise ResourceNotFoundError("Workflow", workflow_id, details={"error_code": error_code})
@@ -288,6 +300,7 @@ async def update_workflow(
     if is_system_wf:
         if current_user.role != UserRole.ROOT:
             from backend.exceptions import PermissionDeniedError
+
             error_code = "PERMISSION_DENIED_SYSTEM_WORKFLOW"
             logger.error(f"{error_code}: User {current_user.uid} tried modifying system workflow.", exc_info=True)
             raise PermissionDeniedError(message="Cannot modify system workflow", details={"error_code": error_code})
@@ -295,11 +308,13 @@ async def update_workflow(
         # Tenant Workflow
         if current_user.role not in [UserRole.ROOT, UserRole.ADMIN, UserRole.MANAGER]:
             from backend.exceptions import PermissionDeniedError
+
             error_code = "PERMISSION_DENIED_WORKFLOW_UPDATE"
             logger.error(f"{error_code}: User {current_user.uid} denied update.", exc_info=True)
             raise PermissionDeniedError(message="Permission denied", details={"error_code": error_code})
         if wf_org != current_user.organization_id and current_user.role != UserRole.ROOT:
             from backend.exceptions import PermissionDeniedError
+
             error_code = "PERMISSION_DENIED_WORKFLOW_UPDATE"
             logger.error(
                 f"{error_code}: Org mismatch (WF: {wf_org} vs User: {current_user.organization_id}).",
@@ -311,9 +326,12 @@ async def update_workflow(
     if request.is_public is not None and request.is_public != wf.get("is_public"):
         if current_user.role != UserRole.ROOT:
             from backend.exceptions import PermissionDeniedError
+
             error_code = "PERMISSION_DENIED_PUBLIC_VISIBILITY"
             logger.error(f"{error_code}: Non-ROOT user tried changing visibility.", exc_info=True)
-            raise PermissionDeniedError(message="Public visibility restricted to ROOT", details={"error_code": error_code})
+            raise PermissionDeniedError(
+                message="Public visibility restricted to ROOT", details={"error_code": error_code}
+            )
 
     update_data: dict[str, Any] = {}
     if request.name is not None:
@@ -372,6 +390,7 @@ async def delete_workflow(workflow_id: str, repository: RepositoryDep, current_u
     wf = await repository.get_workflow_by_id(workflow_id)
     if not wf:
         from backend.exceptions import ResourceNotFoundError
+
         error_code = "WORKFLOW_NOT_FOUND"
         logger.error(f"{error_code}: ID {workflow_id}", exc_info=True)
         raise ResourceNotFoundError("Workflow", workflow_id, details={"error_code": error_code})
@@ -383,17 +402,20 @@ async def delete_workflow(workflow_id: str, repository: RepositoryDep, current_u
     if is_system_wf:
         if current_user.role != UserRole.ROOT:
             from backend.exceptions import PermissionDeniedError
+
             error_code = "PERMISSION_DENIED_SYSTEM_WORKFLOW"
             logger.error(f"{error_code}: User {current_user.uid} tried deleting system workflow.", exc_info=True)
             raise PermissionDeniedError(message="Cannot delete system workflow", details={"error_code": error_code})
     else:
         if current_user.role not in [UserRole.ROOT, UserRole.ADMIN, UserRole.MANAGER]:
             from backend.exceptions import PermissionDeniedError
+
             error_code = "PERMISSION_DENIED_WORKFLOW_DELETE"
             logger.error(f"{error_code}: User {current_user.uid} denied delete.", exc_info=True)
             raise PermissionDeniedError(message="Permission denied", details={"error_code": error_code})
         if wf_org != current_user.organization_id and current_user.role != UserRole.ROOT:
             from backend.exceptions import PermissionDeniedError
+
             error_code = "PERMISSION_DENIED_WORKFLOW_DELETE"
             logger.error(f"{error_code}: Org mismatch.", exc_info=True)
             raise PermissionDeniedError(message="Organization mismatch", details={"error_code": error_code})
@@ -410,9 +432,10 @@ async def delete_workflow(workflow_id: str, repository: RepositoryDep, current_u
             exc_info=True,
         )
         from backend.exceptions import ConflictError
+
         raise ConflictError(
             message="Workflow has existing executions",
-            details={"error_code": error_code, "execution_count": len(related_execs)}
+            details={"error_code": error_code, "execution_count": len(related_execs)},
         )
 
     # 1. Identify Orphan Steps
@@ -454,6 +477,7 @@ async def copy_workflow(workflow_id: str, request: CopyWorkflowRequest, reposito
     original = await repository.get_workflow_by_id(workflow_id)
     if not original:
         from backend.exceptions import ResourceNotFoundError
+
         error_code = "WORKFLOW_NOT_FOUND"
         logger.error(f"{error_code}: ID {workflow_id}", exc_info=True)
         raise ResourceNotFoundError("Workflow", workflow_id, details={"error_code": error_code})
@@ -474,9 +498,13 @@ async def copy_workflow(workflow_id: str, request: CopyWorkflowRequest, reposito
         return clean_wf
     except Exception as e:
         from backend.exceptions import AppException
+
         error_code = "WORKFLOW_COPY_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=error_code, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"error_code": error_code, "original_error": str(e)}) from e
+        raise AppException(
+            message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": error_code, "original_error": str(e, details={"error_code": error_code})},
+        ) from e
 
 
 @router.post("/validate", summary="Validate Connection", response_description="Validation result.")
@@ -561,6 +589,7 @@ async def get_step_details(step_id: str, repository: RepositoryDep):
     step = await repository.get_step_by_id(step_id)
     if not step:
         from backend.exceptions import ResourceNotFoundError
+
         error_code = "STEP_NOT_FOUND"
         logger.error(f"{error_code}: ID {step_id}", exc_info=True)
         raise ResourceNotFoundError("Step", step_id, details={"error_code": error_code})
@@ -576,6 +605,7 @@ async def update_step(step_id: str, request: StepUpdateRequest, repository: Repo
     step = await repository.get_step_by_id(step_id)
     if not step:
         from backend.exceptions import ResourceNotFoundError
+
         error_code = "STEP_NOT_FOUND"
         logger.error(f"{error_code}: ID {step_id}", exc_info=True)
         raise ResourceNotFoundError("Step", step_id, details={"error_code": error_code})
@@ -600,6 +630,7 @@ async def clone_step(repository: RepositoryDep, source_step_id: str = Body(..., 
     step = await repository.get_step_by_id(source_step_id)
     if not step:
         from backend.exceptions import ResourceNotFoundError
+
         error_code = "SOURCE_STEP_NOT_FOUND"
         logger.error(f"{error_code}: ID {source_step_id}", exc_info=True)
         raise ResourceNotFoundError("Step", source_step_id, details={"error_code": error_code})
@@ -657,9 +688,13 @@ async def create_custom_step(req: CustomStepCreateRequest, repository: Repositor
         return new_step
     except Exception as e:
         from backend.exceptions import AppException
+
         error_code = "CUSTOM_STEP_CREATION_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=error_code, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"error_code": error_code, "original_error": str(e)}) from e
+        raise AppException(
+            message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": error_code, "original_error": str(e, details={"error_code": error_code})},
+        ) from e
 
 
 @router.get("/utils/generate-id", summary="Generate ID", response_description="A unique ID string.")
@@ -709,6 +744,7 @@ async def compile_fusion(req: CompileRequest, repository: RepositoryDep):
     wf = await repository.get_workflow_by_id(req.workflow_id)
     if not wf:
         from backend.exceptions import ResourceNotFoundError
+
         error_code = "WORKFLOW_NOT_FOUND"
         logger.error(f"{error_code}: ID {req.workflow_id}", exc_info=True)
         raise ResourceNotFoundError("Workflow", req.workflow_id, details={"error_code": error_code})
@@ -721,9 +757,14 @@ async def compile_fusion(req: CompileRequest, repository: RepositoryDep):
         logger.error(f"{error_code}: Request contains steps not in target workflow.", exc_info=True)
     if not all(s in current_steps for s in steps_to_fuse):
         from backend.exceptions import AppException
+
         error_code = "INVALID_COMPILATION_STEPS_MISSING"
         logger.error(f"{error_code}: Request contains steps not in target workflow.", exc_info=True)
-        raise AppException(message="Missing steps for fusion", status_code=status.HTTP_400_BAD_REQUEST, details={"error_code": error_code})
+        raise AppException(
+            message="Missing steps for fusion",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": error_code},
+        )
 
     fusing_components = []
     all_step_list = await repository.get_all_steps()
@@ -798,6 +839,10 @@ async def get_seed_data(repository: RepositoryDep, current_user: CurrentUserDep)
         return {"components": components, "steps": steps, "workflows": workflows}
     except Exception as e:
         from backend.exceptions import AppException
+
         error_code = "SEED_DATA_RETRIEVAL_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=error_code, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"error_code": error_code, "original_error": str(e)}) from e
+        raise AppException(
+            message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": error_code, "original_error": str(e, details={"error_code": error_code})},
+        ) from e

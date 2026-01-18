@@ -46,6 +46,10 @@ class AnalysisWizardScreen extends ConsumerWidget {
             validationMissing:
                 (fields) =>
                     message = l10n.errorValidationMissing(fields.join(', ')),
+            api: (errorCode, detail, status, instance) {
+              // RFC 7807 error - use detail as message
+              message = detail;
+            },
           );
         }
 

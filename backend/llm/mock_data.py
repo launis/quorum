@@ -1,32 +1,47 @@
 """Mock Data Store for AI Layer Testing (Zero-Token Cost)."""
 
-from typing import Any, Dict, Type
+from typing import Any
 
 from backend.models.domain import (
+    ArgumentaatioAnalyysi,
+    CaseLawContext,
+    CoachingPlan,
+    DimensionResultItem,
+    EettinenHavainto,
+    EtiikkaJaFakta,
+    EvaluationResult,
+    FaktantarkistusRFI,
+    Hypoteesi,
+    InteractionAnalysis,
+    KausaalinenAuditointi,
+    KausaalinenAuditointiData,
+    KognitiivinenTaso,
+    KontrafaktuaalinenTesti,
+    LogiikkaAuditointi,
     Metadata,
-    TodistusKartta, Hypoteesi, RagTodiste,
-    PanelAudit, ArgumentaatioAnalyysi, LogiikkaAuditointi, KausaalinenAuditointi, PerformatiivisuusAuditointi, EtiikkaJaFakta,
-    ToulminKomponentti, KognitiivinenTaso, WaltonSkeema,
-    WaltonStressitesti, PaattelyketjunUskollisuus,
-    KausaalinenAuditointiData, KontrafaktuaalinenTesti,
-    PerformatiivisuusHeuristiikka, PreMortemAnalyysi,
-    FaktantarkistusRFI, EettinenHavainto,
-    FaktantarkistusRFI, EettinenHavainto,
-    InteractionAnalysis, ProfilerAnalysis, ArchivistOutput, CaseLawContext,
-    TuomioJaPisteet, CoachingPlan, XAIReport, EvaluationResult, DimensionResultItem,
-    MestaruusPoikkeama, AitousEpaily, Pisteet, KonfliktinRatkaisu,
-    ActionGroup, ActionItem,
-    TaintedData, TaintedDataContent, SafeDataContent, SecurityCheck
+    PaattelyketjunUskollisuus,
+    PanelAudit,
+    PerformatiivisuusAuditointi,
+    PerformatiivisuusHeuristiikka,
+    PreMortemAnalyysi,
+    ProfilerAnalysis,
+    RagTodiste,
+    SafeDataContent,
+    SecurityCheck,
+    TaintedData,
+    TaintedDataContent,
+    TodistusKartta,
+    ToulminKomponentti,
+    TuomioJaPisteet,
+    WaltonSkeema,
+    WaltonStressitesti,
+    XAIReport,
 )
 from backend.tasks.security import GuardResult
 
 # --- Common Metadata ---
 MOCK_METADATA = Metadata(
-    luontiaika="2026-01-01T12:00:00Z",
-    agentti="MOCK_AGENT",
-    vaihe=1,
-    versio="2.0",
-    suoritus_ymparisto="Internal"
+    luontiaika="2026-01-01T12:00:00Z", agentti="MOCK_AGENT", vaihe=1, versio="2.0", suoritus_ymparisto="Internal"
 )
 
 # --- Task Outputs ---
@@ -36,7 +51,7 @@ MOCK_METADATA = Metadata(
 MOCK_GUARD_OUTPUT = GuardResult(
     is_safe=True,
     sanitized_inputs={"history_text": "Sanitized...", "product_text": "Sanitized product..."},
-    threats_detected=[]
+    threats_detected=[],
 )
 
 # 2. Analyst (TodistusKartta)
@@ -49,19 +64,19 @@ MOCK_ANALYST_OUTPUT = TodistusKartta(
     hypoteesit=[
         Hypoteesi(
             id="H1",
-            vaite_teksti="Mock Hypothesis 1: The architecture is robust.",
+            vaite_teksti="[KIRJOITA TÄHÄN HAVAINTO SYÖTTEESTÄ]",
             loytyyko_todisteita=True,
-            hakusana_ehdotus="architecture robustness"
+            hakusana_ehdotus="[HAKUTERMI]",
         )
     ],
     rag_todisteet=[
         RagTodiste(
             viittaa_hypoteesiin_id="H1",
-            perusteet="Mock evidence supports the hypothesis about architecture robustness.",
-            konteksti_segmentti="The architecture handles high load efficiently.",
-            relevanssi_score=95
+            perusteet="[PERUSTELE HAVAINTO SYÖTTEELLÄ]",
+            konteksti_segmentti="[SUORA SITAATTI SYÖTTEESTÄ TÄHÄN]",
+            relevanssi_score=95,
         )
-    ]
+    ],
 )
 
 # 3. Panel (PanelAudit - Composite)
@@ -70,58 +85,74 @@ MOCK_PANEL_OUTPUT = PanelAudit(
     metodologinen_loki="Mock Panel Review.",
     edellisen_vaiheen_validointi="Pass",
     semanttinen_tarkistussumma="hash_456",
-    
     # Logician
     logiikka_auditointi=ArgumentaatioAnalyysi(
-        metadata=MOCK_METADATA, metodologinen_loki="Logician", edellisen_vaiheen_validointi="OK", semanttinen_tarkistussumma="h1",
+        metadata=MOCK_METADATA,
+        metodologinen_loki="Logician",
+        edellisen_vaiheen_validointi="OK",
+        semanttinen_tarkistussumma="h1",
         toulmin_analyysi=[
-            ToulminKomponentti(vaite_id="H1", claim="Robust", data="Docs", warrant="Standard", backing="Verify")
+            ToulminKomponentti(
+                vaite_id="H1",
+                claim="[VÄITE]",
+                data="[TODISTE]",
+                warrant="[PÄÄTTELYSILTA]",
+                backing="[TUKI]",
+            )
         ],
-        kognitiivinen_taso=KognitiivinenTaso(bloom_taso="Evaluation", strateginen_syvyys="Deep"),
-        walton_skeema=WaltonSkeema(tunnistettu_skeema="Expert Opinion", kriittiset_kysymykset=["Is expert credible?"])
+        kognitiivinen_taso=KognitiivinenTaso(bloom_taso="Analyysi", strateginen_syvyys="Keskinkertainen"),
+        walton_skeema=WaltonSkeema(tunnistettu_skeema="Asiantuntijalausunto", kriittiset_kysymykset=["Onko lähde uskottava?"]),
     ),
-    
     # Falsifier
     falsifiointi_auditointi=LogiikkaAuditointi(
-        metadata=MOCK_METADATA, metodologinen_loki="Falsifier", edellisen_vaiheen_validointi="OK", semanttinen_tarkistussumma="h2",
+        metadata=MOCK_METADATA,
+        metodologinen_loki="Falsifier",
+        edellisen_vaiheen_validointi="OK",
+        semanttinen_tarkistussumma="h2",
         walton_stressitesti_loydokset=[
             WaltonStressitesti(kysymys="Bias?", kestiko_todistusaineisto=True, havainto="No bias")
         ],
         paattelyketjun_uskollisuus_auditointi=PaattelyketjunUskollisuus(
             onko_post_hoc_rationalisointia=False, perustelu="Clean deduction", uskollisuus_score="KORKEA"
-        )
+        ),
     ),
-    
     # Causal
     kausaalinen_auditointi=KausaalinenAuditointi(
-        metadata=MOCK_METADATA, metodologinen_loki="Causal", edellisen_vaiheen_validointi="OK", semanttinen_tarkistussumma="h3",
+        metadata=MOCK_METADATA,
+        metodologinen_loki="Causal",
+        edellisen_vaiheen_validointi="OK",
+        semanttinen_tarkistussumma="h3",
         kausaalinen_auditointi=KausaalinenAuditointiData(aikajana_validi=True, havainnot="Linear"),
         kontrafaktuaalinen_testi=KontrafaktuaalinenTesti(
             skenaario_A_toteutunut="A", skenaario_B_simulaatio="B", uskottavuus_arvio="Plausible"
         ),
-        abduktiivinen_paatelma="Aito Oivallus"
+        abduktiivinen_paatelma="Aito Oivallus",
     ),
-    
     # Detector
     performatiivisuus_auditointi=PerformatiivisuusAuditointi(
-        metadata=MOCK_METADATA, metodologinen_loki="Detector", edellisen_vaiheen_validointi="OK", semanttinen_tarkistussumma="h4",
+        metadata=MOCK_METADATA,
+        metodologinen_loki="Detector",
+        edellisen_vaiheen_validointi="OK",
+        semanttinen_tarkistussumma="h4",
         performatiivisuus_heuristiikat=[
             PerformatiivisuusHeuristiikka(heuristiikka="Buzzwords", lippu_nostettu=False, kuvaus="Clean")
         ],
         pre_mortem_analyysi=PreMortemAnalyysi(suoritettu=True, hiljaiset_signaalit=["None"]),
-        yleisarvio_aitoudesta="Orgaaninen"
+        yleisarvio_aitoudesta="Orgaaninen",
     ),
-    
     # Overseer
     etiikka_ja_fakta=EtiikkaJaFakta(
-        metadata=MOCK_METADATA, metodologinen_loki="Overseer", edellisen_vaiheen_validointi="OK", semanttinen_tarkistussumma="h5",
+        metadata=MOCK_METADATA,
+        metodologinen_loki="Overseer",
+        edellisen_vaiheen_validointi="OK",
+        semanttinen_tarkistussumma="h5",
         faktantarkistus_rfi=[
-            FaktantarkistusRFI(vaite="Sky is blue", verifiointi_tulos="Vahvistettu", lahde_tai_paattely="Visual")
+            FaktantarkistusRFI(
+                vaite="[TARKASTETTAVA VÄITE]", verifiointi_tulos="Vahvistettu", lahde_tai_paattely="[LÄHDE]"
+            )
         ],
-        eettiset_havainnot=[
-            EettinenHavainto(tyyppi="Ei havaittu", vakavuus="N/A", kuvaus="Safe")
-        ]
-    )
+        eettiset_havainnot=[EettinenHavainto(tyyppi="Ei havaittu", vakavuus="N/A", kuvaus="Ei eettisiä riskejä")],
+    ),
 )
 
 # 4. Interaction Analysis
@@ -130,10 +161,10 @@ MOCK_INTERACTION_OUTPUT = InteractionAnalysis(
     metodologinen_loki="Mock Interaction Audit",
     edellisen_vaiheen_validointi="Pass",
     semanttinen_tarkistussumma="hash_int",
-    tunnistetut_strategiat=["Few-Shot", "Korjaava"],
-    ohjausliikkeet=5,
-    driver_classification="Kuski",
-    input_control_ratio=0.8
+    tunnistetut_strategiat=["[STRATEGIA 1]", "[STRATEGIA 2]"],
+    ohjausliikkeet=0,
+    driver_classification="Matkustaja",
+    input_control_ratio=0.0,
 )
 
 # 5. Profiler Analysis
@@ -142,11 +173,11 @@ MOCK_PROFILER_OUTPUT = ProfilerAnalysis(
     metodologinen_loki="Mock Profiler",
     edellisen_vaiheen_validointi="Pass",
     semanttinen_tarkistussumma="hash_prof",
-    intentio_analyysi="Co-Creation",
-    tunnetila_ja_savy="Neutral",
+    intentio_analyysi="[ANALYSOI KIRJOITTAJAN TARKOITUS]",
+    tunnetila_ja_savy="[ANALYSOI SÄVY]",
     tunnistetut_vinoumat=[],
-    psykologinen_profiili="Analytical",
-    manipulaatio_yritykset="None"
+    psykologinen_profiili="[PROFIILI]",
+    manipulaatio_yritykset="Ei havaittu",
 )
 
 # 6. Archivist Output (CaseLawContext)
@@ -155,10 +186,10 @@ MOCK_ARCHIVIST_OUTPUT = CaseLawContext(
     metodologinen_loki="Mock Archivist",
     edellisen_vaiheen_validointi="Pass",
     semanttinen_tarkistussumma="hash_arch",
-    linjakkuus_analyysi="Aligned with precedents.",
-    poikkeamat_linjasta="None.",
-    suositus_tuomarille="Adhere to standard.",
-    viitatut_ennakkotapaukset=["Case A", "Case B"]
+    linjakkuus_analyysi="[VERTAA ENNAKKOTAPAUKSIIN]",
+    poikkeamat_linjasta="[MAINITSE POIKKEAMAT]",
+    suositus_tuomarille="[SUOSITUS]",
+    viitatut_ennakkotapaukset=[],
 )
 
 # 7. Judge Output
@@ -174,9 +205,9 @@ MOCK_JUDGE_OUTPUT = EvaluationResult(
     total_score=4.5,
     dimensions=[
         DimensionResultItem(dimension_id="dim1", score=5, reasoning="Excellent"),
-        DimensionResultItem(dimension_id="dim2", score=4, reasoning="Good")
+        DimensionResultItem(dimension_id="dim2", score=4, reasoning="Good"),
     ],
-    critical_findings=["Mock finding"]
+    critical_findings=["[KRIITTINEN HAVAINTO]"],
 )
 
 # 8. Coach Output
@@ -185,10 +216,10 @@ MOCK_COACH_OUTPUT = CoachingPlan(
     metodologinen_loki="Mock Coach",
     edellisen_vaiheen_validointi="Pass",
     semanttinen_tarkistussumma="hash_coach",
-    kannustava_palaute="Excellent driver behavior.",
+    kannustava_palaute="[POSITIIVINEN PALAUTE]",
     kehityskohteet_konkreettisesti=[],
-    lopputuloksen_kehitysehdotukset=["Polish the tone."],
-    lahdeluettelo=[]
+    lopputuloksen_kehitysehdotukset=["[KONKREETTINEN EHDOTUS]"],
+    lahdeluettelo=[],
 )
 
 # 9. XAI Report
@@ -197,13 +228,13 @@ MOCK_XAI_OUTPUT = XAIReport(
     metodologinen_loki="Mock XAI",
     edellisen_vaiheen_validointi="Pass",
     semanttinen_tarkistussumma="hash_xai",
-    executive_summary="Passed all checks.",
-    analysis_strengths="Strong logic.",
-    analysis_weaknesses="None.",
-    analysis_opportunities="None.",
-    analysis_recommendations="Deploy.",
-    final_verdict="Approved",
-    confidence_score=0.99
+    executive_summary="[TIIVISTELMÄ]",
+    analysis_strengths="[VAHVUUDET]",
+    analysis_weaknesses="[HEIKKOUDET]",
+    analysis_opportunities="[MAHDOLLISUUDET]",
+    analysis_recommendations="[SUOSITUKSET]",
+    final_verdict="[LOPPUTULOS]",
+    confidence_score=0.0,
 )
 
 
@@ -216,26 +247,26 @@ MOCK_TAINTED_DATA = TaintedData(
     data=TaintedDataContent(
         keskusteluhistoria="{{FILE: Keskusteluhistoria.pdf}}",
         lopputuote="{{FILE: Lopputuote.pdf}}",
-        reflektiodokumentti="{{FILE: Reflektiodokumentti.pdf}}"
+        reflektiodokumentti="{{FILE: Reflektiodokumentti.pdf}}",
     ),
     security_check=SecurityCheck(
         uhka_havaittu=False,
-        adversariaalinen_simulaatio_tulos="No threats detected in simulation.",
+        adversariaalinen_simulaatio_tulos="[SIMULAATION TULOS]",
         riski_taso="MATALA",
         anonymisointi_tehty=True,
-        tietosuoja_raportti="Mock data redacted."
+        tietosuoja_raportti="Mock data redacted.",
     ),
     safe_data=SafeDataContent(
         keskusteluhistoria="Sanitized history",
         lopputuote="Sanitized product",
-        reflektiodokumentti="Sanitized reflection"
-    )
+        reflektiodokumentti="Sanitized reflection",
+    ),
 )
 
 
 # Registry Mapping
 # Maps the Pydantic MODEL CLASS to the instance
-MOCK_REGISTRY: Dict[Type[Any], Any] = {
+MOCK_REGISTRY: dict[type[Any], Any] = {
     TodistusKartta: MOCK_ANALYST_OUTPUT,
     PanelAudit: MOCK_PANEL_OUTPUT,
     GuardResult: MOCK_GUARD_OUTPUT,
@@ -244,16 +275,15 @@ MOCK_REGISTRY: Dict[Type[Any], Any] = {
     ProfilerAnalysis: MOCK_PROFILER_OUTPUT,
     CaseLawContext: MOCK_ARCHIVIST_OUTPUT,
     EvaluationResult: MOCK_JUDGE_OUTPUT,
-    TuomioJaPisteet: MOCK_JUDGE_OUTPUT, # Legacy fallback
+    TuomioJaPisteet: MOCK_JUDGE_OUTPUT,  # Legacy fallback
     CoachingPlan: MOCK_COACH_OUTPUT,
     XAIReport: MOCK_XAI_OUTPUT,
-    
     # Expose Panel Components individually in case tasks are run in isolation
     ArgumentaatioAnalyysi: MOCK_PANEL_OUTPUT.logiikka_auditointi,
     LogiikkaAuditointi: MOCK_PANEL_OUTPUT.falsifiointi_auditointi,
     KausaalinenAuditointi: MOCK_PANEL_OUTPUT.kausaalinen_auditointi,
     PerformatiivisuusAuditointi: MOCK_PANEL_OUTPUT.performatiivisuus_auditointi,
-    EtiikkaJaFakta: MOCK_PANEL_OUTPUT.etiikka_ja_fakta
+    EtiikkaJaFakta: MOCK_PANEL_OUTPUT.etiikka_ja_fakta,
 }
 
 # --- Lookups & Helpers ---
@@ -272,10 +302,11 @@ AGENT_CLASS_TO_MOCK_KEY = {
     "JudgeAgent": "judge_agent",
     "CoachAgent": "coach_agent",
     "XAIReporterAgent": "xai_agent",
-    "PanelAgent": "panel_agent"
+    "PanelAgent": "panel_agent",
 }
 
-def get_fallback_data(key: str) -> Dict[str, Any]:
+
+def get_fallback_data(key: str) -> dict[str, Any]:
     """Retrieves the default mock data for a given agent key."""
     if key == "guard_agent":
         return MOCK_GUARD_OUTPUT.model_dump()
@@ -305,6 +336,5 @@ def get_fallback_data(key: str) -> Dict[str, Any]:
         return MOCK_COACH_OUTPUT.model_dump()
     elif key == "xai_agent":
         return MOCK_XAI_OUTPUT.model_dump()
-    
-    return {"message": "Mock data not found for key", "key": key}
 
+    return {"message": "Mock data not found for key", "key": key}

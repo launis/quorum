@@ -61,19 +61,3 @@ class XAIReporterAgent(BaseAgent):
         """
         return await super().execute(state, system_instruction, **kwargs)
 
-    def post_process(self, state: WorkflowState) -> WorkflowState:
-        """Lifecycle Hook: Post-Execution.
-
-        Generates the final human-readable report by calling the reporting hook.
-
-        Args:
-            state (WorkflowState): Current workflow state.
-
-        Returns:
-            WorkflowState: Updated state with the generated report.
-
-        """
-        logger.info("[XAIReporterAgent] Running post_process hook...")
-        from backend.hooks.reporting import generate_report
-
-        return generate_report(state)

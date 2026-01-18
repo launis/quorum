@@ -1,14 +1,28 @@
-# Cognitive Quorum: A Data-Driven Architecture for Robust Multi-Agent Reasoning (V2.5)
+# Cognitive Quorum: A Data-Driven Architecture for Robust Multi-Agent Reasoning (V2.6)
 
 ## Abstract
 
-This document outlines the **Cognitive Quorum**, a structured cognitive architecture designed to resolve the fundamental tension between the stochastic, generative nature of Large Language Models (LLMs) and the deterministic, reliable requirements of production software. The architecture achieves this by separating cognitive logic ("The Mind") from procedural execution ("The Spine"), now enhanced with **Asynchronous Distributed Processing** in V2.5.
+This document outlines the **Cognitive Quorum**, a structured cognitive architecture designed to resolve the fundamental tension between the stochastic, generative nature of Large Language Models (LLMs) and the deterministic, reliable requirements of production software. The architecture achieves this by separating cognitive logic ("The Mind") from procedural execution ("The Spine"), upgraded in **V2.6 (Jan 2026)** to support **Configuration-Driven Evaluation Matrices (BARS)** and **Autonomous Evidence Discovery**.
+
+## Input Ingestion & Structuring
+
+Before entering the reasoning pipeline, raw multi-modal input (PDF, Docx, Text) undergoes **Structural Normalization** via the `ChatLogParser`. This component is critical for preserving the semantic distinction between User queries and AI responses.
+
+### Dialogue Preservation (The "Sitra" Benchmark)
+The system employs a "Fail-Open" line-based parser to identify speaker labels (`User:` / `AI:`). This ensures that complex cognitive shifts are correctly attributed.
+
+**Canonical Example (Verified V2.5 Ingestion):**
+> **User Input**: *"Miten sitra tämän näkee raporttien perusteella"*
+>
+> **AI Response**: *"Sitran megatrendiraporttien perusteella näkymä tulevaisuuteen on siirtynyt potentiaalista ja nousevista ilmiöistä (2017) kohti kasautuvia, geopoliittisesti latautuneita kriisejä ja systeemisiä murtumia (2023)."*
+
+By strictly separating these entities, the **Interaction Analyst (2.2)** can accurately assess the user's intent versus the AI's provided evidence, preventing "Source Confusion" hallucinations.
 
 ## Pipeline Overview
 
-The Cognitive Quorum implements a **sequential multi-agent reasoning pipeline** where information flows through specialized agents, each performing a distinct cognitive function. The pipeline enforces strict data contracts between stages, ensuring deterministic behavior despite the stochastic nature of LLMs.
+The Cognitive Quorum implements a **sequential or fused multi-agent reasoning pipeline** where information flows through specialized agents, each performing a distinct cognitive function. The pipeline enforces strict data contracts between stages, ensuring deterministic behavior despite the stochastic nature of LLMs.
 
-### Agent Flow Diagram
+### Agent Flow Diagram (Sequential Model)
 
 ```mermaid
 flowchart TD
@@ -40,7 +54,7 @@ flowchart TD
     end
     
     subgraph Synthesis["Synthesis Layer"]
-        M["9. Tuomari<br/>(Judge)"]
+        M["9. Tuomari<br/>(Judge Rules Engine)"]
         N["10. XAI-Raportoija<br/>(XAI Reporter)"]
     end
     
@@ -114,49 +128,50 @@ sequenceDiagram
     Engine->>Client: Final XAI Report
 ```
 
-### Agent Summary Table
-
-| Step | Agent (FI) | Agent (EN) | Primary Function | Output Type |
-|------|------------|------------|------------------|-------------|
-| 1 | Vartija | Guard | Prompt injection defense, PII redaction | `SecurityCheckResult` |
-| 2 | Analyytikko | Analyst | Evidence extraction, grounding | `EvidenceMap` |
-| 2.2 | Vuorovaikutusanalysaattori | Interaction Analyst | User role classification (Driver/Passenger) | `InteractionProfile` |
-| 2.5 | Profiloija | Profiler | Cognitive bias detection | `CognitiveBiasProfile` |
-| 3 | Loogikko | Logician | Toulmin argument mapping | `ArgumentStructure` |
-| 4 | Falsifioija | Falsifier | Contradiction detection (Popperian) | `FalsificationResult` |
-| 5 | Valvoja | Overseer | Fact-checking, ethics verification | `OverseerReport` |
-| 6 | Kausaalinen Analyytikko | Causal Analyst | Causation vs. correlation | `CausalInference` |
-| 7 | Performatiivisuuden Tunnistaja | Detector | Manipulation/rhetoric detection | `PerformativeAnalysis` |
-| 8 | Arkistonhoitaja | Archivist | Historical precedent retrieval (RAG) | `HistoricalContext` |
-| 8c | Valmentaja | Coach | Pedagogical feedback | `CoachingAdvice` |
-| 9 | Tuomari | Judge | Final adjudication with scoring | `JudgeVerdict` |
-| 10 | XAI-Raportoija | XAI Reporter | Explainable report generation | `XAIReport` |
-
-### Key Architectural Invariants
-
-1. **Contract-First Data Flow**: Every agent-to-agent handoff is validated against a strict Pydantic V2 schema. No raw dictionaries cross boundaries.
-
-2. **Reasoning Continuity**: The `thought` trace from each agent is persisted in `WorkflowState.reasoning_context` and injected into the next agent's prompt, maintaining cognitive coherence.
-
-3. **Zero-Fallback Execution**: If any validation fails after repair attempts, the pipeline halts rather than proceeding with corrupt data.
-
----
-
 ## Architectural Principles
 
 ### The Mind (Dynamic Layer)
-*   **Source:** `seed_data.json` / Firetore.
-*   **Components:** Prompts, Mandates (`MANDATE_1`), Methods (`METHOD_1`).
+*   **Source:** `seed_data.json` / Firestore / `db.json`.
+*   **Components:** Prompts, Mandates (`MANDATE_1`), Methods (`METHOD_1`), **Evaluation Matrices**.
 *   **Role:** Defines the *strategy* of reasoning. Configurable without code changes.
+    *   **V2.6 Update**: The core evaluation logic (The Judge's Matrix) is now fully decoupled from code. The definition of "What is good reasoning?" is stored in JSON components (`matrix_standard_v1`, `matrix_cognitive_v1`).
 
 ### The Spine (Static Layer)
 *   **Source:** Python Code (`backend/agents/`, `backend/models/`).
 *   **Components:** Agent Classes, Pydantic V2 Models (`typing.Annotated`), Arq Workers.
 *   **Role:** Defines the *structure* of data and execution. Enforces type safety, manages async concurrency, and provides observability via **Logfire**.
-    *   **Contract-First Data Integrity:** All internal data exchange is strictly validated against Pydantic models (e.g., `ReportContext` instead of dicts).
-    *   **Zero-Fallback Configuration:** The system refuses to start or execute if configuration is ambiguous, preventing "silent failures" or accidental defaults.
-    > **Constraint:** Currently requires code changes to add new steps. Phase 7 aims to make this fully dynamic.
+    *   **Contract-First Data Integrity:** All internal data exchange is strictly validated against Pydantic models.
+    *   **Configuration-Driven Discovery (New in V2.6):** Agents like `JudgeAgent` no longer have hardcoded dependencies on upstream agents. Instead, they read a `monitored_steps` map from their `execution_config` to discover evidence dynamically.
 
+## Dynamic Evaluation System (BARS - V2.6)
+
+A central innovation in V2.6 is the **Behaviorally Anchored Rating Scale (BARS)** interface, which allows the "Judge" to switch between completely different audit frameworks on the fly.
+
+### 1. Dynamic Matrix Injection
+Unlike traditional agents with fixed system prompts, the `JudgeAgent` constructs its identity dynamically:
+1.  **Lookup**: It reads `matrix_id` from the workflow configuration (e.g., `matrix_standard_v1`).
+2.  **Retrieval**: It fetches the corresponding Component definition from `db.json`.
+3.  **Compilation**: It compiles a prompt injection containing:
+    *   **Role Persona**: "You are the Evaluator..."
+    *   **Criteria**: A list of dimensions (e.g., Agency, Synthesis, Falsification).
+    *   **Anchors**: Specific behaviors defining levels 1-4 for *each* dimension.
+
+### 2. Autonomous Evidence Discovery
+The Judge does not know *a priori* which agents ran before it. It uses a **Configuration-Driven Discovery** mechanism:
+*   It iterates through the `monitored_steps` dictionary in its config (e.g., `{"step_profiler": "PROFILOIJA"}`).
+*   It scans the `WorkflowState` for these keys.
+*   If found, it serializes the agent's output into a "Courtroom Evidence" block (`### PROFILOIJA (BIAS AUDIT)...`).
+*   This allows the same Judge code to referee a "Sequential" legacy workflow or a modern "Fused" workflow (where multiple critics are merged into `step_panel`).
+
+### 3. Reporting Abstraction
+The final `EvaluationResult` structure is polymorphic:
+```python
+class EvaluationResult(BaseJSON):
+    matrix_id: str
+    dimensions: list[DimensionResultItem] # [ {id="agency", score=3}, {id="logic", score=2} ]
+    total_score: float
+```
+The **StatePresenter** creates the final report by flattening these dynamic dimensions into the reporting payload. This means adding a new dimension to `db.json` automatically makes it appear in the final PDF/UI report without a single line of Python code.
 
 ## The Cognitive Assembly Line (`sequential_audit_chain`)
 
@@ -207,12 +222,12 @@ Connects the current case to historical precedents via Vector RAG Search.
 Provides actionable advice to the user on improving their reasoning.
 
 ### 9. Tuomari (Judge Agent)
-**Role:** Adjudication.
-Synthesizes all critiques into a final Verdict using a strict scoring matrix.
+**Role:** Dynamic Adjudication.
+Synthesizes all critiques into a final Verdict using the injected **BARS Matrix**. It calculates scores across dynamically defined dimensions (e.g., Agency, Logic, Ethics) and resolves conflicts between critic agents.
 
 ### 10. XAI-Raportoija (XAI Reporter)
 **Role:** Transparency.
-Generates a human-readable, explainable report documenting the entire decision chain.
+Generates a human-readable, explainable report. It is "matrix-agnostic," meaning it renders whatever dimensions the Judge evaluated, ensuring forward compatibility with new audit frameworks.
 
 ## Reasoning Continuity Architecture (V2.5)
 

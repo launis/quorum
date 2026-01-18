@@ -98,16 +98,16 @@ class ExecutionRepository {
       for (final entry in input.files.entries) {
         final file = entry.value;
         // Web Safety & OOM Prevention:
-        // 1. On Web, ALWAYS use bytes (kIsWeb check). 'fromFile' is unsupported.
-        // 2. On IO, if path is available, use 'fromFile' (Stream) to save memory.
-        if (!kIsWeb && file.path != null) {
-          formDataMap[entry.key] = await MultipartFile.fromFile(
-            file.path!,
-            filename: file.name,
-          );
-        } else if (file.bytes != null) {
+        // 1. Prefer bytes if available (Enforced by 'withData: true' for reliability).
+        // 2. Fallback to path on IO if bytes missing.
+        if (file.bytes != null) {
           formDataMap[entry.key] = MultipartFile.fromBytes(
             file.bytes!,
+            filename: file.name,
+          );
+        } else if (!kIsWeb && file.path != null) {
+           formDataMap[entry.key] = await MultipartFile.fromFile(
+            file.path!,
             filename: file.name,
           );
         } else {

@@ -10,7 +10,7 @@ import logging
 import re
 from typing import Annotated, Any
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Path, status
+from fastapi import APIRouter, BackgroundTasks, Path, status
 from fastapi import Query as APIQuery
 from pydantic import BaseModel, Field
 from tinydb import Query
@@ -142,6 +142,7 @@ def get_component(db: DatabaseDep, comp_id: str = Path(..., description="Compone
 
     if not res:
         from backend.exceptions import ResourceNotFoundError
+
         error_code = "COMPONENT_NOT_FOUND"
         logger.error(f"{error_code}: ID {comp_id}", exc_info=True)
         raise ResourceNotFoundError("Component", comp_id, details={"error_code": error_code})
@@ -154,9 +155,10 @@ def create_component(comp: ComponentCreate, db: DatabaseDep):
     table = db.table("components")
     if table.search(Query().id == comp.id):
         from backend.exceptions import ConflictError
+
         error_code = "COMPONENT_ID_EXISTS"
         logger.error(f"{error_code}: ID {comp.id}", exc_info=True)
-        raise ConflictError(message=error_code)
+        raise ConflictError(message="Resource conflict", details={"error_code": error_code})
 
     new_comp = comp.model_dump()
     if "component_class" in new_comp:
@@ -187,6 +189,7 @@ def update_component(comp_id: str, update: ComponentUpdate, db: DatabaseDep):
     exists = table.search((Component.id == comp_id) | (Component.name == comp_id))
     if not exists:
         from backend.exceptions import ResourceNotFoundError
+
         error_code = "COMPONENT_NOT_FOUND"
         logger.error(f"{error_code}: ID {comp_id}", exc_info=True)
         raise ResourceNotFoundError("Component", comp_id, details={"error_code": error_code})
@@ -214,6 +217,7 @@ def delete_component(comp_id: str, db: DatabaseDep):
     exists = table.search((Component.id == comp_id) | (Component.name == comp_id))
     if not exists:
         from backend.exceptions import ResourceNotFoundError
+
         error_code = "COMPONENT_NOT_FOUND"
         logger.error(f"{error_code}: ID {comp_id}", exc_info=True)
         raise ResourceNotFoundError("Component", comp_id, details={"error_code": error_code})
@@ -231,9 +235,10 @@ def delete_component(comp_id: str, db: DatabaseDep):
 
     if used_in:
         from backend.exceptions import ConflictError
+
         error_code = "COMPONENT_IN_USE"
         logger.error(f"{error_code}: ID {comp_id} used in {used_in}", exc_info=True)
-        raise ConflictError(message=error_code, details={"used_in": used_in})
+        raise ConflictError(message="Resource conflict", details={"error_code": error_code, **{"used_in": used_in}})
 
     table.remove((Component.id == comp_id) | (Component.name == comp_id))
     return {"status": "deleted", "id": comp_id}
@@ -251,9 +256,10 @@ def create_step(step: dict[str, Any], db: DatabaseDep):
     table = db.table("steps")
     if table.search(Query().id == step.get("id")):
         from backend.exceptions import ConflictError
+
         error_code = "STEP_ID_EXISTS"
         logger.error(f"{error_code}: ID {step.get('id')}", exc_info=True)
-        raise ConflictError(message=error_code)
+        raise ConflictError(message="Resource conflict", details={"error_code": error_code})
     table.insert(step)
     return {"status": "created", "id": step.get("id")}
 
@@ -264,6 +270,7 @@ def update_step(step_id: str, step: dict[str, Any], db: DatabaseDep):
     table = db.table("steps")
     if not table.search(Query().id == step_id):
         from backend.exceptions import ResourceNotFoundError
+
         error_code = "STEP_NOT_FOUND"
         logger.error(f"{error_code}: ID {step_id}", exc_info=True)
         raise ResourceNotFoundError("Step", step_id, details={"error_code": error_code})
@@ -281,6 +288,7 @@ async def delete_step(step_id: str, db: DatabaseDep):
     table = db.table("steps")
     if not table.search(Query().id == step_id):
         from backend.exceptions import ResourceNotFoundError
+
         error_code = "STEP_NOT_FOUND"
         logger.error(f"{error_code}: ID {step_id}", exc_info=True)
         raise ResourceNotFoundError("Step", step_id, details={"error_code": error_code})
@@ -294,9 +302,10 @@ async def delete_step(step_id: str, db: DatabaseDep):
 
     if used_in:
         from backend.exceptions import ConflictError
+
         error_code = "STEP_IN_USE"
         logger.error(f"{error_code}: ID {step_id} used in {used_in}", exc_info=True)
-        raise ConflictError(message=error_code, details={"used_in": used_in})
+        raise ConflictError(message="Resource conflict", details={"error_code": error_code, **{"used_in": used_in}})
 
     # 3. Delete
     table.remove(Query().id == step_id)
@@ -316,6 +325,7 @@ def get_workflow(wf_id: str, db: DatabaseDep):
     res = db.table("workflows").search(Workflow.id == wf_id)
     if not res:
         from backend.exceptions import ResourceNotFoundError
+
         error_code = "WORKFLOW_NOT_FOUND"
         logger.error(f"{error_code}: ID {wf_id}", exc_info=True)
         raise ResourceNotFoundError("Workflow", wf_id, details={"error_code": error_code})
@@ -330,6 +340,7 @@ def update_workflow(wf_id: str, update: WorkflowUpdate, db: DatabaseDep):
 
     if not table.search(Workflow.id == wf_id):
         from backend.exceptions import ResourceNotFoundError
+
         error_code = "WORKFLOW_NOT_FOUND"
         logger.error(f"{error_code}: ID {wf_id}", exc_info=True)
         raise ResourceNotFoundError("Workflow", wf_id, details={"error_code": error_code})
@@ -346,9 +357,10 @@ def update_workflow(wf_id: str, update: WorkflowUpdate, db: DatabaseDep):
 
     if not update_data:
         from backend.exceptions import AppException
+
         error_code = "NO_UPDATE_DATA"
         logger.error(f"{error_code}: ID {wf_id}", exc_info=True)
-        raise AppException(message=error_code, status_code=status.HTTP_400_BAD_REQUEST)
+        raise AppException(message=str(e), status_code=status.HTTP_400_BAD_REQUEST, details={"error_code": error_code})
 
     steps_to_check = update.steps if update.steps else update.sequence
     if steps_to_check:
@@ -357,9 +369,14 @@ def update_workflow(wf_id: str, update: WorkflowUpdate, db: DatabaseDep):
             sid = item if isinstance(item, str) else item.get("id")
             if sid and sid not in valid_steps:
                 from backend.exceptions import AppException
+
                 error_code = "INVALID_STEP_ID"
                 logger.error(f"{error_code}: Step {sid} not found.", exc_info=True)
-                raise AppException(message=f"Step '{sid}' not found", status_code=status.HTTP_400_BAD_REQUEST, details={"error_code": error_code})
+                raise AppException(
+                    message=f"Step '{sid}' not found",
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    details={"error_code": error_code},
+                )
 
     table.update(update_data, Workflow.id == wf_id)
     return {"status": "updated", "id": wf_id}
@@ -373,9 +390,10 @@ def create_workflow(workflow: WorkflowCreate, db: DatabaseDep):
 
     if table.search(Workflow.id == workflow.id):
         from backend.exceptions import ConflictError
+
         error_code = "WORKFLOW_ID_EXISTS"
         logger.error(f"{error_code}: ID {workflow.id}", exc_info=True)
-        raise ConflictError(message=error_code)
+        raise ConflictError(message="Resource conflict", details={"error_code": error_code})
 
     new_wf = workflow.model_dump()
     if workflow.sequence:
@@ -383,9 +401,14 @@ def create_workflow(workflow: WorkflowCreate, db: DatabaseDep):
         for step_id in workflow.sequence:
             if step_id not in valid_steps:
                 from backend.exceptions import AppException
+
                 error_code = "INVALID_STEP_ID"
                 logger.error(f"{error_code}: Step {step_id} not found.", exc_info=True)
-                raise AppException(message=f"Step '{step_id}' not found", status_code=status.HTTP_400_BAD_REQUEST, details={"error_code": error_code})
+                raise AppException(
+                    message=f"Step '{step_id}' not found",
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    details={"error_code": error_code},
+                )
 
     table.insert(new_wf)
     return {"status": "created", "id": workflow.id}
@@ -398,6 +421,7 @@ def delete_workflow(wf_id: str, db: DatabaseDep):
     table = db.table("workflows")
     if not table.search(Workflow.id == wf_id):
         from backend.exceptions import ResourceNotFoundError
+
         error_code = "WORKFLOW_NOT_FOUND"
         logger.error(f"{error_code}: ID {wf_id}", exc_info=True)
         raise ResourceNotFoundError("Workflow", wf_id, details={"error_code": error_code})
@@ -420,9 +444,12 @@ def reset_from_seed():
         return {"status": "success", "message": "Database reset from seed data."}
     except Exception as e:
         from backend.exceptions import AppException
+
         error_code = "DB_RESET_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=error_code, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"original_error": str(e)}) from e
+        raise AppException(
+            message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"error_code": error_code}
+        ) from e
 
 
 @router.post("/deploy-mock-to-prod", summary="Deploy Mock -> Prod", response_description="Deployment status.")
@@ -437,9 +464,12 @@ def deploy_mock_to_prod():
         return {"status": "success", "message": "Mock environment deployed to Production DB."}
     except Exception as e:
         from backend.exceptions import AppException
+
         error_code = "DB_DEPLOY_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=error_code, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"original_error": str(e)}) from e
+        raise AppException(
+            message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"error_code": error_code}
+        ) from e
 
 
 @router.post("/deploy-prod-to-mock", summary="Deploy Prod -> Mock", response_description="Deployment status.")
@@ -454,9 +484,12 @@ def deploy_prod_to_mock():
         return {"status": "success", "message": "Production environment deployed to Mock DB."}
     except Exception as e:
         from backend.exceptions import AppException
+
         error_code = "DB_DEPLOY_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=error_code, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"original_error": str(e)}) from e
+        raise AppException(
+            message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"error_code": error_code}
+        ) from e
 
 
 @router.get("/schemas", summary="List Schemas", response_description="All Pydantic Schemas.")
@@ -490,9 +523,12 @@ def get_unified_prompts(db: DatabaseDep):
         return {"content": unified_text}
     except Exception as e:
         from backend.exceptions import AppException
+
         error_code = "UNIFIED_PROMPT_GENERATION_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=error_code, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"original_error": str(e)}) from e
+        raise AppException(
+            message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"error_code": error_code}
+        ) from e
 
 
 # Helpers (kept same)
@@ -646,7 +682,8 @@ async def call_llm_adhoc(request: LLMCallRequest, handler: LLMHandlerDep):
         error_code = "AD_HOC_LLM_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
         from backend.exceptions import ServiceUnavailableError
-        raise ServiceUnavailableError(message=error_code, details={"original_error": str(e)}) from e
+
+        raise ServiceUnavailableError(message=str(e), details={"error_code": error_code}) from e
 
 
 @router.get("/models/strategies", summary="Get Strategies", response_description="Active strategy map.")
@@ -797,6 +834,7 @@ def create_dimension(dim: DimensionDefinition, db: DatabaseDep):
     table = db.table("dimensions")
     if table.search(Query().id == dim.id):
         from backend.exceptions import ConflictError
+
         error_code = "DIMENSION_EXISTS"
         logger.error(f"{error_code}: ID {dim.id}", exc_info=True)
         raise ConflictError(message="Dimension ID already exists", details={"error_code": error_code})
@@ -828,6 +866,7 @@ def delete_dimension(dim_id: str, db: DatabaseDep):
 
     if used_in:
         from backend.exceptions import ConflictError
+
         error_code = "DIMENSION_IN_USE"
         logger.error(f"{error_code}: ID {dim_id} used in {used_in}", exc_info=True)
         raise ConflictError(message="Dimension in use", details={"error_code": error_code, "used_in": used_in})
@@ -849,9 +888,14 @@ async def validate_flow(workflow: WorkflowCreate, db: DatabaseDep, registry: Reg
         agents_map = AgentFactory.create_agents_map(initial_model=config["model_name"])
     except Exception as e:
         from backend.exceptions import AppException
+
         error_code = "FACTORY_ERROR"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message="Agent factory failed", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"error_code": error_code, "original_error": str(e)}) from e
+        raise AppException(
+            message="Agent factory failed",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": error_code, "original_error": str(e)},
+        ) from e
 
     known_keys = ["history_text", "product_text", "reflection_text", "bibliography_context"]
     errors = []

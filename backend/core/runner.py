@@ -5,7 +5,7 @@ import logging
 from datetime import datetime
 from typing import Any
 
-from backend.exceptions import AgentExecutionError, FatalInterruption
+from backend.exceptions import AgentExecutionError, FatalInterruption, AppException
 from backend.models.state import InputData, WorkflowState
 from backend.services.usage_service import UsageService
 
@@ -89,15 +89,23 @@ class PipelineRunner:
                     [r["phrase"].lower() for r in banned_raw] if banned_raw else []
                 )
             except Exception as e:
-                logger.error(f"[PipelineRunner] Failed to load banned phrases: {e}")
-                current_state.aux_data["banned_phrases"] = []
+                # STRICT MODE: Security rules are critical. Do not proceed without them.
+                error_code = "SECURITY_RULES_LOAD_FAILED"
+                logger.critical(f"{error_code}: Failed to load banned phrases. Aborting execution. Error: {e}")
+                raise FatalInterruption(
+                    step_name="StateInitialization",
+                    reason="Critical Security Rules Missing",
+                    details={"error": str(e), "error_code": error_code}
+                ) from e
 
             logger.debug(f"[PipelineRunner] State initialized with inputs: {raw_inputs.keys()}")
             return current_state
         except Exception as e:
             error_code = "STATE_INIT_FAILED"
             logger.error(f"{error_code}: Failed to initialize state - {e}", exc_info=True)
-            raise FatalInterruption("StateInitialization", f"Failed to initialize state: {e}", {"error": str(e), "error_code": error_code}) from e
+            raise FatalInterruption(
+                "StateInitialization", f"Failed to initialize state: {e}", {"error": str(e), "error_code": error_code}
+            ) from e
 
     async def execute_loop(
         self,
@@ -130,6 +138,10 @@ class PipelineRunner:
         total_steps = total_steps_count or len(pipeline_steps)
         current_state = state
 
+        # Inject Execution Context for Logging
+        from backend.context import set_execution_context
+        set_execution_context(execution_id)
+
         for index, (agent, step_doc) in enumerate(pipeline_steps):
             # Absolute step number logic
             current_abs_index = start_index + index
@@ -161,8 +173,14 @@ class PipelineRunner:
 
             # Check for Early Exit (Security)
             if isinstance(current_state, dict) and "security_alert" in current_state:
+                # Clear Context
+                from backend.context import clear_execution_context
+                clear_execution_context()
                 return current_state
 
+        # Clear Context
+        from backend.context import clear_execution_context
+        clear_execution_context()
         return current_state
 
     async def _execute_step(
@@ -220,6 +238,10 @@ class PipelineRunner:
                     exec_kwargs["temperature"] = model_config["temperature"]
 
             current_state = await agent.execute(current_state, **exec_kwargs)
+
+        except AppException as e:
+            # Re-raise application exceptions to preserve specific error codes
+            raise e
 
         except Exception as e:
             error_code = "AGENT_EXECUTION_FAILED"
@@ -295,24 +317,25 @@ class PipelineRunner:
             return state
 
         module_path, func_name = HOOK_MAPPING[hook_name]
-        
+
         try:
             import importlib
+
             module = importlib.import_module(module_path)
-            
+
             if not hasattr(module, func_name):
                 logger.error(f"[PipelineRunner] Function '{func_name}' not found in module '{module_path}'")
                 return state
-            
+
             hook_func = getattr(module, func_name)
-            
+
             # Inspect signature for special parameters (e.g., repository)
             sig = inspect.signature(hook_func)
             kwargs = {}
-            
+
             if "repository" in sig.parameters:
                 kwargs["repository"] = self.repository
-            
+
             # Execute hook (supports both sync and async)
             if inspect.iscoroutinefunction(hook_func):
                 if kwargs:
@@ -324,12 +347,12 @@ class PipelineRunner:
                     state = hook_func(state, **kwargs)
                 else:
                     state = hook_func(state)
-            
+
             logger.info(f"[PipelineRunner] Executed hook '{hook_name}' successfully.")
-            
+
         except Exception as e:
             logger.error(f"[PipelineRunner] Hook '{hook_name}' failed: {e}", exc_info=True)
-        
+
         return state
 
     async def _configure_agent_model(

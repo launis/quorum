@@ -6,8 +6,7 @@ from pydantic import BaseModel, Field
 
 
 class ExecutionRequest(BaseModel):
-    """Strictly typed payload for execution requests.ssssssss
-    
+    """Strictly typed payload for execution requests.ssssssss.
 
     Replaces manual form parsing with a cleaner Pydantic model.
     """

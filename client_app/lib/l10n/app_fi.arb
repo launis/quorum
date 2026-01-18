@@ -117,6 +117,7 @@
   "errorValidation": "Validointivirhe.",
   "errorValidationEmpty": "Syötteet eivät voi olla tyhjiä.",
   "errorValidationMissing": "Puuttuvat kentät: {fields}",
+  "errorLoadingData": "Virhe tietojen latauksessa. Yritä uudelleen.",
   "createOrganization": "Luo organisaatio",
   "editOrganization": "Muokkaa organisaatiota",
   "deleteOrganization": "Poista organisaatio",

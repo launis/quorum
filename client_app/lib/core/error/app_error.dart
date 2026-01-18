@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:client_app/core/error/problem_detail.dart';
 
 part 'app_error.freezed.dart';
 
@@ -6,6 +7,9 @@ part 'app_error.freezed.dart';
 ///
 /// Uses [Freezed] to create a union of all possible error types,
 /// enabling exhaustive pattern matching in UI code.
+///
+/// **RFC 7807 Integration:**
+/// Use [AppError.fromProblemDetail] to convert backend errors to typed AppError.
 @freezed
 sealed class AppError with _$AppError implements Exception {
   /// Unknown or unexpected error.
@@ -35,6 +39,48 @@ sealed class AppError with _$AppError implements Exception {
 
   /// Operation cancelled by user.
   const factory AppError.cancelled() = _Cancelled;
+
+  /// API error with error_code for localization lookup.
+  ///
+  /// This is the primary factory for RFC 7807 errors from backend.
+  const factory AppError.api({
+    required String errorCode,
+    required String detail,
+    required int status,
+    String? instance,
+  }) = _Api;
+
+  /// Creates an [AppError] from RFC 7807 [ProblemDetail].
+  ///
+  /// Maps common status codes to typed errors, falls back to [AppError.api]
+  /// for specific error_code based handling.
+  ///
+  /// Example:
+  /// ```dart
+  /// on DioException catch (e) {
+  ///   final problem = ProblemDetail.fromJson(e.response?.data);
+  ///   throw AppError.fromProblemDetail(problem);
+  /// }
+  /// ```
+  static AppError fromProblemDetail(ProblemDetail problem) {
+    // Map common status codes to typed errors
+    switch (problem.status) {
+      case 401:
+        return const AppError.unauthorized();
+      case 404:
+        return AppError.notFound(problem.detail);
+      case >= 500:
+        return AppError.server(problem.detail, problem.status);
+      default:
+        // Use generic api error with errorCode for localization
+        return AppError.api(
+          errorCode: problem.errorCode,
+          detail: problem.detail,
+          status: problem.status,
+          instance: problem.instance,
+        );
+    }
+  }
 }
 
 /// Enumeration of strict validation reasons for localization.

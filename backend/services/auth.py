@@ -96,14 +96,18 @@ class UserRepository:
             Optional[User]: The user object.
         """
         # TinyDB / Memory filter approach
-        result = self.table.get(lambda x: x.get("uid") == uid)
+        # FIX: Use explicit Query object for robustness
+        UserQuery = Query()
+        result = self.table.get(UserQuery.uid == uid)
         if result:
             return User(**result)
         return None
 
     def get_by_email(self, email: str) -> User | None:
         """Retrieve user by email."""
-        result = self.table.get(lambda x: x.get("email") == email)
+        # FIX: Use explicit Query object for robustness
+        UserQuery = Query()
+        result = self.table.get(UserQuery.email == email)
         if result:
             return User(**result)
         return None
@@ -680,17 +684,15 @@ class AuthService:
         # 1. ROOT
         root = self.repo.get_by_uid("root_master")
         if not root:
-            logger.warning(f"No Root user found. Creating bootstrap root: {email}")
-            root = User(
-                uid="root_master",
-                email=email,
-                role=UserRole.ROOT,
-                organization_id="system",
-                display_name="System Root",
-                created_at=str(time.time()),
-            )
-            self.repo.create(root)
-        elif root.organization_id != "system":
+            # STRICT DB AUTHORITY: No fallback creation.
+            # User must run 'backend.seed.run_seed' to populate db.json.
+            logger.critical("No Root user found in database! Strict Authority Enforced. Please run seed script.")
+            # We return None or raise? If we raise, app startup crashes.
+            # If we log critical, app starts but Auth might fail.
+            # Let's log CRITICAL and return None/Raise.
+            raise RuntimeError("Root user 'root_master' missing from DB. Run 'python -m backend.seed.run_seed local'.")
+            
+        if root.organization_id != "system":
             # Fix casing or drift if it was "SYSTEM" or None
             logger.info(f"Fixing root_master organization_id from '{root.organization_id}' to 'system'")
             self.repo.update("root_master", UserUpdate(organization_id="system"))
@@ -711,7 +713,7 @@ class AuthService:
 
         Implicitly allows ROOT for everything.
         """
-        from fastapi import Depends, HTTPException
+        from fastapi import Depends
 
         from backend.dependencies import get_current_user_from_header  # Lazy import
 
@@ -721,7 +723,11 @@ class AuthService:
 
             if user.role != required_role:
                 from backend.exceptions import PermissionDeniedError
-                raise PermissionDeniedError(message=f"Insufficient privileges. Required: {required_role.value}", details={"required_role": required_role.value, "current_role": user.role.value})
+
+                raise PermissionDeniedError(
+                    message=f"Insufficient privileges. Required: {required_role.value}",
+                    details={"required_role": required_role.value, "current_role": user.role.value},
+                )
             return user
 
         return _role_checker

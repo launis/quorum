@@ -61,7 +61,7 @@ class WorkflowSelector extends ConsumerWidget {
           loading: () => const LinearProgressIndicator(),
           error:
               (err, stack) => Text(
-                'Error loading workflows',
+                l10n.errorLoadingData,
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
         ),

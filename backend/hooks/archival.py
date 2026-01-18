@@ -23,7 +23,7 @@ async def retrieve_precedent(state: WorkflowState, repository: Any = None) -> Wo
         WorkflowState: Updated state with injected precedents.
 
     """
-    logger.info("[ArchivalHook] Running retrieve_precedent hook...")
+    logger.debug("[ArchivalHook] Running retrieve_precedent hook...")
 
     if not repository:
         logger.warning("[ArchivalHook] Repository not injected. Cannot retrieve precedents.")
@@ -82,7 +82,7 @@ async def retrieve_precedent(state: WorkflowState, repository: Any = None) -> Wo
                 summary_text += f"- Case {p['id']} ({p['date']}): {p['scores']}. Verdict: {p['verdict'][:100]}...\n"
         summary_text += "====================================="
 
-        logger.info(f"[ArchivalHook] Found {len(precedents)} precedents.")
+        logger.debug(f"[ArchivalHook] Found {len(precedents)} precedents.")
 
         # 4. Inject
         state.aux_data["archivist_precedents"] = summary_text

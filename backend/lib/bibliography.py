@@ -5,14 +5,14 @@ Previously located in backend/hooks/references.py.
 """
 
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 from backend.services.reference_manager import ReferenceManager
 
 logger = logging.getLogger(__name__)
 
 
-def generate_bibliography(text_dump: str, knowledge_base: Dict[str, Any]) -> List[str]:
+def generate_bibliography(text_dump: str, knowledge_base: dict[str, Any]) -> list[str]:
     """Generates a bibliography by scanning text for references in the knowledge base.
 
     Args:

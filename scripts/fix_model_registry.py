@@ -1,52 +1,60 @@
-"""Fix Model Registry configuration."""
+import json
+import os
 
-from tinydb import Query, TinyDB
-
-
-def fix_registry():
-    """Updates the model registry to use safe Gemini 2.5 models."""
-    db_path = "data/db.json"
-    db = TinyDB(db_path)
-    table = db.table("system_config")
-    Q = Query()
-
-    # 1. Locate Registry
-    registry_list = table.search(Q.type == "model_registry")
-    if not registry_list:
-        print("No model registry found in DB.")
+def fix_db(path):
+    if not os.path.exists(path):
+        print(f"File not found: {path}")
         return
 
-    # 2. Prepare Update
-    # We want to force a safe configuration for "deep" in "google"
-    # SAFE MODEL: gemini-2.5-pro (Confirmed available in europe-north1)
-    SAFE_DEEP = "vertex_ai/gemini-2.5-pro"
-    SAFE_FAST = "vertex_ai/gemini-2.5-flash"
-
-    current_models = registry_list[0].get("models", {})
-
-    if "google" not in current_models:
-        print("No google config found.")
+    with open(path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    
+    registry = None
+    # Locate model_registry in system_config
+    if isinstance(data.get("system_config"), list):
+        # seed_data.json format (list)
+        registry = next((x for x in data["system_config"] if x.get("type") == "model_registry"), None)
+    elif isinstance(data.get("system_config"), dict):
+         # db.json format (dict of dicts)
+         registry = next((x for x in data["system_config"].values() if x.get("type") == "model_registry"), None)
+    
+    if not registry:
+        print(f"No model_registry in {path}")
         return
 
-    google_conf = current_models["google"]
-    deep_conf = google_conf.get("deep", {})
-    fast_conf = google_conf.get("fast", {})
+    models = registry.get("models", {})
+    # Should be {'google': {'deep': ..., 'fast': ...}}
+    
+    for provider, strategies in models.items():
+        # Add agent mappings pointing to 'deep'
+        new_mappings = {
+            "AnalystAgent": "deep",
+            "InteractionAnalystAgent": "deep",
+            "ProfilerAgent": "deep",
+            "LogicianAgent": "deep",
+            "LogicalFalsifierAgent": "deep",
+            "CausalAnalystAgent": "deep",
+            "PerformativityDetectorAgent": "deep",
+            "FactualOverseerAgent": "deep",
+            "ArchivistAgent": "deep",
+            "JudgeAgent": "deep",
+            "CoachAgent": "deep",
+            "XAIReporterAgent": "deep",
+            "PanelAgent": "deep",
+            "GuardAgent": "fast"
+        }
+        
+        for agent, strategy in new_mappings.items():
+            # Only add if missing to avoid overwriting custom configs? 
+            # Actually, we want to ensure they exist.
+            if agent not in strategies:
+                strategies[agent] = strategy
+                print(f"Added {agent} -> {strategy} to {path}")
 
-    print(f"Current Deep: {deep_conf.get('model_name')}")
-    print(f"Current Fast: {fast_conf.get('model_name')}")
-
-    # Always update to match the "Scientific Truth" of availability
-    deep_conf["model_name"] = SAFE_DEEP
-    fast_conf["model_name"] = SAFE_FAST
-
-    google_conf["deep"] = deep_conf
-    google_conf["fast"] = fast_conf
-    current_models["google"] = google_conf
-
-    # 3. Apply Update
-    table.update({"models": current_models}, Q.type == "model_registry")
-    print(f"✅ Registry updated to Deep={SAFE_DEEP}, Fast={SAFE_FAST}")
-
+    with open(path, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=4, ensure_ascii=False)
+    print(f"Updated {path}")
 
 if __name__ == "__main__":
-    fix_registry()
+    fix_db('backend/seed/seed_data.json')
+    fix_db('data/db.json')

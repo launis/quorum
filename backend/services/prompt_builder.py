@@ -7,8 +7,6 @@ import logging
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-
-
 from backend.database.repository import AbstractWorkflowRepository
 from backend.exceptions import StepNotFoundError, WorkflowNotFoundError
 from backend.services.agent_registry import AgentRegistry
@@ -84,6 +82,10 @@ class PromptBuilder:
         Resolves references stored in 'execution_config.llm_prompts'.
         """
         exec_config = step_data.get("execution_config", {})
+        if not exec_config:
+            # Fallback to 'config' which is standard in db.json steps
+            exec_config = step_data.get("config", {})
+            
         prompt_ids = exec_config.get("llm_prompts", [])
         parts = []
 
@@ -143,6 +145,7 @@ class PromptBuilder:
             location_str = ""
             try:
                 import httpx
+
                 # Short timeout to avoid blocking execution
                 global_ip_api = "https://ipapi.co/json/"
                 async with httpx.AsyncClient() as client:
@@ -253,11 +256,15 @@ class PromptBuilder:
                     except Exception as e:
                         logger.warning(f"Failed to dump model_json_schema for {agent_instance.__class__.__name__}: {e}")
 
-                from backend.llm.mock_data import get_example_for_agent
+                from backend.llm.mock_data import AGENT_CLASS_TO_MOCK_KEY, get_fallback_data
 
-                mock_example = get_example_for_agent(agent_instance.__class__.__name__)
-                if mock_example:
-                    return json.dumps(mock_example, indent=2, ensure_ascii=False)
+                class_name = agent_instance.__class__.__name__
+                mock_key = AGENT_CLASS_TO_MOCK_KEY.get(class_name)
+                
+                if mock_key:
+                    mock_example = get_fallback_data(mock_key)
+                    if mock_example:
+                        return json.dumps(mock_example, indent=2, ensure_ascii=False)
 
             return "Error: Agent schema extraction failed."
         except Exception as e:

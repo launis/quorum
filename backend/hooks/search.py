@@ -31,7 +31,7 @@ def execute_google_search(state: WorkflowState) -> WorkflowState:
         WorkflowState: Updated state with search results.
 
     """
-    logger.info("[SearchHook] Running execute_google_search...")
+    logger.debug("[SearchHook] Running execute_google_search...")
 
     api_key = os.getenv("GOOGLE_SEARCH_API_KEY")
     cx = os.getenv("GOOGLE_SEARCH_CX")
@@ -45,13 +45,13 @@ def execute_google_search(state: WorkflowState) -> WorkflowState:
 
     # Extract queries from Hypotheses (Step 2 Analyst)
     if state.step_analyst and state.step_analyst.hypoteesit:
-        logger.info(f"   [HOOK] Found {len(state.step_analyst.hypoteesit)} hypotheses.")
+        logger.debug(f"   [HOOK] Found {len(state.step_analyst.hypoteesit)} hypotheses.")
         for hyp in state.step_analyst.hypoteesit:
             # ONLY use explicit search suggestions (external facts)
             if hyp.hakusana_ehdotus and len(hyp.hakusana_ehdotus.strip()) > 3:
                 queries.append(hyp.hakusana_ehdotus)
     else:
-        logger.info("   [HOOK] No hypotheses found. Using fallback.")
+        logger.debug("   [HOOK] No hypotheses found. Using fallback.")
         # fallback query removed or minimized
         # queries.append("Cognitive Quorum verification")
 
@@ -61,7 +61,7 @@ def execute_google_search(state: WorkflowState) -> WorkflowState:
 
         # Limit to top 3 queries
         for i, query in enumerate(queries[:3]):
-            logger.info(f"   Query {i + 1}: {query}")
+            logger.debug(f"   Query {i + 1}: {query}")
             try:
                 res = service.cse().list(q=query, cx=cx, num=3).execute()
 

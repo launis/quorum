@@ -16,6 +16,7 @@ from backend.agents.judge import JudgeAgent
 from backend.agents.logician import LogicianAgent
 from backend.agents.panel import PanelAgent
 from backend.agents.profiler import ProfilerAgent
+from backend.agents.retrieval import RetrievalAgent
 from backend.agents.xai import XAIReporterAgent
 
 
@@ -53,4 +54,5 @@ class AgentFactory:
             "CoachAgent": CoachAgent(model=initial_model, provider=default_provider),
             "XAIReporterAgent": XAIReporterAgent(model=initial_model, provider=default_provider),
             "PanelAgent": PanelAgent(model=initial_model, provider=default_provider),
+            "RetrievalAgent": RetrievalAgent(model=initial_model, provider=default_provider),
         }

@@ -33,20 +33,19 @@ class PanelAgent(BaseAgent):
         """Initializes PanelAgent with strict configuration (Zero-Fallback)."""
         # ZERO-FALLBACK RULE: Fail fast if configuration is missing
         if not model:
-            # We allow None during init if it's injected later via Registry, 
+            # We allow None during init if it's injected later via Registry,
             # but we do NOT provide a hardcoded default string here.
             # The Registry/Factory logic must ensure 'model' is passed.
             pass
-        
-        super().__init__(model=model, provider=provider)
 
+        super().__init__(model=model, provider=provider)
 
     def construct_user_prompt(self, state: WorkflowState) -> str:
         """Constructs the user prompt for the Panel Agent by aggregating input data and prior step results.
-        
+
         Args:
             state (WorkflowState): The current workflow state.
-            
+
         Returns:
             str: The constructed user prompt string.
         """
@@ -54,9 +53,9 @@ class PanelAgent(BaseAgent):
         # Utilizing previous steps' outputs if available
         input_data = {
             "inputs": {
-                "history_text": state.inputs.history_text,
-                "product_text": state.inputs.product_text,
-                "reflection_text": state.inputs.reflection_text,
+                "history_text": getattr(state.inputs, "history_text", "Ei saatavilla"),
+                "product_text": getattr(state.inputs, "product_text", "Ei saatavilla"),
+                "reflection_text": getattr(state.inputs, "reflection_text", "Ei saatavilla"),
             }
         }
 
@@ -120,7 +119,7 @@ class PanelAgent(BaseAgent):
 
             # ENFORCEMENT: Model must be configured
             if not self.model:
-                 raise ValueError("PanelAgent requires a configured Model string (Zero-Fallback Violation).")
+                raise ValueError("PanelAgent requires a configured Model string (Zero-Fallback Violation).")
 
             response = await self.llm_provider.generate(
                 prompt=user_content,
@@ -132,7 +131,7 @@ class PanelAgent(BaseAgent):
 
             # 3. Process Response (Structured Output)
             panel_data = None
-            
+
             # OPTIMIZATION: Use pre-parsed content if available (Instructor Pattern)
             if response.parsed_content is not None:
                 if isinstance(response.parsed_content, PanelAudit):
@@ -140,8 +139,11 @@ class PanelAgent(BaseAgent):
                 elif isinstance(response.parsed_content, dict):
                     panel_data = PanelAudit(**response.parsed_content)
                 else:
-                    logger.warning(f"[PanelAgent] parsed_content was {type(response.parsed_content)}, expected Dict or PanelAudit. Trying legacy parsing.")
-            
+                    logger.warning(
+                        f"[PanelAgent] parsed_content was {type(response.parsed_content)}, "
+                        "expected Dict or PanelAudit. Trying legacy parsing."
+                    )
+
             # Fallback (Legacy) - Only used if Provider didn't parse
             if not panel_data:
                 raw_content = response.content if hasattr(response, "content") else response
@@ -151,9 +153,9 @@ class PanelAgent(BaseAgent):
                         raw_dict = json.loads(clean_content)
                         panel_data = PanelAudit(**raw_dict)
                     except json.JSONDecodeError as e:
-                         error_code = "PANEL_RESPONSE_MALFORMED"
-                         logger.error(f"{error_code}: Could not parse JSON string - {e}")
-                         raise AgentExecutionError(detail=error_code, original_error=e) from e
+                        error_code = "PANEL_RESPONSE_MALFORMED"
+                        logger.error(f"{error_code}: Could not parse JSON string - {e}")
+                        raise AgentExecutionError(detail=error_code, original_error=e) from e
 
             if panel_data:
                 # 4. Fan-Out: Populate individual state fields for compatibility with Judge/Coach
@@ -168,7 +170,7 @@ class PanelAgent(BaseAgent):
 
                 logger.info("[PanelAgent] Successfully fanned out PanelAudit to 5 distinct state steps.")
             else:
-                 raise AgentExecutionError(detail="PANEL_RESPONSE_EMPTY", original_error=ValueError("No data returned"))
+                raise AgentExecutionError(detail="PANEL_RESPONSE_EMPTY", original_error=ValueError("No data returned"))
 
             return state
 

@@ -32,7 +32,7 @@ echo       Notes:  Allows testing real logins ^& real LLM calls without touching
 set USE_FIREBASE_AUTH=true
 
 :: Backend
-start "CQ Backend (LOCAL)" cmd /k "chcp 65001 > nul && set USE_MOCK_DB=false&& set USE_MOCK_LLM=false&& set STORAGE_BACKEND=LOCAL&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& set USE_FIREBASE_AUTH=true&& uv run uvicorn backend.main:app --reload --port 8000"
+start "CQ Backend (LOCAL)" cmd /k "chcp 65001 > nul && set USE_MOCK_DB=false&& set USE_MOCK_LLM=false&& set STORAGE_BACKEND=LOCAL&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& set USE_FIREBASE_AUTH=true&& uv run uvicorn backend.main:app --reload --port 8000 --log-config backend/uvicorn_logging.yaml"
 
 :: Worker
 start "CQ Worker (LOCAL)" cmd /k "chcp 65001 > nul && set USE_MOCK_DB=false&& set USE_MOCK_LLM=false&& set STORAGE_BACKEND=LOCAL&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& uv run python -m backend.run_worker"

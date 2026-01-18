@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from backend.core.engine import WorkflowEngine
+from backend.core.engine import GraphEngine as WorkflowEngine
 from backend.database.repository import TinyDBRepository
 from backend.database.wrapper import TinyDBClient
 

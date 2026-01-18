@@ -1,0 +1,628 @@
+python : INFO:backend.core.engine:Starting workflow 'sequential_
+audit_chain' with 14 steps.
+At line:1 char:1
++ python backend/debug_full_execution.py > backend/full_debug_lo
+g_fixed ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~
+    + CategoryInfo          : NotSpecified: (INFO:backend.    co
+... with 14 steps.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+INFO:backend.dependencies:[Dependencies] Initializing Singleton 
+DB Client...
+INFO:backend.database.factory:[Factory] Initializing Repository 
+for Backend: LOCAL
+[92m13:30:51 - LiteLLM Router:INFO[0m: router.py:715 - Routing
+ strategy: simple-shuffle
+INFO:LiteLLM Router:Routing strategy: simple-shuffle
+INFO:backend.services.component_registry:[ComponentRegistry] Loa
+ded 75 components from data/db.json
+INFO:backend.core.registry:[GuardAgent] Found 15 prompt keys in 
+config: ['GLOBAL_CONTEXT', 'HEADER_MANDATES', 'MANDATE_1']...
+INFO:backend.services.component_registry:[ComponentRegistry] Res
+olving prompts: ('GLOBAL_CONTEXT', 'HEADER_MANDATES', 'MANDATE_1
+', 'MANDATE_5', 'HEADER_RULES', 'RULE_1', 'RULE_2', 'OP_RULE_2',
+ 'HEADER_PROTOCOLS', 'PROTOCOL_2', 'INSTRUCTION_ANON', 'INSTRUCT
+ION_NO_DATA_LEAK', 'INSTRUCTION_LANGUAGE_FI', 'HEADER_INSTRUCTIO
+NS', 'TASK_GUARD')
+INFO:backend.services.component_registry:[ComponentRegistry] Res
+olved text length: 3290
+INFO:backend.core.registry:[GuardAgent] Resolved system_instruct
+ion length: 50625
+INFO:backend.agents.base:[GuardAgent] Starting execution...
+INFO:backend.agents.base:[GuardAgent] Lifecycle Hook: prepare_co
+ntext
+INFO:backend.agents.guard:[GuardAgent] Running sanitize_input (P
+re-Hook)...
+INFO:backend.agents.base:[GuardAgent] >>> EXECUTION START <<<
+INFO:backend.agents.base:[GuardAgent] MODEL: vertex_ai/gemini-2.
+5-flash | TEMP: Default | TOKENS: Default
+INFO:backend.llm.provider:[LiteLLM] Enabling Structured Output f
+or schema: TaintedData
+INFO:backend.llm.provider:
+==================== DEBUG: SYSTEM INSTRUCTION =================
+===
+### J├äRJESTELM├äKONTEKSTI (SYSTEM CONTEXT)
+NYKYHETKI: 2026-01-18.
+KELLONAIKA: 13:30:51.
+Sijainti: VIRTUAL_ENCLAVE
+
+ROOLI: Toimit 'Cognitive Quorum' -auditointij├ñrjestelm├ñn moott
+orina.
+
+AIKA-ANKKURI: Tiedosta, ett├ñ toimit NYT, t├ñss├ñ hetkess├ñ (202
+6-01-18). Koulutusdatasi 'Knowledge Cutoff' on historiaa. Arvioi
+ kaikkia teknologioita ja v├ñitteit├ñ t├ñst├ñ ajankohdasta k├ñsi
+n.
+
+### AUDITOITAVA MATERIAALI (INPUT DATA)
+Alla on k├ñytt├ñj├ñn toimittamat tiedostot auditointia varten. J
+os kentt├ñ on tyhj├ñ, tiedostoa ei ole toimitettu.
+
+[KESKUSTELUHISTORIA_ALKU]
+Gemini Chat
+Miten sitra t├ñm├ñn n├ñkee raporttien perusteella
+Sitran megatrendiraporttien perusteella n├ñkym├ñ tulevaisuuteen 
+on siirtynyt potentiaalista ja nousevista
+ilmi├Âist├ñ (2017) kohti kasautuvia, geopoliittisesti latautunei
+ta kriisej├ñ ja systeemisi├ñ murtumia
+(2023). Sitra n├ñkee tulevaisuuden "postnormaalina aikana" , jok
+a on t├ñynn├ñ yll├ñtyksi├ñ, ristiriitaisuuksia ja
+konflikteja.
+Keskeiset megatrendit ja niiden evoluutio Sitran n├ñk├Âkulmasta 
+ovat:
+M
+
+... [TRUNCATED 49125 CHARS] ...
+
+keyt├ñ ajoa osaamattomuuden takia).
+   - 'riski_taso': Aseta 'KORKEA', jos havaitset 'Lazy Prompting
+' (alle 5 sanaa, ei kontekstia).
+   - 'adversariaalinen_simulaatio_tulos': Luokittele k├ñytt├ñj├ñ
+: 'Passiivinen Matkustaja' vs 'Aktiivinen Arkkitehti'.
+3. T├äYT├ä 'safe_data' (T├äRKE├ä - CRITICAL):
+   - Palauta sy├Âteteksti ANONYMISOITUNA. ├äl├ñ kopioi PII-tieto
+ja. ├äL├ä keksi dataa tyhj├ñst├ñ.
+
+K├äSKE: Tulosta vastauksesi T├äSM├äLLEEN seuraavan JSON-skeeman 
+mukaisesti (├ñl├ñ muuta kenttien nimi├ñ):
+{{SCHEMA_EXAMPLE}}
+==================================================
+
+INFO:backend.llm.provider:
+==================== DEBUG: USER PROMPT ====================
+Proceed with your task according to the system instructions.
+==================================================
+
+INFO:backend.llm.provider:[LiteLLM] Calling vertex_ai/gemini-2.5
+-flash...
+INFO:backend.llm.provider:[LiteLLMProvider] Using Vertex Locatio
+n: europe-north1
+[92m13:30:51 - LiteLLM Router:INFO[0m: simple_shuffle.py:55 - 
+get_available_deployment for model: vertex_ai/gemini-2.5-flash, 
+Selected deployment: {'model_name': 'vertex_ai/gemini-2.5-flash'
+, 'litellm_params': {'tpm': 10000, 'rpm': 10, 'use_in_pass_throu
+gh': False, 'use_litellm_proxy': False, 'merge_reasoning_content
+_in_choices': False, 'model': 'vertex_ai/gemini-2.5-flash'}, 'mo
+del_info': {'id': '67763317f34c7f0007a2237bde35ce56597005bdb2753
+29def7ab5f5e04dd952', 'db_model': False}} for model: vertex_ai/g
+emini-2.5-flash
+INFO:LiteLLM Router:get_available_deployment for model: vertex_a
+i/gemini-2.5-flash, Selected deployment: {'model_name': 'vertex_
+ai/gemini-2.5-flash', 'litellm_params': {'tpm': 10000, 'rpm': 10
+, 'use_in_pass_through': False, 'use_litellm_proxy': False, 'mer
+ge_reasoning_content_in_choices': False, 'model': 'vertex_ai/gem
+ini-2.5-flash'}, 'model_info': {'id': '67763317f34c7f0007a2237bd
+e35ce56597005bdb275329def7ab5f5e04dd952', 'db_model': False}} fo
+r model: vertex_ai/gemini-2.5-flash
+[92m13:30:51 - LiteLLM:INFO[0m: utils.py:3476 - 
+LiteLLM completion() model= gemini-2.5-flash; provider = vertex_
+ai
+INFO:LiteLLM:
+LiteLLM completion() model= gemini-2.5-flash; provider = vertex_
+ai
+[92m13:31:01 - LiteLLM Router:INFO[0m: router.py:1594 - litell
+m.acompletion(model=vertex_ai/gemini-2.5-flash)[32m 200 OK[0m
+INFO:LiteLLM Router:litellm.acompletion(model=vertex_ai/gemini-2
+.5-flash)[32m 200 OK[0m
+INFO:backend.agents.base:BaseAgent processing usage. Response to
+ken_usage: {'prompt_tokens': 19334, 'completion_tokens': 2142, '
+total_tokens': 21476, 'total_cost': 0.0}
+INFO:backend.agents.base:Processing costs for step_guard: {'prom
+pt_tokens': 19334, 'completion_tokens': 2142, 'total_tokens': 21
+476, 'total_cost': 0.0}
+INFO:backend.agents.base:[GuardAgent] Usage tracked: 0.0 USD
+INFO:backend.agents.base:[GuardAgent] Updated state.step_guard
+INFO:backend.agents.base:[GuardAgent] Lifecycle Hook: post_proce
+ss
+INFO:backend.agents.guard:[GuardAgent] Running ensure_tainted_da
+ta...
+INFO:backend.agents.base:[GuardAgent] Execution completed.
+[92m13:31:01 - LiteLLM Router:INFO[0m: router.py:715 - Routing
+ strategy: simple-shuffle
+INFO:LiteLLM Router:Routing strategy: simple-shuffle
+INFO:backend.core.registry:[AnalystAgent] Found 15 prompt keys i
+n config: ['GLOBAL_CONTEXT', 'HEADER_MANDATES', 'MANDATE_4']...
+INFO:backend.services.component_registry:[ComponentRegistry] Res
+olving prompts: ('GLOBAL_CONTEXT', 'HEADER_MANDATES', 'MANDATE_4
+', 'HEADER_RULES', 'RULE_1', 'RULE_2', 'OP_RULE_3', 'HEADER_PROT
+OCOLS', 'PROTOCOL_3', 'INSTRUCTION_RAG_OPT', 'INSTRUCTION_NO_HAL
+LUCINATION', 'INSTRUCTION_CITATION_OBLIGATION', 'INSTRUCTION_LAN
+GUAGE_FI', 'HEADER_INSTRUCTIONS', 'TASK_ANALYST')
+INFO:backend.services.component_registry:[ComponentRegistry] Res
+olved text length: 3049
+INFO:backend.core.registry:[AnalystAgent] Resolved system_instru
+ction length: 3055
+INFO:backend.agents.base:[AnalystAgent] Starting execution...
+INFO:backend.agents.base:[AnalystAgent] Lifecycle Hook: prepare_
+context
+INFO:backend.agents.base:[AnalystAgent] >>> EXECUTION START <<<
+INFO:backend.agents.base:[AnalystAgent] MODEL: vertex_ai/gemini-
+2.5-pro | TEMP: Default | TOKENS: Default
+INFO:backend.llm.provider:[LiteLLM] Enabling Structured Output f
+or schema: TodistusKartta
+INFO:backend.llm.provider:
+==================== DEBUG: SYSTEM INSTRUCTION =================
+===
+### J├äRJESTELM├äKONTEKSTI (SYSTEM CONTEXT)
+NYKYHETKI: 2026-01-18.
+KELLONAIKA: 13:31:01.
+Sijainti: VIRTUAL_ENCLAVE
+
+ROOLI: Toimit 'Cognitive Quorum' -auditointij├ñrjestelm├ñn moott
+orina.
+
+AIKA-ANKKURI: Tiedosta, ett├ñ toimit NYT, t├ñss├ñ hetkess├ñ (202
+6-01-18). Koulutusdatasi 'Knowledge Cutoff' on historiaa. Arvioi
+ kaikkia teknologioita ja v├ñitteit├ñ t├ñst├ñ ajankohdasta k├ñsi
+n.
+
+### AUDITOITAVA MATERIAALI (INPUT DATA)
+Alla on k├ñytt├ñj├ñn toimittamat tiedostot auditointia varten. J
+os kentt├ñ on tyhj├ñ, tiedostoa ei ole toimitettu.
+
+[KESKUSTELUHISTORIA_ALKU]
+DATA_CHECKED_AND_SECURED
+[KESKUSTELUHISTORIA_LOPPU]
+
+[LOPPUTUOTE_ALKU]
+DATA_CHECKED_AND_SECURED
+[LOPPUTUOTE_LOPPU]
+
+[REFLEKTIODOKUMENTTI_ALKU]
+DATA_CHECKED_AND_SECURED
+[REFLEKTIODOKUMENTTI_LOPPU]
+
+### 1. PERUUTTAMATTOMAT M├ä├äR├äYKSET (IRREVOCABLE MANDATES)
+
+Mandaatti 4 (Performatiivisuuden Paljastus): M├ä├äR├äYS: Oleta G
+oodhartin laki todeksi. Jos k├ñytt├ñj├ñ 'n├ñyttelee' asiantuntij
+aa ilman substanssia, paljasta se.
+
+### 2. OPERATIIVISET S├ä├äNN├ûT (OPERATION
+
+... [TRUNCATED 1555 CHARS] ...
+
+rtta':
+   - 'Hypoteesit': TARKISTA INPUT: Jos input on tyhj├ñ, geneerin
+en tai ei sis├ñll├ñ substanssia, ├äL├ä KEKSI hypoteeseja. Kirjaa
+ 'Ei hypoteeseja'. JOS JA VAIN JOS inputissa on dataa, listaa ek
+splisiittiset v├ñitteet.
+   - 'Loytyyko_todisteita': True, jos ja vain jos inputissa on f
+aktoja. Jos tyhj├ñ -> False.
+   - 'Rag_todisteet': Poimi suorat sitaatit. Jos input on tyhj├ñ
+ -> [].
+
+K├äSKE: Tulosta vastauksesi T├äSM├äLLEEN seuraavan JSON-skeeman 
+mukaisesti (├ñl├ñ muuta kenttien nimi├ñ):
+{{SCHEMA_EXAMPLE}}
+==================================================
+
+INFO:backend.llm.provider:
+==================== DEBUG: USER PROMPT ====================
+Proceed with your task according to the system instructions.
+==================================================
+
+INFO:backend.llm.provider:[LiteLLM] Calling vertex_ai/gemini-2.5
+-pro...
+INFO:backend.llm.provider:[LiteLLMProvider] Using Vertex Locatio
+n: europe-north1
+[92m13:31:01 - LiteLLM Router:INFO[0m: simple_shuffle.py:55 - 
+get_available_deployment for model: vertex_ai/gemini-2.5-pro, Se
+lected deployment: {'model_name': 'vertex_ai/gemini-2.5-pro', 'l
+itellm_params': {'tpm': 10000, 'rpm': 10, 'use_in_pass_through':
+ False, 'use_litellm_proxy': False, 'merge_reasoning_content_in_
+choices': False, 'model': 'vertex_ai/gemini-2.5-pro'}, 'model_in
+fo': {'id': '1c8190b0c3f3394af5ec1992f2b81893f59cdaa2ac4ef1190f1
+d326c1c15f279', 'db_model': False}} for model: vertex_ai/gemini-
+2.5-pro
+INFO:LiteLLM Router:get_available_deployment for model: vertex_a
+i/gemini-2.5-pro, Selected deployment: {'model_name': 'vertex_ai
+/gemini-2.5-pro', 'litellm_params': {'tpm': 10000, 'rpm': 10, 'u
+se_in_pass_through': False, 'use_litellm_proxy': False, 'merge_r
+easoning_content_in_choices': False, 'model': 'vertex_ai/gemini-
+2.5-pro'}, 'model_info': {'id': '1c8190b0c3f3394af5ec1992f2b8189
+3f59cdaa2ac4ef1190f1d326c1c15f279', 'db_model': False}} for mode
+l: vertex_ai/gemini-2.5-pro
+[92m13:31:01 - LiteLLM:INFO[0m: utils.py:3476 - 
+LiteLLM completion() model= gemini-2.5-pro; provider = vertex_ai
+INFO:LiteLLM:
+LiteLLM completion() model= gemini-2.5-pro; provider = vertex_ai
+[92m13:31:22 - LiteLLM Router:INFO[0m: router.py:1594 - litell
+m.acompletion(model=vertex_ai/gemini-2.5-pro)[32m 200 OK[0m
+INFO:LiteLLM Router:litellm.acompletion(model=vertex_ai/gemini-2
+.5-pro)[32m 200 OK[0m
+INFO:backend.agents.base:BaseAgent processing usage. Response to
+ken_usage: {'prompt_tokens': 1955, 'completion_tokens': 2457, 't
+otal_tokens': 4412, 'total_cost': 0.0}
+INFO:backend.agents.base:Processing costs for step_analyst: {'pr
+ompt_tokens': 1955, 'completion_tokens': 2457, 'total_tokens': 4
+412, 'total_cost': 0.0}
+INFO:backend.agents.base:[AnalystAgent] Usage tracked: 0.0 USD
+INFO:backend.agents.base:[AnalystAgent] Updated state.step_analy
+st
+INFO:backend.agents.base:[AnalystAgent] Lifecycle Hook: post_pro
+cess
+INFO:backend.agents.base:[AnalystAgent] Execution completed.
+[92m13:31:22 - LiteLLM Router:INFO[0m: router.py:715 - Routing
+ strategy: simple-shuffle
+INFO:LiteLLM Router:Routing strategy: simple-shuffle
+INFO:backend.core.registry:[InteractionAnalystAgent] Found 13 pr
+ompt keys in config: ['GLOBAL_CONTEXT', 'HEADER_MANDATES', 'MAND
+ATE_4']...
+INFO:backend.services.component_registry:[ComponentRegistry] Res
+olving prompts: ('GLOBAL_CONTEXT', 'HEADER_MANDATES', 'MANDATE_4
+', 'MANDATE_5', 'HEADER_RULES', 'RULE_4', 'OP_RULE_4', 'HEADER_P
+ROTOCOLS', 'PROTOCOL_1', 'INSTRUCTION_NO_HALLUCINATION', 'INSTRU
+CTION_LANGUAGE_FI', 'HEADER_INSTRUCTIONS', 'TASK_INTERACTION')
+INFO:backend.services.component_registry:[ComponentRegistry] Res
+olved text length: 2946
+INFO:backend.core.registry:[InteractionAnalystAgent] Resolved sy
+stem_instruction length: 8955
+INFO:backend.agents.base:[InteractionAnalystAgent] Starting exec
+ution...
+INFO:backend.agents.base:[InteractionAnalystAgent] Lifecycle Hoo
+k: prepare_context
+INFO:backend.agents.base:[InteractionAnalystAgent] >>> EXECUTION
+ START <<<
+INFO:backend.agents.base:[InteractionAnalystAgent] MODEL: vertex
+_ai/gemini-2.5-pro | TEMP: Default | TOKENS: Default
+INFO:backend.llm.provider:[LiteLLM] Enabling Structured Output f
+or schema: InteractionAnalysis
+INFO:backend.llm.provider:
+==================== DEBUG: SYSTEM INSTRUCTION =================
+===
+### J├äRJESTELM├äKONTEKSTI (SYSTEM CONTEXT)
+NYKYHETKI: 2026-01-18.
+KELLONAIKA: 13:31:22.
+Sijainti: VIRTUAL_ENCLAVE
+
+ROOLI: Toimit 'Cognitive Quorum' -auditointij├ñrjestelm├ñn moott
+orina.
+
+AIKA-ANKKURI: Tiedosta, ett├ñ toimit NYT, t├ñss├ñ hetkess├ñ (202
+6-01-18). Koulutusdatasi 'Knowledge Cutoff' on historiaa. Arvioi
+ kaikkia teknologioita ja v├ñitteit├ñ t├ñst├ñ ajankohdasta k├ñsi
+n.
+
+### AUDITOITAVA MATERIAALI (INPUT DATA)
+Alla on k├ñytt├ñj├ñn toimittamat tiedostot auditointia varten. J
+os kentt├ñ on tyhj├ñ, tiedostoa ei ole toimitettu.
+
+[KESKUSTELUHISTORIA_ALKU]
+DATA_CHECKED_AND_SECURED
+[KESKUSTELUHISTORIA_LOPPU]
+
+[LOPPUTUOTE_ALKU]
+ 
+Kriittinen Analyysi Sitran Megatrendien Evoluutiosta 
+(2017 - 2023) 
+ 
+Supermegatrendit Postnormaalissa Ajassa: Kaupalliset Vaikutukset
+ 
+Kohderyhm├ñ: Kaupallinen Johtoryhm├ñ 
+P├ñiv├ñm├ñ├ñr├ñ: 27. lokakuuta 2025 
+Viite: Sitran Megatrendiraportit 2017, 2020, 2023 
+ 
+Evoluutio Konfliktiin 
+ 
+Sitran megatrendien kehitys vuosien 2017 ja 2023 v├ñlill├ñ osoit
+taa fundamentaalisen siirtym├ñn 
+po
+
+... [TRUNCATED 7455 CHARS] ...
+
+etta (Dependency). (Huom: J├ñrjestelm├ñ laskee tarkan Input-Cont
+rol Ration erikseen). Jos vaikuttaa, ett├ñ k├ñytt├ñj├ñ on t├ñysi
+n riippuvainen, liputa 'High Dependency'.
+2. TUNNISTA Strategia: Zero-shot (Hyl├ñtty), Few-shot (Hyv├ñksyt
+ty), Chain-of-Thought (Kiitett├ñv├ñ).
+3. LUOKITTELE Arkkityyppi: 'Matkustaja' (Tilaa), 'Kartanlukija' 
+(Korjaa), 'Kuski' (Ohjaa), 'Arkkitehti' (Suunnittelee).
+
+K├äSKE: Tulosta vastauksesi T├äSM├äLLEEN seuraavan JSON-skeeman 
+mukaisesti (├ñl├ñ muuta kenttien nimi├ñ):
+{{SCHEMA_EXAMPLE}}
+==================================================
+
+INFO:backend.llm.provider:
+==================== DEBUG: USER PROMPT ====================
+Proceed with your task according to the system instructions.
+==================================================
+
+INFO:backend.llm.provider:[LiteLLM] Calling vertex_ai/gemini-2.5
+-pro...
+INFO:backend.llm.provider:[LiteLLMProvider] Using Vertex Locatio
+n: europe-north1
+[92m13:31:22 - LiteLLM Router:INFO[0m: simple_shuffle.py:55 - 
+get_available_deployment for model: vertex_ai/gemini-2.5-pro, Se
+lected deployment: {'model_name': 'vertex_ai/gemini-2.5-pro', 'l
+itellm_params': {'tpm': 10000, 'rpm': 10, 'use_in_pass_through':
+ False, 'use_litellm_proxy': False, 'merge_reasoning_content_in_
+choices': False, 'model': 'vertex_ai/gemini-2.5-pro'}, 'model_in
+fo': {'id': '1c8190b0c3f3394af5ec1992f2b81893f59cdaa2ac4ef1190f1
+d326c1c15f279', 'db_model': False}} for model: vertex_ai/gemini-
+2.5-pro
+INFO:LiteLLM Router:get_available_deployment for model: vertex_a
+i/gemini-2.5-pro, Selected deployment: {'model_name': 'vertex_ai
+/gemini-2.5-pro', 'litellm_params': {'tpm': 10000, 'rpm': 10, 'u
+se_in_pass_through': False, 'use_litellm_proxy': False, 'merge_r
+easoning_content_in_choices': False, 'model': 'vertex_ai/gemini-
+2.5-pro'}, 'model_info': {'id': '1c8190b0c3f3394af5ec1992f2b8189
+3f59cdaa2ac4ef1190f1d326c1c15f279', 'db_model': False}} for mode
+l: vertex_ai/gemini-2.5-pro
+[92m13:31:22 - LiteLLM:INFO[0m: utils.py:3476 - 
+LiteLLM completion() model= gemini-2.5-pro; provider = vertex_ai
+INFO:LiteLLM:
+LiteLLM completion() model= gemini-2.5-pro; provider = vertex_ai
+[92m13:31:55 - LiteLLM Router:INFO[0m: router.py:1594 - litell
+m.acompletion(model=vertex_ai/gemini-2.5-pro)[32m 200 OK[0m
+INFO:LiteLLM Router:litellm.acompletion(model=vertex_ai/gemini-2
+.5-pro)[32m 200 OK[0m
+INFO:backend.agents.base:BaseAgent processing usage. Response to
+ken_usage: {'prompt_tokens': 3972, 'completion_tokens': 3619, 't
+otal_tokens': 7591, 'total_cost': 0.0}
+INFO:backend.agents.base:Processing costs for step_interaction: 
+{'prompt_tokens': 3972, 'completion_tokens': 3619, 'total_tokens
+': 7591, 'total_cost': 0.0}
+INFO:backend.agents.base:[InteractionAnalystAgent] Usage tracked
+: 0.0 USD
+INFO:backend.agents.base:[InteractionAnalystAgent] Updated state
+.step_interaction
+INFO:backend.agents.base:[InteractionAnalystAgent] Lifecycle Hoo
+k: post_process
+INFO:backend.agents.base:[InteractionAnalystAgent] Execution com
+pleted.
+[92m13:31:55 - LiteLLM Router:INFO[0m: router.py:715 - Routing
+ strategy: simple-shuffle
+INFO:LiteLLM Router:Routing strategy: simple-shuffle
+INFO:backend.core.registry:[ProfilerAgent] Found 11 prompt keys 
+in config: ['GLOBAL_CONTEXT', 'HEADER_MANDATES', 'MANDATE_2']...
+INFO:backend.services.component_registry:[ComponentRegistry] Res
+olving prompts: ('GLOBAL_CONTEXT', 'HEADER_MANDATES', 'MANDATE_2
+', 'MANDATE_5', 'HEADER_RULES', 'RULE_5', 'HEURISTIC_2', 'INSTRU
+CTION_NO_HALLUCINATION', 'INSTRUCTION_LANGUAGE_FI', 'HEADER_INST
+RUCTIONS', 'TASK_PROFILER')
+INFO:backend.services.component_registry:[ComponentRegistry] Res
+olved text length: 2603
+INFO:backend.core.registry:[ProfilerAgent] Resolved system_instr
+uction length: 8612
+INFO:backend.agents.base:[ProfilerAgent] Starting execution...
+INFO:backend.agents.base:[ProfilerAgent] Lifecycle Hook: prepare
+_context
+INFO:backend.agents.base:[ProfilerAgent] >>> EXECUTION START <<<
+INFO:backend.agents.base:[ProfilerAgent] MODEL: vertex_ai/gemini
+-2.5-pro | TEMP: Default | TOKENS: Default
+INFO:backend.llm.provider:[LiteLLM] Enabling Structured Output f
+or schema: ProfilerAnalysis
+INFO:backend.llm.provider:
+==================== DEBUG: SYSTEM INSTRUCTION =================
+===
+### J├äRJESTELM├äKONTEKSTI (SYSTEM CONTEXT)
+NYKYHETKI: 2026-01-18.
+KELLONAIKA: 13:31:55.
+Sijainti: VIRTUAL_ENCLAVE
+
+ROOLI: Toimit 'Cognitive Quorum' -auditointij├ñrjestelm├ñn moott
+orina.
+
+AIKA-ANKKURI: Tiedosta, ett├ñ toimit NYT, t├ñss├ñ hetkess├ñ (202
+6-01-18). Koulutusdatasi 'Knowledge Cutoff' on historiaa. Arvioi
+ kaikkia teknologioita ja v├ñitteit├ñ t├ñst├ñ ajankohdasta k├ñsi
+n.
+
+### AUDITOITAVA MATERIAALI (INPUT DATA)
+Alla on k├ñytt├ñj├ñn toimittamat tiedostot auditointia varten. J
+os kentt├ñ on tyhj├ñ, tiedostoa ei ole toimitettu.
+
+[KESKUSTELUHISTORIA_ALKU]
+DATA_CHECKED_AND_SECURED
+[KESKUSTELUHISTORIA_LOPPU]
+
+[LOPPUTUOTE_ALKU]
+ 
+Kriittinen Analyysi Sitran Megatrendien Evoluutiosta 
+(2017 - 2023) 
+ 
+Supermegatrendit Postnormaalissa Ajassa: Kaupalliset Vaikutukset
+ 
+Kohderyhm├ñ: Kaupallinen Johtoryhm├ñ 
+P├ñiv├ñm├ñ├ñr├ñ: 27. lokakuuta 2025 
+Viite: Sitran Megatrendiraportit 2017, 2020, 2023 
+ 
+Evoluutio Konfliktiin 
+ 
+Sitran megatrendien kehitys vuosien 2017 ja 2023 v├ñlill├ñ osoit
+taa fundamentaalisen siirtym├ñn 
+po
+
+... [TRUNCATED 7112 CHARS] ...
+
+
+VAIHE 4: PROFILOIJA (Cognitive Bias Audit)
+TEHT├äV├äT:
+1. ETSI kognitiivisia vinoumia prompteista.
+2. TUNNISTA 'Automation Bias': Hyv├ñksyyk├Â k├ñytt├ñj├ñ ensimm├ñ
+isen vastauksen sokeasti?
+3. VERTAA Reflektiota (V├ñitteet) ja Historiaa (Teot). Tunnista 
+Ristiriita (Say-Do Gap): Jos k├ñytt├ñj├ñ v├ñitt├ñ├ñ reflektoivan
+sa, mutta historia on mekaanista tilaamista, kirjaa 'Illusion of
+ Competence'.
+
+K├äSKE: Tulosta vastauksesi T├äSM├äLLEEN seuraavan JSON-skeeman 
+mukaisesti (├ñl├ñ muuta kenttien nimi├ñ):
+{{SCHEMA_EXAMPLE}}
+==================================================
+
+INFO:backend.llm.provider:
+==================== DEBUG: USER PROMPT ====================
+Proceed with your task according to the system instructions.
+==================================================
+
+INFO:backend.llm.provider:[LiteLLM] Calling vertex_ai/gemini-2.5
+-pro...
+INFO:backend.llm.provider:[LiteLLMProvider] Using Vertex Locatio
+n: europe-north1
+[92m13:31:55 - LiteLLM Router:INFO[0m: simple_shuffle.py:55 - 
+get_available_deployment for model: vertex_ai/gemini-2.5-pro, Se
+lected deployment: {'model_name': 'vertex_ai/gemini-2.5-pro', 'l
+itellm_params': {'tpm': 10000, 'rpm': 10, 'use_in_pass_through':
+ False, 'use_litellm_proxy': False, 'merge_reasoning_content_in_
+choices': False, 'model': 'vertex_ai/gemini-2.5-pro'}, 'model_in
+fo': {'id': '1c8190b0c3f3394af5ec1992f2b81893f59cdaa2ac4ef1190f1
+d326c1c15f279', 'db_model': False}} for model: vertex_ai/gemini-
+2.5-pro
+INFO:LiteLLM Router:get_available_deployment for model: vertex_a
+i/gemini-2.5-pro, Selected deployment: {'model_name': 'vertex_ai
+/gemini-2.5-pro', 'litellm_params': {'tpm': 10000, 'rpm': 10, 'u
+se_in_pass_through': False, 'use_litellm_proxy': False, 'merge_r
+easoning_content_in_choices': False, 'model': 'vertex_ai/gemini-
+2.5-pro'}, 'model_info': {'id': '1c8190b0c3f3394af5ec1992f2b8189
+3f59cdaa2ac4ef1190f1d326c1c15f279', 'db_model': False}} for mode
+l: vertex_ai/gemini-2.5-pro
+[92m13:31:55 - LiteLLM:INFO[0m: utils.py:3476 - 
+LiteLLM completion() model= gemini-2.5-pro; provider = vertex_ai
+INFO:LiteLLM:
+LiteLLM completion() model= gemini-2.5-pro; provider = vertex_ai
+[92m13:32:37 - LiteLLM Router:INFO[0m: router.py:1594 - litell
+m.acompletion(model=vertex_ai/gemini-2.5-pro)[32m 200 OK[0m
+INFO:LiteLLM Router:litellm.acompletion(model=vertex_ai/gemini-2
+.5-pro)[32m 200 OK[0m
+INFO:backend.agents.base:BaseAgent processing usage. Response to
+ken_usage: {'prompt_tokens': 3975, 'completion_tokens': 4685, 't
+otal_tokens': 8660, 'total_cost': 0.0}
+INFO:backend.agents.base:Processing costs for step_profiler: {'p
+rompt_tokens': 3975, 'completion_tokens': 4685, 'total_tokens': 
+8660, 'total_cost': 0.0}
+INFO:backend.agents.base:[ProfilerAgent] Usage tracked: 0.0 USD
+INFO:backend.agents.base:[ProfilerAgent] Updated state.step_prof
+iler
+INFO:backend.agents.base:[ProfilerAgent] Lifecycle Hook: post_pr
+ocess
+INFO:backend.agents.base:[ProfilerAgent] Execution completed.
+[92m13:32:37 - LiteLLM Router:INFO[0m: router.py:715 - Routing
+ strategy: simple-shuffle
+INFO:LiteLLM Router:Routing strategy: simple-shuffle
+INFO:backend.core.registry:[LogicianAgent] Found 13 prompt keys 
+in config: ['GLOBAL_CONTEXT', 'HEADER_MANDATES', 'MANDATE_1']...
+INFO:backend.services.component_registry:[ComponentRegistry] Res
+olving prompts: ('GLOBAL_CONTEXT', 'HEADER_MANDATES', 'MANDATE_1
+', 'MANDATE_5', 'HEADER_RULES', 'RULE_3', 'INSTRUCTION_TOULMIN',
+ 'INSTRUCTION_BLOOM', 'INSTRUCTION_NO_HALLUCINATION', 'INSTRUCTI
+ON_CITATION_OBLIGATION', 'INSTRUCTION_LANGUAGE_FI', 'HEADER_INST
+RUCTIONS', 'TASK_LOGICIAN')
+INFO:backend.services.component_registry:[ComponentRegistry] Res
+olved text length: 2872
+INFO:backend.core.registry:[LogicianAgent] Resolved system_instr
+uction length: 50207
+INFO:backend.agents.base:[LogicianAgent] Starting execution...
+INFO:backend.agents.base:[LogicianAgent] Lifecycle Hook: prepare
+_context
+INFO:backend.agents.base:[LogicianAgent] >>> EXECUTION START <<<
+INFO:backend.agents.base:[LogicianAgent] MODEL: vertex_ai/gemini
+-2.5-pro | TEMP: Default | TOKENS: Default
+INFO:backend.llm.provider:[LiteLLM] Enabling Structured Output f
+or schema: ArgumentaatioAnalyysi
+INFO:backend.llm.provider:
+==================== DEBUG: SYSTEM INSTRUCTION =================
+===
+### J├äRJESTELM├äKONTEKSTI (SYSTEM CONTEXT)
+NYKYHETKI: 2026-01-18.
+KELLONAIKA: 13:32:37.
+Sijainti: VIRTUAL_ENCLAVE
+
+ROOLI: Toimit 'Cognitive Quorum' -auditointij├ñrjestelm├ñn moott
+orina.
+
+AIKA-ANKKURI: Tiedosta, ett├ñ toimit NYT, t├ñss├ñ hetkess├ñ (202
+6-01-18). Koulutusdatasi 'Knowledge Cutoff' on historiaa. Arvioi
+ kaikkia teknologioita ja v├ñitteit├ñ t├ñst├ñ ajankohdasta k├ñsi
+n.
+
+### AUDITOITAVA MATERIAALI (INPUT DATA)
+Alla on k├ñytt├ñj├ñn toimittamat tiedostot auditointia varten. J
+os kentt├ñ on tyhj├ñ, tiedostoa ei ole toimitettu.
+
+[KESKUSTELUHISTORIA_ALKU]
+Gemini Chat
+Miten sitra t├ñm├ñn n├ñkee raporttien perusteella
+Sitran megatrendiraporttien perusteella n├ñkym├ñ tulevaisuuteen 
+on siirtynyt potentiaalista ja nousevista
+ilmi├Âist├ñ (2017) kohti kasautuvia, geopoliittisesti latautunei
+ta kriisej├ñ ja systeemisi├ñ murtumia
+(2023). Sitra n├ñkee tulevaisuuden "postnormaalina aikana" , jok
+a on t├ñynn├ñ yll├ñtyksi├ñ, ristiriitaisuuksia ja
+konflikteja.
+Keskeiset megatrendit ja niiden evoluutio Sitran n├ñk├Âkulmasta 
+ovat:
+M
+
+... [TRUNCATED 48707 CHARS] ...
+
+isteet). T├ñm├ñ on pakollinen auditointij├ñlki.
+
+VAIHE 5: LOOGIKKO (Prompt Structure Audit)
+TEHT├äV├äT:
+1. J├äSENN├ä k├ñytt├ñj├ñn prompti Toulmin-mallilla:
+   - Claim: K├ñytt├ñj├ñn tavoite.
+   - Data: K├ñytt├ñj├ñn antama konteksti/esimerkit.
+   - Warrant: Logiikka, miksi ohje johtaa tavoitteeseen.
+2. ARVIOI: Onko prompti looginen kokonaisuus vai assosiaatioketj
+u? Puuttuuko 'Data'-osa kokonaan?
+
+K├äSKE: Tulosta vastauksesi T├äSM├äLLEEN seuraavan JSON-skeeman 
+mukaisesti (├ñl├ñ muuta kenttien nimi├ñ):
+{{SCHEMA_EXAMPLE}}
+==================================================
+
+INFO:backend.llm.provider:
+==================== DEBUG: USER PROMPT ====================
+Proceed with your task according to the system instructions.
+==================================================
+
+INFO:backend.llm.provider:[LiteLLM] Calling vertex_ai/gemini-2.5
+-pro...
+INFO:backend.llm.provider:[LiteLLMProvider] Using Vertex Locatio
+n: europe-north1
+[92m13:32:37 - LiteLLM Router:INFO[0m: simple_shuffle.py:55 - 
+get_available_deployment for model: vertex_ai/gemini-2.5-pro, Se
+lected deployment: {'model_name': 'vertex_ai/gemini-2.5-pro', 'l
+itellm_params': {'tpm': 10000, 'rpm': 10, 'use_in_pass_through':
+ False, 'use_litellm_proxy': False, 'merge_reasoning_content_in_
+choices': False, 'model': 'vertex_ai/gemini-2.5-pro'}, 'model_in
+fo': {'id': '1c8190b0c3f3394af5ec1992f2b81893f59cdaa2ac4ef1190f1
+d326c1c15f279', 'db_model': False}} for model: vertex_ai/gemini-
+2.5-pro
+INFO:LiteLLM Router:get_available_deployment for model: vertex_a
+i/gemini-2.5-pro, Selected deployment: {'model_name': 'vertex_ai
+/gemini-2.5-pro', 'litellm_params': {'tpm': 10000, 'rpm': 10, 'u
+se_in_pass_through': False, 'use_litellm_proxy': False, 'merge_r
+easoning_content_in_choices': False, 'model': 'vertex_ai/gemini-
+2.5-pro'}, 'model_info': {'id': '1c8190b0c3f3394af5ec1992f2b8189
+3f59cdaa2ac4ef1190f1d326c1c15f279', 'db_model': False}} for mode
+l: vertex_ai/gemini-2.5-pro
+[92m13:32:37 - LiteLLM:INFO[0m: utils.py:3476 - 
+LiteLLM completion() model= gemini-2.5-pro; provider = vertex_ai
+INFO:LiteLLM:
+LiteLLM completion() model= gemini-2.5-pro; provider = vertex_ai

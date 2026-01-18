@@ -8,6 +8,9 @@ import 'package:client_app/features/auth/presentation/providers/firebase_instanc
 ///
 /// This interceptor acts as the security bridge between the Flutter Client and the Python Backend.
 /// It ensures that every outgoing HTTP request is authenticated with the current user's identity.
+///
+/// **NOTE**: Token availability is ensured by providers (e.g., workflowListProvider)
+/// waiting for auth state before making API calls.
 class AuthInterceptor extends Interceptor {
   final Ref _ref;
 
@@ -18,8 +21,7 @@ class AuthInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    // 1. Try Firebase Auth
-    // Use safe provider -> Returns null if Firebase is missing
+    // 1. Try Firebase Auth (synchronous read - providers ensure auth is ready)
     final auth = _ref.read(firebaseAuthInstanceProvider);
     final user = auth?.currentUser;
 
@@ -28,7 +30,7 @@ class AuthInterceptor extends Interceptor {
         final token = await user.getIdToken();
         options.headers['Authorization'] = 'Bearer $token';
       } catch (e) {
-        // Fallback or ignore
+        // Token refresh failed - continue without auth
       }
     } else {
       // 2. Try Mock Token (Hybrid/Dev Mode)
@@ -41,3 +43,5 @@ class AuthInterceptor extends Interceptor {
     super.onRequest(options, handler);
   }
 }
+
+

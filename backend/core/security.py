@@ -6,7 +6,6 @@ Previously located in backend/hooks/security.py.
 
 import logging
 import re
-from typing import List, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +19,7 @@ PII_PATTERNS = {
 }
 
 
-def sanitize_text(text: str) -> Tuple[str, List[str]]:
+def sanitize_text(text: str) -> tuple[str, list[str]]:
     """Sanitizes text by removing potential PII patterns.
 
     This is a basic regex-based filter. For production, use a dedicated DLP service.
@@ -53,7 +52,7 @@ def sanitize_text(text: str) -> Tuple[str, List[str]]:
     return clean_value, threats_detected
 
 
-def check_banned_phrases(text: str, phrases: List[str]) -> List[str]:
+def check_banned_phrases(text: str, phrases: list[str]) -> list[str]:
     """Checks if the input text contains any of the specified banned phrases (case-insensitive).
 
     Args:

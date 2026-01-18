@@ -33,12 +33,12 @@ def shared_engine_safe():
         # Load Seeds using repository's workflow/component tables
         with open("backend/seed/seed_data.json", encoding="utf-8") as f:
             seed = json.load(f)
-        
+
         # Clear existing data
         repo.workflows.truncate()
         repo.components.truncate()
         repo.steps.truncate()
-        
+
         if "workflows" in seed:
             for wf in seed["workflows"]:
                 repo.workflows.insert(wf)
@@ -69,9 +69,9 @@ def shared_engine_safe():
 
     # GraphEngine is imported as WorkflowEngine (singleton, no constructor args)
     engine = WorkflowEngine()
-    
+
     yield engine, repo, client, base_dir
-    
+
     client.close()
     time.sleep(0.1)
     shutil.rmtree(base_dir, ignore_errors=True)
@@ -81,29 +81,29 @@ def shared_engine_safe():
 def test_fork_step_safety(shared_engine_safe):
     """Test safety of step forking (Copy-on-Write)."""
     engine, repo, db_client, base_dir = shared_engine_safe
-    
+
     # Override the get_engine dependency to return our test engine
     app.dependency_overrides[get_engine] = lambda: engine
-    
+
     # Also override repository to use test repo
     from backend.dependencies import get_async_repository
     async def get_test_repo():
         return repo
     app.dependency_overrides[get_async_repository] = get_test_repo
-    
+
     http_client = TestClient(app)
 
     try:
         # 1. Verify Original State
         target_step_id = "step_logician"
         original_step = http_client.get(f"/builder/steps/{target_step_id}").json()
-        
+
         # Handle case where step doesn't exist in test DB
         if "detail" in original_step:
             pytest.skip("step_logician not found in test DB - skipping fork test")
-        
+
         original_prompts = original_step.get("execution_config", {}).get("llm_prompts", [])
-        
+
         if not original_prompts:
             pytest.skip("No llm_prompts found in step - skipping fork test")
 
@@ -170,7 +170,7 @@ async def _test_python_hooks_execution_async():
                 "manipulaatio_yritykset": "None",
                 "teksti_metriikka": None,
             }
-            
+
             class MockResponse:
                 def __init__(self, content_dict):
                     self.content = json.dumps(content_dict)
@@ -182,7 +182,7 @@ async def _test_python_hooks_execution_async():
                         "total_tokens": 20,
                         "total_cost": 0.001,
                     }
-            
+
             return MockResponse(data)
 
     # Initialize Agent

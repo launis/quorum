@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:client_app/api/auth_interceptor.dart';
+import 'package:client_app/api/error_interceptor.dart';
 import 'package:client_app/core/environment/env.dart';
 
 part 'api_client.g.dart';
@@ -16,7 +17,9 @@ part 'api_client.g.dart';
 /// **Configuration**:
 /// - **Base URL**: Sourced from [Env.apiUrl].
 /// - **Headers**: Default content-type is `application/json`.
+/// - **Accept**: Includes `application/problem+json` for RFC 7807 errors.
 /// - **Security**: Automatically attaches [AuthInterceptor] to sign requests.
+/// - **Error Handling**: [ErrorInterceptor] parses RFC 7807 responses to [AppError].
 ///
 /// **Returns**:
 /// A fully configured [Dio] instance ready for network requests.
@@ -27,17 +30,20 @@ Dio apiClient(Ref ref) {
 
   final dio = Dio(
     BaseOptions(
-      baseUrl:
-          Env.apiUrl, // Accessing static getter directly as Env is a utility class
+      baseUrl: Env.apiUrl,
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
+        'Accept': 'application/json, application/problem+json',
       },
     ),
   );
 
-  // Add Auth Interceptor
+  // Add Auth Interceptor (must be first to add token)
   dio.interceptors.add(AuthInterceptor(ref));
+
+  // Add Error Interceptor (parses RFC 7807 errors to AppError)
+  dio.interceptors.add(ErrorInterceptor());
 
   return dio;
 }
+

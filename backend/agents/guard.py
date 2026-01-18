@@ -11,7 +11,6 @@ from pydantic import BaseModel
 from backend.agents.base import BaseAgent
 
 # 3. Local Imports
-from backend.exceptions import FatalInterruption
 from backend.models.domain import TaintedData
 
 if TYPE_CHECKING:
@@ -87,37 +86,38 @@ class GuardAgent(BaseAgent):
         # 1. Banned Phrase Check (Via Schema Validation)
         # We instantiate GuardInput to trigger Pydantic Validators.
         # This will raise FatalInterruption (via ValueError catcher in framework or we catch here) if invalid.
-        
+
         try:
-             # Load banned phrases from aux_data (Injected by Engine)
-             banned_ctx = {"banned_phrases": state.aux_data.get("banned_phrases", [])}
-             
-             from backend.models.domain import GuardInput
-             
-             # This triggers @AfterValidator(validate_guard_input)
-             GuardInput.model_validate(
-                 {
-                     "history_text": state.inputs.history_text or "",
-                     "product_text": state.inputs.product_text or "",
-                     "reflection_text": state.inputs.reflection_text,
-                 },
-                 context=banned_ctx
-             )
-             
+            # Load banned phrases from aux_data (Injected by Engine)
+            banned_ctx = {"banned_phrases": state.aux_data.get("banned_phrases", [])}
+
+            from backend.models.domain import GuardInput
+
+            # This triggers @AfterValidator(validate_guard_input)
+            GuardInput.model_validate(
+                {
+                    "history_text": state.inputs.history_text or "",
+                    "product_text": state.inputs.product_text or "",
+                    "reflection_text": state.inputs.reflection_text,
+                },
+                context=banned_ctx,
+            )
+
         except ValueError as e:
-             # Convert Pydantic/Validator error to FatalInterruption for the Engine
-             if "SECURITY_BANNED_PHRASE_DETECTED" in str(e):
-                  logger.error(f"[GuardAgent] Banned Phrase Detected via Schema: {e}")
-                  from backend.exceptions import FatalInterruption
-                  raise FatalInterruption(
-                      step_name="GuardSecurityCheck",
-                      reason="Banned Phrase Detected (Schema Validation)",
-                      details={"error": str(e)}
-                  ) from e
-             raise e
+            # Convert Pydantic/Validator error to FatalInterruption for the Engine
+            if "SECURITY_BANNED_PHRASE_DETECTED" in str(e):
+                logger.error(f"[GuardAgent] Banned Phrase Detected via Schema: {e}")
+                from backend.exceptions import FatalInterruption
+
+                raise FatalInterruption(
+                    step_name="GuardSecurityCheck",
+                    reason="Banned Phrase Detected (Schema Validation)",
+                    details={"error": str(e)},
+                ) from e
+            raise e
 
         # 2. Input Sanitization (Modifies state inputs in-place)
-        # Note: We keep this manual for now as it modifies state in-place (mutator), 
+        # Note: We keep this manual for now as it modifies state in-place (mutator),
         # whereas Validators are typically for checking.
         self.sanitize_input(state)
 
@@ -207,7 +207,9 @@ class GuardAgent(BaseAgent):
             logger.error(f"{error_code}: Banned phrase check failed: {e}", exc_info=True)
             from backend.exceptions import FatalInterruption
 
-            raise FatalInterruption("GuardSecurityCheck", f"Banned phrase check failed: {e}", {"error": str(e), "error_code": error_code}) from e
+            raise FatalInterruption(
+                "GuardSecurityCheck", f"Banned phrase check failed: {e}", {"error": str(e), "error_code": error_code}
+            ) from e
 
         return state
 
@@ -225,7 +227,6 @@ class GuardAgent(BaseAgent):
         """
         logger.info("[GuardAgent] PDF Extraction Pre-Hook: Pass-through (Handled by Engine).")
         return state
-
 
     def sanitize_input(self, state: WorkflowState) -> WorkflowState:
         """Pre-hook: Sanitizes and anonymizes input data (PII Redaction).

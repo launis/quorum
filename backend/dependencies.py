@@ -10,7 +10,10 @@ Exports `Annotated` type aliases (e.g., `EngineDep`) for clean router injection.
 import logging
 from typing import Annotated, Any
 
-from fastapi import Depends, Header, HTTPException
+from arq.connections import ArqRedis, RedisSettings, create_pool
+from fastapi import Depends, Header
+
+from backend.exceptions import AuthenticationError
 
 from backend.core.engine import GraphEngine
 from backend.database.factory import get_repository
@@ -25,9 +28,6 @@ from backend.services.prompt_builder import PromptBuilder
 from backend.services.storage import AbstractStorage
 from backend.services.usage_service import UsageService
 from backend.settings import Settings, get_settings
-
-from arq.connections import ArqRedis, RedisSettings, create_pool
-
 
 # Alias for consistent dependency naming
 get_settings_dep = get_settings
@@ -270,10 +270,7 @@ def get_llm_factory_dep():
 async def get_arq_pool() -> ArqRedis:
     """Dependency to provide Arq Redis Pool."""
     settings = get_settings()
-    return await create_pool(
-        RedisSettings(host=settings.redis_host, port=settings.redis_port)
-    )
-
+    return await create_pool(RedisSettings(host=settings.redis_host, port=settings.redis_port))
 
 
 # --- Type Aliases for Clean Injection (Dependency Injection Standards) ---
@@ -343,16 +340,25 @@ async def get_current_user_from_header(
         # But for 'me' or 'executions' involving tenant data, we need it.
         # If no header, maybe return None?
         # Let's enforce it. If frontend doesn't send it, it's 401.
-        raise HTTPException(status_code=401, detail="Missing Authorization Header")
+        raise AuthenticationError(
+            message="Missing Authorization Header",
+            details={"error_code": "AUTH_HEADER_MISSING"},
+        )
 
     scheme, _, token = authorization.partition(" ")
     if scheme.lower() != "bearer" or not token:
-        raise HTTPException(status_code=401, detail="Invalid Authorization Scheme")
+        raise AuthenticationError(
+            message="Invalid Authorization Scheme",
+            details={"error_code": "AUTH_SCHEME_INVALID"},
+        )
 
     try:
         return auth_service.verify_token(token)
     except ValueError as e:
-        raise HTTPException(status_code=401, detail=str(e)) from e
+        raise AuthenticationError(
+            message=str(e),
+            details={"error_code": "AUTH_TOKEN_INVALID"},
+        ) from e
 
 
 CurrentUserDep = Annotated[TokenData, Depends(get_current_user_from_header)]

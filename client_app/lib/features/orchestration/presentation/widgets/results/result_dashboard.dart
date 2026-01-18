@@ -52,10 +52,10 @@ class ResultDashboard extends StatelessWidget {
               ? Map<String, dynamic>.from(data['step_coach'] as Map)
               : <String, dynamic>{};
 
-      final stepOverseer =
-        data['step_overseer'] != null
-            ? Map<String, dynamic>.from(data['step_overseer'] as Map)
-            : <String, dynamic>{};
+      // Unused for now but available for future use if needed
+      // final stepOverseer = data['step_overseer'] != null
+      //     ? Map<String, dynamic>.from(data['step_overseer'] as Map)
+      //     : <String, dynamic>{};
 
       // 1. Map High-Level Metrics
       // Hoisted fields take precedence, then step_reporter
@@ -65,16 +65,16 @@ class ResultDashboard extends StatelessWidget {
       
       // 2. Map Scores (Legacy Pisteet)
       // V2 TuomioJaPisteet.pisteet is typically a Map { "analyysi": {...}, ... }
-      final scores = stepJudge['pisteet'] ?? {};
+      final scores = stepJudge['pisteet'] as Map<String, dynamic>? ?? <String, dynamic>{};
 
       // 3. Map Feedback
       // Flatten Coach ActionGroups for legacy list view
       List<String> actions = [];
       if (stepCoach['kehityskohteet_konkreettisesti'] is List) {
-        for (var group in stepCoach['kehityskohteet_konkreettisesti']) {
+        for (final group in (stepCoach['kehityskohteet_konkreettisesti'] as List)) {
            if (group is Map && group['kohdat'] is List) {
-             for (var item in group['kohdat']) {
-               if (item is Map) actions.add(item['otsikko'] ?? '');
+             for (final item in (group['kohdat'] as List)) {
+               if (item is Map) actions.add((item['otsikko'] ?? '') as String);
              }
            }
         }
@@ -87,7 +87,7 @@ class ResultDashboard extends StatelessWidget {
          'comparison_data': stepReporter['comparison_data'],
          'scores': scores,
          'kehitystoimenpiteet': actions, // Mapped from ActionGroups
-         'kehitysehdotukset': stepCoach['lopputuloksen_kehitysehdotukset'] ?? [],
+         'kehitysehdotukset': stepCoach['lopputuloksen_kehitysehdotukset'] as List? ?? <dynamic>[],
          // Pass through other step data for deep dives
          'psykologinen_profiili': data['step_profiler'],
          'vuorovaikutus_analyysi': data['step_interaction'],
@@ -102,7 +102,7 @@ class ResultDashboard extends StatelessWidget {
       // Derive risk level from Security or Overseer
       String riskLevel = 'N/A';
       if (data['step_guard'] != null) {
-         riskLevel = (data['step_guard'] as Map?)?['security_check']?['riski_taso'] ?? 'N/A';
+         riskLevel = ((data['step_guard'] as Map?)?['security_check'] as Map?)?['riski_taso'] as String? ?? 'N/A';
       }
       
       sysStatus = {

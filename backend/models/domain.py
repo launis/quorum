@@ -902,3 +902,17 @@ class UsageRecord(BaseModel):
     timestamp: Annotated[str, Field(description="ISO 8601 timestamp of the event.")]
 
     model_config = ConfigDict(frozen=True, validate_assignment=True)
+
+# --- Retrieval & Context ---
+
+class Precedent(BaseModel):
+    """Represents a single historical execution precedent."""
+    id: str
+    date: str
+    scores: str
+    verdict: str
+
+class ContextData(BaseJSON):
+    """Output schema for RetrievalAgent (Simulated or Real)."""
+    precedents: Annotated[str, Field(description="Summary text of precedents.")]
+    precedent_list: Annotated[list[Precedent], Field(default_factory=list, description="Structured list of precedents.")]

@@ -5,7 +5,7 @@ Provides endpoints for retrieving system audit logs.
 
 import logging
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Query, status
 
 from backend.dependencies import AuditServiceDep, CurrentUserDep
 from backend.models.audit import AuditEvent
@@ -44,12 +44,14 @@ async def get_audit_logs(
             # ADMIN is forced to their own org.
             if organization_id and organization_id != user.organization_id:
                 from backend.exceptions import PermissionDeniedError
+
                 error_code = "ACCESS_DENIED_ORGANIZATION_MISMATCH"
                 logger.warning(f"{error_code}: Admin {user.uid} tried to access org {organization_id}")
                 raise PermissionDeniedError(message="Organization mismatch", details={"error_code": error_code})
             target_org = user.organization_id
         else:
             from backend.exceptions import PermissionDeniedError
+
             error_code = "PERMISSION_DENIED"
             logger.warning(f"{error_code}: User {user.uid} with role {user.role} denied audit access")
             raise PermissionDeniedError(message="Audit access denied", details={"error_code": error_code})
@@ -60,9 +62,15 @@ async def get_audit_logs(
 
     except Exception as e:
         from backend.exceptions import AppException
+
         if isinstance(e, AppException):
             raise
 
         error_code = "AUDIT_LOG_RETRIEVAL_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=error_code, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"original_error": str(e)}) from e
+        raise AppException(
+            message=str(e),
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": error_code},
+        ) from e
+

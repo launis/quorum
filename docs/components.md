@@ -1,10 +1,10 @@
-# Workflow Components (V2.5)
+# Workflow Components (V2.6)
 
-The system is composed of **Specialized Agents** (Python Classes) and **Deterministic Hooks** (helper modules).
+The system is composed of **Specialized Agents** (Python Classes), **Deterministic Hooks** (helper modules), and a **Configuration-Driven Registry** (JSON Components).
 
 ## 1. Specialized Agents (`backend/agents/`)
 
-Unlike V1, which used generic agents, V2.5 involves specialized classes inheriting from `BaseAgent`.
+Agents in V2.6 are specialized classes inheriting from `BaseAgent`, designed to be "Thin Wrappers" around configuration and logic.
 
 | Agent Class | File | Responsibility | Schema |
 | :--- | :--- | :--- | :--- |
@@ -14,12 +14,52 @@ Unlike V1, which used generic agents, V2.5 involves specialized classes inheriti
 | `LogicianAgent` | `logician.py` | Toulmin argument mapping and logical structure audit. | `ArgumentaatioAnalyysi` |
 | `FalsifierAgent` | `falsifier.py` | Stress-testing arguments (Devil's Advocate). | `FalsifiointiAuditointi` |
 | `CausalAgent` | `causal.py` | Causal graph generation and DoWhy refutation. | `KausaalinenAuditointi` |
-| `PanelAgent` | `panel.py` | Simulates a panel of experts (Logic + Causal + Ethics). | `PanelAudit` |
-| `JudgeAgent` | `judge.py` | Final verdict and scoring. | `JudgeVerdict` |
-| `CoachAgent` | `coach.py` | Feedback generation without judging. | `CoachFeedback` |
-| `XAIReporter` | `xai.py` | Generates human-readable MD reports. | `XAIReport` |
+| `PanelAgent` | `panel.py` | **[Fused]** Simulates a parallel panel of experts (Logic + Causal + Ethics). | `PanelAudit` |
+| `JudgeAgent` | `judge.py` | **[Polymorphic]** Final verdict using dynamic `matrix_id` from config. | `EvaluationResult` |
+| `CoachAgent` | `coach.py` | Feedback generation based on Judge's verdict. | `CoachFeedback` |
+| `XAIReporter` | `xai.py` | Generates human-readable MD reports from `EvaluationResult`. | `XAIReport` |
 
-## 2. Deterministic Hooks (`backend/hooks/`)
+---
+
+## 2. Components Registry (`db.json` / `components`)
+
+In V2.6, the "Mind" of the system is decoupled from Python code. Reusable blocks are stored in the `components` dictionary in `db.json`.
+
+### Component Types
+1.  **`evaluation_matrix`**: Defines the "Lens" the Judge uses (e.g., `matrix_standard_v1`, `matrix_cognitive_v2`). Contains:
+    *   `role_description`: Persona for the Judge.
+    *   `criteria`: List of dimensions (e.g., "Agency", "Synthesis").
+    *   `scale`: Scoring range and anchors.
+2.  **`mandate`**: Irrevocable system directives (e.g., "Slow Thinking").
+3.  **`rule`**: Operational boundaries (e.g., "No Hallucination").
+4.  **`instruction`**: Specific task capabilities (e.g., "Use Toulmin Model").
+5.  **`protocol`**: Algorithm for analysis (e.g., "Negative Proof").
+
+### Example Component (Matrix)
+```json
+"matrix_cognitive_v2": {
+  "type": "evaluation_matrix",
+  "content": {
+    "name": "Cognitive Quorum Unified Matrix",
+    "role_description": "You are the Chief Cognitive Judge.",
+    "scale": {"min": 1, "max": 4},
+    "criteria": [
+      {
+        "id": "agency",
+        "label": "Strateginen Ohjaus",
+        "anchors": {
+            "1": "Passenger (Passive)",
+            "4": "Architect (Strategic)"
+        }
+      }
+    ]
+  }
+}
+```
+
+---
+
+## 3. Deterministic Hooks (`backend/hooks/`)
 
 Hooks are pure Python functions invoked by agents to perform tasks outside the LLM's capabilities.
 
@@ -42,23 +82,30 @@ Hooks are pure Python functions invoked by agents to perform tasks outside the L
 *   **Text Statistics:** Calculates lexical diversity, reading level (Flesch-Kincaid).
 *   **Structure Audit:** Counts paragraph and sentence structures.
 
-## 3. Worker Service (`backend/worker.py`)
+---
 
-The **Worker Service** (Execution Plane) is the heavy-lifting engine of Quorum V2.5.
+## 4. Worker Service (`backend/worker.py`)
+
+The **Worker Service** (Execution Plane) is the heavy-lifting engine of Quorum.
 
 *   **Technology**: Built on **Arq** (Async Redis Queue) and monitored via **Logfire**.
 *   **Role**: Executes the `execute_workflow_task` function.
 *   **Resilience**: Handles retries, timeout management, and graceful shutdowns.
 *   **Scalability**: Multiple worker instances can consume from the same Redis queue (Horizontal Scaling).
 
-## 4. Data Models (`backend/models/`)
+---
+
+## 5. Data Models (`backend/models/`)
 
 All components communicate using **Pydantic V2** models.
 
-*   **`WorkflowState`**: The monolithic state object passed between agents. Implements **Optimistic Locking** (`version` field) for safe concurrent updates.
-*   **`Domain Models`**: Specialized schemas (e.g., `JudgeVerdict`, `PanelAudit`) used for LLM structured output.
+*   **`WorkflowState`**: The MONOLITHIC state object passed between agents.
+    *   **V2.6 Update:** Stores `audit_results` (List of EvaluationResults) instead of just single-step outputs, enabling multi-matrix audits.
+*   **`EvaluationResult`**: The standardized output for any Judging process, containing `dimensions` (List[DimensionResultItem]) and `score`.
 
-## 5. LLM Provider (`backend/llm/`)
+---
+
+## 6. LLM Provider (`backend/llm/`)
 
 A centralized adapter pattern for model access.
 *   **Supported Models:** Google Gemini 2.5 (Flash/Pro) via **Regional Discovery** (Hamina / europe-north1).

@@ -185,6 +185,7 @@
   "errorValidation": "Validation failed.",
   "errorValidationEmpty": "Inputs cannot be empty.",
   "errorValidationMissing": "Missing required fields: {fields}",
+  "errorLoadingData": "Error loading data. Please try again.",
   "createOrganization": "Create Organization",
   "editOrganization": "Edit Organization",
   "deleteOrganization": "Delete Organization",

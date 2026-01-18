@@ -1,0 +1,21 @@
+Testing file: c:/src/quorum/backend/files/executions/0a52b142-7773-4c11-9775-eb3606dd6b43/keskusteluhistoria SITRA.pdf
+File size: 1425405 bytes
+Extracting text...
+Extracted text length: 41349
+FIRST 500 CHARS:
+Gemini Chat
+Miten sitra tämän näkee raporttien perusteella
+Sitran megatrendiraporttien perusteella näkymä tulevaisuuteen on siirtynyt potentiaalista ja nousevista
+ilmiöistä (2017) kohti kasautuvia, geopoliittisesti latautuneita kriisejä ja systeemisiä murtumia
+(2023). Sitra näkee tulevaisuuden "postnormaalina aikana" , joka on täynnä yllätyksiä, ristiriitaisuuksia ja
+konflikteja.
+Keskeiset megatrendit ja niiden evoluutio Sitran näkökulmasta ovat:
+Megatrendien Evoluutio Sitran Raporteissa (2017 
+
+
+--------------------------------------------------
+Parsing chat log...
+Parsed text length: 41310
+PARSED SAMPLE:
+User: Miten sitra tämän näkee raporttien perusteella Sitran megatrendiraporttien perusteella näkymä tulevaisuuteen on siirtynyt potentiaalista ja nousevista ilmiöistä (2017) kohti kasautuvia, geopoliittisesti latautuneita kriisejä ja systeemisiä murtumia (2023). Sitra näkee tulevaisuuden "postnormaalina aikana" , joka on täynnä yllätyksiä, ristiriitaisuuksia ja konflikteja. Keskeiset megatrendit ja niiden evoluutio Sitran näkökulmasta ovat: Megatrendien Evoluutio Sitran Raporteissa (2017 2023) 1
+

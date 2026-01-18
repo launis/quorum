@@ -86,6 +86,12 @@ class DocumentService:
                     # Treat as text file
                     text = file_bytes.decode("utf-8", errors="ignore")
 
+                # --- NEW: Parse Chat Logs ---
+                # Attempt to identify and label speakers (User/AI) to assist the Profiler.
+                from backend.services.chat_log_parser import ChatLogParser
+                text = ChatLogParser.parse(text)
+                # ----------------------------
+
                 extracted_data[input_key] = text
 
                 logger.info(

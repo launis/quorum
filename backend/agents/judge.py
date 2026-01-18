@@ -88,35 +88,120 @@ class JudgeAgent(BaseAgent):
 
         if not repo:
             # Should hopefully not happen if framework is robust, but for typed safety:
-            raise AgentExecutionError(detail="REPOSITORY_MISSING", original_error=ValueError("Repository not injected."))
+            raise AgentExecutionError(
+                detail="REPOSITORY_MISSING", original_error=ValueError("Repository not injected.")
+            )
 
         component = await repo.get_component_by_id(matrix_id)
         if not component:
-            raise AgentExecutionError(detail="MATRIX_NOT_FOUND", original_error=ValueError(f"Matrix '{matrix_id}' not found."))
+            raise AgentExecutionError(
+                detail="MATRIX_NOT_FOUND", original_error=ValueError(f"Matrix '{matrix_id}' not found.")
+            )
 
         # Use shared formatter service (Metadata-Driven)
         from backend.services.matrix_formatter import format_matrix_component
+
+        base_prompt = format_matrix_component(component)
+
+    async def prepare_context(self, state: WorkflowState, **kwargs) -> str | None:
+        """Lifecycle Hook: Pre-Execution.
+
+        Loads and formats the Evaluation Matrix (rubric) from the repository/config.
+        Injects the matrix instructions into the system prompt.
+
+        Args:
+            state (WorkflowState): The current workflow state.
+            **kwargs: Config and repository.
+
+        Returns:
+            Optional[str]: The formatted matrix context string.
+        """
+        config = kwargs.get("execution_config", {})
+        matrix_id = config.get("matrix_id")
+        repo = kwargs.get("repository")
+
+        # FAIL FAST: Configuration Check
+        if not matrix_id:
+            msg = "JUDGE_CONFIGURATION_MISSING: No matrix_id configured."
+            logger.error(msg)
+            raise AgentExecutionError(detail="JUDGE_CONFIGURATION_MISSING", original_error=ValueError(msg))
+
+        if not repo:
+            # Should hopefully not happen if framework is robust, but for typed safety:
+            raise AgentExecutionError(
+                detail="REPOSITORY_MISSING", original_error=ValueError("Repository not injected.")
+            )
+
+        component = await repo.get_component_by_id(matrix_id)
+        if not component:
+            raise AgentExecutionError(
+                detail="MATRIX_NOT_FOUND", original_error=ValueError(f"Matrix '{matrix_id}' not found.")
+            )
+
+        # Use shared formatter service (Metadata-Driven)
+        from backend.services.matrix_formatter import format_matrix_component
+
         base_prompt = format_matrix_component(component)
 
         # Inject Context/Inputs to be evaluated
         eval_ctx = []
-        
-        # 1. Prefer Processed Evidence (Token Optimization)
+
+        # Helper for serializing evidence
+        def serialize_evidence(data: Any) -> str:
+            if hasattr(data, "model_dump_json"):
+                return data.model_dump_json(indent=2)
+            if isinstance(data, dict):
+                return json.dumps(data, indent=2, ensure_ascii=False)
+            return str(data)
+
+        # --- EVIDENCE COLLECTION STRATEGY ---
+        # 1. Core Map (Analyst) - Token Optimized
         todistus_kartta = kwargs.get("todistus_kartta")
         if not todistus_kartta and state:
             todistus_kartta = getattr(state, "step_analyst", None)
 
         if todistus_kartta:
-            content = (
-                todistus_kartta.model_dump_json(indent=2)
-                if hasattr(todistus_kartta, "model_dump_json")
-                else str(todistus_kartta)
-            )
+            content = serialize_evidence(todistus_kartta)
             eval_ctx.append(f"### TODISTUSKARTTA (PROCESSED EVIDENCE):\n{content}")
-            logger.info("[JudgeAgent] Using TodistusKartta for evaluation (Token Optimization Active).")
-        
-        # 2. Fallback to Raw Inputs only if no Map (or if specifically required, but here we optimize)
-        else:
+            logger.info("[JudgeAgent] Using TodistusKartta (Step 2) for evaluation.")
+
+        # 2. Evidence Collection (Config-Driven + Auto-Discovery)
+        # Scan state for known critic outputs defined in configuration.
+        # Fallback to hardcoded list if config is missing (Safety Net).
+        monitored_steps = config.get("monitored_steps")
+        if not monitored_steps:
+             logger.warning("[JudgeAgent] 'monitored_steps' missing in config. Using fallback allowlist.")
+             monitored_steps = {
+                "step_profiler": "PROFILOIJA (BIAS AUDIT)",
+                "step_logician": "LOOGIKKO (LOGIC AUDIT)",
+                "step_falsifier": "FALSIFIOIJA (CRITICAL AUDIT)",
+                "step_causal": "KAUSAALINEN (IMPACT AUDIT)",
+                "step_detector": "PERFORMATIIVISUUS (ILLUSION AUDIT)",
+                "step_overseer": "VALVOJA (FACTUAL AUDIT)",
+                "step_archivist": "ARKISTONHOITAJA (BEST PRACTICES)",
+                "step_panel": "PANEELIN HAVAINNOT (PANEL AUDIT)"
+            }
+
+        found_evidence_count = 0
+        for key, title in monitored_steps.items():
+            # Check inputs first (explicit mapping), then state (implicit discovery)
+            evidence = kwargs.get(key)
+            if not evidence and state:
+                evidence = getattr(state, key, None)
+            
+            if evidence:
+                content = serialize_evidence(evidence)
+                eval_ctx.append(f"### {title}:\n{content}")
+                logger.info(f"[JudgeAgent] Auto-Discovered evidence: {key}")
+                found_evidence_count += 1
+
+        if found_evidence_count > 0:
+            logger.info(f"[JudgeAgent] Successfully injected {found_evidence_count} evidence blocks.")
+
+        # 4. Fallback to Raw Inputs 
+        # Only if we literally have zero evidence maps (rare)
+        if not eval_ctx:
+            logger.warning("[JudgeAgent] No structured evidence found. Falling back to raw inputs.")
             try:
                 if hasattr(state, "inputs") and state.inputs:
                     if getattr(state.inputs, "history_text", None):
@@ -126,7 +211,6 @@ class JudgeAgent(BaseAgent):
                     if getattr(state.inputs, "reflection_text", None):
                         eval_ctx.append(f"### STUDENT REFLECTION:\n{state.inputs.reflection_text}")
             except Exception:
-                # Tolerated failure in prompt decoration
                 pass
 
         if eval_ctx:
@@ -156,6 +240,11 @@ class JudgeAgent(BaseAgent):
         step_id = kwargs.get("step_id", output_key or self.state_field or "unknown_step")
 
         try:
+            # MODERNIZATION FIX: Handle pre-hydrated Pydantic objects
+            if isinstance(response_data, EvaluationResult):
+                # Dump to dict to reuse the enrichment logic below (Matrix ID, Scale injection)
+                response_data = response_data.model_dump()
+
             if isinstance(response_data, dict):
                 # Force matrix_id from config if available (trust config over LLM hallucination)
                 config = kwargs.get("execution_config", {})
@@ -183,15 +272,14 @@ class JudgeAgent(BaseAgent):
 
                 res_obj = EvaluationResult(**response_data)
 
-
                 # 1. Update Dynamic Store
                 state.audit_results[step_id] = res_obj
-                
+
                 # 2. Update Primary State Field (CRITICAL FIX)
                 # Without this, downstream agents (Reporter/Coach) see None for 'step_judge'
                 if hasattr(state, self.state_field):
                     setattr(state, self.state_field, res_obj)
-                
+
                 logger.info(
                     f"[JudgeAgent] Saved EvaluationResult to state.audit_results['{step_id}'] "
                     f"and state.{self.state_field} (Scale: {res_obj.scale_min}-{res_obj.scale_max})"
@@ -206,7 +294,7 @@ class JudgeAgent(BaseAgent):
 
     def post_process(self, state: WorkflowState) -> WorkflowState:
         """Post-process hook.
-        
+
         Note: Scoring logic is now applied via centralized HOOK_MAPPING (post_hooks in seed_data.json).
         """
         return state

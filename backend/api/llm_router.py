@@ -8,7 +8,7 @@ import asyncio
 import logging
 from typing import Annotated, Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from pydantic import BaseModel, Field
 from tinydb import Query
 
@@ -114,14 +114,16 @@ async def generate_completion(
 
     except ValueError as e:
         from backend.exceptions import AppException
+
         error_code = "INVALID_MODEL_STRATEGY"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=error_code, status_code=400, details={"original_error": str(e)}) from e
+        raise AppException(message=str(e), status_code=400, details={"error_code": error_code}) from e
     except Exception as e:
         from backend.exceptions import ServiceUnavailableError
+
         error_code = "LLM_COMPLETION_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise ServiceUnavailableError(message=error_code, details={"original_error": str(e)}) from e
+        raise ServiceUnavailableError(message=str(e), details={"error_code": error_code}) from e
 
 
 @router.post("/batch-completion", summary="Batch Completion", response_description="List of results.")
@@ -233,6 +235,7 @@ def update_model_config(update: ModelRegistryUpdate, db_client: DatabaseDep):
         return {"status": "success", "registry": update.registry}
     except Exception as e:
         from backend.exceptions import AppException
+
         error_code = "MODEL_REGISTRY_UPDATE_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=error_code, status_code=500, details={"original_error": str(e)}) from e
+        raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e

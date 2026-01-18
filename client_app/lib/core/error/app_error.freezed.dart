@@ -55,7 +55,7 @@ extension AppErrorPatterns on AppError {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _Unknown value)?  unknown,TResult Function( _Network value)?  network,TResult Function( _Server value)?  server,TResult Function( _Unauthorized value)?  unauthorized,TResult Function( _NotFound value)?  notFound,TResult Function( _Validation value)?  validation,TResult Function( _ValidationMissing value)?  validationMissing,TResult Function( _Cancelled value)?  cancelled,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _Unknown value)?  unknown,TResult Function( _Network value)?  network,TResult Function( _Server value)?  server,TResult Function( _Unauthorized value)?  unauthorized,TResult Function( _NotFound value)?  notFound,TResult Function( _Validation value)?  validation,TResult Function( _ValidationMissing value)?  validationMissing,TResult Function( _Cancelled value)?  cancelled,TResult Function( _Api value)?  api,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case _Unknown() when unknown != null:
@@ -66,7 +66,8 @@ return unauthorized(_that);case _NotFound() when notFound != null:
 return notFound(_that);case _Validation() when validation != null:
 return validation(_that);case _ValidationMissing() when validationMissing != null:
 return validationMissing(_that);case _Cancelled() when cancelled != null:
-return cancelled(_that);case _:
+return cancelled(_that);case _Api() when api != null:
+return api(_that);case _:
   return orElse();
 
 }
@@ -84,7 +85,7 @@ return cancelled(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _Unknown value)  unknown,required TResult Function( _Network value)  network,required TResult Function( _Server value)  server,required TResult Function( _Unauthorized value)  unauthorized,required TResult Function( _NotFound value)  notFound,required TResult Function( _Validation value)  validation,required TResult Function( _ValidationMissing value)  validationMissing,required TResult Function( _Cancelled value)  cancelled,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _Unknown value)  unknown,required TResult Function( _Network value)  network,required TResult Function( _Server value)  server,required TResult Function( _Unauthorized value)  unauthorized,required TResult Function( _NotFound value)  notFound,required TResult Function( _Validation value)  validation,required TResult Function( _ValidationMissing value)  validationMissing,required TResult Function( _Cancelled value)  cancelled,required TResult Function( _Api value)  api,}){
 final _that = this;
 switch (_that) {
 case _Unknown():
@@ -95,7 +96,8 @@ return unauthorized(_that);case _NotFound():
 return notFound(_that);case _Validation():
 return validation(_that);case _ValidationMissing():
 return validationMissing(_that);case _Cancelled():
-return cancelled(_that);}
+return cancelled(_that);case _Api():
+return api(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
 ///
@@ -109,7 +111,7 @@ return cancelled(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _Unknown value)?  unknown,TResult? Function( _Network value)?  network,TResult? Function( _Server value)?  server,TResult? Function( _Unauthorized value)?  unauthorized,TResult? Function( _NotFound value)?  notFound,TResult? Function( _Validation value)?  validation,TResult? Function( _ValidationMissing value)?  validationMissing,TResult? Function( _Cancelled value)?  cancelled,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _Unknown value)?  unknown,TResult? Function( _Network value)?  network,TResult? Function( _Server value)?  server,TResult? Function( _Unauthorized value)?  unauthorized,TResult? Function( _NotFound value)?  notFound,TResult? Function( _Validation value)?  validation,TResult? Function( _ValidationMissing value)?  validationMissing,TResult? Function( _Cancelled value)?  cancelled,TResult? Function( _Api value)?  api,}){
 final _that = this;
 switch (_that) {
 case _Unknown() when unknown != null:
@@ -120,7 +122,8 @@ return unauthorized(_that);case _NotFound() when notFound != null:
 return notFound(_that);case _Validation() when validation != null:
 return validation(_that);case _ValidationMissing() when validationMissing != null:
 return validationMissing(_that);case _Cancelled() when cancelled != null:
-return cancelled(_that);case _:
+return cancelled(_that);case _Api() when api != null:
+return api(_that);case _:
   return null;
 
 }
@@ -137,7 +140,7 @@ return cancelled(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( Object? error,  StackTrace? stackTrace)?  unknown,TResult Function( Object? error)?  network,TResult Function( String? message,  int? code)?  server,TResult Function()?  unauthorized,TResult Function( String message)?  notFound,TResult Function( ValidationErrorReason reason)?  validation,TResult Function( List<String> fields)?  validationMissing,TResult Function()?  cancelled,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( Object? error,  StackTrace? stackTrace)?  unknown,TResult Function( Object? error)?  network,TResult Function( String? message,  int? code)?  server,TResult Function()?  unauthorized,TResult Function( String message)?  notFound,TResult Function( ValidationErrorReason reason)?  validation,TResult Function( List<String> fields)?  validationMissing,TResult Function()?  cancelled,TResult Function( String errorCode,  String detail,  int status,  String? instance)?  api,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Unknown() when unknown != null:
 return unknown(_that.error,_that.stackTrace);case _Network() when network != null:
@@ -147,7 +150,8 @@ return unauthorized();case _NotFound() when notFound != null:
 return notFound(_that.message);case _Validation() when validation != null:
 return validation(_that.reason);case _ValidationMissing() when validationMissing != null:
 return validationMissing(_that.fields);case _Cancelled() when cancelled != null:
-return cancelled();case _:
+return cancelled();case _Api() when api != null:
+return api(_that.errorCode,_that.detail,_that.status,_that.instance);case _:
   return orElse();
 
 }
@@ -165,7 +169,7 @@ return cancelled();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( Object? error,  StackTrace? stackTrace)  unknown,required TResult Function( Object? error)  network,required TResult Function( String? message,  int? code)  server,required TResult Function()  unauthorized,required TResult Function( String message)  notFound,required TResult Function( ValidationErrorReason reason)  validation,required TResult Function( List<String> fields)  validationMissing,required TResult Function()  cancelled,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( Object? error,  StackTrace? stackTrace)  unknown,required TResult Function( Object? error)  network,required TResult Function( String? message,  int? code)  server,required TResult Function()  unauthorized,required TResult Function( String message)  notFound,required TResult Function( ValidationErrorReason reason)  validation,required TResult Function( List<String> fields)  validationMissing,required TResult Function()  cancelled,required TResult Function( String errorCode,  String detail,  int status,  String? instance)  api,}) {final _that = this;
 switch (_that) {
 case _Unknown():
 return unknown(_that.error,_that.stackTrace);case _Network():
@@ -175,7 +179,8 @@ return unauthorized();case _NotFound():
 return notFound(_that.message);case _Validation():
 return validation(_that.reason);case _ValidationMissing():
 return validationMissing(_that.fields);case _Cancelled():
-return cancelled();}
+return cancelled();case _Api():
+return api(_that.errorCode,_that.detail,_that.status,_that.instance);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -189,7 +194,7 @@ return cancelled();}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( Object? error,  StackTrace? stackTrace)?  unknown,TResult? Function( Object? error)?  network,TResult? Function( String? message,  int? code)?  server,TResult? Function()?  unauthorized,TResult? Function( String message)?  notFound,TResult? Function( ValidationErrorReason reason)?  validation,TResult? Function( List<String> fields)?  validationMissing,TResult? Function()?  cancelled,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( Object? error,  StackTrace? stackTrace)?  unknown,TResult? Function( Object? error)?  network,TResult? Function( String? message,  int? code)?  server,TResult? Function()?  unauthorized,TResult? Function( String message)?  notFound,TResult? Function( ValidationErrorReason reason)?  validation,TResult? Function( List<String> fields)?  validationMissing,TResult? Function()?  cancelled,TResult? Function( String errorCode,  String detail,  int status,  String? instance)?  api,}) {final _that = this;
 switch (_that) {
 case _Unknown() when unknown != null:
 return unknown(_that.error,_that.stackTrace);case _Network() when network != null:
@@ -199,7 +204,8 @@ return unauthorized();case _NotFound() when notFound != null:
 return notFound(_that.message);case _Validation() when validation != null:
 return validation(_that.reason);case _ValidationMissing() when validationMissing != null:
 return validationMissing(_that.fields);case _Cancelled() when cancelled != null:
-return cancelled();case _:
+return cancelled();case _Api() when api != null:
+return api(_that.errorCode,_that.detail,_that.status,_that.instance);case _:
   return null;
 
 }
@@ -674,5 +680,77 @@ String toString() {
 
 
 
+
+/// @nodoc
+
+
+class _Api implements AppError {
+  const _Api({required this.errorCode, required this.detail, required this.status, this.instance});
+  
+
+ final  String errorCode;
+ final  String detail;
+ final  int status;
+ final  String? instance;
+
+/// Create a copy of AppError
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ApiCopyWith<_Api> get copyWith => __$ApiCopyWithImpl<_Api>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Api&&(identical(other.errorCode, errorCode) || other.errorCode == errorCode)&&(identical(other.detail, detail) || other.detail == detail)&&(identical(other.status, status) || other.status == status)&&(identical(other.instance, instance) || other.instance == instance));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,errorCode,detail,status,instance);
+
+@override
+String toString() {
+  return 'AppError.api(errorCode: $errorCode, detail: $detail, status: $status, instance: $instance)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ApiCopyWith<$Res> implements $AppErrorCopyWith<$Res> {
+  factory _$ApiCopyWith(_Api value, $Res Function(_Api) _then) = __$ApiCopyWithImpl;
+@useResult
+$Res call({
+ String errorCode, String detail, int status, String? instance
+});
+
+
+
+
+}
+/// @nodoc
+class __$ApiCopyWithImpl<$Res>
+    implements _$ApiCopyWith<$Res> {
+  __$ApiCopyWithImpl(this._self, this._then);
+
+  final _Api _self;
+  final $Res Function(_Api) _then;
+
+/// Create a copy of AppError
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? errorCode = null,Object? detail = null,Object? status = null,Object? instance = freezed,}) {
+  return _then(_Api(
+errorCode: null == errorCode ? _self.errorCode : errorCode // ignore: cast_nullable_to_non_nullable
+as String,detail: null == detail ? _self.detail : detail // ignore: cast_nullable_to_non_nullable
+as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as int,instance: freezed == instance ? _self.instance : instance // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+
+}
 
 // dart format on

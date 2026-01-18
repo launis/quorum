@@ -6,7 +6,7 @@ Previously located in backend/hooks/search.py.
 
 import logging
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from googleapiclient.discovery import build
 
@@ -16,10 +16,10 @@ logger = logging.getLogger(__name__)
 class GoogleSearchTool:
     """Tool for executing Google Custom Search API queries."""
 
-    def __init__(self, api_key: Optional[str] = None, cx: Optional[str] = None):
+    def __init__(self, api_key: str | None = None, cx: str | None = None):
         self.api_key = api_key or os.getenv("GOOGLE_SEARCH_API_KEY")
         self.cx = cx or os.getenv("GOOGLE_SEARCH_CX")
-        
+
         if not self.api_key or not self.cx:
             logger.warning("[GoogleSearchTool] Missing API Credentials (GOOGLE_SEARCH_API_KEY/CX). Search disabled.")
             self._service = None
@@ -30,7 +30,7 @@ class GoogleSearchTool:
                 logger.error(f"[GoogleSearchTool] Failed to build service: {e}")
                 self._service = None
 
-    def search(self, queries: List[str], limit: int = 3) -> List[Dict[str, Any]]:
+    def search(self, queries: list[str], limit: int = 3) -> list[dict[str, Any]]:
         """Executes search for a list of queries.
 
         Args:
@@ -41,12 +41,12 @@ class GoogleSearchTool:
             List[Dict[str, Any]]: Combined search results.
         """
         if not self._service:
-            # Fallback/Fail-fast based on requirements. 
+            # Fallback/Fail-fast based on requirements.
             # If explicit functionality is requested but config missing, might return empty or raise.
             return []
 
         all_results = []
-        
+
         for i, query in enumerate(queries[:limit]):
             logger.debug(f"[GoogleSearchTool] Query {i + 1}: {query}")
             try:

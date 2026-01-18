@@ -81,7 +81,7 @@ def apply_scoring_logic(state: WorkflowState) -> WorkflowState:
         if penalties_applied:
             summary += f" | Penalties: {', '.join(penalties_applied)}"
 
-        logger.info(f"[ScoringHook] {summary}")
+        logger.debug(f"[ScoringHook] {summary}")
 
         # Store metadata
         state.aux_data["score_summary"] = summary

@@ -90,6 +90,23 @@ class AgentRegistry:
                 if "provider" not in config:
                     config["provider"] = provider_key
 
+                # CHAINED RESOLUTION: If model_name is a reference (not a real model name),
+                # resolve it recursively. Real model names contain "/" (e.g., "vertex_ai/gemini-2.5-pro")
+                # References are simple aliases like "fast" or "deep".
+                model_name = config.get("model_name", "")
+                if model_name and "/" not in model_name and model_name != model_identifier:
+                    # This is a reference to another alias - resolve recursively
+                    logger.debug(f"[AgentRegistry] Chained resolution: '{model_identifier}' -> '{model_name}'")
+                    referenced_config = await self.resolve_model_config(model_name)
+                    # Merge: Use referenced_config as base to inherit properties (temp, tokens)
+                    # Loop through current config to apply any explicit overrides (e.g. specific temp on top of alias)
+                    # But ignore 'model_name' as it refers to the alias itself.
+                    merged_config = referenced_config.copy()
+                    for k, v in config.items():
+                        if k != "model_name":
+                            merged_config[k] = v
+                    config = merged_config
+
                 return config
 
         # 3. Fail if not found
@@ -230,12 +247,12 @@ class AgentRegistry:
 
     def get_agent_config(self, agent_name: str) -> BaseAgent | None:
         """Retrieves agent configuration (the Agent Instance itself).
-        
+
         Used by functional tasks to resolve model strategies.
-        
+
         Args:
             agent_name (str): Agent name.
-            
+
         Returns:
             Optional[BaseAgent]: The agent instance if found.
         """

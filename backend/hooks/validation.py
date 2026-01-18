@@ -23,7 +23,7 @@ def verify_structure(state: WorkflowState) -> WorkflowState:
         WorkflowState: Updated state with warnings if applicable.
 
     """
-    logger.info("[ValidationHook] Running structural inputs check...")
+    logger.debug("[ValidationHook] Running structural inputs check...")
 
     # Minimum char limits
     MIN_CHARS = 100
@@ -38,9 +38,10 @@ def verify_structure(state: WorkflowState) -> WorkflowState:
             )
 
     if warnings:
-        logger.warning(f"[ValidationHook] Structural Warnings: {warnings}")
-        state.aux_data["structural_warnings"] = warnings
+        msg = f"[ValidationHook] Structural Checks Failed: {warnings}"
+        logger.error(msg)
+        raise ValueError(msg)
     else:
-        logger.info("[ValidationHook] checks passed.")
+        logger.debug("[ValidationHook] checks passed.")
 
     return state

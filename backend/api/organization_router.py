@@ -7,7 +7,7 @@ retrieving organization details.
 import logging
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel
 
 from backend.dependencies import AuthServiceDep, CurrentUserDep, RepositoryDep
@@ -122,9 +122,10 @@ async def create_organization(
     existing = await repo.get_organization(org.id)
     if existing:
         from backend.exceptions import ConflictError
+
         error_code = "ORGANIZATION_ALREADY_EXISTS"
         logger.error(f"{error_code}: ID {org.id}", exc_info=True)
-        raise ConflictError(message=error_code)
+        raise ConflictError(message="Resource conflict", details={"error_code": error_code})
 
     # Create
     item = org.model_dump()
@@ -153,12 +154,13 @@ async def create_organization(
 
     except Exception as e:
         from backend.exceptions import AppException
+
         error_code = "AUDIT_LOG_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
         # We generally don't block on audit failure, but if strict mode...
         # For now, log but raise to fail the request if audit is critical?
         # Actually, if audit fails, we should probably fail.
-        raise AppException(message=error_code, status_code=500, details={"original_error": str(e)}) from e
+        raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e
 
     # Return as response (Organization has logic to default fields if needed, but input covers it)
     return OrganizationResponse(**item)
@@ -180,13 +182,15 @@ async def get_my_organization(
     """
     if not user.organization_id:
         from backend.exceptions import ResourceNotFoundError
+
         error_code = "AUTH_USER_NO_ORG"
-        logger.warning(f"{error_code}: User {user.uid} has no org.") # Changed from Error to Warning for expected flow
+        logger.warning(f"{error_code}: User {user.uid} has no org.")  # Changed from Error to Warning for expected flow
         raise ResourceNotFoundError("Organization", "CURRENT_USER")
 
     org = await repo.get_organization(user.organization_id)
     if not org:
         from backend.exceptions import ResourceNotFoundError
+
         error_code = "ORGANIZATION_NOT_FOUND"
         logger.error(f"{error_code}: ID {user.organization_id}", exc_info=True)
         raise ResourceNotFoundError("Organization", user.organization_id)
@@ -233,14 +237,16 @@ async def get_organization(
     if user.role != UserRole.ROOT:
         if user.organization_id != org_id:
             from backend.exceptions import PermissionDeniedError
+
             error_code = "PERMISSION_DENIED"
             logger.error(f"{error_code}: User {user.uid} denied access to {org_id}", exc_info=True)
-            raise PermissionDeniedError(message=error_code)
+            raise PermissionDeniedError(message="Permission denied", details={"error_code": error_code})
 
     # 2. Fetch
     org = await repo.get_organization(org_id)
     if not org:
         from backend.exceptions import ResourceNotFoundError
+
         error_code = "ORGANIZATION_NOT_FOUND"
         logger.error(f"{error_code}: ID {org_id}", exc_info=True)
         raise ResourceNotFoundError("Organization", org_id)
@@ -268,15 +274,17 @@ async def get_organization_usage(
     if user.role != UserRole.ROOT:
         if user.organization_id != org_id:
             from backend.exceptions import PermissionDeniedError
+
             error_code = "PERMISSION_DENIED"
             logger.error(f"{error_code}: User {user.uid} denied usage view.", exc_info=True)
-            raise PermissionDeniedError(message=error_code)
+            raise PermissionDeniedError(message="Permission denied", details={"error_code": error_code})
 
     try:
         # 2. Fetch Limits
         org = await repo.get_organization(org_id)
         if not org:
             from backend.exceptions import ResourceNotFoundError
+
             error_code = "ORGANIZATION_NOT_FOUND"
             logger.error(f"{error_code}: ID {org_id}", exc_info=True)
             raise ResourceNotFoundError("Organization", org_id)
@@ -307,9 +315,10 @@ async def get_organization_usage(
 
     except Exception as e:
         from backend.exceptions import AppException
+
         error_code = "USAGE_STATS_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=error_code, status_code=500, details={"original_error": str(e)}) from e
+        raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e
 
 
 @router.put("/{org_id}", response_model=OrganizationResponse)
@@ -334,20 +343,23 @@ async def update_organization(
     if user.role != UserRole.ROOT:
         if user.organization_id != org_id:
             from backend.exceptions import PermissionDeniedError
+
             error_code = "PERMISSION_DENIED"
             logger.error(f"{error_code}: User {user.uid} denied update.", exc_info=True)
-            raise PermissionDeniedError(message=error_code)
+            raise PermissionDeniedError(message="Permission denied", details={"error_code": error_code})
         if user.role != UserRole.ADMIN:
             from backend.exceptions import PermissionDeniedError
+
             error_code = "PERMISSION_DENIED_ORG_ADMIN"
             logger.error(f"{error_code}: User {user.uid} not admin.", exc_info=True)
-            raise PermissionDeniedError(message=error_code)
+            raise PermissionDeniedError(message="Permission denied", details={"error_code": error_code})
 
     # 2. Update
     try:
         current_data = await repo.get_organization(org_id)
         if not current_data:
             from backend.exceptions import ResourceNotFoundError
+
             error_code = "ORGANIZATION_NOT_FOUND"
             logger.error(f"{error_code}: ID {org_id}", exc_info=True)
             raise ResourceNotFoundError("Organization", org_id)
@@ -357,14 +369,16 @@ async def update_organization(
         await repo.update_organization(org_id, updates)
     except Exception as e:
         from backend.exceptions import AppException
+
         error_code = "ORGANIZATION_UPDATE_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=error_code, status_code=500, details={"original_error": str(e)}) from e
+        raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e
 
     # Fetch fresh
     fresh = await repo.get_organization(org_id)
     if not fresh:
         from backend.exceptions import ResourceNotFoundError
+
         error_code = "ORGANIZATION_NOT_FOUND"
         logger.error(f"{error_code}: ID {org_id}", exc_info=True)
         raise ResourceNotFoundError("Organization", org_id)
@@ -389,16 +403,18 @@ async def delete_organization(
     # 1. Access Control
     if user.role != UserRole.ROOT:
         from backend.exceptions import PermissionDeniedError
+
         error_code = "PERMISSION_DENIED_ROOT_ONLY"
         logger.error(f"{error_code}: User {user.uid} denied.", exc_info=True)
-        raise PermissionDeniedError(message=error_code)
+        raise PermissionDeniedError(message="Permission denied", details={"error_code": error_code})
 
     # 2. System Protection
     if org_id == "system":
         from backend.exceptions import PermissionDeniedError
+
         error_code = "PERMISSION_DENIED_SYSTEM_ORG"
         logger.error(f"{error_code}: Cannot delete system org.", exc_info=True)
-        raise PermissionDeniedError(message=error_code)
+        raise PermissionDeniedError(message="Permission denied", details={"error_code": error_code})
 
     # 3. Validation
     if not force:
@@ -406,9 +422,10 @@ async def delete_organization(
         users = await repo.list_users(org_id)
         if users:
             from backend.exceptions import ConflictError
+
             error_code = "ORGANIZATION_NOT_EMPTY"
             logger.error(f"{error_code}: Org {org_id} has users.", exc_info=True)
-            raise ConflictError(message=error_code)
+            raise ConflictError(message="Resource conflict", details={"error_code": error_code})
 
     # 4. Execute
     try:
@@ -434,9 +451,10 @@ async def delete_organization(
 
     except Exception as e:
         from backend.exceptions import AppException
+
         error_code = "ORGANIZATION_DELETE_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=error_code, status_code=500, details={"original_error": str(e)}) from e
+        raise AppException(message=str(e), status_code=500, details={"error_code": error_code}) from e
 
 
 @router.post("/{org_id}/users", status_code=status.HTTP_201_CREATED)
@@ -457,14 +475,16 @@ async def create_organization_user(
     if user.role != UserRole.ROOT:
         if user.organization_id != org_id:
             from backend.exceptions import PermissionDeniedError
+
             error_code = "PERMISSION_DENIED"
             logger.error(f"{error_code}: User {user.uid} denied.", exc_info=True)
-            raise PermissionDeniedError(message=error_code)
+            raise PermissionDeniedError(message="Permission denied", details={"error_code": error_code})
         if user.role != UserRole.ADMIN:
             from backend.exceptions import PermissionDeniedError
+
             error_code = "PERMISSION_DENIED_ORG_ADMIN"
             logger.error(f"{error_code}: User {user.uid} not admin.", exc_info=True)
-            raise PermissionDeniedError(message=error_code)
+            raise PermissionDeniedError(message="Permission denied", details={"error_code": error_code})
 
     # 2. Logic Delegate to AuthService (for consisten creation logic)
     # We map Strict model to internal UserCreate model
@@ -502,14 +522,16 @@ async def create_organization_user(
         return new_user
     except PermissionError as e:
         from backend.exceptions import PermissionDeniedError
+
         error_code = "PERMISSION_DENIED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise PermissionDeniedError(message=error_code, details={"original_error": str(e)}) from e
+        raise PermissionDeniedError(message=str(e), details={"error_code": error_code}) from e
     except ValueError as e:
         from backend.exceptions import AppException
+
         error_code = "USER_CREATION_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=error_code, status_code=400, details={"original_error": str(e)}) from e
+        raise AppException(message=str(e), status_code=400, details={"error_code": error_code}) from e
 
 
 @router.delete("/{org_id}/users/{target_uid}", status_code=status.HTTP_204_NO_CONTENT)
@@ -525,14 +547,16 @@ async def delete_organization_user(
     if user.role != UserRole.ROOT:
         if user.organization_id != org_id:
             from backend.exceptions import PermissionDeniedError
+
             error_code = "PERMISSION_DENIED"
             logger.error(f"{error_code}: User {user.uid} denied.", exc_info=True)
-            raise PermissionDeniedError(message=error_code)
+            raise PermissionDeniedError(message="Permission denied", details={"error_code": error_code})
         if user.role != UserRole.ADMIN:
             from backend.exceptions import PermissionDeniedError
+
             error_code = "PERMISSION_DENIED_ORG_ADMIN"
             logger.error(f"{error_code}: User {user.uid} not admin.", exc_info=True)
-            raise PermissionDeniedError(message=error_code)
+            raise PermissionDeniedError(message="Permission denied", details={"error_code": error_code})
 
     # 2. Integrity Check: Active Ownership
     # Users own Executions. If they have active ones, block delete.
@@ -544,9 +568,10 @@ async def delete_organization_user(
 
     if active_user_execs:
         from backend.exceptions import ConflictError
+
         error_code = "USER_HAS_ACTIVE_EXECUTIONS"
         logger.error(f"{error_code}: User {target_uid} has active execs.", exc_info=True)
-        raise ConflictError(message=error_code)
+        raise ConflictError(message="Resource conflict", details={"error_code": error_code})
 
     # 3. Delete via AuthService
     try:
@@ -566,8 +591,9 @@ async def delete_organization_user(
 
     except Exception as e:
         from backend.exceptions import AppException
+
         error_code = "USER_DELETE_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=error_code, status_code=400, details={"original_error": str(e)}) from e
+        raise AppException(message=str(e), status_code=400, details={"error_code": error_code}) from e
 
     return None

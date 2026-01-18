@@ -6,13 +6,11 @@ in isolation, and resolving agent capabilities dynamically.
 
 import importlib
 import logging
-
 from typing import Annotated, Any
 
 from fastapi import (
     APIRouter,
     Body,
-    HTTPException,
     status,
 )
 from fastapi import (
@@ -109,14 +107,22 @@ async def run_agent(
 
     except ValueError as e:
         from backend.exceptions import ResourceNotFoundError
+
         error_code = "AGENT_NOT_FOUND"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise ResourceNotFoundError("Agent", agent_name, details={"error_code": error_code, "original_error": str(e)}) from e
+        raise ResourceNotFoundError(
+            "Agent", agent_name, details={"error_code": error_code, "original_error": str(e)}
+        ) from e
     except Exception as e:
         from backend.exceptions import AppException
+
         error_code = "AGENT_EXECUTION_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=error_code, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"original_error": str(e)}) from e
+        raise AppException(
+            message=str(e),
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": error_code},
+        ) from e
 
 
 @router.get(
@@ -293,6 +299,11 @@ async def list_agents(
 
     except Exception as e:
         from backend.exceptions import AppException
+
         error_code = "AGENT_DISCOVERY_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=error_code, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"error_code": error_code, "original_error": str(e)}) from e
+        raise AppException(
+            message=str(e),
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": error_code},
+        ) from e

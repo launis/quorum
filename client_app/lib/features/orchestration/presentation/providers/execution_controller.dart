@@ -78,6 +78,9 @@ class ExecutionController extends _$ExecutionController {
 
     for (final entry in inputs.entries) {
       final value = entry.value;
+      // DEBUG LOG GUIDANCE
+      print('[ExecutionController] Processing Input Key: "${entry.key}", Type: ${value.runtimeType}');
+
       if (value is PlatformFile) {
         // Efficient File Handling (OOM Prevention):
         // On IO (Mobile/Desktop), we prefer 'path' and avoid loading 'bytes'.

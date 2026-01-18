@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 from tinydb import TinyDB
 
 from backend.agents.panel import PanelAgent
-from backend.core.engine import WorkflowEngine
+from backend.core.engine import GraphEngine as WorkflowEngine
 from backend.database.repository import TinyDBRepository
 
 # Import from builder_router to ensure we override the exact dependency used there

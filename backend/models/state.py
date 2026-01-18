@@ -26,6 +26,7 @@ from backend.models.domain import (
     TodistusKartta,
     TuomioJaPisteet,
     XAIReport,
+    ContextData,
 )
 
 
@@ -136,6 +137,7 @@ class WorkflowState(BaseModel):
     ] = None
     step_panel: Annotated[PanelAudit | None, Field(description="Agent 5 (Parallel): Consolidated Audit.")] = None
     step_reporter: Annotated[XAIReport | None, Field(description="Agent 10: Final Executive Report.")] = None
+    step_context: Annotated[ContextData | None, Field(description="Retrieval Agent: Organizational Precedents.")] = None
 
     # Formatted output
     xai_report_formatted: Annotated[str | None, Field(description="Final markdown report cache.")] = None

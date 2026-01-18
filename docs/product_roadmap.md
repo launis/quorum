@@ -98,6 +98,8 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **Secure HTTP Client**: Implement `Dio` with a generic `AuthInterceptor` to inject Firebase Tokens into Backend requests.
 - [x] **Authentication State**: Build `auth_provider` (StreamProvider) using `firebase_auth` to drive Reactive Redirection (Guard).
 - [x] **Environment Config**: Use `flutter_dotenv` to manage Backend URL (`http://localhost:8000` vs Cloud) via `.env`.
+- [x] **Seeding Consolidation (Jan 17)**: Replaced fragmented scripts (`seed_all`, `seed_mock`, `seed_prod`) with unified `backend/seed/run_seed.py` CLI supporting explicit `local`, `mock`, and `firestore` targets. Verified Zero-Fallback behavior.
+- [ ] **Critical Auth Fix**: Remove temporary auth bypass in `workflow_controller.dart` and implement robust checking before Production.
 
 ### 2.3 Dashboard & Monitoring
 - [x] **Dashboard UI**: Grid view of System Workflows fetching data via `AsyncValue` providers.
@@ -140,6 +142,22 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [ ] **Live Operations Dashboard**:
     - **Concurrent Execution Monitor**: "Mission Control" view for Managers/Root to see all active jobs across their scope (Org vs System).
     - **Queue Visibility**: Insight into the task queue to manage future high-load concurrency.
+
+---
+
+## 📍 Phase 2.6: Cognitive Layer Upgrade (Jan 2026) (✅ Completed)
+**Objective:** Upgrade the "Mind" of the system to support dynamic evaluation criteria and autonomous evidence discovery without code changes.
+
+### 2.6.1 Dynamic Evaluation System (BARS)
+- [x] **Configuration-Driven Matrix**: `JudgeAgent` input schema now accepts `matrix_id` (e.g., `matrix_standard_v1`) from `db.json`.
+- [x] **Dynamic Component Loading**: `JudgeAgent` fetches Matrix definitions (Instructions, Criteria, Anchors) from `components` registry at runtime.
+- [x] **Prompt Injection**: `matrix_formatter.py` converts JSON-based matrices into human-readable System Prompts on the fly.
+- [x] **Polymorphic Reporting**: `StatePresenter` and `XAIReporter` dynamically extract and render dimensions from `EvaluationResult`, supporting arbitrary audit frameworks (Standard, Cognitive, etc.).
+
+### 2.6.2 Autonomous Evidence Discovery
+- [x] **Configuration-Driven Discovery**: `JudgeAgent` no longer has hardcoded upstream dependencies. It reads `monitored_steps` from `execution_config`.
+- [x] **Blindness Fix**: Solved legacy issue where Judge could not see `step_panel` or sequential critics in Fused Workflows.
+- [x] **Universal Context Gathering**: `JudgeAgent` iterates through configured `monitored_steps` (e.g., Profiler, Logician, Panel) and serializes their findings into the "Courtroom Evidence" block.
 
 ---
 

@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from backend.agents.base import BaseAgent
 
 # 3. Local Imports
-from backend.models.domain import ProfilerAnalysis, TextMetrics
+from backend.models.domain import ProfilerAnalysis
 
 if TYPE_CHECKING:
     from backend.models.state import WorkflowState

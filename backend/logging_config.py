@@ -19,9 +19,23 @@ class ContextFilter(logging.Filter):
     """Injects execution_id from contextvars into log records."""
 
     def filter(self, record):
-        """Filter record to inject execution ID."""
+        """Filter record to inject execution or request ID."""
+        from backend.context import get_execution_context, get_request_context
+
         exec_id = get_execution_context()
-        record.execution_id = exec_id if exec_id else "SYSTEM"
+        req_id = get_request_context()
+
+        # Priority: Execution ID > Request ID > SYSTEM
+        if exec_id:
+            record.context_id = f"EXEC:{exec_id[:8]}"  # Shorten for readability
+            record.execution_id = exec_id  # Keep full ID for JSON
+        elif req_id:
+            record.context_id = f"REQ:{req_id[:8]}"
+            record.execution_id = req_id  # Reuse field for aggregation
+        else:
+            record.context_id = "SYSTEM"
+            record.execution_id = "SYSTEM"
+        
         return True
 
 
@@ -85,12 +99,12 @@ def setup_logging(log_level=logging.INFO):
     formatter: logging.Formatter
     if settings.environment.lower() == "production":
         formatter = JSONFormatter(
-            "%(asctime)s | %(levelname)s | [%(execution_id)s] | %(name)s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+            "%(asctime)s | %(levelname)s | [%(context_id)s] | %(name)s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
         )
     else:
         # Standard Dev Formatter
         formatter = logging.Formatter(
-            "%(asctime)s | %(levelname)s | [%(execution_id)s] | %(name)s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+            "%(asctime)s | %(levelname)s | [%(context_id)s] | %(name)s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
         )
 
     # Context Filter
@@ -120,7 +134,13 @@ def setup_logging(log_level=logging.INFO):
     root_logger.addHandler(console_handler)
 
     # Set external libraries to warning to reduce noise
-    logging.getLogger("uvicorn").setLevel(logging.INFO)
+    # Configure uvicorn to use our format (propagate to root handler)
+    for uvicorn_logger_name in ["uvicorn", "uvicorn.access", "uvicorn.error"]:
+        uvicorn_logger = logging.getLogger(uvicorn_logger_name)
+        uvicorn_logger.handlers = []  # Remove default handlers
+        uvicorn_logger.propagate = True  # Use root logger handlers
+        uvicorn_logger.setLevel(logging.INFO)
+
     logging.getLogger("httpcore").setLevel(logging.WARNING)
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("google").setLevel(logging.WARNING)
@@ -149,6 +169,7 @@ class JSONFormatter(logging.Formatter):
             "logger": record.name,
             "message": record.getMessage(),
             "execution_id": getattr(record, "execution_id", "SYSTEM"),
+            "context_id": getattr(record, "context_id", "SYSTEM"),
         }
 
         if record.exc_info:

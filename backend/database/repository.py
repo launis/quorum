@@ -166,6 +166,10 @@ class AbstractWorkflowRepository(ABC):
         """Retrieve all knowledge base items."""
         pass
 
+    @abstractmethod
+    async def get_model_registry(self) -> Dict[str, Any]:
+        """Retrieve the model registry configuration."""
+        pass
 
 class TinyDBRepository(AbstractWorkflowRepository):
     """TinyDB implementation of the Workflow Repository."""
@@ -180,6 +184,61 @@ class TinyDBRepository(AbstractWorkflowRepository):
         self.banned_phrases = client.table("banned_phrases")
         self.prompts = client.table("prompts")
         self.knowledge_base = client.table("knowledge_base")
+        self.organizations = client.table("organizations")
+        self.users = client.table("users")
+
+    # --- Organization Methods (Required by organization_router.py) ---
+
+    async def list_organizations(self) -> List[Dict[str, Any]]:
+        """List all organizations."""
+        return self.organizations.all()
+
+    async def get_organization(self, org_id: str) -> Optional[Dict[str, Any]]:
+        """Get organization by ID."""
+        return self.organizations.get(Query().id == org_id)
+
+    async def create_organization(self, org_data: Dict[str, Any]) -> str:
+        """Create a new organization."""
+        self.organizations.upsert(org_data, Query().id == org_data["id"])
+        return org_data["id"]
+
+    async def update_organization(self, org_id: str, updates: Dict[str, Any]) -> bool:
+        """Update an organization."""
+        res = self.organizations.update(updates, Query().id == org_id)
+        return bool(res)
+
+    async def delete_organization(self, org_id: str) -> bool:
+        """Delete an organization."""
+        res = self.organizations.remove(Query().id == org_id)
+        return bool(res)
+
+    async def list_users(self, org_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        """List users, optionally filtered by organization."""
+        all_users = self.users.all()
+        if org_id:
+            return [u for u in all_users if u.get("organization_id") == org_id]
+        return all_users
+
+    async def delete_org_data(self, org_id: str) -> None:
+        """Delete all data associated with an organization (cascade delete)."""
+        self.users.remove(Query().organization_id == org_id)
+        self.executions.remove(Query().organization_id == org_id)
+        self.workflows.remove(Query().organization_id == org_id)
+
+    async def get_org_usage_total(self, org_id: str, since: Optional[str] = None) -> float:
+        """Calculate total usage cost for an organization since a given timestamp."""
+        all_execs = self.executions.all()
+        total = 0.0
+        for ex in all_execs:
+            if ex.get("organization_id") != org_id:
+                continue
+            if since:
+                ex_time = ex.get("created_at", "")
+                if ex_time < since:
+                    continue
+            total += ex.get("cost_estimate", 0.0)
+        return total
+
 
     async def get_banned_phrases(self) -> List[Dict[str, Any]]:
         return self.banned_phrases.all()
@@ -383,45 +442,19 @@ class TinyDBRepository(AbstractWorkflowRepository):
     async def get_model_registry(self) -> Dict[str, Any]:
         """Retrieve the model registry configuration.
         
-        Prioritizes configuration stored in 'components' table (id='model_registry').
-        Fallbacks to hardcoded defaults if missing.
+        Prioritizes configuration stored in 'system_config' table (id='model_registry').
+        Falls back to 'components' table for backwards compatibility.
+        Falls back to hardcoded defaults if missing from both.
         """
-        # 1. Try to fetch from DB
+        # 1. Try to fetch from system_config table (PRIMARY source per seed_data.json)
         try:
-            # We assume the seeder might have created a component with id="model_registry"
-            # Since get_component_by_id returns optional dict
-            config_component = await self.get_component_by_id("model_registry")
-            if config_component and "models" in config_component:
-                 return config_component
+            system_config_table = self.client.table("system_config")
+            config_entry = system_config_table.get(Query().id == "model_registry")
+            if config_entry and "models" in config_entry:
+                return config_entry
         except Exception:
-            # Fallback on any DB error
             pass
-            
-        # 2. Return Hardcoded Fallback (Updated Jan 2026 for SOTA Agents)
-        return {
-            "models": {
-                "google": {
-                    # Generic Strategies
-                    "fast": {"model_name": "vertex_ai/gemini-2.5-flash", "provider": "google"},
-                    "deep": {"model_name": "vertex_ai/gemini-2.5-pro", "provider": "google"},
-                    "default": {"model_name": "vertex_ai/gemini-2.5-flash", "provider": "google"},
-                    
-                    # Agent-Specific Strategies (Mapping ClassName -> Model Setup)
-                    "GuardAgent": {"model_name": "vertex_ai/gemini-2.5-flash", "provider": "google"},
-                    "AnalystAgent": {"model_name": "vertex_ai/gemini-2.5-pro", "provider": "google"},
-                    "InteractionAnalystAgent": {"model_name": "vertex_ai/gemini-2.5-pro", "provider": "google"},
-                    "ProfilerAgent": {"model_name": "vertex_ai/gemini-2.5-pro", "provider": "google"},
-                    "LogicianAgent": {"model_name": "vertex_ai/gemini-2.5-pro", "provider": "google"},
-                    "LogicalFalsifierAgent": {"model_name": "vertex_ai/gemini-2.5-pro", "provider": "google"},
-                    "CausalAnalystAgent": {"model_name": "vertex_ai/gemini-2.5-pro", "provider": "google"},
-                    "PerformativityDetectorAgent": {"model_name": "vertex_ai/gemini-2.5-pro", "provider": "google"},
-                    "FactualOverseerAgent": {"model_name": "vertex_ai/gemini-2.5-pro", "provider": "google"},
-                    "ArchivistAgent": {"model_name": "vertex_ai/gemini-2.5-flash", "provider": "google"},
-                    "JudgeAgent": {"model_name": "vertex_ai/gemini-2.5-pro", "provider": "google"},
-                    "CoachAgent": {"model_name": "vertex_ai/gemini-2.5-pro", "provider": "google"},
-                    "XAIReporterAgent": {"model_name": "vertex_ai/gemini-2.5-pro", "provider": "google"},
-                    "PanelAgent": {"model_name": "vertex_ai/gemini-2.5-pro", "provider": "google"}
-                }
-            }
-        }
+        
+        return {}
+
 

@@ -4,15 +4,14 @@ Consolidates logic for metrics calculation and linguistic pattern detection.
 Previously located in backend/hooks/metrics.py and backend/hooks/linguistics.py.
 """
 
-import json
 import logging
 import re
-from typing import Any, Dict, List
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
-def calculate_text_metrics(text: str) -> Dict[str, Any]:
+def calculate_text_metrics(text: str) -> dict[str, Any]:
     """Calculates objective text metrics from the input text using simple heuristic counting.
 
     Metrics include word count, sentence count, avg sentence length, lexical diversity,
@@ -120,7 +119,7 @@ def calculate_control_ratio(text: str) -> float:
     return round(user_chars / total_chars, 4)
 
 
-def detect_performative_patterns(text: str) -> List[str]:
+def detect_performative_patterns(text: str) -> list[str]:
     """Scans text for performative/filler language patterns.
 
     Args:

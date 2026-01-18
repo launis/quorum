@@ -7,24 +7,28 @@ Adheres to V2.9 Architecture:
 - Task Registry Initialization
 """
 
-import json
 import logging
 import os
 from contextlib import asynccontextmanager
 
+import uuid
 from fastapi import FastAPI, Request
+from starlette.middleware.base import BaseHTTPMiddleware
+from backend.context import set_request_context, clear_request_context
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from backend.api import (
-    execution_router,
-    auth_router,
     admin_router,
     agents_router,
+    auth_router,
     builder_router,
-    settings_router,
+    config_router,
+    execution_router,
     llm_router,
-    organization_router
+    organization_router,
+    settings_router,
+    tools_router,
 )
 from backend.core.registry import TaskRegistry
 from backend.logging_config import configure_logfire, setup_logging
@@ -33,6 +37,7 @@ from backend.settings import get_settings
 
 # --- 1. Lifespan Management ---
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manages application startup and shutdown lifecycle."""
@@ -40,16 +45,20 @@ async def lifespan(app: FastAPI):
     setup_logging()
     configure_logfire()
     logger = logging.getLogger("backend.main")
-    logger.info("Initializing Cognitive Quorum Backend (V2.9)...")
+    
+    # VISUAL SEPARATOR FOR LOG READABILITY
+    logger.info("======================================================================")
+    logger.info("   COGNITIVE QUORUM BACKEND (V2.9) - STARTING UP")
+    logger.info("======================================================================")
 
     try:
         # A. Initialize Task Registry (Trigger Decorators)
         # Import task modules to ensure @TaskRegistry.register_task runs
         import backend.tasks.security  # noqa
-        import backend.tasks.retrieval # noqa
+        import backend.tasks.retrieval  # noqa
         import backend.tasks.analysis  # noqa
         import backend.tasks.critique  # noqa
-        
+
         logger.info(f"Task Registry initialized with {len(TaskRegistry._tasks)} tasks.")
 
         # B. Load Workflows (Mock/File-based seeding for now)
@@ -59,16 +68,17 @@ async def lifespan(app: FastAPI):
         if os.path.exists(workflow_dir):
             files = [f for f in os.listdir(workflow_dir) if f.endswith(".json")]
             logger.info(f"Detected {len(files)} workflow definitions in {workflow_dir}.")
-        
+
         yield
-        
+
     except Exception as e:
         logger.critical(f"Startup failed: {e}", exc_info=True)
         raise
-        
+
     finally:
         # SHUTDOWN
         logger.info("Shutting down...")
+
 
 # --- 2. Application Setup ---
 
@@ -93,45 +103,67 @@ app.add_middleware(
 )
 
 
+class RequestIdMiddleware(BaseHTTPMiddleware):
+    """Middleware to inject Request ID into context."""
 
-# --- 4. Global Error Handlers (One Truth Protocol) ---
+    async def dispatch(self, request: Request, call_next):
+        """Process the request."""
+        # Trust upstream ID or generate new one
+        request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+        
+        # Set context
+        set_request_context(request_id)
+        
+        response = await call_next(request)
+        
+        # Add header to response for client tracing
+        response.headers["X-Request-ID"] = request_id
+        
+        # Clear context (for thread safety in some async servers, though ContextVars handle this well)
+        # clear_request_context() # Optional/Redundant with ContextVars but strict safety.
+        
+        return response
+
+app.add_middleware(RequestIdMiddleware)
+
+
+# --- 4. Global Error Handlers (RFC 7807 Problem Details) ---
 
 from backend.exceptions import AppException
 
+
 @app.exception_handler(AppException)
 async def app_exception_handler(request: Request, exc: AppException):
-    """Catches domain-specific AppExceptions and returns uniform APIError response."""
-    # We log with the specific error code from the exception
-    # Fallback to message if it looks like an error code (SCREAMING_SNAKE_CASE)
-    error_code = exc.details.get("error_code") or exc.details.get("code")
-    if not error_code and exc.message.isupper() and " " not in exc.message:
-        error_code = exc.message
-    
-    error_code = error_code or "APP_ERROR"
-    
-    logging.getLogger("backend.main").error(f"{error_code}: {exc.message} (Status: {exc.status_code})")
-    
+    """Catches domain-specific AppExceptions and returns RFC 7807 Problem Details."""
+    logger = logging.getLogger("backend.main")
+    logger.error(f"{exc.error_code}: {exc.message} (Status: {exc.status_code})")
+
     return JSONResponse(
         status_code=exc.status_code,
-        content=APIError(
-            error_code=error_code,
-            message=exc.message,
-            details=exc.details
-        ).model_dump()
+        content=exc.to_problem_detail(instance=str(request.url.path)),
+        media_type="application/problem+json",
     )
+
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    """Catches all unhandled exceptions and returns a uniform APIError response."""
-    logging.getLogger("backend.main").error(f"Global Exception: {exc}", exc_info=True)
+    """Catches all unhandled exceptions and returns RFC 7807 Problem Details."""
+    logger = logging.getLogger("backend.main")
+    logger.error(f"INTERNAL_SERVER_ERROR: {exc}", exc_info=True)
+
+    # Create a generic AppException for RFC 7807 formatting
+    error = AppException(
+        message="An unexpected system error occurred.",
+        status_code=500,
+        details={"error_code": "INTERNAL_SERVER_ERROR", "original_error": str(exc)},
+    )
+
     return JSONResponse(
         status_code=500,
-        content=APIError(
-            error_code="INTERNAL_SERVER_ERROR",
-            message="An unexpected system error occurred.",
-            details={"original_error": str(exc)}
-        ).model_dump()
+        content=error.to_problem_detail(instance=str(request.url.path)),
+        media_type="application/problem+json",
     )
+
 
 # --- 5. Routers ---
 
@@ -139,14 +171,16 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 app.include_router(auth_router.router)
 app.include_router(admin_router.router)
-app.include_router(execution_router.router)          # V2 Router
-app.include_router(execution_router.workflow_router) # V2 Workflow Router
-app.include_router(execution_router.executions_router) # Executions Router
+app.include_router(config_router.router)
+app.include_router(execution_router.router)  # V2 Router
+app.include_router(execution_router.workflow_router)  # V2 Workflow Router
+app.include_router(execution_router.executions_router)  # Executions Router
 app.include_router(agents_router.router)
 app.include_router(builder_router.router)
 app.include_router(settings_router.router)
 app.include_router(llm_router.router)
 app.include_router(organization_router.router)
+app.include_router(tools_router.router)
 
 # Include legacy routers if needed, or remove them.
 # app.include_router(legacy_router)

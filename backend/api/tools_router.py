@@ -10,7 +10,7 @@ import shutil
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Body, Depends, File, Form, UploadFile, status
 
 from backend.dependencies import DatabaseDep, RegistryDep, RepositoryDep, get_document_service_dep
 
@@ -58,9 +58,14 @@ async def extract_text(
                 content = doc_service.extract_text(temp_path)
             except Exception as e:
                 from backend.exceptions import AppException
+
                 error_code = "TEXT_EXTRACTION_FAILED"
                 logger.error(f"{error_code}: {e}", exc_info=True)
-                raise AppException(message=error_code, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR) from e
+                raise AppException(
+                    message=str(e),
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    details={"error_code": error_code},
+                ) from e
             finally:
                 if temp_path and os.path.exists(temp_path):
                     try:
@@ -71,9 +76,14 @@ async def extract_text(
 
     if not content:
         from backend.exceptions import AppException
+
         error_code = "NO_CONTENT_PROVIDED"
         logger.warning(f"{error_code}: No text or file provided.")
-        raise AppException(message=error_code, status_code=status.HTTP_400_BAD_REQUEST)
+        raise AppException(
+            message="No text or file provided",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": error_code},
+        )
 
     return {"filename": filename, "text": content}
 
@@ -121,33 +131,42 @@ async def extract_concepts_from_file_or_text(
 
     if not content:
         from backend.exceptions import AppException
+
         error_code = "NO_CONTENT_PROVIDED"
         logger.warning(f"{error_code}: No text or file provided.")
-        raise AppException(message=error_code, status_code=status.HTTP_400_BAD_REQUEST)
+        raise AppException(
+            message="No text or file provided",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": error_code},
+        )
 
     try:
         # Resolve config logic (Dynamic)
-        config = await registry.resolve_model_config("AnalystAgent") # Strategy: 'deep' analysis
+        config = await registry.resolve_model_config("AnalystAgent")  # Strategy: 'deep' analysis
 
         from backend.llm.provider import LLMFactory
         from backend.services.knowledge_base_service import KnowledgeBaseService
 
         provider = LLMFactory.create_provider(config["provider"], config["model_name"])
-        
+
         # Initialize Service
         service = KnowledgeBaseService(repo, llm_provider=provider)
-        
+
         # Execute Extraction
         concepts = await service.extract_concepts_with_llm(content)
-        
-        return {"source_length": len(content), "concepts": concepts}
 
+        return {"source_length": len(content), "concepts": concepts}
 
     except Exception as e:
         from backend.exceptions import AppException
+
         error_code = "CONCEPT_EXTRACTION_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=error_code, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"original_error": str(e)}) from e
+        raise AppException(
+            message=str(e),
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": error_code},
+        ) from e
 
 
 @router.post("/web-scrape", summary="Scrape Web Page", response_description="Scraped content.")
@@ -175,32 +194,51 @@ async def web_scrape(
         ip_obj = ipaddress.ip_address(ip)
 
         if ip_obj.is_loopback or ip_obj.is_private:
+            from backend.exceptions import AppException
+
             error_code = "SSRF_PROTECTION_BLOCKED"
             logger.error(f"{error_code}: Access to private IP blocked: {ip}", exc_info=True)
-            raise AppException(message=error_code, status_code=status.HTTP_400_BAD_REQUEST)
+            raise AppException(
+                message=f"Access to private IP blocked: {ip}",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": error_code},
+            )
 
     except Exception as e:
         if isinstance(e, AppException):
             raise
-            
+
         # Map specific SSRF errors to 400
         from backend.exceptions import AppException
+
         if "SSRF" in str(e):
             # Try to map if possible, else generic
             error_code = "SSRF_PROTECTION_BLOCKED"
             logger.error(f"{error_code}: {e}", exc_info=True)
-            raise AppException(message=error_code, status_code=status.HTTP_400_BAD_REQUEST) from e
+            raise AppException(
+                message=str(e),
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": error_code},
+            ) from e
 
         # Logic error in resolving might be 400 too
         if isinstance(e, ValueError):
             error_code = "INVALID_URL"
             logger.error(f"{error_code}: {e}", exc_info=True)
-            raise AppException(message=error_code, status_code=status.HTTP_400_BAD_REQUEST) from e
+            raise AppException(
+                message=str(e),
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": error_code},
+            ) from e
 
         # Fallback
         error_code = "WEB_SCRAPE_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=error_code, status_code=status.HTTP_400_BAD_REQUEST, details={"original_error": str(e)}) from e
+        raise AppException(
+            message=str(e),
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": error_code},
+        ) from e
 
     # 2. Mock Implementation for now (or real if needed, but test only checks hardening)
     # Return dummy content
@@ -246,6 +284,11 @@ async def citation_lookup(
 
     except Exception as e:
         from backend.exceptions import AppException
+
         error_code = "CITATION_LOOKUP_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=error_code, status_code=500, details={"original_error": str(e)}) from e
+        raise AppException(
+            message=str(e),
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": error_code},
+        ) from e

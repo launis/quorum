@@ -119,6 +119,95 @@ class BaseAgent(BaseComponent[WorkflowState]):
         except Exception as e:
             logger.error(f"[BaseAgent] Failed to create provider in set_model: {e}")
 
+    def _apply_python_authority(self, data: Any) -> None:
+        """Injects system-authoritative data (Time, Identity, Checksums) into the response.
+
+        Overrides any LLM-hallucinated values for these fields.
+        Handles both raw dicts and Pydantic models.
+        """
+        from datetime import datetime, timezone
+        import hashlib
+        import json
+
+        # 1. TIME & IDENTITY AUTHORITY
+        utc_now = datetime.now(timezone.utc).isoformat()
+        agent_name = self.__class__.__name__
+        env_context = "Internal"
+        
+        # --- CASE A: Pydantic Model ---
+        if isinstance(data, BaseModel):
+            if hasattr(data, "metadata") and data.metadata:
+                data.metadata.luontiaika = utc_now
+                data.metadata.agentti = agent_name
+                if not data.metadata.suoritus_ymparisto:
+                    data.metadata.suoritus_ymparisto = env_context
+                # Ensure fields exist
+                if not getattr(data.metadata, "vaihe", None):
+                    data.metadata.vaihe = 1
+                if not getattr(data.metadata, "versio", None):
+                    data.metadata.versio = "2.0"
+                
+                # Checksum for Model
+                try:
+                    # Dump to dict, exclude checksum, hash
+                    as_dict = data.model_dump()
+                    if "semanttinen_tarkistussumma" in as_dict:
+                        del as_dict["semanttinen_tarkistussumma"]
+                    # Hash
+                    dump = json.dumps(as_dict, sort_keys=True, default=str)
+                    checksum = hashlib.sha256(dump.encode("utf-8")).hexdigest()
+                    
+                    if hasattr(data, "semanttinen_tarkistussumma"):
+                        data.semanttinen_tarkistussumma = checksum
+                        logger.debug(f"[{self.__class__.__name__}] Calc Checksum (Model): {checksum[:8]}...")
+                        logger.debug(f"[{self.__class__.__name__}] Calc Checksum (Model): {checksum[:8]}...")
+                except Exception as e:
+                    # STRICT MODE: Data integrity is critical.
+                    error_msg = f"[{self.__class__.__name__}] Critical: Failed to calculate authoritative checksum (Model). Data integrity compromised."
+                    logger.critical(f"{error_msg} Error: {e}")
+                    raise ValueError(error_msg) from e
+
+        # --- CASE B: Dictionary ---
+        elif isinstance(data, dict):
+            # 1. METADATA AUTHORITY
+            if "metadata" not in data or not isinstance(data["metadata"], dict):
+                data["metadata"] = {}
+            
+            meta = data["metadata"]
+            meta["luontiaika"] = utc_now
+            meta["agentti"] = agent_name
+            
+            # Environment default
+            if "suoritus_ymparisto" not in meta:
+                meta["suoritus_ymparisto"] = env_context
+            
+            # Schema defaults
+            if "vaihe" not in meta:
+                meta["vaihe"] = 1
+            if "versio" not in meta:
+                meta["versio"] = "2.0"
+
+            # 2. CHECKSUM AUTHORITY
+            try:
+                # Create a copy to calculate hash without the hash field itself
+                content_to_hash = data.copy()
+                if "semanttinen_tarkistussumma" in content_to_hash:
+                    del content_to_hash["semanttinen_tarkistussumma"]
+                # Exclude unstable fields? Validation result is content, so keep it.
+                
+                # Sort keys for deterministic hashing
+                dump = json.dumps(content_to_hash, sort_keys=True, default=str)
+                checksum = hashlib.sha256(dump.encode("utf-8")).hexdigest()
+                
+                data["semanttinen_tarkistussumma"] = checksum
+                logger.debug(f"[{self.__class__.__name__}] Calc Checksum (Dict): {checksum[:8]}...")
+                logger.debug(f"[{self.__class__.__name__}] Calc Checksum (Dict): {checksum[:8]}...")
+            except Exception as e:
+                # STRICT MODE: Data integrity is critical.
+                error_msg = f"[{self.__class__.__name__}] Critical: Failed to calculate authoritative checksum. Data integrity compromised."
+                logger.critical(f"{error_msg} Error: {e}")
+                raise ValueError(error_msg) from e
+
     async def _update_state(
         self, state: WorkflowState, response_data: Any, output_key: str | None = None, **kwargs
     ) -> WorkflowState:
@@ -151,7 +240,19 @@ class BaseAgent(BaseComponent[WorkflowState]):
                     # If prompt-based, it returns dict.
                     pass
 
-                validated_data = SchemaClass(**response_data)
+                # FORCE SYSTEM AUTHORITY (Metadata & Checksums)
+                if response_data:
+                    self._apply_python_authority(response_data)
+
+                # STRICT MODERNIZATION: Only accept pre-hydrated Pydantic objects
+                if isinstance(response_data, SchemaClass):
+                    validated_data = response_data
+                else:
+                    # STRICT MODE VIOLATION: We no longer accept raw dicts here.
+                    # LLMProvider MUST handle hydration.
+                    error_msg = f"Strict Mode Violation: Expected {SchemaClass.__name__}, got {type(response_data).__name__}. Check LLMProvider hydration."
+                    logger.error(f"[{self.__class__.__name__}] {error_msg}")
+                    raise AgentExecutionError(detail="AGENT_STRICT_MODE_VIOLATION", original_error=TypeError(error_msg))
 
                 # Check if state has this field
                 if hasattr(state, target_field):
@@ -217,6 +318,24 @@ class BaseAgent(BaseComponent[WorkflowState]):
                 system_instruction = (system_instruction or "") + "\n\n" + additional_context
                 logger.debug(f"[{self.__class__.__name__}] Appended dynamic context.")
 
+            # 3.5.5 Schema Injection (Modern Polish)
+            # If the prompt explicitly asks for {{SCHEMA_EXAMPLE}}, we provide it textually
+            # to reinforce the API-level constraint.
+            if system_instruction and "{{SCHEMA_EXAMPLE}}" in system_instruction:
+                if response_schema:
+                    import json
+                    try:
+                        # Pydantic v2: model_json_schema()
+                        schema_dict = response_schema.model_json_schema()
+                        schema_text = json.dumps(schema_dict, indent=2, ensure_ascii=False)
+                        system_instruction = system_instruction.replace("{{SCHEMA_EXAMPLE}}", schema_text)
+                        logger.info(f"[{self.__class__.__name__}] Injected JSON Schema into {{SCHEMA_EXAMPLE}} placeholder.")
+                    except Exception as e:
+                         logger.warning(f"[{self.__class__.__name__}] Failed to inject schema example: {e}")
+                else:
+                    logger.warning(f"[{self.__class__.__name__}] Prompt has {{SCHEMA_EXAMPLE}} but no response_schema defined.")
+
+
             # 3.6 Context Continuity Check (Transient Reasoning Trace)
             if state.last_reasoning_trace:
                 logger.info(f"[{self.__class__.__name__}] Chain of Thought: Injecting previous reasoning trace.")
@@ -254,8 +373,8 @@ class BaseAgent(BaseComponent[WorkflowState]):
             if response_schema:
                 # OPTIMIZATION: Use pre-parsed content if available (Instructor Pattern)
                 if response_obj.parsed_content is not None:
-                     logger.debug(f"[{self.__class__.__name__}] Structured Output used directly (No re-parsing).")
-                     response_data = response_obj.parsed_content
+                    logger.debug(f"[{self.__class__.__name__}] Structured Output used directly (No re-parsing).")
+                    response_data = response_obj.parsed_content
                 else:
                     # Provider ensures content is valid JSON string if schema was used
                     import json
@@ -299,14 +418,14 @@ class BaseAgent(BaseComponent[WorkflowState]):
                 }
 
             # 4.5 Capture Usage/Cost
-            logger.info(f"[DEBUG] BaseAgent processing usage. Response token_usage: {response_obj.token_usage}")
+            logger.info(f"BaseAgent processing usage. Response token_usage: {response_obj.token_usage}")
             if response_obj.token_usage:
                 # PRIORITIZE usage_key for unique tracking (e.g. step_id), fallback to output_key/class
                 step_key = (
                     kwargs.get("usage_key") or kwargs.get("output_key") or self.state_field or self.__class__.__name__
                 )
                 costs = response_obj.token_usage  # Should be dict from LiteLLMProvider
-                logger.info(f"[DEBUG] Processing costs for {step_key}: {costs}")
+                logger.info(f"Processing costs for {step_key}: {costs}")
                 state.usage[step_key] = {
                     "completion_tokens": costs.get("completion_tokens", 0),
                     "prompt_tokens": costs.get("prompt_tokens", 0),
@@ -315,7 +434,7 @@ class BaseAgent(BaseComponent[WorkflowState]):
                 }
                 logger.info(f"[{self.__class__.__name__}] Usage tracked: {costs.get('total_cost', 0.0)} USD")
             else:
-                logger.info("[DEBUG] No token_usage found in response.")
+                logger.info("No token_usage found in response.")
 
             # 5. Update State
             output_key = kwargs.get("output_key")
@@ -338,9 +457,14 @@ class BaseAgent(BaseComponent[WorkflowState]):
 
         except Exception as e:
             # ECHO PROTOCOL: Safety Net
-            error_code = f"{self.__class__.__name__.upper()}_EXECUTION_CRITICAL"
-            logger.error(f"{error_code}: Unexpected failure - {e}", exc_info=True)
-            raise AgentExecutionError(detail=error_code, original_error=e) from e
+            # Use standard error code for Frontend, specific details for Backend logs
+            error_code = "AGENT_EXECUTION_CRITICAL"
+            logger.error(f"{error_code}: Unexpected failure in {self.__class__.__name__} - {e}", exc_info=True)
+            raise AgentExecutionError(
+                detail=error_code,
+                original_error=e,
+                agent_name=self.__class__.__name__
+            ) from e
 
     async def prepare_context(self, state: WorkflowState, **kwargs) -> str | None:
         """Lifecycle Hook: Pre-Execution.

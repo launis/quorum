@@ -4,8 +4,9 @@ import json
 import logging
 import random
 import re
+from typing import Any
 
-from backend.llm.mock_data import AGENT_CLASS_TO_MOCK_KEY, get_fallback_data, MOCK_REGISTRY
+from backend.llm.mock_data import AGENT_CLASS_TO_MOCK_KEY, MOCK_REGISTRY, get_fallback_data
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +19,15 @@ class MockLLMService:
 
     def __init__(self):
         """Initializes the Mock Service."""
+        from backend.settings import get_settings
+
+        if not get_settings().use_mock_llm:
+            raise RuntimeError(
+                "STRICT EXECUTION AUTHORITY: MockLLMService usage is FORBIDDEN when 'use_mock_llm' is False. "
+                "The system attempted to fallback to mock data, which is strictly prohibited. "
+                "Check credential configuration or provider selection."
+            )
+
         # MAPPING: Agent Class Name -> Mock Key
         # Centralized in mock_data.py
         self.agent_identity_map = AGENT_CLASS_TO_MOCK_KEY

@@ -27,7 +27,7 @@ def generate_report(state: WorkflowState) -> WorkflowState:
         WorkflowState: Updated state with the final report.
 
     """
-    logger.info("[ReportingHook] Generating report...")
+    logger.debug("[ReportingHook] Generating report...")
 
     # Helper for safe access (Pydantic or Dict)
     def safe_get(obj, attr, default=None):
@@ -173,10 +173,7 @@ def generate_report(state: WorkflowState) -> WorkflowState:
                 if hasattr(data, "dimensions") and isinstance(data.dimensions, list):
                     for d in data.dimensions:
                         # Map to Finnish keys for Frontend/Template compatibility
-                        scores[d.dimension_id] = {
-                            "arvosana": d.score, 
-                            "perustelu": d.reasoning
-                        }
+                        scores[d.dimension_id] = {"arvosana": d.score, "perustelu": d.reasoning}
                     return
                 # V1
                 p = safe_get(data, "pisteet")
@@ -196,8 +193,8 @@ def generate_report(state: WorkflowState) -> WorkflowState:
 
         # Calculate Average Score
         valid_scores = [
-            float(v["arvosana"]) 
-            for v in scores.values() 
+            float(v["arvosana"])
+            for v in scores.values()
             if isinstance(v, dict) and "arvosana" in v and v["arvosana"] is not None
         ]
         average_score = round(sum(valid_scores) / len(valid_scores), 2) if valid_scores else 0.0
@@ -215,7 +212,7 @@ def generate_report(state: WorkflowState) -> WorkflowState:
             critical_findings = getattr(judge_step, "critical_findings", [])
 
         # Import ReportContext (Local import to avoid circular deps if any, though top-level is better)
-        from backend.models.domain import ReportContext, ReportScore
+        from backend.models.domain import ReportContext
 
         exec_summary = safe_get(xai_data, "executive_summary") or "Yhteenveto puuttuu."
 
@@ -228,11 +225,11 @@ def generate_report(state: WorkflowState) -> WorkflowState:
         # Assuming ReportScore is strictly typed, I need to check it.
         # However, for the Template (Jinja), we are passing 'report_context' which is a Pydantic model.
         # So I *MUST* update domain.py to support 'arvosana'/'perustelu' in ReportScore.
-        
+
         typed_scores = {}
         for k, v in scores.items():
             # Pass as raw dict if model allows, or update model
-            typed_scores[k] = v 
+            typed_scores[k] = v
 
         # Prepare arguments for ReportContext
         ctx_args = {
@@ -248,7 +245,7 @@ def generate_report(state: WorkflowState) -> WorkflowState:
             "audit_questions": [],
             "uncertainty": {},
             "scores": typed_scores,
-            "average_score": average_score, # New Field
+            "average_score": average_score,  # New Field
             "timestamp": datetime.now().strftime("%d.%m.%Y %H:%M"),
             "coaching_plan": None,
             # Hook-injected data (Jan 2026)
@@ -305,16 +302,16 @@ def generate_report(state: WorkflowState) -> WorkflowState:
 
         # Add Coaching Plan
         if state.step_coach:
-             # V1 vs V2 check
-             cp = safe_get(state.step_coach, "coaching_plan") or state.step_coach
-             if hasattr(cp, "model_dump"):
-                 ctx_args["coaching_plan"] = cp.model_dump()
-             else:
-                 ctx_args["coaching_plan"] = cp
-        
+            # V1 vs V2 check
+            cp = safe_get(state.step_coach, "coaching_plan") or state.step_coach
+            if hasattr(cp, "model_dump"):
+                ctx_args["coaching_plan"] = cp.model_dump()
+            else:
+                ctx_args["coaching_plan"] = cp
+
         # Instantiate Model to validate
         report_context = ReportContext(**ctx_args)
-        
+
         # 3. Render
         disclaimer = "Tämä on automaattisesti generoitu raportti."
 
@@ -322,7 +319,7 @@ def generate_report(state: WorkflowState) -> WorkflowState:
         confidence_score = safe_get(xai_data, "confidence_score")
 
         output_text = template.render(
-            report_content=report_context, # Pass Pydantic object directly
+            report_content=report_context,  # Pass Pydantic object directly
             final_verdict=final_verdict,
             reliability_score=str(confidence_score) if confidence_score else "KORKEA",
             disclaimer=disclaimer,
@@ -333,7 +330,7 @@ def generate_report(state: WorkflowState) -> WorkflowState:
         if state.step_reporter:
             state.step_reporter.xai_report_formatted = output_text
             state.xai_report_formatted = output_text  # <--- CRITICAL FIX: Hoist to top-level for Frontend
-            logger.info("[ReportingHook] Report generated and saved to state.xai_report_formatted")
+            logger.debug("[ReportingHook] Report generated and saved to state.xai_report_formatted")
         else:
             state.aux_data["final_report_markdown"] = output_text
             state.xai_report_formatted = output_text  # Fallback hoist

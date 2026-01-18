@@ -46,7 +46,7 @@ class _FileInputFieldState extends State<FileInputField> {
           'yaml',
           'yml',
         ],
-        withData: kIsWeb, // Only load bytes in memory on Web
+        withData: true, // Always load bytes to ensure reliability across platforms
       );
 
       if (result != null && result.files.isNotEmpty) {

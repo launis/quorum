@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from backend.core.registry import TaskRegistry
 from backend.exceptions import WorkflowExecutionError
@@ -9,20 +9,18 @@ logger = logging.getLogger(__name__)
 
 
 class GraphEngine:
-    """
-    Metadata-driven workflow engine.
+    """Metadata-driven workflow engine.
     Executes workflows defined by WorkflowDefinition using the TaskRegistry.
     """
 
     async def execute_workflow(
-        self, 
-        definition: WorkflowDefinition, 
-        initial_input: Dict[str, Any],
+        self,
+        definition: WorkflowDefinition,
+        initial_input: dict[str, Any],
         repository: Any = None,  # AbstractWorkflowRepository
-        execution_id: str | None = None
-    ) -> Dict[str, Any]:
-        """
-        Execute a workflow definition sequentially.
+        execution_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Execute a workflow definition sequentially.
 
         Args:
             definition: The workflow schema definition.
@@ -52,14 +50,17 @@ class GraphEngine:
 
                 # 4. Execute Task
                 logger.debug(f"Executing step '{step.id}' ({step.task_key})...")
-                
+
                 # INSPECT HANDLER SIGNATURE
                 # Standard agents accept execution_config.
                 # Functional tasks (register_task) might not.
                 import inspect
+
                 sig = inspect.signature(task_def.handler)
-                
-                if "execution_config" in sig.parameters or any(p.kind == p.VAR_KEYWORD for p in sig.parameters.values()):
+
+                if "execution_config" in sig.parameters or any(
+                    p.kind == p.VAR_KEYWORD for p in sig.parameters.values()
+                ):
                     result = await task_def.handler(validated_input, execution_config=step.config)
                 else:
                     # Backward compatibility for functional tasks
@@ -70,7 +71,7 @@ class GraphEngine:
                 # If result is a Pydantic model, dump it to dict for state consistency?
                 # For now, let's keep it flexible or dump it.
                 # specification says: Store the result in execution_state[step.id]
-                
+
                 # If the handler returns a Pydantic model, we generally want to store it as a dict
                 # to make it easily accessible for future steps JSON pathing
                 if hasattr(result, "model_dump"):
@@ -89,8 +90,8 @@ class GraphEngine:
                         # But importantly: Update 'results', 'current_step', 'status'
                         updates = {
                             "results": execution_state,
-                            "current_step": step.id,     # Keep for legacy/internal
-                            "current_step_name": step.id, # Frontend Contract
+                            "current_step": step.id,  # Keep for legacy/internal
+                            "current_step_name": step.id,  # Frontend Contract
                             "status": "running",
                             # "updated_at": ... (handled by repo or db trigger usually)
                         }
@@ -101,16 +102,16 @@ class GraphEngine:
                         # Protocol: Hoist XAI Reporting fields to top-level state
                         # This ensures the Frontend can access summary cards (Verdict, Score, etc.)
                         # directly from the Execution object.
-                        
+
                         hoist_fields = [
-                            "xai_report_formatted", 
-                            "final_verdict", 
+                            "xai_report_formatted",
+                            "final_verdict",
                             "confidence_score",
                             "executive_summary",
                             "analysis_strengths",
                             "analysis_weaknesses",
                             "analysis_opportunities",
-                            "analysis_recommendations"
+                            "analysis_recommendations",
                         ]
 
                         for field in hoist_fields:
@@ -120,7 +121,6 @@ class GraphEngine:
                             # Check Pydantic
                             elif hasattr(state_val, field) and getattr(state_val, field):
                                 updates[field] = getattr(state_val, field)
-
 
                         await repository.update_execution(execution_id, updates)
                         logger.debug(f"Persisted state after step '{step.id}'.")
@@ -135,16 +135,15 @@ class GraphEngine:
                     step_id=step.id,
                     task_key=step.task_key,
                     original_error=e,
-                    details={"execution_state": execution_state, "error_code": error_code}
-                )
+                    details={"execution_state": execution_state, "error_code": error_code},
+                ) from e
 
         logger.info(f"Workflow '{definition.id}' execution completed.")
         return execution_state
 
-    def _resolve_inputs(self, input_mapping: Dict[str, str], state: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Resolve input values from the execution state based on mapping definition.
-        
+    def _resolve_inputs(self, input_mapping: dict[str, str], state: dict[str, Any]) -> dict[str, Any]:
+        """Resolve input values from the execution state based on mapping definition.
+
         Args:
             input_mapping: Dict mapping target field mapping string (e.g. "$step1.result")
             state: Current execution state dictionary.
@@ -165,13 +164,13 @@ class GraphEngine:
                         else:
                             # Try attribute access if it's an object/model
                             value = getattr(value, part)
-                        
+
                         if value is None:
                             break
                     resolved[target_field] = value
                 except Exception as e:
-                     # If path resolution fails, we might want to pass None or raise error
-                     # For now, explicit None if path doesn't exist
+                    # If path resolution fails, we might want to pass None or raise error
+                    # For now, explicit None if path doesn't exist
                     logger.debug(f"Input resolution failed for path '{source_path}': {e}")
                     resolved[target_field] = None
             else:

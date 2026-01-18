@@ -2,7 +2,7 @@
 
 import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
 from backend.dependencies import AuditServiceDep, AuthService, CurrentUserDep, EngineDep
 from backend.models.auth import UserRole
@@ -40,6 +40,7 @@ async def update_settings(
     AuthService.require_role(UserRole.ROOT)
     if current_user.role != UserRole.ROOT:
         from backend.exceptions import PermissionDeniedError
+
         error_code = "PERMISSION_DENIED_ROOT_ONLY"
         logger.error(f"{error_code}: User {current_user.uid} denied.", exc_info=True)
         raise PermissionDeniedError(message="ROOT access required", details={"error_code": error_code})
@@ -63,6 +64,11 @@ async def update_settings(
         return updates
     except Exception as e:
         from backend.exceptions import AppException
+
         error_code = "SETTINGS_UPDATE_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message="Settings update failed", status_code=500, details={"error_code": error_code, "original_error": str(e)}) from e
+        raise AppException(
+            message="Settings update failed",
+            status_code=500,
+            details={"error_code": error_code, "original_error": str(e)},
+        ) from e

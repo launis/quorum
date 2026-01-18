@@ -16,7 +16,6 @@ from fastapi import (
     BackgroundTasks,
     Depends,
     File,
-    HTTPException,
     Path,
     Query,
     Request,
@@ -29,7 +28,6 @@ from backend.database.repository import AbstractWorkflowRepository
 from backend.dependencies import (
     AuthServiceDep,
     CurrentUserDep,
-    DatabaseDep,
     LLMProviderDeep,
     LLMProviderFast,
     RepositoryDep,
@@ -249,9 +247,12 @@ async def create_user(
     except ValueError as e:
         # Transform Logic Error -> Domain Exception (400)
         from backend.exceptions import AppException
+
         error_code = "INVALID_USER_DATA"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=str(e), status_code=status.HTTP_400_BAD_REQUEST, details={"error_code": error_code}) from e
+        raise AppException(
+            message=str(e), status_code=status.HTTP_400_BAD_REQUEST, details={"error_code": error_code}
+        ) from e
     # Generic Exception? Let it bubble! Global Handler logs 500+Trace.
 
 
@@ -276,7 +277,6 @@ async def update_user(
         raise PermissionDeniedError(message=str(e), details={"error_code": error_code}) from e
     except ValueError as e:
         # Service maps "not found" to ValueError occasionally; explicit catch preferred
-        from backend.exceptions import AppException
         error_code = "USER_NOT_FOUND"
         logger.error(f"{error_code}: User {user_id} not found: {e}", exc_info=True)
         raise ResourceNotFoundError("User", user_id) from e
@@ -284,6 +284,7 @@ async def update_user(
         # Specific Business Logic Check (SSOT Logic)
         if "LAST_ADMIN_PROTECTION" in str(e):
             from backend.exceptions import ConflictError
+
             error_code = "LAST_ADMIN_PROTECTION"
             logger.error(f"{error_code}: {e}", exc_info=True)
             raise ConflictError(message=str(e), details={"error_code": error_code}) from e
@@ -313,6 +314,7 @@ async def delete_user(
     except ValueError as e:
         if "Last Admin" in str(e):
             from backend.exceptions import ConflictError
+
             error_code = "LAST_ADMIN_PROTECTION"
             logger.error(f"{error_code}: {e}", exc_info=True)
             raise ConflictError(message=str(e), details={"error_code": error_code}) from e
@@ -323,6 +325,7 @@ async def delete_user(
     except RuntimeError as e:
         if "LAST_ADMIN_PROTECTION" in str(e):
             from backend.exceptions import ConflictError
+
             error_code = "LAST_ADMIN_PROTECTION"
             logger.error(f"{error_code}: {e}", exc_info=True)
             raise ConflictError(message=str(e), details={"error_code": error_code}) from e
@@ -522,9 +525,12 @@ async def upload_knowledge_base(
         filename = file.filename or "upload"
     except Exception as e:
         from backend.exceptions import AppException
+
         error_code = "UPLOAD_READ_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message=str(e), status_code=status.HTTP_400_BAD_REQUEST, details={"error_code": error_code}) from e
+        raise AppException(
+            message=str(e), status_code=status.HTTP_400_BAD_REQUEST, details={"error_code": error_code}
+        ) from e
 
     if repo is None:
         repo = await get_async_repository()
@@ -570,9 +576,14 @@ async def add_banned_phrase(request: BannedPhraseRequest, repo: RepositoryDep):
     """Adds a new phrase to the banned list."""
     if len(request.phrase.strip()) < 2:
         from backend.exceptions import AppException
+
         error_code = "PHRASE_VALIDATION_FAILED"
         logger.warning(f"{error_code}: Phrase too short: '{request.phrase}'")
-        raise AppException(message="Phrase too short (min 2 chars)", status_code=status.HTTP_400_BAD_REQUEST, details={"error_code": error_code})
+        raise AppException(
+            message="Phrase too short (min 2 chars)",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": error_code},
+        )
 
     await repo.add_banned_phrase(request.phrase.strip())
     return BannedPhraseResponse(status="added", phrase=request.phrase.strip())
@@ -607,22 +618,27 @@ async def generate_banned_phrases(request: GeneratePhrasesRequest, repo: Reposit
         # Dynamic Prompt Retrieval (Zero-Fallback Rule)
         template = await repo.get_prompt_template("admin_generate_banned_phrases")
         if not template:
-             # Fail Fast if configuration is missing
-             from backend.exceptions import AppException
-             error_code = "PROMPT_CONFIG_MISSING"
-             raise AppException(
-                 message="Prompt configuration for 'admin_generate_banned_phrases' not found.",
-                 status_code=500,
-                 details={"error_code": error_code}
-             )
+            # Fail Fast if configuration is missing
+            from backend.exceptions import AppException
 
-        system_prompt = template.get("system", "You are a security expert.") # Partial fallback if key exists but empty? No, rely on DB.
+            error_code = "PROMPT_CONFIG_MISSING"
+            raise AppException(
+                message="Prompt configuration for 'admin_generate_banned_phrases' not found.",
+                status_code=500,
+                details={"error_code": error_code},
+            )
+
+        system_prompt = template.get(
+            "system", "You are a security expert."
+        )  # Partial fallback if key exists but empty? No, rely on DB.
         user_param = template.get("user", "")
         # Safe format
         try:
-             user_prompt = user_param.format(language_name=language_name)
+            user_prompt = user_param.format(language_name=language_name)
         except Exception:
-             user_prompt = f"Generate 10 NEW banned phrases in {language_name}." # Minimal Safe fallback if format fails?
+            user_prompt = (
+                f"Generate 10 NEW banned phrases in {language_name}."  # Minimal Safe fallback if format fails?
+            )
 
         response = await llm_provider.generate(user_prompt, system_instruction=system_prompt)
         # Assuming simplified handling
@@ -644,9 +660,10 @@ async def generate_banned_phrases(request: GeneratePhrasesRequest, repo: Reposit
         # Typically treated as service unavailable or 500. Bubble.
         # But logging context helps for LLM issues.
         from backend.exceptions import ServiceUnavailableError
+
         error_code = "PHRASE_GENERATION_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise ServiceUnavailableError(message=error_code, details={"original_error": str(e)}) from e
+        raise ServiceUnavailableError(message=str(e), details={"error_code": error_code}) from e
 
 
 @router.get(
@@ -690,11 +707,13 @@ async def update_user_role(
         msg = str(e)
         if "LAST_ADMIN_PROTECTION" in msg:
             from backend.exceptions import ConflictError
+
             error_code = "LAST_ADMIN_PROTECTION"
             logger.error(f"{error_code}: {e}", exc_info=True)
             raise ConflictError(message=str(e), details={"error_code": error_code}) from e
         if isinstance(e, ValueError):
             from backend.exceptions import ResourceNotFoundError
+
             error_code = "USER_NOT_FOUND"
             logger.error(f"{error_code}: {e}", exc_info=True)
             raise ResourceNotFoundError("User", user_id) from e

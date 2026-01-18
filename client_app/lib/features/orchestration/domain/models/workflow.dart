@@ -19,3 +19,5 @@ sealed class Workflow with _$Workflow {
   factory Workflow.fromJson(Map<String, dynamic> json) =>
       _$WorkflowFromJson(json);
 }
+
+

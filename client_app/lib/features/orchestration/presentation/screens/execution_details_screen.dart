@@ -381,8 +381,8 @@ class _RawDataTab extends ConsumerWidget {
                 ),
                 const Divider(),
                 _infoRow('Duration', '${rawData['duration_seconds']?.toStringAsFixed(1) ?? 'N/A'} seconds'),
-                _infoRow('Status', rawData['status'] ?? 'Unknown'),
-                _infoRow('Workflow', rawData['workflow_id'] ?? 'Unknown'),
+                _infoRow('Status', (rawData['status'] ?? 'Unknown') as String),
+                _infoRow('Workflow', (rawData['workflow_id'] ?? 'Unknown') as String),
               ],
             ),
           ),
@@ -398,7 +398,7 @@ class _RawDataTab extends ConsumerWidget {
           const SizedBox(height: 8),
           ...((rawData['agent_outputs'] as Map).entries.map((e) => 
             ExpansionTile(
-              title: Text(e.key),
+              title: Text(e.key as String),
               children: [
                 Padding(
                   padding: const EdgeInsets.all(8.0),

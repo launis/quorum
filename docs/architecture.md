@@ -1,6 +1,6 @@
-# System Architecture
+# System Architecture (V2.6)
 
-Cognitive Quorum v2.5 is a **Modular Monolith** built on Python 3.14, designed for deterministic, verifiable AI workflows. It combines a rigorous Pydantic-based backbone with a flexible, database-driven configuration engine.
+Cognitive Quorum v2.6 is a **Modular Monolith** built on Python 3.14, designed for deterministic, verifiable AI workflows. It combines a rigorous Pydantic-based backbone with a flexible, **Configuration-Driven Intelligence** layer.
 
 ## High-Level Diagram
 
@@ -20,16 +20,12 @@ graph TD
         Runner --> Agent["Agent Instance"]
     end
     
-    subgraph "Agent Architecture"
-        Agent -->|1. Prompt| PromptBuilder["Prompt Builder"]
-        Agent -->|2. Generate| LLM["LLM Provider (Gemini)"]
-        Agent -->|3. Hook| Hooks["Deterministic Hooks"]
-        Agent -->|4. Validate| Schema["Pydantic V2 Schema (Strict JSON)"]
+    subgraph "Cognitive Layer"
+        Agent -->|1. Fetch Components| Registry["Components Registry (db.json)"]
+        Agent -->|2. Build Context| PromptBuilder["Prompt Builder"]
+        Agent -->|3. Generate| LLM["LLM Provider (Gemini)"]
+        Agent -->|4. Validate| Schema["Strict JSON Schema"]
     end
-    
-    Hooks --> PII["PII Scrubber"]
-    Hooks --> Causal["Causal Engine"]
-    Hooks --> Search["Google Search"]
     
     Agent -->|Update State| State[("WorkflowState")]
 ```
@@ -39,170 +35,61 @@ graph TD
 ### 1. Backend & Worker
 The backend is split into two primary runtime components:
 
-*   **API Service (`backend/api/`)**: Handle HTTP requests and enqueues jobs to Redis.
-*   **Worker Service (`backend/worker.py`)**: A distributed execution engine powered by **Arq**. It pulls jobs from Redis and executes them using the `WorkflowEngine`. This allows for long-running agents (e.g., Deep Research) without blocking HTTP threads.
-
-*   **`backend/api/`**: REST Routers defined using FastAPI. Strictly typed requests/responses. Includes **Dynamic Availability API** (`/config/models/available`) for regional model discovery.
-*   **`backend/core/`**: The `WorkflowEngine` and `PipelineRunner`. Orchestrates the flow based on DB config.
-*   **`backend/agents/`**: specialized Agent classes (e.g., `GuardAgent`, `JudgeAgent`) inheriting from `BaseAgent`.
-*   **`backend/models/`**: Centralized domain models using Pydantic v2 `Annotated` syntax.
-*   **`backend/llm/`**: **Provider Layer** with specialized **JSON Heuristic Repair Engine** (regex + ast fallback) and **Reasoning Token Extraction** to handle high-intelligence models (e.g. Gemini 2.5) with 'thought' traces.
+*   **API Service (`backend/api/`)**: Handles HTTP requests and enqueues jobs to Redis.
+*   **Worker Service (`backend/worker.py`)**: A distributed execution engine powered by **Arq**. It executes the workflows asynchronously, allowing for long-running "Deep Research" tasks.
 
 ### 2. State Management (WorkflowState)
-Unlike many agent frameworks that pass free-form dictionaries, Quorum uses a strict **`WorkflowState`** Pydantic model (`backend/models/state.py`).
+Quorum uses a strict **`WorkflowState`** Pydantic model (`backend/models/state.py`).
 
-*   **Atomic Updates:** Each agent writes to a specific field (e.g., `step_guard`, `step_judge`).
-    > **Note:** This structure is currently rigid/hardcoded (one slot per agent). Phase 7 Cleanup aims to make this fully dynamic.
-*   **Persisted & Replayable:** The entire state is serialized to JSON after every step, allowing execution resumption.
-*   **Type Safe:** Agents cannot write invalid data to the state; Pydantic validation enforces schema compliance.
-*   **Optimistic Locking:** The `WorkflowState` includes a `version` field (UUID/Timestamp) to prevent race conditions during distributed execution. Workers compare the version before writing to the database.
+*   **Audit Results List**: V2.6 introduces a dynamic `audit_results` list, allowing multiple Judges or Panels to contribute to the same state without overwriting each other.
+*   **Persisted & Replayable**: The state is serialized to JSON after every step.
+*   **Optimistic Locking**: Uses a `version` field to prevent race conditions during distributed execution.
 
-### 3. Agent Architecture (Thin Agents)
-Agents are "thin" wrappers that coordinate three things:
-
-1.  **Prompting:** Constructing context using `PromptBuilder`.
-2.  **Hooks:** Calling deterministic Python code (Hooks) for tasks logical reasoning cannot solve (e.g., math, causal inference, search).
-3.  **Generation:** Calling the LLM via `LLMProvider`. Supports **Reasoning Tokens** for "Show Your Work" transparency and **Strict JSON** enforcement.
-
-Configurations (Prompts, Model usage) are stored in `seed_data.json` / Database, but the execution logic resides in code.
+### 3. Agent Architecture ("Thin Agents")
+Agents are "thin" wrappers that coordinate:
+1.  **Configuration**: Fetching prompts/matrices from the `Components Registry`.
+2.  **Hooks**: Calling deterministic Python code (Math, Search, PII).
+3.  **Generation**: Invoking the LLM with strict schemas.
 
 ### 4. Deterministic Hooks (`backend/hooks/`)
 To prevent "hallucinated logic", complex operations are offloaded to Python code:
-
 *   **`archival.py`**: Similarity search via Vector DB.
 *   **`security.py`**: PII masking via Microsoft Presidio.
-*   **`metrics.py`**: Text analytics (lexical diversity, etc.).
 *   **`causal.py`**: Statistical validation via DoWhy.
 
 ## Data-Driven Configuration
 
-While the *logic* is in code, the *workflow definition* is data-driven.
+In V2.6, the *Workflow Definition* and *Cognitive Strategy* are strictly separated from code.
 A workflow in `db.json` defines:
-1.  **Sequence:** Which agents run in what order.
-2.  **Configuration:** Which prompt templates and model parameters to use.
-3.  **Model Strategy:** Dynamic mapping (Fast/Deep) resolved against **Regional Model Registry** (Hamina).
+1.  **Sequence**: Which agents run in what order.
+2.  **Components**: Which **Evaluation Matrices** (BARS) and **Mandates** are active.
+3.  **Model Strategy**: Dynamic mapping resolved against the **Regional Model Registry**.
 
-This allows changing the *behavior* (prompts, order) without redeploying code, while keeping the *capability* (Python logic) rigorously tested.
+This allows for "No-Code" tuning of the AI's personality and evaluation criteria.
 
 ## Technology Stack
 
-*   **Language:** Python 3.14 & Dart (Flutter)
-*   **Dependency Management:** uv (Python) & pub (Dart)
-*   **Observability:** Logfire (Distributed Tracing & Structured Logging)
-*   **API:** FastAPI + Pydantic v2 (Strict Mode)
-*   **Client:** Flutter (Responsive Native App)
-*   **Database:** TinyDB (Local) / Firestore (Cloud) - **3-Tier Env** (Mock/Local/Prod)
-*   **Vector Search:** ChromaDB
-*   **LLM:** **Google Cloud Vertex AI** (Region: `europe-north1` / Hamina) - Strict Data Residency
-*   **Task Queue:** Redis + Arq (Distributed Workers)
-*   **Models:** Gemini 2.5 (Flash/Pro) - Validated for Hamina
-*   **PII:** Microsoft Presidio
-*   **Causal Inference:** Microsoft DoWhy
+*   **Language**: Python 3.14 & Dart (Flutter)
+*   **Observability**: Logfire (Distributed Tracing)
+*   **API**: FastAPI + Pydantic v2 (Strict Mode)
+*   **Client**: Flutter (Riverpod 3.0 + GoRouter)
+*   **Database**: TinyDB (Local) / Firestore (Cloud)
+*   **Vector Search**: ChromaDB
+*   **LLM Provider**: **Google Cloud Vertex AI** (Region: `europe-north1` / Hamina)
 
 ## Deployment Architecture (Docker)
-The system is fully containerized using Docker Compose, adhering to a "Single Source of Truth" configuration philosophy.
 
-```mermaid
-graph TD
-    subgraph "Docker Host"
-        Redis[(Redis:6379)]
-        
-        subgraph "Services"
-            Backend["API Service (:8000)"]
-            Worker["Worker Service"]
-        end
-        
-        Backend --> Redis
-        Worker --> Redis
-    end
-    
-    Client["Client App"] -.->|HTTP :8000| Backend
-    
-    Volume["./backend (Host)"] -.->|Bind Mount| Backend
-    Volume -.->|Bind Mount| Worker
-```
+The system is fully containerized using Docker Compose.
 
-### Container Strategy
-*   **Shared Image**: Both `backend` and `worker` services share the same `Dockerfile` capabilities (Python 3.13+), ensuring environment parity.
-*   **Bind Mounts:** Development utilizes host-to-container volume mapping for `backend/` and `data/`, allowing code changes to reflect immediately in the Worker without rebuilding.
-*   **Configuration**: Environment variables (e.g., `VERTEX_LOCATION`, `STORAGE_BUCKET_NAME`) are injected via `docker-compose.yml`, overriding internal defaults to ensure Production readiness.
+*   **Shared Image**: `backend` and `worker` share the same Docker image.
+*   **Bind Mounts**: Development uses host-to-container mapping for rapid iteration.
+*   **Configuration**: Environment variables (`.env`) injected via Compose enforce Single Source of Truth.
 
-## Identity & Security Architecture
+## Identity & Security
 
-### 1. Multi-Tenancy Model
-The system uses a **Strictly Scoped Multi-Tenancy** model where every user and resource belongs to a specific `organization_id`.
+### 1. Multi-Tenancy
+*   **Strict Scoping**: All resources are filtered by `organization_id`.
+*   **System Organization**: A protected "God Tenant" (`id="system"`) for Platform Admin.
 
-*   **Tenant Isolation**: Data access is filtered at the Repository layer by `organization_id`.
-*   **System Organization**: A special "God Tenant" (`id="system"`) exists solely for Platform Administration.
-
-### 2. System Organization Logic
-To maintain architectural simplicity and strict security boundaries:
-
-*   **Exclusivity**: The "System" organization is reserved **strictly** for users with the `ROOT` role.
-*   **No "System Roles"**: There are no separate `SYSTEM_ADMIN` or `SYSTEM_MEMBER` roles. Platform authority is derived from the `ROOT` role itself, not the organization membership.
-*   **Immutability**: The System Organization and the primary Seeded Root user cannot be deleted.
-
-### 5. Safe Deletion Protocols
-To prevent accidental data loss in a multi-tenant environment, strict deletion protocols are enforced:
-
-*   **System Protection**: The `system` organization is immutable and rejects all deletion attempts (HTTP 403).
-*   **Dependency Check**: Organizations with active users cannot be deleted effectively without explicit confirmation.
-    *   **Standard Delete**: Fails with `409 Conflict (ORG_HAS_USERS)` if users exist.
-    *   **Force Delete**: Requires explicit `force=true` flag. Cascades deletion to all users within the organization first, then removes the organization.
-    *   **Cleanup**: Associated `workflows` and `executions` are hard-deleted asynchronously to maintain referential integrity.
-
-### 3. Role Hierarchy
-Permissions are hierarchical:
-1.  **ROOT**: Platform Owner. Can manage all Organizations, Users, and System Config.
-2.  **ADMIN**: Organization Owner. Can manage Users and Workflows within their own Organization.
-3.  **MANAGER**: Technical Lead. Can configure Workflows/Prompts but cannot manage Users.
-4.  **MEMBER**: Standard User. Can execute Workflows.
-5.  **VIEWER**: Read-Only access.
-
-### 4. Client Architecture (Flutter)
-The client application implements a **Strict Reactive Architecture** powered by Riverpod 3.0 and GoRouter 17.
-
-*   **Adaptive Shell**:
-    *   **Desktop/Tablet (>600dp)**: Uses a `NavigationRail` + `Row` layout with content constrained to `1200dp` max-width.
-    *   **Mobile (<600dp)**: Uses a `NavigationBar` + `Scaffold` layout.
-*   **Router Guard (RBAC)**:
-    *   `GoRouter` listens to `authControllerProvider` state.
-    *   **Strict Redirects**:
-        *   `Unauthenticated` -> `/login`
-        *   `Role != ROOT|ADMIN` -> Redirects away from `/admin` to `/dashboard`.
-*   **Passive View Pattern**:
-    *   UI components (`ConsumerWidget`) do *not* contain business logic.
-    *   Events vary logic via `ref.read(controller.notifier).method()`.
-    *   Side-effects (Snackbars, Navigation) are triggered via `ref.listen()`.
-
-### 5. Client File Handling Strategy (OOM Prevention)
-To ensure stability across low-memory mobile devices and browser environments, file uploads follow a **Dual-Path Strategy**:
-
-*   **IO Platforms (Desktop/Mobile)**:
-    *   Files are treated as **Streams** (`MultipartFile.fromFile`).
-    *   **Zero-Copy**: File bytes are *never* loaded into Dart heap memory. This allows uploading GB-sized files without OOM crashes.
-*   **Web Platform**:
-    *   Files are loaded as **Bytes** (`Uint8List`) because browsers restrict direct filesystem access.
-    *   `ExecutionController` strictly enforces `kIsWeb` checks to select the correct strategy.
-
-## API & Error Contract (Protocol)
-
-To ensure consistent UX across the hybrid Architecture (Flutter Client + Python Backend), all subsystems adhere to a strict **JSON Error Schema**.
-
-### 1. Backend Responsibility (`APIError`)
-All API endpoints and Exception Handlers must return the standard `APIError` shape (HTTP 4xx/5xx):
-```json
-{
-  "error_code": "VALIDATION_ERROR", // Fixed Constant or Derived (ResourceNotFoundError -> RESOURCE_NOT_FOUND_ERROR)
-  "message": "Invalid input data",  // Human-readable fallback (English)
-  "details": [{"loc": ["body", "token"], "msg": "field required"}] // Pydantic-style details
-}
-```
-
-### 2. Frontend Responsibility (`AppError`)
-The Flutter Client **MUST NOT** display raw backend strings directly.
-1.  **Parse**: Intercept HTTP Error -> inspect `error_code`.
-2.  **Map**: Convert `error_code` -> `AppError` Union (e.g., `AppError.validationMissing`).
-3.  **Localize**: View Layer uses `AppLocalizations` to render the final message to the User (e.g., `l10n.fieldRequired`).
-
-*Rule*: "If it's not in `.arb`, it doesn't exist for the user."
+### 2. Role Hierarchy
+*   **ROOT / ADMIN / MANAGER / MEMBER / VIEWER**: A strict 5-tier RBAC model managed by the Auth Service.

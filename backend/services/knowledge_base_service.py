@@ -194,7 +194,7 @@ class KnowledgeBaseService:
             prompt = f"""
             You are an expert academic research assistant.
             Analyze the following text chunk. Extract theoretical concepts, models, or frameworks defined in the text.
-            
+
             TEXT CHUNK:
             {chunk}
             """
@@ -202,13 +202,14 @@ class KnowledgeBaseService:
             try:
                 # We use the provider directly with Pydantic Schema
                 response = await self.llm_provider.generate(
-                    prompt=prompt, 
+                    prompt=prompt,
                     system_instruction="Extract concepts strictly conforming to the schema.",
-                    response_schema=ConceptResponse
+                    response_schema=ConceptResponse,
                 )
 
                 # LiteLLMProvider guarantees valid JSON in content when response_schema is used
                 import json
+
                 data = json.loads(response.content)
                 chunk_concepts = data.get("concepts", [])
                 extracted_concepts.extend(chunk_concepts)
@@ -329,7 +330,7 @@ class KnowledgeBaseService:
             concepts_count=count_concepts,
             references_count=count_refs,
             claims_count=count_claims,
-            filename=source_name
+            filename=source_name,
         )
 
     async def retrieve_context(self, query: str) -> str:

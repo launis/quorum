@@ -103,7 +103,7 @@ class FactualOverseerAgent(BaseAgent):
             todistus_kartta = getattr(state, "step_analyst", None)
 
         context_parts = []
-        
+
         if todistus_kartta:
             content = (
                 todistus_kartta.model_dump_json(indent=2)

@@ -1,12 +1,164 @@
-"""Custom Exceptions for the application."""
+"""Custom Exceptions for the application.
+
+RFC 7807 Problem Details Compatible (https://tools.ietf.org/html/rfc7807).
+
+================================================================================
+USAGE GUIDE (Mandatory Pattern)
+================================================================================
+
+1. RAISING EXCEPTIONS (Backend):
+
+    from backend.exceptions import AppException
+    from fastapi import status
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    try:
+        # ... business logic ...
+    except Exception as e:
+        error_code = "DOMAIN_REASON_DETAIL"  # e.g. "EXECUTION_FETCH_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise AppException(
+            message=str(e),
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": error_code}
+        ) from e
+
+2. ERROR CODE NAMING CONVENTION:
+   
+   Format: DOMAIN_REASON_DETAIL
+   
+   Examples:
+   - EXECUTION_NOT_FOUND      (404)
+   - WORKFLOW_EXECUTION_FAILED (500)
+   - INVALID_JSON_PAYLOAD     (400)
+   - MISSING_WORKFLOW_ID      (400)
+   - AUTH_TOKEN_EXPIRED       (401)
+   - PERMISSION_DENIED        (403)
+
+3. FIELD PURPOSES:
+
+   | Field       | Purpose                                    | Consumer          |
+   |-------------|--------------------------------------------|--------------------|
+   | error_code  | Machine-readable key for localization      | Flutter l10n       |
+   | message     | Debug info (NEVER shown to user)           | Logs, DevTools     |
+   | status_code | HTTP standard code                         | HTTP layer         |
+
+4. RFC 7807 RESPONSE FORMAT (via to_problem_detail()):
+
+   {
+     "type": "https://api.quorum.fi/errors/execution-not-found",
+     "title": "Execution Not Found",
+     "status": 404,
+     "detail": "Execution 'abc-123' not found.",
+     "instance": "/executions/abc-123"
+   }
+
+5. EXCEPTION HANDLER (main.py - update required for RFC 7807):
+
+    @app.exception_handler(AppException)
+    async def app_exception_handler(request: Request, exc: AppException):
+        return JSONResponse(
+            status_code=exc.status_code,
+            content=exc.to_problem_detail(instance=str(request.url.path)),
+            media_type="application/problem+json",
+        )
+
+6. FLUTTER CLIENT (update required for RFC 7807):
+
+    on DioException catch (e) {
+      final problem = ProblemDetail.fromJson(e.response?.data);
+      throw AppError(
+        code: problem.errorCode,  // Extracted from 'type' URI
+        message: problem.detail,
+      );
+    }
+
+================================================================================
+BANNED PATTERNS
+================================================================================
+
+❌ raise HTTPException(status_code=..., detail=str(e))  # Loses error_code!
+❌ Showing raw 'message' or 'detail' to end users
+❌ Hardcoded error messages in Flutter UI
+
+================================================================================
+"""
 
 from typing import Any
 
+from enum import Enum
 from fastapi import status
 
 
+class ErrorCodes(str, Enum):
+    """Standardized Error Codes for the application.
+    
+    These codes are used by the Frontend for localization lookup.
+    """
+    # General
+    INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR"
+    UNKNOWN_ERROR = "UNKNOWN_ERROR"
+    
+    # Validation
+    EMPTY_INPUT = "EMPTY_INPUT"
+    INVALID_JSON_PAYLOAD = "INVALID_JSON_PAYLOAD"
+    MISSING_WORKFLOW_ID = "MISSING_WORKFLOW_ID"
+    UNSUPPORTED_CONTENT_TYPE = "UNSUPPORTED_CONTENT_TYPE"
+    
+    # Resources
+    EXECUTION_NOT_FOUND = "EXECUTION_NOT_FOUND"
+    WORKFLOW_NOT_FOUND = "WORKFLOW_NOT_FOUND"
+    
+    # Execution
+    WORKFLOW_EXECUTION_FAILED = "WORKFLOW_EXECUTION_FAILED"
+    AGENT_EXECUTION_CRITICAL = "AGENT_EXECUTION_CRITICAL"
+    
+    # Auth
+    AUTH_TOKEN_EXPIRED = "AUTH_TOKEN_EXPIRED"
+    PERMISSION_DENIED = "PERMISSION_DENIED"
+
+
 class AppException(Exception):
-    """Base class for application exceptions."""
+    """Base class for application exceptions (RFC 7807 compatible).
+
+    Provides both legacy format (message/details) and RFC 7807 Problem Details
+    format via to_problem_detail() method.
+
+    Args:
+        message: Debug message for logs (NEVER shown to end user).
+        status_code: HTTP status code (default 500).
+        details: Dict containing 'error_code' for frontend localization.
+
+    Example:
+        error_code = "WORKFLOW_NOT_FOUND"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise AppException(
+            message=str(e),
+            status_code=status.HTTP_404_NOT_FOUND,
+            details={"error_code": error_code}
+        ) from e
+
+    RFC 7807 Example:
+        exc = AppException(
+            message="Execution 'abc' not found",
+            status_code=404,
+            details={"error_code": "EXECUTION_NOT_FOUND"}
+        )
+        response = exc.to_problem_detail(instance="/executions/abc")
+        # Returns:
+        # {
+        #   "type": "https://api.quorum.fi/errors/execution-not-found",
+        #   "title": "Execution Not Found",
+        #   "status": 404,
+        #   "detail": "Execution 'abc' not found",
+        #   "instance": "/executions/abc"
+        # }
+    """
+
+    # Base URI for RFC 7807 'type' field - customize per deployment
+    PROBLEM_BASE_URI = "https://api.quorum.fi/errors"
 
     def __init__(
         self,
@@ -20,6 +172,58 @@ class AppException(Exception):
         self.status_code = status_code
         self.details = details or {}
 
+    @property
+    def error_code(self) -> str:
+        """Extract error_code from details for convenience."""
+        return self.details.get("error_code", "INTERNAL_SERVER_ERROR")
+
+    def to_problem_detail(self, instance: str | None = None) -> dict[str, Any]:
+        """Convert to RFC 7807 Problem Details format.
+
+        Args:
+            instance: Optional URI identifying this specific error occurrence
+                      (typically the request path, e.g. "/executions/abc-123").
+
+        Returns:
+            Dict conforming to RFC 7807 Problem Details specification:
+            - type: URI identifying the error type (links to documentation)
+            - title: Human-readable error title (from error_code)
+            - status: HTTP status code
+            - detail: Specific error message for this occurrence
+            - instance: Optional URI for this specific error
+
+        Example:
+            {
+                "type": "https://api.quorum.fi/errors/execution-not-found",
+                "title": "Execution Not Found",
+                "status": 404,
+                "detail": "Execution 'abc-123' not found.",
+                "instance": "/executions/abc-123"
+            }
+        """
+        # Convert EXECUTION_NOT_FOUND -> execution-not-found
+        slug = self.error_code.lower().replace("_", "-")
+
+        # Convert EXECUTION_NOT_FOUND -> "Execution Not Found"
+        title = self.error_code.replace("_", " ").title()
+
+        problem = {
+            "type": f"{self.PROBLEM_BASE_URI}/{slug}",
+            "title": title,
+            "status": self.status_code,
+            "detail": self.message,
+        }
+
+        if instance:
+            problem["instance"] = instance
+
+        # Include any extra details (excluding error_code which is in 'type')
+        extra = {k: v for k, v in self.details.items() if k != "error_code"}
+        if extra:
+            problem["extensions"] = extra
+
+        return problem
+
 
 class ResourceNotFoundError(AppException):
     """Raised when a requested resource (Workflow, Step, Execution) is not found."""
@@ -29,7 +233,7 @@ class ResourceNotFoundError(AppException):
         error_details = {"resource_type": resource_type, "resource_id": resource_id}
         if details:
             error_details.update(details)
-        
+
         super().__init__(
             message=f"{resource_type} with ID '{resource_id}' not found" if resource_id else resource_type,
             status_code=status.HTTP_404_NOT_FOUND,
@@ -164,6 +368,15 @@ class AuthenticationError(AppException):
         super().__init__(message, status_code=status.HTTP_401_UNAUTHORIZED, details=details)
 
 
+class SecurityViolationError(AppException):
+    """Raised when a security policy (e.g. banned phrases) is violated (400 or 403)."""
+
+    def __init__(self, message: str, details: dict | None = None):
+        """Initialize the exception."""
+        # 400 Bad Request matches "Client sent invalid content"
+        super().__init__(message, status_code=status.HTTP_400_BAD_REQUEST, details=details)
+
+
 class WorkflowExecutionError(AppException):
     """Raised when a specific step in a workflow fails."""
 
@@ -176,13 +389,9 @@ class WorkflowExecutionError(AppException):
     ):
         """Initialize the exception."""
         msg = f"Step '{step_id}' (Task: '{task_key}') failed: {str(original_error)}"
-        
+
         error_details = details or {}
-        error_details.update({
-            "step_id": step_id,
-            "task_key": task_key,
-            "cause": str(original_error)
-        })
+        error_details.update({"step_id": step_id, "task_key": task_key, "cause": str(original_error)})
 
         super().__init__(
             message=msg,

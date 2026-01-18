@@ -81,3 +81,24 @@ class AnalystAgent(BaseAgent):
         from backend.hooks.validation import verify_structure
 
         return verify_structure(state)
+
+    def post_process(self, state: WorkflowState) -> WorkflowState:
+        """Lifecycle Hook: Post-Execution.
+        
+        Enforces sequential IDs for Hypotheses (PYTHON AUTHORITY).
+        """
+        # Ensure we have the step output
+        if not hasattr(state, self.state_field) or not state.step_analyst:
+            return state
+
+        result = state.step_analyst
+        
+        if result.hypoteesit:
+            logger.info(f"[AnalystAgent] Enforcing Hypothesis IDs (Count: {len(result.hypoteesit)})")
+            for idx, hyp in enumerate(result.hypoteesit, 1):
+                new_id = f"HYP-{idx}"
+                if hyp.id != new_id:
+                    # logger.debug(f"Renaming Hypothesis: {hyp.id} -> {new_id}")
+                    hyp.id = new_id
+        
+        return state

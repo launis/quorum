@@ -1,11 +1,10 @@
 """Administration Service for backend management."""
 
 import os
-from typing import Any
 
 from backend.database.repository import AbstractWorkflowRepository
-from backend.services.progress import ProgressTracker
 from backend.schemas.admin import AdminOperationResponse
+from backend.services.progress import ProgressTracker
 
 
 class AdministrationService:
@@ -111,10 +110,11 @@ class AdministrationService:
         """
         return await self._run_external_reset(tracker, "seed_firestore.py", "Firestore Reset")
 
-    async def _run_external_reset(self, tracker: ProgressTracker, script_name: str, op_name: str) -> AdminOperationResponse:
-        import subprocess
-        import sys
+    async def _run_external_reset(
+        self, tracker: ProgressTracker, script_name: str, op_name: str
+    ) -> AdminOperationResponse:
         import asyncio
+        import sys
 
         from backend.settings import get_settings
 
@@ -135,29 +135,20 @@ class AdministrationService:
 
             # Using asyncio.create_subprocess_exec for non-blocking execution
             process = await asyncio.create_subprocess_exec(
-                sys.executable,
-                script_path,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                cwd=cwd
+                sys.executable, script_path, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, cwd=cwd
             )
-            
+
             # Wait for completion
             stdout, stderr = await process.communicate()
-            
+
             if process.returncode != 0:
                 error_msg = stderr.decode().strip()
                 raise Exception(f"Script failed (Exit {process.returncode}): {error_msg}")
 
             await tracker.update("Completed", 100)
             return AdminOperationResponse(
-                status="completed", 
-                message=f"{op_name} Successful", 
-                output=stdout.decode()[:500]
+                status="completed", message=f"{op_name} Successful", output=stdout.decode()[:500]
             )
-
-            await tracker.update("Completed", 100)
-            return {"status": "completed", "message": f"{op_name} Successful", "output": result.stdout[:500]}
 
         except Exception as e:
             await tracker.fail(str(e))

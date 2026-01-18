@@ -1,10 +1,10 @@
 """Matrix Formatter Service for Evaluation Matrices."""
 
 import json
-from typing import Any, Dict
+from typing import Any
 
 
-def format_matrix_component(component: Dict[str, Any]) -> str:
+def format_matrix_component(component: dict[str, Any]) -> str:
     """Formats a JSON-based Evaluation Matrix into a human-readable prompt string.
 
     Args:

@@ -19,7 +19,9 @@ part of 'api_client.dart';
 /// **Configuration**:
 /// - **Base URL**: Sourced from [Env.apiUrl].
 /// - **Headers**: Default content-type is `application/json`.
+/// - **Accept**: Includes `application/problem+json` for RFC 7807 errors.
 /// - **Security**: Automatically attaches [AuthInterceptor] to sign requests.
+/// - **Error Handling**: [ErrorInterceptor] parses RFC 7807 responses to [AppError].
 ///
 /// **Returns**:
 /// A fully configured [Dio] instance ready for network requests.
@@ -38,7 +40,9 @@ final apiClientProvider = ApiClientProvider._();
 /// **Configuration**:
 /// - **Base URL**: Sourced from [Env.apiUrl].
 /// - **Headers**: Default content-type is `application/json`.
+/// - **Accept**: Includes `application/problem+json` for RFC 7807 errors.
 /// - **Security**: Automatically attaches [AuthInterceptor] to sign requests.
+/// - **Error Handling**: [ErrorInterceptor] parses RFC 7807 responses to [AppError].
 ///
 /// **Returns**:
 /// A fully configured [Dio] instance ready for network requests.
@@ -56,7 +60,9 @@ final class ApiClientProvider extends $FunctionalProvider<Dio, Dio, Dio>
   /// **Configuration**:
   /// - **Base URL**: Sourced from [Env.apiUrl].
   /// - **Headers**: Default content-type is `application/json`.
+  /// - **Accept**: Includes `application/problem+json` for RFC 7807 errors.
   /// - **Security**: Automatically attaches [AuthInterceptor] to sign requests.
+  /// - **Error Handling**: [ErrorInterceptor] parses RFC 7807 responses to [AppError].
   ///
   /// **Returns**:
   /// A fully configured [Dio] instance ready for network requests.
@@ -93,4 +99,4 @@ final class ApiClientProvider extends $FunctionalProvider<Dio, Dio, Dio>
   }
 }
 
-String _$apiClientHash() => r'aa4e9e075940dbc629f2e363a1427ee32d13d147';
+String _$apiClientHash() => r'3746b193b0835d06ac9365de57931b53121f7f7f';

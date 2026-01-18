@@ -5,16 +5,18 @@ Includes MIGRATION LOGIC to transform Legacy Workflows -> V2.9 GraphEngine Workf
 """
 
 import json
-import os
 import logging
-from typing import List, Dict, Any
+import os
+from typing import Any
 
 from tinydb import Query, TinyDB
 
 logger = logging.getLogger(__name__)
 
+
 def seed_database(target_env: str = "LOCAL", target_db_path: str | None = None):
     from backend.settings import get_settings
+
     settings = get_settings()
 
     print(f"[Seeder] Loading seed data from: {settings.seed_data_path}")
@@ -45,9 +47,8 @@ def seed_database(target_env: str = "LOCAL", target_db_path: str | None = None):
         _seed_tinydb(path, seed_data)
 
 
-def _apply_migrations(seed_data: Dict[str, Any]):
+def _apply_migrations(seed_data: dict[str, Any]):
     """Transforms legacy workflow definitions to GraphEngine V2.9 format."""
-    
     # 1. Map Component IDs to Task Keys
     task_map = {
         "GuardAgent": "guard",
@@ -63,18 +64,19 @@ def _apply_migrations(seed_data: Dict[str, Any]):
         "JudgeAgent": "judge",
         "CoachAgent": "coach",
         "XAIReporterAgent": "xai",
-        "PanelAgent": "panel"
+        "PanelAgent": "panel",
+        "RetrievalAgent": "retrieve_context",
     }
-    
+
     # 2. Lookup Table for Steps
     steps_lookup = {s["id"]: s for s in seed_data.get("steps", [])}
-    
+
     # 3. Process Workflows
     processed_workflows = []
-    
+
     for wf in seed_data.get("workflows", []):
         legacy_step_ids = wf.get("steps", [])
-        
+
         # --- V2.9 RE-SEEDING BYPASS ---
         # If steps are already objects (dicts), this is a V2.9 seed.
         if legacy_step_ids and isinstance(legacy_step_ids[0], dict):
@@ -91,31 +93,32 @@ def _apply_migrations(seed_data: Dict[str, Any]):
             "id": wf["id"],
             "name": wf.get("name", "Untitled Workflow"),
             "description": wf.get("description", "Migrated Workflow"),
-            "ui_schema": wf.get("ui_schema", {}), 
+            "ui_schema": wf.get("ui_schema", {}),
+            "organization_id": wf.get("organization_id"),
+            "is_public": wf.get("is_public", False),
             # 'steps' will be replaced by list of objects
-            "steps": [] 
+            "steps": [],
         }
-        
+
         # Track previous step for chaining
-        prev_step_id = None
-        
+
         for step_id in legacy_step_ids:
             if step_id not in steps_lookup:
                 print(f"[Seeder] Warning: Step {step_id} not found in steps list. Skipping.")
                 continue
-                
+
             legacy_step = steps_lookup[step_id]
             component_id = legacy_step.get("component")
             task_key = task_map.get(component_id, "unknown_task")
 
             # -- DATA FLOW MAPPING ($ syntax) --
             inputs = {}
-            
+
             # Base Context (Always needed)
-            inputs["history_text"] = "$inputs.history_text"
-            inputs["product_text"] = "$inputs.product_text"
-            inputs["reflection_text"] = "$inputs.reflection_text"
-            
+            inputs["history_text"] = "$history_text"
+            inputs["product_text"] = "$product_text"
+            inputs["reflection_text"] = "$reflection_text"
+
             # Chain logic
             if task_key == "guard":
                 # Guard takes raw inputs directly mapped above
@@ -124,18 +127,23 @@ def _apply_migrations(seed_data: Dict[str, Any]):
                 # Analyst takes Guard's sanitized output if available, else raw
                 # But to maintain simple flow, we usually use raw or sanitized.
                 # Guard outputs `sanitized_inputs` dict.
-                inputs["history_text"] = "$step_guard.sanitized_inputs.history_text"
-                inputs["product_text"] = "$step_guard.sanitized_inputs.product_text"
-                inputs["reflection_text"] = "$step_guard.sanitized_inputs.reflektiodokumentti" # Note key diff
+                inputs["history_text"] = "$step_guard.safe_data.keskusteluhistoria"
+                inputs["product_text"] = "$step_guard.safe_data.lopputuote"
+                inputs["reflection_text"] = "$step_guard.safe_data.reflektiodokumentti"
             elif task_key == "interaction":
-                inputs["history_text"] = "$step_guard.sanitized_inputs.history_text"
+                inputs["history_text"] = "$step_guard.safe_data.keskusteluhistoria"
             elif task_key == "profiler":
-                inputs["history_text"] = "$step_guard.sanitized_inputs.history_text"
+                inputs["history_text"] = "$step_guard.safe_data.keskusteluhistoria"
             elif task_key in ["logician", "falsifier", "causal", "detector", "overseer"]:
                 # Critics need TodistusKartta from Analyst
                 inputs["todistus_kartta"] = "$step_analyst"
             elif task_key == "panel":
-                inputs = {"todistus_kartta": "$step_analyst"} # Panel task takes TodistusKartta directly as model
+                inputs = {
+                    "todistus_kartta": "$step_analyst",
+                    "history_text": "$history_text",
+                    "product_text": "$product_text",
+                    "reflection_text": "$reflection_text",
+                }  # Panel task takes TodistusKartta directly as model
             elif task_key == "judge":
                 inputs["todistus_kartta"] = "$step_analyst"
                 # Ideally pass critics outputs too.
@@ -154,19 +162,17 @@ def _apply_migrations(seed_data: Dict[str, Any]):
                 inputs["tuomio"] = "$step_judge"
                 inputs["coaching_plan"] = "$step_coach"
 
-            
             new_step = {
                 "id": step_id,
                 "task_key": task_key,
                 "inputs": inputs,
-                "config": legacy_step.get("execution_config", {})
+                "config": legacy_step.get("execution_config", {}),
             }
-            
+
             new_workflow["steps"].append(new_step)
-            prev_step_id = step_id
-            
+
         processed_workflows.append(new_workflow)
-        
+
     # REPLACE workflows in seed_data
     seed_data["workflows"] = processed_workflows
     print(f"[Seeder] Migrated {len(processed_workflows)} workflows to V2.9 format.")
@@ -175,7 +181,7 @@ def _apply_migrations(seed_data: Dict[str, Any]):
 def _seed_tinydb(db_path: str, seed_data: dict):
     try:
         db = TinyDB(db_path, encoding="utf-8")
-        db.drop_tables() # CLEAN SLATE
+        db.drop_tables()  # CLEAN SLATE
         print("[Seeder] Cleared TinyDB.")
     except Exception as e:
         print(f"[Seeder] Error initializing TinyDB: {e}")
@@ -191,7 +197,7 @@ def _seed_tinydb(db_path: str, seed_data: dict):
         except Exception:
             pass
     print(f"[Seeder] Upserted {count} workflows.")
-    
+
     # Seed Components (For prompts - required for task mandates)
     components_table = db.table("components")
     count = 0
@@ -206,7 +212,44 @@ def _seed_tinydb(db_path: str, seed_data: dict):
         except Exception:
             pass
     print(f"[Seeder] Upserted {count} components.")
-    
+
+    # Seed System Config (includes model_registry)
+    # Repository.get_model_registry() now reads from system_config table directly.
+    system_config_table = db.table("system_config")
+    count = 0
+    for cfg in seed_data.get("system_config", []):
+        try:
+            cfg_id = cfg.get("id") or cfg.get("type")
+            if cfg_id:
+                cfg["id"] = cfg_id
+                system_config_table.upsert(cfg, Query().id == cfg_id)
+                count += 1
+        except Exception:
+            pass
+    print(f"[Seeder] Upserted {count} system_config items.")
+
+    # Seed Organizations
+    org_table = db.table("organizations")
+    count = 0
+    for org in seed_data.get("organizations", []):
+        try:
+            org_table.upsert(org, Query().id == org["id"])
+            count += 1
+        except Exception:
+            pass
+    print(f"[Seeder] Upserted {count} organizations.")
+
+    # Seed Users
+    users_table = db.table("users")
+    count = 0
+    for user in seed_data.get("users", []):
+        try:
+            users_table.upsert(user, Query().uid == user["uid"])
+            count += 1
+        except Exception:
+            pass
+    print(f"[Seeder] Upserted {count} users.")
+
     # We ignore 'steps' table for V2, as they are embedded in workflows now.
 
 
@@ -221,13 +264,13 @@ def _seed_firestore(seed_data: dict):
     if not firebase_admin._apps:
         cred = credentials.ApplicationDefault()
         firebase_admin.initialize_app(cred)
-    
+
     db = firestore.client()
-    
+
     # Clear collections
     for col in ["workflows", "components", "steps"]:
         _delete_collection(db.collection(col))
-        
+
     # Seed Workflows
     batch = db.batch()
     count = 0
@@ -241,9 +284,9 @@ def _seed_firestore(seed_data: dict):
             count = 0
     if count > 0:
         batch.commit()
-        
-    print(f"[Seeder] Upserted workflows to Firestore.")
-    
+
+    print("[Seeder] Upserted workflows to Firestore.")
+
     # Seed Components
     # (Similar logic for components...)
     # For brevity, implementing component seeding same as workflows
@@ -263,6 +306,29 @@ def _seed_firestore(seed_data: dict):
     if count > 0:
         batch.commit()
 
+    print("[Seeder] Upserted components to Firestore.")
+
+    # Seed System Config (includes model_registry)
+    # Repository.get_model_registry() now reads from system_config collection directly.
+    batch = db.batch()
+    count = 0
+    for cfg in seed_data.get("system_config", []):
+        cfg_id = cfg.get("id") or cfg.get("type")
+        if cfg_id:
+            cfg["id"] = cfg_id
+            ref = db.collection("system_config").document(cfg_id)
+            batch.set(ref, cfg)
+            count += 1
+            
+            if count >= 400:
+                batch.commit()
+                batch = db.batch()
+                count = 0
+    if count > 0:
+        batch.commit()
+
+    print(f"[Seeder] Upserted {count} system_config items to Firestore.")
+
 
 def _delete_collection(coll_ref, batch_size=50):
     docs = list(coll_ref.limit(batch_size).stream())
@@ -272,6 +338,7 @@ def _delete_collection(coll_ref, batch_size=50):
         deleted += 1
     if deleted >= batch_size:
         return _delete_collection(coll_ref, batch_size)
+
 
 if __name__ == "__main__":
     seed_database()

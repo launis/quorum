@@ -1,12 +1,12 @@
+import logging
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Optional, Type
+from typing import Any
 
 from pydantic import BaseModel
 
-
-import logging
-
 logger = logging.getLogger(__name__)
+
 
 @dataclass
 class TaskDefinition:
@@ -14,26 +14,25 @@ class TaskDefinition:
 
     name: str
     handler: Callable[..., Any]
-    input_schema: Type[BaseModel]
-    output_schema: Type[BaseModel]
+    input_schema: type[BaseModel]
+    output_schema: type[BaseModel]
     description: str | None = None
 
 
 class TaskRegistry:
     """Registry for functional agent tasks."""
 
-    _tasks: Dict[str, TaskDefinition] = {}
+    _tasks: dict[str, TaskDefinition] = {}
 
     @classmethod
     def register_task(
         cls,
         name: str,
-        input_schema: Type[BaseModel],
-        output_schema: Type[BaseModel],
+        input_schema: type[BaseModel],
+        output_schema: type[BaseModel],
         description: str | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-        """
-        Decorator to register a function as a task.
+        """Decorator to register a function as a task.
 
         Args:
             name: Unique identifier for the task.
@@ -63,25 +62,25 @@ class TaskRegistry:
     def register_agent(
         cls,
         task_keys: list[str],
-        agent_cls: Type[Any],  # Strictly BaseAgent subclass but Any to avoid import cycles
-        output_model: Type[BaseModel],
+        agent_cls: type[Any],  # Strictly BaseAgent subclass but Any to avoid import cycles
+        output_model: type[BaseModel],
     ) -> None:
-        """
-        Registers a legacy Class-Based Agent as a Task (V2 Adapter).
-        
+        """Registers a legacy Class-Based Agent as a Task (V2 Adapter).
+
         Creates a wrapper function that:
         1. Instantiates the Agent.
         2. Wraps input dict into a 'MockState'.
         3. Calls agent.execute(state).
         4. Extracts result from agent.state_field.
         """
+
         # Create Generic Input Schema if not strictly defined
         # We assume input is a Dict that can be mapped to State
         class GenericInput(BaseModel):
             # Allow any fields
             model_config = {"extra": "allow"}
 
-        async def agent_wrapper(input_data: BaseModel, execution_config: Dict[str, Any] | None = None) -> BaseModel:
+        async def agent_wrapper(input_data: BaseModel, execution_config: dict[str, Any] | None = None) -> BaseModel:
             # 1. Instantiate
             agent = agent_cls()
 
@@ -94,13 +93,13 @@ class TaskRegistry:
 
                 repo = await get_async_repository()
                 registry = AgentRegistry(repo)
-                
+
                 # Resolve model name using the Agent Class Name as the strategy key.
                 # E.g. "InteractionAnalystAgent" -> "gemini-2.5-pro"
                 # If this fails, the agent will fail to execute.
                 # We do NOT use a fallback here (Zero-Fallback).
                 model_name = await registry.resolve_model_name(agent_cls.__name__)
-                
+
                 # Check if agent has set_model
                 if hasattr(agent, "set_model"):
                     agent.set_model(model_name)
@@ -125,7 +124,7 @@ class TaskRegistry:
                     self.reasoning_context = {}
                     self.last_reasoning_trace = None
                     self.usage = {}
-                    self.audit_results = {} 
+                    self.audit_results = {}
 
                 def __getattr__(self, name):
                     return self._data.get(name)
@@ -138,15 +137,71 @@ class TaskRegistry:
 
                 def model_dump(self):
                     return self._data
-            
+
             # Convert Pydantic input to dict
             data_dict = input_data.model_dump()
             state = MockState(data_dict)
-            
-            # 4. Execute
+
+            # 4. Prompt Resolution (Strict Observability - Jan 2026)
+            system_instruction = None
+            if execution_config and "llm_prompts" in execution_config:
+                from backend.services.component_registry import ComponentRegistry
+                
+                # Resolve list of keys into single text block
+                reg = ComponentRegistry()
+                prompts = execution_config["llm_prompts"]
+                if prompts:
+                    logger.info(f"[{agent_cls.__name__}] Found {len(prompts)} prompt keys in config: {prompts[:3]}...")
+                    system_instruction = reg.resolve_prompts(tuple(prompts))
+                    
+                    # --- VARIABLE SUBSTITUTION (Fix for Hallucinations) ---
+                    # The prompt contains {{HISTORY_TEXT}} etc.
+                    # The input_data contains history_text etc.
+                    # We must replace the placeholders with actual content.
+                    
+                    # 1. Standardize Inputs
+                    vars_to_inject = {}
+                    if isinstance(input_data, BaseModel):
+                        vars_to_inject = input_data.model_dump()
+                    elif isinstance(input_data, dict):
+                        vars_to_inject = input_data
+                    
+                    # 2. Add System Context Variables
+                    import datetime
+                    vars_to_inject["CURRENT_DATE"] = datetime.datetime.now().strftime("%Y-%m-%d")
+                    vars_to_inject["DYNAMIC_TIME"] = datetime.datetime.now().strftime("%H:%M:%S")
+                    vars_to_inject["DYNAMIC_LOCATION"] = "Sijainti: VIRTUAL_ENCLAVE" # Default
+                    
+                    # 3. Perform Substitution
+                    if system_instruction:
+                        for key, value in vars_to_inject.items():
+                            if value is None:
+                                value = ""
+                            # Try UPPERCASE match first (Standard: {{HISTORY_TEXT}})
+                            placeholder = f"{{{{{key.upper()}}}}}" 
+                            if placeholder in system_instruction:
+                                system_instruction = system_instruction.replace(placeholder, str(value))
+                            
+                            # Try Direct Match (Legacy: {{history_text}})
+                            placeholder_lower = f"{{{{{key}}}}}"
+                            if placeholder_lower in system_instruction:
+                                system_instruction = system_instruction.replace(placeholder_lower, str(value))
+                                
+                    logger.info(f"[{agent_cls.__name__}] Resolved system_instruction length: {len(system_instruction)}")
+                else:
+                    logger.warning(f"[{agent_cls.__name__}] 'llm_prompts' key present but empty list.")
+            else:
+                logger.warning(f"[{agent_cls.__name__}] No 'llm_prompts' in execution_config.")
+
+            # 5. Execute
             # Inject repository if available (resolved above)
             # We pass it in kwargs so agents like JudgeAgent can check it in prepare_context
-            result_state = await agent.execute(state, execution_config=execution_config, repository=repo)
+            result_state = await agent.execute(
+                state, 
+                system_instruction=system_instruction,
+                execution_config=execution_config, 
+                repository=repo
+            )
 
             # 4.5 HOOK EXECUTION (Centralized Registry - Jan 2026)
             # Define supported hooks (available for both pre_hooks and post_hooks)
@@ -181,8 +236,9 @@ class TaskRegistry:
                     if hook_name in HOOK_MAPPING:
                         module_path, func_name = HOOK_MAPPING[hook_name]
                         try:
-                            import importlib
                             import asyncio
+                            import importlib
+
                             module = importlib.import_module(module_path)
                             if hasattr(module, func_name):
                                 hook_func = getattr(module, func_name)
@@ -209,34 +265,32 @@ class TaskRegistry:
                 if post_hooks:
                     await _execute_hooks(post_hooks, "post_hook")
 
-
-            
             # 5. Extract Result
             field = getattr(agent, "state_field", None)
             if not field:
-                 field = task_keys[0]
-            
+                field = task_keys[0]
+
             output_val = getattr(result_state, field, None)
             if output_val is None and hasattr(result_state, "_data"):
-                 output_val = result_state._data.get(field)
-            
+                output_val = result_state._data.get(field)
+
             # Check audit_results (specifically for Judge/Critic agents)
             if output_val is None and getattr(result_state, "audit_results", None):
-                 output_val = result_state.audit_results.get(field)
+                output_val = result_state.audit_results.get(field)
 
             if output_val is None:
                 raise ValueError(f"Agent {agent_cls.__name__} did not produce output in field '{field}'.")
-            
+
             # CRITICAL FIX: Propagate xai_report_formatted if present in State (from hooks)
             # This ensures GraphEngine hoisting logic works
             if hasattr(result_state, "xai_report_formatted") and result_state.xai_report_formatted:
                 if isinstance(output_val, dict):
                     output_val["xai_report_formatted"] = result_state.xai_report_formatted
-                elif hasattr(output_val, "xai_report_formatted"): # Pydantic Model
+                elif hasattr(output_val, "xai_report_formatted"):  # Pydantic Model
                     try:
                         output_val.xai_report_formatted = result_state.xai_report_formatted
                     except Exception:
-                         pass
+                        pass
 
             if isinstance(output_val, dict):
                 return output_model(**output_val)
@@ -247,8 +301,7 @@ class TaskRegistry:
             cls._tasks[key] = TaskDefinition(
                 name=key,
                 handler=agent_wrapper,
-                input_schema=GenericInput, # Generic adapter
+                input_schema=GenericInput,  # Generic adapter
                 output_schema=output_model,
-                description=agent_cls.__doc__ or f"Adapter for {agent_cls.__name__}"
+                description=agent_cls.__doc__ or f"Adapter for {agent_cls.__name__}",
             )
-

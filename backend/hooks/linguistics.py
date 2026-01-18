@@ -22,7 +22,7 @@ def detect_performative_patterns(state: WorkflowState) -> WorkflowState:
         WorkflowState: Updated state with detected pattern metadata.
 
     """
-    logger.info("[LinguisticsHook] Running detect_performative_patterns...")
+    logger.debug("[LinguisticsHook] Running detect_performative_patterns...")
 
     # TODO (Zero-Fallback compliance): Move patterns to database configuration
     # For now, these are static linguistic markers for AI-generated text detection
@@ -49,7 +49,7 @@ def detect_performative_patterns(state: WorkflowState) -> WorkflowState:
             detected.append(pattern)
 
     if detected:
-        logger.info(f"   [LinguisticsHook] Detected patterns: {detected}")
+        logger.debug(f"   [LinguisticsHook] Detected patterns: {detected}")
         state.aux_data["performative_patterns_detected"] = json.dumps(detected)
     else:
         state.aux_data["performative_patterns_detected"] = "[]"

@@ -6,7 +6,7 @@ profile management, and organization administration.
 
 import logging
 
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
 from backend.core.rate_limit import limiter
@@ -88,7 +88,10 @@ async def verify_user_token(request: Request, payload: TokenPayload, auth_servic
             # but verify_token basic returns TokenData not full User object sometimes if simplified.
             # Our service logic handles auto-registration, so user should exist.
             from backend.exceptions import AuthenticationError
-            raise AuthenticationError(message="Profile not initialized", details={"error_code": "AUTH_PROFILE_NOT_INITIALIZED"})
+
+            raise AuthenticationError(
+                message="Profile not initialized", details={"error_code": "AUTH_PROFILE_NOT_INITIALIZED"}
+            )
 
         return LoginResponse(
             user=user,
@@ -97,13 +100,19 @@ async def verify_user_token(request: Request, payload: TokenPayload, auth_servic
         )
     except ValueError as e:
         from backend.exceptions import AuthenticationError
+
         logger.warning(f"AUTH_INVALID_TOKEN: Token verification failed: {e}")
-        raise AuthenticationError(message="Invalid Token", details={"error_code": "AUTH_INVALID_TOKEN", "original_error": str(e)}) from e
+        raise AuthenticationError(
+            message="Invalid Token", details={"error_code": "AUTH_INVALID_TOKEN", "original_error": str(e)}
+        ) from e
     except Exception as e:
         from backend.exceptions import AppException
+
         error_code = "AUTH_LOGIN_FAILED"
         logger.error(f"{error_code}: Unexpected login failure: {e}", exc_info=True)
-        raise AppException(message="Login failed", status_code=500, details={"error_code": error_code, "original_error": str(e)}) from e
+        raise AppException(
+            message="Login failed", status_code=500, details={"error_code": error_code, "original_error": str(e)}
+        ) from e
 
 
 @router.post("/impersonate", response_model=ImpersonationResponse)
@@ -124,6 +133,7 @@ async def impersonate_user(request: ImpersonationRequest, current_user: CurrentU
     requester = auth_service.repo.get_by_uid(current_user.uid)
     if not requester or requester.role != UserRole.ROOT:
         from backend.exceptions import PermissionDeniedError
+
         error_code = "PERMISSION_DENIED_IMPERSONATION"
         logger.warning(f"{error_code}: User {current_user.uid} attempted to impersonate without Root")
         raise PermissionDeniedError(message="Impersonation Denied", details={"error_code": error_code})
@@ -131,6 +141,7 @@ async def impersonate_user(request: ImpersonationRequest, current_user: CurrentU
     target = auth_service.repo.get_by_uid(request.target_uid)
     if not target:
         from backend.exceptions import ResourceNotFoundError
+
         error_code = "USER_NOT_FOUND"
         logger.warning(f"{error_code}: Impersonation target {request.target_uid} not found")
         raise ResourceNotFoundError("User", request.target_uid)
@@ -172,6 +183,7 @@ async def create_user(
     creator_full = auth_service.repo.get_by_uid(current_user.uid)
     if not creator_full:
         from backend.exceptions import AuthenticationError
+
         error_code = "AUTH_USER_NOT_FOUND"
         logger.warning(f"{error_code}: Creator {current_user.uid} not found")
         raise AuthenticationError(message="User not found", details={"error_code": error_code})
@@ -181,19 +193,26 @@ async def create_user(
         return new_user
     except PermissionError as e:
         from backend.exceptions import PermissionDeniedError
+
         error_code = "PERMISSION_DENIED"
         logger.warning(f"{error_code}: {e}")
         raise PermissionDeniedError(message=str(e), details={"error_code": error_code}) from e
     except ValueError as e:
         from backend.exceptions import AppException
+
         error_code = "INVALID_USER_DATA"
         logger.warning(f"{error_code}: {e}")
         raise AppException(message=str(e), status_code=400, details={"error_code": error_code}) from e
     except Exception as e:
         from backend.exceptions import AppException
+
         error_code = "USER_CREATION_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message="User creation failed", status_code=500, details={"error_code": error_code, "original_error": str(e)}) from e
+        raise AppException(
+            message="User creation failed",
+            status_code=500,
+            details={"error_code": error_code, "original_error": str(e)},
+        ) from e
 
 
 @router.post("/organizations", response_model=Organization)
@@ -214,6 +233,7 @@ async def create_organization(org_data: OrganizationCreate, current_user: Curren
     creator = auth_service.repo.get_by_uid(current_user.uid)
     if not creator or creator.role != UserRole.ROOT:
         from backend.exceptions import PermissionDeniedError
+
         error_code = "PERMISSION_DENIED_ROOT_ONLY"
         logger.warning(f"{error_code}: User {current_user.uid} attempted to create org")
         raise PermissionDeniedError(message="Access denied", details={"error_code": error_code})
@@ -222,6 +242,7 @@ async def create_organization(org_data: OrganizationCreate, current_user: Curren
         return await auth_service.create_organization(creator.uid, org_data)
     except Exception as e:
         from backend.exceptions import AppException
+
         error_code = "ORGANIZATION_CREATION_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
         raise AppException(message=str(e), status_code=400, details={"error_code": error_code}) from e
@@ -241,6 +262,7 @@ async def list_users(current_user: CurrentUserDep, auth_service: AuthServiceDep)
     requester = auth_service.repo.get_by_uid(current_user.uid)
     if not requester:
         from backend.exceptions import AuthenticationError
+
         error_code = "AUTH_USER_NOT_FOUND"
         logger.warning(f"{error_code}: User {current_user.uid} not found")
         raise AuthenticationError(message="User not found", details={"error_code": error_code})
@@ -290,26 +312,32 @@ async def delete_user(uid: str, current_user: CurrentUserDep, auth_service: Auth
         return {"status": "deleted", "uid": uid}
     except PermissionError as e:
         from backend.exceptions import PermissionDeniedError
+
         error_code = "PERMISSION_DENIED"
         logger.warning(f"{error_code}: {e}")
         raise PermissionDeniedError(message=str(e), details={"error_code": error_code}) from e
     except ValueError as e:
         # Business logic errors (Last Admin) usually 400
         from backend.exceptions import AppException
+
         error_code = "INVALID_USER_DATA"
         logger.warning(f"{error_code}: {e}")
         raise AppException(message=str(e), status_code=400, details={"error_code": error_code}) from e
     except RuntimeError as e:
         if "LAST_ADMIN_PROTECTION" in str(e):
             from backend.exceptions import ConflictError
+
             error_code = "LAST_ADMIN_PROTECTION"
             logger.warning(f"{error_code}: {e}")
             raise ConflictError(message="Last Admin Protection", details={"error_code": error_code}) from e
 
         from backend.exceptions import AppException
+
         error_code = "USER_DELETION_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message="Deletion failed", status_code=500, details={"error_code": error_code, "original_error": str(e)}) from e
+        raise AppException(
+            message="Deletion failed", status_code=500, details={"error_code": error_code, "original_error": str(e)}
+        ) from e
 
 
 @router.patch("/users/{uid}", response_model=User)
@@ -330,26 +358,32 @@ async def update_user(uid: str, user_update: UserUpdate, current_user: CurrentUs
         return updated_user
     except PermissionError as e:
         from backend.exceptions import PermissionDeniedError
+
         error_code = "PERMISSION_DENIED"
         logger.warning(f"{error_code}: {e}")
         raise PermissionDeniedError(message=str(e), details={"error_code": error_code}) from e
     except ValueError as e:
         # User not found usually ValueError in update_user
         from backend.exceptions import ResourceNotFoundError
+
         error_code = "USER_NOT_FOUND"
         logger.warning(f"{error_code}: {e}")
         raise ResourceNotFoundError("User", uid) from e
     except Exception as e:
         if "LAST_ADMIN_PROTECTION" in str(e):
             from backend.exceptions import ConflictError
+
             error_code = "LAST_ADMIN_PROTECTION"
             logger.warning(f"{error_code}: {e}")
             raise ConflictError(message="Last Admin Protection", details={"error_code": error_code}) from e
-        
+
         from backend.exceptions import AppException
+
         error_code = "USER_UPDATE_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(message="Update failed", status_code=500, details={"error_code": error_code, "original_error": str(e)}) from e
+        raise AppException(
+            message="Update failed", status_code=500, details={"error_code": error_code, "original_error": str(e)}
+        ) from e
 
 
 @router.get("/me", response_model=User)
@@ -366,6 +400,7 @@ async def get_my_profile(current_user: CurrentUserDep, auth_service: AuthService
     user = auth_service.repo.get_by_uid(current_user.uid)
     if not user:
         from backend.exceptions import AuthenticationError
+
         error_code = "AUTH_USER_NOT_FOUND"
         logger.warning(f"{error_code}: Profile for {current_user.uid} not found")
         raise AuthenticationError(message="User not found", details={"error_code": error_code})
