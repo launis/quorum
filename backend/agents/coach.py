@@ -14,7 +14,7 @@ from backend.agents.base import BaseAgent
 from backend.models.domain import CoachingPlan
 
 if TYPE_CHECKING:
-    from backend.models.state import WorkflowState
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -40,33 +40,32 @@ class CoachAgent(BaseAgent):
 
     async def execute(
         self,
-        state: WorkflowState | None = None,
+        input_data: dict,
+        execution_context: dict | None = None,
         system_instruction: str | None = None,
         **kwargs,
-    ) -> WorkflowState:
+    ) -> dict:
         """Executes the coaching plan generation.
 
-        Input State:
-            - state.step_judge (Required context).
-            - state.inputs (Product, Reflection).
-            - External knowledge base via `prepare_context`.
+        Args:
+            input_data (dict): Inputs.
+            execution_context (dict): Context.
+            system_instruction (str): Prompt.
+            **kwargs: Args.
 
-        Output State:
-            - state.step_coach (CoachingPlan): The generated actionable plan.
-            - state.step_coach.lahdeluettelo (Populated via post-hook).
-
-        Exceptions:
-            - AgentExecutionError: If LLM fails or schema validation fails.
+        Returns:
+            dict: The generated actionable plan.
         """
-        return await super().execute(state, system_instruction, **kwargs)
+        return await super().execute(input_data, execution_context, system_instruction, **kwargs)
 
-    async def prepare_context(self, state: WorkflowState, **kwargs) -> str:
-        """PRE-HOOK: prepare_context.
+    async def prepare_context(self, input_data: dict, execution_context: dict | None, **kwargs) -> str:
+        """Lifecycle Hook: Pre-Execution.
 
         Loads Domain Knowledge AND the Judge's Verdict (Tuomio).
 
         Args:
-            state (WorkflowState): The current workflow state.
+            input_data (dict): Inputs.
+            execution_context (dict): Context.
             **kwargs: Additional arguments.
 
         Returns:
@@ -75,7 +74,7 @@ class CoachAgent(BaseAgent):
         parts = []
 
         # 1. Load Knowledge Base
-        repository = kwargs.get("repository")
+        repository = kwargs.get("repository") # Passed via kwargs from Registry wrapper
         if repository:
             # Load items from DB
             items = await repository.get_knowledge_base_items()
@@ -123,14 +122,45 @@ class CoachAgent(BaseAgent):
             self.knowledge_base = {}
 
         # 2. Inject Verdict (Tuomio)
+        # Check kwargs first, then input_data
         tuomio = kwargs.get("tuomio")
-        if not tuomio and state:
-            tuomio = getattr(state, "step_judge", None)
+        if not tuomio:
+            tuomio = input_data.get("step_judge")
 
         if tuomio:
+            # Enhanced Analysis for Unified Evaluation Contract
             content = tuomio.model_dump_json(indent=2) if hasattr(tuomio, "model_dump_json") else str(tuomio)
             parts.append(f"### TUOMIO (VERDICT):\n{content}")
-            logger.info("[CoachAgent] Injected Verdict (Tuomio) into context.")
+
+            # Explicitly highlight weak areas (Score < 3) to guide the Coach
+            try:
+                data = tuomio.model_dump() if hasattr(tuomio, "model_dump") else tuomio
+                if isinstance(data, dict):
+                    dimensions = data.get("dimensions", [])
+                    weak_areas = []
+                    
+                    # Logic: Check dimensions field (Standard)
+                    if dimensions:
+                         for dim in dimensions:
+                             score = dim.get("score")
+                             if isinstance(score, (int, float)) and score < 3:
+                                 weak_areas.append(f"- {dim.get('dimension_id')}: Score {score} (Low)")
+                    
+                    # Fallback Logic: Check legacy pisteet (just in case)
+                    elif "pisteet" in data:
+                         p = data.get("pisteet", {})
+                         for k, v in p.items():
+                             if v and isinstance(v, dict):
+                                 val = v.get("arvosana")
+                                 if isinstance(val, (int, float)) and val < 3:
+                                      weak_areas.append(f"- {k}: Score {val} (Low)")
+
+                    if weak_areas:
+                        parts.append("### IDENTIFIED WEAK AREAS (FOCUS FOR COACHING):")
+                        parts.append("\n".join(weak_areas))
+                        logger.info(f"[CoachAgent] Identified {len(weak_areas)} weak areas for coaching focus.")
+            except Exception as e:
+                logger.warning(f"[CoachAgent] Failed to analyze weak areas: {e}")
 
         return "\n\n".join(parts)
 

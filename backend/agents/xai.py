@@ -40,24 +40,83 @@ class XAIReporterAgent(BaseAgent):
         """
         return XAIReport
 
+    async def prepare_context(self, input_data: dict, execution_context: dict | None, **kwargs) -> str | None:
+        """Lifecycle Hook: Pre-Execution.
+
+        Prepares the context for the XAI Reporter by extracting and formatting
+        the Judge's evaluation results from the new Standardized Schema.
+
+        Args:
+            input_data (dict): Inputs.
+            execution_context (dict): Config.
+            **kwargs: Args.
+
+        Returns:
+            str: Context string.
+        """
+        judge_result = input_data.get("step_judge")
+        if not judge_result:
+             logger.warning("[XAIReporterAgent] No 'step_judge' data found in inputs.")
+             return None
+        
+        # If it's a Pydantic model, dump it; if dict, use as is.
+        # The result should be EvaluationResult format (Unified Contract).
+        if hasattr(judge_result, "model_dump"):
+            data = judge_result.model_dump()
+        else:
+            data = judge_result
+
+        # Format Context
+        lines = ["### AUDIT RESULTS (EVALUATION):"]
+        
+        # 1. Total Score
+        total_score = data.get("total_score", "N/A")
+        lines.append(f"- **Total Score**: {total_score}")
+        
+        # 2. Dimensions (Replacing legacy 'pisteet' access)
+        dimensions = data.get("dimensions", [])
+        if dimensions:
+            lines.append("\n#### Dimensions:")
+            for dim in dimensions:
+                d_id = dim.get("dimension_id", "uknown").capitalize()
+                score = dim.get("score", "-")
+                reason = dim.get("reasoning", "")
+                lines.append(f"- **{d_id}**: {score}/5 - {reason}")
+        else:
+             # Fallback check for legacy 'pisteet' just in case normalization was skipped (Unlikely)
+             pisteet = data.get("pisteet")
+             if pisteet:
+                 lines.append("\n#### Dimensions (Legacy):")
+                 for key, val in pisteet.items():
+                     if val:
+                         lines.append(f"- **{key}**: {val.get('arvosana')}/5 - {val.get('perustelu')}")
+
+        # 3. Critical Findings
+        crit_findings = data.get("critical_findings", [])
+        if crit_findings:
+            lines.append("\n#### Critical Findings:")
+            for item in crit_findings:
+                lines.append(f"- {item}")
+        
+        return "\n".join(lines)
+
     async def execute(
         self,
-        state: WorkflowState | None = None,
+        input_data: dict,
+        execution_context: dict | None = None,
         system_instruction: str | None = None,
         **kwargs,
-    ) -> WorkflowState:
+    ) -> dict:
         """Executes the XAI Reporter Agent logic.
 
-        Input State:
-            - state.step_judge (Primary input for report).
-            - state (Full context read for synthesis).
+        Args:
+            input_data (dict): Inputs.
+            execution_context (dict): Context.
+            system_instruction (str): Prompt.
+            **kwargs: Args.
 
-        Output State:
-            - state.step_reporter (XAIReport): The final explanation/report.
-            - (Post-Hook): Generates human-readable text via `generate_report`.
-
-        Exceptions:
-            - AgentExecutionError: If LLM fails.
+        Returns:
+            dict: The final report.
         """
-        return await super().execute(state, system_instruction, **kwargs)
+        return await super().execute(input_data, execution_context, system_instruction, **kwargs)
 

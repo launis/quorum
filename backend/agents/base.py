@@ -16,16 +16,15 @@ from backend.exceptions import AgentExecutionError
 # Use string forward reference to avoid circular import if needed, or if Provider is defined there.
 # But LLMFactory is imported.
 from backend.llm.provider import LLMFactory, LLMProvider
-from backend.models.state import WorkflowState
 
 # 4. Logger
 logger = logging.getLogger(__name__)
 
 
-class BaseAgent(BaseComponent[WorkflowState]):
+class BaseAgent(BaseComponent):
     """Abstract base class for all Cognitive Quorum agents.
 
-    Handles LLM interaction via the Provider Pattern and manages WorkflowState.
+    Handles LLM interaction via the Provider Pattern.
     """
 
     state_field: str | None = None
@@ -208,97 +207,30 @@ class BaseAgent(BaseComponent[WorkflowState]):
                 logger.critical(f"{error_msg} Error: {e}")
                 raise ValueError(error_msg) from e
 
-    async def _update_state(
-        self, state: WorkflowState, response_data: Any, output_key: str | None = None, **kwargs
-    ) -> WorkflowState:
-        """Updates the WorkflowState with the LLM response.
-
-        Generic implementation: Uses self.state_field and self.get_response_schema().
-
-        Args:
-            state (WorkflowState): Current state.
-            response_data (Any): Raw data dictionary from LLM.
-            output_key (Optional[str]): Override for self.state_field.
-            **kwargs: Additional parameters.
-
-        Returns:
-            WorkflowState: The updated state object.
-
-        Raises:
-            Exception: If schema validation fails.
-
-        """
-        target_field = output_key or self.state_field
-        SchemaClass = self.get_response_schema()
-
-        if target_field and SchemaClass:
-            try:
-                # Validate and create Pydantic model
-                # Ensure response_data is a dict (JSON has been parsed)
-                if not isinstance(response_data, dict):
-                    # Strict Mode: This assumes provider returns parsed JSON if schema is present.
-                    # If prompt-based, it returns dict.
-                    pass
-
-                # FORCE SYSTEM AUTHORITY (Metadata & Checksums)
-                if response_data:
-                    self._apply_python_authority(response_data)
-
-                # STRICT MODERNIZATION: Only accept pre-hydrated Pydantic objects
-                if isinstance(response_data, SchemaClass):
-                    validated_data = response_data
-                else:
-                    # STRICT MODE VIOLATION: We no longer accept raw dicts here.
-                    # LLMProvider MUST handle hydration.
-                    error_msg = f"Strict Mode Violation: Expected {SchemaClass.__name__}, got {type(response_data).__name__}. Check LLMProvider hydration."
-                    logger.error(f"[{self.__class__.__name__}] {error_msg}")
-                    raise AgentExecutionError(detail="AGENT_STRICT_MODE_VIOLATION", original_error=TypeError(error_msg))
-
-                # Check if state has this field
-                if hasattr(state, target_field):
-                    logger.debug(f"_update_state [id={id(state)}] Setting {target_field}")
-                    setattr(state, target_field, validated_data)
-                    logger.info(f"[{self.__class__.__name__}] Updated state.{target_field}")
-                else:
-                    logger.warning(
-                        f"[{self.__class__.__name__}] State model missing field '{target_field}'. "
-                        "Assigning to aux_data."
-                    )
-                    state.aux_data[target_field] = validated_data.model_dump()
-
-                return state
-            except Exception as e:
-                error_code = "STATE_UPDATE_FAILED"
-                logger.error(f"{error_code}: Generic state update failed - {e}", exc_info=True)
-                raise AgentExecutionError(detail=error_code, original_error=e) from e
-
-        raise NotImplementedError(f"[{self.__class__.__name__}] must define 'state_field' or override '_update_state'.")
-
     async def execute(
         self,
-        state: WorkflowState | None = None,
+        input_data: dict,
+        execution_context: dict | None = None,
         system_instruction: str | None = None,
         **kwargs,
-    ) -> WorkflowState:  # type: ignore[override]
+    ) -> dict:  # type: ignore[override]
         """Standard execution entry point.
 
-        Takes the entire WorkflowState, processes it, and returns the updated state.
+        Takes input dict, processes it, and returns the result dict.
 
         Args:
-            state (WorkflowState, optional): The current workflow context.
+            input_data (dict): The resolved input variables.
+            execution_context (Optional[dict]): Access to repo/config.
             system_instruction (Optional[str]): Prompt override.
-            **kwargs: Additional parameters for LLM (e.g. max_tokens, temperature, output_key).
+            **kwargs: Additional parameters for LLM.
 
         Returns:
-            WorkflowState: Updated state after execution.
+            dict: The execution result (response data).
 
         Raises:
             Exception: If execution fails.
 
         """
-        if state is None:
-            raise ValueError(f"[{self.__class__.__name__}] Execution requires a valid WorkflowState.")
-
         logger.info(f"[{self.__class__.__name__}] Starting execution...")
         try:
             # 1. Use Generic User Prompt (The System Instruction carries the context)
@@ -313,14 +245,12 @@ class BaseAgent(BaseComponent[WorkflowState]):
 
             # 3.5 Lifecycle Hook: Prepare Context
             logger.info(f"[{self.__class__.__name__}] Lifecycle Hook: prepare_context")
-            additional_context = await self.prepare_context(state, **kwargs)
+            additional_context = await self.prepare_context(input_data, execution_context, **kwargs)
             if additional_context:
                 system_instruction = (system_instruction or "") + "\n\n" + additional_context
                 logger.debug(f"[{self.__class__.__name__}] Appended dynamic context.")
 
             # 3.5.5 Schema Injection (Modern Polish)
-            # If the prompt explicitly asks for {{SCHEMA_EXAMPLE}}, we provide it textually
-            # to reinforce the API-level constraint.
             if system_instruction and "{{SCHEMA_EXAMPLE}}" in system_instruction:
                 if response_schema:
                     import json
@@ -337,11 +267,17 @@ class BaseAgent(BaseComponent[WorkflowState]):
 
 
             # 3.6 Context Continuity Check (Transient Reasoning Trace)
-            if state.last_reasoning_trace:
+            # Access trace from input_data or context? 
+            # Assuming input_data might contain 'last_reasoning_trace' if mapped?
+            # Or execution_context? 
+            # For now, if we are strictly stateless, we depend on inputs.
+            # However, prompt says "Remove all imports and type hints referring to WorkflowState."
+            # So we check input_data or kwargs.
+            if kwargs.get("pass_reasoning_token"):
+                 pass # Already in kwargs
+            elif input_data.get("last_reasoning_trace"):
                 logger.info(f"[{self.__class__.__name__}] Chain of Thought: Injecting previous reasoning trace.")
-                kwargs["pass_reasoning_token"] = state.last_reasoning_trace
-            else:
-                logger.debug(f"[{self.__class__.__name__}] No previous reasoning trace available.")
+                kwargs["pass_reasoning_token"] = input_data["last_reasoning_trace"]
 
             # --- LOGGING EXECUTION CONFIG ---
             conf_model = self.model
@@ -394,60 +330,34 @@ class BaseAgent(BaseComponent[WorkflowState]):
             else:
                 response_data = response_obj.content
 
-            # Store reasoning_token if captured (Hot Potato Update)
-            reasoning_source = None
-            if response_obj.reasoning_token:
-                logger.info(
-                    f"[{self.__class__.__name__}] Reasoning Token captured (Size: {len(response_obj.reasoning_token)})"
-                )
-                state.last_reasoning_trace = response_obj.reasoning_token
-                reasoning_source = response_obj.reasoning_token
-            # Fallback: Check if structured output contains the trace (Common in Gemini/OpenAI Pydantic mode)
-            elif isinstance(response_data, dict) and response_data.get("reasoning_trace"):
-                logger.info(f"[{self.__class__.__name__}] Reasoning extracted from Structured Output JSON.")
-                state.last_reasoning_trace = response_data["reasoning_trace"]
-                reasoning_source = response_data["reasoning_trace"]
-
-            if reasoning_source:
-                # Also store in historical context for debugging
-                target_key = kwargs.get("output_key") or self.state_field or self.__class__.__name__
-                state.reasoning_context[target_key] = {
-                    "token": reasoning_source,
-                    "model": self.model or "unknown",
-                    "provider": self.provider_type or "google",
-                }
-
-            # 4.5 Capture Usage/Cost
+            # 4.5 Capture Usage/Cost (Return in metadata or separate logging?)
+            # Since we return a dict, we can't update state directly.
+            # Should we attach usage to the response?
+            # For now, we just log it as the prompt requested "return its result".
+            # If the engine handles usage, it needs parsing.
+            # But the prompt said: "The agent should no longer modify state objects; it should purely return its result as a dictionary (or Pydantic model)."
+            # We assume usage tracking is handled by the caller or logging for now.
             logger.info(f"BaseAgent processing usage. Response token_usage: {response_obj.token_usage}")
-            if response_obj.token_usage:
-                # PRIORITIZE usage_key for unique tracking (e.g. step_id), fallback to output_key/class
-                step_key = (
-                    kwargs.get("usage_key") or kwargs.get("output_key") or self.state_field or self.__class__.__name__
-                )
-                costs = response_obj.token_usage  # Should be dict from LiteLLMProvider
-                logger.info(f"Processing costs for {step_key}: {costs}")
-                state.usage[step_key] = {
-                    "completion_tokens": costs.get("completion_tokens", 0),
-                    "prompt_tokens": costs.get("prompt_tokens", 0),
-                    "total_cost": costs.get("total_cost", 0.0),
-                    "model": self.model or "unknown",
-                }
-                logger.info(f"[{self.__class__.__name__}] Usage tracked: {costs.get('total_cost', 0.0)} USD")
-            else:
-                logger.info("No token_usage found in response.")
 
-            # 5. Update State
-            output_key = kwargs.get("output_key")
-            # Remove output_key from kwargs to avoid "multiple values" error when passing both explicit arg and **kwargs
-            update_kwargs = {k: v for k, v in kwargs.items() if k != "output_key"}
-            updated_state = await self._update_state(state, response_data, output_key=output_key, **update_kwargs)
-
+             # FORCE SYSTEM AUTHORITY (Metadata & Checksums)
+            if response_data:
+                self._apply_python_authority(response_data)
+            
             # 6. Lifecycle Hook: Post Process
             logger.info(f"[{self.__class__.__name__}] Lifecycle Hook: post_process")
-            updated_state = self.post_process(updated_state)
+            response_data = self.post_process(response_data)
 
             logger.info(f"[{self.__class__.__name__}] Execution completed.")
-            return updated_state
+            
+            # Return Pydantic model as dict or strict return?
+            # "The agent should no longer modify state objects; it should purely return its result as a dictionary (or Pydantic model)."
+            # "Update the execute method logic: ... return the validated response_data directly."
+            # "signature... -> dict"
+            
+            if isinstance(response_data, BaseModel):
+                return response_data.model_dump()
+                
+            return response_data
 
         except ValidationError as e:
             # ECHO PROTOCOL: Log First, Then Raise
@@ -466,13 +376,14 @@ class BaseAgent(BaseComponent[WorkflowState]):
                 agent_name=self.__class__.__name__
             ) from e
 
-    async def prepare_context(self, state: WorkflowState, **kwargs) -> str | None:
+    async def prepare_context(self, input_data: dict, execution_context: dict | None, **kwargs) -> str | None:
         """Lifecycle Hook: Pre-Execution.
 
         Override to inject dynamic context.
 
         Args:
-            state (WorkflowState): Current state.
+            input_data (dict): Inputs.
+            execution_context (dict): Context.
             **kwargs: execution arguments.
 
         Returns:
@@ -481,25 +392,25 @@ class BaseAgent(BaseComponent[WorkflowState]):
         """
         return None
 
-    def post_process(self, state: WorkflowState) -> WorkflowState:
+    def post_process(self, response_data: Any) -> Any:
         """Lifecycle Hook: Post-Execution.
 
-        Override to refine state or perform calculations.
+        Override to refine response.
 
         Args:
-            state (WorkflowState): Current state.
+            response_data (Any): The result.
 
         Returns:
-            WorkflowState: Processed state.
+            Any: Processed result.
 
         """
-        return state
+        return response_data
 
-    def construct_user_prompt(self, state: WorkflowState) -> str:
+    def construct_user_prompt(self, input_data: Any) -> str:
         """Deprecated: User prompts are now generic.
 
         Args:
-            state (WorkflowState): Context.
+            input_data: Context.
 
         Returns:
             str: Prompt text.

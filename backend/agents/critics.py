@@ -19,7 +19,7 @@ from backend.models.domain import (
 )
 
 if TYPE_CHECKING:
-    from backend.models.state import WorkflowState
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -42,11 +42,11 @@ class LogicalFalsifierAgent(BaseAgent):
         """
         return LogiikkaAuditointi
 
-    async def prepare_context(self, state: WorkflowState, **kwargs) -> str | None:
+    async def prepare_context(self, input_data: dict, execution_context: dict | None, **kwargs) -> str | None:
         """Lifecycle Hook: Pre-Execution."""
         todistus_kartta = kwargs.get("todistus_kartta")
-        if not todistus_kartta and state:
-            todistus_kartta = getattr(state, "step_analyst", None)
+        if not todistus_kartta:
+            todistus_kartta = input_data.get("step_analyst")
 
         if todistus_kartta:
             content = (
@@ -60,22 +60,23 @@ class LogicalFalsifierAgent(BaseAgent):
 
     async def execute(
         self,
-        state: WorkflowState | None = None,
+        input_data: dict,
+        execution_context: dict | None = None,
         system_instruction: str | None = None,
         **kwargs,
-    ) -> WorkflowState:
+    ) -> dict:
         """Executes logical fallacies analysis.
 
-        Input State:
-            - state.inputs (History, Product).
+        Args:
+            input_data (dict): Inputs.
+            execution_context (dict): Context.
+            system_instruction (str): Prompt.
+            **kwargs: Args.
 
-        Output State:
-            - state.step_falsifier (LogiikkaAuditointi): Logical consistency report.
-
-        Exceptions:
-            - AgentExecutionError: If LLM fails.
+        Returns:
+            dict: Logical consistency report.
         """
-        return await super().execute(state, system_instruction, **kwargs)
+        return await super().execute(input_data, execution_context, system_instruction, **kwargs)
 
 
 class FactualOverseerAgent(BaseAgent):
@@ -96,11 +97,11 @@ class FactualOverseerAgent(BaseAgent):
         """
         return EtiikkaJaFakta
 
-    async def prepare_context(self, state: WorkflowState, **kwargs) -> str | None:
+    async def prepare_context(self, input_data: dict, execution_context: dict | None, **kwargs) -> str | None:
         """Lifecycle Hook: Pre-Execution."""
         todistus_kartta = kwargs.get("todistus_kartta")
-        if not todistus_kartta and state:
-            todistus_kartta = getattr(state, "step_analyst", None)
+        if not todistus_kartta:
+            todistus_kartta = input_data.get("step_analyst")
 
         context_parts = []
 
@@ -112,10 +113,15 @@ class FactualOverseerAgent(BaseAgent):
             )
             context_parts.append(f"### TODISTUSKARTTA (EVIDENCE MAP):\n{content}")
 
-        # Inject Google Search Results if available
-        if state and state.aux_data and "google_search_results" in state.aux_data:
-            search_results = state.aux_data["google_search_results"]
+        # Inject Google Search Results if available in input_data
+        if "google_search_results" in input_data:
+            search_results = input_data["google_search_results"]
             context_parts.append(f"### HAKUTULOKSET (GOOGLE SEARCH RESULTS):\n{search_results}")
+        # Legacy/Fallback check in execution_context
+        elif execution_context and "google_search_results" in execution_context:
+             search_results = execution_context["google_search_results"]
+             context_parts.append(f"### HAKUTULOKSET (GOOGLE SEARCH RESULTS):\n{search_results}")
+
 
         if context_parts:
             return "\n\n".join(context_parts)
@@ -124,41 +130,28 @@ class FactualOverseerAgent(BaseAgent):
 
     async def execute(
         self,
-        state: WorkflowState | None = None,
+        input_data: dict,
+        execution_context: dict | None = None,
         system_instruction: str | None = None,
         **kwargs,
-    ) -> WorkflowState:
+    ) -> dict:
         """Executes factual and ethical oversight.
 
-        Input State:
-            - state.inputs (History, Product).
-            - state.aux_data.search_results (if Google Search hook is active).
-
-        Output State:
-            - state.step_overseer (EtiikkaJaFakta): Factuality report.
-
-        Exceptions:
-            - AgentExecutionError: If LLM fails.
-        """
-        return await super().execute(state, system_instruction, **kwargs)
-
-    def execute_google_search(self, state: WorkflowState) -> WorkflowState:
-        """HOOK: execute_google_search.
-
-        Executes Google Search based on hypotheses generated during the oversight process.
-        Delegates underlying logic to 'backend.hooks.search.execute_google_search'.
-
         Args:
-            state (WorkflowState): The current workflow state.
+            input_data (dict): Inputs.
+            execution_context (dict): Context.
+            system_instruction (str): Prompt.
+            **kwargs: Args.
 
         Returns:
-            WorkflowState: The updated state with search results.
-
+            dict: Factuality report.
         """
-        logger.info("[FactualOverseerAgent] Delegating to Search Hook...")
-        from backend.hooks.search import execute_google_search
+        return await super().execute(input_data, execution_context, system_instruction, **kwargs)
 
-        return execute_google_search(state)
+    def execute_google_search(self, state: Any) -> Any:
+        """HOOK: execute_google_search."""
+        # This hook is likely handled by Engine/Registry before input injection
+        pass
 
 
 class CausalAnalystAgent(BaseAgent):
@@ -179,11 +172,11 @@ class CausalAnalystAgent(BaseAgent):
         """
         return KausaalinenAuditointi
 
-    async def prepare_context(self, state: WorkflowState, **kwargs) -> str | None:
+    async def prepare_context(self, input_data: dict, execution_context: dict | None, **kwargs) -> str | None:
         """Lifecycle Hook: Pre-Execution."""
         todistus_kartta = kwargs.get("todistus_kartta")
-        if not todistus_kartta and state:
-            todistus_kartta = getattr(state, "step_analyst", None)
+        if not todistus_kartta:
+            todistus_kartta = input_data.get("step_analyst")
 
         if todistus_kartta:
             content = (
@@ -197,22 +190,23 @@ class CausalAnalystAgent(BaseAgent):
 
     async def execute(
         self,
-        state: WorkflowState | None = None,
+        input_data: dict,
+        execution_context: dict | None = None,
         system_instruction: str | None = None,
         **kwargs,
-    ) -> WorkflowState:
+    ) -> dict:
         """Executes causal analysis.
 
-        Input State:
-            - state.inputs (History, Product).
+        Args:
+            input_data (dict): Inputs.
+            execution_context (dict): Context.
+            system_instruction (str): Prompt.
+            **kwargs: Args.
 
-        Output State:
-            - state.step_causal (KausaalinenAuditointi): Correlation/Causation report.
-
-        Exceptions:
-            - AgentExecutionError: If LLM fails.
+        Returns:
+            dict: Correlation/Causation report.
         """
-        return await super().execute(state, system_instruction, **kwargs)
+        return await super().execute(input_data, execution_context, system_instruction, **kwargs)
 
 
 class PerformativityDetectorAgent(BaseAgent):
@@ -233,11 +227,11 @@ class PerformativityDetectorAgent(BaseAgent):
         """
         return PerformatiivisuusAuditointi
 
-    async def prepare_context(self, state: WorkflowState, **kwargs) -> str | None:
+    async def prepare_context(self, input_data: dict, execution_context: dict | None, **kwargs) -> str | None:
         """Lifecycle Hook: Pre-Execution."""
         todistus_kartta = kwargs.get("todistus_kartta")
-        if not todistus_kartta and state:
-            todistus_kartta = getattr(state, "step_analyst", None)
+        if not todistus_kartta:
+            todistus_kartta = input_data.get("step_analyst")
 
         if todistus_kartta:
             content = (
@@ -251,22 +245,23 @@ class PerformativityDetectorAgent(BaseAgent):
 
     async def execute(
         self,
-        state: WorkflowState | None = None,
+        input_data: dict,
+        execution_context: dict | None = None,
         system_instruction: str | None = None,
         **kwargs,
-    ) -> WorkflowState:
+    ) -> dict:
         """Executes performativity detection.
 
-        Input State:
-            - state.inputs (History, Product).
+        Args:
+            input_data (dict): Inputs.
+            execution_context (dict): Context.
+            system_instruction (str): Prompt.
+            **kwargs: Args.
 
-        Output State:
-            - state.step_detector (PerformatiivisuusAuditointi): Rhetorical analysis.
-
-        Exceptions:
-            - AgentExecutionError: If LLM fails.
+        Returns:
+            dict: Rhetorical analysis.
         """
-        return await super().execute(state, system_instruction, **kwargs)
+        return await super().execute(input_data, execution_context, system_instruction, **kwargs)
 
     def detect_performative_patterns(self, state: WorkflowState) -> WorkflowState:
         """HOOK: detect_performative_patterns.

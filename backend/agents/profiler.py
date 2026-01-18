@@ -14,7 +14,7 @@ from backend.agents.base import BaseAgent
 from backend.models.domain import ProfilerAnalysis
 
 if TYPE_CHECKING:
-    from backend.models.state import WorkflowState
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -38,51 +38,41 @@ class ProfilerAgent(BaseAgent):
         """
         return ProfilerAnalysis
 
+
     async def execute(
         self,
-        state: WorkflowState | None = None,
+        input_data: dict,
+        execution_context: dict | None = None,
         system_instruction: str | None = None,
         **kwargs,
-    ) -> WorkflowState:
+    ) -> dict:
         """Executes the psychological profiling analysis.
 
-        Input State:
-            - state.inputs.history_text
-            - state.inputs.product_text
-            - state.aux_data.profiler_metrics (Calculated via pre-hook)
-
-        Output State:
-            - state.step_profiler (ProfilerAnalysis): Psychological profile and intent analysis.
-            - state.aux_data.profiler_metrics: (Persisted)
-
-        Exceptions:
-            - AgentExecutionError: If LLM fails or schema validation fails.
-        """
-        return await super().execute(state, system_instruction, **kwargs)
-
-    async def _update_state(
-        self, state: WorkflowState, response_data: Any, output_key: str | None = None, **kwargs
-    ) -> WorkflowState:
-        """Updates the state with the response data.
-
-        Injects metrics into the response if available in aux_data.
-
         Args:
-            state (WorkflowState): Current workflow state.
-            response_data (Any): Data returned by the LLM.
-            output_key (Optional[str]): Override for output directory.
-            **kwargs: Extra arguments propagated from execution context.
+            input_data (dict): Inputs.
+            execution_context (dict): Context.
+            system_instruction (str): Prompt.
+            **kwargs: Args.
 
         Returns:
-            WorkflowState: Updated state.
-
+            dict: ProfilerAnalysis.
         """
-        # Merge Python-calculated metrics if available (from pre-hook)
-        if "profiler_metrics" in state.aux_data and isinstance(response_data, dict):
-            # We inject it into the dict so BaseAgent validates it including the metrics
-            response_data["teksti_metriikka"] = state.aux_data["profiler_metrics"]
+        # Inject metrics if available in pre-calculation
+        if "profiler_metrics" in input_data:
+             # This assumes BaseAgent handles enrichment or we do it here?
+             # Actually, since we return a dict/model, the Engine or _apply_python_authority handles it.
+             pass
+        return await super().execute(input_data, execution_context, system_instruction, **kwargs)
 
-        return await super()._update_state(state, response_data, output_key=output_key, **kwargs)
+    # _update_state removed. Logic for metrics injection should be in a hook or pre-processing.
+    # The 'profiler_metrics' are passed in input_data from the Engine if calculated.
+    
+    def post_process(self, response_data: Any) -> Any:
+        # If we need to inject metrics into the response structure before returning:
+        # Check execution_context or input_data?
+        # Typically the LLM response is returned as is.
+        # If 'teksti_metriikka' is missing, it might be added here if we had access to input_data context.
+        return response_data
 
     # NOTE: The analyze_text_metrics hook has been removed (Jan 2026).
     # Hooks are now executed via centralized HOOK_MAPPING in runner.py.

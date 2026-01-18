@@ -14,7 +14,7 @@ from backend.agents.base import BaseAgent
 from backend.models.domain import InteractionAnalysis
 
 if TYPE_CHECKING:
-    from backend.models.state import WorkflowState
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -42,21 +42,21 @@ class InteractionAnalystAgent(BaseAgent):
 
     async def execute(
         self,
-        state: WorkflowState | None = None,
+        input_data: dict,
+        execution_context: dict | None = None,
         system_instruction: str | None = None,
         **kwargs,
-    ) -> WorkflowState:
+    ) -> dict:
         """Executes interaction analysis (Driver/Passenger classification).
 
-        Input State:
-            - state.inputs.history_text (Primary analysis target).
+        Args:
+            input_data (dict): Inputs including history_text.
+            execution_context (dict): Context.
+            system_instruction (str): Prompt.
+            **kwargs: Args.
 
-        Output State:
-            - state.step_interaction (InteractionAnalysis): Qualitative analysis, including 'imperative_command_count'.
-            - input_control_ratio is auto-calculated by the Schema.
-
-        Exceptions:
-            - AgentExecutionError: If LLM fails.
+        Returns:
+            dict: InteractionAnalysis.
         """
         # Note: Control ratio is now calculated via centralized HOOK_MAPPING (pre_hooks in seed_data.json)
-        return await super().execute(state, system_instruction, **kwargs)
+        return await super().execute(input_data, execution_context, system_instruction, **kwargs)

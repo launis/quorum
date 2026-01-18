@@ -34,23 +34,24 @@ class ArchivistAgent(BaseAgent):
 
     async def execute(
         self,
-        state: WorkflowState | None = None,
+        input_data: dict,
+        execution_context: dict | None = None,
         system_instruction: str | None = None,
         **kwargs,
-    ) -> WorkflowState:
+    ) -> dict:
         """Executes the archival retrieval and analysis.
 
-        Input State:
-            - state.inputs (History, Product) via hooks.
-            - Precedents retrieved via `retrieve_precedent` hook.
+        Args:
+            input_data (dict): Inputs.
+            execution_context (dict): Context.
+            system_instruction (str): Prompt.
+            **kwargs: Args.
 
-        Output State:
-            - state.step_archivist (CaseLawContext): Relevant past cases and consistency analysis.
-
-        Exceptions:
-            - AgentExecutionError: If LLM fails or schema validation fails.
+        Returns:
+            dict: Relevant past cases and consistency analysis.
         """
-        return await super().execute(state, system_instruction, **kwargs)
+        # NOTE: Precedents are expected to be in input_data (injected via Engine/Hooks before execution)
+        return await super().execute(input_data, execution_context, system_instruction, **kwargs)
 
     # --- PYTHON HOOKS ---
 

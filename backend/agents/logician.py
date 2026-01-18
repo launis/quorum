@@ -14,7 +14,7 @@ from backend.agents.base import BaseAgent
 from backend.models.domain import ArgumentaatioAnalyysi
 
 if TYPE_CHECKING:
-    from backend.models.state import WorkflowState
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -39,22 +39,23 @@ class LogicianAgent(BaseAgent):
         """
         return ArgumentaatioAnalyysi
 
-    async def prepare_context(self, state: WorkflowState, **kwargs) -> str | None:
+    async def prepare_context(self, input_data: dict, execution_context: dict | None, **kwargs) -> str | None:
         """Lifecycle Hook: Pre-Execution.
 
         Injects the Evidence Map (TodistusKartta) from the Analyst step.
 
         Args:
-            state (WorkflowState): Current state.
+            input_data (dict): Inputs.
+            execution_context (dict): Context.
             **kwargs: execution arguments.
 
         Returns:
             Optional[str]: Formatted context.
         """
-        # 1. Resolve Input (Prefer kwargs from wiring, then state)
+        # 1. Resolve Input (Prefer kwargs from wiring, then input_data)
         todistus_kartta = kwargs.get("todistus_kartta")
-        if not todistus_kartta and state:
-            todistus_kartta = getattr(state, "step_analyst", None)
+        if not todistus_kartta:
+            todistus_kartta = input_data.get("step_analyst")
 
         # 2. Format Context
         if todistus_kartta:
@@ -69,19 +70,20 @@ class LogicianAgent(BaseAgent):
 
     async def execute(
         self,
-        state: WorkflowState | None = None,
+        input_data: dict,
+        execution_context: dict | None = None,
         system_instruction: str | None = None,
         **kwargs,
-    ) -> WorkflowState:
+    ) -> dict:
         """Executes argument reconstruction and cognitive assessment.
 
-        Input State:
-            - state.inputs (History, Product, Reflection).
+        Args:
+            input_data (dict): Inputs.
+            execution_context (dict): Context.
+            system_instruction (str): Prompt.
+            **kwargs: Args.
 
-        Output State:
-            - state.step_logician (ArgumentaatioAnalyysi): Argument map and scoring.
-
-        Exceptions:
-            - AgentExecutionError: If LLM fails.
+        Returns:
+            dict: ArgumentaatioAnalyysi.
         """
-        return await super().execute(state, system_instruction, **kwargs)
+        return await super().execute(input_data, execution_context, system_instruction, **kwargs)

@@ -13,7 +13,7 @@ from backend.exceptions import AgentExecutionError
 from backend.models.domain import PanelAudit
 
 if TYPE_CHECKING:
-    from backend.models.state import WorkflowState
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -40,38 +40,50 @@ class PanelAgent(BaseAgent):
 
         super().__init__(model=model, provider=provider)
 
-    def construct_user_prompt(self, state: WorkflowState) -> str:
+    def construct_user_prompt(self, input_data: dict, auxiliary_data: dict | None = None) -> str:
         """Constructs the user prompt for the Panel Agent by aggregating input data and prior step results.
 
         Args:
-            state (WorkflowState): The current workflow state.
+            input_data (dict): Flattended input data with prior steps.
+            auxiliary_data (dict): Aux data (searches etc).
 
         Returns:
             str: The constructed user prompt string.
         """
-        # Collect all relevant data for all potential critics from the state
-        # Utilizing previous steps' outputs if available
-        input_data = {
+        # Collect all relevant data for all potential critics from inputs
+        # Maps keys if they exist in input_data
+        
+        # Safe access helper
+        def safe_get(key, default="Ei saatavilla"):
+             return input_data.get(key) or default
+
+        prompt_input_data = {
             "inputs": {
-                "history_text": getattr(state.inputs, "history_text", "Ei saatavilla"),
-                "product_text": getattr(state.inputs, "product_text", "Ei saatavilla"),
-                "reflection_text": getattr(state.inputs, "reflection_text", "Ei saatavilla"),
+                "history_text": safe_get("history_text"),
+                "product_text": safe_get("product_text"),
+                "reflection_text": safe_get("reflection_text"),
             }
         }
 
         # Add available intermediate results
-        if state.step_analyst:
-            input_data["todistuskartta"] = state.step_analyst.model_dump(mode="json")
-        if state.step_profiler:
-            input_data["profiili"] = state.step_profiler.model_dump(mode="json")
+        if "step_analyst" in input_data:
+            # Assume it's already dict or model dumped by Engine
+            prompt_input_data["todistuskartta"] = input_data["step_analyst"]
+        if "step_profiler" in input_data:
+            prompt_input_data["profiili"] = input_data["step_profiler"]
 
         # Add aux data if relevant (like search results)
-        google_search_results = state.aux_data.get("google_search_results", "Ei hakutuloksia.")
+        google_search_results = "Ei hakutuloksia."
+        if auxiliary_data and "google_search_results" in auxiliary_data:
+             google_search_results = auxiliary_data["google_search_results"]
+        # Also check input_data just in case
+        elif "google_search_results" in input_data:
+             google_search_results = input_data["google_search_results"]
 
         return f"""
         INPUT DATA FOR THE PANEL:
         ---
-        {json.dumps(input_data, indent=2, ensure_ascii=False)}
+        {json.dumps(prompt_input_data, indent=2, ensure_ascii=False)}
         ---
         ULKOISEN FAKTANTARKISTUKSEN TULOKSET (jos saatavilla):
         {google_search_results}
@@ -80,38 +92,25 @@ class PanelAgent(BaseAgent):
 
     async def execute(
         self,
-        state: WorkflowState | None = None,
+        input_data: dict,
+        execution_context: dict | None = None,
         system_instruction: str | None = None,
         **kwargs,
-    ) -> WorkflowState:
+    ) -> dict:
         """Executes the Panel Agent logic.
 
-        1. Constructs the user prompt.
-        2. Calls the LLM provider with the PanelAudit schema.
-        3. Fans out the results to specific state fields (logician, falsifier, etc.).
+        Args:
+            input_data (dict): Inputs.
+            execution_context (dict): Config.
+            system_instruction (str): Prompt.
+            **kwargs: Args.
 
-        Input State:
-            - state.inputs (History, Product, Reflection).
-            - state.step_analyst (Evidence Map) [Optional].
-            - state.step_profiler (Psychological Profile) [Optional].
-
-        Output State:
-            - state.step_panel (PanelAudit): The composite audit.
-            - state.step_logician (Populated from PanelAudit).
-            - state.step_falsifier (Populated from PanelAudit).
-            - state.step_causal (Populated from PanelAudit).
-            - state.step_detector (Populated from PanelAudit).
-            - state.step_overseer (Populated from PanelAudit).
-
-        Exceptions:
-            - AgentExecutionError: If LLM fails or schema validation fails.
+        Returns:
+             dict: The composite PanelAudit result.
         """
         # 1. Construct User Prompt
-        if state is None:
-            raise ValueError("PanelAgent requires a valid WorkflowState.")
-
         try:
-            user_content = self.construct_user_prompt(state)
+            user_content = self.construct_user_prompt(input_data, auxiliary_data=input_data) # Assuming input_data contains merged aux
 
             # 2. Call LLM with strict PanelAudit schema
             if not self.llm_provider:
@@ -158,21 +157,39 @@ class PanelAgent(BaseAgent):
                         raise AgentExecutionError(detail=error_code, original_error=e) from e
 
             if panel_data:
-                # 4. Fan-Out: Populate individual state fields for compatibility with Judge/Coach
-                state.step_logician = panel_data.logiikka_auditointi
-                state.step_falsifier = panel_data.falsifiointi_auditointi
-                state.step_causal = panel_data.kausaalinen_auditointi
-                state.step_detector = panel_data.performatiivisuus_auditointi
-                state.step_overseer = panel_data.etiikka_ja_fakta
+                # 4. Result Construction
+                # We return the PanelAudit object (or dict).
+                # NOTE: The "Fan-Out" to logging/falsifier/etc fields is no longer done by modifying 'state' here.
+                # It must be done by the Engine using mapping_expressions or result_mapping logic if needed.
+                # OR we return a dict with those keys if Engine supports flattening.
+                
+                # For compatibility with new Engine, we return the PanelAudit.
+                # If we need to fan out, we might return a dict like:
+                # {
+                #   "step_panel": panel_data,
+                #   "step_logician": panel_data.logiikka_auditointi, ...
+                # }
+                # But BaseAgent usually returns one result. 
+                # Let's assume Engine takes the result for this step ID.
+                
+                logger.info("[PanelAgent] Successfully generated PanelAudit.")
+                
+                # To support fan-out in the new architecture, we might explicitly return the sub-models
+                # But typically the step result is just "step_panel".
+                # Downstream steps will look up "step_panel.logiikka_auditointi".
+                
+                if isinstance(panel_data, PanelAudit):
+                   return panel_data.model_dump()
+                return panel_data
 
-                # 5. Populate the panel step itself (optional, but good for tracking)
-                state.step_panel = panel_data
-
-                logger.info("[PanelAgent] Successfully fanned out PanelAudit to 5 distinct state steps.")
             else:
                 raise AgentExecutionError(detail="PANEL_RESPONSE_EMPTY", original_error=ValueError("No data returned"))
 
-            return state
+        except Exception as e:
+            # ECHO PROTOCOL: Safety Net
+            error_code = "PANEL_EXECUTION_CRITICAL"
+            logger.error(f"{error_code}: Unexpected failure - {e}", exc_info=True)
+            raise AgentExecutionError(detail=error_code, original_error=e) from e
 
         except Exception as e:
             # ECHO PROTOCOL: Safety Net

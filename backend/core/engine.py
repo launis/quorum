@@ -70,7 +70,7 @@ class GraphEngine:
                 # We store the raw Pydantic model or dict in the state
                 # If result is a Pydantic model, dump it to dict for state consistency?
                 # For now, let's keep it flexible or dump it.
-                # specification says: Store the result in execution_state[step.id]
+                # specification says: Store the result in execution_state.step_results[step.id]
 
                 # If the handler returns a Pydantic model, we generally want to store it as a dict
                 # to make it easily accessible for future steps JSON pathing
@@ -79,7 +79,12 @@ class GraphEngine:
                 else:
                     state_val = result
 
-                execution_state[step.id] = state_val
+                # Refactor: Store in step_results
+                if "step_results" not in execution_state:
+                    execution_state["step_results"] = {}
+                
+                execution_state["step_results"][step.id] = state_val
+                
                 logger.debug(f"Step '{step.id}' completed.")
 
                 # 6. PERSISTENCE (Step-by-Step)

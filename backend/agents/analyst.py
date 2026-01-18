@@ -14,7 +14,7 @@ from backend.agents.base import BaseAgent
 from backend.models.domain import TodistusKartta
 
 if TYPE_CHECKING:
-    from backend.models.state import WorkflowState
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -45,24 +45,23 @@ class AnalystAgent(BaseAgent):
 
     async def execute(
         self,
-        state: WorkflowState | None = None,
+        input_data: dict,
+        execution_context: dict | None = None,
         system_instruction: str | None = None,
         **kwargs,
-    ) -> WorkflowState:
+    ) -> dict:
         """Executes the analysis logic.
 
-        Input State:
-            - state.inputs.history_text
-            - state.inputs.product_text
-            - state.inputs.reflection_text
+        Args:
+            input_data (dict): Inputs.
+            execution_context (dict): Context.
+            system_instruction (str): Prompt.
+            **kwargs: Args.
 
-        Output State:
-            - state.step_analyst (TodistusKartta): The generated evidence map.
-
-        Exceptions:
-            - AgentExecutionError: If LLM fails or schema validation fails.
+        Returns:
+            dict: The generated evidence map.
         """
-        return await super().execute(state, system_instruction, **kwargs)
+        return await super().execute(input_data, execution_context, system_instruction, **kwargs)
 
     def verify_structure(self, state: WorkflowState) -> WorkflowState:
         """HOOK: verify_structure.

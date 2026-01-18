@@ -11,20 +11,7 @@ from typing import Annotated, Any
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend.models.domain import (
-    ArgumentaatioAnalyysi,
-    CaseLawContext,
-    CoachingPlan,
-    EtiikkaJaFakta,
     EvaluationResult,
-    InteractionAnalysis,
-    KausaalinenAuditointi,
-    LogiikkaAuditointi,
-    PanelAudit,
-    PerformatiivisuusAuditointi,
-    ProfilerAnalysis,
-    TaintedData,
-    TodistusKartta,
-    TuomioJaPisteet,
     XAIReport,
     ContextData,
 )
@@ -67,21 +54,7 @@ class WorkflowState(BaseModel):
         organization_id (Optional[str]): Organization ID executing this workflow.
         user_id (Optional[str]): User ID initiating this workflow.
         inputs (InputData): Immutable input data provided at initialization.
-        step_guard (Optional[TaintedData]): Agent 1 - Security & PII checks.
-        step_analyst (Optional[TodistusKartta]): Agent 2 - Research & Evidence.
-        step_profiler (Optional[ProfilerAnalysis]): Agent 2.5 - Psych/Text Analysis.
-        step_logician (Optional[ArgumentaatioAnalyysi]): Agent 3 - Logical Structure Analysis.
-        step_falsifier (Optional[LogiikkaAuditointi]): Agent 4 - Stress Testing & Falsification.
-        step_overseer (Optional[EtiikkaJaFakta]): Agent 5 - Ethics & Fact Checking.
-        step_causal (Optional[KausaalinenAuditointi]): Agent 6 - Causal & Counterfactual Analysis.
-        step_detector (Optional[PerformatiivisuusAuditointi]): Agent 7 - Performativity & Authenticity.
-        step_judge (Optional[TuomioJaPisteet]): Agent 9 - Scoring & Verdict.
-        step_judge_cognitive (Optional[TuomioJaPisteet]): Agent 9b - Cognitive BARS Scoring.
-        step_archivist (Optional[CaseLawContext]): Agent 8a - Historical alignment.
-        step_coach (Optional[CoachingPlan]): Agent 8c - Feedback & Action Plan.
-        step_interaction (Optional[InteractionAnalysis]): Agent 2.2 - Interaction Dynamics.
-        step_panel (Optional[PanelAudit]): Agent 5 (Parallel) - Consolidated Audit.
-        step_reporter (Optional[XAIReport]): Agent 10 - Final Executive Report.
+        step_results (Dict[str, Any]): Dynamic container for agent outputs.
         xai_report_formatted (Optional[str]): Final markdown report cache.
         audit_results (dict[str, EvaluationResult]): Dynamic container for matrix-based evaluations.
         reasoning_context (dict): Storage for encrypted reasoning blobs with metadata.
@@ -104,40 +77,11 @@ class WorkflowState(BaseModel):
     # Inputs (Read-only for agents)
     inputs: Annotated[InputData, Field(description="Immutable input data.")]
 
-    # Agent Outputs (Initially None, populated during execution)
-    step_guard: Annotated[TaintedData | None, Field(description="Agent 1: Security & PII checks.")] = None
-    step_analyst: Annotated[TodistusKartta | None, Field(description="Agent 2: Research & Evidence.")] = None
-    step_profiler: Annotated[ProfilerAnalysis | None, Field(description="Agent 2.5: Psych/Text Analysis.")] = None
-    step_logician: Annotated[
-        ArgumentaatioAnalyysi | None,
-        Field(description="Agent 3: Logical Structure Analysis."),
-    ] = None
-    step_falsifier: Annotated[
-        LogiikkaAuditointi | None,
-        Field(description="Agent 4: Stress Testing & Falsification."),
-    ] = None
-    step_overseer: Annotated[EtiikkaJaFakta | None, Field(description="Agent 5: Ethics & Fact Checking.")] = None
-    step_causal: Annotated[
-        KausaalinenAuditointi | None,
-        Field(description="Agent 6: Causal & Counterfactual Analysis."),
-    ] = None
-    step_detector: Annotated[
-        PerformatiivisuusAuditointi | None,
-        Field(description="Agent 7: Performativity & Authenticity."),
-    ] = None
-    step_judge: Annotated[TuomioJaPisteet | None, Field(description="Agent 9: Scoring & Verdict.")] = None
-    step_judge_cognitive: Annotated[TuomioJaPisteet | None, Field(description="Agent 9b: Cognitive BARS Scoring.")] = (
-        None
-    )
-    step_archivist: Annotated[CaseLawContext | None, Field(description="Agent 8a: Historical alignment.")] = None
-    step_coach: Annotated[CoachingPlan | None, Field(description="Agent 8c: Feedback & Action Plan.")] = None
-    step_interaction: Annotated[
-        InteractionAnalysis | None,
-        Field(description="Agent 2.2: Interaction Dynamics."),
-    ] = None
-    step_panel: Annotated[PanelAudit | None, Field(description="Agent 5 (Parallel): Consolidated Audit.")] = None
-    step_reporter: Annotated[XAIReport | None, Field(description="Agent 10: Final Executive Report.")] = None
-    step_context: Annotated[ContextData | None, Field(description="Retrieval Agent: Organizational Precedents.")] = None
+    # Dynamic Step Results (Replaces hardcoded step fields)
+    step_results: Annotated[
+        dict[str, Any],
+        Field(default_factory=dict, description="Dynamic container for agent outputs keyed by step ID."),
+    ]
 
     # Formatted output
     xai_report_formatted: Annotated[str | None, Field(description="Final markdown report cache.")] = None
@@ -187,31 +131,38 @@ class WorkflowState(BaseModel):
 
         """
         summary = []
-        steps = [
-            ("Vartija", self.step_guard),
-            ("Analyytikko", self.step_analyst),
-            ("Profiloija", self.step_profiler),
-            ("Loogikko", self.step_logician),
-            ("Falsifioija", self.step_falsifier),
-            ("Valvoja", self.step_overseer),
-            ("Kausaalinen", self.step_causal),
-            ("Tunnistaja", self.step_detector),
-            ("Tuomari", self.step_judge),
-            ("Arkistonhoitaja", self.step_archivist),
-            ("Valmentaja", self.step_coach),
-            ("Vuorovaikutusanalysaattori", self.step_interaction),
-            ("Paneeli", self.step_panel),
-        ]
+        
+        # Display names for known steps (preserving Finnish localization)
+        step_display_names = {
+            "step_guard": "Vartija",
+            "step_analyst": "Analyytikko",
+            "step_profiler": "Profiloija",
+            "step_logician": "Loogikko",
+            "step_falsifier": "Falsifioija",
+            "step_overseer": "Valvoja",
+            "step_causal": "Kausaalinen",
+            "step_detector": "Tunnistaja",
+            "step_judge": "Tuomari",
+            "step_archivist": "Arkistonhoitaja",
+            "step_coach": "Valmentaja",
+            "step_interaction": "Vuorovaikutusanalysaattori",
+            "step_panel": "Paneeli",
+        }
 
-        for name, data in steps:
-            if data:
+        # Iterate through the mapping to maintain order, but check step_results
+        for step_id, display_name in step_display_names.items():
+            if step_id in self.step_results:
+                data = self.step_results[step_id]
                 # Use model_dump_json() for Pydantic v2 or json() for v1
                 # formatting for readability
                 try:
                     content = data.model_dump_json(indent=2)
                 except AttributeError:
                     content = str(data)
-                summary.append(f"--- {name} ---\n{content}\n")
+                summary.append(f"--- {display_name} ---\n{content}\n")
+        
+        # Handle any other steps that might be in step_results but not in the standard mapping?
+        # For now, sticking to the preservation of existing behavior logic.
 
         if not summary:
             return "(Ei aiempia tuloksia)"

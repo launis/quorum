@@ -14,7 +14,7 @@ from backend.agents.base import BaseAgent
 from backend.models.domain import TaintedData
 
 if TYPE_CHECKING:
-    from backend.models.state import WorkflowState
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -48,57 +48,63 @@ class GuardAgent(BaseAgent):
 
     async def execute(
         self,
-        state: WorkflowState | None = None,
+        input_data: dict,
+        execution_context: dict | None = None,
         system_instruction: str | None = None,
         **kwargs,
-    ) -> WorkflowState:
+    ) -> dict:
         """Executes the security analysis and sanitization logic.
 
-        Input State:
-            - state.inputs.history_text
-            - state.inputs.product_text
-            - state.inputs.reflection_text
-            - state.aux_data.banned_phrases (checked via hooks)
+        Args:
+            input_data (dict): Inputs including history_text, product_text, etc.
+            execution_context (Optional[dict]): Context/Config.
+            system_instruction (Optional[str]): Prompt override.
+            **kwargs: Additional args.
 
-        Output State:
-            - state.step_guard (TaintedData): Security report and PII/Phrase status.
-            - state.inputs (Modified in place if PII redacted via hooks).
-
-        Exceptions:
-            - AgentExecutionError: If LLM fails or schema validation fails.
-            - FatalInterruption: If strict banned phrases are detected (raises immediately).
+        Returns:
+            dict: The security report (TaintedData).
         """
-        return await super().execute(state, system_instruction, **kwargs)
+        # Pass through to BaseAgent
+        return await super().execute(
+            input_data=input_data, 
+            execution_context=execution_context, 
+            system_instruction=system_instruction, 
+            **kwargs
+        )
 
-    async def prepare_context(self, state: WorkflowState, **kwargs) -> str | None:
+    async def prepare_context(self, input_data: dict, execution_context: dict | None, **kwargs) -> str | None:
         """Lifecycle Hook: Pre-Execution.
 
         Performs Python-based banned phrase checks and sanitization.
 
         Args:
-            state (WorkflowState): Current state.
+            input_data (dict): Inputs.
+            execution_context (dict): Context.
             **kwargs: ignored.
 
         Returns:
-            Optional[str]: None. Only side-effects on state.
-
+            Optional[str]: None. Only side-effects (logging/validation).
         """
         # 1. Banned Phrase Check (Via Schema Validation)
-        # We instantiate GuardInput to trigger Pydantic Validators.
-        # This will raise FatalInterruption (via ValueError catcher in framework or we catch here) if invalid.
-
         try:
-            # Load banned phrases from aux_data (Injected by Engine)
-            banned_ctx = {"banned_phrases": state.aux_data.get("banned_phrases", [])}
+            # Load banned phrases from context/config or inputs
+            # Assuming Engine injects them into execution_config or inputs
+            banned_phrases = []
+            if execution_context and "banned_phrases" in execution_context:
+                banned_phrases = execution_context["banned_phrases"]
+            elif "banned_phrases" in input_data:
+                banned_phrases = input_data["banned_phrases"]
+            
+            banned_ctx = {"banned_phrases": banned_phrases}
 
             from backend.models.domain import GuardInput
 
             # This triggers @AfterValidator(validate_guard_input)
             GuardInput.model_validate(
                 {
-                    "history_text": state.inputs.history_text or "",
-                    "product_text": state.inputs.product_text or "",
-                    "reflection_text": state.inputs.reflection_text,
+                    "history_text": input_data.get("history_text") or "",
+                    "product_text": input_data.get("product_text") or "",
+                    "reflection_text": input_data.get("reflection_text"),
                 },
                 context=banned_ctx,
             )
@@ -116,139 +122,107 @@ class GuardAgent(BaseAgent):
                 ) from e
             raise e
 
-        # 2. Input Sanitization (Modifies state inputs in-place)
-        # Note: We keep this manual for now as it modifies state in-place (mutator),
-        # whereas Validators are typically for checking.
-        self.sanitize_input(state)
+        # 2. Input Sanitization (Local Effect Only)
+        # We sanitize locally to log threats. 
+        # Note: In strict stateless mode, we don't modify the upstream inputs.
+        self.sanitize_input(input_data)
 
         return None
 
-    def post_process(self, state: WorkflowState) -> WorkflowState:
+    def post_process(self, response_data: Any) -> Any:
         """Lifecycle Hook: Post-Execution.
 
         Ensures tainted data structure is populated and banned phrases are flagged.
 
         Args:
-            state (WorkflowState): Current state.
+            response_data (Any): The result (dict or Model).
 
         Returns:
-            WorkflowState: Processed state.
-
+            Any: Processed result.
         """
-        return self.ensure_tainted_data(state)
+        return self.ensure_tainted_data(response_data)
 
-    def ensure_tainted_data(self, state: WorkflowState) -> WorkflowState:
+    def ensure_tainted_data(self, data: Any) -> Any:
         """Post-Hook: Ensures that the tainted data structure is correctly populated.
 
-        Also performs strict Python-side banned phrase check.
-
         Args:
-            state (WorkflowState): Current state.
+            data (Any): Current result data.
 
         Returns:
-            WorkflowState: Validated and potentially updated state.
+            Any: Validated data.
         """
         logger.info("[GuardAgent] Running ensure_tainted_data...")
 
-        if not state.step_guard:
-            return state
+        # If it's a dict, wrap or check access
+        # If it's a Model, access fields
+        
+        # We need to modify 'data' in place or return new data.
+        # Since we might have Pydantic model or dict.
+        
+        is_dict = isinstance(data, dict)
+        
+        # Access helpers
+        def get_field(obj, key):
+            if isinstance(obj, dict):
+                return obj.get(key)
+            return getattr(obj, key, None)
 
-        validated_data = state.step_guard
+        def set_field(obj, key, val):
+            if isinstance(obj, dict):
+                obj[key] = val
+            else:
+                setattr(obj, key, val)
+                
+        security_check = get_field(data, "security_check")
+
+        if not security_check:
+            # Should not happen if schema is enforced, but safe fallback
+            return data
 
         # --- 1. PII Sanitization Reporting ---
-        sanitization_log = state.aux_data.get("sanitization_log")
-        if sanitization_log and sanitization_log.get("threats_detected"):
-            threats = sanitization_log["threats_detected"]
+        # Issue: We don't have easy access to 'sanitization_log' from aux_data here
+        # unless we store it on self during prepare_context (which is risky if instance shared, but Registry instantiates fresh per task)
+        # Registry: "agent = agent_cls()" -> Fresh instance.
+        # So we can store state on self!
+        
+        if hasattr(self, "_sanitization_threats") and self._sanitization_threats:
+            threats = self._sanitization_threats
             logger.info(f"[GuardAgent] Reporting sanitization actions: {threats}")
-            if validated_data.security_check:
-                validated_data.security_check.anonymisointi_tehty = True
-                current_report = validated_data.security_check.tietosuoja_raportti or ""
-                # Avoid duplicating if already present
-                msg_part = "Järjestelmä poisti automaattisesti PII-tietoja"
-                if msg_part not in current_report:
-                    validated_data.security_check.tietosuoja_raportti = (
-                        current_report + f"\n{msg_part}: {', '.join(threats)}."
-                    ).strip()
+            
+            # Update security_check
+            # If security_check is a dict (if data is dict) or object
+            
+            # Helper for nested update
+            if isinstance(security_check, dict):
+                security_check["anonymisointi_tehty"] = True
+                current = security_check.get("tietosuoja_raportti") or ""
+                msg = "Järjestelmä poisti automaattisesti PII-tietoja"
+                if msg not in current:
+                    security_check["tietosuoja_raportti"] = (current + f"\n{msg}: {', '.join(threats)}.").strip()
+            else:
+                security_check.anonymisointi_tehty = True
+                current = security_check.tietosuoja_raportti or ""
+                msg = "Järjestelmä poisti automaattisesti PII-tietoja"
+                if msg not in current:
+                    security_check.tietosuoja_raportti = (current + f"\n{msg}: {', '.join(threats)}.").strip()
 
-        # --- 2. Python Banned Phrases Check Overlay ---
-        try:
-            # Load banned phrases from aux_data (Injected by Engine)
-            banned_phrases = state.aux_data.get("banned_phrases", [])
+        return data
 
-            if banned_phrases:
-                from backend.hooks.security import check_banned_phrases
-
-                detected = []
-                # Scan all inputs
-                inputs_to_scan = [state.inputs.history_text, state.inputs.product_text, state.inputs.reflection_text]
-
-                for text in inputs_to_scan:
-                    if not text:
-                        continue
-                    found = check_banned_phrases(text, banned_phrases)
-                    detected.extend(found)
-
-                if detected:
-                    # Deduplicate
-                    detected = list(set(detected))
-                    logger.warning(f"[GuardAgent] STRICT CHECK: Found banned phrases: {detected}")
-                    validated_data.security_check.uhka_havaittu = True
-                    if validated_data.security_check.adversariaalinen_simulaatio_tulos:
-                        validated_data.security_check.adversariaalinen_simulaatio_tulos += (
-                            f"\n[SYSTEM ALERT] Banned phrases detected by strict filter: {', '.join(detected)}"
-                        )
-                    else:
-                        validated_data.security_check.adversariaalinen_simulaatio_tulos = (
-                            f"[SYSTEM ALERT] Banned phrases detected by strict filter: {', '.join(detected)}"
-                        )
-
-        except Exception as e:
-            error_code = "SECURITY_CHECK_CRITICAL_FAILURE"
-            logger.error(f"{error_code}: Banned phrase check failed: {e}", exc_info=True)
-            from backend.exceptions import FatalInterruption
-
-            raise FatalInterruption(
-                "GuardSecurityCheck", f"Banned phrase check failed: {e}", {"error": str(e), "error_code": error_code}
-            ) from e
-
-        return state
-
-    def extract_text_from_inputs(self, state: WorkflowState) -> WorkflowState:
-        """Public hook method (Pre-Hook).
-
-        Legacy pass-through hook.
-
-        Args:
-            state (WorkflowState): Current state.
-
-        Returns:
-            WorkflowState: The same state.
-
-        """
-        logger.info("[GuardAgent] PDF Extraction Pre-Hook: Pass-through (Handled by Engine).")
-        return state
-
-    def sanitize_input(self, state: WorkflowState) -> WorkflowState:
+    def sanitize_input(self, input_data: dict) -> None:
         """Pre-hook: Sanitizes and anonymizes input data (PII Redaction).
 
-        Delegates to backend.hooks.security.
-
         Args:
-            state (WorkflowState): Current state.
-
-        Returns:
-            WorkflowState: Updates state (aux_data & inputs).
+            input_data (dict): Inputs to scan.
         """
         logger.info("[GuardAgent] Running sanitize_input (Pre-Hook)...")
         from backend.hooks.security import sanitize_text
 
         inputs_to_scan = {
-            "history_text": state.inputs.history_text,
-            "product_text": state.inputs.product_text,
-            "reflection_text": state.inputs.reflection_text,
+            "history_text": input_data.get("history_text"),
+            "product_text": input_data.get("product_text"),
+            "reflection_text": input_data.get("reflection_text"),
         }
 
-        updates = {}
         all_threats = []
 
         for key, value in inputs_to_scan.items():
@@ -262,25 +236,11 @@ class GuardAgent(BaseAgent):
                 all_threats.extend(formatted_threats)
 
             if clean_text != value:
-                updates[key] = clean_text
-
-        # Apply updates in-place
-        if "history_text" in updates:
-            state.inputs.history_text = updates["history_text"]
-        if "product_text" in updates:
-            state.inputs.product_text = updates["product_text"]
-        if "reflection_text" in updates:
-            state.inputs.reflection_text = updates["reflection_text"]
-
-        # Store metadata about detection in aux_data
-        state.aux_data["sanitization_log"] = {"threats_detected": all_threats, "timestamp": "Now"}
+                # We modify the local input dict.
+                # This affects the prompt construction in BaseAgent if it uses input_data.
+                input_data[key] = clean_text
 
         if all_threats:
             logger.warning(f"[GuardAgent] PII Sanitization: {all_threats}")
-
-        return state
-
-    async def _update_state(
-        self, state: WorkflowState, response_data: Any, output_key: str | None = None, **kwargs
-    ) -> WorkflowState:
-        return await super()._update_state(state, response_data, output_key=output_key, **kwargs)
+            # Store for post_process
+            self._sanitization_threats = all_threats

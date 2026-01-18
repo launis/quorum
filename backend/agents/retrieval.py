@@ -34,49 +34,43 @@ class RetrievalAgent(BaseAgent):
 
     async def execute(
         self,
-        state: WorkflowState | None = None,
+        input_data: dict,
+        execution_context: dict | None = None,
         system_instruction: str | None = None,
         **kwargs,
-    ) -> WorkflowState:
+    ) -> dict:
         """Executes the retrieval logic.
 
-        Note: This Agent is unique because it primarily interacts with the DB, not the LLM.
-        However, it inherits BaseAgent to ensure consistent metadata, checksums, and lifecycle.
+        Args:
+            input_data (dict): Inputs containing organization_id.
+            execution_context (dict): Context.
+            system_instruction (str): Prompt.
+            **kwargs: Args.
 
-        Input State:
-            - state.inputs.organization_id (Required)
-
-        Output State:
-            - state.step_context (ContextData)
+        Returns:
+             dict: ContextData with precedents.
         """
-        if not state:
-            raise ValueError("RetrievalAgent requires a valid WorkflowState.")
-
         # --- STANDARD LOGGING & HOOKS (Manual Implementation) ---
         logger.info(f"[{self.__class__.__name__}] Starting execution...")
-        logger.info(f"[{self.__class__.__name__}] Lifecycle Hook: prepare_context")
-        await self.prepare_context(state, **kwargs)
+        # Note: prepare_context usually just logs or formats prompt. 
+        # RetrievalAgent doesn't use prompt, but we leave hook if needed.
         
         logger.info(f"[{self.__class__.__name__}] >>> EXECUTION START <<<")
         # --------------------------------------------------------
 
         # 1. Access Inputs
-        # Primary source: WorkflowState.organization_id
-        org_id = getattr(state, "organization_id", None)
+        org_id = input_data.get("organization_id")
         
-        # Fallback: Check inputs (legacy)
-        if not org_id:
-             org_id = getattr(state.inputs, "organization_id", None)
-        
-        # Fallback: Check metadata if available
-        if not org_id and hasattr(state, "metadata") and state.metadata:
-             org_id = getattr(state.metadata, "organization_id", None)
+        # Fallback: Check inputs 
+        if not org_id and "inputs" in input_data:
+             org_id = input_data["inputs"].get("organization_id")
+             
+        # Check execution_context
+        if not org_id and execution_context:
+             org_id = execution_context.get("organization_id")
 
         if not org_id:
-             # Just logging warning and using default/empty, or failing?
-             # Functional task required it field(..., description="The context organization ID.")
-             # But for robustness, we might default to "global" or skip.
-             logger.warning("[RetrievalAgent] Organization ID not found in state.inputs or state.metadata. Using 'default'.")
+             logger.warning("[RetrievalAgent] Organization ID not found in input_data. Using 'default'.")
              org_id = "default"
 
         logger.info(f"[{self.__class__.__name__}] Running for Org: {org_id}...")
@@ -88,11 +82,9 @@ class RetrievalAgent(BaseAgent):
 
         try:
             # 3. Query DB
-            # Logic ported from backend/tasks/retrieval.py
             try:
                 all_execs = await repo.get_all_executions(organization_id=org_id)
             except TypeError:
-                # Fallback if repo method signature doesn't match expected
                 all_execs = await repo.get_all_executions()
 
             # 4. Filter Completed
@@ -145,7 +137,6 @@ class RetrievalAgent(BaseAgent):
             logger.info(f"[{self.__class__.__name__}] Complete. Found {len(selected_precedents)} precedents.")
 
             # 6. Construct Output
-            # We must populate BaseJSON required fields manually since we aren't using LLM.
             from backend.models.domain import Metadata
             from datetime import datetime
             
@@ -167,16 +158,8 @@ class RetrievalAgent(BaseAgent):
                 reasoning_trace="Deterministic retrieval of organizational precedents."
             )
             
-            # Manually invoke state update to get metadata injection
-            state = await self._update_state(state, result_data, output_key=self.state_field)
-            
-            # --- LIFECYCLE HOOK: POST PROCESS ---
-            logger.info(f"[{self.__class__.__name__}] Lifecycle Hook: post_process")
-            state = self.post_process(state)
-            logger.info(f"[{self.__class__.__name__}] Execution completed.")
-            # ------------------------------------
-            
-            return state
+            # IMPORTANT: Return dict (or model). Engine handles storage.
+            return result_data.model_dump()
 
         except Exception as e:
             logger.error(f"[RetrievalAgent] Execution failed: {e}", exc_info=True)
