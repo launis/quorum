@@ -49,6 +49,10 @@ class LLMResponse(BaseModel):
         dict[str, float | int],
         Field(default_factory=dict, description="Token usage statistics (prompt, completion, total, cost)."),
     ]
+    messages: Annotated[
+        list[dict[str, str]] | None,
+        Field(default=None, description="The full list of messages (prompts) sent to the model for audit purposes."),
+    ]
     provider_metadata: Annotated[
         dict[str, Any],
         Field(default_factory=dict, description="Provider-specific raw metadata (e.g. finish_reason, safety_ratings)."),

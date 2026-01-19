@@ -34,7 +34,7 @@ class Metadata(BaseModel):
         Literal["Kriitikkoryhma_External", "Internal"] | None, Field(description="Execution environment context.")
     ] = None
 
-    model_config = ConfigDict(validate_assignment=True)
+    model_config = ConfigDict(extra="allow", validate_assignment=True)
 
 
 class BaseJSON(BaseModel):

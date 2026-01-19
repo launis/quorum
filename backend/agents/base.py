@@ -338,6 +338,52 @@ class BaseAgent(BaseComponent):
             # But the prompt said: "The agent should no longer modify state objects; it should purely return its result as a dictionary (or Pydantic model)."
             # We assume usage tracking is handled by the caller or logging for now.
             logger.info(f"BaseAgent processing usage. Response token_usage: {response_obj.token_usage}")
+            
+            # 4.6 Capture Audit Logs (Prompts)
+            if hasattr(response_obj, "messages") and response_obj.messages:
+                 # DE-DUPLICATION LOGIC (Jan 2026):
+                 # Replace massive input strings (like full history_text) with references <<REFERENCE: key>>
+                 # to keep the audit log readable. The full content exists in execution['inputs'].
+                 sanitized_messages = []
+                 try:
+                     import copy
+                     sanitized_messages = copy.deepcopy(response_obj.messages)
+                     
+                     for msg in sanitized_messages:
+                         if "content" in msg and isinstance(msg["content"], str):
+                             content_str = msg["content"]
+                             
+                             # Handle Pydantic Models or Dicts
+                             start_inputs = input_data
+                             if isinstance(start_inputs, BaseModel):
+                                 start_inputs = start_inputs.model_dump()
+                                 
+                             if isinstance(start_inputs, dict):
+                                 for key, value in start_inputs.items():
+                                     # Only replace if value is a long string (avoid replacing 'id' or '1')
+                                     if isinstance(value, str) and len(value) > 100:
+                                         if value in content_str:
+                                             # Replace with reference
+                                             content_str = content_str.replace(value, f"<<REFERENCE: {key}>>")
+                             msg["content"] = content_str
+                 except Exception as e:
+                     logger.warning(f"Audit log sanitization failed: {e}. Saving raw logs.")
+                     sanitized_messages = response_obj.messages
+
+                 if isinstance(response_data, dict):
+                     if "metadata" not in response_data: response_data["metadata"] = {}
+                     if isinstance(response_data["metadata"], dict):
+                         response_data["metadata"]["audit_logs"] = sanitized_messages
+                 elif isinstance(response_data, BaseModel):
+                     if hasattr(response_data, "metadata"):
+                         if isinstance(response_data.metadata, dict):
+                             response_data.metadata["audit_logs"] = sanitized_messages
+                         elif isinstance(response_data.metadata, BaseModel):
+                             # We enabled extra="allow" in Metadata
+                             try:
+                                setattr(response_data.metadata, "audit_logs", sanitized_messages)
+                             except Exception as e:
+                                logger.warning(f"Could not attach audit logs to metadata model: {e}")
 
              # FORCE SYSTEM AUTHORITY (Metadata & Checksums)
             if response_data:

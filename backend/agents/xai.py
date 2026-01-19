@@ -81,7 +81,8 @@ class XAIReporterAgent(BaseAgent):
                 d_id = dim.get("dimension_id", "uknown").capitalize()
                 score = dim.get("score", "-")
                 reason = dim.get("reasoning", "")
-                lines.append(f"- **{d_id}**: {score}/5 - {reason}")
+                max_val = data.get("scale_max", 5)
+                lines.append(f"- **{d_id}**: {score}/{max_val} - {reason}")
         else:
              # Fallback check for legacy 'pisteet' just in case normalization was skipped (Unlikely)
              pisteet = data.get("pisteet")

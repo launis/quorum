@@ -120,20 +120,56 @@ class ScoreCardRadar extends StatelessWidget {
                 ),
               ),
               
-            // Legend / Breakdown List (Optional or if chart is too dense)
+            // Detailed Breakdown List
             if (hasData) ...[
-                 const SizedBox(height: 16),
-                 Wrap(
-                    spacing: 12,
-                    runSpacing: 8,
-                    children: dimensions.map((d) {
-                        return Chip(
-                            label: Text("${d.dimensionId}: ${d.score}"),
-                            backgroundColor: colorScheme.surfaceContainerHighest,
-                            labelStyle: textTheme.labelSmall,
-                        );
-                    }).toList(),
-                 )
+                 const SizedBox(height: 24),
+                 Align(
+                   alignment: Alignment.centerLeft,
+                   child: Text(
+                     "Detailed Breakdown",
+                     style: textTheme.titleSmall!.copyWith(fontWeight: FontWeight.bold),
+                   ),
+                 ),
+                 const SizedBox(height: 8),
+                 ...dimensions.map((d) {
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      decoration: BoxDecoration(
+                        color: colorScheme.surfaceContainer,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: colorScheme.outlineVariant),
+                      ),
+                      child: ListTile(
+                        leading: Container(
+                          width: 40,
+                          height: 40,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                             color: colorScheme.primaryContainer,
+                             shape: BoxShape.circle,
+                          ),
+                          child: Text(
+                             d.score.toStringAsFixed(0),
+                             style: textTheme.titleMedium!.copyWith(
+                               color: colorScheme.onPrimaryContainer, 
+                               fontWeight: FontWeight.bold
+                             ),
+                          ),
+                        ),
+                        title: Text(
+                            d.dimensionId.toUpperCase(), 
+                            style: textTheme.titleSmall!.copyWith(fontWeight: FontWeight.bold)
+                        ),
+                        subtitle: Padding(
+                          padding: const EdgeInsets.only(top: 4.0),
+                          child: Text(
+                            d.reasoning,
+                            style: textTheme.bodyMedium,
+                          ),
+                        ),
+                      ),
+                    );
+                 }).toList(),
             ]
           ],
         ),

@@ -387,6 +387,7 @@ class LiteLLMProvider(LLMProvider):
                 token_usage=usage,
                 provider_metadata=response.model_dump() if hasattr(response, "model_dump") else {},
                 tool_calls=[],
+                messages=messages,
             )
 
         except Exception as e:
@@ -503,6 +504,10 @@ class MockProvider(LLMProvider):
             token_usage=usage_data,
             tool_calls=[],
             provider_metadata={},
+            messages=[
+                {"role": "system", "content": system_instruction} if system_instruction else {},
+                {"role": "user", "content": prompt}
+            ],
         )
 
 
