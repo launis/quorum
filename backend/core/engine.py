@@ -31,7 +31,26 @@ class GraphEngine:
         Returns:
             The final execution state.
         """
+        from backend.services.chat_log_parser import ChatLogParser
+
         execution_state = initial_input.copy()
+
+        # Jan 2026 Mandate: Centralized Chat Parsing / Sanitization
+        # Enforce "User:" prefix on all chat inputs regardless of entry point (API, CLI, Test)
+        for key, value in execution_state.items():
+            if (key == "history_text" or "chat" in key or "history" in key) and isinstance(value, str):
+                try:
+                    original_len = len(value)
+                    parsed_value = ChatLogParser.parse(value)
+                    execution_state[key] = parsed_value
+                    if len(parsed_value) != original_len:
+                         logger.info(f"[GraphEngine] ChatLogParser optimized '{key}': {original_len} -> {len(parsed_value)} chars")
+                except Exception as e:
+                    # Fail open or closed? Mandate says "Enforce", but we shouldn't crash workflow start if possible?
+                    # "Strict Mode" suggests crashing.
+                    logger.warning(f"[GraphEngine] ChatLogParser failed for '{key}': {e}")
+                    # Keep raw value if parsing fails, but log warning.
+        
         logger.info(f"Starting workflow '{definition.id}' with {len(definition.steps)} steps.")
 
         for step in definition.steps:

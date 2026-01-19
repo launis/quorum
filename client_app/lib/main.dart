@@ -24,7 +24,7 @@ Future<void> main() async {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
-      debugPrint('Firebase initialized');
+
     } catch (e) {
       debugPrint('Error initializing Firebase: $e');
     }

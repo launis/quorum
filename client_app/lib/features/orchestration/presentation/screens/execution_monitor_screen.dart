@@ -267,7 +267,7 @@ class _StepProgressList extends StatelessWidget {
       'step_archivist' => l10n.stepArchivist,
       'step_judge' => l10n.stepJudge,
       'step_coach' => l10n.stepCoach,
-      'step_xai' => l10n.stepReporter,
+      'step_xai' => l10n.stepXai,
       'init' => l10n.stepInitializing,
       _ => stepKey,
     };
@@ -323,7 +323,7 @@ class _StepProgressList extends StatelessWidget {
           if (lowerStep.contains('coach') && key == 'step_coach') {
             currentIndex = i;
           }
-          if ((lowerStep.contains('reporter') || lowerStep.contains('xai')) &&
+          if (lowerStep.contains('xai') &&
               key == 'step_xai') {
             currentIndex = i;
           }

@@ -39,6 +39,7 @@ dependencies:
   flutter_markdown: ^0.7.7+1
   file_picker: ^10.3.8
   collection: ^1.19.1
+  fl_chart: ^1.1.1
 
 dev_dependencies:
   flutter_test:

@@ -27,6 +27,7 @@ from backend.models.domain import (
     ProfilerAnalysis,
     RagTodiste,
     SafeDataContent,
+    ScoreCardItem,
     SecurityCheck,
     TaintedData,
     TaintedDataContent,
@@ -37,7 +38,7 @@ from backend.models.domain import (
     WaltonStressitesti,
     XAIReport,
 )
-from backend.tasks.security import GuardResult
+
 
 # --- Common Metadata ---
 MOCK_METADATA = Metadata(
@@ -47,12 +48,8 @@ MOCK_METADATA = Metadata(
 # --- Task Outputs ---
 
 # 1. Guard (Usually logic-based, but if LLM used in future)
-# Note: Current Guard is functional regex, but user requested consistent mocking logic.
-MOCK_GUARD_OUTPUT = GuardResult(
-    is_safe=True,
-    sanitized_inputs={"history_text": "Sanitized...", "product_text": "Sanitized product..."},
-    threats_detected=[],
-)
+# Note: Switched to TaintedData (Jan 19)
+# MOCK_GUARD_OUTPUT REMOVED - Use MOCK_TAINTED_DATA instead.
 
 # 2. Analyst (TodistusKartta)
 MOCK_ANALYST_OUTPUT = TodistusKartta(
@@ -165,6 +162,8 @@ MOCK_INTERACTION_OUTPUT = InteractionAnalysis(
     ohjausliikkeet=0,
     driver_classification="Matkustaja",
     input_control_ratio=0.0,
+    total_turn_count=10,
+    imperative_command_count=0,
 )
 
 # 5. Profiler Analysis
@@ -234,7 +233,20 @@ MOCK_XAI_OUTPUT = XAIReport(
     analysis_opportunities="[MAHDOLLISUUDET]",
     analysis_recommendations="[SUOSITUKSET]",
     final_verdict="[LOPPUTULOS]",
-    confidence_score=0.0,
+    confidence_score=0.95,
+    comparison_data={"status": "Mock Comparison Data"},
+    score_cards=[
+        ScoreCardItem(
+            agent_name="Standard Judge",
+            total_score=4.5,
+            max_score=5,
+            verdict="High Fidelity",
+            dimensions=[
+                DimensionResultItem(dimension_id="logic", score=5, reasoning="Clear logic"),
+                DimensionResultItem(dimension_id="ethics", score=4, reasoning="Good ethics"),
+            ],
+        )
+    ],
 )
 
 
@@ -269,7 +281,7 @@ MOCK_TAINTED_DATA = TaintedData(
 MOCK_REGISTRY: dict[type[Any], Any] = {
     TodistusKartta: MOCK_ANALYST_OUTPUT,
     PanelAudit: MOCK_PANEL_OUTPUT,
-    GuardResult: MOCK_GUARD_OUTPUT,
+
     TaintedData: MOCK_TAINTED_DATA,
     InteractionAnalysis: MOCK_INTERACTION_OUTPUT,
     ProfilerAnalysis: MOCK_PROFILER_OUTPUT,
@@ -309,7 +321,7 @@ AGENT_CLASS_TO_MOCK_KEY = {
 def get_fallback_data(key: str) -> dict[str, Any]:
     """Retrieves the default mock data for a given agent key."""
     if key == "guard_agent":
-        return MOCK_GUARD_OUTPUT.model_dump()
+        return MOCK_TAINTED_DATA.model_dump()
     elif key == "analyst_agent":
         return MOCK_ANALYST_OUTPUT.model_dump()
     elif key == "interaction_agent":

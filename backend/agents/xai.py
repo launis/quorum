@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from backend.agents.base import BaseAgent
 
 # 3. Local Imports
-from backend.models.domain import XAIReport
+from backend.models.domain import XAIReport, ScoreCardItem, DimensionResultItem
 
 if TYPE_CHECKING:
     from backend.models.state import WorkflowState
@@ -25,7 +25,7 @@ class XAIReporterAgent(BaseAgent):
     Responsible for generating the final, explainable report.
     """
 
-    state_field = "step_reporter"
+    state_field = "step_xai"
     REQUIRES_KEYS = ["step_judge"]
 
     def get_response_schema(self) -> type[BaseModel] | None:
@@ -54,9 +54,9 @@ class XAIReporterAgent(BaseAgent):
         Returns:
             str: Context string.
         """
-        judge_result = input_data.get("step_judge")
+        judge_result = input_data.get("step_judge") or input_data.get("tuomio")
         if not judge_result:
-             logger.warning("[XAIReporterAgent] No 'step_judge' data found in inputs.")
+             logger.warning("[XAIReporterAgent] No 'step_judge' or 'tuomio' data found in inputs.")
              return None
         
         # If it's a Pydantic model, dump it; if dict, use as is.
@@ -118,5 +118,82 @@ class XAIReporterAgent(BaseAgent):
         Returns:
             dict: The final report.
         """
-        return await super().execute(input_data, execution_context, system_instruction, **kwargs)
+        # 1. Generate the base report via LLM (super)
+        result = await super().execute(input_data, execution_context, system_instruction, **kwargs)
+        
+        # 2. Aggregate Scores from any Judge Outputs found in input_data
+        score_cards = []
+        
+        for key, value in input_data.items():
+            if (key.startswith("step_judge") or key == "tuomio") and isinstance(value, (dict, BaseModel)):
+                try:
+                    # Normalize to dict
+                    data = value.model_dump() if hasattr(value, "model_dump") else value
+                    
+                    # Extract Name
+                    # Prefer matrix_id if available, otherwise format the step key
+                    matrix_id = data.get("matrix_id")
+                    if matrix_id:
+                        agent_name = f"Judge ({matrix_id})"
+                    else:
+                        # "step_judge_cognitive" -> "Cognitive Judge"
+                        parts = key.split("_")
+                        if len(parts) > 2:
+                            agent_name = f"{parts[2].capitalize()} Judge"
+                        else:
+                            agent_name = "Standard Judge"
+
+                    # Extract Score Data
+                    total_score = float(data.get("total_score", 0))
+                    max_score = int(data.get("scale_max", 5))
+                    
+                    # Extract Dimensions
+                    dimensions = []
+                    raw_dims = data.get("dimensions", [])
+                    
+                    if raw_dims:
+                        # V2: List of DimensionResultItems
+                        for d in raw_dims:
+                            # Handle both dict and object (if somehow mixed)
+                            d_data = d if isinstance(d, dict) else d.__dict__
+                            dimensions.append(
+                                DimensionResultItem(
+                                    dimension_id=d_data.get("dimension_id", "unknown"),
+                                    score=d_data.get("score", 0),
+                                    reasoning=d_data.get("reasoning", "")
+                                )
+                            )
+
+
+                    # Extract Verdict
+                    # V2: 'final_verdict' is not intrinsically on EvaluationResult, usually it's just scores.
+                    # But if we have it, great. If not, summarise.
+                    verdict = data.get("final_verdict")
+                    if not verdict:
+                        # Create a mini verdict
+                        verdict = f"Score: {total_score}/{max_score}"
+
+                    score_cards.append(
+                        ScoreCardItem(
+                            agent_name=agent_name,
+                            total_score=total_score,
+                            max_score=max_score,
+                            verdict=verdict,
+                            dimensions=dimensions
+                        )
+                    )
+                    
+                except Exception as e:
+                    logger.warning(f"[XAIReporter] Failed to process scorecard for {key}: {e}")
+
+        # 3. Inject into Result
+        # Result is likely a dict from BaseAgent.execute logic processing the LLM response
+        if isinstance(result, dict):
+            # Check if 'score_cards' already exists (model might have predicted it empty)
+            # We override/extend it with authoritative data ONLY if we found data.
+            # This preserves MOCK data which might be present in the result when inputs are missing.
+            if score_cards:
+                result["score_cards"] = score_cards
+        
+        return result
 

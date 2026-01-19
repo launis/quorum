@@ -18,7 +18,7 @@ def generate_report(state: WorkflowState) -> WorkflowState:
     and renders a human-readable Markdown report using a Jinja2 template.
 
     Outputs:
-        Populates 'step_reporter.xai_report_formatted' with the rendered Markdown.
+        Populates 'step_xai.xai_report_formatted' with the rendered Markdown.
 
     Args:
         state (WorkflowState): Current workflow state containing all agent outputs.
@@ -53,11 +53,11 @@ def generate_report(state: WorkflowState) -> WorkflowState:
         template = env.get_template("report_template.jinja2")
 
         # 2. Gather Data from State
-        if not state.step_reporter:
+        if not getattr(state, "step_xai", None):
             logger.warning("[ReportingHook] No XAI Report data available.")
             return state
 
-        xai_data = state.step_reporter  # This is a Pydantic Model (XAIReport) OR dict
+        xai_data = state.step_xai  # This is a Pydantic Model (XAIReport) OR dict
 
         # --- DYNAMIC EVALUATION DISCOVERY ---
         eval_steps = []
@@ -327,8 +327,8 @@ def generate_report(state: WorkflowState) -> WorkflowState:
 
         # 4. Save to State
         # Usage: XAIReport.xai_report_formatted AND WorkflowState.xai_report_formatted (Top-Level)
-        if state.step_reporter:
-            state.step_reporter.xai_report_formatted = output_text
+        if result := getattr(state, "step_xai", None):
+            result.xai_report_formatted = output_text
             state.xai_report_formatted = output_text  # <--- CRITICAL FIX: Hoist to top-level for Frontend
             logger.debug("[ReportingHook] Report generated and saved to state.xai_report_formatted")
         else:
@@ -338,11 +338,11 @@ def generate_report(state: WorkflowState) -> WorkflowState:
     except Exception as e:
         err_msg = f"⚠️ [ReportingHook] Report generation failed: {str(e)}"
         logger.error(err_msg, exc_info=True)
-        if state.step_reporter:
-            state.step_reporter.xai_report_formatted = (
+        if result := getattr(state, "step_xai", None):
+            result.xai_report_formatted = (
                 f"# Virhe Raportoinnissa\n\nJärjestelmä ei voinut generoida raporttia.\n\n**Tekninen syy:** `{str(e)}`"
             )
             # Optional: Mark comparison data as failed/empty to avoid UI guessing
-            state.step_reporter.comparison_data = None
+            result.comparison_data = None
 
     return state

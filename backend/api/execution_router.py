@@ -548,18 +548,10 @@ async def create_execution(
                         text_content = f"<file_upload: {value.filename} (size={len(content)})>"
                         logger.info(f"[FILE_UPLOAD] Unhandled File Type: '{value.filename}' | Size: {len(content)} bytes | Preserved as metadata.")
                     
-                    # --- AUTO-PARSE CHAT LOGS ---
-                    from backend.services.chat_log_parser import ChatLogParser
-                    if key == "history_text" or "chat" in key or "history" in key:
-                         original_len = len(text_content)
-                         try:
-                             text_content = ChatLogParser.parse(text_content)
-                             logger.info(f"[FILE_UPLOAD] ChatLogParser Applied to '{key}'. Chars: {original_len} -> {len(text_content)}")
-                         except Exception as parser_e:
-                             logger.error(f"[FILE_UPLOAD] ChatLogParser FAILED for '{key}': {parser_e}")
-                             raise parser_e
+                    if key in ["history_text"] or "chat" in key or "history" in key:
+                         # Parsing is now handled centrally in GraphEngine
+                         pass
                     
-
                     inputs[key] = text_content
 
 
@@ -575,9 +567,8 @@ async def create_execution(
                         val_str = str(value)
                         # logger.info(f"[DEBUG] Form field '{key}' = '{val_str}'")
                         if key == "history_text":
-                             from backend.services.chat_log_parser import ChatLogParser
-                             val_str = ChatLogParser.parse(val_str)
-                             logger.info(f"ChatLogParser (field): 'history_text' parsed. Length: {len(val_str)}")
+                             # Parsing is now handled centrally in GraphEngine
+                             pass
                         inputs[key] = val_str
         else:
             error_code = "UNSUPPORTED_CONTENT_TYPE"

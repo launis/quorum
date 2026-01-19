@@ -689,6 +689,25 @@ class CoachingPlan(BaseJSON):
 # --- Step 9: XAI Reporter ---
 
 
+class DimensionResultItem(BaseModel):
+    """Result for a single dimension."""
+
+    dimension_id: Annotated[str, Field(description="ID of the dimension (e.g., 'analysis').")]
+    score: Annotated[int | float, Field(description="Numerical score.")]
+    reasoning: Annotated[str, Field(description="Justification for the score.")]
+
+    model_config = ConfigDict(validate_assignment=True)
+
+
+class ScoreCardItem(BaseModel):
+    """Summary of a single judgment step."""
+    agent_name: Annotated[str, Field(description="Name of the judge (e.g. 'Standard Judge').")]
+    total_score: Annotated[float, Field(description="Total score (0-5).")]
+    max_score: Annotated[int, Field(default=5, description="Max scale.")]
+    verdict: Annotated[str, Field(description="Short verdict or summary.")]
+    dimensions: Annotated[list[DimensionResultItem], Field(default_factory=list, description="Radar chart data.")]
+
+
 class XAIReport(BaseJSON):
     """Output schema for the XAI Reporter Agent (Step 9).
 
@@ -712,6 +731,7 @@ class XAIReport(BaseJSON):
     confidence_score: Annotated[float, Field(description="Confidence score (0.0-1.0).")]
     xai_report_formatted: Annotated[str | None, Field(description="Markdown formatted report.")] = None
     comparison_data: Annotated[dict[str, Any] | None, Field(description="Structured comparison data.")] = None
+    score_cards: Annotated[list[ScoreCardItem], Field(default_factory=list, description="Aggregated scores from all judges.")]
 
     model_config = ConfigDict(extra="allow", validate_assignment=True)
 
@@ -805,15 +825,6 @@ class EvaluationMatrixConfig(BaseModel):
 
     model_config = ConfigDict(validate_assignment=True)
 
-
-class DimensionResultItem(BaseModel):
-    """Result for a single dimension."""
-
-    dimension_id: Annotated[str, Field(description="ID of the dimension (e.g., 'analysis').")]
-    score: Annotated[int | float, Field(description="Numerical score.")]
-    reasoning: Annotated[str, Field(description="Justification for the score.")]
-
-    model_config = ConfigDict(validate_assignment=True)
 
 
 class EvaluationResult(BaseJSON):  # Inherits metadata from BaseJSON

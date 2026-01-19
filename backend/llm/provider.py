@@ -536,9 +536,21 @@ class LLMFactory:
         # Placeholder for BYOK (Bring Your Own Key) Logic
         tenant_api_key = None
 
-        # STRICT EXECUTION AUTHORITY:
-        # We DO NOT allow 'settings.use_mock_llm' to silently override the requested provider.
-        # This ensures that if 'vertex_ai' is requested, we get Vertex (or fail), never a mock.
+        # STRICT EXECUTION AUTHORITY (Jan 19 Update):
+        # GLOBAL SAFETY: If 'settings.use_mock_llm' is True, we FORCE the MockProvider.
+        # This guarantees that 'run_mock.bat' implies 100% offline mode, regardless of
+        # what provider specific agents request (e.g. 'vertex_ai').
+        if settings.use_mock_llm:
+            logger.warning(f"[LLMFactory] Global USE_MOCK_LLM=True. Overriding request for '{provider_type}' -> MockProvider.")
+            return MockProvider(
+                model_name=model_name or "mock",
+                usage_service=usage_service,
+                organization_id=organization_id,
+            )
+
+        # STRICT CONFIGURATION:
+        # If not in global mock mode, we DO NOT allow 'mock' to be implicitly selected
+        # unless explicitly requested. If 'vertex_ai' is requested, we get Vertex (or fail).
         if provider_type == "mock":
             return MockProvider(
                 model_name=model_name or "mock",

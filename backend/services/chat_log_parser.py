@@ -65,9 +65,9 @@ class ChatLogParser:
             logger.info("Detected Pre-formatted Chat.")
             return text
 
-        # FALLBACK: Return as is (but maybe log a warning)
-        logger.warning("Unknown chat format. Returning raw text.")
-        return text
+        # FALLBACK: Assume raw User input and prepend label
+        logger.info("Unknown chat format. Defaulting to 'User:' prefix.")
+        return f"User: {text}"
 
     @staticmethod
     def _parse_gemini(text: str) -> str:

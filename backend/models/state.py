@@ -86,6 +86,8 @@ class WorkflowState(BaseModel):
     # Formatted output
     xai_report_formatted: Annotated[str | None, Field(description="Final markdown report cache.")] = None
 
+    step_xai: Annotated[XAIReport | None, Field(description="XAI Reporter output.")] = None
+
     # Dynamic Evaluation Results (New Multi-Matrix System)
     # Key = Step ID (e.g. "step_judge_cognitive")
     # Value = EvaluationResult object
@@ -147,6 +149,7 @@ class WorkflowState(BaseModel):
             "step_coach": "Valmentaja",
             "step_interaction": "Vuorovaikutusanalysaattori",
             "step_panel": "Paneeli",
+            "step_xai": "XAI Raportoija",
         }
 
         # Iterate through the mapping to maintain order, but check step_results
@@ -171,8 +174,15 @@ class WorkflowState(BaseModel):
 
     def get_latest_reasoning_metadata(self) -> dict[str, str] | None:
         """Retrieves the reasoning metadata (token + model) from the most recently executed relevant step."""
-        priority_steps = ["step_panel", "step_coach", "step_judge", "step_judge_cognitive", "step_analyst"]
+        priority_steps = ["step_xai", "step_panel", "step_coach", "step_judge", "step_judge_cognitive", "step_analyst"]
         for step_id in priority_steps:
             if step_id in self.reasoning_context:
                 return self.reasoning_context[step_id]
         return None
+
+    def __getattr__(self, name: str) -> Any:
+        """Fallback to step_results for legacy 'step_X' access."""
+        # Avoid infinite recursion for Pydantic internal lookups if any (usually not an issue with __getattr__)
+        if name.startswith("step_") and name in self.step_results:
+            return self.step_results[name]
+        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")

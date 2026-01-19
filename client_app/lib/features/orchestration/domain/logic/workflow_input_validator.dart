@@ -19,10 +19,10 @@ class WorkflowInputValidator {
     required Map<String, dynamic> inputs,
     required List<String> requiredKeys,
   }) {
-    // 1. Fail Fast: Empty Logic
-    if (inputs.isEmpty) {
-      return const Left(AppError.validation(ValidationErrorReason.emptyInput));
-    }
+    // 1. Fail Fast: Empty Logic - REMOVED
+    // We do NOT block empty inputs here.
+    // If requiredKeys is empty, empty inputs are valid.
+    // If requiredKeys is NOT empty, the loop below will catch them and return validationMissing.
 
     // 2. Check Constraints
     final missing = <String>[];

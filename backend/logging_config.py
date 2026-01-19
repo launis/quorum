@@ -145,6 +145,7 @@ def setup_logging(log_level=logging.INFO):
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("google").setLevel(logging.WARNING)
     logging.getLogger("urllib3").setLevel(logging.WARNING)
+    logging.getLogger("arq").setLevel(logging.WARNING)
 
     # LiteLLM is extremely verbose on DEBUG
     logging.getLogger("LiteLLM").setLevel(logging.WARNING)

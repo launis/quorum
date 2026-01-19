@@ -41,7 +41,7 @@ async def verify_report_generation():
     state = WorkflowState(
         execution_id="test_v2_verification",
         inputs=InputData(history_text="Test History", product_text="Test Product", reflection_text="Test Reflection"),
-        step_reporter=XAIReport(
+        step_xai=XAIReport(
             **base,
             executive_summary="Executive Summary Text",
             final_verdict="Active Driver",
@@ -51,32 +51,34 @@ async def verify_report_generation():
             analysis_opportunities="Keep going.",
             analysis_recommendations="No changes.",
         ),
-        step_coach=CoachingPlan(
-            **base,
-            kannustava_palaute="Good job!",
-            kehityskohteet_konkreettisesti=[],
-            lopputuloksen_kehitysehdotukset=[],
-            lahdeluettelo=[],
-            # V2 Fields - Now Supported!
-            analyysi_haasteista="User needs more structure (V2 Style).",
-            toimenpiteet=["Use TOULMIN model", "Define clear goals"],
-            motivaatio="Better logic leads to better results.",
-        ),
-        step_judge=TuomioJaPisteet(
-            **base,
-            konfliktin_ratkaisut=[],
-            mestaruus_poikkeama=MestaruusPoikkeama(tunnistettu=False, perustelu=""),
-            aitous_epaily=AitousEpaily(automaattinen_lippu=False, viesti_hitl_lle=""),
-            pisteet=Pisteet(analyysi=PisteetKriteeri(arvosana=3, perustelu="Good")),
-            kriittiset_havainnot_yhteenveto=[],
-        ),
-        step_overseer=EtiikkaJaFakta(
-            **base,
-            eettiset_havainnot=[
-                EettinenHavainto(tyyppi="Haitallinen sisältö", vakavuus="Varoitus", kuvaus="Minor bias detected.")
-            ],
-            faktantarkistus_rfi=[],
-        ),
+        step_results={
+            "step_coach": CoachingPlan(
+                **base,
+                kannustava_palaute="Good job!",
+                kehityskohteet_konkreettisesti=[],
+                lopputuloksen_kehitysehdotukset=[],
+                lahdeluettelo=[],
+                # V2 Fields - Now Supported!
+                analyysi_haasteista="User needs more structure (V2 Style).",
+                toimenpiteet=["Use TOULMIN model", "Define clear goals"],
+                motivaatio="Better logic leads to better results.",
+            ),
+            "step_judge": TuomioJaPisteet(
+                **base,
+                konfliktin_ratkaisut=[],
+                mestaruus_poikkeama=MestaruusPoikkeama(tunnistettu=False, perustelu=""),
+                aitous_epaily=AitousEpaily(automaattinen_lippu=False, viesti_hitl_lle=""),
+                pisteet=Pisteet(analyysi=PisteetKriteeri(arvosana=3, perustelu="Good")),
+                kriittiset_havainnot_yhteenveto=[],
+            ),
+            "step_overseer": EtiikkaJaFakta(
+                **base,
+                eettiset_havainnot=[
+                    EettinenHavainto(tyyppi="Haitallinen sisältö", vakavuus="Varoitus", kuvaus="Minor bias detected.")
+                ],
+                faktantarkistus_rfi=[],
+            ),
+        }
     )
 
     # 2. Run Reporting Hook

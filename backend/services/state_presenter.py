@@ -93,12 +93,12 @@ class StatePresenter:
         # MERGED REPORT (Max Simplicity) - Continued
 
         # 1. High-Level Verdict
-        if state.step_reporter:
-            report["final_verdict"] = state.step_reporter.final_verdict
-            report["confidence"] = state.step_reporter.confidence_score
-            if hasattr(state.step_reporter, "comparison_data") and state.step_reporter.comparison_data:
+        if step_xai := getattr(state, "step_xai", None):
+            report["final_verdict"] = step_xai.final_verdict
+            report["confidence"] = step_xai.confidence_score
+            if hasattr(step_xai, "comparison_data") and step_xai.comparison_data:
                 # Direct check or field existence
-                report["comparison_data"] = state.step_reporter.comparison_data
+                report["comparison_data"] = step_xai.comparison_data
 
         # Dynamic Score Flattening
         # We iterate through all stored audit results (e.g., standard, cognitive, etc.)
@@ -304,8 +304,8 @@ class StatePresenter:
             "step_panel": state.step_panel.model_dump(exclude=noise_fields, exclude_none=True)
             if state.step_panel
             else None,
-            "step_reporter": state.step_reporter.model_dump(exclude=noise_fields, exclude_none=True)
-            if state.step_reporter
+            "step_xai": getattr(state, "step_xai").model_dump(exclude=noise_fields, exclude_none=True)
+            if getattr(state, "step_xai", None)
             else None,
         }
 

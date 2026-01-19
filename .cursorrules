@@ -61,6 +61,10 @@ PART 1: FUTURE-PROOFING & DYNAMIC ARCHITECTURE (2026 STANDARDS)
     * **Zero-Fallback Rule**: 
         * **BANNED**: Hardcoded default values or fallbacks in code (e.g., `prompts = [...]` if DB is empty).
         * **REQUIRED**: System must fail fast if configuration is missing in the database. All logic, prompts, and configurations MUST be fetched dynamically from the database.
+    * **Zero-Tolerance Legacy Policy**:
+        * **SECURITY RISK**: Backward compatibility is considered a SECURITY RISK in this project.
+        * **STRICT CRASH**: Any code found supporting legacy schemas (e.g., `step_reporter`, `pisteet`) must be treated as a bug. Prefer crashing the application over guessing data.
+        * **NO GHOST DATA**: Do not support "flattened" or "migrated" data structures in code. If the DB schema changes, the old data is dead.
         * **SPECIFIC BANS** (Examples of violations):
             1. **Model Name Duplication**: NEVER duplicate model names (e.g., `"gemini-2.5-flash"`) in multiple places. Only `deep` and `fast` configs contain actual model names. Other configs reference these aliases.
             2. **Removing Indirection**: NEVER "simplify" chained resolution (e.g., `guard` → `fast` → actual model). This indirection is intentional Single Source of Truth.

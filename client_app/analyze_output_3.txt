@@ -1,6 +1,0 @@
-Analyzing 2 items...                                            
-
-  error - The returned type 'Stream<User?> (where User is defined in c:\src\quorum\client_app\lib\features\auth\domain\models\user.dart)' isn't returnable from a 'Stream<User?> (where User is defined in C:\Users\risto\AppData\Local\Pub\Cache\hosted\pub.dev\firebase_auth-6.1.3\lib\src\user.dart)' function, as required by the closure's context - test\features\admin\presentation\screens\user_management_screen_test.dart:64:22 - return_of_invalid_type_from_closure
-  error - The returned type 'Stream<User?> (where User is defined in c:\src\quorum\client_app\lib\features\auth\domain\models\user.dart)' isn't returnable from a 'Stream<User?> (where User is defined in C:\Users\risto\AppData\Local\Pub\Cache\hosted\pub.dev\firebase_auth-6.1.3\lib\src\user.dart)' function, as required by the closure's context - test\features\admin\presentation\screens\user_management_screen_test.dart:98:22 - return_of_invalid_type_from_closure
-
-2 issues found. (ran in 2.3s)

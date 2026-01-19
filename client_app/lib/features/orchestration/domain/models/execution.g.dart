@@ -129,7 +129,6 @@ ExecutionCompleted _$ExecutionCompletedFromJson(Map<String, dynamic> json) =>
       stepCoach: json['step_coach'] as Map<String, dynamic>?,
       stepInteraction: json['step_interaction'] as Map<String, dynamic>?,
       stepPanel: json['step_panel'] as Map<String, dynamic>?,
-      stepReporter: json['step_reporter'] as Map<String, dynamic>?,
       status:
           $enumDecodeNullable(_$ExecutionStatusEnumMap, json['status']) ??
           ExecutionStatus.completed,
@@ -162,7 +161,6 @@ Map<String, dynamic> _$ExecutionCompletedToJson(ExecutionCompleted instance) =>
       'step_coach': instance.stepCoach,
       'step_interaction': instance.stepInteraction,
       'step_panel': instance.stepPanel,
-      'step_reporter': instance.stepReporter,
       'status': _$ExecutionStatusEnumMap[instance.status]!,
     };
 

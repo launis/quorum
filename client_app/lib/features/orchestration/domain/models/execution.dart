@@ -123,7 +123,6 @@ sealed class Execution with _$Execution {
     @JsonKey(name: 'step_coach') Map<String, dynamic>? stepCoach,
     @JsonKey(name: 'step_interaction') Map<String, dynamic>? stepInteraction,
     @JsonKey(name: 'step_panel') Map<String, dynamic>? stepPanel,
-    @JsonKey(name: 'step_reporter') Map<String, dynamic>? stepReporter,
 
     @Default(ExecutionStatus.completed) ExecutionStatus status,
   }) = ExecutionCompleted;

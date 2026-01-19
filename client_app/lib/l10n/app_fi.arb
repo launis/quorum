@@ -105,7 +105,7 @@
   "stepArchivist": "Arkistonhoitaja (Archivist)",
   "stepJudge": "Tuomari (Judge)",
   "stepCoach": "Valmentaja (Coach)",
-  "stepReporter": "Raportoija (Reporter)",
+  "stepXai": "XAI Raportoija (Reporter)",
   "stepInitializing": "Alustetaan...",
   "validationMissingEvidence": "Puuttuvat todisteet: {fields}",
   "validationInputEmpty": "Syötteet eivät voi olla tyhjiä.",

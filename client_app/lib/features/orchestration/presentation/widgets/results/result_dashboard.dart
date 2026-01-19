@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:client_app/features/orchestration/domain/models/execution.dart';
+import 'package:client_app/features/orchestration/domain/models/xai_report.dart';
+import 'package:client_app/features/orchestration/domain/models/evaluation_result.dart';
 import 'package:client_app/features/orchestration/presentation/widgets/results/score_card.dart';
+import 'package:client_app/features/orchestration/presentation/widgets/results/score_card_radar.dart';
 import 'package:client_app/features/orchestration/presentation/widgets/results/feedback_section.dart';
 import 'package:client_app/features/orchestration/presentation/widgets/results/deep_dive_expander.dart';
 import 'package:client_app/features/orchestration/presentation/widgets/output_renderer.dart';
-
-// New Visualizations
-import 'package:client_app/features/orchestration/presentation/widgets/results/comparison_matrix.dart';
-import 'package:client_app/features/orchestration/presentation/widgets/results/evidence_dashboard.dart';
-import 'package:client_app/features/orchestration/presentation/widgets/results/pre_mortem_card.dart';
 import 'package:client_app/features/orchestration/presentation/widgets/results/audit_trail_viewer.dart';
 
 class ResultDashboard extends StatelessWidget {
@@ -18,502 +16,258 @@ class ResultDashboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Only render if completed and has result
     if (execution is! ExecutionCompleted) {
       return const Center(child: Text('Analysis not completed.'));
     }
 
     final rawResult = (execution as ExecutionCompleted).result;
-    final data = Map<String, dynamic>.from(rawResult);
-
-    // --- V2 State Adapter (Jan 2026) ---
-    // Maps the flat V2 WorkflowState to the legacy "Report" structure expected by widgets.
-    Map<String, dynamic> report;
-    Map<String, dynamic> sysStatus;
-
-    if (data.containsKey('Report')) {
-      // Legacy V1 Structure
-      report = Map<String, dynamic>.from(data['Report'] as Map);
-      sysStatus = Map<String, dynamic>.from(data['System_Status'] as Map? ?? {});
-    } else {
-      // V2 Structure (GraphEngine State)
-      final stepReporter =
-          data['step_reporter'] != null
-              ? Map<String, dynamic>.from(data['step_reporter'] as Map)
-              : <String, dynamic>{};
-      
-      final stepJudge =
-          data['step_judge'] != null
-              ? Map<String, dynamic>.from(data['step_judge'] as Map)
-              : <String, dynamic>{};
-      
-      final stepCoach =
-          data['step_coach'] != null
-              ? Map<String, dynamic>.from(data['step_coach'] as Map)
-              : <String, dynamic>{};
-
-      // Unused for now but available for future use if needed
-      // final stepOverseer = data['step_overseer'] != null
-      //     ? Map<String, dynamic>.from(data['step_overseer'] as Map)
-      //     : <String, dynamic>{};
-
-      // 1. Map High-Level Metrics
-      // Hoisted fields take precedence, then step_reporter
-      final verdict = data['final_verdict'] ?? stepReporter['final_verdict'];
-      final confidence = data['confidence_score'] ?? stepReporter['confidence_score'];
-      final xaiMarkdown = data['xai_report_formatted'] ?? stepReporter['xai_report_formatted'];
-      
-      // 2. Map Scores (Legacy Pisteet)
-      // V2 TuomioJaPisteet.pisteet is typically a Map { "analyysi": {...}, ... }
-      final scores = stepJudge['pisteet'] as Map<String, dynamic>? ?? <String, dynamic>{};
-
-      // 3. Map Feedback
-      // Flatten Coach ActionGroups for legacy list view
-      List<String> actions = [];
-      if (stepCoach['kehityskohteet_konkreettisesti'] is List) {
-        for (final group in (stepCoach['kehityskohteet_konkreettisesti'] as List)) {
-           if (group is Map && group['kohdat'] is List) {
-             for (final item in (group['kohdat'] as List)) {
-               if (item is Map) actions.add((item['otsikko'] ?? '') as String);
+    
+    // --- Parse XAI Report with Fallbacks ---
+    // --- Parse XAI Report with Fallbacks ---
+    XAIReport? xaiReport;
+    try {
+        dynamic xaiData;
+        
+    		    // Strategy 1: Top-level (Direct)
+		    if (rawResult.containsKey('step_xai')) {
+		         xaiData = rawResult['step_xai'];
+             debugPrint('DEBUG: Found step_xai (Strategy 1): $xaiData');
+		    }
+		    // Strategy 2: Nested in 'step_results' (Standard Workflow Output)
+		    else if (rawResult.containsKey('step_results')) {
+		         final stepResults = rawResult['step_results'];
+             debugPrint('DEBUG: Found step_results (Strategy 2): ${stepResults.keys}');
+		         if (stepResults is Map && stepResults.containsKey('step_xai')) {
+		             xaiData = stepResults['step_xai'];
+                 debugPrint('DEBUG: Found step_xai inside step_results: $xaiData');
+		         } else {
+                 debugPrint('DEBUG: step_xai NOT found in step_results.');
              }
-           }
+		    } else {
+             debugPrint('DEBUG: No step_xai and no step_results found in rawResult. Keys: ${rawResult.keys}');
         }
-      }
-      
-      report = {
-         'final_verdict': verdict,
-         'confidence': confidence,
-         'xai_report_formatted': xaiMarkdown,
-         'comparison_data': stepReporter['comparison_data'],
-         'scores': scores,
-         'kehitystoimenpiteet': actions, // Mapped from ActionGroups
-         'kehitysehdotukset': stepCoach['lopputuloksen_kehitysehdotukset'] as List? ?? <dynamic>[],
-         // Pass through other step data for deep dives
-         'psykologinen_profiili': data['step_profiler'],
-         'vuorovaikutus_analyysi': data['step_interaction'],
-         // For Evidence Dashboard
-         'rag_todisteet': (data['step_analyst'] as Map?)?['rag_todisteet'],
-         'toulmin_analyysi': (data['step_logician'] as Map?)?['toulmin_analyysi'],
-         // For Pre-Mortem
-         'pre_mortem_analyysi': (data['step_detector'] as Map?)?['pre_mortem_analyysi'],
-      };
 
-      // 4. Map System Status
-      // Derive risk level from Security or Overseer
-      String riskLevel = 'N/A';
-      if (data['step_guard'] != null) {
-         riskLevel = ((data['step_guard'] as Map?)?['security_check'] as Map?)?['riski_taso'] as String? ?? 'N/A';
-      }
-      
-      sysStatus = {
-        'status': 'Done',
-        'riski_taso': riskLevel
-      };
+		    if (xaiData != null && xaiData is Map<String, dynamic>) {
+		         xaiReport = XAIReport.fromJson(xaiData);
+             debugPrint('DEBUG: Successfully parsed XAIReport. ScoreCards count: ${xaiReport.scoreCards.length}');
+             if (xaiReport.scoreCards.isEmpty) {
+                 debugPrint('DEBUG: XAIReport parsed but scoreCards is empty! Raw xaiData["score_cards"]: ${xaiData["score_cards"]}');
+             }
+		    } else if (xaiData != null) {
+            debugPrint('DEBUG: xaiData found but is not a Map: $xaiData');
+        }
+    } catch (e) {
+        debugPrint('XAIReport parsing failed: $e');
     }
 
-    // Check for Dual Matrix Data (Comparison)
-    // Logic from renderer.py: Check comparison_data in Report OR in Raw_Steps fallback
-    Map<String, dynamic>? comparisonData;
-    if (report['comparison_data'] != null) {
-      comparisonData = Map<String, dynamic>.from(
-        report['comparison_data'] as Map,
-      );
-    } else {
-      // Fallback logic
-      final raw = data['Raw_Steps'] as Map<String, dynamic>?;
-      final stepRep = raw?['step_reporter'] as Map<String, dynamic>?;
-      if (stepRep?['comparison_data'] != null) {
-        comparisonData = Map<String, dynamic>.from(
-          stepRep!['comparison_data'] as Map,
-        );
-      }
-    }
+    // If we have a robust XAI Report with ScoreCards, show the new Dashboard.
+    final bool useV2Dashboard = xaiReport != null && xaiReport.scoreCards.isNotEmpty;
 
-    // Matrix Mode logic:
-    // If comparisonData exists, we prefer rendering Matrix over standard Scores
-    final bool showDualMatrix = comparisonData != null;
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
+    return DefaultTabController(
+      length: 2,
       child: Column(
         children: [
-          // 1. High Level Verdict
-          _buildVerdictSection(context, report, sysStatus),
-          const SizedBox(height: 24),
-
-          // 2. Scores OR Matrix
-          if (showDualMatrix) ...[
-            ComparisonMatrix(comparisonData: comparisonData),
-          ] else ...[
-            _buildScoresSection(context, report),
-          ],
-          const SizedBox(height: 24),
-
-          // 3. Feedback
-          _buildFeedbackSection(context, report),
-          const SizedBox(height: 24),
-
-          // 4. Evidence & Logic (New)
-          EvidenceDashboard(report: report),
-          const SizedBox(height: 16),
-
-          // 5. Pre-Mortem (New)
-          PreMortemCard(report: report),
-          const SizedBox(height: 16),
-
-          // 6. Profile & Interaction
-          _buildProfileAndInteraction(context, data, report),
-          const SizedBox(height: 16),
-
-          // 7. Full Report (Deep Dive)
-          _buildDeepDive(context, data, report),
-          const SizedBox(height: 16),
-
-          // 8. Audit Trail (Log)
-          AuditTrailViewer(data: data),
-          const SizedBox(height: 48), // Bottom padding
+          const TabBar(
+            tabs: [
+              Tab(icon: Icon(Icons.dashboard_outlined), text: 'License'),
+              Tab(icon: Icon(Icons.data_object_outlined), text: 'Raw Data'),
+            ],
+          ),
+          Expanded(
+            child: TabBarView(
+              children: [
+                // Tab 1: Cognitive License Dashboard
+                useV2Dashboard 
+                    ? _buildCognitiveDashboard(context, xaiReport!) 
+                    : const Center(child: Text("Report format not supported or incomplete.")),
+                
+                // Tab 2: Raw Audit Trail & Deep Dives
+                _buildRawDataView(context, rawResult, xaiReport),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildVerdictSection(
-    BuildContext context,
-    Map<String, dynamic> report,
-    Map<String, dynamic> sysStatus,
-  ) {
-    final verdict = report['final_verdict'] as String? ?? 'N/A';
-    final reliability =
-        (report['confidence'] is num)
-            ? ((report['confidence'] as num) * 100).toInt()
-            : 0;
-    final risk = sysStatus['riski_taso'] as String? ?? 'N/A';
-
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Text('Verdict', style: Theme.of(context).textTheme.labelLarge),
-            const SizedBox(height: 4),
-            Text(
-              verdict,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).primaryColor,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const Divider(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildMetric(context, 'Reliability', '$reliability%'),
-                _buildMetric(context, 'Risk Level', risk),
-                _buildMetric(
-                  context,
-                  'System Status',
-                  sysStatus['status'] as String? ?? 'Done',
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMetric(BuildContext context, String label, String value) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-        ),
-        Text(label, style: Theme.of(context).textTheme.bodySmall),
-      ],
-    );
-  }
-
-  Widget _buildScoresSection(
-    BuildContext context,
-    Map<String, dynamic> report,
-  ) {
-    final scoresRaw = report['scores'] ?? report['pisteet'];
-    if (scoresRaw == null || scoresRaw is! Map) return const SizedBox.shrink();
-
-    final scores = Map<String, dynamic>.from(scoresRaw);
-
-    // Max scale
-    final sMax = (report['scale_max'] as num?)?.toDouble() ?? 5.0;
-
-    // Filter valid keys
-    final entries =
-        scores.entries.where((e) => !e.key.endsWith('_selitys')).toList();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Evaluation Scores',
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
-        const SizedBox(height: 12),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2, // 2 columns mostly ok
-            childAspectRatio: 1.8,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-          ),
-          itemCount: entries.length,
-          itemBuilder: (context, index) {
-            final entry = entries[index];
-            final label = entry.key.replaceAll('_', ' ').toUpperCase();
-
-            // Handle value
-            double val = 0;
-            String? desc;
-
-            if (entry.value is num) {
-              val = (entry.value as num).toDouble();
-            } else if (entry.value is Map) {
-              val = ((entry.value as Map)['arvosana'] as num? ?? 0).toDouble();
-              desc = (entry.value as Map)['perustelu'] as String?;
-            }
-
-            // Try to find separate explanation
-            if (desc == null && scores.containsKey('${entry.key}_selitys')) {
-              desc = scores['${entry.key}_selitys'] as String?;
-            }
-
-            return ScoreCard(
-              label: label,
-              value: val,
-              maxValue: sMax,
-              description: desc,
-            );
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFeedbackSection(
-    BuildContext context,
-    Map<String, dynamic> report,
-  ) {
-    // Explicitly handle list casting safely
-    final actionsRaw = report['kehitystoimenpiteet'];
-    final actions =
-        (actionsRaw is List)
-            ? actionsRaw.map((e) => e.toString()).toList()
-            : <String>[];
-
-    final recsRaw = report['kehitysehdotukset'];
-    final recs =
-        (recsRaw is List)
-            ? recsRaw.map((e) => e.toString()).toList()
-            : <String>[];
-
-    return Column(
-      children: [
-        FeedbackSection(
-          title: 'Coaching Actions',
-          items: actions,
-          color: Colors.amber[800],
-          icon: Icons.school_outlined,
-        ),
-        if (actions.isNotEmpty) const SizedBox(height: 16),
-        FeedbackSection(
-          title: 'Recommendations',
-          items: recs,
-          color: Colors.blue[700],
-          icon: Icons.rocket_launch_outlined,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildProfileAndInteraction(
-    BuildContext context,
-    Map<String, dynamic> data,
-    Map<String, dynamic> report,
-  ) {
-    // Fallback logic
-    var profileRaw = report['psykologinen_profiili'];
-    var interactionRaw = report['vuorovaikutus_analyysi'];
-
-    final raw = data['Raw_Steps'] as Map<String, dynamic>? ?? {};
-
-    if (profileRaw == null && raw['step_profiler'] != null) {
-      profileRaw = raw['step_profiler'];
-    }
-    if (interactionRaw == null && raw['step_interaction'] != null) {
-      interactionRaw = raw['step_interaction'];
-    }
-
-    if (profileRaw == null && interactionRaw == null) {
-      return const SizedBox.shrink();
-    }
-
-    final profile =
-        (profileRaw is Map) ? Map<String, dynamic>.from(profileRaw) : null;
-    final interaction =
-        (interactionRaw is Map)
-            ? Map<String, dynamic>.from(interactionRaw)
-            : null;
-
-    return Column(
-      children: [
-        if (profile != null) ...[
-          DeepDiveExpander(
-            title: 'Psychological Profile',
-            icon: Icons.psychology,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _keyValue(
-                  'Profile',
-                  (profile['psykologinen_profiili'] ?? profile['profiili'])
-                      as String?,
-                ),
-                _keyValue(
-                  'Intent',
-                  (profile['intentio_analyysi'] ?? profile['intentio'])
-                      as String?,
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Biases:',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                _buildStringList(
-                  profile['tunnistetut_vinoumat'] ?? profile['vinoumat'],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-        ],
-        if (interaction != null) ...[
-          DeepDiveExpander(
-            title: 'Interaction Dynamics',
-            icon: Icons.hub,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _keyValue(
-                  'Role',
-                  (interaction['driver_classification'] ?? interaction['rooli'])
-                      as String?,
-                ),
-                _keyValue(
-                  'Control Ratio',
-                  '${interaction['input_control_ratio'] ?? interaction['control_ratio'] ?? 0}',
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Strategies:',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                _buildStringList(
-                  interaction['tunnistetut_strategiat'] ??
-                      interaction['strategiat'],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  // Helper to safely build list of text widgets from dynamic list
-  Widget _buildStringList(dynamic listRaw) {
-    if (listRaw is! List || listRaw.isEmpty) return const SizedBox.shrink();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children:
-          listRaw.map((b) {
-            if (b is Map) {
-              return Text('• ${b['nimi']}: ${b['selitys']}');
-            }
-            return Text('• $b');
-          }).toList(),
-    );
-  }
-
-  Widget _buildDeepDive(
-    BuildContext context,
-    Map<String, dynamic> data,
-    Map<String, dynamic> report,
-  ) {
-    // XAI Report
-    String? xai = report['xai_report_formatted'] as String?;
-
-    // Fallback 1: Try other keys in Report
-    if (xai == null || xai.isEmpty) {
-      xai = report['xai_report'] as String?;
-    }
-
-    // Fallback 2: Check Raw_Steps (step_xai or step_reporter)
-    if (xai == null || xai.isEmpty) {
-      final raw = data['Raw_Steps'] as Map?;
-      if (raw != null) {
-        final stepXai = raw['step_xai'] as Map?;
-        final stepRep = raw['step_reporter'] as Map?;
-
-        if (stepXai != null) {
-          xai =
-              stepXai['xai_report_formatted'] as String? ??
-              stepXai['final_report'] as String?;
-        }
-        if ((xai == null || xai.isEmpty) && stepRep != null) {
-          xai =
-              stepRep['xai_report_formatted'] as String? ??
-              stepRep['final_report'] as String?;
-        }
-      }
-    }
-
-    return DeepDiveExpander(
-      title: 'Full Analysis Report (Markdown)',
-      icon: Icons.description_outlined,
-      initiallyExpanded: false,
-      child:
-          (xai != null && xai.isNotEmpty)
-              ? OutputRenderer(markdownContent: xai)
-              : const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Text(
-                  'No detailed report content available (xai_report_formatted missing).',
-                  style: TextStyle(
-                    fontStyle: FontStyle.italic,
-                    color: Colors.grey,
-                  ),
-                ),
-              ),
-    );
-  }
-
-  Widget _keyValue(String key, String? value) {
-    if (value == null) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  // --- V2 Dashboard Builder ---
+  Widget _buildCognitiveDashboard(BuildContext context, XAIReport report) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('$key: ', style: const TextStyle(fontWeight: FontWeight.bold)),
-          Expanded(child: Text(value)),
+            // 1. Executive Header
+            _buildExecutiveHeader(context, report),
+            const SizedBox(height: 24),
+
+            // 2. Score Cards (Judges)
+            Text(
+                "Evaluation Matrices",
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            ...report.scoreCards.map((card) => ScoreCardRadar(card: card)),
+            const SizedBox(height: 24),
+
+            // 3. Coaching & Recommendations
+            _buildCoachingSection(context, report),
+            const SizedBox(height: 24),
+
+            // 4. Markdown Report (Formatted)
+            if (report.xaiReportFormatted != null)
+                DeepDiveExpander(
+                    title: 'Full Analysis Report',
+                    icon: Icons.article_outlined,
+                    initiallyExpanded: false,
+                    child: OutputRenderer(markdownContent: report.xaiReportFormatted!),
+                ),
+            const SizedBox(height: 48),
         ],
       ),
     );
   }
+  Widget _buildExecutiveHeader(BuildContext context, XAIReport report) {
+      final colorScheme = Theme.of(context).colorScheme;
+      
+      // Determine color based on confidence
+      final confidence = report.confidenceScore;
+      final Color statusColor = confidence > 0.8 
+            ? Colors.green 
+            : (confidence > 0.5 ? Colors.orange : Colors.red);
+
+      return Card(
+          elevation: 2,
+          color: colorScheme.surfaceContainer,
+          child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                  children: [
+                      Text(
+                          report.finalVerdict.toUpperCase(),
+                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.w900,
+                              color: statusColor,
+                              letterSpacing: 1.2,
+                          ),
+                          textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                          report.executiveSummary,
+                          style: Theme.of(context).textTheme.bodyLarge,
+                          textAlign: TextAlign.center,
+                      ),
+                      const Divider(height: 32),
+                      Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                              _metric(context, "Confidence", "${(confidence * 100).toInt()}%"),
+                              _metric(context, "Valid Checksum", report.semanttinenTarkistussumma.substring(0, 6)),
+                              _metric(context, "Version", report.metadata['versio']?.toString() ?? "2.0"),
+                          ],
+                      )
+                  ],
+              ),
+          ),
+      );
+  }
+
+  Widget _metric(BuildContext context, String label, String value) {
+      return Column(
+          children: [
+              Text(value, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+              Text(label, style: Theme.of(context).textTheme.labelSmall),
+          ],
+      );
+  }
+
+  Widget _buildCoachingSection(BuildContext context, XAIReport report) {
+      // Parse recommendations if they are newline separated or similar, 
+      // but XAIReport definition says fields like analysisRecommendations are Strings blocks.
+      // We might want to render them as Markdown or split them.
+      // For now, using FeedbackSection which expects List<String>.
+      
+      // Heuristic splitting if it's a markdown list
+      List<String> splitMarkdownList(String text) {
+          return text.split('\n')
+              .map((e) => e.trim())
+              .where((e) => e.startsWith('- ') || e.startsWith('* '))
+              .map((e) => e.substring(2))
+              .toList();
+      }
+
+      final recs = splitMarkdownList(report.analysisRecommendations);
+      final opps = splitMarkdownList(report.analysisOpportunities);
+
+      return Column(
+          children: [
+              if (recs.isEmpty && report.analysisRecommendations.isNotEmpty) 
+                  // Fallback if not a list
+                  _simpleCard(context, "Recommendations", report.analysisRecommendations, Colors.blue),
+
+              if (recs.isNotEmpty)
+                FeedbackSection(
+                    title: 'Recommendations',
+                    items: recs,
+                    color: Colors.blue[700],
+                    icon: Icons.rocket_launch_outlined,
+                ),
+            
+              const SizedBox(height: 16),
+
+              if (opps.isNotEmpty)
+                FeedbackSection(
+                    title: 'Opportunities',
+                    items: opps,
+                    color: Colors.amber[800],
+                    icon: Icons.lightbulb_outline,
+                ),
+          ],
+      );
+  }
+  
+  Widget _simpleCard(BuildContext context, String title, String content, Color? color) {
+      return Card(
+          child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                      Row(children: [
+                          Icon(Icons.info_outline, color: color),
+                          const SizedBox(width: 8),
+                          Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      ]),
+                      const SizedBox(height: 8),
+                      Text(content),
+                  ],
+              ),
+          ),
+      );
+  }
+
+  // --- Raw Data View (Similar to Old Dashboard) ---
+  Widget _buildRawDataView(BuildContext context, Map<String, dynamic> data, XAIReport? report) {
+      // Reuses parts of the old dashboard or just the Audit Trail + Deep Dives
+      return SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+              children: [
+                  AuditTrailViewer(data: data),
+                  const SizedBox(height: 24),
+                  if (report != null) ...[
+                      DeepDiveExpander(
+                          title: "Methodological Log",
+                          icon: Icons.history_edu,
+                          child: Text(report.metodologinenLoki),
+                      ),
+                  ]
+              ],
+          ),
+      );
+  }
+
+
 }

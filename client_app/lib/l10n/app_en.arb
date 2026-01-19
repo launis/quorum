@@ -164,8 +164,7 @@
   "stepArchivist": "Archivist (History)",
   "stepJudge": "Judge (Verdict)",
   "stepCoach": "Coach (Feedback)",
-  "stepReporter": "Reporter (Final Report)",
-  "stepReporter": "Reporter (Final Report)",
+  "stepXai": "XAI Reporter (Final Report)",
   "stepInitializing": "Initializing...",
   "validationMissingEvidence": "Missing required evidence: {fields}",
   "@validationMissingEvidence": {
