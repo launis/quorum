@@ -187,16 +187,10 @@ class LiteLLMProvider(LLMProvider):
                     return
                 
                 # Format for log
-                header = f"\n{'='*20} DEBUG: {label} {'='*20}"
-                footer = f"{'='*50}\n"
-                
-                if len(text) > 3000:
-                    content = f"{text[:1000]}\n\n... [TRUNCATED {len(text)-1500} CHARS] ...\n\n{text[-500:]}"
-                else:
-                    content = text
-                
-                # Log as a single block to keep it together
-                logger.info(f"{header}\n{content}\n{footer}")
+                # User Mandate (Jan 2026): Single-line compact debug log
+                content_preview = text[:50].replace('\n', '\\n')
+                suffix = text[-50:].replace('\n', '\\n') if len(text) > 50 else ""
+                logger.info(f"[LiteLLM] DEBUG [{label}]: Length={len(text)} chars | Content='{content_preview}...{suffix}'")
 
             if system_instruction:
                 _truncate_for_debug(system_instruction, "SYSTEM INSTRUCTION")

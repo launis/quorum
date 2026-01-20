@@ -44,6 +44,9 @@ class Settings(BaseSettings):
         False
     )
     cors_origins: Annotated[list[str], Field(description="Allowed CORS Origins")] = ["*"]
+    
+    # --- Logging ---
+    use_json_logging: Annotated[bool, BeforeValidator(strip_whitespace), Field(description="Force structured JSON logging in any environment")] = False
 
     # --- API Keys ---
     google_api_key: Annotated[str | None, Field(description="Google AI Provider API Key")] = None

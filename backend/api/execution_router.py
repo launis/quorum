@@ -21,6 +21,7 @@ from backend.models.workflow import WorkflowDefinition
 from backend.schemas.error import APIError
 from backend.schemas.error import APIError
 from backend.services.auth import AuthService
+from backend.logging_config import log_error
 from backend.models.view import ReportView
 from backend.api.bff_transformer import ReportTransformer
 
@@ -110,28 +111,21 @@ async def execute_workflow_route(
         return result
 
     except ResourceNotFoundError as e:
-        error_code = "WORKFLOW_NOT_FOUND"
-        logger.error(f"{error_code}: {e}")
-        # Inject code and re-raise for global handler
-        e.details["error_code"] = error_code
+        if "error_code" not in e.details:
+            e.details["error_code"] = "WORKFLOW_NOT_FOUND"
+        log_error(logger, e)
         raise e
 
     except WorkflowExecutionError as e:
         # Catch structured engine errors
-        error_code = "WORKFLOW_EXECUTION_FAILED"
-        logger.error(f"{error_code}: Execution failed at step '{e.step_id}': {e.original_error}")
-        # Inject code/details and re-raise
-        e.details["error_code"] = error_code
-        e.message = f"Execution failed at step '{e.step_id}'."  # Optional: User-friendly override
+        if "error_code" not in e.details:
+            e.details["error_code"] = "WORKFLOW_EXECUTION_FAILED"
+        log_error(logger, e, message=f"Execution failed at step '{e.step_id}'")
         raise e
 
     except Exception as e:
-        error_code = "INTERNAL_SERVER_ERROR"
-        logger.error(f"{error_code}: Unexpected failure: {e}", exc_info=True)
-        # Use generic 500 handler or wrap?
-        # Global handler in main.py catches Exception -> 500.
-        # But to be explicit and allow "INTERNAL_SERVER_ERROR" code propagation if we wanted custom logic:
-        raise e  # Let Global Handler take it (it uses INTERNAL_SERVER_ERROR default)
+        log_error(logger, e, message="Unexpected execution failure")
+        raise e
 
 
 @workflow_router.get(
@@ -192,22 +186,19 @@ async def get_workflow_schema(workflow_id: str, repository: AbstractWorkflowRepo
         return task_def.input_schema.model_json_schema()
 
     except ResourceNotFoundError as e:
-        error_code = "RESOURCE_NOT_FOUND"
-        logger.warning(f"{error_code}: {e}")
-        # Re-raise as is, or wrap if specific details needed.
-        # But ResourceNotFoundError is an AppException, so checking main handler.
-        # Ensure it has error_code in details
         if "error_code" not in e.details:
-            e.details["error_code"] = error_code
+            e.details["error_code"] = "RESOURCE_NOT_FOUND"
+        log_error(logger, e)
         raise e
     except Exception as e:
-        from backend.exceptions import AppException
-
         error_code = "SCHEMA_GENERATION_FAILED"
-        logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(
-            message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"error_code": error_code}
-        ) from e
+        wrapped_error = AppException(
+            message=str(e),
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": error_code},
+        )
+        log_error(logger, wrapped_error, message="Schema generation failed")
+        raise wrapped_error from e
 
 
 @executions_router.get("/recent", summary="Get Recent Executions", response_model=list[dict[str, Any]])
@@ -271,12 +262,13 @@ async def get_recent_executions(
 
     except Exception as e:
         error_code = "EXECUTION_FETCH_FAILED"
-        logger.error(f"{error_code}: Failed to fetch recent executions - {e}", exc_info=True)
-        raise AppException(
+        wrapped_error = AppException(
             message="Failed to fetch recent executions",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             details={"error_code": error_code, "original_error": str(e)},
-        ) from e
+        )
+        log_error(logger, wrapped_error)
+        raise wrapped_error from e
 
 
 @executions_router.get("/{execution_id}", summary="Get Execution Details", response_model=dict[str, Any])
@@ -312,21 +304,28 @@ async def get_execution(
         return item
 
     except ResourceNotFoundError as e:
-        error_code = "EXECUTION_NOT_FOUND"
-        logger.warning(f"{error_code}: {e}")
+        if "error_code" not in e.details:
+            e.details["error_code"] = "EXECUTION_NOT_FOUND"
+        log_error(logger, e)
+        # Exception handler handles conversion to 404 based on exception type if needed, 
+        # or we explicitly raise AppException.
+        # ResourceNotFoundError usually maps to 404 in main handler if it inherits from it.
+        # But here logic explicitly converts to AppException(404).
+        # To maintain exact behavior:
         raise AppException(
             message=str(e),
             status_code=status.HTTP_404_NOT_FOUND,
-            details={"error_code": error_code}
+            details={"error_code": "EXECUTION_NOT_FOUND"}
         ) from e
     except Exception as e:
         error_code = "EXECUTION_FETCH_FAILED"
-        logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(
+        wrapped = AppException(
             message=str(e),
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             details={"error_code": error_code}
-        ) from e
+        )
+        log_error(logger, wrapped)
+        raise wrapped from e
 
 
 @executions_router.get(
@@ -409,17 +408,19 @@ async def get_execution_raw(
         return raw_data
 
     except ResourceNotFoundError as e:
-        error_code = "EXECUTION_NOT_FOUND"
-        logger.warning(f"{error_code}: {e}")
+        if "error_code" not in e.details:
+            e.details["error_code"] = "EXECUTION_NOT_FOUND"
+        log_error(logger, e)
         raise AppException(
-            message=str(e), status_code=status.HTTP_404_NOT_FOUND, details={"error_code": error_code}
+            message=str(e), status_code=status.HTTP_404_NOT_FOUND, details={"error_code": "EXECUTION_NOT_FOUND"}
         ) from e
     except Exception as e:
         error_code = "RAW_DATA_FETCH_FAILED"
-        logger.error(f"{error_code}: Failed to fetch raw data for {execution_id} - {e}", exc_info=True)
-        raise AppException(
+        wrapped = AppException(
             message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"error_code": error_code}
-        ) from e
+        )
+        log_error(logger, wrapped)
+        raise wrapped from e
 
 
 print("Loading Execution Router module...")
@@ -708,28 +709,31 @@ async def create_execution(
         raise
     except ResourceNotFoundError as e:
         error_code = "WORKFLOW_NOT_FOUND"
-        logger.warning(f"{error_code}: {e}")
-        raise AppException(
+        wrapped = AppException(
             message=str(e),
             status_code=status.HTTP_404_NOT_FOUND,
             details={"error_code": error_code}
-        ) from e
+        )
+        log_error(logger, wrapped)
+        raise wrapped from e
     except WorkflowExecutionError as e:
         error_code = "WORKFLOW_EXECUTION_FAILED"
-        logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(
+        wrapped = AppException(
             message=f"Execution failed: {e.original_error}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             details={"error_code": error_code, "step_id": e.step_id}
-        ) from e
+        )
+        log_error(logger, wrapped, message=f"Workflow execution failed at step {e.step_id}")
+        raise wrapped from e
     except Exception as e:
         error_code = "EXECUTION_CREATION_FAILED"
-        logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(
+        wrapped = AppException(
             message=str(e),
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             details={"error_code": error_code}
-        ) from e
+        )
+        log_error(logger, wrapped)
+        raise wrapped from e
 
 @executions_router.get(
     "/{execution_id}/view",
