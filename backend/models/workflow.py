@@ -16,6 +16,10 @@ class WorkflowStep(BaseModel):
         default_factory=dict, description="Maps task inputs to state values. Example: {'text': '$inputs.history_text'}"
     )
     config: dict[str, Any] = Field(default_factory=dict, description="Optional static config for the task")
+    hoist_keys: list[str] = Field(
+        default_factory=list,
+        description="Defines which keys from the task's result should be promoted to the top-level execution state",
+    )
 
     model_config = ConfigDict(extra="ignore")
 

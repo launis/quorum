@@ -31,7 +31,7 @@ class Metadata(BaseModel):
     vaihe: Annotated[float | int, Field(description="Step number in the workflow.")]
     versio: Annotated[Literal["1.0", "2.0"], Field(description="Schema version.")] = "2.0"
     suoritus_ymparisto: Annotated[
-        Literal["Kriitikkoryhma_External", "Internal"] | None, Field(description="Execution environment context.")
+        Literal["Kriitikkoryhma_External", "Internal", "VIRTUAL_ENCLAVE"] | None, Field(description="Execution environment context.")
     ] = None
 
     model_config = ConfigDict(extra="allow", validate_assignment=True)

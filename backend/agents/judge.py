@@ -114,12 +114,45 @@ class JudgeAgent(BaseAgent):
              result["critical_findings"] = result["kriittiset_havainnot_yhteenveto"]
 
         # Ensure mandatory EvaluationResult fields
-        if "matrix_id" not in result:
-             result["matrix_id"] = execution_context.get("matrix_id", "unknown_matrix")
+        # Force-overwrite matrix_id from configuration to prevent LLM hallucinations
+        # (LLM often returns the Matrix Name "Kognitiivinen..." instead of ID "matrix_standard_v1")
+        if execution_context and "matrix_id" in execution_context:
+            result["matrix_id"] = execution_context["matrix_id"]
+        elif "matrix_id" not in result:
+             result["matrix_id"] = "unknown_matrix"
         
-        # Default scale if missing
-        if "scale_min" not in result: result["scale_min"] = 1
-        if "scale_max" not in result: result["scale_max"] = 5
+        # STRICT SCALE ENFORCEMENT (User Mandate: "ikinä ei saa palata default arvoihin")
+        # We must fetch the Truth from the Database. If we can't, we crash.
+        matrix_id = result.get("matrix_id")
+        repo = kwargs.get("repository")
+        
+        if not matrix_id or not repo:
+             raise AgentExecutionError(
+                detail="JUDGE_SCALE_RESOLUTION_FAILED", 
+                original_error=ValueError("Cannot resolve scale: Missing matrix_id or repository.")
+            )
+
+        try:
+            # Re-fetch component to "hoist" the truth
+            comp = await repo.get_component_by_id(matrix_id)
+            if not comp or not comp.content:
+                 raise ValueError(f"Matrix component '{matrix_id}' not found or empty.")
+            
+            scale = comp.content.get("scale")
+            if not scale or "min" not in scale or "max" not in scale:
+                 raise ValueError(f"Matrix '{matrix_id}' has no defined scale in DB.")
+
+            # FORCE OVERWRITE - The DB is the only Truth.
+            result["scale_min"] = scale["min"]
+            result["scale_max"] = scale["max"]
+
+        except Exception as e:
+            logger.critical(f"[JudgeAgent] STRICT SCALE RESOLUTION FAILED: {e}")
+            raise AgentExecutionError(
+                detail="JUDGE_STRICT_SCALE_FAILURE", 
+                original_error=e
+            )
+
         if "critical_findings" not in result: result["critical_findings"] = []
         if "dimensions" not in result: result["dimensions"] = []
         if "total_score" not in result: result["total_score"] = 0

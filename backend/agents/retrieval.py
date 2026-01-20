@@ -69,11 +69,11 @@ class RetrievalAgent(BaseAgent):
         if not org_id and execution_context:
              org_id = execution_context.get("organization_id")
 
-        if not org_id:
-             logger.warning("[RetrievalAgent] Organization ID not found in input_data. Using 'default'.")
-             org_id = "default"
-
-        logger.info(f"[{self.__class__.__name__}] Running for Org: {org_id}...")
+        # Stateless Execution: No warning if missing.
+        if org_id:
+             logger.info(f"[{self.__class__.__name__}] Running for Org: {org_id}...")
+        else:
+             logger.debug(f"[{self.__class__.__name__}] No Organization ID provided (Stateless/Global Mode).")
 
         # 2. Dependency Resolution
         settings = get_settings()

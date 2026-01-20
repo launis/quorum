@@ -59,9 +59,10 @@ class CoachAgent(BaseAgent):
         return await super().execute(input_data, execution_context, system_instruction, **kwargs)
 
     async def prepare_context(self, input_data: dict, execution_context: dict | None, **kwargs) -> str:
-        """Lifecycle Hook: Pre-Execution.
+        """Lifecycle Hook: Pre-Execution with INTELLIGENT FILTERING.
 
-        Loads Domain Knowledge AND the Judge's Verdict (Tuomio).
+        Loads Knowledge Base but filters it dynamically based on the Judge's Verdict (Tuomio).
+        This prevents context window bloat (TimeoutError) by only including relevant references.
 
         Args:
             input_data (dict): Inputs.
@@ -73,94 +74,143 @@ class CoachAgent(BaseAgent):
         """
         parts = []
 
-        # 1. Load Knowledge Base
-        repository = kwargs.get("repository") # Passed via kwargs from Registry wrapper
-        if repository:
-            # Load items from DB
-            items = await repository.get_knowledge_base_items()
-
-            # Transform to expected structure
-            concepts = {}
-            references = []
-
-            for item in items:
-                i_type = item.get("type")
-                if i_type == "concept":
-                    term = item.get("term")
-                    defn = item.get("definition")
-                    if term and defn:
-                        concepts[term] = defn
-                elif i_type == "reference":
-                    ref_obj = {
-                        "citation": item.get("definition"),
-                        "short_citation": item.get("term"),
-                        "doi": item.get("doi_link"),
-                    }
-                    references.append(ref_obj)
-
-            # Populate self.knowledge_base
-            self.knowledge_base = {
-                "concepts": concepts,
-                "references": references,
-            }
-            logger.info(
-                f"[CoachAgent] Loaded {len(concepts)} concepts and {len(references)} references from Unified Database."
-            )
-
-            # Formulate the Context String for the Prompt
-            kb_str = "EXTERNAL SOURCES (KNOWLEDGE BASE):\n"
-            for ref in references:
-                citation = ref.get("citation", "")
-                if citation:
-                    kb_str += f"- {citation}\n"
-            parts.append(kb_str)
-
-        else:
-            logger.warning(
-                "COACH_KNOWLEDGE_BASE_UNAVAILABLE: No Repository provided in kwargs. Knowledge Base not loaded from DB."
-            )
-            self.knowledge_base = {}
-
-        # 2. Inject Verdict (Tuomio)
-        # Check kwargs first, then input_data
+        # 1. Inject Verdict (Tuomio) FIRST to determine filtering needs
         tuomio = kwargs.get("tuomio")
         if not tuomio:
             tuomio = input_data.get("step_judge")
+
+        weak_areas = []
+        focus_keywords = set()
 
         if tuomio:
             # Enhanced Analysis for Unified Evaluation Contract
             content = tuomio.model_dump_json(indent=2) if hasattr(tuomio, "model_dump_json") else str(tuomio)
             parts.append(f"### TUOMIO (VERDICT):\n{content}")
 
-            # Explicitly highlight weak areas (Score < 3) to guide the Coach
             try:
                 data = tuomio.model_dump() if hasattr(tuomio, "model_dump") else tuomio
                 if isinstance(data, dict):
+                    # Check dimensions field (Standard)
                     dimensions = data.get("dimensions", [])
-                    weak_areas = []
-                    
-                    # Logic: Check dimensions field (Standard)
                     if dimensions:
                          for dim in dimensions:
                              score = dim.get("score")
+                             dim_id = dim.get("dimension_id", "").lower()
                              if isinstance(score, (int, float)) and score < 3:
-                                 weak_areas.append(f"- {dim.get('dimension_id')}: Score {score} (Low)")
+                                 weak_areas.append(f"- {dim_id}: Score {score} (Low)")
+                                 focus_keywords.add(dim_id)
+                                 # Add related keywords based on dimension
+                                 if "analy" in dim_id: 
+                                     focus_keywords.update(["bias", "analy", "cognitive", "heuristic"])
+                                 elif "logi" in dim_id:
+                                     focus_keywords.update(["logic", "fallacy", "argument", "toulmin", "deduct"])
+                                 elif "falsi" in dim_id:
+                                     focus_keywords.update(["falsif", "popp", "scien", "test"])
                     
-                    # Fallback Logic: Check legacy pisteet (just in case)
+                    # Fallback Logic: Check legacy pisteet
                     elif "pisteet" in data:
                          p = data.get("pisteet", {})
                          for k, v in p.items():
                              if v and isinstance(v, dict):
                                  val = v.get("arvosana")
+                                 k_lower = k.lower()
                                  if isinstance(val, (int, float)) and val < 3:
                                       weak_areas.append(f"- {k}: Score {val} (Low)")
+                                      focus_keywords.add(k_lower)
+                                      if "analy" in k_lower: focus_keywords.update(["bias", "analy"])
+                                      elif "arvio" in k_lower: focus_keywords.update(["eval", "assess"])
+                                      elif "syn" in k_lower: focus_keywords.update(["synth", "integ"])
 
                     if weak_areas:
                         parts.append("### IDENTIFIED WEAK AREAS (FOCUS FOR COACHING):")
                         parts.append("\n".join(weak_areas))
-                        logger.info(f"[CoachAgent] Identified {len(weak_areas)} weak areas for coaching focus.")
+                        logger.info(f"[CoachAgent] Identified {len(weak_areas)} weak areas. Filtering KB for keywords: {focus_keywords}")
             except Exception as e:
                 logger.warning(f"[CoachAgent] Failed to analyze weak areas: {e}")
+
+        # 2. Intelligent Knowledge Base Loading
+        repository = kwargs.get("repository")
+        if repository:
+            # Load items from DB
+            items = await repository.get_knowledge_base_items()
+
+            concepts = {}
+            references = []
+            
+            # --- FILTERING LOGIC ---
+            # If we have focus keywords, score items by relevance.
+            # If no weak areas (perfect score), include general "Advancement" references.
+            
+            MAX_REFS = 15  # Strict limit to prevent bloat
+            filtered_refs = []
+
+            for item in items:
+                i_type = item.get("type")
+                term = item.get("term", "").lower()
+                definition = item.get("definition", "").lower()
+                combined_text = f"{term} {definition}"
+                
+                # Concept Handling (Always include Core Concepts if small enough, or filter)
+                if i_type == "concept":
+                     # For now, include all concepts as they are usually small definitions? SCM says "Context Bloat".
+                     # Let's filter concepts too if list is huge.
+                     if not focus_keywords or any(k in combined_text for k in focus_keywords):
+                        if item.get("term") and item.get("definition"):
+                             concepts[item.get("term")] = item.get("definition")
+
+                # Reference Handling (The main bloat source)
+                elif i_type == "reference":
+                    relevance = 0
+                    if focus_keywords:
+                        # Higher score for matches
+                        for k in focus_keywords:
+                            if k in combined_text:
+                                relevance += 1
+                    else:
+                        # No weak areas? "General/Advanced" mode.
+                        relevance = 1 # Keep some generic ones
+                    
+                    if relevance > 0:
+                        ref_obj = {
+                            "citation": item.get("definition"), # Definition often holds the citation text
+                            "short_citation": item.get("term"),
+                            "doi": item.get("doi_link"),
+                            "_score": relevance
+                        }
+                        filtered_refs.append(ref_obj)
+
+            # Sort by relevance and take top N
+            filtered_refs.sort(key=lambda x: x["_score"], reverse=True)
+            selected_refs = filtered_refs[:MAX_REFS]
+
+            # Populate self.knowledge_base (for post_process bibliography)
+            # We store ALL loaded concepts but only SELECTED references to keep bibliography consistent with prompt?
+            # Actually, bibliography should reflect what *could* be used.
+            # But prompt should be small.
+            
+            self.knowledge_base = {
+                "concepts": concepts,
+                "references": selected_refs, 
+            }
+            
+            logger.info(
+                f"[CoachAgent] Intelligent Filtering: Selected {len(selected_refs)} references (from {len(items)}) based on keywords: {list(focus_keywords)[:5]}..."
+            )
+
+            # Formulate the Context String
+            kb_str = "EXTERNAL SOURCES (KNOWLEDGE BASE - RELEVANT ONLY):\n"
+            if not selected_refs:
+                 kb_str += "(No specific references found for these weak areas. Rely on general pedagogical principles.)"
+            else:
+                for ref in selected_refs:
+                    citation = ref.get("citation", "")
+                    if citation:
+                        kb_str += f"- {citation}\n"
+            parts.append(kb_str)
+
+        else:
+            logger.warning("COACH_KNOWLEDGE_BASE_UNAVAILABLE: No Repository provided.")
+            self.knowledge_base = {}
 
         return "\n\n".join(parts)
 

@@ -56,9 +56,9 @@ class Settings(BaseSettings):
 
     # --- LLM Configuration ---
     # initial_model REMOVED per Zero-Fallback Policy
-    llm_default_timeout: Annotated[float, Field(description="LLM Timeout in seconds")] = 60.0
-    llm_max_retries: Annotated[int, Field(description="Max retries for LLM calls")] = 3
-    llm_retry_delay: Annotated[float, Field(description="Delay between retries in seconds")] = 4.0
+    llm_default_timeout: Annotated[float, Field(description="LLM Timeout in seconds")] = 120.0
+    llm_max_retries: Annotated[int, Field(description="Max retries for LLM calls")] = 2
+    llm_retry_delay: Annotated[float, Field(description="Delay between retries in seconds")] = 5.0
 
     # --- Redis & Arq ---
     redis_host: Annotated[str, Field(description="Redis Host")] = "localhost"

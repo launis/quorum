@@ -120,31 +120,19 @@ class GraphEngine:
                             # "updated_at": ... (handled by repo or db trigger usually)
                         }
 
-                        # HOISTING LOGIC FIX (Jan 2026)
-                        # Ensure xai_report_formatted is promoted to top-level for Frontend visibility
 
-                        # Protocol: Hoist XAI Reporting fields to top-level state
-                        # This ensures the Frontend can access summary cards (Verdict, Score, etc.)
-                        # directly from the Execution object.
-
-                        hoist_fields = [
-                            "xai_report_formatted",
-                            "final_verdict",
-                            "confidence_score",
-                            "executive_summary",
-                            "analysis_strengths",
-                            "analysis_weaknesses",
-                            "analysis_opportunities",
-                            "analysis_recommendations",
-                        ]
-
-                        for field in hoist_fields:
-                            # Check dict
-                            if isinstance(state_val, dict) and state_val.get(field):
-                                updates[field] = state_val[field]
-                            # Check Pydantic
-                            elif hasattr(state_val, field) and getattr(state_val, field):
-                                updates[field] = getattr(state_val, field)
+                        # Dynamic Hoisting (Jan 2026)
+                        # Use the step definition's hoist_keys to determine what to promote.
+                        if step.hoist_keys:
+                            for field in step.hoist_keys:
+                                # Check dict result
+                                if isinstance(state_val, dict) and field in state_val:
+                                    updates[field] = state_val[field]
+                                # Check Pydantic model result
+                                elif hasattr(state_val, field):
+                                    val = getattr(state_val, field)
+                                    if val is not None:
+                                        updates[field] = val
 
                         await repository.update_execution(execution_id, updates)
                         logger.debug(f"Persisted state after step '{step.id}'.")

@@ -407,7 +407,15 @@ class LiteLLMProvider(LLMProvider):
             )
 
         except Exception as e:
-            logger.error(f"[LiteLLM] Error: {e}", exc_info=True)
+            # Jan 2026: Reduce Error Verbosity
+            # The 'e' object from LiteLLM/Instructor might contain huge payloads (whole prompts/completions).
+            # We extracting the core error message and avoiding dumping the full payload unless in DEBUG mode.
+            error_msg = str(e)
+            if len(error_msg) > 500:
+                 error_msg = error_msg[:500] + "... [TRUNCATED]"
+            
+            logger.error(f"[LiteLLM] Execution Failed: {error_msg}")
+            logger.debug(f"[LiteLLM] Full Error Trace: {e}", exc_info=True)
             raise e
 
 

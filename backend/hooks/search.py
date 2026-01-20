@@ -31,53 +31,36 @@ def execute_google_search(state: WorkflowState) -> WorkflowState:
         WorkflowState: Updated state with search results.
 
     """
-    logger.debug("[SearchHook] Running execute_google_search...")
 
-    api_key = os.getenv("GOOGLE_SEARCH_API_KEY")
-    cx = os.getenv("GOOGLE_SEARCH_CX")
+    logging.debug("[SearchHook] Running execute_google_search...")
 
-    if not api_key or not cx:
-        logger.warning("[SearchHook] Missing GOOGLE_SEARCH_API_KEY or GOOGLE_SEARCH_CX")
-        state.aux_data["google_search_results"] = "Search disabled (Missing API Keys)"
-        return state
+    from backend.hooks.search_client import GoogleSearchTool
+
+    tool = GoogleSearchTool()
+    if not tool._service:
+         state.aux_data["google_search_results"] = "Search disabled (Missing API Keys)"
+         return state
 
     queries = []
 
     # Extract queries from Hypotheses (Step 2 Analyst)
     if state.step_analyst and state.step_analyst.hypoteesit:
-        logger.debug(f"   [HOOK] Found {len(state.step_analyst.hypoteesit)} hypotheses.")
+        logging.debug(f"   [HOOK] Found {len(state.step_analyst.hypoteesit)} hypotheses.")
         for hyp in state.step_analyst.hypoteesit:
             # ONLY use explicit search suggestions (external facts)
+            # Logic: Must have suggestion > 3 chars
             if hyp.hakusana_ehdotus and len(hyp.hakusana_ehdotus.strip()) > 3:
                 queries.append(hyp.hakusana_ehdotus)
     else:
-        logger.debug("   [HOOK] No hypotheses found. Using fallback.")
-        # fallback query removed or minimized
-        # queries.append("Cognitive Quorum verification")
+        logging.debug("   [HOOK] No hypotheses found. Using fallback.")
+       
+    if not queries:
+        return state
 
-    all_results = []
     try:
-        service = build("customsearch", "v1", developerKey=api_key)
-
-        # Limit to top 3 queries
-        for i, query in enumerate(queries[:3]):
-            logger.debug(f"   Query {i + 1}: {query}")
-            try:
-                res = service.cse().list(q=query, cx=cx, num=3).execute()
-
-                for item in res.get("items", []):
-                    all_results.append(
-                        {
-                            "query": query,
-                            "title": item.get("title"),
-                            "link": item.get("link"),
-                            "snippet": item.get("snippet"),
-                        }
-                    )
-            except Exception as q_err:
-                logger.warning(f"   Query '{query}' failed: {q_err}")
-
-        state.aux_data["google_search_results"] = json.dumps(all_results, indent=2)
+        # Use Tool
+        results = tool.search(queries, limit=3)
+        state.aux_data["google_search_results"] = json.dumps(results, indent=2)
 
     except Exception as e:
         logger.error(f"   [SearchHook] Search failed: {e}")
