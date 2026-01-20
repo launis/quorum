@@ -17,7 +17,10 @@ from tinydb import Query
 
 from backend.database.exporter import export_db_to_files
 from backend.dependencies import DatabaseDep, LLMHandlerDep, RegistryDep
+from backend.dependencies import DatabaseDep, LLMHandlerDep, RegistryDep
+from backend.models import auth as auth_schemas
 from backend.models import domain as schemas
+from backend.models import settings as setting_schemas
 
 # --- Local Imports ---
 # Rule 6: APIError must be the FIRST local import
@@ -55,21 +58,7 @@ class ComponentUpdate(BaseModel):
     ] = None
 
 
-class ModelSettings(BaseModel):
-    """Configuration settings for a specific model strategy."""
 
-    model_name: Annotated[str, Field(description="The concrete model identifier (e.g. 'gemini-1.5-pro').")]
-    temperature: Annotated[float | None, Field(description="Sampling temperature.")] = None
-    max_tokens: Annotated[int | None, Field(description="Maximum output token limit.")] = None
-    top_p: Annotated[float | None, Field(description="Nucleus sampling parameter.")] = None
-
-
-class GlobalModelConfig(BaseModel):
-    """Global configuration for model strategies."""
-
-    registry: Annotated[
-        dict[str, dict[str, ModelSettings]], Field(description="Nested map: Provider -> Strategy -> Settings.")
-    ]
 
 
 class WorkflowUpdate(BaseModel):
@@ -534,20 +523,27 @@ def get_unified_prompts(db: DatabaseDep):
 # Helpers (kept same)
 def _fetch_schemas() -> dict[str, Any]:
     schema_data = {}
-    for name, obj in inspect.getmembers(schemas):
-        if inspect.isclass(obj) and issubclass(obj, schemas.BaseModel) and obj is not schemas.BaseModel:
-            try:
-                json_schema = obj.model_json_schema()
-                example = None
-                if hasattr(obj, "model_config"):
-                    config: dict[str, Any] = dict(obj.model_config)
-                    if "json_schema_extra" in config:
-                        extra = config["json_schema_extra"]
-                        if isinstance(extra, dict) and "examples" in extra and extra["examples"]:
-                            example = extra["examples"][0]
-                schema_data[name] = {"schema": json_schema, "example": example}
-            except Exception:
-                pass
+    # Iterate over all schema modules
+    modules = [schemas, auth_schemas, setting_schemas]
+
+    for mod in modules:
+        for name, obj in inspect.getmembers(mod):
+            if inspect.isclass(obj) and issubclass(obj, BaseModel) and obj is not BaseModel:
+                try:
+                    json_schema = obj.model_json_schema()
+                    example = None
+                    if hasattr(obj, "model_config"):
+                        config: dict[str, Any] = dict(obj.model_config)
+                        if "json_schema_extra" in config:
+                            extra = config["json_schema_extra"]
+                            if isinstance(extra, dict) and "examples" in extra and extra["examples"]:
+                                example = extra["examples"][0]
+                    
+                    # Avoid duplicates or overwrites if names collide (though unlikely with unique class names)
+                    if name not in schema_data:
+                        schema_data[name] = {"schema": json_schema, "example": example}
+                except Exception:
+                    pass
     return schema_data
 
 
@@ -637,11 +633,11 @@ def get_model_registry(handler: LLMHandlerDep):
 
 
 @router.post("/models/registry", summary="Update Registry", response_description="Updated registry.")
-def update_model_registry(config: GlobalModelConfig, db: DatabaseDep):
+def update_model_registry(config: setting_schemas.GlobalModelConfig, db: DatabaseDep):
     """Update global model registry.
 
     Args:
-        config (GlobalModelConfig): The new registry configuration.
+        config (setting_schemas.GlobalModelConfig): The new registry configuration.
         db (DatabaseDep): Database dependency.
 
     Returns:

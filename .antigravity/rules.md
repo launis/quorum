@@ -467,4 +467,32 @@ The seeding system allows resetting environments to a known state.
     * `backend/seed/run_seed.py`: The unified master script. Supports targets: `local`, `mock`, `firestore`, or `all`.
     * Usage: `python backend/seed/run_seed.py <target>`
 
-> **DATA FLOW RULE**: To migrate data, update `seed_data.json` → Run `run_seed.py`. Never patch databases directly.
+
+--------------------------------------------------------------------------------
+
+PART 6: UI & UX STANDARDS (2026 MANDATE)
+
+1.  **Responsive Layout Strategy**:
+    *   **Breakpoint**: **600dp** is the hard boundary between Mobile and Desktop modes.
+    *   **Navigation**:
+        *   **Mobile (< 600dp)**: Standard `NavigationBar` (Bottom).
+        *   **Desktop (>= 600dp)**: `NavigationRail` (Left) combined with `VerticalDivider`.
+    *   **Constraint Mandate**: Content on wide screens MUST be constrained to **1000dp** (max-width) to preserve readability and prevent "scanning fatigue". Use `Center(child: ConstrainedBox(...))`.
+
+2.  **Persistent User Preferences**:
+    *   **Scope**: Language (`fi`/`en`) and Theme (`system`/`light`/`dark`).
+    *   **Sync Protocol**:
+        *   **UI**: Immediate update via Riverpod (`localeProvider`, `themeModeProvider`).
+        *   **Local**: Persist to `SharedPreferences` for boot speed.
+        *   **Remote**: Async patch to `User` model (`PATCH /auth/users/{uid}`).
+    *   **Visibility**: Controls MUST be accessible from the top-right Header (`AppBar.actions`) on all main views.
+
+3.  **Localization Authority**:
+    *   **Files**: `lib/l10n/app_*.arb` are the ONLY source of string data.
+    *   **BANNED**: Hardcoded strings in widgets (except for temporary debug labels).
+    *   **Keys**: Use camelCase keys (e.g., `dashboardTitle`, `userRoleAdmin`).
+
+4.  **Theming Engine**:
+    *   **Framework**: `FlexColorScheme` is the mandatory styling engine.
+    *   **Material 3**: All components must enable `useMaterial3: true`.
+    *   **Dark Mode**: First-class citizen. All UI elements must be verified in Dark Mode.

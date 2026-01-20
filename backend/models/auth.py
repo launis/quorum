@@ -6,7 +6,7 @@ organization management, and cryptographic token structures.
 
 from datetime import datetime
 from enum import Enum
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
@@ -91,8 +91,8 @@ class UserBase(BaseModel):
     role: Annotated[UserRole, Field(description="Assigned permission role")] = UserRole.MEMBER
     organization_id: Annotated[str | None, Field(description="ID of the organization this user belongs to")] = None
     is_active: Annotated[bool, Field(description="Is the account active?")] = True
-    language: Annotated[str, Field(description="Preferred UI language")] = "fi"
-    theme_mode: Annotated[str, Field(description="Preferred Theme Mode (system/light/dark)")] = "system"
+    language: Annotated[Literal["fi", "en", "sv"], Field(description="Preferred UI language")] = "fi"
+    theme_mode: Annotated[Literal["system", "light", "dark"], Field(description="Preferred Theme Mode")] = "system"
 
     model_config = ConfigDict(extra="ignore")
 

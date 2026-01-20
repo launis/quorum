@@ -81,7 +81,14 @@ class XAIReporterAgent(BaseAgent):
                 d_id = dim.get("dimension_id", "uknown").capitalize()
                 score = dim.get("score", "-")
                 reason = dim.get("reasoning", "")
-                max_val = data.get("scale_max", 5)
+                max_val = data.get("scale_max")
+                if max_val is None:
+                     max_val = "N/A" # Context string can be looser, or should we crash here too? 
+                     # Probably safer to show N/A in prompt context but crash in output generation if strict? 
+                     # "take away everything referring to the default" -> No guessing 5.
+                     # I will leave it as N/A or raise. Raising in prepare_context aborts execution.
+                     # Let's use "UNKNOWN" to signal the LLM. 
+                     max_val = "UNKNOWN"
                 lines.append(f"- **{d_id}**: {score}/{max_val} - {reason}")
         else:
              # Fallback check for legacy 'pisteet' just in case normalization was skipped (Unlikely)
@@ -146,7 +153,10 @@ class XAIReporterAgent(BaseAgent):
 
                     # Extract Score Data
                     total_score = float(data.get("total_score", 0))
-                    max_score = int(data.get("scale_max", 5))
+                    max_val_raw = data.get("scale_max")
+                    if max_val_raw is None:
+                         raise ValueError(f"CRITICAL: Missing 'scale_max' in Judge Output for {key}. Cannot build ScoreCard.")
+                    max_score = int(max_val_raw)
                     
                     # Extract Dimensions
                     dimensions = []

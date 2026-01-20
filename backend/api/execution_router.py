@@ -19,7 +19,10 @@ from backend.dependencies import get_arq_pool, get_async_repository, get_engine
 from backend.exceptions import AppException, ResourceNotFoundError, WorkflowExecutionError
 from backend.models.workflow import WorkflowDefinition
 from backend.schemas.error import APIError
+from backend.schemas.error import APIError
 from backend.services.auth import AuthService
+from backend.models.view import ReportView
+from backend.api.bff_transformer import ReportTransformer
 
 logger = logging.getLogger(__name__)
 
@@ -727,3 +730,107 @@ async def create_execution(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             details={"error_code": error_code}
         ) from e
+
+@executions_router.get(
+    "/{execution_id}/view",
+    response_model=ReportView,
+    summary="Get Execution View",
+    description="Returns a pre-processed UI view of the execution results (BFF Pattern).",
+    responses={
+        404: {"model": APIError, "description": "Execution not found"},
+        500: {"model": APIError, "description": "Transformation failed"},
+    },
+)
+async def get_execution_view(
+    execution_id: str,
+    repository: AbstractWorkflowRepository = Depends(get_async_repository),
+):
+    """
+    BFF Endpoint: Transforms raw execution data into a ReportView.
+    """
+    try:
+        # 1. Fetch Raw Data
+        # Assuming repository has get_execution. If not, we might need to use generic get/find.
+        # TinyDB usually has get_execution(id).
+        execution = await repository.get_execution(execution_id)
+        
+        if not execution:
+            raise ResourceNotFoundError(f"Execution '{execution_id}' not found.")
+            
+        # 2. Transform
+        transformer = ReportTransformer()
+        # execution is usually a Pydantic model or dict.
+        # If Pydantic, dump to dict.
+        if hasattr(execution, "model_dump"):
+            raw_data = execution.model_dump()
+        elif hasattr(execution, "dict"):
+             raw_data = execution.dict()
+        else:
+            raw_data = execution # Assume dict
+
+        # 3. Dynamic Scale Resolution (Database Authority)
+        # Default to standard 1-4
+        scale_limit = None  # STRICT: No default. Must be found in DB or Step. 
+        
+        try:
+            matrix_id = None
+            # A. Try Result Metadata (Fastest)
+            # Check step_judge or step_judge_cognitive
+            results = raw_data.get("results", {})
+            # Normalized execution result often has 'step_results' key
+            if "step_results" in results: steps = results["step_results"]
+            else: steps = results
+            
+            judge_step = steps.get("step_judge") or steps.get("step_judge_cognitive")
+            if judge_step:
+                if "matrix_id" in judge_step:
+                    matrix_id = judge_step["matrix_id"]
+                elif "metadata" in judge_step and "matrix_id" in judge_step["metadata"]:
+                    matrix_id = judge_step["metadata"]["matrix_id"] # Uncommon but possible
+
+            # B. Fallback to Workflow Config (if not in result)
+            if not matrix_id:
+                workflow_id = raw_data.get("workflow_id")
+                if workflow_id:
+                     workflow = await repository.get_workflow(workflow_id)
+                     if workflow:
+                         # Find Judge Step Config
+                         for step in workflow.steps:
+                             if step.task_key in ["judge", "cognitive_judge"]:
+                                 matrix_id = step.config.get("matrix_id")
+                                 break
+            
+            # C. Fetch Matrix Component
+            if matrix_id:
+                matrix = await repository.get_component_by_id(matrix_id)
+                if matrix:
+                    # 1. Try nested content.scale (Official format)
+                    content = matrix.get("content", {})
+                    if "scale" in content:
+                        scale = content["scale"]
+                        scale_limit = (float(scale["min"]), float(scale["max"]))
+                        logger.info(f"[BFF] Resolved dynamic scale for {execution_id} via {matrix_id} (content.scale): {scale_limit}")
+                    else:
+                        raise ValueError(f"[BFF] Matrix {matrix_id} found but missing 'content.scale'. Cannot determine validation range.")
+                else:
+                     raise ValueError(f"[BFF] Matrix component {matrix_id} not found in DB. Cannot determine validation range.")
+            else:
+                 raise ValueError(f"[BFF] No matrix_id found for {execution_id}. Cannot determine validation range.")
+
+        except Exception as e:
+            logger.warning(f"[BFF] Dynamic scale resolution failed: {e}. Passing None to Transformer (Strict Mode).")
+
+        report_view = transformer.transform(raw_data, valid_range=scale_limit)
+        
+        return report_view
+
+    except ResourceNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ValueError as e:
+        # Strict validation failed (e.g. Score > 4)
+        logger.error(f"View generation failed for {execution_id}: {e}")
+        # We assume the user wants 500 here as per "no fallback" instruction implication
+        raise HTTPException(status_code=500, detail=f"Data integrity error: {e}")
+    except Exception as e:
+        logger.error(f"BFF Error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal transformation error")

@@ -100,39 +100,42 @@ def render_org_admin_view(api_url: str):
     with tabs[0]:
         st.subheader("General Configuration")
 
-        with st.form("edit_org_form"):
-            new_name = st.text_input("Display Name", value=org_data.get("name", ""))
-            new_email = st.text_input("Contact Email", value=org_data.get("contact_email", ""))
+        # SDUI: Fetch Schema
+        all_schemas = APIClient(api_url).get_schemas(token=token) # Re-instantiate locally if needed or reuse
+        org_schema = all_schemas.get("Organization", {}).get("schema")
 
-            # Read-only fields
-            st.text_input("Organization ID", value=org_data.get("id"), disabled=True, help="Cannot be changed.")
-            # Tier selection with fallback
-            available_tiers = ["standard", "premium", "enterprise"]
-            current_tier = org_data.get("tier", "standard").lower()
+        if org_schema:
+            from frontend.components.schema_form import render_schema_form
+            
+            with st.form("edit_org_form_sdui"):
+                # Render Form
+                # org_data has the current values
+                updated_data = render_schema_form(org_schema, org_data)
 
-            try:
-                tier_index = available_tiers.index(current_tier)
-            except ValueError:
-                tier_index = 0  # Default to standard if unknown value
+                if st.form_submit_button("Save Changes (SDUI)"):
+                    # Filter only editable fields?
+                    # The Pydantic model for Organization has many fields.
+                    # We rely on the endpoint to ignore fields it doesn't want or handle them.
+                    # Ideally we use OrganizationUpdate schema if it existed and was cleaner.
+                    # For now, we trust strict updates.
+                    
+                    try:
+                        # Update endpoint
+                        upd_res = requests.put(
+                            f"{api_url}/organizations/{org_data['id']}",
+                            json=updated_data,
+                            headers=headers,
+                        )
+                        if upd_res.status_code == 200:
+                            st.success("✅ Settings updated successfully!")
+                            st.rerun()
+                        else:
+                            st.error(f"Update failed: {upd_res.text}")
+                    except Exception as e:
+                        st.error(f"Error saving: {e}")
+        else:
+             st.error("Could not load Organization Schema.")
 
-            st.selectbox("Tier", available_tiers, index=tier_index, disabled=True, help="Contact Sales to upgrade.")
-
-            if st.form_submit_button("Save Changes"):
-                update_payload = {"name": new_name, "contact_email": new_email}
-                try:
-                    # Update endpoint
-                    upd_res = requests.put(
-                        f"{api_url}/organizations/{org_data['id']}",
-                        json=update_payload,
-                        headers=headers,
-                    )
-                    if upd_res.status_code == 200:
-                        st.success("✅ Settings updated successfully!")
-                        st.rerun()
-                    else:
-                        st.error(f"Update failed: {upd_res.text}")
-                except Exception as e:
-                    st.error(f"Error saving: {e}")
 
     # TAB 2: User Management
     with tabs[1]:

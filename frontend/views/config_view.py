@@ -428,70 +428,81 @@ def render_config_view(api_client, backend_url: str):
         except Exception as e:
             st.warning(f"Discovery Failed: {e}")
 
-        if provider:
-            current_prov_config = registry.get(provider, {})
+            if provider:
+                current_prov_config = registry.get(provider, {})
+                st.markdown(f"#### {provider.upper()} Configuration")
+                if avail_models:
+                    st.success(f"Discovered {len(avail_models)} models.")
+                else:
+                    st.info("No models discovered automatically. You can type manual names.")
 
-            st.markdown(f"#### {provider.upper()} Configuration")
-            if avail_models:
-                st.success(f"Discovered {len(avail_models)} models.")
-            else:
-                st.info("No models discovered automatically. You can type manual names.")
+                # SDUI: Fetch Schema for ModelSettings
+                # We need the schema for a SINGLE Strategy (ModelSettings)
+                all_schemas = api_client.get_schemas() # client handles token if stored in session internally or passed
+                # Note: api_client methods usually take token. We should respect that pattern.
+                # However, get_schemas was added recently.
+                # Let's assume api_client.get_schemas(token=st.session_state.get("auth_token")) work
+                
+                ms_schema = all_schemas.get("ModelSettings", {}).get("schema")
 
-            col_f, col_d = st.columns(2)
+                if ms_schema:
+                    from frontend.components.schema_form import render_schema_form
+                    
+                    col_f, col_d = st.columns(2)
+                    
+                    # PREPARE DATA
+                    # Fast Defaults
+                    fast_data = current_prov_config.get("fast", {})
+                    # If models discovered, maybe hint them? 
+                    # render_schema_form doesn't know about dynamic discovered models yet.
+                    # Ideally we inject 'enum' into schema dynamically before rendering!
+                    
+                    if avail_models:
+                        # Dynamic Schema Injection: Enforce discovered models as Enum
+                        # We copy schema to avoid mutating global
+                         import copy
+                         ms_schema_dynamic = copy.deepcopy(ms_schema)
+                         if "properties" in ms_schema_dynamic and "model_name" in ms_schema_dynamic["properties"]:
+                             # Add the current value if not in list, to avoid validation error on display
+                             eff_enums = list(avail_models)
+                             curr_fast = fast_data.get("model_name")
+                             if curr_fast and curr_fast not in eff_enums:
+                                 eff_enums.insert(0, curr_fast)
+                             
+                             ms_schema_dynamic["properties"]["model_name"]["enum"] = eff_enums
+                             ms_schema_dynamic["properties"]["model_name"]["type"] = "string" # ensure type
+                    else:
+                        ms_schema_dynamic = ms_schema
 
-            def model_selector(label, curr, key_suffix):
-                if not avail_models:
-                    return st.text_input(label, curr, key=f"txt_{key_suffix}")
+                    # FAST
+                    with col_f:
+                        st.markdown("⚡ **FAST Strategy**")
+                        # Render SDUI
+                        f_result = render_schema_form(ms_schema_dynamic, current_values=current_prov_config.get("fast", {}), key_prefix=f"sdui_fast_{provider}")
 
-                # Smart options
-                options = list(avail_models)
-                if curr and curr not in options:
-                    options.insert(0, curr)
+                    with col_d:
+                        st.markdown("🧠 **DEEP Strategy**")
+                        # Render SDUI
+                        d_result = render_schema_form(ms_schema_dynamic, current_values=current_prov_config.get("deep", {}), key_prefix=f"sdui_deep_{provider}")
 
-                # Safely determine index
-                idx = 0
-                if curr in options:
-                    idx = options.index(curr)
+                    if st.button("Save Model Strategy"):
+                        new_reg = registry.copy()
+                        if provider not in new_reg:
+                            new_reg[provider] = {}
+                        
+                        new_reg[provider]["fast"] = f_result
+                        new_reg[provider]["deep"] = d_result
 
-                return st.selectbox(label, options, index=idx, key=f"sel_{key_suffix}")
+                        payload = {"registry": new_reg}
+                        try:
+                            requests.post(f"{backend_url}/config/models/registry", json=payload).raise_for_status()
+                            st.success("Model Registry Updated!")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Failed to update registry: {e}")
+                else:
+                    st.error("ModelSettings schema not found.")
 
-            # Fast
-            with col_f:
-                st.markdown("⚡ **FAST Strategy**")
-                f_conf = current_prov_config.get("fast", {})
-                strict_def = avail_models[0] if avail_models else ""
-                f_name = model_selector("Model Name", f_conf.get("model_name", strict_def), "fast")
-                f_temp = st.number_input("Temperature", 0.0, 1.0, f_conf.get("temperature", 0.5), 0.1, key="f_temp")
-                f_tokens = st.number_input(
-                    "Max Tokens", 1024, 32000, int(f_conf.get("max_tokens", 8192)), 1024, key="f_tok"
-                )
-
-            # Deep
-            with col_d:
-                st.markdown("🧠 **DEEP Strategy**")
-                d_conf = current_prov_config.get("deep", {})
-                d_name = model_selector("Model Name", d_conf.get("model_name", strict_def), "deep")
-                d_temp = st.number_input("Temperature", 0.0, 1.0, d_conf.get("temperature", 0.2), 0.05, key="d_temp")
-                d_tokens = st.number_input(
-                    "Max Tokens", 1, 1000000, int(d_conf.get("max_tokens", 16384)), 1024, key="d_tokens"
-                )
-
-            if st.button("Save Model Strategy"):
-                # Construct updates
-                new_reg = registry.copy()
-                if provider not in new_reg:
-                    new_reg[provider] = {}
-
-                new_reg[provider]["fast"] = {"model_name": f_name, "temperature": f_temp, "max_tokens": f_tokens}
-                new_reg[provider]["deep"] = {"model_name": d_name, "temperature": d_temp, "max_tokens": d_tokens}
-
-                payload = {"registry": new_reg}
-                try:
-                    requests.post(f"{backend_url}/config/models/registry", json=payload).raise_for_status()
-                    st.success("Model Registry Updated!")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Failed to update registry: {e}")
 
         # 3. Test Ad-Hoc (Requested Feature)
         st.divider()

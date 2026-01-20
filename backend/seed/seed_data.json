@@ -295,7 +295,9 @@
                             "HEADER_INSTRUCTIONS",
                             "TASK_OVERSEER"
                         ],
-                        "pre_hooks": []
+                        "pre_hooks": [
+                            "execute_google_search"
+                        ]
                     }
                 },
                 {
@@ -642,7 +644,9 @@
                             "HEADER_INSTRUCTIONS",
                             "TASK_PANEL"
                         ],
-                        "pre_hooks": []
+                        "pre_hooks": [
+                            "execute_google_search"
+                        ]
                     }
                 },
                 {
@@ -2363,7 +2367,9 @@
                             "HEADER_INSTRUCTIONS",
                             "TASK_PANEL"
                         ],
-                        "pre_hooks": []
+                        "pre_hooks": [
+                            "execute_google_search"
+                        ]
                     }
                 },
                 {
@@ -2828,7 +2834,7 @@
             "type": "task"
         },
         {
-            "content": "SINÄ TOIMIT SEURAAVANA ASIANTUNTIJAPANEELINA (Jokainen rooli analysoi saman aineiston):\n\nROOLI 1: Logician (Structure Audit)\n1. JÄSENNÄ käyttäjän prompti Toulmin-mallilla (Claim, Data, Warrant).\n2. ARVIOI onko prompti looginen vai pelkkä assosiaatioketju.\n3. RAJOITE: Perusta analyysi VAIN annettuun aineistoon. ÄLÄ käytä koulutusdatan geneerisiä esimerkkejä (kuten 'Kadut ovat märät').\nOUTPUT: logiikka_auditointi\n\nROOLI 2: Falsifier (Critical Loop)\n1. ETSI 'Iteraatiosilmukkaa' (Missä käyttäjä korjasi tekoälyä?).\n2. MERKITSE 'uskollisuus_score': 'HEIKKO' jos ei yhtään iteraatiota.\nOUTPUT: falsifiointi_auditointi\n\nROOLI 3: Causal Analyst (Impact)\n1. VERTAA versiota 1 ja viimeistä.\n2. MÄÄRITÄ johtuiko muutos käyttäjän EKSPLISIITTISESTÄ ohjeesta.\nOUTPUT: kausaalinen_auditointi\n\nROOLI 4: Performativity Detector (Illusion)\n1. ETSI 'Väsyneitä komentoja' ('Jatkan', 'Lisää').\n2. LIPUTA jos käyttäjä vain näyttelee ohjaavaa roolia.\nOUTPUT: performatiivisuus_auditointi\n\nROOLI 5: Factual Overseer (Hallucination)\n1. TARKISTA onko faktoja keksinyt AI vai Käyttäjä.\nOUTPUT: etiikka_ja_fakta\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (älä muuta kenttien nimiä):\n{{SCHEMA_EXAMPLE}}",
+            "content": "SINÄ TOIMIT SEURAAVANA ASIANTUNTIJAPANEELINA (Jokainen rooli analysoi saman aineiston):\n\nROOLI 1: Logician (Structure Audit)\n1. JÄSENNÄ käyttäjän prompti Toulmin-mallilla (Claim, Data, Warrant).\n2. ARVIOI onko prompti looginen vai pelkkä assosiaatioketju.\n3. RAJOITE: Perusta analyysi VAIN annettuun aineistoon. ÄLÄ käytä koulutusdatan geneerisiä esimerkkejä (kuten 'Kadut ovat märät').\nOUTPUT: logiikka_auditointi\n\nROOLI 2: Falsifier (Critical Loop)\n1. ETSI 'Iteraatiosilmukkaa' (Missä käyttäjä korjasi tekoälyä?).\n2. MERKITSE 'uskollisuus_score': 'HEIKKO' jos ei yhtään iteraatiota.\nOUTPUT: falsifiointi_auditointi\n\nROOLI 3: Causal Analyst (Impact)\n1. VERTAA versiota 1 ja viimeistä.\n2. MÄÄRITÄ johtuiko muutos käyttäjän EKSPLISIITTISESTÄ ohjeesta.\nOUTPUT: kausaalinen_auditointi\n\nROOLI 4: Performativity Detector (Illusion)\n1. ETSI 'Väsyneitä komentoja' ('Jatkan', 'Lisää').\n2. LIPUTA jos käyttäjä vain näyttelee ohjaavaa roolia.\nOUTPUT: performatiivisuus_auditointi\n\nROOLI 5: Factual Overseer (Hallucination)\n1. TARKISTA onko faktoja keksinyt AI vai Käyttäjä.\n2. VERTAA väitteitä 'ULKOISEN FAKTANTARKISTUKSEN TULOKSET' -osiossa annettuihin hakutuloksiin (jos saatavilla).\n3. JOS väite on ristiriidassa hakutulosten kanssa, kirjaa se virheeksi.\nOUTPUT: etiikka_ja_fakta\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (älä muuta kenttien nimiä):\n{{SCHEMA_EXAMPLE}}",
             "description": "Panel Agent - Unified Critics",
             "id": "TASK_PANEL",
             "type": "task"
@@ -3145,7 +3151,7 @@
                 "name": "Kognitiivinen Quorum Unified Matrix",
                 "role_description": "Toimit Järjestelmän Tuomarina. Arvioi sekä prosessia että lopputulosta.",
                 "scale": {
-                    "max": 4,
+                    "max": 100,
                     "min": 1
                 }
             },
@@ -3195,8 +3201,8 @@
                 "name": "Kognitiivinen Quorum Unified Matrix",
                 "role_description": "Toimit Kognitiivisena Päätuomarina.",
                 "scale": {
-                    "max": 4,
-                    "min": 1
+                    "max": 50,
+                    "min": 10
                 }
             },
             "description": "Yhdistetty matriisi: Agency (Prosessi), Synteesi (Lopputulos), Falsification (Laatu).",

@@ -1,6 +1,7 @@
 import 'package:client_app/features/orchestration/presentation/widgets/file_uploader.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 
 /// A Server-Driven Form Widget that renders inputs based on a JSON Schema.
 ///
@@ -99,7 +100,9 @@ class _DynamicFormState extends State<DynamicForm> {
                     validator:
                         isRequired
                             ? (val) =>
-                                val == null || val.isEmpty ? 'Required' : null
+                                val == null || val.isEmpty
+                                    ? AppLocalizations.of(context)!.fieldRequired
+                                    : null
                             : null,
                   ),
                 );
@@ -125,7 +128,9 @@ class _DynamicFormState extends State<DynamicForm> {
                     validator:
                         isRequired
                             ? (val) =>
-                                val == null || val.isEmpty ? 'Required' : null
+                                val == null || val.isEmpty
+                                    ? AppLocalizations.of(context)!.fieldRequired
+                                    : null
                             : null,
                   ),
                 );

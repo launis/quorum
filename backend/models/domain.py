@@ -7,7 +7,7 @@ audit report components.
 
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, ValidationInfo, AfterValidator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, ValidationInfo, AfterValidator, model_validator
 from typing import Annotated, Any, Literal
 from backend.hooks.security import check_banned_phrases, sanitize_text
 
@@ -703,7 +703,7 @@ class ScoreCardItem(BaseModel):
     """Summary of a single judgment step."""
     agent_name: Annotated[str, Field(description="Name of the judge (e.g. 'Standard Judge').")]
     total_score: Annotated[float, Field(description="Total score (0-5).")]
-    max_score: Annotated[int, Field(default=5, description="Max scale.")]
+    max_score: Annotated[int, Field(description="Max scale.")]
     verdict: Annotated[str, Field(description="Short verdict or summary.")]
     dimensions: Annotated[list[DimensionResultItem], Field(default_factory=list, description="Radar chart data.")]
 
@@ -845,6 +845,34 @@ class EvaluationResult(BaseJSON):  # Inherits metadata from BaseJSON
     total_score: Annotated[int | float, Field(description="Calculated total/average score.")]
     dimensions: Annotated[list[DimensionResultItem], Field(description="Breakdown by dimension.")]
     critical_findings: Annotated[list[str], Field(default_factory=list, description="Critical observations.")]
+
+    @model_validator(mode='after')
+    def validate_scores(self) -> 'EvaluationResult':
+        if self.scale_min >= self.scale_max:
+             raise ValueError(f"Invalid scale: min ({self.scale_min}) must be less than max ({self.scale_max})")
+
+        # 1. Validate Total Score
+        if not (self.scale_min <= self.total_score <= self.scale_max):
+            # Try to fix rounding errors if very close, otherwise raise
+            if abs(self.total_score - self.scale_max) < 0.01:
+                self.total_score = float(self.scale_max)
+            elif abs(self.total_score - self.scale_min) < 0.01:
+                self.total_score = float(self.scale_min)
+            else:
+                 raise ValueError(f"Total score {self.total_score} out of bounds [{self.scale_min}, {self.scale_max}]")
+
+        # 2. Validate Dimension Scores
+        for dim in self.dimensions:
+            if not (self.scale_min <= dim.score <= self.scale_max):
+                 # Try soft fix
+                if abs(dim.score - self.scale_max) < 0.01:
+                    dim.score = float(self.scale_max)
+                elif abs(dim.score - self.scale_min) < 0.01:
+                    dim.score = float(self.scale_min)
+                else:
+                    raise ValueError(f"Dimension '{dim.dimension_id}' score {dim.score} out of bounds [{self.scale_min}, {self.scale_max}]")
+        
+        return self
 
 
 # --- Reporting Context Models (Internal) ---

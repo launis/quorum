@@ -132,52 +132,34 @@ def render_system_admin_view(api_client):
         try:
             # Fetch current settings via APIClient
             current_settings = api_client.get_global_settings(token=token)
+            
+            # SDUI: Fetch Schema
+            # In a real app we'd fetch specific schema, here we fetch all and pick one
+            # Ideally APIClient has get_schema("SystemSettings")
+            # For now, we hack it or rely on a new method. 
+            # Let's assume we can browse schemas.
+            # actually, let's use the new schema endpoint pattern.
+            all_schemas = api_client.get_schemas(token=token)
+            system_schema = all_schemas.get("SystemSettings", {}).get("schema")
 
-            if current_settings:
-                with st.form("global_settings_form"):
-                    col_a, col_b = st.columns(2)
+            if current_settings and system_schema:
+                from frontend.components.schema_form import render_schema_form
 
-                    with col_a:
-                        m_mode = st.checkbox(
-                            "Maintenance Mode",
-                            value=current_settings.get("maintenance_mode", False),
-                            help="Only ROOT admins can login.",
-                        )
-                        signups = st.checkbox("Allow New Signups", value=current_settings.get("allow_signups", True))
-                        beta = st.checkbox(
-                            "Enable Beta Features", value=current_settings.get("enable_beta_features", False)
-                        )
+                with st.form("global_settings_form_sdui"):
+                    # Render Form
+                    updated_data = render_schema_form(system_schema, current_settings)
 
-                    with col_b:
-                        # Safety check for index
-                        def_strategy = current_settings.get("default_model_strategy", "fast")
-                        try:
-                            idx = ["fast", "deep", "balanced"].index(def_strategy)
-                        except ValueError:
-                            idx = 0
-
-                        strategy = st.selectbox("Default AI Strategy", ["fast", "deep", "balanced"], index=idx)
-                        banner = st.text_input(
-                            "Global Announcement Banner", value=current_settings.get("global_banner") or ""
-                        )
-
-                    if st.form_submit_button("💾 Save System Settings"):
-                        payload = {
-                            "maintenance_mode": m_mode,
-                            "allow_signups": signups,
-                            "enable_beta_features": beta,
-                            "default_model_strategy": strategy,
-                            "global_banner": banner if banner.strip() else None,
-                        }
-
-                        success = api_client.update_global_settings(payload, token=token)
+                    if st.form_submit_button("💾 Save System Settings (SDUI)"):
+                        # In SDUI, we trust the form data matches the schema
+                        success = api_client.update_global_settings(updated_data, token=token)
                         if success:
                             st.success("System settings updated successfully!")
                             st.rerun()
                         else:
                             st.error("Failed to update settings.")
             else:
-                st.error("Failed to load settings from backend.")
+                st.error("Failed to load settings or schema from backend.")
+
 
         except Exception as e:
             st.error(f"Connection Error: {e}")

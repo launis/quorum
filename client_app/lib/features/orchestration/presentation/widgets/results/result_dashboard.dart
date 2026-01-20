@@ -1,67 +1,68 @@
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'package:client_app/features/orchestration/domain/models/execution.dart';
-import 'package:client_app/features/orchestration/domain/models/xai_report.dart';
-import 'package:client_app/features/orchestration/domain/models/evaluation_result.dart';
-import 'package:client_app/features/orchestration/presentation/widgets/results/score_card.dart';
+import 'package:client_app/features/orchestration/domain/models/report_view.dart';
+import 'package:client_app/features/orchestration/presentation/widgets/sdui/generic_grid.dart';
+import 'package:client_app/features/orchestration/presentation/widgets/sdui/generic_table.dart';
 import 'package:client_app/features/orchestration/presentation/widgets/results/score_card_radar.dart';
-import 'package:client_app/features/orchestration/presentation/widgets/results/feedback_section.dart';
-import 'package:client_app/features/orchestration/presentation/widgets/results/deep_dive_expander.dart';
+import 'package:client_app/features/orchestration/domain/models/xai_report.dart'; // Provides ScoreCardItem
+
 import 'package:client_app/features/orchestration/presentation/widgets/output_renderer.dart';
 import 'package:client_app/features/orchestration/presentation/widgets/results/audit_trail_viewer.dart';
+import 'package:client_app/app_config.dart';
 
-class ResultDashboard extends StatelessWidget {
+class ResultDashboard extends StatefulWidget {
   final Execution execution;
 
   const ResultDashboard({super.key, required this.execution});
 
   @override
+  State<ResultDashboard> createState() => _ResultDashboardState();
+}
+
+class _ResultDashboardState extends State<ResultDashboard> {
+  late Future<ReportView> _reportViewFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _reportViewFuture = _fetchReportView();
+  }
+
+  Future<ReportView> _fetchReportView() async {
+    // 1. If we have the view model directly in execution (future optimization), return it.
+    // 2. Otherwise fetch from BFF endpoint.
+    final execId = widget.execution.id;
+    final url = Uri.parse('${AppConfig.apiBaseUrl}/executions/$execId/view');
+    
+    debugPrint('Fetching ReportView from: $url');
+    
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        // UTF-8 decoding is critical for Finnish characters
+        final jsonMap = json.decode(utf8.decode(response.bodyBytes));
+        return ReportView.fromJson(jsonMap);
+      } else {
+        throw Exception('Failed to load report view: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error fetching report view: $e');
+      // Fallback: If fetch fails (offline/dev), try to construct it locally? 
+      // For now, rethrow to show error state.
+      rethrow;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (execution is! ExecutionCompleted) {
+    if (widget.execution is! ExecutionCompleted) {
       return const Center(child: Text('Analysis not completed.'));
     }
 
-    final rawResult = (execution as ExecutionCompleted).result;
-    
-    // --- Parse XAI Report with Fallbacks ---
-    // --- Parse XAI Report with Fallbacks ---
-    XAIReport? xaiReport;
-    try {
-        dynamic xaiData;
-        
-    		    // Strategy 1: Top-level (Direct)
-		    if (rawResult.containsKey('step_xai')) {
-		         xaiData = rawResult['step_xai'];
-             debugPrint('DEBUG: Found step_xai (Strategy 1): $xaiData');
-		    }
-		    // Strategy 2: Nested in 'step_results' (Standard Workflow Output)
-		    else if (rawResult.containsKey('step_results')) {
-		         final stepResults = rawResult['step_results'];
-             debugPrint('DEBUG: Found step_results (Strategy 2): ${stepResults.keys}');
-		         if (stepResults is Map && stepResults.containsKey('step_xai')) {
-		             xaiData = stepResults['step_xai'];
-                 debugPrint('DEBUG: Found step_xai inside step_results: $xaiData');
-		         } else {
-                 debugPrint('DEBUG: step_xai NOT found in step_results.');
-             }
-		    } else {
-             debugPrint('DEBUG: No step_xai and no step_results found in rawResult. Keys: ${rawResult.keys}');
-        }
-
-		    if (xaiData != null && xaiData is Map<String, dynamic>) {
-		         xaiReport = XAIReport.fromJson(xaiData);
-             debugPrint('DEBUG: Successfully parsed XAIReport. ScoreCards count: ${xaiReport.scoreCards.length}');
-             if (xaiReport.scoreCards.isEmpty) {
-                 debugPrint('DEBUG: XAIReport parsed but scoreCards is empty! Raw xaiData["score_cards"]: ${xaiData["score_cards"]}');
-             }
-		    } else if (xaiData != null) {
-            debugPrint('DEBUG: xaiData found but is not a Map: $xaiData');
-        }
-    } catch (e) {
-        debugPrint('XAIReport parsing failed: $e');
-    }
-
-    // If we have a robust XAI Report with ScoreCards, show the new Dashboard.
-    final bool useV2Dashboard = xaiReport != null && xaiReport.scoreCards.isNotEmpty;
+    final rawResult = (widget.execution as ExecutionCompleted).result;
 
     return DefaultTabController(
       length: 2,
@@ -69,20 +70,49 @@ class ResultDashboard extends StatelessWidget {
         children: [
           const TabBar(
             tabs: [
-              Tab(icon: Icon(Icons.dashboard_outlined), text: 'License'),
-              Tab(icon: Icon(Icons.data_object_outlined), text: 'Raw Data'),
+              Tab(icon: Icon(Icons.dashboard_outlined), text: 'Raportti'),
+              Tab(icon: Icon(Icons.data_object_outlined), text: 'Raaka Data'),
             ],
           ),
           Expanded(
             child: TabBarView(
               children: [
-                // Tab 1: Cognitive License Dashboard
-                useV2Dashboard 
-                    ? _buildCognitiveDashboard(context, xaiReport!) 
-                    : const Center(child: Text("Report format not supported or incomplete.")),
+                // Tab 1: Server-Driven Dashboard (BFF)
+                FutureBuilder<ReportView>(
+                  future: _reportViewFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    } else if (snapshot.hasError) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.error_outline, color: Colors.orange, size: 48),
+                            const SizedBox(height: 16),
+                            Text('Raportin lataus epäonnistui: ${snapshot.error}'),
+                            const SizedBox(height: 16),
+                             ElevatedButton(
+                              onPressed: () {
+                                setState(() {
+                                  _reportViewFuture = _fetchReportView();
+                                });
+                              },
+                              child: const Text('Yritä uudelleen'),
+                            )
+                          ],
+                        ),
+                      );
+                    } else if (!snapshot.hasData) {
+                       return const Center(child: Text("Raporttia ei löytynyt."));
+                    }
+
+                    return _buildDynamicDashboard(context, snapshot.data!);
+                  },
+                ),
                 
-                // Tab 2: Raw Audit Trail & Deep Dives
-                _buildRawDataView(context, rawResult, xaiReport),
+                // Tab 2: Raw Audit Trail
+                _buildRawDataView(context, rawResult),
               ],
             ),
           ),
@@ -91,183 +121,125 @@ class ResultDashboard extends StatelessWidget {
     );
   }
 
-  // --- V2 Dashboard Builder ---
-  Widget _buildCognitiveDashboard(BuildContext context, XAIReport report) {
+  Widget _buildDynamicDashboard(BuildContext context, ReportView view) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-            // 1. Executive Header
-            _buildExecutiveHeader(context, report),
-            const SizedBox(height: 24),
+          // Header
+          _buildHeader(context, view),
+          const SizedBox(height: 24),
 
-            // 2. Score Cards (Judges)
-            Text(
-                "Evaluation Matrices",
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            ...report.scoreCards.map((card) => ScoreCardRadar(card: card)),
-            const SizedBox(height: 24),
-
-            // 3. Coaching & Recommendations
-            _buildCoachingSection(context, report),
-            const SizedBox(height: 24),
-
-            // 4. Markdown Report (Formatted)
-            if (report.xaiReportFormatted != null)
-                DeepDiveExpander(
-                    title: 'Full Analysis Report',
-                    icon: Icons.article_outlined,
-                    initiallyExpanded: false,
-                    child: OutputRenderer(markdownContent: report.xaiReportFormatted!),
-                ),
-            const SizedBox(height: 48),
+          // Sections Loop
+          ...view.sections.map((section) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 24.0),
+              child: _renderSection(context, section),
+            );
+          }),
         ],
       ),
     );
   }
-  Widget _buildExecutiveHeader(BuildContext context, XAIReport report) {
-      final colorScheme = Theme.of(context).colorScheme;
-      
-      // Determine color based on confidence
-      final confidence = report.confidenceScore;
-      final Color statusColor = confidence > 0.8 
-            ? Colors.green 
-            : (confidence > 0.5 ? Colors.orange : Colors.red);
 
-      return Card(
-          elevation: 2,
-          color: colorScheme.surfaceContainer,
-          child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                  children: [
-                      Text(
-                          report.finalVerdict.toUpperCase(),
-                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.w900,
-                              color: statusColor,
-                              letterSpacing: 1.2,
-                          ),
-                          textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                          report.executiveSummary,
-                          style: Theme.of(context).textTheme.bodyLarge,
-                          textAlign: TextAlign.center,
-                      ),
-                      const Divider(height: 32),
-                      Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                              _metric(context, "Confidence", "${(confidence * 100).toInt()}%"),
-                              _metric(context, "Valid Checksum", report.semanttinenTarkistussumma.substring(0, 6)),
-                              _metric(context, "Version", report.metadata['versio']?.toString() ?? "2.0"),
-                          ],
-                      )
-                  ],
-              ),
-          ),
-      );
-  }
+  Widget _buildHeader(BuildContext context, ReportView view) {
+    Color statusColor = Colors.grey;
+    if (view.statusTheme == 'success') statusColor = Colors.green;
+    else if (view.statusTheme == 'warning') statusColor = Colors.orange;
+    else if (view.statusTheme == 'danger') statusColor = Colors.red;
 
-  Widget _metric(BuildContext context, String label, String value) {
-      return Column(
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        side: BorderSide(color: statusColor, width: 2),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
           children: [
-              Text(value, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-              Text(label, style: Theme.of(context).textTheme.labelSmall),
-          ],
-      );
-  }
-
-  Widget _buildCoachingSection(BuildContext context, XAIReport report) {
-      // Parse recommendations if they are newline separated or similar, 
-      // but XAIReport definition says fields like analysisRecommendations are Strings blocks.
-      // We might want to render them as Markdown or split them.
-      // For now, using FeedbackSection which expects List<String>.
-      
-      // Heuristic splitting if it's a markdown list
-      List<String> splitMarkdownList(String text) {
-          return text.split('\n')
-              .map((e) => e.trim())
-              .where((e) => e.startsWith('- ') || e.startsWith('* '))
-              .map((e) => e.substring(2))
-              .toList();
-      }
-
-      final recs = splitMarkdownList(report.analysisRecommendations);
-      final opps = splitMarkdownList(report.analysisOpportunities);
-
-      return Column(
-          children: [
-              if (recs.isEmpty && report.analysisRecommendations.isNotEmpty) 
-                  // Fallback if not a list
-                  _simpleCard(context, "Recommendations", report.analysisRecommendations, Colors.blue),
-
-              if (recs.isNotEmpty)
-                FeedbackSection(
-                    title: 'Recommendations',
-                    items: recs,
-                    color: Colors.blue[700],
-                    icon: Icons.rocket_launch_outlined,
-                ),
-            
-              const SizedBox(height: 16),
-
-              if (opps.isNotEmpty)
-                FeedbackSection(
-                    title: 'Opportunities',
-                    items: opps,
-                    color: Colors.amber[800],
-                    icon: Icons.lightbulb_outline,
-                ),
-          ],
-      );
-  }
-  
-  Widget _simpleCard(BuildContext context, String title, String content, Color? color) {
-      return Card(
-          child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                      Row(children: [
-                          Icon(Icons.info_outline, color: color),
-                          const SizedBox(width: 8),
-                          Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                      ]),
-                      const SizedBox(height: 8),
-                      Text(content),
-                  ],
+            Text(
+              view.title.toUpperCase(),
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.5,
+                color: statusColor
               ),
-          ),
-      );
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
-  // --- Raw Data View (Similar to Old Dashboard) ---
-  Widget _buildRawDataView(BuildContext context, Map<String, dynamic> data, XAIReport? report) {
-      // Reuses parts of the old dashboard or just the Audit Trail + Deep Dives
+  Widget _renderSection(BuildContext context, UiSection section) {
+    switch (section.type) {
+      case 'SCORE_CARD':
+        // Fallback or specific renderer? 
+        // BFF sends "data" which matches ScoreCard model structure mostly.
+        try {
+           final card = ScoreCardItem.fromJson(section.data); // Use ScoreCardItem from xai_report.dart
+           return ScoreCardRadar(card: card); 
+        } catch (e) {
+           return Text("Error rendering ScoreCard: $e");
+        }
+
+      case 'KEY_VALUE_GRID':
+        return GenericGrid(title: section.title, data: section.data);
+
+      case 'DATA_TABLE':
+        return GenericTable(title: section.title, data: section.data);
+
+      case 'MARKDOWN_BLOCK':
+        final content = section.data['content'] as String? ?? '';
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                    if (section.title.isNotEmpty) ...[
+                        Text(section.title, style: Theme.of(context).textTheme.titleMedium),
+                        const Divider(),
+                    ],
+                    OutputRenderer(markdownContent: content),
+                ]
+            ),
+          ),
+        );
+
+      case 'TIMELINE_FEED':
+        // Reuse AuditTrail logic or simplified list?
+        // BFF Timeline is a list of events.
+        final events = section.data['events'] as List<dynamic>? ?? [];
+        return Card(
+             child: ExpansionTile(
+                title: Text(section.title),
+                children: events.map((e) => ListTile(
+                    leading: Text(e['timestamp'] ?? '', style: const TextStyle(fontSize: 10)),
+                    title: Text(e['label'] ?? ''),
+                    subtitle: Text(e['content'] ?? '', maxLines: 2, overflow: TextOverflow.ellipsis),
+                )).toList(),
+             ),
+        );
+
+      default:
+        return Card(
+          color: Colors.red[50],
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text("Unknown Section Type: ${section.type}"),
+          ),
+        );
+    }
+  }
+
+  Widget _buildRawDataView(BuildContext context, Map<String, dynamic> data) {
       return SingleChildScrollView(
           padding: const EdgeInsets.all(16),
-          child: Column(
-              children: [
-                  AuditTrailViewer(data: data),
-                  const SizedBox(height: 24),
-                  if (report != null) ...[
-                      DeepDiveExpander(
-                          title: "Methodological Log",
-                          icon: Icons.history_edu,
-                          child: Text(report.metodologinenLoki),
-                      ),
-                  ]
-              ],
-          ),
+          child: AuditTrailViewer(data: data),
       );
   }
-
-
 }

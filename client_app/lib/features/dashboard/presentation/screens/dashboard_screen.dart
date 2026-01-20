@@ -7,6 +7,9 @@ import 'package:client_app/features/orchestration/domain/models/execution.dart';
 import 'package:client_app/features/dashboard/presentation/widgets/execution_grid_item.dart';
 import 'package:client_app/features/dashboard/presentation/widgets/execution_list_item.dart';
 import 'package:client_app/features/dashboard/presentation/widgets/execution_stats_card.dart';
+import 'package:client_app/features/settings/theme_provider.dart';
+import 'package:client_app/features/settings/locale_provider.dart';
+import 'package:client_app/features/auth/presentation/auth_controller.dart';
 
 /// The main dashboard screen displaying a list of recent executions.
 ///
@@ -26,6 +29,69 @@ class DashboardScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(l10n.dashboardTitle),
         actions: [
+          // Language Selector
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<Locale>(
+                value:
+                    ref.watch(localeProvider).languageCode == 'fi'
+                        ? const Locale('fi')
+                        : const Locale('en'),
+                icon: const Icon(Icons.language),
+                onChanged: (Locale? newLocale) {
+                  if (newLocale != null) {
+                    ref.read(localeProvider.notifier).setLocale(newLocale);
+                  }
+                },
+                items: const [
+                  DropdownMenuItem(
+                    value: Locale('fi'),
+                     child: Text('🇫🇮 FI'),
+                  ),
+                  DropdownMenuItem(
+                    value: Locale('en'),
+                    child: Text('🇬🇧 EN'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Theme Selector
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+            child: IconButton(
+              icon: Icon(
+                ref.watch(themeModeProvider) == ThemeMode.light
+                    ? Icons.light_mode
+                    : ref.watch(themeModeProvider) == ThemeMode.dark
+                        ? Icons.dark_mode
+                        : Icons.brightness_auto,
+              ),
+              tooltip: l10n.themeMode,
+              onPressed: () {
+                // Cycle themes: System -> Light -> Dark
+                final current = ref.read(themeModeProvider);
+                final next =
+                    current == ThemeMode.system
+                        ? ThemeMode.light
+                        : current == ThemeMode.light
+                            ? ThemeMode.dark
+                            : ThemeMode.system;
+                ref.read(themeModeProvider.notifier).setThemeMode(next);
+              },
+            ),
+          ),
+          // User Info (Simple Text for now)
+          Padding(
+             padding: const EdgeInsets.symmetric(horizontal: 8.0),
+             child: Center(
+               child: Text(
+                 ref.watch(authControllerProvider).asData?.value?.displayName ?? "",
+                 style: const TextStyle(fontWeight: FontWeight.bold),
+               ),
+             ),
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: l10n.retry, // reusing retry or specific refresh key
@@ -37,6 +103,7 @@ class DashboardScreen extends ConsumerWidget {
           ),
           const SizedBox(width: 8),
         ],
+
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {

@@ -23,7 +23,72 @@ class SettingsScreen extends ConsumerWidget {
     final isAdmin = user?.role == UserRole.root || user?.role == UserRole.admin;
 
     return Scaffold(
-      appBar: AppBar(title: Text(localizations.settings)),
+      appBar: AppBar(
+        title: Text(localizations.settings),
+        actions: [
+          // Language Selector
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<Locale>(
+                value:
+                    ref.watch(localeProvider).languageCode == 'fi'
+                        ? const Locale('fi')
+                        : const Locale('en'),
+                icon: const Icon(Icons.language),
+                onChanged: (Locale? newLocale) {
+                  if (newLocale != null) {
+                    ref.read(localeProvider.notifier).setLocale(newLocale);
+                  }
+                },
+                items: const [
+                  DropdownMenuItem(
+                    value: Locale('fi'),
+                     child: Text('🇫🇮 FI'),
+                  ),
+                  DropdownMenuItem(
+                    value: Locale('en'),
+                    child: Text('🇬🇧 EN'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Theme Selector
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+            child: IconButton(
+              icon: Icon(
+                themeMode == ThemeMode.light
+                    ? Icons.light_mode
+                    : themeMode == ThemeMode.dark
+                        ? Icons.dark_mode
+                        : Icons.brightness_auto,
+              ),
+              onPressed: () {
+                final next =
+                    themeMode == ThemeMode.system
+                        ? ThemeMode.light
+                        : themeMode == ThemeMode.light
+                            ? ThemeMode.dark
+                            : ThemeMode.system;
+                ref.read(themeModeProvider.notifier).setThemeMode(next);
+              },
+            ),
+          ),
+          // User Info
+          Padding(
+             padding: const EdgeInsets.symmetric(horizontal: 8.0),
+             child: Center(
+               child: Text(
+                 user?.displayName ?? "",
+                 style: const TextStyle(fontWeight: FontWeight.bold),
+               ),
+             ),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1000),

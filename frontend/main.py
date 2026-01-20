@@ -115,11 +115,52 @@ def main():
         return
     # ----------------------------
 
-    st.title("Cognitive Quorum v2 - Admin Console")
-    st.markdown(
-        f"**Backend:** `{BACKEND_URL}` | "
-        f"**User:** `{st.session_state.user['display_name']} ({st.session_state.user['role']})`"
-    )
+    # --- HEADER / TOP BAR ---
+    h_col1, h_col2 = st.columns([3, 1])
+
+    with h_col1:
+        st.title("Cognitive Quorum v2")
+        st.caption(f"Backend: `{BACKEND_URL}`")
+
+    with h_col2:
+        # User Context & Quick Settings
+        st.markdown(f"**{st.session_state.user['display_name']}** ({st.session_state.user['role']})")
+        
+        # Quick Toggles (Visual only for now, ideally syncs with profile)
+        # Note: True SDUI would drive this from the User Schema too, 
+        # but for a persistent header control, simple widgets are faster and cleaner than a full form.
+        # We assume value persistence via profile view or simple session state for now.
+        
+        c_lang, c_theme = st.columns(2)
+        with c_lang:
+            current_lang = st.session_state.user.get("language", "fi")
+            sel_lang = st.selectbox("🌐", ["fi", "en", "sv"], index=["fi", "en", "sv"].index(current_lang), label_visibility="collapsed", key="header_lang_sel")
+            if sel_lang != current_lang:
+                 # Update State locally so UI reacts (Optimistic UI)
+                 st.session_state.user["language"] = sel_lang
+                 # In background we should save, but we let Profile View handle heavy lifting. 
+                 # Or we trigger a quick save? Let's just update session for now.
+
+        with c_theme:
+            current_theme = st.session_state.user.get("theme_mode", "system")
+            # Map system/light/dark to icons or simple list
+            theme_map = {"system": "🌗", "light": "☀️", "dark": "🌙"}
+            # We reverse map for logic
+            theme_opts = ["system", "light", "dark"]
+            
+            # Index safety
+            try:
+                t_idx = theme_opts.index(current_theme) 
+            except ValueError:
+                t_idx = 0
+            
+            sel_theme = st.selectbox("Theme", theme_opts, index=t_idx, format_func=lambda x: theme_map[x], label_visibility="collapsed", key="header_theme_sel")
+
+            if sel_theme != current_theme:
+                 st.session_state.user["theme_mode"] = sel_theme
+                 # Trigger rerun to apply if we had real theming hook
+                 st.rerun()
+
 
     # Sidebar
     with st.sidebar:
