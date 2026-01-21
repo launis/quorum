@@ -129,7 +129,7 @@ class BaseAgent(BaseComponent):
         import json
 
         # 1. TIME & IDENTITY AUTHORITY
-        utc_now = datetime.now(timezone.utc).isoformat()
+        utc_now = datetime.now(timezone.utc)
         agent_name = self.__class__.__name__
         env_context = "Internal"
         

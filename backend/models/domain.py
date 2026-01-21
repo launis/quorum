@@ -5,6 +5,7 @@ AI agents (Analyzer, Profiler, Logician, etc.) and the structure of the
 audit report components.
 """
 
+from datetime import datetime
 from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, ValidationInfo, AfterValidator, model_validator
@@ -19,14 +20,14 @@ class Metadata(BaseModel):
     """Metadata for execution tracking.
 
     Attributes:
-        luontiaika (str): Timestamp of creation (ISO 8601).
+        luontiaika (datetime): Timestamp of creation (ISO 8601).
         agentti (str): Name of the agent producing this result.
         vaihe (Union[float, int]): Step number in the workflow.
         versio (Literal["1.0", "2.0"]): Schema version.
         suoritus_ymparisto (Optional[Literal]): Execution environment context.
     """
 
-    luontiaika: Annotated[str, Field(description="Timestamp of creation (ISO 8601).")]
+    luontiaika: Annotated[datetime, Field(description="Timestamp of creation (ISO 8601).")]
     agentti: Annotated[str, Field(description="Name of the agent producing this result.")]
     vaihe: Annotated[float | int, Field(description="Step number in the workflow.")]
     versio: Annotated[Literal["1.0", "2.0"], Field(description="Schema version.")] = "2.0"
@@ -938,7 +939,7 @@ class UsageRecord(BaseModel):
     input_tokens: Annotated[int, Field(description="Number of input tokens.")]
     output_tokens: Annotated[int, Field(description="Number of generated tokens.")]
     cost_usd: Annotated[float, Field(description="Calculated cost in USD (from LiteLLM).")]
-    timestamp: Annotated[str, Field(description="ISO 8601 timestamp of the event.")]
+    timestamp: Annotated[datetime, Field(description="ISO 8601 timestamp of the event.")]
 
     model_config = ConfigDict(frozen=True, validate_assignment=True)
 

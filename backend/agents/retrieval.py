@@ -139,10 +139,11 @@ class RetrievalAgent(BaseAgent):
             # 6. Construct Output
             from backend.models.domain import Metadata
             from datetime import datetime
+            from datetime import timezone
             
             # Create dummy metadata (will be overwritten by BaseAgent._apply_python_authority)
             dummy_meta = Metadata(
-                luontiaika=datetime.utcnow().isoformat(),
+                luontiaika=datetime.now(timezone.utc),
                 agentti="RetrievalAgent",
                 vaihe=0,
                 versio="2.0"

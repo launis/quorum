@@ -47,7 +47,7 @@ class AuditService:
         """Records an audit event."""
         event = AuditEvent(
             id=uuid.uuid4().hex,
-            timestamp=datetime.now(UTC).isoformat(),
+            timestamp=datetime.now(UTC),
             actor_uid=actor_uid,
             organization_id=organization_id,
             action=action.upper(),

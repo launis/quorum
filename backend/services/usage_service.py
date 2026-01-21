@@ -51,8 +51,6 @@ class UsageService:
             Optional[UsageRecord]: The created record if successful, else None.
         """
         try:
-            timestamp = datetime.now(UTC).isoformat()
-
             record = UsageRecord(
                 id=str(uuid.uuid4()),
                 org_id=org_id,
@@ -61,7 +59,7 @@ class UsageService:
                 input_tokens=input_tokens,
                 output_tokens=output_tokens,
                 cost_usd=cost_usd,
-                timestamp=timestamp,
+                timestamp=datetime.now(UTC),
             )
 
             await self.repo.log_usage(record)

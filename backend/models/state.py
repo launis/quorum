@@ -5,7 +5,7 @@ This module defines the `WorkflowState` and `InputData` models, which serve as t
 the persistence of agent outputs and the continuity of the reasoning process.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -66,7 +66,7 @@ class WorkflowState(BaseModel):
     execution_id: Annotated[str, Field(description="Unique UUID for this execution instance.")]
     workflow_id: Annotated[str | None, Field(description="ID of the workflow being executed.")] = None
     workflow_name: Annotated[str | None, Field(description="Name of the workflow being executed.")] = None
-    start_time: Annotated[datetime, Field(default_factory=datetime.now, description="Execution start timestamp.")]
+    start_time: Annotated[datetime, Field(default_factory=lambda: datetime.now(timezone.utc), description="Execution start timestamp.")]
     current_step_name: Annotated[str, Field(description="Name of the currently executing step/agent.")] = "init"
     version: Annotated[int, Field(default=1, description="Optimistic locking version.")] = 1
 

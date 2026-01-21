@@ -187,6 +187,25 @@ class TinyDBRepository(AbstractWorkflowRepository):
         self.organizations = client.table("organizations")
         self.users = client.table("users")
 
+    # --- Helper: Universal Serializer ---
+    def _serialize_for_tinydb(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Recursively converts datetime objects to ISO format strings."""
+        from datetime import datetime
+        
+        # Determine if we have a dict or list (handle recursiveness)
+        # But top level is usually dict for these methods.
+        
+        def _convert(obj):
+            if isinstance(obj, datetime):
+                return obj.isoformat()
+            if isinstance(obj, dict):
+                return {k: _convert(v) for k, v in obj.items()}
+            if isinstance(obj, list):
+                return [_convert(v) for v in obj]
+            return obj
+            
+        return _convert(data) # Expecting dict input mostly
+
     # --- Organization Methods (Required by organization_router.py) ---
 
     async def list_organizations(self) -> List[Dict[str, Any]]:
@@ -199,12 +218,14 @@ class TinyDBRepository(AbstractWorkflowRepository):
 
     async def create_organization(self, org_data: Dict[str, Any]) -> str:
         """Create a new organization."""
-        self.organizations.upsert(org_data, Query().id == org_data["id"])
-        return org_data["id"]
+        safe_data = self._serialize_for_tinydb(org_data)
+        self.organizations.upsert(safe_data, Query().id == safe_data["id"])
+        return safe_data["id"]
 
     async def update_organization(self, org_id: str, updates: Dict[str, Any]) -> bool:
         """Update an organization."""
-        res = self.organizations.update(updates, Query().id == org_id)
+        safe_updates = self._serialize_for_tinydb(updates)
+        res = self.organizations.update(safe_updates, Query().id == org_id)
         return bool(res)
 
     async def delete_organization(self, org_id: str) -> bool:
@@ -268,7 +289,8 @@ class TinyDBRepository(AbstractWorkflowRepository):
         return self.knowledge_base.all()
 
     async def log_audit_event(self, event_data: Dict[str, Any]) -> None:
-        self.audit_logs.insert(event_data)
+        safe_data = self._serialize_for_tinydb(event_data)
+        self.audit_logs.insert(safe_data)
 
     async def get_audit_logs(
         self,
@@ -318,11 +340,13 @@ class TinyDBRepository(AbstractWorkflowRepository):
         return self.workflows.get(Query().id == workflow_id)
 
     async def create_workflow(self, workflow_data: Dict[str, Any]) -> str:
-        self.workflows.upsert(workflow_data, Query().id == workflow_data["id"])
-        return workflow_data["id"]
+        safe_data = self._serialize_for_tinydb(workflow_data)
+        self.workflows.upsert(safe_data, Query().id == safe_data["id"])
+        return safe_data["id"]
 
     async def update_workflow(self, workflow_id: str, updates: Dict[str, Any]) -> bool:
-        res = self.workflows.update(updates, Query().id == workflow_id)
+        safe_updates = self._serialize_for_tinydb(updates)
+        res = self.workflows.update(safe_updates, Query().id == workflow_id)
         return bool(res)
 
     async def delete_workflow(self, workflow_id: str) -> bool:
@@ -336,11 +360,13 @@ class TinyDBRepository(AbstractWorkflowRepository):
         return self.steps.get(Query().id == step_id)
 
     async def create_step(self, step_data: Dict[str, Any]) -> str:
-        self.steps.upsert(step_data, Query().id == step_data["id"])
-        return step_data["id"]
+        safe_data = self._serialize_for_tinydb(step_data)
+        self.steps.upsert(safe_data, Query().id == safe_data["id"])
+        return safe_data["id"]
 
     async def update_step(self, step_id: str, updates: Dict[str, Any]) -> bool:
-        res = self.steps.update(updates, Query().id == step_id)
+        safe_updates = self._serialize_for_tinydb(updates)
+        res = self.steps.update(safe_updates, Query().id == step_id)
         return bool(res)
 
     async def delete_step(self, step_id: str) -> bool:
@@ -372,26 +398,28 @@ class TinyDBRepository(AbstractWorkflowRepository):
         # TinyDB wrapper 'insert' returns document ID (int), but we want string UUIDs from data.
         # If 'id' is in data, we use upsert/insert.
         
-        # We assume execution_data has 'id' (UUID).
-        if "id" not in execution_data:
-             # Fallback or error? For now assume it's there as per schema.
-             pass
-             
+        # KEY FIX: Helper to serialize datetimes for TinyDB
+        # Using self._serialize_for_tinydb defined above
+        safe_data = self._serialize_for_tinydb(execution_data)
+        
         # We use upsert to ensure we use the UUID as key if possible, or just insert.
         # Wrapper 'insert' just appends. 'upsert' needs a query.
-        eid = execution_data.get("id")
+        eid = safe_data.get("id")
         if eid:
-            self.executions.upsert(execution_data, Query().id == eid)
+            self.executions.upsert(safe_data, Query().id == eid)
             return eid
         else:
             # Native insert, returns int ID, might not be what we want if we expect UUIDs.
             # But let's trust the input data has ID.
-            result = self.executions.insert(execution_data)
+            result = self.executions.insert(safe_data)
             return str(result)
 
     async def update_execution(self, execution_id: str, updates: Dict[str, Any]) -> bool:
+        # KEY FIX: Helper to serialize datetimes for TinyDB
+        safe_updates = self._serialize_for_tinydb(updates)
+        
         # Wrapper 'update' takes dict of fields and query
-        result = self.executions.update(updates, Query().id == execution_id)
+        result = self.executions.update(safe_updates, Query().id == execution_id)
         return len(result) > 0
 
     async def get_all_executions(

@@ -264,7 +264,7 @@ class KnowledgeBaseService:
                 "term": c["term"],
                 "definition": c["definition"],
                 "source_file": source_name,
-                "ingested_at": datetime.now().isoformat(),
+                "ingested_at": datetime.now(),
                 "metadata": {},
             }
             await self.repository.add_knowledge_base_item(item)
@@ -284,7 +284,7 @@ class KnowledgeBaseService:
                 "definition": r["citation"],  # Full citation as definition
                 "doi_link": r.get("doi_link"),
                 "source_file": source_name,
-                "ingested_at": datetime.now().isoformat(),
+                "ingested_at": datetime.now(),
                 "metadata": {"short_citation": r.get("short_citation")},
             }
             await self.repository.add_knowledge_base_item(item)
@@ -304,7 +304,7 @@ class KnowledgeBaseService:
                 "term": cl["citation_text"][:50] + "...",  # Use short citation as term or snippet?
                 "definition": cl["claim_text"],  # The claim itself is the "definition" or content
                 "source_file": source_name,
-                "ingested_at": datetime.now().isoformat(),
+                "ingested_at": datetime.now(),
                 "metadata": {
                     "citation_keys": cl.get("citation_keys"),
                     "citation_text": cl.get("citation_text"),

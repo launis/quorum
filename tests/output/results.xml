@@ -1,1 +1,104 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="0" skipped="1" tests="21" time="1.523" timestamp="2026-01-16T02:12:35.976902+02:00" hostname="Laptop-Risto"><testcase classname="tests.test_hooks_comprehensive" name="test_metrics_hooks_exist" time="0.001" /><testcase classname="tests.test_hooks_comprehensive" name="test_security_hooks_exist" time="0.000" /><testcase classname="tests.test_hooks_comprehensive" name="test_references_hook_exists" time="0.001" /><testcase classname="tests.test_hooks_comprehensive" name="test_workflow_state_hooks_exist" time="0.002" /><testcase classname="tests.test_hooks_comprehensive" name="test_calculate_text_metrics_hook_valid" time="0.000" /><testcase classname="tests.test_hooks_comprehensive" name="test_calculate_control_ratio_hook_valid" time="0.000" /><testcase classname="tests.test_hooks_comprehensive" name="test_metrics_hook_empty_input" time="0.000" /><testcase classname="tests.test_hooks_comprehensive" name="test_control_ratio_hook_no_conversation_markers" time="0.000" /><testcase classname="tests.test_hooks_comprehensive" name="test_security_hook_no_pii" time="0.001" /><testcase classname="tests.test_hooks_comprehensive" name="test_security_hook_with_email" time="0.000" /><testcase classname="tests.test_hooks_comprehensive" name="test_banned_phrases_hook_clean" time="0.002" /><testcase classname="tests.test_hooks_comprehensive" name="test_banned_phrases_hook_detected" time="0.002" /><testcase classname="tests.test_hooks_comprehensive" name="test_hook_with_none_state" time="0.000" /><testcase classname="tests.test_hooks_comprehensive" name="test_hook_with_missing_aux_data" time="0.000" /><testcase classname="tests.test_hooks_comprehensive" name="test_hook_mapping_contains_all_hooks" time="0.000" /><testcase classname="tests.test_hooks_comprehensive" name="test_validation_hook" time="0.000" /><testcase classname="tests.test_hooks_comprehensive" name="test_linguistics_hook" time="0.000" /><testcase classname="tests.test_hooks_comprehensive" name="test_scoring_hook_no_judge" time="0.000" /><testcase classname="tests.test_hooks_comprehensive" name="test_references_hook_empty_kb" time="0.000" /><testcase classname="tests.test_safety_and_hooks" name="test_fork_step_safety" time="1.359"><skipped type="pytest.skip" message="No llm_prompts found in step - skipping fork test">C:\src\quorum\tests\test_safety_and_hooks.py:108: No llm_prompts found in step - skipping fork test</skipped></testcase><testcase classname="tests.test_safety_and_hooks" name="test_python_hooks_execution" time="0.105" /></testsuite></testsuites>
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="1.233" timestamp="2026-01-21T12:24:43.504371+02:00" hostname="Laptop-Risto"><testcase classname="tests.test_strict_provider" name="test_strict_provider_enforcement" time="0.513"><failure message="Failed: MockProvider failed unexpectedly: STRICT EXECUTION AUTHORITY: MockLLMService usage is FORBIDDEN when 'use_mock_llm' is False. The system attempted to fallback to mock data, which is strictly prohibited. Check credential configuration or provider selection.">@pytest.mark.asyncio
+    async def test_strict_provider_enforcement():
+        """Verify that MockProvider rejects implicit defaults."""
+    
+        # Instantiate provider (Mock is simpler)
+        provider = MockProvider(
+            model_name="mock-model",
+            # Mock doesn't need API keys or Env vars usually
+        )
+    
+        # 1. Test Missing Temperature
+        with pytest.raises(ConfigurationError) as excinfo:
+            await provider.generate(
+                prompt="Hello",
+                max_tokens=100
+                # temperature missing
+            )
+        assert "Strict Mode: 'temperature'" in str(excinfo.value)
+    
+        # 2. Test Missing Max Tokens
+        with pytest.raises(ConfigurationError) as excinfo:
+            await provider.generate(
+                prompt="Hello",
+                temperature=0.5
+                # max_tokens missing
+            )
+        assert "Strict Mode: 'max_tokens'" in str(excinfo.value)
+    
+        # 3. Test Success with All Params
+        try:
+&gt;           await provider.generate(
+                prompt="Hello",
+                temperature=0.5,
+                max_tokens=100
+            )
+
+tests\test_strict_provider.py:36: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+backend\llm\provider.py:511: in generate
+    mock = MockLLMService()
+           ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = &lt;backend.llm.mock.MockLLMService object at 0x00000195D7368C20&gt;
+
+    def __init__(self):
+        """Initializes the Mock Service."""
+        from backend.settings import get_settings
+    
+        if not get_settings().use_mock_llm:
+&gt;           raise RuntimeError(
+                "STRICT EXECUTION AUTHORITY: MockLLMService usage is FORBIDDEN when 'use_mock_llm' is False. "
+                "The system attempted to fallback to mock data, which is strictly prohibited. "
+                "Check credential configuration or provider selection."
+            )
+E           RuntimeError: STRICT EXECUTION AUTHORITY: MockLLMService usage is FORBIDDEN when 'use_mock_llm' is False. The system attempted to fallback to mock data, which is strictly prohibited. Check credential configuration or provider selection.
+
+backend\llm\mock.py:25: RuntimeError
+
+During handling of the above exception, another exception occurred:
+
+    @pytest.mark.asyncio
+    async def test_strict_provider_enforcement():
+        """Verify that MockProvider rejects implicit defaults."""
+    
+        # Instantiate provider (Mock is simpler)
+        provider = MockProvider(
+            model_name="mock-model",
+            # Mock doesn't need API keys or Env vars usually
+        )
+    
+        # 1. Test Missing Temperature
+        with pytest.raises(ConfigurationError) as excinfo:
+            await provider.generate(
+                prompt="Hello",
+                max_tokens=100
+                # temperature missing
+            )
+        assert "Strict Mode: 'temperature'" in str(excinfo.value)
+    
+        # 2. Test Missing Max Tokens
+        with pytest.raises(ConfigurationError) as excinfo:
+            await provider.generate(
+                prompt="Hello",
+                temperature=0.5
+                # max_tokens missing
+            )
+        assert "Strict Mode: 'max_tokens'" in str(excinfo.value)
+    
+        # 3. Test Success with All Params
+        try:
+            await provider.generate(
+                prompt="Hello",
+                temperature=0.5,
+                max_tokens=100
+            )
+        except ConfigurationError:
+            pytest.fail("Should not raise ConfigurationError when all params provided")
+        except Exception as e:
+            # If Mock fails for other reasons, it's a bug in Mock, but not strict mode failure
+&gt;           pytest.fail(f"MockProvider failed unexpectedly: {e}")
+E           Failed: MockProvider failed unexpectedly: STRICT EXECUTION AUTHORITY: MockLLMService usage is FORBIDDEN when 'use_mock_llm' is False. The system attempted to fallback to mock data, which is strictly prohibited. Check credential configuration or provider selection.
+
+tests\test_strict_provider.py:45: Failed</failure></testcase></testsuite></testsuites>

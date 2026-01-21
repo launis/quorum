@@ -136,9 +136,9 @@ class TaskRegistry:
                         vars_to_inject = input_data
                     
                     # 2. Add System Context Variables
-                    import datetime
-                    vars_to_inject["CURRENT_DATE"] = datetime.datetime.now().strftime("%Y-%m-%d")
-                    vars_to_inject["DYNAMIC_TIME"] = datetime.datetime.now().strftime("%H:%M:%S")
+                    from datetime import datetime
+                    vars_to_inject["CURRENT_DATE"] = datetime.now().strftime("%Y-%m-%d")
+                    vars_to_inject["DYNAMIC_TIME"] = datetime.now().strftime("%H:%M:%S")
                     vars_to_inject["DYNAMIC_LOCATION"] = "Sijainti: VIRTUAL_ENCLAVE" # Default
                     
                     # 3. Perform Substitution

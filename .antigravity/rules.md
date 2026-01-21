@@ -105,6 +105,11 @@ PART 2: PYTHON BACKEND MANDATES
 3.  **Database (TinyDB / Firestore)**:
     * **Abstraction**: Use `AbstractRepository` pattern. No direct DB calls in routers.
     * **Dependency Injection**: Inject repositories via `Depends()`.
+    * **Date Handling Mandate (Temporal Representation Standard)**:
+        * **Format**: All timestamps MUST be Python `datetime` objects.
+        * **Storage**: Store as `datetime` (Pydantic handles ISO-8601 string conversion for JSON/Firestore automatically).
+        * **BANNED**: Do NOT use `str(datetime.now())` or `.isoformat()` manually in routers or models unless specifically required for legacy text-injection.
+        * **Timezone**: Always use `UTC` (e.g. `datetime.now(timezone.utc)`).
 
 4.  **Testing (Pytest + AsyncIO)**:
     * **Fixtures**: Use `conftest.py` for shared resources.

@@ -140,7 +140,7 @@ class AgentRegistry:
                     "name": name,
                     "type": type,
                     "class_name": class_name,
-                    "registered_at": datetime.now().isoformat(),
+                    "registered_at": datetime.now(),
                 }
             )
 
@@ -195,7 +195,7 @@ class AgentRegistry:
                                 "name": cls_name,
                                 "type": agent_type,
                                 "class_name": cls_name,
-                                "registered_at": datetime.now().isoformat(),
+                                "registered_at": datetime.now(),
                             }
                         )
 

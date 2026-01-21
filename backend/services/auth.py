@@ -11,7 +11,7 @@ from typing import Any
 import jwt
 from tinydb import Query
 
-from backend.database.wrapper import AbstractDatabase, AbstractTable
+from datetime import datetime, timezone
 from backend.exceptions import ConflictError
 from backend.models.auth import Organization, OrganizationCreate, TokenData, User, UserCreate, UserRole, UserUpdate
 
@@ -251,7 +251,7 @@ class AuthService:
                     email=email if email else "unknown@example.com",
                     role=UserRole.MEMBER,
                     organization_id=None,  # Orphan user
-                    created_at=str(time.time()),
+                created_at=datetime.now(timezone.utc),
                 )
                 self.repo.create(new_user)
                 return TokenData(uid=uid, role=UserRole.MEMBER, email=email, organization_id=None)
@@ -275,7 +275,7 @@ class AuthService:
         # 1. Create Organization (Sync DB call in thread? Or just sync for now)
         # We'll run it sync as TinyDB is fast, but logically the method is async.
         org_id = uuid.uuid4().hex[:8]
-        new_org = Organization(id=org_id, name=org_create.name, created_at=str(time.time()), is_active=True)
+        new_org = Organization(id=org_id, name=org_create.name, created_at=datetime.now(timezone.utc), is_active=True)
         self.org_repo.create(new_org)
 
         # 2. Create the Org Admin
@@ -372,7 +372,7 @@ class AuthService:
             display_name=user_data.display_name,
             role=user_data.role,
             organization_id=target_org_id,
-            created_at=str(time.time()),
+            created_at=datetime.now(timezone.utc),
             created_by=creator.uid,
         )
 
@@ -678,7 +678,7 @@ class AuthService:
         if not self.org_repo.get_by_id("system"):
             logger.info("[AuthService] Creating 'system' Organization.")
             self.org_repo.create(
-                Organization(id="system", name="System Administration", created_at=str(time.time()), tier="enterprise")
+                Organization(id="system", name="System Administration", created_at=datetime.now(timezone.utc), tier="enterprise")
             )
 
         # 1. ROOT

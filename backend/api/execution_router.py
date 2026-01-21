@@ -247,7 +247,7 @@ async def get_recent_executions(
             # Map started_at -> start_time
             if "start_time" not in item:
                 item["start_time"] = (
-                    item.get("started_at") or item.get("timestamp") or datetime.now(timezone.utc).isoformat()
+                    item.get("started_at") or item.get("timestamp") or datetime.now(timezone.utc)
                 )
 
             # Ensure 'result' exists for strict contract (Execution.completed requires it)
@@ -293,7 +293,7 @@ async def get_execution(
 
         if "start_time" not in item:
             item["start_time"] = (
-                item.get("started_at") or item.get("timestamp") or datetime.now(datetime.UTC).isoformat()
+                item.get("started_at") or item.get("timestamp") or datetime.now(timezone.utc)
             )
 
         if "results" in item and "result" not in item:
@@ -653,7 +653,7 @@ async def create_execution(
         from datetime import datetime
 
         execution_id = str(uuid.uuid4())
-        timestamp = datetime.now(UTC).isoformat()
+        timestamp = datetime.now(UTC)
 
         execution_data = {
             "id": execution_id,
@@ -690,7 +690,7 @@ async def create_execution(
             result = await engine.execute_workflow(definition, inputs, repository=repository, execution_id=execution_id)
 
             # Update to completed
-            completed_time = datetime.now(UTC).isoformat()
+            completed_time = datetime.now(UTC)
             execution_data["results"] = sanitize_for_json(result)
             execution_data["status"] = "completed"
             execution_data["completed_at"] = completed_time

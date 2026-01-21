@@ -16,6 +16,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 from backend.models.llm import LLMResponse
 from backend.services.usage_service import UsageService
 from backend.settings import get_settings
+from backend.exceptions import ConfigurationError
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -45,7 +46,7 @@ class LLMProvider(ABC):
         prompt: str,
         system_instruction: str | None = None,
         response_schema: type[BaseModel] | dict[str, Any] | None = None,
-        temperature: float = 0.7,
+        temperature: float | None = None,
         max_tokens: int | None = None,
         pass_reasoning_token: str | None = None,
         **kwargs,
@@ -144,7 +145,7 @@ class LiteLLMProvider(LLMProvider):
         prompt: str,
         system_instruction: str | None = None,
         response_schema: type[BaseModel] | dict[str, Any] | None = None,
-        temperature: float = 0.7,
+        temperature: float | None = None,
         max_tokens: int | None = None,
         pass_reasoning_token: str | None = None,
         **kwargs,
@@ -157,6 +158,18 @@ class LiteLLMProvider(LLMProvider):
         if system_instruction:
             messages.append({"role": "system", "content": system_instruction})
 
+        # STRICT CONFIGURATION (Jan 2026): Reject defaults.
+        if temperature is None:
+             msg = "Strict Mode: 'temperature' must be explicitly provided from configuration (Database/Registry). No default allowed."
+             logger.error(f"[LiteLLMProvider] {msg}")
+             raise ConfigurationError(msg)
+
+        if max_tokens is None:
+             msg = "Strict Mode: 'max_tokens' must be explicitly provided from configuration (Database/Registry). No default allowed."
+             logger.error(f"[LiteLLMProvider] {msg}")
+             raise ConfigurationError(msg)
+
+   
         # Context Continuity (Stateless Reasoning Blob)
         if pass_reasoning_token:
             # Abstraction: We pass it as a developer hint for now.
@@ -180,17 +193,17 @@ class LiteLLMProvider(LLMProvider):
                 pass
 
         try:
-            # --- DEBUG LOGGING (Manual request) ---
+            # --- LOGGING ---
             def _truncate_for_debug(text: str, label: str) -> None:
                 if not text:
-                    logger.info(f"[LiteLLM] DEBUG [{label}]: <empty>")
+                    logger.info(f"[LiteLLM] [{label}]: <empty>")
                     return
                 
                 # Format for log
                 # User Mandate (Jan 2026): Single-line compact debug log
                 content_preview = text[:50].replace('\n', '\\n')
                 suffix = text[-50:].replace('\n', '\\n') if len(text) > 50 else ""
-                logger.info(f"[LiteLLM] DEBUG [{label}]: Length={len(text)} chars | Content='{content_preview}...{suffix}'")
+                logger.info(f"[LiteLLM] [{label}]: Length={len(text)} chars | Content='{content_preview}...{suffix}'")
 
             if system_instruction:
                 _truncate_for_debug(system_instruction, "SYSTEM INSTRUCTION")
@@ -407,14 +420,40 @@ class LiteLLMProvider(LLMProvider):
             )
 
         except Exception as e:
-            # Jan 2026: Reduce Error Verbosity
-            # The 'e' object from LiteLLM/Instructor might contain huge payloads (whole prompts/completions).
-            # We extracting the core error message and avoiding dumping the full payload unless in DEBUG mode.
+            # Jan 2026: Reduce Error Verbosity & Improve Classification
             error_msg = str(e)
-            if len(error_msg) > 500:
-                 error_msg = error_msg[:500] + "... [TRUNCATED]"
+            error_type = type(e).__name__
             
-            logger.error(f"[LiteLLM] Execution Failed: {error_msg}")
+            # 1. RATE LIMITS & QUOTA (Critical Infra)
+            if "RateLimitError" in error_type or "429" in error_msg or "Resource exhausted" in error_msg:
+                logger.error(f"[LiteLLM] RESOURCE EXHAUSTED (Rate Limit): {error_msg}")
+                
+            # 2. AUTHENTICATION ALERTS (Security/Config)
+            elif "AuthenticationError" in error_type or "401" in error_msg or "invalid_api_key" in error_msg:
+                 logger.critical(f"[LiteLLM] AUTH FAILED (Check API Keys): {error_msg}")
+                 
+            # 3. CONTEXT WINDOW (Data/Prompt Engineering)
+            elif "ContextWindowExceededError" in error_type or "context_length_exceeded" in error_msg or "400" in error_msg:
+                 # Often 400 is generic, but combined with length/context keywords matches this.
+                 if "context" in error_msg.lower() or "token" in error_msg.lower():
+                     logger.error(f"[LiteLLM] CONTEXT EXCEEDED (Prompt too long): {error_msg}")
+                 else:
+                     logger.error(f"[LiteLLM] BAD REQUEST (400): {error_msg}")
+
+            # 4. SERVICE INSTABILITY (Infra)
+            elif "ServiceUnavailableError" in error_type or "503" in error_msg or "500" in error_msg or "Timeout" in error_type:
+                 logger.error(f"[LiteLLM] SERVICE UNAVAILABLE (Upstream/Timeout): {error_msg}")
+            
+            # 5. CONTENT POLICY (Safety)
+            elif "ContentPolicyViolation" in error_type or "blocked" in error_msg.lower():
+                 logger.warning(f"[LiteLLM] SAFETY FILTER TRIGGERED: {error_msg}")
+
+            # 6. GENERIC FALLBACK
+            else:
+                if len(error_msg) > 500:
+                     error_msg = error_msg[:500] + "... [TRUNCATED]"
+                logger.error(f"[LiteLLM] Execution Failed ({error_type}): {error_msg}")
+
             logger.debug(f"[LiteLLM] Full Error Trace: {e}", exc_info=True)
             raise e
 
@@ -441,7 +480,7 @@ class MockProvider(LLMProvider):
         prompt: str,
         system_instruction: str | None = None,
         response_schema: type[BaseModel] | dict[str, Any] | None = None,
-        temperature: float = 0.7,
+        temperature: float | None = None,
         max_tokens: int | None = None,
         pass_reasoning_token: str | None = None,
         **kwargs,
@@ -450,6 +489,17 @@ class MockProvider(LLMProvider):
         from backend.llm.mock import MockLLMService
 
         logger.info(f"[MockProvider] Calling Mock Service (Simulating Async)... {kwargs}")
+  
+        # STRICT CONFIGURATION (Jan 2026): Reject defaults in Mock too.
+        if temperature is None:
+             msg = "Strict Mode: 'temperature' must be explicitly provided from configuration. No default allowed."
+             logger.error(f"[MockProvider] {msg}")
+             raise ConfigurationError(msg)
+
+        if max_tokens is None:
+             msg = "Strict Mode: 'max_tokens' must be explicitly provided from configuration. No default allowed."
+             logger.error(f"[MockProvider] {msg}")
+             raise ConfigurationError(msg)
 
         # --- DIAGNOSTIC DUMP ---
         dump_file = os.getenv("DUMP_PROMPTS_FILE")

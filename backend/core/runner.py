@@ -487,7 +487,7 @@ class PipelineRunner:
             {
                 "status": "rejected",
                 "error": f"Security Threat Detected: {state.step_guard.security_check.riski_taso}",
-                "end_time": datetime.now().isoformat(),
+                "end_time": datetime.now(),
                 "result": rejection_details,
             },
         )

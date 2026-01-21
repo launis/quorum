@@ -11,6 +11,8 @@ from typing import Any
 
 from tinydb import Query, TinyDB
 
+from backend.models.auth import Organization, User
+
 logger = logging.getLogger(__name__)
 
 
@@ -233,10 +235,16 @@ def _seed_tinydb(db_path: str, seed_data: dict):
     count = 0
     for org in seed_data.get("organizations", []):
         try:
-            org_table.upsert(org, Query().id == org["id"])
+            # STRICT VALIDATION: Validates datetime strings
+            validated_org = Organization(**org)
+            # Dump to JSON-safe dict (datetimes -> ISO strings) for TinyDB
+            safe_org = validated_org.model_dump(mode="json")
+            
+            org_table.upsert(safe_org, Query().id == safe_org["id"])
             count += 1
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[Seeder] Validation Error for Org {org.get('id')}: {e}")
+            raise e # Value error if it doesn't work
     print(f"[Seeder] Upserted {count} organizations.")
 
     # Seed Users
@@ -244,10 +252,16 @@ def _seed_tinydb(db_path: str, seed_data: dict):
     count = 0
     for user in seed_data.get("users", []):
         try:
-            users_table.upsert(user, Query().uid == user["uid"])
+            # STRICT VALIDATION
+            validated_user = User(**user)
+            # Dump to JSON-safe dict
+            safe_user = validated_user.model_dump(mode="json")
+
+            users_table.upsert(safe_user, Query().uid == safe_user["uid"])
             count += 1
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[Seeder] Validation Error for User {user.get('uid')}: {e}")
+            raise e # Value error if it doesn't work
     print(f"[Seeder] Upserted {count} users.")
 
     # We ignore 'steps' table for V2, as they are embedded in workflows now.

@@ -60,7 +60,7 @@ class Organization(BaseModel):
 
     id: Annotated[str, Field(description="Unique Organization ID (e.g. 'nokia-v1')")]
     name: Annotated[str, Field(description="Display Name")]
-    created_at: Annotated[str | None, Field(description="ISO Timestamp")] = None
+    created_at: Annotated[datetime | None, Field(description="ISO Timestamp")] = None
     is_active: Annotated[bool, Field(description="Subscription status")] = True
     tier: Annotated[str, Field(description="Service Tier")] = "standard"
     contact_email: Annotated[str | None, Field(description="Admin Contact")] = None
@@ -110,7 +110,7 @@ class User(UserBase):
     """
 
     uid: Annotated[str, Field(description="Unique ID (matches Firebase UID if used)")]
-    created_at: Annotated[str, Field(description="ISO 8601 Timestamp")]
+    created_at: Annotated[datetime, Field(description="ISO 8601 Timestamp")]
     created_by: Annotated[str | None, Field(description="UID of the creator")] = None
 
 

@@ -134,7 +134,8 @@ async def create_organization(
     import time
 
     if "created_at" not in item:
-        item["created_at"] = str(time.time())
+        from datetime import datetime, timezone
+        item["created_at"] = datetime.now(timezone.utc)
     if "is_active" not in item:
         item["is_active"] = True
 

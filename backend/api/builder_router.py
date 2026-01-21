@@ -226,7 +226,7 @@ async def create_workflow(
             "steps": request.steps,
             "default_model_mapping": request.default_model_mapping or {},
             "ui_schema": request.ui_schema or {},
-            "created_at": datetime.now().isoformat(),
+            "created_at": datetime.now(),
             "organization_id": target_org,
             "is_public": is_public_val,
         }
@@ -347,7 +347,7 @@ async def update_workflow(
     if request.is_public is not None:
         update_data["is_public"] = request.is_public
 
-    update_data["updated_at"] = datetime.now().isoformat()
+    update_data["updated_at"] = datetime.now()
 
     # Ensure Model Mapping Integrity
     final_steps = update_data.get("steps", wf.get("steps", []))
@@ -487,7 +487,7 @@ async def copy_workflow(workflow_id: str, request: CopyWorkflowRequest, reposito
     new_wf = copy.deepcopy(original)
     new_wf["id"] = new_id
     new_wf["name"] = request.new_name
-    new_wf["created_at"] = datetime.now().isoformat()
+    new_wf["created_at"] = datetime.now()
     if "updated_at" in new_wf:
         del new_wf["updated_at"]
 

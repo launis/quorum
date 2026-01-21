@@ -86,7 +86,7 @@ class DatabaseProgressTracker(ProgressTracker):
 
     async def start(self, details: dict[str, Any] | None = None):
         """Sets status to 'started'."""
-        payload = {"status": STATUS_STARTED, "start_time": datetime.now().isoformat()}
+        payload = {"status": STATUS_STARTED, "start_time": datetime.now()}
         if details:
             payload.update(details)
         await self.repository.update_execution(self.execution_id, payload)
@@ -102,7 +102,7 @@ class DatabaseProgressTracker(ProgressTracker):
             "current_step": stage,
             "current_step_name": stage,  # Frontend expects this key
             "progress": percent,
-            "last_updated": datetime.now().isoformat(),
+            "last_updated": datetime.now(),
         }
         if details:
             payload.update(details)
@@ -110,14 +110,14 @@ class DatabaseProgressTracker(ProgressTracker):
 
     async def complete(self, result: dict[str, Any] | None = None):
         """Sets status to 'completed' and saves final result."""
-        payload: dict[str, Any] = {"status": STATUS_COMPLETED, "end_time": datetime.now().isoformat()}
+        payload: dict[str, Any] = {"status": STATUS_COMPLETED, "end_time": datetime.now()}
         if result:
             payload["result"] = result
         await self.repository.update_execution(self.execution_id, payload)
 
     async def fail(self, error: str, details: dict[str, Any] | None = None):
         """Sets status to 'failed' and saves error message."""
-        payload: dict[str, Any] = {"status": STATUS_FAILED, "error": error, "end_time": datetime.now().isoformat()}
+        payload: dict[str, Any] = {"status": STATUS_FAILED, "error": error, "end_time": datetime.now()}
         if details:
             payload["result"] = details  # Halt details often go to result
         await self.repository.update_execution(self.execution_id, payload)
