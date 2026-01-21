@@ -7,7 +7,7 @@ echo.
 
 echo [1/3] Starting Infrastructure (Redis)...
 
-set "DOCKER_EXE=C:\Program Files\Docker\Docker\Docker Desktop.exe"
+call scripts\get_docker_path.bat
 
 :: Check if Docker is running
 docker info >nul 2>&1

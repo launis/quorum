@@ -134,7 +134,7 @@ class PipelineRunner:
             - **Logging**: Logs step transitions and progress.
             - **State Mutation**: `current_state` is updated by each step's execution.
         """
-        print(f"DEBUG: PipelineRunner.execute_loop START. Steps: {len(pipeline_steps)}", flush=True)
+        logger.debug(f"[PipelineRunner] START. Steps: {len(pipeline_steps)}")
         total_steps = total_steps_count or len(pipeline_steps)
         current_state = state
 
@@ -202,9 +202,9 @@ class PipelineRunner:
 
         # 1. Pre-Hooks
         config = step_doc.get("execution_config") or {}
-        print(f"DEBUG: Step {agent_name} Config Hooks: {config.get('pre_hooks')}", flush=True)
+        logger.debug(f"[PipelineRunner] Step {agent_name} Config Hooks: {config.get('pre_hooks')}")
         for hook in config.get("pre_hooks") or []:
-            print(f"DEBUG: Executing Pre-Hook {hook}", flush=True)
+            logger.debug(f"[PipelineRunner] Executing Pre-Hook {hook}")
             current_state = await self._execute_hook(hook, agent, current_state)
 
         # 2. Dynamic Model Selection
@@ -229,7 +229,7 @@ class PipelineRunner:
                 "step_id": step_id,
             }
             if exec_kwargs["output_key"]:
-                print(f"DEBUG: EXEC_STEP {step_id} Output Key -> {exec_kwargs['output_key']}", flush=True)
+                logger.debug(f"[PipelineRunner] EXEC_STEP {step_id} Output Key -> {exec_kwargs['output_key']}")
 
             if model_config:
                 if "max_tokens" in model_config:

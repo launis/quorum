@@ -11,7 +11,8 @@ echo [1/2] Checking Infrastructure...
 docker info >nul 2>&1
 IF %ERRORLEVEL% NEQ 0 (
     echo Docker is not running. Starting Docker Desktop...
-    start "" "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+    call scripts\get_docker_path.bat
+    start "" "%DOCKER_EXE%"
     echo Waiting for Docker to initialize...
     :wait_docker
     timeout /t 5 /nobreak >nul

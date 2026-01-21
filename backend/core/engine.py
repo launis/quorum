@@ -33,7 +33,23 @@ class GraphEngine:
         """
         from backend.services.chat_log_parser import ChatLogParser
 
+        # Hydration / Initialization
         execution_state = initial_input.copy()
+
+        if execution_id and repository:
+            try:
+                # Attempt to hydrate from persistence
+                record = await repository.get_execution(execution_id)
+                if record and record.get("results"):
+                    persisted_state = record["results"]
+                    # "Merge initial_input into this restored state... give precedence to the persisted state."
+                    # Strategy: Start with initial (default), then update with persisted (overwrite matching keys).
+                    if persisted_state:
+                        logger.info(f"[GraphEngine] Resuming execution {execution_id} from persisted state.")
+                        execution_state.update(persisted_state)
+            except Exception as e:
+                # Non-fatal warning, start fresh if hydration fails
+                logger.warning(f"[GraphEngine] Failed to hydrate state for {execution_id}: {e}")
 
         # Jan 2026 Mandate: Centralized Chat Parsing / Sanitization
         # Enforce "User:" prefix on all chat inputs regardless of entry point (API, CLI, Test)
@@ -53,7 +69,16 @@ class GraphEngine:
         
         logger.info(f"Starting workflow '{definition.id}' with {len(definition.steps)} steps.")
 
+        # Ensure step_results exists for idempotency checks
+        if "step_results" not in execution_state:
+            execution_state["step_results"] = {}
+
         for step in definition.steps:
+            # Idempotency Check (Jan 2026)
+            if "step_results" in execution_state and step.id in execution_state["step_results"]:
+                logger.info(f"[GraphEngine] Skipping step '{step.id}' - result already exists in state.")
+                continue
+
             try:
                 # 1. Resolve Inputs
                 task_inputs = self._resolve_inputs(step.inputs, execution_state)
