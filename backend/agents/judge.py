@@ -134,11 +134,12 @@ class JudgeAgent(BaseAgent):
 
         try:
             # Re-fetch component to "hoist" the truth
+            # Re-fetch component to "hoist" the truth
             comp = await repo.get_component_by_id(matrix_id)
-            if not comp or not comp.content:
+            if not comp or not comp.get("content"):
                  raise ValueError(f"Matrix component '{matrix_id}' not found or empty.")
             
-            scale = comp.content.get("scale")
+            scale = comp.get("content", {}).get("scale")
             if not scale or "min" not in scale or "max" not in scale:
                  raise ValueError(f"Matrix '{matrix_id}' has no defined scale in DB.")
 

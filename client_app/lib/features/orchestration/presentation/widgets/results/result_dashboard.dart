@@ -10,6 +10,7 @@ import 'package:client_app/features/orchestration/presentation/widgets/results/s
 import 'package:client_app/features/orchestration/domain/models/xai_report.dart'; // Provides ScoreCardItem
 
 import 'package:client_app/features/orchestration/presentation/widgets/output_renderer.dart';
+import 'package:client_app/features/orchestration/presentation/widgets/sdui/specialist_section.dart';
 import 'package:client_app/features/orchestration/presentation/widgets/results/audit_trail_viewer.dart';
 import 'package:client_app/app_config.dart';
 
@@ -223,6 +224,20 @@ class _ResultDashboardState extends State<ResultDashboard> {
                     subtitle: Text(e['content'] ?? '', maxLines: 2, overflow: TextOverflow.ellipsis),
                 )).toList(),
              ),
+        );
+
+      // --- Specialist Sections (Backbone) ---
+      case 'LOGIC_ANALYSIS':
+      case 'STRESS_TEST':
+      case 'CAUSAL_ANALYSIS':
+      case 'PERFORMATIVITY_CHECK':
+      case 'FACT_CHECK':
+      case 'PROFILER_ANALYSIS':
+      case 'ARCHIVIST_CHECK':
+        return SpecialistSection(
+          title: section.title,
+          type: section.type, 
+          data: section.data,
         );
 
       default:

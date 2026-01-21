@@ -13,6 +13,15 @@ class SectionType(str, Enum):
     DATA_TABLE = "DATA_TABLE"         # For lists of rows (e.g. Hypotheses)
     ACCORDION = "ACCORDION"           # For nested details
 
+    # Specialist Agent Sections (Courtroom 3.0 Backbone)
+    LOGIC_ANALYSIS = "LOGIC_ANALYSIS"             # Toulmin & Cognitive Level
+    STRESS_TEST = "STRESS_TEST"                   # Walton Falsification
+    CAUSAL_ANALYSIS = "CAUSAL_ANALYSIS"           # Counterfactuals
+    PERFORMATIVITY_CHECK = "PERFORMATIVITY_CHECK" # Illusion of Competence
+    FACT_CHECK = "FACT_CHECK"                     # Hallucination & Ethics
+    PROFILER_ANALYSIS = "PROFILER_ANALYSIS"       # Biases & Psych Profile
+    ARCHIVIST_CHECK = "ARCHIVIST_CHECK"           # Compliance & Precedents
+
 class UiSection(BaseModel):
     """
     Abstract UI Section.

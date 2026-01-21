@@ -74,12 +74,65 @@ class ReportTransformer:
         if analyst_table:
             sections.append(analyst_table)
 
-        profiler_sections = self._extract_profiler_section(steps)
-        sections.extend(profiler_sections)
+        profiler_section = self._extract_profiler_section(steps)
+        if profiler_section:
+            sections.append(profiler_section)
 
-        logician_table = self._extract_logician_section(steps)
-        if logician_table:
-            sections.append(logician_table)
+        # --- SPECIALIST BACKBONE (Courtroom 3.0) ---
+        # Logic to support BOTH Sequential (Individual Steps) and Fused (Panel Step)
+        # We prefer individual steps if present, otherwise look into Panel.
+        
+        panel = steps.get("step_panel", {})
+
+        # 1. Logic / Logician
+        logician_data = steps.get("step_logician") or panel.get("logiikka_auditointi")
+        if logician_data:
+            sections.append(UiSection(
+                id="logic-analysis",
+                type=SectionType.LOGIC_ANALYSIS,
+                title="Logiikka-analyysi",
+                data=logician_data if isinstance(logician_data, dict) else logician_data.dict()
+            ))
+
+        # 2. Falsification / Falsifier
+        falsifier_data = steps.get("step_falsifier") or panel.get("falsifiointi_auditointi")
+        if falsifier_data:
+            sections.append(UiSection(
+                id="stress-test",
+                type=SectionType.STRESS_TEST,
+                title="Falsifiointi & Stressitesti",
+                data=falsifier_data if isinstance(falsifier_data, dict) else falsifier_data.dict()
+            ))
+
+        # 3. Causal / Causal Analyst
+        causal_data = steps.get("step_causal") or panel.get("kausaalinen_auditointi")
+        if causal_data:
+            sections.append(UiSection(
+                id="causal-analysis",
+                type=SectionType.CAUSAL_ANALYSIS,
+                title="Kausaalinen Auditointi",
+                data=causal_data if isinstance(causal_data, dict) else causal_data.dict()
+            ))
+
+        # 4. Performativity / Detector
+        detector_data = steps.get("step_detector") or panel.get("performatiivisuus_auditointi")
+        if detector_data:
+            sections.append(UiSection(
+                id="performativity-check",
+                type=SectionType.PERFORMATIVITY_CHECK,
+                title="Performatiivisuustarkistus",
+                data=detector_data if isinstance(detector_data, dict) else detector_data.dict()
+            ))
+
+        # 5. Facts & Ethics / Overseer
+        overseer_data = steps.get("step_overseer") or panel.get("etiikka_ja_fakta")
+        if overseer_data:
+             sections.append(UiSection(
+                id="fact-check",
+                type=SectionType.FACT_CHECK,
+                title="Fakta & Etiikka",
+                data=overseer_data if isinstance(overseer_data, dict) else overseer_data.dict()
+            ))
 
         interaction_grid = self._extract_interaction_section(steps)
         if interaction_grid:
@@ -88,6 +141,10 @@ class ReportTransformer:
         coach_section = self._extract_coach_section(steps)
         if coach_section:
             sections.append(coach_section)
+
+        archivist_section = self._extract_archivist_section(steps)
+        if archivist_section:
+            sections.append(archivist_section)
 
         # --- C. Timeline ---
         timeline_events = self._build_timeline(steps)
@@ -383,71 +440,20 @@ class ReportTransformer:
             }
         )
 
-    def _extract_profiler_section(self, steps: dict) -> list[UiSection]:
+    def _extract_profiler_section(self, steps: dict) -> Optional[UiSection]:
         step = steps.get("step_profiler")
         if not step or not isinstance(step, dict):
-            return []
+            return None
         
-        sections = []
-        # Metrics Grid
-        metrics = step.get("teksti_metriikka", {})
-        if metrics:
-            sections.append(UiSection(
-                id="profiler-metrics",
-                type=SectionType.KEY_VALUE_GRID,
-                title="Tekstimetriikka",
-                data={
-                    "items": [
-                        {"label": "Sanat", "value": metrics.get("word_count", 0)},
-                        {"label": "Lauseet", "value": metrics.get("sentence_count", 0)},
-                        {"label": "Avg Pituus", "value": round(metrics.get("avg_sentence_length", 0), 1)}
-                    ]
-                }
-            ))
-
-        # Intent & Tone Markdown
-        intent = step.get("intentio_analyysi", "")
-        tone = step.get("tunnetila_ja_savy", "")
-        if intent or tone:
-            sections.append(UiSection(
-                id="profiler-analysis",
-                type=SectionType.MARKDOWN_BLOCK,
-                title="Psykologinen Profiili",
-                data={"content": f"**Intentio:** {intent}\n\n**Sävy:** {tone}"}
-            ))
-            
-        return sections
-
-    def _extract_logician_section(self, steps: dict) -> Optional[UiSection]:
-        step = steps.get("step_logician")
-        if not step or not isinstance(step, dict):
-            return None
-            
-        toulmin = step.get("toulmin_analyysi", [])
-        if not toulmin:
-            return None
-            
-        rows = []
-        for t in toulmin:
-            t_data = t if isinstance(t, dict) else t.dict()
-            rows.append({
-                "claim": t_data.get("claim"),
-                "warrant": t_data.get("warrant"),
-                "strength": "Vahva" # Placeholder, implies existence
-            })
-            
+        # Use full data schema extraction for the Backbone
         return UiSection(
-            id="logician-table",
-            type=SectionType.DATA_TABLE,
-            title="Logiikka (Toulmin)",
-            data={
-                "columns": [
-                    {"key": "claim", "label": "Väite"},
-                    {"key": "warrant", "label": "Perustelu (Warrant)"}
-                ],
-                "rows": rows
-            }
+            id="profiler-analysis",
+            type=SectionType.PROFILER_ANALYSIS,
+            title="Profiloijan Analyysi",
+            data=step # Pass full dict (contains metrics, biases, intent, etc.)
         )
+
+
 
     def _extract_interaction_section(self, steps: dict) -> Optional[UiSection]:
         step = steps.get("step_interaction")
@@ -484,6 +490,18 @@ class ReportTransformer:
             type=SectionType.MARKDOWN_BLOCK,
             title="Valmentajan Palaute",
             data={"content": f"### Huomiot\n{feedback}"}
+        )
+
+    def _extract_archivist_section(self, steps: dict) -> Optional[UiSection]:
+        step = steps.get("step_archivist")
+        if not step or not isinstance(step, dict):
+            return None
+            
+        return UiSection(
+            id="archivist-check",
+            type=SectionType.ARCHIVIST_CHECK,
+            title="Arkistonhoitajan Tarkistus",
+            data=step
         )
 
     def _extract_usage_section(self, raw_data: dict) -> Optional[UiSection]:

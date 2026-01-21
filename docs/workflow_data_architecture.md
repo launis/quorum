@@ -1,13 +1,16 @@
-# Workflow Data Architecture: Courtroom 3.0 (Fused Dual)
+# Workflow Data Architecture: Courtroom Audit Chains
 
-**Workflow ID:** `fused_audit_chain_dual`  
-**Description:** This document details the data lineage, input/output contracts, and information flow within the system's primary audit chain. It serves as the architectural source of truth for how agents communicate.
+**Workflows Covered:**
+1.  **Courtroom 2.0 (Sequential):** `sequential_audit_chain` (ID: 1)
+2.  **Courtroom 3.0 (Fused):** `fused_audit_chain_dual` (ID: 6) / `fused_audit_chain` (ID: 2)
+
+**Description:** This document details the data lineage and information flow. It illustrates how the system branches between a "Sequential" execution of specialist critics and a "Fused" parallel execution via the Panel Agent.
 
 ---
 
 ## 1. High-Level Data Flow (Mermaid)
 
-The following diagram illustrates how data transforms from raw user input into a finalized XAI report.
+The workflow splits after the Profiling stage depending on the configuration.
 
 ```mermaid
 graph TD
@@ -18,8 +21,21 @@ graph TD
     Interaction[Step 3: Interaction Agent]
     Profiler[Step 4: Profiler Agent]
     
-    subgraph "Parallel Critics (Panel)"
-        Panel[Step 5: Panel Agent]
+    %% Branching
+    subgraph "Alternative Paths"
+        direction TB
+        
+        subgraph "Path A: Sequential Critics (Courtroom 2.0)"
+            Logician[Step 5a: Logician]
+            Falsifier[Step 5b: Falsifier]
+            Causal[Step 5c: Causal Analyst]
+            Detector[Step 5d: Performativity Detector]
+            Overseer[Step 5e: Factual Overseer]
+        end
+
+        subgraph "Path B: Fused Panel (Courtroom 3.0)"
+            Panel[Step 5: Panel Agent]
+        end
     end
     
     Archivist[Step 6: Archivist Agent]
@@ -29,33 +45,43 @@ graph TD
     Context[Step 10: RAG Context]
     XAI[Step 11: XAI Reporter]
     
-    %% Flows
+    %% Flows - Common Start
     UserInput -->|Raw Strings| Guard
-    Guard -->|SafeData (Sanitized)| Analyst
+    Guard -->|SafeData| Analyst
     Guard -->|SafeData| Interaction
     Guard -->|SafeData| Profiler
+    
+    %% Path A Flows
+    Analyst -->|TodistusKartta| Logician
+    Logician -->|ArgumentaatioAnalyysi| Falsifier
+    Falsifier -->|LogiikkaAuditointi| Causal
+    Causal -->|KausaalinenAuditointi| Detector
+    Detector -->|PerformatiivisuusAuditointi| Overseer
+    Overseer -->|EtiikkaJaFakta| Archivist
+    
+    %% Path B Flows
+    Analyst -->|TodistusKartta| Panel
+    Panel -->|PanelAudit (All-in-One)| Archivist
+    
+    %% Rejoining
     Guard -->|SafeData| Archivist
-    
-    Analyst -->|TodistusKartta (Grounding)| Panel
-    Analyst -->|TodistusKartta| JudgeStandard
-    Analyst -->|TodistusKartta| JudgeCognitive
-    
-    Interaction -->|DriverMetrics| JudgeStandard
-    Profiler -->|CognitiveProfile| JudgeStandard
-    
-    Panel -->|PanelAudit (Consolidated Logic/Falsification/Facts)| JudgeStandard
-    Panel -->|PanelAudit| JudgeCognitive
-    
     Archivist -->|Precedents| JudgeStandard
     
-    JudgeStandard -->|Verdict (Standard)| Coach
-    JudgeStandard -->|Verdict (Standard)| XAI
-    JudgeCognitive -->|Verdict (Cognitive)| XAI
+    %% Judge Inputs (Depending on Path)
+    AnalysisData{Aggregation}
+    Logician --> AnalysisData
+    Falsifier --> AnalysisData
+    Causal --> AnalysisData
+    Detector --> AnalysisData
+    Overseer --> AnalysisData
+    Panel --> AnalysisData
     
+    AnalysisData --> JudgeStandard
+    AnalysisData --> JudgeCognitive
+    
+    JudgeStandard -->|Verdict| Coach
     Coach -->|CoachingPlan| XAI
-    Context -->|RelatedCases| XAI
-    
-    XAI -->|Final JSON| Dashboard[Frontend UI]
+    XAI -->|Final JSON| Dashboard
 ```
 
 ---
@@ -67,8 +93,7 @@ graph TD
 - **Input:** Raw strings (`history_text`, `product_text`, `reflection_text`).
 - **Process:** Regex scanning, PII detection logic.
 - **Output:** `TaintedData` schema.
-    - `security_check`: Risk level assessment.
-    - `safe_data`: **CRITICAL.** This object contains the sanitized text versions used by ALL subsequent agents. If this is missing/empty, the chain should halt.
+    - `safe_data`: **CRITICAL.** Sanitized text used by ALL subsequent agents.
 
 ### Step 2: Analyst (`step_analyst`)
 **Objective:** Establish the "Ground Truth".
@@ -76,54 +101,108 @@ graph TD
 - **Process:** Extraction of claims and mapping them to evidence.
 - **Output:** `TodistusKartta` schema.
     - `hypoteesit`: List of claims made by the user.
-    - `rag_todisteet`: Direct quotes from the input supporting/refuting claims. **This is the binding contract for the Judge.** If a claim isn't here, it doesn't exist.
+    - `rag_todisteet`: Direct quotes from the input supporting/refuting claims.
 
-### Step 5: Panel (`step_panel`) - *Fused Execution*
-**Objective:** Parallel execution of specialized critics to form a holistic view.
-- **Input:** `TodistusKartta` (proven claims), `safe_data`.
-- **Process:** Runs `Logician`, `Falsifier`, `Causal`, `Performativity`, and `Overseer` prompts in parallel (or sequential internal blocks).
-- **Output:** `PanelAudit` schema (Consolidated).
-    - `logiikka_auditointi`: Toulmin analysis of arguments.
-    - `falsifiointi_auditointi`: Results of stress tests on claims.
-    - `etiikka_ja_fakta`: Hallucination checks (comparison against Google Search results if enabled).
+### Step 3: Interaction (`step_interaction`)
+**Objective:** Analyze user agency and control.
+- **Input:** `safe_data`.
+- **Output:** `InteractionAnalysis`.
+    - `driver_classification`: "Driver" vs "Passenger".
+    - `input_control_ratio`: Quantitative metric of user control.
 
-### Step 7 & 8: Judge (`step_judge` / `step_judge_cognitive`)
-**Objective:** Authoritative scoring based on the Matrix.
-- **Input:**
-    - `TodistusKartta` (The Truth)
-    - `PanelAudit` ( The Critiques)
-    - `InteractionAnalysis` (User agency)
-- **Process:**
-    1.  Resolves conflicts (e.g., if Falsifier says "False" but Analyst says "True").
-    2.  Applies the **Matrix Scale** (fetched from DB).
-    3.  Calculates the final score.
-- **Output:** `TuomioJaPisteet` schema.
-    - `total_score`: Final numeric grade.
-    - `dimensions`: Breakdown per matrix dimension (e.g., "Agency", "Synthesis").
-    - `matrix_id`: Traceability to the exact criteria used.
-
-### Step 9: Coach (`step_coach`)
-**Objective:** Constructive remediation.
-- **Input:** `TuomioJaPisteet` (Verdict).
-- **Process:** Maps score gaps to actionable advice.
-- **Output:** `CoachingPlan` schema.
-    - `toimenpiteet`: Concrete list of "Do this next".
-    - `motivaatio`: Psychological/Pedagogical reasoning.
-
-### Step 11: XAI Reporter (`step_xai`)
-**Objective:** Final user-facing artifact.
-- **Input:** All previous outputs.
-- **Process:** Synthesizes technical logs into a readable narrative.
-- **Output:** `XAIReport` schema.
-    - `executive_summary`: High-level "what happened".
-    - `score_cards`: Visualizable data for the UI Radar Charts.
-    - `xai_report_formatted`: Full Markdown report.
+### Step 4: Profiler (`step_profiler`)
+**Objective:** Behavioral and cognitive bias analysis.
+- **Input:** `safe_data`.
+- **Output:** `ProfilerAnalysis`.
+    - `tunnistetut_vinoumat`: Cognitive biases (e.g., Confirmation Bias).
+    - `teksti_metriikka`: Objective stats (word count, etc.).
 
 ---
 
-## 3. Strict Enforcements & Invariants
+### Alternative Path A: Sequential Critics (Courtroom 2.0)
+*In this path, agents run one after another. Each feeds into the global state, eventually aggregated for the Judge.*
 
-1.  **Truth Propagation:** The `Judge` acts as the final arbiter. It MUST NOT hallucinate scores. It acts strictly on the evidence provided in `TodistusKartta` and `PanelAudit`.
-2.  **Scale Fidelity:** The `Judge` retrieves its scale (`min`/`max`) from the database at runtime. Hardcoded scales are strictly forbidden.
-3.  **Sanitization:** No agent other than `Guard` accesses the raw, potentially PII-laden input. All others operate on `safe_data`.
-4.  **Schema Compliance:** All outputs effectively guarantee adherence to the Pydantic models defined in `backend/models/domain.py`. Failure to validate results in a step failure.
+#### Step 5a: Logician (`step_logician`)
+**Objective:** Structural audit of argumentation.
+- **Input:** `TodistusKartta`, `safe_data`.
+- **Process:** Toulmin Model application.
+- **Output:** `ArgumentaatioAnalyysi`.
+    - `toulmin_analyysi`: Breakdown into Claim, Data, Warrant.
+    - `kognitiivinen_taso`: Bloom's Taxonomy level.
+
+#### Step 5b: Falsifier (`step_falsifier`)
+**Objective:** Stress-testing the logic.
+- **Input:** `TodistusKartta`, `safe_data`.
+- **Process:** Checks iteration loops and critical handling errors.
+- **Output:** `LogiikkaAuditointi`.
+    - `walton_stressitesti_loydokset`: Results of critical questions.
+    - `paattelyketjun_uskollisuus_auditointi`: Check for post-hoc rationalization.
+
+#### Step 5c: Causal Analyst (`step_causal`)
+**Objective:** Verifying cause-and-effect in learning.
+- **Input:** `TodistusKartta`, `safe_data`.
+- **Process:** Counterfactual analysis ("Would this result exist without the user?").
+- **Output:** `KausaalinenAuditointi`.
+    - `kontrafaktuaalinen_testi`: Simulation results.
+    - `abduktiivinen_paatelma`: "Genuine Insight" vs "Lucky Guess".
+
+#### Step 5d: Performativity Detector (`step_detector`)
+**Objective:** Detecting "Illusion of Competence".
+- **Input:** `TodistusKartta`, `safe_data`.
+- **Process:** Pre-mortem analysis and heuristic checks for "Role-Playing".
+- **Output:** `PerformatiivisuusAuditointi`.
+    - `performatiivisuus_heuristiikat`: Flags for "Theatricality".
+    - `yleisarvio_aitoudesta`: "Organic" vs "Performative".
+
+#### Step 5e: Factual Overseer (`step_overseer`)
+**Objective:** Hallucination and Fact Checking.
+- **Input:** `TodistusKartta`, `safe_data`.
+- **Process:** Uses **Google Search Tool** (Hook) to verify external claims.
+- **Output:** `EtiikkaJaFakta`.
+    - `faktantarkistus_rfi`: Verification results ("Confirmed"/"Debunked") against search results.
+    - `eettiset_havainnot`: Plagiarism or safety issues.
+
+---
+
+### Alternative Path B: Fused Panel (Courtroom 3.0)
+*In this path, a single 'Panel Agent' runs the logic of all 5 critics above in parallel (or integrated prompts).*
+
+#### Step 5: Panel (`step_panel`)
+**Objective:** Parallel execution of specialized critics.
+- **Input:** `TodistusKartta`, `safe_data`.
+- **Use:** Used in "Fused" workflows to reduce latency.
+- **Output:** `PanelAudit` (Consolidated Schema).
+    - `logiikka_auditointi`: (See 5a)
+    - `falsifiointi_auditointi`: (See 5b)
+    - `kausaalinen_auditointi`: (See 5c)
+    - `performatiivisuus_auditointi`: (See 5d)
+    - `etiikka_ja_fakta`: (See 5e)
+
+---
+
+### Step 6: Archivist (`step_archivist`)
+**Objective:** Best practices consistency.
+- **Input:** `safe_data`.
+- **Output:** `ArchivistOutput`.
+    - `compliance_score`: Alignment with known standards.
+
+### Step 7 & 8: Judge (`step_judge` / `step_judge_cognitive`)
+**Objective:** Authoritative scoring based on the Matrix.
+- **Input:** Aggregated results from ALL previous steps (Logic, Falsification, Profiling, etc.).
+- **Process:**
+    1.  **Truth Check:** Reads `TodistusKartta`.
+    2.  **Critique Integration:** Reads either `PanelAudit` OR individual critic outputs.
+    3.  **Scale Application:** Fetches DB Scale (`min`/`max`).
+- **Output:** `TuomioJaPisteet`.
+    - `total_score`: Final numeric grade.
+    - `dimensions`: Breakdown per matrix dimension.
+
+### Step 9: Coach (`step_coach`)
+**Objective:** Remediation.
+- **Input:** `TuomioJaPisteet`.
+- **Output:** `CoachingPlan`.
+
+### Step 11: XAI Reporter (`step_xai`)
+**Objective:** Final Report.
+- **Input:** All previous outputs.
+- **Output:** `XAIReport` (Dashboard Data).
