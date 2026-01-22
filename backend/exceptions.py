@@ -119,6 +119,9 @@ class ErrorCodes(str, Enum):
     AUTH_TOKEN_EXPIRED = "AUTH_TOKEN_EXPIRED"
     PERMISSION_DENIED = "PERMISSION_DENIED"
 
+    # LLM Infra
+    MODEL_OUTPUT_LIMIT_EXCEEDED = "MODEL_OUTPUT_LIMIT_EXCEEDED"
+
 
 class AppException(Exception):
     """Base class for application exceptions (RFC 7807 compatible).

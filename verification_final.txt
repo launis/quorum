@@ -1,0 +1,6 @@
+Checking c:/src/quorum/backend/seed/seed_data.json
+system_config Type: <class 'dict'>
+  ID: model_registry, Type: model_registry
+  ID: knowledge_base, Type: knowledge_base
+SUCCESS: Knowledge Base Found in System Config.
+SUCCESS: Model Registry Found in System Config.

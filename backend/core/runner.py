@@ -232,10 +232,49 @@ class PipelineRunner:
                 logger.debug(f"[PipelineRunner] EXEC_STEP {step_id} Output Key -> {exec_kwargs['output_key']}")
 
             if model_config:
-                if "max_tokens" in model_config:
-                    exec_kwargs["max_tokens"] = model_config["max_tokens"]
-                if "temperature" in model_config:
-                    exec_kwargs["temperature"] = model_config["temperature"]
+                # Dynamic Config Injection (Jan 2026):
+                # Pass ALL config keys (temperature, max_tokens, top_p, etc.) to the agent/provider.
+                # Exclude internal registry metadata.
+                internal_keys = {"model_name", "provider", "provider_name"}
+                for k, v in model_config.items():
+                    if k not in internal_keys:
+                        # Only set if NOT already present (Step/Seed override takes precedence technically,
+                        # but we want to know if it drifts).
+                        # Update: Logic above sets exec_kwargs from 'execution_config'. 
+                        # This loop OVERWRITES it with Registry defaults if I use [k] = v.
+                        # Wait, the previous logic was: exec_kwargs[k] = v. 
+                        # This means Registry took precedence? 
+                        # default_api logic: "exec_kwargs = { ..., 'execution_config': config }"
+                        # config is a dict. It isn't unpacked yet.
+                        # So Registry DOES take precedence for explicit args like temperature.
+                        exec_kwargs[k] = v
+            
+            # --- INTEGRITY CHECK: DETECT CONFIGURATION DRIFT ---
+            # User Request: Compare LiteLLM values (exec_kwargs) to Database defaults (model_config)
+            if model_config:
+                drift_keys = ["temperature", "max_tokens", "top_p"]
+                drift_warnings = []
+                for key in drift_keys:
+                    registry_val = model_config.get(key)
+                    runtime_val = exec_kwargs.get(key)
+                    
+                    # Fuzzy comparison for floats
+                    match = True
+                    if isinstance(registry_val, float) and isinstance(runtime_val, float):
+                        match = abs(registry_val - runtime_val) < 0.001
+                    else:
+                        match = registry_val == runtime_val
+
+                    if registry_val is not None and not match:
+                        drift_warnings.append(f"{key}: {registry_val} (DB) != {runtime_val} (Runtime)")
+                
+                if drift_warnings:
+                    logger.warning(
+                        f"[PipelineRunner] ⚠️ CONFIGURATION DRIFT DETECTED for step '{step_id}': "
+                        f"Runtime values differ from Model Registry defaults! Drift: {drift_warnings}. "
+                        "Check for hardcoded overrides in Step Configuration."
+                    )
+            # ---------------------------------------------------
 
             current_state = await agent.execute(current_state, **exec_kwargs)
 
@@ -315,6 +354,8 @@ class PipelineRunner:
                 f"Available hooks: {list(HOOK_MAPPING.keys())}"
             )
             return state
+
+        logger.info(f"[PipelineRunner] STARTING Hook '{hook_name}'...")
 
         module_path, func_name = HOOK_MAPPING[hook_name]
 

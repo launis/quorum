@@ -68,16 +68,23 @@ class AgentRegistry:
         """
         # 1. Fetch Dynamic Strategies from Repository
         reg_entry = await self.repository.get_model_registry()
+        
+        logger.info(f"[AgentRegistry] Resolving config for identifier: '{model_identifier}'")
 
         dynamic_strategies_map = {}
         if reg_entry and "models" in reg_entry:
             dynamic_strategies_map = reg_entry["models"]
+            logger.debug(f"[AgentRegistry] Loaded Registry with providers: {list(dynamic_strategies_map.keys())}")
+        else:
+            logger.error("[AgentRegistry] Registry is EMPTY or missing 'models' key!")
 
         # 2. Search for Strategy across all Providers
         # This makes the code vendor-agnostic.
         for provider_key, strategies in dynamic_strategies_map.items():
             if model_identifier in strategies:
+                logger.info(f"[AgentRegistry] Found identifier '{model_identifier}' in provider '{provider_key}'")
                 strategy = strategies[model_identifier]
+                logger.debug(f"[AgentRegistry] Raw Strategy Data: {strategy}")
 
                 # Normalize result
                 config = {}
@@ -106,6 +113,9 @@ class AgentRegistry:
                         if k != "model_name":
                             merged_config[k] = v
                     config = merged_config
+                    logger.debug(f"[AgentRegistry] Merged Config after Chain: {config}")
+                else:
+                    logger.debug(f"[AgentRegistry] Direct resolution (No Chain). Final Config: {config}")
 
                 return config
 

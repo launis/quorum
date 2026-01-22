@@ -81,6 +81,7 @@ class TaskRegistry:
             model_config = {"extra": "allow"}
 
         async def agent_wrapper(input_data: BaseModel, execution_config: dict[str, Any] | None = None) -> BaseModel:
+            print(f"DEBUG: agent_wrapper CALLED. Config: {execution_config}")
             # 1. Instantiate
             agent = agent_cls()
 
@@ -94,11 +95,10 @@ class TaskRegistry:
                 repo = await get_async_repository()
                 registry = AgentRegistry(repo)
 
-                # Resolve model name using the Agent Class Name as the strategy key.
-                # E.g. "InteractionAnalystAgent" -> "gemini-2.5-pro"
-                # If this fails, the agent will fail to execute.
-                # We do NOT use a fallback here (Zero-Fallback).
-                model_name = await registry.resolve_model_name(agent_cls.__name__)
+                # Resolve model config using the Agent Class Name as the strategy key.
+                # E.g. "InteractionAnalystAgent" -> {"model_name": "gemini-2.5-pro", "temperature": 0.0, ...}
+                model_config = await registry.resolve_model_config(agent_cls.__name__)
+                model_name = model_config.get("model_name")
 
                 # Check if agent has set_model
                 if hasattr(agent, "set_model"):
@@ -129,8 +129,7 @@ class TaskRegistry:
                     # We must replace the placeholders with actual content.
                     
                     # 1. Standardize Inputs
-                    vars_to_inject = {}
-                    if isinstance(input_data, BaseModel):
+                    if hasattr(input_data, "model_dump"):
                         vars_to_inject = input_data.model_dump()
                     elif isinstance(input_data, dict):
                         vars_to_inject = input_data
@@ -164,13 +163,31 @@ class TaskRegistry:
 
             # 4. Execute using New Signature
             # Input is Pydantic model (InputData), convert to dict
-            input_dict = input_data.model_dump()
+            input_dict = input_data.model_dump() if hasattr(input_data, "model_dump") else input_data
             
+            # Prepare kwargs from Registry Config first (Base Truth)
+            # Filter for known LLM parameters to avoid polluting kwargs with metadata
+            registry_kwargs = {}
+            for k, v in model_config.items():
+                if k in ["temperature", "max_tokens", "top_p", "top_k", "frequency_penalty", "presence_penalty"]:
+                    registry_kwargs[k] = v
+
+            logger.debug(f"[{agent_cls.__name__}] Registry Kwargs: {registry_kwargs} (from config: {model_config.keys()})")
+            
+            # Apply Execution Config/Step Config on top (Overrides)
+            exec_kwargs = registry_kwargs.copy()
+            if execution_config:
+                # Sanity: If execution_config has keys like 'temperature' that are None/Default, we might need to be careful?
+                # But strict mode says we cleaned them from steps.
+                exec_kwargs.update(execution_config)
+
+            logger.debug(f"[{agent_cls.__name__}] Final Exec Kwargs keys: {list(exec_kwargs.keys())}")
             result_dict = await agent.execute(
                 input_data=input_dict,
                 execution_context=execution_config,
                 system_instruction=system_instruction,
-                repository=repo
+                repository=repo,
+                **exec_kwargs
             )
 
             # 5. Extract/Validate Result

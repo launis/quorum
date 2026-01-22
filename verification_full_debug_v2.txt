@@ -1,0 +1,5 @@
+Checking c:/src/quorum/backend/seed/seed_data.json...
+Components Count: 75
+  Item[0] Type: <class 'dict'>
+  Item[0] content: {'content': '### 1. PERUUTTAMATTOMAT MÄÄRÄYKSET (IRREVOCABLE MANDATES)', 'description': 'Mandaattios
+System Config Items: 2

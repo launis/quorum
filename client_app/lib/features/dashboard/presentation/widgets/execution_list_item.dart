@@ -45,7 +45,7 @@ class ExecutionListItem extends StatelessWidget {
       ),
       subtitle: _buildSubtitle(context, l10n),
       trailing: Text(
-        dateFormat.format(execution.createdAt),
+        dateFormat.format(execution.createdAt.toLocal()),
         style: theme.textTheme.bodySmall?.copyWith(
           color: theme.colorScheme.onSurfaceVariant,
         ),

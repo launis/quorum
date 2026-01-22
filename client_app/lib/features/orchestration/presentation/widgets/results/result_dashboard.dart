@@ -70,6 +70,8 @@ class _ResultDashboardState extends State<ResultDashboard> {
       child: Column(
         children: [
           const TabBar(
+            labelColor: Colors.blue,
+            unselectedLabelColor: Colors.grey,
             tabs: [
               Tab(icon: Icon(Icons.dashboard_outlined), text: 'Raportti'),
               Tab(icon: Icon(Icons.data_object_outlined), text: 'Raaka Data'),
@@ -85,34 +87,15 @@ class _ResultDashboardState extends State<ResultDashboard> {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
                     } else if (snapshot.hasError) {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.error_outline, color: Colors.orange, size: 48),
-                            const SizedBox(height: 16),
-                            Text('Raportin lataus epäonnistui: ${snapshot.error}'),
-                            const SizedBox(height: 16),
-                             ElevatedButton(
-                              onPressed: () {
-                                setState(() {
-                                  _reportViewFuture = _fetchReportView();
-                                });
-                              },
-                              child: const Text('Yritä uudelleen'),
-                            )
-                          ],
-                        ),
-                      );
+                      return Center(child: Text("Virhe: ${snapshot.error}"));
                     } else if (!snapshot.hasData) {
                        return const Center(child: Text("Raporttia ei löytynyt."));
                     }
-
                     return _buildDynamicDashboard(context, snapshot.data!);
                   },
                 ),
                 
-                // Tab 2: Raw Audit Trail
+                // Tab 2: Raw JSON
                 _buildRawDataView(context, rawResult),
               ],
             ),
@@ -128,11 +111,8 @@ class _ResultDashboardState extends State<ResultDashboard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Header
           _buildHeader(context, view),
           const SizedBox(height: 24),
-
-          // Sections Loop
           ...view.sections.map((section) {
             return Padding(
               padding: const EdgeInsets.only(bottom: 24.0),
@@ -234,6 +214,7 @@ class _ResultDashboardState extends State<ResultDashboard> {
       case 'FACT_CHECK':
       case 'PROFILER_ANALYSIS':
       case 'ARCHIVIST_CHECK':
+      case 'DRIVER_PROFILE':
         return SpecialistSection(
           title: section.title,
           type: section.type, 
@@ -252,9 +233,16 @@ class _ResultDashboardState extends State<ResultDashboard> {
   }
 
   Widget _buildRawDataView(BuildContext context, Map<String, dynamic> data) {
+      // Use JsonEncoder to pretty print
+      const encoder = JsonEncoder.withIndent('  ');
+      final jsonString = encoder.convert(data);
+
       return SingleChildScrollView(
           padding: const EdgeInsets.all(16),
-          child: AuditTrailViewer(data: data),
+          child: SelectableText(
+            jsonString,
+            style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+          ),
       );
   }
 }

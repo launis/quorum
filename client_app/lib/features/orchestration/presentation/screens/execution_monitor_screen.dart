@@ -109,7 +109,7 @@ class _MonitorView extends StatelessWidget {
             const Divider(),
             _infoRow(
               l10n.created,
-              DateFormat('yyyy-MM-dd HH:mm:ss').format(execution.createdAt),
+              DateFormat('yyyy-MM-dd HH:mm:ss').format(execution.createdAt.toLocal()),
             ),
             const SizedBox(height: 24),
 
@@ -232,19 +232,27 @@ class _StepProgressList extends StatelessWidget {
     required this.status,
   });
 
-  static const _stepsFused = [
+
+
+  static const _stepsSequential = [
     'step_guard',
     'step_analyst',
     'step_interaction',
     'step_profiler',
-    // 'step_panel', // Skipped in Fused
-    // 'step_archivist', // Skipped/Fused
+    'step_logician',
+    'step_falsifier',
+    'step_causal',
+    'step_detector',
+    'step_overseer',
+    'step_archivist',
     'step_judge',
-    // 'step_coach', // Skipped/Fused
+    'step_judge_cognitive',
+    'step_coach',
+    'step_context',
     'step_xai',
   ];
 
-  static const _stepsSequential = [
+  static const _stepsFused = [
     'step_guard',
     'step_analyst',
     'step_interaction',
@@ -253,8 +261,17 @@ class _StepProgressList extends StatelessWidget {
     'step_archivist',
     'step_judge',
     'step_coach',
+    'step_context',
     'step_xai',
   ];
+
+  // Specific mappings for known workflows
+  static const Map<String, List<String>> _workflowSteps = {
+    'sequential_audit_chain_dual': _stepsSequential,
+    'fused_audit_chain_dual': _stepsFused,
+    'fused_audit_chain_cognitive': _stepsFused, // Uses same structure
+    'simple_audit': ['step_guard', 'step_analyst', 'step_judge', 'step_xai'],
+  };
 
   String _getStepLabel(BuildContext context, String stepKey) {
     final l10n = AppLocalizations.of(context)!;
@@ -268,6 +285,13 @@ class _StepProgressList extends StatelessWidget {
       'step_judge' => l10n.stepJudge,
       'step_coach' => l10n.stepCoach,
       'step_xai' => l10n.stepXai,
+      'step_logician' => l10n.stepLogician,
+      'step_falsifier' => l10n.stepFalsifier,
+      'step_causal' => l10n.stepCausal,
+      'step_detector' => l10n.stepDetector,
+      'step_overseer' => l10n.stepOverseer,
+      'step_judge_cognitive' => l10n.stepJudgeCognitive,
+      'step_context' => l10n.stepContext,
       'init' => l10n.stepInitializing,
       _ => stepKey,
     };
@@ -276,9 +300,16 @@ class _StepProgressList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Determine which list to use
-    final steps =
-        (workflowId == 'fused_audit_chain') ? _stepsFused : _stepsSequential;
-
+    List<String> steps;
+    if (workflowId != null && _workflowSteps.containsKey(workflowId)) {
+        steps = _workflowSteps[workflowId]!;
+    } else {
+        // Fallback heuristics
+        final lowerId = workflowId?.toLowerCase() ?? '';
+        final isFused = lowerId.contains('fused') || lowerId.contains('panel') || lowerId.contains('courtroom');
+        steps = isFused ? _stepsFused : _stepsSequential;
+    }
+    
     int currentIndex = -1;
     if (currentStep != null) {
       // 1. Try exact match
@@ -289,46 +320,47 @@ class _StepProgressList extends StatelessWidget {
         // Reverse lookup: check if currentStep matches any of the values in stepNames
         // or partial contains - now using backend keys
         final lowerStep = currentStep!.toLowerCase();
+        
+        // MAPPING FOR FUSED VIEW:
+        // If we are in Fused mode, map "integrated" steps to 'step_panel'
+        // (Only if step_panel is actually in the list!)
+        if (steps.contains('step_panel')) {
+           if (lowerStep.contains('logician') || // Logician is fused into Panel in Fused workflow
+               lowerStep.contains('falsifier') || 
+               lowerStep.contains('causal') ||
+               lowerStep.contains('detector')) {
+               currentIndex = steps.indexOf('step_panel');
+           }
+        }
 
-        for (int i = 0; i < steps.length; i++) {
-          final key = steps[i];
-          // Check normalized key
-          if (key == lowerStep || 'step_$lowerStep' == key) {
-            currentIndex = i;
-            break;
-          }
 
-          // Specific backend mappings (common ones)
-          if (lowerStep.contains('guard') && key == 'step_guard') {
-            currentIndex = i;
-          }
-          if (lowerStep.contains('analyst') && key == 'step_analyst') {
-            currentIndex = i;
-          }
-          if (lowerStep.contains('interaction') && key == 'step_interaction') {
-            currentIndex = i;
-          }
-          if (lowerStep.contains('profiler') && key == 'step_profiler') {
-            currentIndex = i;
-          }
-          if (lowerStep.contains('archivist') && key == 'step_archivist') {
-            currentIndex = i;
-          }
-          if (lowerStep.contains('panel') && key == 'step_panel') {
-            currentIndex = i;
-          }
-          if (lowerStep.contains('judge') && key == 'step_judge') {
-            currentIndex = i;
-          }
-          if (lowerStep.contains('coach') && key == 'step_coach') {
-            currentIndex = i;
-          }
-          if (lowerStep.contains('xai') &&
-              key == 'step_xai') {
-            currentIndex = i;
-          }
-
-          if (currentIndex != -1) break;
+        if (currentIndex == -1) {
+            for (int i = 0; i < steps.length; i++) {
+              final key = steps[i];
+              // Check normalized key
+              if (key == lowerStep || 'step_$lowerStep' == key) {
+                currentIndex = i;
+                break;
+              }
+    
+              // Specific backend mappings (common ones)
+              if (lowerStep.contains('guard') && key == 'step_guard') {
+                currentIndex = i;
+              }
+              // Skip Analyst/Interaction/Profiler checks here if they were already mapped above for Fused
+              
+              if (lowerStep.contains('panel') && key == 'step_panel') {
+                currentIndex = i;
+              }
+              if (lowerStep.contains('judge') && key == 'step_judge') {
+                currentIndex = i;
+              }
+              if (lowerStep.contains('xai') && key == 'step_xai') {
+                currentIndex = i;
+              }
+    
+              if (currentIndex != -1) break;
+            }
         }
       }
     }

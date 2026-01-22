@@ -465,14 +465,9 @@ class ReportTransformer:
         
         return UiSection(
             id="interaction-grid",
-            type=SectionType.KEY_VALUE_GRID,
-            title="Vuorovaikutus",
-            data={
-                "items": [
-                    {"label": "Rooli", "value": role, "highlight": role == "Kuski"},
-                    {"label": "Kontrollisuhde", "value": f"{ratio:.2f}" if ratio is not None else "N/A"}
-                ]
-            }
+            type=SectionType.DRIVER_PROFILE,
+            title="Vuorovaikutus & Roolitus",
+            data=step # Pass full step data (contains driver_classification, input_control_ratio, strategies)
         )
 
     def _extract_coach_section(self, steps: dict) -> Optional[UiSection]:

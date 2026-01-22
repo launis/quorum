@@ -1,8 +1,12 @@
-
+import 'package:client_app/features/orchestration/domain/models/report_view.dart';
+import 'package:client_app/features/orchestration/presentation/widgets/sdui/generic_table.dart';
+import 'package:client_app/features/orchestration/presentation/widgets/results/score_card_radar.dart';
+import 'package:client_app/features/orchestration/presentation/widgets/results/logic_matrix_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:convert';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 
 class SpecialistSection extends StatefulWidget {
   final String title;
@@ -129,53 +133,164 @@ class _SpecialistSectionState extends State<SpecialistSection> {
          return _buildPerformativityCheck(context);
       case 'ARCHIVIST_CHECK':
          return _buildArchivistCheck(context);
+
+      case 'DRIVER_PROFILE':
+         return _buildDriverProfile(context);
       default:
         // Fallback to generic map renderer if type is barely supported
         return _buildGenericMap(widget.data);
     }
   }
   
-  // --- 1. LOGIC ANALYSIS (Toulmin) ---
+  // --- 1. LOGIC ANALYSIS (Toulmin & Cognitive) ---
   Widget _buildLogicAnalysis(BuildContext context) {
-    final toulmin = widget.data['toulmin_analyysi'] as List<dynamic>? ?? [];
-    final cog = widget.data['kognitiivinen_taso'] as Map<String, dynamic>? ?? {};
-    
+    // Keys match LogicianAgent output schema (v2.0)
+    // "kognitiivinen_taso" is the canonical key. "kognitiivinen_analyysi" is legacy.
+    final cog = (widget.data['kognitiivinen_taso'] ?? widget.data['kognitiivinen_analyysi']) as Map<String, dynamic>? ?? {};
+    final toulmin = (widget.data['toulmin_analyysi'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (cog.isNotEmpty) ...[
-           _buildInfoCard(
-             "Kognitiivinen Taso (Bloom)", 
-             cog['bloom_taso'] ?? 'N/A', 
-             Icons.school,
-             subtitle: cog['strateginen_syvyys']
-           ),
+        if (widget.data['metodologinen_loki'] != null) ...[
+           _buildInfoCard(AppLocalizations.of(context)!.lblMethodologicalLog, widget.data['metodologinen_loki'], Icons.history_edu, helpKey: "metodologia"),
            const SizedBox(height: 16),
         ],
-        
-        const Text("Argumentaatio (Toulmin)", style: TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        ...toulmin.map((t) => Card(
-           margin: const EdgeInsets.only(bottom: 8),
-           color: Colors.indigo[50],
-           child: Padding(
-             padding: const EdgeInsets.all(12),
-             child: Column(
+
+        // Responsive Layout for Bloom & Toulmin
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final isWide = constraints.maxWidth > 800;
+            
+            // Enhanced Bloom Widget (Report Style)
+            final bloomWidget = cog.isNotEmpty ? Card(
+                 color: Colors.teal[50], // Distinct color for Cognitive
+                 child: Padding(
+                   padding: const EdgeInsets.all(16),
+                   child: Column(
+                     crossAxisAlignment: CrossAxisAlignment.start,
+                     children: [
+                       Row(children: [
+                         const Icon(Icons.psychology, color: Colors.teal),
+                         const SizedBox(width: 8),
+                         Expanded(child: Text("${AppLocalizations.of(context)!.lblCognitiveLevel}: ${cog['bloom_taso'] ?? 'N/A'}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.teal))),
+                         _buildHelpButton(context, "bloom"),
+                       ]),
+                       const SizedBox(height: 12),
+                       Text(AppLocalizations.of(context)!.lblStrategicDepth, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
+                       const SizedBox(height: 4),
+                       SelectableText(cog['strateginen_syvyys'] ?? "Ei analyysiä.", style: const TextStyle(fontSize: 14, height: 1.5)),
+                     ],
+                   ),
+                 )
+               ) : const SizedBox.shrink();
+
+            final toulminWidget = toulmin.isNotEmpty ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(AppLocalizations.of(context)!.lblArguments, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    _buildHelpButton(context, "toulmin"),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                ...toulmin.map((t) => Card(
+                   margin: const EdgeInsets.only(bottom: 8),
+                   color: Colors.indigo[50],
+                   child: Padding(
+                     padding: const EdgeInsets.all(12),
+                     child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                         children: [
+                           _buildLabelValue("Väite (Claim)", t['claim']),
+                           const SizedBox(height: 4),
+                           const Divider(),
+                           const SizedBox(height: 4),
+                           _buildLabelValue("Perustelu (Warrant)", t['warrant']),
+                           if (t['backing'] != null) ...[
+                              const SizedBox(height: 4),
+                               _buildLabelValue("Tuki (Backing)", t['backing']),
+                           ]
+                         ],
+                     ),
+                   ),
+                )).toList()
+              ],
+            ) : const SizedBox.shrink();
+
+            // New Visualization Widget
+            final matrixChart = LogicMatrixChart(
+               bloomLevel: cog['bloom_taso'] as String? ?? 'N/A',
+               toulminArguments: toulmin,
+            );
+
+            if (isWide) {
+              return Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                 children: [
-                   _buildLabelValue("Väite (Claim)", t['claim']),
-                   const SizedBox(height: 4),
-                   const Divider(),
-                   const SizedBox(height: 4),
-                   _buildLabelValue("Perustelu (Warrant)", t['warrant']),
-                   if (t['backing'] != null) ...[
-                      const SizedBox(height: 4),
-                       _buildLabelValue("Tuki (Backing)", t['backing']),
-                   ]
-                 ],
-             ),
-           ),
-        )).toList()
+                children: [
+                  // Left Column: Text Analysis
+                  Expanded(
+                    flex: 1,
+                    child: Column(
+                      children: [
+                         bloomWidget,
+                         if (cog.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            _buildValidationScoreCard(AppLocalizations.of(context)!.lblBloomScore, _calculateBloomScore(cog['bloom_taso'] ?? 'N/A'), 6.0),
+                         ],
+                         const SizedBox(height: 16),
+                         toulminWidget,
+                         if (toulmin.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            _buildValidationScoreCard(AppLocalizations.of(context)!.lblToulminScore, _calculateToulminScore(toulmin), 6.0),
+                         ],
+                         // WALTON SECTION
+                         if (widget.data['walton_skeema'] != null) ...[
+                           const SizedBox(height: 16),
+                           _buildWaltonSection(widget.data['walton_skeema']),
+                         ]
+                      ]
+                    )
+                  ),
+                  const SizedBox(width: 16),
+                  
+                  // Right Column: Matrix Visualization
+                  Expanded(
+                    flex: 1,
+                    child: Container(
+                       padding: const EdgeInsets.all(16),
+                       decoration: BoxDecoration(
+                         border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                         borderRadius: BorderRadius.circular(8)
+                       ),
+                       child: Column(
+                         crossAxisAlignment: CrossAxisAlignment.start,
+                         children: [
+                            Text(AppLocalizations.of(context)!.lblLogicMatrix ?? "Logiikkamatriisi", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                            Text(AppLocalizations.of(context)!.lblMatrixSubtitle ?? "Visuaalinen analyysi päättelyn laadusta.", style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                            const SizedBox(height: 16),
+                            matrixChart
+                         ]
+                       )
+                    )
+                  ),
+                ],
+              );
+            } else {
+              // Mobile / Narrow: Stacked
+              return Column(
+                children: [
+                  matrixChart,
+                  const SizedBox(height: 16),
+                  bloomWidget,
+                  const SizedBox(height: 16),
+                  toulminWidget,
+                ],
+              );
+            }
+          }
+        ),
       ],
     );
   }
@@ -196,15 +311,18 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                    Row(
                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                      children: [
-                       const Text("Päättelyketjun Uskollisuus", style: TextStyle(fontWeight: FontWeight.bold)),
+                       Row(children: [
+                          Text(AppLocalizations.of(context)!.lblFidelity, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          _buildHelpButton(context, "stress_test")
+                       ]),
                        _buildSignalMeter(fidelity['uskollisuus_score']),
                      ],
                    ),
                    const SizedBox(height: 8),
                    Text(
                      fidelity['onko_post_hoc_rationalisointia'] == true 
-                       ? "⚠️ Post-Hoc Rationalisointia havaittu!" 
-                       : "✅ Ei rationalisointia.",
+                       ? AppLocalizations.of(context)!.lblPostHocWarning 
+                       : AppLocalizations.of(context)!.lblNoRationalization,
                      style: TextStyle(
                        color: fidelity['onko_post_hoc_rationalisointia'] == true ? Colors.red[800] : Colors.green[800],
                        fontWeight: FontWeight.w600
@@ -239,24 +357,24 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     return Column(
       children: [
          if (abd != null)
-           _buildInfoCard("Abduktiivinen Päätelmä", abd, Icons.lightbulb_outline, color: Colors.teal[50]),
+           _buildInfoCard(AppLocalizations.of(context)!.lblAbductiveReasoning, abd, Icons.lightbulb_outline, color: Colors.teal[50], helpKey: "causal"),
          const SizedBox(height: 16),
          
          if (simul.isNotEmpty) 
            Row(
              crossAxisAlignment: CrossAxisAlignment.start,
              children: [
-               Expanded(child: _buildComparisonBlock("Toteutunut", simul['skenaario_A_toteutunut'], Colors.grey[200]!)),
+               Expanded(child: _buildComparisonBlock(AppLocalizations.of(context)!.lblScenarioActual, simul['skenaario_A_toteutunut'], Colors.grey[200]!)),
                const SizedBox(width: 8),
                const Icon(Icons.arrow_forward),
                const SizedBox(width: 8),
-               Expanded(child: _buildComparisonBlock("Simulaatio", simul['skenaario_B_simulaatio'], Colors.teal[100]!)),
+               Expanded(child: _buildComparisonBlock(AppLocalizations.of(context)!.lblScenarioSimulation, simul['skenaario_B_simulaatio'], Colors.teal[100]!)),
              ],
            ),
           if (simul['uskottavuus_arvio'] != null)
              Padding(
                padding: const EdgeInsets.only(top: 8.0),
-               child: Text("Uskottavuus: ${simul['uskottavuus_arvio']}", style: const TextStyle(fontStyle: FontStyle.italic)),
+               child: Text("${AppLocalizations.of(context)!.lblCredibility}: ${simul['uskottavuus_arvio']}", style: const TextStyle(fontStyle: FontStyle.italic)),
              )
       ],
     );
@@ -273,7 +391,10 @@ class _SpecialistSectionState extends State<SpecialistSection> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
             if (metrics.isNotEmpty) ...[
-              const Text("Tekstimetriikka:", style: TextStyle(fontWeight: FontWeight.bold)),
+              Row(children: [
+                Text("${AppLocalizations.of(context)!.lblTextMetrics}:", style: const TextStyle(fontWeight: FontWeight.bold)),
+                _buildHelpButton(context, "profiler")
+              ]),
               const SizedBox(height: 8),
               Row(
                 children: [
@@ -286,7 +407,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
             ],
 
            if (biases.isNotEmpty) ...[
-             const Text("Tunnistetut Vinoumat:", style: TextStyle(fontWeight: FontWeight.bold)),
+             Text("${AppLocalizations.of(context)!.lblBias}:", style: const TextStyle(fontWeight: FontWeight.bold)),
              const SizedBox(height: 8),
              Wrap(
                spacing: 8,
@@ -300,9 +421,9 @@ class _SpecialistSectionState extends State<SpecialistSection> {
              ),
              const SizedBox(height: 16),
            ],
-           if (intent != null) _buildInfoCard("Intentio", intent, Icons.ads_click, color: Colors.blue[50]),
+           if (intent != null) _buildInfoCard(AppLocalizations.of(context)!.lblIntent, intent, Icons.ads_click, color: Colors.blue[50]),
            const SizedBox(height: 8),
-           if (profile != null) _buildInfoCard("Psykologinen Profiili", profile, Icons.person_outline),
+           if (profile != null) _buildInfoCard(AppLocalizations.of(context)!.lblPsychProfile, profile, Icons.person_outline),
         ],
       );
   }
@@ -315,20 +436,45 @@ class _SpecialistSectionState extends State<SpecialistSection> {
      return Column(
        children: [
           if (ethics.isNotEmpty) ...[
-            ...ethics.map((e) => Card(
+            ...ethics.map((e) {
+               // Defensive Check: If LLM returns strings instead of objects
+               if (e is! Map) {
+                 return Card(
+                   color: Colors.red[50],
+                   child: ListTile(
+                     leading: const Icon(Icons.warning_amber, color: Colors.orange),
+                     title: const Text('Eettinen Huomio (Muu muoto)'),
+                     subtitle: Text(e.toString()),
+                   )
+                 );
+               }
+               
+               return Card(
               color: Colors.red[50], 
               child: ListTile(
                 leading: const Icon(Icons.security, color: Colors.red),
-                title: Text(e['tyyppi'] ?? 'Eettinen Huomio'),
+                title: Text(e['tyyppi'] ?? AppLocalizations.of(context)!.lblEthicalObservation),
                 subtitle: Text(e['kuvaus'] ?? ''),
                 trailing: Chip(label: Text(e['vakavuus'] ?? 'N/A'), backgroundColor: Colors.white),
               )
-            )).toList(),
+            );
+            }).toList(),
             const SizedBox(height: 16),
           ],
-          const Text("Faktantarkistus", style: TextStyle(fontWeight: FontWeight.bold)),
+           Row(children: [
+              Text(AppLocalizations.of(context)!.lblFactCheck, style: const TextStyle(fontWeight: FontWeight.bold)),
+              _buildHelpButton(context, "fact_check")
+           ]),
           if (facts.isEmpty) const Padding(padding:EdgeInsets.all(8), child:Text("Ei faktantarkistuspyyntöjä.")),
           ...facts.map((f) {
+             // Defensive Check
+             if (f is! Map) {
+                return ListTile(
+                  leading: const Icon(Icons.error_outline, color: Colors.grey),
+                  title: Text(f.toString()),
+                );
+             }
+
              final status = f['verifiointi_tulos'];
              Color c = Colors.grey;
              IconData i = Icons.help_outline;
@@ -361,14 +507,20 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                ),
                child: Column(
                  children: [
-                   const Text("Aitousarvio", style: TextStyle(fontWeight: FontWeight.bold)),
+                   Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                         Text(AppLocalizations.of(context)!.lblAuthenticity, style: const TextStyle(fontWeight: FontWeight.bold)),
+                         _buildHelpButton(context, "performativity")
+                      ],
+                    ),
                    const SizedBox(height: 8),
                    _buildAuthenticityMeter(overall),
                  ],
                ),
              ),
           const SizedBox(height: 16),
-          const Text("Heuristiikat:", style: TextStyle(fontWeight: FontWeight.bold)),
+          Text("${AppLocalizations.of(context)!.lblHeuristics}:", style: const TextStyle(fontWeight: FontWeight.bold)),
            Wrap(
                spacing: 8,
                runSpacing: 4,
@@ -434,9 +586,13 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text("Compliance-analyysi", style: TextStyle(fontWeight: FontWeight.bold)),
+                        Row(children: [
+                           Text(AppLocalizations.of(context)!.lblComplianceAnalysis, style: const TextStyle(fontWeight: FontWeight.bold)),
+                           _buildHelpButton(context, "archivist")
+                        ]),
                         const SizedBox(height: 4),
-                        Text(analysis ?? "Ei analyysiä."),
+                        // Handle "ei analyysiä" case if null or empty, or explicitly suppressed
+                        Text(analysis != null && analysis.isNotEmpty ? analysis : "Ei analyysiä."),
                       ],
                     )
                   )
@@ -579,7 +735,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
      );
   }
 
-  Widget _buildInfoCard(String title, String value, IconData icon, {String? subtitle, Color? color}) {
+  Widget _buildInfoCard(String title, String value, IconData icon, {String? subtitle, Color? color, String? helpKey}) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -594,7 +750,12 @@ class _SpecialistSectionState extends State<SpecialistSection> {
              child: Column(
                crossAxisAlignment: CrossAxisAlignment.start,
                children: [
-                 Text(title, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                 Row(
+                   children: [
+                     Text(title, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                     if (helpKey != null) _buildHelpButton(context, helpKey)
+                   ],
+                 ),
                  Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                  if (subtitle != null) ...[
                     const SizedBox(height: 4),
@@ -644,11 +805,315 @@ class _SpecialistSectionState extends State<SpecialistSection> {
       child: SelectableText(
         jsonStr,
         style: const TextStyle(
-          fontFamily: 'monospace',
-          fontSize: 12,
-          color: Color(0xFFcccccc),
         ),
       ),
     );
+  }
+
+  String _getHelpText(BuildContext context, String key) {
+    final l10n = AppLocalizations.of(context)!;
+    switch (key) {
+      case "bloom": return l10n.helpBloom;
+      case "toulmin": return l10n.helpToulmin;
+      case "walton": return l10n.helpWalton;
+      case "control_ratio": return l10n.helpControlRatio;
+      case "metodologia": return l10n.helpMethodology;
+      case "stress_test": return l10n.helpStressTest;
+      case "causal": return l10n.helpCausal;
+      case "profiler": return l10n.helpProfiler;
+      case "fact_check": return l10n.helpFactCheck;
+      case "performativity": return l10n.helpPerformativity;
+      case "archivist": return l10n.helpArchivist;
+      default: return "";
+    }
+  }
+
+  Widget _buildHelpButton(BuildContext context, String key) {
+    final text = _getHelpText(context, key);
+    if (text.isEmpty) return const SizedBox.shrink();
+    
+    return IconButton(
+      icon: Icon(Icons.help_outline, size: 18, color: Colors.grey[400]),
+      onPressed: () {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: Row(children: [
+               const Icon(Icons.info_outline, color: Colors.blue),
+               const SizedBox(width: 8),
+               const Text("Tietoa Mittarista", style: TextStyle(fontSize: 16))
+            ]),
+            content: Text(text, style: const TextStyle(height: 1.5)),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("OK"))
+            ],
+          )
+        );
+      },
+      tooltip: "Lisätietoa",
+    );
+  }
+
+  // --- 8. DRIVER PROFILE (Interaction) ---
+  Widget _buildDriverProfile(BuildContext context) {
+      final roleRaw = widget.data['driver_classification'] as String? ?? 'N/A';
+      final ratio = widget.data['input_control_ratio'];
+      final strategies = widget.data['tunnistetut_strategiat'] as List<dynamic>? ?? [];
+      final l10n = AppLocalizations.of(context)!;
+      final role = _getLocalizedRole(roleRaw, l10n);
+
+      // Spectrum Definitions
+      final roles = [l10n.rolePassenger, l10n.roleNavigator, l10n.roleDriver, l10n.roleArchitect];
+      
+      // Clean up role string for check
+      final rLower = roleRaw.toLowerCase();
+      final isPassive = rLower.contains('matkustaja') || rLower.contains('passenger');
+      
+      // If Ratio is 0 but role is Active, we still want to show it (e.g. 0% is valid data)
+      final showRatio = ratio != null;
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+           Container(
+             padding: const EdgeInsets.all(20),
+             decoration: BoxDecoration(
+               color: Colors.blue[50],
+               borderRadius: BorderRadius.circular(12),
+               border: Border.all(color: Colors.blue.withOpacity(0.2))
+             ),
+             child: Column(
+               children: [
+                 Row(
+                   mainAxisAlignment: MainAxisAlignment.center,
+                   children: [
+                      Text(AppLocalizations.of(context)!.lblRoleAndPosition, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      const SizedBox(width: 8),
+                      _buildHelpButton(context, "control_ratio")
+                   ],
+                 ),
+                 const SizedBox(height: 10),
+                 Text((showRatio ? "${(ratio! * 100).toStringAsFixed(0)}%" : "N/A"), 
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 32, color: Colors.blue)),
+                 Text(AppLocalizations.of(context)!.lblControlRatio, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                 
+                 const SizedBox(height: 24),
+                 
+                 // SPECTRUM VISUALIZATION
+                 LayoutBuilder(
+                   builder: (context, constraints) {
+                     return Row(
+                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                       children: roles.map((r) {
+                         final isActive = role.toLowerCase() == r.toLowerCase();
+                         return Expanded(
+                           child: Column(
+                             children: [
+                               AnimatedContainer(
+                                 duration: const Duration(milliseconds: 300),
+                                 height: isActive ? 12 : 8,
+                                 margin: const EdgeInsets.symmetric(horizontal: 2),
+                                 decoration: BoxDecoration(
+                                    color: isActive ? Colors.blue : Colors.grey[300],
+                                    borderRadius: BorderRadius.circular(4)
+                                 ),
+                               ),
+                               const SizedBox(height: 8),
+                               Text(
+                                 r, 
+                                 style: TextStyle(
+                                   fontSize: isActive ? 12 : 10,
+                                   fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                                   color: isActive ? Colors.blue[800] : Colors.grey[500]
+                                 ),
+                                 textAlign: TextAlign.center,
+                               )
+                             ],
+                           ),
+                         );
+                       }).toList(),
+                     );
+                   }
+                 ),
+               ],
+             ),
+           ),
+           
+           const SizedBox(height: 16),
+           
+           // Strategies
+           if (strategies.isNotEmpty) ...[
+              const Text("Tunnistetut Strategiat:", style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: strategies.map((s) {
+                  final label = s is String ? s : (s['nimi'] ?? s['name'] ?? 'Strategia');
+                  return Chip(
+                    label: Text(label.toString()),
+                    backgroundColor: Colors.blue[50], 
+                  );
+                }).toList()
+              ),
+              const SizedBox(height: 16),
+           ],
+
+           // Coherence Analysis (Linjakkuus)
+           if (widget.data['linjakkuus_analyysi'] != null) ...[
+              _buildInfoCard(
+                "Linjakkuus (Coherence)", 
+                widget.data['linjakkuus_analyysi'], 
+                Icons.linear_scale,
+                color: Colors.white
+              ),
+              const SizedBox(height: 8),
+           ],
+
+           // Deviations (Poikkeamat)
+           if (widget.data['poikkeamat_linjasta'] != null) ...[
+              _buildInfoCard(
+                "Poikkeamat Linjasta", 
+                widget.data['poikkeamat_linjasta'], 
+                Icons.call_split,
+                color: Colors.white // Use white to align with above card
+              ),
+              const SizedBox(height: 8),
+           ],
+
+           // Recommendation (Suositus)
+           if (widget.data['suositus_tuomarille'] != null) ...[
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                   color: Colors.green[50], // Highlight recommendation
+                   borderRadius: BorderRadius.circular(8),
+                   border: Border.all(color: Colors.green.withOpacity(0.3))
+                ),
+                child: Column(
+                   crossAxisAlignment: CrossAxisAlignment.start,
+                   children: [
+                      const Row(
+                        children: [
+                           Icon(Icons.recommend, color: Colors.green),
+                           SizedBox(width: 8),
+                           Text("Suositus Tuomarille", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green))
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(widget.data['suositus_tuomarille'], style: const TextStyle(fontSize: 14))
+                   ]
+                ),
+              )
+           ]
+        ],
+      );
+  }
+
+  Widget _buildProfileIcon(String role) {
+      IconData icon = Icons.person;
+      if (role.toLowerCase().contains("driver") || role.toLowerCase().contains("ohjaaja")) icon = Icons.directions_car;
+      if (role.toLowerCase().contains("passenger") || role.toLowerCase().contains("matkustaja")) icon = Icons.airline_seat_recline_normal;
+      
+      return Column(
+        children: [
+           Icon(icon, size: 48, color: Colors.blue),
+           const SizedBox(height: 8),
+           Text(role, style: const TextStyle(fontSize: 10, color: Colors.grey))
+        ],
+      );
+  }
+
+  // LOGIC HELPERS
+  double _calculateBloomScore(String level) {
+    final lower = level.toLowerCase();
+    if (lower.contains("luominen") || lower.contains("creating")) return 5.5;
+    if (lower.contains("arviointi") || lower.contains("evaluating")) return 4.5;
+    if (lower.contains("analysointi") || lower.contains("analyzing")) return 3.5;
+    if (lower.contains("soveltaminen") || lower.contains("applying")) return 2.5;
+    if (lower.contains("ymmärtäminen") || lower.contains("understanding")) return 1.5;
+    if (lower.contains("muistaminen") || lower.contains("remembering")) return 0.5;
+    return 3.0; // Default
+  }
+
+  double _calculateToulminScore(List<dynamic> args) {
+    if (args.isEmpty) return 0.0;
+    double totalScore = 0;
+    for (final arg in args) {
+      double score = 1.0; // Base: Claim
+      if (arg['warrant'] != null && arg['warrant'].toString().length > 5) score += 2.0;
+      if (arg['backing'] != null && arg['backing'].toString().length > 5) score += 2.0;
+      totalScore += score;
+    }
+    final avg = totalScore / args.length;
+    return avg > 6.0 ? 6.0 : avg; // Cap at 6
+  }
+
+  Widget _buildValidationScoreCard(String title, double score, double max) {
+     return Container(
+       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+       decoration: BoxDecoration(
+          color: Colors.green[50], 
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.green.withOpacity(0.3))
+       ),
+       child: Row(
+         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+         children: [
+            Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.green)),
+            Text("${score.toStringAsFixed(1)} / ${max.toStringAsFixed(1)}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+         ],
+       ),
+     );
+  }
+
+  Widget _buildWaltonSection(Map<String, dynamic> walton) {
+      final scheme = walton['tunnistettu_skeema'] ?? 'N/A';
+      final questions = (walton['kriittiset_kysymykset'] as List?) ?? [];
+
+      return Card(
+        color: Colors.purple[50],
+        child: Padding(
+           padding: const EdgeInsets.all(16),
+           child: Column(
+             crossAxisAlignment: CrossAxisAlignment.start,
+             children: [
+               Row(children: [
+                  const Icon(Icons.balance, color: Colors.purple),
+                  const SizedBox(width: 8),
+                  Text(AppLocalizations.of(context)!.lblWaltonScheme, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.purple)),
+                  if (walton.isNotEmpty) const Spacer(),
+                  _buildHelpButton(context, "walton")
+               ]),
+               const SizedBox(height: 12),
+               Text(scheme, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+               if (questions.isNotEmpty) ...[
+                 const SizedBox(height: 12),
+                 const Divider(),
+                 const SizedBox(height: 8),
+                 Text("${AppLocalizations.of(context)!.lblCriticalQuestions}:", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
+                 ...questions.map((q) => Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text("• ", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.purple)),
+                        Expanded(child: Text(q.toString(), style: const TextStyle(fontSize: 13))),
+                      ],
+                    ),
+                 )),
+               ]
+             ],
+           ),
+        ),
+      );
+  }
+  String _getLocalizedRole(String raw, AppLocalizations l10n) {
+      final r = raw.toLowerCase();
+      if (r.contains("matkustaja") || r.contains("passenger")) return l10n.rolePassenger;
+      if (r.contains("kartanlukija") || r.contains("navigator")) return l10n.roleNavigator;
+      if (r.contains("kuski") || r.contains("driver")) return l10n.roleDriver;
+      if (r.contains("arkkitehti") || r.contains("architect")) return l10n.roleArchitect;
+      return raw;
   }
 }

@@ -144,7 +144,8 @@ def calculate_text_metrics_hook(state) -> WorkflowState:
 
     metrics = calculate_text_metrics(text)
     state.aux_data["profiler_metrics"] = metrics
-    logger.debug(f"[MetricsHook] Metrics calculated: {metrics}")
+    logger.info(f"[MetricsHook] Metrics calculated: {metrics}")
+
 
     return state
 
@@ -167,6 +168,6 @@ def calculate_control_ratio_hook(state) -> WorkflowState:
 
     ratio = calculate_control_ratio(history_text)
     state.aux_data["input_control_ratio"] = ratio
-    logger.debug(f"[MetricsHook] Control ratio calculated: {ratio:.4f}")
+    logger.info(f"[MetricsHook] Control ratio calculated: {ratio:.4f}")
 
     return state

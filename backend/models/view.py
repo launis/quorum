@@ -21,6 +21,7 @@ class SectionType(str, Enum):
     FACT_CHECK = "FACT_CHECK"                     # Hallucination & Ethics
     PROFILER_ANALYSIS = "PROFILER_ANALYSIS"       # Biases & Psych Profile
     ARCHIVIST_CHECK = "ARCHIVIST_CHECK"           # Compliance & Precedents
+    DRIVER_PROFILE = "DRIVER_PROFILE"             # Interaction / Driver Classification
 
 class UiSection(BaseModel):
     """

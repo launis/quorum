@@ -1,104 +1,56 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="1.233" timestamp="2026-01-21T12:24:43.504371+02:00" hostname="Laptop-Risto"><testcase classname="tests.test_strict_provider" name="test_strict_provider_enforcement" time="0.513"><failure message="Failed: MockProvider failed unexpectedly: STRICT EXECUTION AUTHORITY: MockLLMService usage is FORBIDDEN when 'use_mock_llm' is False. The system attempted to fallback to mock data, which is strictly prohibited. Check credential configuration or provider selection.">@pytest.mark.asyncio
-    async def test_strict_provider_enforcement():
-        """Verify that MockProvider rejects implicit defaults."""
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="5.531" timestamp="2026-01-22T01:29:41.725843+02:00" hostname="Laptop-Risto"><testcase classname="backend.tests.integration.test_config_integrity" name="test_agent_wrapper_propagates_temperature" time="0.004"><failure message="AttributeError: &lt;module 'backend.core.registry' from 'C:\\src\\quorum\\backend\\core\\registry.py'&gt; does not have the attribute 'get_async_repository'">@pytest.mark.asyncio
+    async def test_agent_wrapper_propagates_temperature():
+        """Verify that agent_wrapper correctly extracts 'temperature' from Registry and passes it to Agent."""
     
-        # Instantiate provider (Mock is simpler)
-        provider = MockProvider(
-            model_name="mock-model",
-            # Mock doesn't need API keys or Env vars usually
-        )
+        # 1. Setup Mock Registry &amp; Config
+        # This simulates what AgentRegistry.resolve_model_config() returns from the DB
+        mock_db_config = {
+            "model_name": "mock-model-v1",
+            "provider": "mock_provider",
+            "temperature": 0.42,          # Critical Value &lt; 1.0
+            "max_tokens": 1234,
+            "top_p": 0.9,
+        }
     
-        # 1. Test Missing Temperature
-        with pytest.raises(ConfigurationError) as excinfo:
-            await provider.generate(
-                prompt="Hello",
-                max_tokens=100
-                # temperature missing
-            )
-        assert "Strict Mode: 'temperature'" in str(excinfo.value)
-    
-        # 2. Test Missing Max Tokens
-        with pytest.raises(ConfigurationError) as excinfo:
-            await provider.generate(
-                prompt="Hello",
-                temperature=0.5
-                # max_tokens missing
-            )
-        assert "Strict Mode: 'max_tokens'" in str(excinfo.value)
-    
-        # 3. Test Success with All Params
-        try:
-&gt;           await provider.generate(
-                prompt="Hello",
-                temperature=0.5,
-                max_tokens=100
-            )
+        # 2. Mock Internal Dependencies
+        # We mock get_async_repository to avoid DB connection
+        # We mock AgentRegistry to return our specific config.
+        # Since agent_wrapper imports it from backend.services.agent_registry, we patch it THERE or use sys.modules.
+&gt;       with patch("backend.core.registry.get_async_repository", new_callable=AsyncMock) as mock_repo_getter, \
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+             patch("backend.services.agent_registry.AgentRegistry") as MockRegistryClass, \
+             patch("backend.services.component_registry.ComponentRegistry") as MockComponentRegistry: # Prevent prompt resolution errors
 
-tests\test_strict_provider.py:36: 
+backend\tests\integration\test_config_integrity.py:35: 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-backend\llm\provider.py:511: in generate
-    mock = MockLLMService()
-           ^^^^^^^^^^^^^^^^
+C:\Users\risto\AppData\Roaming\uv\python\cpython-3.14.2-windows-x86_64-none\Lib\unittest\mock.py:1503: in __enter__
+    original, local = self.get_original()
+                      ^^^^^^^^^^^^^^^^^^^
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
-self = &lt;backend.llm.mock.MockLLMService object at 0x00000195D7368C20&gt;
+self = &lt;unittest.mock._patch object at 0x000001E8B0C37E00&gt;
 
-    def __init__(self):
-        """Initializes the Mock Service."""
-        from backend.settings import get_settings
+    def get_original(self):
+        target = self.getter()
+        name = self.attribute
     
-        if not get_settings().use_mock_llm:
-&gt;           raise RuntimeError(
-                "STRICT EXECUTION AUTHORITY: MockLLMService usage is FORBIDDEN when 'use_mock_llm' is False. "
-                "The system attempted to fallback to mock data, which is strictly prohibited. "
-                "Check credential configuration or provider selection."
-            )
-E           RuntimeError: STRICT EXECUTION AUTHORITY: MockLLMService usage is FORBIDDEN when 'use_mock_llm' is False. The system attempted to fallback to mock data, which is strictly prohibited. Check credential configuration or provider selection.
-
-backend\llm\mock.py:25: RuntimeError
-
-During handling of the above exception, another exception occurred:
-
-    @pytest.mark.asyncio
-    async def test_strict_provider_enforcement():
-        """Verify that MockProvider rejects implicit defaults."""
+        original = DEFAULT
+        local = False
     
-        # Instantiate provider (Mock is simpler)
-        provider = MockProvider(
-            model_name="mock-model",
-            # Mock doesn't need API keys or Env vars usually
-        )
-    
-        # 1. Test Missing Temperature
-        with pytest.raises(ConfigurationError) as excinfo:
-            await provider.generate(
-                prompt="Hello",
-                max_tokens=100
-                # temperature missing
-            )
-        assert "Strict Mode: 'temperature'" in str(excinfo.value)
-    
-        # 2. Test Missing Max Tokens
-        with pytest.raises(ConfigurationError) as excinfo:
-            await provider.generate(
-                prompt="Hello",
-                temperature=0.5
-                # max_tokens missing
-            )
-        assert "Strict Mode: 'max_tokens'" in str(excinfo.value)
-    
-        # 3. Test Success with All Params
         try:
-            await provider.generate(
-                prompt="Hello",
-                temperature=0.5,
-                max_tokens=100
+            original = target.__dict__[name]
+        except (AttributeError, KeyError):
+            original = getattr(target, name, DEFAULT)
+        else:
+            local = True
+    
+        if name in _builtins and isinstance(target, ModuleType):
+            self.create = True
+    
+        if not self.create and original is DEFAULT:
+&gt;           raise AttributeError(
+                "%s does not have the attribute %r" % (target, name)
             )
-        except ConfigurationError:
-            pytest.fail("Should not raise ConfigurationError when all params provided")
-        except Exception as e:
-            # If Mock fails for other reasons, it's a bug in Mock, but not strict mode failure
-&gt;           pytest.fail(f"MockProvider failed unexpectedly: {e}")
-E           Failed: MockProvider failed unexpectedly: STRICT EXECUTION AUTHORITY: MockLLMService usage is FORBIDDEN when 'use_mock_llm' is False. The system attempted to fallback to mock data, which is strictly prohibited. Check credential configuration or provider selection.
+E           AttributeError: &lt;module 'backend.core.registry' from 'C:\\src\\quorum\\backend\\core\\registry.py'&gt; does not have the attribute 'get_async_repository'
 
-tests\test_strict_provider.py:45: Failed</failure></testcase></testsuite></testsuites>
+C:\Users\risto\AppData\Roaming\uv\python\cpython-3.14.2-windows-x86_64-none\Lib\unittest\mock.py:1473: AttributeError</failure></testcase></testsuite></testsuites>

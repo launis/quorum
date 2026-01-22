@@ -763,17 +763,35 @@ class InteractionAnalysis(BaseJSON):
     @field_validator("input_control_ratio", mode="before")
     @classmethod
     def compute_ratio(cls, v: Any, info: ValidationInfo) -> float | None:
-        """Compute ratio if not provided, based on counts."""
-        if v is not None:
-            return v
+        """Compute ratio if not provided, based on counts.
         
+        Refines 0.0 defaults to None if the classification implies activity,
+        avoiding the 'Architect 0%' visual bug.
+        """
         values = info.data
         cmd = values.get("imperative_command_count", 0)
-        total = values.get("total_turn_count", 1)
         
+        if v is not None and not (v == 0.0 and cmd > 0):
+            return v
+        total = values.get("total_turn_count", 1)
+        role = values.get("driver_classification", "Matkustaja")
+        
+        # If no commands detected (0) but Role is high-level, the heuristic failed.
+        # Check against active roles (Navigator, Driver, Architect)
+        active_roles = ["kartanlukija", "navigator", "kuski", "driver", "arkkitehti", "architect"]
+        is_active_role = any(r in role.lower() for r in active_roles)
+
         if total == 0:
-            return 0.0
-        return round(cmd / total, 2)
+            return None
+        
+        ratio = round(cmd / total, 2)
+        
+        # If Active Role (Driver) but 0% commands, metric is likely invalid/missing.
+        # Return None to show "N/A" instead of misleading "0%".
+        if ratio == 0.0 and is_active_role:
+             return None
+
+        return ratio
 
 
 

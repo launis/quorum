@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from backend.agents.base import BaseAgent
 
 # 3. Local Imports
-from backend.models.domain import CaseLawContext
+from backend.models.domain import CaseLawContext, ArchivistOutput
 from backend.models.state import WorkflowState
 
 logger = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ class ArchivistAgent(BaseAgent):
             Optional[Type[BaseModel]]: The CaseLawContext schema.
 
         """
-        return CaseLawContext
+        return ArchivistOutput
 
     async def execute(
         self,

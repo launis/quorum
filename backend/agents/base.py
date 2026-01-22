@@ -285,7 +285,12 @@ class BaseAgent(BaseComponent):
             conf_tokens = kwargs.get("max_tokens", "Default")
 
             logger.info(f"[{self.__class__.__name__}] >>> EXECUTION START <<<")
-            logger.info(f"[{self.__class__.__name__}] MODEL: {conf_model} | TEMP: {conf_temp} | TOKENS: {conf_tokens}")
+            
+            # Identify extras
+            std_keys = {"temperature", "max_tokens", "pass_reasoning_token", "mock_identity", "system_instruction", "repository", "output_key", "usage_key", "execution_config", "step_id"}
+            extras = {k: v for k, v in kwargs.items() if k not in std_keys}
+            
+            logger.info(f"[{self.__class__.__name__}] MODEL: {conf_model} | TEMP: {conf_temp} | TOKENS: {conf_tokens} | EXTRAS: {extras}")
             # --------------------------------
 
             if not self.llm_provider:

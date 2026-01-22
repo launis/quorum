@@ -670,6 +670,11 @@ async def create_execution(
 
         # Persist Initial State
         await repository.create_execution(execution_data)
+        
+        # LOGFIRE INTEGRATION: Link API request to Execution ID
+        import logfire
+        logfire.info("Created execution", tags={"execution_id": execution_id, "workflow_id": workflow_id})
+        
         logger.info(f"Created pending execution {execution_id} for workflow {workflow_id}")
 
         # 4. Enqueue Async Job

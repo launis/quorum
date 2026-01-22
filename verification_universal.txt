@@ -1,0 +1,5 @@
+Checking c:/src/quorum/backend/seed/seed_data.json
+system_config Type: <class 'dict'>
+SUCCESS: Model Registry Found. Models: ['deep', 'fast', 'strict', 'precise', 'AnalystAgent', 'InteractionAnalystAgent', 'ProfilerAgent', 'LogicianAgent', 'LogicalFalsifierAgent', 'CausalAnalystAgent', 'PerformativityDetectorAgent', 'FactualOverseerAgent', 'ArchivistAgent', 'JudgeAgent', 'CoachAgent', 'XAIReporterAgent', 'PanelAgent', 'GuardAgent', 'RetrievalAgent']
+components Type: <class 'list'>
+FAILURE: Knowledge Base NOT FOUND.

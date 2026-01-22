@@ -142,7 +142,7 @@ class _OverviewTab extends StatelessWidget {
           l10n.created,
           DateFormat.yMMMd(
             Localizations.localeOf(context).toString(),
-          ).add_jms().format(execution.createdAt),
+          ).add_jms().format(execution.createdAt.toLocal()),
         ),
 
         // Assuming we default to None for missing times in MVP

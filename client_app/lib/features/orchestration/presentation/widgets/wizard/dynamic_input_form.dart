@@ -81,6 +81,7 @@ class _DynamicInputFormState extends ConsumerState<DynamicInputForm> {
                   child: _buildTextField(
                     label: label,
                     keyName: key,
+                    currentValue: inputs[key] as String?,
                     icon: iconData,
                     minLines: minLines,
                   ),
@@ -150,10 +151,13 @@ class _DynamicInputFormState extends ConsumerState<DynamicInputForm> {
   Widget _buildTextField({
     required String label,
     required String keyName,
+    String? currentValue,
     IconData? icon,
     int minLines = 1,
   }) {
     return TextFormField(
+      key: ValueKey(keyName),
+      initialValue: currentValue,
       decoration: InputDecoration(
         labelText: label,
         border: const OutlineInputBorder(),

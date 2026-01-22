@@ -45,80 +45,85 @@ async def execute_workflow_job(
     """
     logger.info(f"[Job] Executing workflow: {workflow_id} (Execution ID: {execution_id}, Org: {organization_id})")
 
-    # Inject Organization ID into inputs (Blackboard State) if provided
-    # This ensures that valid WorkflowState objects created from this dict will have organization_id populated.
-    if organization_id and "organization_id" not in inputs:
-        inputs["organization_id"] = organization_id
+    # LOGFIRE INTEGRATION: Bind execution_id to this trace context
+    # This groups all subsequent logs (Agent, LLM, DB) under this execution_id.
+    import logfire
+    with logfire.span("execute_workflow_job", tags={"execution_id": execution_id or "unknown"}):
 
-    # Retrieve pre-initialized Engine
-    engine: GraphEngine = ctx["engine"]
-    # Retrieve Repository (for loading definition)
-    repository = ctx["repository"]
+        # Inject Organization ID into inputs (Blackboard State) if provided
+        # This ensures that valid WorkflowState objects created from this dict will have organization_id populated.
+        if organization_id and "organization_id" not in inputs:
+            inputs["organization_id"] = organization_id
 
-    try:
-        # Load Definition
-        # We must load the definition to pass it to the engine.
-        workflow_def = await repository.get_workflow(workflow_id)
+        # Retrieve pre-initialized Engine
+        engine: GraphEngine = ctx["engine"]
+        # Retrieve Repository (for loading definition)
+        repository = ctx["repository"]
 
-        if not workflow_def:
-            # Fallback for file-based testing if DB is empty (Phase 4.1 context)
-            # This is helpful for the user's immediate "comprehensive_audit.json" testing
-            import json
-            import os
+        try:
+            # Load Definition
+            # We must load the definition to pass it to the engine.
+            workflow_def = await repository.get_workflow(workflow_id)
 
-            from backend.models.workflow import WorkflowDefinition
+            if not workflow_def:
+                # Fallback for file-based testing if DB is empty (Phase 4.1 context)
+                # This is helpful for the user's immediate "comprehensive_audit.json" testing
+                import json
+                import os
 
-            file_path = f"data/workflows/{workflow_id}.json"
-            if os.path.exists(file_path):
-                logger.info(f"Loading workflow {workflow_id} from file system.")
-                with open(file_path, encoding="utf-8") as f:
-                    data = json.load(f)
-                    if "description" not in data:
-                        data["description"] = "File loaded"
-                    workflow_def = WorkflowDefinition(**data)
+                from backend.models.workflow import WorkflowDefinition
 
-        if not workflow_def:
-            raise ValueError(f"Workflow '{workflow_id}' not found.")
+                file_path = f"data/workflows/{workflow_id}.json"
+                if os.path.exists(file_path):
+                    logger.info(f"Loading workflow {workflow_id} from file system.")
+                    with open(file_path, encoding="utf-8") as f:
+                        data = json.load(f)
+                        if "description" not in data:
+                            data["description"] = "File loaded"
+                        workflow_def = WorkflowDefinition(**data)
 
-        # Execute with Persistence Hook
-        result = await engine.execute_workflow(
-            definition=workflow_def, initial_input=inputs, repository=repository, execution_id=execution_id
-        )
+            if not workflow_def:
+                raise ValueError(f"Workflow '{workflow_id}' not found.")
 
-        # Final Status Update (Completed)
-        if execution_id:
-            await repository.update_execution(
-                execution_id, {"status": "completed", "results": result, "completed_at": datetime.now(UTC)}
+            # Execute with Persistence Hook
+            result = await engine.execute_workflow(
+                definition=workflow_def, initial_input=inputs, repository=repository, execution_id=execution_id
             )
 
-        return result
+            # Final Status Update (Completed)
+            if execution_id:
+                await repository.update_execution(
+                    execution_id, {"status": "completed", "results": result, "completed_at": datetime.now(UTC)}
+                )
 
-    except Exception as e:
-        logger.error(f"[Job] Workflow {workflow_id} failed: {e}", exc_info=True)
-        # Final Status Update (Failed)
-        if execution_id:
-            try:
-                await repository.update_execution(
-                    execution_id, {"status": "failed", "error": str(e), "completed_at": datetime.now(UTC)}
-                )
-            except Exception as update_err:
-                logger.error(f"Failed to update execution failure status: {update_err}")
-        raise
-    except asyncio.CancelledError as e:
-        logger.warning(f"[Job] Workflow {workflow_id} CANCELLED (Timeout/Shutdown). Execution ID: {execution_id}")
-        if execution_id:
-            try:
-                await repository.update_execution(
-                    execution_id,
-                    {
-                        "status": "failed",
-                        "error": "Task execution was cancelled or timed out.",
-                        "completed_at": datetime.now(UTC),
-                    },
-                )
-            except Exception as update_err:
-                logger.error(f"Failed to update execution cancellation status: {update_err}")
-        raise
+            return result
+
+        except Exception as e:
+            logger.error(f"[Job] Workflow {workflow_id} failed: {e}", exc_info=True)
+            # Final Status Update (Failed)
+            if execution_id:
+                try:
+                    await repository.update_execution(
+                        execution_id, {"status": "failed", "error": str(e), "completed_at": datetime.now(UTC)}
+                    )
+                except Exception as update_err:
+                    logger.error(f"Failed to update execution failure status: {update_err}")
+            raise
+        except asyncio.CancelledError as e:
+            logger.warning(f"[Job] Workflow {workflow_id} CANCELLED (Timeout/Shutdown). Execution ID: {execution_id}")
+            if execution_id:
+                try:
+                    await repository.update_execution(
+                        execution_id,
+                        {
+                            "status": "failed",
+                            "error": "Task execution was cancelled or timed out.",
+                            "completed_at": datetime.now(UTC),
+                        },
+                    )
+                except Exception as update_err:
+                    logger.error(f"Failed to update execution cancellation status: {update_err}")
+            raise
 
 
 # --- Lifecycle ---

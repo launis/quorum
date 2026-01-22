@@ -16,7 +16,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 from backend.models.llm import LLMResponse
 from backend.services.usage_service import UsageService
 from backend.settings import get_settings
-from backend.exceptions import ConfigurationError
+from backend.exceptions import ConfigurationError, AppException, ErrorCodes
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -221,6 +221,9 @@ class LiteLLMProvider(LLMProvider):
                 "api_key": self.api_key,
                 "drop_params": True,
             }
+            # Inject dynamic extra params (top_p, top_k, etc.) provided via kwargs
+            # Filter out internal keys if necessary, but litellm.drop_params=True handles most.
+            call_kwargs.update(kwargs)
 
             # Explicitly force Vertex Location (Fixes 403 default-to-us-central1 issue)
             # Robustly resolve location (Settings attr or Env Var)
@@ -427,6 +430,15 @@ class LiteLLMProvider(LLMProvider):
             # 1. RATE LIMITS & QUOTA (Critical Infra)
             if "RateLimitError" in error_type or "429" in error_msg or "Resource exhausted" in error_msg:
                 logger.error(f"[LiteLLM] RESOURCE EXHAUSTED (Rate Limit): {error_msg}")
+
+            # 1.1 OUTPUT LIMIT (Model Looping/Max Tokens)
+            elif "InstructorRetryException" in error_type and ("max_tokens" in error_msg or "length" in error_msg):
+                logger.error(f"[LiteLLM] MAX TOKENS EXCEEDED (Model Loop): {error_msg}")
+                raise AppException(
+                    message="Model output exceeded token limit (likely looping).",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.MODEL_OUTPUT_LIMIT_EXCEEDED}
+                ) from e
                 
             # 2. AUTHENTICATION ALERTS (Security/Config)
             elif "AuthenticationError" in error_type or "401" in error_msg or "invalid_api_key" in error_msg:
