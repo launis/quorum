@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import 'package:client_app/features/orchestration/domain/models/execution.dart';
 import 'package:client_app/features/orchestration/presentation/providers/execution_controller.dart';
+import 'package:client_app/features/orchestration/presentation/providers/execution_providers.dart';
 
 /// A card representing a single execution in a grid layout.
 class ExecutionGridItem extends ConsumerStatefulWidget {
@@ -137,26 +138,42 @@ class _ExecutionGridItemState extends ConsumerState<ExecutionGridItem> {
                       ],
                     ),
                   ),
-                  // Cancel Action for Running/Pending states
+                  // Action Buttons: Cancel (Active) vs Delete (Terminal)
                   if (widget.execution.status == ExecutionStatus.running ||
                       widget.execution.status == ExecutionStatus.pending)
                     Container(
                       margin: const EdgeInsets.only(left: 8),
-                      // Use IconButton for compact action
                       child: IconButton(
                         onPressed: () {
-                          // Call controller to cancel
                           ref
                               .read(executionControllerProvider.notifier)
                               .cancelExecution(widget.execution.id);
                         },
-                        icon: const Icon(Icons.cancel, color: Colors.red),
-                        // Adjust size slightly smaller to fit card header
+                        icon: const Icon(Icons.cancel, color: Colors.orange), // Orange for 'Stop'
                         iconSize: 20,
-                        // Reduce padding to fit
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
                         tooltip: l10n.cancel,
+                      ),
+                    )
+                  else if (widget.execution.status == ExecutionStatus.completed ||
+                           widget.execution.status == ExecutionStatus.failed ||
+                           widget.execution.status == ExecutionStatus.rejected ||
+                           widget.execution.status == ExecutionStatus.interrupted)
+                     Container(
+                      margin: const EdgeInsets.only(left: 8),
+                      child: IconButton(
+                        onPressed: () {
+                          // Confirm delete logic could be added here, but for now direct action like Cancel
+                          ref
+                              .read(executionListControllerProvider.notifier)
+                              .deleteExecution(widget.execution.id);
+                        },
+                        icon: const Icon(Icons.delete_outline, color: Colors.grey), // Grey/Red for Delete
+                        iconSize: 20,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        tooltip: 'Poista', // Fallback until L10n updated
                       ),
                     ),
                   // Could add context menu icon here

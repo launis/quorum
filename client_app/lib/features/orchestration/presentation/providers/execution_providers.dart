@@ -45,4 +45,23 @@ class ExecutionListController extends _$ExecutionListController {
   void refreshList() {
     ref.invalidateSelf();
   }
+
+  /// Deletes an execution and refreshes the list.
+  Future<void> deleteExecution(String id) async {
+    final repository = ref.read(executionRepositoryProvider);
+    final result = await repository.deleteExecution(id).run();
+
+    result.match(
+      (error) {
+        // Can't easily set AsyncError on the list state itself without replacing the list, 
+        // so we might want to rethrow or let UI handle?
+        // For now, simpler: just refresh. If delete failed, it will reappear.
+        // Ideally show toast/snackbar, but controller doesn't have context.
+        ref.invalidateSelf();
+      },
+      (_) {
+        ref.invalidateSelf();
+      },
+    );
+  }
 }

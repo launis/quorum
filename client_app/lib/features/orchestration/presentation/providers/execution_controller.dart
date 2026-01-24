@@ -101,6 +101,25 @@ class ExecutionController extends _$ExecutionController {
     );
   }
 
+  /// Deletes an execution permanently.
+  Future<void> deleteExecution(String id) async {
+    final repository = ref.read(executionRepositoryProvider);
+    final result = await repository.deleteExecution(id).run();
+
+    result.match(
+      (error) => state = AsyncError(error, StackTrace.current),
+      (_) {
+        // Invalidate list to remove the item from grid
+        ref.invalidate(executionListControllerProvider);
+        
+        // If we deleted the active one, clear state
+        if (state.value?.id == id) {
+          state = const AsyncData(null);
+        }
+      },
+    );
+  }
+
   // Dispose
   void dispose() {
     _sseSubscription?.cancel();

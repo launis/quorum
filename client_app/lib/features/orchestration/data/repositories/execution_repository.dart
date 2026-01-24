@@ -138,6 +138,15 @@ class ExecutionRepository {
     }, (error, stackTrace) => _mapError(error));
   }
 
+  /// Deletes an execution permanently.
+  ///
+  /// Endpoint: `DELETE /executions/{id}`
+  TaskEither<AppError, void> deleteExecution(String id) {
+    return TaskEither.tryCatch(() async {
+      await _client.delete('/executions/$id');
+    }, (error, stackTrace) => _mapError(error));
+  }
+
   /// Fetches the most recent executions from the backend.
   ///
   /// Endpoint: `GET /executions/recent`
