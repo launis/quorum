@@ -42,7 +42,7 @@ final class PdfExportControllerProvider
 }
 
 String _$pdfExportControllerHash() =>
-    r'45f580a1d9710ac94a523acd0d73658a24d52678';
+    r'7378d7a8b6c9582f61ec862c3b9becb309d5566a';
 
 abstract class _$PdfExportController extends $Notifier<AsyncValue<double>> {
   AsyncValue<double> build();

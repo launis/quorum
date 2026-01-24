@@ -1,8 +1,8 @@
 // ignore_for_file: argument_type_not_assignable
 import 'dart:async';
-import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:client_app/core/network/sse_client.dart';
 import 'package:dio/dio.dart';
 import 'package:printing/printing.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -11,7 +11,9 @@ part 'pdf_export_controller.g.dart';
 
 @riverpod
 class PdfExportController extends _$PdfExportController {
-  final Dio _dio = Dio(); 
+  @visibleForTesting
+  Dio dio = Dio();
+
   CancelToken? _cancelToken;
 
   @override
@@ -25,13 +27,13 @@ class PdfExportController extends _$PdfExportController {
 
     try {
       final downloadUrl = '/executions/$executionId/pdf/download';
-      
-      final response = await _dio.get(
-        downloadUrl, 
+
+      final response = await dio.get(
+        downloadUrl,
         cancelToken: _cancelToken,
         options: Options(
           validateStatus: (status) => status != null && status < 500,
-          responseType: ResponseType.bytes 
+          responseType: ResponseType.bytes,
         ),
       );
 
@@ -47,86 +49,82 @@ class PdfExportController extends _$PdfExportController {
       }
 
       throw Exception('Failed to download: ${response.statusCode}');
-
     } catch (e, st) {
       if (e is DioException && CancelToken.isCancel(e)) {
-         state = const AsyncData(0.0);
+        state = const AsyncData(0.0);
       } else {
-         state = AsyncError(e, st);
+        state = AsyncError(e, st);
       }
     }
   }
 
   Future<void> _listenToProgress(String executionId) async {
     final progressUrl = '/executions/$executionId/pdf/progress';
-    final sseDio = Dio();
-    
+
     try {
-      final response = await sseDio.get(
-        progressUrl,
-        options: Options(
-          responseType: ResponseType.stream,
-          headers: {'Accept': 'text/event-stream'}
-        ),
-        cancelToken: _cancelToken
+      final stream = SseClient.connect<double>(
+        url: progressUrl,
+        parser: (json) => (json['progress'] as num).toDouble(),
+        cancelToken: _cancelToken,
+        dio: dio,
       );
 
-      final stream = response.data.stream;
-      
-      await for (final chunk in stream) {
-         final String chunkStr = utf8.decode(chunk);
-         final lines = chunkStr.split('\n');
-         
-         for (final line in lines) {
-           if (line.startsWith('data: ')) {
-             final jsonStr = line.substring(6);
-             try {
-                final data = jsonDecode(jsonStr);
-                final p = (data['progress'] as num).toDouble();
-                state = AsyncData(p);
-                
-                if (p >= 1.0) {
-                   await _performFinalDownload(executionId);
-                   return; 
-                }
-             } catch (_) {}
-           }
-         }
+      await for (final progress in stream) {
+        state = AsyncData(progress);
+        if (progress >= 1.0) {
+          await _performFinalDownload(executionId);
+          return;
+        }
       }
-    } catch (e) {
-      if (!CancelToken.isCancel(e)) {
-         state = AsyncError(e, StackTrace.current);
+
+      // If stream closes and we haven't returned (e.g. didn't hit 1.0 but closed),
+      // we might want to check if it's done or just failed silently?
+      // Requirement says: "When stream closes (or progress == 1.0), verify file availability"
+      // So we generally proceed to final download check.
+      if (state.valueOrNull != 1.0) {
+        await _performFinalDownload(executionId);
+      }
+    } catch (e, st) {
+      if (e is DioException && CancelToken.isCancel(e)) {
+        state = const AsyncData(0.0); // Reset on cancel
+      } else {
+        state = AsyncError(e, st);
       }
     }
   }
 
   Future<void> _performFinalDownload(String executionId) async {
-      final response = await _dio.get(
-        '/executions/$executionId/pdf/download',
-        options: Options(responseType: ResponseType.bytes),
+    // Ensure we don't redownload if we are just verifying availability,
+    // but typically we need the bytes.
+    // 200 OK via GET /executions/$id/pdf/download
+    final response = await dio.get(
+      '/executions/$executionId/pdf/download',
+      options: Options(responseType: ResponseType.bytes),
+      cancelToken: _cancelToken,
+    );
+
+    if (response.statusCode == 200) {
+      await _saveFile(response.data, "report_$executionId");
+      state = const AsyncData(1.0);
+    } else {
+      throw Exception(
+        'Final download failed with status: ${response.statusCode}',
       );
-      if (response.statusCode == 200) {
-         await _saveFile(response.data, "report_$executionId");
-         state = const AsyncData(1.0);
-      }
+    }
   }
 
   Future<void> _saveFile(dynamic data, String name) async {
-     // Ensure safe casting
-     final list = (data as List<dynamic>).cast<int>();
-     final bytes = Uint8List.fromList(list);
-     
-     await Printing.sharePdf(
-       bytes: bytes,
-       filename: '$name.pdf'
-     );
+    final list = (data as List<dynamic>).cast<int>();
+    final bytes = Uint8List.fromList(list);
+
+    await Printing.sharePdf(bytes: bytes, filename: '$name.pdf');
   }
 
   Future<void> cancelDownload(String executionId) async {
     _cancelToken?.cancel();
     _cancelToken = null;
     try {
-      await _dio.delete('/executions/$executionId/pdf/cancel');
+      await dio.delete('/executions/$executionId/pdf/cancel');
     } catch (_) {}
     state = const AsyncData(0.0);
   }

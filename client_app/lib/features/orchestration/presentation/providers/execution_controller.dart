@@ -47,124 +47,56 @@ class ExecutionController extends _$ExecutionController {
     // Cancel existing subscription if any
     await _sseSubscription?.cancel();
 
-    // Set loading initially? Or rely on stream?
-    // If we have no data, loading is appropriate.
+    // Set loading if we have no data
     if (state.value == null) {
       state = const AsyncLoading();
     }
 
-    final dio = ref.read(dioProvider); // Need dio for SseClient
-    final sseClient = SseClient(dio);
-    final url = '/executions/$executionId/events';
-
-    _sseSubscription = sseClient
-        .subscribe(url)
-        .listen(
-          (data) {
-            if (data is Map<String, dynamic>) {
-              // We expect partial or full updates.
-              // Ideally we should fetch full execution initially OR merge.
-              // But 'data' from backend SSE is 'current state snapshot' mostly?
-              // The backend SSE yield: 'update', data: {status, current_step, ...}
-              // It might NOT be a full Execution object (which has inputs, results etc).
-              // If it IS a full object or compatible partial:
-
-              // Strategy: Use Repositoy.getExecution once to hydrate, then apply patches?
-              // Or assume SSE sends sufficient info to display progress.
-
-              // For robust UI, we might want to poll 'getExecution' if SSE says "update".
-              // But for efficiency, we want to use SSE data.
-
-              // Let's try to map generic data to Execution if possible, or trigger refresh.
-              // If we can't parse full execution, we might need to rely on refetching.
-              // Refetching on every event defeats SSE purpose slightly, but ensures consistency.
-
-              // OPTIMIZATION: If data has 'status', 'current_step', update local state if present.
-              // If State is null, we MUST fetch first.
-
-              _handleUpdate(executionId, data);
-            }
-          },
-          onError: (error) {
-            // Switch to polling or just show error?
-            // state = AsyncError(error, StackTrace.current);
-            // Retrying is complex.
-          },
-        );
-
-    // Initial fetch to ensure full data
+    // Initial fetch to ensure full data immediately (Fixes UI freeze)
     final repository = ref.read(executionRepositoryProvider);
     final result = await repository.getExecution(executionId).run();
+    
     result.match(
       (error) => state = AsyncError(error, StackTrace.current),
       (execution) => state = AsyncData(execution),
     );
-  }
 
-  void _handleUpdate(String id, Map<String, dynamic> data) {
-    final currentState = state.value;
-    if (currentState == null) return; // Wait for initial fetch
+    final dio = ref.read(dioProvider);
+    final url = '/executions/$executionId/events';
 
-    // Create a copy with updated fields
-    // Assuming generic map update logic or specific fields
-    final statusStr = data['status'] as String?;
-    final newStatus =
-        statusStr != null
-            ? ExecutionStatus.values.firstWhere(
-              (e) => e.name == statusStr,
-              orElse: () => currentState.status,
-            )
-            : currentState.status;
+    try {
+      final stream = SseClient.connect<Execution>(
+        url: url,
+        parser: (json) => Execution.fromJson(json),
+        dio: dio,
+      );
 
-    final updated = currentState.copyWith(
-      status: newStatus,
-      currentStepName:
-          data['current_step'] as String? ?? currentState.currentStepName,
-      // results: ... potentially complex merge
-    );
-
-    // If status changed to completed/failed, we might want to refetch full result to get outputs
-    if (newStatus != currentState.status &&
-        (newStatus == ExecutionStatus.completed ||
-            newStatus == ExecutionStatus.failed)) {
-      // Refetch
-      ref.read(executionRepositoryProvider).getExecution(id).run().then((res) {
-        res.match(
-          (err) => null, // ignore
-          (full) => state = AsyncData(full),
-        );
-      });
-    } else {
-      state = AsyncData(updated);
+      _sseSubscription = stream.listen(
+        (execution) {
+          state = AsyncData(execution);
+        },
+        onError: (error) {
+          // Determine if we should set error state or just log
+          // If it's the only source of truth, error state is appropriate.
+          state = AsyncError(error, StackTrace.current);
+        },
+      );
+    } catch (e, st) {
+      state = AsyncError(e, st);
     }
   }
 
   /// Cancels the current execution.
   Future<void> cancelExecution(String id) async {
-    // 1. Optimistic Update
-    final currentState = state.value;
-    if (currentState != null) {
-      // Create a specific status or just reuse 'cancelling' if we had it in Enum
-      // Since ExecutionStatus might not have 'cancelling', we check enum.
-      // If enum doesn't support it, we assume 'running' but maybe UI shows spinner.
-      // User requested "Optimistically update local state status to cancelling".
-      // Let's assume Enum has 'cancelling' or we just proceed.
-      // If we strictly follow backend model, we should check `execution_repository.dart` -> `Execution` model.
-
-      // We'll proceed with call.
-    }
-
     final repository = ref.read(executionRepositoryProvider);
     final result = await repository.cancelExecution(id).run();
 
     result.match(
       (error) {
-        // Revert or show error
         state = AsyncError(error, StackTrace.current);
       },
       (_) {
         // Success. SSE should eventually confirm 'cancelled'.
-        // We can force update manually if enum supports it.
       },
     );
   }
@@ -232,7 +164,7 @@ class ExecutionController extends _$ExecutionController {
       (executionId) {
         ref.invalidate(executionListControllerProvider);
 
-        // Start Monitoring immediately?
+        // Start Monitoring immediately
         monitorExecution(executionId);
 
         return executionId;
