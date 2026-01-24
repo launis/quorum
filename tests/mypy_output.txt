@@ -1,5 +1,0 @@
-..\backend\services\chart_service.py:48: error: "Axes" has no attribute "set_theta_offset"  [attr-defined]
-..\backend\services\chart_service.py:49: error: "Axes" has no attribute "set_theta_direction"  [attr-defined]
-..\backend\services\chart_service.py:54: error: "Axes" has no attribute "set_rlabel_position"  [attr-defined]
-..\backend\services\chart_service.py:73: error: "type[ErrorCodes]" has no attribute "CHART_GENERATION_FAILED"  [attr-defined]
-Found 4 errors in 1 file (checked 1 source file)

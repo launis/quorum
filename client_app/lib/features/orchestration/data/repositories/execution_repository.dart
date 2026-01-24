@@ -129,6 +129,15 @@ class ExecutionRepository {
     }, (error, stackTrace) => _mapError(error));
   }
 
+  /// Cancels a running workflow execution.
+  ///
+  /// Endpoint: `DELETE /executions/{id}/cancel`
+  TaskEither<AppError, void> cancelExecution(String id) {
+    return TaskEither.tryCatch(() async {
+      await _client.delete('/executions/$id/cancel');
+    }, (error, stackTrace) => _mapError(error));
+  }
+
   /// Fetches the most recent executions from the backend.
   ///
   /// Endpoint: `GET /executions/recent`

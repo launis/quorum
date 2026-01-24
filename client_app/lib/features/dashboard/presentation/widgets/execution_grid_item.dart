@@ -1,21 +1,22 @@
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import 'package:client_app/features/orchestration/domain/models/execution.dart';
+import 'package:client_app/features/orchestration/presentation/providers/execution_controller.dart';
 
 /// A card representing a single execution in a grid layout.
-/// A card representing a single execution in a grid layout.
-class ExecutionGridItem extends StatefulWidget {
+class ExecutionGridItem extends ConsumerStatefulWidget {
   const ExecutionGridItem({super.key, required this.execution});
 
   final Execution execution;
 
   @override
-  State<ExecutionGridItem> createState() => _ExecutionGridItemState();
+  ConsumerState<ExecutionGridItem> createState() => _ExecutionGridItemState();
 }
 
-class _ExecutionGridItemState extends State<ExecutionGridItem> {
+class _ExecutionGridItemState extends ConsumerState<ExecutionGridItem> {
   // Cache progress to prevent backward jumps (jitter)
   double _cachedProgress = 0.0;
   String? _lastStepName;
@@ -36,16 +37,18 @@ class _ExecutionGridItemState extends State<ExecutionGridItem> {
 
   void _updateProgress() {
     final newProgress = _calculateMonotonicProgress(widget.execution);
-    
+
     // Check for ID change or status reset (e.g. Restart)
     // If status is 'started' or 'pending', we should always be able to reset.
-    bool shouldReset = widget.execution.status == ExecutionStatus.started || 
-                       widget.execution.status == ExecutionStatus.pending;
-                       
+    bool shouldReset =
+        widget.execution.status == ExecutionStatus.started ||
+        widget.execution.status == ExecutionStatus.pending;
+
     // If we are Running, but cached was Completed (1.0), we must reset.
-    if (widget.execution.status == ExecutionStatus.running && _cachedProgress >= 0.99) {
-       // This handles the "Run Again" case where the widget state persists.
-       shouldReset = true;
+    if (widget.execution.status == ExecutionStatus.running &&
+        _cachedProgress >= 0.99) {
+      // This handles the "Run Again" case where the widget state persists.
+      shouldReset = true;
     }
 
     if (shouldReset) {
@@ -56,23 +59,22 @@ class _ExecutionGridItemState extends State<ExecutionGridItem> {
     // Normal monotonic update
     if (widget.execution.status == ExecutionStatus.completed) {
       _cachedProgress = 1.0;
-    } 
-    else if (newProgress >= _cachedProgress) {
+    } else if (newProgress >= _cachedProgress) {
       _cachedProgress = newProgress;
     }
-    // Allow slight corrections if we switched branches or steps reordered, 
+    // Allow slight corrections if we switched branches or steps reordered,
     // but prevent massive jumps unless it's a reset.
     else {
       final currentStep = _getCurrentStepName(widget.execution);
       if (currentStep != _lastStepName) {
-         _lastStepName = currentStep;
-         if (currentStep != null) {
-             // If we have a valid step, trust it, even if it resets progress slightly (e.g. parallel branches)
-             // But don't drop to 0.1 default if we were further ahead.
-             if (newProgress > 0.15) {
-                _cachedProgress = newProgress;
-             }
-         }
+        _lastStepName = currentStep;
+        if (currentStep != null) {
+          // If we have a valid step, trust it, even if it resets progress slightly (e.g. parallel branches)
+          // But don't drop to 0.1 default if we were further ahead.
+          if (newProgress > 0.15) {
+            _cachedProgress = newProgress;
+          }
+        }
       }
     }
   }
@@ -135,6 +137,28 @@ class _ExecutionGridItemState extends State<ExecutionGridItem> {
                       ],
                     ),
                   ),
+                  // Cancel Action for Running/Pending states
+                  if (widget.execution.status == ExecutionStatus.running ||
+                      widget.execution.status == ExecutionStatus.pending)
+                    Container(
+                      margin: const EdgeInsets.only(left: 8),
+                      // Use IconButton for compact action
+                      child: IconButton(
+                        onPressed: () {
+                          // Call controller to cancel
+                          ref
+                              .read(executionControllerProvider.notifier)
+                              .cancelExecution(widget.execution.id);
+                        },
+                        icon: const Icon(Icons.cancel, color: Colors.red),
+                        // Adjust size slightly smaller to fit card header
+                        iconSize: 20,
+                        // Reduce padding to fit
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        tooltip: l10n.cancel,
+                      ),
+                    ),
                   // Could add context menu icon here
                 ],
               ),
@@ -157,18 +181,23 @@ class _ExecutionGridItemState extends State<ExecutionGridItem> {
               ),
               const SizedBox(height: 8),
               const SizedBox(height: 8),
-              if (_getCurrentStepName(widget.execution) != null || widget.execution.status == ExecutionStatus.running) ...[
-                 TweenAnimationBuilder<double>(
-                   key: ValueKey(widget.execution.id), // Force reset animation on new execution
-                   tween: Tween<double>(begin: 0, end: _cachedProgress),
-                   duration: const Duration(milliseconds: 500),
-                   builder: (context, value, _) => LinearProgressIndicator(
-                    value: value,
-                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(2),
-                    minHeight: 4,
-                  ),
-                 ),
+              if (_getCurrentStepName(widget.execution) != null ||
+                  widget.execution.status == ExecutionStatus.running) ...[
+                TweenAnimationBuilder<double>(
+                  key: ValueKey(
+                    widget.execution.id,
+                  ), // Force reset animation on new execution
+                  tween: Tween<double>(begin: 0, end: _cachedProgress),
+                  duration: const Duration(milliseconds: 500),
+                  builder:
+                      (context, value, _) => LinearProgressIndicator(
+                        value: value,
+                        backgroundColor:
+                            theme.colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(2),
+                        minHeight: 4,
+                      ),
+                ),
               ],
               const SizedBox(height: 8),
               Text(
@@ -258,7 +287,7 @@ class _ExecutionGridItemState extends State<ExecutionGridItem> {
     if (execution.status == ExecutionStatus.completed) return 1.0;
     if (execution.status == ExecutionStatus.pending) return 0.0;
     if (execution.status == ExecutionStatus.started) return 0.05;
-    
+
     final currentStep = _getCurrentStepName(execution);
     if (currentStep == null) return 0.0; // Transient state
 
@@ -272,22 +301,22 @@ class _ExecutionGridItemState extends State<ExecutionGridItem> {
       'step_archivist',
       'step_judge',
       'step_coach',
-      'step_xai'
+      'step_xai',
     ];
 
     int index = -1;
     // Try exact match
     index = steps.indexOf(currentStep);
-    
+
     // Try fuzzy match
     if (index == -1) {
-       final lower = currentStep.toLowerCase();
-       for (int i=0; i<steps.length; i++) {
-         if (lower.contains(steps[i].replaceAll('step_', ''))) {
-           index = i;
-           break;
-         }
-       }
+      final lower = currentStep.toLowerCase();
+      for (int i = 0; i < steps.length; i++) {
+        if (lower.contains(steps[i].replaceAll('step_', ''))) {
+          index = i;
+          break;
+        }
+      }
     }
 
     if (index != -1) {

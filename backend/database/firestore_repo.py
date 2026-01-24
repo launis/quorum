@@ -26,6 +26,15 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
             return doc.to_dict()
         return None
 
+    async def get_execution_status(self, execution_id: str) -> str | None:
+        """Retrieve the status of an execution."""
+        doc_ref = self.db.collection("executions").document(execution_id)
+        # Optimized fetch: only get the 'status' field
+        doc = await doc_ref.get(field_paths=["status"])
+        if doc.exists:
+            return doc.to_dict().get("status")
+        return None
+
     async def create_execution(self, execution_data: dict[str, Any]) -> str:
         # If ID not provided, Firestore auto-generates, but we usually want to know it.
         # Ideally execution_data has 'execution_id' or we let firestore gen it.

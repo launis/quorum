@@ -10,16 +10,16 @@ part of 'execution_controller.dart';
 // ignore_for_file: type=lint, type=warning
 /// **Execution Data Stream**
 ///
-/// Provides real-time updates for a specific execution ID.
-/// Automatically handles polling and lifecycle via [ExecutionRepository.streamExecution].
+/// Legacy/Simple polling provider (retained for fallback/simplicity if needed)
+/// But ExecutionController now takes over active monitoring.
 
 @ProviderFor(executionStream)
 final executionStreamProvider = ExecutionStreamFamily._();
 
 /// **Execution Data Stream**
 ///
-/// Provides real-time updates for a specific execution ID.
-/// Automatically handles polling and lifecycle via [ExecutionRepository.streamExecution].
+/// Legacy/Simple polling provider (retained for fallback/simplicity if needed)
+/// But ExecutionController now takes over active monitoring.
 
 final class ExecutionStreamProvider
     extends
@@ -27,8 +27,8 @@ final class ExecutionStreamProvider
     with $FutureModifier<Execution>, $StreamProvider<Execution> {
   /// **Execution Data Stream**
   ///
-  /// Provides real-time updates for a specific execution ID.
-  /// Automatically handles polling and lifecycle via [ExecutionRepository.streamExecution].
+  /// Legacy/Simple polling provider (retained for fallback/simplicity if needed)
+  /// But ExecutionController now takes over active monitoring.
   ExecutionStreamProvider._({
     required ExecutionStreamFamily super.from,
     required String super.argument,
@@ -76,8 +76,8 @@ String _$executionStreamHash() => r'75844d06741279b7d7b5002a7bae1161e1a923fa';
 
 /// **Execution Data Stream**
 ///
-/// Provides real-time updates for a specific execution ID.
-/// Automatically handles polling and lifecycle via [ExecutionRepository.streamExecution].
+/// Legacy/Simple polling provider (retained for fallback/simplicity if needed)
+/// But ExecutionController now takes over active monitoring.
 
 final class ExecutionStreamFamily extends $Family
     with $FunctionalFamilyOverride<Stream<Execution>, String> {
@@ -92,8 +92,8 @@ final class ExecutionStreamFamily extends $Family
 
   /// **Execution Data Stream**
   ///
-  /// Provides real-time updates for a specific execution ID.
-  /// Automatically handles polling and lifecycle via [ExecutionRepository.streamExecution].
+  /// Legacy/Simple polling provider (retained for fallback/simplicity if needed)
+  /// But ExecutionController now takes over active monitoring.
 
   ExecutionStreamProvider call(String executionId) =>
       ExecutionStreamProvider._(argument: executionId, from: this);
@@ -102,24 +102,21 @@ final class ExecutionStreamFamily extends $Family
   String toString() => r'executionStreamProvider';
 }
 
-/// **Execution Controller (Actions)**
+/// **Execution Controller**
 ///
-/// Manages actions like `startAnalysis`.
-/// DOES NOT manage the state of the active execution (use [executionStreamProvider]).
+/// Manages the state of the active execution, including SSE monitoring and actions.
 
 @ProviderFor(ExecutionController)
 final executionControllerProvider = ExecutionControllerProvider._();
 
-/// **Execution Controller (Actions)**
+/// **Execution Controller**
 ///
-/// Manages actions like `startAnalysis`.
-/// DOES NOT manage the state of the active execution (use [executionStreamProvider]).
+/// Manages the state of the active execution, including SSE monitoring and actions.
 final class ExecutionControllerProvider
-    extends $AsyncNotifierProvider<ExecutionController, void> {
-  /// **Execution Controller (Actions)**
+    extends $AsyncNotifierProvider<ExecutionController, Execution?> {
+  /// **Execution Controller**
   ///
-  /// Manages actions like `startAnalysis`.
-  /// DOES NOT manage the state of the active execution (use [executionStreamProvider]).
+  /// Manages the state of the active execution, including SSE monitoring and actions.
   ExecutionControllerProvider._()
     : super(
         from: null,
@@ -140,24 +137,23 @@ final class ExecutionControllerProvider
 }
 
 String _$executionControllerHash() =>
-    r'3d5e5a8925fa56a541d41d844cddfe7085c3a824';
+    r'7b4bdd3dfdb8c437dc37daa18c3abfdf6f70bd4b';
 
-/// **Execution Controller (Actions)**
+/// **Execution Controller**
 ///
-/// Manages actions like `startAnalysis`.
-/// DOES NOT manage the state of the active execution (use [executionStreamProvider]).
+/// Manages the state of the active execution, including SSE monitoring and actions.
 
-abstract class _$ExecutionController extends $AsyncNotifier<void> {
-  FutureOr<void> build();
+abstract class _$ExecutionController extends $AsyncNotifier<Execution?> {
+  FutureOr<Execution?> build();
   @$mustCallSuper
   @override
   void runBuild() {
-    final ref = this.ref as $Ref<AsyncValue<void>, void>;
+    final ref = this.ref as $Ref<AsyncValue<Execution?>, Execution?>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<AsyncValue<void>, void>,
-              AsyncValue<void>,
+              AnyNotifier<AsyncValue<Execution?>, Execution?>,
+              AsyncValue<Execution?>,
               Object?,
               Object?
             >;
@@ -165,18 +161,8 @@ abstract class _$ExecutionController extends $AsyncNotifier<void> {
   }
 }
 
-/// **Execution Raw Data Provider**
-///
-/// Fetches complete raw execution data from the /raw API endpoint.
-/// This includes all agent outputs, hook outputs, and timing information.
-
 @ProviderFor(executionRawData)
 final executionRawDataProvider = ExecutionRawDataFamily._();
-
-/// **Execution Raw Data Provider**
-///
-/// Fetches complete raw execution data from the /raw API endpoint.
-/// This includes all agent outputs, hook outputs, and timing information.
 
 final class ExecutionRawDataProvider
     extends
@@ -188,10 +174,6 @@ final class ExecutionRawDataProvider
     with
         $FutureModifier<Map<String, dynamic>>,
         $FutureProvider<Map<String, dynamic>> {
-  /// **Execution Raw Data Provider**
-  ///
-  /// Fetches complete raw execution data from the /raw API endpoint.
-  /// This includes all agent outputs, hook outputs, and timing information.
   ExecutionRawDataProvider._({
     required ExecutionRawDataFamily super.from,
     required String super.argument,
@@ -238,11 +220,6 @@ final class ExecutionRawDataProvider
 
 String _$executionRawDataHash() => r'935a6ab9b4b19a9a341082f6068f1715e6d6a59e';
 
-/// **Execution Raw Data Provider**
-///
-/// Fetches complete raw execution data from the /raw API endpoint.
-/// This includes all agent outputs, hook outputs, and timing information.
-
 final class ExecutionRawDataFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<Map<String, dynamic>>, String> {
   ExecutionRawDataFamily._()
@@ -253,11 +230,6 @@ final class ExecutionRawDataFamily extends $Family
         $allTransitiveDependencies: null,
         isAutoDispose: true,
       );
-
-  /// **Execution Raw Data Provider**
-  ///
-  /// Fetches complete raw execution data from the /raw API endpoint.
-  /// This includes all agent outputs, hook outputs, and timing information.
 
   ExecutionRawDataProvider call(String executionId) =>
       ExecutionRawDataProvider._(argument: executionId, from: this);

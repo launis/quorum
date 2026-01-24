@@ -1,6 +1,6 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="1" failures="0" skipped="0" tests="1" time="14.487" timestamp="2026-01-23T11:13:26.216301+02:00" hostname="Laptop-Risto"><testcase classname="" name="backend.tests.api.test_pdf_security" time="0.000"><error message="collection failure">backend\tests\api\test_pdf_security.py:5: in &lt;module&gt;
-    from backend.api.execution_router import _enforce_pdf_access
-backend\api\execution_router.py:909: in &lt;module&gt;
-    storage: Any = Depends(get_storage_service_dep), # Using factory directly or StorageDep if imported
-                           ^^^^^^^^^^^^^^^^^^^^^^^
-E   NameError: name 'get_storage_service_dep' is not defined</error></testcase></testsuite></testsuites>
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="1" failures="0" skipped="0" tests="1" time="6.616" timestamp="2026-01-24T12:44:30.331986+02:00" hostname="Laptop-Risto"><testcase classname="" name="backend.tests.api.test_workflow_control" time="0.000"><error message="collection failure">backend\tests\api\test_workflow_control.py:13: in &lt;module&gt;
+    from backend.api.execution_router import cancel_execution
+backend\api\execution_router.py:1165: in &lt;module&gt;
+    settings: Any = Depends(get_settings_dep),
+                            ^^^^^^^^^^^^^^^^
+E   NameError: name 'get_settings_dep' is not defined</error></testcase></testsuite></testsuites>

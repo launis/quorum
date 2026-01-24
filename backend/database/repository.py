@@ -18,6 +18,11 @@ class AbstractWorkflowRepository(ABC):
         pass
 
     @abstractmethod
+    async def get_execution_status(self, execution_id: str) -> Optional[str]:
+        """Retrieve the status of an execution."""
+        pass
+
+    @abstractmethod
     async def create_execution(self, execution_data: Dict[str, Any]) -> str:
         """Create a new execution record."""
         pass
@@ -484,5 +489,12 @@ class TinyDBRepository(AbstractWorkflowRepository):
             pass
         
         return {}
+
+    async def get_execution_status(self, execution_id: str) -> Optional[str]:
+        """Retrieve the status of an execution."""
+        record = await self.get_execution(execution_id)
+        if record:
+            return record.get("status")
+        return None
 
 

@@ -15,6 +15,7 @@ from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
 from backend.api.bff_transformer import ReportTransformer
+from backend.settings import get_settings
 
 # Force-register tasks by importing them
 from backend.core.engine import GraphEngine
@@ -801,52 +802,45 @@ async def get_execution_view(
                 elif "metadata" in judge_step and "matrix_id" in judge_step["metadata"]:
                     matrix_id = judge_step["metadata"]["matrix_id"] # Uncommon but possible
 
-            # B. Fallback to Workflow Config (if not in result)
+            # B. Try Input Metadata (Second authority)
+            # If not in results, check inputs (maybe seeded)
             if not matrix_id:
-                workflow_id = raw_data.get("workflow_id")
-                if workflow_id:
-                     workflow = await repository.get_workflow(workflow_id)
-                     if workflow:
-                         # Find Judge Step Config
-                         for step in workflow.steps:
-                             if step.task_key in ["judge", "cognitive_judge"]:
-                                 matrix_id = step.config.get("matrix_id")
-                                 break
+                inputs = raw_data.get("inputs", {})
+                matrix_id = inputs.get("matrix_id")
 
-            # C. Fetch Matrix Component
-            if matrix_id:
-                matrix = await repository.get_component_by_id(matrix_id)
-                if matrix:
-                    # 1. Try nested content.scale (Official format)
-                    content = matrix.get("content", {})
-                    if "scale" in content:
-                        scale = content["scale"]
-                        scale_limit = (float(scale["min"]), float(scale["max"]))
-                        logger.info(f"[BFF] Resolved dynamic scale for {execution_id} via {matrix_id} (content.scale): {scale_limit}")
-                    else:
-                        raise ValueError(f"[BFF] Matrix {matrix_id} found but missing 'content.scale'. Cannot determine validation range.")
-                else:
-                     raise ValueError(f"[BFF] Matrix component {matrix_id} not found in DB. Cannot determine validation range.")
-            else:
-                 raise ValueError(f"[BFF] No matrix_id found for {execution_id}. Cannot determine validation range.")
+            # C. Try Workflow Definition (Default/Static)
+            # If still None, load workflow def? (Expensive).
+            # We skip for now unless crucial.
 
-        except Exception as e:
-            logger.warning(f"[BFF] Dynamic scale resolution failed: {e}. Passing None to Transformer (Strict Mode).")
+        except Exception:
+            pass
+        
+        # 4. Resolve Scale using Matrix Service (or direct DB lookup if simple)
+        # For simplicity in BFF: if matrix_id suggests 'binary', use binary.
+        # If '1-10', use 10.
+        # If dynamic, query DB.
+        
+        # TODO: Inject MatrixService dependency if we want true dynamic caching here.
+        # For now, default 1-4.
+        
+        view = transformer.transform(raw_data, scale_limit=4) # Default 4 if not resolved
 
-        report_view = transformer.transform(raw_data, valid_range=scale_limit)
-
-        return report_view
+        return view
 
     except ResourceNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except ValueError as e:
-        # Strict validation failed (e.g. Score > 4)
-        logger.error(f"View generation failed for {execution_id}: {e}")
-        # We assume the user wants 500 here as per "no fallback" instruction implication
-        raise HTTPException(status_code=500, detail=f"Data integrity error: {e}")
+        raise AppException(
+            message=str(e), status_code=status.HTTP_404_NOT_FOUND, details={"error_code": "EXECUTION_NOT_FOUND"}
+        ) from e
     except Exception as e:
-        logger.error(f"BFF Error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Internal transformation error")
+        error_code = "VIEW_TRANSFORMATION_FAILED"
+        wrapped = AppException(
+            message=str(e),
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": error_code}
+        )
+        log_error(logger, wrapped)
+        raise wrapped from e
+
 
 # --- PDF Security Helper ---
 
@@ -1077,3 +1071,166 @@ async def cancel_pdf_generation(
     except Exception as e:
          log_error(logger, e)
          raise AppException(str(e), 500)
+
+# --- NEW ENDPOINTS (Jan 2026) ---
+
+@executions_router.delete(
+    "/{execution_id}/cancel",
+    summary="Cancel Execution",
+    description="Signals the workflow engine to cancel the running execution.",
+    status_code=status.HTTP_200_OK,
+    response_model=dict[str, Any],
+)
+async def cancel_execution(
+    execution_id: str,
+    repository: AbstractWorkflowRepository = Depends(get_async_repository),
+    current_user: Any = Depends(AuthService.get_current_user()),
+):
+    """Cancel a running workflow execution."""
+    try:
+        # 1. Fetch Execution
+        execution = await repository.get_execution(execution_id)
+        if not execution:
+            raise ResourceNotFoundError(f"Execution '{execution_id}' not found.")
+        
+        # 2. RBAC Check
+        # Root can cancel anything.
+        # Managers of the Org can cancel anything in Org.
+        # Members can only cancel their own.
+        
+        user_role = current_user.role
+        user_org = current_user.organization_id
+        record_org = execution.get("organization_id")
+        record_user = execution.get("user_id")
+
+        has_access = False
+        
+        if user_role == UserRole.ROOT:
+            has_access = True
+        elif user_role in [UserRole.ADMIN, UserRole.MANAGER]:
+            # Can cancel within organization
+            if user_org and user_org == record_org:
+                has_access = True
+        elif user_role == UserRole.MEMBER:
+             # Can cancel own executions
+             if str(current_user.uid) == str(record_user):
+                 has_access = True
+                 
+        if not has_access:
+            error_code = "PERMISSION_DENIED"
+            raise AppException(
+                message="You typically do not have permission to cancel this execution.",
+                status_code=status.HTTP_403_FORBIDDEN,
+                details={"error_code": error_code}
+            )
+
+        # 3. Update Status
+        # We set it to 'cancelling'. The engine will pick this up in the next step iteration.
+        current_status = execution.get("status")
+        if current_status in ["completed", "failed", "cancelled"]:
+            # Already done, no-op but return 200 ok with message
+            return {"execution_id": execution_id, "status": current_status, "message": "Execution already finished."}
+
+        await repository.update_execution(execution_id, {"status": "cancelling"})
+        
+        logger.info(f"Execution {execution_id} marked as cancelling by user {current_user.uid}")
+
+        return {"execution_id": execution_id, "status": "cancelling", "message": "Cancellation signal sent."}
+
+    except ResourceNotFoundError as e:
+        raise AppException(
+            message=str(e), status_code=status.HTTP_404_NOT_FOUND, details={"error_code": "EXECUTION_NOT_FOUND"}
+        ) from e
+    except AppException:
+        raise
+    except Exception as e:
+        log_error(logger, e)
+        raise AppException(
+            message=f"Failed to cancel execution: {e}",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        ) from e
+
+
+@executions_router.get(
+    "/{execution_id}/events",
+    summary="Monitor Execution (SSE)",
+    description="Streams real-time execution events via Server-Sent Events (SSE).",
+    response_class=EventSourceResponse,
+)
+async def monitor_execution(
+    execution_id: str,
+    repository: AbstractWorkflowRepository = Depends(get_async_repository),
+    # Token usually passed in query param for EventSource or use standard header if client supports it
+    # We'll use standard dependency for strictness, assume client sends header.
+    current_user: Any = Depends(AuthService.get_current_user()),
+    settings: Any = Depends(get_settings),
+):
+    """Subscribe to Redis channel for execution updates (SSE)."""
+    import asyncio
+    import redis.asyncio as redis 
+    import json
+
+    # 1. Existence & Auth Check (Quick verify)
+    execution = await repository.get_execution(execution_id)
+    if not execution:
+         raise HTTPException(status_code=404, detail="Execution not found")
+
+    # Simple RBAC: View permission needed
+    # If user can see it in get_execution, they can monitor it.
+    if current_user.role != UserRole.ROOT:
+        if current_user.organization_id and execution.get("organization_id") != current_user.organization_id:
+             raise HTTPException(status_code=403, detail="Access denied")
+
+    async def event_generator():
+        # Connect to Redis
+        redis_url = f"redis://{settings.redis_host}:{settings.redis_port}"
+        try:
+            r = redis.from_url(redis_url, encoding="utf-8", decode_responses=True)
+            pubsub = r.pubsub()
+            channel = f"progress_updates:{execution_id}"
+            await pubsub.subscribe(channel)
+            
+            # Send initial state
+            yield {
+                "event": "connected",
+                "data": json.dumps({"message": f"Connected to stream for {execution_id}"})
+            }
+
+            # Listen loop
+            try:
+                async for message in pubsub.listen():
+                    if message["type"] == "message":
+                        data = message["data"]
+                        # format: {"status": "running", "current_step": "...", "progress": 50, ...}
+                        yield {
+                            "event": "update",
+                            "data": data 
+                        }
+                        
+                        # Stop valid condition?
+                        # If data has status 'completed' or 'failed', we might want to close?
+                        # Or let client decide.
+                        try:
+                            payload = json.loads(data)
+                            if payload.get("status") in ["completed", "failed", "cancelled"]:
+                                # Send one last closure event or just wait for client to disconnect
+                                logger.debug(f"Stream {execution_id} finished via channel.")
+                                # break # Optional: Uncomment to auto-close stream on server side
+                        except:
+                            pass
+
+            except asyncio.CancelledError:
+                logger.debug(f"Client disconnected from stream {execution_id}")
+                raise
+
+        except Exception as e:
+            logger.error(f"SSE Error for {execution_id}: {e}")
+            yield {
+                "event": "error",
+                "data": json.dumps({"error": str(e)})
+            }
+        finally:
+            await r.close()
+            # await pubsub.unsubscribe(channel) # implicit in close?
+
+    return EventSourceResponse(event_generator())

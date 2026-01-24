@@ -1,6 +1,0 @@
-
-   - 
-                                                                                                                        
-Name               Id                     Version Source
----------------------------------------------------------
-GTK3-Runtime Win64 tschoonj.GTKForWindows 3.24.31 winget

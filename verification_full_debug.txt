@@ -1,5 +1,0 @@
-Checking c:/src/quorum/backend/seed/seed_data.json...
-Components Count: 75
-  WARNING: Knowledge Base NOT FOUND in components.
-System Config Items: 2
-  WARNING: Model Registry NOT FOUND in system_config.

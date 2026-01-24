@@ -60,13 +60,16 @@ class GraphEngine:
                     parsed_value = ChatLogParser.parse(value)
                     execution_state[key] = parsed_value
                     if len(parsed_value) != original_len:
-                         logger.info(f"[GraphEngine] ChatLogParser optimized '{key}': {original_len} -> {len(parsed_value)} chars")
+                         logger.info(
+                             f"[GraphEngine] ChatLogParser optimized '{key}': "
+                             f"{original_len} -> {len(parsed_value)} chars"
+                         )
                 except Exception as e:
                     # Fail open or closed? Mandate says "Enforce", but we shouldn't crash workflow start if possible?
                     # "Strict Mode" suggests crashing.
                     logger.warning(f"[GraphEngine] ChatLogParser failed for '{key}': {e}")
                     # Keep raw value if parsing fails, but log warning.
-        
+
         logger.info(f"Starting workflow '{definition.id}' with {len(definition.steps)} steps.")
 
         # Ensure step_results exists for idempotency checks
@@ -78,6 +81,17 @@ class GraphEngine:
             if "step_results" in execution_state and step.id in execution_state["step_results"]:
                 logger.info(f"[GraphEngine] Skipping step '{step.id}' - result already exists in state.")
                 continue
+
+            # Graceful Cancellation Check (Jan 2026)
+            if repository and execution_id:
+                # We check the centralized status source of truth
+                exec_status = await repository.get_execution_status(execution_id)
+                if exec_status in ("cancelling", "cancelled"):
+                    logger.info(f"[GraphEngine] Execution {execution_id} cancelled by user.")
+                    execution_state["status"] = "cancelled"
+                    # Break the loop to stop processing further steps
+                    break
+
 
             try:
                 # 1. Resolve Inputs
@@ -126,9 +140,9 @@ class GraphEngine:
                 # Refactor: Store in step_results
                 if "step_results" not in execution_state:
                     execution_state["step_results"] = {}
-                
+
                 execution_state["step_results"][step.id] = state_val
-                
+
                 logger.debug(f"Step '{step.id}' completed.")
 
                 # 6. PERSISTENCE (Step-by-Step)

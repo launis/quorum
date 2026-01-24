@@ -1,3 +1,0 @@
-Root Keys: ['organizations', 'users', 'system_config', 'components', 'workflows']
-FOUND: system_config
-system_config keys: ['1', '2']
