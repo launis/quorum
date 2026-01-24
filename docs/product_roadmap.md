@@ -1,15 +1,15 @@
-# 🗺️ Cognitive Quorum - Product Roadmap (2026)
+﻿# ðŸ—ºï¸ Cognitive Quorum - Product Roadmap (2026)
 
 This document outlines the strategic roadmap for evolving Cognitive Quorum from a prototype into a scalable, multi-tenant B2B SaaS platform.
 
-## 📌 Status Legend
+## ðŸ“Œ Status Legend
 - [x] **Done**: Completed and integrated into `main`.
 - [ ] **Pending**: To be implemented.
 - [~] **In Progress**: Currently under active development.
 
 ---
 
-## 🏁 Phase 0: Core Intelligence & Engine (✅ Completed)
+## ðŸ Phase 0: Core Intelligence & Engine (âœ… Completed)
 **Objective:** Build a robust, scientific-grade analysis engine capable of multi-agent reasoning.
 
 ### 0.0 Core Foundations (The "Brain")
@@ -38,11 +38,11 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 
 ---
 
-## 📍 Phase 1: SaaS Foundation (Backend Hardening)
+## ðŸ“ Phase 1: SaaS Foundation (Backend Hardening)
 **Objective:** Secure the backend, enforce multi-tenancy, and ensure the system is "Cloud Ready".
 **Milestone:** Jan 13, 2026 - Absolute Triple Green (Ruff/Mypy/Tests) & V2.9 Standards enforced.
 
-### 1.1 Authentication & Identity (✅ Completed)
+### 1.1 Authentication & Identity (âœ… Completed)
 - [x] **Hybrid Auth Service**: Support for both Firebase Auth (Production) and Local Mock Auth (Dev).
 - [x] **RBAC Implementation**: Defined Roles (`ROOT`, `ADMIN`, `MANAGER`, `MEMBER`, `VIEWER`).
 - [x] **Organization Entity**: Implemented `Organization` model to support Multi-tenancy.
@@ -53,7 +53,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **Last Admin Protection**: Prevent deletion of the last ADMIN in an organization (Implemented in `AuthService`).
 - [x] **Primary Root Protection**: Prevent deletion of the `root_master` system account (Implemented in `AuthService`).
 
-### 1.2 Data Isolation & Security (✅ Completed)
+### 1.2 Data Isolation & Security (âœ… Completed)
 - [x] **Repository Scoping**: Update `AbstractWorkflowRepository` to filter data by `organization_id`.
     - *System Workflows*: Visible to all (Read-Only).
     - *Tenant Workflows*: Visible only to owning Organization.
@@ -71,11 +71,27 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **Config SSOT**: Refactor `docker-compose.yml` to use `.env` interpolation (Single Source of Truth) via `env_file`.
 - [x] **Worker Environment Parity**: Worker successfully verified in Local (TinyDB), Local (Firestore), and Docker (Firestore) environments.
 
-### 1.4 Scalability Architecture (Future)
+### 1.4 Cognitive Configuration Studio (The "Architect" UI)
+**Objective:** Replace legacy chaotic configuration screens with a structured, visual workflow editor in Flutter. Enable "No-Code" strategy adjustments.
+
+#### Backend: Dynamic Core (Priority Shift from Future Findings)
+- [ ] **Database-Driven Definitions**: Refactor `execution_router.py` to load pipeline steps dynamically from `WorkflowDefinition` models in DB, replacing hardcoded "Case Logic".
+- [ ] **Component API**: New endpoints (`GET /components/matrices`, `PUT /components/prompts`) to allow frontend modification of reasoning strategies.
+- [ ] **Validation Layer**: Implement `DryRunValidator` to test modified workflows without executing expensive LLM calls.
+
+#### Frontend: The Studio Module
+- [ ] **Visual Pipeline Builder**: A specialized Flutter view using a "Stepper" or "Graph" visualization to show agent flow (e.g., `Ingest -> Guard -> Analyst -> Judge`).
+    - *Feature:* Reorder agents via drag-and-drop (if backend logic permits) or toggle specific agents on/off.
+- [ ] **Matrix Editor (BARS)**: A structured DataGrid UI for editing Evaluation Matrices (`Criteria`, `Score 1-5 Descriptions`).
+    - *UX:* Prevents invalid JSON errors by using form fields instead of raw text editors.
+- [ ] **Prompt Registry UI**: A "System Instruction" editor with version history.
+    - *Safety:* Allows Admins to tweak the "Persona" of the Judge or Analyst without redeploying the backend.
+
+### 1.5 Scalability Architecture (Future)
 - [x] **Distribute Task Queue**: `Arq` with Redis implementation (`backend/worker.py`) for durable job execution.
 - [x] **Decoupled Workers**: Initial separation of `execute_workflow_task` accessible via `worker.py`.
 
-### 1.5 Reliability Hardening (Zero-Fallback & Seeding) (✅ Completed)
+### 1.6 Reliability Hardening (Zero-Fallback & Seeding) (âœ… Completed)
 - [x] **Zero-Fallback Architecture**: Removed default models; system now fails fast if configuration is missing.
 - [x] **Seed Synchronization**: Standardized `db.json` -> `seed_data.json` migration, making Seed Data the authoritative source of truth.
 - [x] **UI Step Synchronization**: Fixed race conditions in `PipelineRunner` ensuring "Pallukat" (UI indicators) update correctly.
@@ -83,7 +99,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 
 ---
 
-## 📍 Phase 2: The Pilot App (Flutter MVP) (✅ Completed)
+## ðŸ“ Phase 2: The Pilot App (Flutter MVP) (âœ… Completed)
 **Objective:** Enable end-users (Testers) to perform audits via a mobile/web interface using modern Flutter 3.27+ standards.
 
 ### 2.1 Foundation & Architecture (Critical Path)
@@ -146,7 +162,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 
 ---
 
-## 📍 Phase 2.6: Cognitive Layer Upgrade (Jan 2026) (✅ Completed)
+## ðŸ“ Phase 2.6: Cognitive Layer Upgrade (Jan 2026) (âœ… Completed)
 **Objective:** Upgrade the "Mind" of the system to support dynamic evaluation criteria and autonomous evidence discovery without code changes.
 
 ### 2.6.1 Dynamic Evaluation System (BARS)
@@ -162,11 +178,11 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 
 ---
 
-## 📍 Phase 3: The Business Layer (Billing & Compliance)
+## ðŸ“ Phase 3: The Business Layer (Billing & Compliance)
 
 **Objective:** Turn usage into revenue and ensure enterprise compliance.
 
-### 3.1 Usage Tracking & Cost Attribution (✅ Completed)
+### 3.1 Usage Tracking & Cost Attribution (âœ… Completed)
 - [x] **Usage Service**: Track Token Usage (Input/Output) per Execution.
 - [x] **Cost Calculation**: Real-time cost checking via LiteLLM.
 - [x] **Quota Management**: Enforce Organization-level spend limits.
@@ -176,7 +192,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [ ] **Secret Management**: Encrypted storage for Tenant API Keys.
 - [ ] **LLM Provider Update**: Update `LLMFactory` to check Tenant Context before falling back to System Key.
 
-### 3.3 Audit Logs (✅ Completed)
+### 3.3 Audit Logs (âœ… Completed)
 - [x] **Audit Service**: Standardized logging for critical actions (Org/User lifecycle, Settings).
 - [x] **RBAC Enforcement**: Strict visibility rules (Root=All, Admin=Org, Member=None).
 - [ ] **Audit UI**: Dedicated frontend view for filtering and export (Basic table exists).
@@ -188,7 +204,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 
 ---
 
-## 📍 Phase 4: Power Users (Manager Configuration Suite)
+## ðŸ“ Phase 4: Power Users (Manager Configuration Suite)
 **Objective:** Enable deep customization for Enterprise clients. Empower Managers to define *how* the AI works, not just *when* it works.
 
 ### 4.1 Component Management (Prompts & Rules)
@@ -219,7 +235,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 
 ---
 
-## 📍 Phase 5: Self-Service & Refinement (✅ Completed)
+## ðŸ“ Phase 5: Self-Service & Refinement (âœ… Completed)
 **Objective:** Empower users to manage their own identity and streamline Admin workflows.
 
 ### 5.1 User Self-Service
@@ -232,11 +248,11 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 
 ---
 
-## 📍 Phase 6: Flutter Frontend (The Face)
+## ðŸ“ Phase 6: Flutter Frontend (The Face)
 **Objective:** Modernization (Riverpod 3.0, GoRouter, SDUI).
 
 ### 6.1 Data Models (Freezed)
-- [ ] **Model Parity**: Varmista, että Dart-mallit vastaavat 1:1 backendin Pydantic-malleja.
+- [ ] **Model Parity**: Varmista, ettÃ¤ Dart-mallit vastaavat 1:1 backendin Pydantic-malleja.
 - [ ] **Code Gen**: `dart run build_runner build -d`.
 
 ### 6.2 Server-Driven Form Widget
@@ -253,8 +269,8 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 
 ---
 
-## 📍 Phase 7: Cleanup (Siivous)
-**Objective:** Poista Legacy-koodi ja siirry täysin dynaamiseen arkkitehtuuriin.
+## ðŸ“ Phase 7: Cleanup (Siivous)
+**Objective:** Poista Legacy-koodi ja siirry tÃ¤ysin dynaamiseen arkkitehtuuriin.
 
 ### 7.1 Legacy Removal
 - [ ] **Delete**: `backend/agents/base.py` (Old BaseAgent).
@@ -264,7 +280,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 
 ---
 
-## 🔮 Future Findings (Q1 2026)
+## ðŸ”® Future Findings (Q1 2026)
 **New requirements identified during Phase 1-3 implementation:**
 
 1.  **Recovery UI**:
@@ -279,7 +295,3 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
     * **Enablement**: Allows arbitrary number of files, auto-routing via semantic tags, and mass-scale case law analysis.
     * **Effort**: High (Core Engine & Prompt Logic Refactor).
 
-4.  **Database-Driven Workflow Definitions**:
-    * **Current State**: Hardcoded logic in `execution_router.py` handles specific workflow cases (e.g., "Audit" expects 3 specific files).
-    * **Interim Strategy**: Continue using hardcoded "Case Logic" where `audit = 3 files` is defined in code but executed via DB-stored steps.
-    *   **Future Goal**: Fully dynamic definition where the Database stores the *File Requirements* (input schema) alongside the steps, removing hardcoded logic from the router.
