@@ -57,6 +57,12 @@ To prevent "hallucinated logic", complex operations are offloaded to Python code
 *   **`security.py`**: PII masking via Microsoft Presidio.
 *   **`causal.py`**: Statistical validation via DoWhy.
 
+### 5. BFF & Reporting Layer (PDF)
+The Backend for Frontend (BFF) transforms raw execution state into human-readable views.
+*   **PDF Generation**: Uses `Jinja2` templates + `WeasyPrint` to render pixel-perfect reports on the server.
+*   **Timeline Unification**: Aggregates logs from all agents into a single chronological feed (`events` key).
+*   **Client Download**: The Flutter client uses `FileSaver` to download the binary blob, ensuring consistent file handling across Web and Desktop without relying on browser print dialogs.
+
 ## Data-Driven Configuration
 
 In V2.6, the *Workflow Definition* and *Cognitive Strategy* are strictly separated from code.

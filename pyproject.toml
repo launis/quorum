@@ -33,6 +33,9 @@ dependencies = [
     "pyjwt>=2.10.1",
     "slowapi>=0.1.9",
     "instructor>=1.14.3",
+    "sse-starlette>=2.1.3",
+    "weasyprint>=63.0",
+    "matplotlib>=3.10.0",
 ]
 
 [dependency-groups]

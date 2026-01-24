@@ -32,6 +32,6 @@ TaskRegistry.register_agent(
 # --- Class-Based Agent Registration (Archivist) ---
 
 from backend.agents.archivist import ArchivistAgent
-from backend.models.domain import CaseLawContext
+from backend.models.domain import ArchivistOutput
 
-TaskRegistry.register_agent(task_keys=["archivist"], agent_cls=ArchivistAgent, output_model=CaseLawContext)
+TaskRegistry.register_agent(task_keys=["archivist"], agent_cls=ArchivistAgent, output_model=ArchivistOutput)

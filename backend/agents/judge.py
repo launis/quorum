@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 class JudgeAgent(BaseAgent):
     """Tuomari-agentti (Judge Agent).
 
-    Refactored to support dynamic Evaluation Matrix configurations with legacy fallback.
+    Refactored to support dynamic Evaluation Matrix configurations.
     """
 
     state_field = "step_judge"
@@ -65,53 +65,7 @@ class JudgeAgent(BaseAgent):
         else:
             result = result_obj
 
-        # --- NORMALIZATION LOGIC (Legacy -> Standard) ---
-        # The Goal: ALWAYS return an EvaluationResult compatible dictionary.
-        
-        # Check if we have legacy 'pisteet' structure
-        if "pisteet" in result and "dimensions" not in result:
-             logger.info("[JudgeAgent] formatting legacy 'pisteet' to standardized 'dimensions'")
-             
-             dimensions = []
-             pisteet = result.get("pisteet", {})
-             total_sum = 0
-             count = 0
-             
-             # Map specific legacy keys to dimensions
-             # Note: Dimension IDs should match your Matrix definitions
-             for key, item in pisteet.items():
-                 if not item: continue
-                 
-                 # Heuristic mapping for IDs
-                 dim_id = key.lower() 
-                 if "analy" in dim_id: dim_id = "analysis"
-                 elif "arvio" in dim_id: dim_id = "evaluation"
-                 elif "syn" in dim_id: dim_id = "synthesis"
-                 
-                 score_val = item.get("arvosana", 0)
-                 
-                 try:
-                     score_num = float(score_val)
-                 except (ValueError, TypeError):
-                     score_num = 0
-                 
-                 dimensions.append({
-                     "dimension_id": dim_id,
-                     "score": score_num,
-                     "reasoning": item.get("perustelu", "")
-                 })
-                 total_sum += score_num
-                 if score_num > 0: count += 1
 
-             result["dimensions"] = dimensions
-             
-             # Calculate total score if missing
-             if "total_score" not in result:
-                 result["total_score"] = round(total_sum / count, 2) if count > 0 else 0
-                 
-        # Check 'kriittiset_havainnot_yhteenveto' -> 'critical_findings'
-        if "kriittiset_havainnot_yhteenveto" in result and "critical_findings" not in result:
-             result["critical_findings"] = result["kriittiset_havainnot_yhteenveto"]
 
         # Ensure mandatory EvaluationResult fields
         # Force-overwrite matrix_id from configuration to prevent LLM hallucinations

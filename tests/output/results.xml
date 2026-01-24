@@ -1,56 +1,6 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="5.531" timestamp="2026-01-22T01:29:41.725843+02:00" hostname="Laptop-Risto"><testcase classname="backend.tests.integration.test_config_integrity" name="test_agent_wrapper_propagates_temperature" time="0.004"><failure message="AttributeError: &lt;module 'backend.core.registry' from 'C:\\src\\quorum\\backend\\core\\registry.py'&gt; does not have the attribute 'get_async_repository'">@pytest.mark.asyncio
-    async def test_agent_wrapper_propagates_temperature():
-        """Verify that agent_wrapper correctly extracts 'temperature' from Registry and passes it to Agent."""
-    
-        # 1. Setup Mock Registry &amp; Config
-        # This simulates what AgentRegistry.resolve_model_config() returns from the DB
-        mock_db_config = {
-            "model_name": "mock-model-v1",
-            "provider": "mock_provider",
-            "temperature": 0.42,          # Critical Value &lt; 1.0
-            "max_tokens": 1234,
-            "top_p": 0.9,
-        }
-    
-        # 2. Mock Internal Dependencies
-        # We mock get_async_repository to avoid DB connection
-        # We mock AgentRegistry to return our specific config.
-        # Since agent_wrapper imports it from backend.services.agent_registry, we patch it THERE or use sys.modules.
-&gt;       with patch("backend.core.registry.get_async_repository", new_callable=AsyncMock) as mock_repo_getter, \
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-             patch("backend.services.agent_registry.AgentRegistry") as MockRegistryClass, \
-             patch("backend.services.component_registry.ComponentRegistry") as MockComponentRegistry: # Prevent prompt resolution errors
-
-backend\tests\integration\test_config_integrity.py:35: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-C:\Users\risto\AppData\Roaming\uv\python\cpython-3.14.2-windows-x86_64-none\Lib\unittest\mock.py:1503: in __enter__
-    original, local = self.get_original()
-                      ^^^^^^^^^^^^^^^^^^^
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-
-self = &lt;unittest.mock._patch object at 0x000001E8B0C37E00&gt;
-
-    def get_original(self):
-        target = self.getter()
-        name = self.attribute
-    
-        original = DEFAULT
-        local = False
-    
-        try:
-            original = target.__dict__[name]
-        except (AttributeError, KeyError):
-            original = getattr(target, name, DEFAULT)
-        else:
-            local = True
-    
-        if name in _builtins and isinstance(target, ModuleType):
-            self.create = True
-    
-        if not self.create and original is DEFAULT:
-&gt;           raise AttributeError(
-                "%s does not have the attribute %r" % (target, name)
-            )
-E           AttributeError: &lt;module 'backend.core.registry' from 'C:\\src\\quorum\\backend\\core\\registry.py'&gt; does not have the attribute 'get_async_repository'
-
-C:\Users\risto\AppData\Roaming\uv\python\cpython-3.14.2-windows-x86_64-none\Lib\unittest\mock.py:1473: AttributeError</failure></testcase></testsuite></testsuites>
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="1" failures="0" skipped="0" tests="1" time="14.487" timestamp="2026-01-23T11:13:26.216301+02:00" hostname="Laptop-Risto"><testcase classname="" name="backend.tests.api.test_pdf_security" time="0.000"><error message="collection failure">backend\tests\api\test_pdf_security.py:5: in &lt;module&gt;
+    from backend.api.execution_router import _enforce_pdf_access
+backend\api\execution_router.py:909: in &lt;module&gt;
+    storage: Any = Depends(get_storage_service_dep), # Using factory directly or StorageDep if imported
+                           ^^^^^^^^^^^^^^^^^^^^^^^
+E   NameError: name 'get_storage_service_dep' is not defined</error></testcase></testsuite></testsuites>

@@ -152,7 +152,7 @@ class ReportTransformer:
             id="unified-timeline",
             type=SectionType.TIMELINE_FEED,
             title="Prosessin Eteneminen",
-            data={"entries": timeline_events}
+            data={"events": timeline_events}
         ))
 
         # --- D. Determine Theme ---
@@ -172,6 +172,7 @@ class ReportTransformer:
         """
         # Data might be in 'score_cards' list (new format) or flat fields (old format)
         score = None
+        raw_score = None
         verdict = None
         dimensions = []
 
@@ -182,90 +183,14 @@ class ReportTransformer:
             verdict = card.get("verdict")
             dimensions = card.get("dimensions", [])
         
-        # 2. Try 'pisteet' (Old format or fallback location)
-        elif "pisteet" in judge_step:
-            # Maybe 'pisteet' is a float? Or a dict?
-            pisteet = judge_step["pisteet"]
-            if isinstance(pisteet, (int, float)):
-                raw_score = pisteet
-            elif isinstance(pisteet, dict):
-                 raw_score = judge_step.get("total_score")
-            else:
-                 raw_score = judge_step.get("total_score")
+        # 2. Strict Mode: No fallbacks for 'pisteet' or regex parsing.
+        # If 'score_cards' (V3) is missing, we check if 'dimensions' is at root (Intermediate V3).
+        if not dimensions and "dimensions" in judge_step and isinstance(judge_step["dimensions"], list):
+            dimensions = judge_step["dimensions"]
             
-            # ATTEMPT TO EXTRACT LEGACY DIMENSIONS from 'perustelut' dict
-            # Example: {"Relevanssi": "...", "Tarkkuus": "..."}
-            # We don't have per-dimension scores in legacy data usually, just text.
-            # BUT if we want to show *something* on the radar, we might need to fake it or check if 'pisteet' IS a dict of scores?
-            # Looking at the raw data (from memory of typical legacy):
-            # pisteet = 93.3
-            # perustelut = {"Relevanssi": "...", "Tarkkuus": "..."}
-            
-            # If we strictly need numbers for Radar, and we only have text, we can't plot them.
-            # But the user says "Matriisi ei näy" -> implies they expect the labels at least?
-            # Flutter ScoreCardRadar requires 'score' for each dimension.
-            
-            # Let's check if 'perustelut' keys match the Matrix we restored.
-            perustelut = judge_step.get("perustelut")
-            
-            if perustelut and isinstance(perustelut, dict):
-                # DICT CASE: {"Relevanssi": "...", "Tarkkuus": "..."}
-                for key, val in perustelut.items():
-                    if len(str(key)) < 50:
-                        dimensions.append({
-                            "id": str(key).lower(),
-                            "label": str(key),
-                            "score": float(raw_score) if raw_score else 0.0,
-                            "reasoning": str(val)
-                        })
-            
-            elif perustelut and isinstance(perustelut, str):
-                # STRING CASE: "Relevanssi: Oli hyvä. Tarkkuus: Tarkka."
-                # We try to split by known standard keys to be safe
-                known_keys = ["Relevanssi", "Tarkkuus", "Selkeys", "Johdonmukaisuus", "Perustelut"]
-                
-                # Simple strategy: Check if key exists in text, extract segment
-                # Note: This is fuzzy but better than nothing for "No detailed dimension data".
-                
-                # Normalize text
-                p_text = perustelut
-                
-                found_dims = []
-                for key in known_keys:
-                    if key in p_text or key + ":" in p_text:
-                        # Find start index
-                        try:
-                            start_idx = p_text.find(key)
-                            # Find next key to stop
-                            end_idx = len(p_text)
-                            for other in known_keys:
-                                if other != key:
-                                    other_idx = p_text.find(other, start_idx + len(key))
-                                    if other_idx != -1 and other_idx < end_idx:
-                                        end_idx = other_idx
-                            
-                            val = p_text[start_idx+len(key):end_idx].strip(" :.\n")
-                            if val:
-                                dimensions.append({
-                                    "id": key.lower(),
-                                    "label": key,
-                                    "score": float(raw_score) if raw_score else 0.0,
-                                    "reasoning": val
-                                })
-                        except Exception:
-                            continue
-                            
-                # Fallback: If no dimensions found from string, add one generic "Perustelut" dimension
-                if not dimensions and len(p_text) > 5:
-                     dimensions.append({
-                        "id": "general_reasoning",
-                        "label": "Yleiset Perustelut",
-                        "score": float(raw_score) if raw_score else 0.0,
-                        "reasoning": p_text[:200] + "..." if len(p_text) > 200 else p_text
-                    })
-        
-        else:
-            raw_score = judge_step.get("total_score")
+        if raw_score is None:
+             # Try root total_score
+             raw_score = judge_step.get("total_score")
 
         # 3. Validation
         if raw_score is None:
@@ -360,8 +285,10 @@ class ReportTransformer:
                 events.append({
                     "timestamp": timestamp,
                     "actor": agent_label,
+                    "label": agent_label, # Frontend comp
                     "type": "reasoning",
-                    "message": str(step_data["reasoning_trace"])[:250] + "..." # Preview
+                    "message": str(step_data["reasoning_trace"])[:250] + "...", # Preview
+                    "content": str(step_data["reasoning_trace"])[:250] + "..." # Frontend comp
                 })
 
             # 2. Audit Logs (Filtered System Prompts)
@@ -378,8 +305,10 @@ class ReportTransformer:
                     events.append({
                         "timestamp": timestamp,
                         "actor": agent_label,
+                        "label": agent_label, # Frontend comp
                         "type": "log",
-                        "message": clean_msg
+                        "message": clean_msg,
+                        "content": clean_msg # Frontend comp
                     })
 
         # Sort by timestamp (handling None)

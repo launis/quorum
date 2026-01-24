@@ -5,25 +5,30 @@ Adheres to Server-Driven UI patterns and One Truth Error Handling.
 """
 
 import logging
+import os
 from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
+from sse_starlette.sse import EventSourceResponse
+
+from backend.api.bff_transformer import ReportTransformer
 
 # Force-register tasks by importing them
 from backend.core.engine import GraphEngine
 from backend.core.registry import TaskRegistry
 from backend.database.repository import AbstractWorkflowRepository
-from backend.dependencies import get_arq_pool, get_async_repository, get_engine
-from backend.exceptions import AppException, ResourceNotFoundError, WorkflowExecutionError
+from backend.dependencies import get_arq_pool, get_async_repository, get_engine, StorageDep, get_storage_service_dep
+from backend.services.storage import LocalFileStorage, AbstractStorage
+from backend.exceptions import AppException, ResourceNotFoundError, WorkflowExecutionError, ErrorCodes
+from backend.logging_config import log_error
+from backend.models.auth import TokenData, UserRole
+from backend.models.view import ReportView
 from backend.models.workflow import WorkflowDefinition
 from backend.schemas.error import APIError
-from backend.schemas.error import APIError
 from backend.services.auth import AuthService
-from backend.logging_config import log_error
-from backend.models.view import ReportView
-from backend.api.bff_transformer import ReportTransformer
 
 logger = logging.getLogger(__name__)
 
@@ -307,7 +312,7 @@ async def get_execution(
         if "error_code" not in e.details:
             e.details["error_code"] = "EXECUTION_NOT_FOUND"
         log_error(logger, e)
-        # Exception handler handles conversion to 404 based on exception type if needed, 
+        # Exception handler handles conversion to 404 based on exception type if needed,
         # or we explicitly raise AppException.
         # ResourceNotFoundError usually maps to 404 in main handler if it inherits from it.
         # But here logic explicitly converts to AppException(404).
@@ -503,7 +508,7 @@ async def create_execution(
             for key, value in form.items():
                 # DEBUG: Individual Item
                 # logger.info(f"[DEBUG] Processing form key: '{key}' | Type: {type(value)}")
-                
+
                 if key == "json_payload":
                     continue
                 if key == "workflowId":
@@ -517,7 +522,7 @@ async def create_execution(
                     # Basic Text Extraction
                     content = await value.read()
                     file_size = len(content)
-                    
+
                     if file_size == 0:
                         logger.warning(f"[FILE_UPLOAD] WARNING: File '{value.filename}' has 0 bytes!")
 
@@ -551,11 +556,11 @@ async def create_execution(
                     else:
                         text_content = f"<file_upload: {value.filename} (size={len(content)})>"
                         logger.info(f"[FILE_UPLOAD] Unhandled File Type: '{value.filename}' | Size: {len(content)} bytes | Preserved as metadata.")
-                    
+
                     if key in ["history_text"] or "chat" in key or "history" in key:
                          # Parsing is now handled centrally in GraphEngine
                          pass
-                    
+
                     inputs[key] = text_content
 
 
@@ -670,11 +675,11 @@ async def create_execution(
 
         # Persist Initial State
         await repository.create_execution(execution_data)
-        
+
         # LOGFIRE INTEGRATION: Link API request to Execution ID
         import logfire
         logfire.info("Created execution", tags={"execution_id": execution_id, "workflow_id": workflow_id})
-        
+
         logger.info(f"Created pending execution {execution_id} for workflow {workflow_id}")
 
         # 4. Enqueue Async Job
@@ -754,18 +759,17 @@ async def get_execution_view(
     execution_id: str,
     repository: AbstractWorkflowRepository = Depends(get_async_repository),
 ):
-    """
-    BFF Endpoint: Transforms raw execution data into a ReportView.
+    """BFF Endpoint: Transforms raw execution data into a ReportView.
     """
     try:
         # 1. Fetch Raw Data
         # Assuming repository has get_execution. If not, we might need to use generic get/find.
         # TinyDB usually has get_execution(id).
         execution = await repository.get_execution(execution_id)
-        
+
         if not execution:
             raise ResourceNotFoundError(f"Execution '{execution_id}' not found.")
-            
+
         # 2. Transform
         transformer = ReportTransformer()
         # execution is usually a Pydantic model or dict.
@@ -779,8 +783,8 @@ async def get_execution_view(
 
         # 3. Dynamic Scale Resolution (Database Authority)
         # Default to standard 1-4
-        scale_limit = None  # STRICT: No default. Must be found in DB or Step. 
-        
+        scale_limit = None  # STRICT: No default. Must be found in DB or Step.
+
         try:
             matrix_id = None
             # A. Try Result Metadata (Fastest)
@@ -789,7 +793,7 @@ async def get_execution_view(
             # Normalized execution result often has 'step_results' key
             if "step_results" in results: steps = results["step_results"]
             else: steps = results
-            
+
             judge_step = steps.get("step_judge") or steps.get("step_judge_cognitive")
             if judge_step:
                 if "matrix_id" in judge_step:
@@ -808,7 +812,7 @@ async def get_execution_view(
                              if step.task_key in ["judge", "cognitive_judge"]:
                                  matrix_id = step.config.get("matrix_id")
                                  break
-            
+
             # C. Fetch Matrix Component
             if matrix_id:
                 matrix = await repository.get_component_by_id(matrix_id)
@@ -830,7 +834,7 @@ async def get_execution_view(
             logger.warning(f"[BFF] Dynamic scale resolution failed: {e}. Passing None to Transformer (Strict Mode).")
 
         report_view = transformer.transform(raw_data, valid_range=scale_limit)
-        
+
         return report_view
 
     except ResourceNotFoundError as e:
@@ -843,3 +847,233 @@ async def get_execution_view(
     except Exception as e:
         logger.error(f"BFF Error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal transformation error")
+
+# --- PDF Security Helper ---
+
+def _enforce_pdf_access(user: TokenData, execution: dict[str, Any]) -> None:
+    """Enforces strict RBAC for PDF access.
+
+    Rules:
+    - ROOT: Allow ALL.
+    - MANAGER: Allow IF execution.organization_id == user.organization_id.
+    - MEMBER (User): Allow IF execution.user_id == user.uid.
+    - ADMIN: DENY ALL (per mandate).
+    """
+    if user.role == UserRole.ROOT:
+        return
+
+    if user.role == UserRole.ADMIN:
+        # Per mandate: "ADMIN: DENY ALL"
+        # Admin manages users, not executions? Unusual but enforced.
+        raise AppException(
+            message="Admins are not authorized to view execution PDFs.",
+            status_code=status.HTTP_403_FORBIDDEN,
+            details={"error_code": "ADMIN_DENIED"}
+        )
+
+    if user.role == UserRole.MANAGER:
+        # Check Organization Match
+        exec_org = execution.get("organization_id")
+        user_org = user.organization_id
+        if exec_org != user_org:
+            raise AppException(
+                message="Managers can only access executions within their organization.",
+                status_code=status.HTTP_403_FORBIDDEN,
+                details={"error_code": "ORG_MISMATCH", "exec_org": exec_org, "user_org": user_org}
+            )
+        return
+
+    # Default / MEMBER / Test User
+    # Must own the execution
+    exec_user = execution.get("user_id")
+    if exec_user != user.uid:
+        raise AppException(
+            message="You do not have permission to access this execution.",
+            status_code=status.HTTP_403_FORBIDDEN,
+            details={"error_code": "OWNERSHIP_REQUIRED"}
+        )
+
+
+# --- PDF Endpoints ---
+
+@executions_router.get(
+    "/{execution_id}/pdf/download",
+    summary="Download Execution PDF",
+    description="Securely download the PDF report. Enqueues generation if missing.",
+)
+async def download_execution_pdf(
+    execution_id: str,
+    repository: AbstractWorkflowRepository = Depends(get_async_repository),
+    current_user: TokenData = Depends(AuthService.get_current_user()),
+    arq_pool: Any = Depends(get_arq_pool),
+    storage: AbstractStorage = Depends(get_storage_service_dep),
+):
+    """
+    1. Enforce RBAC.
+    2. Check File Existence (Storage).
+    3. Return File OR Queue Job (202 Accepted).
+    """
+    try:
+        # 1. Fetch & Check Access
+        execution = await repository.get_execution(execution_id)
+        if not execution:
+            raise ResourceNotFoundError(f"Execution {execution_id} not found")
+
+        # Convert to dict for helper
+        exec_data = execution.model_dump() if hasattr(execution, 'model_dump') else execution
+        _enforce_pdf_access(current_user, exec_data)
+
+        # 2. Check File
+        # Rel path: executions/{id}/report.pdf
+        rel_path = f"executions/{execution_id}/report.pdf"
+        
+        if storage.exists(rel_path):
+            # Optimisation for Local Files
+            if isinstance(storage, LocalFileStorage):
+                full_path = storage.base_path / rel_path
+                return FileResponse(
+                    path=full_path, 
+                    filename=f"report_{execution_id}.pdf", 
+                    media_type="application/pdf",
+                    content_disposition_type="attachment"
+                )
+            else:
+                # Cloud Storage: Read bytes and return
+                content = storage.read(rel_path)
+                from fastapi.responses import Response
+                return Response(
+                    content=content,
+                    media_type="application/pdf",
+                    headers={"Content-Disposition": f'attachment; filename="report_{execution_id}.pdf"'}
+                )
+
+        # 3. Queue Job if missing
+        if arq_pool:
+            # Check if job already running? Arq doesn't easily expose this without job_id check
+            # We'll just enqueue. Idempotency handled by queue or simple overwrite.
+            await arq_pool.enqueue_job("generate_pdf_job", execution_id=execution_id)
+
+            return JSONResponse(
+                status_code=status.HTTP_202_ACCEPTED,
+                content={"status": "accepted", "message": "PDF generation queued."}
+            )
+        else:
+            raise AppException(
+                message="Background worker unavailable.",
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                details={"error_code": "WORKER_UNAVAILABLE"}
+            )
+
+    except AppException:
+        raise
+    except Exception as e:
+        error_code = ErrorCodes.PDF_DOWNLOAD_FAILED
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise AppException(
+            message=str(e),
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": error_code}
+        ) from e
+
+
+@executions_router.get(
+    "/{execution_id}/pdf/progress",
+    summary="Track PDF Generation Progress",
+    description="Server-Sent Events (SSE) for PDF generation progress.",
+)
+async def get_pdf_progress(
+    request: Request,
+    execution_id: str,
+    repository: AbstractWorkflowRepository = Depends(get_async_repository),
+    current_user: TokenData = Depends(AuthService.get_current_user()),
+    arq_pool: Any = Depends(get_arq_pool),
+):
+    """SSE Endpoint for Progress."""
+    try:
+        # 1. Auth Check
+        execution = await repository.get_execution(execution_id)
+        if not execution:
+            # SSE usually fails silently or closes connection if 404, but we can raise
+            raise ResourceNotFoundError(f"Execution {execution_id} not found")
+
+        exec_data = execution.model_dump() if hasattr(execution, 'model_dump') else execution
+        _enforce_pdf_access(current_user, exec_data)
+
+        # 2. Generator
+        async def event_generator():
+            # In a real scenario, we'd subscribe to Redis PubSub.
+            # Simplified: Polling the key set by ProgressService
+            import asyncio
+            import json
+
+            # We need a Redis client. Arq pool is a client.
+            redis = arq_pool
+            key = f"progress:{execution_id}:pdf_gen"
+
+            while True:
+                if await request.is_disconnected():
+                    break
+
+                data_raw = await redis.get(key)
+                if data_raw:
+                    # Yield data compatible with sse_starlette
+                    # It treats dict yield as ServerSentEvent(**dict)
+                    # So we must wrap our payload in 'data' key explicitly.
+                    yield {"data": data_raw}
+
+                    # Check completion
+                    data = json.loads(data_raw)
+                    if data.get("progress") >= 1.0 or data.get("progress") < 0:
+                        break
+                else:
+                    # Maybe job hasn't started? Yield init?
+                    yield {"data": json.dumps({"progress": 0.0, "message": "Waiting for worker..."})}
+
+                await asyncio.sleep(0.5)
+
+        return EventSourceResponse(event_generator())
+
+    except Exception as e:
+        log_error(logger, e)
+        raise AppException(str(e), 500)
+
+
+@executions_router.delete(
+    "/{execution_id}/pdf/cancel",
+    summary="Cancel PDF Generation",
+    description="Cancels the download process and cleans up files.",
+)
+async def cancel_pdf_generation(
+    execution_id: str,
+    repository: AbstractWorkflowRepository = Depends(get_async_repository),
+    current_user: TokenData = Depends(AuthService.get_current_user()),
+):
+    """Cancel endpoint (Clean up)."""
+    try:
+        # 1. Auth Check
+        execution = await repository.get_execution(execution_id)
+        if not execution:
+            raise ResourceNotFoundError(f"Execution {execution_id} not found")
+
+        exec_data = execution.model_dump() if hasattr(execution, 'model_dump') else execution
+        _enforce_pdf_access(current_user, exec_data)
+
+        # 2. Delete File
+        from backend.services.storage import LocalFileStorage, get_storage_client
+        storage = get_storage_client()
+        rel_path = f"executions/{execution_id}/report.pdf"
+        
+        if isinstance(storage, LocalFileStorage):
+            full_path = storage.base_path / rel_path
+            if full_path.exists():
+                os.remove(full_path)
+
+        # 3. We can't easily cancel a running Arq job without Job ID,
+        # but we can assume client stops listening.
+        # Ideally we'd store Job ID in DB. For now, file cleanup + return.
+
+        return {"status": "success", "message": "PDF cancelled and file removed."}
+
+    except Exception as e:
+         log_error(logger, e)
+         raise AppException(str(e), 500)

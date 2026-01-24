@@ -198,11 +198,28 @@ class _ResultDashboardState extends State<ResultDashboard> {
         return Card(
              child: ExpansionTile(
                 title: Text(section.title),
-                children: events.map((e) => ListTile(
-                    leading: Text(e['timestamp'] ?? '', style: const TextStyle(fontSize: 10)),
-                    title: Text(e['label'] ?? ''),
-                    subtitle: Text(e['content'] ?? '', maxLines: 2, overflow: TextOverflow.ellipsis),
-                )).toList(),
+                children: events.map((e) {
+                    final ts = e['timestamp'] as String? ?? '';
+                    String timeDisplay = ts;
+                    if (ts.length >= 16) {
+                       // Simple substring for HH:mm if ISO format (T12:34)
+                       final tIndex = ts.indexOf('T');
+                       if (tIndex != -1 && tIndex + 5 < ts.length) {
+                           timeDisplay = ts.substring(tIndex + 1, tIndex + 6);
+                       }
+                    }
+                    
+                    return ListTile(
+                        leading: Container(
+                          width: 50, // Fixed width to prevent overlap
+                          alignment: Alignment.centerRight,
+                          child: Text(timeDisplay, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        ),
+                        title: Text(e['label'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text(e['content'] ?? ''),
+                        dense: true,
+                    );
+                }).toList(),
              ),
         );
 

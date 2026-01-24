@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from backend.agents.base import BaseAgent
 
 # 3. Local Imports
-from backend.models.domain import CaseLawContext, ArchivistOutput
+from backend.models.domain import ArchivistOutput
 from backend.models.state import WorkflowState
 
 logger = logging.getLogger(__name__)

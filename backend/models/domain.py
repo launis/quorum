@@ -531,98 +531,13 @@ class PerformatiivisuusAuditointi(BaseJSON):
     ]
 
 
-# --- Step 8: Judge Agent ---
 
-
-class KonfliktinRatkaisu(BaseModel):
-    """Resolution of conflicting information."""
-
-    konflikti: Annotated[str, Field(description="Description of conflict.")]
-    ratkaisu_malli: Annotated[str, Field(description="Resolution model applied.")]
-    perustelu: Annotated[str, Field(description="Justification.")]
-
-    model_config = ConfigDict(validate_assignment=True)
-
-
-class MestaruusPoikkeama(BaseModel):
-    """Deviation from the 'Mastery' standard."""
-
-    tunnistettu: Annotated[bool, Field(description="Is anomaly detected?")]
-    perustelu: Annotated[str, Field(description="Reasoning.")]
-
-    model_config = ConfigDict(validate_assignment=True)
-
-
-class AitousEpaily(BaseModel):
-    """Suspicion of lack of authenticity."""
-
-    automaattinen_lippu: Annotated[bool, Field(description="Automatic flag?")]
-    viesti_hitl_lle: Annotated[str, Field(alias="viesti_hitl:lle", description="Message for human reviewer.")]
-
-    model_config = ConfigDict(validate_assignment=True, populate_by_name=True)
-
-
-class PisteetKriteeri(BaseModel):
-    """Score for a specific criterion."""
-
-    arvosana: Annotated[int | float, Field(description="Grade (typically 1-4, but allows dynamic scales).")]
-    perustelu: Annotated[str, Field(description="Justification.")]
-
-    model_config = ConfigDict(validate_assignment=True)
-
-
-class Pisteet(BaseModel):
-    """Collection of scores (legacy format)."""
-
-    analyysi: Annotated[PisteetKriteeri | None, Field(description="Score for Analysis.")] = None
-    arviointi: Annotated[PisteetKriteeri | None, Field(description="Score for Evaluation.")] = None
-    synteesi: Annotated[PisteetKriteeri | None, Field(description="Score for Synthesis.")] = None
-
-    model_config = ConfigDict(extra="allow", validate_assignment=True)
-
-
-class TuomioJaPisteet(BaseJSON):
-    """Output schema for the Judge Agent (Standard & Cognitive).
-
-    Attributes:
-        konfliktin_ratkaisut (list[KonfliktinRatkaisu]): Conflict resolutions.
-        mestaruus_poikkeama (MestaruusPoikkeama): Mastery deviation check.
-        aitous_epaily (AitousEpaily): Authenticity suspicion.
-        pisteet (Pisteet): Scoring breakdown.
-        kriittiset_havainnot_yhteenveto (list[str]): Critical observations summary.
-        matrix_id (Optional[str]): Matrix ID used (injected).
-        scale_min (Optional[int]): Minimum scale score.
-        scale_max (Optional[int]): Maximum scale score.
-    """
-
-    konfliktin_ratkaisut: Annotated[list[KonfliktinRatkaisu], Field(description="Conflict resolutions.")]
-    mestaruus_poikkeama: Annotated[MestaruusPoikkeama, Field(description="Mastery deviation check.")]
-    aitous_epaily: Annotated[AitousEpaily, Field(description="Authenticity suspicion.")]
-    pisteet: Annotated[Pisteet, Field(description="Scoring breakdown.")]
-    kriittiset_havainnot_yhteenveto: Annotated[list[str], Field(description="Critical observations summary.")]
-    # Back-ported fields for Dynamic Matrix visibility in legacy views
-    matrix_id: Annotated[str | None, Field(default=None, description="Matrix ID used (injected).")]
-    scale_min: Annotated[int | None, Field(default=None, description="Minimum scale score.")]
-    scale_max: Annotated[int | None, Field(default=None, description="Maximum scale score.")]
 
 
 # --- Step 8a: Archivist Agent ---
 
 
-class CaseLawContext(BaseJSON):
-    """Output schema for the Archivist Agent (Step 8a).
 
-    Attributes:
-        linjakkuus_analyysi (str): Alignment analysis.
-        poikkeamat_linjasta (str): Deviations.
-        suositus_tuomarille (str): Recommendation to judge.
-        viitatut_ennakkotapaukset (list[str]): Referenced cases.
-    """
-
-    linjakkuus_analyysi: Annotated[str, Field(description="Alignment analysis.")]
-    poikkeamat_linjasta: Annotated[str, Field(description="Deviations.")]
-    suositus_tuomarille: Annotated[str, Field(description="Recommendation to judge.")]
-    viitatut_ennakkotapaukset: Annotated[list[str], Field(description="Referenced cases.")]
 
 
 class ArchivistOutput(BaseJSON):
@@ -697,7 +612,11 @@ class DimensionResultItem(BaseModel):
     score: Annotated[int | float, Field(description="Numerical score.")]
     reasoning: Annotated[str, Field(description="Justification for the score.")]
 
-    model_config = ConfigDict(validate_assignment=True)
+    reasoning: Annotated[str, Field(description="Justification for the score.")]
+    
+    # STRICT: Do not allow extra fields like 'label' or 'name'. 
+    # Force LLM to map correctly to 'dimension_id'.
+    model_config = ConfigDict(extra="forbid", validate_assignment=True)
 
 
 class ScoreCardItem(BaseModel):

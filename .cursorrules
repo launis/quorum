@@ -27,9 +27,10 @@ PART 1: PYTHON BACKEND MANDATES (FastAPI + Pydantic V2)
    - **REQUIRED**: Fail-fast if DB config is missing.
 
 3. **Error Handling (RFC 7807)**:
-   - **Ref**: `knowledge/client_application_development/artifacts/implementation/rfc7807_error_handling.md`
-   - **Pattern**: Raise `AppException` with `details={"error_code": "..."}`.
+   - **SINGLE SOURCE OF TRUTH**: `backend/exceptions.py`.
+   - **MANDATE**: Always implement both `logger.error(...)` AND `raise AppException(...)`.
    - **BANNED**: `HTTPException` with raw strings.
+   - **REF**: See docstring in `backend/exceptions.py`.
 
 4. **Structured AI**: 
    - **Tooling**: LiteLLM Native `response_format`.

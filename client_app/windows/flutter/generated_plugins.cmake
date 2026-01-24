@@ -5,9 +5,11 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   app_links
   desktop_webview_auth
+  file_saver
   firebase_auth
   firebase_core
   printing
+  url_launcher_windows
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST

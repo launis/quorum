@@ -176,3 +176,41 @@ class InMemoryProgressTracker(ProgressTracker):
         if details:
             data.update(details)
         self._emit(STATUS_FAILED, data)
+
+
+class ProgressService:
+    """Service for real-time progress reporting via Redis."""
+    
+    def __init__(self, redis_client: Any):
+        """Initialize with a Redis client (ArqRedis or compatible)."""
+        self.redis = redis_client
+
+    async def emit_progress(
+        self, 
+        execution_id: str, 
+        task_key: str, 
+        message: str, 
+        progress: float
+    ) -> None:
+        """Emits a progress event to Redis.
+        
+        Args:
+            execution_id: The ID of the execution.
+            task_key: Identifier for the task (e.g., 'pdf_gen').
+            message: Human-readable status message.
+            progress: Float between 0.0 and 1.0.
+        """
+        import json
+        key = f"progress:{execution_id}:{task_key}"
+        payload = {
+            "execution_id": execution_id,
+            "task_key": task_key,
+            "message": message,
+            "progress": progress,
+            "timestamp": datetime.now().isoformat()
+        }
+        # Set with 1-hour expiry
+        await self.redis.set(key, json.dumps(payload), ex=3600)
+        
+        # Optionally publish for real-time websockets if needed
+        # await self.redis.publish(f"progress_updates:{execution_id}", json.dumps(payload))

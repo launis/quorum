@@ -220,6 +220,8 @@ class LiteLLMProvider(LLMProvider):
                 "response_format": response_format,
                 "api_key": self.api_key,
                 "drop_params": True,
+                # STRICT NETWORK TIMEOUT: Fail fast (120s) instead of hanging forever.
+                "timeout": 120, 
             }
             # Inject dynamic extra params (top_p, top_k, etc.) provided via kwargs
             # Filter out internal keys if necessary, but litellm.drop_params=True handles most.
@@ -455,6 +457,11 @@ class LiteLLMProvider(LLMProvider):
             # 4. SERVICE INSTABILITY (Infra)
             elif "ServiceUnavailableError" in error_type or "503" in error_msg or "500" in error_msg or "Timeout" in error_type:
                  logger.error(f"[LiteLLM] SERVICE UNAVAILABLE (Upstream/Timeout): {error_msg}")
+                 raise AppException(
+                     message="Upstream LLM service timed out or is unavailable.",
+                     status_code=503,
+                     details={"error_code": ErrorCodes.UPSTREAM_TIMEOUT}
+                 ) from e
             
             # 5. CONTENT POLICY (Safety)
             elif "ContentPolicyViolation" in error_type or "blocked" in error_msg.lower():

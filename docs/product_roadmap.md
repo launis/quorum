@@ -104,6 +104,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 ### 2.3 Dashboard & Monitoring
 - [x] **Dashboard UI**: Grid view of System Workflows fetching data via `AsyncValue` providers.
 - [x] **Report Viewer**: Render final HTML/Markdown results using `webview_flutter` or generic markdown renderers.
+- [x] **PDF Download (One Truth)**: Replaced `Printing` with `FileSaver` to ensure cross-platform file download without print dialogs.
 
 ### 2.4 Workflow Data Layer (Foundation)
 - [x] **Models**: Ensure `Execution`, `ExecutionStep`, and `ExecutionInput` match the backend Pydantic models (JSON serialization).
@@ -115,7 +116,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 
 ### 2.6 Workflow UI (Wizard & Feedback)
 - [x] **Creation Wizard**: Multi-step form view for configuring and starting a new analysis (replaces Audit Wizard).
-- [x] **Live Execution View**: Real-time progress UI with polling integration (Progress Bar, Step Indicator).
+- [x] **Live Execution View**: Real-time progress UI with polling integration (Progress Bar, Step Indicator). (Fix: Unified Timeline keys)
 - [x] **Localization**: Full EN/FI support for Analysis Wizard and Execution Monitor.
 - [x] **Strict Validation**: Client-side enforcement of Audit workflow requirements (Fail-Fast).
 - [x] **Dynamic Input Rendering**: Forms generated purely from Backend `ui_schema`, removing client-side hardcoding.

@@ -4,7 +4,7 @@ from typing import Any
 
 from backend.models.domain import (
     ArgumentaatioAnalyysi,
-    CaseLawContext,
+    ArchivistOutput,
     CoachingPlan,
     DimensionResultItem,
     EettinenHavainto,
@@ -33,7 +33,7 @@ from backend.models.domain import (
     TaintedDataContent,
     TodistusKartta,
     ToulminKomponentti,
-    TuomioJaPisteet,
+
     WaltonSkeema,
     WaltonStressitesti,
     XAIReport,
@@ -179,16 +179,15 @@ MOCK_PROFILER_OUTPUT = ProfilerAnalysis(
     manipulaatio_yritykset="Ei havaittu",
 )
 
-# 6. Archivist Output (CaseLawContext)
-MOCK_ARCHIVIST_OUTPUT = CaseLawContext(
+# 6. Archivist Output (ArchivistOutput)
+MOCK_ARCHIVIST_OUTPUT = ArchivistOutput(
     metadata=MOCK_METADATA.model_copy(update={"agentti": "Archivist", "vaihe": 8}),
     metodologinen_loki="Mock Archivist",
     edellisen_vaiheen_validointi="Pass",
     semanttinen_tarkistussumma="hash_arch",
-    linjakkuus_analyysi="[VERTAA ENNAKKOTAPAUKSIIN]",
-    poikkeamat_linjasta="[MAINITSE POIKKEAMAT]",
-    suositus_tuomarille="[SUOSITUS]",
-    viitatut_ennakkotapaukset=[],
+    analysis="Aligned with precedents.",
+    compliance_score=100,
+    recommendations=["Keep up good work"],
 )
 
 # 7. Judge Output
@@ -285,9 +284,8 @@ MOCK_REGISTRY: dict[type[Any], Any] = {
     TaintedData: MOCK_TAINTED_DATA,
     InteractionAnalysis: MOCK_INTERACTION_OUTPUT,
     ProfilerAnalysis: MOCK_PROFILER_OUTPUT,
-    CaseLawContext: MOCK_ARCHIVIST_OUTPUT,
+    ArchivistOutput: MOCK_ARCHIVIST_OUTPUT,
     EvaluationResult: MOCK_JUDGE_OUTPUT,
-    TuomioJaPisteet: MOCK_JUDGE_OUTPUT,  # Legacy fallback
     CoachingPlan: MOCK_COACH_OUTPUT,
     XAIReport: MOCK_XAI_OUTPUT,
     # Expose Panel Components individually in case tasks are run in isolation

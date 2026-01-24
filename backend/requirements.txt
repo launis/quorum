@@ -30,3 +30,7 @@ pyjwt>=2.10.1
 slowapi
 instructor>=1.0.0
 networkx>=3.0
+weasyprint>=63.0.0
+matplotlib>=3.10.0
+numpy>=2.2.0
+sse-starlette>=2.1.0

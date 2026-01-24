@@ -88,6 +88,11 @@ PART 2: PYTHON BACKEND MANDATES
 3.  **Database (TinyDB / Firestore)**:
     * **Abstraction**: Use `AbstractRepository` pattern. No direct DB calls in routers.
     * **Dependency Injection**: Inject repositories via `Depends()`.
+    * **Date Handling Mandate (Temporal Representation Standard)**:
+        * **Format**: All timestamps MUST be Python `datetime` objects.
+        * **Storage**: Store as `datetime` (Pydantic handles ISO-8601 string conversion for JSON/Firestore automatically).
+        * **BANNED**: Do NOT use `str(datetime.now())` or `.isoformat()` manually in routers or models unless specifically required for legacy text-injection.
+        * **Timezone**: Always use `UTC` (e.g. `datetime.now(timezone.utc)`).
 
 4.  **Testing (Pytest + AsyncIO)**:
     * **Fixtures**: Use `conftest.py` for shared resources.
@@ -105,284 +110,30 @@ PART 2: PYTHON BACKEND MANDATES
 
 PART 3: ERROR HANDLING CONTRACT (RFC 7807 Problem Details)
 
-**Standard**: https://tools.ietf.org/html/rfc7807
+**SINGLE SOURCE OF TRUTH**: `backend/exceptions.py`
 
-### 3.1 Quick Reference (Backend)
+⚠️ **STRICT MANDATE**:
+1.  **RFC 7807**: All errors MUST follow the Problem Details standard.
+2.  **PATTERN**: You MUST ALWAYS implement both:
+    *   **Logger**: `logger.error(f"{error_code}: {e}", exc_info=True)`
+    *   **Exception**: `raise AppException(...)`
+3.  **SOURCE**: Refer to the docstring in `backend/exceptions.py` for the complete Usage Guide, Banned Patterns, and Error Code list.
 
-```python
-error_code = "DOMAIN_REASON_DETAIL"
-logger.error(f"{error_code}: {e}", exc_info=True)
-raise AppException(
-    message=str(e),
-    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-    details={"error_code": error_code}
-) from e
-```
+**DO NOT** improvise error handling. **DO NOT** use `HTTPException` directly.
 
-### 3.2 Mandatory Pattern (Backend)
-
-```python
-from backend.exceptions import AppException
-from fastapi import status
-import logging
-
-logger = logging.getLogger(__name__)
-
-@router.get("/{execution_id}")
-async def get_execution(execution_id: str, ...):
-    try:
-        execution = await repository.get_execution(execution_id)
-        if not execution:
-            raise ResourceNotFoundError(f"Execution '{execution_id}' not found.")
-        return execution
-
-    except ResourceNotFoundError as e:
-        error_code = "EXECUTION_NOT_FOUND"
-        logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(
-            message=str(e),
-            status_code=status.HTTP_404_NOT_FOUND,
-            details={"error_code": error_code}
-        ) from e
-
-    except Exception as e:
-        error_code = "EXECUTION_FETCH_FAILED"
-        logger.error(f"{error_code}: {e}", exc_info=True)
-        raise AppException(
-            message=str(e),
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": error_code}
-        ) from e
-
-### 3.2.1 Real-World Example (ChatLogParser) - 2026 Standardization
-
-Use the `ErrorCodes` Enum for type safety and a variable for the message string:
-
-**Definition (`backend/exceptions.py`):**
-```python
-from enum import Enum
-
-class ErrorCodes(str, Enum):
-    EMPTY_INPUT = "EMPTY_INPUT"
-    EXECUTION_NOT_FOUND = "EXECUTION_NOT_FOUND"
-    # ...
-```
-
-**Usage:**
+**Reference Implementation**:
 ```python
 from backend.exceptions import AppException, ErrorCodes
-
 # ...
-
-error_code = ErrorCodes.EMPTY_INPUT
-message_code = "ChatLogParser received empty input."
-
-logger.error(f"{error_code}: {message_code}")
-raise AppException(
-    message=message_code,
-    status_code=status.HTTP_400_BAD_REQUEST,
-    details={"error_code": error_code}
-)
+except Exception as e:
+    error_code = ErrorCodes.INTERNAL_SERVER_ERROR
+    logger.error(f"{error_code}: {e}", exc_info=True)
+    raise AppException(
+        message="Detailed message for logs",
+        status_code=500,
+        details={"error_code": error_code}
+    ) from e
 ```
-```
-
-### 3.3 Error Code Naming Convention
-
-Format: `DOMAIN_REASON_DETAIL`
-
-| Code | Status | Description |
-|------|--------|-------------|
-| `EXECUTION_NOT_FOUND` | 404 | Requested execution doesn't exist |
-| `WORKFLOW_NOT_FOUND` | 404 | Requested workflow doesn't exist |
-| `WORKFLOW_EXECUTION_FAILED` | 500 | Workflow step failed during execution |
-| `INVALID_JSON_PAYLOAD` | 400 | Request body has invalid JSON |
-| `MISSING_WORKFLOW_ID` | 400 | Required workflowId not provided |
-| `AUTH_TOKEN_EXPIRED` | 401 | JWT token has expired |
-| `PERMISSION_DENIED` | 403 | User lacks permission |
-| `UNSUPPORTED_CONTENT_TYPE` | 400 | Request has unsupported Content-Type |
-
-### 3.4 Field Purposes
-
-| Field | Purpose | Consumer | Show to User? |
-|-------|---------|----------|---------------|
-| `error_code` | Machine-readable key | Flutter `AppLocalizations` | ❌ (for lookup) |
-| `message` | Debug info | Logs, DevTools | ❌ NEVER |
-| `status_code` | HTTP standard | HTTP layer | ❌ |
-| `detail` (RFC 7807) | Debug context | Logs | ❌ NEVER |
-| `title` (RFC 7807) | Error type name | Reference | ❌ |
-
-### 3.5 RFC 7807 Response Format
-
-API returns RFC 7807 Problem Details with `Content-Type: application/problem+json`:
-
-```json
-{
-  "type": "https://api.quorum.fi/errors/execution-not-found",
-  "title": "Execution Not Found",
-  "status": 404,
-  "detail": "Execution 'abc-123' not found.",
-  "instance": "/executions/abc-123",
-  "extensions": {
-    "step_id": "step_analyst"
-  }
-}
-```
-
-| Field | Required | Description |
-|-------|----------|-------------|
-| `type` | ✅ | URI identifying error type (can link to docs) |
-| `title` | ❌ | Human-readable title (from error_code) |
-| `status` | ❌ | HTTP status code (mirrors header) |
-| `detail` | ❌ | Specific error message for this instance |
-| `instance` | ❌ | URI identifying this specific occurrence |
-| `extensions` | ❌ | Additional context (step_id, cause, etc.) |
-
-### 3.6 Exception Handler (main.py)
-
-```python
-@app.exception_handler(AppException)
-async def app_exception_handler(request: Request, exc: AppException):
-    return JSONResponse(
-        status_code=exc.status_code,
-        content=exc.to_problem_detail(instance=str(request.url.path)),
-        media_type="application/problem+json",
-    )
-```
-
-### 3.7 Banned Patterns
-
-```python
-# ❌ BANNED: Loses error_code, breaks frontend localization
-raise HTTPException(status_code=404, detail=str(e))
-
-# ❌ BANNED: No structured error code
-raise HTTPException(status_code=500, detail="Something went wrong")
-
-# ❌ BANNED: Exposing internal details to user
-return {"error": str(e)}  # Could leak stack traces
-```
-
-### 3.8 Error Flow Diagram
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│ 1. EXCEPTION RAISED                                                  │
-│    raise AppException(message, status_code, details={error_code})   │
-└────────────────────────────┬────────────────────────────────────────┘
-                             │
-                             ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│ 2. EXCEPTION HANDLER (main.py)                                       │
-│    exc.to_problem_detail(instance=request.url.path)                 │
-└────────────────────────────┬────────────────────────────────────────┘
-                             │
-                             ▼ JSON Response
-┌─────────────────────────────────────────────────────────────────────┐
-│ 3. HTTP RESPONSE                                                     │
-│ Content-Type: application/problem+json                               │
-│ {"type": "...", "title": "...", "status": 404, "detail": "..."}     │
-└────────────────────────────┬────────────────────────────────────────┘
-                             │
-                             ▼ Dio catches
-┌─────────────────────────────────────────────────────────────────────┐
-│ 4. FLUTTER CLIENT                                                    │
-│    ProblemDetail.fromJson() -> AppError(code: problem.errorCode)    │
-└────────────────────────────┬────────────────────────────────────────┘
-                             │
-                             ▼ switch(code)
-┌─────────────────────────────────────────────────────────────────────┐
-│ 5. LOCALIZED UI                                                      │
-│    l10n.executionNotFound -> "Suoritusta ei löytynyt"               │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-### 3.9 Flutter Client Integration
-
-**ProblemDetail Model** (`lib/core/error/problem_detail.dart`):
-```dart
-@JsonSerializable()
-class ProblemDetail {
-  final String type;
-  final String title;
-  final int status;
-  final String detail;
-  final String? instance;
-  final Map<String, dynamic>? extensions;
-
-  /// Extract error code from type URI
-  /// "https://api.quorum.fi/errors/execution-not-found" -> "EXECUTION_NOT_FOUND"
-  String get errorCode => type.split('/').last.replaceAll('-', '_').toUpperCase();
-}
-```
-
-**Error Interceptor** (`lib/api/error_interceptor.dart`):
-```dart
-class ErrorInterceptor extends Interceptor {
-  @override
-  void onError(DioException err, ErrorInterceptorHandler handler) {
-    if (err.response?.data is Map<String, dynamic>) {
-      final data = err.response!.data as Map<String, dynamic>;
-      if (data.containsKey('type') && data.containsKey('status')) {
-        final problem = ProblemDetail.fromJson(data);
-        final appError = AppError.fromProblemDetail(problem);
-        handler.reject(DioException(..., error: appError));
-        return;
-      }
-    }
-    handler.next(err);
-  }
-}
-```
-
-**Error Localization** (`lib/core/error/app_error_ext.dart`):
-```dart
-static String _localizeErrorCode(String errorCode, AppLocalizations l10n) {
-  return switch (errorCode) {
-    'EXECUTION_NOT_FOUND' => l10n.errorNotFound,
-    'WORKFLOW_NOT_FOUND' => l10n.errorNotFound,
-    'WORKFLOW_EXECUTION_FAILED' => l10n.errorServer,
-    'AUTH_TOKEN_EXPIRED' => l10n.errorUnauthorized,
-    'PERMISSION_DENIED' => l10n.errorUnauthorized,
-    _ => l10n.errorUnknown,
-  };
-}
-```
-
-### 3.10 ⚠️ Adding New Error Codes
-
-When adding a new error code in backend:
-
-1. **Backend**: Add to `AppException` raise with `details={"error_code": "NEW_CODE"}`
-2. **Flutter**: Add to `_localizeErrorCode()` in `lib/core/error/app_error_ext.dart`
-3. **ARB Files**: Add localized strings to:
-   - `lib/l10n/app_en.arb`
-   - `lib/l10n/app_fi.arb`
-4. **Run**: `flutter gen-l10n` to regenerate `AppLocalizations`
-
-Example:
-```dart
-// 1. app_error_ext.dart
-'NEW_ERROR_CODE' => l10n.newErrorMessage,
-
-// 2. app_en.arb
-"newErrorMessage": "Something specific went wrong",
-
-// 3. app_fi.arb  
-"newErrorMessage": "Jotain meni pieleen",
-```
-
-### 3.11 Implementation Status ✅
-
-RFC 7807 is fully implemented:
-
-- [x] `backend/exceptions.py` - `AppException.to_problem_detail()` method
-- [x] `backend/main.py` - Exception handlers use RFC 7807 format
-- [x] `backend/schemas/error.py` - `ProblemDetail` Pydantic model
-- [x] `client_app/lib/core/error/problem_detail.dart` - Flutter ProblemDetail
-- [x] `client_app/lib/api/error_interceptor.dart` - Dio interceptor for RFC 7807
-- [x] `client_app/lib/core/error/app_error.dart` - `AppError.fromProblemDetail()`
-- [x] `client_app/lib/core/error/app_error_ext.dart` - Error code localization
-- [x] `client_app/lib/api/api_client.dart` - ErrorInterceptor added
 
 --------------------------------------------------------------------------------
 
@@ -421,6 +172,29 @@ PART 4: FLUTTER CLIENT MANDATES
     * **Code Gen**: Use `AppLocalizations.of(context)`. No hardcoded strings.
     * **Error Codes**: All backend error codes MUST have localized strings in ARB files.
     
+--------------------------------------------------------------------------------
+
+PART 5: ERROR HANDLING & TIMEOUT STRATEGY (2026 STANDARDS)
+
+1.  **Philosophy: "Fail Fast & Retry"**:
+    * **Zombie Processes**: It is unacceptable for a process to hang indefinitely. Timeouts must be explicit.
+    * **Retry Logic**: Transient network errors (timeouts, 503s) must be retried automatically by the infrastructure (Backend/LiteLLM), NOT the user.
+
+2.  **Backend Mandates**:
+    * **LLM Clients**: strictly enforce `timeout` (e.g., 120s) on all external API class.
+    * **Worker Jobs**: Jobs must not exceed global limits (e.g., 900s). `TimeoutError` in workers must be caught, logged, and marked as `FAILED` to release resources.
+    * **No Infinite Waits**: Never use `await future` without `asyncio.wait_for(...)` or equivalent lower-level timeouts definition.
+
+3.  **Frontend/UX Mandates**:
+    * **Long-Running Operations**:
+        * **Visualization**: Reports/Audits taking > 10s must use **Progress Bars** (SSE/WebSockets), not infinite "Loading..." spinners.
+        * **Optimistic UI**: Do not block the UI for heavy generation. Background the task and notify completion.
+    * **Timeout Handling**:
+        * If a specific request times out (408/504), display a specific "Server Busy" message allowing a manual retry.
+        * Do not auto-retry indefinitely in the UI (batteries/data usage).
+
+--------------------------------------------------------------------------------
+
 # 🛑 STOP! READ THIS CAREFULLY 🛑
 **THIS DOCUMENT IS A CONTEXT REFERENCE ONLY.**
 **DO NOT START ANY IMPLEMENTATION OR GENERATE CODE BASED ON THIS FILE YET.**

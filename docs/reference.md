@@ -64,6 +64,16 @@ The backend exposes a RESTful API for management and job submission.
 *   `POST /auth/token`: Exchange credentials for JWT.
 *   `GET /users/me`: Get current user context.
 
+#### BFF Data Contracts (View)
+The Backend For Frontend (BFF) transforms internal state into UI-ready JSON.
+
+*   **ReportView**: The main structure returned by `/executions/{id}/view`.
+*   **Timeline Event**: Standard object for the "Process Progress" feed.
+    *   `timestamp` (ISOString): Time of event.
+    *   `label` (String): UI display name (e.g. "Vartija").
+    *   `content` (String): Main body text.
+    *   `events` (List): The unification key for the timeline section (replacing legacy `entries`).
+
 ---
 
 ## Observability

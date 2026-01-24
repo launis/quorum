@@ -53,6 +53,7 @@ def format_matrix_component(component: dict[str, Any]) -> str:
         c_anchors = crit.get("anchors", {})
 
         prompt_lines.append(f"#### Dimension: {c_label} (ID: {c_id})")
+        prompt_lines.append(f"**JSON Requirement**: You MUST use the exact ID '{c_id}' as the value for 'dimension_id' in your output.")
         prompt_lines.append(f"Instruction: {c_instr}")
         prompt_lines.append("Proficiency Levels (Anchors):")
         try:

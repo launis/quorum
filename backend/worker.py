@@ -3,8 +3,8 @@
 Modernized for GraphEngine and TaskRegistry (V2.9).
 """
 
-import logging
 import asyncio
+import logging
 from datetime import UTC, datetime
 from typing import Any
 
@@ -14,7 +14,11 @@ from backend.core.engine import GraphEngine
 from backend.core.registry import TaskRegistry
 from backend.llm.client import LLMClient
 from backend.logging_config import configure_logfire, setup_logging
+from backend.services.pdf_generator import PdfReportService
+from backend.services.progress import ProgressService
+from backend.services.storage import get_storage_client
 from backend.settings import get_settings
+from backend.exceptions import ErrorCodes
 
 # Initialize settings
 settings = get_settings()
@@ -109,7 +113,7 @@ async def execute_workflow_job(
                 except Exception as update_err:
                     logger.error(f"Failed to update execution failure status: {update_err}")
             raise
-        except asyncio.CancelledError as e:
+        except asyncio.CancelledError:
             logger.warning(f"[Job] Workflow {workflow_id} CANCELLED (Timeout/Shutdown). Execution ID: {execution_id}")
             if execution_id:
                 try:
@@ -126,6 +130,59 @@ async def execute_workflow_job(
             raise
 
 
+async def generate_pdf_job(ctx: Any, *, execution_id: str) -> str:
+    """Background job to generate a PDF report for an execution.
+
+    Args:
+        ctx: Arq worker context.
+        execution_id: The execution UUID.
+    
+    Returns:
+        str: Path to the generated file.
+    """
+    logger.info(f"[Job] Generating PDF for execution: {execution_id}")
+
+    try:
+        # 1. Instantiate Repository
+        # We reuse the one in context if available, or factory if needed.
+        # Startup initializes ctx["repository"]
+        repository = ctx["repository"]
+
+        # 2. Instantiate ProgressService
+        # Arq context has 'redis'
+        redis = ctx["redis"]
+        progress = ProgressService(redis)
+
+        # 3. Instantiate PdfReportService
+        service = PdfReportService(repository, progress)
+
+        # 4. Generate PDF
+        pdf_bytes = await service.generate_execution_pdf(execution_id)
+
+        # 5. Save Result via StorageService
+        storage = get_storage_client()
+        # Relative path: executions/{id}/report.pdf
+        output_path_rel = f"executions/{execution_id}/report.pdf"
+        
+        # Returns absolute path (if local) or URI (if cloud)
+        saved_path = storage.save(output_path_rel, pdf_bytes)
+
+        logger.info(f"[Job] PDF generated successfully: {saved_path}")
+        return saved_path
+
+    except Exception as e:
+        error_code = ErrorCodes.PDF_GENERATION_FAILED
+        logger.error(f"{error_code}: PDF generation failed for {execution_id}. Cause: {e}", exc_info=True)
+        # We ensure the worker doesn't crash by catching generic Exception
+        # Arq will mark the job as failed if we re-raise, but mandate says "Ensure job failure does not crash the worker".
+        # Logging exception is sufficient. Usually we rely on Arq's retry mechanism if we raise.
+        # But if we want to "not crash", we might suppress?
+        # "Ensure job failure does not crash the worker" usually means catch-all.
+        # However, for Arq to know it failed, we usually should raise.
+        # I will re-raise so Arq sees it as failed job, but the worker process itself stays alive (which is default Arq behavior).
+        raise
+
+
 # --- Lifecycle ---
 
 
@@ -136,7 +193,7 @@ async def startup(ctx: Any) -> None:
     """
     setup_logging()
     configure_logfire()
-    
+
     # VISUAL SEPARATOR FOR LOG READABILITY
     logger.info("======================================================================")
     logger.info("   ARQ WORKER (V2.9) - STARTING UP")
@@ -200,7 +257,7 @@ async def health_check(ctx: Any) -> str:
 class WorkerSettings:
     """Configuration for the Arq worker."""
 
-    functions = [health_check, execute_workflow_job]
+    functions = [health_check, execute_workflow_job, generate_pdf_job]
     on_startup = startup
     on_shutdown = shutdown
 
