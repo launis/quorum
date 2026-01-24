@@ -167,69 +167,61 @@ class ReportTransformer:
 
     def _extract_score_data(self, judge_step: dict, agent_name: str, valid_range: Optional[tuple[float, float]]) -> dict:
         """
-        Extracts score and verdict.
+        Extracts score and verdict from V3 Schema.
         STRICT: Raises ValueError if score is missing or out of range [min, max].
         """
-        # Data might be in 'score_cards' list (new format) or flat fields (old format)
         score = None
         raw_score = None
         verdict = None
         dimensions = []
 
-        # 1. Try 'score_cards' (New XAI format)
+        # 1. Primary Source: 'score_cards' (V3 Standard)
         if "score_cards" in judge_step and isinstance(judge_step["score_cards"], list) and judge_step["score_cards"]:
             card = judge_step["score_cards"][0]
             raw_score = card.get("total_score")
             verdict = card.get("verdict")
             dimensions = card.get("dimensions", [])
-        
-        # 2. Strict Mode: No fallbacks for 'pisteet' or regex parsing.
-        # If 'score_cards' (V3) is missing, we check if 'dimensions' is at root (Intermediate V3).
-        if not dimensions and "dimensions" in judge_step and isinstance(judge_step["dimensions"], list):
-            dimensions = judge_step["dimensions"]
-            
-        if raw_score is None:
-             # Try root total_score
+        else:
+             # V3 Fallback: Check root level ONLY if explicitly matching V3 fields (total_score, final_verdict)
+             # This handles cases where agent might output flattened structure but still compliant keys.
              raw_score = judge_step.get("total_score")
+             verdict = judge_step.get("final_verdict")
+             dimensions = judge_step.get("dimensions", [])
 
-        # 3. Validation
+        # 2. Validation
         if raw_score is None:
-            raise ValueError("Score is missing from Judge step.")
+            raise ValueError(f"Score is missing from Judge step ({agent_name}). Expected 'total_score'.")
             
         try:
             score = float(raw_score)
         except (TypeError, ValueError):
             raise ValueError(f"Score '{raw_score}' is not a valid number.")
 
-        # STRICT SCALE AUTHORITY CHECK (User Mandate: No defaults)
+        # STRICT SCALE AUTHORITY CHECK
         if valid_range is None:
-            # 1. Attempt to resolve from the step data itself (Self-Contained Authority)
+            # Attempt to resolve from the step data itself
             s_min = judge_step.get("scale_min")
             s_max = judge_step.get("scale_max")
             
             if s_min is not None and s_max is not None:
                 valid_range = (float(s_min), float(s_max))
             else:
-                 # 2. FAIL FAST. Do not assume 1-4.
-                 raise ValueError(f"Score validation failed for {agent_name}: No scale definition found (valid_range=None and no in-step metadata). Fallback is forbidden.")
+                 raise ValueError(f"Score validation failed for {agent_name}: No scale definition found. Fallback is forbidden.")
 
         scale_min, scale_max = valid_range
         if not (scale_min <= score <= scale_max):
-            # STRICT MODE: No fallback.
-            raise ValueError(f"Score {score} is out of valid range [{scale_min}, {scale_max}] from DB.")
+            raise ValueError(f"Score {score} is out of valid range [{scale_min}, {scale_max}].")
 
-        # Fallback: Check if 'dimensions' exists at root level (Intermediate Legacy Format)
-        if not dimensions and "dimensions" in judge_step and isinstance(judge_step["dimensions"], list):
-            dimensions = judge_step["dimensions"]
-
-        # Extract Verdict if missing
         if not verdict:
-            verdict = judge_step.get("tuomio") or judge_step.get("final_verdict") or "Arvioitu"
+             # STRICT: No default "Arvioitu".
+             # However, Frontend expects String (non-nullable).
+             # We return empty string "" to satisfy type contract without adding fake data.
+             verdict = ""
 
         return {
             "agent_name": agent_name,
             "total_score": score,
-            "max_score": int(scale_max), # Cast to int for frontend model
+            "max_score": int(scale_max),
             "verdict": verdict,
             "dimensions": dimensions
         }

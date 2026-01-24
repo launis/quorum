@@ -33,6 +33,11 @@ class AbstractWorkflowRepository(ABC):
         pass
 
     @abstractmethod
+    async def delete_execution(self, execution_id: str) -> bool:
+        """Delete an execution record."""
+        pass
+
+    @abstractmethod
     async def get_all_executions(
         self, organization_id: Optional[str] = None, user_id: Optional[str] = None
     ) -> List[Dict[str, Any]]:
@@ -426,6 +431,11 @@ class TinyDBRepository(AbstractWorkflowRepository):
         # Wrapper 'update' takes dict of fields and query
         result = self.executions.update(safe_updates, Query().id == execution_id)
         return len(result) > 0
+
+    async def delete_execution(self, execution_id: str) -> bool:
+        """Delete an execution record."""
+        result = self.executions.remove(Query().id == execution_id)
+        return bool(result)
 
     async def get_all_executions(
         self, organization_id: Optional[str] = None, user_id: Optional[str] = None

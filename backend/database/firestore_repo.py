@@ -60,6 +60,15 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
             logger.error(f"Firestore update failed: {e}")
             return False
 
+    async def delete_execution(self, execution_id: str) -> bool:
+        """Delete an execution record."""
+        try:
+            await self.db.collection("executions").document(execution_id).delete()
+            return True
+        except Exception as e:
+            logger.error(f"Firestore delete failed for execution {execution_id}: {e}")
+            return False
+
     async def get_all_executions(
         self, organization_id: str | None = None, user_id: str | None = None
     ) -> list[dict[str, Any]]:

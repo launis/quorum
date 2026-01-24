@@ -821,9 +821,8 @@ async def get_execution_view(
         # If dynamic, query DB.
         
         # TODO: Inject MatrixService dependency if we want true dynamic caching here.
-        # For now, default 1-4.
-        
-        view = transformer.transform(raw_data, scale_limit=4) # Default 4 if not resolved
+        # We pass None for valid_range to allow the transformer to resolve it from the step metadata (Dynamic Scale).
+        view = transformer.transform(raw_data, valid_range=None)
 
         return view
 
@@ -1234,3 +1233,71 @@ async def monitor_execution(
             # await pubsub.unsubscribe(channel) # implicit in close?
 
     return EventSourceResponse(event_generator())
+
+
+@executions_router.delete(
+    "/{execution_id}",
+    summary="Delete Execution",
+    description="Permanently deletes an execution record and associated data.",
+    status_code=status.HTTP_200_OK,
+    response_model=dict[str, Any],
+)
+async def delete_execution(
+    execution_id: str,
+    repository: AbstractWorkflowRepository = Depends(get_async_repository),
+    current_user: Any = Depends(AuthService.get_current_user()),
+):
+    """Delete an execution record."""
+    try:
+        # 1. Fetch Execution
+        execution = await repository.get_execution(execution_id)
+        if not execution:
+            raise ResourceNotFoundError(f"Execution '{execution_id}' not found.")
+        
+        # 2. RBAC Check (Same as Cancel)
+        user_role = current_user.role
+        user_org = current_user.organization_id
+        record_org = execution.get("organization_id")
+        record_user = execution.get("user_id")
+
+        has_access = False
+        
+        if user_role == UserRole.ROOT:
+            has_access = True
+        elif user_role in [UserRole.ADMIN, UserRole.MANAGER]:
+            if user_org and user_org == record_org:
+                has_access = True
+        elif user_role == UserRole.MEMBER:
+             if str(current_user.uid) == str(record_user):
+                 has_access = True
+                 
+        if not has_access:
+            error_code = "PERMISSION_DENIED"
+            raise AppException(
+                message="You do not have permission to delete this execution.",
+                status_code=status.HTTP_403_FORBIDDEN,
+                details={"error_code": error_code}
+            )
+
+        # 3. Delete
+        success = await repository.delete_execution(execution_id)
+        if success:
+             return {"execution_id": execution_id, "status": "deleted", "message": "Execution deleted successfully."}
+        else:
+             raise AppException(
+                 message="Failed to delete execution record.",
+                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+             )
+
+    except ResourceNotFoundError as e:
+        raise AppException(
+            message=str(e), status_code=status.HTTP_404_NOT_FOUND, details={"error_code": "EXECUTION_NOT_FOUND"}
+        ) from e
+    except AppException:
+        raise
+    except Exception as e:
+        log_error(logger, e)
+        raise AppException(
+            message=f"Failed to delete execution: {e}",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        ) from e
