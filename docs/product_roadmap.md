@@ -95,13 +95,34 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **Linting & Hygiene**: Achieved 100% pass rate on `ruff` checks across the entire backend codebase.
 
 ### 1.7 API Modernization (The Modular Core)
-**Objective:** Pilkkoa yli 500 rivin API-tiedostot hallittaviin osiin ja luoda pohja dynaamiselle UI:lle.
+**Objective:** Pilkkoa massiiviset reitittimet (`execution_router.py`, `config_router.py`) ja valmistella backend SDUI-arkkitehtuuriin.
 
-- [ ] **API Modularization Strategy**: Luo hakemistorakenne `backend/api/v2/` tai jaa nykyiset moduulit alikansioihin (esim. `backend/api/execution/`).
-    - *Kohde:* `execution_router.py` (>500 riviä) -> Jaetaan: `start.py`, `monitor.py`, `result.py`.
-    - *Kohde:* `config_router.py` -> Jaetaan: `components.py`, `workflows.py`, `ontology.py`.
-- [ ] **Schema Endpoint Factory**: Toteuta geneerinen endpoint `GET /api/v1/schemas/{model_name}`, joka palauttaa Pydantic-mallin JSON Scheman UI-vinkeillä (esim. ui:widget: "radio").
-- [ ] **Validation Service Decoupling**: Siirrä validointilogiikka reitittimistä erillisiin palveluihin (`backend/services/validation/`), jotta niitä voi kutsua sekä API että Worker.
+- [ ] **Directory Structure Refactor**:
+    - Luo `backend/api/routes/execution/` ja jaa `execution_router.py`:
+        - `lifecycle.py` (Create/Delete/Cancel)
+        - `monitor.py` (SSE/Events)
+        - `artifacts.py` (PDF/Downloads)
+        - `views.py` (BFF Read Logic)
+    - Luo `backend/api/routes/config/` ja jaa `config_router.py`:
+        - `components.py` (CRUD for Prompts/Matrices)
+        - `workflows.py` (CRUD for Workflow/Steps)
+        - `ontology.py` (Dimensions)
+- [ ] **Service Layer Extraction**:
+    - Siirrä raskas liiketoimintalogiikka (kuten `validate_flow`) pois reitittimistä omiin palveluihinsa (`ValidationService`).
+- [ ] **Schema Registry API**:
+    - Toteuta `GET /api/v1/meta/schema/{model_type}` endpoint, joka palauttaa Pydantic V2 `.model_json_schema()` frontendin käyttöön.
+
+### 1.8 Cognitive Configuration Studio (Flutter SDUI)
+**Objective:** Rakentaa dynaaminen hallintapaneeli, joka mukautuu backendin skeemaan ilman koodimuutoksia.
+
+- [ ] **SDUI Core Widget**:
+    - Toteuta `DynamicFormWidget` (`client_app/lib/shared/sdui/`), joka muuntaa JSON Scheman Flutter-lomakkeeksi.
+    - Tuki perustyypeille: `string`, `bool`, `enum`, `array`.
+- [ ] **Studio Shell**:
+    - Luo uusi `ShellRoute` polulle `/studio`, jossa on oma navigointirakenne (erillään Admin- ja Dashboard-näkymistä).
+- [ ] **Workflow Editor**:
+    - Toteuta "Workflow Builder", joka käyttää backendin `WorkflowDefinition` -skeemaa.
+    - Implementoi "List Editor" vaiheiden (Steps) järjestämiseen.
 
 
 ---
