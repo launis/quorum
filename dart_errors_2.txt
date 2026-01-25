@@ -1,0 +1,16 @@
+Analyzing sdui...
+
+warning - specialist_section.dart:1:8 - Unused import: 'package:client_app/features/orchestration/domain/models/report_view.dart'. Try removing the import directive. - unused_import
+warning - specialist_section.dart:2:8 - Unused import: 'package:client_app/features/orchestration/presentation/widgets/sdui/generic_table.dart'. Try removing the import directive. - unused_import
+warning - specialist_section.dart:3:8 - Unused import: 'package:client_app/features/orchestration/presentation/widgets/results/score_card_radar.dart'. Try removing the import directive. - unused_import
+warning - specialist_section.dart:8:8 - Unused import: 'package:fl_chart/fl_chart.dart'. Try removing the import directive. - unused_import
+warning - specialist_section.dart:374:33 - The left operand can't be null, so the right operand is never executed. Try removing the operator and the right operand. - dead_null_aware_expression
+warning - specialist_section.dart:382:33 - The left operand can't be null, so the right operand is never executed. Try removing the operator and the right operand. - dead_null_aware_expression
+warning - specialist_section.dart:1242:11 - The value of the local variable 'isPassive' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - specialist_section.dart:1428:10 - The declaration '_buildProfileIcon' isn't referenced. Try removing the declaration of '_buildProfileIcon'. - unused_element
+   info - schema_mapper.dart:33:11 - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - specialist_section.dart:1256:51 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - specialist_section.dart:1397:54 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - specialist_section.dart:1483:48 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+
+12 issues found.

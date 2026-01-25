@@ -1,6 +1,1 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="1" failures="0" skipped="0" tests="1" time="6.616" timestamp="2026-01-24T12:44:30.331986+02:00" hostname="Laptop-Risto"><testcase classname="" name="backend.tests.api.test_workflow_control" time="0.000"><error message="collection failure">backend\tests\api\test_workflow_control.py:13: in &lt;module&gt;
-    from backend.api.execution_router import cancel_execution
-backend\api\execution_router.py:1165: in &lt;module&gt;
-    settings: Any = Depends(get_settings_dep),
-                            ^^^^^^^^^^^^^^^^
-E   NameError: name 'get_settings_dep' is not defined</error></testcase></testsuite></testsuites>
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="3" time="2.535" timestamp="2026-01-25T12:35:54.160030+02:00" hostname="Laptop-Risto"><testcase classname="tests.integration.test_sitra_integration" name="test_sitra_files_exist" time="0.001" /><testcase classname="tests.integration.test_sitra_integration" name="test_sitra_db_record" time="0.008" /><testcase classname="tests.integration.test_sitra_integration" name="test_llm_connectivity" time="2.447" /></testsuite></testsuites>

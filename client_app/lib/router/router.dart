@@ -14,6 +14,7 @@ import 'package:client_app/features/admin/presentation/screens/admin_dashboard_s
 import 'package:client_app/features/admin/presentation/screens/user_management_screen.dart';
 import 'package:client_app/features/admin/presentation/screens/organization_list_screen.dart';
 import 'package:client_app/features/admin/presentation/screens/overview_screen.dart';
+import 'package:client_app/router/routes/studio_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -77,9 +78,10 @@ GoRouter router(Ref ref) {
 
       // 5. Role Guard
       final isAdminRoute = state.uri.toString().startsWith('/admin');
+      final isStudioRoute = state.uri.toString().startsWith('/studio');
 
-      // Strict RBAC: Only ROOT and ADMIN can access /admin routes
-      if (isAdminRoute) {
+      // Strict RBAC: Only ROOT and ADMIN can access /admin or /studio routes
+      if (isAdminRoute || isStudioRoute) {
         if (user.role != UserRole.root && user.role != UserRole.admin) {
           // Unauthorized access attempt -> Redirect to dashboard
           return '/dashboard';
@@ -199,6 +201,10 @@ GoRouter router(Ref ref) {
           ),
         ],
       ),
+      
+      // Studio Shell (New Admin Workspace)
+      studioRoutes,
+
       // Root Redirect
       GoRoute(path: '/', redirect: (context, state) => '/dashboard'),
     ],

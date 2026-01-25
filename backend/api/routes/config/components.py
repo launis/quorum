@@ -1,0 +1,177 @@
+"""API Router for Configuration Components (Prompts, Mandates, etc)."""
+
+import logging
+from typing import Annotated, Any
+
+from fastapi import APIRouter, Path
+from pydantic import BaseModel, Field
+from tinydb import Query
+
+from backend.dependencies import DatabaseDep
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/config", tags=["Configuration"])
+
+
+class ComponentUpdate(BaseModel):
+    """Payload for updating a configuration component.
+
+    Attributes:
+        content (str | dict | list): The template content.
+        description (str): Metadata description.
+        citation (str): Short citation anchor.
+        citation_full (str): Complete bibliographic reference.
+        type (str): Component categorization.
+    """
+
+    content: Annotated[
+        str | dict[str, Any] | list[Any],
+        Field(description="The template content (prompt text, rule text, or config object)."),
+    ]
+    description: Annotated[str | None, Field(description="Metadata description.")] = None
+    citation: Annotated[str | None, Field(description="Short citation anchor.")] = None
+    citation_full: Annotated[str | None, Field(description="Complete bibliographic reference.")] = None
+    type: Annotated[
+        str | None,
+        Field(description="Component categorization (e.g. 'mandate', 'prompt', 'evaluation_matrix')."),
+    ] = None
+
+
+class ComponentCreate(BaseModel):
+    """Payload for creating a new component."""
+
+    id: Annotated[str, Field(description="Unique Identifier for the component.")]
+    name: Annotated[str, Field(description="Human readable name.")]
+    type: Annotated[str, Field(description="Component Type (header, prompt, evaluation_matrix, etc).")]
+    content: Annotated[str | dict[str, Any] | list[Any], Field(description="The content (text or JSON object).")]
+    description: Annotated[str | None, Field(description="Description of purpose.")] = None
+    citation: Annotated[str | None, Field(description="Short citation.")] = None
+    citation_full: Annotated[str | None, Field(description="Full citation.")] = None
+    module: Annotated[str | None, Field(description="Source module (legacy).")] = "config"
+    component_class: Annotated[str | None, Field(description="Class name.")] = "ConfigComponent"
+
+
+@router.get("/components", summary="List Components", response_description="All configuration components.")
+def get_components(db: DatabaseDep):
+    """Retrieves all defined configuration components (Prompts, Mandates, Rules, etc).
+
+    Args:
+        db (DatabaseDep): Database dependency.
+
+    Returns:
+        list[dict]: List of configuration components.
+    """
+    return db.table("components").all()
+
+
+@router.get("/components/{comp_id}", summary="Get Component", response_description="The requested component.")
+def get_component(db: DatabaseDep, comp_id: str = Path(..., description="Component ID or Name")):
+    """Retrieves a single component by ID or Name."""
+    Component = Query()
+    res = db.table("components").search(Component.id == comp_id)
+    if not res:
+        res = db.table("components").search(Component.name == comp_id)
+
+    if not res:
+        from backend.exceptions import ResourceNotFoundError
+
+        error_code = "COMPONENT_NOT_FOUND"
+        logger.error(f"{error_code}: ID {comp_id}", exc_info=True)
+        raise ResourceNotFoundError("Component", comp_id, details={"error_code": error_code})
+    return res[0]
+
+
+@router.post("/components", summary="Create Component", response_description="Status and ID.")
+def create_component(comp: ComponentCreate, db: DatabaseDep):
+    """Creates a new configuration component."""
+    table = db.table("components")
+    if table.search(Query().id == comp.id):
+        from backend.exceptions import ConflictError
+
+        error_code = "COMPONENT_ID_EXISTS"
+        logger.error(f"{error_code}: ID {comp.id}", exc_info=True)
+        raise ConflictError(message="Resource conflict", details={"error_code": error_code})
+
+    new_comp = comp.model_dump()
+    if "component_class" in new_comp:
+        new_comp["class"] = new_comp.pop("component_class")
+
+    table.insert(new_comp)
+    return {"status": "created", "id": comp.id}
+
+
+@router.put("/components/{comp_id}", summary="Update Component", response_description="Update status.")
+def update_component(comp_id: str, update: ComponentUpdate, db: DatabaseDep):
+    """Updates an existing component's content and metadata.
+
+    Args:
+        comp_id (str): The ID of the component to update.
+        update (ComponentUpdate): The new data.
+        db (DatabaseDep): Database dependency.
+
+    Returns:
+        dict: Status and ID.
+
+    Raises:
+        HTTPException: If not found (404).
+    """
+    Component = Query()
+    table = db.table("components")
+
+    exists = table.search((Component.id == comp_id) | (Component.name == comp_id))
+    if not exists:
+        from backend.exceptions import ResourceNotFoundError
+
+        error_code = "COMPONENT_NOT_FOUND"
+        logger.error(f"{error_code}: ID {comp_id}", exc_info=True)
+        raise ResourceNotFoundError("Component", comp_id, details={"error_code": error_code})
+
+    update_data = {"content": update.content}
+    if update.description:
+        update_data["description"] = update.description
+    if update.citation:
+        update_data["citation"] = update.citation
+    if update.citation_full:
+        update_data["citation_full"] = update.citation_full
+    if update.type:
+        update_data["type"] = update.type
+
+    table.update(update_data, (Component.id == comp_id) | (Component.name == comp_id))
+    return {"status": "updated", "id": comp_id}
+
+
+@router.delete("/components/{comp_id}", summary="Delete Component", response_description="Delete status.")
+def delete_component(comp_id: str, db: DatabaseDep):
+    """Deletes a component if it is not referenced by any existing steps."""
+    table = db.table("components")
+    Component = Query()
+
+    exists = table.search((Component.id == comp_id) | (Component.name == comp_id))
+    if not exists:
+        from backend.exceptions import ResourceNotFoundError
+
+        error_code = "COMPONENT_NOT_FOUND"
+        logger.error(f"{error_code}: ID {comp_id}", exc_info=True)
+        raise ResourceNotFoundError("Component", comp_id, details={"error_code": error_code})
+
+    # Referential Integrity Check
+    steps = db.table("steps").all()
+    used_in = []
+    for s in steps:
+        if s.get("component") == comp_id:
+            used_in.append(s["id"])
+            continue
+        prompts = s.get("execution_config", {}).get("llm_prompts", [])
+        if comp_id in prompts:
+            used_in.append(s["id"])
+
+    if used_in:
+        from backend.exceptions import ConflictError
+
+        error_code = "COMPONENT_IN_USE"
+        logger.error(f"{error_code}: ID {comp_id} used in {used_in}", exc_info=True)
+        raise ConflictError(message="Resource conflict", details={"error_code": error_code, **{"used_in": used_in}})
+
+    table.remove((Component.id == comp_id) | (Component.name == comp_id))
+    return {"status": "deleted", "id": comp_id}

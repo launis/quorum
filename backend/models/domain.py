@@ -612,7 +612,7 @@ class DimensionResultItem(BaseModel):
     score: Annotated[int | float, Field(description="Numerical score.")]
     reasoning: Annotated[str, Field(description="Justification for the score.")]
 
-    reasoning: Annotated[str, Field(description="Justification for the score.")]
+
     
     # STRICT: Do not allow extra fields like 'label' or 'name'. 
     # Force LLM to map correctly to 'dimension_id'.

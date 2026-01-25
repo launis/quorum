@@ -1,15 +1,10 @@
-
 import 'package:flutter/material.dart';
 
 class GenericGrid extends StatelessWidget {
   final String title;
   final Map<String, dynamic> data;
 
-  const GenericGrid({
-    super.key,
-    required this.title,
-    required this.data,
-  });
+  const GenericGrid({super.key, required this.title, required this.data});
 
   @override
   Widget build(BuildContext context) {
@@ -24,9 +19,9 @@ class GenericGrid extends StatelessWidget {
           children: [
             Text(
               title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             GridView.builder(
@@ -51,18 +46,22 @@ class GenericGrid extends StatelessWidget {
                   children: [
                     Text(
                       label,
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: Colors.grey[600],
-                          ),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.labelSmall?.copyWith(color: Colors.grey[600]),
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
                     Text(
                       value,
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            fontWeight: highlight ? FontWeight.bold : FontWeight.normal,
-                            color: highlight ? Theme.of(context).colorScheme.primary : null,
-                          ),
+                        fontWeight:
+                            highlight ? FontWeight.bold : FontWeight.normal,
+                        color:
+                            highlight
+                                ? Theme.of(context).colorScheme.primary
+                                : null,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],

@@ -1,0 +1,22 @@
+Analyzing sdui...
+
+  error - dynamic_form.dart:3:8 - Target of URI doesn't exist: 'package:flutter_hooks/flutter_hooks.dart'. Try creating the file referenced by the URI, or try using a URI for a file that does exist. - uri_does_not_exist
+  error - dynamic_form.dart:9:33 - Classes can only extend other classes. Try specifying a different superclass, or removing the extends clause. - extends_non_class
+  error - dynamic_form.dart:11:11 - No associated named super constructor parameter. Try changing the name to the name of an existing named super constructor parameter, or creating such named parameter. - super_formal_parameter_without_associated_named
+  error - dynamic_form.dart:31:22 - The method 'useState' isn't defined for the type 'DynamicFormWidget'. Try correcting the name to the name of an existing method, or defining a method named 'useState'. - undefined_method
+  error - dynamic_form.dart:34:21 - The method 'useMemoized' isn't defined for the type 'DynamicFormWidget'. Try correcting the name to the name of an existing method, or defining a method named 'useMemoized'. - undefined_method
+warning - dynamic_form.dart:27:10 - The method doesn't override an inherited method. Try updating this class to match the superclass, or removing the override annotation. - override_on_non_overriding_member
+warning - specialist_section.dart:1:8 - Unused import: 'package:client_app/features/orchestration/domain/models/report_view.dart'. Try removing the import directive. - unused_import
+warning - specialist_section.dart:2:8 - Unused import: 'package:client_app/features/orchestration/presentation/widgets/sdui/generic_table.dart'. Try removing the import directive. - unused_import
+warning - specialist_section.dart:3:8 - Unused import: 'package:client_app/features/orchestration/presentation/widgets/results/score_card_radar.dart'. Try removing the import directive. - unused_import
+warning - specialist_section.dart:8:8 - Unused import: 'package:fl_chart/fl_chart.dart'. Try removing the import directive. - unused_import
+warning - specialist_section.dart:374:33 - The left operand can't be null, so the right operand is never executed. Try removing the operator and the right operand. - dead_null_aware_expression
+warning - specialist_section.dart:382:33 - The left operand can't be null, so the right operand is never executed. Try removing the operator and the right operand. - dead_null_aware_expression
+warning - specialist_section.dart:1242:11 - The value of the local variable 'isPassive' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - specialist_section.dart:1428:10 - The declaration '_buildProfileIcon' isn't referenced. Try removing the declaration of '_buildProfileIcon'. - unused_element
+   info - schema_mapper.dart:33:11 - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - specialist_section.dart:1256:51 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - specialist_section.dart:1397:54 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - specialist_section.dart:1483:48 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+
+18 issues found.

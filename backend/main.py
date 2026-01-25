@@ -21,10 +21,11 @@ from fastapi.responses import JSONResponse
 from backend.api import (
     admin_router,
     agents_router,
+    api_router,
     auth_router,
     builder_router,
-    config_router,
-    execution_router,
+    # config_router, # Aggregated in api_router
+    # execution_router, # Aggregated in api_router
     llm_router,
     organization_router,
     settings_router,
@@ -171,10 +172,9 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 app.include_router(auth_router.router)
 app.include_router(admin_router.router)
-app.include_router(config_router.router)
-app.include_router(execution_router.router)  # V2 Router
-app.include_router(execution_router.workflow_router)  # V2 Workflow Router
-app.include_router(execution_router.executions_router)  # Executions Router
+app.include_router(api_router)  # V2.9 Aggregated Router (Config + Execution)
+# app.include_router(config_router.router) - Replaced by api_router
+# app.include_router(execution_router.router)  - Replaced by api_router
 app.include_router(agents_router.router)
 app.include_router(builder_router.router)
 app.include_router(settings_router.router)

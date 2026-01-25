@@ -41,6 +41,12 @@ class AdminDashboardScreen extends ConsumerWidget {
         label: l10n.systemSettingsTitle,
         path: '/admin/settings',
       ),
+      (
+        icon: Icons.science_outlined,
+        selectedIcon: Icons.science,
+        label: 'Studio', 
+        path: '/studio',
+      ),
     ];
 
     // Filter destinations based on Role
