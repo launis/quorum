@@ -71,21 +71,18 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **Config SSOT**: Refactor `docker-compose.yml` to use `.env` interpolation (Single Source of Truth) via `env_file`.
 - [x] **Worker Environment Parity**: Worker successfully verified in Local (TinyDB), Local (Firestore), and Docker (Firestore) environments.
 
-### 1.4 Cognitive Configuration Studio (The "Architect" UI)
-**Objective:** Replace legacy chaotic configuration screens with a structured, visual workflow editor in Flutter. Enable "No-Code" strategy adjustments.
+### 1.4 Cognitive Configuration Studio (Server-Driven UI)
+**Objective:** Rakentaa Flutter-käyttöliittymä, joka mukautuu backendin muutoksiin ilman sovelluspäivityksiä.
 
-#### Backend: Dynamic Core (Priority Shift from Future Findings)
-- [ ] **Database-Driven Definitions**: Refactor `execution_router.py` to load pipeline steps dynamically from `WorkflowDefinition` models in DB, replacing hardcoded "Case Logic".
-- [ ] **Component API**: New endpoints (`GET /components/matrices`, `PUT /components/prompts`) to allow frontend modification of reasoning strategies.
-- [ ] **Validation Layer**: Implement `DryRunValidator` to test modified workflows without executing expensive LLM calls.
+- [ ] **SDUI Engine (Flutter)**: Toteuta `DynamicFormBuilder` widget `client_app/lib/shared/sdui/`.
+    - *Input:* JSON Schema API:sta.
+    - *Mapping:* `string` -> `TextField`, `enum` -> `Dropdown`, `boolean` -> `Switch`, `array` -> `ReorderableList`.
+- [ ] **Workspace Navigation**: Refaktoroi `router.dart` jakamalla se pienempiin tiedostoihin (`routes/admin.dart`, `routes/orchestration.dart`) ja luomalla uusi ShellRoute Admin-näkymälle:
+    - *Governance:* Käyttäjät & Oikeudet.
+    - *Orchestration:* Työnkulut (Workflows).
+    - *Intelligence:* Prompts & Matriisit.
+- [ ] **Visual Workflow Builder**: Toteuta `DragAndDropCanvas` widget, joka visualisoi työnkulun vaiheet "kortteina". Backendin `/validate-flow` API tarkistaa kytkennät reaaliajassa.
 
-#### Frontend: The Studio Module
-- [ ] **Visual Pipeline Builder**: A specialized Flutter view using a "Stepper" or "Graph" visualization to show agent flow (e.g., `Ingest -> Guard -> Analyst -> Judge`).
-    - *Feature:* Reorder agents via drag-and-drop (if backend logic permits) or toggle specific agents on/off.
-- [ ] **Matrix Editor (BARS)**: A structured DataGrid UI for editing Evaluation Matrices (`Criteria`, `Score 1-5 Descriptions`).
-    - *UX:* Prevents invalid JSON errors by using form fields instead of raw text editors.
-- [ ] **Prompt Registry UI**: A "System Instruction" editor with version history.
-    - *Safety:* Allows Admins to tweak the "Persona" of the Judge or Analyst without redeploying the backend.
 
 ### 1.5 Scalability Architecture (Future)
 - [x] **Distribute Task Queue**: `Arq` with Redis implementation (`backend/worker.py`) for durable job execution.
@@ -96,6 +93,16 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **Seed Synchronization**: Standardized `db.json` -> `seed_data.json` migration, making Seed Data the authoritative source of truth.
 - [x] **UI Step Synchronization**: Fixed race conditions in `PipelineRunner` ensuring "Pallukat" (UI indicators) update correctly.
 - [x] **Linting & Hygiene**: Achieved 100% pass rate on `ruff` checks across the entire backend codebase.
+
+### 1.7 API Modernization (The Modular Core)
+**Objective:** Pilkkoa yli 500 rivin API-tiedostot hallittaviin osiin ja luoda pohja dynaamiselle UI:lle.
+
+- [ ] **API Modularization Strategy**: Luo hakemistorakenne `backend/api/v2/` tai jaa nykyiset moduulit alikansioihin (esim. `backend/api/execution/`).
+    - *Kohde:* `execution_router.py` (>500 riviä) -> Jaetaan: `start.py`, `monitor.py`, `result.py`.
+    - *Kohde:* `config_router.py` -> Jaetaan: `components.py`, `workflows.py`, `ontology.py`.
+- [ ] **Schema Endpoint Factory**: Toteuta geneerinen endpoint `GET /api/v1/schemas/{model_name}`, joka palauttaa Pydantic-mallin JSON Scheman UI-vinkeillä (esim. ui:widget: "radio").
+- [ ] **Validation Service Decoupling**: Siirrä validointilogiikka reitittimistä erillisiin palveluihin (`backend/services/validation/`), jotta niitä voi kutsua sekä API että Worker.
+
 
 ---
 
@@ -279,6 +286,36 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [ ] **Delete**: `backend/components/` (If unused).
 
 ---
+
+## ðŸ”¨ 3. Askelmerkit Refaktorointiin (Immediate Steps)
+**Tässä on konkreettinen järjestys, jolla ongelma ratkaistaan rikkomatta nykyistä toiminnallisuutta:**
+
+### Vaihe 1: Backend API Refactor (Ensin)
+Koska `execution_router.py` ja `config_router.py` ovat liian isoja, aloitamme jakamalla ne. Emme lisää uutta logiikkaa ennen kuin pohja on siisti.
+- [ ] **Luo kansio** `backend/api/routes/config/`.
+- [ ] **Siirrä `config_router.py`:n sisältö** kolmeen uuteen tiedostoon:
+    - `components.py`: Promptien ja komponenttien CRUD.
+    - `workflows.py`: Työnkulkujen (Steps/Workflows) CRUD.
+    - `ontology.py`: Dimensioiden ja matriisien hallinta.
+- [ ] **Luo** `backend/api/routes/config/__init__.py`, joka kokoaa nämä yhdeksi `APIRouter`:iksi, jotta `main.py` ei hajoa.
+
+### Vaihe 2: SDUI Schemas (Backend)
+Kun API on jaettu, lisätään kyvykkyys palauttaa UI-metadataa.
+- [ ] **Luo** `backend/api/routes/meta.py`.
+- [ ] **Toteuta endpoint**, joka ottaa Pydantic-mallin (esim. `EvaluationMatrixConfig`) ja palauttaa sen `.model_json_schema()`.
+- [ ] **Varmista**, että Enum-kentät (esim. mallivalinnat) päivittyvät dynaamisesti backendin konfiguraatiosta.
+
+### Vaihe 3: Flutter Router Refactor (Client)
+Ennen uuden UI:n tekemistä, pilkotaan `client_app/lib/router/router.dart`.
+- [ ] **Luo** `client_app/lib/router/routes/`.
+- [ ] **Siirrä admin-reitit** tiedostoon `admin_routes.dart`.
+- [ ] **Siirrä dashboard-reitit** tiedostoon `dashboard_routes.dart`.
+- [ ] **Päärouter** vain importtaa nämä listat.
+
+### Vaihe 4: Dynamic Form Widget (Client)
+Toteuta "älykäs lomake" Flutteriin.
+- [ ] **Tämä widget** ei tiedä mitään "Kognitiivisesta Kvoorumista". Se tietää vain JSON-tyypit.
+- [ ] **Testaa** tätä korvaamalla nykyinen "Settings"-näkymän kovakoodattu lomake tällä dynaamisella lomakkeella.
 
 ## ðŸ”® Future Findings (Q1 2026)
 **New requirements identified during Phase 1-3 implementation:**
