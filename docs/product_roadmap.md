@@ -74,10 +74,10 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 ### 1.4 Cognitive Configuration Studio (Server-Driven UI)
 **Objective:** Rakentaa Flutter-käyttöliittymä, joka mukautuu backendin muutoksiin ilman sovelluspäivityksiä.
 
-- [ ] **SDUI Engine (Flutter)**: Toteuta `DynamicFormBuilder` widget `client_app/lib/shared/sdui/`.
+- [x] **SDUI Engine (Flutter)**: Toteuta `DynamicFormBuilder` widget `client_app/lib/features/orchestration/presentation/widgets/sdui/`.
     - *Input:* JSON Schema API:sta.
     - *Mapping:* `string` -> `TextField`, `enum` -> `Dropdown`, `boolean` -> `Switch`, `array` -> `ReorderableList`.
-- [ ] **Workspace Navigation**: Refaktoroi `router.dart` jakamalla se pienempiin tiedostoihin (`routes/admin.dart`, `routes/orchestration.dart`) ja luomalla uusi ShellRoute Admin-näkymälle:
+- [x] **Workspace Navigation**: Refaktoroi `router.dart` jakamalla se pienempiin tiedostoihin (`routes/admin.dart`, `routes/orchestration.dart`) ja luomalla uusi ShellRoute Admin-näkymälle:
     - *Governance:* Käyttäjät & Oikeudet.
     - *Orchestration:* Työnkulut (Workflows).
     - *Intelligence:* Prompts & Matriisit.
@@ -93,11 +93,12 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **Seed Synchronization**: Standardized `db.json` -> `seed_data.json` migration, making Seed Data the authoritative source of truth.
 - [x] **UI Step Synchronization**: Fixed race conditions in `PipelineRunner` ensuring "Pallukat" (UI indicators) update correctly.
 - [x] **Linting & Hygiene**: Achieved 100% pass rate on `ruff` checks across the entire backend codebase.
+- [x] **Sitra Integration Test**: Validated real-world data processing (Files/DB/LLM) with strict zero-fallback limits.
 
 ### 1.7 API Modernization (The Modular Core)
 **Objective:** Pilkkoa massiiviset reitittimet (`execution_router.py`, `config_router.py`) ja valmistella backend SDUI-arkkitehtuuriin.
 
-- [ ] **Directory Structure Refactor**:
+- [x] **Directory Structure Refactor**:
     - Luo `backend/api/routes/execution/` ja jaa `execution_router.py`:
         - `lifecycle.py` (Create/Delete/Cancel)
         - `monitor.py` (SSE/Events)
@@ -115,12 +116,12 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 ### 1.8 Cognitive Configuration Studio (Flutter SDUI)
 **Objective:** Rakentaa dynaaminen hallintapaneeli, joka mukautuu backendin skeemaan ilman koodimuutoksia.
 
-- [ ] **SDUI Core Widget**:
-    - Toteuta `DynamicFormWidget` (`client_app/lib/shared/sdui/`), joka muuntaa JSON Scheman Flutter-lomakkeeksi.
+- [x] **SDUI Core Widget**:
+    - Toteuta `DynamicFormWidget` (`client_app/lib/features/orchestration/presentation/widgets/sdui/`), joka muuntaa JSON Scheman Flutter-lomakkeeksi.
     - Tuki perustyypeille: `string`, `bool`, `enum`, `array`.
-- [ ] **Studio Shell**:
+- [x] **Studio Shell**:
     - Luo uusi `ShellRoute` polulle `/studio`, jossa on oma navigointirakenne (erillään Admin- ja Dashboard-näkymistä).
-- [ ] **Workflow Editor**:
+- [x] **Workflow Editor**:
     - Toteuta "Workflow Builder", joka käyttää backendin `WorkflowDefinition` -skeemaa.
     - Implementoi "List Editor" vaiheiden (Steps) järjestämiseen.
 
