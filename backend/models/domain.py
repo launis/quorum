@@ -8,10 +8,17 @@ audit report components.
 from datetime import datetime
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, ValidationInfo, AfterValidator, model_validator
-from typing import Annotated, Any, Literal
-from backend.hooks.security import check_banned_phrases, sanitize_text
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    ConfigDict,
+    Field,
+    ValidationInfo,
+    field_validator,
+    model_validator,
+)
 
+from backend.hooks.security import check_banned_phrases
 
 # --- Base Schema ---
 
@@ -32,7 +39,8 @@ class Metadata(BaseModel):
     vaihe: Annotated[float | int, Field(description="Step number in the workflow.")]
     versio: Annotated[Literal["1.0", "2.0"], Field(description="Schema version.")] = "2.0"
     suoritus_ymparisto: Annotated[
-        Literal["Kriitikkoryhma_External", "Internal", "VIRTUAL_ENCLAVE"] | None, Field(description="Execution environment context.")
+        Literal["Kriitikkoryhma_External", "Internal", "VIRTUAL_ENCLAVE"] | None,
+        Field(description="Execution environment context."),
     ] = None
 
     model_config = ConfigDict(extra="allow", validate_assignment=True)
@@ -67,24 +75,25 @@ def validate_guard_input(v: str, info: ValidationInfo) -> str:
     """Validator to check for banned phrases using context."""
     if not v:
         return v
-    
+
     # Context is passed from the Agent via model_validate(..., context={...})
     if info.context and "banned_phrases" in info.context:
         banned = info.context["banned_phrases"]
         detected = check_banned_phrases(v, banned)
         if detected:
-             # We use a specific Error Code prefix for handling upstream
-             raise ValueError(f"SECURITY_BANNED_PHRASE_DETECTED: {detected}")
+            # We use a specific Error Code prefix for handling upstream
+            raise ValueError(f"SECURITY_BANNED_PHRASE_DETECTED: {detected}")
     return v
+
 
 class GuardInput(BaseModel):
     """Input schema for Guard Agent Validation."""
+
     history_text: Annotated[str, AfterValidator(validate_guard_input)]
     product_text: Annotated[str, AfterValidator(validate_guard_input)]
     reflection_text: Annotated[str | None, AfterValidator(validate_guard_input)] = None
 
     model_config = ConfigDict(extra="ignore")
-
 
 
 class SecurityCheck(BaseModel):
@@ -531,13 +540,7 @@ class PerformatiivisuusAuditointi(BaseJSON):
     ]
 
 
-
-
-
 # --- Step 8a: Archivist Agent ---
-
-
-
 
 
 class ArchivistOutput(BaseJSON):
@@ -612,15 +615,14 @@ class DimensionResultItem(BaseModel):
     score: Annotated[int | float, Field(description="Numerical score.")]
     reasoning: Annotated[str, Field(description="Justification for the score.")]
 
-
-    
-    # STRICT: Do not allow extra fields like 'label' or 'name'. 
+    # STRICT: Do not allow extra fields like 'label' or 'name'.
     # Force LLM to map correctly to 'dimension_id'.
     model_config = ConfigDict(extra="forbid", validate_assignment=True)
 
 
 class ScoreCardItem(BaseModel):
     """Summary of a single judgment step."""
+
     agent_name: Annotated[str, Field(description="Name of the judge (e.g. 'Standard Judge').")]
     total_score: Annotated[float, Field(description="Total score (0-5).")]
     max_score: Annotated[int, Field(description="Max scale.")]
@@ -651,7 +653,9 @@ class XAIReport(BaseJSON):
     confidence_score: Annotated[float, Field(description="Confidence score (0.0-1.0).")]
     xai_report_formatted: Annotated[str | None, Field(description="Markdown formatted report.")] = None
     comparison_data: Annotated[dict[str, Any] | None, Field(description="Structured comparison data.")] = None
-    score_cards: Annotated[list[ScoreCardItem], Field(default_factory=list, description="Aggregated scores from all judges.")]
+    score_cards: Annotated[
+        list[ScoreCardItem], Field(default_factory=list, description="Aggregated scores from all judges.")
+    ]
 
     model_config = ConfigDict(extra="allow", validate_assignment=True)
 
@@ -675,26 +679,30 @@ class InteractionAnalysis(BaseJSON):
         Literal["Matkustaja", "Kartanlukija", "Kuski", "Arkkitehti"],
         Field(description="Driver profile classification."),
     ]
-    input_control_ratio: Annotated[float | None, Field(description="Control ratio (Calculated from imperative_count / total_turn_count).")] = None
-    imperative_command_count: Annotated[int, Field(default=0, description="Count of imperative commands (e.g. 'Tee', 'Korjaa').")]
+    input_control_ratio: Annotated[
+        float | None, Field(description="Control ratio (Calculated from imperative_count / total_turn_count).")
+    ] = None
+    imperative_command_count: Annotated[
+        int, Field(default=0, description="Count of imperative commands (e.g. 'Tee', 'Korjaa').")
+    ]
     total_turn_count: Annotated[int, Field(default=1, description="Total number of user turns analysed.")]
 
     @field_validator("input_control_ratio", mode="before")
     @classmethod
     def compute_ratio(cls, v: Any, info: ValidationInfo) -> float | None:
         """Compute ratio if not provided, based on counts.
-        
+
         Refines 0.0 defaults to None if the classification implies activity,
         avoiding the 'Architect 0%' visual bug.
         """
         values = info.data
         cmd = values.get("imperative_command_count", 0)
-        
+
         if v is not None and not (v == 0.0 and cmd > 0):
             return v
         total = values.get("total_turn_count", 1)
         role = values.get("driver_classification", "Matkustaja")
-        
+
         # If no commands detected (0) but Role is high-level, the heuristic failed.
         # Check against active roles (Navigator, Driver, Architect)
         active_roles = ["kartanlukija", "navigator", "kuski", "driver", "arkkitehti", "architect"]
@@ -702,16 +710,15 @@ class InteractionAnalysis(BaseJSON):
 
         if total == 0:
             return None
-        
+
         ratio = round(cmd / total, 2)
-        
+
         # If Active Role (Driver) but 0% commands, metric is likely invalid/missing.
         # Return None to show "N/A" instead of misleading "0%".
         if ratio == 0.0 and is_active_role:
-             return None
+            return None
 
         return ratio
-
 
 
 # --- Step 5 (Parallel): Panel Agent ---
@@ -749,7 +756,17 @@ class EvaluationCriterion(BaseModel):
     instruction: Annotated[str, Field(description="Prompt instruction for the LLM.")]
     anchors: Annotated[dict[str, str], Field(description="Scoring anchors (e.g., {'1': 'Bad', '4': 'Good'}).")]
 
-    model_config = ConfigDict(validate_assignment=True)
+    model_config = ConfigDict(
+        validate_assignment=True,
+        json_schema_extra={
+            "properties": {
+                "id": {"x-ui-label": "ID"},
+                "label": {"x-ui-label": "Label"},
+                "instruction": {"x-ui-label": "Instruction", "x-ui-widget": "textarea"},
+                "anchors": {"x-ui-label": "Scoring Anchors"},
+            }
+        },
+    )
 
 
 class EvaluationMatrixConfig(BaseModel):
@@ -761,8 +778,26 @@ class EvaluationMatrixConfig(BaseModel):
     role_description: Annotated[str | None, Field(description="Optional role persona.")] = None
     criteria: Annotated[list[EvaluationCriterion], Field(description="List of criteria.")]
 
-    model_config = ConfigDict(validate_assignment=True)
-
+    model_config = ConfigDict(
+        validate_assignment=True,
+        json_schema_extra={
+            "examples": [
+                {
+                    "name": "Standard Analysis",
+                    "description": "Basic analysis matrix.",
+                    "scale": {"min": 1, "max": 5},
+                    "criteria": [],
+                }
+            ],
+            "properties": {
+                "name": {"x-ui-label": "Matrix Name"},
+                "description": {"x-ui-label": "Description"},
+                "scale": {"x-ui-label": "Scoring Scale"},
+                "role_description": {"x-ui-label": "Role Persona"},
+                "criteria": {"x-ui-group": "Evaluation Criteria"},
+            },
+        },
+    )
 
 
 class EvaluationResult(BaseJSON):  # Inherits metadata from BaseJSON
@@ -784,10 +819,10 @@ class EvaluationResult(BaseJSON):  # Inherits metadata from BaseJSON
     dimensions: Annotated[list[DimensionResultItem], Field(description="Breakdown by dimension.")]
     critical_findings: Annotated[list[str], Field(default_factory=list, description="Critical observations.")]
 
-    @model_validator(mode='after')
-    def validate_scores(self) -> 'EvaluationResult':
+    @model_validator(mode="after")
+    def validate_scores(self) -> EvaluationResult:
         if self.scale_min >= self.scale_max:
-             raise ValueError(f"Invalid scale: min ({self.scale_min}) must be less than max ({self.scale_max})")
+            raise ValueError(f"Invalid scale: min ({self.scale_min}) must be less than max ({self.scale_max})")
 
         # 1. Validate Total Score
         if not (self.scale_min <= self.total_score <= self.scale_max):
@@ -797,19 +832,22 @@ class EvaluationResult(BaseJSON):  # Inherits metadata from BaseJSON
             elif abs(self.total_score - self.scale_min) < 0.01:
                 self.total_score = float(self.scale_min)
             else:
-                 raise ValueError(f"Total score {self.total_score} out of bounds [{self.scale_min}, {self.scale_max}]")
+                raise ValueError(f"Total score {self.total_score} out of bounds [{self.scale_min}, {self.scale_max}]")
 
         # 2. Validate Dimension Scores
         for dim in self.dimensions:
             if not (self.scale_min <= dim.score <= self.scale_max):
-                 # Try soft fix
+                # Try soft fix
                 if abs(dim.score - self.scale_max) < 0.01:
                     dim.score = float(self.scale_max)
                 elif abs(dim.score - self.scale_min) < 0.01:
                     dim.score = float(self.scale_min)
                 else:
-                    raise ValueError(f"Dimension '{dim.dimension_id}' score {dim.score} out of bounds [{self.scale_min}, {self.scale_max}]")
-        
+                    raise ValueError(
+                        f"Dimension '{dim.dimension_id}' score {dim.score} "
+                        f"out of bounds [{self.scale_min}, {self.scale_max}]"
+                    )
+
         return self
 
 
@@ -821,7 +859,7 @@ class ReportScore(BaseModel):
 
     score: Annotated[int | float | str | None, Field(description="Numerical or text score.")] = None
     reasoning: Annotated[str, Field(description="Explanation.")] = ""
-    
+
     # V2 Finnish Keys (Standard)
     arvosana: Annotated[int | float | str | None, Field(description="Grade (Finnish key).")] = None
     perustelu: Annotated[str, Field(description="Reasoning (Finnish key).")] = ""
@@ -846,16 +884,24 @@ class ReportContext(BaseModel):
     average_score: Annotated[float, Field(default=0.0, description="Calculated average score.")]
     timestamp: Annotated[str, Field(description="Generation timestamp.")]
     coaching_plan: Annotated[dict[str, Any] | None, Field(default=None)] = None
-    
+
     # New fields from hooks (Jan 2026)
-    penalties_applied: Annotated[list[str], Field(default_factory=list, description="List of penalties applied by scoring hook.")]
+    penalties_applied: Annotated[
+        list[str], Field(default_factory=list, description="List of penalties applied by scoring hook.")
+    ]
     score_summary: Annotated[str | None, Field(default=None, description="Full score summary from scoring hook.")]
     input_control_ratio: Annotated[float | None, Field(default=None, description="Human/AI control ratio (0.0-1.0).")]
-    
+
     # Hook outputs (Jan 2026 - Expanded)
-    structural_warnings: Annotated[list[str], Field(default_factory=list, description="Validation warnings for short/missing inputs.")]
-    archivist_precedents: Annotated[str | None, Field(default=None, description="Historical context from past executions.")]
-    google_search_results: Annotated[list[dict[str, Any]], Field(default_factory=list, description="Fact-checking sources from Google Search.")]
+    structural_warnings: Annotated[
+        list[str], Field(default_factory=list, description="Validation warnings for short/missing inputs.")
+    ]
+    archivist_precedents: Annotated[
+        str | None, Field(default=None, description="Historical context from past executions.")
+    ]
+    google_search_results: Annotated[
+        list[dict[str, Any]], Field(default_factory=list, description="Fact-checking sources from Google Search.")
+    ]
 
     model_config = ConfigDict(validate_assignment=True)
 
@@ -880,16 +926,24 @@ class UsageRecord(BaseModel):
 
     model_config = ConfigDict(frozen=True, validate_assignment=True)
 
+
 # --- Retrieval & Context ---
+
 
 class Precedent(BaseModel):
     """Represents a single historical execution precedent."""
+
     id: str
     date: str
     scores: str
     verdict: str
 
+
 class ContextData(BaseJSON):
     """Output schema for RetrievalAgent (Simulated or Real)."""
+
     precedents: Annotated[str, Field(description="Summary text of precedents.")]
-    precedent_list: Annotated[list[Precedent], Field(default_factory=list, description="Structured list of precedents.")]
+    precedent_list: Annotated[
+        list[Precedent],
+        Field(default_factory=list, description="Structured list of precedents."),
+    ]

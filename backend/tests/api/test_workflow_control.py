@@ -10,7 +10,7 @@ from backend.models.auth import TokenData, UserRole
 
 # We can rely on router directly or via app.
 # Unit test style: Import router and dependencies directly or mock depends.
-from backend.api.execution_router import cancel_execution
+from backend.api.routes.execution.lifecycle import cancel_execution
 
 @pytest.mark.asyncio
 async def test_cancel_execution_success():

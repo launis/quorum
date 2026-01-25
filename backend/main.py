@@ -9,14 +9,13 @@ Adheres to V2.9 Architecture:
 
 import logging
 import os
+import uuid
 from contextlib import asynccontextmanager
 
-import uuid
 from fastapi import FastAPI, Request
-from starlette.middleware.base import BaseHTTPMiddleware
-from backend.context import set_request_context, clear_request_context
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from backend.api import (
     admin_router,
@@ -24,16 +23,14 @@ from backend.api import (
     api_router,
     auth_router,
     builder_router,
-    # config_router, # Aggregated in api_router
-    # execution_router, # Aggregated in api_router
     llm_router,
     organization_router,
     settings_router,
     tools_router,
 )
+from backend.context import set_request_context
 from backend.core.registry import TaskRegistry
 from backend.logging_config import configure_logfire, setup_logging
-from backend.schemas.error import APIError
 from backend.settings import get_settings
 
 # --- 1. Lifespan Management ---
@@ -46,7 +43,7 @@ async def lifespan(app: FastAPI):
     setup_logging()
     configure_logfire()
     logger = logging.getLogger("backend.main")
-    
+
     # VISUAL SEPARATOR FOR LOG READABILITY
     logger.info("======================================================================")
     logger.info("   COGNITIVE QUORUM BACKEND (V2.9) - STARTING UP")
@@ -111,18 +108,18 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
         """Process the request."""
         # Trust upstream ID or generate new one
         request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
-        
+
         # Set context
         set_request_context(request_id)
-        
+
         response = await call_next(request)
-        
+
         # Add header to response for client tracing
         response.headers["X-Request-ID"] = request_id
-        
+
         # Clear context (for thread safety in some async servers, though ContextVars handle this well)
         # clear_request_context() # Optional/Redundant with ContextVars but strict safety.
-        
+
         return response
 
 app.add_middleware(RequestIdMiddleware)
@@ -176,12 +173,10 @@ app.include_router(api_router)  # V2.9 Aggregated Router (Config + Execution)
 # app.include_router(config_router.router) - Replaced by api_router
 # app.include_router(execution_router.router)  - Replaced by api_router
 app.include_router(agents_router.router)
-app.include_router(builder_router.router)
+app.include_router(builder_router)
 app.include_router(settings_router.router)
 app.include_router(llm_router.router)
 app.include_router(organization_router.router)
 app.include_router(tools_router.router)
 
-# Include legacy routers if needed, or remove them.
-# app.include_router(legacy_router)
 print("Updated backend/main.py with Lifespan and V2 Router.")

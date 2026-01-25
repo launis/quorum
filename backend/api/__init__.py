@@ -6,6 +6,7 @@ Quorum backend application.
 
 from fastapi import APIRouter
 
+from backend.api.routes.builder import router as builder_router
 from backend.api.routes.config import router as config_router
 from backend.api.routes.execution import router as execution_router
 
@@ -29,3 +30,5 @@ api_router.include_router(config_router, prefix="/v1")
 # /api/v1/execute
 # /api/executions (monitor)
 api_router.include_router(execution_router)
+
+__all__ = ["api_router", "builder_router", "config_router", "execution_router"]

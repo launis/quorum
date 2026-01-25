@@ -306,3 +306,76 @@ async def execute_workflow_route(
 
     result = await engine.execute_workflow(definition, payload)
     return result
+
+
+@executions_router.delete(
+    "/{execution_id}/cancel",
+    summary="Cancel Execution",
+    description="Signals the workflow engine to cancel the running execution.",
+    status_code=status.HTTP_200_OK,
+    response_model=dict[str, Any],
+)
+async def cancel_execution(
+    execution_id: str,
+    repository: AbstractWorkflowRepository = Depends(get_async_repository),
+    current_user: Any = Depends(AuthService.get_current_user()),
+):
+    """Cancel a running workflow execution."""
+    try:
+        # 1. Fetch Execution
+        execution = await repository.get_execution(execution_id)
+        if not execution:
+            raise ResourceNotFoundError(f"Execution '{execution_id}' not found.")
+
+        # 2. RBAC Check
+        user_role = current_user.role
+        user_org = current_user.organization_id
+        record_org = execution.get("organization_id")
+        record_user = execution.get("user_id")
+
+        has_access = False
+
+        if user_role == UserRole.ROOT:
+            has_access = True
+        elif user_role in [UserRole.ADMIN, UserRole.MANAGER]:
+            # Can cancel within organization
+            if user_org and user_org == record_org:
+                has_access = True
+        elif user_role == UserRole.MEMBER:
+            # Can cancel own executions
+            if str(current_user.uid) == str(record_user):
+                has_access = True
+
+        if not has_access:
+            error_code = "PERMISSION_DENIED"
+            raise AppException(
+                message="You typically do not have permission to cancel this execution.",
+                status_code=status.HTTP_403_FORBIDDEN,
+                details={"error_code": error_code}
+            )
+
+        # 3. Update Status
+        # We set it to 'cancelling'. The engine will pick this up in the next step iteration.
+        current_status = execution.get("status")
+        if current_status in ["completed", "failed", "cancelled"]:
+            # Already done, no-op but return 200 ok with message
+            return {"execution_id": execution_id, "status": current_status, "message": "Execution already finished."}
+
+        await repository.update_execution(execution_id, {"status": "cancelling"})
+
+        logger.info(f"Execution {execution_id} marked as cancelling by user {current_user.uid}")
+
+        return {"execution_id": execution_id, "status": "cancelling", "message": "Cancellation signal sent."}
+
+    except ResourceNotFoundError as e:
+        raise AppException(
+            message=str(e), status_code=status.HTTP_404_NOT_FOUND, details={"error_code": "EXECUTION_NOT_FOUND"}
+        ) from e
+    except AppException:
+        raise
+    except Exception as e:
+        log_error(logger, e)
+        raise AppException(
+            message=f"Failed to cancel execution: {e}",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        ) from e

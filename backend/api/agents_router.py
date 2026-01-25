@@ -11,6 +11,7 @@ from typing import Annotated, Any
 from fastapi import (
     APIRouter,
     Body,
+    Header,
     status,
 )
 from fastapi import (
@@ -20,6 +21,7 @@ from tinydb import Query
 
 from backend.database.wrapper import AbstractDatabase
 from backend.dependencies import DatabaseDep, RegistryDep
+from backend.services.localization import localize_schema
 
 # --- Local Imports ---
 # Rule 6: APIError must be the FIRST local import
@@ -137,6 +139,7 @@ async def list_agents(
     workflow_id: str | None = APIQuery(
         None, description="Optional Workflow ID to resolve model strategies contextually."
     ),
+    accept_language: Annotated[str | None, Header()] = "en",
 ):
     """List all available agents with their metadata, models, and schemas.
 
@@ -146,6 +149,7 @@ async def list_agents(
         workflow_id (Optional[str]): Context for model resolution.
         db (DatabaseDep): Database dependency.
         registry (RegistryDep): Injected registry service.
+        accept_language (str): Locale for UI labels (default 'en').
 
     Returns:
         List[Dict]: A list of agent definition objects.
@@ -290,8 +294,16 @@ async def list_agents(
                     "class": name,
                     "description": f"{d_dbg} {desc_base}",
                     "model": model_display,
-                    "input_schema": input_schema,
-                    "output_schema": response_schema,
+                    "input_schema": (
+                        localize_schema(input_schema, accept_language or "en")
+                        if input_schema
+                        else None
+                    ),
+                    "output_schema": (
+                        localize_schema(response_schema, accept_language or "en")
+                        if response_schema
+                        else None
+                    ),
                 }
             )
 

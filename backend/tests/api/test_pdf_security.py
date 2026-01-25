@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 from fastapi import status
 from backend.models.auth import TokenData, UserRole
-from backend.api.execution_router import _enforce_pdf_access
+from backend.api.routes.execution.artifacts import _enforce_pdf_access
 from backend.exceptions import AppException
 
 # --- RBAC UNIT TESTS ---
@@ -51,7 +51,7 @@ def test_rbac_member_other_exec_deny():
 # --- INTEGRATION MOCK TESTS ---
 # We verify the logic flow in download endpoint via patching
 
-from backend.api.execution_router import download_execution_pdf
+from backend.api.routes.execution.artifacts import download_execution_pdf
 
 @pytest.mark.asyncio
 async def test_download_endpoint_file_exists():
@@ -71,7 +71,7 @@ async def test_download_endpoint_file_exists():
     mock_storage.base_path = Path("/tmp")
     
     # Mock FileResponse to avoid os.stat failure
-    with patch("backend.api.execution_router.FileResponse") as mock_file_response:
+    with patch("backend.api.routes.execution.artifacts.FileResponse") as mock_file_response:
         mock_file_response.return_value.status_code = 200
         
         resp = await download_execution_pdf("ex1", mock_repo, mock_user, AsyncMock(), mock_storage)

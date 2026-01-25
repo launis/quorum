@@ -5,9 +5,18 @@ import logging
 
 from backend.models.view import ReportView, UiSection, SectionType
 
+from backend.services.localization import LocalizationService
+
 logger = logging.getLogger(__name__)
 
 class ReportTransformer:
+    def __init__(self, language: str = "en"):
+        self.language = language
+        self.loc = LocalizationService()
+
+    def _t(self, key: str, default: str) -> str:
+        return self.loc.get(key, self.language, default)
+
     def transform(self, raw_data: dict, valid_range: Optional[tuple[float, float]] = None) -> ReportView:
         """
         Transforms raw execution data (dict) into a clean ReportView model.
@@ -37,8 +46,8 @@ class ReportTransformer:
             if step_data:
                 try:
                     # Title based on Key
-                    title = "Analyysin Tulos" if key == "step_judge" else "Kognitiivinen Arvio"
-                    agent_name = "Tuomari" if key == "step_judge" else "Kognitiivinen Tuomari"
+                    title = self._t("Analysis Result", "Analyysin Tulos") if key == "step_judge" else self._t("Cognitive Assessment", "Kognitiivinen Arvio")
+                    agent_name = self._t("Judge", "Tuomari") if key == "step_judge" else self._t("Cognitive Judge", "Kognitiivinen Tuomari")
 
                     # Resolve matrix-specific range if possible (in future), currently sharing execution-wide valid_range
                     # or we could try to look up matrix_id per step here.
@@ -90,7 +99,7 @@ class ReportTransformer:
             sections.append(UiSection(
                 id="logic-analysis",
                 type=SectionType.LOGIC_ANALYSIS,
-                title="Logiikka-analyysi",
+                title=self._t("Logic Analysis", "Logiikka-analyysi"),
                 data=logician_data if isinstance(logician_data, dict) else logician_data.dict()
             ))
 
@@ -100,7 +109,7 @@ class ReportTransformer:
             sections.append(UiSection(
                 id="stress-test",
                 type=SectionType.STRESS_TEST,
-                title="Falsifiointi & Stressitesti",
+                title=self._t("Falsification & Stress Test", "Falsifiointi & Stressitesti"),
                 data=falsifier_data if isinstance(falsifier_data, dict) else falsifier_data.dict()
             ))
 
@@ -110,7 +119,7 @@ class ReportTransformer:
             sections.append(UiSection(
                 id="causal-analysis",
                 type=SectionType.CAUSAL_ANALYSIS,
-                title="Kausaalinen Auditointi",
+                title=self._t("Causal Audit", "Kausaalinen Auditointi"),
                 data=causal_data if isinstance(causal_data, dict) else causal_data.dict()
             ))
 
@@ -120,7 +129,7 @@ class ReportTransformer:
             sections.append(UiSection(
                 id="performativity-check",
                 type=SectionType.PERFORMATIVITY_CHECK,
-                title="Performatiivisuustarkistus",
+                title=self._t("Performativity Check", "Performatiivisuustarkistus"),
                 data=detector_data if isinstance(detector_data, dict) else detector_data.dict()
             ))
 
@@ -130,7 +139,7 @@ class ReportTransformer:
              sections.append(UiSection(
                 id="fact-check",
                 type=SectionType.FACT_CHECK,
-                title="Fakta & Etiikka",
+                title=self._t("Facts & Ethics", "Fakta & Etiikka"),
                 data=overseer_data if isinstance(overseer_data, dict) else overseer_data.dict()
             ))
 
@@ -151,7 +160,7 @@ class ReportTransformer:
         sections.append(UiSection(
             id="unified-timeline",
             type=SectionType.TIMELINE_FEED,
-            title="Prosessin Eteneminen",
+            title=self._t("Process Timeline", "Prosessin Eteneminen"),
             data={"events": timeline_events}
         ))
 
@@ -243,25 +252,25 @@ class ReportTransformer:
         return UiSection(
             id="xai-summary",
             type=SectionType.MARKDOWN_BLOCK,
-            title="Tekoälyn Perustelut",
+            title=self._t("AI Reasoning", "Tekoälyn Perustelut"),
             data={"content": content}
         )
 
     def _build_timeline(self, steps: dict) -> List[dict]:
         events = []
         agent_names = {
-            "step_guard": "🛡️ Vartija",
-            "step_analyst": "🔎 Analyytikko",
-            "step_interaction": "🤝 Vuorovaikutus",
-            "step_profiler": "🧠 Profiloija",
-            "step_logician": "📐 Loogikko",
-            "step_falsifier": "🧪 Falsifioija",
-            "step_causal": "🔗 Kausaalisuus",
-            "step_detector": "🎭 Ilmaisunvalvoja",
-            "step_judge": "⚖️ Tuomari",
-            "step_judge_cognitive": "⚖️ Kognitiivinen Tuomari",
-            "step_coach": "🎓 Valmentaja",
-            "step_xai": "📝 Raportoija"
+            "step_guard": f"🛡️ {self._t('Guard', 'Vartija')}",
+            "step_analyst": f"🔎 {self._t('Analyst', 'Analyytikko')}",
+            "step_interaction": f"🤝 {self._t('Interaction', 'Vuorovaikutus')}",
+            "step_profiler": f"🧠 {self._t('Profiler', 'Profiloija')}",
+            "step_logician": f"📐 {self._t('Logician', 'Loogikko')}",
+            "step_falsifier": f"🧪 {self._t('Falsifier', 'Falsifioija')}",
+            "step_causal": f"🔗 {self._t('Causal', 'Kausaalisuus')}",
+            "step_detector": f"🎭 {self._t('Detector', 'Ilmaisunvalvoja')}",
+            "step_judge": f"⚖️ {self._t('Judge', 'Tuomari')}",
+            "step_judge_cognitive": f"⚖️ {self._t('Cognitive Judge', 'Kognitiivinen Tuomari')}",
+            "step_coach": f"🎓 {self._t('Coach', 'Valmentaja')}",
+            "step_xai": f"📝 {self._t('Reporter', 'Raportoija')}"
         }
 
         for step_key, step_data in steps.items():
@@ -328,12 +337,12 @@ class ReportTransformer:
         return UiSection(
             id="hypotheses-table",
             type=SectionType.DATA_TABLE,
-            title="Analyytikon Hypoteesit",
+            title=self._t("Analyst Hypotheses", "Analyytikon Hypoteesit"),
             data={
                 "columns": [
-                    {"key": "id", "label": "ID"},
-                    {"key": "claim", "label": "Väite"},
-                    {"key": "proven", "label": "Vahvistettu"}
+                    {"key": "id", "label": self._t("ID", "ID")},
+                    {"key": "claim", "label": self._t("Claim", "Väite")},
+                    {"key": "proven", "label": self._t("Verified", "Vahvistettu")}
                 ],
                 "rows": rows
             }
@@ -351,12 +360,12 @@ class ReportTransformer:
         return UiSection(
             id="security-grid",
             type=SectionType.KEY_VALUE_GRID,
-            title="Turvatarkastus",
+            title=self._t("Security Check", "Turvatarkastus"),
             data={
                 "items": [
-                    {"label": "Uhka Havaittu", "value": "Kyllä" if sec.get("uhka_havaittu") else "Ei", "highlight": sec.get("uhka_havaittu")},
-                    {"label": "Riski Taso", "value": sec.get("riski_taso", "N/A")},
-                    {"label": "Anonymisoitu", "value": "Kyllä" if sec.get("anonymisointi_tehty") else "Ei"}
+                    {"label": self._t("Threat Detected", "Uhka Havaittu"), "value": self._t("Yes", "Kyllä") if sec.get("uhka_havaittu") else self._t("No", "Ei"), "highlight": sec.get("uhka_havaittu")},
+                    {"label": self._t("Risk Level", "Riski Taso"), "value": sec.get("riski_taso", "N/A")},
+                    {"label": self._t("Anonymized", "Anonymisoitu"), "value": self._t("Yes", "Kyllä") if sec.get("anonymisointi_tehty") else self._t("No", "Ei")}
                 ]
             }
         )
@@ -370,7 +379,7 @@ class ReportTransformer:
         return UiSection(
             id="profiler-analysis",
             type=SectionType.PROFILER_ANALYSIS,
-            title="Profiloijan Analyysi",
+            title=self._t("Profiler Analysis", "Profiloijan Analyysi"),
             data=step # Pass full dict (contains metrics, biases, intent, etc.)
         )
 
@@ -387,7 +396,7 @@ class ReportTransformer:
         return UiSection(
             id="interaction-grid",
             type=SectionType.DRIVER_PROFILE,
-            title="Vuorovaikutus & Roolitus",
+            title=self._t("Interaction & Roles", "Vuorovaikutus & Roolitus"),
             data=step # Pass full step data (contains driver_classification, input_control_ratio, strategies)
         )
 
@@ -404,7 +413,7 @@ class ReportTransformer:
         return UiSection(
             id="coach-markdown",
             type=SectionType.MARKDOWN_BLOCK,
-            title="Valmentajan Palaute",
+            title=self._t("Coach Feedback", "Valmentajan Palaute"),
             data={"content": f"### Huomiot\n{feedback}"}
         )
 
@@ -416,7 +425,7 @@ class ReportTransformer:
         return UiSection(
             id="archivist-check",
             type=SectionType.ARCHIVIST_CHECK,
-            title="Arkistonhoitajan Tarkistus",
+            title=self._t("Archivist Check", "Arkistonhoitajan Tarkistus"),
             data=step
         )
 
@@ -436,11 +445,11 @@ class ReportTransformer:
         return UiSection(
             id="key-metrics",
             type=SectionType.KEY_VALUE_GRID,
-            title="Suorituskyky & Kulutus",
+            title=self._t("Performance & Cost", "Suorituskyky & Kulutus"),
             data={
                 "items": [
-                    {"label": "Tokenit", "value": f"{total_tokens:,}"},
-                    {"label": "Kustannus", "value": f"${cost:.4f}"},
+                    {"label": self._t("Tokens", "Tokenit"), "value": f"{total_tokens:,}"},
+                    {"label": self._t("Cost", "Kustannus"), "value": f"${cost:.4f}"},
                     # We could add duration here if we had start/end times easily accessible
                 ]
             }

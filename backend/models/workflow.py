@@ -32,9 +32,33 @@ class WorkflowDefinition(BaseModel):
     """
 
     id: str = Field(..., description="Unique Workflow ID, e.g., 'comprehensive_audit_v1'")
-    name: str = Field("Untitled Workflow", description="Human-readable name for the workflow")
-    steps: list[WorkflowStep] = Field(..., description="Ordered list of steps to execute")
-    description: str = Field(..., description="Human-readable description of what this workflow does")
-    ui_schema: dict[str, Any] = Field(default_factory=dict, description="JSON Schema for the dynamic input form")
+    name: str = Field(
+        "Untitled Workflow",
+        min_length=3,
+        description="Human-readable name for the workflow",
+        json_schema_extra={
+            "x-ui-widget": "text",
+            "x-ui-label": "Workflow Name",
+        },
+    )
+    steps: list[WorkflowStep] = Field(
+        ...,
+        description="Ordered list of steps to execute",
+        json_schema_extra={
+            "x-ui-widget": "reorderable-list",
+            "x-ui-group": "Steps",
+        },
+    )
+    description: str = Field(
+        ...,
+        description="Human-readable description of what this workflow does",
+        json_schema_extra={
+            "x-ui-widget": "textarea",
+            "x-ui-label": "Description",
+        },
+    )
+    ui_schema: dict[str, Any] = Field(
+        default_factory=dict, description="JSON Schema for the dynamic input form"
+    )
 
     model_config = ConfigDict(extra="ignore")

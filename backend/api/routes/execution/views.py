@@ -1,9 +1,9 @@
 """API Router for Execution Views (BFF and Raw Data)."""
 
 import logging
-from typing import Any
+from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Header, status
 
 from backend.api.bff_transformer import ReportTransformer
 from backend.database.repository import AbstractWorkflowRepository
@@ -32,6 +32,7 @@ router = APIRouter(prefix="/executions", tags=["Executions"])
 async def get_execution_view(
     execution_id: str,
     repository: AbstractWorkflowRepository = Depends(get_async_repository),
+    accept_language: Annotated[str | None, Header()] = "en",
 ):
     """BFF Endpoint: Transforms raw execution data into a ReportView."""
     try:
@@ -41,7 +42,7 @@ async def get_execution_view(
             raise ResourceNotFoundError(f"Execution '{execution_id}' not found.")
 
         # Transform logic
-        transformer = ReportTransformer()
+        transformer = ReportTransformer(language=accept_language or "en")
         if hasattr(execution, "model_dump"):
             raw_data = execution.model_dump()
         elif hasattr(execution, "dict"):
@@ -54,6 +55,7 @@ async def get_execution_view(
 
         view = transformer.transform(raw_data, valid_range=valid_range)
         return view
+
 
     except ResourceNotFoundError as e:
         raise AppException(
