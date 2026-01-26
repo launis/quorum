@@ -1,5 +1,5 @@
 **FEATURE REQUEST:**
-> [KIRJOITA TÄHÄN MITÄ HALUAT TEHDÄ. Esim: "Tee uusi asetussivu, jossa käyttäjä voi vaihtaa sovelluksen teemaa ja kieltä."]
+> [WRITE HERE WHAT YOU WANT TO DO. E.g., "Create a new settings page where the user can change the application theme and language."]
 
 ---
 
@@ -8,7 +8,50 @@
 **GOAL:** Create a sequential, step-by-step execution plan to implement the feature request above using Google Antigravity, strictly adhering to the project's architecture mandates.
 
 **REFERENCE MATERIAL:**
-- **Primary Source of Truth:** `@docs/flutterpromptohje.md` (Read this file first to understand the architecture).
+- **Primary Source of Truth:** `@docs/flutterpromptohje.md` (Read this file first).
+
+**UX & ARCHITECTURE STANDARDS (MANDATORY):**
+
+1.  **UX Principles:**
+    -   **Optimistic UI:** UI updates state *immediately* upon user action. Saving happens in the background.
+    -   **Fail Fast & Retry:** If an API call fails, revert the state, show a clear Toast/Snackbar, and offer a "Retry" button. Never block the UI.
+    -   **Master-Detail Navigation:** -   **Left:** Navigation/List.
+        -   **Center:** Editor/Main Content.
+        -   **Right:** Contextual Help/Preview (if applicable).
+
+2.  **Server-Driven Localization (Quorum System):**
+    -   **Concept:** The Backend dictates UI text/labels based on the `Accept-Language` header sent by the Frontend.
+    -   **Frontend:** `ApiClient` automatically handles the header. Do NOT hardcode strings. Use labels provided by the API schema.
+    -   **Backend (Pydantic):** Use `x-ui-label` in `json_schema_extra` for default English labels.
+        ```python
+        # Example (domain.py):
+        class MyModel(BaseModel):
+            id: str
+            json_schema_extra={
+                "properties": {
+                    "id": {"x-ui-label": "ID"}, # Default (EN)
+                    "instruction": {"x-ui-label": "Instruction"} 
+                }
+            }
+        ```
+    -   **Backend (Translation):** Map English keys to target languages in `backend/l10n/{lang}.json`.
+        ```json
+        // backend/l10n/fi.json
+        {
+            "Instruction": "Ohjeistus",
+            "Description": "Kuvaus"
+        }
+        ```
+    -   **Frontend (Standard Translations):**
+        -   Use `client_app/lib/l10n/app_{lang}.arb` for static app labels (Buttons, Titles, Menus) that are NOT driven by the backend.
+        -   Run `flutter gen-l10n` after updates.
+        ```json
+        // client_app/lib/l10n/app_fi.arb
+        {
+            "loginBtn": "Kirjaudu",
+            "settings": "Asetukset"
+        }
+        ```
 
 **OUTPUT FORMAT REQUIREMENTS:**
 1.  **Language Strategy:**
@@ -19,11 +62,12 @@
     -   Break the task into small, isolated prompts (approx. 5-10 mins of AI work each).
     -   **Standard Sequence:**
         1.  Backend Dependencies (if any).
-        2.  Backend Core/Models (Pydantic).
-        3.  Backend API/Router.
-        4.  Frontend Models (Freezed) & Repository.
-        5.  Frontend Controller (Riverpod).
-        6.  Frontend UI (Widgets/Screens).
+        2.  Backend Core/Models (Pydantic + x-ui-label).
+        3.  Backend L10n Updates (JSON files).
+        4.  Backend API/Router.
+        5.  Frontend Models (Freezed) & Repository.
+        6.  Frontend Controller (Riverpod + Optimistic Logic).
+        7.  Frontend UI (Widgets/Screens - Master/Detail).
 
 3.  **Strict File Scoping (Anti-Hallucination):**
     -   Each prompt header MUST explicitly list files in two categories:
@@ -48,19 +92,18 @@
     -   **READ ONLY** the files listed under `CONTEXT`.
     -   **DO NOT** create new files unless explicitly instructed.
 
-3.  **ARCHITECTURAL BANS (Non-Negotiable - per `flutterpromptohje.md`):**
+3.  **ARCHITECTURAL BANS (Non-Negotiable):**
     -   **General:** NEVER delete repository methods or modify `requirements.txt`/`pubspec.yaml` versions without explicit approval.
     -   **Backend (Python):**
         -   NO `HTTPException` (Use `backend/exceptions.py` & RFC 7807).
         -   NO raw `dict` returns (Use Pydantic V2 models).
-        -   NO hardcoded logic/prompts (Use Metadata/DB-driven execution).
-        -   NO "Fallback" values (Fail fast if DB config missing).
+        -   **L10N ENFORCEMENT:** MUST use `json_schema_extra` with `x-ui-label` for all user-facing fields. MUST add corresponding keys to `backend/l10n/fi.json`.
     -   **Frontend (Flutter):**
         -   NO `ChangeNotifier` or manual `Provider` (Use `@riverpod` Generator ONLY).
         -   NO `setState` for business logic (UI state only).
         -   NO mutable data classes (Use `@freezed` models ONLY).
-        -   NO raw string navigation (Use `GoRouter` & type-safe `GoRouteData`).
-        -   NO hardcoded strings (Use `.arb` localization).
+        -   NO hardcoded strings (Use API-provided labels or `.arb` for static system text).
+        -   **UX ENFORCEMENT:** Implement Optimistic UI for mutations. Implement Retry logic for failures.
 
 4.  **EDITING SAFETY (ANTI-DUPLICATION PROTOCOL):**
     -   **Strict Replacement:** When modifying an existing function/class, you MUST explicitly DELETE or OVERWRITE the old version. NEVER append the new version to the end of the file while leaving the old one.

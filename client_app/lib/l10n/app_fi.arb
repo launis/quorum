@@ -71,6 +71,9 @@
   "navDashboard": "Etusivu",
   "navSettings": "Asetukset",
   "navAdmin": "Ylläpito",
+  "navStudio": "Studio",
+  "navRegistry": "Rekisteri",
+  "navAnalytics": "Analytiikka",
   "stepLabel": "Vaihe: {stepName}",
   "defaultWorkflowTitle": "Työnkulun suoritus",
   "executionIdLabel": "Suoritus {id}",
@@ -202,5 +205,17 @@
   "helpProfiler": "Profilointi analysoi tekstin sävyä, sanastoa ja piileviä vinoumia (biases). Se auttaa tunnistamaan, yrittääkö tekoäly manipuloida tai onko se puolueellinen.",
   "helpFactCheck": "Faktantarkistus vertaa väitteitä tunnettuihin lähteisiin ja tarkistaa eettiset riskit (esim. vihapuhe, syrjintä).",
   "helpPerformativity": "Performatiivisuustarkistus arvioi, 'näytteleekö' tekoäly roolia vai toimiiko se aidosti. Se etsii merkkejä teeskennellystä empatiasta tai liiallisesta mielistelystä.",
-  "helpArchivist": "Arkistonhoitaja tarkistaa, noudattaako vastaus organisaation sääntöjä (Compliance) ja onko se linjassa aiempien ennakkotapausten kanssa."
+  "helpArchivist": "Arkistonhoitaja tarkistaa, noudattaako vastaus organisaation sääntöjä (Compliance) ja onko se linjassa aiempien ennakkotapausten kanssa.",
+  "studioStepsTitle": "Vaiheet",
+  "studioConfigurationTitle": "Asetukset",
+  "studioAddStepButton": "Lisää Vaihe",
+  "studioSaveButton": "Tallenna Muutokset",
+  "studioUnsavedChanges": "Tallentamattomia muutoksia",
+  "studioSelectStepPrompt": "Valitse muokattava vaihe",
+  "studioStepsHeader": "Vaiheet",
+  "studioAddStep": "Lisää Vaihe",
+  "studioNoSteps": "Ei vaiheita",
+  "studioRunTest": "Aja testi",
+  "studioSaving": "Tallennetaan...",
+  "studioChangesSaved": "Muutokset tallennettu"
 }

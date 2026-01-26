@@ -108,6 +108,9 @@
   "navDashboard": "Dashboard",
   "navSettings": "Settings",
   "navAdmin": "Admin",
+  "navStudio": "Studio",
+  "navRegistry": "Registry",
+  "navAnalytics": "Analytics",
   "stepLabel": "Step: {stepName}",
   "defaultWorkflowTitle": "Workflow Execution",
   "executionIdLabel": "Execution {id}",
@@ -294,5 +297,17 @@
   "helpProfiler": "Profiling analyzes text tone, vocabulary, and latent biases. It helps identify if the AI is attempting to manipulate or is biased.",
   "helpFactCheck": "Fact-checking compares claims to known sources and checks for ethical risks (e.g. hate speech, discrimination).",
   "helpPerformativity": "Performativity check evaluates whether the AI is 'acting' a role or acting genuinely. It looks for signs of feigned empathy or excessive sycophancy.",
-  "helpArchivist": "The Archivist checks whether the response complies with organization rules (Compliance) and aligns with previous precedents."
+  "helpArchivist": "The Archivist checks whether the response complies with organization rules (Compliance) and aligns with previous precedents.",
+  "studioStepsTitle": "Steps",
+  "studioConfigurationTitle": "Configuration",
+  "studioAddStepButton": "Add Step",
+  "studioSaveButton": "Save Changes",
+  "studioUnsavedChanges": "Unsaved changes",
+  "studioSelectStepPrompt": "Select a step to configure",
+  "studioStepsHeader": "Steps",
+  "studioAddStep": "Add Step",
+  "studioNoSteps": "No steps defined",
+  "studioRunTest": "Run Test",
+  "studioSaving": "Saving...",
+  "studioChangesSaved": "Changes saved"
 }

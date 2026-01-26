@@ -51,7 +51,7 @@ class _FileUploadFieldState extends ConsumerState<FileUploadField> {
 
     try {
       final api = ref.read(apiClientProvider);
-      
+
       // FormData for upload
       final formData = FormData.fromMap({
         'file': MultipartFile.fromBytes(bytes, filename: name),
@@ -86,7 +86,8 @@ class _FileUploadFieldState extends ConsumerState<FileUploadField> {
   Widget build(BuildContext context) {
     // If we have an uploaded ID but no filename (e.g. initialValue was id),
     // we show the ID as the name.
-    final displayName = _fileName ?? (_uploadedId != null ? 'File ID: $_uploadedId' : null);
+    final displayName =
+        _fileName ?? (_uploadedId != null ? 'File ID: $_uploadedId' : null);
 
     return FileUploader(
       label: widget.label,

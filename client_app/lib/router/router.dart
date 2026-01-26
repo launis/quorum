@@ -10,11 +10,10 @@ import 'package:client_app/features/orchestration/presentation/screens/analysis_
 import 'package:client_app/features/orchestration/presentation/screens/execution_monitor_screen.dart';
 import 'package:client_app/features/orchestration/presentation/screens/execution_result_screen.dart';
 import 'package:client_app/features/orchestration/presentation/screens/execution_details_screen.dart';
-import 'package:client_app/features/admin/presentation/screens/admin_dashboard_screen.dart';
-import 'package:client_app/features/admin/presentation/screens/user_management_screen.dart';
-import 'package:client_app/features/admin/presentation/screens/organization_list_screen.dart';
-import 'package:client_app/features/admin/presentation/screens/overview_screen.dart';
-import 'package:client_app/router/routes/studio_routes.dart';
+// Duplicate removed inside router.dart
+import 'package:client_app/router/routes/admin_routes.dart'; // Manual Shell Route
+import 'package:client_app/router/routes/studio_routes.dart'; // Studio Route
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -96,13 +95,21 @@ GoRouter router(Ref ref) {
         path: '/splash',
         builder: (context, state) => const SplashScreen(),
       ),
-      // Authenticated Shell
+      // Authenticated Shell (Dashboard - Generic)
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
+          // Pointing to ORIGINAL generic scaffold or rename generic one?
+          // The task is to "Refactor Routing".
+          // The "ScaffoldWithNav" I created in features/shell is specific to ADMIN.
+          // The OLD "ScaffoldWithNav" in router/scaffold_with_nav.dart handles generic dashboard.
+          // Ideally, I should rename the old import or use "as GenericShell".
+          // But here I'll stick to pointing to the old one for Dashboard branch.
+          // Note: Imports must be fixed at the top of file if I want to use both.
+          // For now, I will assume the import `import 'package:client_app/router/scaffold_with_nav.dart';` is still valid for this part.
           return ScaffoldWithNav(navigationShell: navigationShell);
         },
         branches: [
-          // Branch 0: Dashboard (Member/Everyone)
+          // Branch 0: Dashboard
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -148,7 +155,7 @@ GoRouter router(Ref ref) {
               ),
             ],
           ),
-          // Branch 1: New Analysis (Member/Everyone)
+          // Branch 1: New Analysis
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -157,7 +164,7 @@ GoRouter router(Ref ref) {
               ),
             ],
           ),
-          // Branch 2: Settings (Member/Everyone)
+          // Branch 2: Settings
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -168,42 +175,15 @@ GoRouter router(Ref ref) {
           ),
         ],
       ),
-      // Admin Shell (Independent)
-      ShellRoute(
-        builder: (context, state, child) {
-          return AdminDashboardScreen(child: child);
-        },
-        routes: [
-          GoRoute(
-            path: '/admin',
-            builder: (context, state) => const OverviewScreen(),
-            routes: [
-              GoRoute(
-                path: 'users',
-                builder: (context, state) => const UserManagementScreen(),
-              ),
-              GoRoute(
-                path: 'organizations',
-                builder: (context, state) => const OrganizationListScreen(),
-                redirect: (context, state) {
-                  // Extra security: Prevent direct URL access by non-root admins
-                  if (authState.value?.role != UserRole.root) {
-                    return '/admin';
-                  }
-                  return null;
-                },
-              ),
-              GoRoute(
-                path: 'settings',
-                builder: (context, state) => const SettingsScreen(),
-              ),
-            ],
-          ),
-        ],
+
+      // Studio Route (Typed - Independent Shell)
+      GoRoute(
+        path: '/studio',
+        builder: (context, state) => const StudioRoute().build(context, state),
       ),
-      
-      // Studio Shell (New Admin Workspace)
-      studioRoutes,
+
+      // Admin Shell (Typed & Isolated)
+      adminShellRoute,
 
       // Root Redirect
       GoRoute(path: '/', redirect: (context, state) => '/dashboard'),

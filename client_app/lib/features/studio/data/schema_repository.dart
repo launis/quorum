@@ -16,16 +16,14 @@ class SchemaRepository {
   SchemaRepository(this._api);
 
   /// Fetches the JSON Schema for a specific component type.
-  /// 
+  ///
   /// Endpoint: GET /api/v1/studio/schema/{componentType}
   Future<JsonSchema> fetchSchema(String componentType) async {
-    final response = await _api.get(
-      '/builder/schema/$componentType',
-    );
-    
+    final response = await _api.get('/builder/schema/$componentType');
+
     // Dio returns dynamic, response.data should be Map<String, dynamic>
     final data = response.data as Map<String, dynamic>;
-    
+
     return JsonSchema.fromJson(data);
   }
 }

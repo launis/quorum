@@ -169,12 +169,12 @@ class _SchemaFormBuilderState extends ConsumerState<SchemaFormBuilder> {
         onChanged: (val) => _updateField(key, val),
       );
     }
-    
+
     final isTextArea = fieldSchema.uiWidget == 'textarea';
     var initialValue = _formData[key];
     if (initialValue is List) {
-       // Simple join for list display if we don't have a specialized array widget yet
-       initialValue = initialValue.join(', ');
+      // Simple join for list display if we don't have a specialized array widget yet
+      initialValue = initialValue.join(', ');
     }
 
     return TextFormField(
@@ -188,12 +188,12 @@ class _SchemaFormBuilderState extends ConsumerState<SchemaFormBuilder> {
       minLines: isTextArea ? 3 : 1,
       maxLines: isTextArea ? 5 : 1,
       onChanged: (val) {
-          // If the schema expects an array, split the string back into a list
-          if (type == 'array') {
-             _updateField(key, val.split(',').map((e) => e.trim()).toList());
-          } else {
-             _updateField(key, val);
-          }
+        // If the schema expects an array, split the string back into a list
+        if (type == 'array') {
+          _updateField(key, val.split(',').map((e) => e.trim()).toList());
+        } else {
+          _updateField(key, val);
+        }
       },
       validator: (val) => SchemaValidator.validate(fieldSchema, val),
     );

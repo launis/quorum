@@ -15,6 +15,6 @@ abstract class WorkflowSummary with _$WorkflowSummary {
     required DateTime updatedAt,
   }) = _WorkflowSummary;
 
-  factory WorkflowSummary.fromJson(Map<String, dynamic> json) => 
+  factory WorkflowSummary.fromJson(Map<String, dynamic> json) =>
       _$WorkflowSummaryFromJson(json);
 }

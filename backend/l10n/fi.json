@@ -10,6 +10,12 @@
     "Label": "Nimi",
     "Instruction": "Ohjeistus (Prompt)",
     "Scoring Anchors": "Pisteytyksen Ankkurit",
+    "Task Key": "Tehtäväavain",
+    "Inputs": "Syötteet",
+    "Configuration": "Asetukset",
+    "Hoist Keys": "Nostettavat Muuttujat",
+    "Create New": "Luo Uusi",
+
 
     "Analysis Result": "Analyysin Tulos",
     "Cognitive Assessment": "Kognitiivinen Arvio",

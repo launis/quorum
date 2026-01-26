@@ -10,15 +10,30 @@ class WorkflowStep(BaseModel):
     from the workflow state into the task's input schema.
     """
 
-    id: str = Field(..., description="Unique step identifier, e.g., 'safety_check'")
-    task_key: str = Field(..., description="Registry Task Name (matches @register_task name)")
-    inputs: dict[str, str] = Field(
-        default_factory=dict, description="Maps task inputs to state values. Example: {'text': '$inputs.history_text'}"
+    id: str = Field(
+        ...,
+        description="Unique step identifier, e.g., 'safety_check'",
+        json_schema_extra={"x-ui-label": "ID"},
     )
-    config: dict[str, Any] = Field(default_factory=dict, description="Optional static config for the task")
+    task_key: str = Field(
+        ...,
+        description="Registry Task Name (matches @register_task name)",
+        json_schema_extra={"x-ui-label": "Task Key"},
+    )
+    inputs: dict[str, str] = Field(
+        default_factory=dict,
+        description="Maps task inputs to state values. Example: {'text': '$inputs.history_text'}",
+        json_schema_extra={"x-ui-label": "Inputs"},
+    )
+    config: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Optional static config for the task",
+        json_schema_extra={"x-ui-label": "Configuration"},
+    )
     hoist_keys: list[str] = Field(
         default_factory=list,
         description="Defines which keys from the task's result should be promoted to the top-level execution state",
+        json_schema_extra={"x-ui-label": "Hoist Keys"},
     )
 
     model_config = ConfigDict(extra="ignore")
@@ -58,17 +73,17 @@ class WorkflowDefinition(BaseModel):
         },
     )
     status: str = Field(
-        "draft", 
+        "draft",
         description="Workflow lifecycle status",
         json_schema_extra={
-            "x-ui-widget": "select", 
+            "x-ui-widget": "select",
             "enum": ["draft", "active", "deprecated", "archived"],
             "x-ui-label": "Status"
         }
     )
     version: int = Field(1, description="Numeric version")
     is_public: bool = Field(
-        False, 
+        False,
         description="If checked, visible to all tenants (System Only)",
         json_schema_extra={"x-ui-label": "Publicly Available"}
     )

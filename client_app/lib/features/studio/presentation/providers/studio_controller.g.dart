@@ -8,21 +8,12 @@ part of 'studio_controller.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// **Studio Controller**
-///
-/// Manages the state and logic for the Cognitive Studio.
 
 @ProviderFor(StudioController)
 final studioControllerProvider = StudioControllerProvider._();
 
-/// **Studio Controller**
-///
-/// Manages the state and logic for the Cognitive Studio.
 final class StudioControllerProvider
-    extends $AsyncNotifierProvider<StudioController, void> {
-  /// **Studio Controller**
-  ///
-  /// Manages the state and logic for the Cognitive Studio.
+    extends $AsyncNotifierProvider<StudioController, WorkflowDef?> {
   StudioControllerProvider._()
     : super(
         from: null,
@@ -42,23 +33,19 @@ final class StudioControllerProvider
   StudioController create() => StudioController();
 }
 
-String _$studioControllerHash() => r'8aeea6da8c057a9804646e2230d4206ed6bb19d6';
+String _$studioControllerHash() => r'b29a1fb08a48f3f222d32a85e00a8b9bed3723f2';
 
-/// **Studio Controller**
-///
-/// Manages the state and logic for the Cognitive Studio.
-
-abstract class _$StudioController extends $AsyncNotifier<void> {
-  FutureOr<void> build();
+abstract class _$StudioController extends $AsyncNotifier<WorkflowDef?> {
+  FutureOr<WorkflowDef?> build();
   @$mustCallSuper
   @override
   void runBuild() {
-    final ref = this.ref as $Ref<AsyncValue<void>, void>;
+    final ref = this.ref as $Ref<AsyncValue<WorkflowDef?>, WorkflowDef?>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<AsyncValue<void>, void>,
-              AsyncValue<void>,
+              AnyNotifier<AsyncValue<WorkflowDef?>, WorkflowDef?>,
+              AsyncValue<WorkflowDef?>,
               Object?,
               Object?
             >;

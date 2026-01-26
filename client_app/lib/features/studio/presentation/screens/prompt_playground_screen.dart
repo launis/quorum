@@ -52,18 +52,19 @@ class PlaygroundController extends _$PlaygroundController {
     // Extract variables: {{variable}}
     final regex = RegExp(r'\{\{(.*?)\}\}');
     final matches = regex.allMatches(template);
-    final newKeys = matches.map((m) => m.group(1)?.trim() ?? '').where((k) => k.isNotEmpty).toSet();
-    
+    final newKeys =
+        matches
+            .map((m) => m.group(1)?.trim() ?? '')
+            .where((k) => k.isNotEmpty)
+            .toSet();
+
     // Preserve existing values for keys that still exist
     final newVariables = <String, String>{};
     for (final key in newKeys) {
       newVariables[key] = state.variables[key] ?? '';
     }
 
-    state = state.copyWith(
-      promptTemplate: template,
-      variables: newVariables,
-    );
+    state = state.copyWith(promptTemplate: template, variables: newVariables);
   }
 
   void updateVariable(String key, String value) {
@@ -77,17 +78,17 @@ class PlaygroundController extends _$PlaygroundController {
 
     try {
       final api = ref.read(apiClientProvider);
-      
-      // Match backend expectation: 
+
+      // Match backend expectation:
       // class PlaygroundRequest(BaseModel):
       //    system_instruction: str
       //    user_message: str
       //    variables: Dict[str, str]
-      
-      // For this simple playground, we treat the template as system_instruction 
+
+      // For this simple playground, we treat the template as system_instruction
       // and maybe empty user_message, or we could split UI?
       // The prompt implies just "promptTemplate". Let's assume template goes to system_instruction.
-      
+
       final response = await api.post(
         '/builder/playground/run', // /api/v1 prefix added by client
         data: {
@@ -102,7 +103,7 @@ class PlaygroundController extends _$PlaygroundController {
       // or JSON? My python implementation returned `response` from LLMClient.
       // If LLMClient returns string, Fastapi returns string (JSON encoded "string").
       // Verify: `return response` in python -> `response.data` in Dio is user string.
-      
+
       final result = response.data.toString();
 
       state = state.copyWith(isLoading: false, output: result);
@@ -120,7 +121,7 @@ class PromptPlaygroundScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(playgroundControllerProvider);
     final controller = ref.read(playgroundControllerProvider.notifier);
-    
+
     final isWide = MediaQuery.of(context).size.width > 800;
 
     // Inputs Column
@@ -138,7 +139,10 @@ class PromptPlaygroundScreen extends ConsumerWidget {
         Text('Variables', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
         if (state.variables.isEmpty)
-          const Text('No variables detected in template (use {{name}}).', style: TextStyle(color: Colors.grey)),
+          const Text(
+            'No variables detected in template (use {{name}}).',
+            style: TextStyle(color: Colors.grey),
+          ),
         ...state.variables.entries.map((entry) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 8.0),
@@ -158,9 +162,17 @@ class PromptPlaygroundScreen extends ConsumerWidget {
           width: double.infinity,
           child: FilledButton.icon(
             onPressed: state.isLoading ? null : controller.runPrompt,
-            icon: state.isLoading 
-              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) 
-              : const Icon(Icons.play_arrow),
+            icon:
+                state.isLoading
+                    ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                    : const Icon(Icons.play_arrow),
             label: Text(state.isLoading ? 'Running...' : 'Run Prompt'),
           ),
         ),
@@ -177,9 +189,12 @@ class PromptPlaygroundScreen extends ConsumerWidget {
           child: CodeEditorField(
             label: '',
             initialValue: state.output,
-            onChanged: (_) {}, // Read-only effectively (user can edit buffer but it resets on run)
-             // Actually, CodeEditorField accepts onChanged. To make read-only we'd need to disable it.
-             // For now, it's just a display view.
+            onChanged:
+                (
+                  _,
+                ) {}, // Read-only effectively (user can edit buffer but it resets on run)
+            // Actually, CodeEditorField accepts onChanged. To make read-only we'd need to disable it.
+            // For now, it's just a display view.
           ),
         ),
       ],
@@ -189,24 +204,25 @@ class PromptPlaygroundScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('Prompt Playground')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: isWide
-            ? Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: SingleChildScrollView(child: inputs)),
-                  const SizedBox(width: 24),
-                  const VerticalDivider(width: 1),
-                  const SizedBox(width: 24),
-                  Expanded(child: output),
-                ],
-              )
-            : Column(
-                children: [
-                  Expanded(child: SingleChildScrollView(child: inputs)),
-                  const Divider(height: 32),
-                  Expanded(child: output),
-                ],
-              ),
+        child:
+            isWide
+                ? Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: SingleChildScrollView(child: inputs)),
+                    const SizedBox(width: 24),
+                    const VerticalDivider(width: 1),
+                    const SizedBox(width: 24),
+                    Expanded(child: output),
+                  ],
+                )
+                : Column(
+                  children: [
+                    Expanded(child: SingleChildScrollView(child: inputs)),
+                    const Divider(height: 32),
+                    Expanded(child: output),
+                  ],
+                ),
       ),
     );
   }

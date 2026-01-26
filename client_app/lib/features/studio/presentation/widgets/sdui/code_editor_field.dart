@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// **CodeEditorField**
-/// 
+///
 /// A specialized text field for editing code snippets.
 /// Features:
 /// - Monospaced font
@@ -23,7 +23,7 @@ class CodeEditorField extends StatelessWidget {
   Widget build(BuildContext context) {
     // Basic syntax highlighting or smarter editing could be added here.
     // For now, it's a styled TextFormField.
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -39,12 +39,14 @@ class CodeEditorField extends StatelessWidget {
           style: const TextStyle(
             fontFamily: 'Courier New', // Fallback mono
             fontFamilyFallback: ['monospace', 'Courier'],
-             // In a real app we might use GoogleFonts.robotoMono() via dependency
+            // In a real app we might use GoogleFonts.robotoMono() via dependency
           ),
           decoration: const InputDecoration(
             filled: true,
             // We rely on Theme for actual colors, but can hint opacity
-            fillColor: Color(0xFF1E1E1E), // Dark background override usually desired for code
+            fillColor: Color(
+              0xFF1E1E1E,
+            ), // Dark background override usually desired for code
             border: OutlineInputBorder(),
           ),
           onChanged: onChanged,

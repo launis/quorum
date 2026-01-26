@@ -12,28 +12,28 @@ abstract class JsonSchema with _$JsonSchema {
     String? type,
     String? title,
     String? description,
-    
+
     // Recursive definition for object properties
     Map<String, JsonSchema>? properties,
-    
+
     // For arrays
     JsonSchema? items,
 
     List<String>? required,
-    
+
     // Mapped from 'enum' in JSON Schema
     @JsonKey(name: 'enum') List<dynamic>? enumValues,
-    
+
     int? minLength,
     int? maxLength,
     double? minimum,
     double? maximum,
-    
+
     // UI Hints
     @JsonKey(name: 'x-ui-widget') String? uiWidget,
     @JsonKey(name: 'x-ui-group') String? uiGroup,
   }) = _JsonSchema;
 
-  factory JsonSchema.fromJson(Map<String, dynamic> json) => 
+  factory JsonSchema.fromJson(Map<String, dynamic> json) =>
       _$JsonSchemaFromJson(json);
 }
