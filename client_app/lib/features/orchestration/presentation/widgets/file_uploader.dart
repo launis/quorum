@@ -2,16 +2,20 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 class FileUploader extends StatefulWidget {
+  final String label;
+  final ValueChanged<PlatformFile>? onFileSelected;
+  final String? initialFileName;
+  final bool isLoading;
+  final String? errorText;
+
   const FileUploader({
     super.key,
     required this.label,
     this.onFileSelected,
     this.initialFileName,
+    this.isLoading = false,
+    this.errorText,
   });
-
-  final String label;
-  final ValueChanged<PlatformFile>? onFileSelected;
-  final String? initialFileName;
 
   @override
   State<FileUploader> createState() => _FileUploaderState();
@@ -46,27 +50,38 @@ class _FileUploaderState extends State<FileUploader> {
         Text(widget.label, style: Theme.of(context).textTheme.labelMedium),
         const SizedBox(height: 8),
         InkWell(
-          onTap: _pickFile,
+          onTap: widget.isLoading ? null : _pickFile,
           borderRadius: BorderRadius.circular(8),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
-              border: Border.all(color: Theme.of(context).colorScheme.outline),
+              border: Border.all(
+                color: widget.errorText != null
+                    ? Theme.of(context).colorScheme.error
+                    : Theme.of(context).colorScheme.outline,
+              ),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
               children: [
-                Icon(
-                  Icons.attach_file,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+                if (widget.isLoading)
+                  const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                else
+                  Icon(
+                    Icons.attach_file,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    _fileName ?? 'Select file...',
+                    widget.isLoading ? 'Uploading...' : (_fileName ?? 'Select file...'),
                     style: TextStyle(
                       color:
-                          _fileName != null
+                          (widget.isLoading || _fileName != null)
                               ? Theme.of(context).colorScheme.onSurface
                               : Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
@@ -74,22 +89,34 @@ class _FileUploaderState extends State<FileUploader> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                if (_fileName != null)
+                if (!widget.isLoading && _fileName != null)
                   IconButton(
                     icon: const Icon(Icons.close, size: 20),
                     onPressed: () {
                       setState(() {
                         _fileName = null;
                       });
-                      // Assume null clear is handled by parent if needed,
-                      // or we pass null? ValueChanged<PlatformFile> implies non-null.
-                      // For now just visual clear strictly for UX, parent state logic might vary.
+                      // If we are just clearing UI, we might not trigger onFileSelected
+                      // but usually we want to notify parent. 
+                      // PlatformFile not nullable in ValueChanged, so we skip callback or need architectural change if clear needed.
+                      // For now, consistent with previous behavior (UI clear only).
                     },
                   ),
               ],
             ),
           ),
         ),
+        if (widget.errorText != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              widget.errorText!,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.error,
+                fontSize: 12,
+              ),
+            ),
+          ),
       ],
     );
   }

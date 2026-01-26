@@ -1,5 +1,5 @@
 import 'package:client_app/features/studio/presentation/screens/studio_shell_screen.dart';
-import 'package:client_app/features/studio/presentation/screens/workflow_editor_screen.dart';
+import 'package:client_app/features/studio/presentation/screens/workflow_studio_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -19,7 +19,7 @@ final studioRoutes = ShellRoute(
     // 1. Workflows
     GoRoute(
       path: '/studio/workflows',
-      builder: (context, state) => const WorkflowEditorScreen(),
+      builder: (context, state) => const WorkflowStudioScreen(),
     ),
     // 2. Prompts
     GoRoute(

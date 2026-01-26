@@ -98,3 +98,52 @@ class LLMClient:
             if "response" in locals() and response:
                 logger.error(f"[LLMClient] Raw content causing error: {response.content}")
             raise AgentExecutionError(f"Structured Task Failed: {e}") from e
+
+    async def run_chat(
+        self,
+        messages: list[dict[str, Any]],
+        model: str = "gemini-2.0-flash-exp",
+        **kwargs: Any,
+    ) -> str:
+        """Execute a free-form chat task returning a string.
+
+        Args:
+            messages: List of chat messages.
+            model: Model identifier.
+            **kwargs: Additional args (temperature, max_tokens).
+
+        Returns:
+            The generated text content.
+        """
+        # 1. Parse Prompt (Flattening)
+        # Similar logic to run_structured_task
+        system_instruction = None
+        prompt = ""
+
+        for msg in messages:
+            role = msg.get("role")
+            content = msg.get("content", "")
+            if role == "system":
+                system_instruction = (system_instruction + "\n\n" + content) if system_instruction else content
+            elif role == "user":
+                prompt = (prompt + "\n\n" + content) if prompt else content
+
+        if not prompt:
+             prompt = messages[-1]["content"] if messages else ""
+
+        # 2. Create Provider
+        provider = LLMFactory.create_provider(provider_type="litellm", model_name=model)
+
+        # 3. Generate
+        try:
+            response = await provider.generate(
+                prompt=prompt,
+                system_instruction=system_instruction,
+                temperature=kwargs.get("temperature", 0.7),
+                max_tokens=kwargs.get("max_tokens", 1024),
+                **kwargs
+            )
+            return response.content
+        except Exception as e:
+            logger.error(f"[LLMClient] Chat Execution Failed: {e}")
+            raise AgentExecutionError(f"Chat Task Failed: {e}") from e

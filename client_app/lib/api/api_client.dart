@@ -3,6 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:client_app/api/auth_interceptor.dart';
 import 'package:client_app/api/error_interceptor.dart';
 import 'package:client_app/core/environment/env.dart';
+import 'package:client_app/features/settings/locale_provider.dart';
 
 part 'api_client.g.dart';
 
@@ -25,8 +26,11 @@ part 'api_client.g.dart';
 /// A fully configured [Dio] instance ready for network requests.
 @Riverpod(keepAlive: true)
 Dio apiClient(Ref ref) {
-  // Watch envProvider to rebuild client if config changes (unlikely in runtime, but good practice)
+  // Watch envProvider to rebuild client if config changes
   ref.watch(envProvider);
+
+  // Watch localeProvider to inject correct Accept-Language header
+  final locale = ref.watch(localeProvider);
 
   final dio = Dio(
     BaseOptions(
@@ -34,6 +38,7 @@ Dio apiClient(Ref ref) {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json, application/problem+json',
+        'Accept-Language': locale.languageCode,
       },
     ),
   );
@@ -46,4 +51,3 @@ Dio apiClient(Ref ref) {
 
   return dio;
 }
-

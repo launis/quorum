@@ -1,11 +1,7 @@
-import 'package:client_app/features/orchestration/domain/models/report_view.dart';
-import 'package:client_app/features/orchestration/presentation/widgets/sdui/generic_table.dart';
-import 'package:client_app/features/orchestration/presentation/widgets/results/score_card_radar.dart';
 import 'package:client_app/features/orchestration/presentation/widgets/results/logic_matrix_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:convert';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
 class SpecialistSection extends StatefulWidget {

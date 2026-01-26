@@ -10,11 +10,10 @@ import 'package:client_app/features/orchestration/presentation/widgets/results/r
 import 'package:go_router/go_router.dart';
 import 'package:client_app/app_config.dart';
 import 'package:http/http.dart' as http;
-import 'package:printing/printing.dart'; // Still imported just in case, or remove if unused? Keep for safety.
+// Still imported just in case, or remove if unused? Keep for safety.
 import 'package:file_saver/file_saver.dart'; // Added import
 import 'package:client_app/features/auth/presentation/providers/firebase_instance_provider.dart';
 import 'package:client_app/features/auth/presentation/providers/mock_auth_provider.dart';
-import 'dart:developer' as developer;
 
 enum _PdfStatus { idle, downloading, ready, error }
 

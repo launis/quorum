@@ -11,7 +11,6 @@ import 'package:client_app/features/orchestration/domain/models/xai_report.dart'
 
 import 'package:client_app/features/orchestration/presentation/widgets/output_renderer.dart';
 import 'package:client_app/features/orchestration/presentation/widgets/sdui/specialist_section.dart';
-import 'package:client_app/features/orchestration/presentation/widgets/results/audit_trail_viewer.dart';
 import 'package:client_app/app_config.dart';
 
 class ResultDashboard extends StatefulWidget {

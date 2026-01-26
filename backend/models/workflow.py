@@ -41,9 +41,9 @@ class WorkflowDefinition(BaseModel):
             "x-ui-label": "Workflow Name",
         },
     )
-    steps: list[WorkflowStep] = Field(
-        ...,
-        description="Ordered list of steps to execute",
+    steps: list[str] = Field(
+        default_factory=list,
+        description="Ordered list of Step IDs",
         json_schema_extra={
             "x-ui-widget": "reorderable-list",
             "x-ui-group": "Steps",
@@ -56,6 +56,21 @@ class WorkflowDefinition(BaseModel):
             "x-ui-widget": "textarea",
             "x-ui-label": "Description",
         },
+    )
+    status: str = Field(
+        "draft", 
+        description="Workflow lifecycle status",
+        json_schema_extra={
+            "x-ui-widget": "select", 
+            "enum": ["draft", "active", "deprecated", "archived"],
+            "x-ui-label": "Status"
+        }
+    )
+    version: int = Field(1, description="Numeric version")
+    is_public: bool = Field(
+        False, 
+        description="If checked, visible to all tenants (System Only)",
+        json_schema_extra={"x-ui-label": "Publicly Available"}
     )
     ui_schema: dict[str, Any] = Field(
         default_factory=dict, description="JSON Schema for the dynamic input form"

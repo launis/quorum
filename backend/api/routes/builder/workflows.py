@@ -28,6 +28,8 @@ class BuilderWorkflowCreateRequest(BaseModel):
     default_model_mapping: Annotated[dict[str, str] | None, Field(description="Initial model mapping.")] = {}
     ui_schema: Annotated[dict[str, Any] | None, Field(description="UI Layout metadata.")] = {}
     is_public: Annotated[bool, Field(description="If True, visible to all tenants (System Only).")] = False
+    status: Annotated[str, Field(description="Lifecycle status.")] = "draft"
+    version: Annotated[int, Field(description="Version number.")] = 1
 
 
 class WorkflowUpdateRequest(BaseModel):
@@ -38,6 +40,8 @@ class WorkflowUpdateRequest(BaseModel):
     ui_schema: Annotated[dict[str, Any] | None, Field(description="New UI metadata.")] = None
     default_model_mapping: Annotated[dict[str, str] | None, Field(description="Updated model mapping.")] = None
     is_public: Annotated[bool | None, Field(description="Update visibility.")] = None
+    status: Annotated[str | None, Field(description="Update status.")] = None
+    version: Annotated[int | None, Field(description="Update version.")] = None
 
 
 class CopyWorkflowRequest(BaseModel):
@@ -93,6 +97,9 @@ async def create_workflow(
             "created_at": datetime.now(),
             "organization_id": target_org,
             "is_public": is_public_val,
+
+            "status": request.status,
+            "version": request.version,
         }
 
         await repository.create_workflow(workflow_data)
@@ -186,6 +193,10 @@ async def update_workflow(
         update_data["default_model_mapping"] = request.default_model_mapping
     if request.is_public is not None:
         update_data["is_public"] = request.is_public
+    if request.status is not None:
+        update_data["status"] = request.status
+    if request.version is not None:
+        update_data["version"] = request.version
 
     update_data["updated_at"] = datetime.now()
 
