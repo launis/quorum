@@ -11,6 +11,7 @@ import 'package:client_app/features/orchestration/presentation/screens/execution
 import 'package:client_app/features/orchestration/presentation/screens/execution_result_screen.dart';
 import 'package:client_app/features/orchestration/presentation/screens/execution_details_screen.dart';
 // Duplicate removed inside router.dart
+import 'package:client_app/features/studio/presentation/screens/workflow_studio_screen.dart'; // Added for direct routing
 import 'package:client_app/router/routes/admin_routes.dart'; // Manual Shell Route
 import 'package:client_app/router/routes/studio_routes.dart'; // Studio Route
 
@@ -180,6 +181,16 @@ GoRouter router(Ref ref) {
       GoRoute(
         path: '/studio',
         builder: (context, state) => const StudioRoute().build(context, state),
+        routes: [
+          GoRoute(
+            path: 'workflows',
+            builder: (context, state) => const WorkflowStudioScreen(initialTabIndex: 0),
+          ),
+          GoRoute(
+            path: 'matrices',
+            builder: (context, state) => const WorkflowStudioScreen(initialTabIndex: 1),
+          ),
+        ],
       ),
 
       // Admin Shell (Typed & Isolated)

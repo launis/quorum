@@ -1,6 +1,8 @@
 import 'package:client_app/features/studio/data/studio_repository.dart';
+import 'package:client_app/features/studio/presentation/widgets/matrix_editor_panel.dart';
 import 'package:client_app/core/error/app_error.dart';
 import 'package:client_app/features/studio/domain/models/json_schema.dart';
+import 'package:client_app/features/studio/domain/models/component_def.dart';
 import 'package:client_app/features/studio/domain/models/workflow_def.dart';
 import 'package:client_app/features/orchestration/presentation/widgets/sdui/generic_table.dart';
 import 'package:client_app/features/studio/presentation/widgets/sdui/reorderable_array_builder.dart';
@@ -34,12 +36,27 @@ class _StudioEditorAreaState extends ConsumerState<StudioEditorArea> {
     final state = ref.watch(studioControllerProvider);
     final l10n = AppLocalizations.of(context)!;
 
+    // Check for Matrix Selection first
+    if (state.selectedMatrixId != null) {
+      return state.availableMatrices.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, st) => Center(child: Text('Error: $err')),
+        data: (matrices) {
+          final matrix = matrices.firstWhere(
+            (m) => m.id == state.selectedMatrixId,
+            orElse: () => throw Exception('Matrix not found'),
+          );
+          return SingleChildScrollView(child: MatrixEditorPanel(matrix: matrix));
+        },
+      );
+    }
+
     return state.activeWorkflow.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (err, st) => Center(child: Text('Error loading editor: $err')),
       data: (workflow) {
         if (workflow == null) {
-          return const Center(child: Text('No workflow loaded.'));
+          return const Center(child: Text('Select a workflow or matrix to edit.'));
         }
 
         // If no step selected, show Step Sequencer & Scoring Configuration with Tabs
@@ -374,7 +391,7 @@ class _RulesTable extends ConsumerWidget {
   final WorkflowDef workflow;
   final int logicIndex;
   final ScoringLogic logic;
-  final List<ComponentDef> availableComponents;
+  final List<StudioComponentDef> availableComponents;
 
   const _RulesTable({
     required this.workflow,

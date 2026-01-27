@@ -220,5 +220,16 @@
   "studioChangesSaved": "Muutokset tallennettu",
   "studioCreateNew": "Luo uusi",
   "studioCopyWorkflow": "Kopioi työnkulku",
-  "studioNewNameLabel": "Uusi nimi"
+  "studioNewNameLabel": "Uusi nimi",
+  "studioTabWorkflows": "Työnkulut",
+  "studioTabMatrices": "Matriisit",
+  "studioCreateMatrix": "Luo Matriisi",
+  "studioMatrixName": "Matriisin nimi",
+  "studioMatrixDesc": "Kuvaus",
+  "matrixRole": "Roolipersoona",
+  "matrixScale": "Asteikko (Min - Max)",
+  "matrixCriteria": "Arviointikriteerit",
+  "matrixAddCriterion": "Lisää Ulottuvuus",
+  "matrixLevel": "Taso {level}",
+  "studioSelectMatrix": "Valitse Arviointimatriisi"
 }

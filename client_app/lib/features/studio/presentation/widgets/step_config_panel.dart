@@ -1,6 +1,6 @@
-// ignore_for_file: deprecated_member_use, unused_element, override_on_non_overriding_member, annotate_overrides
 import 'package:client_app/features/studio/data/schema_repository.dart';
 import 'package:client_app/features/studio/data/studio_repository.dart';
+import 'package:client_app/features/studio/domain/models/component_def.dart';
 import 'package:client_app/features/studio/domain/models/json_schema.dart';
 import 'package:client_app/features/studio/domain/models/workflow_def.dart';
 import 'package:client_app/features/studio/presentation/providers/studio_controller.dart';
@@ -89,14 +89,25 @@ class StepConfigPanel extends ConsumerWidget {
                        config: step!.config, // Filters out _internal inside widget
                        onChanged: updateConfig,
                      ),
-                    const SizedBox(height: 24),
+                     const SizedBox(height: 24),
                     
+                    // 1.5 Judge Configuration (Matrix Selection)
+                    if (step!.taskKey.toLowerCase() == 'judge') ...[
+                       _buildSectionHeader(context, "Judge Configuration"),
+                       _MatrixSelectionField(
+                         currentMatrixId: step!.config['matrix_id'],
+                         onChanged: (val) => updateConfig('matrix_id', val),
+                         availableMatrices: ref.watch(studioControllerProvider).availableMatrices.value ?? [],
+                       ),
+                       const SizedBox(height: 24),
+                    ],
+
                     // 2. Linked Components
                     if (linkedComponents.isNotEmpty)
                       ...linkedComponents.map((compId) {
                         final compDef = availableComponents.firstWhere(
                           (c) => c.id == compId,
-                          orElse: () => ComponentDef(id: compId, name: 'Unknown', type: 'unknown'),
+                          orElse: () => StudioComponentDef(id: compId, name: 'Unknown', type: 'unknown', content: {}),
                         );
                         
                         return _ComponentConfigSection(
@@ -156,8 +167,49 @@ class StepConfigPanel extends ConsumerWidget {
   }
 }
 
+class _MatrixSelectionField extends StatelessWidget {
+  final String? currentMatrixId;
+  final ValueChanged<String?> onChanged;
+  final List<StudioComponentDef> availableMatrices;
+
+  const _MatrixSelectionField({
+    required this.currentMatrixId,
+    required this.onChanged,
+    required this.availableMatrices,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // If current ID is not in list (e.g. deleted), we should still show it or handle null
+    // But for now, we just match what we can.
+    final l10n = AppLocalizations.of(context)!;
+    
+    return DropdownButtonFormField<String>(
+      value: availableMatrices.any((m) => m.id == currentMatrixId) ? currentMatrixId : null,
+      decoration: InputDecoration(
+        labelText: l10n.studioSelectMatrix,
+        border: const OutlineInputBorder(),
+        isDense: true,
+        helperText: currentMatrixId != null && !availableMatrices.any((m) => m.id == currentMatrixId)
+            ? 'Selected matrix not found ($currentMatrixId)'
+            : null,
+      ),
+      items: [
+         const DropdownMenuItem(value: null, child: Text('None')),
+         ...availableMatrices.map((m) {
+           return DropdownMenuItem(
+             value: m.id,
+             child: Text(m.name, overflow: TextOverflow.ellipsis),
+           );
+         }),
+      ],
+      onChanged: onChanged,
+    );
+  }
+}
+
 class _ComponentPicker extends StatelessWidget {
-  final List<ComponentDef> availableComponents;
+  final List<StudioComponentDef> availableComponents;
   final ValueChanged<String> onSelected;
 
   const _ComponentPicker({required this.availableComponents, required this.onSelected});
@@ -190,7 +242,7 @@ class _ComponentPicker extends StatelessWidget {
 
 class _ComponentConfigSection extends ConsumerWidget {
   final String stepId;
-  final ComponentDef component;
+  final StudioComponentDef component;
   final Map<String, dynamic> currentConfig;
   final Function(String, dynamic) onUpdateConfig;
   final VoidCallback onRemove;
@@ -240,11 +292,12 @@ class _ComponentConfigSection extends ConsumerWidget {
         ),
       ),
     );
+  }
 }
 
 class _OutputAndScoringSection extends ConsumerWidget {
   final WorkflowStepDef step;
-  final List<ComponentDef> availableComponents;
+  final List<StudioComponentDef> availableComponents;
 
   const _OutputAndScoringSection({required this.step, required this.availableComponents});
 
@@ -333,7 +386,7 @@ class _OutputAndScoringSection extends ConsumerWidget {
 
 class _RulesTable extends StatelessWidget {
   final ScoringLogic logic;
-  final List<ComponentDef> availableComponents;
+  final List<StudioComponentDef> availableComponents;
   final ValueChanged<ScoringLogic> onUpdate;
 
   const _RulesTable({

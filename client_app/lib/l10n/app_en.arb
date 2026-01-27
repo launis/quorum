@@ -313,5 +313,16 @@
   "studioChangesSaved": "Changes saved",
   "studioCreateNew": "Create New",
   "studioCopyWorkflow": "Copy Workflow",
-  "studioNewNameLabel": "New Name"
+  "studioNewNameLabel": "New Name",
+  "studioTabWorkflows": "Workflows",
+  "studioTabMatrices": "Matrices",
+  "studioCreateMatrix": "Create Matrix",
+  "studioMatrixName": "Matrix Name",
+  "studioMatrixDesc": "Description",
+  "matrixRole": "Role Persona",
+  "matrixScale": "Scale (Min - Max)",
+  "matrixCriteria": "Criteria Dimensions",
+  "matrixAddCriterion": "Add Dimension",
+  "matrixLevel": "Level {level}",
+  "studioSelectMatrix": "Select Evaluation Matrix"
 }

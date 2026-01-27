@@ -4,12 +4,18 @@ import 'package:client_app/features/studio/presentation/widgets/studio_sidebar.d
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 class WorkflowStudioScreen extends HookConsumerWidget {
   final String? workflowId;
+  final int initialTabIndex;
 
-  const WorkflowStudioScreen({super.key, this.workflowId});
+  const WorkflowStudioScreen({
+    super.key, 
+    this.workflowId,
+    this.initialTabIndex = 0,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -18,19 +24,26 @@ class WorkflowStudioScreen extends HookConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final studioState = ref.watch(studioControllerProvider);
 
-    // 2. Initial Data Loading (useEffect similar to initState)
+    // 2. Initial Data Loading
     useEffect(() {
-      // Always load workflows when entering the studio to ensure the list is populated
-      // Add a small delay to ensure providers and auth are fully settled
-      Future.delayed(const Duration(milliseconds: 500), () {
-        ref.read(studioControllerProvider.notifier).loadWorkflows();
+      Future.delayed(const Duration(milliseconds: 100), () {
+        final notifier = ref.read(studioControllerProvider.notifier);
         
+        if (initialTabIndex == 1) {
+          // Matrices Mode
+          notifier.enterMatrixMode();
+        } else {
+          // Workflows Mode
+          notifier.enterWorkflowMode();
+        }
+        
+        // Deep link specific workflow if provided
         if (workflowId != null) {
-          ref.read(studioControllerProvider.notifier).loadWorkflow(workflowId!);
+          notifier.loadWorkflow(workflowId!);
         }
       });
       return null;
-    }, [workflowId]);
+    }, [workflowId, initialTabIndex]);
 
     // 3. Feedback Listener
     ref.listen(studioControllerProvider, (previous, next) {
@@ -45,13 +58,7 @@ class WorkflowStudioScreen extends HookConsumerWidget {
       }
 
       // Success Feedback (Saved)
-      // Check transition from loading to data, but we need to know if it was a SAVE operation?
-      // Simple heuristic: If it was loading and now isn't, and no error.
-      // Ideally controller would expose specific statuse (isSaving), but AsyncValue is generic.
-      // For now, simple transition check is accepted for "Optimistic UI" feedback.
       if (previous?.activeWorkflow.isLoading == true && !next.activeWorkflow.isLoading && !next.activeWorkflow.hasError) {
-        // Optional: Only show if we know data changed?
-        // Logic: Controller.save() sets loading.
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(l10n.studioChangesSaved),
@@ -64,6 +71,9 @@ class WorkflowStudioScreen extends HookConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Cognitive Studio"),
+        leading: BackButton(
+          onPressed: () => context.go('/studio'),
+        ),
         actions: [
           // Run Test Button
           Padding(
@@ -110,6 +120,9 @@ class WorkflowStudioScreen extends HookConsumerWidget {
           StudioSidebar(
             selectedStepId: selectedStepId.value,
             onStepSelected: (id) => selectedStepId.value = id,
+            mode: initialTabIndex == 0 
+                ? StudioSidebarMode.workflows 
+                : StudioSidebarMode.matrices,
           ),
           const VerticalDivider(width: 1),
           Expanded(

@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$StudioState {
 
- AsyncValue<List<WorkflowDef>> get workflows; AsyncValue<WorkflowDef?> get activeWorkflow; AsyncValue<List<ComponentDef>> get components;
+ AsyncValue<List<WorkflowDef>> get workflows; AsyncValue<WorkflowDef?> get activeWorkflow; AsyncValue<List<StudioComponentDef>> get components; AsyncValue<List<StudioComponentDef>> get availableMatrices; AsyncValue<List<Map<String, dynamic>>> get ontologyDimensions; String? get selectedMatrixId;
 /// Create a copy of StudioState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $StudioStateCopyWith<StudioState> get copyWith => _$StudioStateCopyWithImpl<Stud
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is StudioState&&(identical(other.workflows, workflows) || other.workflows == workflows)&&(identical(other.activeWorkflow, activeWorkflow) || other.activeWorkflow == activeWorkflow)&&(identical(other.components, components) || other.components == components));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is StudioState&&(identical(other.workflows, workflows) || other.workflows == workflows)&&(identical(other.activeWorkflow, activeWorkflow) || other.activeWorkflow == activeWorkflow)&&(identical(other.components, components) || other.components == components)&&(identical(other.availableMatrices, availableMatrices) || other.availableMatrices == availableMatrices)&&(identical(other.ontologyDimensions, ontologyDimensions) || other.ontologyDimensions == ontologyDimensions)&&(identical(other.selectedMatrixId, selectedMatrixId) || other.selectedMatrixId == selectedMatrixId));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,workflows,activeWorkflow,components);
+int get hashCode => Object.hash(runtimeType,workflows,activeWorkflow,components,availableMatrices,ontologyDimensions,selectedMatrixId);
 
 @override
 String toString() {
-  return 'StudioState(workflows: $workflows, activeWorkflow: $activeWorkflow, components: $components)';
+  return 'StudioState(workflows: $workflows, activeWorkflow: $activeWorkflow, components: $components, availableMatrices: $availableMatrices, ontologyDimensions: $ontologyDimensions, selectedMatrixId: $selectedMatrixId)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $StudioStateCopyWith<$Res>  {
   factory $StudioStateCopyWith(StudioState value, $Res Function(StudioState) _then) = _$StudioStateCopyWithImpl;
 @useResult
 $Res call({
- AsyncValue<List<WorkflowDef>> workflows, AsyncValue<WorkflowDef?> activeWorkflow, AsyncValue<List<ComponentDef>> components
+ AsyncValue<List<WorkflowDef>> workflows, AsyncValue<WorkflowDef?> activeWorkflow, AsyncValue<List<StudioComponentDef>> components, AsyncValue<List<StudioComponentDef>> availableMatrices, AsyncValue<List<Map<String, dynamic>>> ontologyDimensions, String? selectedMatrixId
 });
 
 
@@ -62,12 +62,15 @@ class _$StudioStateCopyWithImpl<$Res>
 
 /// Create a copy of StudioState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? workflows = null,Object? activeWorkflow = null,Object? components = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? workflows = null,Object? activeWorkflow = null,Object? components = null,Object? availableMatrices = null,Object? ontologyDimensions = null,Object? selectedMatrixId = freezed,}) {
   return _then(_self.copyWith(
 workflows: null == workflows ? _self.workflows : workflows // ignore: cast_nullable_to_non_nullable
 as AsyncValue<List<WorkflowDef>>,activeWorkflow: null == activeWorkflow ? _self.activeWorkflow : activeWorkflow // ignore: cast_nullable_to_non_nullable
 as AsyncValue<WorkflowDef?>,components: null == components ? _self.components : components // ignore: cast_nullable_to_non_nullable
-as AsyncValue<List<ComponentDef>>,
+as AsyncValue<List<StudioComponentDef>>,availableMatrices: null == availableMatrices ? _self.availableMatrices : availableMatrices // ignore: cast_nullable_to_non_nullable
+as AsyncValue<List<StudioComponentDef>>,ontologyDimensions: null == ontologyDimensions ? _self.ontologyDimensions : ontologyDimensions // ignore: cast_nullable_to_non_nullable
+as AsyncValue<List<Map<String, dynamic>>>,selectedMatrixId: freezed == selectedMatrixId ? _self.selectedMatrixId : selectedMatrixId // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -152,10 +155,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( AsyncValue<List<WorkflowDef>> workflows,  AsyncValue<WorkflowDef?> activeWorkflow,  AsyncValue<List<ComponentDef>> components)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( AsyncValue<List<WorkflowDef>> workflows,  AsyncValue<WorkflowDef?> activeWorkflow,  AsyncValue<List<StudioComponentDef>> components,  AsyncValue<List<StudioComponentDef>> availableMatrices,  AsyncValue<List<Map<String, dynamic>>> ontologyDimensions,  String? selectedMatrixId)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _StudioState() when $default != null:
-return $default(_that.workflows,_that.activeWorkflow,_that.components);case _:
+return $default(_that.workflows,_that.activeWorkflow,_that.components,_that.availableMatrices,_that.ontologyDimensions,_that.selectedMatrixId);case _:
   return orElse();
 
 }
@@ -173,10 +176,10 @@ return $default(_that.workflows,_that.activeWorkflow,_that.components);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( AsyncValue<List<WorkflowDef>> workflows,  AsyncValue<WorkflowDef?> activeWorkflow,  AsyncValue<List<ComponentDef>> components)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( AsyncValue<List<WorkflowDef>> workflows,  AsyncValue<WorkflowDef?> activeWorkflow,  AsyncValue<List<StudioComponentDef>> components,  AsyncValue<List<StudioComponentDef>> availableMatrices,  AsyncValue<List<Map<String, dynamic>>> ontologyDimensions,  String? selectedMatrixId)  $default,) {final _that = this;
 switch (_that) {
 case _StudioState():
-return $default(_that.workflows,_that.activeWorkflow,_that.components);case _:
+return $default(_that.workflows,_that.activeWorkflow,_that.components,_that.availableMatrices,_that.ontologyDimensions,_that.selectedMatrixId);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -193,10 +196,10 @@ return $default(_that.workflows,_that.activeWorkflow,_that.components);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( AsyncValue<List<WorkflowDef>> workflows,  AsyncValue<WorkflowDef?> activeWorkflow,  AsyncValue<List<ComponentDef>> components)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( AsyncValue<List<WorkflowDef>> workflows,  AsyncValue<WorkflowDef?> activeWorkflow,  AsyncValue<List<StudioComponentDef>> components,  AsyncValue<List<StudioComponentDef>> availableMatrices,  AsyncValue<List<Map<String, dynamic>>> ontologyDimensions,  String? selectedMatrixId)?  $default,) {final _that = this;
 switch (_that) {
 case _StudioState() when $default != null:
-return $default(_that.workflows,_that.activeWorkflow,_that.components);case _:
+return $default(_that.workflows,_that.activeWorkflow,_that.components,_that.availableMatrices,_that.ontologyDimensions,_that.selectedMatrixId);case _:
   return null;
 
 }
@@ -208,12 +211,15 @@ return $default(_that.workflows,_that.activeWorkflow,_that.components);case _:
 
 
 class _StudioState implements StudioState {
-  const _StudioState({this.workflows = const AsyncValue.data(<WorkflowDef>[]), this.activeWorkflow = const AsyncValue.data(null), this.components = const AsyncValue.data(<ComponentDef>[])});
+  const _StudioState({this.workflows = const AsyncValue.data(<WorkflowDef>[]), this.activeWorkflow = const AsyncValue.data(null), this.components = const AsyncValue.data(<StudioComponentDef>[]), this.availableMatrices = const AsyncValue.data(<StudioComponentDef>[]), this.ontologyDimensions = const AsyncValue.data([]), this.selectedMatrixId});
   
 
 @override@JsonKey() final  AsyncValue<List<WorkflowDef>> workflows;
 @override@JsonKey() final  AsyncValue<WorkflowDef?> activeWorkflow;
-@override@JsonKey() final  AsyncValue<List<ComponentDef>> components;
+@override@JsonKey() final  AsyncValue<List<StudioComponentDef>> components;
+@override@JsonKey() final  AsyncValue<List<StudioComponentDef>> availableMatrices;
+@override@JsonKey() final  AsyncValue<List<Map<String, dynamic>>> ontologyDimensions;
+@override final  String? selectedMatrixId;
 
 /// Create a copy of StudioState
 /// with the given fields replaced by the non-null parameter values.
@@ -225,16 +231,16 @@ _$StudioStateCopyWith<_StudioState> get copyWith => __$StudioStateCopyWithImpl<_
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _StudioState&&(identical(other.workflows, workflows) || other.workflows == workflows)&&(identical(other.activeWorkflow, activeWorkflow) || other.activeWorkflow == activeWorkflow)&&(identical(other.components, components) || other.components == components));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _StudioState&&(identical(other.workflows, workflows) || other.workflows == workflows)&&(identical(other.activeWorkflow, activeWorkflow) || other.activeWorkflow == activeWorkflow)&&(identical(other.components, components) || other.components == components)&&(identical(other.availableMatrices, availableMatrices) || other.availableMatrices == availableMatrices)&&(identical(other.ontologyDimensions, ontologyDimensions) || other.ontologyDimensions == ontologyDimensions)&&(identical(other.selectedMatrixId, selectedMatrixId) || other.selectedMatrixId == selectedMatrixId));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,workflows,activeWorkflow,components);
+int get hashCode => Object.hash(runtimeType,workflows,activeWorkflow,components,availableMatrices,ontologyDimensions,selectedMatrixId);
 
 @override
 String toString() {
-  return 'StudioState(workflows: $workflows, activeWorkflow: $activeWorkflow, components: $components)';
+  return 'StudioState(workflows: $workflows, activeWorkflow: $activeWorkflow, components: $components, availableMatrices: $availableMatrices, ontologyDimensions: $ontologyDimensions, selectedMatrixId: $selectedMatrixId)';
 }
 
 
@@ -245,7 +251,7 @@ abstract mixin class _$StudioStateCopyWith<$Res> implements $StudioStateCopyWith
   factory _$StudioStateCopyWith(_StudioState value, $Res Function(_StudioState) _then) = __$StudioStateCopyWithImpl;
 @override @useResult
 $Res call({
- AsyncValue<List<WorkflowDef>> workflows, AsyncValue<WorkflowDef?> activeWorkflow, AsyncValue<List<ComponentDef>> components
+ AsyncValue<List<WorkflowDef>> workflows, AsyncValue<WorkflowDef?> activeWorkflow, AsyncValue<List<StudioComponentDef>> components, AsyncValue<List<StudioComponentDef>> availableMatrices, AsyncValue<List<Map<String, dynamic>>> ontologyDimensions, String? selectedMatrixId
 });
 
 
@@ -262,12 +268,15 @@ class __$StudioStateCopyWithImpl<$Res>
 
 /// Create a copy of StudioState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? workflows = null,Object? activeWorkflow = null,Object? components = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? workflows = null,Object? activeWorkflow = null,Object? components = null,Object? availableMatrices = null,Object? ontologyDimensions = null,Object? selectedMatrixId = freezed,}) {
   return _then(_StudioState(
 workflows: null == workflows ? _self.workflows : workflows // ignore: cast_nullable_to_non_nullable
 as AsyncValue<List<WorkflowDef>>,activeWorkflow: null == activeWorkflow ? _self.activeWorkflow : activeWorkflow // ignore: cast_nullable_to_non_nullable
 as AsyncValue<WorkflowDef?>,components: null == components ? _self.components : components // ignore: cast_nullable_to_non_nullable
-as AsyncValue<List<ComponentDef>>,
+as AsyncValue<List<StudioComponentDef>>,availableMatrices: null == availableMatrices ? _self.availableMatrices : availableMatrices // ignore: cast_nullable_to_non_nullable
+as AsyncValue<List<StudioComponentDef>>,ontologyDimensions: null == ontologyDimensions ? _self.ontologyDimensions : ontologyDimensions // ignore: cast_nullable_to_non_nullable
+as AsyncValue<List<Map<String, dynamic>>>,selectedMatrixId: freezed == selectedMatrixId ? _self.selectedMatrixId : selectedMatrixId // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
