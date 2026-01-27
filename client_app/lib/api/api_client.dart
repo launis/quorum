@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:client_app/api/auth_interceptor.dart';
 import 'package:client_app/api/error_interceptor.dart';
+import 'package:client_app/api/dio_logger_interceptor.dart';
 import 'package:client_app/core/environment/env.dart';
 import 'package:client_app/features/settings/locale_provider.dart';
 
@@ -45,9 +46,12 @@ Dio apiClient(Ref ref) {
 
   // Add Auth Interceptor (must be first to add token)
   dio.interceptors.add(AuthInterceptor(ref));
+  
+  // Add Logger (before ErrorInterceptor to capture raw requests)
+  dio.interceptors.add(DioLoggerInterceptor(ref));
 
   // Add Error Interceptor (parses RFC 7807 errors to AppError)
-  dio.interceptors.add(ErrorInterceptor());
+  dio.interceptors.add(ErrorInterceptor(ref));
 
   return dio;
 }

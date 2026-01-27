@@ -20,22 +20,25 @@ class WorkflowStudioScreen extends HookConsumerWidget {
 
     // 2. Initial Data Loading (useEffect similar to initState)
     useEffect(() {
-      if (workflowId != null) {
-        // Run after build
-        Future.microtask(() {
+      // Always load workflows when entering the studio to ensure the list is populated
+      // Add a small delay to ensure providers and auth are fully settled
+      Future.delayed(const Duration(milliseconds: 500), () {
+        ref.read(studioControllerProvider.notifier).loadWorkflows();
+        
+        if (workflowId != null) {
           ref.read(studioControllerProvider.notifier).loadWorkflow(workflowId!);
-        });
-      }
+        }
+      });
       return null;
     }, [workflowId]);
 
     // 3. Feedback Listener
     ref.listen(studioControllerProvider, (previous, next) {
       // Error Feedback
-      if (next.hasError && !next.isLoading) {
+      if (next.activeWorkflow.hasError && !next.activeWorkflow.isLoading) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${next.error}'),
+            content: Text('Error: ${next.activeWorkflow.error}'),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -46,7 +49,7 @@ class WorkflowStudioScreen extends HookConsumerWidget {
       // Simple heuristic: If it was loading and now isn't, and no error.
       // Ideally controller would expose specific statuse (isSaving), but AsyncValue is generic.
       // For now, simple transition check is accepted for "Optimistic UI" feedback.
-      if (previous?.isLoading == true && !next.isLoading && !next.hasError) {
+      if (previous?.activeWorkflow.isLoading == true && !next.activeWorkflow.isLoading && !next.activeWorkflow.hasError) {
         // Optional: Only show if we know data changed?
         // Logic: Controller.save() sets loading.
         ScaffoldMessenger.of(context).showSnackBar(
@@ -79,7 +82,7 @@ class WorkflowStudioScreen extends HookConsumerWidget {
           // Save Button
           Padding(
             padding: const EdgeInsets.only(right: 16.0, left: 8.0),
-            child: studioState.isLoading
+            child: studioState.activeWorkflow.isLoading
                 ? const Row(
                     children: [
                       SizedBox(

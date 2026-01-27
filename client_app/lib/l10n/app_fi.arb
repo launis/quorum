@@ -217,5 +217,8 @@
   "studioNoSteps": "Ei vaiheita",
   "studioRunTest": "Aja testi",
   "studioSaving": "Tallennetaan...",
-  "studioChangesSaved": "Muutokset tallennettu"
+  "studioChangesSaved": "Muutokset tallennettu",
+  "studioCreateNew": "Luo uusi",
+  "studioCopyWorkflow": "Kopioi työnkulku",
+  "studioNewNameLabel": "Uusi nimi"
 }

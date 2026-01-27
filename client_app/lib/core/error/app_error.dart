@@ -68,6 +68,7 @@ sealed class AppError with _$AppError implements Exception {
       case 401:
         return const AppError.unauthorized();
       case 404:
+        print('[ErrorInterceptor] 404 Not Found: ${problem.detail} at ${problem.instance ?? "unknown path"}');
         return AppError.notFound(problem.detail);
       case >= 500:
         return AppError.server(problem.detail, problem.status);

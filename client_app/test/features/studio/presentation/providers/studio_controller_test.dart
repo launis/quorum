@@ -47,7 +47,11 @@ void main() {
     ],
   );
 
-  test('loadWorkflow loads data into state', () async {
+  const testComponents = [
+    ComponentDef(id: 'c1', name: 'Comp 1', type: 'prompt'),
+  ];
+
+  test('loadWorkflow loads data into activeWorkflow', () async {
     // Arrange
     when(() => mockRepository.getWorkflow('1'))
         .thenAnswer((_) async => testWorkflow);
@@ -59,10 +63,23 @@ void main() {
 
     // Assert
     final state = container.read(studioControllerProvider);
-    expect(state.value, testWorkflow);
+    expect(state.activeWorkflow.value, testWorkflow);
   });
 
-  test('updateStep updates state optimistically', () async {
+  test('loadComponents loads data into components', () async {
+    // Arrange
+    when(() => mockRepository.getAvailableComponents())
+        .thenAnswer((_) async => testComponents);
+
+    // Act
+    await container.read(studioControllerProvider.notifier).loadComponents();
+
+    // Assert
+    final state = container.read(studioControllerProvider);
+    expect(state.components.value, testComponents);
+  });
+
+  test('updateStep updates activeWorkflow optimistically', () async {
     // Arrange
     when(() => mockRepository.getWorkflow('1'))
         .thenAnswer((_) async => testWorkflow);
@@ -82,7 +99,7 @@ void main() {
 
     // Assert
     final state = container.read(studioControllerProvider);
-    expect(state.value!.steps.first.config['key'], 'newValue');
+    expect(state.activeWorkflow.value!.steps.first.config['key'], 'newValue');
     verify(() => mockRepository.saveWorkflow(any())).called(1);
   });
 
@@ -107,8 +124,26 @@ void main() {
     // Assert
     final state = container.read(studioControllerProvider);
     // Should be rolled back to original
-    expect(state.value!.steps.first.config['key'], 'value');
-    // State should have error (though AsyncNotifier handling might be complex)
-    expect(state.hasError, true);
+    expect(state.activeWorkflow.value!.steps.first.config['key'], 'value');
+    
+    // Error is swallowed to keep UI usable, but state is reverted.
+    expect(state.activeWorkflow.hasError, false);
+  });
+  
+  test('copyWorkflow calls repo and reloads list', () async {
+    // Arrange
+    when(() => mockRepository.copyWorkflow('1', 'New Name'))
+        .thenAnswer((_) async => {});
+    when(() => mockRepository.getWorkflows())
+        .thenAnswer((_) async => [testWorkflow]); // Return list with copy? For test just return something.
+
+    // Act
+    await container.read(studioControllerProvider.notifier).copyWorkflow('1', 'New Name');
+
+    // Assert
+    verify(() => mockRepository.copyWorkflow('1', 'New Name')).called(1);
+    verify(() => mockRepository.getWorkflows()).called(1);
+    final state = container.read(studioControllerProvider);
+    expect(state.workflows.value, [testWorkflow]);
   });
 }

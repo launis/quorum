@@ -220,7 +220,13 @@ def render_workflow_builder(api_client: APIClient):
                             st.error(err)
 
                 # Chain Rendering
-                for i, step_id in enumerate(steps):
+                for i, step_item in enumerate(steps):
+                    # Handle Dual Format (String ID vs Full Object)
+                    if isinstance(step_item, dict):
+                        step_id = step_item.get("id")
+                    else:
+                        step_id = step_item
+
                     # Highlight selected
                     is_selected = st.session_state.get("builder_act_step") == step_id
 

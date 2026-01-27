@@ -31,7 +31,7 @@ class _FileInputFieldState extends State<FileInputField> {
     final l10n = AppLocalizations.of(context)!;
     setState(() => _isLoading = true);
     try {
-      final result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: [
           'pdf',

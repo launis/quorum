@@ -154,10 +154,11 @@ except Exception as e:
 
 
 --------------------------------------------------------------------------------
+⚠️ PRE-FLIGHT CHECKLIST (MANDATORY)
+🛑 **STOP**: Before verifying any code, you MUST confirm you have read `docs/flutterpromptohje.md`.
+If you cannot see it, STOP and ask the user to provide it.
 
-PART 4: FLUTTER CLIENT MANDATES
-
-1.  **Framework & Core**:
+1. **Dependency Lock**:
     * **Flutter 3.38+** (Stable): Use latest Material 3 widgets, Adaptive Scaffold.
     * **Breaking Changes**: Strictly adhere to breaking changes documentation.
 

@@ -15,6 +15,13 @@
     "Configuration": "Asetukset",
     "Hoist Keys": "Nostettavat Muuttujat",
     "Create New": "Luo Uusi",
+    "Scoring Logic": "Pisteytyslogiikka",
+    "UI Schema": "Käyttöliittymäskeema (UI Schema)",
+    "Component ID": "Komponentin ID",
+    "Weight": "Painoarvo",
+    "Metric Key": "Mittariavain",
+    "Rules": "Säännöt",
+    "Component Scoring Rule": "Komponentin Pisteytyssääntö",
 
 
     "Analysis Result": "Analyysin Tulos",

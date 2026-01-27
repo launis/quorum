@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 from tinydb import Query
 
 from backend.dependencies import DatabaseDep
+from backend.services.component_registry import ComponentRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +81,61 @@ def get_component(db: DatabaseDep, comp_id: str = Path(..., description="Compone
         logger.error(f"{error_code}: ID {comp_id}", exc_info=True)
         raise ResourceNotFoundError("Component", comp_id, details={"error_code": error_code})
     return res[0]
+
+
+class RegistryComponentItem(BaseModel):
+    """Schema for a component item in the registry list."""
+
+    id: Annotated[
+        str,
+        Field(description="Component ID", json_schema_extra={"x-ui-label": "ID"}),
+    ]
+    name: Annotated[
+        str,
+        Field(description="Meaningful Label", json_schema_extra={"x-ui-label": "Label"}),
+    ]
+    type: Annotated[
+        str,
+        Field(description="Type category", json_schema_extra={"x-ui-label": "Type"}),
+    ]
+    description: Annotated[
+        str | None,
+        Field(
+            description="Short description",
+            json_schema_extra={"x-ui-label": "Description"},
+        ),
+    ] = None
+    content: Annotated[
+        Any,
+        Field(description="The actual content", json_schema_extra={"x-ui-label": "Content"}),
+    ] = None
+    citation: Annotated[
+        str | None,
+        Field(description="Short reference", json_schema_extra={"x-ui-label": "Citation"}),
+    ] = None
+
+
+@router.get("/registry_items", summary="List Registry Components", response_description="All components loaded from seed.")
+def list_registry_items() -> list[RegistryComponentItem]:
+    """Retrieves all system components directly from the in-memory ComponentRegistry."""
+    registry = ComponentRegistry()
+    items = []
+    # Registry _components is dict[id, dict]
+    for comp_id, comp_data in registry._components.items():
+        # Ensure 'id' exists in data, fallback to key
+        c_id = comp_data.get("id", comp_id)
+        # Handle 'name' or 'label'
+        c_name = comp_data.get("name") or comp_data.get("label") or c_id
+
+        items.append(RegistryComponentItem(
+            id=c_id,
+            name=c_name,
+            type=comp_data.get("type", "unknown"),
+            description=comp_data.get("description"),
+            content=comp_data.get("content"),
+            citation=comp_data.get("citation")
+        ))
+    return items
 
 
 @router.post("/components", summary="Create Component", response_description="Status and ID.")

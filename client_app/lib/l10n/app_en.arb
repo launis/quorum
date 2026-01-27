@@ -1,5 +1,6 @@
 {
   "appTitle": "Cognitive Quorum Client",
+  "delete": "Delete",
   "@appTitle": {
     "description": "The title of the application"
   },
@@ -309,5 +310,8 @@
   "studioNoSteps": "No steps defined",
   "studioRunTest": "Run Test",
   "studioSaving": "Saving...",
-  "studioChangesSaved": "Changes saved"
+  "studioChangesSaved": "Changes saved",
+  "studioCreateNew": "Create New",
+  "studioCopyWorkflow": "Copy Workflow",
+  "studioNewNameLabel": "New Name"
 }

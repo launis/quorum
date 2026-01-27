@@ -39,6 +39,46 @@ class WorkflowStep(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
 
+
+class ComponentScoringRule(BaseModel):
+    """Defines how a specific component contributes to a score."""
+
+    component_id: str = Field(
+        ...,
+        description="ID of the component being scored",
+        json_schema_extra={"x-ui-label": "Component ID"},
+    )
+    weight: float = Field(
+        1.0,
+        description="Weight multiplier for this component",
+        json_schema_extra={"x-ui-label": "Weight"},
+    )
+    metric_key: str = Field(
+        ...,
+        description="Key of the metric to extract (e.g., 'compliance_score')",
+        json_schema_extra={"x-ui-label": "Metric Key"},
+    )
+
+    model_config = ConfigDict(extra="ignore")
+
+
+class ScoringLogic(BaseModel):
+    """Named collection of scoring rules."""
+
+    label: str = Field(
+        ...,
+        description="Display label for this scoring logic",
+        json_schema_extra={"x-ui-label": "Label"},
+    )
+    rules: list[ComponentScoringRule] = Field(
+        default_factory=list,
+        description="List of rules defining the score",
+        json_schema_extra={"x-ui-label": "Rules"},
+    )
+
+    model_config = ConfigDict(extra="ignore")
+
+
 class WorkflowDefinition(BaseModel):
     """Defines the structure of a workflow stored in the DB.
 
@@ -87,8 +127,18 @@ class WorkflowDefinition(BaseModel):
         description="If checked, visible to all tenants (System Only)",
         json_schema_extra={"x-ui-label": "Publicly Available"}
     )
+    scoring_logic: list[ScoringLogic] = Field(
+        default_factory=list,
+        description="Defined scoring methods for this workflow",
+        json_schema_extra={
+            "x-ui-group": "Scoring Logic",
+            "x-ui-label": "Scoring Logic",
+        },
+    )
     ui_schema: dict[str, Any] = Field(
-        default_factory=dict, description="JSON Schema for the dynamic input form"
+        default_factory=dict,
+        description="JSON Schema for the dynamic input form",
+        json_schema_extra={"x-ui-label": "UI Schema"},
     )
 
     model_config = ConfigDict(extra="ignore")

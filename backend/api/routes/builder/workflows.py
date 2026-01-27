@@ -30,30 +30,68 @@ class BuilderWorkflowCreateRequest(BaseModel):
     is_public: Annotated[bool, Field(description="If True, visible to all tenants (System Only).")] = False
     status: Annotated[str, Field(description="Lifecycle status.")] = "draft"
     version: Annotated[int, Field(description="Version number.")] = 1
+    scoring_logic: Annotated[list[dict[str, Any]], Field(description="Scoring configuration.")] = []
 
 
 class WorkflowUpdateRequest(BaseModel):
     """Payload for updating an existing workflow."""
     name: Annotated[str | None, Field(description="New name.")] = None
     description: Annotated[str | None, Field(description="New description.")] = None
-    steps: Annotated[list[str] | None, Field(description="New step sequence.")] = None
+    steps: Annotated[list[str | dict[str, Any]] | None, Field(description="New step sequence (IDs or Full Objects).")] = None
     ui_schema: Annotated[dict[str, Any] | None, Field(description="New UI metadata.")] = None
     default_model_mapping: Annotated[dict[str, str] | None, Field(description="Updated model mapping.")] = None
     is_public: Annotated[bool | None, Field(description="Update visibility.")] = None
     status: Annotated[str | None, Field(description="Update status.")] = None
     version: Annotated[int | None, Field(description="Update version.")] = None
+    scoring_logic: Annotated[list[dict[str, Any]] | None, Field(description="Updated scoring configuration.")] = None
+
 
 
 class CopyWorkflowRequest(BaseModel):
     """Payload for copying a workflow."""
-    new_name: Annotated[str, Field(description="Name for the copy.")]
+    new_name: Annotated[str, Field(description="Name for the copy.", json_schema_extra={"x-ui-label": "Workflow Name"})]
+
+
+# --- Helpers ---
+
+async def _expand_workflow(wf: dict[str, Any], repository: RepositoryDep) -> dict[str, Any]:
+    """Hydrates step IDs into full step objects."""
+    full_wf = wf.copy()
+    step_ids = wf.get("steps", [])
+    
+    hydrated_steps = []
+    for s_id in step_ids:
+        # If the DB already has objects (unlikely but possible during migration), keep them.
+        if isinstance(s_id, dict):
+            hydrated_steps.append(s_id)
+            continue
+            
+        if isinstance(s_id, str):
+            step = await repository.get_step_by_id(s_id)
+            if step:
+                hydrated_steps.append(step)
+            else:
+                # Step missing? Keep ID as a lightweight placeholder or placeholder object?
+                # Frontend expects Map.
+                logger.warning(f"Workflow {wf.get('id')} references missing step {s_id}")
+                hydrated_steps.append({
+                    "id": s_id,
+                    "name": "Missing Step",
+                    "task_key": "unknown",
+                    "is_missing": True
+                })
+
+    full_wf["steps"] = hydrated_steps
+    return full_wf
+
 
 # --- Endpoints ---
 
 @router.get("/workflows", summary="List Workflows", response_description="All Workflows.")
 async def list_workflows(repository: RepositoryDep, current_user: CurrentUserDep):
     """List all workflows visible to the current user."""
-    return await repository.get_all_workflows(organization_id=current_user.organization_id, role=current_user.role)
+    raw_wfs = await repository.get_all_workflows(organization_id=current_user.organization_id, role=current_user.role)
+    return [await _expand_workflow(wf, repository) for wf in raw_wfs]
 
 
 @router.post("/workflows", summary="Create Workflow", response_description="Created workflow data.")
@@ -100,10 +138,13 @@ async def create_workflow(
 
             "status": request.status,
             "version": request.version,
+            "scoring_logic": request.scoring_logic,
         }
 
         await repository.create_workflow(workflow_data)
-        return workflow_data
+        
+        # Return expanded
+        return await _expand_workflow(workflow_data, repository)
     except Exception as e:
         from backend.exceptions import AppException
 
@@ -117,14 +158,17 @@ async def create_workflow(
 @router.get("/workflows/{workflow_id}", summary="Get Workflow", response_description="Workflow details.")
 async def get_workflow(workflow_id: str, repository: RepositoryDep):
     """Get details of a specific workflow."""
+    logger.info(f"GET Workflow Request. ID: '{workflow_id}'")
     wf = await repository.get_workflow_by_id(workflow_id)
     if not wf:
         from backend.exceptions import ResourceNotFoundError
 
         error_code = "WORKFLOW_NOT_FOUND"
-        logger.error(f"{error_code}: ID {workflow_id}", exc_info=True)
+        logger.error(f"{error_code}: ID '{workflow_id}' not found in Repository. Type: {type(workflow_id)}")
         raise ResourceNotFoundError("Workflow", workflow_id, details={"error_code": error_code})
-    return wf
+    logger.info(f"Found workflow: {wf.get('id')} - {wf.get('name')}")
+    
+    return await _expand_workflow(wf, repository)
 
 
 @router.put("/workflows/{workflow_id}", summary="Update Workflow", response_description="Updated workflow.")
@@ -186,7 +230,48 @@ async def update_workflow(
     if request.description is not None:
         update_data["description"] = request.description
     if request.steps is not None:
-        update_data["steps"] = request.steps
+        # Handle Nested Writes: Strings are IDs, Dicts are new/updated steps
+        final_step_ids = []
+        for s in request.steps:
+            if isinstance(s, str):
+                final_step_ids.append(s)
+            elif isinstance(s, dict):
+                # It's a step object.
+                # 1. Extract ID
+                s_id = s.get("id")
+                if not s_id:
+                    # Generate ID if missing (should imply new step)
+                    s_id = f"step_{uuid.uuid4().hex[:8]}"
+                    s["id"] = s_id
+                
+                final_step_ids.append(s_id)
+                
+                # 2. Save/Update Step Indepenently
+                # We map the dict to our repository 'create_step' or 'update_step' logic.
+                # Since we don't know if it exists, we try to get it first?
+                # Or use an upsert method if available. Repository usually has update_step.
+                # Note: This is "best effort" for now to fix the 422.
+                # Ideally we validate the step schema (WorkflowStep) here.
+                
+                # Check existance
+                existing_step = await repository.get_step_by_id(s_id)
+                if existing_step:
+                    # Update
+                    # Filter out purely UI fields or map camelCase if needed?
+                    # The frontend sends camelCase 'taskKey' but backend needs 'task_key'.
+                    # We might need a quick mapper here or assume repository handles it.
+                    # For now, pass 's' (update_data) directly.
+                    await repository.update_step(s_id, s)
+                else:
+                    # Create
+                    # Ensure minimal valid structure
+                    if "name" not in s: s["name"] = "Untitled Step"
+                    if "task_key" not in s and "taskKey" in s: s["task_key"] = s["taskKey"]
+                    # If task_key is still missing, we might fail validation in repository.create_step
+                    # if repository enforces it.
+                    await repository.create_step(s)
+                    
+        update_data["steps"] = final_step_ids
     if request.ui_schema is not None:
         update_data["ui_schema"] = request.ui_schema
     if request.default_model_mapping is not None:
@@ -197,6 +282,8 @@ async def update_workflow(
         update_data["status"] = request.status
     if request.version is not None:
         update_data["version"] = request.version
+    if request.scoring_logic is not None:
+        update_data["scoring_logic"] = request.scoring_logic
 
     update_data["updated_at"] = datetime.now()
 
@@ -216,7 +303,9 @@ async def update_workflow(
 
     await repository.update_workflow(workflow_id, update_data)
 
-    return {**wf, **update_data}
+    # Return Result with expanded steps
+    result_wf = {**wf, **update_data}
+    return await _expand_workflow(result_wf, repository)
 
 
 @router.delete(
@@ -327,7 +416,7 @@ async def copy_workflow(workflow_id: str, request: CopyWorkflowRequest, reposito
 
     try:
         await repository.create_workflow(clean_wf)
-        return clean_wf
+        return await _expand_workflow(clean_wf, repository)
     except Exception as e:
         from backend.exceptions import AppException
 

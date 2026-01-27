@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:client_app/features/studio/domain/models/workflow_def.dart';
 import 'package:client_app/features/studio/presentation/providers/studio_controller.dart';
 import 'package:client_app/features/studio/presentation/widgets/studio_sidebar.dart';
@@ -85,8 +84,11 @@ class FakeStudioController extends StudioController {
   FakeStudioController(this.initialData);
 
   @override
-  FutureOr<WorkflowDef?> build() {
-    return initialData;
+  StudioState build() {
+    return StudioState(
+      workflows: AsyncValue.data(initialData != null ? [initialData!] : []),
+      activeWorkflow: AsyncValue.data(initialData),
+    );
   }
   
   // Stubs for other methods to satisfy interface if needed (runtime mixin usually handles it)
@@ -114,4 +116,13 @@ class FakeStudioController extends StudioController {
   
   @override
   bool get isValid => true;
+
+  @override
+  Future<void> loadWorkflows() async {}
+
+  @override
+  Future<void> createWorkflow(WorkflowDef workflow) async {}
+
+  @override
+  Future<void> copyWorkflow(String originalId, String newName) async {}
 }

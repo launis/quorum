@@ -1,63 +1,43 @@
-SYSTEM CONTEXT: Antigravity (Python Backend + Flutter Client) | DATE: 2026-01-20
-STATUS: Phase 2 (Hardening Architecture & Standardization)
+System Context: Antigravity (Python Backend + Flutter Client) | DATE: 2026-01-27
+STATUS: Phase 2 (Hardening & Standardization)
 
 --------------------------------------------------------------------------------
-⚠️ ENVIRONMENT & TOOLING CONSTRAINTS
-1. **OS/Shell**: Windows 11 / PowerShell.
-2. **NO GREP**: Use `python scripts/analyze_json.py` or `view_file`.
-3. **Encoding**: Use `encoding="utf-8"` for all Python file operations.
-4. **Pathing**: Use raw strings `r"c:\path"` or `pathlib`.
+⚠️ PRE-FLIGHT CHECKLIST (MANDATORY)
+🛑 **STOP**: Before verifying any code, you MUST confirm you have read `docs/flutterpromptohje.md`.
+If you cannot see it, STOP and ask the user to provide it.
+
+1. **Dependency Lock**:
+   - Python: FastAPI 0.115+, Pydantic V2, Tenacity 9.x
+   - Flutter: Riverpod 3.0, GoRouter 17.x, Markdown Plus
+
+2. **Modern Standards Enforcement**:
+   - **State**: `@riverpod` + `ref.watch` (Engine vs Driver pattern).
+   - **Routing**: `GoRouteData` (Type-safe).
+   - **Models**: `model_validate` (Pydantic V2) / `@freezed` (Flutter).
+   - **Hooks**: `HookConsumerWidget` + `useEffect`.
 
 --------------------------------------------------------------------------------
-⚠️ CRITICAL: NO UNILATERAL CHANGES MANDATE
-1. **Repository Method Protection**: NEVER delete/modify `repository.py` or `firestore_repo.py` methods without explicit confirmation.
-2. **One Source of Truth**: NEVER copy data to fix a read error. Fix the reader (the code), not the data.
-3. **Strict Pattern Adherence**: Do NOT "simplify" patterns (e.g., chained resolution, indirect hooks). They are intentional.
+🏛️ ARCHITECTURAL PILLARS
+*Ref: docs/flutterpromptohje.md (PART 1 - 5)*
+
+1. **Schema is King**: Pydantic V2 models drive everything (API, Swagger, Frontend).
+2. **Backend Engine**: Metadata-driven task registry. Zero hardcoded logic.
+3. **AI Reliability**: Strict Pydantic outputs. No `dict` returns.
+4. **Hybrid SDUI**: Schema defines Data, Frontend defines Experience (`DynamicFormWidget`).
+5. **Fail Fast**: Explicit timeouts. Infrastructure handles retries (Tenacity).
 
 --------------------------------------------------------------------------------
-PART 1: PYTHON BACKEND MANDATES (FastAPI + Pydantic V2)
-*Ref: knowledge/development_environment_modernization*
+💾 DATA & ENVIRONMENT
+*Ref: docs/flutterpromptohje.md (PART 6 - 8)*
 
-1. **Schema is King**: All business logic MUST be driven by Pydantic V2 Models.
-   - **BANNED**: `dict` return types in Agents/Routes. Manual `dict()` calls.
-   - **REQUIRED**: `model_validate`, `model_dump`.
-
-2. **Zero-Fallback Rule**: 
-   - **BANNED**: Hardcoded defaults (`prompts = [...]`) in code.
-   - **REQUIRED**: Fail-fast if DB config is missing.
-
-3. **Error Handling (RFC 7807)**:
-   - **SINGLE SOURCE OF TRUTH**: `backend/exceptions.py`.
-   - **MANDATE**: Always implement both `logger.error(...)` AND `raise AppException(...)`.
-   - **BANNED**: `HTTPException` with raw strings.
-   - **REF**: See docstring in `backend/exceptions.py`.
-
-4. **Structured AI**: 
-   - **Tooling**: LiteLLM Native `response_format`.
-   - **Ref**: `knowledge/workflow_orchestration_and_reliability/artifacts/llm/prompt_standards.md`
+1. **Repository Parity**: `firestore_repo.py` (Truth) == `repository.py` (Dev).
+2. **Seeding**: `backend/seed/seed_data.json` is Authority.
+3. **Root Cause**: Fix the source, don't patch the symptom.
+4. **Environment**: Windows 11 / PowerShell. No `grep`. UTF-8 required.
 
 --------------------------------------------------------------------------------
-PART 2: FLUTTER CLIENT MANDATES (Flutter 3.38+)
-*Ref: knowledge/client_application_development/artifacts/implementation*
-
-1. **State Management (Riverpod 3.0)**:
-   - **Ref**: `state_management_and_logic.md`
-   - **MANDATE**: Generator-Only (`@riverpod`). Manual `Provider` definition is **BANNED**.
-   - **Pattern**: "Engine vs Driver" (Controller = AsyncNotifier, Data = StreamProvider).
-
-2. **UI Standards (SDUI & Responsiveness)**:
-   - **Ref**: `ui_design_standards.md`
-   - **Constraint**: **1000dp** max-width for content. **600dp** breakpoint for NavRail vs BottomBar.
-   - **Philosophy**: "Schema defines Data, Frontend defines Experience".
-
-3. **Localization Authority**:
-   - **Ref**: `ui_design_standards.md`
-   - **Source**: `lib/l10n/app_*.arb` is the ONLY source.
-   - **BANNED**: Hardcoded UI strings.
-
---------------------------------------------------------------------------------
-PART 3: DATA ARCHITECTURE & SEEDING
-*Ref: knowledge/seeding_and_data_lifecycle*
-
-1. **Dual Repositories**: Any method added to `FirestoreRepo` MUST exist in `TinyDBRepo` (Parity Mandate).
-2. **Seeding**: `backend/seed/seed_data.json` is the Master Seed. Do not modify without approval.
+🗺️ KNOWLEDGE BASE MAP
+*Ref: docs/flutterpromptohje.md (PART 9)*
+- Backend: `knowledge/backend_system_architecture`
+- Frontend: `knowledge/client_application_development`
+- Environment: `knowledge/development_environment_modernization`

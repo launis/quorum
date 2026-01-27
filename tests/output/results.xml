@@ -1,1 +1,304 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="8" time="9.095" timestamp="2026-01-25T19:22:10.463609+02:00" hostname="Laptop-Risto"><testcase classname="backend.tests.api.test_builder_api" name="test_get_workflow_schema" time="0.015" /><testcase classname="backend.tests.api.test_builder_api" name="test_get_workflow_schema_fi" time="0.006" /><testcase classname="backend.tests.api.test_builder_api" name="test_invalid_component_schema" time="0.007" /><testcase classname="backend.tests.api.test_localization_expansion" name="test_get_generic_schema_fi" time="0.007" /><testcase classname="backend.tests.api.test_localization_expansion" name="test_get_evaluation_matrix_schema_fi" time="0.006" /><testcase classname="backend.tests.api.test_localization_expansion" name="test_get_agents_list_fi" time="0.520" /><testcase classname="backend.tests.api.test_localization_expansion" name="test_get_schemas_list_fi" time="0.084" /><testcase classname="backend.tests.api.test_localization_expansion" name="test_get_execution_view_fi" time="0.017" /></testsuite></testsuites>
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="3" time="4.552" timestamp="2026-01-26T18:57:03.028123+02:00" hostname="Laptop-Risto"><testcase classname="backend.tests.api.test_workflow_control" name="test_cancel_execution_success" time="0.004"><failure message="backend.exceptions.AppException: Failed to cancel execution: name 'UserRole' is not defined">execution_id = 'exec-123', repository = &lt;AsyncMock id='1211633400000'&gt;
+current_user = TokenData(uid='user-1', role=&lt;UserRole.MEMBER: 'MEMBER'&gt;, organization_id='org-A', email='test@test.com')
+
+    @executions_router.delete(
+        "/{execution_id}/cancel",
+        summary="Cancel Execution",
+        description="Signals the workflow engine to cancel the running execution.",
+        status_code=status.HTTP_200_OK,
+        response_model=dict[str, Any],
+    )
+    async def cancel_execution(
+        execution_id: str,
+        repository: AbstractWorkflowRepository = Depends(get_async_repository),
+        current_user: Any = Depends(AuthService.get_current_user()),
+    ):
+        """Cancel a running workflow execution."""
+        try:
+            # 1. Fetch Execution
+            execution = await repository.get_execution(execution_id)
+            if not execution:
+                raise ResourceNotFoundError(f"Execution '{execution_id}' not found.")
+    
+            # 2. RBAC Check
+            user_role = current_user.role
+            user_org = current_user.organization_id
+            record_org = execution.get("organization_id")
+            record_user = execution.get("user_id")
+    
+            has_access = False
+    
+&gt;           if user_role == UserRole.ROOT:
+                            ^^^^^^^^
+E           NameError: name 'UserRole' is not defined
+
+backend\api\routes\execution\lifecycle.py:338: NameError
+
+The above exception was the direct cause of the following exception:
+
+    @pytest.mark.asyncio
+    async def test_cancel_execution_success():
+        # 1. Setup Data
+        execution_id = "exec-123"
+        execution_record = {
+            "id": execution_id,
+            "status": "running",
+            "organization_id": "org-A",
+            "user_id": "user-1",
+        }
+    
+        # 2. Mocks
+        repository = AsyncMock()
+        repository.get_execution.return_value = execution_record
+        repository.update_execution.return_value = True
+    
+        user = TokenData(uid="user-1", role=UserRole.MEMBER, organization_id="org-A", email="test@test.com")
+    
+        # 3. Call Endpoint logic
+&gt;       result = await cancel_execution(execution_id, repository=repository, current_user=user)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+backend\tests\api\test_workflow_control.py:34: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+execution_id = 'exec-123', repository = &lt;AsyncMock id='1211633400000'&gt;
+current_user = TokenData(uid='user-1', role=&lt;UserRole.MEMBER: 'MEMBER'&gt;, organization_id='org-A', email='test@test.com')
+
+    @executions_router.delete(
+        "/{execution_id}/cancel",
+        summary="Cancel Execution",
+        description="Signals the workflow engine to cancel the running execution.",
+        status_code=status.HTTP_200_OK,
+        response_model=dict[str, Any],
+    )
+    async def cancel_execution(
+        execution_id: str,
+        repository: AbstractWorkflowRepository = Depends(get_async_repository),
+        current_user: Any = Depends(AuthService.get_current_user()),
+    ):
+        """Cancel a running workflow execution."""
+        try:
+            # 1. Fetch Execution
+            execution = await repository.get_execution(execution_id)
+            if not execution:
+                raise ResourceNotFoundError(f"Execution '{execution_id}' not found.")
+    
+            # 2. RBAC Check
+            user_role = current_user.role
+            user_org = current_user.organization_id
+            record_org = execution.get("organization_id")
+            record_user = execution.get("user_id")
+    
+            has_access = False
+    
+            if user_role == UserRole.ROOT:
+                has_access = True
+            elif user_role in [UserRole.ADMIN, UserRole.MANAGER]:
+                # Can cancel within organization
+                if user_org and user_org == record_org:
+                    has_access = True
+            elif user_role == UserRole.MEMBER:
+                # Can cancel own executions
+                if str(current_user.uid) == str(record_user):
+                    has_access = True
+    
+            if not has_access:
+                error_code = "PERMISSION_DENIED"
+                raise AppException(
+                    message="You typically do not have permission to cancel this execution.",
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    details={"error_code": error_code}
+                )
+    
+            # 3. Update Status
+            # We set it to 'cancelling'. The engine will pick this up in the next step iteration.
+            current_status = execution.get("status")
+            if current_status in ["completed", "failed", "cancelled"]:
+                # Already done, no-op but return 200 ok with message
+                return {"execution_id": execution_id, "status": current_status, "message": "Execution already finished."}
+    
+            await repository.update_execution(execution_id, {"status": "cancelling"})
+    
+            logger.info(f"Execution {execution_id} marked as cancelling by user {current_user.uid}")
+    
+            return {"execution_id": execution_id, "status": "cancelling", "message": "Cancellation signal sent."}
+    
+        except ResourceNotFoundError as e:
+            raise AppException(
+                message=str(e), status_code=status.HTTP_404_NOT_FOUND, details={"error_code": "EXECUTION_NOT_FOUND"}
+            ) from e
+        except AppException:
+            raise
+        except Exception as e:
+            log_error(logger, e)
+&gt;           raise AppException(
+                message=f"Failed to cancel execution: {e}",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            ) from e
+E           backend.exceptions.AppException: Failed to cancel execution: name 'UserRole' is not defined
+
+backend\api\routes\execution\lifecycle.py:378: AppException</failure></testcase><testcase classname="backend.tests.api.test_workflow_control" name="test_cancel_execution_already_done" time="0.003"><failure message="backend.exceptions.AppException: Failed to cancel execution: name 'UserRole' is not defined">execution_id = 'exec-done', repository = &lt;AsyncMock id='1211633399664'&gt;
+current_user = TokenData(uid='user-1', role=&lt;UserRole.MEMBER: 'MEMBER'&gt;, organization_id='org-A', email=None)
+
+    @executions_router.delete(
+        "/{execution_id}/cancel",
+        summary="Cancel Execution",
+        description="Signals the workflow engine to cancel the running execution.",
+        status_code=status.HTTP_200_OK,
+        response_model=dict[str, Any],
+    )
+    async def cancel_execution(
+        execution_id: str,
+        repository: AbstractWorkflowRepository = Depends(get_async_repository),
+        current_user: Any = Depends(AuthService.get_current_user()),
+    ):
+        """Cancel a running workflow execution."""
+        try:
+            # 1. Fetch Execution
+            execution = await repository.get_execution(execution_id)
+            if not execution:
+                raise ResourceNotFoundError(f"Execution '{execution_id}' not found.")
+    
+            # 2. RBAC Check
+            user_role = current_user.role
+            user_org = current_user.organization_id
+            record_org = execution.get("organization_id")
+            record_user = execution.get("user_id")
+    
+            has_access = False
+    
+&gt;           if user_role == UserRole.ROOT:
+                            ^^^^^^^^
+E           NameError: name 'UserRole' is not defined
+
+backend\api\routes\execution\lifecycle.py:338: NameError
+
+The above exception was the direct cause of the following exception:
+
+    @pytest.mark.asyncio
+    async def test_cancel_execution_already_done():
+        # 1. Status completed
+        execution_id = "exec-done"
+        execution_record = {
+            "id": execution_id,
+            "status": "completed",
+            "organization_id": "org-A",
+            "user_id": "user-1",
+        }
+    
+        repository = AsyncMock()
+        repository.get_execution.return_value = execution_record
+    
+        user = TokenData(uid="user-1", role=UserRole.MEMBER, organization_id="org-A")
+    
+&gt;       result = await cancel_execution(execution_id, repository=repository, current_user=user)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+backend\tests\api\test_workflow_control.py:56: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+execution_id = 'exec-done', repository = &lt;AsyncMock id='1211633399664'&gt;
+current_user = TokenData(uid='user-1', role=&lt;UserRole.MEMBER: 'MEMBER'&gt;, organization_id='org-A', email=None)
+
+    @executions_router.delete(
+        "/{execution_id}/cancel",
+        summary="Cancel Execution",
+        description="Signals the workflow engine to cancel the running execution.",
+        status_code=status.HTTP_200_OK,
+        response_model=dict[str, Any],
+    )
+    async def cancel_execution(
+        execution_id: str,
+        repository: AbstractWorkflowRepository = Depends(get_async_repository),
+        current_user: Any = Depends(AuthService.get_current_user()),
+    ):
+        """Cancel a running workflow execution."""
+        try:
+            # 1. Fetch Execution
+            execution = await repository.get_execution(execution_id)
+            if not execution:
+                raise ResourceNotFoundError(f"Execution '{execution_id}' not found.")
+    
+            # 2. RBAC Check
+            user_role = current_user.role
+            user_org = current_user.organization_id
+            record_org = execution.get("organization_id")
+            record_user = execution.get("user_id")
+    
+            has_access = False
+    
+            if user_role == UserRole.ROOT:
+                has_access = True
+            elif user_role in [UserRole.ADMIN, UserRole.MANAGER]:
+                # Can cancel within organization
+                if user_org and user_org == record_org:
+                    has_access = True
+            elif user_role == UserRole.MEMBER:
+                # Can cancel own executions
+                if str(current_user.uid) == str(record_user):
+                    has_access = True
+    
+            if not has_access:
+                error_code = "PERMISSION_DENIED"
+                raise AppException(
+                    message="You typically do not have permission to cancel this execution.",
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    details={"error_code": error_code}
+                )
+    
+            # 3. Update Status
+            # We set it to 'cancelling'. The engine will pick this up in the next step iteration.
+            current_status = execution.get("status")
+            if current_status in ["completed", "failed", "cancelled"]:
+                # Already done, no-op but return 200 ok with message
+                return {"execution_id": execution_id, "status": current_status, "message": "Execution already finished."}
+    
+            await repository.update_execution(execution_id, {"status": "cancelling"})
+    
+            logger.info(f"Execution {execution_id} marked as cancelling by user {current_user.uid}")
+    
+            return {"execution_id": execution_id, "status": "cancelling", "message": "Cancellation signal sent."}
+    
+        except ResourceNotFoundError as e:
+            raise AppException(
+                message=str(e), status_code=status.HTTP_404_NOT_FOUND, details={"error_code": "EXECUTION_NOT_FOUND"}
+            ) from e
+        except AppException:
+            raise
+        except Exception as e:
+            log_error(logger, e)
+&gt;           raise AppException(
+                message=f"Failed to cancel execution: {e}",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            ) from e
+E           backend.exceptions.AppException: Failed to cancel execution: name 'UserRole' is not defined
+
+backend\api\routes\execution\lifecycle.py:378: AppException</failure></testcase><testcase classname="backend.tests.api.test_workflow_control" name="test_cancel_execution_permission_denied" time="0.003"><failure message="assert 500 == 403&#10; +  where 500 = AppException(&quot;Failed to cancel execution: name 'UserRole' is not defined&quot;).status_code&#10; +    where AppException(&quot;Failed to cancel execution: name 'UserRole' is not defined&quot;) = &lt;ExceptionInfo AppException(&quot;Failed to cancel execution: name 'UserRole' is not defined&quot;) tblen=2&gt;.value">@pytest.mark.asyncio
+    async def test_cancel_execution_permission_denied():
+        # 1. Cross-user access
+        execution_id = "exec-other"
+        execution_record = {
+            "id": execution_id,
+            "status": "running",
+            "organization_id": "org-A",
+            "user_id": "user-99", # Different user
+        }
+    
+        repository = AsyncMock()
+        repository.get_execution.return_value = execution_record
+    
+        user = TokenData(uid="user-1", role=UserRole.MEMBER, organization_id="org-A")
+    
+        # 2. Pydantic 2.0 / FastAPI logic throws exceptions
+        # We expect AppException or HTTPException
+        from backend.exceptions import AppException
+    
+        with pytest.raises(AppException) as excinfo:
+            await cancel_execution(execution_id, repository=repository, current_user=user)
+    
+&gt;       assert excinfo.value.status_code == 403
+E       assert 500 == 403
+E        +  where 500 = AppException("Failed to cancel execution: name 'UserRole' is not defined").status_code
+E        +    where AppException("Failed to cancel execution: name 'UserRole' is not defined") = &lt;ExceptionInfo AppException("Failed to cancel execution: name 'UserRole' is not defined") tblen=2&gt;.value
+
+backend\tests\api\test_workflow_control.py:85: AssertionError</failure></testcase></testsuite></testsuites>

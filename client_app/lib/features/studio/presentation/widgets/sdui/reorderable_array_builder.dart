@@ -17,7 +17,14 @@ class ReorderableArrayBuilder extends ConsumerStatefulWidget {
     required this.schema,
     this.initialData = const [],
     required this.onChanged,
+    this.customItemBuilder,
+    this.onReorder,
+    this.itemFactory,
   });
+
+  final Widget Function(BuildContext context, int index, dynamic item)? customItemBuilder;
+  final void Function(int oldIndex, int newIndex)? onReorder;
+  final dynamic Function()? itemFactory;
 
   @override
   ConsumerState<ReorderableArrayBuilder> createState() =>
@@ -34,6 +41,14 @@ class _ReorderableArrayBuilderState
     _items = List.from(widget.initialData);
   }
 
+  @override
+  void didUpdateWidget(ReorderableArrayBuilder oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialData != oldWidget.initialData) {
+      _items = List.from(widget.initialData);
+    }
+  }
+
   void _updateItems() {
     widget.onChanged(_items);
   }
@@ -45,13 +60,21 @@ class _ReorderableArrayBuilderState
       }
       final item = _items.removeAt(oldIndex);
       _items.insert(newIndex, item);
-      _updateItems();
+      
+      if (widget.onReorder != null) {
+        widget.onReorder!(oldIndex, newIndex);
+      } else {
+        _updateItems();
+      }
     });
   }
 
   void _onAddItem() {
     setState(() {
-      _items.add(_createDefaultValue());
+      final newItem = widget.itemFactory != null 
+          ? widget.itemFactory!() 
+          : _createDefaultValue();
+      _items.add(newItem);
       _updateItems();
     });
   }
@@ -82,8 +105,8 @@ class _ReorderableArrayBuilderState
   @override
   Widget build(BuildContext context) {
     final itemSchema = widget.schema.items;
-    // If no items schema defined, we can't render much (maybe a warning?)
-    if (itemSchema == null) {
+    // If no items schema defined and no custom builder, we can't render much (maybe a warning?)
+    if (itemSchema == null && widget.customItemBuilder == null) {
       return const Card(
         child: Padding(
           padding: EdgeInsets.all(16.0),
@@ -118,7 +141,7 @@ class _ReorderableArrayBuilderState
             itemCount: _items.length,
             onReorder: _onReorder,
             itemBuilder: (context, index) {
-              return Card(
+              return widget.customItemBuilder?.call(context, index, _items[index]) ?? Card(
                 key: ValueKey('item_$index'), // Simple key strategy
                 margin: const EdgeInsets.only(bottom: 8.0),
                 child: ExpansionTile(
@@ -132,7 +155,7 @@ class _ReorderableArrayBuilderState
                   children: [
                     Padding(
                       padding: const EdgeInsets.all(16.0),
-                      child: _buildItemContent(index, itemSchema),
+                      child: _buildItemContent(index, itemSchema!),
                     ),
                   ],
                 ),
