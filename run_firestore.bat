@@ -29,7 +29,7 @@ echo       Mode: FIRESTORE (REAL DB, REAL LLM, FIREBASE AUTH)
 echo       Config: STORAGE_BACKEND=FIRESTORE, USE_MOCK_DB=false, USE_MOCK_LLM=false
 
 :: Backend
-start "CQ Backend (FIRESTORE)" cmd /k "chcp 65001 > nul && set USE_MOCK_DB=false&& set USE_MOCK_LLM=false&& set STORAGE_BACKEND=FIRESTORE&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& uv run uvicorn backend.main:app --reload --port 8000"
+start "CQ Backend (FIRESTORE)" cmd /k "chcp 65001 > nul && set USE_MOCK_DB=false&& set USE_MOCK_LLM=false&& set STORAGE_BACKEND=FIRESTORE&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& uv run uvicorn backend.main:app --reload --reload-dir backend --port 8000"
 
 :: Worker
 start "CQ Worker (FIRESTORE)" cmd /k "chcp 65001 > nul && set USE_MOCK_DB=false&& set USE_MOCK_LLM=false&& set STORAGE_BACKEND=FIRESTORE&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& uv run python -m backend.run_worker"

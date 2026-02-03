@@ -22,6 +22,11 @@ class ErrorInterceptor extends Interceptor {
     } else {
       logger.error('HTTP', 'Request Failed: $method $path', err, err.stackTrace);
     }
+    
+    // Log Response Body (Critical for Debugging 422 etc)
+    if (err.response?.data != null) {
+      logger.error('HTTP', 'Response Body: ${err.response?.data}');
+    }
   
     // Check if response contains RFC 7807 Problem Details
     if (err.response?.data != null && err.response!.data is Map<String, dynamic>) {

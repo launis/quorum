@@ -20,8 +20,12 @@ def format_matrix_component(component: dict[str, Any]) -> str:
         except Exception:
             return "Error parsing matrix."
 
-    name = content.get("name", "Audit Matrix")
-    desc = content.get("description", "")
+    # STRICT MODE: No legacy support. Metadata MUST be at the component root.
+    name = component.get("name")
+    if not name:
+        raise ValueError("Matrix component is missing root-level 'name'. Legacy 'content.name' is not supported.")
+
+    desc = component.get("description", "")
     role = content.get("role_description", "You are the Evaluator.")
     criteria = content.get("criteria", [])
     scale = content.get("scale")

@@ -6,34 +6,40 @@
 
 ## 🛑 PRE-FLIGHT CHECKLIST (MANDATORY)
 
-### 1. Dependency Lock (Strict Versioning)
-The dependencies listed below are **MANDATORY** and must match exactly.
-**DO NOT** downgrade or change versions unless explicitly instructed.
+### 1. Dependency Strategy (Latest Stable Mandate)
+The dependencies listed below serve as the **MINIMUM BASELINE**.
+**ALWAYS** use the latest stable compatible versions available.
+**DO NOT** restrict upgrades unless a specific breaking change is identified.
 
 #### Backend (Python)
-| Package | Version | Purpose |
+| Package | Baseline Version | Purpose |
 | :--- | :--- | :--- |
-| `fastapi` | `0.115.8` | Core Framework |
-| `uvicorn` | `0.34.0` | ASGI Server |
-| `pydantic` | `2.10.6` | Data Validation (V2) |
-| `firebase-admin` | `6.6.0` | Auth & Firestore |
-| `openai` | `1.60.2` | LLM Client |
-| `litellm` | `1.60.2` | LLM Proxy |
-| `sse-starlette` | `2.1.3` | Real-time Events |
-| `arq` | `0.26.3` | Async Task Queue |
-| `tenacity` | `9.1.2` | Retry Logic |
-| `tiktoken` | `0.12.0` | Token Counting |
+| `fastapi` | `0.128.0+` | Core Framework |
+| `uvicorn` | `0.40.0+` | ASGI Server |
+| `pydantic` | `2.12.5+` | Data Validation (V2) |
+| `firebase-admin` | `7.1.0+` | Auth & Firestore |
+| `openai` | `2.16.0+` | LLM Client |
+| `litellm` | `1.81.3+` | LLM Proxy |
+| `sse-starlette` | `3.2.0+` | Real-time Events |
+| `arq` | `0.26.3+` | Async Task Queue |
+| `tenacity` | `9.1.2+` | Retry Logic |
+| `tiktoken` | `0.12.0+` | Token Counting |
 
 #### Frontend (Flutter)
-| Package | Version | Purpose |
+| Package | Baseline Version | Purpose |
 | :--- | :--- | :--- |
-| `flutter_riverpod` | `^3.0.0` | State Management |
+| `flutter_riverpod` | `^3.1.0` | State Management |
 | `flutter_hooks` | `^0.21.0` | Widget Lifecycle |
-| `go_router` | `^17.0.1` | Routing |
+| `go_router` | `^17.0.1+` | Routing |
 | `dio` | `^5.7.0` | Networking |
-| `firebase_auth` | `^6.1.3` | Authentication |
-| `freezed` | `^2.5.0` | Immutable Models |
+| `firebase_auth` | `^6.1.4` | Authentication |
+| `freezed` | `^3.2.3` | Immutable Models |
 | `flutter_markdown_plus` | `^1.0.7` | Markdown Rendering |
+| `riverpod_annotation` | `^4.0.0` | Code Gen Annotations |
+| `riverpod_generator` | `^4.0.0` | Riverpod Code Gen |
+| `custom_lint` | `^0.8.1` | Linting Standards |
+| `riverpod_lint` | `^3.1.0` | Riverpod Lints |
+| `json_serializable` | `6.11.2` | Serialization (PINNED core conflict) |
 
 ### 2. Modern Standards Enforcement (Banned Patterns)
 The versions listed above enabling specific **Modern Architectures**.
@@ -48,6 +54,21 @@ Using these versions with "Legacy Patterns" is a **STRICT VIOLATION**.
 | **Hooks** | Use `HookConsumerWidget` + `useEffect` | `StatefulWidget` + `initState`/`dispose` |
 | **Data** | Use `@freezed` (Immutable Unions) | Mutable classes or plain `json_serializable` |
 | **Retries** | Use `@retry` (Tenacity) decorators | `while` loops with `sleep()` |
+| **AI** | Use `AsyncOpenAI()` (Instantiated Client) | Global `openai.ChatCompletion.create()` |
+| **Auth** | Use `authStateChanges()` (Reactive Stream) | Manual `currentUser` checks / `setState` |
+| **HTTP** | Use `Interceptors` for Auth/Error handling | Inline `try/catch` or token injection |
+
+### 3. Routine Quality Gates (Definition of Done)
+**ALWAYS** run these checks before marking a task as complete.
+
+#### Backend (Python)
+*   **Lint**: `ruff check . --fix` (Enforce style & fix imports)
+*   **Type Check**: `mypy .` (Strict typing, no `Any` leaks)
+
+#### Frontend (Flutter)
+*   **Analyze**: `flutter analyze` (Standard linting)
+*   **Custom Lint**: `dart run custom_lint` (Riverpod rules)
+*   **Code Gen**: `dart run build_runner build -d` (Ensure synced generated files)
 
 ---
 
@@ -160,7 +181,7 @@ Using these versions with "Legacy Patterns" is a **STRICT VIOLATION**.
     *   **Mobile**: Use `NavigationBar`.
 
 2.  **Localization Authority**:
-    *   **Source**: `lib/l10n/app_*.arb` only.
+    *   **Source**: `client_app/lib/l10n/app_*.arb` only.
     *   **BANNED**: Hardcoded strings in widgets.
     *   **Keys**: camelCase (`dashboardTitle`).
 
@@ -180,6 +201,15 @@ Using these versions with "Legacy Patterns" is a **STRICT VIOLATION**.
 2.  **Repository Method Protection**:
     *   **History**: On 2026-01-16, critical methods were deleted.
 
+    *   **History**: On 2026-01-16, critical methods were deleted.
+
+3.  **Debugging Protocols ("Silent Console, Verbose Log")**:
+    *   **Console Output**: Terminals (`run_local.bat` windows) MUST remain minimal. Only print "Starting..." and "Check logs".
+    *   **Source of Truth**: All debug data (Setup Config, Requests, Errors, State) MUST flow to:
+        *   `backend_debug.log` (Python)
+        *   `client_debug.log` (Flutter)
+    *   **Agent Instruction**: If a user reports an error, **ALWAYS** read these two files first (`view_file`). Do not ask the user for console output.
+
 ---
 
 ## 🗺️ PART 9: KNOWLEDGE BASE MAP (DEEP DIVES)
@@ -198,3 +228,16 @@ For detailed implementation logic, refer to these Knowledge Items:
 
 3.  **Environment**:
     *   `knowledge/development_environment_modernization` (Troubleshooting)
+
+---
+
+## 🌍 PART 10: INTERNATIONALIZATION (I18N) STANDARDS
+
+1.  **Dual Sovereign Locations**:
+    *   **Frontend**: `client_app/lib/l10n` (Standard .arb files).
+    *   **Backend**: `backend/l10n` (Standard translation files).
+
+2.  **Mandates**:
+    *   **Separation**: Frontend and Backend maintain separate, independent localization trees.
+    *   **Hardcoding**: STRICTLY BANNED. All user-facing strings must use the localization keys.
+    *   **Parity**: Keys should be added to both English (`en`) and Finnish (`fi`) files immediately.

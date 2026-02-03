@@ -230,6 +230,32 @@ def _seed_tinydb(db_path: str, seed_data: dict):
             pass
     print(f"[Seeder] Upserted {count} system_config items.")
 
+    # Seed Ontology Dimensions (Extracted from Matrix Components)
+    # This enforces "Seed Data as Truth" without explicit dimensions list in seed_data.json
+    dimensions_table = db.table("dimensions")
+    extracted_dims = {}
+    
+    for c in seed_data.get("components", []):
+        if c.get("type") == "evaluation_matrix" and isinstance(c.get("content"), dict):
+            criteria = c["content"].get("criteria", [])
+            for crit in criteria:
+                dim_id = crit.get("id")
+                dim_label = crit.get("label", dim_id)
+                # If we haven't seen this ID, or if we found a better label (not just ID), update it.
+                if dim_id and (dim_id not in extracted_dims or extracted_dims[dim_id]["label"] == dim_id):
+                    extracted_dims[dim_id] = {
+                        "id": dim_id,
+                        "label": dim_label,
+                        "description": crit.get("instruction", ""),
+                        "is_system": False # Default to user/content defined
+                    }
+
+    count = 0
+    for dim in extracted_dims.values():
+        dimensions_table.upsert(dim, Query().id == dim["id"])
+        count += 1
+    print(f"[Seeder] Extracted & Upserted {count} ontology dimensions from matrices.")
+
     # Seed Organizations
     org_table = db.table("organizations")
     count = 0

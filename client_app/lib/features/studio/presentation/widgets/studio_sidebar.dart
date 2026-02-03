@@ -31,14 +31,8 @@ class _StudioSidebarState extends ConsumerState<StudioSidebar> {
   @override
   void initState() {
     super.initState();
-    // Initial Data Fetch
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (widget.mode == StudioSidebarMode.workflows) {
-        ref.read(studioControllerProvider.notifier).loadWorkflows();
-      } else {
-        ref.read(studioControllerProvider.notifier).loadMatrices();
-      }
-    });
+    // Data fetching is handled by the parent screen (WorkflowStudioScreen).
+    // This widget should be purely presentation.
   }
 
   @override
@@ -169,8 +163,8 @@ class _StudioSidebarState extends ConsumerState<StudioSidebar> {
                    title: Text(matrix.name),
                    subtitle: Text(matrix.description ?? ''),
                    onTap: () { 
-                       ref.read(studioControllerProvider.notifier).selectMatrix(matrix.id);
-                       widget.onStepSelected(null);
+                       // Trigger selection in parent (which calls MatrixController)
+                       widget.onStepSelected(matrix.id);
                    },
                 );
               },

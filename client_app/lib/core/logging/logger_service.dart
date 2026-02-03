@@ -21,16 +21,20 @@ class LoggerService {
       output: ConsoleOutput(),
       filter: ProductionFilter(),
     );
-    _initFileLogging();
   }
 
-  Future<void> _initFileLogging() async {
+  Future<void> init() async {
     if (kIsWeb) return;
 
     try {
       // Use CWD (root) -> Parent for shared visibility
-      final file = File('../client_debug.log');
+      // Verify absolute path
+      var file = File('../client_debug.log');
+      // If we are in Debug mode, sometimes we are deep in build folders?
+      // But typically flutter run keeps CWD.
+      
       _logFile = file;
+      debugPrint("LoggerService: Attempting to write to ${file.absolute.path}");
       
       // Re-initialize 
       _logger = Logger(

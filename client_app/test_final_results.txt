@@ -1,8 +1,0 @@
-00:00 +0: loading C:/src/quorum/client_app/test/features/studio/presentation/providers/studio_controller_test.dart
-00:00 +0: C:/src/quorum/client_app/test/features/studio/presentation/providers/studio_controller_test.dart: loadWorkflow loads data into state
-00:00 +1: C:/src/quorum/client_app/test/features/studio/presentation/providers/studio_controller_test.dart: updateStep updates state optimistically
-00:00 +2: C:/src/quorum/client_app/test/features/studio/presentation/providers/studio_controller_test.dart: updateStep rolls back on failure
-00:00 +3: C:/src/quorum/client_app/test/features/studio/presentation/screens/workflow_studio_integration_test.dart: WorkflowStudioScreen full flow
-00:01 +4: C:/src/quorum/client_app/test/features/studio/presentation/screens/workflow_studio_integration_test.dart: WorkflowStudioScreen full flow
-00:01 +5: C:/src/quorum/client_app/test/features/studio/presentation/screens/workflow_studio_integration_test.dart: WorkflowStudioScreen full flow
-00:01 +6: All tests passed!

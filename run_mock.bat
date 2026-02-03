@@ -30,7 +30,7 @@ echo       Config: MOCK DB (db_mock.json), MOCK LLM, MOCK AUTH
 echo       Notes:  No external connections. Good for UI dev and unit testing logic.
 
 :: Backend
-start "CQ Backend (MOCK)" cmd /k "set USE_MOCK_DB=true&& set USE_MOCK_LLM=true&& set STORAGE_BACKEND=MOCK&& uv run uvicorn backend.main:app --reload --port 8000"
+start "CQ Backend (MOCK)" cmd /k "set USE_MOCK_DB=true&& set USE_MOCK_LLM=true&& set STORAGE_BACKEND=MOCK&& uv run uvicorn backend.main:app --reload --reload-dir backend --port 8000"
 
 :: Worker
 start "CQ Worker (MOCK)" cmd /k "chcp 65001 > nul && set USE_MOCK_DB=true&& set USE_MOCK_LLM=true&& set STORAGE_BACKEND=MOCK&& uv run python -m backend.run_worker"

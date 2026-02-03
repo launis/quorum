@@ -5,6 +5,7 @@ import 'package:client_app/api/error_interceptor.dart';
 import 'package:client_app/api/dio_logger_interceptor.dart';
 import 'package:client_app/core/environment/env.dart';
 import 'package:client_app/features/settings/locale_provider.dart';
+import 'package:client_app/api/locale_interceptor.dart';
 
 part 'api_client.g.dart';
 
@@ -30,22 +31,21 @@ Dio apiClient(Ref ref) {
   // Watch envProvider to rebuild client if config changes
   ref.watch(envProvider);
 
-  // Watch localeProvider to inject correct Accept-Language header
-  final locale = ref.watch(localeProvider);
-
   final dio = Dio(
     BaseOptions(
       baseUrl: Env.apiUrl,
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json, application/problem+json',
-        'Accept-Language': locale.languageCode,
       },
     ),
   );
 
   // Add Auth Interceptor (must be first to add token)
   dio.interceptors.add(AuthInterceptor(ref));
+  
+  // Add Locale Interceptor (Dynamic Accept-Language)
+  dio.interceptors.add(LocaleInterceptor(ref));
   
   // Add Logger (before ErrorInterceptor to capture raw requests)
   dio.interceptors.add(DioLoggerInterceptor(ref));

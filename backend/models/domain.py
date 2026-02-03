@@ -748,22 +748,42 @@ class PanelAudit(BaseJSON):
 # --- DYNAMIC EVALUATION SYSTEM DOIMAIN MODELS ---
 
 
-class EvaluationCriterion(BaseModel):
-    """Defines a single dimension of evaluation (e.g., 'Analysis')."""
 
-    id: Annotated[str, Field(description="Unique key for the criterion.")]
-    label: Annotated[str, Field(description="Human readable label.")]
-    instruction: Annotated[str, Field(description="Prompt instruction for the LLM.")]
-    anchors: Annotated[dict[str, str], Field(description="Scoring anchors (e.g., {'1': 'Bad', '4': 'Good'}).")]
+class OntologyDimension(BaseModel):
+    """Defines a reusable dimension of evaluation (e.g., 'Analysis')."""
+
+    id: Annotated[str, Field(description="Unique dimension ID (e.g., 'analysis').")]
+    name: Annotated[str, Field(description="Human readable display name.")]
+    description: Annotated[str, Field(description="Explanation of what this measures.")]
+    scale: Annotated[dict[str, int], Field(description="Scoring scale (min/max).")]
 
     model_config = ConfigDict(
         validate_assignment=True,
         json_schema_extra={
             "properties": {
                 "id": {"x-ui-label": "ID"},
-                "label": {"x-ui-label": "Label"},
-                "instruction": {"x-ui-label": "Instruction", "x-ui-widget": "textarea"},
-                "anchors": {"x-ui-label": "Scoring Anchors"},
+                "name": {"x-ui-label": "Name"},
+                "description": {"x-ui-label": "Description"},
+                "scale": {"x-ui-label": "Scoring Scale"},
+            }
+        },
+    )
+
+
+class EvaluationCriterion(BaseModel):
+    """Defines a single criterion within a matrix."""
+
+    dimension_id: Annotated[str, Field(description="Reference to OntologyDimension ID.")]
+    prompt: Annotated[str, Field(description="Specific prompt instruction for this matrix.")]
+    weight: Annotated[float, Field(default=1.0, description="Weight of this criterion.")]
+
+    model_config = ConfigDict(
+        validate_assignment=True,
+        json_schema_extra={
+            "properties": {
+                "dimension_id": {"x-ui-label": "Dimension"},
+                "prompt": {"x-ui-label": "Prompt", "x-ui-widget": "textarea"},
+                "weight": {"x-ui-label": "Weight"},
             }
         },
     )
@@ -794,7 +814,7 @@ class EvaluationMatrixConfig(BaseModel):
                 "description": {"x-ui-label": "Description"},
                 "scale": {"x-ui-label": "Scoring Scale"},
                 "role_description": {"x-ui-label": "Role Persona"},
-                "criteria": {"x-ui-group": "Evaluation Criteria"},
+                "criteria": {"x-ui-group": "Evaluation Criteria", "x-ui-label": "Evaluation Criteria"},
             },
         },
     )

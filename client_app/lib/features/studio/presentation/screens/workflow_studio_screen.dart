@@ -1,4 +1,8 @@
+// ignore_for_file: deprecated_member_use
+import 'package:client_app/features/studio/presentation/providers/matrix_controller.dart';
 import 'package:client_app/features/studio/presentation/providers/studio_controller.dart';
+import 'package:client_app/features/studio/presentation/widgets/matrix_editor_panel.dart';
+import 'package:client_app/features/studio/presentation/widgets/ontology_manager_panel.dart';
 import 'package:client_app/features/studio/presentation/widgets/studio_editor_area.dart';
 import 'package:client_app/features/studio/presentation/widgets/studio_sidebar.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
@@ -12,7 +16,7 @@ class WorkflowStudioScreen extends HookConsumerWidget {
   final int initialTabIndex;
 
   const WorkflowStudioScreen({
-    super.key, 
+    super.key,
     this.workflowId,
     this.initialTabIndex = 0,
   });
@@ -26,9 +30,9 @@ class WorkflowStudioScreen extends HookConsumerWidget {
 
     // 2. Initial Data Loading
     useEffect(() {
-      Future.delayed(const Duration(milliseconds: 100), () {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
         final notifier = ref.read(studioControllerProvider.notifier);
-        
+
         if (initialTabIndex == 1) {
           // Matrices Mode
           notifier.enterMatrixMode();
@@ -36,7 +40,7 @@ class WorkflowStudioScreen extends HookConsumerWidget {
           // Workflows Mode
           notifier.enterWorkflowMode();
         }
-        
+
         // Deep link specific workflow if provided
         if (workflowId != null) {
           notifier.loadWorkflow(workflowId!);
@@ -58,7 +62,9 @@ class WorkflowStudioScreen extends HookConsumerWidget {
       }
 
       // Success Feedback (Saved)
-      if (previous?.activeWorkflow.isLoading == true && !next.activeWorkflow.isLoading && !next.activeWorkflow.hasError) {
+      if (previous?.activeWorkflow.isLoading == true &&
+          !next.activeWorkflow.isLoading &&
+          !next.activeWorkflow.hasError) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(l10n.studioChangesSaved),
@@ -71,9 +77,7 @@ class WorkflowStudioScreen extends HookConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Cognitive Studio"),
-        leading: BackButton(
-          onPressed: () => context.go('/studio'),
-        ),
+        leading: BackButton(onPressed: () => context.go('/studio')),
         actions: [
           // Run Test Button
           Padding(
@@ -92,25 +96,26 @@ class WorkflowStudioScreen extends HookConsumerWidget {
           // Save Button
           Padding(
             padding: const EdgeInsets.only(right: 16.0, left: 8.0),
-            child: studioState.activeWorkflow.isLoading
-                ? const Row(
-                    children: [
-                      SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                      SizedBox(width: 8),
-                      Text("Saving..."), // Fallback or use l10n.studioSaving
-                    ],
-                  )
-                : FilledButton.icon(
-                    icon: const Icon(Icons.save),
-                    label: Text(l10n.save),
-                    onPressed: () {
-                      ref.read(studioControllerProvider.notifier).save();
-                    },
-                  ),
+            child:
+                studioState.activeWorkflow.isLoading
+                    ? const Row(
+                      children: [
+                        SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        SizedBox(width: 8),
+                        Text("Saving..."), // Fallback or use l10n.studioSaving
+                      ],
+                    )
+                    : FilledButton.icon(
+                      icon: const Icon(Icons.save),
+                      label: Text(l10n.save),
+                      onPressed: () {
+                        ref.read(studioControllerProvider.notifier).save();
+                      },
+                    ),
           ),
         ],
       ),
@@ -119,14 +124,31 @@ class WorkflowStudioScreen extends HookConsumerWidget {
         children: [
           StudioSidebar(
             selectedStepId: selectedStepId.value,
-            onStepSelected: (id) => selectedStepId.value = id,
-            mode: initialTabIndex == 0 
-                ? StudioSidebarMode.workflows 
-                : StudioSidebarMode.matrices,
+            onStepSelected: (id) {
+              selectedStepId.value = id;
+              // If in Matrix Mode, select the matrix in the controller
+              if (initialTabIndex == 1 && id != null) {
+                ref.read(matrixControllerProvider.notifier).selectMatrix(id);
+              }
+            },
+            mode:
+                initialTabIndex == 0
+                    ? StudioSidebarMode.workflows
+                    : StudioSidebarMode.matrices,
           ),
           const VerticalDivider(width: 1),
+          // Content Area
           Expanded(
-            child: StudioEditorArea(selectedStepId: selectedStepId.value),
+            child:
+                initialTabIndex == 1
+                    ? const Row(
+                      children: [
+                        Expanded(flex: 5, child: MatrixEditorPanel()),
+                        VerticalDivider(width: 1),
+                        Expanded(flex: 3, child: OntologyManagerPanel()),
+                      ],
+                    )
+                    : StudioEditorArea(selectedStepId: selectedStepId.value),
           ),
         ],
       ),

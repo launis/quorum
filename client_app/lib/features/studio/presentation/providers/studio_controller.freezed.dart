@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$StudioState {
 
- AsyncValue<List<WorkflowDef>> get workflows; AsyncValue<WorkflowDef?> get activeWorkflow; AsyncValue<List<StudioComponentDef>> get components; AsyncValue<List<StudioComponentDef>> get availableMatrices; AsyncValue<List<Map<String, dynamic>>> get ontologyDimensions; String? get selectedMatrixId;
+ AsyncValue<List<WorkflowDef>> get workflows; AsyncValue<WorkflowDef?> get activeWorkflow; AsyncValue<List<StudioComponentDef>> get components; AsyncValue<List<StudioComponentDef>> get availableMatrices; AsyncValue<List<OntologyDimension>> get ontologyDimensions; String? get selectedMatrixId;
 /// Create a copy of StudioState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -45,7 +45,7 @@ abstract mixin class $StudioStateCopyWith<$Res>  {
   factory $StudioStateCopyWith(StudioState value, $Res Function(StudioState) _then) = _$StudioStateCopyWithImpl;
 @useResult
 $Res call({
- AsyncValue<List<WorkflowDef>> workflows, AsyncValue<WorkflowDef?> activeWorkflow, AsyncValue<List<StudioComponentDef>> components, AsyncValue<List<StudioComponentDef>> availableMatrices, AsyncValue<List<Map<String, dynamic>>> ontologyDimensions, String? selectedMatrixId
+ AsyncValue<List<WorkflowDef>> workflows, AsyncValue<WorkflowDef?> activeWorkflow, AsyncValue<List<StudioComponentDef>> components, AsyncValue<List<StudioComponentDef>> availableMatrices, AsyncValue<List<OntologyDimension>> ontologyDimensions, String? selectedMatrixId
 });
 
 
@@ -69,7 +69,7 @@ as AsyncValue<List<WorkflowDef>>,activeWorkflow: null == activeWorkflow ? _self.
 as AsyncValue<WorkflowDef?>,components: null == components ? _self.components : components // ignore: cast_nullable_to_non_nullable
 as AsyncValue<List<StudioComponentDef>>,availableMatrices: null == availableMatrices ? _self.availableMatrices : availableMatrices // ignore: cast_nullable_to_non_nullable
 as AsyncValue<List<StudioComponentDef>>,ontologyDimensions: null == ontologyDimensions ? _self.ontologyDimensions : ontologyDimensions // ignore: cast_nullable_to_non_nullable
-as AsyncValue<List<Map<String, dynamic>>>,selectedMatrixId: freezed == selectedMatrixId ? _self.selectedMatrixId : selectedMatrixId // ignore: cast_nullable_to_non_nullable
+as AsyncValue<List<OntologyDimension>>,selectedMatrixId: freezed == selectedMatrixId ? _self.selectedMatrixId : selectedMatrixId // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }
@@ -155,7 +155,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( AsyncValue<List<WorkflowDef>> workflows,  AsyncValue<WorkflowDef?> activeWorkflow,  AsyncValue<List<StudioComponentDef>> components,  AsyncValue<List<StudioComponentDef>> availableMatrices,  AsyncValue<List<Map<String, dynamic>>> ontologyDimensions,  String? selectedMatrixId)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( AsyncValue<List<WorkflowDef>> workflows,  AsyncValue<WorkflowDef?> activeWorkflow,  AsyncValue<List<StudioComponentDef>> components,  AsyncValue<List<StudioComponentDef>> availableMatrices,  AsyncValue<List<OntologyDimension>> ontologyDimensions,  String? selectedMatrixId)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _StudioState() when $default != null:
 return $default(_that.workflows,_that.activeWorkflow,_that.components,_that.availableMatrices,_that.ontologyDimensions,_that.selectedMatrixId);case _:
@@ -176,7 +176,7 @@ return $default(_that.workflows,_that.activeWorkflow,_that.components,_that.avai
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( AsyncValue<List<WorkflowDef>> workflows,  AsyncValue<WorkflowDef?> activeWorkflow,  AsyncValue<List<StudioComponentDef>> components,  AsyncValue<List<StudioComponentDef>> availableMatrices,  AsyncValue<List<Map<String, dynamic>>> ontologyDimensions,  String? selectedMatrixId)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( AsyncValue<List<WorkflowDef>> workflows,  AsyncValue<WorkflowDef?> activeWorkflow,  AsyncValue<List<StudioComponentDef>> components,  AsyncValue<List<StudioComponentDef>> availableMatrices,  AsyncValue<List<OntologyDimension>> ontologyDimensions,  String? selectedMatrixId)  $default,) {final _that = this;
 switch (_that) {
 case _StudioState():
 return $default(_that.workflows,_that.activeWorkflow,_that.components,_that.availableMatrices,_that.ontologyDimensions,_that.selectedMatrixId);case _:
@@ -196,7 +196,7 @@ return $default(_that.workflows,_that.activeWorkflow,_that.components,_that.avai
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( AsyncValue<List<WorkflowDef>> workflows,  AsyncValue<WorkflowDef?> activeWorkflow,  AsyncValue<List<StudioComponentDef>> components,  AsyncValue<List<StudioComponentDef>> availableMatrices,  AsyncValue<List<Map<String, dynamic>>> ontologyDimensions,  String? selectedMatrixId)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( AsyncValue<List<WorkflowDef>> workflows,  AsyncValue<WorkflowDef?> activeWorkflow,  AsyncValue<List<StudioComponentDef>> components,  AsyncValue<List<StudioComponentDef>> availableMatrices,  AsyncValue<List<OntologyDimension>> ontologyDimensions,  String? selectedMatrixId)?  $default,) {final _that = this;
 switch (_that) {
 case _StudioState() when $default != null:
 return $default(_that.workflows,_that.activeWorkflow,_that.components,_that.availableMatrices,_that.ontologyDimensions,_that.selectedMatrixId);case _:
@@ -218,7 +218,7 @@ class _StudioState implements StudioState {
 @override@JsonKey() final  AsyncValue<WorkflowDef?> activeWorkflow;
 @override@JsonKey() final  AsyncValue<List<StudioComponentDef>> components;
 @override@JsonKey() final  AsyncValue<List<StudioComponentDef>> availableMatrices;
-@override@JsonKey() final  AsyncValue<List<Map<String, dynamic>>> ontologyDimensions;
+@override@JsonKey() final  AsyncValue<List<OntologyDimension>> ontologyDimensions;
 @override final  String? selectedMatrixId;
 
 /// Create a copy of StudioState
@@ -251,7 +251,7 @@ abstract mixin class _$StudioStateCopyWith<$Res> implements $StudioStateCopyWith
   factory _$StudioStateCopyWith(_StudioState value, $Res Function(_StudioState) _then) = __$StudioStateCopyWithImpl;
 @override @useResult
 $Res call({
- AsyncValue<List<WorkflowDef>> workflows, AsyncValue<WorkflowDef?> activeWorkflow, AsyncValue<List<StudioComponentDef>> components, AsyncValue<List<StudioComponentDef>> availableMatrices, AsyncValue<List<Map<String, dynamic>>> ontologyDimensions, String? selectedMatrixId
+ AsyncValue<List<WorkflowDef>> workflows, AsyncValue<WorkflowDef?> activeWorkflow, AsyncValue<List<StudioComponentDef>> components, AsyncValue<List<StudioComponentDef>> availableMatrices, AsyncValue<List<OntologyDimension>> ontologyDimensions, String? selectedMatrixId
 });
 
 
@@ -275,7 +275,7 @@ as AsyncValue<List<WorkflowDef>>,activeWorkflow: null == activeWorkflow ? _self.
 as AsyncValue<WorkflowDef?>,components: null == components ? _self.components : components // ignore: cast_nullable_to_non_nullable
 as AsyncValue<List<StudioComponentDef>>,availableMatrices: null == availableMatrices ? _self.availableMatrices : availableMatrices // ignore: cast_nullable_to_non_nullable
 as AsyncValue<List<StudioComponentDef>>,ontologyDimensions: null == ontologyDimensions ? _self.ontologyDimensions : ontologyDimensions // ignore: cast_nullable_to_non_nullable
-as AsyncValue<List<Map<String, dynamic>>>,selectedMatrixId: freezed == selectedMatrixId ? _self.selectedMatrixId : selectedMatrixId // ignore: cast_nullable_to_non_nullable
+as AsyncValue<List<OntologyDimension>>,selectedMatrixId: freezed == selectedMatrixId ? _self.selectedMatrixId : selectedMatrixId // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }

@@ -43,11 +43,4 @@ def get_known_dimensions(db: DatabaseDep):
     table = db.table("dimensions")
     all_dims = table.all()
 
-    if not all_dims:
-        error_code = "NO_DIMENSIONS_FOUND"
-        logger.error(f"{error_code}: Ontology table is empty.", exc_info=True)
-        raise ResourceNotFoundError(
-            "Dimensions", "all", details={"error_code": error_code, "help": "Run seed script."}
-        )
-
-    return sorted([d["id"] for d in all_dims])
+    return sorted(all_dims, key=lambda x: x["id"])

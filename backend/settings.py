@@ -40,9 +40,11 @@ class Settings(BaseSettings):
 
     # --- Feature Flags ---
     use_mock_llm: Annotated[bool, BeforeValidator(strip_whitespace), Field(description="Use Mock LLM Service")] = False
+    use_vertex_llm: Annotated[bool, BeforeValidator(strip_whitespace), Field(description="Use Vertex AI for LLM")] = False
     use_mock_db: Annotated[bool, BeforeValidator(strip_whitespace), Field(description="Use Mock Database (TinyDB)")] = (
         False
     )
+    use_firebase_auth: Annotated[bool, BeforeValidator(strip_whitespace), Field(description="Use Firebase Auth (vs Mock)")] = True
     cors_origins: Annotated[list[str], Field(description="Allowed CORS Origins")] = ["*"]
     
     # --- Logging ---

@@ -54,15 +54,19 @@ class ComponentCreate(BaseModel):
 
 
 @router.get("/components", summary="List Components", response_description="All configuration components.")
-def get_components(db: DatabaseDep):
+def get_components(db: DatabaseDep, type: str | None = None):
     """Retrieves all defined configuration components (Prompts, Mandates, Rules, etc).
 
     Args:
         db (DatabaseDep): Database dependency.
+        type (str | None): Optional filter by component type.
 
     Returns:
         list[dict]: List of configuration components.
     """
+    if type:
+        Component = Query()
+        return db.table("components").search(Component.type == type)
     return db.table("components").all()
 
 

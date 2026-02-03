@@ -1,4 +1,5 @@
 import 'package:client_app/features/studio/data/studio_repository.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/features/studio/domain/models/component_def.dart';
 import 'package:client_app/features/studio/domain/models/workflow_def.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -18,7 +19,7 @@ abstract class StudioState with _$StudioState {
     @Default(AsyncValue.data(<StudioComponentDef>[]))
     AsyncValue<List<StudioComponentDef>> availableMatrices,
     @Default(AsyncValue.data([]))
-    AsyncValue<List<Map<String, dynamic>>> ontologyDimensions,
+    AsyncValue<List<OntologyDimension>> ontologyDimensions,
     String? selectedMatrixId,
   }) = _StudioState;
 }
@@ -51,14 +52,23 @@ class StudioController extends _$StudioController {
 
   /// **Load Matrices**
   Future<void> loadMatrices() async {
+    final logger = ref.read(loggerServiceProvider);
+    logger.info('CONTROLLER', 'loadMatrices: START');
+    
     state = state.copyWith(availableMatrices: const AsyncValue.loading());
-    state = state.copyWith(
-      availableMatrices: await AsyncValue.guard(() async {
-        return ref
-            .read(studioRepositoryProvider)
-            .getComponents(type: 'evaluation_matrix');
-      }),
-    );
+    
+    try {
+      final items = await ref
+          .read(studioRepositoryProvider)
+          .getComponents(type: 'evaluation_matrix');
+      
+      logger.info('CONTROLLER', 'loadMatrices: Got ${items.length} items. Updating state.');
+      state = state.copyWith(availableMatrices: AsyncValue.data(items));
+      logger.info('CONTROLLER', 'loadMatrices: State updated to Data.');
+    } catch (e, st) {
+      logger.error('CONTROLLER', 'loadMatrices: FAILED', e as Exception);
+      state = state.copyWith(availableMatrices: AsyncValue.error(e, st));
+    }
   }
 
   /// **Load Ontology Dimensions**
@@ -68,7 +78,7 @@ class StudioController extends _$StudioController {
     state = state.copyWith(ontologyDimensions: const AsyncValue.loading());
     state = state.copyWith(
       ontologyDimensions: await AsyncValue.guard(() async {
-        return ref.read(studioRepositoryProvider).getOntologyDimensions();
+        return ref.read(studioRepositoryProvider).fetchOntology();
       }),
     );
   }

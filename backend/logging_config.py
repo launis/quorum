@@ -116,11 +116,13 @@ def setup_logging(log_level=logging.INFO):
     file_handler.addFilter(context_filter)  # Add Filter
     file_handler.setLevel(log_level)
 
-    # 2. Console Handler
+    # 2. Console Handler (Silent Mode: WARNING+)
+    # We want minimal console output, so we mute INFO logs here.
+    # Users should check backend_debug.log for INFO/DEBUG details.
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(formatter)
     console_handler.addFilter(context_filter)  # Add Filter
-    console_handler.setLevel(log_level)
+    console_handler.setLevel(logging.WARNING)
 
     # Configure Root Logger
     root_logger = logging.getLogger()

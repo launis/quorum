@@ -14,7 +14,10 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from backend.api import (
@@ -43,11 +46,18 @@ async def lifespan(app: FastAPI):
     setup_logging()
     configure_logfire()
     logger = logging.getLogger("backend.main")
-
-    # VISUAL SEPARATOR FOR LOG READABILITY
+    
+    # 1. LOG TO FILE (Detailed Audit)
     logger.info("======================================================================")
     logger.info("   COGNITIVE QUORUM BACKEND (V2.9) - STARTING UP")
     logger.info("======================================================================")
+
+    # 2. PRINT TO CONSOLE (Minimal)
+    print("===================================================")
+    print("  CQ BACKEND (V2.9) STARTED")
+    print("  -> Log: backend_debug.log (CHECK FOR DETAILS)")
+    print("  -> Doc: http://localhost:8000/docs")
+    print("===================================================")
 
     try:
         # A. Initialize Task Registry (Trigger Decorators)
@@ -57,7 +67,14 @@ async def lifespan(app: FastAPI):
         import backend.tasks.analysis  # noqa
         import backend.tasks.critique  # noqa
 
-        logger.info(f"Task Registry initialized with {len(TaskRegistry._tasks)} tasks.")
+        import backend.tasks.critique  # noqa
+
+        # Log Task Count to File
+        task_count = len(TaskRegistry._tasks)
+        logger.info(f"[StartupAudit] Task Registry: {task_count} tasks loaded.")
+        logger.info(f"[StartupAudit] Auth Mode: {'FIREBASE' if settings.use_firebase_auth else 'MOCK'}")
+        logger.info(f"[StartupAudit] DB Mode: {settings.storage_backend}")
+        logger.info(f"[StartupAudit] LLM Provider: {'VERTEX' if settings.use_vertex_llm else 'OPENAI'}")
 
         # B. Load Workflows (Mock/File-based seeding for now)
         # In a real app, this might sync to DB.
@@ -65,7 +82,10 @@ async def lifespan(app: FastAPI):
         workflow_dir = "data/workflows"
         if os.path.exists(workflow_dir):
             files = [f for f in os.listdir(workflow_dir) if f.endswith(".json")]
-            logger.info(f"Detected {len(files)} workflow definitions in {workflow_dir}.")
+        workflow_dir = "data/workflows"
+        if os.path.exists(workflow_dir):
+            files = [f for f in os.listdir(workflow_dir) if f.endswith(".json")]
+            logger.info(f"[StartupAudit] Workflows Detected: {len(files)} files in {workflow_dir}.")
 
         yield
 
@@ -139,6 +159,38 @@ async def app_exception_handler(request: Request, exc: AppException):
     return JSONResponse(
         status_code=exc.status_code,
         content=exc.to_problem_detail(instance=str(request.url.path)),
+        media_type="application/problem+json",
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Catches Pydantic validation errors and returns RFC 7807 Problem Details."""
+    logger = logging.getLogger("backend.main")
+    
+    # 1. Log the detailed validation error to FILE
+    # (Truncate body to avoid huge logs, but keep enough context)
+    body = exc.body
+    if isinstance(body, (dict, list, str)):
+        body_str = str(body)
+        if len(body_str) > 1000:
+            body_str = body_str[:1000] + "...(truncated)"
+    else:
+        body_str = "Body not serializable"
+
+    logger.error(f"VALIDATION_ERROR: {exc.errors()}")
+    logger.error(f"Request Body context: {body_str}")
+
+    # 2. Return RFC 7807
+    return JSONResponse(
+        status_code=422,
+        content=jsonable_encoder({
+            "type": "about:blank",
+            "title": "Request Validation Error",
+            "status": 422,
+            "detail": exc.errors(),
+            "instance": str(request.url.path),
+        }),
         media_type="application/problem+json",
     )
 

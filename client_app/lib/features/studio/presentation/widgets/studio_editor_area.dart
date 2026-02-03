@@ -42,11 +42,8 @@ class _StudioEditorAreaState extends ConsumerState<StudioEditorArea> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, st) => Center(child: Text('Error: $err')),
         data: (matrices) {
-          final matrix = matrices.firstWhere(
-            (m) => m.id == state.selectedMatrixId,
-            orElse: () => throw Exception('Matrix not found'),
-          );
-          return SingleChildScrollView(child: MatrixEditorPanel(matrix: matrix));
+          // Using the MatrixController state now, so no need to pass matrix
+          return const SingleChildScrollView(child: MatrixEditorPanel());
         },
       );
     }

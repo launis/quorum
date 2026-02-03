@@ -194,10 +194,16 @@ async def startup(ctx: Any) -> None:
     setup_logging()
     configure_logfire()
 
-    # VISUAL SEPARATOR FOR LOG READABILITY
+    # VISUAL SEPARATOR FOR LOG READABILITY (File Only)
     logger.info("======================================================================")
     logger.info("   ARQ WORKER (V2.9) - STARTING UP")
     logger.info("======================================================================")
+
+    # 1. PRINT TO CONSOLE (Minimal)
+    print("===================================================")
+    print("  CQ WORKER (V2.9) STARTED")
+    print("  -> Log: backend_debug.log (CHECK FOR DETAILS)")
+    print("===================================================")
 
     # 1. CRITICAL: Register Tasks
     # Import all task modules here to trigger the @TaskRegistry.register_task decorators.
