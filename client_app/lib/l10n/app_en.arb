@@ -199,6 +199,9 @@
   "createOrganization": "Create Organization",
   "editOrganization": "Edit Organization",
   "deleteOrganization": "Delete Organization",
+  "deleteOrganization": "Delete Organization",
+  "errorDeleteBlockedByExecutions": "Cannot delete: Item has active executions.",
+  "errorDeleteBlockedByMatrix": "Cannot delete: Dimension is used in a matrix.",
   "save": "Save",
   "orgNameLabel": "Organization Name",
   "orgTierLabel": "Tier",
@@ -324,5 +327,8 @@
   "matrixCriteria": "Criteria Dimensions",
   "matrixAddCriterion": "Add Dimension",
   "matrixLevel": "Level {level}",
-  "studioSelectMatrix": "Select Evaluation Matrix"
+  "studioSelectMatrix": "Select Evaluation Matrix",
+  "update": "Update",
+  "cancel": "Cancel",
+  "editDimension": "Edit Dimension"
 }

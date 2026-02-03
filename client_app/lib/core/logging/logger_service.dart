@@ -34,14 +34,14 @@ class LoggerService {
       // But typically flutter run keeps CWD.
       
       _logFile = file;
-      debugPrint("LoggerService: Attempting to write to ${file.absolute.path}");
+      _logFile = file;
+      // debugPrint("LoggerService: Attempting to write to ${file.absolute.path}");
       
       // Re-initialize 
       _logger = Logger(
         filter: ProductionFilter(),
         printer: CustomPrinter(),
         output: MultiOutput([
-          ConsoleOutput(),
           FileOutput(file),
         ]),
       );

@@ -1,5 +1,6 @@
 import 'package:client_app/features/studio/data/studio_repository.dart';
 import 'package:client_app/features/studio/domain/models/component_def.dart';
+import 'package:client_app/core/error/app_error.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'ontology_controller.g.dart';
@@ -38,6 +39,28 @@ class OntologyController extends _$OntologyController {
     }
   }
 
+  Future<void> updateDimension(OntologyDimension dimension) async {
+    final previousState = state;
+    if (previousState.value == null) return;
+
+    // Optimistic Update
+    final updatedList =
+        previousState.value!.map((e) {
+          return e.id == dimension.id ? dimension : e;
+        }).toList();
+    state = AsyncValue.data(updatedList);
+
+    try {
+      await ref
+          .read(studioRepositoryProvider)
+          .saveDimension(dimension, isUpdate: true);
+      // Success, state is already updated optimally.
+    } catch (e, st) {
+      state = previousState; // Revert
+      state = AsyncValue.error(e, st);
+    }
+  }
+
   Future<void> removeDimension(String id) async {
     final previousState = state;
     if (previousState.value == null) return;
@@ -49,9 +72,20 @@ class OntologyController extends _$OntologyController {
 
     try {
       await ref.read(studioRepositoryProvider).deleteDimension(id);
-    } catch (e, st) {
-      state = previousState; // Revert
-      state = AsyncValue.error(e, st);
+    } catch (e) {
+      // Revert state
+      state = previousState;
+      // Rethrow so UI can show SnackBar
+      if (e is AppError) {
+        rethrow;
+      }
+      // If unknown, we still want to rethrow or wrap?
+      // For now, let's rethrow to let UI handle "Unknown Error".
+      // But we must wrap in AppError if not already.
+      // Actually, if we just set state=error, ListView turns red.
+      // We want List to stay visible (reverted) + SnackBar.
+      // So rethrow is key.
+      throw e is AppError ? e : AppError.server(e.toString());
     }
   }
 }

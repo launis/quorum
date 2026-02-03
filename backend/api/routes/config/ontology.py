@@ -1,7 +1,7 @@
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 from pydantic import BaseModel, Field
 from tinydb import Query
 
@@ -35,12 +35,8 @@ def get_known_dimensions(db: DatabaseDep):
         db (DatabaseDep): Database dependency.
 
     Returns:
-        list[str]: Sorted list of dimension IDs.
+        list[dict]: Sorted list of dimensions.
     """
-    import logging
-
-
-    logger = logging.getLogger(__name__)
     table = db.table("dimensions")
     all_dims = table.all()
 
@@ -68,23 +64,59 @@ async def delete_dimension(
     if used_in_components:
         from backend.exceptions import ConflictError
 
-        error_code = "DIMENSION_IN_USE_BY_MATRIX"
-        # Truncate list if too long for UI message
-        display_list = used_in_components[:3]
-        if len(used_in_components) > 3:
-            display_list.append("...")
+        error_code = "Errors.DeleteBlockedByMatrix"
 
-        msg = f"Dimension '{dim_id}' is used in matrices: {', '.join(display_list)}"
+        # Verify and fetch name of the first matrix
+        matrix_id = used_in_components[0]
+        matrix_name = "Unknown Matrix"
+
+        comp_res = db.table("components").search(Query().id == matrix_id)
+        if comp_res:
+            matrix_name = comp_res[0].get("name", matrix_id)
+
+        msg = (
+            f"Dimension '{dim_id}' is used in matrix '{matrix_name}'. "
+            "Remove it from the matrix first."
+        )
         logger.warning(f"{error_code}: {msg}")
 
         raise ConflictError(
             message=msg,
             details={
                 "error_code": error_code,
-                "matrices": used_in_components # Send full list in details for UI handling
+                "id": dim_id,
+                "name": matrix_name
             }
         )
 
     # 3. Delete
     table.remove(Dim.id == dim_id)
     return {"status": "deleted", "id": dim_id}
+
+
+@router.put("/ontology/dimensions/{dim_id}", summary="Update Dimension", response_description="Updated dimension.")
+async def update_dimension(
+    dim_id: str,
+    dimension: DimensionDefinition,
+    db: DatabaseDep,
+    repo: RepositoryDep,
+):
+    """Updates an existing dimension."""
+    from backend.exceptions import AppError, ResourceNotFoundError
+
+    if dim_id != dimension.id:
+        raise AppError(
+            "Dimension ID mismatch.",
+            details={"error_code": "DIMENSION_ID_MISMATCH"}
+        )
+
+    # 1. Existence Check
+    table = db.table("dimensions")
+    Dim = Query()
+
+    if not table.contains(Dim.id == dim_id):
+        raise ResourceNotFoundError("Dimension", dim_id, details={"error_code": "DIMENSION_NOT_FOUND"})
+
+    # 2. Update
+    table.update(dimension.model_dump(), Dim.id == dim_id)
+    return dimension

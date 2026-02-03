@@ -73,5 +73,9 @@
     "Cost": "Kustannus",
 
     "COMPONENT_IN_USE_BY_EXECUTION": "Komponenttia ei voi poistaa, koska sillä on {count} suoritusta.",
-    "DIMENSION_IN_USE_BY_MATRIX": "Ulottuvuutta ei voi poistaa, koska se on käytössä matriiseissa: {matrices}."
+    "DIMENSION_IN_USE_BY_MATRIX": "Ulottuvuutta ei voi poistaa, koska se on käytössä matriiseissa: {matrices}.",
+    "Errors": {
+        "DeleteBlockedByExecutions": "Komponenttia ei voi poistaa, koska siihen liittyy {count} suoritusta.",
+        "DeleteBlockedByMatrix": "Ulottuvuutta '{id}' käytetään matriisissa '{name}'. Poista se ensin matriisista."
+    }
 }

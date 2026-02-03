@@ -131,6 +131,9 @@
   "createOrganization": "Luo organisaatio",
   "editOrganization": "Muokkaa organisaatiota",
   "deleteOrganization": "Poista organisaatio",
+  "deleteOrganization": "Poista organisaatio",
+  "errorDeleteBlockedByExecutions": "Ei voi poistaa: Kohteella on suorituksia.",
+  "errorDeleteBlockedByMatrix": "Ei voi poistaa: Ulottuvuus on käytössä matriisissa.",
   "save": "Tallenna",
   "orgNameLabel": "Organisaation nimi",
   "orgTierLabel": "Taso",
@@ -231,5 +234,8 @@
   "matrixCriteria": "Arviointikriteerit",
   "matrixAddCriterion": "Lisää Ulottuvuus",
   "matrixLevel": "Taso {level}",
-  "studioSelectMatrix": "Valitse Arviointimatriisi"
+  "studioSelectMatrix": "Valitse Arviointimatriisi",
+  "update": "Päivitä",
+  "cancel": "Peruuta",
+  "editDimension": "Muokkaa Ulottuvuutta"
 }

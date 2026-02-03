@@ -1,4 +1,5 @@
 // ignore_for_file: deprecated_member_use
+import 'package:client_app/core/error/app_error.dart';
 import 'package:client_app/features/studio/domain/models/component_def.dart';
 import 'package:client_app/features/studio/presentation/providers/matrix_controller.dart';
 import 'package:client_app/features/studio/presentation/providers/ontology_controller.dart';
@@ -57,6 +58,63 @@ class MatrixEditorPanel extends HookConsumerWidget {
       );
     }
 
+    // Delete Handler
+    // TODO: Add L10N
+    Future<void> onDelete() async {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder:
+            (context) => AlertDialog(
+              title: const Text('Delete Matrix?'),
+              content: const Text(
+                'Are you sure you want to delete this matrix?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(l10n.cancel),
+                ),
+                FilledButton(
+                  style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                  onPressed: () => Navigator.pop(context, true),
+                  child: Text(l10n.delete),
+                ),
+              ],
+            ),
+      );
+
+      if (confirm == true) {
+        try {
+          await ref
+              .read(matrixControllerProvider.notifier)
+              .deleteMatrix(matrixState.id);
+        } catch (e) {
+          if (!context.mounted) return;
+
+          String msg = e.toString();
+          if (e is AppError) {
+             e.maybeMap(
+               api: (apiError) {
+                 if (apiError.errorCode == 'Errors.DeleteBlockedByExecutions') {
+                    msg = l10n.errorDeleteBlockedByExecutions;
+                 } else if (apiError.errorCode == 'Errors.DeleteBlockedByMatrix') {
+                    msg = l10n.errorDeleteBlockedByMatrix;
+                 }
+               },
+               orElse: () {},
+             );
+          }
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(msg),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
+        }
+      }
+    }
+
     return Card(
       margin: const EdgeInsets.all(16.0),
       child: Column(
@@ -75,7 +133,7 @@ class MatrixEditorPanel extends HookConsumerWidget {
                 ),
                 if (isSaving)
                   const CircularProgressIndicator()
-                else
+                else ...[
                   FilledButton.icon(
                     icon: const Icon(Icons.save),
                     label: Text(l10n.save),
@@ -85,11 +143,22 @@ class MatrixEditorPanel extends HookConsumerWidget {
                           .saveCurrentMatrix();
                     },
                   ),
+                  const SizedBox(width: 8),
+                  if (matrixState.id.isNotEmpty &&
+                      !matrixState.id.startsWith("new_"))
+                    IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red),
+                      tooltip: l10n.delete,
+                      onPressed: onDelete,
+                    ),
+                ],
               ],
             ),
           ),
 
           const Divider(height: 1),
+
+          // ... rest of the file ...
 
           // Metadata Form
           Padding(
@@ -271,14 +340,15 @@ class _CriterionRow extends HookConsumerWidget {
     // Auto-fill helper
     void onDimensionChanged(String? newId) {
       if (newId == null) return;
-      
+
       // Auto-fill label and prompt from ontology if they are empty
       String newLabel = criterion.label;
       String newPrompt = criterion.prompt;
-      
+
       final selectedDim = ontologyList.firstWhere(
-        (d) => d.id == newId, 
-        orElse: () => const OntologyDimension(id: '', name: '', description: ''),
+        (d) => d.id == newId,
+        orElse:
+            () => const OntologyDimension(id: '', name: '', description: ''),
       );
 
       if (selectedDim.id.isNotEmpty) {
@@ -286,11 +356,13 @@ class _CriterionRow extends HookConsumerWidget {
         if (newPrompt.isEmpty) newPrompt = selectedDim.description;
       }
 
-      onUpdate(criterion.copyWith(
-        dimensionId: newId,
-        label: newLabel,
-        prompt: newPrompt,
-      ));
+      onUpdate(
+        criterion.copyWith(
+          dimensionId: newId,
+          label: newLabel,
+          prompt: newPrompt,
+        ),
+      );
     }
 
     void onAnchorChanged(String level, String value) {
@@ -362,7 +434,7 @@ class _CriterionRow extends HookConsumerWidget {
                         onChanged:
                             (v) => onUpdate(criterion.copyWith(label: v)),
                       ),
-                      
+
                       const SizedBox(height: 8),
 
                       // Prompt
@@ -402,18 +474,24 @@ class _CriterionRow extends HookConsumerWidget {
                           ),
                         ],
                       ),
-                      
+
                       const Divider(),
                       const Align(
                         alignment: Alignment.centerLeft,
-                        child: Text("Proficiency Levels (Anchors)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        child: Text(
+                          "Proficiency Levels (Anchors)",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 4),
                       // Anchors Grid
                       Row(
                         children: [
-                           Expanded(
-                             child: TextFormField(
+                          Expanded(
+                            child: TextFormField(
                               initialValue: criterion.anchors['1'] ?? '',
                               maxLines: 3,
                               decoration: const InputDecoration(
@@ -423,11 +501,11 @@ class _CriterionRow extends HookConsumerWidget {
                               ),
                               style: const TextStyle(fontSize: 12),
                               onChanged: (v) => onAnchorChanged('1', v),
-                             ),
-                           ),
-                           const SizedBox(width: 8),
-                           Expanded(
-                             child: TextFormField(
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextFormField(
                               initialValue: criterion.anchors['2'] ?? '',
                               maxLines: 3,
                               decoration: const InputDecoration(
@@ -437,15 +515,15 @@ class _CriterionRow extends HookConsumerWidget {
                               ),
                               style: const TextStyle(fontSize: 12),
                               onChanged: (v) => onAnchorChanged('2', v),
-                             ),
-                           ),
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                           Expanded(
-                             child: TextFormField(
+                          Expanded(
+                            child: TextFormField(
                               initialValue: criterion.anchors['3'] ?? '',
                               maxLines: 3,
                               decoration: const InputDecoration(
@@ -455,11 +533,11 @@ class _CriterionRow extends HookConsumerWidget {
                               ),
                               style: const TextStyle(fontSize: 12),
                               onChanged: (v) => onAnchorChanged('3', v),
-                             ),
-                           ),
-                           const SizedBox(width: 8),
-                           Expanded(
-                             child: TextFormField(
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextFormField(
                               initialValue: criterion.anchors['4'] ?? '',
                               maxLines: 3,
                               decoration: const InputDecoration(
@@ -469,8 +547,8 @@ class _CriterionRow extends HookConsumerWidget {
                               ),
                               style: const TextStyle(fontSize: 12),
                               onChanged: (v) => onAnchorChanged('4', v),
-                             ),
-                           ),
+                            ),
+                          ),
                         ],
                       ),
                     ],

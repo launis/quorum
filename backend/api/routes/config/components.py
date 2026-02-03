@@ -3,7 +3,7 @@
 import logging
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Path
+from fastapi import APIRouter, Path
 from pydantic import BaseModel, Field
 from tinydb import Query
 
@@ -243,15 +243,16 @@ async def delete_component(
          # Use specific error for UI handling
         from backend.exceptions import ConflictError
 
-        error_code = "COMPONENT_IN_USE_BY_EXECUTION"
-        msg = f"Component '{comp_id}' cannot be deleted because it is used by {exec_count} executions."
+        error_code = "Errors.DeleteBlockedByExecutions"
+        msg = (
+            f"Cannot delete component because it has {exec_count} associated executions."
+        )
         logger.error(f"{error_code}: {msg}")
         raise ConflictError(
             message=msg,
             details={
                 "error_code": error_code,
                 "count": exec_count,
-                 # Frontend expects 'count' for localization param
             }
         )
 

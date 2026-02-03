@@ -53,4 +53,4 @@ final class StudioRepositoryProvider
   }
 }
 
-String _$studioRepositoryHash() => r'3a91c02c31ef9a76412983d90a26b384b69a3db2';
+String _$studioRepositoryHash() => r'4f3cb445d07794f7fa8ca56553f0391cba34baa3';

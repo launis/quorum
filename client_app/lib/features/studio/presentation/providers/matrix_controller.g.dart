@@ -94,7 +94,7 @@ final class MatrixControllerProvider
   MatrixController create() => MatrixController();
 }
 
-String _$matrixControllerHash() => r'187cd3b50279a24bb3cae55a10b88f3801ace846';
+String _$matrixControllerHash() => r'9c589320166d118a704752809c4f1bf5fc0b71c3';
 
 /// Manages the lifecycle and persistence of the current matrix.
 

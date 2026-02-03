@@ -1,4 +1,5 @@
 // ignore_for_file: deprecated_member_use
+import 'package:client_app/core/error/app_error.dart';
 import 'package:client_app/features/studio/domain/models/component_def.dart';
 import 'package:client_app/features/studio/presentation/providers/ontology_controller.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
@@ -15,38 +16,65 @@ class OntologyManagerPanel extends HookConsumerWidget {
     final ontologyAsync = ref.watch(ontologyControllerProvider);
 
     // Form State
+    // Form State
     final formKey = useMemoized(() => GlobalKey<FormState>());
     final idController = useTextEditingController();
     final nameController = useTextEditingController();
     final descController = useTextEditingController();
-    final minScaleController = useTextEditingController(text: '1');
-    final maxScaleController = useTextEditingController(text: '5');
 
-    // Add Handler
-    Future<void> addDimension() async {
-      if (!formKey.currentState!.validate()) return;
+    final editingId = useState<String?>(null);
 
-      // Auto-generate ID from Name (Slugify)
-      final generatedId = nameController.text.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '_');
+    final expansionController = useMemoized(() => ExpansionTileController());
 
-      final dim = OntologyDimension(
-        id: generatedId,
-        name: nameController.text.trim(),
-        description: descController.text.trim(),
-        scale: {
-          'min': int.parse(minScaleController.text),
-          'max': int.parse(maxScaleController.text),
-        },
-      );
+    // Populate helper
+    void onEdit(OntologyDimension item) {
+      editingId.value = item.id;
+      nameController.text = item.name;
+      descController.text = item.description;
+      expansionController.expand();
+    }
 
-      await ref.read(ontologyControllerProvider.notifier).addDimension(dim);
-
-      // Clear
+    void onCancel() {
+      editingId.value = null;
       idController.clear();
       nameController.clear();
       descController.clear();
-      minScaleController.text = '1';
-      maxScaleController.text = '5';
+      expansionController.collapse();
+    }
+
+    // Save/Add Handler
+    Future<void> onSave() async {
+      if (!formKey.currentState!.validate()) return;
+
+      final isEditing = editingId.value != null;
+
+      String finalId;
+      if (isEditing) {
+        finalId = editingId.value!;
+      } else {
+        // Auto-generate ID from Name (Slugify)
+        finalId = nameController.text.trim().toLowerCase().replaceAll(
+          RegExp(r'\s+'),
+          '_',
+        );
+      }
+
+      final dim = OntologyDimension(
+        id: finalId,
+        name: nameController.text.trim(),
+        description: descController.text.trim(),
+      );
+
+      if (isEditing) {
+        await ref
+            .read(ontologyControllerProvider.notifier)
+            .updateDimension(dim);
+      } else {
+        await ref.read(ontologyControllerProvider.notifier).addDimension(dim);
+      }
+
+      // Clear
+      onCancel();
     }
 
     return Card(
@@ -63,9 +91,12 @@ class OntologyManagerPanel extends HookConsumerWidget {
           ),
           const Divider(height: 1),
 
-          // Add Form
+          // Add/Edit Form
           ExpansionTile(
-            title: const Text("New Dimension"),
+            controller: expansionController,
+            title: Text(
+              editingId.value != null ? l10n.editDimension : "New Dimension",
+            ),
             children: [
               Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -73,8 +104,6 @@ class OntologyManagerPanel extends HookConsumerWidget {
                   key: formKey,
                   child: Column(
                     children: [
-                      // ID is now auto-generated from Name to enforce consistency
-                      // TextFormField(controller: idController, ...),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: nameController,
@@ -99,42 +128,34 @@ class OntologyManagerPanel extends HookConsumerWidget {
                         ),
                         maxLines: 2,
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 16),
                       Row(
                         children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: minScaleController,
-                              decoration: const InputDecoration(
-                                labelText: 'Min',
-                                isDense: true,
-                                border: OutlineInputBorder(),
+                          if (editingId.value != null) ...[
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: onCancel,
+                                child: Text(l10n.cancel),
                               ),
-                              keyboardType: TextInputType.number,
                             ),
-                          ),
-                          const SizedBox(width: 8),
+                            const SizedBox(width: 8),
+                          ],
                           Expanded(
-                            child: TextFormField(
-                              controller: maxScaleController,
-                              decoration: const InputDecoration(
-                                labelText: 'Max',
-                                isDense: true,
-                                border: OutlineInputBorder(),
+                            child: FilledButton.icon(
+                              onPressed: onSave,
+                              icon: Icon(
+                                editingId.value != null
+                                    ? Icons.save
+                                    : Icons.add,
                               ),
-                              keyboardType: TextInputType.number,
+                              label: Text(
+                                editingId.value != null
+                                    ? l10n.update
+                                    : "Register Dimension",
+                              ),
                             ),
                           ),
                         ],
-                      ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton.icon(
-                          onPressed: addDimension,
-                          icon: const Icon(Icons.add),
-                          label: const Text("Register Dimension"),
-                        ),
                       ),
                     ],
                   ),
@@ -155,18 +176,53 @@ class OntologyManagerPanel extends HookConsumerWidget {
                   itemCount: list.length,
                   itemBuilder: (context, index) {
                     final item = list[index];
+                    final isSelected = item.id == editingId.value;
+
                     return ListTile(
+                      selected: isSelected,
+                      selectedTileColor: Theme.of(
+                        context,
+                      ).colorScheme.primaryContainer.withOpacity(0.2),
                       title: Text(item.name),
-                      subtitle: Text(
-                        "${item.id} • ${item.scale['min']}-${item.scale['max']}",
-                      ),
+                      subtitle: Text(item.id),
+                      onTap: () => onEdit(item),
                       trailing: IconButton(
                         icon: const Icon(Icons.delete, size: 20),
                         color: Theme.of(context).colorScheme.error,
-                        onPressed: () {
-                          ref
-                              .read(ontologyControllerProvider.notifier)
-                              .removeDimension(item.id);
+                        onPressed: () async {
+                          try {
+                            await ref
+                                .read(ontologyControllerProvider.notifier)
+                                .removeDimension(item.id);
+
+                            // If we deleted the one we are editing, cancel edit
+                            if (editingId.value == item.id) {
+                              onCancel();
+                            }
+                          } catch (e) {
+                            if (!context.mounted) return;
+
+                            String msg = e.toString();
+                            if (e is AppError) {
+                              e.maybeMap(
+                                api: (apiError) {
+                                  if (apiError.errorCode ==
+                                      'Errors.DeleteBlockedByMatrix') {
+                                    msg = l10n.errorDeleteBlockedByMatrix;
+                                  }
+                                },
+                                orElse: () {},
+                              );
+                            }
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(msg),
+                                backgroundColor:
+                                    Theme.of(context).colorScheme.error,
+                              ),
+                            );
+                          }
                         },
                       ),
                     );

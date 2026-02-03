@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$OntologyDimension {
 
- String get id;@JsonKey(name: 'label') String get name; String get description;@JsonKey(name: 'is_system') bool get isSystem; Map<String, int> get scale;
+ String get id;@JsonKey(name: 'label') String get name; String get description;@JsonKey(name: 'is_system') bool get isSystem;
 /// Create a copy of OntologyDimension
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $OntologyDimensionCopyWith<OntologyDimension> get copyWith => _$OntologyDimensio
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OntologyDimension&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.isSystem, isSystem) || other.isSystem == isSystem)&&const DeepCollectionEquality().equals(other.scale, scale));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OntologyDimension&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.isSystem, isSystem) || other.isSystem == isSystem));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,description,isSystem,const DeepCollectionEquality().hash(scale));
+int get hashCode => Object.hash(runtimeType,id,name,description,isSystem);
 
 @override
 String toString() {
-  return 'OntologyDimension(id: $id, name: $name, description: $description, isSystem: $isSystem, scale: $scale)';
+  return 'OntologyDimension(id: $id, name: $name, description: $description, isSystem: $isSystem)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $OntologyDimensionCopyWith<$Res>  {
   factory $OntologyDimensionCopyWith(OntologyDimension value, $Res Function(OntologyDimension) _then) = _$OntologyDimensionCopyWithImpl;
 @useResult
 $Res call({
- String id,@JsonKey(name: 'label') String name, String description,@JsonKey(name: 'is_system') bool isSystem, Map<String, int> scale
+ String id,@JsonKey(name: 'label') String name, String description,@JsonKey(name: 'is_system') bool isSystem
 });
 
 
@@ -65,14 +65,13 @@ class _$OntologyDimensionCopyWithImpl<$Res>
 
 /// Create a copy of OntologyDimension
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? description = null,Object? isSystem = null,Object? scale = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? description = null,Object? isSystem = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String,isSystem: null == isSystem ? _self.isSystem : isSystem // ignore: cast_nullable_to_non_nullable
-as bool,scale: null == scale ? _self.scale : scale // ignore: cast_nullable_to_non_nullable
-as Map<String, int>,
+as bool,
   ));
 }
 
@@ -157,10 +156,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'label')  String name,  String description, @JsonKey(name: 'is_system')  bool isSystem,  Map<String, int> scale)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'label')  String name,  String description, @JsonKey(name: 'is_system')  bool isSystem)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _OntologyDimension() when $default != null:
-return $default(_that.id,_that.name,_that.description,_that.isSystem,_that.scale);case _:
+return $default(_that.id,_that.name,_that.description,_that.isSystem);case _:
   return orElse();
 
 }
@@ -178,10 +177,10 @@ return $default(_that.id,_that.name,_that.description,_that.isSystem,_that.scale
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'label')  String name,  String description, @JsonKey(name: 'is_system')  bool isSystem,  Map<String, int> scale)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'label')  String name,  String description, @JsonKey(name: 'is_system')  bool isSystem)  $default,) {final _that = this;
 switch (_that) {
 case _OntologyDimension():
-return $default(_that.id,_that.name,_that.description,_that.isSystem,_that.scale);case _:
+return $default(_that.id,_that.name,_that.description,_that.isSystem);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -198,10 +197,10 @@ return $default(_that.id,_that.name,_that.description,_that.isSystem,_that.scale
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id, @JsonKey(name: 'label')  String name,  String description, @JsonKey(name: 'is_system')  bool isSystem,  Map<String, int> scale)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id, @JsonKey(name: 'label')  String name,  String description, @JsonKey(name: 'is_system')  bool isSystem)?  $default,) {final _that = this;
 switch (_that) {
 case _OntologyDimension() when $default != null:
-return $default(_that.id,_that.name,_that.description,_that.isSystem,_that.scale);case _:
+return $default(_that.id,_that.name,_that.description,_that.isSystem);case _:
   return null;
 
 }
@@ -213,20 +212,13 @@ return $default(_that.id,_that.name,_that.description,_that.isSystem,_that.scale
 @JsonSerializable()
 
 class _OntologyDimension implements OntologyDimension {
-  const _OntologyDimension({required this.id, @JsonKey(name: 'label') required this.name, required this.description, @JsonKey(name: 'is_system') this.isSystem = false, final  Map<String, int> scale = const {}}): _scale = scale;
+  const _OntologyDimension({required this.id, @JsonKey(name: 'label') required this.name, required this.description, @JsonKey(name: 'is_system') this.isSystem = false});
   factory _OntologyDimension.fromJson(Map<String, dynamic> json) => _$OntologyDimensionFromJson(json);
 
 @override final  String id;
 @override@JsonKey(name: 'label') final  String name;
 @override final  String description;
 @override@JsonKey(name: 'is_system') final  bool isSystem;
- final  Map<String, int> _scale;
-@override@JsonKey() Map<String, int> get scale {
-  if (_scale is EqualUnmodifiableMapView) return _scale;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableMapView(_scale);
-}
-
 
 /// Create a copy of OntologyDimension
 /// with the given fields replaced by the non-null parameter values.
@@ -241,16 +233,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OntologyDimension&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.isSystem, isSystem) || other.isSystem == isSystem)&&const DeepCollectionEquality().equals(other._scale, _scale));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OntologyDimension&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.isSystem, isSystem) || other.isSystem == isSystem));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,description,isSystem,const DeepCollectionEquality().hash(_scale));
+int get hashCode => Object.hash(runtimeType,id,name,description,isSystem);
 
 @override
 String toString() {
-  return 'OntologyDimension(id: $id, name: $name, description: $description, isSystem: $isSystem, scale: $scale)';
+  return 'OntologyDimension(id: $id, name: $name, description: $description, isSystem: $isSystem)';
 }
 
 
@@ -261,7 +253,7 @@ abstract mixin class _$OntologyDimensionCopyWith<$Res> implements $OntologyDimen
   factory _$OntologyDimensionCopyWith(_OntologyDimension value, $Res Function(_OntologyDimension) _then) = __$OntologyDimensionCopyWithImpl;
 @override @useResult
 $Res call({
- String id,@JsonKey(name: 'label') String name, String description,@JsonKey(name: 'is_system') bool isSystem, Map<String, int> scale
+ String id,@JsonKey(name: 'label') String name, String description,@JsonKey(name: 'is_system') bool isSystem
 });
 
 
@@ -278,14 +270,13 @@ class __$OntologyDimensionCopyWithImpl<$Res>
 
 /// Create a copy of OntologyDimension
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? description = null,Object? isSystem = null,Object? scale = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? description = null,Object? isSystem = null,}) {
   return _then(_OntologyDimension(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String,isSystem: null == isSystem ? _self.isSystem : isSystem // ignore: cast_nullable_to_non_nullable
-as bool,scale: null == scale ? _self._scale : scale // ignore: cast_nullable_to_non_nullable
-as Map<String, int>,
+as bool,
   ));
 }
 

@@ -11,7 +11,10 @@ part 'studio_repository.g.dart';
 
 @riverpod
 StudioRepository studioRepository(Ref ref) {
-  return StudioRepository(ref.watch(apiClientProvider), ref.watch(loggerServiceProvider));
+  return StudioRepository(
+    ref.watch(apiClientProvider),
+    ref.watch(loggerServiceProvider),
+  );
 }
 
 class StudioRepository {
@@ -117,7 +120,7 @@ class StudioRepository {
 
       final rawList = response.data as List;
       _logger.info('REPO', 'Raw components fetched: ${rawList.length}');
-      
+
       final parsed = <StudioComponentDef>[];
 
       for (var item in rawList) {
@@ -149,7 +152,11 @@ class StudioRepository {
         try {
           parsed.add(StudioComponentDef.fromJson(data));
         } catch (e) {
-          _logger.error('REPO', 'Error parsing component ${data['id']}: $e', e as Exception);
+          _logger.error(
+            'REPO',
+            'Error parsing component ${data['id']}: $e',
+            e as Exception,
+          );
           // Skip invalid items to prevent total failure
           print('Skipping invalid component ${data['id']}: $e');
         }
@@ -157,8 +164,9 @@ class StudioRepository {
       _logger.info('REPO', 'Parsed components count: ${parsed.length}');
       return parsed;
     } catch (e) {
-      _logger.error('REPO', 'getComponents failed: $e', e as Exception);
-      throw AppError.network(e is Exception ? e : Exception(e.toString()));
+      final exception = e is Exception ? e : Exception(e.toString());
+      _logger.error('REPO', 'getComponents failed: $e', exception);
+      throw AppError.network(exception);
     }
   }
 
@@ -173,9 +181,10 @@ class StudioRepository {
         print('Warning: Ontology endpoint returned IDs only.');
         return [];
       }
-      final result = list
-          .map((e) => OntologyDimension.fromJson(e as Map<String, dynamic>))
-          .toList();
+      final result =
+          list
+              .map((e) => OntologyDimension.fromJson(e as Map<String, dynamic>))
+              .toList();
       print('DEBUG: fetchOntology success. Items: ${result.length}');
       return result;
     } catch (e) {
@@ -184,10 +193,21 @@ class StudioRepository {
     }
   }
 
-  Future<void> saveDimension(OntologyDimension dim) async {
+  Future<void> saveDimension(
+    OntologyDimension dim, {
+    bool isUpdate = false,
+  }) async {
     try {
-      await _api.post('/v1/config/ontology/dimensions', data: dim.toJson());
+      if (isUpdate) {
+        await _api.put(
+          '/v1/config/ontology/dimensions/${dim.id}',
+          data: dim.toJson(),
+        );
+      } else {
+        await _api.post('/v1/config/ontology/dimensions', data: dim.toJson());
+      }
     } catch (e) {
+      if (e is AppError) rethrow;
       throw AppError.server(e.toString());
     }
   }
@@ -217,7 +237,9 @@ class StudioRepository {
         id: compData['id'] as String,
         name: compData['name'] as String,
         description: (compData['description'] as String?) ?? '',
-        scale: Map<String, int>.from((content['scale'] as Map?) ?? {'min': 1, 'max': 5}),
+        scale: Map<String, int>.from(
+          (content['scale'] as Map?) ?? {'min': 1, 'max': 5},
+        ),
         roleDescription: content['role_description'] as String?,
         criteria:
             (content['criteria'] as List? ?? [])
@@ -264,6 +286,15 @@ class StudioRepository {
     } catch (e) {
       if (e is AppError) rethrow;
       throw AppError.server('Failed to save component: ${e.toString()}');
+    }
+  }
+
+  Future<void> deleteComponent(String id) async {
+    try {
+      await _api.delete('/v1/config/components/$id');
+    } catch (e) {
+      if (e is AppError) rethrow;
+      throw AppError.server('Failed to delete component $id: $e');
     }
   }
 }

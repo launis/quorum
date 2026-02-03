@@ -65,5 +65,9 @@
 
     "Performance & Cost": "Performance & Cost",
     "Tokens": "Tokens",
-    "Cost": "Cost"
+    "Cost": "Cost",
+    "Errors": {
+        "DeleteBlockedByExecutions": "Cannot delete component because it has {count} associated executions.",
+        "DeleteBlockedByMatrix": "Dimension '{id}' is used in matrix '{name}'. Remove it from the matrix first."
+    }
 }

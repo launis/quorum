@@ -12,7 +12,6 @@ abstract class OntologyDimension with _$OntologyDimension {
     @JsonKey(name: 'label') required String name,
     required String description,
     @Default(false) @JsonKey(name: 'is_system') bool isSystem,
-    @Default({}) Map<String, int> scale,
   }) = _OntologyDimension;
 
   factory OntologyDimension.fromJson(Map<String, dynamic> json) =>

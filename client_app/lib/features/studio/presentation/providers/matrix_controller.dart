@@ -1,6 +1,6 @@
-import 'package:client_app/api/api_client.dart';
 import 'package:client_app/features/studio/data/studio_repository.dart';
 import 'package:client_app/features/studio/domain/models/component_def.dart';
+import 'package:client_app/core/error/app_error.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'matrix_controller.g.dart';
@@ -71,13 +71,21 @@ class MatrixController extends _$MatrixController {
   Future<void> deleteMatrix(String id) async {
     state = const AsyncValue.loading();
     try {
-      // NOTE: StudioRepository lacks a generic deleteComponent method.
-      // Bypassing repository to perform delete directly via API,
-      // as strictly modifying repo is restricted in this context.
-      await ref.read(apiClientProvider).delete('/v1/config/components/$id');
+      await ref.read(studioRepositoryProvider).deleteComponent(id);
       state = const AsyncValue.data(null);
       ref.read(matrixEditorStateProvider.notifier).set(null);
     } catch (e, st) {
+      if (e is AppError) {
+        // AppError should be caught by UI, but we must set state to error/null/previous?
+        // Actually, if we set state to error, UI shows error widget.
+        // We want to KEEP the current state visible and show SnackBar.
+        // So we set state back to data (maybe null if we want to close editor, but we failed).
+        // Best approach: Rethrow for UI to catch, set state to data(current) to stop spinner.
+        
+        final currentDraft = ref.read(matrixEditorStateProvider);
+        state = AsyncValue.data(currentDraft); // Stop loading, restore view
+        rethrow; // UI catches this to show SnackBar
+      }
       state = AsyncValue.error(e, st);
     }
   }

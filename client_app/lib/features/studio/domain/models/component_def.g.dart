@@ -12,11 +12,6 @@ _OntologyDimension _$OntologyDimensionFromJson(Map<String, dynamic> json) =>
       name: json['label'] as String,
       description: json['description'] as String,
       isSystem: json['is_system'] as bool? ?? false,
-      scale:
-          (json['scale'] as Map<String, dynamic>?)?.map(
-            (k, e) => MapEntry(k, (e as num).toInt()),
-          ) ??
-          const {},
     );
 
 Map<String, dynamic> _$OntologyDimensionToJson(_OntologyDimension instance) =>
@@ -25,7 +20,6 @@ Map<String, dynamic> _$OntologyDimensionToJson(_OntologyDimension instance) =>
       'label': instance.name,
       'description': instance.description,
       'is_system': instance.isSystem,
-      'scale': instance.scale,
     };
 
 _MatrixCriterion _$MatrixCriterionFromJson(Map<String, dynamic> json) =>
