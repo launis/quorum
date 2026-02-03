@@ -3,11 +3,11 @@
 import logging
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Path
+from fastapi import APIRouter, Depends, Path
 from pydantic import BaseModel, Field
 from tinydb import Query
 
-from backend.dependencies import DatabaseDep
+from backend.dependencies import DatabaseDep, RepositoryDep
 from backend.services.component_registry import ComponentRegistry
 
 logger = logging.getLogger(__name__)
@@ -202,11 +202,20 @@ def update_component(comp_id: str, update: ComponentUpdate, db: DatabaseDep):
 
 
 @router.delete("/components/{comp_id}", summary="Delete Component", response_description="Delete status.")
-def delete_component(comp_id: str, db: DatabaseDep):
-    """Deletes a component if it is not referenced by any existing steps."""
+async def delete_component(
+    comp_id: str,
+    db: DatabaseDep,
+    repo: RepositoryDep
+):
+    """Deletes a component if it is not referenced by any existing steps OR executions."""
+    # 1. Existence Check (via TinyDB/Generic Table - maintaining local consistency)
     table = db.table("components")
     Component = Query()
 
+    # We still use direct DB access for component existence as 'repo' might be specialized for Workflow/Execution
+    # but strictly speaking we should use repo.get_component_by_id.
+    # For now, keeping legacy check to avoid breaking TinyDB specifics if any,
+    # but ideally we migrate fully to repo.
     exists = table.search((Component.id == comp_id) | (Component.name == comp_id))
     if not exists:
         from backend.exceptions import ResourceNotFoundError
@@ -215,7 +224,8 @@ def delete_component(comp_id: str, db: DatabaseDep):
         logger.error(f"{error_code}: ID {comp_id}", exc_info=True)
         raise ResourceNotFoundError("Component", comp_id, details={"error_code": error_code})
 
-    # Referential Integrity Check
+    # 2. Referential Integrity Check 1: Steps (Legacy TinyDB method)
+    # TODO: Migrate to repo.get_steps_using_component(comp_id)
     steps = db.table("steps").all()
     used_in = []
     for s in steps:
@@ -225,6 +235,25 @@ def delete_component(comp_id: str, db: DatabaseDep):
         prompts = s.get("execution_config", {}).get("llm_prompts", [])
         if comp_id in prompts:
             used_in.append(s["id"])
+
+    # 3. Referential Integrity Check 2: Executions (Abstract Repository)
+    # This enables Firestore support without leaking implementation details
+    exec_count = await repo.count_executions_by_matrix(comp_id)
+    if exec_count > 0:
+         # Use specific error for UI handling
+        from backend.exceptions import ConflictError
+
+        error_code = "COMPONENT_IN_USE_BY_EXECUTION"
+        msg = f"Component '{comp_id}' cannot be deleted because it is used by {exec_count} executions."
+        logger.error(f"{error_code}: {msg}")
+        raise ConflictError(
+            message=msg,
+            details={
+                "error_code": error_code,
+                "count": exec_count,
+                 # Frontend expects 'count' for localization param
+            }
+        )
 
     if used_in:
         from backend.exceptions import ConflictError

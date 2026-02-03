@@ -393,7 +393,7 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
         query = self.db.collection("executions").where("organization_id", "==", org_id)
         if since:
             query = query.where("created_at", ">=", since)
-        
+
         docs = await query.stream()
         total = 0.0
         async for doc in docs:
@@ -401,3 +401,44 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
             total += data.get("cost_estimate", 0.0)
         return total
 
+    async def count_executions_by_matrix(self, matrix_id: str) -> int:
+        """Count executions using a specific matrix ID."""
+        # Query: executions where settings.matrix_id == matrix_id
+        # Note: Depending on collection size, count() aggregation is efficient.
+        query = self.db.collection("executions").where("settings.matrix_id", "==", matrix_id).count()
+        try:
+            snapshots = await query.get()
+            return int(snapshots[0][0].value)
+        except Exception as e:
+            logger.warning(f"Firestore matrix count extraction failed: {e}")
+            return 0
+
+    async def get_components_using_dimension(self, dimension_id: str) -> list[str]:
+        """Return list of component IDs that reference this dimension."""
+        # Firestore cannot easily query deep nested arrays of objects (content.criteria[].dimension_id).
+        # Strategy: Fetch all matrices (filtered by type) and scan in memory.
+        # This is acceptable as number of matrices is expected to be relatively small (<100).
+        matches = []
+        try:
+            query = self.db.collection("components").where("type", "in", ["evaluation_matrix", "matrix"])
+            docs = await query.stream()
+
+            async for doc in docs:
+                data = doc.to_dict()
+                content = data.get("content", {})
+                if not isinstance(content, dict):
+                    continue
+
+                criteria = content.get("criteria", [])
+                if not isinstance(criteria, list):
+                    continue
+
+                # Check if any criterion uses this dimension
+                for crit in criteria:
+                    if isinstance(crit, dict) and crit.get("dimension_id") == dimension_id:
+                        matches.append(data.get("id"))
+                        break
+        except Exception as e:
+            logger.error(f"Failed to scan components for dimension usage: {e}")
+
+        return matches

@@ -112,6 +112,7 @@
 5.  **DOCUMENTATION:**
     -   Language: **English Only** (Code, Comments, Logs).
     -   Style: Follow patterns in `@docs/flutterpromptohje.md`.
+    
 
 6.  **QUALITY LOOP (MANDATORY):**
     -   **Python:** `ruff check <target_files> --fix` -> `mypy <target_files>` -> `pytest <test_file>`.

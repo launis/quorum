@@ -241,3 +241,10 @@ For detailed implementation logic, refer to these Knowledge Items:
     *   **Separation**: Frontend and Backend maintain separate, independent localization trees.
     *   **Hardcoding**: STRICTLY BANNED. All user-facing strings must use the localization keys.
     *   **Parity**: Keys should be added to both English (`en`) and Finnish (`fi`) files immediately.
+
+## 🌍 PART 11:HYBRID SERVER-DRIVEN UI (SDUI) STANDARDS:
+    * **Philosophy**: "Schema defines Data, Frontend defines Experience".
+    * **Hybrid Implementation**: 
+        * **Default**: Use generic `DynamicFormWidget` based on `UI_Schema`.
+        * **Premium Override**: Frontend MAY implement custom, high-fidelity Widgets (e.g., Drag & Drop, Visual Selectors) for specific steps, provided they output the exact data structure required by the Schema.
+    * **Constraint**: Hardcoding *forms* is banned, but hardcoding *components* that map to schema fields is allowed for UX.
