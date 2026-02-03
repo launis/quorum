@@ -190,6 +190,14 @@ GoRouter router(Ref ref) {
             path: 'matrices',
             builder: (context, state) => const WorkflowStudioScreen(initialTabIndex: 1),
           ),
+          GoRoute(
+            path: 'steps',
+            builder: (context, state) => const WorkflowStudioScreen(initialTabIndex: 2),
+          ),
+          GoRoute(
+            path: 'components',
+            builder: (context, state) => const WorkflowStudioScreen(initialTabIndex: 3),
+          ),
         ],
       ),
 

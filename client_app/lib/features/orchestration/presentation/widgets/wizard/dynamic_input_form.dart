@@ -57,7 +57,9 @@ class _DynamicInputFormState extends ConsumerState<DynamicInputForm> {
           else if (workflow != null &&
               (workflow.uiSchema?.isNotEmpty ?? false)) ...[
             // Dynamic rendering from Schema
-            ...workflow.uiSchema!.entries.map((entry) {
+            ...workflow.uiSchema!.entries
+                .where((e) => e.key != 'default_model_mapping')
+                .map((entry) {
               final val = entry.value as Map<String, dynamic>;
               final key = entry.key;
               final type = val['type'] as String? ?? 'text';

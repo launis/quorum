@@ -138,7 +138,10 @@ class AnalysisWizardScreen extends ConsumerWidget {
     // Determine Required Keys based on Schema OR Fallback
     final List<String> requiredInputs;
     if (workflow != null && (workflow.uiSchema?.isNotEmpty ?? false)) {
-      requiredInputs = workflow.uiSchema!.keys.toList();
+      // Exclude system fields like 'default_model_mapping' which are configuration, not user inputs
+      requiredInputs = workflow.uiSchema!.keys
+          .where((k) => k != 'default_model_mapping')
+          .toList();
     } else {
       requiredInputs = [];
     }

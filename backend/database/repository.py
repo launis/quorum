@@ -126,8 +126,8 @@ class AbstractWorkflowRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_all_components(self) -> list[dict[str, Any]]:
-        """Retrieve all components."""
+    async def get_all_components(self, type: str | None = None, exclude_types: list[str] | None = None) -> list[dict[str, Any]]:
+        """Retrieve all components, optionally filtered."""
         pass
 
     @abstractmethod
@@ -392,8 +392,14 @@ class TinyDBRepository(AbstractWorkflowRepository):
         res = self.steps.remove(Query().id == step_id)
         return bool(res)
 
-    async def get_all_components(self) -> list[dict[str, Any]]:
-        return self.components.all()
+    async def get_all_components(self, type: str | None = None, exclude_types: list[str] | None = None) -> list[dict[str, Any]]:
+        if type:
+            return self.components.search(Query().type == type)
+        
+        all_comps = self.components.all()
+        if exclude_types:
+            all_comps = [c for c in all_comps if c.get("type") not in exclude_types]
+        return all_comps
 
     async def get_component_by_id(self, component_id: str) -> dict[str, Any] | None:
         return self.components.get(Query().id == component_id)

@@ -49,7 +49,7 @@ class BaseAgent(BaseComponent):
 
         """
         self.model = model
-        self.provider_type = provider or "vertex_ai"
+        self.provider_type = provider # Strict: No default "vertex_ai"
         self.llm_provider: LLMProvider | None = None
 
         # ZERO-FALLBACK: Agents initialized via Factory might have model=None.
@@ -79,7 +79,9 @@ class BaseAgent(BaseComponent):
         if provider:
             self.provider_type = provider
 
-        current_provider_type = self.provider_type or "vertex_ai"
+        current_provider_type = self.provider_type
+        if not current_provider_type:
+             raise ValueError("Provider type not set and no default allowed.")
 
         # Logic: If provider exists and matches usage, AND organization matches, keep it.
         # But organization_id changes per execution, so we almost always need to update/recreate if context changes.
@@ -238,7 +240,10 @@ class BaseAgent(BaseComponent):
 
             # 2. Get System Instruction
             if not system_instruction:
-                system_instruction = "You are a helpful AI assistant."
+                raise AgentExecutionError(
+                    detail="MISSING_SYSTEM_INSTRUCTION",
+                    original_error=ValueError(f"Agent {self.__class__.__name__} executed without system_instruction. Strict mode requires DB-sourced prompts."),
+                )
 
             # 3. Determine Output Schema (Subclasses must define this!)
             response_schema = self.get_response_schema()
@@ -467,7 +472,8 @@ class BaseAgent(BaseComponent):
             str: Prompt text.
 
         """
-        return "Proceed with your task."
+        # Strict Mode: No implicit prompts.
+        return ""
 
     def get_response_schema(self) -> type[BaseModel] | None:
         """Returns the Pydantic model that this agent expects as output.
@@ -485,7 +491,8 @@ class BaseAgent(BaseComponent):
             str: Default instruction text.
 
         """
-        return "You are a helpful AI assistant."
+        # Strict Mode: No hardcoded defaults.
+        return ""
 
     def get_user_prompt_template(self) -> str:
         """Returns a string representation of the user prompt template for UI preview.
@@ -494,4 +501,4 @@ class BaseAgent(BaseComponent):
             str: Template preview.
 
         """
-        return "Proceed with your task according to the system instructions."
+        return ""

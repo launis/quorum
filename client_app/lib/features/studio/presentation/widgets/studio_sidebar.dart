@@ -5,7 +5,7 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-enum StudioSidebarMode { workflows, matrices }
+enum StudioSidebarMode { workflows, matrices, components }
 
 class StudioSidebar extends ConsumerStatefulWidget {
   final String? selectedStepId;

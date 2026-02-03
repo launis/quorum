@@ -4,6 +4,7 @@ import 'package:client_app/core/error/app_error.dart';
 import 'package:client_app/core/error/problem_detail.dart';
 import 'package:client_app/features/studio/domain/models/component_def.dart';
 import 'package:client_app/features/studio/domain/models/workflow_def.dart';
+import 'package:client_app/features/studio/domain/models/step_config.dart';
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -105,12 +106,15 @@ class StudioRepository {
     return getComponents();
   }
 
-  Future<List<StudioComponentDef>> getComponents({String? type}) async {
-    _logger.info('REPO', 'Fetching components: type=$type');
+  Future<List<StudioComponentDef>> getComponents({String? type, List<String>? excludeTypes}) async {
+    _logger.info('REPO', 'Fetching components: type=$type, excludeTypes=$excludeTypes');
     try {
       final Map<String, dynamic> queryParams = {};
       if (type != null) {
         queryParams['type'] = type;
+      }
+      if (excludeTypes != null && excludeTypes.isNotEmpty) {
+        queryParams['exclude_type'] = excludeTypes;
       }
 
       final response = await _api.get(
@@ -129,13 +133,6 @@ class StudioRepository {
           continue;
         }
 
-        // Local Filter: Backend ignores query params currently
-        if (type != null && item['type'] != type) {
-          // Log skipped items only if debugging deep issues
-          // _logger.debug('REPO', 'Skipping item type mismatch: ${item['type']}');
-          continue;
-        }
-
         // Sanitize Data
         final data = Map<String, dynamic>.from(item);
 
@@ -144,10 +141,8 @@ class StudioRepository {
           data['name'] = data['id'] ?? 'Unnamed';
         }
 
-        // 2. Ensure Content is Map
-        if (data['content'] is! Map) {
-          data['content'] = {'_value': data['content']};
-        }
+        // 2. Content is dynamic, no wrapping needed
+        // if (data['content'] is! Map) { ... } REMOVED
 
         try {
           parsed.add(StudioComponentDef.fromJson(data));
@@ -273,20 +268,33 @@ class StudioRepository {
     }
   }
 
-  Future<void> saveComponent(StudioComponentDef component) async {
+  Future<void> createComponent(StudioComponentDef component) async {
     try {
-      if (component.id.isEmpty || component.id.startsWith('new_')) {
-        await _api.post('/v1/config/components', data: component.toJson());
-      } else {
-        await _api.put(
-          '/v1/config/components/${component.id}',
-          data: component.toJson(),
-        );
-      }
+      await _api.post('/v1/config/components', data: component.toJson());
     } catch (e) {
       if (e is AppError) rethrow;
-      throw AppError.server('Failed to save component: ${e.toString()}');
+      throw AppError.server('Failed to create component: ${e.toString()}');
     }
+  }
+
+  Future<void> updateComponent(StudioComponentDef component) async {
+    try {
+      await _api.put(
+        '/v1/config/components/${component.id}',
+        data: component.toJson(),
+      );
+    } catch (e) {
+      if (e is AppError) rethrow;
+      throw AppError.server('Failed to update component: ${e.toString()}');
+    }
+  }
+
+  Future<void> saveComponent(StudioComponentDef component) async {
+      if (component.id.isEmpty || component.id.startsWith('new_')) {
+        await createComponent(component);
+      } else {
+        await updateComponent(component);
+      }
   }
 
   Future<void> deleteComponent(String id) async {
@@ -295,6 +303,42 @@ class StudioRepository {
     } catch (e) {
       if (e is AppError) rethrow;
       throw AppError.server('Failed to delete component $id: $e');
+    }
+  }
+
+  // --- Steps Management ---
+
+  Future<List<StepConfig>> fetchSteps() async {
+    try {
+      final response = await _api.get('/v1/config/steps');
+      return (response.data as List)
+          .map((e) => StepConfig.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      if (e is AppError) rethrow;
+      throw AppError.server('Failed to fetch steps: $e');
+    }
+  }
+
+  Future<void> saveStep(StepConfig step) async {
+    try {
+      if (step.id.isEmpty || step.id.startsWith('step_new')) {
+        await _api.post('/v1/config/steps', data: step.toJson());
+      } else {
+        await _api.put('/v1/config/steps/${step.id}', data: step.toJson());
+      }
+    } catch (e) {
+      if (e is AppError) rethrow;
+      throw AppError.server('Failed to save step: $e');
+    }
+  }
+
+  Future<void> deleteStep(String id) async {
+    try {
+      await _api.delete('/v1/config/steps/$id');
+    } catch (e) {
+      if (e is AppError) rethrow;
+      throw AppError.server('Failed to delete step $id: $e');
     }
   }
 }

@@ -3,7 +3,7 @@
 import logging
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Path
+from fastapi import APIRouter, Path, Query as APIQuery
 from pydantic import BaseModel, Field
 from tinydb import Query
 
@@ -38,6 +38,18 @@ class ComponentUpdate(BaseModel):
         Field(description="Component categorization (e.g. 'mandate', 'prompt', 'evaluation_matrix')."),
     ] = None
 
+    model_config = {
+        "json_schema_extra": {
+            "properties": {
+                "content": {"x-ui-label": "Content"},
+                "description": {"x-ui-label": "Description"},
+                "citation": {"x-ui-label": "Citation"},
+                "citation_full": {"x-ui-label": "Citation (Full)"},
+                "type": {"x-ui-label": "Type"}
+            }
+        }
+    }
+
 
 class ComponentCreate(BaseModel):
     """Payload for creating a new component."""
@@ -52,22 +64,40 @@ class ComponentCreate(BaseModel):
     module: Annotated[str | None, Field(description="Source module (legacy).")] = "config"
     component_class: Annotated[str | None, Field(description="Class name.")] = "ConfigComponent"
 
+    model_config = {
+        "json_schema_extra": {
+            "properties": {
+                "id": {"x-ui-label": "ID"},
+                "name": {"x-ui-label": "Name"},
+                "type": {"x-ui-label": "Type"},
+                "content": {"x-ui-label": "Content"},
+                "description": {"x-ui-label": "Description"},
+                "citation": {"x-ui-label": "Citation"},
+                "citation_full": {"x-ui-label": "Citation (Full)"},
+                "module": {"x-ui-label": "Module"},
+                "component_class": {"x-ui-label": "Component Class"}
+            }
+        }
+    }
+
 
 @router.get("/components", summary="List Components", response_description="All configuration components.")
-def get_components(db: DatabaseDep, type: str | None = None):
+async def get_components(
+    repo: RepositoryDep,
+    type: str | None = None,
+    exclude_type: Annotated[list[str] | None, APIQuery()] = None
+):
     """Retrieves all defined configuration components (Prompts, Mandates, Rules, etc).
 
     Args:
-        db (DatabaseDep): Database dependency.
+        repo (RepositoryDep): Repository dependency.
         type (str | None): Optional filter by component type.
+        exclude_type (list[str] | None): Optional types to exclude.
 
     Returns:
         list[dict]: List of configuration components.
     """
-    if type:
-        Component = Query()
-        return db.table("components").search(Component.type == type)
-    return db.table("components").all()
+    return await repo.get_all_components(type=type, exclude_types=exclude_type)
 
 
 @router.get("/components/{comp_id}", summary="Get Component", response_description="The requested component.")

@@ -222,8 +222,6 @@ async def global_exception_handler(request: Request, exc: Exception):
 app.include_router(auth_router.router)
 app.include_router(admin_router.router)
 app.include_router(api_router)  # V2.9 Aggregated Router (Config + Execution)
-# app.include_router(config_router.router) - Replaced by api_router
-# app.include_router(execution_router.router)  - Replaced by api_router
 app.include_router(agents_router.router)
 app.include_router(builder_router)
 app.include_router(settings_router.router)

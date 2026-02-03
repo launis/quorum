@@ -96,9 +96,9 @@ class WorkflowDefinition(BaseModel):
             "x-ui-label": "Workflow Name",
         },
     )
-    steps: list[str] = Field(
+    steps: list[WorkflowStep] = Field(
         default_factory=list,
-        description="Ordered list of Step IDs",
+        description="Ordered list of Step Definitions",
         json_schema_extra={
             "x-ui-widget": "reorderable-list",
             "x-ui-group": "Steps",

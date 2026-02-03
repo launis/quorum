@@ -5,7 +5,6 @@ from typing import Any
 
 from fastapi import status
 
-from backend.core.factory import AgentFactory
 from backend.dependencies import RegistryDep
 from backend.exceptions import AppException
 
@@ -29,39 +28,62 @@ class WorkflowValidator:
         Returns:
             Validation report dict.
         """
-        # Strict Resolution: Use 'fast' strategy for validation dry-run
-        try:
-            config = await registry.resolve_model_config("fast")
-            agents_map = AgentFactory.create_agents_map(initial_model=config["model_name"])
-        except Exception as e:
-            error_code = "FACTORY_ERROR"
-            logger.error(f"{error_code}: {e}", exc_info=True)
-            raise AppException(
-                message="Agent factory failed",
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": error_code, "original_error": str(e)},
-            ) from e
-
         known_keys = ["history_text", "product_text", "reflection_text", "bibliography_context"]
         errors = []
         trace_log: list[str] = []
         pseudo_state = list(known_keys)
 
+        # Cache for loaded classes to avoid repeated imports
+        loaded_classes = {}
+
         for i, step_id in enumerate(sequence):
             if step_id not in steps_db_map:
                 errors.append(f"Unknown Step: {step_id}")
                 continue
+            
             step_doc = steps_db_map[step_id]
-            agent_name = step_doc.get("component")
-            if not agent_name or agent_name not in agents_map:
-                errors.append(f"Unknown Agent: {agent_name} in {step_id}")
+            # Support both new 'task_key' and legacy 'component'
+            agent_ref = step_doc.get("task_key") or step_doc.get("component")
+            
+            if not agent_ref:
+                errors.append(f"Step {step_id} missing task_key or component")
                 continue
-            agent_instance = agents_map[agent_name]
-            reqs = getattr(agent_instance, "REQUIRES_KEYS", [])
+
+            # Resolve Agent Class dynamically
+            if agent_ref in loaded_classes:
+                agent_class = loaded_classes[agent_ref]
+            else:
+                # Ask AgentRegistry for component details
+                # We need to access the repo behind the registry
+                # registry is AgentRegistry instance
+                comp = await registry.repository.get_component_by_name(agent_ref)
+                if not comp:
+                     errors.append(f"Unknown Agent/Task: {agent_ref} in {step_id}")
+                     continue
+                
+                module_name = comp.get("module")
+                class_name = comp.get("class_name")
+                
+                if not module_name or not class_name:
+                    errors.append(f"Corrupt Registry: {agent_ref} missing module/class info")
+                    continue
+                
+                try:
+                    import importlib
+                    mod = importlib.import_module(module_name)
+                    agent_class = getattr(mod, class_name)
+                    loaded_classes[agent_ref] = agent_class
+                except Exception as e:
+                    errors.append(f"Failed to load code for {agent_ref}: {e}")
+                    continue
+
+            # Static Inspection of Class Attributes
+            reqs = getattr(agent_class, "REQUIRES_KEYS", [])
             missing = [r for r in reqs if r not in pseudo_state]
             if missing:
-                errors.append(f"Step {i + 1} Missing: {missing}")
-            prods = getattr(agent_instance, "PRODUCES_KEYS", [])
+                errors.append(f"Step {i + 1} ({agent_ref}) Missing Inputs: {missing}")
+            
+            prods = getattr(agent_class, "PRODUCES_KEYS", [])
             for k in prods:
                 if k not in pseudo_state:
                     pseudo_state.append(k)

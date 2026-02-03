@@ -18,7 +18,7 @@ class StudioDashboardScreen extends StatelessWidget {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 900),
           child: GridView.count(
-            crossAxisCount: 3,
+            crossAxisCount: 4,
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
             shrinkWrap: true,
@@ -29,6 +29,13 @@ class StudioDashboardScreen extends StatelessWidget {
                 icon: Icons.schema,
                 description: 'Design and manage audit workflows.',
                 onTap: () => context.go('/studio/workflows'),
+              ),
+              _buildCard(
+                context,
+                title: 'Steps',
+                icon: Icons.checklist,
+                description: 'Configure execution steps.',
+                onTap: () => context.go('/studio/steps'),
               ),
               _buildCard(
                 context,
@@ -50,7 +57,7 @@ class StudioDashboardScreen extends StatelessWidget {
                 // Or maybe the Sidebar will have a "Components" tab?
                 // The current Sidebar has "Workflows" and "Matrices".
                 // I'll point to /studio/components and handle it in router.
-                onTap: () => context.go('/studio/matrices'), // Temporarily mapping to matrices as that's the closest "Component" type we have editor for.
+                onTap: () => context.go('/studio/components'),
               ),
             ],
           ),

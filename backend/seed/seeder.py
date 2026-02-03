@@ -33,10 +33,10 @@ def seed_database(target_env: str = "LOCAL", target_db_path: str | None = None):
         print(f"[Seeder] Error loading JSON: {e}")
         return
 
-    # --- MIGRATION LOGIC ---
-    print("[Seeder] Generating V2.9 Standard Data Flow Mappings...")
-    _apply_migrations(seed_data)
-
+    # --- MIGRATION LOGIC (REMOVED - STRICT OBJECT MODE) ---
+    # The seed_data.json must now adhere to the V2.9 Schema (Object Steps).
+    # Legacy string-list steps are no longer supported.
+    
     # Determine backend
     is_firestore = settings.storage_backend.upper() == "FIRESTORE" and not settings.use_mock_db
 
@@ -47,137 +47,6 @@ def seed_database(target_env: str = "LOCAL", target_db_path: str | None = None):
         path = target_db_path or settings.start_db_path
         print(f"[Seeder] Target: TinyDB at {path}")
         _seed_tinydb(path, seed_data)
-
-
-def _apply_migrations(seed_data: dict[str, Any]):
-    """Transforms legacy workflow definitions to GraphEngine V2.9 format."""
-    # 1. Map Component IDs to Task Keys
-    task_map = {
-        "GuardAgent": "guard",
-        "AnalystAgent": "analyst",
-        "InteractionAnalystAgent": "interaction",
-        "ProfilerAgent": "profiler",
-        "LogicianAgent": "logician",
-        "LogicalFalsifierAgent": "falsifier",
-        "CausalAnalystAgent": "causal",
-        "PerformativityDetectorAgent": "detector",
-        "FactualOverseerAgent": "overseer",
-        "ArchivistAgent": "archivist",
-        "JudgeAgent": "judge",
-        "CoachAgent": "coach",
-        "XAIReporterAgent": "xai",
-        "PanelAgent": "panel",
-        "RetrievalAgent": "retrieve_context",
-    }
-
-    # 2. Lookup Table for Steps
-    steps_lookup = {s["id"]: s for s in seed_data.get("steps", [])}
-
-    # 3. Process Workflows
-    processed_workflows = []
-
-    for wf in seed_data.get("workflows", []):
-        legacy_step_ids = wf.get("steps", [])
-
-        # --- V2.9 RE-SEEDING BYPASS ---
-        # If steps are already objects (dicts), this is a V2.9 seed.
-        if legacy_step_ids and isinstance(legacy_step_ids[0], dict):
-            # Already migrated. Use as is.
-            # Ensure 'ui_schema' is preserved or defaulted
-            if "ui_schema" not in wf:
-                wf["ui_schema"] = {}
-            processed_workflows.append(wf)
-            continue
-        # ------------------------------
-
-        # Construct new workflow for Legacy Migration
-        new_workflow = {
-            "id": wf["id"],
-            "name": wf.get("name", "Untitled Workflow"),
-            "description": wf.get("description", "Migrated Workflow"),
-            "ui_schema": wf.get("ui_schema", {}),
-            "organization_id": wf.get("organization_id"),
-            "is_public": wf.get("is_public", False),
-            # 'steps' will be replaced by list of objects
-            "steps": [],
-        }
-
-        # Track previous step for chaining
-
-        for step_id in legacy_step_ids:
-            if step_id not in steps_lookup:
-                print(f"[Seeder] Warning: Step {step_id} not found in steps list. Skipping.")
-                continue
-
-            legacy_step = steps_lookup[step_id]
-            component_id = legacy_step.get("component")
-            task_key = task_map.get(component_id, "unknown_task")
-
-            # -- DATA FLOW MAPPING ($ syntax) --
-            inputs = {}
-
-            # Base Context (Always needed)
-            inputs["history_text"] = "$history_text"
-            inputs["product_text"] = "$product_text"
-            inputs["reflection_text"] = "$reflection_text"
-
-            # Chain logic
-            if task_key == "guard":
-                # Guard takes raw inputs directly mapped above
-                pass
-            elif task_key == "analyst":
-                # Analyst takes Guard's sanitized output if available, else raw
-                # But to maintain simple flow, we usually use raw or sanitized.
-                # Guard outputs `sanitized_inputs` dict.
-                inputs["history_text"] = "$step_guard.safe_data.keskusteluhistoria"
-                inputs["product_text"] = "$step_guard.safe_data.lopputuote"
-                inputs["reflection_text"] = "$step_guard.safe_data.reflektiodokumentti"
-            elif task_key == "interaction":
-                inputs["history_text"] = "$step_guard.safe_data.keskusteluhistoria"
-            elif task_key == "profiler":
-                inputs["history_text"] = "$step_guard.safe_data.keskusteluhistoria"
-            elif task_key in ["logician", "falsifier", "causal", "detector", "overseer"]:
-                # Critics need TodistusKartta from Analyst
-                inputs["todistus_kartta"] = "$step_analyst"
-            elif task_key == "panel":
-                inputs = {
-                    "todistus_kartta": "$step_analyst",
-                    "history_text": "$history_text",
-                    "product_text": "$product_text",
-                    "reflection_text": "$reflection_text",
-                }  # Panel task takes TodistusKartta directly as model
-            elif task_key == "judge":
-                inputs["todistus_kartta"] = "$step_analyst"
-                # Ideally pass critics outputs too.
-                # But judge typically needs summary.
-                # In legacy, Judge reads "Panel Audit" or individual outputs.
-                # Let's map whatever steps exist previously.
-                if "step_panel" in legacy_step_ids:
-                    inputs["panel_audit"] = "$step_panel"
-                else:
-                    # Sequential mode: Pass previous critics?
-                    # Currently MigrationInput has `prev_step_output`.
-                    pass
-            elif task_key == "coach":
-                inputs["tuomio"] = "$step_judge"
-            elif task_key == "xai":
-                inputs["tuomio"] = "$step_judge"
-                inputs["coaching_plan"] = "$step_coach"
-
-            new_step = {
-                "id": step_id,
-                "task_key": task_key,
-                "inputs": inputs,
-                "config": legacy_step.get("execution_config", {}),
-            }
-
-            new_workflow["steps"].append(new_step)
-
-        processed_workflows.append(new_workflow)
-
-    # REPLACE workflows in seed_data
-    seed_data["workflows"] = processed_workflows
-    print(f"[Seeder] Migrated {len(processed_workflows)} workflows to V2.9 format.")
 
 
 def _seed_tinydb(db_path: str, seed_data: dict):

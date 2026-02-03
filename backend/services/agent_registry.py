@@ -167,70 +167,64 @@ class AgentRegistry:
         await self.repository.update_component_metadata(name, module, component_class)
 
     async def discover_and_register_agents(self, package_path: str = "backend.agents"):
-        """Loads agents using the static AgentFactory and registers them in the DB.
+        """Registers agents found in TaskRegistry into the Database.
 
-        This bootstraps the system with available code components.
+        Replaces legacy AgentFactory. Scans TaskRegistry for tasks with agent metadata.
 
         Args:
-            package_path (str): Python package path to scan (default 'backend.agents').
-
-        Raises:
-            FatalInterruption: If AgentFactory fails to load.
+            package_path (str): Unused (legacy signature).
 
         """
-        from backend.core.factory import AgentFactory
-        from backend.settings import get_settings
+        from backend.core.registry import TaskRegistry
 
-        get_settings()
-        logger.info("[AgentRegistry] Loading agents via AgentFactory...")
+        logger.info("[AgentRegistry] Discovering agents via TaskRegistry...")
 
         try:
-            # Agents are initialized without a pre-set model.
-            # The PipelineRunner handles dynamic configuration per step.
-            agents_map = AgentFactory.create_agents_map(initial_model=None)
-            self.agents_map = agents_map
-
             count = 0
-            for cls_name, agent_instance in self.agents_map.items():
-                try:
-                    # 2. Register in DB
-                    agent_type = "agent"
-                    if "critic" in cls_name.lower():
-                        agent_type = "critic"
+            # Scan TaskRegistry for tasks that are actually Agents
+            for task_key, task_def in TaskRegistry._tasks.items():
+                meta = task_def.metadata
+                if not meta or "agent_class" not in meta:
+                    continue
 
-                    if not await self.repository.get_component_by_name(cls_name):
+                agent_class_name = meta["agent_class"]
+                module_name = meta.get("module", "unknown")
+                agent_type = meta.get("type", "agent")
+
+                try:
+                    # 1. Register in DB
+                    if not await self.repository.get_component_by_name(task_key):
                         await self.repository.register_component(
                             {
-                                "id": cls_name,
-                                "name": cls_name,
+                                "id": task_key,
+                                "name": task_key,
                                 "type": agent_type,
-                                "class_name": cls_name,
+                                "class_name": agent_class_name,
                                 "registered_at": datetime.now(),
                             }
                         )
+                    
+                    # 2. Update Metadata
+                    await self._update_component_metadata(
+                        task_key, 
+                        module=module_name, 
+                        component_class=agent_class_name
+                    )
 
-                    # 3. Update Metadata
-                    # Use __module__ to get the defining module path
-                    module_name = agent_instance.__module__
-                    await self._update_component_metadata(cls_name, module=module_name, component_class=cls_name)
-
-                    logger.debug(f"[AgentRegistry] Registered {cls_name} (from {module_name})")
+                    logger.debug(f"[AgentRegistry] Registered {task_key} ({agent_class_name})")
                     count += 1
 
                 except Exception as e:
-                    logger.error(f"[AgentRegistry] Failed to register {cls_name}: {e}")
-                    # Allow partial failure during DB registration, but code is loaded.
+                    logger.error(f"[AgentRegistry] Failed to register {task_key}: {e}")
 
-            logger.info(f"[AgentRegistry] Successfully loaded and registered {count} agents.")
+            logger.info(f"[AgentRegistry] Successfully registered {count} agents from TaskMetadata.")
 
         except Exception as e:
-            # Critical failure if Factory fails (e.g. import error)
             from backend.exceptions import FatalInterruption
-
-            logger.critical(f"[AgentRegistry] FATAL: AgentFactory failed: {e}")
+            logger.critical(f"[AgentRegistry] FATAL: Discovery failed: {e}")
             raise FatalInterruption(
                 step_name="AgentDiscovery",
-                reason="AgentFactory Initialization Failed",
+                reason="TaskRegistry Scan Failed",
                 details={"error": str(e)},
             ) from e
 

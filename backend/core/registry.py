@@ -17,6 +17,7 @@ class TaskDefinition:
     input_schema: type[BaseModel]
     output_schema: type[BaseModel]
     description: str | None = None
+    metadata: dict[str, Any] | None = None
 
 
 class TaskRegistry:
@@ -31,6 +32,7 @@ class TaskRegistry:
         input_schema: type[BaseModel],
         output_schema: type[BaseModel],
         description: str | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """Decorator to register a function as a task.
 
@@ -39,6 +41,7 @@ class TaskRegistry:
             input_schema: Pydantic model for input validation.
             output_schema: Pydantic model for output validation.
             description: Optional description (defaults to docstring).
+            metadata: Optional metadata for the task.
         """
 
         def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -48,6 +51,7 @@ class TaskRegistry:
                 input_schema=input_schema,
                 output_schema=output_schema,
                 description=description or func.__doc__,
+                metadata=metadata or {},
             )
             return func
 
@@ -99,10 +103,11 @@ class TaskRegistry:
                 # E.g. "InteractionAnalystAgent" -> {"model_name": "gemini-2.5-pro", "temperature": 0.0, ...}
                 model_config = await registry.resolve_model_config(agent_cls.__name__)
                 model_name = model_config.get("model_name")
+                provider_type = model_config.get("provider")
 
                 # Check if agent has set_model
                 if hasattr(agent, "set_model"):
-                    agent.set_model(model_name)
+                    agent.set_model(model_name, provider=provider_type)
                 else:
                     logger.warning(f"Agent {agent_cls.__name__} does not have 'set_model'. Skipping configuration.")
 
@@ -220,10 +225,17 @@ class TaskRegistry:
 
         # Register for each key
         for key in task_keys:
+            agent_type = "critic" if "critic" in agent_cls.__name__.lower() else "agent"
+            
             cls._tasks[key] = TaskDefinition(
                 name=key,
                 handler=agent_wrapper,
                 input_schema=GenericInput,  # Generic adapter
                 output_schema=output_model,
                 description=agent_cls.__doc__ or f"Adapter for {agent_cls.__name__}",
+                metadata={
+                    "agent_class": agent_cls.__name__,
+                    "module": agent_cls.__module__,
+                    "type": agent_type
+                }
             )

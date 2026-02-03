@@ -56,7 +56,8 @@ abstract class StudioComponentDef with _$StudioComponentDef {
     required String name,
     required String type,
     String? description,
-    required Map<String, dynamic> content,
+    String? citation, // Added citation
+    required dynamic content, // Changed to dynamic
   }) = _StudioComponentDef;
 
   const StudioComponentDef._();

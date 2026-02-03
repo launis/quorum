@@ -141,6 +141,9 @@ class ExecutionController extends _$ExecutionController {
       final error =
           validation.getLeft().toNullable() ??
           const AppError.validation(ValidationErrorReason.unknown);
+      
+      debugPrint('[ExecutionController] Validation failed: $error');
+      
       state = AsyncError(error, StackTrace.current);
       throw error;
     }

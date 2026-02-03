@@ -27,11 +27,8 @@ def _enforce_pdf_access(user: TokenData, execution: dict[str, Any]) -> None:
         return
 
     if user.role == UserRole.ADMIN:
-        raise AppException(
-            message="Admins are not authorized to view execution PDFs.",
-            status_code=status.HTTP_403_FORBIDDEN,
-            details={"error_code": "ADMIN_DENIED"}
-        )
+        # Admins are allowed to view reports (Debugging/Audit)
+        return
 
     if user.role == UserRole.MANAGER:
         exec_org = execution.get("organization_id")

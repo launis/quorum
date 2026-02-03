@@ -73,7 +73,8 @@ _StudioComponentDef _$StudioComponentDefFromJson(Map<String, dynamic> json) =>
       name: json['name'] as String,
       type: json['type'] as String,
       description: json['description'] as String?,
-      content: json['content'] as Map<String, dynamic>,
+      citation: json['citation'] as String?,
+      content: json['content'],
     );
 
 Map<String, dynamic> _$StudioComponentDefToJson(_StudioComponentDef instance) =>
@@ -82,5 +83,6 @@ Map<String, dynamic> _$StudioComponentDefToJson(_StudioComponentDef instance) =>
       'name': instance.name,
       'type': instance.type,
       'description': instance.description,
+      'citation': instance.citation,
       'content': instance.content,
     };

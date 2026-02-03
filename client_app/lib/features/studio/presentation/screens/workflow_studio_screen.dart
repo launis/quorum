@@ -4,6 +4,8 @@ import 'package:client_app/features/studio/presentation/providers/studio_control
 import 'package:client_app/features/studio/presentation/widgets/matrix_editor_panel.dart';
 import 'package:client_app/features/studio/presentation/widgets/ontology_manager_panel.dart';
 import 'package:client_app/features/studio/presentation/widgets/studio_editor_area.dart';
+import 'package:client_app/features/studio/presentation/widgets/steps_manager_panel.dart';
+import 'package:client_app/features/studio/presentation/widgets/components_manager_panel.dart';
 import 'package:client_app/features/studio/presentation/widgets/studio_sidebar.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -120,7 +122,12 @@ class WorkflowStudioScreen extends HookConsumerWidget {
         ],
       ),
       // 4. Split View Layout (Desktop First)
-      body: Row(
+      // 4. Split View Layout (Desktop First)
+      body: initialTabIndex == 2 
+            ? const StepsManagerPanel()
+            : initialTabIndex == 3
+                ? const ComponentsManagerPanel()
+                : Row(
         children: [
           StudioSidebar(
             selectedStepId: selectedStepId.value,

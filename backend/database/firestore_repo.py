@@ -185,9 +185,18 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
         except Exception:
             return False
 
-    async def get_all_components(self) -> list[dict[str, Any]]:
-        docs = await self.db.collection("components").stream()
-        return [doc.to_dict() async for doc in docs]
+    async def get_all_components(self, type: str | None = None, exclude_types: list[str] | None = None) -> list[dict[str, Any]]:
+        query = self.db.collection("components")
+        if type:
+            query = query.where("type", "==", type)
+
+        docs = await query.stream()
+        results = [doc.to_dict() async for doc in docs]
+
+        if exclude_types:
+             results = [c for c in results if c.get("type") not in exclude_types]
+        
+        return results
 
     async def get_component_by_id(self, component_id: str) -> dict[str, Any] | None:
         doc = await self.db.collection("components").document(component_id).get()

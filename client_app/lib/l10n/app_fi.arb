@@ -1,5 +1,6 @@
 {
   "appTitle": "Cognitive Quorum -asiakas",
+  "delete": "Poista",
   "loginBtn": "Kirjaudu sisään",
   "adminPanel": "Hallintapaneeli",
   "settings": "Asetukset",
@@ -237,5 +238,16 @@
   "studioSelectMatrix": "Valitse Arviointimatriisi",
   "update": "Päivitä",
   "cancel": "Peruuta",
-  "editDimension": "Muokkaa Ulottuvuutta"
+  "editDimension": "Muokkaa Ulottuvuutta",
+  "systemSettingsTitle": "Järjestelmän asetukset",
+  "createUser": "Luo käyttäjä",
+  "editUser": "Muokkaa käyttäjää",
+  "deleteUser": "Poista käyttäjä",
+  "displayNameLabel": "Näyttönimi",
+  "emailLabel": "Sähköposti",
+  "passwordLabel": "Salasana",
+  "deleteUserConfirmation": "Haluatko varmasti poistaa käyttäjän {name}?",
+  "userCreatedSuccess": "Käyttäjä luotu onnistuneesti.",
+  "userUpdatedSuccess": "Käyttäjä päivitetty onnistuneesti.",
+  "userDeletedSuccess": "Käyttäjä poistettu onnistuneesti."
 }
