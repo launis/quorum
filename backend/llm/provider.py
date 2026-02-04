@@ -615,6 +615,8 @@ class LLMFactory:
         organization_id: str | None = None,
         usage_service: UsageService | None = None,
         limits: dict[str, int] | None = None,
+        api_key: str | None = None,
+        **kwargs,
     ) -> LLMProvider:
         """Factory method to create an LLM Provider instance.
 
@@ -625,6 +627,8 @@ class LLMFactory:
             organization_id (Optional[str]): Organization ID for tracking.
             usage_service (Optional[UsageService]): Usage service instance.
             limits (Optional[dict]): Usage limits (tpm, rpm).
+            api_key (Optional[str]): Explicit API Key override (e.g. for ad-hoc testing).
+            **kwargs: Additional arguments.
 
         Returns:
             LLMProvider: Configured provider instance.
@@ -632,7 +636,7 @@ class LLMFactory:
         settings = get_settings()
 
         # Placeholder for BYOK (Bring Your Own Key) Logic
-        tenant_api_key = None
+        tenant_api_key = api_key
 
         # STRICT EXECUTION AUTHORITY (Jan 19 Update):
         # GLOBAL SAFETY: If 'settings.use_mock_llm' is True, we FORCE the MockProvider.
@@ -660,40 +664,30 @@ class LLMFactory:
         if not model_name:
             raise ValueError("Model name is required for LLMProvider creation.")
 
-        api_key = None
-        if provider_type == "litellm":
-            if "gemini" in model_name:
-                api_key = tenant_api_key or settings.google_api_key
-            elif "gpt" in model_name or "o1" in model_name:
-                api_key = tenant_api_key or settings.openai_api_key
-            elif "claude" in model_name:
-                api_key = tenant_api_key or settings.anthropic_api_key
-
-            return LiteLLMProvider(
-                model_name=model_name,
-                api_key=api_key,
-                settings=settings,
-                usage_service=usage_service,
-                organization_id=organization_id,
-                limits=limits,
-            )
-
-        # Fallback for explicit strategies (legacy)
-        match provider_type.lower():
-            case "gemini" | "vertex_ai":
-                api_key = tenant_api_key or settings.google_api_key
-            case "openai":
-                api_key = tenant_api_key or settings.openai_api_key
-                if not api_key:
-                    import os
-
-                    api_key = os.getenv("OPENAI_API_KEY")
-            case _:
-                pass
+        resolved_api_key = api_key
+        if not resolved_api_key:
+            if provider_type == "litellm":
+                if "gemini" in model_name:
+                    resolved_api_key = settings.google_api_key
+                elif "gpt" in model_name or "o1" in model_name:
+                    resolved_api_key = settings.openai_api_key
+                elif "claude" in model_name:
+                    resolved_api_key = settings.anthropic_api_key
+        
+        # Determine fallback if still empty and logic required
+        if not resolved_api_key:
+             match provider_type.lower():
+                case "gemini" | "vertex_ai":
+                    resolved_api_key = settings.google_api_key
+                case "openai":
+                    resolved_api_key = settings.openai_api_key
+                    if not resolved_api_key:
+                        import os
+                        resolved_api_key = os.getenv("OPENAI_API_KEY")
 
         return LiteLLMProvider(
             model_name=model_name,
-            api_key=api_key,
+            api_key=resolved_api_key,
             settings=settings,
             usage_service=usage_service,
             organization_id=organization_id,

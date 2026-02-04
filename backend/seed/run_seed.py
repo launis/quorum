@@ -10,7 +10,7 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 from tinydb import TinyDB
-from backend.seed.seeder import _apply_migrations, _seed_tinydb, _seed_firestore
+from backend.seed.seeder import _seed_tinydb, _seed_firestore
 
 SEED_PATH = os.path.join(project_root, 'backend', 'seed', 'seed_data.json')
 LOCAL_DB_PATH = os.path.join(project_root, 'data', 'db.json')
@@ -23,12 +23,11 @@ def seed(target):
         print(f"CRITICAL: Seed file not found at {SEED_PATH}")
         sys.exit(1)
 
-    # Load and Migrate Data
+    # Load Data
     with open(SEED_PATH, 'r', encoding='utf-8') as f:
         data = json.load(f)
     
-    _apply_migrations(data)
-    print(f"[Seed] Migrated {len(data.get('workflows', []))} workflows (V2.9 structure).")
+    print(f"[Seed] Loaded {len(data.get('workflows', []))} workflows.")
 
     if target == 'local':
         if os.path.exists(LOCAL_DB_PATH):

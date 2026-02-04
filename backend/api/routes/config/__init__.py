@@ -7,6 +7,7 @@ from backend.api.routes.config.ontology import router as ontology_router
 from backend.api.routes.config.schemas import router as schemas_router
 from backend.api.routes.config.workflows import router as workflows_router
 from backend.api.routes.config.steps import router as steps_router
+from backend.api.routes.config.models import router as models_router
 
 router = APIRouter()
 
@@ -15,5 +16,6 @@ router.include_router(ontology_router)
 router.include_router(workflows_router)
 router.include_router(schemas_router)
 router.include_router(steps_router)
+router.include_router(models_router)
 
 

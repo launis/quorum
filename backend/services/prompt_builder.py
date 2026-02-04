@@ -318,7 +318,7 @@ class PromptBuilder:
 
             # Fetch step name/component for header
             s_rec = await self.repository.get_step_by_id(step_id)
-            step_name = s_rec.get("id", step_id) if s_rec else step_id
+            step_name = s_rec.get("name", s_rec.get("id", step_id)) if s_rec else step_id
             component = s_rec.get("component", "Unknown") if s_rec else "Unknown"
 
             full_chain.append(f"## Step {i + 1}: {step_name} ({component})")

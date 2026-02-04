@@ -34,6 +34,8 @@ Dio apiClient(Ref ref) {
   final dio = Dio(
     BaseOptions(
       baseUrl: Env.apiUrl,
+      connectTimeout: const Duration(seconds: 5),
+      receiveTimeout: const Duration(seconds: 10),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json, application/problem+json',

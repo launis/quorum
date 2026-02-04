@@ -107,22 +107,7 @@
                         "model_name": "vertex_ai/gemini-2.5-pro",
                         "temperature": 0.2,
                         "top_p": null
-                    },
-                    "AnalystAgent": "precise",
-                    "InteractionAnalystAgent": "deep",
-                    "ProfilerAgent": "deep",
-                    "LogicianAgent": "precise",
-                    "LogicalFalsifierAgent": "precise",
-                    "CausalAnalystAgent": "deep",
-                    "PerformativityDetectorAgent": "deep",
-                    "FactualOverseerAgent": "precise",
-                    "ArchivistAgent": "precise",
-                    "JudgeAgent": "deep",
-                    "CoachAgent": "deep",
-                    "XAIReporterAgent": "deep",
-                    "PanelAgent": "deep",
-                    "GuardAgent": "strict",
-                    "RetrievalAgent": "strict"
+                    }
                 }
             }
         },

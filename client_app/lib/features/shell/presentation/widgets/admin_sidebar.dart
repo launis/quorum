@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:client_app/l10n/gen/app_localizations.dart';
 
 class AdminSidebar extends StatelessWidget {
   final int selectedIndex;
@@ -15,7 +14,6 @@ class AdminSidebar extends StatelessWidget {
   Widget build(BuildContext context) {
     // Use AppLocalizations if available, or fallbacks if translations missing
     // Generic sidebar items (English defaults per instruction "English Only" for code/comments)
-
 
     return NavigationRail(
       selectedIndex: selectedIndex,
@@ -42,6 +40,11 @@ class AdminSidebar extends StatelessWidget {
           icon: Icon(Icons.admin_panel_settings_outlined),
           selectedIcon: Icon(Icons.admin_panel_settings),
           label: Text('Admin'),
+        ),
+        NavigationRailDestination(
+          icon: Icon(Icons.api_outlined),
+          selectedIcon: Icon(Icons.api),
+          label: Text('System Inspector'),
         ),
       ],
     );

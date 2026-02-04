@@ -334,6 +334,16 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
             logger.error(f"Firestore model registry lookup failed: {e}")
         return {}
 
+    async def update_model_registry(self, registry_data: dict[str, Any]) -> bool:
+        """Update the model registry configuration."""
+        try:
+            # Document must be 'model_registry'
+            await self.db.collection("system_config").document("model_registry").set(registry_data)
+            return True
+        except Exception as e:
+            logger.error(f"Firestore model registry update failed: {e}")
+            return False
+
     # --- Organization Methods (Required by organization_router.py) ---
 
     async def list_organizations(self) -> list[dict[str, Any]]:

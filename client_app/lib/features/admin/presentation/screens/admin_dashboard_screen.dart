@@ -44,7 +44,7 @@ class AdminDashboardScreen extends ConsumerWidget {
       (
         icon: Icons.science_outlined,
         selectedIcon: Icons.science,
-        label: 'Studio', 
+        label: 'Studio',
         path: '/studio',
       ),
     ];

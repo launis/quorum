@@ -57,3 +57,67 @@ class LLMResponse(BaseModel):
         dict[str, Any],
         Field(default_factory=dict, description="Provider-specific raw metadata (e.g. finish_reason, safety_ratings)."),
     ]
+
+
+class LLMProviderConfig(BaseModel):
+    """Configuration for an LLM Provider."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    id: Annotated[
+        str,
+        Field(..., description="Configuration ID (unique key).", json_schema_extra={"x-ui-hidden": True}),
+    ]
+    provider: Annotated[
+        str,
+        Field(
+            ..., description="Provider type (e.g. 'openai', 'vertex_ai').", json_schema_extra={"x-ui-label": "Provider"}
+        ),
+    ]
+    model_name: Annotated[
+        str,
+        Field(
+            ...,
+            description="Model identifier (e.g. 'gpt-4', 'gemini-pro').",
+            json_schema_extra={"x-ui-label": "Model Name"},
+        ),
+    ]
+    api_key: Annotated[
+        str | None,
+        Field(default=None, description="API Key (masked on read).", json_schema_extra={"x-ui-label": "API Key"}),
+    ]
+    base_url: Annotated[
+        str | None,
+        Field(default=None, description="Base URL for API calls.", json_schema_extra={"x-ui-label": "Base URL"}),
+    ]
+    temperature: Annotated[
+        float,
+        Field(
+            default=0.7,
+            ge=0.0,
+            le=2.0,
+            description="Sampling temperature.",
+            json_schema_extra={"x-ui-label": "Temperature"},
+        ),
+    ]
+    additional_params: Annotated[
+        dict[str, Any], Field(default_factory=dict, description="Additional provider-specific parameters.")
+    ]
+
+
+class AdHocTestRequest(BaseModel):
+    """Request payload for ephemeral LLM testing."""
+
+    provider: Annotated[str, Field(..., description="Provider identifier.")]
+    api_key: Annotated[str | None, Field(default=None, description="Optional API key for testing.")]
+    system_instruction: Annotated[str, Field(..., description="System prompt.")]
+    user_prompt: Annotated[str, Field(..., description="User prompt.")]
+    model_params: Annotated[dict[str, Any], Field(default_factory=dict, description="Model parameters override.")]
+
+
+class AdHocTestResponse(BaseModel):
+    """Response for ephemeral LLM testing."""
+
+    content: Annotated[str, Field(..., description="Generated content.")]
+    latency_ms: Annotated[float, Field(..., description="Execution latency in milliseconds.")]
+    status: Annotated[str, Field(..., description="Status string (e.g. 'success', 'error').")]

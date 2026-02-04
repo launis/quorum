@@ -22,6 +22,9 @@
     "Metric Key": "Metric Key",
     "Rules": "Rules",
     "Component Scoring Rule": "Component Scoring Rule",
+    "System Instruction": "System Instruction",
+    "User Prompt": "User Prompt",
+    "Chain Content": "Chain Content",
 
 
     "Analysis Result": "Analysis Result",
@@ -69,5 +72,12 @@
     "Errors": {
         "DeleteBlockedByExecutions": "Cannot delete component because it has {count} associated executions.",
         "DeleteBlockedByMatrix": "Dimension '{id}' is used in matrix '{name}'. Remove it from the matrix first."
-    }
+    },
+    "Provider": "Provider",
+    "API Key": "API Key",
+    "Base URL": "Base URL",
+    "Temperature": "Temperature",
+    "Test Connection": "Test Connection",
+    "Ad-Hoc Test": "Ad-Hoc Test",
+    "Model Name": "Model Name"
 }

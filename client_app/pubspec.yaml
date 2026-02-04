@@ -11,20 +11,21 @@ dependencies:
     sdk: flutter
 
   # Core State Management & Routing
-  flutter_riverpod: ^3.1.0
-  riverpod_annotation: ^4.0.0
-  go_router: ^17.0.1
+  flutter_riverpod:
+  riverpod:
+  riverpod_annotation:
+  go_router:
   fpdart:
 
   # Connectivity & Data
-  dio: ^5.7.0
-  json_annotation: ^4.9.0
-  freezed_annotation: ^3.1.0
+  dio:
+  json_annotation:
+  freezed_annotation:
   flutter_dotenv:
 
   # Firebase
   firebase_core:
-  firebase_auth: ^6.1.4
+  firebase_auth:
   firebase_ui_auth:
   firebase_ui_localizations:
 
@@ -36,7 +37,7 @@ dependencies:
   flutter_animate:
   google_fonts:
   shared_preferences:
-  flutter_markdown_plus: ^1.0.7
+  flutter_markdown_plus:
   file_picker:
   collection:
   fl_chart:
@@ -44,8 +45,8 @@ dependencies:
   printing:
   file_saver:
   url_launcher:
-  flutter_hooks: ^0.21.0
-  hooks_riverpod: ^3.1.0
+  flutter_hooks:
+  hooks_riverpod:
   logger:
   path_provider:
 
@@ -56,16 +57,16 @@ dev_dependencies:
     sdk: flutter
 
   # Dev Tools & Code Generation
-  build_runner: ^2.6.1
-  riverpod_generator: ^4.0.0
-  custom_lint: ^0.8.1
-  riverpod_lint: ^3.1.0
-  json_serializable: ^6.11.2
-  freezed: ^3.2.3
+  build_runner:
+  riverpod_generator:
+  custom_lint:
+  riverpod_lint:
+  json_serializable:
+  freezed:
   flutter_lints:
   mocktail:
-  mockito: ^5.6.0
-  go_router_builder: ^4.1.0
+  mockito:
+  go_router_builder:
 
 flutter:
   uses-material-design: true

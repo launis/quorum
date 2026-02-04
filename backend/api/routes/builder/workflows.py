@@ -12,7 +12,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, status
 from pydantic import BaseModel, Field
 
-from backend.dependencies import CurrentUserDep, RepositoryDep
+from backend.dependencies import CurrentUserDep, PromptBuilderDep, RepositoryDep
 from backend.models.auth import UserRole
 
 router = APIRouter()
@@ -58,14 +58,14 @@ async def _expand_workflow(wf: dict[str, Any], repository: RepositoryDep) -> dic
     """Hydrates step IDs into full step objects."""
     full_wf = wf.copy()
     step_ids = wf.get("steps", [])
-    
+
     hydrated_steps = []
     for s_id in step_ids:
         # If the DB already has objects (unlikely but possible during migration), keep them.
         if isinstance(s_id, dict):
             hydrated_steps.append(s_id)
             continue
-            
+
         if isinstance(s_id, str):
             step = await repository.get_step_by_id(s_id)
             if step:
@@ -142,7 +142,7 @@ async def create_workflow(
         }
 
         await repository.create_workflow(workflow_data)
-        
+
         # Return expanded
         return await _expand_workflow(workflow_data, repository)
     except Exception as e:
@@ -167,7 +167,7 @@ async def get_workflow(workflow_id: str, repository: RepositoryDep):
         logger.error(f"{error_code}: ID '{workflow_id}' not found in Repository. Type: {type(workflow_id)}")
         raise ResourceNotFoundError("Workflow", workflow_id, details={"error_code": error_code})
     logger.info(f"Found workflow: {wf.get('id')} - {wf.get('name')}")
-    
+
     return await _expand_workflow(wf, repository)
 
 
@@ -243,16 +243,16 @@ async def update_workflow(
                     # Generate ID if missing (should imply new step)
                     s_id = f"step_{uuid.uuid4().hex[:8]}"
                     s["id"] = s_id
-                
+
                 final_step_ids.append(s_id)
-                
+
                 # 2. Save/Update Step Indepenently
                 # We map the dict to our repository 'create_step' or 'update_step' logic.
                 # Since we don't know if it exists, we try to get it first?
                 # Or use an upsert method if available. Repository usually has update_step.
                 # Note: This is "best effort" for now to fix the 422.
                 # Ideally we validate the step schema (WorkflowStep) here.
-                
+
                 # Check existance
                 existing_step = await repository.get_step_by_id(s_id)
                 if existing_step:
@@ -270,7 +270,7 @@ async def update_workflow(
                     # If task_key is still missing, we might fail validation in repository.create_step
                     # if repository enforces it.
                     await repository.create_step(s)
-                    
+
         update_data["steps"] = final_step_ids
     if request.ui_schema is not None:
         update_data["ui_schema"] = request.ui_schema
@@ -425,4 +425,43 @@ async def copy_workflow(workflow_id: str, request: CopyWorkflowRequest, reposito
         raise AppException(
             message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             details={"error_code": error_code, "original_error": str(e)},
+        ) from e
+
+
+class ChainPreviewResponse(BaseModel):
+    """Response model for workflow chain preview."""
+
+    markdown_content: str = Field(
+        ...,
+        description="The full Markdown concatenation of all step prompts.",
+        json_schema_extra={"x-ui-label": "Chain Content"}
+    )
+
+
+@router.get(
+    "/workflows/{workflow_id}/chain-preview",
+    summary="Preview Full Chain",
+    response_description="Markdown content of the full chain.",
+    response_model=ChainPreviewResponse
+)
+async def preview_chain(
+    workflow_id: str,
+    repository: RepositoryDep,
+    prompt_builder: PromptBuilderDep
+):
+    """Generates a markdown preview of the entire workflow chain."""
+    logger.info(f"Generating chain preview for workflow: {workflow_id}")
+    try:
+        content = await prompt_builder.preview_full_chain_prompts(workflow_id)
+        return ChainPreviewResponse(markdown_content=content)
+    except Exception as e:
+        from backend.exceptions import AppException, ResourceNotFoundError
+
+        if "not found" in str(e).lower():
+            raise ResourceNotFoundError("Workflow", workflow_id)
+
+        error_code = "CHAIN_PREVIEW_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise AppException(
+            message=str(e), status_code=500, details={"error_code": error_code}
         ) from e

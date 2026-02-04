@@ -31,7 +31,7 @@ class _FileUploaderState extends State<FileUploader> {
   }
 
   Future<void> _pickFile() async {
-    final result = await FilePicker.pickFiles();
+    final result = await FilePicker.platform.pickFiles();
 
     if (result != null) {
       final file = result.files.single;

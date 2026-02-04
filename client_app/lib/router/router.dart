@@ -184,19 +184,27 @@ GoRouter router(Ref ref) {
         routes: [
           GoRoute(
             path: 'workflows',
-            builder: (context, state) => const WorkflowStudioScreen(initialTabIndex: 0),
+            builder:
+                (context, state) =>
+                    const WorkflowStudioScreen(initialTabIndex: 0),
           ),
           GoRoute(
             path: 'matrices',
-            builder: (context, state) => const WorkflowStudioScreen(initialTabIndex: 1),
+            builder:
+                (context, state) =>
+                    const WorkflowStudioScreen(initialTabIndex: 1),
           ),
           GoRoute(
             path: 'steps',
-            builder: (context, state) => const WorkflowStudioScreen(initialTabIndex: 2),
+            builder:
+                (context, state) =>
+                    const WorkflowStudioScreen(initialTabIndex: 2),
           ),
           GoRoute(
             path: 'components',
-            builder: (context, state) => const WorkflowStudioScreen(initialTabIndex: 3),
+            builder:
+                (context, state) =>
+                    const WorkflowStudioScreen(initialTabIndex: 3),
           ),
         ],
       ),

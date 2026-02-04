@@ -22,6 +22,7 @@ class ScaffoldWithNav extends StatelessWidget {
     if (isWideScreen) {
       return Scaffold(
         body: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             AdminSidebar(
               selectedIndex: navigationShell.currentIndex,

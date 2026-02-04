@@ -265,6 +265,9 @@ class LLMHandler:
             "temperature", 0.7
         )  # Parameter defaults are acceptable/necessary? Assuming yes for float/int, but MODEL must be explicit.
         max_tokens = cd.get("max_tokens", None)
+        
+        # Extract API Key from DB Config
+        api_key = cd.get("api_key")
 
         # STRICT VALIDATION (Jan 2026 Decree):
         # Ensure the configured model name actually exists in the target region.
@@ -294,7 +297,8 @@ class LLMHandler:
                 f"[LLM Execution] Strategy: {provider}/{mode} -> Model: {model_name} "
                 f"(Temp: {temperature}, MaxTokens: {max_tokens})"
             )
-            llm_provider = LLMFactory.create_provider(provider, model_name)
+            # Pass api_key explicitly to ensure DB credentials are used
+            llm_provider = LLMFactory.create_provider(provider, model_name, api_key=api_key)
 
             response = await llm_provider.generate(
                 prompt=prompt,

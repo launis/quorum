@@ -181,6 +181,11 @@ class AbstractWorkflowRepository(ABC):
         pass
 
     @abstractmethod
+    async def update_model_registry(self, registry_data: dict[str, Any]) -> bool:
+        """Update the model registry configuration."""
+        pass
+
+    @abstractmethod
     async def count_executions_by_matrix(self, matrix_id: str) -> int:
         """Count executions using a specific matrix ID."""
         pass
@@ -376,7 +381,24 @@ class TinyDBRepository(AbstractWorkflowRepository):
         return self.steps.all()
 
     async def get_step_by_id(self, step_id: str) -> dict[str, Any] | None:
-        return self.steps.get(Query().id == step_id)
+        # 1. Primary: Check 'steps' table
+        step = self.steps.get(Query().id == step_id)
+        if step:
+            return step
+
+        # 2. Fallback: Search for embedded steps in 'workflows' table
+        # (Support for V2 embedded patterns where steps live inside workflow)
+        all_wfs = self.workflows.all()
+        for wf in all_wfs:
+            steps = wf.get("steps", [])
+            if not isinstance(steps, list):
+                continue
+                
+            for s in steps:
+                if isinstance(s, dict) and s.get("id") == step_id:
+                    return s
+                    
+        return None
 
     async def create_step(self, step_data: dict[str, Any]) -> str:
         safe_data = self._serialize_for_tinydb(step_data)
@@ -513,7 +535,40 @@ class TinyDBRepository(AbstractWorkflowRepository):
         except Exception:
             pass
 
+    async def get_model_registry(self) -> dict[str, Any]:
+        """Retrieve the model registry configuration.
+        
+        Prioritizes configuration stored in 'system_config' table (id='model_registry').
+        Falls back to 'components' table for backwards compatibility.
+        Falls back to hardcoded defaults if missing from both.
+        """
+        # 1. Try to fetch from system_config table (PRIMARY source per seed_data.json)
+        try:
+            system_config_table = self.client.table("system_config")
+            config_entry = system_config_table.get(Query().id == "model_registry")
+            if config_entry:
+                # Remove ID if present to avoid pollution? Or keep it?
+                # Usually we return the payload.
+                return config_entry
+        except Exception:
+            pass
+
         return {}
+
+    async def update_model_registry(self, registry_data: dict[str, Any]) -> bool:
+        """Update the model registry configuration."""
+        try:
+            system_config_table = self.client.table("system_config")
+            
+            # Ensure ID is set
+            data = registry_data.copy()
+            data["id"] = "model_registry"
+            
+            # Upsert
+            system_config_table.upsert(data, Query().id == "model_registry")
+            return True
+        except Exception:
+            return False
 
     async def get_execution_status(self, execution_id: str) -> str | None:
         """Retrieve the status of an execution."""

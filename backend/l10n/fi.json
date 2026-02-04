@@ -17,5 +17,15 @@
     "Type": "Tyyppi",
     "Description": "Kuvaus",
     "Content": "Sisältö",
-    "Citation": "Viite"
+    "Citation": "Viite",
+    "System Instruction": "Järjestelmäohje",
+    "User Prompt": "Käyttäjäkehote",
+    "Chain Content": "Ketjun sisältö",
+    "Provider": "Palveluntarjoaja",
+    "API Key": "API-avain",
+    "Base URL": "Osoite (Base URL)",
+    "Temperature": "Lämpötila (Temperature)",
+    "Test Connection": "Testaa yhteys",
+    "Ad-Hoc Test": "Pikatesti (Ad-Hoc)",
+    "Model Name": "Mallin nimi"
 }

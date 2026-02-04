@@ -11,7 +11,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Body, status
 from pydantic import BaseModel, Field
 
-from backend.dependencies import RepositoryDep
+from backend.dependencies import PromptBuilderDep, RepositoryDep
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -147,6 +147,62 @@ async def create_custom_step(req: CustomStepCreateRequest, repository: Repositor
         raise AppException(
             message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             details={"error_code": error_code, "original_error": str(e)},
+        ) from e
+
+
+class StepPreviewResponse(BaseModel):
+    """Response model for step prompt preview."""
+
+    system_instruction: str = Field(
+        ...,
+        description="The full system prompt constructed from components.",
+        json_schema_extra={"x-ui-label": "System Instruction"}
+    )
+    user_prompt: str = Field(
+        ...,
+        description="The user prompt template logic.",
+        json_schema_extra={"x-ui-label": "User Prompt"}
+    )
+    agent_class: str = Field(..., description="The agent component class.")
+
+
+@router.post(
+    "/steps/{step_id}/preview",
+    summary="Preview Step Prompt",
+    response_description="Generated prompt preview.",
+    response_model=StepPreviewResponse
+)
+async def preview_step(
+    step_id: str,
+    repository: RepositoryDep,
+    prompt_builder: PromptBuilderDep
+):
+    """Previews the LLM prompt for a step.
+
+    Uses PromptBuilder to construct the full system prompt and fetch user prompt template.
+    """
+    logger.info(f"Generating preview for step: {step_id}")
+    try:
+        preview_data = await prompt_builder.preview_step_prompt(step_id)
+
+        # Hydrate Pydantic Model
+        return StepPreviewResponse(
+            system_instruction=preview_data.get("system_instruction", ""),
+            user_prompt=preview_data.get("user_prompt", ""),
+            agent_class=preview_data.get("agent_class", "Unknown")
+        )
+
+    except Exception as e:
+        from backend.exceptions import AppException, ResourceNotFoundError
+
+        if "not found" in str(e).lower():
+             # Map internal StepNotFoundError (if raised by service) or generic lookup failure
+             raise ResourceNotFoundError("Step", step_id)
+
+        error_code = "PREVIEW_GENERATION_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise AppException(
+            message=str(e), status_code=500, details={"error_code": error_code}
         ) from e
 
 

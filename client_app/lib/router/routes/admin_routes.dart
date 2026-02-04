@@ -1,9 +1,10 @@
 import 'package:client_app/features/admin/presentation/screens/overview_screen.dart';
+import 'package:client_app/features/admin/presentation/screens/system_inspector_screen.dart';
 import 'package:client_app/features/shell/presentation/scaffold_with_nav.dart';
 import 'package:client_app/features/studio/presentation/screens/workflow_studio_screen.dart';
-import 'package:client_app/features/auth/domain/models/user.dart'; // For Role checks if needed
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:client_app/features/admin/presentation/screens/model_registry_screen.dart';
 
 /// **Admin Shell Route (Manual Definition)**
 ///
@@ -34,8 +35,7 @@ final adminShellRoute = StatefulShellRoute.indexedStack(
       routes: [
         GoRoute(
           path: '/registry',
-          builder:
-              (context, state) => const _PlaceholderScreen(title: 'Registry'),
+          builder: (context, state) => const ModelRegistryScreen(),
         ),
       ],
     ),
@@ -60,6 +60,15 @@ final adminShellRoute = StatefulShellRoute.indexedStack(
           routes: [
             // Keep existing sub-routes if any were critical, or define strictly as per plan
           ],
+        ),
+      ],
+    ),
+    // Branch 5: System Inspector
+    StatefulShellBranch(
+      routes: [
+        GoRoute(
+          path: '/admin/system',
+          builder: (context, state) => const SystemInspectorScreen(),
         ),
       ],
     ),

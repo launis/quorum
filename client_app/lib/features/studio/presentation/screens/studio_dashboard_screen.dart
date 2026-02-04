@@ -7,6 +7,7 @@ class StudioDashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Cognitive Studio'),
@@ -25,38 +26,30 @@ class StudioDashboardScreen extends StatelessWidget {
             children: [
               _buildCard(
                 context,
-                title: 'Workflows',
+                title: l10n.studioDashboardWorkflowsTitle,
                 icon: Icons.schema,
-                description: 'Design and manage audit workflows.',
+                description: l10n.studioDashboardWorkflowsDesc,
                 onTap: () => context.go('/studio/workflows'),
               ),
               _buildCard(
                 context,
-                title: 'Steps',
+                title: l10n.studioDashboardStepsTitle,
                 icon: Icons.checklist,
-                description: 'Configure execution steps.',
+                description: l10n.studioDashboardStepsDesc,
                 onTap: () => context.go('/studio/steps'),
               ),
               _buildCard(
                 context,
-                title: 'Matrices',
+                title: l10n.studioDashboardMatricesTitle,
                 icon: Icons.grid_on,
-                description: 'Configure evaluation criteria and matrices.',
+                description: l10n.studioDashboardMatricesDesc,
                 onTap: () => context.go('/studio/matrices'),
               ),
               _buildCard(
                 context,
-                title: 'Components',
+                title: l10n.studioDashboardComponentsTitle,
                 icon: Icons.extension,
-                description: 'Manage re-usable prompts and rules.',
-                // For now, Components maps to matrices or custom generic component view?
-                // User asked for "Components" menu.
-                // Assuming it might share the Matrix/Sidebar view or be separate.
-                // Reusing WorkflowStudioScreen with specific tab or new screen.
-                // Since we don't have a component editor yet, maybe just point to matrices for now or show "Coming soon"?
-                // Or maybe the Sidebar will have a "Components" tab?
-                // The current Sidebar has "Workflows" and "Matrices".
-                // I'll point to /studio/components and handle it in router.
+                description: l10n.studioDashboardComponentsDesc,
                 onTap: () => context.go('/studio/components'),
               ),
             ],
@@ -79,7 +72,7 @@ class StudioDashboardScreen extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.all(16.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
