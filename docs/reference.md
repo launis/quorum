@@ -8,13 +8,13 @@ This document provides a reference for the application's V2.5 directory structur
 
 ```text
 quorum/
-├── backend/                # Modular Async Monolith Core (Python 3.14)
+├── backend/                # Modular Async Monolith Core (Python 3.13)
 │   ├── agents/             # Specialized Agent Classes (BaseAgent implementations)
 │   ├── api/                # FastAPI Routers (Control Plane)
 │   ├── core/               # Workflow Engine & Pipeline Runner (Logic)
 │   ├── database/           # Abstracted DB Wrapper (TinyDB / Firestore)
-│   ├── hooks/              # [LEGACY] Deterministic Logic (Moving to lib/ tools/)
-│   ├── llm/                # LLM Provider Adapters (Gemini 2.5, Vertex AI)
+│   ├── hooks/              # Deterministic Logic Implementations
+│   ├── llm/                # LLM Provider Adapters (Gemini 1.5, Vertex AI)
 │   ├── models/             # Pydantic V2 Data Models (State, Domain)
 │   ├── services/           # Business Logic Services (Auth, IAM, PromptBuilder)
 │   ├── config.py           # Configuration (Settings, Env Vars)

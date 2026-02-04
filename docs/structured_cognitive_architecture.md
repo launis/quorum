@@ -179,7 +179,7 @@ The system processes information through a pipeline of specialized agents:
 
 ### 1. Vartija (Guard Agent)
 **Role:** Security Gateway.
-Mitigates prompt injection and ensures PII privacy via `Presidio` hooks.
+Mitigates prompt injection and ensures PII privacy via Regex-based hooks.
 
 ### 2. Analyytikko (Analyst Agent)
 **Role:** Data Structuring.
@@ -207,7 +207,7 @@ Verifies factual accuracy (Google Search) and ethical alignment.
 
 ### 6. Kausaalinen Analyytikko (Causal Agent)
 **Role:** Causal Inference.
-Distinguishes correlation from causation using `DoWhy` refutation tests.
+Distinguishes correlation from causation using causal refutation logic.
 
 ### 7. Performatiivisuuden Tunnistaja (Detector Agent)
 **Role:** Anti-Gaming.
@@ -238,7 +238,7 @@ LLMs are inherently stateless. When `AnalystAgent` finishes and `JudgeAgent` beg
 
 ### Solution: Thinking Tokens & Explicit Traces
 
-1.  **Reasoning Models (Gemini 2.5 Thinking)**: 
+1.  **Reasoning Models (Gemini 1.5 Thinking)**: 
     *   **Mechanism**: The model generates a "Show Your Work" trace (`thought` signature) alongside the JSON.
     *   **Persistence**: We capture this trace and store it in `WorkflowState.reasoning_context`.
     *   **Transfer**: It is passed to the next agent, allowing it to "see" the logic that led to the conclusion.

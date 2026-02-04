@@ -6,7 +6,7 @@ This document describes the technical architecture of the Cognitive Quorum v2.5 
 
 ## 1. Core Architecture: Modular Async Monolith
 
-The system is built on modern Python standards (3.14+), emphasizing static typing, async concurrency, and distributed execution.
+The system is built on modern Python standards (3.13+), emphasizing static typing, async concurrency, and distributed execution.
 
 ### Backend (FastAPI + Arq)
 - **Framework:** FastAPI (HTTP) + Arq (Redis-based Async Workers).
@@ -43,7 +43,7 @@ All agents inherit from `BaseAgent` and enforce strict Input/Output state contra
 | **ProfilerAgent** | Profiler | Identifies user intent and cognitive biases. |
 | **LogicianAgent** | Logician | Constructs logical argument structures (Toulmin). |
 | **FalsifierAgent** | Falsifier | Attempts to refute hypotheses and tests reasoning durability. |
-| **CausalAgent** | Causal | Analyzes cause-effect relationships (DoWhy-hook). |
+| **CausalAgent** | Causal | Analyzes cause-effect relationships. |
 | **DetectorAgent** | Detector | Identifies performativity and pretense. |
 | **OverseerAgent** | Overseer | Fact-checking (Google Search) and ethical oversight. |
 | **PanelAgent** | Panel | "Fan-out" agent simulating a panel of experts. |
@@ -82,7 +82,7 @@ The refactoring to an Async Worker architecture addresses critical bottlenecks i
 Agents utilize deterministic "Hooks" for tasks requiring precision beyond LLM capabilities.
 
 *   **RAG (Retrieval-Augmented Generation):** Semantic document search (`backend/services/knowledge_base_service.py`).
-*   **Causal Inference (DoWhy):** Statistical causal analysis (`backend/hooks/causal.py`).
+*   **Linguistics:** Pattern analysis for performative language detection (`backend/hooks/linguistics.py`).
 *   **PII Protection (Presidio):** PII detection and masking (`backend/hooks/security.py`).
 *   **Google Search:** Real-time data retrieval (`backend/hooks/search.py`).
 
@@ -92,7 +92,7 @@ Agents utilize deterministic "Hooks" for tasks requiring precision beyond LLM ca
 
 Following the refactoring, the codebase adheres to strict standards:
 
-*   **Python 3.14:** Compliant with PEP 649 (Deferred Annotations).
+*   **Python 3.13:** Compliant with modern async standards.
 *   **Full Typing:** 100% Type Hinting coverage.
 *   **Google-Style Docstrings:** Monitored via Ruff (`D100-D106`).
 *   **English Codebase:** Internal docs are English; User-facing content supports localisation.
@@ -113,12 +113,12 @@ graph TD
         subgraph "Agent Execution"
             Runner --> Agent["Base Agent"]
             Agent --> Prompt["Prompt Builder"]
-            Agent --> LLM["LLM Provider (Gemini 2.5)"]
+            Agent --> LLM["LLM Provider (Gemini 1.5)"]
             
             Agent -- "Invoke Hook" --> Hooks["Deterministic Hooks"]
             Hooks --> PII["Security/PII"]
             Hooks --> RAG["Knowledge Base"]
-            Hooks --> Stats["Causal/Metrics"]
+            Hooks --> Stats["Linguistics/Metrics"]
         end
         
         Agent -- "Update State" --> Engine

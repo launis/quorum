@@ -16,20 +16,13 @@ These scripts are wrappers that configure the environment variables correctly be
 
 These scripts **wipe and re-populate** the target database using the data from `seed_data.json`.
 
-- **`seed_mock.py`**
-  - **Target:** Mock Database (`backend/database/db_mock.json`)
-  - **Usage:** Run when you want to reset your local development (mock) environment.
-  - **Command:** `python backend/seed/seed_mock.py`
-
-- **`seed_prod.py`**
-  - **Target:** Production Database (`data/db.json`)
-  - **Usage:** Run when you want to reset your local production environment to the clean state. **WARNING: Deletes all local production data.**
-  - **Command:** `python backend/seed/seed_prod.py`
-
-- **`seed_firestore.py`**
-  - **Target:** Google Cloud Firestore (Live Production)
-  - **Usage:** Run when you want to reset the live cloud database. Requires Google Credentials.
-  - **Command:** `python backend/seed/seed_firestore.py`
+- **`run_seed.py` (Unified CLI)**
+  - **Targets:** `mock`, `local`, `firestore`
+  - **Usage:** Replaces legacy individual scripts.
+  - **Commands:**
+    - Mock: `python backend/seed/run_seed.py mock`
+    - Local Prod: `python backend/seed/run_seed.py local`
+    - Firestore: `python backend/seed/run_seed.py firestore`
 
 ### Synchronization (Saving Work)
 

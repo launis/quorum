@@ -53,6 +53,18 @@ Research and evidentiary grounding.
 | `hypoteesit` | `list[Hypoteesi]` | Formulated research hypotheses. |
 | `rag_todisteet` | `list[RagTodiste]` | Evidence retrieved from RAG/Vector DB. |
 
+### 2.5. Profiler Agent (`ProfilerAnalysis`)
+Psychological and linguistic profiling.
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `intentio_analyysi` | `str` | Analysis of intent. |
+| `tunnetila_ja_savy` | `str` | Tone and sentiment. |
+| `tunnistetut_vinoumat` | `list[StructuredBias]` | List of cognitive biases. |
+| `psykologinen_profiili` | `str` | Psychological profile. |
+| `manipulaatio_yritykset` | `str` | Manipulation attempts. |
+| `teksti_metriikka` | `TextMetrics` | Objective metrics (word count, etc.). |
+
 ### 3. Logician Agent (`ArgumentaatioAnalyysi`)
 Logical structure mapping.
 
@@ -96,14 +108,34 @@ Authenticity and psychological profiling.
 | `pre_mortem_analyysi` | `PreMortemAnalyysi` | Weak signal detection. |
 | `yleisarvio_aitoudesta` | `Literal` | Organic vs. Performative assessment. |
 
-### 9. Judge Agent (`TuomioJaPisteet`)
-Scoring and Final Verdict (Legacy/Static).
+### 8a. Archivist Agent (`ArchivistOutput`)
+Precedent retrieval and compliance.
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
-| `pisteet` | `Pisteet` | Scoring breakdown (Analysis/Evaluation/Synthesis). |
-| `konfliktin_ratkaisut` | `list[KonfliktinRatkaisu]` | How contradictions were resolved. |
-| `mestaruus_poikkeama` | `MestaruusPoikkeama` | Detection of exceptional quality. |
+| `analysis` | `str` | Analysis of alignment. |
+| `compliance_score` | `int` | Compliance score (0-100). |
+| `recommendations` | `list[str]` | List of recommendations. |
+
+### 8c. Coach Agent (`CoachingPlan`)
+Feedback and improvement suggestions.
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `kannustava_palaute` | `str` | Positive feedback. |
+| `kehityskohteet_konkreettisesti` | `list[ActionGroup]` | Concrete steps grouped by category. |
+| `lopputuloksen_kehitysehdotukset` | `list[str]` | Concrete suggestions to improve the final product. |
+| `lahdeluettelo` | `list[str]` | Bibliography references used in this plan. |
+
+### 9. Judge Agents (`EvaluationResult`)
+Dynamic evaluation using Matrices (Cognitive, Standard, etc.). Returns `EvaluationResult` (see below).
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `matrix_id` | `str` | ID of the Evaluation Matrix used. |
+| `total_score` | `float` | Calculated aggregate score. |
+| `dimensions` | `list[DimensionResultItem]` | Score per dimension (e.g. "Agency", "Insight"). |
+| `critical_findings` | `list[str]` | High-importance feedback. |
 
 ---
 
@@ -140,6 +172,16 @@ The final executive summary.
 | `final_verdict` | `str` | Conclusive judgment. |
 | `confidence_score` | `float` | AI confidence (0.0 - 1.0). |
 | `xai_report_formatted` | `str` | Full Markdown report ready for rendering. |
+
+### 10. Interaction Analyst (`InteractionAnalysis`)
+Analysis of user interaction patterns.
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `tunnistetut_strategiat` | `list[str]` | Identified strategies. |
+| `ohjausliikkeet` | `int` | Control moves count. |
+| `driver_classification` | `Literal` | Driver profile (e.g., "Kuski", "Matkustaja"). |
+| `input_control_ratio` | `float` | Control ratio (Imperative / Total). |
 
 ---
 

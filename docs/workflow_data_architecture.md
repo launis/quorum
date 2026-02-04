@@ -1,8 +1,8 @@
 # Workflow Data Architecture: Courtroom Audit Chains
 
 **Workflows Covered:**
-1.  **Courtroom 2.0 (Sequential):** `sequential_audit_chain` (ID: 1)
-2.  **Courtroom 3.0 (Fused):** `fused_audit_chain_dual` (ID: 6) / `fused_audit_chain` (ID: 2)
+1.  **Courtroom 2.0 (Sequential):** `sequential_audit_chain`
+2.  **Courtroom 3.0 (Fused):** `fused_audit_chain_dual`
 
 **Description:** This document details the data lineage and information flow. It illustrates how the system branches between a "Sequential" execution of specialist critics and a "Fused" parallel execution via the Panel Agent.
 

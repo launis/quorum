@@ -28,7 +28,7 @@
 
 ### Hook-rekisteri (HOOK_MAPPING)
 
-Kaikki hookit on rekisteröity keskitetysti tiedostossa `backend/core/registry.py`:
+Kaikki hookit on rekisteröity keskitetysti tiedostossa `backend/core/runner.py` (metodissa `_execute_hook`):
 
 ```python
 HOOK_MAPPING = {
@@ -334,7 +334,7 @@ def my_custom_hook(state: WorkflowState) -> WorkflowState:
 ### 2. Rekisteröi HOOK_MAPPING:iin
 
 ```python
-# backend/core/registry.py
+# backend/core/runner.py
 HOOK_MAPPING = {
     # ... muut hookit ...
     "my_custom_hook": ("backend.hooks.my_hook", "my_custom_hook"),

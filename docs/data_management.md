@@ -8,7 +8,7 @@ The engine is **data-driven**: logic definitions are stored in JSON, but strict 
 Contains the "factory settings", including the **Regional Model Registry**:
 *   **Workflow Definitions**: Sequence of steps.
 *   **Prompt Templates**: Jinja2 references.
-*   **Model Registry**: Validated models per region (e.g. Gemini 2.5 for Hamina).
+*   **Model Registry**: Validated models per region (e.g. Gemini 1.5 for Hamina).
 *   **Components**: Reusable instructions and matrices.
 
 ### 2. Runtime Databases (3-Tier Environment)
@@ -16,18 +16,18 @@ The system supports three distinct runtime environments, all seeded from `seed_d
 
 *   **A. Local Mock (`data/db_mock.json`)**:
     *   For offline / internal testing.
-    *   Managed by `run_mock_locally.bat`.
-    *   Seeded via `tools/seed_mock.py`.
+    *   Managed by `run_mock.bat`.
+    *   Seeded via `python backend/seed/run_seed.py mock`.
 
 *   **B. Local Prod (`data/db.json`)**:
     *   Production-grade local testing with live Vertex AI (Hamina).
-    *   Managed by `run_locally.bat`.
-    *   Seeded via `run_rebuild_prod_db.py`.
+    *   Managed by `run_local.bat`.
+    *   Seeded via `python backend/seed/run_seed.py local`.
 
 *   **C. Cloud Prod (Firestore)**:
     *   Production database in Google Cloud (`europe-north1`).
     *   Managed by `run_firestore.bat`.
-    *   Seeded via `scripts/seed_firestore.py` (Push Sync).
+    *   Seeded via `python backend/seed/run_seed.py firestore`.
 
 > **Consistency Guarantee:** All environments share the exact same schemas and base data (workflows, prompts) derived from `seed_data.json`.
 

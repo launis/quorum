@@ -45,8 +45,8 @@ uv run pytest tests/test_api.py -v
 The Flutter client test suite ensures UI logic, state management, and end-to-end flows work as expected.
 
 ### Test Structure
-*   **`client_app/test/`**: Contains Unit and Widget tests.
-*   **`client_app/integration_test/`**: Contains full End-to-End tests.
+*   **`client_app/test/`**: Contains Unit and Widget tests (Structure exists, coverage expanding).
+*   **`client_app/integration_test/`**: [Planned] Contains full End-to-End tests.
 
 ### 2.1 Unit Tests
 Focus on testing business logic, Repositories, and Riverpod Providers in isolation.
@@ -73,7 +73,7 @@ Runs the app on a real device or emulator to verify critical user flows.
 **Command:**
 ```bash
 cd client_app
-flutter test integration_test/app_test.dart
+7.  [Planned] `flutter test integration_test/app_test.dart`
 ```
 *Note: This requires a running emulator or connected device.*
 

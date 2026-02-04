@@ -13,7 +13,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 **Objective:** Build a robust, scientific-grade analysis engine capable of multi-agent reasoning.
 
 ### 0.0 Core Foundations (The "Brain")
-- [x] **LLM Integration**: Implemented flexible `LLMProvider` (Gemini support) with structured JSON output enforcement.
+- [x] **LLM Integration**: Implemented flexible `LLMProvider` (Gemini 1.5 support) with structured JSON output enforcement.
 - [x] **Workflow Engine**: Built the core sequential execution logic handling inputs, outputs, and step transitions.
 - [x] **Step Architecture**: Defined modular step definitions (`step_judge`, `step_profiler`) in `seed_data.json`.
 - [x] **Legacy UI**: (Deprecated) Initial Streamlit frontend used for prototyping. Replaced by Client App.
@@ -144,7 +144,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **Authentication State**: Build `auth_provider` (StreamProvider) using `firebase_auth` to drive Reactive Redirection (Guard).
 - [x] **Environment Config**: Use `flutter_dotenv` to manage Backend URL (`http://localhost:8000` vs Cloud) via `.env`.
 - [x] **Seeding Consolidation (Jan 17)**: Replaced fragmented scripts (`seed_all`, `seed_mock`, `seed_prod`) with unified `backend/seed/run_seed.py` CLI supporting explicit `local`, `mock`, and `firestore` targets. Verified Zero-Fallback behavior.
-- [ ] **Critical Auth Fix**: Remove temporary auth bypass in `workflow_controller.dart` and implement robust checking before Production.
+- [ ] **Critical Auth Fix**: Remove temporary auth bypass in `workflow_controller.dart` and implement robust checking before Production. (Current Status: **PENDING - Bypass Active**).
 
 ### 2.3 Dashboard & Monitoring
 - [x] **Dashboard UI**: Grid view of System Workflows fetching data via `AsyncValue` providers.
@@ -302,10 +302,8 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 **Objective:** Poista Legacy-koodi ja siirry tÃ¤ysin dynaamiseen arkkitehtuuriin.
 
 ### 7.1 Legacy Removal
-- [ ] **Delete**: `backend/agents/base.py` (Old BaseAgent).
-- [ ] **Delete**: `backend/core/runner.py` (Old Runner).
-- [ ] **Delete**: `backend/hooks/` directory (Moved to `lib/`, `core/`, `tools/`).
-- [ ] **Delete**: `backend/components/` (If unused).
+- [ ] **Delete**: `backend/agents/base.py` (Old BaseAgent). (Current Status: **PENDING - File Exists**).
+- [x] **Delete**: `backend/components/` (Removed).
 
 ---
 

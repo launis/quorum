@@ -1,6 +1,6 @@
 # System Architecture (V2.6)
 
-Cognitive Quorum v2.6 is a **Modular Monolith** built on Python 3.14, designed for deterministic, verifiable AI workflows. It combines a rigorous Pydantic-based backbone with a flexible, **Configuration-Driven Intelligence** layer.
+Cognitive Quorum v2.6 is a **Modular Monolith** built on Python 3.13, designed for deterministic, verifiable AI workflows. It combines a rigorous Pydantic-based backbone with a flexible, **Configuration-Driven Intelligence** layer.
 
 ## High-Level Diagram
 
@@ -41,7 +41,7 @@ The backend is split into two primary runtime components:
 ### 2. State Management (WorkflowState)
 Quorum uses a strict **`WorkflowState`** Pydantic model (`backend/models/state.py`).
 
-*   **Audit Results List**: V2.6 introduces a dynamic `audit_results` list, allowing multiple Judges or Panels to contribute to the same state without overwriting each other.
+*   **Audit Results Dictionary**: V2.6 introduces a dynamic `audit_results` dictionary, allowing multiple Judges or Panels to contribute to the same state without overwriting each other.
 *   **Persisted & Replayable**: The state is serialized to JSON after every step.
 *   **Optimistic Locking**: Uses a `version` field to prevent race conditions during distributed execution.
 
@@ -55,7 +55,7 @@ Agents are "thin" wrappers that coordinate:
 To prevent "hallucinated logic", complex operations are offloaded to Python code:
 *   **`archival.py`**: Similarity search via Vector DB.
 *   **`security.py`**: PII masking via Microsoft Presidio.
-*   **`causal.py`**: Statistical validation via DoWhy.
+*   **`linguistics.py`**: Pattern analysis for performative language detection.
 
 ### 5. BFF & Reporting Layer (PDF)
 The Backend for Frontend (BFF) transforms raw execution state into human-readable views.
@@ -75,7 +75,7 @@ This allows for "No-Code" tuning of the AI's personality and evaluation criteria
 
 ## Technology Stack
 
-*   **Language**: Python 3.14 & Dart (Flutter)
+*   **Language**: Python 3.13 & Dart (Flutter)
 *   **Observability**: Logfire (Distributed Tracing)
 *   **API**: FastAPI + Pydantic v2 (Strict Mode)
 *   **Client**: Flutter (Riverpod 3.0 + GoRouter)

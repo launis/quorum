@@ -34,7 +34,7 @@ graph LR
     Mandates["System Mandates"] --> Builder
     
     Builder -- Render --> Final["Final Prompt String"]
-    Final --> LLM["LLM (Gemini 2.5)"]
+    Final --> LLM["LLM (Gemini 1.5)"]
 ```
 
 ---
@@ -77,7 +77,7 @@ This ensures >99% reliability. Failures trigger a **Heuristic Repair** loop.
 
 ## 4. Reasoning Tokens (Chain-of-Thought)
 
-V2.6 supports **Reasoning Token Extraction** (e.g., Gemini 2.5 Thinking models).
+V2.6 supports **Reasoning Token Extraction** (e.g., Gemini 1.5 Thinking models / CoT).
 
 *   **The Problem**: Standard LLM outputs lose the "hidden thought process".
 *   **The Solution**: Agents generate a `reasoning_trace` (CoT) alongside their structured JSON.

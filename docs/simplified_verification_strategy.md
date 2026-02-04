@@ -21,7 +21,7 @@ Used for verifying RBAC rules and Business Logic without spinning up the full Fa
         # 3. Assert Permissions
     ```
 
-## Client Verification (`simple_repo_test.dart`)
+## Client Verification (Example Pattern)
 Used for verifying Riverpod Repositories and Logic.
 -   **Standard**: **Mocktail** (Strictly Preferred over Mockito/Manual Fakes).
 -   **Key Benefit**: No code generation (`flutter pub run build_runner`) needed. Type-safe.

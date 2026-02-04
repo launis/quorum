@@ -12,9 +12,11 @@ Agents in V2.6 are specialized classes inheriting from `BaseAgent`, designed to 
 | `AnalystAgent` | `analyst.py` | Data ingestion and preliminary analysis. | `AnalysisResult` |
 | `ProfilerAgent` | `profiler.py` | User intent profiling and bias detection. | `ProfilerAnalysis` |
 | `LogicianAgent` | `logician.py` | Toulmin argument mapping and logical structure audit. | `ArgumentaatioAnalyysi` |
-| `FalsifierAgent` | `falsifier.py` | Stress-testing arguments (Devil's Advocate). | `FalsifiointiAuditointi` |
-| `CausalAgent` | `causal.py` | Causal graph generation and DoWhy refutation. | `KausaalinenAuditointi` |
-| `PanelAgent` | `panel.py` | **[Fused]** Simulates a parallel panel of experts (Logic + Causal + Ethics). | `PanelAudit` |
+| `LogicalFalsifierAgent` | `critics.py` | Stress-testing arguments (Devil's Advocate). | `FalsifiointiAuditointi` |
+| `CausalAnalystAgent` | `critics.py` | Causal graph generation. | `KausaalinenAuditointi` |
+| `PerformativityDetectorAgent` | `critics.py` | Identifies performativity and pretense. | `PerformatiivisuusAuditointi` |
+| `FactualOverseerAgent` | `critics.py` | Fact-checking (Google Search) and ethical oversight. | `EtiikkaJaFakta` |
+| `PanelAgent` | `panel.py` | **[Fused]** Simulates a parallel panel of experts. | `PanelAudit` |
 | `JudgeAgent` | `judge.py` | **[Polymorphic]** Final verdict using dynamic `matrix_id` from config. | `EvaluationResult` |
 | `CoachAgent` | `coach.py` | Feedback generation based on Judge's verdict. | `CoachFeedback` |
 | `XAIReporter` | `xai.py` | Generates human-readable MD reports from `EvaluationResult`. | `XAIReport` |
@@ -71,9 +73,8 @@ Hooks are pure Python functions invoked by agents to perform tasks outside the L
 *   **RAG Interface:** Connects to the **Vector Database (ChromaDB)**.
 *   **Similarity Search:** Retrieves relevant case laws or precedents based on semantic embeddings.
 
-### `backend/hooks/causal.py`
-*   **DoWhy Integration:** Performs formal causal inference.
-*   **Refutation Tests:** Runs Placebo and Random Subset tests to validate causal claims.
+### `backend/hooks/linguistics.py`
+*   **Pattern Analysis:** Detects performative language and rhetorical devices.
 
 ### `backend/hooks/search.py`
 *   **Google Search:** Real-time fact-checking via Custom Search API.
@@ -100,7 +101,7 @@ The **Worker Service** (Execution Plane) is the heavy-lifting engine of Quorum.
 All components communicate using **Pydantic V2** models.
 
 *   **`WorkflowState`**: The MONOLITHIC state object passed between agents.
-    *   **V2.6 Update:** Stores `audit_results` (List of EvaluationResults) instead of just single-step outputs, enabling multi-matrix audits.
+    *   **V2.6 Update:** Stores `audit_results` (Dictionary of EvaluationResults) instead of just single-step outputs, enabling multi-matrix audits.
 *   **`EvaluationResult`**: The standardized output for any Judging process, containing `dimensions` (List[DimensionResultItem]) and `score`.
 
 ---
@@ -108,5 +109,5 @@ All components communicate using **Pydantic V2** models.
 ## 6. LLM Provider (`backend/llm/`)
 
 A centralized adapter pattern for model access.
-*   **Supported Models:** Google Gemini 2.5 (Flash/Pro) via **Regional Discovery** (Hamina / europe-north1).
+*   **Supported Models:** Google Gemini 1.5 (Flash/Pro) via **Regional Discovery** (Hamina / europe-north1).
 *   **Features:** **Strict JSON Mode** enforcement, **Reasoning Token** extraction ("Show Your Work"), and exponential backoff retries.

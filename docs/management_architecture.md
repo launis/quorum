@@ -95,9 +95,9 @@ The system maintains a **3-Tier Environment** model to ensure safe promotion of 
 
 | Environment | Database | Purpose | Seeding Command |
 | :--- | :--- | :--- | :--- |
-| **Local Mock** | `data/db_mock.json` | Sandbox for offline testing and development. | `tools/seed_mock.py` |
-| **Local Prod** | `data/db.json` | Local testing with Live LLMs (Vertex AI). | `run_rebuild_prod_db.py` |
-| **Cloud Prod** | Firestore (GCP) | Production traffic in `europe-north1`. | `scripts/seed_firestore.py` |
+| **Local Mock** | `data/db_mock.json` | Sandbox for offline testing and development. | `python backend/seed/run_seed.py mock` |
+| **Local Prod** | `data/db.json` | Local testing with Live LLMs (Vertex AI). | `python backend/seed/run_seed.py local` |
+| **Cloud Prod** | Firestore (GCP) | Production traffic in `europe-north1`. | `python backend/seed/run_seed.py firestore` |
 
 ## Operational Management (Process Hygiene)
 
