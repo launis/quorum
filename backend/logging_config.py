@@ -20,7 +20,7 @@ class ContextFilter(logging.Filter):
 
     def filter(self, record):
         """Filter record to inject execution or request ID."""
-        from backend.context import get_execution_context, get_request_context
+        from backend.context import get_request_context
 
         exec_id = get_execution_context()
         req_id = get_request_context()
@@ -35,7 +35,7 @@ class ContextFilter(logging.Filter):
         else:
             record.context_id = "SYSTEM"
             record.execution_id = "SYSTEM"
-        
+
         return True
 
 

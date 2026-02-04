@@ -1,8 +1,11 @@
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
+
 import pytest
 from httpx import AsyncClient
+
 from backend.dependencies import get_async_repository
 from backend.main import app
+
 
 @pytest.fixture
 def mock_repo():

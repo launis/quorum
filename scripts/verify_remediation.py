@@ -3,10 +3,11 @@ import re
 import sys
 from pathlib import Path
 
+
 def check_file(path: str, forbidden_patterns: list[tuple[str, str]], required_patterns: list[tuple[str, str]] = []):
     print(f"Checking {path}...")
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             content = f.read()
     except FileNotFoundError:
         print(f"ERROR: File {path} not found.")
@@ -32,7 +33,7 @@ def check_file(path: str, forbidden_patterns: list[tuple[str, str]], required_pa
 
 def verify():
     base_dir = Path("c:/src/quorum")
-    
+
     # 1. Check admin_router.py
     admin_router = base_dir / "backend/api/admin_router.py"
     admin_violations = [
@@ -45,7 +46,7 @@ def verify():
         (r'await repo\.count_workflows', "Repository Method Call (count)"),
         (r'await repo\.get_prompt_template', "Repository Method Call (get_prompt)"),
     ]
-    
+
     # 2. Check tools_router.py
     tools_router = base_dir / "backend/api/tools_router.py"
     tools_violations = [

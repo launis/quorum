@@ -1,20 +1,18 @@
 """Retrieval Agent implementation."""
 
 import logging
-from typing import Any
 
 # 2. Third Party
 from pydantic import BaseModel
 
 from backend.agents.base import BaseAgent
+from backend.database.factory import get_repository
+from backend.database.wrapper import get_db_client
+from backend.exceptions import AgentExecutionError
+from backend.models.domain import ContextData, Precedent
 
 # 3. Local Imports
-from backend.models.state import WorkflowState
-from backend.models.domain import ContextData, Precedent
 from backend.settings import get_settings
-from backend.database.wrapper import get_db_client
-from backend.database.factory import get_repository
-from backend.exceptions import AgentExecutionError
 
 logger = logging.getLogger(__name__)
 
@@ -52,19 +50,19 @@ class RetrievalAgent(BaseAgent):
         """
         # --- STANDARD LOGGING & HOOKS (Manual Implementation) ---
         logger.info(f"[{self.__class__.__name__}] Starting execution...")
-        # Note: prepare_context usually just logs or formats prompt. 
+        # Note: prepare_context usually just logs or formats prompt.
         # RetrievalAgent doesn't use prompt, but we leave hook if needed.
-        
+
         logger.info(f"[{self.__class__.__name__}] >>> EXECUTION START <<<")
         # --------------------------------------------------------
 
         # 1. Access Inputs
         org_id = input_data.get("organization_id")
-        
-        # Fallback: Check inputs 
+
+        # Fallback: Check inputs
         if not org_id and "inputs" in input_data:
              org_id = input_data["inputs"].get("organization_id")
-             
+
         # Check execution_context
         if not org_id and execution_context:
              org_id = execution_context.get("organization_id")
@@ -137,10 +135,10 @@ class RetrievalAgent(BaseAgent):
             logger.info(f"[{self.__class__.__name__}] Complete. Found {len(selected_precedents)} precedents.")
 
             # 6. Construct Output
+            from datetime import datetime, timezone
+
             from backend.models.domain import Metadata
-            from datetime import datetime
-            from datetime import timezone
-            
+
             # Create dummy metadata (will be overwritten by BaseAgent._apply_python_authority)
             dummy_meta = Metadata(
                 luontiaika=datetime.now(timezone.utc),
@@ -158,7 +156,7 @@ class RetrievalAgent(BaseAgent):
                 semanttinen_tarkistussumma="calc_pending", # Will be updated by authority
                 reasoning_trace="Deterministic retrieval of organizational precedents."
             )
-            
+
             # IMPORTANT: Return dict (or model). Engine handles storage.
             return result_data.model_dump()
 

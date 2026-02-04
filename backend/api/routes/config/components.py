@@ -3,7 +3,8 @@
 import logging
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Path, Query as APIQuery
+from fastapi import APIRouter, Path
+from fastapi import Query as APIQuery
 from pydantic import BaseModel, Field
 from tinydb import Query
 

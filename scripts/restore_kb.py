@@ -1,18 +1,19 @@
 import json
 import shutil
 
+
 def restore_kb():
     backup_path = 'c:/src/quorum/backend/seed/seed_data.json.bak_full'
     current_path = 'c:/src/quorum/backend/seed/seed_data.json'
-    
+
     print("Loading backup...")
-    with open(backup_path, 'r', encoding='utf-8') as f:
+    with open(backup_path, encoding='utf-8') as f:
         backup = json.load(f)
-        
+
     print("Loading current...")
-    with open(current_path, 'r', encoding='utf-8') as f:
+    with open(current_path, encoding='utf-8') as f:
         current = json.load(f)
-        
+
     # Find KB in backup
     kb = None
     if 'components' in backup:
@@ -21,12 +22,12 @@ def restore_kb():
                 kb = c
                 print("Found KB in Backup.")
                 break
-    
+
     if kb:
         # Inject into current
         if 'components' not in current:
             current['components'] = []
-        
+
         # Check if already exists (it shouldn't, based on verification)
         exists = False
         for c in current['components']:
@@ -34,11 +35,11 @@ def restore_kb():
                 exists = True
                 print("KB already exists in current (Unexpected).")
                 break
-        
+
         if not exists:
             current['components'].append(kb)
             print(" injected KB into current components.")
-            
+
             # Save
             shutil.copy(current_path, current_path + ".bak_restore")
             with open(current_path, 'w', encoding='utf-8') as f:

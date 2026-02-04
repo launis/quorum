@@ -36,7 +36,7 @@ class ComponentRegistry:
                 db_path = os.path.join(os.getcwd(), "data", "db.json")
 
             if os.path.exists(db_path):
-                with open(db_path, "r", encoding="utf-8") as f:
+                with open(db_path, encoding="utf-8") as f:
                     data = json.load(f)
                     self._components = data.get("components", {})
                 logger.info(f"[ComponentRegistry] Loaded {len(self._components)} components from {db_path}")

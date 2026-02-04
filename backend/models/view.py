@@ -1,6 +1,8 @@
 from enum import Enum
-from typing import List, Dict, Any, Optional
+from typing import Any
+
 from pydantic import BaseModel, Field
+
 
 class SectionType(str, Enum):
     SCORE_CARD = "SCORE_CARD"
@@ -24,21 +26,19 @@ class SectionType(str, Enum):
     DRIVER_PROFILE = "DRIVER_PROFILE"             # Interaction / Driver Classification
 
 class UiSection(BaseModel):
-    """
-    Abstract UI Section.
+    """Abstract UI Section.
     Frontend renders the component based on 'type'.
     """
     id: str = Field(..., description="Unique identifier for the section (e.g. 'verdict-card')")
     type: SectionType = Field(..., description="Determines which UI component to render")
     title: str = Field(..., description="User-facing title of the section")
-    data: Dict[str, Any] = Field(default_factory=dict, description="Flexible payload specific to the section type")
+    data: dict[str, Any] = Field(default_factory=dict, description="Flexible payload specific to the section type")
 
 class ReportView(BaseModel):
-    """
-    Top-level View Model for the Execution Report.
+    """Top-level View Model for the Execution Report.
     This replaces the raw 'Execution' object for frontend consumption.
     """
     view_id: str = Field(..., description="The Execution ID")
     title: str = Field(default="Auditintiraportti", description="Page title")
     status_theme: str = Field(default="success", description="Visual theme: 'success' | 'warning' | 'danger'")
-    sections: List[UiSection] = Field(default_factory=list, description="Ordered list of UI sections")
+    sections: list[UiSection] = Field(default_factory=list, description="Ordered list of UI sections")

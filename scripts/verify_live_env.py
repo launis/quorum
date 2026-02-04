@@ -1,12 +1,12 @@
-import requests
 import sys
-import json
+
+import requests
 
 BASE_URL = "http://127.0.0.1:8000"
 
 def verify_live_env():
     print(f"[*] Verifying connection to {BASE_URL} (Timeout: 20s)...")
-    
+
     # 1. Check Root / Docs Access
     try:
         r = requests.get(f"{BASE_URL}/docs", timeout=20)
@@ -15,7 +15,7 @@ def verify_live_env():
         else:
             print(f"[❌] Connection Check: FAILED (Status: {r.status_code})")
             sys.exit(1)
-            
+
     except Exception as e:
         print(f"[❌] Connection Check: FAILED (Error: {e})")
         print("    -> Ensure run_local.bat is running!")
@@ -29,11 +29,11 @@ def verify_live_env():
         # Let's try endpoint defined in execution_router.py: @workflow_router.get("/")
         # In main.py: app.include_router(execution_router.workflow_router)
         # Prefix for workflow_router was not explicitly seen in snippet, assuming it's imported from execution_router.
-        
+
         # Let's try the common endpoint: /builder/workflows (Builder Router)
         endpoint = "/builder/workflows"
         r = requests.get(f"{BASE_URL}{endpoint}", timeout=5)
-        
+
         # If 404, valid fallback might be /v2/workflow or /config/workflows (legacy)
         if r.status_code == 404:
             print(f"[!] {endpoint} not found, trying /config/workflows...")
@@ -43,7 +43,7 @@ def verify_live_env():
         if r.status_code == 200:
             workflows = r.json()
             print(f"[✅] Workflow List: SUCCESS ({len(workflows)} found)")
-            
+
             ids = [w.get('id') for w in workflows]
             target_id = "sequential_audit_chain"
             if target_id in ids:
@@ -51,7 +51,7 @@ def verify_live_env():
             else:
                  print(f"[❌] Target Workflow '{target_id}' MISSING in list: {ids}")
                  # This would mean db.json sync issue
-                 
+
         else:
             print(f"[❌] Workflow List: FAILED (Status: {r.status_code})")
             print(f"    Body: {r.text[:200]}")
@@ -64,7 +64,7 @@ def verify_live_env():
     try:
         endpoint = "/executions/recent"
         r = requests.get(f"{BASE_URL}{endpoint}", timeout=5)
-        
+
         if r.status_code == 200:
              execs = r.json()
              print(f"[✅] Recent Executions: SUCCESS ({len(execs)} items)")

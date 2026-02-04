@@ -10,9 +10,9 @@ def patch_db():
         return
 
     try:
-        with open(DB_PATH, "r", encoding="utf-8") as f:
+        with open(DB_PATH, encoding="utf-8") as f:
             data = json.load(f)
-        
+
         executions = data.get("executions", {})
         if not executions:
             print("No executions found.")
@@ -35,7 +35,7 @@ def patch_db():
 
         # 1. Hoist Fields to Top Level (Done previously, but good to ensure)
         hoist_fields = [
-            "final_verdict", 
+            "final_verdict",
             "confidence_score",
             "executive_summary",
             "analysis_strengths",
@@ -57,23 +57,23 @@ def patch_db():
         if "results" in latest_exec:
             # Report Alias
             latest_exec["results"]["Report"] = step_xai
-            
+
             # Confidence Alias (score -> confidence) for Frontend
             if "confidence_score" in step_xai:
                 step_xai["confidence"] = step_xai["confidence_score"]
                 latest_exec["results"]["Report"]["confidence"] = step_xai["confidence_score"]
-                print(f"Aliased 'confidence_score' to 'confidence'.")
+                print("Aliased 'confidence_score' to 'confidence'.")
 
             print("Aliased 'step_xai' to 'Report' inside results.")
-            
+
             # System Status Alias (step_guard -> System_Status)
             step_guard = latest_exec.get("results", {}).get("step_guard")
             if step_guard and "security_check" in step_guard:
                  latest_exec["results"]["System_Status"] = step_guard["security_check"]
                  print("Aliased 'step_guard.security_check' to 'System_Status'.")
-            
+
             changes_made = True
-        
+
         if changes_made:
             executions[latest_id] = latest_exec
 

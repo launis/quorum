@@ -2,9 +2,6 @@
 
 import json
 import logging
-import os
-
-from googleapiclient.discovery import build
 
 from backend.models.state import WorkflowState
 
@@ -31,7 +28,6 @@ def execute_google_search(state: WorkflowState) -> WorkflowState:
         WorkflowState: Updated state with search results.
 
     """
-
     logging.debug("[SearchHook] Running execute_google_search...")
 
     from backend.hooks.search_client import GoogleSearchTool
@@ -53,7 +49,7 @@ def execute_google_search(state: WorkflowState) -> WorkflowState:
                 queries.append(hyp.hakusana_ehdotus)
     else:
         logging.debug("   [HOOK] No hypotheses found. Using fallback.")
-       
+
     if not queries:
         return state
 

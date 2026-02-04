@@ -10,31 +10,31 @@ def migrate_db():
         return
 
     try:
-        with open(DB_PATH, 'r', encoding='utf-8') as f:
+        with open(DB_PATH, encoding='utf-8') as f:
             data = json.load(f)
     except Exception as e:
         print(f"Failed to load DB: {e}")
         return
 
     workflows = data.get("workflows", {})
-    
+
     # 1. Build Template Map from a known good workflow (Workflow 2 or 3)
     # We look for ANY workflow that has object-based steps to use as a source of truth for definitions.
     step_templates = {}
-    
+
     # Scan all workflows for object steps to build a library of definitions
     for wf_id, wf in workflows.items():
         steps = wf.get("steps", [])
         if not steps:
             continue
-            
+
         # If first item is dict, this is a modern workflow
         if isinstance(steps[0], dict):
             for step in steps:
                 step_id = step.get("id")
                 if step_id and step_id not in step_templates:
                     step_templates[step_id] = step
-    
+
     print(f"Found {len(step_templates)} step templates.")
 
     # 2. Iterate and Migrate
@@ -61,18 +61,18 @@ def migrate_db():
                         "task_key": task_key,
                         "inputs": {
                             "history_text": "$history_text",
-                            "product_text": "$product_text", 
+                            "product_text": "$product_text",
                             "reflection_text": "$reflection_text"
                         },
                         "config": {"model_strategy": "fast"}
                     })
-            
+
             wf["steps"] = new_steps
             migrated_count += 1
-        
+
         # Also clean up "default_model_mapping" as it's deprecated by Step Config
         if "default_model_mapping" in wf:
-             # We can optionaly remove it, but user didn't explicitly ask. 
+             # We can optionaly remove it, but user didn't explicitly ask.
              # Let's leave it for now to avoid side effects, staying focused on Steps.
              pass
 

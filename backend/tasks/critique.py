@@ -6,17 +6,11 @@ Performs multi-perspective critique (Logic, Ethics, Causal, Performativity).
 
 import logging
 
-from pydantic import BaseModel
-
 from backend.core.registry import TaskRegistry
-from backend.dependencies import get_async_repository
-from backend.llm.client import LLMClient
-from backend.models.domain import PanelAudit, TodistusKartta
-from backend.services.agent_registry import AgentRegistry
 
 logger = logging.getLogger(__name__)
 
-# Legacy functional 'panel' task removed. 
+# Legacy functional 'panel' task removed.
 # The 'panel' task is now exclusively handled by PanelAgent in backend/tasks/panel.py.
 
 

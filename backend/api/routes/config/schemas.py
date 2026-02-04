@@ -94,6 +94,7 @@ def get_model_schema(
 def get_schemas(accept_language: Annotated[str | None, Header()] = "en"):
     """Get all available JSON Schemas (Global Registry)."""
     import inspect
+
     from backend.models import auth as auth_schemas
     from backend.models import domain as schemas
     from backend.models import settings as setting_schemas

@@ -74,15 +74,15 @@ class JudgeAgent(BaseAgent):
             result["matrix_id"] = execution_context["matrix_id"]
         elif "matrix_id" not in result:
              result["matrix_id"] = "unknown_matrix"
-        
+
         # STRICT SCALE ENFORCEMENT (User Mandate: "ikinä ei saa palata default arvoihin")
         # We must fetch the Truth from the Database. If we can't, we crash.
         matrix_id = result.get("matrix_id")
         repo = kwargs.get("repository")
-        
+
         if not matrix_id or not repo:
              raise AgentExecutionError(
-                detail="JUDGE_SCALE_RESOLUTION_FAILED", 
+                detail="JUDGE_SCALE_RESOLUTION_FAILED",
                 original_error=ValueError("Cannot resolve scale: Missing matrix_id or repository.")
             )
 
@@ -92,7 +92,7 @@ class JudgeAgent(BaseAgent):
             comp = await repo.get_component_by_id(matrix_id)
             if not comp or not comp.get("content"):
                  raise ValueError(f"Matrix component '{matrix_id}' not found or empty.")
-            
+
             scale = comp.get("content", {}).get("scale")
             if not scale or "min" not in scale or "max" not in scale:
                  raise ValueError(f"Matrix '{matrix_id}' has no defined scale in DB.")
@@ -104,18 +104,21 @@ class JudgeAgent(BaseAgent):
         except Exception as e:
             logger.critical(f"[JudgeAgent] STRICT SCALE RESOLUTION FAILED: {e}")
             raise AgentExecutionError(
-                detail="JUDGE_STRICT_SCALE_FAILURE", 
+                detail="JUDGE_STRICT_SCALE_FAILURE",
                 original_error=e
             )
 
-        if "critical_findings" not in result: result["critical_findings"] = []
-        if "dimensions" not in result: result["dimensions"] = []
-        if "total_score" not in result: result["total_score"] = 0
+        if "critical_findings" not in result:
+            result["critical_findings"] = []
+        if "dimensions" not in result:
+            result["dimensions"] = []
+        if "total_score" not in result:
+            result["total_score"] = 0
 
-        # Note: We deliberately drop 'pisteet' from the final standard object 
+        # Note: We deliberately drop 'pisteet' from the final standard object
         # unless we want to keep it for backwards compat. EvaluationResult doesn't have it.
         # But BaseJSON allows extra fields. Let's keep it for safety if debugging.
-        
+
         return result
 
     async def prepare_context(self, input_data: dict, execution_context: dict | None, **kwargs) -> str | None:
@@ -204,7 +207,7 @@ class JudgeAgent(BaseAgent):
             evidence = kwargs.get(key)
             if not evidence:
                 evidence = input_data.get(key)
-            
+
             if evidence:
                 content = serialize_evidence(evidence)
                 eval_ctx.append(f"### {title}:\n{content}")
@@ -214,7 +217,7 @@ class JudgeAgent(BaseAgent):
         if found_evidence_count > 0:
             logger.info(f"[JudgeAgent] Successfully injected {found_evidence_count} evidence blocks.")
 
-        # 4. Fallback to Raw Inputs 
+        # 4. Fallback to Raw Inputs
         # Only if we literally have zero evidence maps (rare)
         if not eval_ctx:
             logger.warning("[JudgeAgent] No structured evidence found. Falling back to raw inputs.")
@@ -235,7 +238,7 @@ class JudgeAgent(BaseAgent):
         return base_prompt
 
     # _update_state removed (BaseAgent handles it now, returning dict)
-    
+
     def post_process(self, response_data: Any) -> Any:
         # Scoring logic is in HOOKS
         return response_data

@@ -1,9 +1,11 @@
 import pytest
+
 from backend.api.bff_transformer import ReportTransformer
 from backend.models.view import SectionType
 
+
 class TestReportTransformer:
-    
+
     def setup_method(self):
         self.transformer = ReportTransformer()
 
@@ -21,7 +23,7 @@ class TestReportTransformer:
             }
         }
         view = self.transformer.transform(payload)
-        
+
         # Check Section 0 is ScoreCard
         assert len(view.sections) > 0
         card = view.sections[0]
@@ -44,7 +46,7 @@ class TestReportTransformer:
         }
         with pytest.raises(ValueError) as excinfo:
             self.transformer.transform(payload)
-        
+
         assert "out of valid range" in str(excinfo.value)
 
     def test_strict_score_validation_underflow(self):
@@ -62,7 +64,7 @@ class TestReportTransformer:
         }
         with pytest.raises(ValueError) as excinfo:
             self.transformer.transform(payload)
-            
+
         assert "out of valid range" in str(excinfo.value)
 
     def test_new_format_score_cards(self):
@@ -108,11 +110,11 @@ class TestReportTransformer:
             }
         }
         view = self.transformer.transform(payload)
-        
+
         # Find Timeline
         timeline = next(s for s in view.sections if s.type == SectionType.TIMELINE_FEED)
         entries = timeline.data["entries"]
-        
+
         # Should have 1 entry (User), System hidden
         logs = [e for e in entries if e["type"] == "log"]
         assert len(logs) == 1
@@ -131,10 +133,10 @@ class TestReportTransformer:
                 }
             }
         }
-        
+
         # 1. Should fail because NO scale is present (Strict Mode)
         with pytest.raises(ValueError) as excinfo:
-            self.transformer.transform(payload) 
+            self.transformer.transform(payload)
         assert "Fallback is forbidden" in str(excinfo.value)
 
         # 2. Should pass with injected scale (1-10)

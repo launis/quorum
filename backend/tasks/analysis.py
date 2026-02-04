@@ -6,12 +6,8 @@ Generates Hypotheses and RAG evidence needs.
 
 import logging
 
-from pydantic import BaseModel, ConfigDict, Field
-
 from backend.core.registry import TaskRegistry
-from backend.llm.client import LLMClient
 from backend.models.domain import TodistusKartta
-from backend.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +15,6 @@ logger = logging.getLogger(__name__)
 # --- Class-Based Agent Registration ---
 
 from backend.agents.analyst import AnalystAgent
-from backend.models.domain import TodistusKartta
 
 # Register the AnalystAgent class for the "analyst" task key.
 # This ensures it runs as a BaseAgent subclass, inheriting metadata injection logic.

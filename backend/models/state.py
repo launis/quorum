@@ -13,7 +13,6 @@ from pydantic import BaseModel, ConfigDict, Field
 from backend.models.domain import (
     EvaluationResult,
     XAIReport,
-    ContextData,
 )
 
 
@@ -133,7 +132,7 @@ class WorkflowState(BaseModel):
 
         """
         summary = []
-        
+
         # Display names for known steps (preserving Finnish localization)
         step_display_names = {
             "step_guard": "Vartija",
@@ -163,7 +162,7 @@ class WorkflowState(BaseModel):
                 except AttributeError:
                     content = str(data)
                 summary.append(f"--- {display_name} ---\n{content}\n")
-        
+
         # Handle any other steps that might be in step_results but not in the standard mapping?
         # For now, sticking to the preservation of existing behavior logic.
 

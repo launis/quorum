@@ -1,11 +1,13 @@
 
-import pytest
-from httpx import AsyncClient
-from fastapi import status
 from unittest.mock import AsyncMock
+
+import pytest
+from fastapi import status
+from httpx import AsyncClient
 
 # We need to import app for dependency overrides
 from backend.main import app
+
 
 @pytest.fixture
 def mock_repository():
@@ -46,7 +48,7 @@ async def test_preview_step_success(client: AsyncClient, mock_repository, mock_p
     assert data["system_instruction"] == "System Prompt Content"
     assert data["user_prompt"] == "User Prompt Template"
     assert data["agent_class"] == "TestAgent"
-    
+
     mock_prompt_builder.preview_step_prompt.assert_called_once_with(step_id)
 
 

@@ -66,7 +66,7 @@ class ProfilerAgent(BaseAgent):
 
     # _update_state removed. Logic for metrics injection should be in a hook or pre-processing.
     # The 'profiler_metrics' are passed in input_data from the Engine if calculated.
-    
+
     def post_process(self, response_data: Any) -> Any:
         # If we need to inject metrics into the response structure before returning:
         # Check execution_context or input_data?

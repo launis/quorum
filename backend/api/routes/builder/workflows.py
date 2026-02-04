@@ -265,8 +265,10 @@ async def update_workflow(
                 else:
                     # Create
                     # Ensure minimal valid structure
-                    if "name" not in s: s["name"] = "Untitled Step"
-                    if "task_key" not in s and "taskKey" in s: s["task_key"] = s["taskKey"]
+                    if "name" not in s:
+                        s["name"] = "Untitled Step"
+                    if "task_key" not in s and "taskKey" in s:
+                        s["task_key"] = s["taskKey"]
                     # If task_key is still missing, we might fail validation in repository.create_step
                     # if repository enforces it.
                     await repository.create_step(s)

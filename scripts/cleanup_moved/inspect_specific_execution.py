@@ -1,14 +1,13 @@
 
 import json
-import sys
-from typing import Dict, Any
+
 
 def inspect_execution(target_id: str):
     db_path = r'c:\src\quorum\data\db.json'
     try:
-        with open(db_path, 'r', encoding='utf-8') as f:
+        with open(db_path, encoding='utf-8') as f:
             db_data = json.load(f)
-        
+
         executions = db_data.get('executions', {})
         # Search by ID field (TinyDB style)
         for key, val in executions.items():
@@ -16,7 +15,7 @@ def inspect_execution(target_id: str):
                 target_exec = val
                 print(f"Found execution under key: {key}")
                 break
-        
+
         if not target_exec:
              # Try direct key lookup as fallback
              target_exec = executions.get(target_id)
@@ -34,7 +33,7 @@ def inspect_execution(target_id: str):
         print(f"=== Execution {target_id} ===")
         print(f"Status: {target_exec.get('status')}")
         print(f"Workflow ID: {target_exec.get('workflow_id')}")
-        
+
         results = target_exec.get('results', {})
         if "step_results" in results:
             steps = results["step_results"]
@@ -46,10 +45,10 @@ def inspect_execution(target_id: str):
         # Check Judge
         judge = steps.get("step_judge") or steps.get("step_judge_cognitive")
         if judge:
-            print(f"\n[Judge Step Found]")
+            print("\n[Judge Step Found]")
             print(f"Matrix ID (in step): {judge.get('matrix_id')}")
             print(f"Matrix ID (in metadata): {judge.get('metadata', {}).get('matrix_id')}")
-            
+
             # Scores
             if "score_cards" in judge:
                  print(f"Score Cards: {json.dumps(judge['score_cards'], indent=2)}")
@@ -57,7 +56,7 @@ def inspect_execution(target_id: str):
                  print(f"Pisteet: {judge['pisteet']}")
             else:
                  print("No scores found.")
-                 
+
             # Resolve Matrix Scale Logic
             matrix_id = judge.get('matrix_id') or judge.get('metadata', {}).get('matrix_id')
             if not matrix_id:
@@ -69,7 +68,7 @@ def inspect_execution(target_id: str):
                         matrix_id = s.get('config', {}).get('matrix_id')
                         print(f"Matrix ID resolved from Workflow: {matrix_id}")
                         break
-            
+
             if matrix_id:
                 matrix = db_data.get('components', {}).get(matrix_id)
                 # handle tinydb generic matching if needed, but usually key is ID
@@ -78,7 +77,7 @@ def inspect_execution(target_id: str):
                          if v.get('id') == matrix_id:
                              matrix = v
                              break
-                
+
                 if matrix:
                     print(f"\n[Matrix Component: {matrix_id}]")
                     content = matrix.get("content", {})

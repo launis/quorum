@@ -1,7 +1,6 @@
 
 import json
 import os
-import sys
 from datetime import datetime
 
 DB_PATH = "data/db.json"
@@ -13,7 +12,7 @@ def get_latest_execution():
         return
 
     try:
-        with open(DB_PATH, "r", encoding="utf-8") as f:
+        with open(DB_PATH, encoding="utf-8") as f:
             data = json.load(f)
     except Exception as e:
         print(f"Error reading DB: {e}")
@@ -33,7 +32,7 @@ def get_latest_execution():
     else:
         print(f"Unknown executions format: {type(executions)}")
         return
-        
+
     if not execution_list:
         print("No executions list found.")
         return

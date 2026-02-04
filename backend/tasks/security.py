@@ -5,10 +5,7 @@ Functional tasks for security operations, registered for workflow execution.
 
 import logging
 
-from pydantic import BaseModel, ConfigDict, Field
-
 from backend.core.registry import TaskRegistry
-from backend.core.security import sanitize_text
 
 logger = logging.getLogger(__name__)
 

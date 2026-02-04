@@ -12,6 +12,7 @@ from backend.agents.base import BaseAgent
 
 # 3. Local Imports
 from backend.models.domain import TodistusKartta
+from backend.models.state import WorkflowState
 
 if TYPE_CHECKING:
     pass
@@ -91,7 +92,7 @@ class AnalystAgent(BaseAgent):
             return state
 
         result = state.step_analyst
-        
+
         if result.hypoteesit:
             logger.info(f"[AnalystAgent] Enforcing Hypothesis IDs (Count: {len(result.hypoteesit)})")
             for idx, hyp in enumerate(result.hypoteesit, 1):
@@ -99,5 +100,5 @@ class AnalystAgent(BaseAgent):
                 if hyp.id != new_id:
                     # logger.debug(f"Renaming Hypothesis: {hyp.id} -> {new_id}")
                     hyp.id = new_id
-        
+
         return state

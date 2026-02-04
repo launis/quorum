@@ -146,6 +146,11 @@ class AbstractWorkflowRepository(ABC):
         pass
 
     @abstractmethod
+    async def register_component(self, component_data: dict[str, Any]) -> str:
+        """Register a new component."""
+        pass
+
+    @abstractmethod
     async def get_banned_phrases(self) -> list[dict[str, Any]]:
         """Retrieve all banned phrases."""
         pass
@@ -393,11 +398,11 @@ class TinyDBRepository(AbstractWorkflowRepository):
             steps = wf.get("steps", [])
             if not isinstance(steps, list):
                 continue
-                
+
             for s in steps:
                 if isinstance(s, dict) and s.get("id") == step_id:
                     return s
-                    
+
         return None
 
     async def create_step(self, step_data: dict[str, Any]) -> str:
@@ -417,7 +422,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
     async def get_all_components(self, type: str | None = None, exclude_types: list[str] | None = None) -> list[dict[str, Any]]:
         if type:
             return self.components.search(Query().type == type)
-        
+
         all_comps = self.components.all()
         if exclude_types:
             all_comps = [c for c in all_comps if c.get("type") not in exclude_types]
@@ -436,6 +441,11 @@ class TinyDBRepository(AbstractWorkflowRepository):
         updates = {"module": module, "class_name": component_class}
         res = self.components.update(updates, Query().id == component_id)
         return bool(res)
+
+    async def register_component(self, component_data: dict[str, Any]) -> str:
+        safe_data = self._serialize_for_tinydb(component_data)
+        self.components.upsert(safe_data, Query().id == safe_data["id"])
+        return safe_data["id"]
 
     async def get_execution(self, execution_id: str) -> dict[str, Any] | None:
         return self.executions.get(Query().id == execution_id)
@@ -559,11 +569,11 @@ class TinyDBRepository(AbstractWorkflowRepository):
         """Update the model registry configuration."""
         try:
             system_config_table = self.client.table("system_config")
-            
+
             # Ensure ID is set
             data = registry_data.copy()
             data["id"] = "model_registry"
-            
+
             # Upsert
             system_config_table.upsert(data, Query().id == "model_registry")
             return True

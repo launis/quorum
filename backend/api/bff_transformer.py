@@ -1,10 +1,6 @@
-from typing import List, Dict, Any, Optional
-from datetime import datetime
-import copy
 import logging
 
-from backend.models.view import ReportView, UiSection, SectionType
-
+from backend.models.view import ReportView, SectionType, UiSection
 from backend.services.localization import LocalizationService
 
 logger = logging.getLogger(__name__)
@@ -17,30 +13,30 @@ class ReportTransformer:
     def _t(self, key: str, default: str) -> str:
         return self.loc.get(key, self.language, default)
 
-    def transform(self, raw_data: dict, valid_range: Optional[tuple[float, float]] = None) -> ReportView:
-        """
-        Transforms raw execution data (dict) into a clean ReportView model.
+    def transform(self, raw_data: dict, valid_range: tuple[float, float] | None = None) -> ReportView:
+        """Transforms raw execution data (dict) into a clean ReportView model.
+
         Args:
             raw_data: The execution results.
             valid_range: (min, max) tuple for strict score validation. Defaults to Standard Matrix (1-4).
         """
         execution_id = raw_data.get("id") or raw_data.get("execution_id") or "unknown"
         results = raw_data.get("results", {})
-        
+
         # We might have nested steps structure depending on how raw_data is passed
         # Sometimes results IS the dict of steps, sometimes results['step_results'] (ExecutionCompleted format)
         if "step_results" in results:
             steps = results["step_results"]
         else:
             steps = results
-        
+
         sections = []
 
         # --- A. Score Cards (Support for Multiple Matrices) ---
-        # We look for specific known judge steps. 
+        # We look for specific known judge steps.
         # Future improvement: scan for any step with task_key="judge" via config, but keys are stable enough.
         judge_keys = ["step_judge", "step_judge_cognitive"]
-        
+
         for key in judge_keys:
             step_data = steps.get(key)
             if step_data:
@@ -53,7 +49,7 @@ class ReportTransformer:
                     # or we could try to look up matrix_id per step here.
                     # For now, we apply the global strict range to ALL judges (assuming they share the scale or user explicitly passed wide range)
                     score_data = self._extract_score_data(step_data, agent_name=agent_name, valid_range=valid_range)
-                    
+
                     sections.append(UiSection(
                         id=f"score-card-{key}", # Unique ID
                         type=SectionType.SCORE_CARD,
@@ -90,7 +86,7 @@ class ReportTransformer:
         # --- SPECIALIST BACKBONE (Courtroom 3.0) ---
         # Logic to support BOTH Sequential (Individual Steps) and Fused (Panel Step)
         # We prefer individual steps if present, otherwise look into Panel.
-        
+
         panel = steps.get("step_panel", {})
 
         # 1. Logic / Logician
@@ -174,9 +170,8 @@ class ReportTransformer:
             sections=sections
         )
 
-    def _extract_score_data(self, judge_step: dict, agent_name: str, valid_range: Optional[tuple[float, float]]) -> dict:
-        """
-        Extracts score and verdict from V3 Schema.
+    def _extract_score_data(self, judge_step: dict, agent_name: str, valid_range: tuple[float, float] | None) -> dict:
+        """Extracts score and verdict from V3 Schema.
         STRICT: Raises ValueError if score is missing or out of range [min, max].
         """
         score = None
@@ -200,7 +195,7 @@ class ReportTransformer:
         # 2. Validation
         if raw_score is None:
             raise ValueError(f"Score is missing from Judge step ({agent_name}). Expected 'total_score'.")
-            
+
         try:
             score = float(raw_score)
         except (TypeError, ValueError):
@@ -211,7 +206,7 @@ class ReportTransformer:
             # Attempt to resolve from the step data itself
             s_min = judge_step.get("scale_min")
             s_max = judge_step.get("scale_max")
-            
+
             if s_min is not None and s_max is not None:
                 valid_range = (float(s_min), float(s_max))
             else:
@@ -235,13 +230,13 @@ class ReportTransformer:
             "dimensions": dimensions
         }
 
-    def _build_xai_section(self, steps: dict) -> Optional[UiSection]:
+    def _build_xai_section(self, steps: dict) -> UiSection | None:
         if "step_xai" not in steps:
             return None
-            
+
         xai = steps["step_xai"]
         content = xai.get("xai_report_formatted")
-        
+
         # Fallback to direct verdict text if formatted report missing
         if not content:
             content = xai.get("final_verdict")
@@ -256,7 +251,7 @@ class ReportTransformer:
             data={"content": content}
         )
 
-    def _build_timeline(self, steps: dict) -> List[dict]:
+    def _build_timeline(self, steps: dict) -> list[dict]:
         events = []
         agent_names = {
             "step_guard": f"🛡️ {self._t('Guard', 'Vartija')}",
@@ -276,11 +271,11 @@ class ReportTransformer:
         for step_key, step_data in steps.items():
             if not isinstance(step_data, dict):
                 continue
-                
+
             meta = step_data.get("metadata", {})
             timestamp = meta.get("luontiaika")
             agent_label = agent_names.get(step_key, step_key)
-            
+
             # 1. Reasoning Trace (The thinking process)
             if "reasoning_trace" in step_data and step_data["reasoning_trace"]:
                 events.append({
@@ -297,12 +292,12 @@ class ReportTransformer:
                 for log in meta["audit_logs"]:
                     if log.get("role") == "system":
                         continue
-                    
+
                     content = log.get("content", "")
                     # Hydrate references locally? Or keep as is?
                     # For now just format nicely.
                     clean_msg = content.replace("<<REFERENCE:", "[Viittaus:").replace(">>", "]")
-                    
+
                     events.append({
                         "timestamp": timestamp,
                         "actor": agent_label,
@@ -315,15 +310,15 @@ class ReportTransformer:
         # Sort by timestamp (handling None)
         return sorted(events, key=lambda x: x.get("timestamp") or "")
 
-    def _extract_analyst_table(self, steps: dict) -> Optional[UiSection]:
+    def _extract_analyst_table(self, steps: dict) -> UiSection | None:
         step = steps.get("step_analyst")
         if not step or not isinstance(step, dict):
             return None
-        
+
         hypotheses = step.get("hypoteesit", [])
         if not hypotheses:
             return None
-            
+
         rows = []
         for h in hypotheses:
             # Handle Pydantic model dump or dict
@@ -333,7 +328,7 @@ class ReportTransformer:
                 "claim": h_data.get("vaite_teksti"),
                 "proven": "✅" if h_data.get("loytyyko_todisteita") else "❌"
             })
-            
+
         return UiSection(
             id="hypotheses-table",
             type=SectionType.DATA_TABLE,
@@ -348,15 +343,15 @@ class ReportTransformer:
             }
         )
 
-    def _extract_guard_grid(self, steps: dict) -> Optional[UiSection]:
+    def _extract_guard_grid(self, steps: dict) -> UiSection | None:
         step = steps.get("step_guard")
         if not step or not isinstance(step, dict):
             return None
-            
+
         sec = step.get("security_check", {})
         if not sec:
             return None
-            
+
         return UiSection(
             id="security-grid",
             type=SectionType.KEY_VALUE_GRID,
@@ -370,11 +365,11 @@ class ReportTransformer:
             }
         )
 
-    def _extract_profiler_section(self, steps: dict) -> Optional[UiSection]:
+    def _extract_profiler_section(self, steps: dict) -> UiSection | None:
         step = steps.get("step_profiler")
         if not step or not isinstance(step, dict):
             return None
-        
+
         # Use full data schema extraction for the Backbone
         return UiSection(
             id="profiler-analysis",
@@ -385,14 +380,14 @@ class ReportTransformer:
 
 
 
-    def _extract_interaction_section(self, steps: dict) -> Optional[UiSection]:
+    def _extract_interaction_section(self, steps: dict) -> UiSection | None:
         step = steps.get("step_interaction")
         if not step or not isinstance(step, dict):
             return None
-            
+
         role = step.get("driver_classification", "N/A")
         ratio = step.get("input_control_ratio")
-        
+
         return UiSection(
             id="interaction-grid",
             type=SectionType.DRIVER_PROFILE,
@@ -400,16 +395,16 @@ class ReportTransformer:
             data=step # Pass full step data (contains driver_classification, input_control_ratio, strategies)
         )
 
-    def _extract_coach_section(self, steps: dict) -> Optional[UiSection]:
+    def _extract_coach_section(self, steps: dict) -> UiSection | None:
         step = steps.get("step_coach")
         if not step or not isinstance(step, dict):
             return None
-            
+
         # Prioritize V2 fields if available
         feedback = step.get("kannustava_palaute") or step.get("motivaatio")
         if not feedback:
             return None
-            
+
         return UiSection(
             id="coach-markdown",
             type=SectionType.MARKDOWN_BLOCK,
@@ -417,11 +412,11 @@ class ReportTransformer:
             data={"content": f"### Huomiot\n{feedback}"}
         )
 
-    def _extract_archivist_section(self, steps: dict) -> Optional[UiSection]:
+    def _extract_archivist_section(self, steps: dict) -> UiSection | None:
         step = steps.get("step_archivist")
         if not step or not isinstance(step, dict):
             return None
-            
+
         return UiSection(
             id="archivist-check",
             type=SectionType.ARCHIVIST_CHECK,
@@ -429,19 +424,19 @@ class ReportTransformer:
             data=step
         )
 
-    def _extract_usage_section(self, raw_data: dict) -> Optional[UiSection]:
+    def _extract_usage_section(self, raw_data: dict) -> UiSection | None:
         # Usage might be at root 'usage' or aggregated from steps
         usage = raw_data.get("usage")
-        
-        # If no root usage, try to sum up? 
+
+        # If no root usage, try to sum up?
         # (Assuming root usage is populated by engine at end of run)
         if not usage:
             return None
-            
+
         total_tokens = usage.get("total_tokens", 0)
         cost = usage.get("total_cost", 0.0)
         # Maybe model info?
-        
+
         return UiSection(
             id="key-metrics",
             type=SectionType.KEY_VALUE_GRID,

@@ -1,16 +1,15 @@
 
 import json
-import os
 
 SEED_PATH = r"c:\src\quorum\backend\seed\seed_data.json"
 
 try:
-    with open(SEED_PATH, "r", encoding="utf-8") as f:
+    with open(SEED_PATH, encoding="utf-8") as f:
         data = json.load(f)
-    
+
     workflows = data.get("workflows", [])
     print(f"Found {len(workflows)} workflows.")
-    
+
     if workflows:
         first_wf = workflows[0]
         steps = first_wf.get("steps", [])

@@ -1,30 +1,31 @@
-"""
-Script to verify that all agents in a workflow persist their data correctly to the top-level state.
+"""Script to verify that all agents in a workflow persist their data correctly to the top-level state.
 Simulates a chain or inspects the mocked database for the latest execution.
 """
 import asyncio
-import sys
 import os
+import sys
 
 # Add project root to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 
-from tinydb import TinyDB, Query
 import json
+
+from tinydb import TinyDB
+
 
 async def verify_integrity():
     # DIRECT DB ACCESS (Bypass Backend Complexities)
     db_path = os.path.join(os.path.dirname(__file__), "..", "data", "db_mock.json") # or db.json
-    
+
     if not os.path.exists(db_path):
          # Try live db
          db_path = os.path.join(os.path.dirname(__file__), "..", "data", "db.json")
-    
+
     print(f"Reading DB: {db_path}")
-    
+
     try:
-        with open(db_path, 'r', encoding='utf-8') as f:
+        with open(db_path, encoding='utf-8') as f:
             data = json.load(f)
             executions = data.get("_default", {})
             # TinyDB stores as dict of dicts {"1": {...}, "2": {...}}
@@ -33,7 +34,7 @@ async def verify_integrity():
         # Fallback if manual load fails
         db = TinyDB(db_path)
         executions_list = db.all()
-    
+
     if not executions_list:
         print("No executions found.")
         return
@@ -43,9 +44,9 @@ async def verify_integrity():
     latest_exec = executions_list[-1]
 
     print(f"Inspecting Execution ID: {latest_exec.get('id')}")
-    
+
     results = latest_exec.get("results", {})
-    
+
     # Updated Checklist based on Audit
     # We expect these keys to be present in 'results' dictionary (which mirrors WorkflowState fields)
     full_checklist = [
@@ -62,10 +63,10 @@ async def verify_integrity():
         "step_coach",     # CoachAgent
         "step_reporter"  # XAIReporterAgent
     ]
-    
+
     missing = []
     present = []
-    
+
     for key in full_checklist:
         val = results.get(key)
         if val:
@@ -77,21 +78,21 @@ async def verify_integrity():
                  present.append(key)
         else:
             missing.append(key)
-            
+
     print("\n--- Integrity Report ---")
     print(f"Present Steps: {len(present)}/{len(full_checklist)}")
     for p in present:
         print(f" [x] {p}")
-        
+
     print(f"\nMissing Steps: {len(missing)}/{len(full_checklist)}")
     for m in missing:
         print(f" [ ] {m}")
-        
+
     # Source Leakage Check
-    # Check if 'inputs' text appears in 'step_reporter' 
+    # Check if 'inputs' text appears in 'step_reporter'
     inputs = latest_exec.get("inputs", {})
     history_text = inputs.get("history_text", "")
-    
+
     report_step = results.get("step_reporter", {})
     if report_step:
         report_str = str(report_step)
@@ -103,9 +104,9 @@ async def verify_integrity():
     # Top Level Hoisting Check
     hoisted_report = latest_exec.get("Report") or results.get("Report")
     if hoisted_report:
-         print(f"[OK] Report Hoisting Active (Top Level Report Found).")
+         print("[OK] Report Hoisting Active (Top Level Report Found).")
     else:
-         print(f"[FAIL] Report Hoisting Missing (No 'Report' key at top level).")
+         print("[FAIL] Report Hoisting Missing (No 'Report' key at top level).")
 
 if __name__ == "__main__":
     asyncio.run(verify_integrity())

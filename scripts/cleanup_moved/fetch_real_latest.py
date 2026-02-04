@@ -1,7 +1,6 @@
 
 import json
 import os
-from datetime import datetime
 
 DB_PATH = "data/db.json"
 
@@ -10,13 +9,13 @@ def fetch_latest_execution():
         print("DB not found")
         return
 
-    with open(DB_PATH, "r", encoding="utf-8") as f:
+    with open(DB_PATH, encoding="utf-8") as f:
         data = json.load(f)
 
     executions = list(data.get("executions", {}).values())
-    
+
     print(f"Total executions found: {len(executions)}")
-    
+
     if not executions:
         return
 
@@ -30,12 +29,12 @@ def fetch_latest_execution():
         print(f"Workflow ID: {execution.get('workflow_id')}")
         print(f"Status: {execution.get('status')}")
         print(f"Started: {execution.get('created_at', 'Unknown')}")
-        
+
         inputs = execution.get("inputs", {})
         print(f"Inputs keys: {list(inputs.keys())}")
-        
+
         history_text = inputs.get("history_text", "")
-        
+
         if history_text is None:
              print("History Text: None")
         else:

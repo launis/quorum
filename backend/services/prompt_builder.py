@@ -85,7 +85,7 @@ class PromptBuilder:
         if not exec_config:
             # Fallback to 'config' which is standard in db.json steps
             exec_config = step_data.get("config", {})
-            
+
         prompt_ids = exec_config.get("llm_prompts", [])
         parts = []
 
@@ -260,7 +260,7 @@ class PromptBuilder:
 
                 class_name = agent_instance.__class__.__name__
                 mock_key = AGENT_CLASS_TO_MOCK_KEY.get(class_name)
-                
+
                 if mock_key:
                     mock_example = get_fallback_data(mock_key)
                     if mock_example:

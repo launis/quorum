@@ -12,13 +12,13 @@ from arq.connections import RedisSettings
 
 from backend.core.engine import GraphEngine
 from backend.core.registry import TaskRegistry
+from backend.exceptions import ErrorCodes
 from backend.llm.client import LLMClient
 from backend.logging_config import configure_logfire, setup_logging
 from backend.services.pdf_generator import PdfReportService
 from backend.services.progress import ProgressService
 from backend.services.storage import get_storage_client
 from backend.settings import get_settings
-from backend.exceptions import ErrorCodes
 
 # Initialize settings
 settings = get_settings()
@@ -163,7 +163,7 @@ async def generate_pdf_job(ctx: Any, *, execution_id: str) -> str:
         storage = get_storage_client()
         # Relative path: executions/{id}/report.pdf
         output_path_rel = f"executions/{execution_id}/report.pdf"
-        
+
         # Returns absolute path (if local) or URI (if cloud)
         saved_path = storage.save(output_path_rel, pdf_bytes)
 

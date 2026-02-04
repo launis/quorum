@@ -13,11 +13,10 @@ import uuid
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from backend.api import (
@@ -46,7 +45,7 @@ async def lifespan(app: FastAPI):
     setup_logging()
     configure_logfire()
     logger = logging.getLogger("backend.main")
-    
+
     # 1. LOG TO FILE (Detailed Audit)
     logger.info("======================================================================")
     logger.info("   COGNITIVE QUORUM BACKEND (V2.9) - STARTING UP")
@@ -167,7 +166,7 @@ async def app_exception_handler(request: Request, exc: AppException):
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     """Catches Pydantic validation errors and returns RFC 7807 Problem Details."""
     logger = logging.getLogger("backend.main")
-    
+
     # 1. Log the detailed validation error to FILE
     # (Truncate body to avoid huge logs, but keep enough context)
     body = exc.body

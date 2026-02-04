@@ -304,7 +304,7 @@ class StatePresenter:
             "step_panel": state.step_panel.model_dump(exclude=noise_fields, exclude_none=True)
             if state.step_panel
             else None,
-            "step_xai": getattr(state, "step_xai").model_dump(exclude=noise_fields, exclude_none=True)
+            "step_xai": state.step_xai.model_dump(exclude=noise_fields, exclude_none=True)
             if getattr(state, "step_xai", None)
             else None,
         }

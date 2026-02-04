@@ -1,10 +1,12 @@
-import re
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
-from backend.exceptions import AppException, ErrorCodes
 from fastapi import status
+
+from backend.exceptions import AppException, ErrorCodes
+
 
 class ChatLogParser:
     """Parses raw text into structured chat logs with explicit User/AI labeling."""
@@ -75,7 +77,7 @@ class ChatLogParser:
         lines = text.split('\n')
         output = []
         role = "User"
-        
+
         # Buffer for current speaker's text
         current_block = []
 
@@ -94,7 +96,7 @@ class ChatLogParser:
             # Skip metadata headers explicitly
             if "Gemini Chat" in clean_line or clean_line.startswith("https://"):
                 continue
-            
+
             # Identify explicit roles if present
             if clean_line.startswith("User:") or clean_line.startswith("AI:"):
                 # If we had a previous block, flush it
@@ -124,13 +126,13 @@ class ChatLogParser:
         # content...
         # ChatGPT
         # content...
-        
+
         # Naive approach: Replace standalone "User" lines with "User:" and "ChatGPT" with "AI:"
-        
+
         lines = text.split('\n')
         output = []
-        is_header_next = True 
-        
+        is_header_next = True
+
         for line in lines:
             clean = line.strip()
             if clean == "User":
@@ -142,7 +144,7 @@ class ChatLogParser:
             elif clean == "You": # Sometimes "You"
                  output.append("\nUser: ")
                  continue
-            
+
             # If plain text, just append
             if output and output[-1].endswith(": "):
                  output[-1] += clean
@@ -163,7 +165,7 @@ class ChatLogParser:
         """Parses logs with [HH:MM] timestamps."""
         # Regex to find "[14:05] Name:" pattern
         # We replace it with "User:" or "AI:" based on the name.
-        
+
         def replace_header(match):
             name = match.group(1).lower()
             if "gemini" in name or "ai" in name or "bot" in name:

@@ -1,6 +1,7 @@
 
 import asyncio
 import logging
+
 from backend.agents.guard import GuardAgent
 from backend.models.state import WorkflowState
 
@@ -10,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 async def test_guard_validation():
     print("--- Starting Verify Guard Schema Validation ---")
-    
+
     # 1. Setup State with Banned Phrases
     state = WorkflowState(
         inputs={
@@ -22,9 +23,9 @@ async def test_guard_validation():
             "banned_phrases": ["magic_word", "secret_code"]
         }
     )
-    
+
     agent = GuardAgent()
-    
+
     # 2. Trigger Pre-Hook (prepare_context) where validation happens
     print("[Test] Calling prepare_context (should fail)...")
     try:

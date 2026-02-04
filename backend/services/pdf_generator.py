@@ -10,9 +10,9 @@ from jinja2 import Environment, FileSystemLoader
 
 from backend.api.bff_transformer import ReportTransformer
 from backend.database.repository import AbstractWorkflowRepository
+from backend.exceptions import AppException, ErrorCodes
 from backend.models.view import SectionType
 from backend.services.chart_service import ChartService
-from backend.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
 
@@ -107,7 +107,7 @@ class PdfReportService:
                         # Assuming the data dict (from _extract_score_data) might carry matrix_id if we added it,
                         # OR we check the raw execution data.
                         pass
-                
+
                 # Better: Check raw execution data first
                 step_judge = ex_data.get("results", {}).get("step_results", {}).get("step_judge", {})
                 # Handle nested output or direct
@@ -115,7 +115,7 @@ class PdfReportService:
                     matrix_id = step_judge["output"].get("matrix_id")
                 elif "matrix_id" in step_judge:
                     matrix_id = step_judge.get("matrix_id")
-                
+
                 if matrix_id:
                     comp = await self.repository.get_component_by_id(matrix_id)
                     if comp and "content" in comp:
@@ -136,28 +136,28 @@ class PdfReportService:
                     if dims:
                         scores = {}
                         for d in dims:
-                             # We map ID directly to score. 
+                             # We map ID directly to score.
                              # If visualization needs prettier labels, it must happen in ChartService or via metadata lookup.
                              # But here we stick to the raw data ID as the key.
-                            
+
                             # Compatible Extraction: Support V3 (dimension_id) and Legacy (label/name/id)
                             # FIX 2026-01-24: Use 'label' or 'name' for the CHART KEY to ensure human-readable text.
                             # The ChartService uses keys as labels.
-                            
+
                             # 1. Try direct label in data (Legacy/Loose)
                             display_label = d.get("label") or d.get("name")
-                            
+
                             # 2. Try technical ID (V3 Strict)
                             tech_id = d.get("dimension_id") or d.get("id")
-                            
+
                             # 3. Lookup: If we have an ID but no label, look it up in Matrix Map
                             if not display_label and tech_id and tech_id in matrix_map:
                                 display_label = matrix_map[tech_id]
-                            
+
                             # 4. Fallback to ID
                             if not display_label:
                                 display_label = tech_id
-                            
+
                             if display_label:
                                 try:
                                     val = float(d.get("score", 0))
@@ -166,7 +166,7 @@ class PdfReportService:
                                     pass
                             else:
                                 logger.warning(f"Skipping dimension with missing ID/Label in report {execution_id}")
-                            
+
                         # Generate chart
                         # Retrieve dynamic max_score from section data (populated by ReportTransformer from DB or default)
                         max_score = int(section.data.get("max_score", 4))
@@ -183,7 +183,7 @@ class PdfReportService:
             # 6. Generate PDF
             # WeasyPrint is CPU intensive and blocking.
             await self.progress.emit_progress(execution_id, task_key, "Writing PDF file (this may take a moment)...", 0.9)
-            
+
             # WeasyPrint requires GTK3 on Windows, assume it's set up per knowledge base.
             pdf_bytes = weasyprint.HTML(string=html_content).write_pdf()
 
@@ -195,15 +195,15 @@ class PdfReportService:
         except Exception as e:
             error_code = ErrorCodes.PDF_GENERATION_FAILED
             error_message = "PDF generation failed"
-            
+
             logger.error(f"{error_code}: {error_message} for {execution_id}: {e}", exc_info=True)
-            
+
             # Attempt to emit failure progress
             try:
                 await self.progress.emit_progress(execution_id, task_key, f"Error: {str(e)}", 0.0)
             except Exception:
                 pass # Swallow progress error to ensure the main error is raised
-                
+
             raise AppException(
                 message=f"{error_message}: {str(e)}",
                 status_code=500,

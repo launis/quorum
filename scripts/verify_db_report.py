@@ -1,7 +1,6 @@
 
 import json
 import os
-from datetime import datetime
 
 DB_PATH = "c:/src/quorum/data/db.json"
 
@@ -11,9 +10,9 @@ def check_db():
         return
 
     try:
-        with open(DB_PATH, "r", encoding="utf-8") as f:
+        with open(DB_PATH, encoding="utf-8") as f:
             data = json.load(f)
-        
+
         executions = data.get("executions", {})
         if not executions:
             print("No executions found in DB.")
@@ -35,7 +34,7 @@ def check_db():
                 reverse=True
             )
             latest_id, latest_exec = sorted_executions[0]
-            
+
         print(f"Checking Execution ID: {latest_id}")
 
         print(f"Latest Execution ID: {latest_id}")
@@ -61,7 +60,7 @@ def check_db():
                      print("INFO: 'xai_report_formatted' found inside 'step_xai'.")
                 else:
                      print("INFO: 'xai_report_formatted' NOT found inside 'step_xai' dict.")
-                
+
                 # Check for structured fields
                 verdict = step_xai.get("final_verdict")
                 confidence = step_xai.get("confidence_score")

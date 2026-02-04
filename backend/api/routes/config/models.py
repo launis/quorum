@@ -6,13 +6,13 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
-from backend.llm.provider import LLMFactory
 from backend.dependencies import (
+    LLMHandlerDep,
     RepositoryDep,
     UsageServiceDep,
     get_llm_factory_dep,
-    LLMHandlerDep,
 )
+from backend.llm.provider import LLMFactory
 from backend.models.llm import AdHocTestRequest, AdHocTestResponse, LLMProviderConfig
 
 logger = logging.getLogger(__name__)
@@ -43,10 +43,10 @@ async def list_models(
                     # Skip Agent mappings (strings) for now, only return Configs (dicts)
                     if not isinstance(strategy_config, dict):
                         continue
-                    
+
                     # Create composite ID
                     model_id = f"{provider_name}/{strategy_name}"
-                    
+
                     # Mask sensitive data
                     safe_config = strategy_config.copy()
                     if safe_config.get("api_key"):
@@ -80,7 +80,7 @@ async def list_models(
                  safe_config = value.copy()
                  if safe_config.get("api_key"):
                     safe_config["api_key"] = "********"
-                 
+
                  try:
                     results.append(
                         LLMProviderConfig(
@@ -115,7 +115,7 @@ async def update_model_config(
         registry["models"] = {}
 
     current_models = registry["models"]
-    
+
     # 2. Determine location (Nested vs Flat)
     target_provider = None
     target_strategy = provider_id
@@ -124,7 +124,7 @@ async def update_model_config(
         parts = provider_id.split("/", 1)
         target_provider = parts[0]
         target_strategy = parts[1]
-    
+
     # 3. Resolve Old Config to restore keys
     old_config = {}
     if target_provider and target_provider in current_models:
@@ -135,7 +135,7 @@ async def update_model_config(
 
     # 4. Prepare New Config
     new_config = update_data.model_dump()
-    
+
     if new_config.get("api_key") == "********":
         if isinstance(old_config, dict):
             new_config["api_key"] = old_config.get("api_key")
@@ -153,7 +153,7 @@ async def update_model_config(
         # Ensure it's a dict
         if not isinstance(current_models[target_provider], dict):
              current_models[target_provider] = {}
-        
+
         current_models[target_provider][target_strategy] = final_storage
     else:
         # Legacy/Flat write
@@ -193,7 +193,7 @@ async def test_model_connection(
         strat_id = request.model_params.get("strategy_id")
         resolved_api_key = request.api_key # User override priorities
         resolved_model_name = request.model_params.get("model_name") or "test-connection"
-        
+
         if strat_id and "/" in strat_id and not resolved_api_key:
             # Try to resolve full config from DB
             provider_key, mode_key = strat_id.split("/", 1)
@@ -203,7 +203,7 @@ async def test_model_connection(
                 # Found it! Use DB credentials
                 if not resolved_api_key:
                     resolved_api_key = db_config.get("api_key")
-                
+
                 # Also ensure we use the configured model name if not overridden?
                 # Usually we want to test THAT model.
                 if db_config.get("model_name"):
@@ -261,7 +261,7 @@ async def list_model_options(
     """Fetch available model options from external providers (Google, OpenAI)."""
     # Known supported providers (Ensure these always appear for configuration)
     known_providers = ["google", "openai"]
-    
+
     try:
         options = handler.fetch_all_available_models()
         clean_options = {}
@@ -269,12 +269,12 @@ async def list_model_options(
             # Only keep valid lists (ignore error strings)
             if isinstance(v, list):
                 clean_options[k] = v
-        
+
         # Ensure known providers exist (even if empty list)
         for p in known_providers:
             if p not in clean_options:
                 clean_options[p] = []
-                
+
         return clean_options
     except Exception as e:
         logger.error(f"Failed to fetch model options: {e}")

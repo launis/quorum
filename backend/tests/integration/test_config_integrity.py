@@ -1,8 +1,10 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from backend.core.registry import TaskRegistry
+
+import pytest
+
 from backend.agents.base import BaseAgent
-from backend.services.agent_registry import AgentRegistry
+from backend.core.registry import TaskRegistry
+
 
 # Mock Agent for Testing
 class MockGuardAgent(BaseAgent):
@@ -20,7 +22,6 @@ class MockGuardAgent(BaseAgent):
 @pytest.mark.asyncio
 async def test_agent_wrapper_propagates_temperature():
     """Verify that agent_wrapper correctly extracts 'temperature' from Registry and passes it to Agent."""
-    
     # 1. Setup Mock Registry & Config
     # This simulates what AgentRegistry.resolve_model_config() returns from the DB
     mock_db_config = {
@@ -33,16 +34,16 @@ async def test_agent_wrapper_propagates_temperature():
 
     # 2. Mock Internal Dependencies
     # We mock get_async_repository to avoid DB connection
-    # We mock AgentRegistry to return our specific config. 
+    # We mock AgentRegistry to return our specific config.
     # Since agent_wrapper imports it from backend.services.agent_registry, we patch it THERE or use sys.modules.
     with patch("backend.dependencies.get_async_repository", new_callable=AsyncMock) as mock_repo_getter, \
          patch("backend.services.agent_registry.AgentRegistry") as MockRegistryClass, \
          patch("backend.services.component_registry.ComponentRegistry") as MockComponentRegistry: # Prevent prompt resolution errors
-        
+
         # Setup Registry Mock
         mock_registry_instance = MockRegistryClass.return_value
         mock_registry_instance.resolve_model_config = AsyncMock(return_value=mock_db_config)
-        
+
         # Setup Component Registry (for prompts) - Not strictly needed if logic skips prompts
         mock_comp_reg = MockComponentRegistry.return_value
         mock_comp_reg.resolve_prompts.return_value = "Mock System Instruction"
@@ -54,21 +55,21 @@ async def test_agent_wrapper_propagates_temperature():
             agent_cls=MockGuardAgent,
             output_model=dict # Simple dict output
         )
-        
+
         task_def = TaskRegistry.get("test_task_integrity")
         assert task_def is not None, "Task registration failed"
 
         # 4. Execute the Wrapper
         # This runs the 'agent_wrapper' function inside registry.py
         wrapper_func = task_def.handler
-        
+
         input_data = {"some": "input"}
         # input_data.model_dump.return_value = {"some": "input"}
-        
+
         # Call the wrapper!
         try:
             result = await wrapper_func(
-                input_data=input_data, 
+                input_data=input_data,
                 execution_config={"some_override": "allowed"} # Optional: test mixed config
             )
         except Exception as e:
@@ -76,39 +77,38 @@ async def test_agent_wrapper_propagates_temperature():
             import traceback
             traceback.print_exc()
             raise
-        
+
         # 5. Assertions
         received_kwargs = result["received_kwargs"]
-        
+
         print(f"\nDebug: Received Kwargs: {received_kwargs}")
-        
+
         # CRITICAL ASSERTION: Did 'temperature' make it?
         assert "temperature" in received_kwargs, "Temperature was DROPPED by agent_wrapper!"
         assert received_kwargs["temperature"] == 0.42, f"Temperature mismatch! Expected 0.42, got {received_kwargs['temperature']}"
-        
+
         # Verify other integrity items
         assert received_kwargs["max_tokens"] == 1234
         assert received_kwargs["top_p"] == 0.9
-        
+
         # Verify step config merge
         assert received_kwargs["some_override"] == "allowed"
-        
+
         print("SUCCESS: Configuration flow is intact.")
 
 async def test_prompt_substitution():
     """Verify that variable variables like {{HISTORY_TEXT}} are actually replaced."""
-    
     # 1. Setup Mock Prompt with Placeholders
     raw_prompt = "Analyze the following: {{HISTORY_TEXT}}. End of input."
     expected_prompt_snippet = "Analyze the following: CRITICAL_DATA_FOUND. End of input."
-    
+
     mock_db_config = {"model_name": "mock", "temperature": 0.1}
-    
+
     with patch("backend.dependencies.get_async_repository", new_callable=AsyncMock), \
          patch("backend.services.agent_registry.AgentRegistry") as MockRegistryClass, \
-         patch.object(backend.services.component_registry, "ComponentRegistry") as MockComponentRegistry, \
+         patch("backend.services.component_registry.ComponentRegistry") as MockComponentRegistry, \
          patch("backend.agents.base.LLMFactory") as MockLLMFactory:
-         
+
         # Registry returns simple config
         mock_registry_instance = MockRegistryClass.return_value
         mock_registry_instance.resolve_model_config = AsyncMock(return_value=mock_db_config)
@@ -117,11 +117,11 @@ async def test_prompt_substitution():
         mock_instance = MagicMock()
         mock_instance.resolve_prompts.return_value = "Analyzed: {{HISTORY_TEXT}}"
         MockComponentRegistry.return_value = mock_instance
-         
+
         # Registry returns simple config
         mock_registry_instance = MockRegistryClass.return_value
         mock_registry_instance.resolve_model_config = AsyncMock(return_value=mock_db_config)
-        
+
 
 
         # Mock Factory creation
@@ -131,21 +131,21 @@ async def test_prompt_substitution():
         TaskRegistry.register_agent(["test_prompt_integ"], MockGuardAgent, dict)
         task_def = TaskRegistry.get("test_prompt_integ")
         wrapper_func = task_def.handler
-        
+
         # 4. Input with DATA
         input_dict = {"history_text": "CRITICAL_DATA_FOUND"}
-        
+
         # 5. Execute with 'llm_prompts' key to trigger substitution logic
         # MUST BE INSIDE WITH BLOCK because resolving happens here
         result = await wrapper_func(
             input_data=input_dict,
-            execution_config={"llm_prompts": ["SOME_KEY"]} 
+            execution_config={"llm_prompts": ["SOME_KEY"]}
         )
-        
+
         # 6. Verify System Instruction
         kwargs = result["received_kwargs"]
         sys_instr = kwargs.get("system_instruction", "")
-        
+
         # assert "CRITICAL_DATA_FOUND" in sys_instr, f"Variable {{HISTORY_TEXT}} was NOT substituted! Got: '{sys_instr}'"
         if "CRITICAL_DATA_FOUND" not in sys_instr:
              import json
@@ -163,10 +163,10 @@ if __name__ == "__main__":
     import asyncio
     import os
     import sys
-    
+
     # Add project root to sys.path
     sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
-    
+
     try:
         print("--- TEST 1: Config Propagation ---")
         asyncio.run(test_agent_wrapper_propagates_temperature())

@@ -14,7 +14,9 @@ from backend.dependencies import get_arq_pool, get_async_repository, get_engine
 from backend.exceptions import AppException, ResourceNotFoundError
 from backend.logging_config import log_error
 from backend.models.workflow import WorkflowDefinition
+from backend.models.workflow import WorkflowDefinition
 from backend.services.auth import AuthService
+from backend.models.auth import UserRole
 
 logger = logging.getLogger(__name__)
 

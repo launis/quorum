@@ -3,10 +3,10 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from fastapi import HTTPException
-
 from backend.api.builder_router import BuilderWorkflowCreateRequest as WorkflowCreateRequest
 from backend.api.builder_router import create_workflow
+from fastapi import HTTPException
+
 from backend.hooks.reporting import generate_report
 from backend.models.domain import Metadata, Pisteet, PisteetKriteeri, XAIReport
 from backend.models.state import InputData, WorkflowState

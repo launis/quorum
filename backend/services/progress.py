@@ -180,16 +180,16 @@ class InMemoryProgressTracker(ProgressTracker):
 
 class ProgressService:
     """Service for real-time progress reporting via Redis."""
-    
+
     def __init__(self, redis_client: Any):
         """Initialize with a Redis client (ArqRedis or compatible)."""
         self.redis = redis_client
 
     async def emit_progress(
-        self, 
-        execution_id: str, 
-        task_key: str, 
-        message: str, 
+        self,
+        execution_id: str,
+        task_key: str,
+        message: str,
         progress: float
     ) -> None:
         """Emits a progress event to Redis.
@@ -211,6 +211,6 @@ class ProgressService:
         }
         # Set with 1-hour expiry
         await self.redis.set(key, json.dumps(payload), ex=3600)
-        
+
         # Optionally publish for real-time websockets if needed
         # await self.redis.publish(f"progress_updates:{execution_id}", json.dumps(payload))

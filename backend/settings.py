@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     )
     use_firebase_auth: Annotated[bool, BeforeValidator(strip_whitespace), Field(description="Use Firebase Auth (vs Mock)")] = True
     cors_origins: Annotated[list[str], Field(description="Allowed CORS Origins")] = ["*"]
-    
+
     # --- Logging ---
     use_json_logging: Annotated[bool, BeforeValidator(strip_whitespace), Field(description="Force structured JSON logging in any environment")] = False
 

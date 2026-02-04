@@ -1,14 +1,15 @@
 import json
 import os
 
+
 def fix_db(path):
     if not os.path.exists(path):
         print(f"File not found: {path}")
         return
 
-    with open(path, 'r', encoding='utf-8') as f:
+    with open(path, encoding='utf-8') as f:
         data = json.load(f)
-    
+
     registry = None
     # Locate model_registry in system_config
     if isinstance(data.get("system_config"), list):
@@ -17,14 +18,14 @@ def fix_db(path):
     elif isinstance(data.get("system_config"), dict):
          # db.json format (dict of dicts)
          registry = next((x for x in data["system_config"].values() if x.get("type") == "model_registry"), None)
-    
+
     if not registry:
         print(f"No model_registry in {path}")
         return
 
     models = registry.get("models", {})
     # Should be {'google': {'deep': ..., 'fast': ...}}
-    
+
     for provider, strategies in models.items():
         # Add agent mappings pointing to 'deep'
         new_mappings = {
@@ -43,9 +44,9 @@ def fix_db(path):
             "PanelAgent": "deep",
             "GuardAgent": "fast"
         }
-        
+
         for agent, strategy in new_mappings.items():
-            # Only add if missing to avoid overwriting custom configs? 
+            # Only add if missing to avoid overwriting custom configs?
             # Actually, we want to ensure they exist.
             if agent not in strategies:
                 strategies[agent] = strategy

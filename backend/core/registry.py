@@ -120,46 +120,46 @@ class TaskRegistry:
             system_instruction = None
             if execution_config and "llm_prompts" in execution_config:
                 from backend.services.component_registry import ComponentRegistry
-                
+
                 # Resolve list of keys into single text block
                 reg = ComponentRegistry()
                 prompts = execution_config["llm_prompts"]
                 if prompts:
                     logger.info(f"[{agent_cls.__name__}] Found {len(prompts)} prompt keys in config: {prompts[:3]}...")
                     system_instruction = reg.resolve_prompts(tuple(prompts))
-                    
+
                     # --- VARIABLE SUBSTITUTION (Fix for Hallucinations) ---
                     # The prompt contains {{HISTORY_TEXT}} etc.
                     # The input_data contains history_text etc.
                     # We must replace the placeholders with actual content.
-                    
+
                     # 1. Standardize Inputs
                     if hasattr(input_data, "model_dump"):
                         vars_to_inject = input_data.model_dump()
                     elif isinstance(input_data, dict):
                         vars_to_inject = input_data
-                    
+
                     # 2. Add System Context Variables
                     from datetime import datetime
                     vars_to_inject["CURRENT_DATE"] = datetime.now().strftime("%Y-%m-%d")
                     vars_to_inject["DYNAMIC_TIME"] = datetime.now().strftime("%H:%M:%S")
                     vars_to_inject["DYNAMIC_LOCATION"] = "Sijainti: VIRTUAL_ENCLAVE" # Default
-                    
+
                     # 3. Perform Substitution
                     if system_instruction:
                         for key, value in vars_to_inject.items():
                             if value is None:
                                 value = ""
                             # Try UPPERCASE match first (Standard: {{HISTORY_TEXT}})
-                            placeholder = f"{{{{{key.upper()}}}}}" 
+                            placeholder = f"{{{{{key.upper()}}}}}"
                             if placeholder in system_instruction:
                                 system_instruction = system_instruction.replace(placeholder, str(value))
-                            
+
                             # Try Direct Match (Legacy: {{history_text}})
                             placeholder_lower = f"{{{{{key}}}}}"
                             if placeholder_lower in system_instruction:
                                 system_instruction = system_instruction.replace(placeholder_lower, str(value))
-                                
+
                     logger.info(f"[{agent_cls.__name__}] Resolved system_instruction length: {len(system_instruction)}")
                 else:
                     logger.warning(f"[{agent_cls.__name__}] 'llm_prompts' key present but empty list.")
@@ -169,7 +169,7 @@ class TaskRegistry:
             # 4. Execute using New Signature
             # Input is Pydantic model (InputData), convert to dict
             input_dict = input_data.model_dump() if hasattr(input_data, "model_dump") else input_data
-            
+
             # Prepare kwargs from Registry Config first (Base Truth)
             # Filter for known LLM parameters to avoid polluting kwargs with metadata
             registry_kwargs = {}
@@ -178,7 +178,7 @@ class TaskRegistry:
                     registry_kwargs[k] = v
 
             logger.debug(f"[{agent_cls.__name__}] Registry Kwargs: {registry_kwargs} (from config: {model_config.keys()})")
-            
+
             # Apply Execution Config/Step Config on top (Overrides)
             exec_kwargs = registry_kwargs.copy()
             if execution_config:
@@ -198,14 +198,14 @@ class TaskRegistry:
             # 5. Extract/Validate Result
             # The agent returns a dictionary (or Pydantic dump)
             # We convert it to the expected output_model
-            
+
             # Hooks would go here if we kept them, but the prompt says:
             # "Remove the complex logic that tried to wrap inputs into a state object or extract outputs from specific state fields."
             # "The input is now just the input, and the output is just the output."
             # So I am dropping the HOOK logic from the Wrapper. Hooks should be handled by the GraphEngine or explicitly if needed,
             # but the Wrapper's job is just to adapt the Class to the Task function signature.
             # *Wait, the previous code had Hooks logic inside the wrapper.*
-            # If I remove it, hooks won't run. The prompt says "Remove the complex logic that tried to wrap inputs...". 
+            # If I remove it, hooks won't run. The prompt says "Remove the complex logic that tried to wrap inputs...".
             # It didn't explicitly say "Remove hooks".
             # However, hooks relied on `result_state` (which was a `WorkflowState`).
             # Now `result_dict` is just the output of *this* agent step.
@@ -217,16 +217,16 @@ class TaskRegistry:
 
             if isinstance(result_dict, output_model):
                 return result_dict
-            
+
             if isinstance(result_dict, dict):
                 return output_model(**result_dict)
-            
+
             return result_dict
 
         # Register for each key
         for key in task_keys:
             agent_type = "critic" if "critic" in agent_cls.__name__.lower() else "agent"
-            
+
             cls._tasks[key] = TaskDefinition(
                 name=key,
                 handler=agent_wrapper,

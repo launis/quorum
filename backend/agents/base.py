@@ -126,15 +126,15 @@ class BaseAgent(BaseComponent):
         Overrides any LLM-hallucinated values for these fields.
         Handles both raw dicts and Pydantic models.
         """
-        from datetime import datetime, timezone
         import hashlib
         import json
+        from datetime import datetime, timezone
 
         # 1. TIME & IDENTITY AUTHORITY
         utc_now = datetime.now(timezone.utc)
         agent_name = self.__class__.__name__
         env_context = "Internal"
-        
+
         # --- CASE A: Pydantic Model ---
         if isinstance(data, BaseModel):
             if hasattr(data, "metadata") and data.metadata:
@@ -147,7 +147,7 @@ class BaseAgent(BaseComponent):
                     data.metadata.vaihe = 1
                 if not getattr(data.metadata, "versio", None):
                     data.metadata.versio = "2.0"
-                
+
                 # Checksum for Model
                 try:
                     # Dump to dict, exclude checksum, hash
@@ -157,7 +157,7 @@ class BaseAgent(BaseComponent):
                     # Hash
                     dump = json.dumps(as_dict, sort_keys=True, default=str)
                     checksum = hashlib.sha256(dump.encode("utf-8")).hexdigest()
-                    
+
                     if hasattr(data, "semanttinen_tarkistussumma"):
                         data.semanttinen_tarkistussumma = checksum
                         logger.debug(f"[{self.__class__.__name__}] Calc Checksum (Model): {checksum[:8]}...")
@@ -173,15 +173,15 @@ class BaseAgent(BaseComponent):
             # 1. METADATA AUTHORITY
             if "metadata" not in data or not isinstance(data["metadata"], dict):
                 data["metadata"] = {}
-            
+
             meta = data["metadata"]
             meta["luontiaika"] = utc_now
             meta["agentti"] = agent_name
-            
+
             # Environment default
             if "suoritus_ymparisto" not in meta:
                 meta["suoritus_ymparisto"] = env_context
-            
+
             # Schema defaults
             if "vaihe" not in meta:
                 meta["vaihe"] = 1
@@ -195,11 +195,11 @@ class BaseAgent(BaseComponent):
                 if "semanttinen_tarkistussumma" in content_to_hash:
                     del content_to_hash["semanttinen_tarkistussumma"]
                 # Exclude unstable fields? Validation result is content, so keep it.
-                
+
                 # Sort keys for deterministic hashing
                 dump = json.dumps(content_to_hash, sort_keys=True, default=str)
                 checksum = hashlib.sha256(dump.encode("utf-8")).hexdigest()
-                
+
                 data["semanttinen_tarkistussumma"] = checksum
                 logger.debug(f"[{self.__class__.__name__}] Calc Checksum (Dict): {checksum[:8]}...")
                 logger.debug(f"[{self.__class__.__name__}] Calc Checksum (Dict): {checksum[:8]}...")
@@ -272,9 +272,9 @@ class BaseAgent(BaseComponent):
 
 
             # 3.6 Context Continuity Check (Transient Reasoning Trace)
-            # Access trace from input_data or context? 
+            # Access trace from input_data or context?
             # Assuming input_data might contain 'last_reasoning_trace' if mapped?
-            # Or execution_context? 
+            # Or execution_context?
             # For now, if we are strictly stateless, we depend on inputs.
             # However, prompt says "Remove all imports and type hints referring to WorkflowState."
             # So we check input_data or kwargs.
@@ -290,11 +290,11 @@ class BaseAgent(BaseComponent):
             conf_tokens = kwargs.get("max_tokens", "Default")
 
             logger.info(f"[{self.__class__.__name__}] >>> EXECUTION START <<<")
-            
+
             # Identify extras
             std_keys = {"temperature", "max_tokens", "pass_reasoning_token", "mock_identity", "system_instruction", "repository", "output_key", "usage_key", "execution_config", "step_id"}
             extras = {k: v for k, v in kwargs.items() if k not in std_keys}
-            
+
             logger.info(f"[{self.__class__.__name__}] MODEL: {conf_model} | TEMP: {conf_temp} | TOKENS: {conf_tokens} | EXTRAS: {extras}")
             # --------------------------------
 
@@ -348,7 +348,7 @@ class BaseAgent(BaseComponent):
             # But the prompt said: "The agent should no longer modify state objects; it should purely return its result as a dictionary (or Pydantic model)."
             # We assume usage tracking is handled by the caller or logging for now.
             logger.info(f"BaseAgent processing usage. Response token_usage: {response_obj.token_usage}")
-            
+
             # 4.6 Capture Audit Logs (Prompts)
             if hasattr(response_obj, "messages") and response_obj.messages:
                  # DE-DUPLICATION LOGIC (Jan 2026):
@@ -358,16 +358,16 @@ class BaseAgent(BaseComponent):
                  try:
                      import copy
                      sanitized_messages = copy.deepcopy(response_obj.messages)
-                     
+
                      for msg in sanitized_messages:
                          if "content" in msg and isinstance(msg["content"], str):
                              content_str = msg["content"]
-                             
+
                              # Handle Pydantic Models or Dicts
                              start_inputs = input_data
                              if isinstance(start_inputs, BaseModel):
                                  start_inputs = start_inputs.model_dump()
-                                 
+
                              if isinstance(start_inputs, dict):
                                  for key, value in start_inputs.items():
                                      # Only replace if value is a long string (avoid replacing 'id' or '1')
@@ -381,7 +381,8 @@ class BaseAgent(BaseComponent):
                      sanitized_messages = response_obj.messages
 
                  if isinstance(response_data, dict):
-                     if "metadata" not in response_data: response_data["metadata"] = {}
+                     if "metadata" not in response_data:
+                         response_data["metadata"] = {}
                      if isinstance(response_data["metadata"], dict):
                          response_data["metadata"]["audit_logs"] = sanitized_messages
                  elif isinstance(response_data, BaseModel):
@@ -391,28 +392,28 @@ class BaseAgent(BaseComponent):
                          elif isinstance(response_data.metadata, BaseModel):
                              # We enabled extra="allow" in Metadata
                              try:
-                                setattr(response_data.metadata, "audit_logs", sanitized_messages)
+                                response_data.metadata.audit_logs = sanitized_messages
                              except Exception as e:
                                 logger.warning(f"Could not attach audit logs to metadata model: {e}")
 
              # FORCE SYSTEM AUTHORITY (Metadata & Checksums)
             if response_data:
                 self._apply_python_authority(response_data)
-            
+
             # 6. Lifecycle Hook: Post Process
             logger.info(f"[{self.__class__.__name__}] Lifecycle Hook: post_process")
             response_data = self.post_process(response_data)
 
             logger.info(f"[{self.__class__.__name__}] Execution completed.")
-            
+
             # Return Pydantic model as dict or strict return?
             # "The agent should no longer modify state objects; it should purely return its result as a dictionary (or Pydantic model)."
             # "Update the execute method logic: ... return the validated response_data directly."
             # "signature... -> dict"
-            
+
             if isinstance(response_data, BaseModel):
                 return response_data.model_dump()
-                
+
             return response_data
 
         except ValidationError as e:

@@ -3,8 +3,8 @@
 from typing import Any
 
 from backend.models.domain import (
-    ArgumentaatioAnalyysi,
     ArchivistOutput,
+    ArgumentaatioAnalyysi,
     CoachingPlan,
     DimensionResultItem,
     EettinenHavainto,
@@ -33,12 +33,10 @@ from backend.models.domain import (
     TaintedDataContent,
     TodistusKartta,
     ToulminKomponentti,
-
     WaltonSkeema,
     WaltonStressitesti,
     XAIReport,
 )
-
 
 # --- Common Metadata ---
 MOCK_METADATA = Metadata(

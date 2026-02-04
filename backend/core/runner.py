@@ -5,7 +5,7 @@ import logging
 from datetime import datetime
 from typing import Any
 
-from backend.exceptions import AgentExecutionError, FatalInterruption, AppException
+from backend.exceptions import AgentExecutionError, AppException, FatalInterruption
 from backend.models.state import InputData, WorkflowState
 from backend.services.usage_service import UsageService
 
@@ -240,15 +240,15 @@ class PipelineRunner:
                     if k not in internal_keys:
                         # Only set if NOT already present (Step/Seed override takes precedence technically,
                         # but we want to know if it drifts).
-                        # Update: Logic above sets exec_kwargs from 'execution_config'. 
+                        # Update: Logic above sets exec_kwargs from 'execution_config'.
                         # This loop OVERWRITES it with Registry defaults if I use [k] = v.
-                        # Wait, the previous logic was: exec_kwargs[k] = v. 
-                        # This means Registry took precedence? 
+                        # Wait, the previous logic was: exec_kwargs[k] = v.
+                        # This means Registry took precedence?
                         # default_api logic: "exec_kwargs = { ..., 'execution_config': config }"
                         # config is a dict. It isn't unpacked yet.
                         # So Registry DOES take precedence for explicit args like temperature.
                         exec_kwargs[k] = v
-            
+
             # --- INTEGRITY CHECK: DETECT CONFIGURATION DRIFT ---
             # User Request: Compare LiteLLM values (exec_kwargs) to Database defaults (model_config)
             if model_config:
@@ -257,7 +257,7 @@ class PipelineRunner:
                 for key in drift_keys:
                     registry_val = model_config.get(key)
                     runtime_val = exec_kwargs.get(key)
-                    
+
                     # Fuzzy comparison for floats
                     match = True
                     if isinstance(registry_val, float) and isinstance(runtime_val, float):
@@ -267,7 +267,7 @@ class PipelineRunner:
 
                     if registry_val is not None and not match:
                         drift_warnings.append(f"{key}: {registry_val} (DB) != {runtime_val} (Runtime)")
-                
+
                 if drift_warnings:
                     logger.warning(
                         f"[PipelineRunner] ⚠️ CONFIGURATION DRIFT DETECTED for step '{step_id}': "

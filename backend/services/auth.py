@@ -6,14 +6,15 @@ import asyncio
 import logging
 import time
 import uuid
+from datetime import datetime, timezone
 from typing import Any
 
 import jwt
 from tinydb import Query
 
-from datetime import datetime, timezone
 from backend.exceptions import ConflictError
 from backend.models.auth import Organization, OrganizationCreate, TokenData, User, UserCreate, UserRole, UserUpdate
+from backend.database.wrapper import AbstractDatabase, AbstractTable
 
 # Secure Secret for Local Tokens (Impersonation)
 # In production, this MUST be set via environment variable.
@@ -691,7 +692,7 @@ class AuthService:
             # If we log critical, app starts but Auth might fail.
             # Let's log CRITICAL and return None/Raise.
             raise RuntimeError("Root user 'root_master' missing from DB. Run 'python -m backend.seed.run_seed local'.")
-            
+
         if root.organization_id != "system":
             # Fix casing or drift if it was "SYSTEM" or None
             logger.info(f"Fixing root_master organization_id from '{root.organization_id}' to 'system'")

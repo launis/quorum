@@ -1,12 +1,12 @@
 
 import json
-import sys
+
 
 def verify_scale_resolution():
     try:
-        with open(r'c:\src\quorum\data\db.json', 'r', encoding='utf-8') as f:
+        with open(r'c:\src\quorum\data\db.json', encoding='utf-8') as f:
             db_data = json.load(f)
-        
+
         executions = db_data.get('executions', {})
         components = db_data.get('components', {})
         workflows = db_data.get('workflows', {})
@@ -27,16 +27,16 @@ def verify_scale_resolution():
             steps = results["step_results"]
         else:
             steps = results
-        
+
         print("Steps found: ", list(steps.keys()))
 
         # Logic from execution_router.py
-        scale_limit = (1.0, 4.0) 
+        scale_limit = (1.0, 4.0)
         matrix_id = None
-        
+
         # A. Try Result Metadata
         judge_step = steps.get("step_judge") or steps.get("step_judge_cognitive")
-        
+
         if judge_step:
             print("Found judge step.")
             if "matrix_id" in judge_step:
@@ -64,7 +64,7 @@ def verify_scale_resolution():
                         matrix_id = config.get("matrix_id")
                         print(f"Found matrix_id in workflow definition: {matrix_id}")
                         break
-        
+
         # C. Fetch Matrix Component
         if matrix_id:
             # Handle tinyDB structure where components might be keyed by ID or just a dict
@@ -77,7 +77,7 @@ def verify_scale_resolution():
                      if v.get('id') == matrix_id:
                          matrix = v
                          break
-            
+
             if matrix:
                 content = matrix.get("content", {})
                 if "scale" in content:
@@ -99,7 +99,7 @@ def verify_scale_resolution():
             print("No matrix_id resolved.")
 
         print(f"FINAL RESOLVED SCALE LIMIT: {scale_limit}")
-        
+
     except Exception as e:
         print(f"Error: {e}")
         import traceback

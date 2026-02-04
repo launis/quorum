@@ -1,15 +1,15 @@
 
 import asyncio
-import logging
-from unittest.mock import MagicMock, AsyncMock, patch
-import pytest
+from unittest.mock import AsyncMock, MagicMock, patch
+
+from pydantic import BaseModel
+
+from backend.agents.base import BaseAgent
 
 # Mock dependencies
 from backend.core.runner import PipelineRunner
-from backend.agents.base import BaseAgent
 from backend.exceptions import FatalInterruption
-from backend.models.state import WorkflowState, InputData
-from pydantic import BaseModel
+
 
 class DummyAgent(BaseAgent):
     state_field = "dummy"
@@ -21,9 +21,9 @@ async def test_pipeline_runner_strict_security():
     mock_repo = AsyncMock()
     # Simulate DB failure
     mock_repo.get_banned_phrases.side_effect = Exception("DB Connection Lost")
-    
+
     runner = PipelineRunner(repository=mock_repo, registry=MagicMock(), prompt_builder=MagicMock())
-    
+
     try:
         await runner.initialize_state(
             execution_id="test-exec",
@@ -40,7 +40,7 @@ async def test_pipeline_runner_strict_security():
 async def test_base_agent_strict_checksum():
     print("\n--- Testing BaseAgent Strict Checksum (Dict) ---")
     agent = DummyAgent()
-    
+
     # Simulate non-serializable object to break json.dumps in checksum calc
     # Force json.dumps to fail
     bad_data = {"key": "value"}

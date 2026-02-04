@@ -265,7 +265,7 @@ class LLMHandler:
             "temperature", 0.7
         )  # Parameter defaults are acceptable/necessary? Assuming yes for float/int, but MODEL must be explicit.
         max_tokens = cd.get("max_tokens", None)
-        
+
         # Extract API Key from DB Config
         api_key = cd.get("api_key")
 

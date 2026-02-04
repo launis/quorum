@@ -29,7 +29,7 @@ USAGE GUIDE (Mandatory Pattern)
    
    Format: DOMAIN_REASON_DETAIL
    
-   Examples:
+Examples:
    - EXECUTION_NOT_FOUND      (404)
    - WORKFLOW_EXECUTION_FAILED (500)
    - INVALID_JSON_PAYLOAD     (400)
@@ -86,9 +86,9 @@ BANNED PATTERNS
 ================================================================================
 """
 
+from enum import Enum
 from typing import Any
 
-from enum import Enum
 from fastapi import status
 
 
@@ -100,24 +100,24 @@ class ErrorCodes(str, Enum):
     # General
     INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR"
     UNKNOWN_ERROR = "UNKNOWN_ERROR"
-    
+
     # Validation
     EMPTY_INPUT = "EMPTY_INPUT"
     INVALID_JSON_PAYLOAD = "INVALID_JSON_PAYLOAD"
     MISSING_WORKFLOW_ID = "MISSING_WORKFLOW_ID"
     UNSUPPORTED_CONTENT_TYPE = "UNSUPPORTED_CONTENT_TYPE"
-    
+
     # Resources
     EXECUTION_NOT_FOUND = "EXECUTION_NOT_FOUND"
     WORKFLOW_NOT_FOUND = "WORKFLOW_NOT_FOUND"
-    
+
     # Visualization
     CHART_GENERATION_FAILED = "CHART_GENERATION_FAILED"
-    
+
     # Execution
     WORKFLOW_EXECUTION_FAILED = "WORKFLOW_EXECUTION_FAILED"
     AGENT_EXECUTION_CRITICAL = "AGENT_EXECUTION_CRITICAL"
-    
+
     # Auth
     AUTH_TOKEN_EXPIRED = "AUTH_TOKEN_EXPIRED"
     PERMISSION_DENIED = "PERMISSION_DENIED"

@@ -1,13 +1,14 @@
 """API Router for Configuration Steps."""
 
 import logging
-from typing import Annotated, Any, List
+from typing import Any
 
-from fastapi import APIRouter, Path, Body
+from fastapi import APIRouter
 from pydantic import BaseModel, Field
 from tinydb import Query
 
 from backend.dependencies import DatabaseDep
+from backend.exceptions import ConflictError, ResourceNotFoundError
 
 logger = logging.getLogger(__name__)
 
@@ -17,13 +18,12 @@ router = APIRouter(prefix="/config", tags=["Configuration"])
 # --- Models ---
 
 class StepConfig(BaseModel):
-    """
-    Step Configuration (Direct DB Mapping).
+    """Step Configuration (Direct DB Mapping).
     """
     id: str = Field(..., description="Unique step identifier", json_schema_extra={"x-ui-label": "Step ID"})
     name: str = Field(..., description="Human-readable name", json_schema_extra={"x-ui-label": "Nimi"})
     description: str | None = Field(None, json_schema_extra={"x-ui-label": "Kuvaus"})
-    
+
     # Primary DB Fields
     task_key: str = Field("analyst", description="Task Key (DB source)", json_schema_extra={"x-ui-label": "Agentti"})
     config: dict[str, Any] = Field(default_factory=dict, description="Configuration (DB source)", json_schema_extra={"x-ui-label": "Asetukset"})
@@ -31,15 +31,15 @@ class StepConfig(BaseModel):
 
 # --- Routes ---
 
-@router.get("/steps", summary="List Steps", response_description="All steps.", response_model=List[StepConfig])
+@router.get("/steps", summary="List Steps", response_description="All steps.", response_model=list[StepConfig])
 def get_steps(db: DatabaseDep):
-    "Retrieves all defined steps. Pydantic model handles adaptation automatically."
+    """Retrieves all defined steps. Pydantic model handles adaptation automatically."""
     return db.table("steps").all()
 
 
 @router.get("/steps/{step_id}", summary="Get Step", response_model=StepConfig)
 def get_step(step_id: str, db: DatabaseDep):
-    "Retrieves a single step by ID."
+    """Retrieves a single step by ID."""
     Step = Query()
     doc = db.table("steps").get(Step.id == step_id)
     if not doc:
@@ -49,10 +49,10 @@ def get_step(step_id: str, db: DatabaseDep):
 
 @router.post("/steps", summary="Create Step", response_description="Status and ID.")
 def create_step(step: StepConfig, db: DatabaseDep):
-    "Creates a new step. Pydantic validator adapts legacy input to DB schema."
+    """Creates a new step. Pydantic validator adapts legacy input to DB schema."""
     table = db.table("steps")
     Step = Query()
-    
+
     if table.search(Step.id == step.id):
         raise ConflictError(message="Step ID already exists", details={"id": step.id})
 
@@ -67,10 +67,10 @@ def create_step(step: StepConfig, db: DatabaseDep):
 
 @router.put("/steps/{step_id}", summary="Update Step")
 def update_step(step_id: str, step: StepConfig, db: DatabaseDep):
-    "Updates an existing step."
+    """Updates an existing step."""
     table = db.table("steps")
     Step = Query()
-    
+
     # Check existence
     if not table.contains(Step.id == step_id):
          raise ResourceNotFoundError(message=f"Step '{step_id}' not found.")
@@ -81,7 +81,7 @@ def update_step(step_id: str, step: StepConfig, db: DatabaseDep):
 
     # Prepare Doc (Exclude computed legacy fields from DB)
     doc = step.model_dump(exclude={'component', 'execution_config'})
-    
+
     # Update logic
     if step.id == step_id:
         table.update(doc, Step.id == step_id)
@@ -94,10 +94,10 @@ def update_step(step_id: str, step: StepConfig, db: DatabaseDep):
 
 @router.delete("/steps/{step_id}", summary="Delete Step")
 def delete_step(step_id: str, db: DatabaseDep):
-    "Deletes a step."
+    """Deletes a step."""
     table = db.table("steps")
     Step = Query()
-    
+
     if not table.contains(Step.id == step_id):
         raise ResourceNotFoundError(message=f"Step '{step_id}' not found.")
 

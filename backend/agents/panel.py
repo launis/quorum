@@ -52,7 +52,7 @@ class PanelAgent(BaseAgent):
         """
         # Collect all relevant data for all potential critics from inputs
         # Maps keys if they exist in input_data
-        
+
         # Safe access helper
         def safe_get(key, default="Ei saatavilla"):
              return input_data.get(key) or default
@@ -162,22 +162,22 @@ class PanelAgent(BaseAgent):
                 # NOTE: The "Fan-Out" to logging/falsifier/etc fields is no longer done by modifying 'state' here.
                 # It must be done by the Engine using mapping_expressions or result_mapping logic if needed.
                 # OR we return a dict with those keys if Engine supports flattening.
-                
+
                 # For compatibility with new Engine, we return the PanelAudit.
                 # If we need to fan out, we might return a dict like:
                 # {
                 #   "step_panel": panel_data,
                 #   "step_logician": panel_data.logiikka_auditointi, ...
                 # }
-                # But BaseAgent usually returns one result. 
+                # But BaseAgent usually returns one result.
                 # Let's assume Engine takes the result for this step ID.
-                
+
                 logger.info("[PanelAgent] Successfully generated PanelAudit.")
-                
+
                 # To support fan-out in the new architecture, we might explicitly return the sub-models
                 # But typically the step result is just "step_panel".
                 # Downstream steps will look up "step_panel.logiikka_auditointi".
-                
+
                 if isinstance(panel_data, PanelAudit):
                    return panel_data.model_dump()
                 return panel_data

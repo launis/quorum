@@ -1,10 +1,10 @@
 
 import asyncio
 import logging
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import AsyncMock, patch
 
 from backend.agents.retrieval import RetrievalAgent
-from backend.models.state import WorkflowState, InputData
+from backend.models.state import InputData, WorkflowState
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -52,32 +52,32 @@ async def test_retrieval_runtime():
     with patch("backend.agents.retrieval.get_repository", new=AsyncMock(return_value=mock_repo)):
         with patch("backend.agents.retrieval.get_db_client"):
             with patch("backend.agents.retrieval.get_settings"):
-                
+
                 # 3. Instantiate Agent
                 agent = RetrievalAgent()
-                
+
                 # 4. Execute
                 print("Executing Agent...")
                 new_state = await agent.execute(state)
-                
+
                 # 5. Verify Output
                 print("Verifying Output...")
                 result = new_state.step_context
-                
+
                 if not result:
                     print("FAILURE: step_context is None!")
                     exit(1)
-                    
+
                 print(f"Result Type: {type(result)}")
                 # Pydantic items usually print nicely
                 # print(result.model_dump_json(indent=2))
-                
+
                 # 6. Verify Metadata
                 if hasattr(result, "metadata") and result.metadata:
                     print(f"Metadata Found: {result.metadata}")
                     print(f"Luontiaika: {result.metadata.luontiaika}")
                     print(f"Agentti: {result.metadata.agentti}")
-                    
+
                     if result.metadata.agentti == "RetrievalAgent":
                          print("SUCCESS: Metadata correctly injected with Agent Name.")
                     else:

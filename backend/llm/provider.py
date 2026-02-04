@@ -7,16 +7,16 @@ import os
 from abc import ABC, abstractmethod
 from typing import Any
 
-import litellm
 import instructor
+import litellm
 from litellm import Router
 from pydantic import BaseModel
 from tenacity import retry, stop_after_attempt, wait_exponential
 
+from backend.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend.models.llm import LLMResponse
 from backend.services.usage_service import UsageService
 from backend.settings import get_settings
-from backend.exceptions import ConfigurationError, AppException, ErrorCodes
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -132,7 +132,7 @@ class LiteLLMProvider(LLMProvider):
             model_list=[model_config],
             set_verbose=False,
         )
-        
+
         # Initialize Instructor Client checking compatibility with Router
         # Instructor expects a client-like object or a completion function.
         # We wrap the router's acompletion method.
@@ -169,7 +169,7 @@ class LiteLLMProvider(LLMProvider):
              logger.error(f"[LiteLLMProvider] {msg}")
              raise ConfigurationError(msg)
 
-   
+
         # Context Continuity (Stateless Reasoning Blob)
         if pass_reasoning_token:
             # Abstraction: We pass it as a developer hint for now.
@@ -198,7 +198,7 @@ class LiteLLMProvider(LLMProvider):
                 if not text:
                     logger.info(f"[LiteLLM] [{label}]: <empty>")
                     return
-                
+
                 # Format for log
                 # User Mandate (Jan 2026): Single-line compact debug log
                 content_preview = text[:50].replace('\n', '\\n')
@@ -221,7 +221,7 @@ class LiteLLMProvider(LLMProvider):
                 "api_key": self.api_key,
                 "drop_params": True,
                 # STRICT NETWORK TIMEOUT: Fail fast (120s) instead of hanging forever.
-                "timeout": 120, 
+                "timeout": 120,
             }
             # Inject dynamic extra params (top_p, top_k, etc.) provided via kwargs
             # Filter out internal keys if necessary, but litellm.drop_params=True handles most.
@@ -276,17 +276,17 @@ class LiteLLMProvider(LLMProvider):
                 # we use 'create' because we wrapped self.router.acompletion in __init__
                 # Note: instructor.from_litellm expects the *function* or client.
                 # Since we wrapped it, we call client.chat.completions.create
-                
+
                 # Instructor might return the Model instance directly, or a tuple/Stream.
                 # We expect the Model instance.
-                
+
                 # Adjust kwargs for Instructor
                 call_kwargs["response_model"] = response_schema
                 # Remove fields not needed or handled by Instructor/LiteLLM mixed
-                call_kwargs.pop("response_format", None) 
-                
+                call_kwargs.pop("response_format", None)
+
                 # We need to map 'max_tokens' -> 'max_tokens' (standard)
-                
+
                 # EXECUTE
                 # Note: usage/cost tracking with Instructor + Router + LiteLLM is tricky.
                 # We might need to inspect the raw response if available, or rely on LiteLLM callbacks.
@@ -295,46 +295,46 @@ class LiteLLMProvider(LLMProvider):
                 # Instructor allows `checks` and returning `(model, completion)`?
                 # Let's try to get the raw completion to extract usage/reasoning.
                 # from instructor import Response
-                
+
                 # Actually, standard Instructor usage:
                 # resp = await self.client.chat.completions.create(...)
                 # -> returns the Pydantic model.
-                
+
                 # To get usage, we might need to rely on LiteLLM's success callbacks or
                 # use `response_model=[response_schema]` iterable trick (deprecated?)
                 # OR use `instructor.patch()` on a client that returns raw response?
-                
+
                 # Let's stick to the simplest path first: Get the object.
                 # We might lose Usage stats temporarily (or get them from callback logic in future).
                 # For reasoning token, checks provider_specific_fields... strictly, Pydantic model
                 # doesn't have it unless we add it to the model.
-                
+
                 # CRITICAL: We need 'reasoning_token' for chain-of-thought continuity.
                 # If we lose it, we break CoT.
-                
+
                 # Strategy:
                 # 1. We assume 'response_schema' is the content model.
-                # 2. We can ask Instructor to return `(instance, raw_completion)` if configured? 
+                # 2. We can ask Instructor to return `(instance, raw_completion)` if configured?
                 #    No, `with_response=True` (in newer versions).
-                
+
                 # Let's try basic implementation and see.
                 # I will wrap the Pydantic result into our LLMResponse.
-                
+
                 logger.info(f"[Instructor] Calling {self.model_name} with schema {response_schema.__name__}")
-                
+
                 structured_response = await self.client.chat.completions.create(**call_kwargs)
-                
+
                 # Check what we got. If standard usage, it's the Pydantic object.
                 parsed_obj = structured_response
                 final_content = parsed_obj.model_dump_json()
-                
+
                 # Mock usage for now or try to extract from 'structured_response._raw_response'?
                 # (Implementation detail dependent).
                 # For now, we'll use placeholder usage and reasoning_token for structured calls
                 # as Instructor's direct return doesn't easily expose them without deeper integration.
-                usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0} 
+                usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
                 reasoning_token = None
-                
+
                 return LLMResponse(
                     content=final_content,
                     parsed_content=parsed_obj.model_dump(),
@@ -349,7 +349,7 @@ class LiteLLMProvider(LLMProvider):
             # Fallback to self.router.acompletion directly if no schema
             # Remove keys that shouldn't be passed directly
             call_kwargs["model"] = self.model_name
-            
+
             response = await self.router.acompletion(**call_kwargs)  # type: ignore[call-overload]
 
             # Extract basic content
@@ -428,7 +428,7 @@ class LiteLLMProvider(LLMProvider):
             # Jan 2026: Reduce Error Verbosity & Improve Classification
             error_msg = str(e)
             error_type = type(e).__name__
-            
+
             # 1. RATE LIMITS & QUOTA (Critical Infra)
             if "RateLimitError" in error_type or "429" in error_msg or "Resource exhausted" in error_msg:
                 logger.error(f"[LiteLLM] RESOURCE EXHAUSTED (Rate Limit): {error_msg}")
@@ -441,11 +441,11 @@ class LiteLLMProvider(LLMProvider):
                     status_code=500,
                     details={"error_code": ErrorCodes.MODEL_OUTPUT_LIMIT_EXCEEDED}
                 ) from e
-                
+
             # 2. AUTHENTICATION ALERTS (Security/Config)
             elif "AuthenticationError" in error_type or "401" in error_msg or "invalid_api_key" in error_msg:
                  logger.critical(f"[LiteLLM] AUTH FAILED (Check API Keys): {error_msg}")
-                 
+
             # 3. CONTEXT WINDOW (Data/Prompt Engineering)
             elif "ContextWindowExceededError" in error_type or "context_length_exceeded" in error_msg or "400" in error_msg:
                  # Often 400 is generic, but combined with length/context keywords matches this.
@@ -462,7 +462,7 @@ class LiteLLMProvider(LLMProvider):
                      status_code=503,
                      details={"error_code": ErrorCodes.UPSTREAM_TIMEOUT}
                  ) from e
-            
+
             # 5. CONTENT POLICY (Safety)
             elif "ContentPolicyViolation" in error_type or "blocked" in error_msg.lower():
                  logger.warning(f"[LiteLLM] SAFETY FILTER TRIGGERED: {error_msg}")
@@ -508,7 +508,7 @@ class MockProvider(LLMProvider):
         from backend.llm.mock import MockLLMService
 
         logger.info(f"[MockProvider] Calling Mock Service (Simulating Async)... {kwargs}")
-  
+
         # STRICT CONFIGURATION (Jan 2026): Reject defaults in Mock too.
         if temperature is None:
              msg = "Strict Mode: 'temperature' must be explicitly provided from configuration. No default allowed."
@@ -673,7 +673,7 @@ class LLMFactory:
                     resolved_api_key = settings.openai_api_key
                 elif "claude" in model_name:
                     resolved_api_key = settings.anthropic_api_key
-        
+
         # Determine fallback if still empty and logic required
         if not resolved_api_key:
              match provider_type.lower():

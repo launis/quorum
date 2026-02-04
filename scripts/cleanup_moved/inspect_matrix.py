@@ -1,13 +1,12 @@
 
 import json
-import sys
 
 try:
-    with open(r'c:\src\quorum\data\db.json', 'r', encoding='utf-8') as f:
+    with open(r'c:\src\quorum\data\db.json', encoding='utf-8') as f:
         data = json.load(f)
-    
+
     components = data.get('components', {})
-    
+
     print("--- matrix_standard_v1 ---")
     m1 = None
     # Component ID might be key or inside value

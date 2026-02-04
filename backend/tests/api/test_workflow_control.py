@@ -1,16 +1,15 @@
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
-from fastapi import HTTPException
-from fastapi.testclient import TestClient
+from unittest.mock import AsyncMock
 
-# Mock AuthService to bypass token issues
-from backend.services.auth import AuthService
-from backend.models.auth import TokenData, UserRole
+import pytest
 
 # We can rely on router directly or via app.
 # Unit test style: Import router and dependencies directly or mock depends.
 from backend.api.routes.execution.lifecycle import cancel_execution
+from backend.models.auth import TokenData, UserRole
+
+# Mock AuthService to bypass token issues
+
 
 @pytest.mark.asyncio
 async def test_cancel_execution_success():
@@ -22,17 +21,17 @@ async def test_cancel_execution_success():
         "organization_id": "org-A",
         "user_id": "user-1",
     }
-    
+
     # 2. Mocks
     repository = AsyncMock()
     repository.get_execution.return_value = execution_record
     repository.update_execution.return_value = True
-    
+
     user = TokenData(uid="user-1", role=UserRole.MEMBER, organization_id="org-A", email="test@test.com")
-    
+
     # 3. Call Endpoint logic
     result = await cancel_execution(execution_id, repository=repository, current_user=user)
-    
+
     # 4. Verify
     assert result["status"] == "cancelling"
     repository.update_execution.assert_called_with(execution_id, {"status": "cancelling"})
@@ -47,14 +46,14 @@ async def test_cancel_execution_already_done():
         "organization_id": "org-A",
         "user_id": "user-1",
     }
-    
+
     repository = AsyncMock()
     repository.get_execution.return_value = execution_record
-    
+
     user = TokenData(uid="user-1", role=UserRole.MEMBER, organization_id="org-A")
-    
+
     result = await cancel_execution(execution_id, repository=repository, current_user=user)
-    
+
     # Expect 200 OK but status remains completed
     assert result["status"] == "completed"
     repository.update_execution.assert_not_called()
@@ -69,19 +68,19 @@ async def test_cancel_execution_permission_denied():
         "organization_id": "org-A",
         "user_id": "user-99", # Different user
     }
-    
+
     repository = AsyncMock()
     repository.get_execution.return_value = execution_record
-    
+
     user = TokenData(uid="user-1", role=UserRole.MEMBER, organization_id="org-A")
 
     # 2. Pydantic 2.0 / FastAPI logic throws exceptions
     # We expect AppException or HTTPException
     from backend.exceptions import AppException
-    
+
     with pytest.raises(AppException) as excinfo:
         await cancel_execution(execution_id, repository=repository, current_user=user)
-    
+
     assert excinfo.value.status_code == 403
 
 # SSE Test (partial)

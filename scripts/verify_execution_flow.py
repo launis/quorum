@@ -4,7 +4,6 @@ import logging
 import os
 import sys
 import time
-from typing import Dict, Any
 
 # Ensure backend in path
 sys.path.append(os.getcwd())
@@ -17,6 +16,7 @@ os.environ["USE_MOCK_DB"] = "true"
 os.environ["STORAGE_BACKEND"] = "LOCAL"
 
 from fastapi.testclient import TestClient
+
 from backend.main import app
 
 # Setup Logging
@@ -25,10 +25,10 @@ logger = logging.getLogger(__name__)
 
 def verify_execution(client):
     logger.info("Starting Verification of POST /executions...")
-    
+
     # 1. Get Authentication Token
     headers = {"Authorization": "Bearer mock-token:root_master"}
-    
+
     # 2. List Workflows to find a valid ID
     logger.info("Fetching workflows...")
     try:
@@ -36,7 +36,7 @@ def verify_execution(client):
         if resp.status_code != 200:
             logger.error(f"Failed to list workflows: {resp.status_code} - {resp.text}")
             return
-        
+
         workflows = resp.json()
         if not workflows:
             logger.error("No workflows found in Mock DB. Seeding might be needed.")
@@ -44,7 +44,7 @@ def verify_execution(client):
         else:
             target_wf = next((w for w in workflows if "fused" in w.get("id", "").lower()), workflows[0])
             workflow_id = target_wf["id"]
-            
+
         logger.info(f"Selected Workflow: {workflow_id}")
 
         # 3. Prepare Payload
@@ -53,16 +53,16 @@ def verify_execution(client):
             "product_text": "Mock product content",
             "reflection_text": "Mock reflection content"
         }
-        
+
         json_payload = json.dumps({
             "workflowId": workflow_id,
             "inputs": inputs
         })
-        
+
         files = {
             "dummy": ("dummy.txt", b"content", "text/plain")
         }
-        
+
         data = {
             "json_payload": json_payload
         }

@@ -13,6 +13,7 @@ from pydantic import BaseModel
 from backend.dependencies import AuthServiceDep, CurrentUserDep, RepositoryDep
 from backend.models.auth import Organization, SubscriptionStatus, TokenData, UserRole
 from backend.services.auth import AuthService
+from backend.exceptions import ResourceNotFoundError
 
 logger = logging.getLogger(__name__)
 
@@ -131,7 +132,6 @@ async def create_organization(
     item = org.model_dump()
 
     # Add metadata
-    import time
 
     if "created_at" not in item:
         from datetime import datetime, timezone

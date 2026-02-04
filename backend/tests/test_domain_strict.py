@@ -1,5 +1,5 @@
-import pytest
-from backend.models.domain import EvaluationResult, DimensionResultItem
+from backend.models.domain import DimensionResultItem, EvaluationResult
+
 
 def test_evaluation_result_strict_validation():
     # 1. Valid Case (Standard 1-5)

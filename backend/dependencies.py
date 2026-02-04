@@ -13,12 +13,11 @@ from typing import Annotated, Any
 from arq.connections import ArqRedis, RedisSettings, create_pool
 from fastapi import Depends, Header
 
-from backend.exceptions import AuthenticationError
-
 from backend.core.engine import GraphEngine
 from backend.database.factory import get_repository
 from backend.database.repository import AbstractWorkflowRepository
 from backend.database.wrapper import AbstractDatabase, get_db_client
+from backend.exceptions import AuthenticationError
 from backend.llm.provider import LLMProvider
 from backend.models.auth import TokenData
 from backend.services.agent_registry import AgentRegistry

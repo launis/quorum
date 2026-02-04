@@ -3,10 +3,7 @@
 import logging
 from typing import Any
 
-from fastapi import status
-
 from backend.dependencies import RegistryDep
-from backend.exceptions import AppException
 
 logger = logging.getLogger(__name__)
 
@@ -40,11 +37,11 @@ class WorkflowValidator:
             if step_id not in steps_db_map:
                 errors.append(f"Unknown Step: {step_id}")
                 continue
-            
+
             step_doc = steps_db_map[step_id]
             # Support both new 'task_key' and legacy 'component'
             agent_ref = step_doc.get("task_key") or step_doc.get("component")
-            
+
             if not agent_ref:
                 errors.append(f"Step {step_id} missing task_key or component")
                 continue
@@ -60,14 +57,14 @@ class WorkflowValidator:
                 if not comp:
                      errors.append(f"Unknown Agent/Task: {agent_ref} in {step_id}")
                      continue
-                
+
                 module_name = comp.get("module")
                 class_name = comp.get("class_name")
-                
+
                 if not module_name or not class_name:
                     errors.append(f"Corrupt Registry: {agent_ref} missing module/class info")
                     continue
-                
+
                 try:
                     import importlib
                     mod = importlib.import_module(module_name)
@@ -82,7 +79,7 @@ class WorkflowValidator:
             missing = [r for r in reqs if r not in pseudo_state]
             if missing:
                 errors.append(f"Step {i + 1} ({agent_ref}) Missing Inputs: {missing}")
-            
+
             prods = getattr(agent_class, "PRODUCES_KEYS", [])
             for k in prods:
                 if k not in pseudo_state:

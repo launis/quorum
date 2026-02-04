@@ -69,7 +69,9 @@ def test_get_schemas_list_fi():
         assert props["name"]["x-ui-label"] == "Työnkulun Nimi"
 
 from unittest.mock import AsyncMock
+
 from backend.dependencies import get_async_repository
+
 
 def test_get_execution_view_fi():
     """Verify that Execution View (Report) is localized."""
@@ -86,15 +88,15 @@ def test_get_execution_view_fi():
         }
     }
     mock_repo.get_execution.return_value = mock_execution
-    
+
     app.dependency_overrides[get_async_repository] = lambda: mock_repo
-    
+
     headers = {"Accept-Language": "fi-FI"}
     response = client.get("/executions/test-exec-1/view", headers=headers)
-    
+
     # Clean up override
     del app.dependency_overrides[get_async_repository]
-    
+
     print(f"DEBUG STATUS: {response.status_code}")
     print(f"DEBUG BODY: {response.text}")
     assert response.status_code == 200
@@ -105,7 +107,7 @@ def test_get_execution_view_fi():
     # Check Score Card Title Translation
     # "Judge" -> "Tuomari" (Agent Name)
     # "Analysis Result" -> "Analyysin Tulos" (Title)
-    
+
     # Allow for partial match or specific structure check
     # Structure: sections -> list. Find type=SCORE_CARD
     score_card = next((s for s in view["sections"] if s["type"] == "SCORE_CARD"), None)

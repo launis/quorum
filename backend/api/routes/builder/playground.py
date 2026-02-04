@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any
 
 from fastapi import APIRouter
 from pydantic import BaseModel
@@ -10,13 +10,12 @@ router = APIRouter(prefix="/playground", tags=["Playground"])
 class PlaygroundRequest(BaseModel):
     system_instruction: str
     user_message: str
-    variables: Dict[str, str] = {}
-    model_params: Dict[str, Any] = {}
+    variables: dict[str, str] = {}
+    model_params: dict[str, Any] = {}
 
 @router.post("/run")
 async def run_prompt(request: PlaygroundRequest) -> str:
     """Executes a prompt template with variables against the LLM."""
-    
     # 1. Inject Variables
     try:
         system_content = request.system_instruction.format(**request.variables)
@@ -27,8 +26,8 @@ async def run_prompt(request: PlaygroundRequest) -> str:
         return f"Error: Formatting failed: {e}"
 
     # 2. Initialize Client
-    client = LLMClient() 
-    
+    client = LLMClient()
+
     # 3. Construct Messages
     messages = [
         {"role": "system", "content": system_content},

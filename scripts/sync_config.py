@@ -1,12 +1,11 @@
 import json
-import os
 import shutil
 
 DB_PATH = 'c:/src/quorum/data/db.json'
 SEED_PATH = 'c:/src/quorum/backend/seed/seed_data.json'
 
 def load_json(path):
-    with open(path, 'r', encoding='utf-8') as f:
+    with open(path, encoding='utf-8') as f:
         return json.load(f)
 
 def save_json(path, data):
@@ -25,14 +24,14 @@ def sync():
         # DB system_config might be dict or list. Seed usually expects dict?
         # Let's inspect DB type
         sc_db = db['system_config']
-        
+
         # If seed doesn't have it, we create it.
         # We need to know if seed expects dict or list.
         # Looking at seed_data.json structure (lines 1-50), it uses lists for organizations, users.
         # But 'system_config' in db.json is {"1": ...}.
         # We will copy it as is, or convert if seed has a preference.
         # Since seed didn't have it, we'll assume DB structure is correct for the backend.
-        
+
         seed['system_config'] = sc_db
         print("Synced system_config.")
     else:
@@ -51,7 +50,7 @@ def sync():
                  if c.get('id') == 'knowledge_base':
                      kb_db = c
                      break
-    
+
     # Fallback root check
     if not kb_db and '2' in db:
         kb_db = db['2']
@@ -65,7 +64,7 @@ def sync():
             if c.get('id') == 'knowledge_base' or c.get('type') == 'knowledge_base':
                 found_idx = i
                 break
-        
+
         if found_idx >= 0:
             print(f"Updating existing Knowledge Base in Seed (Index {found_idx})")
             # Preserve some fields? Or overwrite?
@@ -76,7 +75,7 @@ def sync():
         else:
             print("Adding new Knowledge Base to Seed components.")
             seed_comps.append(kb_db)
-        
+
         seed['components'] = seed_comps
     else:
         print("Warning: Knowledge Base not found in DB!")
@@ -85,7 +84,7 @@ def sync():
     backup_path = SEED_PATH + ".bak"
     shutil.copy(SEED_PATH, backup_path)
     print(f"Backed up seed to {backup_path}")
-    
+
     save_json(SEED_PATH, seed)
     print("Saved updated seed_data.json")
 

@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from backend.core.rate_limit import limiter
 from backend.dependencies import AuthServiceDep, CurrentUserDep
 from backend.models.auth import Organization, OrganizationCreate, User, UserCreate, UserRole, UserUpdate
+from backend.exceptions import ResourceNotFoundError
 
 # --- Local Imports ---
 # Rule 6: APIError must be the FIRST local import

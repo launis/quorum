@@ -68,7 +68,7 @@ class AgentRegistry:
         """
         # 1. Fetch Dynamic Strategies from Repository
         reg_entry = await self.repository.get_model_registry()
-        
+
         logger.info(f"[AgentRegistry] Resolving config for identifier: '{model_identifier}'")
 
         dynamic_strategies_map = {}
@@ -203,11 +203,11 @@ class AgentRegistry:
                                 "registered_at": datetime.now(),
                             }
                         )
-                    
+
                     # 2. Update Metadata
                     await self._update_component_metadata(
-                        task_key, 
-                        module=module_name, 
+                        task_key,
+                        module=module_name,
                         component_class=agent_class_name
                     )
 

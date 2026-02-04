@@ -1,21 +1,23 @@
 
 import os
+
 os.environ["USE_MOCK_LLM"] = "true"
 
 import pytest
-from backend.llm.provider import MockProvider
+
 from backend.exceptions import ConfigurationError
+from backend.llm.provider import MockProvider
+
 
 @pytest.mark.asyncio
 async def test_strict_provider_enforcement():
     """Verify that MockProvider rejects implicit defaults."""
-    
     # Instantiate provider (Mock is simpler)
     provider = MockProvider(
         model_name="mock-model",
         # Mock doesn't need API keys or Env vars usually
     )
-    
+
 
     # 1. Test Missing Temperature
     print("STEP 1: Testing Missing Temperature")
@@ -50,7 +52,7 @@ async def test_strict_provider_enforcement():
              print(f"FAIL: Step 2 wrong message: {e}")
              raise e
         print("STEP 2: SUCCESS")
-    
+
     # 3. Test Success with All Params
     print("STEP 3: Testing Success Case")
     try:

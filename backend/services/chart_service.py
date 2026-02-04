@@ -49,7 +49,7 @@ class ChartService:
 
             # --- POLYGON GRID (Spider Web Style) ---
             ax.yaxis.grid(False)
-            
+
             # Dynamic Grid Calculation
             # Determine steps based on magnitude
             if max_val <= 5:
@@ -77,11 +77,11 @@ class ChartService:
             label_angle = 0
             if len(categories) > 0:
                 label_angle = angles[0] + (angles[1] - angles[0])/2
-            
+
             ax.set_rlabel_position(np.degrees(label_angle))
             ax.set_yticks(grid_levels)
             ax.set_yticklabels([str(l) for l in grid_levels], color="grey", size=7)
-            
+
             # Ensure 0 is center
             ax.set_ylim(0, max_val)
 
@@ -106,7 +106,7 @@ class ChartService:
         except Exception as e:
             error_code = ErrorCodes.CHART_GENERATION_FAILED
             error_message = "Failed to generate radar chart."
-            
+
             logger.error(
                 f"{error_code}: {error_message}: {e}",
                 exc_info=True

@@ -1,16 +1,17 @@
-from tinydb import TinyDB, Query
+from tinydb import Query, TinyDB
+
 
 def fix_specific_step():
     try:
         db = TinyDB('c:/src/quorum/data/db.json')
         steps_table = db.table('steps')
-        
+
         target_id = 'custom_reporter_710fcf'
         print(f"Targeting step: {target_id}")
 
         Step = Query()
         target = steps_table.get(Step.id == target_id)
-        
+
         if target:
             print(f"Found step: {target}")
             if target.get('task_key') is None:

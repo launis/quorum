@@ -100,13 +100,13 @@ class CoachAgent(BaseAgent):
                                  weak_areas.append(f"- {dim_id}: Score {score} (Low)")
                                  focus_keywords.add(dim_id)
                                  # Add related keywords based on dimension
-                                 if "analy" in dim_id: 
+                                 if "analy" in dim_id:
                                      focus_keywords.update(["bias", "analy", "cognitive", "heuristic"])
                                  elif "logi" in dim_id:
                                      focus_keywords.update(["logic", "fallacy", "argument", "toulmin", "deduct"])
                                  elif "falsi" in dim_id:
                                      focus_keywords.update(["falsif", "popp", "scien", "test"])
-                    
+
                     # Fallback Logic: Check legacy pisteet
                     elif "pisteet" in data:
                          p = data.get("pisteet", {})
@@ -117,9 +117,12 @@ class CoachAgent(BaseAgent):
                                  if isinstance(val, (int, float)) and val < 3:
                                       weak_areas.append(f"- {k}: Score {val} (Low)")
                                       focus_keywords.add(k_lower)
-                                      if "analy" in k_lower: focus_keywords.update(["bias", "analy"])
-                                      elif "arvio" in k_lower: focus_keywords.update(["eval", "assess"])
-                                      elif "syn" in k_lower: focus_keywords.update(["synth", "integ"])
+                                      if "analy" in k_lower:
+                                          focus_keywords.update(["bias", "analy"])
+                                      elif "arvio" in k_lower:
+                                          focus_keywords.update(["eval", "assess"])
+                                      elif "syn" in k_lower:
+                                          focus_keywords.update(["synth", "integ"])
 
                     if weak_areas:
                         parts.append("### IDENTIFIED WEAK AREAS (FOCUS FOR COACHING):")
@@ -136,11 +139,11 @@ class CoachAgent(BaseAgent):
 
             concepts = {}
             references = []
-            
+
             # --- FILTERING LOGIC ---
             # If we have focus keywords, score items by relevance.
             # If no weak areas (perfect score), include general "Advancement" references.
-            
+
             MAX_REFS = 15  # Strict limit to prevent bloat
             filtered_refs = []
 
@@ -149,7 +152,7 @@ class CoachAgent(BaseAgent):
                 term = item.get("term", "").lower()
                 definition = item.get("definition", "").lower()
                 combined_text = f"{term} {definition}"
-                
+
                 # Concept Handling (Always include Core Concepts if small enough, or filter)
                 if i_type == "concept":
                      # For now, include all concepts as they are usually small definitions? SCM says "Context Bloat".
@@ -169,7 +172,7 @@ class CoachAgent(BaseAgent):
                     else:
                         # No weak areas? "General/Advanced" mode.
                         relevance = 1 # Keep some generic ones
-                    
+
                     if relevance > 0:
                         ref_obj = {
                             "citation": item.get("definition"), # Definition often holds the citation text
@@ -187,12 +190,12 @@ class CoachAgent(BaseAgent):
             # We store ALL loaded concepts but only SELECTED references to keep bibliography consistent with prompt?
             # Actually, bibliography should reflect what *could* be used.
             # But prompt should be small.
-            
+
             self.knowledge_base = {
                 "concepts": concepts,
-                "references": selected_refs, 
+                "references": selected_refs,
             }
-            
+
             logger.info(
                 f"[CoachAgent] Intelligent Filtering: Selected {len(selected_refs)} references (from {len(items)}) based on keywords: {list(focus_keywords)[:5]}..."
             )

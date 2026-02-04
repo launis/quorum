@@ -195,7 +195,7 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
 
         if exclude_types:
              results = [c for c in results if c.get("type") not in exclude_types]
-        
+
         return results
 
     async def get_component_by_id(self, component_id: str) -> dict[str, Any] | None:

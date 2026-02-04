@@ -1,7 +1,7 @@
 
-import json
-from tinydb import TinyDB, Query
 import logging
+
+from tinydb import Query, TinyDB
 
 # Setup
 db_path = "data/db.json"
@@ -14,13 +14,13 @@ def restore_matrix():
     # Definition for the missing matrix
     # ID: Kognitiivinen Quorum Unified Matrix (Using name as ID for legacy)
     # Scale: 0-100 (inferred from score 93.3)
-    
+
     matrix_id = "Kognitiivinen Quorum Unified Matrix"
-    
+
     # Check if exists
     Component = Query()
     existing = components_table.search(Component.id == matrix_id)
-    
+
     if existing:
         logger.info(f"Matrix '{matrix_id}' already exists. Skipping.")
         return
@@ -45,7 +45,7 @@ def restore_matrix():
         },
         "version": "1.0-legacy"
     }
-    
+
     components_table.insert(new_matrix)
     logger.info(f"Successfully restored matrix: {matrix_id} with scale [0-100]")
 

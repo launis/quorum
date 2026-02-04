@@ -7,7 +7,6 @@ Includes MIGRATION LOGIC to transform Legacy Workflows -> V2.9 GraphEngine Workf
 import json
 import logging
 import os
-from typing import Any
 
 from tinydb import Query, TinyDB
 
@@ -36,7 +35,7 @@ def seed_database(target_env: str = "LOCAL", target_db_path: str | None = None):
     # --- MIGRATION LOGIC (REMOVED - STRICT OBJECT MODE) ---
     # The seed_data.json must now adhere to the V2.9 Schema (Object Steps).
     # Legacy string-list steps are no longer supported.
-    
+
     # Determine backend
     is_firestore = settings.storage_backend.upper() == "FIRESTORE" and not settings.use_mock_db
 
@@ -103,7 +102,7 @@ def _seed_tinydb(db_path: str, seed_data: dict):
     # This enforces "Seed Data as Truth" without explicit dimensions list in seed_data.json
     dimensions_table = db.table("dimensions")
     extracted_dims = {}
-    
+
     for c in seed_data.get("components", []):
         if c.get("type") == "evaluation_matrix" and isinstance(c.get("content"), dict):
             criteria = c["content"].get("criteria", [])
@@ -134,7 +133,7 @@ def _seed_tinydb(db_path: str, seed_data: dict):
             validated_org = Organization(**org)
             # Dump to JSON-safe dict (datetimes -> ISO strings) for TinyDB
             safe_org = validated_org.model_dump(mode="json")
-            
+
             org_table.upsert(safe_org, Query().id == safe_org["id"])
             count += 1
         except Exception as e:
@@ -228,7 +227,7 @@ def _seed_firestore(seed_data: dict):
             ref = db.collection("system_config").document(cfg_id)
             batch.set(ref, cfg)
             count += 1
-            
+
             if count >= 400:
                 batch.commit()
                 batch = db.batch()

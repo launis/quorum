@@ -11,10 +11,10 @@ from pydantic import BaseModel
 from backend.agents.base import BaseAgent
 
 # 3. Local Imports
-from backend.models.domain import XAIReport, ScoreCardItem, DimensionResultItem
+from backend.models.domain import DimensionResultItem, ScoreCardItem, XAIReport
 
 if TYPE_CHECKING:
-    from backend.models.state import WorkflowState
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +58,7 @@ class XAIReporterAgent(BaseAgent):
         if not judge_result:
              logger.warning("[XAIReporterAgent] No 'step_judge' or 'tuomio' data found in inputs.")
              return None
-        
+
         # If it's a Pydantic model, dump it; if dict, use as is.
         # The result should be EvaluationResult format (Unified Contract).
         if hasattr(judge_result, "model_dump"):
@@ -68,11 +68,11 @@ class XAIReporterAgent(BaseAgent):
 
         # Format Context
         lines = ["### AUDIT RESULTS (EVALUATION):"]
-        
+
         # 1. Total Score
         total_score = data.get("total_score", "N/A")
         lines.append(f"- **Total Score**: {total_score}")
-        
+
         # 2. Dimensions (Replacing legacy 'pisteet' access)
         dimensions = data.get("dimensions", [])
         if dimensions:
@@ -83,11 +83,11 @@ class XAIReporterAgent(BaseAgent):
                 reason = dim.get("reasoning", "")
                 max_val = data.get("scale_max")
                 if max_val is None:
-                     max_val = "N/A" # Context string can be looser, or should we crash here too? 
-                     # Probably safer to show N/A in prompt context but crash in output generation if strict? 
+                     max_val = "N/A" # Context string can be looser, or should we crash here too?
+                     # Probably safer to show N/A in prompt context but crash in output generation if strict?
                      # "take away everything referring to the default" -> No guessing 5.
                      # I will leave it as N/A or raise. Raising in prepare_context aborts execution.
-                     # Let's use "UNKNOWN" to signal the LLM. 
+                     # Let's use "UNKNOWN" to signal the LLM.
                      max_val = "UNKNOWN"
                 lines.append(f"- **{d_id}**: {score}/{max_val} - {reason}")
         else:
@@ -105,7 +105,7 @@ class XAIReporterAgent(BaseAgent):
             lines.append("\n#### Critical Findings:")
             for item in crit_findings:
                 lines.append(f"- {item}")
-        
+
         return "\n".join(lines)
 
     async def execute(
@@ -128,16 +128,16 @@ class XAIReporterAgent(BaseAgent):
         """
         # 1. Generate the base report via LLM (super)
         result = await super().execute(input_data, execution_context, system_instruction, **kwargs)
-        
+
         # 2. Aggregate Scores from any Judge Outputs found in input_data
         score_cards = []
-        
+
         for key, value in input_data.items():
             if (key.startswith("step_judge") or key == "tuomio") and isinstance(value, (dict, BaseModel)):
                 try:
                     # Normalize to dict
                     data = value.model_dump() if hasattr(value, "model_dump") else value
-                    
+
                     # Extract Name
                     # Prefer matrix_id if available, otherwise format the step key
                     matrix_id = data.get("matrix_id")
@@ -157,11 +157,11 @@ class XAIReporterAgent(BaseAgent):
                     if max_val_raw is None:
                          raise ValueError(f"CRITICAL: Missing 'scale_max' in Judge Output for {key}. Cannot build ScoreCard.")
                     max_score = int(max_val_raw)
-                    
+
                     # Extract Dimensions
                     dimensions = []
                     raw_dims = data.get("dimensions", [])
-                    
+
                     if raw_dims:
                         # V2: List of DimensionResultItems
                         for d in raw_dims:
@@ -193,7 +193,7 @@ class XAIReporterAgent(BaseAgent):
                             dimensions=dimensions
                         )
                     )
-                    
+
                 except Exception as e:
                     logger.warning(f"[XAIReporter] Failed to process scorecard for {key}: {e}")
 
@@ -205,6 +205,6 @@ class XAIReporterAgent(BaseAgent):
             # This preserves MOCK data which might be present in the result when inputs are missing.
             if score_cards:
                 result["score_cards"] = score_cards
-        
+
         return result
 

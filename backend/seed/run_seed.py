@@ -9,8 +9,7 @@ project_root = Path(__file__).resolve().parent.parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from tinydb import TinyDB
-from backend.seed.seeder import _seed_tinydb, _seed_firestore
+from backend.seed.seeder import _seed_firestore, _seed_tinydb
 
 SEED_PATH = os.path.join(project_root, 'backend', 'seed', 'seed_data.json')
 LOCAL_DB_PATH = os.path.join(project_root, 'data', 'db.json')
@@ -18,15 +17,15 @@ MOCK_DB_PATH = os.path.join(project_root, 'backend', 'database', 'db_mock.json')
 
 def seed(target):
     print(f"--- SEEDING TARGET: {target.upper()} ---")
-    
+
     if not os.path.exists(SEED_PATH):
         print(f"CRITICAL: Seed file not found at {SEED_PATH}")
         sys.exit(1)
 
     # Load Data
-    with open(SEED_PATH, 'r', encoding='utf-8') as f:
+    with open(SEED_PATH, encoding='utf-8') as f:
         data = json.load(f)
-    
+
     print(f"[Seed] Loaded {len(data.get('workflows', []))} workflows.")
 
     if target == 'local':
@@ -51,22 +50,22 @@ def seed(target):
 
 def main():
     parser = argparse.ArgumentParser(description="Unified Database Seeder")
-    parser.add_argument('targets', nargs='+', choices=['local', 'mock', 'firestore', 'all'], 
+    parser.add_argument('targets', nargs='+', choices=['local', 'mock', 'firestore', 'all'],
                         help="Target environment(s). 'local'=data/db.json, 'mock'=data/db_mock.json")
-    
+
     args = parser.parse_args()
-    
+
     targets = set(args.targets)
     if 'all' in targets:
         targets = {'local', 'mock', 'firestore'}
-        
+
     for t in targets:
         try:
             seed(t)
         except Exception as e:
             print(f"[ERROR] Failed to seed {t}: {e}")
             sys.exit(1)
-            
+
     print("\n✅ All requested targets completed successfully.")
 
 if __name__ == "__main__":

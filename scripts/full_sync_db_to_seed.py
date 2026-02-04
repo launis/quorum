@@ -1,12 +1,11 @@
 import json
-import os
 import shutil
 
 DB_PATH = 'c:/src/quorum/data/db.json'
 SEED_PATH = 'c:/src/quorum/backend/seed/seed_data.json'
 
 def load_json(path):
-    with open(path, 'r', encoding='utf-8') as f:
+    with open(path, encoding='utf-8') as f:
         return json.load(f)
 
 def save_json(path, data):
@@ -31,20 +30,20 @@ def full_sync():
     if 'workflows' in db:
         print("Syncing workflows...")
         seed['workflows'] = to_list(db['workflows'])
-    
+
     # 2. Components (and KB)
     comps = []
     if 'components' in db:
         comps = to_list(db['components'])
         print(f"Got {len(comps)} components from DB.")
-    
+
     # Check for KB in Root "2" if not in comps
     kb_found = False
     for c in comps:
         if c.get('id') == 'knowledge_base':
             kb_found = True
             break
-            
+
     if not kb_found and '2' in db:
         print("Injecting Root '2' (Knowledge Base) into components...")
         kb_data = db['2']
@@ -52,7 +51,7 @@ def full_sync():
         if kb_data.get('id') != 'knowledge_base':
              kb_data['id'] = 'knowledge_base' # Force ID if missing (unlikely)
         comps.append(kb_data)
-        
+
     seed['components'] = comps
     print(f"Total Components in Seed: {len(comps)}")
 

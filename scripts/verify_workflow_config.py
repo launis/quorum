@@ -1,6 +1,7 @@
 import json
-from pathlib import Path
 import sys
+from pathlib import Path
+
 
 def verify_config():
     # Adjust path if running from root or scripts dir
@@ -14,7 +15,7 @@ def verify_config():
 
     print(f"Loading database from: {db_path.absolute()}")
     try:
-        with open(db_path, "r", encoding="utf-8") as f:
+        with open(db_path, encoding="utf-8") as f:
             data = json.load(f)
     except Exception as e:
         print(f"Error loading JSON: {e}")
@@ -22,20 +23,20 @@ def verify_config():
 
     workflows = data.get("workflows", {})
     issues = []
-    
+
     print(f"\nScanning {len(workflows)} workflows for Strict Mode compliance (temperature & max_tokens)...")
 
     for wf_id, wf in workflows.items():
         step_count = len(wf.get("steps", []))
         print(f"Checking Workflow: {wf.get('name', wf_id)} ({step_count} steps)")
-        
+
         for step in wf.get("steps", []):
             step_id = step.get("id", "unknown_step")
             config = step.get("config", {})
-            
+
             temp = config.get("temperature")
             tokens = config.get("max_tokens")
-            
+
             # Strict check: Must not be None. 0.0 is valid for temp.
             if temp is None:
                 issues.append(f"VIOLATION: Workflow '{wf_id}' / Step '{step_id}' -> Missing 'temperature'")

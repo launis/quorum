@@ -66,9 +66,9 @@ class GuardAgent(BaseAgent):
         """
         # Pass through to BaseAgent
         return await super().execute(
-            input_data=input_data, 
-            execution_context=execution_context, 
-            system_instruction=system_instruction, 
+            input_data=input_data,
+            execution_context=execution_context,
+            system_instruction=system_instruction,
             **kwargs
         )
 
@@ -94,7 +94,7 @@ class GuardAgent(BaseAgent):
                 banned_phrases = execution_context["banned_phrases"]
             elif "banned_phrases" in input_data:
                 banned_phrases = input_data["banned_phrases"]
-            
+
             banned_ctx = {"banned_phrases": banned_phrases}
 
             from backend.models.domain import GuardInput
@@ -123,7 +123,7 @@ class GuardAgent(BaseAgent):
             raise e
 
         # 2. Input Sanitization (Local Effect Only)
-        # We sanitize locally to log threats. 
+        # We sanitize locally to log threats.
         # Note: In strict stateless mode, we don't modify the upstream inputs.
         self.sanitize_input(input_data)
 
@@ -155,12 +155,12 @@ class GuardAgent(BaseAgent):
 
         # If it's a dict, wrap or check access
         # If it's a Model, access fields
-        
+
         # We need to modify 'data' in place or return new data.
         # Since we might have Pydantic model or dict.
-        
+
         is_dict = isinstance(data, dict)
-        
+
         # Access helpers
         def get_field(obj, key):
             if isinstance(obj, dict):
@@ -172,7 +172,7 @@ class GuardAgent(BaseAgent):
                 obj[key] = val
             else:
                 setattr(obj, key, val)
-                
+
         security_check = get_field(data, "security_check")
 
         if not security_check:
@@ -184,14 +184,14 @@ class GuardAgent(BaseAgent):
         # unless we store it on self during prepare_context (which is risky if instance shared, but Registry instantiates fresh per task)
         # Registry: "agent = agent_cls()" -> Fresh instance.
         # So we can store state on self!
-        
+
         if hasattr(self, "_sanitization_threats") and self._sanitization_threats:
             threats = self._sanitization_threats
             logger.info(f"[GuardAgent] Reporting sanitization actions: {threats}")
-            
+
             # Update security_check
             # If security_check is a dict (if data is dict) or object
-            
+
             # Helper for nested update
             if isinstance(security_check, dict):
                 security_check["anonymisointi_tehty"] = True

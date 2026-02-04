@@ -1,12 +1,11 @@
 import json
-import collections
 
 SEED_PATH = 'backend/seed/seed_data.json'
 
 def audit_seed():
     print(f"--- Auditing {SEED_PATH} ---")
     try:
-        with open(SEED_PATH, 'r', encoding='utf-8') as f:
+        with open(SEED_PATH, encoding='utf-8') as f:
             data = json.load(f)
     except Exception as e:
         print(f"CRITICAL: Failed to load JSON: {e}")
@@ -27,7 +26,7 @@ def audit_seed():
     registry_agents = set()
     sys_config = data.get('system_config', [])
     registry = next((x for x in sys_config if x.get('type') == 'model_registry'), None)
-    
+
     if registry:
         models = registry.get('models', {})
         for provider, strategies in models.items():
@@ -37,14 +36,14 @@ def audit_seed():
                 # Simplified check: if key matches an agent class name
                 pass
             registry_agents.update(strategies.keys())
-    
+
     print(f"Found {len(registry_agents)} mappings in global 'model_registry'.")
 
     # 3. Check for Orphans (Agents without Registry Entry)
     orphans = []
     # Hardcoded exclusions for known non-agent tasks or special cases?
     # GuardAgent usually runs via TaskRegistry, but we added it to DB to be safe.
-    
+
     for agent in defined_agents:
         if agent not in registry_agents:
             orphans.append(agent)
@@ -61,7 +60,7 @@ def audit_seed():
     for wf in data.get('workflows', []):
         if 'default_model_mapping' in wf:
             print(f"[!] INFO: Workflow '{wf.get('id')}' has local 'default_model_mapping'. This is NOT used by Global Registry.")
-        
+
         # Check steps for invalid components
         for step in wf.get('steps', []):
             if isinstance(step, dict):
