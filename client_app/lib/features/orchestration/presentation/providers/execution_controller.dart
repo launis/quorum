@@ -18,111 +18,54 @@ part 'execution_controller.g.dart';
 
 /// **Execution Data Stream**
 ///
-/// Legacy/Simple polling provider (retained for fallback/simplicity if needed)
-/// But ExecutionController now takes over active monitoring.
+/// Real-time monitoring of a specific execution via SSE.
+/// Used by Detailed View.
 @riverpod
-Stream<Execution> executionStream(Ref ref, String executionId) async* {
+Stream<Execution> executionStream(Ref ref, String executionId) {
   final repository = ref.watch(executionRepositoryProvider);
-  await for (final result in repository.streamExecution(executionId)) {
-    yield result.fold((error) => throw error, (execution) => execution);
-  }
+  return repository.streamExecution(executionId);
 }
 
-/// **Execution Controller**
+/// **Execution Actions Controller**
 ///
-/// Manages the state of the active execution, including SSE monitoring and actions.
+/// Manages actions like Start, Cancel, Delete.
+/// Does NOT hold the active execution state (use [executionStream] for that).
 @riverpod
 class ExecutionController extends _$ExecutionController {
-  StreamSubscription? _sseSubscription;
-
+  
   @override
-  FutureOr<Execution?> build() {
-    return null; // Initially no active execution
-  }
-
-  /// Starts monitoring an execution via SSE.
-  ///
-  /// Updates [state] with real-time data.
-  Future<void> monitorExecution(String executionId) async {
-    // Cancel existing subscription if any
-    await _sseSubscription?.cancel();
-
-    // Set loading if we have no data
-    if (state.value == null) {
-      state = const AsyncLoading();
-    }
-
-    // Initial fetch to ensure full data immediately (Fixes UI freeze)
-    final repository = ref.read(executionRepositoryProvider);
-    final result = await repository.getExecution(executionId).run();
-    
-    result.match(
-      (error) => state = AsyncError(error, StackTrace.current),
-      (execution) => state = AsyncData(execution),
-    );
-
-    final dio = ref.read(dioProvider);
-    final url = '/executions/$executionId/events';
-
-    try {
-      final stream = SseClient.connect<Execution>(
-        url: url,
-        parser: (json) => Execution.fromJson(json),
-        dio: dio,
-      );
-
-      _sseSubscription = stream.listen(
-        (execution) {
-          state = AsyncData(execution);
-        },
-        onError: (error) {
-          // Determine if we should set error state or just log
-          // If it's the only source of truth, error state is appropriate.
-          state = AsyncError(error, StackTrace.current);
-        },
-      );
-    } catch (e, st) {
-      state = AsyncError(e, st);
-    }
+  FutureOr<void> build() {
+    // Stateless controller for actions
+    return null;
   }
 
   /// Cancels the current execution.
   Future<void> cancelExecution(String id) async {
-    final repository = ref.read(executionRepositoryProvider);
-    final result = await repository.cancelExecution(id).run();
-
-    result.match(
-      (error) {
-        state = AsyncError(error, StackTrace.current);
-      },
-      (_) {
-        // Success. SSE should eventually confirm 'cancelled'.
-      },
-    );
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await ref.read(executionRepositoryProvider).cancelExecution(id).run();
+    });
   }
 
   /// Deletes an execution permanently.
   Future<void> deleteExecution(String id) async {
-    final repository = ref.read(executionRepositoryProvider);
-    final result = await repository.deleteExecution(id).run();
-
-    result.match(
-      (error) => state = AsyncError(error, StackTrace.current),
-      (_) {
-        // Invalidate list to remove the item from grid
-        ref.invalidate(executionListControllerProvider);
-        
-        // If we deleted the active one, clear state
-        if (state.value?.id == id) {
-          state = const AsyncData(null);
-        }
-      },
-    );
-  }
-
-  // Dispose
-  void dispose() {
-    _sseSubscription?.cancel();
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      final result = await ref.read(executionRepositoryProvider).deleteExecution(id).run();
+      
+      result.fold(
+        (error) {
+          // If 404, we consider it already deleted
+          // However, AppError might need inspection. For now, strictly throw.
+          // Ideally: if (error is NotFound) return;
+          throw error;
+        },
+        (_) => null,
+      );
+      
+      // Invalidate list to remove the item from grid
+      ref.invalidate(executionListControllerProvider);
+    });
   }
 
   /// Starts a new analysis workflow.
@@ -141,8 +84,6 @@ class ExecutionController extends _$ExecutionController {
       final error =
           validation.getLeft().toNullable() ??
           const AppError.validation(ValidationErrorReason.unknown);
-      
-      debugPrint('[ExecutionController] Validation failed: $error');
       
       state = AsyncError(error, StackTrace.current);
       throw error;
@@ -168,14 +109,15 @@ class ExecutionController extends _$ExecutionController {
       }
     }
 
-    // 4. Call Repository
+    // 4. Call Repository via Guard
     final repository = ref.read(executionRepositoryProvider);
     final input = ExecutionInput(
       workflowId: workflowId,
       inputs: jsonInputs,
       files: files,
     );
-
+    
+    // We handle the result manually because we need to return the ID
     final result = await repository.createExecution(input).run();
 
     return result.match(
@@ -184,11 +126,8 @@ class ExecutionController extends _$ExecutionController {
         throw error;
       },
       (executionId) {
+        state = const AsyncData(null);
         ref.invalidate(executionListControllerProvider);
-
-        // Start Monitoring immediately
-        monitorExecution(executionId);
-
         return executionId;
       },
     );

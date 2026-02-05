@@ -45,6 +45,8 @@ sealed class Execution with _$Execution {
     @JsonKey(name: 'user_id') String? userId,
     @Default({}) Map<String, dynamic> inputs,
     @JsonKey(name: 'current_step_name') String? currentStepName,
+    @JsonKey(name: 'current_step_index') int? currentStepIndex,
+    @JsonKey(name: 'total_steps') int? totalSteps,
     @Default(ExecutionStatus.pending) ExecutionStatus status,
   }) = ExecutionPending;
 
@@ -57,6 +59,8 @@ sealed class Execution with _$Execution {
     @JsonKey(name: 'user_id') String? userId,
     @Default({}) Map<String, dynamic> inputs,
     @JsonKey(name: 'current_step_name') String? currentStepName,
+    @JsonKey(name: 'current_step_index') int? currentStepIndex,
+    @JsonKey(name: 'total_steps') int? totalSteps,
     @Default(ExecutionStatus.started) ExecutionStatus status,
   }) = ExecutionStarted;
 
@@ -76,6 +80,8 @@ sealed class Execution with _$Execution {
     @JsonKey(name: 'user_id') String? userId,
     @Default({}) Map<String, dynamic> inputs,
     @JsonKey(name: 'current_step_name') String? currentStepName,
+    @JsonKey(name: 'current_step_index') int? currentStepIndex,
+    @JsonKey(name: 'total_steps') int? totalSteps,
     @Default(ExecutionStatus.running) ExecutionStatus status,
   }) = ExecutionRunning;
 
@@ -90,6 +96,8 @@ sealed class Execution with _$Execution {
     @JsonKey(name: 'user_id') String? userId,
     @Default({}) Map<String, dynamic> inputs,
     @JsonKey(name: 'current_step_name') String? currentStepName,
+    @JsonKey(name: 'current_step_index') int? currentStepIndex,
+    @JsonKey(name: 'total_steps') int? totalSteps,
 
     /// The final output of the workflow (e.g., the Report object).
     /// Only available in completed state.
@@ -136,6 +144,8 @@ sealed class Execution with _$Execution {
     @JsonKey(name: 'user_id') String? userId,
     @Default({}) Map<String, dynamic> inputs,
     @JsonKey(name: 'current_step_name') String? currentStepName,
+    @JsonKey(name: 'current_step_index') int? currentStepIndex,
+    @JsonKey(name: 'total_steps') int? totalSteps,
 
     /// Error message or failure reason.
     String? error,
@@ -149,6 +159,8 @@ sealed class Execution with _$Execution {
     @JsonKey(name: 'workflow_name') String? workflowName,
     @Default({}) Map<String, dynamic> inputs,
     @JsonKey(name: 'current_step_name') String? currentStepName,
+    @JsonKey(name: 'current_step_index') int? currentStepIndex,
+    @JsonKey(name: 'total_steps') int? totalSteps,
     @Default(ExecutionStatus.unknown) ExecutionStatus status,
     Map<String, dynamic>? result,
     String? error,

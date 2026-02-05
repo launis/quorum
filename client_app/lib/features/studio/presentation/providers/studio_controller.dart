@@ -16,9 +16,8 @@ abstract class StudioState with _$StudioState {
     @Default(AsyncValue.data(null)) AsyncValue<WorkflowDef?> activeWorkflow,
     @Default(AsyncValue.data(<StudioComponentDef>[]))
     AsyncValue<List<StudioComponentDef>> components,
-    @Default(AsyncValue.data(<StudioComponentDef>[]))
-    AsyncValue<List<StudioComponentDef>> availableMatrices,
-    @Default(AsyncValue.data([]))
+    // availableMatrices moved to AvailableMatricesController
+    @Default(AsyncValue.data(<OntologyDimension>[]))
     AsyncValue<List<OntologyDimension>> ontologyDimensions,
     String? selectedMatrixId,
   }) = _StudioState;
@@ -32,7 +31,7 @@ class StudioController extends _$StudioController {
   }
 
   Future<void> loadWorkflows() async {
-    state = state.copyWith(workflows: const AsyncValue.loading());
+    state = state.copyWith(workflows: const AsyncLoading<List<WorkflowDef>>().copyWithPrevious(state.workflows));
     state = state.copyWith(
       workflows: await AsyncValue.guard(() async {
         return ref.read(studioRepositoryProvider).getWorkflows();
@@ -42,7 +41,7 @@ class StudioController extends _$StudioController {
 
   /// **Load Components List**
   Future<void> loadComponents() async {
-    state = state.copyWith(components: const AsyncValue.loading());
+    state = state.copyWith(components: const AsyncLoading<List<StudioComponentDef>>().copyWithPrevious(state.components));
     state = state.copyWith(
       components: await AsyncValue.guard(() async {
         return ref.read(studioRepositoryProvider).getComponents();
@@ -50,32 +49,11 @@ class StudioController extends _$StudioController {
     );
   }
 
-  /// **Load Matrices**
-  Future<void> loadMatrices() async {
-    final logger = ref.read(loggerServiceProvider);
-    logger.info('CONTROLLER', 'loadMatrices: START');
-    
-    state = state.copyWith(availableMatrices: const AsyncValue.loading());
-    
-    try {
-      final items = await ref
-          .read(studioRepositoryProvider)
-          .getComponents(type: 'evaluation_matrix');
-      
-      logger.info('CONTROLLER', 'loadMatrices: Got ${items.length} items. Updating state.');
-      state = state.copyWith(availableMatrices: AsyncValue.data(items));
-      logger.info('CONTROLLER', 'loadMatrices: State updated to Data.');
-    } catch (e, st) {
-      logger.error('CONTROLLER', 'loadMatrices: FAILED', e as Exception);
-      state = state.copyWith(availableMatrices: AsyncValue.error(e, st));
-    }
-  }
-
   /// **Load Ontology Dimensions**
   Future<void> loadOntology() async {
     // Avoid reloading if already loaded?
     // For now, always reload or rely on simple guard.
-    state = state.copyWith(ontologyDimensions: const AsyncValue.loading());
+    state = state.copyWith(ontologyDimensions: const AsyncLoading<List<OntologyDimension>>().copyWithPrevious(state.ontologyDimensions));
     state = state.copyWith(
       ontologyDimensions: await AsyncValue.guard(() async {
         return ref.read(studioRepositoryProvider).fetchOntology();
@@ -114,7 +92,7 @@ class StudioController extends _$StudioController {
     );
     // Parallel load
     await Future.wait([
-      loadMatrices(),
+      // loadMatrices replaced by availableMatricesControllerProvider
       loadOntology(),
     ]);
   }
@@ -129,27 +107,8 @@ class StudioController extends _$StudioController {
 
   /// **Save Component**
   Future<void> saveComponent(StudioComponentDef component) async {
-    // Optimistic Update
-    final currentList = state.availableMatrices.value ?? [];
-    final index = currentList.indexWhere((c) => c.id == component.id);
-    
-    List<StudioComponentDef> newList;
-    if (index != -1) {
-      newList = List.from(currentList)..[index] = component;
-    } else {
-      newList = [...currentList, component];
-    }
-    
-    state = state.copyWith(availableMatrices: AsyncValue.data(newList));
-
-    try {
       await ref.read(studioRepositoryProvider).saveComponent(component);
-      // No need to reload if optimistic update was correct, but good for sync
-    } catch (e) {
-      // Rollback
-      state = state.copyWith(availableMatrices: AsyncValue.data(currentList));
-      rethrow;
-    }
+      // Main list is handled by availableMatricesControllerProvider / componentsControllerProvider
   }
 
   /// **Update Step Configuration (Active Workflow)**
@@ -277,34 +236,6 @@ class StudioController extends _$StudioController {
       // Refresh list
       await loadWorkflows();
     } catch (e) {
-      rethrow;
-    }
-  }
-
-  /// **Copy Workflow**
-  /// Optimistically adds a "Copying..." placeholder or just relies on fast server response.
-  /// Given requirement: "temporary copying state".
-  Future<void> createMatrix(String name, String description) async {
-    final tempId = 'new_${DateTime.now().millisecondsSinceEpoch}';
-    final newMatrix = StudioComponentDef(
-      id: tempId,
-      name: name,
-      type: 'evaluation_matrix',
-      description: description,
-      content: {},
-    );
-
-    // Optimistic Update
-    final currentList = state.availableMatrices.value ?? [];
-    state = state.copyWith(availableMatrices: AsyncValue.data([...currentList, newMatrix]));
-
-    try {
-      await ref.read(studioRepositoryProvider).saveComponent(newMatrix);
-      // Refresh to get real ID
-      await loadMatrices();
-    } catch (e) {
-      // Rollback
-      state = state.copyWith(availableMatrices: AsyncValue.data(currentList));
       rethrow;
     }
   }

@@ -8,6 +8,7 @@ import 'package:client_app/features/orchestration/presentation/widgets/sdui/gene
 import 'package:client_app/features/studio/presentation/widgets/sdui/reorderable_array_builder.dart';
 import 'package:client_app/features/studio/presentation/providers/studio_controller.dart';
 import 'package:client_app/features/studio/presentation/widgets/dynamic_config_form.dart';
+import 'package:client_app/features/studio/presentation/providers/available_matrices_controller.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -38,7 +39,8 @@ class _StudioEditorAreaState extends ConsumerState<StudioEditorArea> {
 
     // Check for Matrix Selection first
     if (state.selectedMatrixId != null) {
-      return state.availableMatrices.when(
+      final matricesState = ref.watch(availableMatricesControllerProvider);
+      return matricesState.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, st) => Center(child: Text('Error: $err')),
         data: (matrices) {

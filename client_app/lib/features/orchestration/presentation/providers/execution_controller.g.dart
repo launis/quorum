@@ -10,16 +10,16 @@ part of 'execution_controller.dart';
 // ignore_for_file: type=lint, type=warning
 /// **Execution Data Stream**
 ///
-/// Legacy/Simple polling provider (retained for fallback/simplicity if needed)
-/// But ExecutionController now takes over active monitoring.
+/// Real-time monitoring of a specific execution via SSE.
+/// Used by Detailed View.
 
 @ProviderFor(executionStream)
 final executionStreamProvider = ExecutionStreamFamily._();
 
 /// **Execution Data Stream**
 ///
-/// Legacy/Simple polling provider (retained for fallback/simplicity if needed)
-/// But ExecutionController now takes over active monitoring.
+/// Real-time monitoring of a specific execution via SSE.
+/// Used by Detailed View.
 
 final class ExecutionStreamProvider
     extends
@@ -27,8 +27,8 @@ final class ExecutionStreamProvider
     with $FutureModifier<Execution>, $StreamProvider<Execution> {
   /// **Execution Data Stream**
   ///
-  /// Legacy/Simple polling provider (retained for fallback/simplicity if needed)
-  /// But ExecutionController now takes over active monitoring.
+  /// Real-time monitoring of a specific execution via SSE.
+  /// Used by Detailed View.
   ExecutionStreamProvider._({
     required ExecutionStreamFamily super.from,
     required String super.argument,
@@ -72,12 +72,12 @@ final class ExecutionStreamProvider
   }
 }
 
-String _$executionStreamHash() => r'75844d06741279b7d7b5002a7bae1161e1a923fa';
+String _$executionStreamHash() => r'c497ee1b811204bbf03b40c9ceb350d1ac0f8e0f';
 
 /// **Execution Data Stream**
 ///
-/// Legacy/Simple polling provider (retained for fallback/simplicity if needed)
-/// But ExecutionController now takes over active monitoring.
+/// Real-time monitoring of a specific execution via SSE.
+/// Used by Detailed View.
 
 final class ExecutionStreamFamily extends $Family
     with $FunctionalFamilyOverride<Stream<Execution>, String> {
@@ -92,8 +92,8 @@ final class ExecutionStreamFamily extends $Family
 
   /// **Execution Data Stream**
   ///
-  /// Legacy/Simple polling provider (retained for fallback/simplicity if needed)
-  /// But ExecutionController now takes over active monitoring.
+  /// Real-time monitoring of a specific execution via SSE.
+  /// Used by Detailed View.
 
   ExecutionStreamProvider call(String executionId) =>
       ExecutionStreamProvider._(argument: executionId, from: this);
@@ -102,21 +102,24 @@ final class ExecutionStreamFamily extends $Family
   String toString() => r'executionStreamProvider';
 }
 
-/// **Execution Controller**
+/// **Execution Actions Controller**
 ///
-/// Manages the state of the active execution, including SSE monitoring and actions.
+/// Manages actions like Start, Cancel, Delete.
+/// Does NOT hold the active execution state (use [executionStream] for that).
 
 @ProviderFor(ExecutionController)
 final executionControllerProvider = ExecutionControllerProvider._();
 
-/// **Execution Controller**
+/// **Execution Actions Controller**
 ///
-/// Manages the state of the active execution, including SSE monitoring and actions.
+/// Manages actions like Start, Cancel, Delete.
+/// Does NOT hold the active execution state (use [executionStream] for that).
 final class ExecutionControllerProvider
-    extends $AsyncNotifierProvider<ExecutionController, Execution?> {
-  /// **Execution Controller**
+    extends $AsyncNotifierProvider<ExecutionController, void> {
+  /// **Execution Actions Controller**
   ///
-  /// Manages the state of the active execution, including SSE monitoring and actions.
+  /// Manages actions like Start, Cancel, Delete.
+  /// Does NOT hold the active execution state (use [executionStream] for that).
   ExecutionControllerProvider._()
     : super(
         from: null,
@@ -137,23 +140,24 @@ final class ExecutionControllerProvider
 }
 
 String _$executionControllerHash() =>
-    r'eb09b81c24c9d71abcf6b6b0039e67ce94716af5';
+    r'069cc70abbccd33a94c631ad5135fa70d21a0119';
 
-/// **Execution Controller**
+/// **Execution Actions Controller**
 ///
-/// Manages the state of the active execution, including SSE monitoring and actions.
+/// Manages actions like Start, Cancel, Delete.
+/// Does NOT hold the active execution state (use [executionStream] for that).
 
-abstract class _$ExecutionController extends $AsyncNotifier<Execution?> {
-  FutureOr<Execution?> build();
+abstract class _$ExecutionController extends $AsyncNotifier<void> {
+  FutureOr<void> build();
   @$mustCallSuper
   @override
   void runBuild() {
-    final ref = this.ref as $Ref<AsyncValue<Execution?>, Execution?>;
+    final ref = this.ref as $Ref<AsyncValue<void>, void>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<AsyncValue<Execution?>, Execution?>,
-              AsyncValue<Execution?>,
+              AnyNotifier<AsyncValue<void>, void>,
+              AsyncValue<void>,
               Object?,
               Object?
             >;

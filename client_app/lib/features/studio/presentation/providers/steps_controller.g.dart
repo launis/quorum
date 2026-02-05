@@ -33,7 +33,7 @@ final class StepsControllerProvider
   StepsController create() => StepsController();
 }
 
-String _$stepsControllerHash() => r'0c545eb43eef6305922eb2e8ab66edca116e07a2';
+String _$stepsControllerHash() => r'293669324ef332f93733bd7ca45878db9292e0f4';
 
 abstract class _$StepsController extends $AsyncNotifier<List<StepConfig>> {
   FutureOr<List<StepConfig>> build();

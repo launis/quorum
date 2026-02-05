@@ -128,7 +128,31 @@ Using these versions with "Legacy Patterns" is a **STRICT VIOLATION**.
     *   **Generator Only**: `@riverpod` syntax.
     *   **Declarative**: `ref.watch`. No manual subscriptions.
     *   **AsyncValue**: Use `.when()` for UI states.
-    *   **Pattern**: "Engine vs Driver" (Controller = AsyncNotifier, Data = StreamProvider).
+    *   **Pattern**: "Optimistic + Invalidate" (Hybrid).
+    *   **Mandate**: Mutations MUST:
+        1. Capture `previousState`.
+        2. Apply immediate **Optimistic Update** (AsyncData).
+        3. Call API via Repository.
+        4. **Silent Invalidation**: Call `ref.invalidateSelf()` on success to sync with server.
+        5. **Rollback**: On error, restore `previousState` and rethrow.
+        ```dart
+        Future<void> addItem(Item item) async {
+          final previousState = state.valueOrNull;
+          if (previousState == null) return;
+          // 1. Optimistic Update
+          state = AsyncData([...previousState, item]);
+          try {
+            // 2. API Call
+            await ref.read(repoProvider).addItem(item);
+            // 3. Silent Sync
+            ref.invalidateSelf();
+          } catch (e) {
+            // 4. Rollback
+            state = AsyncData(previousState);
+            rethrow;
+          }
+        }
+        ```
 
 2.  **Routing (GoRouter)**:
     *   **Type-Safe**: `HomeRoute().go(context)`. No raw strings.

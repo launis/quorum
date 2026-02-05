@@ -1,6 +1,5 @@
-
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:convert';
 import 'package:client_app/features/orchestration/domain/models/execution.dart';
 import 'package:client_app/features/orchestration/domain/models/report_view.dart';
@@ -8,21 +7,22 @@ import 'package:client_app/features/orchestration/presentation/widgets/sdui/gene
 import 'package:client_app/features/orchestration/presentation/widgets/sdui/generic_table.dart';
 import 'package:client_app/features/orchestration/presentation/widgets/results/score_card_radar.dart';
 import 'package:client_app/features/orchestration/domain/models/xai_report.dart'; // Provides ScoreCardItem
+import 'package:client_app/features/orchestration/data/repositories/execution_repository.dart';
 
 import 'package:client_app/features/orchestration/presentation/widgets/output_renderer.dart';
 import 'package:client_app/features/orchestration/presentation/widgets/sdui/specialist_section.dart';
 import 'package:client_app/app_config.dart';
 
-class ResultDashboard extends StatefulWidget {
+class ResultDashboard extends ConsumerStatefulWidget {
   final Execution execution;
 
   const ResultDashboard({super.key, required this.execution});
 
   @override
-  State<ResultDashboard> createState() => _ResultDashboardState();
+  ConsumerState<ResultDashboard> createState() => _ResultDashboardState();
 }
 
-class _ResultDashboardState extends State<ResultDashboard> {
+class _ResultDashboardState extends ConsumerState<ResultDashboard> {
   late Future<ReportView> _reportViewFuture;
 
   @override
@@ -32,28 +32,19 @@ class _ResultDashboardState extends State<ResultDashboard> {
   }
 
   Future<ReportView> _fetchReportView() async {
-    // 1. If we have the view model directly in execution (future optimization), return it.
-    // 2. Otherwise fetch from BFF endpoint.
     final execId = widget.execution.id;
-    final url = Uri.parse('${AppConfig.apiBaseUrl}/executions/$execId/view');
+    debugPrint('Fetching ReportView for $execId via Repository (Auth)');
     
-    debugPrint('Fetching ReportView from: $url');
+    // Use the Authenticated Repository via Riverpod
+    final result = await ref.read(executionRepositoryProvider).getReportView(execId).run();
     
-    try {
-      final response = await http.get(url);
-      if (response.statusCode == 200) {
-        // UTF-8 decoding is critical for Finnish characters
-        final jsonMap = json.decode(utf8.decode(response.bodyBytes));
-        return ReportView.fromJson(jsonMap);
-      } else {
-        throw Exception('Failed to load report view: ${response.statusCode}');
-      }
-    } catch (e) {
-      debugPrint('Error fetching report view: $e');
-      // Fallback: If fetch fails (offline/dev), try to construct it locally? 
-      // For now, rethrow to show error state.
-      rethrow;
-    }
+    return result.fold(
+      (error) {
+        debugPrint('Error fetching report view: $error');
+        throw Exception(error.toString()); 
+      },
+      (view) => view,
+    );
   }
 
   @override

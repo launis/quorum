@@ -154,3 +154,5 @@ async def get_seed_data(repository: RepositoryDep, current_user: CurrentUserDep)
             message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             details={"error_code": error_code, "original_error": str(e)},
         ) from e
+
+

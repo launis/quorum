@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:client_app/features/orchestration/domain/models/report_view.dart';
 import 'package:flutter/foundation.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import 'package:client_app/core/network/sse_client.dart';
 import 'package:client_app/api/api_client.dart';
 import 'package:client_app/core/error/app_error.dart';
 import 'package:client_app/features/orchestration/domain/models/execution.dart';
@@ -182,25 +184,20 @@ class ExecutionRepository {
   ///
   /// Yields updates every [interval] until the execution reaches a terminal state.
   /// Terminal states: completed, failed, rejected, interrupted.
-  Stream<Either<AppError, Execution>> streamExecution(
-    String id, {
-    Duration interval = const Duration(seconds: 2),
-  }) async* {
-    while (true) {
-      final result = await getExecution(id).run();
-
-      yield result;
-
-      // Check for terminal state to stop polling
-      final shouldStop = result.match(
-        (error) => true, // Stop on error (or maybe retry? simplistic for now)
-        (execution) => _isTerminal(execution.status),
-      );
-
-      if (shouldStop) break;
-
-      await Future<void>.delayed(interval);
-    }
+  /// Streams the execution status via SSE (Server-Sent Events).
+  ///
+  /// Endpoint: `GET /executions/{id}/events`
+  Stream<Execution> streamExecution(String id) {
+    final url = '/executions/$id/events';
+    
+    // We utilize the SseClient helper
+    final stream = SseClient.connect<Execution>(
+      url: url,
+      parser: (json) => Execution.fromJson(json),
+      dio: _client,
+    );
+    
+    return stream;
   }
 
   /// Checks if the status is final/terminal.
@@ -229,6 +226,21 @@ class ExecutionRepository {
         '/executions/$id/raw',
       );
       return response.data!;
+      return response.data!;
+    }, (error, stackTrace) => _mapError(error));
+  }
+
+  /// Fetches the UI View Report (BFF) for an execution.
+  ///
+  /// Endpoint: `GET /executions/{id}/view`
+  TaskEither<AppError, ReportView> getReportView(String id) {
+    return TaskEither.tryCatch(() async {
+      final response = await _client.get<Map<String, dynamic>>(
+        '/executions/$id/view',
+      );
+      debugPrint('[ExecutionRepository] getReportView($id) SUCCESS: ${response.statusCode}');
+      return ReportView.fromJson(response.data!);
     }, (error, stackTrace) => _mapError(error));
   }
 }
+

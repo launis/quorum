@@ -35,7 +35,7 @@ class ProviderConfigForm extends HookConsumerWidget {
     );
 
     // Watch options
-    final availableOptions = ref.watch(modelRegistryControllerProvider.select((s) => s.availableOptions));
+    final availableOptions = ref.watch(modelRegistryControllerProvider.select((s) => s.whenData((data) => data.availableOptions)));
 
     final formKey = useMemoized(() => GlobalKey<FormState>());
 

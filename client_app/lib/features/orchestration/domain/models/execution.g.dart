@@ -15,6 +15,8 @@ ExecutionPending _$ExecutionPendingFromJson(Map<String, dynamic> json) =>
       userId: json['user_id'] as String?,
       inputs: json['inputs'] as Map<String, dynamic>? ?? const {},
       currentStepName: json['current_step_name'] as String?,
+      currentStepIndex: (json['current_step_index'] as num?)?.toInt(),
+      totalSteps: (json['total_steps'] as num?)?.toInt(),
       status:
           $enumDecodeNullable(_$ExecutionStatusEnumMap, json['status']) ??
           ExecutionStatus.pending,
@@ -29,6 +31,8 @@ Map<String, dynamic> _$ExecutionPendingToJson(ExecutionPending instance) =>
       'user_id': instance.userId,
       'inputs': instance.inputs,
       'current_step_name': instance.currentStepName,
+      'current_step_index': instance.currentStepIndex,
+      'total_steps': instance.totalSteps,
       'status': _$ExecutionStatusEnumMap[instance.status]!,
     };
 
@@ -52,6 +56,8 @@ ExecutionStarted _$ExecutionStartedFromJson(Map<String, dynamic> json) =>
       userId: json['user_id'] as String?,
       inputs: json['inputs'] as Map<String, dynamic>? ?? const {},
       currentStepName: json['current_step_name'] as String?,
+      currentStepIndex: (json['current_step_index'] as num?)?.toInt(),
+      totalSteps: (json['total_steps'] as num?)?.toInt(),
       status:
           $enumDecodeNullable(_$ExecutionStatusEnumMap, json['status']) ??
           ExecutionStatus.started,
@@ -66,6 +72,8 @@ Map<String, dynamic> _$ExecutionStartedToJson(ExecutionStarted instance) =>
       'user_id': instance.userId,
       'inputs': instance.inputs,
       'current_step_name': instance.currentStepName,
+      'current_step_index': instance.currentStepIndex,
+      'total_steps': instance.totalSteps,
       'status': _$ExecutionStatusEnumMap[instance.status]!,
     };
 
@@ -78,6 +86,8 @@ ExecutionRunning _$ExecutionRunningFromJson(Map<String, dynamic> json) =>
       userId: json['user_id'] as String?,
       inputs: json['inputs'] as Map<String, dynamic>? ?? const {},
       currentStepName: json['current_step_name'] as String?,
+      currentStepIndex: (json['current_step_index'] as num?)?.toInt(),
+      totalSteps: (json['total_steps'] as num?)?.toInt(),
       status:
           $enumDecodeNullable(_$ExecutionStatusEnumMap, json['status']) ??
           ExecutionStatus.running,
@@ -92,6 +102,8 @@ Map<String, dynamic> _$ExecutionRunningToJson(ExecutionRunning instance) =>
       'user_id': instance.userId,
       'inputs': instance.inputs,
       'current_step_name': instance.currentStepName,
+      'current_step_index': instance.currentStepIndex,
+      'total_steps': instance.totalSteps,
       'status': _$ExecutionStatusEnumMap[instance.status]!,
     };
 
@@ -104,6 +116,8 @@ ExecutionCompleted _$ExecutionCompletedFromJson(Map<String, dynamic> json) =>
       userId: json['user_id'] as String?,
       inputs: json['inputs'] as Map<String, dynamic>? ?? const {},
       currentStepName: json['current_step_name'] as String?,
+      currentStepIndex: (json['current_step_index'] as num?)?.toInt(),
+      totalSteps: (json['total_steps'] as num?)?.toInt(),
       result: json['result'] as Map<String, dynamic>? ?? const {},
       xaiReport: json['xai_report_formatted'] as String?,
       auditResults:
@@ -143,6 +157,8 @@ Map<String, dynamic> _$ExecutionCompletedToJson(ExecutionCompleted instance) =>
       'user_id': instance.userId,
       'inputs': instance.inputs,
       'current_step_name': instance.currentStepName,
+      'current_step_index': instance.currentStepIndex,
+      'total_steps': instance.totalSteps,
       'result': instance.result,
       'xai_report_formatted': instance.xaiReport,
       'audit_results': instance.auditResults,
@@ -173,6 +189,8 @@ ExecutionFailed _$ExecutionFailedFromJson(Map<String, dynamic> json) =>
       userId: json['user_id'] as String?,
       inputs: json['inputs'] as Map<String, dynamic>? ?? const {},
       currentStepName: json['current_step_name'] as String?,
+      currentStepIndex: (json['current_step_index'] as num?)?.toInt(),
+      totalSteps: (json['total_steps'] as num?)?.toInt(),
       error: json['error'] as String?,
       status:
           $enumDecodeNullable(_$ExecutionStatusEnumMap, json['status']) ??
@@ -188,6 +206,8 @@ Map<String, dynamic> _$ExecutionFailedToJson(ExecutionFailed instance) =>
       'user_id': instance.userId,
       'inputs': instance.inputs,
       'current_step_name': instance.currentStepName,
+      'current_step_index': instance.currentStepIndex,
+      'total_steps': instance.totalSteps,
       'error': instance.error,
       'status': _$ExecutionStatusEnumMap[instance.status]!,
     };
@@ -199,6 +219,8 @@ ExecutionUnknown _$ExecutionUnknownFromJson(Map<String, dynamic> json) =>
       workflowName: json['workflow_name'] as String?,
       inputs: json['inputs'] as Map<String, dynamic>? ?? const {},
       currentStepName: json['current_step_name'] as String?,
+      currentStepIndex: (json['current_step_index'] as num?)?.toInt(),
+      totalSteps: (json['total_steps'] as num?)?.toInt(),
       status:
           $enumDecodeNullable(_$ExecutionStatusEnumMap, json['status']) ??
           ExecutionStatus.unknown,
@@ -213,6 +235,8 @@ Map<String, dynamic> _$ExecutionUnknownToJson(ExecutionUnknown instance) =>
       'workflow_name': instance.workflowName,
       'inputs': instance.inputs,
       'current_step_name': instance.currentStepName,
+      'current_step_index': instance.currentStepIndex,
+      'total_steps': instance.totalSteps,
       'status': _$ExecutionStatusEnumMap[instance.status]!,
       'result': instance.result,
       'error': instance.error,

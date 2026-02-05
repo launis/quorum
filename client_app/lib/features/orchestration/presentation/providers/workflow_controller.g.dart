@@ -10,7 +10,7 @@ part of 'workflow_controller.dart';
 // ignore_for_file: type=lint, type=warning
 /// Fetches workflows for the current user.
 ///
-/// **IMPORTANT**: This provider depends on [authStateProvider] to ensure
+/// **IMPORTANT**: This provider depends on [authControllerProvider] to ensure
 /// auth token is available before making API calls. This prevents the
 /// race condition where workflows load before authentication is ready.
 
@@ -19,7 +19,7 @@ final workflowListProvider = WorkflowListProvider._();
 
 /// Fetches workflows for the current user.
 ///
-/// **IMPORTANT**: This provider depends on [authStateProvider] to ensure
+/// **IMPORTANT**: This provider depends on [authControllerProvider] to ensure
 /// auth token is available before making API calls. This prevents the
 /// race condition where workflows load before authentication is ready.
 
@@ -33,7 +33,7 @@ final class WorkflowListProvider
     with $FutureModifier<List<Workflow>>, $FutureProvider<List<Workflow>> {
   /// Fetches workflows for the current user.
   ///
-  /// **IMPORTANT**: This provider depends on [authStateProvider] to ensure
+  /// **IMPORTANT**: This provider depends on [authControllerProvider] to ensure
   /// auth token is available before making API calls. This prevents the
   /// race condition where workflows load before authentication is ready.
   WorkflowListProvider._()
@@ -62,4 +62,4 @@ final class WorkflowListProvider
   }
 }
 
-String _$workflowListHash() => r'8a3291938de4db30bd7201d4afa79d527bdab6ee';
+String _$workflowListHash() => r'4eca9513722d9020d826bd9dd3bb879564e13318';

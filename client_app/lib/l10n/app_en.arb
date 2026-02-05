@@ -369,5 +369,42 @@
   "errorMustBeNumber": "Must be a number",
   "errorRangeTemperature": "Must be between 0.0 and 2.0",
   "errorMustBeInteger": "Must be an integer",
-  "selectProviderPlaceholder": "Select a provider to configure."
+  "selectProviderPlaceholder": "Select a provider to configure.",
+  "searchSteps": "Search Steps",
+  "stepSelectToEdit": "Select a step to edit",
+  "deleteWorkflowConfirmation": "Are you sure you want to delete {name}?",
+  "@deleteWorkflowConfirmation": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "noMatricesFound": "No matrices found. Create one!",
+  "stepCreateNew": "Create New Step",
+  "stepEdit": "Edit Step",
+  "stepIdLabel": "Step ID",
+  "stepIdHelper": "Unique identifier (e.g. 'step_analyst')",
+  "stepNameLabel": "Name",
+  "stepDescriptionLabel": "Description",
+  "stepAgentLogicClass": "Agent Logic Class",
+  "stepJudgeConfig": "Judge Configuration",
+  "stepEvaluationMatrix": "Evaluation Matrix",
+  "stepEvaluationMatrixHelper": "The criteria used for judging.",
+  "stepPromptAssembly": "Prompt Assembly",
+  "stepAddPrompt": "Add Prompt",
+  "stepPromptAssemblyHelper": "Components that form the context and instruction for this agent.",
+  "stepSaveSuccess": "Step saved!",
+  "stepDeleteConfirmTitle": "Confirm Delete",
+  "stepDeleteConfirmMessage": "Delete step '{id}'?",
+  "@stepDeleteConfirmMessage": {
+    "placeholders": {
+        "id": {"type": "String"}
+    }
+  },
+  "stepAddPromptTitle": "Add Prompt Component",
+  "stepSearchPrompts": "Search Prompts",
+  "close": "Close",
+  "stepIdNameRequired": "ID and Name are required.",
+  "executionNotFound": "Execution Not Found"
 }

@@ -51,8 +51,8 @@ def seed_database(target_env: str = "LOCAL", target_db_path: str | None = None):
 def _seed_tinydb(db_path: str, seed_data: dict):
     try:
         db = TinyDB(db_path, encoding="utf-8")
-        db.drop_tables()  # CLEAN SLATE
-        print("[Seeder] Cleared TinyDB.")
+        db.drop_tables()  # CLEAN SLATE (Drops all tables including executions)
+        print(f"[Seeder] CLEARED persistence. Dropped all tables from {db_path}.")
     except Exception as e:
         print(f"[Seeder] Error initializing TinyDB: {e}")
         return
@@ -158,7 +158,21 @@ def _seed_tinydb(db_path: str, seed_data: dict):
             raise e # Value error if it doesn't work
     print(f"[Seeder] Upserted {count} users.")
 
-    # We ignore 'steps' table for V2, as they are embedded in workflows now.
+
+    # Seed Steps (Reference Architecture / V3 SSOT)
+    # Workflows now only reference steps by ID, so the Registry (steps table) MUST be populated.
+    steps_table = db.table("steps")
+    count = 0
+    for step in seed_data.get("steps", []):
+        try:
+            sid = step.get("id")
+            if sid:
+                steps_table.upsert(step, Query().id == sid)
+                count += 1
+        except Exception:
+            pass
+    print(f"[Seeder] Upserted {count} steps to Registry.")
+
 
 
 def _seed_firestore(seed_data: dict):
@@ -235,7 +249,26 @@ def _seed_firestore(seed_data: dict):
     if count > 0:
         batch.commit()
 
+
     print(f"[Seeder] Upserted {count} system_config items to Firestore.")
+
+    # Seed Steps (Registry)
+    batch = db.batch()
+    count = 0
+    for step in seed_data.get("steps", []):
+        sid = step.get("id")
+        if sid:
+            ref = db.collection("steps").document(sid)
+            batch.set(ref, step)
+            count += 1
+            if count >= 400:
+                batch.commit()
+                batch = db.batch()
+                count = 0
+    if count > 0:
+        batch.commit()
+    print(f"[Seeder] Upserted {count} steps to Firestore.")
+
 
 
 def _delete_collection(coll_ref, batch_size=50):

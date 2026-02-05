@@ -1,4 +1,5 @@
 import 'package:client_app/core/error/app_error.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -126,36 +127,67 @@ class AnalysisWizardScreen extends ConsumerWidget {
   }
 
   Future<void> _submit(WidgetRef ref) async {
-    final wizardState = ref.read(wizardStateProvider);
-    final workflowList = ref.read(workflowListProvider);
+    try {
+      print('[AnalysisWizard] Submit pressed');
+      final wizardState = ref.read(wizardStateProvider);
+      final workflowList = ref.read(workflowListProvider);
 
-    // Find selected workflow to determine required inputs
-    final workflow =
-        workflowList.asData?.value
-            .where((w) => w.id == wizardState.selectedWorkflowId)
-            .firstOrNull;
+      // Find selected workflow to determine required inputs
+      final workflow =
+          workflowList.asData?.value
+              .where((w) => w.id == wizardState.selectedWorkflowId)
+              .firstOrNull;
+      
+      if (workflow == null) {
+         print('[AnalysisWizard] Workflow not found for ID: ${wizardState.selectedWorkflowId}');
+         ScaffoldMessenger.of(ref.context).showSnackBar(
+           const SnackBar(content: Text('Error: Invalid Workflow Selection. Please refresh.')),
+         );
+         return;
+      }
 
-    // Determine Required Keys based on Schema OR Fallback
-    final List<String> requiredInputs;
-    if (workflow != null && (workflow.uiSchema?.isNotEmpty ?? false)) {
-      // Exclude system fields like 'default_model_mapping' which are configuration, not user inputs
-      requiredInputs = workflow.uiSchema!.keys
-          .where((k) => k != 'default_model_mapping')
-          .toList();
-    } else {
-      requiredInputs = [];
+      print('[AnalysisWizard] Selected workflow: ${workflow.id}');
+
+      // Determine Required Keys based on Schema OR Fallback
+      final List<String> requiredInputs;
+      if (workflow.uiSchema?.isNotEmpty ?? false) {
+        // Exclude system fields like 'default_model_mapping' which are configuration, not user inputs
+        requiredInputs = workflow.uiSchema!.keys
+            .where((k) => k != 'default_model_mapping')
+            .toList();
+      } else {
+        requiredInputs = [];
+      }
+      
+      print('[AnalysisWizard] Required inputs: $requiredInputs');
+      
+      // Sanitize inputs for logging (avoid printing file bytes)
+      final sanitizedInputs = wizardState.inputs.map((key, value) {
+        if (value is PlatformFile) {
+          return MapEntry(key, 'File: ${value.name} (${value.size} bytes)');
+        }
+        return MapEntry(key, value);
+      });
+      print('[AnalysisWizard] Current inputs: $sanitizedInputs');
+
+      // Delegate strictly to Controller.
+      // Validation is handled inside startAnalysis (Fail-fast).
+      // Navigation/Error is handled by ref.listen in build().
+
+      await ref
+          .read(executionControllerProvider.notifier)
+          .startAnalysis(
+            workflowId: wizardState.selectedWorkflowId,
+            inputs: wizardState.inputs,
+            requiredInputs: requiredInputs,
+          );
+      print('[AnalysisWizard] StartAnalysis returned successfully');
+    } catch (e, stack) {
+      print('[AnalysisWizard] Error in _submit: $e\n$stack');
+      // Ensure specific errors are rethrown or handled if not by ref.listen
+       ScaffoldMessenger.of(ref.context).showSnackBar(
+           SnackBar(content: Text('Submission Error: $e')),
+       );
     }
-
-    // Delegate strictly to Controller.
-    // Validation is handled inside startAnalysis (Fail-fast).
-    // Navigation/Error is handled by ref.listen in build().
-
-    await ref
-        .read(executionControllerProvider.notifier)
-        .startAnalysis(
-          workflowId: wizardState.selectedWorkflowId,
-          inputs: wizardState.inputs,
-          requiredInputs: requiredInputs,
-        );
   }
 }

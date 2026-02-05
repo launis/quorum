@@ -35,7 +35,7 @@ final class OntologyControllerProvider
 }
 
 String _$ontologyControllerHash() =>
-    r'b334263dc7d61e467e492d795a8ce31efeb390c5';
+    r'cac8b5518a98bfc041cfa459b755d725112a13bf';
 
 abstract class _$OntologyController
     extends $AsyncNotifier<List<OntologyDimension>> {

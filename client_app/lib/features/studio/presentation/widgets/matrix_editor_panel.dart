@@ -3,6 +3,7 @@ import 'package:client_app/core/error/app_error.dart';
 import 'package:client_app/features/studio/domain/models/component_def.dart';
 import 'package:client_app/features/studio/presentation/providers/matrix_controller.dart';
 import 'package:client_app/features/studio/presentation/providers/ontology_controller.dart';
+import 'package:client_app/features/studio/presentation/providers/studio_controller.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -134,6 +135,15 @@ class MatrixEditorPanel extends HookConsumerWidget {
                 if (isSaving)
                   const CircularProgressIndicator()
                 else ...[
+                  OutlinedButton.icon(
+                      icon: const Icon(Icons.close),
+                      label: Text(l10n.cancel), // Ensure l10n.cancel exists
+                      onPressed: () {
+                          // Clear selection to close editor
+                          ref.read(studioControllerProvider.notifier).enterMatrixMode();
+                      },
+                  ),
+                  const SizedBox(width: 8),
                   FilledButton.icon(
                     icon: const Icon(Icons.save),
                     label: Text(l10n.save),

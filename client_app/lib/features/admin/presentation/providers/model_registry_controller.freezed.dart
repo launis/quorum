@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ModelRegistryState {
 
- AsyncValue<List<LLMProviderConfig>> get providers; AsyncValue<Map<String, List<String>>> get availableOptions; String? get selectedProviderId; AsyncValue<AdHocTestResult?> get testResult; bool get isSaving;
+ List<LLMProviderConfig> get providers; Map<String, List<String>> get availableOptions; String? get selectedProviderId; AsyncValue<AdHocTestResult?> get testResult; bool get isSaving;
 /// Create a copy of ModelRegistryState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,12 +25,12 @@ $ModelRegistryStateCopyWith<ModelRegistryState> get copyWith => _$ModelRegistryS
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ModelRegistryState&&(identical(other.providers, providers) || other.providers == providers)&&(identical(other.availableOptions, availableOptions) || other.availableOptions == availableOptions)&&(identical(other.selectedProviderId, selectedProviderId) || other.selectedProviderId == selectedProviderId)&&(identical(other.testResult, testResult) || other.testResult == testResult)&&(identical(other.isSaving, isSaving) || other.isSaving == isSaving));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ModelRegistryState&&const DeepCollectionEquality().equals(other.providers, providers)&&const DeepCollectionEquality().equals(other.availableOptions, availableOptions)&&(identical(other.selectedProviderId, selectedProviderId) || other.selectedProviderId == selectedProviderId)&&(identical(other.testResult, testResult) || other.testResult == testResult)&&(identical(other.isSaving, isSaving) || other.isSaving == isSaving));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,providers,availableOptions,selectedProviderId,testResult,isSaving);
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(providers),const DeepCollectionEquality().hash(availableOptions),selectedProviderId,testResult,isSaving);
 
 @override
 String toString() {
@@ -45,7 +45,7 @@ abstract mixin class $ModelRegistryStateCopyWith<$Res>  {
   factory $ModelRegistryStateCopyWith(ModelRegistryState value, $Res Function(ModelRegistryState) _then) = _$ModelRegistryStateCopyWithImpl;
 @useResult
 $Res call({
- AsyncValue<List<LLMProviderConfig>> providers, AsyncValue<Map<String, List<String>>> availableOptions, String? selectedProviderId, AsyncValue<AdHocTestResult?> testResult, bool isSaving
+ List<LLMProviderConfig> providers, Map<String, List<String>> availableOptions, String? selectedProviderId, AsyncValue<AdHocTestResult?> testResult, bool isSaving
 });
 
 
@@ -65,8 +65,8 @@ class _$ModelRegistryStateCopyWithImpl<$Res>
 @pragma('vm:prefer-inline') @override $Res call({Object? providers = null,Object? availableOptions = null,Object? selectedProviderId = freezed,Object? testResult = null,Object? isSaving = null,}) {
   return _then(_self.copyWith(
 providers: null == providers ? _self.providers : providers // ignore: cast_nullable_to_non_nullable
-as AsyncValue<List<LLMProviderConfig>>,availableOptions: null == availableOptions ? _self.availableOptions : availableOptions // ignore: cast_nullable_to_non_nullable
-as AsyncValue<Map<String, List<String>>>,selectedProviderId: freezed == selectedProviderId ? _self.selectedProviderId : selectedProviderId // ignore: cast_nullable_to_non_nullable
+as List<LLMProviderConfig>,availableOptions: null == availableOptions ? _self.availableOptions : availableOptions // ignore: cast_nullable_to_non_nullable
+as Map<String, List<String>>,selectedProviderId: freezed == selectedProviderId ? _self.selectedProviderId : selectedProviderId // ignore: cast_nullable_to_non_nullable
 as String?,testResult: null == testResult ? _self.testResult : testResult // ignore: cast_nullable_to_non_nullable
 as AsyncValue<AdHocTestResult?>,isSaving: null == isSaving ? _self.isSaving : isSaving // ignore: cast_nullable_to_non_nullable
 as bool,
@@ -154,7 +154,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( AsyncValue<List<LLMProviderConfig>> providers,  AsyncValue<Map<String, List<String>>> availableOptions,  String? selectedProviderId,  AsyncValue<AdHocTestResult?> testResult,  bool isSaving)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<LLMProviderConfig> providers,  Map<String, List<String>> availableOptions,  String? selectedProviderId,  AsyncValue<AdHocTestResult?> testResult,  bool isSaving)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ModelRegistryState() when $default != null:
 return $default(_that.providers,_that.availableOptions,_that.selectedProviderId,_that.testResult,_that.isSaving);case _:
@@ -175,7 +175,7 @@ return $default(_that.providers,_that.availableOptions,_that.selectedProviderId,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( AsyncValue<List<LLMProviderConfig>> providers,  AsyncValue<Map<String, List<String>>> availableOptions,  String? selectedProviderId,  AsyncValue<AdHocTestResult?> testResult,  bool isSaving)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<LLMProviderConfig> providers,  Map<String, List<String>> availableOptions,  String? selectedProviderId,  AsyncValue<AdHocTestResult?> testResult,  bool isSaving)  $default,) {final _that = this;
 switch (_that) {
 case _ModelRegistryState():
 return $default(_that.providers,_that.availableOptions,_that.selectedProviderId,_that.testResult,_that.isSaving);case _:
@@ -195,7 +195,7 @@ return $default(_that.providers,_that.availableOptions,_that.selectedProviderId,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( AsyncValue<List<LLMProviderConfig>> providers,  AsyncValue<Map<String, List<String>>> availableOptions,  String? selectedProviderId,  AsyncValue<AdHocTestResult?> testResult,  bool isSaving)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<LLMProviderConfig> providers,  Map<String, List<String>> availableOptions,  String? selectedProviderId,  AsyncValue<AdHocTestResult?> testResult,  bool isSaving)?  $default,) {final _that = this;
 switch (_that) {
 case _ModelRegistryState() when $default != null:
 return $default(_that.providers,_that.availableOptions,_that.selectedProviderId,_that.testResult,_that.isSaving);case _:
@@ -210,11 +210,23 @@ return $default(_that.providers,_that.availableOptions,_that.selectedProviderId,
 
 
 class _ModelRegistryState implements ModelRegistryState {
-  const _ModelRegistryState({this.providers = const AsyncValue.loading(), this.availableOptions = const AsyncValue.loading(), this.selectedProviderId, this.testResult = const AsyncValue.data(null), this.isSaving = false});
+  const _ModelRegistryState({final  List<LLMProviderConfig> providers = const [], final  Map<String, List<String>> availableOptions = const {}, this.selectedProviderId, this.testResult = const AsyncValue.data(null), this.isSaving = false}): _providers = providers,_availableOptions = availableOptions;
   
 
-@override@JsonKey() final  AsyncValue<List<LLMProviderConfig>> providers;
-@override@JsonKey() final  AsyncValue<Map<String, List<String>>> availableOptions;
+ final  List<LLMProviderConfig> _providers;
+@override@JsonKey() List<LLMProviderConfig> get providers {
+  if (_providers is EqualUnmodifiableListView) return _providers;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_providers);
+}
+
+ final  Map<String, List<String>> _availableOptions;
+@override@JsonKey() Map<String, List<String>> get availableOptions {
+  if (_availableOptions is EqualUnmodifiableMapView) return _availableOptions;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_availableOptions);
+}
+
 @override final  String? selectedProviderId;
 @override@JsonKey() final  AsyncValue<AdHocTestResult?> testResult;
 @override@JsonKey() final  bool isSaving;
@@ -229,12 +241,12 @@ _$ModelRegistryStateCopyWith<_ModelRegistryState> get copyWith => __$ModelRegist
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ModelRegistryState&&(identical(other.providers, providers) || other.providers == providers)&&(identical(other.availableOptions, availableOptions) || other.availableOptions == availableOptions)&&(identical(other.selectedProviderId, selectedProviderId) || other.selectedProviderId == selectedProviderId)&&(identical(other.testResult, testResult) || other.testResult == testResult)&&(identical(other.isSaving, isSaving) || other.isSaving == isSaving));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ModelRegistryState&&const DeepCollectionEquality().equals(other._providers, _providers)&&const DeepCollectionEquality().equals(other._availableOptions, _availableOptions)&&(identical(other.selectedProviderId, selectedProviderId) || other.selectedProviderId == selectedProviderId)&&(identical(other.testResult, testResult) || other.testResult == testResult)&&(identical(other.isSaving, isSaving) || other.isSaving == isSaving));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,providers,availableOptions,selectedProviderId,testResult,isSaving);
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_providers),const DeepCollectionEquality().hash(_availableOptions),selectedProviderId,testResult,isSaving);
 
 @override
 String toString() {
@@ -249,7 +261,7 @@ abstract mixin class _$ModelRegistryStateCopyWith<$Res> implements $ModelRegistr
   factory _$ModelRegistryStateCopyWith(_ModelRegistryState value, $Res Function(_ModelRegistryState) _then) = __$ModelRegistryStateCopyWithImpl;
 @override @useResult
 $Res call({
- AsyncValue<List<LLMProviderConfig>> providers, AsyncValue<Map<String, List<String>>> availableOptions, String? selectedProviderId, AsyncValue<AdHocTestResult?> testResult, bool isSaving
+ List<LLMProviderConfig> providers, Map<String, List<String>> availableOptions, String? selectedProviderId, AsyncValue<AdHocTestResult?> testResult, bool isSaving
 });
 
 
@@ -268,9 +280,9 @@ class __$ModelRegistryStateCopyWithImpl<$Res>
 /// with the given fields replaced by the non-null parameter values.
 @override @pragma('vm:prefer-inline') $Res call({Object? providers = null,Object? availableOptions = null,Object? selectedProviderId = freezed,Object? testResult = null,Object? isSaving = null,}) {
   return _then(_ModelRegistryState(
-providers: null == providers ? _self.providers : providers // ignore: cast_nullable_to_non_nullable
-as AsyncValue<List<LLMProviderConfig>>,availableOptions: null == availableOptions ? _self.availableOptions : availableOptions // ignore: cast_nullable_to_non_nullable
-as AsyncValue<Map<String, List<String>>>,selectedProviderId: freezed == selectedProviderId ? _self.selectedProviderId : selectedProviderId // ignore: cast_nullable_to_non_nullable
+providers: null == providers ? _self._providers : providers // ignore: cast_nullable_to_non_nullable
+as List<LLMProviderConfig>,availableOptions: null == availableOptions ? _self._availableOptions : availableOptions // ignore: cast_nullable_to_non_nullable
+as Map<String, List<String>>,selectedProviderId: freezed == selectedProviderId ? _self.selectedProviderId : selectedProviderId // ignore: cast_nullable_to_non_nullable
 as String?,testResult: null == testResult ? _self.testResult : testResult // ignore: cast_nullable_to_non_nullable
 as AsyncValue<AdHocTestResult?>,isSaving: null == isSaving ? _self.isSaving : isSaving // ignore: cast_nullable_to_non_nullable
 as bool,

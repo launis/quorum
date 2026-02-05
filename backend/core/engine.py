@@ -76,7 +76,8 @@ class GraphEngine:
         if "step_results" not in execution_state:
             execution_state["step_results"] = {}
 
-        for step in definition.steps:
+        total_steps = len(definition.steps)
+        for i, step in enumerate(definition.steps):
             # Idempotency Check (Jan 2026)
             if "step_results" in execution_state and step.id in execution_state["step_results"]:
                 logger.info(f"[GraphEngine] Skipping step '{step.id}' - result already exists in state.")
@@ -94,13 +95,54 @@ class GraphEngine:
 
 
             try:
+                # 0. HYDRATION (SSOT Pattern)
+                # Ensure we are using the 'Library' definition of the step if available.
+                # This enables central management of step logic (prompts, config) while allowing
+                # workflows to override specific bindings (inputs).
+                if repository:
+                    try:
+                        # Fetch the authoritative definition from the Registry
+                        library_step_data = await repository.get_step_by_id(step.id)
+
+                        if library_step_data:
+                            logger.debug(f"[GraphEngine] Hydrating step '{step.id}' from Registry (SSOT).")
+                            
+                            # Merge Logic: Library is BASE, Workflow is OVERRIDE.
+                            # We want to use the Library's config/task_key, but keep the Workflow's inputs/mapping.
+                            
+                            # 1. Update Task Key/Handler (if changed in lib)
+                            if "task_key" in library_step_data:
+                                step.task_key = library_step_data["task_key"]
+
+                            # 2. Update Configuration (Deep Merge or Replacement?)
+                            # Strategy: Library config is usually the Truth. Workflow might have empty config.
+                            # If Workflow config is provided, does it override or augment?
+                            # Standard Pattern: Workflow Overrides.
+                            # But if Workflow config is 'stale snapshot', we typically want the Library version.
+                            # Compromise: If Workflow config is empty, use Library.
+                            lib_config = library_step_data.get("config", {})
+                            if not step.config:
+                                step.config = lib_config
+                            else:
+                                # Merge: Lib Config updated by Step Config
+                                merged = lib_config.copy()
+                                merged.update(step.config)
+                                step.config = merged
+
+                            # 3. Inputs usually stay with the Workflow (binding), preventing hydration refactor.
+                        else:
+                            logger.debug(f"[GraphEngine] Step '{step.id}' not found in Registry. Using local snapshot.")
+
+                    except Exception as e:
+                        logger.warning(f"[GraphEngine] Step hydration failed for '{step.id}': {e}. Continuing with snapshot.")
+
                 # 1. Resolve Inputs
                 task_inputs = self._resolve_inputs(step.inputs, execution_state)
 
                 # 2. Get Task Handler
                 task_def = TaskRegistry.get(step.task_key)
                 if not task_def:
-                    raise ValueError(f"Task '{step.task_key}' not found in registry.")
+                    raise ValueError(f"Task '{step.task_key}' not found in registry (Hydrated Key: {step.task_key}).")
 
                 # 3. Validate Inputs against Schema
                 # This ensures the data matches what the handler expects
@@ -155,6 +197,8 @@ class GraphEngine:
                             "results": execution_state,
                             "current_step": step.id,  # Keep for legacy/internal
                             "current_step_name": step.id,  # Frontend Contract
+                            "current_step_index": i + 1,
+                            "total_steps": total_steps,
                             "status": "running",
                             # "updated_at": ... (handled by repo or db trigger usually)
                         }

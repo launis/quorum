@@ -58,35 +58,55 @@ class MatrixController extends _$MatrixController {
   Future<void> saveCurrentMatrix() async {
     final currentDraft = ref.read(matrixEditorStateProvider);
     if (currentDraft == null) return;
+    
+    final previousState = state;
 
-    state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() async {
+    // 1. Optimistic Update (Keep UI interactive / show clean state)
+    // We assume draft is correct.
+    state = AsyncValue.data(currentDraft);
+
+    try {
+      // 2. API Call
       await ref.read(studioRepositoryProvider).saveMatrix(currentDraft);
-      // After save, we might want to reload to get finalized ID or confirmed state
-      // But typically we just update our canonical state to match the draft
-      return currentDraft;
-    });
+      
+      // 3. Silent Invalidation
+      // This will trigger build() -> fetchMatrix(id) to get backend data
+      ref.invalidateSelf();
+    } catch (e, st) {
+      // 4. Rollback / Error
+      // If save fails, we might want to keep the draft state but show error.
+      state = previousState;
+      state = AsyncValue.error(e, st); 
+      // Rethrow for UI handling
+      rethrow;
+    }
   }
 
   Future<void> deleteMatrix(String id) async {
-    state = const AsyncValue.loading();
+    final previousState = state;
+    
+    // 1. Optimistic Update (Clear Editor)
+    state = const AsyncValue.data(null);
+    ref.read(matrixEditorStateProvider.notifier).set(null);
+
     try {
+      // 2. API Call
       await ref.read(studioRepositoryProvider).deleteComponent(id);
-      state = const AsyncValue.data(null);
-      ref.read(matrixEditorStateProvider.notifier).set(null);
+      
+      // 3. Silent Invalidation (Verify null)
+      ref.invalidateSelf();
     } catch (e, st) {
-      if (e is AppError) {
-        // AppError should be caught by UI, but we must set state to error/null/previous?
-        // Actually, if we set state to error, UI shows error widget.
-        // We want to KEEP the current state visible and show SnackBar.
-        // So we set state back to data (maybe null if we want to close editor, but we failed).
-        // Best approach: Rethrow for UI to catch, set state to data(current) to stop spinner.
-        
-        final currentDraft = ref.read(matrixEditorStateProvider);
-        state = AsyncValue.data(currentDraft); // Stop loading, restore view
-        rethrow; // UI catches this to show SnackBar
+      // 4. Rollback
+      // If delete failed, restore the matrix in the editor.
+      if (previousState.value != null) {
+        ref.read(matrixEditorStateProvider.notifier).set(previousState.value);
+        state = previousState;
       }
-      state = AsyncValue.error(e, st);
+      
+      // Rethrow for UI
+      final appError = e is AppError ? e : AppError.server(e.toString());
+      state = AsyncValue.error(appError, st);
+      throw appError;
     }
   }
 }

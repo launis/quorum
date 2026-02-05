@@ -26,15 +26,9 @@ class _DynamicInputFormState extends ConsumerState<DynamicInputForm> {
     final workflowAsync = ref.watch(workflowListProvider);
     final inputs = ref.watch(wizardStateProvider.select((s) => s.inputs));
 
-    final workflow = workflowAsync.asData?.value.firstWhere(
-      (w) => w.id == workflowId,
-      orElse:
-          () => Workflow(
-            id: 'unknown',
-            name: l10n.unknownWorkflow,
-            description: '',
-          ),
-    );
+    final workflow = workflowAsync.asData?.value
+        .where((w) => w.id == workflowId)
+        .firstOrNull;
 
     return Form(
       key: _formKey,

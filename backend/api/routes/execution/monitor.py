@@ -114,38 +114,86 @@ async def get_execution(
         raise wrapped from e
 
 
-@router.get("/{execution_id}/monitor", summary="Monitor Execution (SSE)")
+@router.get("/{execution_id}/events", summary="Monitor Execution (SSE)")
 async def monitor_execution(
     execution_id: str,
     repository: AbstractWorkflowRepository = Depends(get_async_repository),
 ):
     """Server-Sent Events alias for monitoring."""
+    logger.info(f"[Monitor] Request for execution_id: {execution_id}")
+    
+    # Pre-check existence to fail fast with 404
+    exists = await repository.get_execution(execution_id)
+    if not exists:
+         logger.warning(f"[Monitor] Execution {execution_id} NOT FOUND in repository.")
+         # Debug: List recent to see if it's there
+         recent = await repository.get_all_executions()
+         ids = [e.get("id") for e in recent]
+         logger.info(f"[Monitor] available IDs: {ids}")
+         raise ResourceNotFoundError(f"Execution '{execution_id}' not found.")
+
     # Placeholder for SSE logic. Using basic polling fallback via client for now, or real SSE if implemented.
     # As per instructions, "Ensure SSE stream setup".
     # Since we don't have Redis PubSub implementation details in scope, we return 501 or basic stream.
     # Returning basic stream that yields once current status?
 
     import asyncio
+    import json
+    from fastapi.encoders import jsonable_encoder
 
     async def event_generator():
         # Simple polling simulator for now to satisfy contract without Redis
         # In prod, this listens to Redis channel
-        last_status = None
-        for _ in range(60): # 1 min timeout
-             exec_data = await repository.get_execution(execution_id)
-             if not exec_data:
-                 yield {"event": "error", "data": "Execution not found"}
-                 break
+        cached_status = None
+        
+        try:
+             # Poll more frequently for smoother UI updates (1s is fine for local)
+             for i in range(120): # Increased to 2 min timeout
+                  exec_data = await repository.get_execution(execution_id)
+                  if not exec_data:
+                      logger.error(f"[Monitor] Execution {execution_id} disappeared during polling!")
+                      yield {"event": "error", "data": "Execution not found"}
+                      break
+    
+                  # Yield full data if status changed OR every X ticks?
+                  # For progress bar, we want updates even if status is 'running' but step changed.
+                  # Ideally check hash or modified time. 
+                  # For now, yield every time or check content change.
+                  
+                  # Simplify: Yield every second if running, or if status changed.
+                  current_status = exec_data.get("status")
+                  
+                  # Map fields for Frontend compatibility (matches views.py logic)
+                  formatted_data = exec_data.copy()
+                  if "execution_id" not in formatted_data and "id" in formatted_data:
+                      formatted_data["execution_id"] = formatted_data["id"]
+                  
+                  if "start_time" not in formatted_data:
+                      formatted_data["start_time"] = (
+                          formatted_data.get("started_at") or formatted_data.get("timestamp") or datetime.now(timezone.utc)
+                      )
+    
+                  # Serialize properly
+                  try:
+                      payload = json.dumps(jsonable_encoder(formatted_data))
+                  except Exception as ser_err:
+                        logger.error(f"[Monitor] Serialization Failed: {ser_err}")
+                        yield {"event": "error", "data": "Serialization Failed"}
+                        break
 
-             status = exec_data.get("status")
-             if status != last_status:
-                 yield {"event": "status_change", "data": status}
-                 last_status = status
-
-             if status in ("completed", "failed", "cancelled"):
-                 yield {"event": "scanned_update", "data": "done"} # Signal to client
-                 break
-
-             await asyncio.sleep(1)
+                  logger.info(f"[Monitor] Yielding update for {execution_id}. Payload len: {len(payload)}")
+                  yield {"event": "update", "data": payload}
+    
+                  if current_status in ("completed", "failed", "cancelled", "rejected"):
+                      # Send one last update then close? 
+                      # Or keep open? Browser auto-reconnects on close.
+                      # Let's verify we sent the 'completed' state then break.
+                      logger.info(f"[Monitor] Execution {execution_id} finished ({current_status}). Closing stream.")
+                      break
+    
+                  await asyncio.sleep(1)
+        except Exception as e:
+            logger.error(f"[Monitor] Critical Generator Error: {e}", exc_info=True)
+            yield {"event": "error", "data": str(e)}
 
     return EventSourceResponse(event_generator())

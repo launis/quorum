@@ -4,6 +4,7 @@ import 'package:client_app/features/studio/domain/models/component_def.dart';
 import 'package:client_app/features/studio/domain/models/step_config.dart';
 import 'package:client_app/features/studio/presentation/providers/steps_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -16,6 +17,8 @@ class StepsManagerPanel extends HookConsumerWidget {
     final stepsState = ref.watch(stepsControllerProvider);
     final selectedId = useState<String?>(null);
     final searchController = useTextEditingController();
+
+final l10n = AppLocalizations.of(context)!;
 
     // Derived List (Filtered)
     final filteredSteps =
@@ -74,11 +77,11 @@ class StepsManagerPanel extends HookConsumerWidget {
                       Expanded(
                         child: TextField(
                           controller: searchController,
-                          decoration: const InputDecoration(
-                            labelText: "Search Steps",
-                            prefixIcon: Icon(Icons.search),
+                          decoration: InputDecoration(
+                            labelText: l10n.searchSteps,
+                            prefixIcon: const Icon(Icons.search),
                             isDense: true,
-                            border: OutlineInputBorder(),
+                            border: const OutlineInputBorder(),
                           ),
                         ),
                       ),
@@ -150,10 +153,10 @@ class StepsManagerPanel extends HookConsumerWidget {
             ),
             child:
                 selectedId.value == null
-                    ? const Center(
+                    ? Center(
                       child: Text(
-                        "Select a step to edit",
-                        style: TextStyle(color: Colors.grey),
+                        l10n.stepSelectToEdit,
+                        style: const TextStyle(color: Colors.grey),
                       ),
                     )
                     : _StepEditor(
@@ -187,9 +190,10 @@ class _StepEditor extends HookConsumerWidget {
     final isMounted = useIsMounted();
 
     if (initialStep == null && stepId != 'new') {
-      return const Center(child: Text("Step not found"));
+      return Center(child: Text(AppLocalizations.of(context)!.errorNotFound));
     }
 
+    final l10n = AppLocalizations.of(context)!;
     final isNew = stepId == 'new';
     final repo = ref.watch(studioRepositoryProvider);
 
@@ -243,7 +247,7 @@ class _StepEditor extends HookConsumerWidget {
     Future<void> save() async {
         if (idController.text.isEmpty || nameController.text.isEmpty) {
             ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("ID and Name are required."))
+                SnackBar(content: Text(l10n.stepIdNameRequired))
             );
             return;
         }
@@ -279,7 +283,7 @@ class _StepEditor extends HookConsumerWidget {
             
             if (isMounted()) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Step saved!"))
+                    SnackBar(content: Text(l10n.stepSaveSuccess))
                 );
                 onSave();
             }
@@ -296,14 +300,14 @@ class _StepEditor extends HookConsumerWidget {
         final confirm = await showDialog<bool>(
             context: context,
             builder: (context) => AlertDialog(
-                title: const Text("Confirm Delete"),
-                content: Text("Delete step '${initialStep!.id}'?"),
+                title: Text(l10n.stepDeleteConfirmTitle),
+                content: Text(l10n.stepDeleteConfirmMessage(initialStep!.id)),
                 actions: [
-                    TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
+                    TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.cancel)),
                     FilledButton(
                         style: FilledButton.styleFrom(backgroundColor: Colors.red),
                         onPressed: () => Navigator.pop(context, true), 
-                        child: const Text("Delete")
+                        child: Text(l10n.delete)
                     ),
                 ]
             )
@@ -331,17 +335,17 @@ class _StepEditor extends HookConsumerWidget {
                         ).toList();
 
                         return AlertDialog(
-                            title: const Text("Add Prompt Component"),
+                            title: Text(l10n.stepAddPromptTitle),
                             content: SizedBox(
                                 width: 500,
                                 height: 500,
                                 child: Column(
                                     children: [
                                         TextField(
-                                            decoration: const InputDecoration(
-                                                labelText: "Search Prompts", 
-                                                prefixIcon: Icon(Icons.search),
-                                                border: OutlineInputBorder()
+                                            decoration: InputDecoration(
+                                                labelText: l10n.stepSearchPrompts, 
+                                                prefixIcon: const Icon(Icons.search),
+                                                border: const OutlineInputBorder()
                                             ),
                                             onChanged: (v) => setState(() => search = v),
                                         ),
@@ -370,7 +374,7 @@ class _StepEditor extends HookConsumerWidget {
                                 ),
                             ),
                             actions: [
-                                TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close")),
+                                TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.close)),
                             ],
                         );
                     }
@@ -389,18 +393,18 @@ class _StepEditor extends HookConsumerWidget {
         children: [
             // Header
             Row(children: [
-                Text(isNew ? "Create New Step" : "Edit Step", style: Theme.of(context).textTheme.headlineSmall),
+                Text(isNew ? l10n.studioCreateNew : l10n.stepEdit, style: Theme.of(context).textTheme.headlineSmall),
                 const Spacer(),
                 FilledButton.icon(
                     icon: const Icon(Icons.save),
-                    label: const Text("Save"),
+                    label: Text(l10n.save),
                     onPressed: save,
                 ),
                 if (!isNew) ...[
                     const SizedBox(width: 8),
                     OutlinedButton.icon(
                          icon: const Icon(Icons.delete, color: Colors.red),
-                         label: const Text("Delete", style: TextStyle(color: Colors.red)),
+                         label: Text(l10n.delete, style: const TextStyle(color: Colors.red)),
                          onPressed: deleteStep,
                      )
                 ]
@@ -414,10 +418,10 @@ class _StepEditor extends HookConsumerWidget {
                     child: TextField(
                         controller: idController,
                         enabled: isNew, // ID immutable after creation
-                        decoration: const InputDecoration(
-                            labelText: "Step ID", 
-                            border: OutlineInputBorder(),
-                            helperText: "Unique identifier (e.g. 'step_analyst')"
+                        decoration: InputDecoration(
+                            labelText: l10n.stepIdLabel, 
+                            border: const OutlineInputBorder(),
+                            helperText: l10n.stepIdHelper
                         ),
                     ),
                 ),
@@ -425,9 +429,9 @@ class _StepEditor extends HookConsumerWidget {
                 Expanded(
                     child: TextField(
                         controller: nameController,
-                        decoration: const InputDecoration(
-                            labelText: "Name", 
-                            border: OutlineInputBorder()
+                        decoration: InputDecoration(
+                            labelText: l10n.stepNameLabel, 
+                            border: const OutlineInputBorder()
                         ),
                     ),
                 ),
@@ -437,9 +441,9 @@ class _StepEditor extends HookConsumerWidget {
             // Description
             TextField(
                 controller: descController,
-                decoration: const InputDecoration(
-                    labelText: "Description", 
-                    border: OutlineInputBorder()
+                decoration: InputDecoration(
+                    labelText: l10n.stepDescriptionLabel, 
+                    border: const OutlineInputBorder()
                 ),
             ),
              const SizedBox(height: 16),
@@ -447,9 +451,9 @@ class _StepEditor extends HookConsumerWidget {
             // Agent Class
             DropdownButtonFormField<String>(
                 value: agentOptions.contains(selectedAgent.value) ? selectedAgent.value : agentOptions.first,
-                decoration: const InputDecoration(
-                    labelText: "Agent Logic Class",
-                    border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                    labelText: l10n.stepAgentLogicClass,
+                    border: const OutlineInputBorder(),
                 ),
                 items: agentOptions.map((a) => DropdownMenuItem(value: a, child: Text(a))).toList(),
                 onChanged: (v) {
@@ -460,7 +464,7 @@ class _StepEditor extends HookConsumerWidget {
             // JudgeAgent Specifics (Matrix)
             if (selectedAgent.value == 'JudgeAgent') ...[
                 const SizedBox(height: 16),
-                const Text("Judge Configuration", style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(l10n.stepJudgeConfig, style: const TextStyle(fontWeight: FontWeight.bold)),
                 if (componentsSnapshot.hasData) ...[
                     Builder(builder: (context) {
                         final matrices = componentsSnapshot.data!.where((c) => c.type == 'evaluation_matrix').toList();
@@ -471,10 +475,10 @@ class _StepEditor extends HookConsumerWidget {
                             
                         return DropdownButtonFormField<String>(
                              value: currentValue,
-                             decoration: const InputDecoration(
-                                 labelText: "Evaluation Matrix",
-                                 border: OutlineInputBorder(),
-                                 helperText: "The criteria used for judging."
+                             decoration: InputDecoration(
+                                 labelText: l10n.stepEvaluationMatrix,
+                                 border: const OutlineInputBorder(),
+                                 helperText: l10n.stepEvaluationMatrixHelper
                              ),
                              items: matrices.map((m) => DropdownMenuItem<String>(
                                 value: m.id, 
@@ -493,11 +497,11 @@ class _StepEditor extends HookConsumerWidget {
 
             // Prompt Assembly
             Row(children: [
-                const Text("Prompt Assembly", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                Text(l10n.stepPromptAssembly, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 const Spacer(),
                 TextButton.icon(
                     icon: const Icon(Icons.add),
-                    label: const Text("Add Prompt"),
+                    label: Text(l10n.stepAddPrompt),
                     onPressed: () {
                          if (componentsSnapshot.hasData) {
                              showAddPromptDialog(componentsSnapshot.data!);
@@ -505,7 +509,7 @@ class _StepEditor extends HookConsumerWidget {
                     },
                 ),
             ]),
-            const Text("Components that form the context and instruction for this agent.", style: TextStyle(color: Colors.grey)),
+            Text(l10n.stepPromptAssemblyHelper, style: const TextStyle(color: Colors.grey)),
             const SizedBox(height: 8),
 
             // Prompt Chips

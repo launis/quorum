@@ -13,7 +13,8 @@ part of 'model_registry_controller.dart';
 final modelRegistryControllerProvider = ModelRegistryControllerProvider._();
 
 final class ModelRegistryControllerProvider
-    extends $NotifierProvider<ModelRegistryController, ModelRegistryState> {
+    extends
+        $AsyncNotifierProvider<ModelRegistryController, ModelRegistryState> {
   ModelRegistryControllerProvider._()
     : super(
         from: null,
@@ -31,30 +32,24 @@ final class ModelRegistryControllerProvider
   @$internal
   @override
   ModelRegistryController create() => ModelRegistryController();
-
-  /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(ModelRegistryState value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<ModelRegistryState>(value),
-    );
-  }
 }
 
 String _$modelRegistryControllerHash() =>
-    r'c4a41e9a69a0638f2fd10fa8b3deb407df08dbf0';
+    r'e6b2b516deca074aa2f248f822fbb341d9d3137c';
 
-abstract class _$ModelRegistryController extends $Notifier<ModelRegistryState> {
-  ModelRegistryState build();
+abstract class _$ModelRegistryController
+    extends $AsyncNotifier<ModelRegistryState> {
+  FutureOr<ModelRegistryState> build();
   @$mustCallSuper
   @override
   void runBuild() {
-    final ref = this.ref as $Ref<ModelRegistryState, ModelRegistryState>;
+    final ref =
+        this.ref as $Ref<AsyncValue<ModelRegistryState>, ModelRegistryState>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<ModelRegistryState, ModelRegistryState>,
-              ModelRegistryState,
+              AnyNotifier<AsyncValue<ModelRegistryState>, ModelRegistryState>,
+              AsyncValue<ModelRegistryState>,
               Object?,
               Object?
             >;

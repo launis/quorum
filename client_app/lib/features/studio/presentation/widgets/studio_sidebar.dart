@@ -1,6 +1,7 @@
 import 'package:client_app/features/studio/domain/models/component_def.dart';
 import 'package:client_app/features/studio/domain/models/workflow_def.dart';
 import 'package:client_app/features/studio/presentation/providers/studio_controller.dart';
+import 'package:client_app/features/studio/presentation/providers/available_matrices_controller.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,7 +27,8 @@ class StudioSidebar extends ConsumerStatefulWidget {
 class _StudioSidebarState extends ConsumerState<StudioSidebar> {
   // Optimistic items to display while saving
   final List<WorkflowDef> _optimisticWorkflows = [];
-  final List<StudioComponentDef> _optimisticMatrices = [];
+  // _optimisticMatrices removed: Handled by AvailableMatricesController
+
 
   @override
   void initState() {
@@ -58,12 +60,13 @@ class _StudioSidebarState extends ConsumerState<StudioSidebar> {
                      fontWeight: FontWeight.bold,
                    ),
                  ),
-                 IconButton.filledTonal(
-                   onPressed: _handleCreateNew,
-                   icon: const Icon(Icons.add, size: 20),
-                   tooltip: l10n.studioCreateNew,
-                   visualDensity: VisualDensity.compact,
-                 ),
+                 if (widget.mode == StudioSidebarMode.workflows)
+                   IconButton.filledTonal(
+                     onPressed: _handleCreateNew,
+                     icon: const Icon(Icons.add, size: 20),
+                     tooltip: l10n.studioCreateNew,
+                     visualDensity: VisualDensity.compact,
+                   ),
                ]
             ),
           ),
@@ -144,26 +147,25 @@ class _StudioSidebarState extends ConsumerState<StudioSidebar> {
   }
 
   Widget _buildMatricesList(BuildContext context, StudioState state, AppLocalizations l10n) {
-     return state.availableMatrices.when(
+     final matricesState = ref.watch(availableMatricesControllerProvider);
+     
+     return matricesState.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, st) => _ErrorView(error: err),
         data: (matrices) {
-           final allMatrices = [...matrices, ..._optimisticMatrices];
-           if (allMatrices.isEmpty) {
-             return Center(child: Text("No matrices found. Create one!"));
+           if (matrices.isEmpty) {
+             return Center(child: Text(l10n.noMatricesFound));
            }
 
            return ListView.builder(
-              itemCount: allMatrices.length,
+              itemCount: matrices.length,
               itemBuilder: (context, index) {
-                final matrix = allMatrices[index];
-                // Selection logic for matrices? For now just viewing.
+                final matrix = matrices[index];
                 return ListTile(
                    leading: const Icon(Icons.grid_on, size: 20),
                    title: Text(matrix.name),
                    subtitle: Text(matrix.description ?? ''),
                    onTap: () { 
-                       // Trigger selection in parent (which calls MatrixController)
                        widget.onStepSelected(matrix.id);
                    },
                 );
@@ -234,17 +236,11 @@ class _StudioSidebarState extends ConsumerState<StudioSidebar> {
        final name = result['name']!;
        final desc = result['desc'] ?? '';
        
-       final tempId = 'new_${DateTime.now().millisecondsSinceEpoch}';
-       final tempMatrix = StudioComponentDef(id: tempId, name: name, type: 'evaluation_matrix', description: desc, content: {});
-       
-       setState(() => _optimisticMatrices.add(tempMatrix));
-
        try {
-          await ref.read(studioControllerProvider.notifier).createMatrix(name, desc);
+          // New Controller handles optimistic updates internally
+          await ref.read(availableMatricesControllerProvider.notifier).createMatrix(name, desc);
        } catch (e) {
          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
-       } finally {
-         if (mounted) setState(() => _optimisticMatrices.remove(tempMatrix));
        }
      }
   }
@@ -289,7 +285,7 @@ class _StudioSidebarState extends ConsumerState<StudioSidebar> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(l10n.delete),
-        content: Text('Are you sure you want to delete "${wf.name}"?'),
+        content: Text(l10n.deleteWorkflowConfirmation(wf.name)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.cancel)),
           FilledButton(

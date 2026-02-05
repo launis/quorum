@@ -31,9 +31,34 @@ class ExecutionMonitorScreen extends ConsumerWidget {
           return _MonitorView(execution: execution);
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error:
-            (err, stack) =>
-                Center(child: Text(l10n.failedToLoad(err.toString()))),
+        error: (err, stack) {
+          final errorText = err.toString();
+          // Check for Not Found error (either by code or type name)
+          if (errorText.contains('404') || errorText.contains('notFound') || errorText.contains('Resource not found')) {
+             return Center(
+               child: Column(
+                 mainAxisAlignment: MainAxisAlignment.center,
+                 children: [
+                   const Icon(Icons.search_off, size: 64, color: Colors.grey),
+                   const SizedBox(height: 16),
+                   Text(
+                     l10n.executionNotFound ?? 'Execution Not Found',
+                     style: Theme.of(context).textTheme.titleLarge,
+                   ),
+                   const SizedBox(height: 8),
+                   const Text('This execution may have been deleted.'),
+                   const SizedBox(height: 24),
+                   FilledButton.icon(
+                     onPressed: () => context.go('/dashboard'),
+                     icon: const Icon(Icons.arrow_back),
+                     label: const Text('Back to Dashboard'),
+                   ),
+                 ],
+               ),
+             );
+          }
+          return Center(child: Text(l10n.failedToLoad(errorText)));
+        },
       ),
       floatingActionButton:
           asyncExecution.asData?.value.status == ExecutionStatus.completed
@@ -113,9 +138,40 @@ class _MonitorView extends StatelessWidget {
             ),
             const SizedBox(height: 24),
 
-            // Steps Progress
-            Text(l10n.workflowProgress, style: theme.textTheme.titleMedium),
-            const SizedBox(height: 8),
+            // Step Progress Bar (New)
+            if ((isRunning || isCompleted) && execution.totalSteps != null && execution.totalSteps! > 0)
+               Padding(
+                padding: const EdgeInsets.only(bottom: 24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(l10n.workflowProgress, style: theme.textTheme.titleMedium),
+                        Text(
+                          '${l10n.stepLabel('Step')} ${execution.currentStepIndex ?? '-'} / ${execution.totalSteps}',
+                          style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    LinearProgressIndicator(
+                      value: isCompleted ? 1.0 : (execution.currentStepIndex ?? 0) / execution.totalSteps!,
+                      minHeight: 10,
+                      borderRadius: BorderRadius.circular(5),
+                      backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                      color: isCompleted ? Colors.green : theme.colorScheme.primary,
+                    ),
+                  ],
+                ),
+               ),
+            
+            if (execution.totalSteps == null) ...[
+               Text(l10n.workflowProgress, style: theme.textTheme.titleMedium),
+               const SizedBox(height: 8),
+            ],
+            
             _StepProgressList(
               currentStep: execution.currentStepName,
               workflowId: execution.workflowName,

@@ -35,7 +35,7 @@ final class ComponentsControllerProvider
 }
 
 String _$componentsControllerHash() =>
-    r'0c14594955bd08d51689b8d6c5d0ef61147a2090';
+    r'691c2fc783379c85dd36850b4adf22cc627d15f6';
 
 abstract class _$ComponentsController
     extends $AsyncNotifier<List<StudioComponentDef>> {

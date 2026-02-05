@@ -13,12 +13,14 @@ class ModelRegistryScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // ignore: unnecessary_non_null_assertion
     final l10n = AppLocalizations.of(context)!;
-    final state = ref.watch(modelRegistryControllerProvider);
+    final asyncState = ref.watch(modelRegistryControllerProvider);
     final controller = ref.read(modelRegistryControllerProvider.notifier);
 
-    // Two-Pane Layout
     return Scaffold(
-      body: Row(
+      body: asyncState.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, st) => Center(child: SelectableText('Error: $err')),
+        data: (state) => Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Left Pane: List
@@ -43,12 +45,10 @@ class ModelRegistryScreen extends HookConsumerWidget {
                   ),
                   const Divider(),
                   Expanded(
-                    child: state.providers.when(
-                      data:
-                          (providers) => ListView.builder(
-                            itemCount: providers.length,
+                    child: ListView.builder(
+                            itemCount: state.providers.length,
                             itemBuilder: (context, index) {
-                              final p = providers[index];
+                              final p = state.providers[index];
                               final isSelected =
                                   p.id == state.selectedProviderId;
                               return ListTile(
@@ -70,12 +70,6 @@ class ModelRegistryScreen extends HookConsumerWidget {
                               );
                             },
                           ),
-                      loading:
-                          () =>
-                              const Center(child: CircularProgressIndicator()),
-                      error:
-                          (e, st) => Center(child: SelectableText('Error: $e')),
-                    ),
                   ),
                 ],
               ),
@@ -104,7 +98,7 @@ class ModelRegistryScreen extends HookConsumerWidget {
           ),
         ],
       ),
-    );
+    ));
   }
 }
 
@@ -127,8 +121,8 @@ class _DetailsPane extends HookConsumerWidget {
 
     // Find the config object
     final configOrNull =
-        state.providers.value
-            ?.where((p) => p.id == providerId)
+        state.providers
+            .where((p) => p.id == providerId)
             .firstOrNull;
 
     if (configOrNull == null) return const SizedBox.shrink();

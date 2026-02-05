@@ -7,8 +7,35 @@ from fastapi import APIRouter, status
 from pydantic import BaseModel, Field
 from tinydb import Query
 
-from backend.dependencies import DatabaseDep, RegistryDep
+from backend.dependencies import DatabaseDep, RegistryDep, RepositoryDep
 from backend.services.validation_service import WorkflowValidator
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/config", tags=["Configuration"])
+
+
+# ... (Skipping Pydantic Models for brevity in replacement if possible, but simplest to replace block) ...
+# Actually, I'll allow the models to remain and just target the endpoint block.
+# I need to ensure RepositoryDep is imported. It wasn't in original imports.
+# I will overwrite the imports section first? No, replace_file_content is better for chunks.
+
+# I'll do this in two chunks or one large chunk if contiguous.
+# Imports are at top. Endpoints are below.
+# I will use multi_replace for safety.
+
+# Chunk 1: Imports
+# Chunk 2: Helper + Endpoints
+
+# Wait, the tool is replace_file_content (single). 
+# I will replace the imports line first, then the endpoints.
+# Actually, I can just replace the whole file content or a large range? 
+# The file is small enough (250 lines). 
+# I will stick to targeting the specific function area.
+
+# Let's adjust the imports first.
+# Line 10: from backend.dependencies import DatabaseDep, RegistryDep
+
 
 logger = logging.getLogger(__name__)
 
@@ -118,24 +145,73 @@ def delete_step(step_id: str, db: DatabaseDep):
 # --- WORKFLOW ENDPOINTS ---
 
 
+
+# --- HELPER: HYDRATION ---
+async def _hydrate_workflow_steps(workflow_data: dict[str, Any], repository: Any) -> dict[str, Any]:
+    """Hydrates workflow steps from the registry (SSOT)."""
+    if not workflow_data.get("steps"):
+        return workflow_data
+
+    hydrated_steps = []
+
+    for step in workflow_data["steps"]:
+        # If it's a reference (dict with ID), try to hydrate
+        step_id = step.get("id")
+        if step_id:
+            # 1. Fetch from Registry
+            registry_step = await repository.get_step_by_id(step_id)
+            
+            if registry_step:
+                # 2. Merge Logic: Registry Base + Workflow Overrides
+                merged = registry_step.copy()
+                
+                # Overlay Workflow properties
+                merged.update(step)
+                
+                # Special Case: Config
+                if not step.get("config"):
+                    merged["config"] = registry_step.get("config", {})
+                else:
+                    reg_config = registry_step.get("config", {})
+                    wf_config = step.get("config", {})
+                    final_config = reg_config.copy()
+                    final_config.update(wf_config)
+                    merged["config"] = final_config
+
+                hydrated_steps.append(merged)
+            else:
+                # Registry missing? Keep as is
+                hydrated_steps.append(step)
+        else:
+            hydrated_steps.append(step)
+
+    workflow_data["steps"] = hydrated_steps
+    return workflow_data
+
+
 @router.get("/workflows", summary="List Workflows", response_description="All workflows.")
-def get_workflows(db: DatabaseDep):
+async def get_workflows(repository: RepositoryDep):
     """List all workflows."""
-    return db.table("workflows").all()
+    workflows = await repository.get_all_workflows()
+    # Hydrate all
+    results = []
+    for wf in workflows:
+        results.append(await _hydrate_workflow_steps(wf, repository))
+    return results
 
 
 @router.get("/workflows/{wf_id}", summary="Get Workflow", response_description="Requested workflow.")
-def get_workflow(wf_id: str, db: DatabaseDep):
+async def get_workflow(wf_id: str, repository: RepositoryDep):
     """Get a specific workflow."""
-    Workflow = Query()
-    res = db.table("workflows").search(Workflow.id == wf_id)
-    if not res:
+    wf = await repository.get_workflow_by_id(wf_id)
+    if not wf:
         from backend.exceptions import ResourceNotFoundError
 
         error_code = "WORKFLOW_NOT_FOUND"
         logger.error(f"{error_code}: ID {wf_id}", exc_info=True)
         raise ResourceNotFoundError("Workflow", wf_id, details={"error_code": error_code})
-    return res[0]
+    
+    return await _hydrate_workflow_steps(wf, repository)
 
 
 @router.put("/workflows/{wf_id}", summary="Update Workflow", response_description="Update status.")

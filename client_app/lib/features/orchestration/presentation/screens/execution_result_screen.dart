@@ -173,32 +173,35 @@ class _ExecutionResultScreenState extends ConsumerState<ExecutionResultScreen> {
           ),
         ],
       ),
-      body: Center(
+      body: Align(
+        alignment: Alignment.topCenter,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1000),
-          child: asyncExecution.when(
-            data: (execution) {
-              if (execution is ExecutionCompleted) {
-                return ResultDashboard(execution: execution);
-              } else {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                       Text(l10n.analysisNotComplete),
-                       const SizedBox(height: 16),
-                       FilledButton.icon(
-                         onPressed: () => context.go('/dashboard/executions/${widget.executionId}/monitor'),
-                         icon: const Icon(Icons.visibility),
-                         label: Text(l10n.goToMonitor),
-                       ),
-                    ],
-                  ),
-                );
-              }
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, stack) => Center(child: Text(l10n.failedToLoad('$err'))),
+          child: SizedBox.expand(
+            child: asyncExecution.when(
+              data: (execution) {
+                if (execution is ExecutionCompleted) {
+                  return ResultDashboard(execution: execution);
+                } else {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                         Text(l10n.analysisNotComplete),
+                         const SizedBox(height: 16),
+                         FilledButton.icon(
+                           onPressed: () => context.go('/dashboard/executions/${widget.executionId}/monitor'),
+                           icon: const Icon(Icons.visibility),
+                           label: Text(l10n.goToMonitor),
+                         ),
+                      ],
+                    ),
+                  );
+                }
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (err, stack) => Center(child: Text(l10n.failedToLoad('$err'))),
+            ),
           ),
         ),
       ),

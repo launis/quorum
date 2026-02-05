@@ -26,52 +26,99 @@ class OrganizationList extends _$OrganizationList {
   }
 
   Future<void> addOrganization(Map<String, dynamic> data) async {
-    final repository = ref.read(organizationRepositoryProvider);
-    state = const AsyncValue.loading();
+    final previousState = state;
+    // 1. Optimistic Update
+    // We try to keep the list visible. Ideally we'd append a temp org, 
+    // but constructing it from raw map might be fragile without ID.
+    // At minimum, we DON'T set state to loading (which hides the list).
+    // If we want true optimistic, we'd need Organization.fromMap(data) with temp ID.
+    // For now: Keep previous state visible (semi-optimistic).
+    
+    // state = const AsyncValue.loading(); // REMOVED (Pessimistic)
+    
+    try {
+      // 2. API Call
+      final repository = ref.read(organizationRepositoryProvider);
+      final result = await repository.createOrganization(data);
 
-    final result = await repository.createOrganization(data);
-
-    result.fold(
-      (error) => state = AsyncValue.error(error, StackTrace.current),
-      (_) => refresh(),
-    );
+      result.fold(
+        (error) => throw error, // Trigger catch block
+        (_) {
+           // 3. Silent Invalidation
+           ref.invalidateSelf();
+        },
+      );
+    } catch (e, st) {
+      // 4. Rollback / Error
+      // If we did a list modification, we'd rollback here.
+      // Since we just kept the list, we mainly need to show the error.
+      // BUT we need to ensure state isn't stuck if we did something fancy.
+      state = AsyncValue.error(e, st);
+      // Wait, strict pattern says: Rollback then Rethrow.
+      // Since we didn't mutate list, "Rollback" is just ensuring we have data?
+      // Actually if we just set error, it replaces the list with error widget!
+      // better: state = previousState (Data) + Action Error?
+      // Riverpod AsyncValue doesn't support "Data + Side Error" well without generic.
+      // So ensuring we rethrow for UI toast is key.
+      state = previousState; 
+      // We rethrow so the UI can show a SnackBar or Dialog error.
+      rethrow;
+    }
   }
 
   Future<void> updateOrganization(String id, Map<String, dynamic> data) async {
-    final repository = ref.read(organizationRepositoryProvider);
-    state = const AsyncValue.loading();
+    final previousState = state;
+    // 1. Optimistic (Keep List Visible)
+    
+    try {
+      // 2. API Call
+      final repository = ref.read(organizationRepositoryProvider);
+      final result = await repository.updateOrganization(id, data);
 
-    final result = await repository.updateOrganization(id, data);
-
-    result.fold(
-      (error) => state = AsyncValue.error(error, StackTrace.current),
-      (_) => refresh(),
-    );
+      result.fold(
+        (error) => throw error,
+        (_) => ref.invalidateSelf(), // 3. Silent Invalidation
+      );
+    } catch (e) {
+      // 4. Rollback
+      state = previousState;
+      rethrow;
+    }
   }
 
   Future<AppError?> deleteOrganization(String id, {bool force = false}) async {
-    final repository = ref.read(organizationRepositoryProvider);
     final previousState = state;
-    state = const AsyncValue.loading();
+    // 1. Optimistic (Remove from list immediately)
+    if (previousState.value != null) {
+      state = AsyncValue.data(
+        previousState.value!.where((org) => org.id != id).toList()
+      );
+    }
 
-    final result = await repository.deleteOrganization(id, force: force);
+    try {
+      // 2. API Call
+      final repository = ref.read(organizationRepositoryProvider);
+      final result = await repository.deleteOrganization(id, force: force);
 
-    return result.fold(
-      (error) {
-        // Special handling for 409 Conflict (ORG_HAS_USERS)
-        // Note: validation is done in UI based on error code/message.
-        // We just ensure state is restored so UI can check the error.
-
-        // Always restore list state to previous (success) state instead of refreshing
-        // This keeps the UI stable while dialog is shown, regardless of error type.
-        state = previousState;
-
-        return error;
-      },
-      (_) {
-        refresh();
-        return null;
-      },
-    );
+      return result.fold(
+        (error) {
+           // 4. Rollback on API failure
+           state = previousState;
+           return error; // Return error for UI handling (Dialog?)
+        },
+        (_) {
+          // 3. Silent Invalidation (Sync)
+          ref.invalidateSelf();
+          return null;
+        },
+      );
+    } catch (e, st) {
+       // 4. Rollback on Exception
+       state = previousState;
+       // If unexpected exception
+       state = AsyncValue.error(e, st);
+       // Or return as AppError?
+       return AppError.server(e.toString());
+    }
   }
 }

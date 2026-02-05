@@ -15,10 +15,8 @@ part 'model_registry_controller.g.dart';
 @freezed
 abstract class ModelRegistryState with _$ModelRegistryState {
   const factory ModelRegistryState({
-    @Default(AsyncValue.loading())
-    AsyncValue<List<LLMProviderConfig>> providers,
-    @Default(AsyncValue.loading())
-    AsyncValue<Map<String, List<String>>> availableOptions,
+    @Default([]) List<LLMProviderConfig> providers,
+    @Default({}) Map<String, List<String>> availableOptions,
     String? selectedProviderId,
     @Default(AsyncValue.data(null)) AsyncValue<AdHocTestResult?> testResult,
     @Default(false) bool isSaving,
@@ -27,85 +25,97 @@ abstract class ModelRegistryState with _$ModelRegistryState {
 
 @riverpod
 class ModelRegistryController extends _$ModelRegistryController {
-  late final ModelRegistryRepository _repository;
-
+  
   @override
-  ModelRegistryState build() {
-    _repository = ref.watch(modelRegistryRepositoryProvider);
-    // Move side-effect to next microtask to ensure state is initialized
-    Future.microtask(() => _loadData());
-    return const ModelRegistryState();
-  }
-
-  Future<void> _loadData() async {
-    state = state.copyWith(
-      providers: const AsyncValue.loading(),
-      availableOptions: const AsyncValue.loading(),
-    );
-
-    final result = await Future.wait([
-      _repository.getProviders(),
-      _repository.getModelOptions(),
-    ]);
+  Future<ModelRegistryState> build() async {
+    final repository = ref.watch(modelRegistryRepositoryProvider);
     
-    // Process Providers
-    final providersResult = result[0] as Either<AppError, List<LLMProviderConfig>>;
-    providersResult.fold(
-      (l) => state = state.copyWith(providers: AsyncValue.error(l, StackTrace.current)),
-      (r) => state = state.copyWith(providers: AsyncValue.data(r)),
-    );
+    // Parallel Fetch (Fail Fast)
+    final result = await Future.wait([
+      repository.getProviders(),
+      repository.getModelOptions(),
+    ]);
 
-    // Process Options
+    final providersResult = result[0] as Either<AppError, List<LLMProviderConfig>>;
     final optionsResult = result[1] as Either<AppError, Map<String, List<String>>>;
-    optionsResult.fold(
-      (l) => state = state.copyWith(availableOptions: AsyncValue.error(l, StackTrace.current)),
-      (r) => state = state.copyWith(availableOptions: AsyncValue.data(r)),
+
+    // We throw first error encountered to set state to AsyncError
+    final providers = providersResult.getRight().getOrElse(() => throw providersResult.getLeft().toNullable()!);
+    final options = optionsResult.getRight().getOrElse(() => throw optionsResult.getLeft().toNullable()!);
+
+    return ModelRegistryState(
+      providers: providers,
+      availableOptions: options,
     );
   }
 
   void selectProvider(String? id) {
-    state = state.copyWith(
+    final currentState = state.value;
+    if (currentState == null) return;
+
+    state = AsyncData(currentState.copyWith(
       selectedProviderId: id,
       testResult: const AsyncValue.data(null),
-    );
+    ));
   }
 
+  /// **Save Config**
+  /// Uses Optimistic Update + Invalidate pattern.
   Future<void> saveConfig(String id, LLMProviderConfig config) async {
-    state = state.copyWith(isSaving: true);
+    final previousState = state.value;
+    if (previousState == null) return;
 
-    final result = await _repository.updateProvider(id, config);
+    // 1. Optimistic Update
+    final currentList = previousState.providers;
+    final index = currentList.indexWhere((p) => p.id == id);
+    
+    List<LLMProviderConfig> newList;
+    if (index >= 0) {
+      newList = List.of(currentList)..[index] = config;
+    } else {
+      newList = [...currentList, config];
+    }
 
-    state = state.copyWith(isSaving: false);
+    state = AsyncData(previousState.copyWith(
+      providers: newList,
+      isSaving: true, 
+    ));
 
-    result.fold((l) {}, (r) {
-      state.providers.whenData((list) {
-        final index = list.indexWhere((p) => p.id == id);
+    try {
+      // 2. API Call
+      await ref.read(modelRegistryRepositoryProvider).updateProvider(id, config);
 
-        List<LLMProviderConfig> newList;
-        if (index >= 0) {
-          newList = List.of(list)..[index] = r;
-        } else {
-          newList = List.of(list)..add(r);
-        }
-        state = state.copyWith(providers: AsyncValue.data(newList));
-      });
-    });
+      // 3. Silent Sync
+      ref.invalidateSelf();
+    } catch (e, st) {
+      // 4. Rollback
+      state = AsyncData(previousState);
+      state = AsyncError(e, st);
+      // We might want to rethrow to show error toast
+      rethrow;
+    }
   }
 
   Future<void> runTest(AdHocTestRequest request) async {
-    state = state.copyWith(testResult: const AsyncValue.loading());
+    final currentState = state.value;
+    if (currentState == null) return;
 
-    final result = await _repository.runAdHocTest(request);
+    // Local Loading State for Test Result
+    state = AsyncData(currentState.copyWith(testResult: const AsyncValue.loading()));
+
+    final result = await ref.read(modelRegistryRepositoryProvider).runAdHocTest(request);
 
     result.fold(
-      (l) =>
-          state = state.copyWith(
+      (l) {
+         state = AsyncData(currentState.copyWith(
             testResult: AsyncValue.error(l, StackTrace.current),
-          ),
-      (r) =>
-          state = state.copyWith(
+         ));
+      },
+      (r) {
+         state = AsyncData(currentState.copyWith(
             testResult: AsyncValue.data(r),
-          ),
+         ));
+      },
     );
   }
 }

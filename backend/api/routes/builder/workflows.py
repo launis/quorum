@@ -55,31 +55,58 @@ class CopyWorkflowRequest(BaseModel):
 # --- Helpers ---
 
 async def _expand_workflow(wf: dict[str, Any], repository: RepositoryDep) -> dict[str, Any]:
-    """Hydrates step IDs into full step objects."""
+    """Hydrates step IDs into full step objects using SSOT Registry."""
     full_wf = wf.copy()
     step_ids = wf.get("steps", [])
 
     hydrated_steps = []
-    for s_id in step_ids:
-        # If the DB already has objects (unlikely but possible during migration), keep them.
-        if isinstance(s_id, dict):
-            hydrated_steps.append(s_id)
+    for item in step_ids:
+        step_id = None
+        overrides = {}
+
+        # 1. Resolve ID and Overrides
+        if isinstance(item, str):
+            step_id = item
+        elif isinstance(item, dict):
+            step_id = item.get("id")
+            overrides = item  # Inputs, etc.
+
+        if not step_id:
             continue
 
-        if isinstance(s_id, str):
-            step = await repository.get_step_by_id(s_id)
-            if step:
-                hydrated_steps.append(step)
-            else:
-                # Step missing? Keep ID as a lightweight placeholder or placeholder object?
-                # Frontend expects Map.
-                logger.warning(f"Workflow {wf.get('id')} references missing step {s_id}")
-                hydrated_steps.append({
-                    "id": s_id,
-                    "name": "Missing Step",
-                    "task_key": "unknown",
-                    "is_missing": True
-                })
+        # 2. Fetch Canonical Definition from Registry (SSOT)
+        canonical_step = await repository.get_step_by_id(step_id)
+
+        if canonical_step:
+            # 3. Merge: Registry is Base, Workflow Item is Override
+            # We copy canonical to avoid mutating cache/db result
+            merged = canonical_step.copy()
+            
+            # Merge inputs (deep merge usually better, but shallow for now)
+            if "inputs" in overrides:
+                merged_inputs = merged.get("inputs", {}).copy()
+                merged_inputs.update(overrides["inputs"])
+                merged["inputs"] = merged_inputs
+            
+            # Merge other non-protected fields if necessary
+            # For now, inputs are the main override.
+            
+            hydrated_steps.append(merged)
+        else:
+            # 4. Fallback: Step missing in Registry?
+            # If we have a dict item, use it, but warn about missing canonical connection.
+            # Frontend crashes without 'task_key', so we must ensure it exists.
+            
+            fallback_step = overrides.copy() if isinstance(item, dict) else {"id": step_id}
+            
+            if "name" not in fallback_step:
+                fallback_step["name"] = f"Missing Step ({step_id})"
+            if "task_key" not in fallback_step:
+                fallback_step["task_key"] = "unknown" # Prevent Frontend Crash
+                
+            fallback_step["is_missing_registry"] = True
+            logger.warning(f"Workflow {wf.get('id')} references missing registry step {step_id}")
+            hydrated_steps.append(fallback_step)
 
     full_wf["steps"] = hydrated_steps
     return full_wf
