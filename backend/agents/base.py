@@ -404,8 +404,16 @@ class BaseAgent(BaseComponent):
             if response_data:
                 self._apply_python_authority(response_data)
 
+
+
             # 6. Lifecycle Hook: Post Process
             logger.info(f"[{self.__class__.__name__}] Lifecycle Hook: post_process")
+            
+            # SCRUBBER (Jan 2026): Remove 'instructor' library prompt leakage
+            # Weak models sometimes repeat "Return the correct JSON response..." in string fields.
+            if response_data:
+                response_data = self._scrub_prompt_leakage(response_data)
+
             response_data = self.post_process(response_data)
 
             logger.info(f"[{self.__class__.__name__}] Execution completed.")
@@ -531,3 +539,37 @@ class BaseAgent(BaseComponent):
 
         """
         return ""
+
+    def _scrub_prompt_leakage(self, data: Any) -> Any:
+        """Recursively removes 'instructor' library prompt leakage from strings."""
+        leak_phrases = [
+            "Return the correct JSON response.",
+            "Return the correct JSON",
+            "Example JSON:",
+            "Here is the correct JSON response:",
+        ]
+
+        if isinstance(data, str):
+            for phrase in leak_phrases:
+                if phrase in data:
+                    data = data.replace(phrase, "").strip()
+            return data
+
+        if isinstance(data, dict):
+            return {k: self._scrub_prompt_leakage(v) for k, v in data.items()}
+
+        if isinstance(data, list):
+            return [self._scrub_prompt_leakage(item) for item in data]
+        
+        if isinstance(data, BaseModel):
+            try:
+                # Iterate over fields
+                 for name in data.model_fields.keys():
+                     val = getattr(data, name)
+                     new_val = self._scrub_prompt_leakage(val)
+                     setattr(data, name, new_val)
+                 return data
+            except Exception:
+                return data
+
+        return data

@@ -63,12 +63,11 @@ class XAIReporterAgent(BaseAgent):
                  
                  # Identify Judge Name
                  matrix_id = data.get("matrix_id")
-                 if matrix_id:
-                     name = f"Judge ({matrix_id})"
-                 elif "cognitive" in key:
-                     name = "Cognitive Judge"
-                 else:
-                     name = "Standard Judge"
+                 if not matrix_id:
+                     logger.error(f"[XAIReporterAgent] Strict Mode Violation: 'matrix_id' missing in {key}. Cannot identify judge.")
+                     raise ValueError(f"Strict XAI: Judge output in '{key}' is missing 'matrix_id'. Agent must return matrix_id.")
+                 
+                 name = f"Judge ({matrix_id})"
                  
                  judge_results.append((name, data))
 
@@ -155,13 +154,10 @@ class XAIReporterAgent(BaseAgent):
                     matrix_id = data.get("matrix_id")
                     if matrix_id:
                         agent_name = f"Judge ({matrix_id})"
-                    else:
-                        # "step_judge_cognitive" -> "Cognitive Judge"
-                        parts = key.split("_")
-                        if len(parts) > 2:
-                            agent_name = f"{parts[2].capitalize()} Judge"
-                        else:
-                            agent_name = "Standard Judge"
+                    if not matrix_id:
+                         raise ValueError(f"Strict XAI: Judge output in '{key}' is missing 'matrix_id'. Cannot build ScoreCard.")
+                    
+                    agent_name = f"Judge ({matrix_id})"
 
                     # Extract Score Data
                     total_score = float(data.get("total_score", 0))

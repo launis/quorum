@@ -92,6 +92,12 @@ class GraphEngine:
             import uuid
             state_payload["execution_id"] = str(uuid.uuid4())
 
+        # C) Hydrate Metadata from Definition
+        if definition.id:
+            state_payload["workflow_id"] = definition.id
+        if definition.name:
+            state_payload["workflow_name"] = definition.name
+
         try:
             execution_state = WorkflowState(**state_payload)
         except Exception as e:

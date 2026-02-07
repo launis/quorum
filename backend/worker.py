@@ -34,6 +34,7 @@ async def execute_workflow_job(
     inputs: dict,
     execution_id: str | None = None,
     organization_id: str | None = None,
+    user_id: str | None = None,
 ) -> dict:
     """Background job to execute a workflow using GraphEngine.
 
@@ -43,11 +44,12 @@ async def execute_workflow_job(
         inputs (dict): Raw input arguments for the workflow.
         execution_id (str): ID of the execution record to update.
         organization_id (str): Organization ID context.
+        user_id (str): User ID context.
 
     Returns:
         dict: The final workflow state.
     """
-    logger.info(f"[Job] Executing workflow: {workflow_id} (Execution ID: {execution_id}, Org: {organization_id})")
+    logger.info(f"[Job] Executing workflow: {workflow_id} (Execution ID: {execution_id}, Org: {organization_id}, User: {user_id})")
 
     # LOGFIRE INTEGRATION: Bind execution_id to this trace context
     # This groups all subsequent logs (Agent, LLM, DB) under this execution_id.
@@ -58,6 +60,10 @@ async def execute_workflow_job(
         # This ensures that valid WorkflowState objects created from this dict will have organization_id populated.
         if organization_id and "organization_id" not in inputs:
             inputs["organization_id"] = organization_id
+        
+        # Inject User ID into inputs (Blackboard State) if provided
+        if user_id and "user_id" not in inputs:
+            inputs["user_id"] = user_id
 
         # Retrieve pre-initialized Engine
         engine: GraphEngine = ctx["engine"]

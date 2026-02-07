@@ -21,6 +21,7 @@ enum ExecutionStatus {
   failed,
   rejected,
   interrupted,
+  cancelling,
   unknown,
 }
 
@@ -151,6 +152,20 @@ sealed class Execution with _$Execution {
     String? error,
     @Default(ExecutionStatus.failed) ExecutionStatus status,
   }) = ExecutionFailed;
+
+  /// State: Execution is being cancelled.
+  const factory Execution.cancelling({
+    @JsonKey(name: 'execution_id') required String id,
+    @JsonKey(name: 'start_time') required DateTime createdAt,
+    @JsonKey(name: 'workflow_name') String? workflowName,
+    @JsonKey(name: 'organization_id') String? organizationId,
+    @JsonKey(name: 'user_id') String? userId,
+    @Default({}) Map<String, dynamic> inputs,
+    @JsonKey(name: 'current_step_name') String? currentStepName,
+    @JsonKey(name: 'current_step_index') int? currentStepIndex,
+    @JsonKey(name: 'total_steps') int? totalSteps,
+    @Default(ExecutionStatus.cancelling) ExecutionStatus status,
+  }) = ExecutionCancelling;
 
   /// Fallback for unknown states or future backend updates.
   const factory Execution.unknown({

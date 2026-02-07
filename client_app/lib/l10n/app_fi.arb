@@ -63,6 +63,7 @@
   "statusRunning": "KÄYNNISSÄ",
   "statusFailed": "EPÄONNISTUI",
   "statusRejected": "HYLÄTTY",
+  "cancelling": "Peruutetaan",
   "statusPending": "ODOTTAA",
   "statusStarted": "ALOITETTU",
   "inputChatHistory": "1. Keskusteluhistoria / Todistusaineisto",

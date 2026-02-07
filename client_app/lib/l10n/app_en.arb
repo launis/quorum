@@ -100,6 +100,7 @@
   "statusRunning": "RUNNING",
   "statusFailed": "FAILED",
   "statusRejected": "REJECTED",
+  "cancelling": "Cancelling",
   "statusPending": "PENDING",
   "statusStarted": "STARTED",
   "inputChatHistory": "1. Chat History / Evidence (Chat Logs)",

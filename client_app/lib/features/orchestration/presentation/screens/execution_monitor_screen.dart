@@ -358,6 +358,40 @@ class _StepProgressList extends StatelessWidget {
     'step_overseer',
     'step_archivist',
     'step_judge',
+    'step_coach',
+    'step_context',
+    'step_xai',
+  ];
+
+  static const _stepsSequentialCognitive = [
+    'step_guard',
+    'step_analyst',
+    'step_interaction',
+    'step_profiler',
+    'step_logician',
+    'step_falsifier',
+    'step_causal',
+    'step_detector',
+    'step_overseer',
+    'step_archivist',
+    'step_judge_cognitive',
+    'step_coach',
+    'step_context',
+    'step_xai',
+  ];
+
+  static const _stepsSequentialDual = [
+    'step_guard',
+    'step_analyst',
+    'step_interaction',
+    'step_profiler',
+    'step_logician',
+    'step_falsifier',
+    'step_causal',
+    'step_detector',
+    'step_overseer',
+    'step_archivist',
+    'step_judge',
     'step_judge_cognitive',
     'step_coach',
     'step_context',
@@ -377,12 +411,48 @@ class _StepProgressList extends StatelessWidget {
     'step_xai',
   ];
 
+  static const _stepsFusedCognitive = [
+    'step_guard',
+    'step_analyst',
+    'step_interaction',
+    'step_profiler',
+    'step_panel',
+    'step_archivist',
+    'step_judge_cognitive',
+    'step_coach',
+    'step_context',
+    'step_xai',
+  ];
+
+  static const _stepsFusedDual = [
+    'step_guard',
+    'step_analyst',
+    'step_interaction',
+    'step_profiler',
+    'step_panel',
+    'step_archivist',
+    'step_judge',
+    'step_judge_cognitive',
+    'step_coach',
+    'step_context',
+    'step_xai',
+  ];
+
   // Specific mappings for known workflows
   static const Map<String, List<String>> _workflowSteps = {
-    'sequential_audit_chain_dual': _stepsSequential,
-    'fused_audit_chain_dual': _stepsFused,
-    'fused_audit_chain_cognitive': _stepsFused, // Uses same structure
-    'simple_audit': ['step_guard', 'step_analyst', 'step_judge', 'step_xai'],
+    'sequential_audit_chain': _stepsSequential,
+    'sequential_audit_chain_dual': _stepsSequentialDual,
+    'sequential_audit_chain_cognitive': _stepsSequentialCognitive,
+    'fused_audit_chain': _stepsFused,
+    'fused_audit_chain_dual': _stepsFusedDual,
+    'fused_audit_chain_cognitive': _stepsFusedCognitive,
+    // Human-readable names (from seed_data.json)
+    'Courtroom 2.0 (Full Audit)': _stepsSequential,
+    'Courtroom 2.0 (Cognitive Audit)': _stepsSequentialCognitive,
+    'Courtroom 2.0 (Dual Matrix)': _stepsSequentialDual,
+    'Courtroom 3.0 (Fused Critics)': _stepsFused,
+    'Courtroom 3.0 (Fused Cognitive)': _stepsFusedCognitive,
+    'Courtroom 3.0 (Fused Dual)': _stepsFusedDual,
   };
 
   String _getStepLabel(BuildContext context, String stepKey) {
@@ -411,70 +481,23 @@ class _StepProgressList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Determine which list to use
-    List<String> steps;
-    if (workflowId != null && _workflowSteps.containsKey(workflowId)) {
-        steps = _workflowSteps[workflowId]!;
-    } else {
-        // Fallback heuristics
-        final lowerId = workflowId?.toLowerCase() ?? '';
-        final isFused = lowerId.contains('fused') || lowerId.contains('panel') || lowerId.contains('courtroom');
-        steps = isFused ? _stepsFused : _stepsSequential;
+    if (workflowId == null || !_workflowSteps.containsKey(workflowId)) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text(
+            'Error: Unknown workflow configuration "$workflowId".',
+            style: const TextStyle(color: Colors.red),
+          ),
+        ),
+      );
     }
+
+    final steps = _workflowSteps[workflowId]!;
     
     int currentIndex = -1;
     if (currentStep != null) {
-      // 1. Try exact match
       currentIndex = steps.indexOf(currentStep!);
-
-      // 2. Try fuzzy / value match if exact failed
-      if (currentIndex == -1) {
-        // Reverse lookup: check if currentStep matches any of the values in stepNames
-        // or partial contains - now using backend keys
-        final lowerStep = currentStep!.toLowerCase();
-        
-        // MAPPING FOR FUSED VIEW:
-        // If we are in Fused mode, map "integrated" steps to 'step_panel'
-        // (Only if step_panel is actually in the list!)
-        if (steps.contains('step_panel')) {
-           if (lowerStep.contains('logician') || // Logician is fused into Panel in Fused workflow
-               lowerStep.contains('falsifier') || 
-               lowerStep.contains('causal') ||
-               lowerStep.contains('detector')) {
-               currentIndex = steps.indexOf('step_panel');
-           }
-        }
-
-
-        if (currentIndex == -1) {
-            for (int i = 0; i < steps.length; i++) {
-              final key = steps[i];
-              // Check normalized key
-              if (key == lowerStep || 'step_$lowerStep' == key) {
-                currentIndex = i;
-                break;
-              }
-    
-              // Specific backend mappings (common ones)
-              if (lowerStep.contains('guard') && key == 'step_guard') {
-                currentIndex = i;
-              }
-              // Skip Analyst/Interaction/Profiler checks here if they were already mapped above for Fused
-              
-              if (lowerStep.contains('panel') && key == 'step_panel') {
-                currentIndex = i;
-              }
-              if (lowerStep.contains('judge') && key == 'step_judge') {
-                currentIndex = i;
-              }
-              if (lowerStep.contains('xai') && key == 'step_xai') {
-                currentIndex = i;
-              }
-    
-              if (currentIndex != -1) break;
-            }
-        }
-      }
     }
 
     return Card(

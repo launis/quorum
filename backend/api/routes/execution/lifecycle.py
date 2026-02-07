@@ -217,6 +217,7 @@ async def create_execution(
             "inputs": sanitized_inputs,
             "user_id": current_user.uid if current_user else "system",
             "organization_id": organization_id,
+            "workflow_name": definition.name if definition else None,
         }
 
         await repository.create_execution(execution_data)
@@ -230,9 +231,16 @@ async def create_execution(
                 inputs=inputs,
                 execution_id=execution_id,
                 organization_id=organization_id,
+                user_id=current_user.uid if current_user else "system",
             )
         else:
             logger.warning("Arq pool not available! Running Synchronously.")
+            # Inject identity context for synchronous execution
+            if current_user:
+                 inputs["user_id"] = current_user.uid
+            if organization_id:
+                 inputs["organization_id"] = organization_id
+            
             result = await engine.execute_workflow(definition, inputs, repository=repository, execution_id=execution_id)
             execution_data["results"] = sanitize_for_json(result)
             execution_data["status"] = "completed"

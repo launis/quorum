@@ -119,8 +119,8 @@ class _InspectorDetails extends StatelessWidget {
               children: [
                 _ConfigTab(workflow: workflow),
                 _StepsTab(workflow: workflow),
-                _PreviewTab(workflow: workflow),
-                _ExportTab(workflow: workflow),
+                _PreviewTab(key: ValueKey(workflow.id), workflow: workflow),
+                _ExportTab(key: ValueKey(workflow.id), workflow: workflow),
               ],
             ),
           ),
@@ -174,7 +174,7 @@ class _StepsTab extends StatelessWidget {
 class _PreviewTab extends ConsumerStatefulWidget {
   final Workflow workflow;
 
-  const _PreviewTab({required this.workflow});
+  const _PreviewTab({super.key, required this.workflow});
 
   @override
   ConsumerState<_PreviewTab> createState() => _PreviewTabState();
@@ -191,6 +191,21 @@ class _PreviewTabState extends ConsumerState<_PreviewTab> {
     // Filter steps that have an ID (should be all)
     final steps = widget.workflow.steps;
 
+    // Safety check: deeply validate that _selectedStepId is actually present in the current steps.
+    // If we switched workflows and state persisted (despite Key), this prevents a crash.
+    String? effectiveSelectedStepId = _selectedStepId;
+    if (effectiveSelectedStepId != null && !steps.any((s) => s.id == effectiveSelectedStepId)) {
+      effectiveSelectedStepId = null;
+      // Schedule a cleanup to sync state
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _selectedStepId != null) {
+          setState(() {
+            _selectedStepId = null;
+          });
+        }
+      });
+    }
+
     return Column(
       children: [
         // Dropdown
@@ -198,7 +213,7 @@ class _PreviewTabState extends ConsumerState<_PreviewTab> {
           padding: const EdgeInsets.all(16.0),
           child: DropdownButtonFormField<String>(
             // ignore: deprecated_member_use
-            value: _selectedStepId,
+            value: effectiveSelectedStepId,
             decoration: InputDecoration(
               labelText: l10n.selectStepPlaceholder,
               border: const OutlineInputBorder(),
@@ -272,7 +287,7 @@ class _StepPreviewContent extends ConsumerWidget {
 class _ExportTab extends ConsumerWidget {
   final Workflow workflow;
 
-  const _ExportTab({required this.workflow});
+  const _ExportTab({super.key, required this.workflow});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

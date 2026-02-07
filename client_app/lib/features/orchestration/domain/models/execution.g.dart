@@ -44,6 +44,7 @@ const _$ExecutionStatusEnumMap = {
   ExecutionStatus.failed: 'failed',
   ExecutionStatus.rejected: 'rejected',
   ExecutionStatus.interrupted: 'interrupted',
+  ExecutionStatus.cancelling: 'cancelling',
   ExecutionStatus.unknown: 'unknown',
 };
 
@@ -211,6 +212,37 @@ Map<String, dynamic> _$ExecutionFailedToJson(ExecutionFailed instance) =>
       'error': instance.error,
       'status': _$ExecutionStatusEnumMap[instance.status]!,
     };
+
+ExecutionCancelling _$ExecutionCancellingFromJson(Map<String, dynamic> json) =>
+    ExecutionCancelling(
+      id: json['execution_id'] as String,
+      createdAt: DateTime.parse(json['start_time'] as String),
+      workflowName: json['workflow_name'] as String?,
+      organizationId: json['organization_id'] as String?,
+      userId: json['user_id'] as String?,
+      inputs: json['inputs'] as Map<String, dynamic>? ?? const {},
+      currentStepName: json['current_step_name'] as String?,
+      currentStepIndex: (json['current_step_index'] as num?)?.toInt(),
+      totalSteps: (json['total_steps'] as num?)?.toInt(),
+      status:
+          $enumDecodeNullable(_$ExecutionStatusEnumMap, json['status']) ??
+          ExecutionStatus.cancelling,
+    );
+
+Map<String, dynamic> _$ExecutionCancellingToJson(
+  ExecutionCancelling instance,
+) => <String, dynamic>{
+  'execution_id': instance.id,
+  'start_time': instance.createdAt.toIso8601String(),
+  'workflow_name': instance.workflowName,
+  'organization_id': instance.organizationId,
+  'user_id': instance.userId,
+  'inputs': instance.inputs,
+  'current_step_name': instance.currentStepName,
+  'current_step_index': instance.currentStepIndex,
+  'total_steps': instance.totalSteps,
+  'status': _$ExecutionStatusEnumMap[instance.status]!,
+};
 
 ExecutionUnknown _$ExecutionUnknownFromJson(Map<String, dynamic> json) =>
     ExecutionUnknown(

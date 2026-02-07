@@ -159,7 +159,9 @@ class _ExecutionGridItemState extends ConsumerState<ExecutionGridItem> {
                   else if (widget.execution.status == ExecutionStatus.completed ||
                            widget.execution.status == ExecutionStatus.failed ||
                            widget.execution.status == ExecutionStatus.rejected ||
-                           widget.execution.status == ExecutionStatus.interrupted)
+                           widget.execution.status == ExecutionStatus.interrupted ||
+                           widget.execution.status == ExecutionStatus.cancelling ||
+                           widget.execution.status == ExecutionStatus.unknown)
                      Container(
                       margin: const EdgeInsets.only(left: 8),
                       child: IconButton(
@@ -244,6 +246,8 @@ class _ExecutionGridItemState extends ConsumerState<ExecutionGridItem> {
         return l10n.statusPending;
       case ExecutionStatus.started:
         return l10n.statusStarted;
+      case ExecutionStatus.cancelling:
+        return l10n.cancelling;
       case ExecutionStatus.interrupted:
         return l10n.unknownState;
       case ExecutionStatus.unknown:
@@ -261,6 +265,7 @@ class _ExecutionGridItemState extends ConsumerState<ExecutionGridItem> {
       case ExecutionStatus.failed:
       case ExecutionStatus.rejected:
         return Colors.red;
+      case ExecutionStatus.cancelling:
       case ExecutionStatus.interrupted:
         return Colors.orange;
       case ExecutionStatus.pending:
@@ -280,6 +285,7 @@ class _ExecutionGridItemState extends ConsumerState<ExecutionGridItem> {
       case ExecutionStatus.failed:
       case ExecutionStatus.rejected:
         return Icons.error_outline;
+      case ExecutionStatus.cancelling:
       case ExecutionStatus.interrupted:
         return Icons.pause_circle_outline;
       case ExecutionStatus.pending:
@@ -296,6 +302,7 @@ class _ExecutionGridItemState extends ConsumerState<ExecutionGridItem> {
       running: (e) => e.currentStepName,
       completed: (e) => e.currentStepName,
       failed: (e) => e.currentStepName,
+      cancelling: (e) => e.currentStepName,
       unknown: (_) => null,
     );
   }
