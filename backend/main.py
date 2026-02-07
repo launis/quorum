@@ -65,8 +65,11 @@ async def lifespan(app: FastAPI):
         import backend.tasks.retrieval  # noqa
         import backend.tasks.analysis  # noqa
         import backend.tasks.critique  # noqa
-
-        import backend.tasks.critique  # noqa
+        import backend.tasks.interaction  # noqa
+        import backend.tasks.judgment  # noqa
+        import backend.tasks.coaching  # noqa
+        import backend.tasks.panel  # noqa
+        import backend.tasks.reporting  # noqa
 
         # Log Task Count to File
         task_count = len(TaskRegistry._tasks)

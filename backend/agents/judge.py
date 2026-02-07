@@ -88,7 +88,6 @@ class JudgeAgent(BaseAgent):
 
         try:
             # Re-fetch component to "hoist" the truth
-            # Re-fetch component to "hoist" the truth
             comp = await repo.get_component_by_id(matrix_id)
             if not comp or not comp.get("content"):
                  raise ValueError(f"Matrix component '{matrix_id}' not found or empty.")
@@ -115,7 +114,30 @@ class JudgeAgent(BaseAgent):
         if "total_score" not in result:
             result["total_score"] = 0
 
-        # Note: We deliberately drop 'pisteet' from the final standard object
+        # --- USER REQUEST: Semantic Labels in Reports ---
+        # Populate 'dimension_label' using the source of truth (DB Component).
+        # result["dimensions"] has [{dimension_id, score, ...}]
+        # comp["content"]["criteria"] has [{id, label, ...}]
+        if result["dimensions"] and comp and comp.get("content"):
+            criteria_list = comp["content"].get("criteria", [])
+            # Create lookup map: id -> label
+            label_map = {}
+            for c in criteria_list:
+                c_id = c.get("id")
+                c_label = c.get("label")
+                if c_id and c_label:
+                    label_map[c_id] = c_label
+            
+            # Inject labels
+            for dim in result["dimensions"]:
+                d_id = dim.get("dimension_id")
+                if d_id in label_map:
+                    dim["dimension_label"] = label_map[d_id]
+                else:
+                    # STRICT MODE: Fail Fast.
+                    # The database configuration MUST match the agent output.
+                    # If we don't know the label, the Matrix Config is likely desynchronized or corrupt.
+                    raise ValueError(f"Strict Label Resolution Failed: Dimension ID '{d_id}' not found in Matrix '{matrix_id}' criteria.")
         # unless we want to keep it for backwards compat. EvaluationResult doesn't have it.
         # But BaseJSON allows extra fields. Let's keep it for safety if debugging.
 
@@ -167,10 +189,16 @@ class JudgeAgent(BaseAgent):
 
         # Helper for serializing evidence
         def serialize_evidence(data: Any) -> str:
+            # Custom serializer for datetime consistency (ISO 8601)
+            def json_default(obj):
+                if hasattr(obj, "isoformat"):
+                    return obj.isoformat()
+                return str(obj)
+
             if hasattr(data, "model_dump_json"):
                 return data.model_dump_json(indent=2)
-            if isinstance(data, dict):
-                return json.dumps(data, indent=2, ensure_ascii=False)
+            if isinstance(data, (dict, list)):
+                return json.dumps(data, indent=2, ensure_ascii=False, default=json_default)
             return str(data)
 
         # --- EVIDENCE COLLECTION STRATEGY ---

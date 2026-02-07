@@ -1,36 +1,81 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="3" failures="0" skipped="0" tests="3" time="7.142" timestamp="2026-02-04T23:28:15.161761+02:00" hostname="Laptop-Risto"><testcase classname="" name="backend.tests.integration.test_pdf_worker" time="0.000"><error message="collection failure">ImportError while importing test module 'C:\src\quorum\backend\tests\integration\test_pdf_worker.py'.
-Hint: make sure your test modules/packages have valid Python names.
-Traceback:
-C:\Python314\Lib\importlib\__init__.py:88: in import_module
-    return _bootstrap._gcd_import(name[level:], package, level)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-backend\tests\integration\test_pdf_worker.py:5: in &lt;module&gt;
-    from backend.worker import generate_pdf_job
-backend\worker.py:18: in &lt;module&gt;
-    from backend.services.pdf_generator import PdfReportService
-backend\services\pdf_generator.py:8: in &lt;module&gt;
-    import weasyprint  # type: ignore
-    ^^^^^^^^^^^^^^^^^
-E   ModuleNotFoundError: No module named 'weasyprint'</error></testcase><testcase classname="" name="backend.tests.unit.test_chart_service" time="0.000"><error message="collection failure">ImportError while importing test module 'C:\src\quorum\backend\tests\unit\test_chart_service.py'.
-Hint: make sure your test modules/packages have valid Python names.
-Traceback:
-C:\Python314\Lib\importlib\__init__.py:88: in import_module
-    return _bootstrap._gcd_import(name[level:], package, level)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-backend\tests\unit\test_chart_service.py:7: in &lt;module&gt;
-    from backend.services.chart_service import ChartService
-backend\services\chart_service.py:5: in &lt;module&gt;
-    import numpy as np  # type: ignore
-    ^^^^^^^^^^^^^^^^^^
-E   ModuleNotFoundError: No module named 'numpy'</error></testcase><testcase classname="" name="backend.tests.unit.test_pdf_generator" time="0.000"><error message="collection failure">ImportError while importing test module 'C:\src\quorum\backend\tests\unit\test_pdf_generator.py'.
-Hint: make sure your test modules/packages have valid Python names.
-Traceback:
-C:\Python314\Lib\importlib\__init__.py:88: in import_module
-    return _bootstrap._gcd_import(name[level:], package, level)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-backend\tests\unit\test_pdf_generator.py:5: in &lt;module&gt;
-    from backend.services.pdf_generator import PdfReportService, ProgressServiceProtocol
-backend\services\pdf_generator.py:8: in &lt;module&gt;
-    import weasyprint  # type: ignore
-    ^^^^^^^^^^^^^^^^^
-E   ModuleNotFoundError: No module named 'weasyprint'</error></testcase></testsuite></testsuites>
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="2" time="6.879" timestamp="2026-02-07T15:52:47.174012+02:00" hostname="Laptop-Risto"><testcase classname="backend.tests.integration.test_config_integrity" name="test_agent_wrapper_propagates_temperature" time="1.484" /><testcase classname="backend.tests.integration.test_config_integrity" name="test_prompt_substitution" time="0.004"><failure message="ValueError: Provider type not set and no default allowed.">async def test_prompt_substitution():
+        """Verify that variable variables like {{HISTORY_TEXT}} are actually replaced."""
+        # 1. Setup Mock Prompt with Placeholders
+        raw_prompt = "Analyze the following: {{HISTORY_TEXT}}. End of input."
+        expected_prompt_snippet = "Analyze the following: CRITICAL_DATA_FOUND. End of input."
+    
+        mock_db_config = {"model_name": "mock", "temperature": 0.1}
+    
+        with patch("backend.dependencies.get_async_repository", new_callable=AsyncMock), \
+             patch("backend.services.agent_registry.AgentRegistry") as MockRegistryClass, \
+             patch("backend.services.component_registry.ComponentRegistry") as MockComponentRegistry, \
+             patch("backend.agents.base.LLMFactory") as MockLLMFactory:
+    
+            # Registry returns simple config
+            mock_registry_instance = MockRegistryClass.return_value
+            mock_registry_instance.resolve_model_config = AsyncMock(return_value=mock_db_config)
+    
+            # Component Registry returns our TEMPLATE
+            mock_instance = MagicMock()
+            mock_instance.resolve_prompts.return_value = "Analyzed: {{HISTORY_TEXT}}"
+            MockComponentRegistry.return_value = mock_instance
+    
+            # Registry returns simple config
+            mock_registry_instance = MockRegistryClass.return_value
+            mock_registry_instance.resolve_model_config = AsyncMock(return_value=mock_db_config)
+    
+    
+    
+            # Mock Factory creation
+            MockLLMFactory.create_provider.return_value = MagicMock()
+    
+            # 3. Register Mock Agent
+            TaskRegistry.register_agent(["test_prompt_integ"], MockGuardAgent, dict)
+            task_def = TaskRegistry.get("test_prompt_integ")
+            wrapper_func = task_def.handler
+    
+            # 4. Input with DATA
+            input_dict = {"history_text": "CRITICAL_DATA_FOUND"}
+    
+            # 5. Execute with 'llm_prompts' key to trigger substitution logic
+            # MUST BE INSIDE WITH BLOCK because resolving happens here
+&gt;           result = await wrapper_func(
+                input_data=input_dict,
+                execution_config={"llm_prompts": ["SOME_KEY"]}
+            )
+
+backend\tests\integration\test_config_integrity.py:140: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+backend\core\registry.py:110: in agent_wrapper
+    agent.set_model(model_name, provider=provider_type)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = &lt;test_config_integrity.MockGuardAgent object at 0x000001BB19E0FED0&gt;
+model_name = 'mock', provider = None, usage_service = None
+organization_id = None
+
+    def set_model(
+        self,
+        model_name: str,
+        provider: str | None = None,
+        usage_service: Any = None,
+        organization_id: str | None = None,
+    ):
+        """Dynamically updates the agent's model preference and ensures LLMProvider is ready.
+    
+        Args:
+            model_name (str): The new model name.
+            provider (Optional[str]): The provider type.
+            usage_service (Any): UsageService instance for tracking.
+            organization_id (Optional[str]): Contextual Org ID.
+        """
+        self.model = model_name
+        if provider:
+            self.provider_type = provider
+    
+        current_provider_type = self.provider_type
+        if not current_provider_type:
+&gt;            raise ValueError("Provider type not set and no default allowed.")
+E            ValueError: Provider type not set and no default allowed.
+
+backend\agents\base.py:89: ValueError</failure></testcase></testsuite></testsuites>

@@ -10,10 +10,18 @@ from starlette.datastructures import UploadFile
 
 from backend.core.engine import GraphEngine
 from backend.database.repository import AbstractWorkflowRepository
-from backend.dependencies import get_arq_pool, get_async_repository, get_engine
+from backend.dependencies import (
+    EngineDep,
+    RepositoryDep,
+    SettingsDep,
+    get_db_client_dep,
+    DocumentServiceDep,
+    get_arq_pool,
+    get_async_repository,
+    get_engine,
+)
 from backend.exceptions import AppException, ResourceNotFoundError
 from backend.logging_config import log_error
-from backend.models.workflow import WorkflowDefinition
 from backend.models.workflow import WorkflowDefinition
 from backend.services.auth import AuthService
 from backend.models.auth import UserRole
@@ -48,8 +56,9 @@ executions_router = APIRouter(prefix="/executions", tags=["Executions"])
 )
 async def create_execution(
     request: Request,
-    engine: GraphEngine = Depends(get_engine),
-    repository: AbstractWorkflowRepository = Depends(get_async_repository),
+    engine: EngineDep,
+    repository: RepositoryDep,
+    document_service: DocumentServiceDep,
     current_user: Any = Depends(AuthService.get_current_user()),
     arq_pool: Any = Depends(get_arq_pool),
 ):
@@ -62,6 +71,8 @@ async def create_execution(
         inputs = {}
         workflow_id = None
         organization_id = None
+
+        execution_id = str(uuid.uuid4())
 
         if "application/json" in content_type:
             payload = await request.json()
@@ -92,29 +103,45 @@ async def create_execution(
                 workflow_id = form.get("workflowId")
 
             # 2. Parse Files & Form Fields
+            files_to_process = {}
+            from fastapi import UploadFile
+            debug_dump = []
             for key, value in form.items():
-                if key in ("json_payload", "workflowId"):
+                if key in ("json_payload", "workflowId", "organizationId"):
                     continue
 
-                if isinstance(value, UploadFile):
-                    # Basic Text Extraction Logic (Simplified from original)
-                    logger.info(f"[FILE_UPLOAD] Key='{key}' | Filename='{value.filename}'")
+                # Robust check for UploadFile (handles Starlette/FastAPI/Duck-typing)
+                is_file = isinstance(value, UploadFile) or (hasattr(value, "filename") and hasattr(value, "read"))
+
+                if is_file:
+                    # Buffer file in memory for DocumentService (it expects bytes)
+                    # Note: Starlette UploadFile.read() is async
                     content = await value.read()
-
-                    text_content = ""
-                    filename = value.filename or ""
-                    if filename.lower().endswith((".txt", ".md", ".json", ".csv", ".log")):
-                         text_content = content.decode("utf-8", errors="replace")
-                    elif filename.lower().endswith(".pdf"):
-                         # In real impl, call document service. Here, placeholder or raw.
-                         text_content = f"<pdf_file: {value.filename}>"
-                    else:
-                         text_content = f"<binary_file: {value.filename}>"
-
-                    inputs[key] = text_content
+                    filename = value.filename or "unknown_file"
+                    files_to_process[key] = (filename, content)
                 else:
+                    # Non-file form fields
                     if key not in inputs:
                         inputs[key] = str(value)
+
+            # 3. Process Evidence Files via DocumentService
+            if files_to_process:
+                try:
+                    # DocumentService handles:
+                    # 1. Archiving to Storage (Forensic Capture)
+                    # 2. Extracting text (PDF/DOCX/Text)
+                    # 3. Parsing Chat Logs (ChatLogParser)
+                    extracted_texts = await document_service.process_evidence_files(execution_id, files_to_process)
+                    
+                    for key, text_content in extracted_texts.items():
+                        inputs[key] = text_content
+                except Exception as e:
+                     logger.error(f"DocumentService failed: {e}")
+                     raise AppException(
+                         message=f"File processing failed: {e}",
+                         status_code=status.HTTP_400_BAD_REQUEST,
+                         details={"error_code": "FILE_PROCESSING_FAILED"}
+                     ) from e
         else:
             error_code = "UNSUPPORTED_CONTENT_TYPE"
             logger.error(f"{error_code}: {content_type}")
@@ -177,7 +204,7 @@ async def create_execution(
             return obj
 
         sanitized_inputs = sanitize_for_json(inputs)
-        execution_id = str(uuid.uuid4())
+        # execution_id already generated at start
         timestamp = datetime.now(UTC)
 
         execution_data = {
@@ -225,6 +252,16 @@ async def create_execution(
         wrapped = AppException(
             message=str(e),
             status_code=status.HTTP_404_NOT_FOUND,
+            details={"error_code": error_code}
+        )
+        log_error(logger, wrapped)
+        raise wrapped from e
+    except ValueError as e:
+        # Pydantic/Engine validation errors (strict schema enforcement)
+        error_code = "INVALID_INPUT"
+        wrapped = AppException(
+            message=str(e),
+            status_code=status.HTTP_400_BAD_REQUEST,
             details={"error_code": error_code}
         )
         log_error(logger, wrapped)

@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from backend.models.domain import (
     EvaluationResult,
     XAIReport,
+    TextMetrics,
 )
 
 
@@ -26,9 +27,9 @@ class InputData(BaseModel):
         bibliography_context (Optional[list[str]]): Optional list of reference citations.
     """
 
-    history_text: Annotated[str, Field(description="Historical context (chat logs, previous events).")]
-    product_text: Annotated[str, Field(description="The primary artifact or text to be analyzed.")]
-    reflection_text: Annotated[str, Field(description="Self-reflection or meta-commentary provided by the user.")]
+    history_text: Annotated[str, Field(min_length=1, description="Historical context (chat logs, previous events).")]
+    product_text: Annotated[str, Field(min_length=1, description="The primary artifact or text to be analyzed.")]
+    reflection_text: Annotated[str, Field(min_length=1, description="Self-reflection or meta-commentary provided by the user.")]
 
     # Optional bibliography context
     bibliography_context: Annotated[list[str] | None, Field(description="Optional list of reference citations.")] = None
@@ -113,6 +114,11 @@ class WorkflowState(BaseModel):
     aux_data: Annotated[
         dict[str, Any], Field(default_factory=dict, description="Temporary storage for hooks and side-effects.")
     ]
+
+    # STRIKTI TYYPITYS (Object Mandate Enforcement)
+    # These fields ensure data remains as Pydantic Objects, preventing dict-degradation.
+    audit_metrics: Annotated[TextMetrics | None, Field(description="Strictly typed text metrics.")] = None
+    input_control_ratio: Annotated[float | None, Field(description="Strictly typed control ratio.")] = None
 
     # Usage Metrics (Cost Tracking)
     usage: Annotated[

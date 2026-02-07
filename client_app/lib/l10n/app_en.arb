@@ -406,5 +406,9 @@
   "stepSearchPrompts": "Search Prompts",
   "close": "Close",
   "stepIdNameRequired": "ID and Name are required.",
-  "executionNotFound": "Execution Not Found"
+  "executionNotFound": "Execution Not Found",
+  "ontologyNameLabel": "Name (e.g. \"Reasoning\")",
+  "ontologyDescriptionLabel": "Description",
+  "registerDimension": "Register Dimension",
+  "newDimension": "New Dimension"
 }

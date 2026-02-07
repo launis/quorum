@@ -36,8 +36,18 @@ class ChatLogParser:
         # NORMALIZE LINE ENDINGS (Fix for Windows \r\n)
         text = text.replace("\r\n", "\n")
 
+        # STRATEGY 0: Arrow Injection (Priority Fix for Hybrid PDFs)
+        # Use unicode escape to avoid source encoding issues
+        if "\u2192" in text:
+             logger.info("Detected Arrow Injection format.")
+             return ChatLogParser._parse_arrow(text)
+
+        # DEBUG
+        # print(f"DEBUG: Checking strategies. Has arrow? {'→' in text}")
+        
         # STRATEGY 1: Gemini Copy-Paste (Heuristic: "Gemini Chat" header + blocks)
         if "Gemini Chat" in text[:200]:  # Check first 200 chars for header
+            print("DEBUG: Strategy 1 (Gemini) selected")
             logger.info("Detected Gemini Chat format.")
             parsed = ChatLogParser._parse_gemini(text)
             if not parsed and len(text) > 100:
@@ -48,20 +58,30 @@ class ChatLogParser:
 
         # STRATEGY 2: ChatGPT (Heuristic: "User" / "ChatGPT" lines)
         if "ChatGPT" in text[:500] and re.search(r"^User\s*$", text, re.MULTILINE):
+            print("DEBUG: Strategy 2 (ChatGPT) selected")
             logger.info("Detected ChatGPT format.")
             return ChatLogParser._parse_chatgpt(text)
 
         # STRATEGY 3: Claude (Heuristic: "Human:" / "Assistant:")
         if "Human:" in text and "Assistant:" in text:
+             print("DEBUG: Strategy 3 (Claude) selected")
              logger.info("Detected Claude format.")
              return ChatLogParser._parse_claude(text)
 
         # STRATEGY 4: Visual Studio Code / Terminal Copy (Heuristic: [TIME] User:)
         if re.search(r"\[\d{2}:\d{2}\]", text):
+            print("DEBUG: Strategy 4 (Timestamp) selected")
             logger.info("Detected Timestamped Chat format.")
             return ChatLogParser._parse_timestamps(text)
 
-        # STRATEGY 5: Explicit Lines (Heuristic: Lines start with "User:" or "AI:")
+        # STRATEGY 5: Arrow Injection (Heuristic: "→" marking user input)
+        # Use unicode escape to avoid source encoding issues
+        if "\u2192" in text:
+             print(f"DEBUG: Strategy 5 (Arrow) selected. Arrow count: {text.count('\u2192')}")
+             logger.info("Detected Arrow Injection format.")
+             return ChatLogParser._parse_arrow(text)
+
+        # STRATEGY 6: Explicit Lines (Heuristic: Lines start with "User:" or "AI:")
         # If it's already formatted, don't mess it up.
         if re.search(r"^(User|AI):", text, re.MULTILINE):
             logger.info("Detected Pre-formatted Chat.")
@@ -174,3 +194,46 @@ class ChatLogParser:
 
         # Pattern: [14:05] Risto: -> User:
         return re.sub(r"\[\d{2}:\d{2}\]\s(.*?):\s?", replace_header, text)
+
+    @staticmethod
+    def _parse_arrow(text: str) -> str:
+        """Parses text where User input is marked by an arrow '\u2192'."""
+        # Pattern:
+        # AI Context...
+        # \u2192 User Question...
+        # AI Response (often starting with formatted list or header)
+        
+        parts = text.split("\u2192")
+        output = []
+        
+        # Part 0 is usually initial AI context or Metadata (or explicit previous chat)
+        if parts[0].strip():
+             # Recursively parse the preamble to respect existing User/AI labels
+             # parts[0] is guaranteed NOT to have the arrow, so no infinite recursion.
+             preamble = ChatLogParser.parse(parts[0])
+             output.append(preamble)
+             
+        for part in parts[1:]:
+             # This part STARTS with User text.
+             # but it might merge into AI text immediately if newlines are missing.
+             # e.g. "mikä on... toivetila 5. Ihmiset..."
+             
+             # Heuristic: Find the first "ListItem" like " 5. " or "Start of new Section".
+             # Regex look for: 
+             # 1. Space + Digit + Dot + Space + Capital Letter (e.g. " 5. Ihmiset")
+             # 2. "Analyysi" or "Tiivistelmä" (Common headers)
+             
+             # Try to find the split point
+             match = re.search(r"(\s\d+\.\s[A-Z])|(\s(Analyysi|Tiivistelmä)\s)", part)
+             if match:
+                 split_index = match.start()
+                 user_text = part[:split_index].strip()
+                 ai_text = part[split_index:].strip()
+                 
+                 output.append(f"User: {user_text}")
+                 output.append(f"AI: {ai_text}")
+             else:
+                 # No obvious split, assume all is User (or just one block)
+                 output.append(f"User: {part.strip()}")
+                 
+        return "\n\n".join(output)

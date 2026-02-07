@@ -79,5 +79,6 @@
     "Temperature": "Temperature",
     "Test Connection": "Test Connection",
     "Ad-Hoc Test": "Ad-Hoc Test",
-    "Model Name": "Model Name"
+    "Model Name": "Model Name",
+    "network_error_msg": "Network connection lost. Please check internet access."
 }

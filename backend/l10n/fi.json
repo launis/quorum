@@ -27,5 +27,6 @@
     "Temperature": "Lämpötila (Temperature)",
     "Test Connection": "Testaa yhteys",
     "Ad-Hoc Test": "Pikatesti (Ad-Hoc)",
-    "Model Name": "Mallin nimi"
+    "Model Name": "Mallin nimi",
+    "network_error_msg": "Verkkoyhteys katkesi. Tarkista internet-yhteys."
 }

@@ -134,10 +134,16 @@ class TaskRegistry:
                     # We must replace the placeholders with actual content.
 
                     # 1. Standardize Inputs
+                    # 1. Standardize Inputs (Pure Object Flow)
+                    # Do NOT use model_dump() here as it recursively flattens nested objects into dicts.
+                    # We want to keep nested objects (e.g. TextMetrics) as objects so we can call .model_dump_json() on them.
                     if hasattr(input_data, "model_dump"):
-                        vars_to_inject = input_data.model_dump()
+                        # Iterating over the model yields (key, value) pairs where value keeps its type (Object)
+                        vars_to_inject = dict(input_data)
                     elif isinstance(input_data, dict):
                         vars_to_inject = input_data
+                    else:
+                        vars_to_inject = {}
 
                     # 2. Add System Context Variables
                     from datetime import datetime
@@ -150,15 +156,24 @@ class TaskRegistry:
                         for key, value in vars_to_inject.items():
                             if value is None:
                                 value = ""
+                            # SERIALIZATION FIX: Handle Pydantic models gracefully
+                            if hasattr(value, "model_dump_json"):
+                                replacement = value.model_dump_json()
+                            elif hasattr(value, "dict"):
+                                import json
+                                replacement = json.dumps(value.dict(), default=str)
+                            else:
+                                replacement = str(value)
+
                             # Try UPPERCASE match first (Standard: {{HISTORY_TEXT}})
                             placeholder = f"{{{{{key.upper()}}}}}"
                             if placeholder in system_instruction:
-                                system_instruction = system_instruction.replace(placeholder, str(value))
+                                system_instruction = system_instruction.replace(placeholder, replacement)
 
                             # Try Direct Match (Legacy: {{history_text}})
                             placeholder_lower = f"{{{{{key}}}}}"
                             if placeholder_lower in system_instruction:
-                                system_instruction = system_instruction.replace(placeholder_lower, str(value))
+                                system_instruction = system_instruction.replace(placeholder_lower, replacement)
 
                     logger.info(f"[{agent_cls.__name__}] Resolved system_instruction length: {len(system_instruction)}")
                 else:

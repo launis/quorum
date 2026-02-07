@@ -502,32 +502,44 @@ class TinyDBRepository(AbstractWorkflowRepository):
 
     async def get_workflow_definition(self, workflow_id: str) -> WorkflowDefinition | None:
         data = self.workflows.get(Query().id == workflow_id)
-        if data:
-            return WorkflowDefinition(**data)
 
-        # Fallback to Disk?
-        # The AbstractRepository docstring mentions fallback.
-        # Ideally this logic matches Firestore's fallback or is centralized.
-        # For simplicity, if not in DB, return None.
-        # (Or implement disk read if critical for TinyDB mode too)
+        if not data:
+            # Fallback to Disk?
+            import json
+            import logging
+            import os
+            logger = logging.getLogger(__name__)
 
-        import json
-        import logging
-        import os
-        logger = logging.getLogger(__name__)
+            file_path = f"data/workflows/{workflow_id}.json"
+            if os.path.exists(file_path):
+                 try:
+                     with open(file_path, encoding="utf-8") as f:
+                         data = json.load(f)
+                         if "description" not in data:
+                             data["description"] = "Loaded from file"
+                 except Exception as e:
+                     logger.error(f"Failed to load workflow from disk: {e}")
+                     return None
+            else:
+                return None
 
-        file_path = f"data/workflows/{workflow_id}.json"
-        if os.path.exists(file_path):
-             try:
-                 with open(file_path, encoding="utf-8") as f:
-                     data = json.load(f)
-                     if "description" not in data:
-                         data["description"] = "Loaded from file"
-                     return WorkflowDefinition(**data)
-             except Exception as e:
-                 logger.error(f"Failed to load workflow from disk: {e}")
+        # Hydrate steps from Registry (Strict SSOT)
+        # Workflows store refs (ID+Inputs), Registry stores definition (TaskKey+Config)
+        if "steps" in data and isinstance(data["steps"], list):
+            registry_steps = {s["id"]: s for s in self.steps.all() if "id" in s}
+            hydrated = []
+            for step in data["steps"]:
+                sid = step.get("id")
+                if sid and sid in registry_steps:
+                    # Merge: Registry (Base) + Workflow (Override)
+                    merged = registry_steps[sid].copy()
+                    merged.update(step)
+                    hydrated.append(merged)
+                else:
+                    hydrated.append(step)
+            data["steps"] = hydrated
 
-        return None
+        return WorkflowDefinition(**data)
 
     async def get_model_registry(self) -> dict[str, Any]:
         """Retrieve the model registry configuration.

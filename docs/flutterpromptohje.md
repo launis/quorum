@@ -70,10 +70,50 @@ Using these versions with "Legacy Patterns" is a **STRICT VIOLATION**.
 *   **Custom Lint**: `dart run custom_lint` (Riverpod rules)
 *   **Code Gen**: `dart run build_runner build -d` (Ensure synced generated files)
 
+#### Cleanup Safety (Crucial)
+*   **Double-Check Imports**: Before removing "unused" imports, search the codebase (`grep`) to ensure they aren't used in dynamic lookups, legacy routes, or dependency injection configurations.
+*   **Verify Dependencies**: Ensure removing a "helper" function doesn't break a Dependency Provider used elsewhere.
+
 ---
 
 ## 🏛️ PART 1: DYNAMIC ARCHITECTURE & SCALING
 
+# 4. Single Source of Truth (SSOT) & Wiring
+**CRITICAL ARCHITECTURAL MANDATE:**
+
+The `seed_data.json` file MUST adhere to the **Single Source of Truth (SSOT)** principle for step definitions.
+
+### 4.1. Contract vs. Wiring
+- **The Registry (`steps` array):** This is the **CONTRACT**. It defines WHAT a step is (Task Key, Model Config, System Prompt). It lives in the top-level `steps` list.
+- **The Workflow (`workflows` array):** This is the **WIRING**. It defines HOW a step is used (Input Data Flow). It lives in the `workflows` list and must **ONLY** reference steps by `id`.
+
+**❌ FORBIDDEN (Inline Definition in Workflow):**
+```json
+// DO NOT DO THIS inside a workflow!
+{
+  "id": "step_analyst",
+  "task_key": "backend.agents.step_analyst.analyst_step", // ❌ REDUNDANT
+  "config": { ... }, // ❌ REDUNDANT
+  "inputs": { ... }
+}
+```
+
+**✅ REQUIRED (Reference by ID):
+```json
+// DO THIS inside a workflow:
+{
+  "id": "step_analyst", // ✅ REFERENCES Registry
+  "inputs": {
+    "history_text": "$history_text", // ✅ WIRING ONLY
+    "product_text": "$product_text"
+  }
+}
+```
+
+### 4.2. Immutable Registry
+- The top-level `steps` list is the **Master Registry**.
+- Use the `seed_data.json` file's `steps` array to define the agent's "Character" (System Prompt, Model).
+- Use the workflow's `steps` array to define the agent's "Context" (Inputs).
 1.  **Philosophy: "Schema is King" (Contract-First)**:
     *   **Single Source of Truth**: Pydantic V2 models drive everything.
     *   **Auto-Gen**: API Specs and Frontend Entities must be generated from Pydantic models. No manual duplication.
@@ -102,7 +142,8 @@ Using these versions with "Legacy Patterns" is a **STRICT VIOLATION**.
 
 2.  **Date Handling (Temporal Standard)**:
     *   **Storage**: Store as `datetime`. Repository handles DB-specifics.
-    *   **BANNED**: `str(datetime.now())` or manual `.isoformat()`.
+    *   **Serialization**: ALWAYS use `.isoformat()` for JSON output (e.g., `2026-02-07T...`).
+    *   **BANNED**: `str(datetime.now())` (undefined format) or `json.dumps()` on datetime objects without a custom default handler.
     *   **Timezone**: Always use `UTC` (`datetime.now(timezone.utc)`).
 
 3.  **Logging (Unified Format)**:
@@ -189,6 +230,10 @@ Using these versions with "Legacy Patterns" is a **STRICT VIOLATION**.
 2.  **Seeding Authority**:
     *   **Master Seed**: `backend/seed/seed_data.json` is the authoritative baseline.
     *   **Logic**: `backend/seed/run_seed.py` creates the state. **DO NOT MODIFY** seed data structure without approval.
+    *   **SSOT Structure (Contract vs. Wiring)**:
+        *   **Registry (`steps`)**: DECLARES the capability (Task Key, Config). This is the CONTRACT.
+        *   **Workflow (`workflows`)**: WIRES the capability. Must reference steps by `id` ONLY.
+        *   **BANNED**: Inline `task_key` or `config` definitions within `workflows`.
 
 3.  **Root Cause Fix Mandate**:
     *   **Principle**: Fix the source, don't patch the symptom.
@@ -234,6 +279,17 @@ Using these versions with "Legacy Patterns" is a **STRICT VIOLATION**.
         *   `client_debug.log` (Flutter)
     *   **Agent Instruction**: If a user reports an error, **ALWAYS** read these two files first (`view_file`). Do not ask the user for console output.
 
+4.  **Logic Integrity Mandate (workflow-step-logic)**:
+    *   **Scope**: This includes `seed_data.json` structure, `GraphEngine` execution flow, and Agent `PRODUCES_KEYS` / `REQUIRES_KEYS`.
+    *   **Reasoning**: "Fix the component, do not re-route the pipeline."
+    *   **Exception**: Only bug fixes that restore documented behavior are allowed, but must be explicitly noted.
+
+5.  **Architectural Integrity (Zero-Shortcut Policy)**:
+    *   **Mandate**: NEVER bypass established services (e.g., `StorageService`, `repository.py`, `LocalizationService`) for "quick fixes", "experimental patches", or direct I/O.
+    *   **Prohibition**: Ad-hoc implementations (including "temporary" file reads or hardcoded logic) are STRICTLY FORBIDDEN, even for testing.
+    *   **Reason**: Quick fixes become technical debt, break environmental portability (Local vs Cloud), and bypass validation layers.
+    *   **Enforcement**: If a Service exists, it MUST be used. If it doesn't fit, refactor the Service to handle the new case properly.
+
 ---
 
 ## 🗺️ PART 9: KNOWLEDGE BASE MAP (DEEP DIVES)
@@ -259,7 +315,8 @@ For detailed implementation logic, refer to these Knowledge Items:
 
 1.  **Dual Sovereign Locations**:
     *   **Frontend**: `client_app/lib/l10n` (Standard .arb files).
-    *   **Backend**: `backend/l10n` (Standard translation files).
+    *   **Backend**: `backend/l10n` (JSON files `en.json`, `fi.json`).
+    *   **Backend Service**: Use `backend.services.localization.LocalizationService.translate(key, lang)` to separate code from content.
 
 2.  **Mandates**:
     *   **Separation**: Frontend and Backend maintain separate, independent localization trees.

@@ -22,44 +22,102 @@ def execute_google_search(state: WorkflowState) -> WorkflowState:
         - Env vars: GOOGLE_SEARCH_API_KEY, GOOGLE_SEARCH_CX.
 
     Args:
-        state (WorkflowState): Current state containing analysis hypotheses.
+        state (WorkflowState | dict): Current state containing analysis hypotheses.
 
     Returns:
-        WorkflowState: Updated state with search results.
+        WorkflowState | dict: Updated state with search results.
 
     """
-    logging.debug("[SearchHook] Running execute_google_search...")
+    logging.debug("DEBUG: [SearchHook] execute_google_search CALLED")
+    
+    # Support both Object (WorkflowState) and Dict (GraphEngine) access
+    def get_attr(obj, key, default=None):
+        if isinstance(obj, dict):
+            return obj.get(key, default)
+        return getattr(obj, key, default)
+
+    def set_attr(obj, key, value):
+        if isinstance(obj, dict):
+            obj[key] = value
+        else:
+            setattr(obj, key, value)
+
+    # Access aux_data safely
+    aux_data = get_attr(state, "aux_data")
+    if aux_data is None:
+        aux_data = {}
+        # If object mode and aux_data missing, we might need to set it, 
+        # but WorkflowState usually has it default factory.
+        pass
 
     from backend.hooks.search_client import GoogleSearchTool
 
     tool = GoogleSearchTool()
     if not tool._service:
-         state.aux_data["google_search_results"] = "Search disabled (Missing API Keys)"
+         logging.debug("DEBUG: [SearchHook] Search disabled (Missing API Keys)")
+         if isinstance(aux_data, dict):
+             aux_data["google_search_results"] = "Search disabled (Missing API Keys)"
+             set_attr(state, "aux_data", aux_data)
          return state
 
     queries = []
 
     # Extract queries from Hypotheses (Step 2 Analyst)
-    if state.step_analyst and state.step_analyst.hypoteesit:
-        logging.debug(f"   [HOOK] Found {len(state.step_analyst.hypoteesit)} hypotheses.")
-        for hyp in state.step_analyst.hypoteesit:
-            # ONLY use explicit search suggestions (external facts)
-            # Logic: Must have suggestion > 3 chars
-            if hyp.hakusana_ehdotus and len(hyp.hakusana_ehdotus.strip()) > 3:
-                queries.append(hyp.hakusana_ehdotus)
+    # 1. Get step_analyst result
+    step_analyst = get_attr(state, "step_analyst")
+    if not step_analyst:
+        # Try finding in step_results dict if flattened
+        step_results = get_attr(state, "step_results")
+        if step_results and isinstance(step_results, dict):
+            step_analyst = step_results.get("step_analyst")
+    
+    if step_analyst:
+        # step_analyst might be Pydantic model or Dict
+        hypoteesit = get_attr(step_analyst, "hypoteesit")
+        
+        if hypoteesit:
+            logging.debug(f"DEBUG: [SearchHook] Found {len(hypoteesit)} hypotheses.")
+            for hyp in hypoteesit:
+                # hyp might be Pydantic or Dict
+                ehdotus = get_attr(hyp, "hakusana_ehdotus")
+                if ehdotus and len(ehdotus.strip()) > 3:
+                    logging.debug(f"DEBUG: [SearchHook] Adding query: {ehdotus}")
+                    queries.append(ehdotus)
+        else:
+            logging.debug("DEBUG: [SearchHook] No hypotheses list found in step_analyst.")
     else:
-        logging.debug("   [HOOK] No hypotheses found. Using fallback.")
+        logging.debug("DEBUG: [SearchHook] step_analyst data not found in state.")
 
     if not queries:
+        logging.debug("DEBUG: [SearchHook] No queries generated. Skipping search.")
         return state
 
     try:
         # Use Tool
+        logging.debug(f"DEBUG: [SearchHook] Executing {len(queries)} searches...")
         results = tool.search(queries, limit=3)
-        state.aux_data["google_search_results"] = json.dumps(results, indent=2)
+        
+        result_json = json.dumps(results, indent=2)
+        logging.debug(f"DEBUG: [SearchHook] Search complete. Result size: {len(result_json)} chars")
+        
+        # Store result
+        if isinstance(aux_data, dict):
+            aux_data["google_search_results"] = result_json
+            # Ensure calling code sees the update if it was a deep copy? 
+            # Dictionaries are mutable references, so it should be fine.
+            # But if get_attr returned a copy... 
+            # Direct dict access is safest if known dict.
+            # But we used get_attr.
+            pass
+        
+        # Write back aux_data if needed (for safety)
+        set_attr(state, "aux_data", aux_data)
 
     except Exception as e:
         logger.error(f"   [SearchHook] Search failed: {e}")
-        state.aux_data["google_search_results"] = f"Search failed: {str(e)}"
+        logging.debug(f"DEBUG: [SearchHook] Exception: {e}")
+        if isinstance(aux_data, dict):
+             aux_data["google_search_results"] = f"Search failed: {str(e)}"
+             set_attr(state, "aux_data", aux_data)
 
     return state

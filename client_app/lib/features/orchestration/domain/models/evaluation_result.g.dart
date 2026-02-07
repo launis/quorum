@@ -9,6 +9,7 @@ part of 'evaluation_result.dart';
 _DimensionResultItem _$DimensionResultItemFromJson(Map<String, dynamic> json) =>
     _DimensionResultItem(
       dimensionId: json['dimension_id'] as String,
+      dimensionLabel: json['dimension_label'] as String? ?? '',
       score: (json['score'] as num).toDouble(),
       reasoning: json['reasoning'] as String,
     );
@@ -17,6 +18,7 @@ Map<String, dynamic> _$DimensionResultItemToJson(
   _DimensionResultItem instance,
 ) => <String, dynamic>{
   'dimension_id': instance.dimensionId,
+  'dimension_label': instance.dimensionLabel,
   'score': instance.score,
   'reasoning': instance.reasoning,
 };

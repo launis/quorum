@@ -342,14 +342,18 @@ class ToulminKomponentti(BaseModel):
         claim (str): The conclusion.
         data (str): The evidence.
         warrant (str): The logical bridge.
-        backing (str): Support for the warrant.
+        backing (str): Support for the warrant (Optional).
+        rebuttal (str): Counter-arguments (Optional).
+        qualifier (str): Degree of certainty (Optional).
     """
 
     vaite_id: Annotated[str, Field(description="Reference ID.")]
     claim: Annotated[str, Field(description="The conclusion.")]
     data: Annotated[str, Field(description="The evidence.")]
     warrant: Annotated[str, Field(description="The logical bridge.")]
-    backing: Annotated[str, Field(description="Support for the warrant.")]
+    backing: Annotated[str | None, Field(description="Support for the warrant.")] = None
+    rebuttal: Annotated[str | None, Field(description="Counter-arguments.")] = None
+    qualifier: Annotated[str | None, Field(description="Degree of certainty.")] = None
 
     model_config = ConfigDict(validate_assignment=True)
 
@@ -379,11 +383,38 @@ class ArgumentaatioAnalyysi(BaseJSON):
         toulmin_analyysi (list[ToulminKomponentti]): Toulmin analysis breakdown.
         kognitiivinen_taso (KognitiivinenTaso): Cognitive level assessment.
         walton_skeema (WaltonSkeema): Argumentation scheme analysis.
+        toulmin_score (float): Calculated score (0.0-6.0) based on component completeness.
     """
 
     toulmin_analyysi: Annotated[list[ToulminKomponentti], Field(description="Toulmin analysis breakdown.")]
     kognitiivinen_taso: Annotated[KognitiivinenTaso, Field(description="Cognitive level assessment.")]
     walton_skeema: Annotated[WaltonSkeema, Field(description="Argumentation scheme analysis.")]
+    toulmin_score: Annotated[float, Field(ge=0.0, le=6.0, description="Calculated score based on components.")] = 0.0
+
+    @model_validator(mode="after")
+    def calculate_toulmin_score(self) -> "ArgumentaatioAnalyysi":
+        """Calculates score based on the first analyzed argument."""
+        if not self.toulmin_analyysi:
+            self.toulmin_score = 0.0
+            return self
+
+        # Analyze the first main argument
+        main_arg = self.toulmin_analyysi[0]
+        score = 0.0
+        
+        # Primary Components (1.0 each)
+        if main_arg.claim and len(main_arg.claim) > 5: score += 1.0
+        if main_arg.data and len(main_arg.data) > 5: score += 1.0
+        if main_arg.warrant and len(main_arg.warrant) > 5: score += 1.0
+        
+        # Secondary Components (1.0 each)
+        if main_arg.backing and len(main_arg.backing) > 5: score += 1.0
+        if main_arg.rebuttal and len(main_arg.rebuttal) > 5: score += 1.0
+        if main_arg.qualifier and len(main_arg.qualifier) > 2: score += 1.0
+
+        # Bypass Pydantic validation to avoid RecursionError (validate_assignment=True loop)
+        self.__dict__["toulmin_score"] = float(score)
+        return self
 
 
 # --- Step 4: Logical Falsifier ---
@@ -553,7 +584,7 @@ class ArchivistOutput(BaseJSON):
     """
 
     analysis: Annotated[str, Field(description="Analysis of alignment.")]
-    compliance_score: Annotated[int, Field(description="Compliance score (0-100).")]
+    compliance_score: Annotated[int, Field(ge=0, le=100, description="Compliance score (0-100).")]
     recommendations: Annotated[list[str], Field(description="List of recommendations.")]
 
 
@@ -612,6 +643,7 @@ class DimensionResultItem(BaseModel):
     """Result for a single dimension."""
 
     dimension_id: Annotated[str, Field(description="ID of the dimension (e.g., 'analysis').")]
+    dimension_label: Annotated[str, Field(default="", description="Human-readable label.")]
     score: Annotated[int | float, Field(description="Numerical score.")]
     reasoning: Annotated[str, Field(description="Justification for the score.")]
 

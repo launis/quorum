@@ -144,19 +144,17 @@ class PdfReportService:
                             # FIX 2026-01-24: Use 'label' or 'name' for the CHART KEY to ensure human-readable text.
                             # The ChartService uses keys as labels.
 
-                            # 1. Try direct label in data (Legacy/Loose)
-                            display_label = d.get("label") or d.get("name")
+                            # 1. Try dimension_label (New Standard) or direct label in data (Legacy/Loose)
+                            display_label = d.get("dimension_label") or d.get("label") or d.get("name")
 
-                            # 2. Try technical ID (V3 Strict)
+                            # 2. Lookup: If no label yet, try to map from ID using Matrix Map
                             tech_id = d.get("dimension_id") or d.get("id")
-
-                            # 3. Lookup: If we have an ID but no label, look it up in Matrix Map
                             if not display_label and tech_id and tech_id in matrix_map:
                                 display_label = matrix_map[tech_id]
 
-                            # 4. Fallback to ID
+                            # 3. Strict Mode: No fallback to ID.
                             if not display_label:
-                                display_label = tech_id
+                                raise ValueError(f"Strict Label Resolution Failed in PDF: Dimension '{tech_id}' has no label.")
 
                             if display_label:
                                 try:

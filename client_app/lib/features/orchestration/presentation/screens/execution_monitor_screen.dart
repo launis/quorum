@@ -6,19 +6,59 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
-class ExecutionMonitorScreen extends ConsumerWidget {
+class ExecutionMonitorScreen extends ConsumerStatefulWidget {
   final String executionId;
 
   const ExecutionMonitorScreen({super.key, required this.executionId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final asyncExecution = ref.watch(executionStreamProvider(executionId));
+  ConsumerState<ExecutionMonitorScreen> createState() =>
+      _ExecutionMonitorScreenState();
+}
+
+class _ExecutionMonitorScreenState extends ConsumerState<ExecutionMonitorScreen>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // 1. Auto-Refresh logic on Resume (Wake from sleep)
+    if (state == AppLifecycleState.resumed) {
+      _refresh();
+    }
+  }
+
+  void _refresh() {
+    // Force invalidation of the specific execution stream
+    ref.invalidate(executionStreamProvider(widget.executionId));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final asyncExecution = ref.watch(executionStreamProvider(widget.executionId));
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n.monitorTitle(executionId.substring(0, 8))),
+        title: Text(l10n.monitorTitle(widget.executionId.substring(0, 8))),
+        actions: [
+          // 2. Manual Refresh Button
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: l10n.refresh,
+            onPressed: _refresh,
+          ),
+        ],
       ),
       body: asyncExecution.when(
         data: (execution) {
@@ -34,38 +74,54 @@ class ExecutionMonitorScreen extends ConsumerWidget {
         error: (err, stack) {
           final errorText = err.toString();
           // Check for Not Found error (either by code or type name)
-          if (errorText.contains('404') || errorText.contains('notFound') || errorText.contains('Resource not found')) {
-             return Center(
-               child: Column(
-                 mainAxisAlignment: MainAxisAlignment.center,
-                 children: [
-                   const Icon(Icons.search_off, size: 64, color: Colors.grey),
-                   const SizedBox(height: 16),
-                   Text(
-                     l10n.executionNotFound ?? 'Execution Not Found',
-                     style: Theme.of(context).textTheme.titleLarge,
-                   ),
-                   const SizedBox(height: 8),
-                   const Text('This execution may have been deleted.'),
-                   const SizedBox(height: 24),
-                   FilledButton.icon(
-                     onPressed: () => context.go('/dashboard'),
-                     icon: const Icon(Icons.arrow_back),
-                     label: const Text('Back to Dashboard'),
-                   ),
-                 ],
-               ),
-             );
+          if (errorText.contains('404') ||
+              errorText.contains('notFound') ||
+              errorText.contains('Resource not found')) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.search_off, size: 64, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  Text(
+                    l10n.executionNotFound ?? 'Execution Not Found',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  const Text('This execution may have been deleted.'),
+                  const SizedBox(height: 24),
+                  FilledButton.icon(
+                    onPressed: () => context.go('/dashboard'),
+                    icon: const Icon(Icons.arrow_back),
+                    label: const Text('Back to Dashboard'),
+                  ),
+                ],
+              ),
+            );
           }
-          return Center(child: Text(l10n.failedToLoad(errorText)));
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                 Text(l10n.failedToLoad(errorText)),
+                 const SizedBox(height: 16),
+                 FilledButton.icon(
+                   onPressed: _refresh, 
+                   icon: const Icon(Icons.refresh),
+                   label: Text(l10n.retry),
+                 ),
+              ],
+            ),
+          );
         },
       ),
       floatingActionButton:
           asyncExecution.asData?.value.status == ExecutionStatus.completed
               ? FloatingActionButton.extended(
                 onPressed:
-                    () =>
-                        context.go('/dashboard/executions/$executionId/report'),
+                    () => context.go(
+                      '/dashboard/executions/${widget.executionId}/report',
+                    ),
                 label: Text(l10n.viewResults),
                 icon: const Icon(Icons.arrow_forward),
                 backgroundColor: Colors.green,

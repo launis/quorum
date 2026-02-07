@@ -11,7 +11,12 @@ from pydantic import BaseModel, ValidationError
 from backend.core.component import BaseComponent
 
 # 3. Local Imports
-from backend.exceptions import AgentExecutionError
+from backend.exceptions import AgentExecutionError, ErrorCodes
+from backend.services.localization import LocalizationService
+import socket
+import litellm
+import urllib3
+import requests
 
 # Use string forward reference to avoid circular import if needed, or if Provider is defined there.
 # But LLMFactory is imported.
@@ -201,7 +206,6 @@ class BaseAgent(BaseComponent):
                 checksum = hashlib.sha256(dump.encode("utf-8")).hexdigest()
 
                 data["semanttinen_tarkistussumma"] = checksum
-                logger.debug(f"[{self.__class__.__name__}] Calc Checksum (Dict): {checksum[:8]}...")
                 logger.debug(f"[{self.__class__.__name__}] Calc Checksum (Dict): {checksum[:8]}...")
             except Exception as e:
                 # STRICT MODE: Data integrity is critical.
@@ -415,6 +419,30 @@ class BaseAgent(BaseComponent):
                 return response_data.model_dump()
 
             return response_data
+
+        except (
+            socket.gaierror,
+            urllib3.exceptions.NameResolutionError,
+            requests.exceptions.ConnectionError,
+            litellm.APIConnectionError,
+        ) as e:
+            # Network / Offline Handling
+            error_code = ErrorCodes.NETWORK_UNAVAILABLE
+            
+            # Use LocalizationService to build bilingual error
+            msg_fi = LocalizationService.get("network_error_msg", "fi")
+            msg_en = LocalizationService.get("network_error_msg", "en")
+            friendly_msg = f"{msg_en} / {msg_fi}"
+
+            # Log full stack trace for debugging
+            logger.error(f"{error_code}: {friendly_msg} - Cause: {e}", exc_info=True)
+            
+            # Raise with clean message for UI but original error preserved
+            raise AgentExecutionError(
+                detail=error_code,
+                original_error=e,
+                agent_name=self.__class__.__name__
+            ) from e
 
         except ValidationError as e:
             # ECHO PROTOCOL: Log First, Then Raise

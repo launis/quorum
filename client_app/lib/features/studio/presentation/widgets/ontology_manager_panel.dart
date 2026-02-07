@@ -95,7 +95,7 @@ class OntologyManagerPanel extends HookConsumerWidget {
           ExpansionTile(
             controller: expansionController,
             title: Text(
-              editingId.value != null ? l10n.editDimension : "New Dimension",
+              editingId.value != null ? l10n.editDimension : l10n.newDimension,
             ),
             children: [
               Padding(
@@ -107,10 +107,10 @@ class OntologyManagerPanel extends HookConsumerWidget {
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: nameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Name (e.g. "Reasoning")',
+                        decoration: InputDecoration(
+                          labelText: l10n.ontologyNameLabel,
                           isDense: true,
-                          border: OutlineInputBorder(),
+                          border: const OutlineInputBorder(),
                         ),
                         validator:
                             (v) =>
@@ -121,10 +121,10 @@ class OntologyManagerPanel extends HookConsumerWidget {
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: descController,
-                        decoration: const InputDecoration(
-                          labelText: 'Description',
+                        decoration: InputDecoration(
+                          labelText: l10n.ontologyDescriptionLabel,
                           isDense: true,
-                          border: OutlineInputBorder(),
+                          border: const OutlineInputBorder(),
                         ),
                         maxLines: 2,
                       ),
@@ -151,7 +151,7 @@ class OntologyManagerPanel extends HookConsumerWidget {
                               label: Text(
                                 editingId.value != null
                                     ? l10n.update
-                                    : "Register Dimension",
+                                    : l10n.registerDimension,
                               ),
                             ),
                           ),

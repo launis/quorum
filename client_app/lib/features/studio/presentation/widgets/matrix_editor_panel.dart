@@ -362,7 +362,13 @@ class _CriterionRow extends HookConsumerWidget {
       );
 
       if (selectedDim.id.isNotEmpty) {
-        if (newLabel.isEmpty) newLabel = selectedDim.name;
+        // User Request: ID should be independent (technical key). 
+        // Use the Registry's Display Name (selectedDim.name/label) as the Criterion Label.
+        // This ensures the Dimension Name is dynamic and human-readable.
+        if (selectedDim.name.isNotEmpty) {
+           newLabel = selectedDim.name;
+        }
+        
         if (newPrompt.isEmpty) newPrompt = selectedDim.description;
       }
 

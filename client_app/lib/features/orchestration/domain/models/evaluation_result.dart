@@ -8,6 +8,7 @@ part 'evaluation_result.g.dart';
 abstract class DimensionResultItem with _$DimensionResultItem {
   const factory DimensionResultItem({
     @JsonKey(name: 'dimension_id') required String dimensionId,
+    @JsonKey(name: 'dimension_label') @Default('') String dimensionLabel,
     required double score, // Python allows int|float, Dart uses double
     required String reasoning,
   }) = _DimensionResultItem;

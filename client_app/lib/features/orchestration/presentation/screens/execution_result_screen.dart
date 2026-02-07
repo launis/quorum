@@ -53,13 +53,35 @@ class _ExecutionResultScreenState extends ConsumerState<ExecutionResultScreen> {
 
   Future<void> _openPdf() async {
     if (_pdfBytes != null) {
-      // Use FileSaver to download instead of Printing to avoid Print Dialog
-      final timestamp = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
-      await FileSaver.instance.saveFile(
-        name: 'AUDIT_REPORT_${widget.executionId}_$timestamp.pdf', // Explicit extension
-        bytes: _pdfBytes!,
-        mimeType: MimeType.pdf,
-      );
+      try {
+        final timestamp = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
+        // Append .pdf extension manually since 'ext' param is not supported in v0.3.1
+        final filename = 'AUDIT_REPORT_${widget.executionId}_$timestamp.pdf';
+        
+        await FileSaver.instance.saveFile(
+          name: filename,
+          bytes: _pdfBytes!,
+          mimeType: MimeType.pdf,
+        );
+
+        if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+             const SnackBar(content: Text('Tiedosto tallennettu onnistuneesti!'), backgroundColor: Colors.green),
+           );
+        }
+      } catch (e) {
+        if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+             SnackBar(content: Text('Virhe tallennuksessa: $e'), backgroundColor: Colors.red),
+           );
+        }
+      }
+    } else {
+        if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+             const SnackBar(content: Text('Virhe: PDF-dataa ei ole ladattu.'), backgroundColor: Colors.orange),
+           );
+        }
     }
   }
 

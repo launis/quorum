@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$DimensionResultItem {
 
-@JsonKey(name: 'dimension_id') String get dimensionId; double get score;// Python allows int|float, Dart uses double
+@JsonKey(name: 'dimension_id') String get dimensionId;@JsonKey(name: 'dimension_label') String get dimensionLabel; double get score;// Python allows int|float, Dart uses double
  String get reasoning;
 /// Create a copy of DimensionResultItem
 /// with the given fields replaced by the non-null parameter values.
@@ -29,16 +29,16 @@ $DimensionResultItemCopyWith<DimensionResultItem> get copyWith => _$DimensionRes
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DimensionResultItem&&(identical(other.dimensionId, dimensionId) || other.dimensionId == dimensionId)&&(identical(other.score, score) || other.score == score)&&(identical(other.reasoning, reasoning) || other.reasoning == reasoning));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DimensionResultItem&&(identical(other.dimensionId, dimensionId) || other.dimensionId == dimensionId)&&(identical(other.dimensionLabel, dimensionLabel) || other.dimensionLabel == dimensionLabel)&&(identical(other.score, score) || other.score == score)&&(identical(other.reasoning, reasoning) || other.reasoning == reasoning));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,dimensionId,score,reasoning);
+int get hashCode => Object.hash(runtimeType,dimensionId,dimensionLabel,score,reasoning);
 
 @override
 String toString() {
-  return 'DimensionResultItem(dimensionId: $dimensionId, score: $score, reasoning: $reasoning)';
+  return 'DimensionResultItem(dimensionId: $dimensionId, dimensionLabel: $dimensionLabel, score: $score, reasoning: $reasoning)';
 }
 
 
@@ -49,7 +49,7 @@ abstract mixin class $DimensionResultItemCopyWith<$Res>  {
   factory $DimensionResultItemCopyWith(DimensionResultItem value, $Res Function(DimensionResultItem) _then) = _$DimensionResultItemCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'dimension_id') String dimensionId, double score, String reasoning
+@JsonKey(name: 'dimension_id') String dimensionId,@JsonKey(name: 'dimension_label') String dimensionLabel, double score, String reasoning
 });
 
 
@@ -66,9 +66,10 @@ class _$DimensionResultItemCopyWithImpl<$Res>
 
 /// Create a copy of DimensionResultItem
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? dimensionId = null,Object? score = null,Object? reasoning = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? dimensionId = null,Object? dimensionLabel = null,Object? score = null,Object? reasoning = null,}) {
   return _then(_self.copyWith(
 dimensionId: null == dimensionId ? _self.dimensionId : dimensionId // ignore: cast_nullable_to_non_nullable
+as String,dimensionLabel: null == dimensionLabel ? _self.dimensionLabel : dimensionLabel // ignore: cast_nullable_to_non_nullable
 as String,score: null == score ? _self.score : score // ignore: cast_nullable_to_non_nullable
 as double,reasoning: null == reasoning ? _self.reasoning : reasoning // ignore: cast_nullable_to_non_nullable
 as String,
@@ -156,10 +157,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'dimension_id')  String dimensionId,  double score,  String reasoning)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'dimension_id')  String dimensionId, @JsonKey(name: 'dimension_label')  String dimensionLabel,  double score,  String reasoning)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _DimensionResultItem() when $default != null:
-return $default(_that.dimensionId,_that.score,_that.reasoning);case _:
+return $default(_that.dimensionId,_that.dimensionLabel,_that.score,_that.reasoning);case _:
   return orElse();
 
 }
@@ -177,10 +178,10 @@ return $default(_that.dimensionId,_that.score,_that.reasoning);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'dimension_id')  String dimensionId,  double score,  String reasoning)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'dimension_id')  String dimensionId, @JsonKey(name: 'dimension_label')  String dimensionLabel,  double score,  String reasoning)  $default,) {final _that = this;
 switch (_that) {
 case _DimensionResultItem():
-return $default(_that.dimensionId,_that.score,_that.reasoning);case _:
+return $default(_that.dimensionId,_that.dimensionLabel,_that.score,_that.reasoning);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -197,10 +198,10 @@ return $default(_that.dimensionId,_that.score,_that.reasoning);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'dimension_id')  String dimensionId,  double score,  String reasoning)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'dimension_id')  String dimensionId, @JsonKey(name: 'dimension_label')  String dimensionLabel,  double score,  String reasoning)?  $default,) {final _that = this;
 switch (_that) {
 case _DimensionResultItem() when $default != null:
-return $default(_that.dimensionId,_that.score,_that.reasoning);case _:
+return $default(_that.dimensionId,_that.dimensionLabel,_that.score,_that.reasoning);case _:
   return null;
 
 }
@@ -212,10 +213,11 @@ return $default(_that.dimensionId,_that.score,_that.reasoning);case _:
 @JsonSerializable()
 
 class _DimensionResultItem implements DimensionResultItem {
-  const _DimensionResultItem({@JsonKey(name: 'dimension_id') required this.dimensionId, required this.score, required this.reasoning});
+  const _DimensionResultItem({@JsonKey(name: 'dimension_id') required this.dimensionId, @JsonKey(name: 'dimension_label') this.dimensionLabel = '', required this.score, required this.reasoning});
   factory _DimensionResultItem.fromJson(Map<String, dynamic> json) => _$DimensionResultItemFromJson(json);
 
 @override@JsonKey(name: 'dimension_id') final  String dimensionId;
+@override@JsonKey(name: 'dimension_label') final  String dimensionLabel;
 @override final  double score;
 // Python allows int|float, Dart uses double
 @override final  String reasoning;
@@ -233,16 +235,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DimensionResultItem&&(identical(other.dimensionId, dimensionId) || other.dimensionId == dimensionId)&&(identical(other.score, score) || other.score == score)&&(identical(other.reasoning, reasoning) || other.reasoning == reasoning));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DimensionResultItem&&(identical(other.dimensionId, dimensionId) || other.dimensionId == dimensionId)&&(identical(other.dimensionLabel, dimensionLabel) || other.dimensionLabel == dimensionLabel)&&(identical(other.score, score) || other.score == score)&&(identical(other.reasoning, reasoning) || other.reasoning == reasoning));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,dimensionId,score,reasoning);
+int get hashCode => Object.hash(runtimeType,dimensionId,dimensionLabel,score,reasoning);
 
 @override
 String toString() {
-  return 'DimensionResultItem(dimensionId: $dimensionId, score: $score, reasoning: $reasoning)';
+  return 'DimensionResultItem(dimensionId: $dimensionId, dimensionLabel: $dimensionLabel, score: $score, reasoning: $reasoning)';
 }
 
 
@@ -253,7 +255,7 @@ abstract mixin class _$DimensionResultItemCopyWith<$Res> implements $DimensionRe
   factory _$DimensionResultItemCopyWith(_DimensionResultItem value, $Res Function(_DimensionResultItem) _then) = __$DimensionResultItemCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'dimension_id') String dimensionId, double score, String reasoning
+@JsonKey(name: 'dimension_id') String dimensionId,@JsonKey(name: 'dimension_label') String dimensionLabel, double score, String reasoning
 });
 
 
@@ -270,9 +272,10 @@ class __$DimensionResultItemCopyWithImpl<$Res>
 
 /// Create a copy of DimensionResultItem
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? dimensionId = null,Object? score = null,Object? reasoning = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? dimensionId = null,Object? dimensionLabel = null,Object? score = null,Object? reasoning = null,}) {
   return _then(_DimensionResultItem(
 dimensionId: null == dimensionId ? _self.dimensionId : dimensionId // ignore: cast_nullable_to_non_nullable
+as String,dimensionLabel: null == dimensionLabel ? _self.dimensionLabel : dimensionLabel // ignore: cast_nullable_to_non_nullable
 as String,score: null == score ? _self.score : score // ignore: cast_nullable_to_non_nullable
 as double,reasoning: null == reasoning ? _self.reasoning : reasoning // ignore: cast_nullable_to_non_nullable
 as String,

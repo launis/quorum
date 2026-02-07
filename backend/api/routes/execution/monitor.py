@@ -172,6 +172,12 @@ async def monitor_execution(
                       formatted_data["start_time"] = (
                           formatted_data.get("started_at") or formatted_data.get("timestamp") or datetime.now(timezone.utc)
                       )
+
+                  # Ensure result is mapped (Fix for Flutter client expecting 'result')
+                  if "results" in formatted_data and "result" not in formatted_data:
+                      formatted_data["result"] = formatted_data["results"]
+                  if "result" not in formatted_data:
+                      formatted_data["result"] = {}
     
                   # Serialize properly
                   try:

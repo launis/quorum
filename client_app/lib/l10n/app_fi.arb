@@ -313,5 +313,9 @@
   "stepSearchPrompts": "Etsi Kehotteita",
   "close": "Sulje",
   "stepIdNameRequired": "ID ja Nimi ovat pakollisia.",
-  "executionNotFound": "Suoritusta ei löydy."
+  "executionNotFound": "Suoritusta ei löydy.",
+  "ontologyNameLabel": "Nimi (esim. \"Päättely\")",
+  "ontologyDescriptionLabel": "Kuvaus",
+  "registerDimension": "Rekisteröi Ulottuvuus",
+  "newDimension": "Uusi Ulottuvuus"
 }

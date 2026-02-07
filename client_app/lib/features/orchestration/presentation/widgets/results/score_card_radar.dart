@@ -98,10 +98,15 @@ class ScoreCardRadar extends StatelessWidget {
                     borderData: FlBorderData(show: false),
                     radarBorderData: const BorderSide(color: Colors.transparent),
                     titlePositionPercentageOffset: 0.2,
-                    titleTextStyle: textTheme.bodySmall,
+                    titleTextStyle: textTheme.bodySmall?.copyWith(fontSize: 10),
                     getTitle: (index, angle) {
                       if (index >= dimensions.length) return const RadarChartTitle(text: '');
-                      return RadarChartTitle(text: dimensions[index].dimensionId.toUpperCase());
+                      
+                      final d = dimensions[index];
+                      // Strict Mode: No fallback to ID
+                      final label = d.dimensionLabel.isNotEmpty ? d.dimensionLabel : ''; 
+                      
+                      return RadarChartTitle(text: label); 
                     },
                     tickCount: 1,
                     ticksTextStyle: const TextStyle(color: Colors.transparent),
@@ -132,6 +137,7 @@ class ScoreCardRadar extends StatelessWidget {
                  ),
                  const SizedBox(height: 8),
                  ...dimensions.map((d) {
+                    final label = d.dimensionLabel.isNotEmpty ? d.dimensionLabel : "Unknown";
                     return Container(
                       margin: const EdgeInsets.only(bottom: 8),
                       decoration: BoxDecoration(
@@ -157,7 +163,7 @@ class ScoreCardRadar extends StatelessWidget {
                           ),
                         ),
                         title: Text(
-                            d.dimensionId.toUpperCase(), 
+                            label, 
                             style: textTheme.titleSmall!.copyWith(fontWeight: FontWeight.bold)
                         ),
                         subtitle: Padding(

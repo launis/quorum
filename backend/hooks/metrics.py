@@ -1,5 +1,7 @@
 """Metrics hooks for calculating text statistics and control ratios."""
 
+from __future__ import annotations
+
 import logging
 import re
 from typing import TYPE_CHECKING, Any
@@ -7,10 +9,13 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from backend.models.state import WorkflowState
 
+
+from backend.models.domain import TextMetrics
+
 logger = logging.getLogger(__name__)
 
 
-def calculate_text_metrics(text: str) -> dict[str, Any]:
+def calculate_text_metrics(text: str) -> TextMetrics:
     """Calculates objective text metrics from the input text using simple heuristic counting.
 
     Metrics include word count, sentence count, avg sentence length, lexical diversity,
@@ -20,11 +25,17 @@ def calculate_text_metrics(text: str) -> dict[str, Any]:
         text (str): The raw input text.
 
     Returns:
-        Dict[str, Any]: Key metrics (e.g. {'word_count': 150, 'lexical_diversity': 0.45}).
+        TextMetrics: Key metrics object.
 
     """
     if not text or not text.strip():
-        return {}
+        return TextMetrics(
+            word_count=0,
+            sentence_count=0,
+            avg_sentence_length=0.0,
+            lexical_diversity=0.0,
+            capitalization_ratio=0.0
+        )
 
     # 1. Word Count
     words = re.findall(r"\b\w+\b", text.lower())
@@ -47,13 +58,13 @@ def calculate_text_metrics(text: str) -> dict[str, Any]:
     total_chars = sum(1 for c in text if c.isalpha())
     cap_ratio = caps / total_chars if total_chars > 0 else 0
 
-    return {
-        "word_count": word_count,
-        "sentence_count": sentence_count,
-        "avg_sentence_length": round(avg_sent_len, 2),
-        "lexical_diversity": round(lex_diversity, 2),
-        "capitalization_ratio": round(cap_ratio, 2),
-    }
+    return TextMetrics(
+        word_count=word_count,
+        sentence_count=sentence_count,
+        avg_sentence_length=round(avg_sent_len, 2),
+        lexical_diversity=round(lex_diversity, 2),
+        capitalization_ratio=round(cap_ratio, 2),
+    )
 
 
 def calculate_control_ratio(text: str) -> float:
@@ -123,7 +134,7 @@ def calculate_control_ratio(text: str) -> float:
 # --- WORKFLOW STATE WRAPPERS (for HOOK_MAPPING compatibility) ---
 
 
-def calculate_text_metrics_hook(state) -> WorkflowState:
+def calculate_text_metrics_hook(state: WorkflowState) -> WorkflowState:
     """WorkflowState wrapper for calculate_text_metrics.
 
     Extracts text from state.inputs, calculates metrics, and stores in aux_data.
@@ -143,17 +154,27 @@ def calculate_text_metrics_hook(state) -> WorkflowState:
         return state
 
     metrics = calculate_text_metrics(text)
-    state.aux_data["profiler_metrics"] = metrics
-    logger.info(f"[MetricsHook] Metrics calculated: {metrics}")
-
+    
+    # HEAVY DEBUGGING (Object Mandate Verification)
+    logger.info(f"[MetricsHook] Calculated Metrics Type: {type(metrics)}")
+    logger.info(f"[MetricsHook] Metrics Content: {metrics}")
+    
+    # Write to strict field to ensure Object persistence
+    state.audit_metrics = metrics
+    
+    # Verify write
+    if state.audit_metrics is None:
+        logger.error("[MetricsHook] CRITICAL: Failed to write metrics to state.audit_metrics!")
+    else:
+        logger.info("[MetricsHook] SUCCESS: Metrics written to strict state field.")
 
     return state
 
 
-def calculate_control_ratio_hook(state) -> WorkflowState:
+def calculate_control_ratio_hook(state: WorkflowState) -> WorkflowState:
     """WorkflowState wrapper for calculate_control_ratio.
 
-    Extracts history_text from state.inputs, calculates ratio, and stores in aux_data.
+    Extracts history_text from state.inputs, calculates ratio, and stores in strict field.
     """
     logger.debug("[MetricsHook] Running calculate_control_ratio_hook...")
 
@@ -167,7 +188,10 @@ def calculate_control_ratio_hook(state) -> WorkflowState:
         return state
 
     ratio = calculate_control_ratio(history_text)
-    state.aux_data["input_control_ratio"] = ratio
-    logger.info(f"[MetricsHook] Control ratio calculated: {ratio:.4f}")
-
+    
+    # HEAVY DEBUGGING
+    logger.info(f"[MetricsHook] Control Ratio: {ratio} (Type: {type(ratio)})")
+    
+    state.input_control_ratio = ratio
+    
     return state

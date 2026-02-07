@@ -75,61 +75,70 @@ class CoachAgent(BaseAgent):
         parts = []
 
         # 1. Inject Verdict (Tuomio) FIRST to determine filtering needs
-        tuomio = kwargs.get("tuomio")
-        if not tuomio:
-            tuomio = input_data.get("step_judge")
-
+        # Aggregate multiple judges if present
         weak_areas = []
         focus_keywords = set()
 
-        if tuomio:
-            # Enhanced Analysis for Unified Evaluation Contract
-            content = tuomio.model_dump_json(indent=2) if hasattr(tuomio, "model_dump_json") else str(tuomio)
-            parts.append(f"### TUOMIO (VERDICT):\n{content}")
+        judge_inputs = []
+        for key, value in input_data.items():
+             if (key.startswith("step_judge") or key == "tuomio") and value:
+                 judge_inputs.append((key, value))
+        
+        # Add explicit 'tuomio' kwarg if passed separately (rare/legacy)
+        if kwargs.get("tuomio"):
+             judge_inputs.append(("kwargs_tuomio", kwargs.get("tuomio")))
 
-            try:
-                data = tuomio.model_dump() if hasattr(tuomio, "model_dump") else tuomio
-                if isinstance(data, dict):
-                    # Check dimensions field (Standard)
-                    dimensions = data.get("dimensions", [])
-                    if dimensions:
-                         for dim in dimensions:
-                             score = dim.get("score")
-                             dim_id = dim.get("dimension_id", "").lower()
-                             if isinstance(score, (int, float)) and score < 3:
-                                 weak_areas.append(f"- {dim_id}: Score {score} (Low)")
-                                 focus_keywords.add(dim_id)
-                                 # Add related keywords based on dimension
-                                 if "analy" in dim_id:
-                                     focus_keywords.update(["bias", "analy", "cognitive", "heuristic"])
-                                 elif "logi" in dim_id:
-                                     focus_keywords.update(["logic", "fallacy", "argument", "toulmin", "deduct"])
-                                 elif "falsi" in dim_id:
-                                     focus_keywords.update(["falsif", "popp", "scien", "test"])
+        if judge_inputs:
+            for key, tuomio in judge_inputs:
+                try:
+                    # Header
+                    content = tuomio.model_dump_json(indent=2) if hasattr(tuomio, "model_dump_json") else str(tuomio)
+                    parts.append(f"### TUOMIO (VERDICT from {key}):\n{content}")
 
-                    # Fallback Logic: Check legacy pisteet
-                    elif "pisteet" in data:
-                         p = data.get("pisteet", {})
-                         for k, v in p.items():
-                             if v and isinstance(v, dict):
-                                 val = v.get("arvosana")
-                                 k_lower = k.lower()
-                                 if isinstance(val, (int, float)) and val < 3:
-                                      weak_areas.append(f"- {k}: Score {val} (Low)")
-                                      focus_keywords.add(k_lower)
-                                      if "analy" in k_lower:
-                                          focus_keywords.update(["bias", "analy"])
-                                      elif "arvio" in k_lower:
-                                          focus_keywords.update(["eval", "assess"])
-                                      elif "syn" in k_lower:
-                                          focus_keywords.update(["synth", "integ"])
+                    data = tuomio.model_dump() if hasattr(tuomio, "model_dump") else tuomio
+                    if isinstance(data, dict):
+                        # Check dimensions field (Standard)
+                        dimensions = data.get("dimensions", [])
+                        if dimensions:
+                             for dim in dimensions:
+                                 # Normalize
+                                 d_data = dim if isinstance(dim, dict) else dim.__dict__
+                                 score = d_data.get("score")
+                                 dim_id = d_data.get("dimension_id", "").lower()
+                                 if isinstance(score, (int, float)) and score < 3:
+                                     weak_areas.append(f"- [{key}] {dim_id}: Score {score} (Low)")
+                                     focus_keywords.add(dim_id)
+                                     # Add related keywords based on dimension
+                                     if "analy" in dim_id:
+                                         focus_keywords.update(["bias", "analy", "cognitive", "heuristic"])
+                                     elif "logi" in dim_id:
+                                         focus_keywords.update(["logic", "fallacy", "argument", "toulmin", "deduct"])
+                                     elif "falsi" in dim_id:
+                                         focus_keywords.update(["falsif", "popp", "scien", "test"])
 
-                    if weak_areas:
-                        parts.append("### IDENTIFIED WEAK AREAS (FOCUS FOR COACHING):")
-                        parts.append("\n".join(weak_areas))
-                        logger.info(f"[CoachAgent] Identified {len(weak_areas)} weak areas. Filtering KB for keywords: {focus_keywords}")
-            except Exception as e:
-                logger.warning(f"[CoachAgent] Failed to analyze weak areas: {e}")
+                        # Fallback Logic: Check legacy pisteet
+                        elif "pisteet" in data:
+                             p = data.get("pisteet", {})
+                             for k, v in p.items():
+                                 if v and isinstance(v, dict):
+                                     val = v.get("arvosana")
+                                     k_lower = k.lower()
+                                     if isinstance(val, (int, float)) and val < 3:
+                                          weak_areas.append(f"- [{key}] {k}: Score {val} (Low)")
+                                          focus_keywords.add(k_lower)
+                                          if "analy" in k_lower:
+                                              focus_keywords.update(["bias", "analy"])
+                                          elif "arvio" in k_lower:
+                                              focus_keywords.update(["eval", "assess"])
+                                          elif "syn" in k_lower:
+                                              focus_keywords.update(["synth", "integ"])
+                except Exception as e:
+                    logger.warning(f"[CoachAgent] Failed to analyze weak areas for {key}: {e}")
+
+            if weak_areas:
+                parts.append("### IDENTIFIED WEAK AREAS (FOCUS FOR COACHING):")
+                parts.append("\n".join(weak_areas))
+                logger.info(f"[CoachAgent] Identified {len(weak_areas)} weak areas across judges. Filtering KB for keywords: {focus_keywords}")
 
         # 2. Intelligent Knowledge Base Loading
         repository = kwargs.get("repository")

@@ -22,7 +22,8 @@ class LogicMatrixChart extends StatelessWidget {
 
     // Quadrant label based on coordinates
     String quadrantLabel = "Tuntematon";
-    if (x >= 3 && y >= 3) quadrantLabel = "Visionääri (Korkea Bloom + Vahva Toulmin)";
+    if (x == 0.0) quadrantLabel = "Ei analysoitavissa (Syöte puuttuu/riittämätön)";
+    else if (x >= 3 && y >= 3) quadrantLabel = "Visionääri (Korkea Bloom + Vahva Toulmin)";
     else if (x < 3 && y >= 3) quadrantLabel = "Faktapohjainen (Matala Bloom + Vahva Toulmin)";
     else if (x >= 3 && y < 3) quadrantLabel = "Abstrakti (Korkea Bloom + Heikko Toulmin)";
     else quadrantLabel = "Pinnallinen (Matala Bloom + Heikko Toulmin)";
@@ -120,7 +121,16 @@ class LogicMatrixChart extends StatelessWidget {
     if (lower.contains("soveltaminen") || lower.contains("applying")) return 2.5;
     if (lower.contains("ymmärtäminen") || lower.contains("understanding")) return 1.5;
     if (lower.contains("muistaminen") || lower.contains("remembering")) return 0.5;
-    return 3.0; // Default middle
+
+    // Handle "Not Detected" / Missing Prompt cases
+    if (lower.contains("ei havaittu") ||
+        lower.contains("not detected") ||
+        lower.contains("puuttuu") ||
+        lower.contains("missing")) {
+      return 0.0;
+    }
+
+    return 3.0; // Default middle for unknown valid levels
   }
 
   double _calculateToulminScore(List<dynamic> args) {

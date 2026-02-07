@@ -62,8 +62,7 @@ class AnalysisWizardScreen extends ConsumerWidget {
         );
       } else if (previous?.isLoading == true && next is AsyncData) {
         // Success Transition: Loading -> Data
-        // Controller returns void (null), so we don't check value.
-        context.go('/dashboard');
+        // Success handled in _submit via returned ID to prevent race condition.
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(l10n.analysisStarted)));
@@ -98,7 +97,7 @@ class AnalysisWizardScreen extends ConsumerWidget {
                 SizedBox(
                   height: 50,
                   child: FilledButton.icon(
-                    onPressed: isSubmitting ? null : () => _submit(ref),
+                    onPressed: isSubmitting ? null : () => _submit(context, ref),
                     icon:
                         isSubmitting
                             ? const SizedBox(
@@ -126,7 +125,7 @@ class AnalysisWizardScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _submit(WidgetRef ref) async {
+  Future<void> _submit(BuildContext context, WidgetRef ref) async {
     try {
       print('[AnalysisWizard] Submit pressed');
       final wizardState = ref.read(wizardStateProvider);
@@ -172,22 +171,30 @@ class AnalysisWizardScreen extends ConsumerWidget {
 
       // Delegate strictly to Controller.
       // Validation is handled inside startAnalysis (Fail-fast).
-      // Navigation/Error is handled by ref.listen in build().
+      // Navigation is now handled explicitly here using the returned ID.
 
-      await ref
+      final executionId = await ref
           .read(executionControllerProvider.notifier)
           .startAnalysis(
             workflowId: wizardState.selectedWorkflowId,
             inputs: wizardState.inputs,
             requiredInputs: requiredInputs,
           );
-      print('[AnalysisWizard] StartAnalysis returned successfully');
+      
+      print('[AnalysisWizard] StartAnalysis returned ID: $executionId');
+      
+      if (executionId != null && context.mounted) {
+        // Explicit navigation to the NEW execution
+        context.go('/dashboard/executions/$executionId');
+      }
     } catch (e, stack) {
       print('[AnalysisWizard] Error in _submit: $e\n$stack');
       // Ensure specific errors are rethrown or handled if not by ref.listen
-       ScaffoldMessenger.of(ref.context).showSnackBar(
-           SnackBar(content: Text('Submission Error: $e')),
-       );
+       if (context.mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(
+             SnackBar(content: Text('Submission Error: $e')),
+         );
+       }
     }
   }
 }

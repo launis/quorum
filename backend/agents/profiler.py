@@ -58,11 +58,15 @@ class ProfilerAgent(BaseAgent):
             dict: ProfilerAnalysis.
         """
         # Inject metrics if available in pre-calculation
-        if "profiler_metrics" in input_data:
-             # This assumes BaseAgent handles enrichment or we do it here?
-             # Actually, since we return a dict/model, the Engine or _apply_python_authority handles it.
-             pass
-        return await super().execute(input_data, execution_context, system_instruction, **kwargs)
+        try:
+             logger.info(f"[ProfilerAgent] Input Context Keys: {list(input_data.keys())}")
+             if "profiler_metrics" in input_data:
+                 logger.info(f"[ProfilerAgent] Metrics found: {input_data['profiler_metrics']}")
+             
+             return await super().execute(input_data, execution_context, system_instruction, **kwargs)
+        except Exception as e:
+            logger.critical(f"[ProfilerAgent] CRASHED: {e}", exc_info=True)
+            raise e
 
     # _update_state removed. Logic for metrics injection should be in a hook or pre-processing.
     # The 'profiler_metrics' are passed in input_data from the Engine if calculated.
@@ -86,4 +90,4 @@ class ProfilerAgent(BaseAgent):
 
         """
         # Override to show we use metrics
-        return "Analyze the text. Metrics: {{PROFILER_METRICS}}"
+        return "Analyze the text. Metrics: {{profiler_metrics}}"

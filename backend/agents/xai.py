@@ -54,57 +54,69 @@ class XAIReporterAgent(BaseAgent):
         Returns:
             str: Context string.
         """
-        judge_result = input_data.get("step_judge") or input_data.get("tuomio")
-        if not judge_result:
+        # Aggregate Judge Results from potentially multiple judges (Dual Chain)
+        judge_results = []
+        for key, value in input_data.items():
+             if (key.startswith("step_judge") or key == "tuomio") and value:
+                 # Normalize
+                 data = value.model_dump() if hasattr(value, "model_dump") else value
+                 
+                 # Identify Judge Name
+                 matrix_id = data.get("matrix_id")
+                 if matrix_id:
+                     name = f"Judge ({matrix_id})"
+                 elif "cognitive" in key:
+                     name = "Cognitive Judge"
+                 else:
+                     name = "Standard Judge"
+                 
+                 judge_results.append((name, data))
+
+        if not judge_results:
              logger.warning("[XAIReporterAgent] No 'step_judge' or 'tuomio' data found in inputs.")
              return None
 
-        # If it's a Pydantic model, dump it; if dict, use as is.
-        # The result should be EvaluationResult format (Unified Contract).
-        if hasattr(judge_result, "model_dump"):
-            data = judge_result.model_dump()
-        else:
-            data = judge_result
-
         # Format Context
         lines = ["### AUDIT RESULTS (EVALUATION):"]
+        
+        for name, data in judge_results:
+            lines.append(f"\n#### EVALUATION FROM: {name}")
 
-        # 1. Total Score
-        total_score = data.get("total_score", "N/A")
-        lines.append(f"- **Total Score**: {total_score}")
+            # 1. Total Score
+            total_score = data.get("total_score", "N/A")
+            lines.append(f"- **Total Score**: {total_score}")
 
-        # 2. Dimensions (Replacing legacy 'pisteet' access)
-        dimensions = data.get("dimensions", [])
-        if dimensions:
-            lines.append("\n#### Dimensions:")
-            for dim in dimensions:
-                d_id = dim.get("dimension_id", "uknown").capitalize()
-                score = dim.get("score", "-")
-                reason = dim.get("reasoning", "")
-                max_val = data.get("scale_max")
-                if max_val is None:
-                     max_val = "N/A" # Context string can be looser, or should we crash here too?
-                     # Probably safer to show N/A in prompt context but crash in output generation if strict?
-                     # "take away everything referring to the default" -> No guessing 5.
-                     # I will leave it as N/A or raise. Raising in prepare_context aborts execution.
-                     # Let's use "UNKNOWN" to signal the LLM.
-                     max_val = "UNKNOWN"
-                lines.append(f"- **{d_id}**: {score}/{max_val} - {reason}")
-        else:
-             # Fallback check for legacy 'pisteet' just in case normalization was skipped (Unlikely)
-             pisteet = data.get("pisteet")
-             if pisteet:
-                 lines.append("\n#### Dimensions (Legacy):")
-                 for key, val in pisteet.items():
-                     if val:
-                         lines.append(f"- **{key}**: {val.get('arvosana')}/5 - {val.get('perustelu')}")
+            # 2. Dimensions
+            dimensions = data.get("dimensions", [])
+            if dimensions:
+                lines.append("  **Dimensions:**")
+                for dim in dimensions:
+                    # Handle dict vs object properties if necessary (usually dict here)
+                    d_data = dim if isinstance(dim, dict) else dim.__dict__
+                    
+                    d_id = d_data.get("dimension_id", "unknown").capitalize()
+                    score = d_data.get("score", "-")
+                    reason = d_data.get("reasoning", "")
+                    
+                    max_val = data.get("scale_max", "UNKNOWN")
+                    lines.append(f"  - **{d_id}**: {score}/{max_val} - {reason}")
+            else:
+                 # Fallback check for legacy 'pisteet'
+                 pisteet = data.get("pisteet")
+                 if pisteet:
+                     lines.append("  **Dimensions (Legacy):**")
+                     for key, val in pisteet.items():
+                         if val:
+                             lines.append(f"  - **{key}**: {val.get('arvosana')}/5 - {val.get('perustelu')}")
 
-        # 3. Critical Findings
-        crit_findings = data.get("critical_findings", [])
-        if crit_findings:
-            lines.append("\n#### Critical Findings:")
-            for item in crit_findings:
-                lines.append(f"- {item}")
+            # 3. Critical Findings
+            crit_findings = data.get("critical_findings", [])
+            if crit_findings:
+                lines.append("  **Critical Findings:**")
+                for item in crit_findings:
+                    lines.append(f"  - {item}")
+            
+            lines.append("---") # Separator between judges
 
         return "\n".join(lines)
 
@@ -170,6 +182,7 @@ class XAIReporterAgent(BaseAgent):
                             dimensions.append(
                                 DimensionResultItem(
                                     dimension_id=d_data.get("dimension_id", "unknown"),
+                                    dimension_label=d_data.get("dimension_label", ""),
                                     score=d_data.get("score", 0),
                                     reasoning=d_data.get("reasoning", "")
                                 )

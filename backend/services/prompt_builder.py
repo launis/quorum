@@ -277,7 +277,18 @@ class PromptBuilder:
         if not step_data:
             raise StepNotFoundError(step_id)
 
-        agent_class = step_data.get("component", "UnknownAgent")
+        agent_class = step_data.get("component")
+        if not agent_class or agent_class == "UnknownAgent":
+            # Fallback: Try to resolve from task_key via TaskRegistry
+            task_key = step_data.get("task_key")
+            if task_key:
+                from backend.core.registry import TaskRegistry
+                task_def = TaskRegistry.get(task_key)
+                if task_def and task_def.metadata:
+                    agent_class = task_def.metadata.get("agent_class")
+        
+        if not agent_class:
+            agent_class = "UnknownAgent"
 
         # 2. Construct Prompt
         prompt = await self.construct_prompt(step_id)
@@ -319,8 +330,18 @@ class PromptBuilder:
             # Fetch step name/component for header
             s_rec = await self.repository.get_step_by_id(step_id)
             step_name = s_rec.get("name", s_rec.get("id", step_id)) if s_rec else step_id
-            component = s_rec.get("component", "Unknown") if s_rec else "Unknown"
-
+            
+            component = "Unknown"
+            if s_rec:
+                component = s_rec.get("component")
+                if not component or component == "UnknownAgent":
+                    task_key = s_rec.get("task_key")
+                    if task_key:
+                        from backend.core.registry import TaskRegistry
+                        task_def = TaskRegistry.get(task_key)
+                        if task_def and task_def.metadata:
+                            component = task_def.metadata.get("agent_class", task_key)
+            
             full_chain.append(f"## Step {i + 1}: {step_name} ({component})")
             full_chain.append("-" * 40)
             full_chain.append(prompt if prompt else "(No Prompt Configured)")
