@@ -1,4 +1,4 @@
-# Workflow Data Architecture: Courtroom Audit Chains
+# Workflow Data Architecture: Courtroom Audit Chains (V2.9)
 
 **Workflows Covered:**
 1.  **Courtroom 2.0 (Sequential):** `sequential_audit_chain`
@@ -40,9 +40,7 @@ graph TD
     
     Archivist[Step 6: Archivist Agent]
     JudgeStandard[Step 7: Judge (Standard Matrix)]
-    JudgeCognitive[Step 8: Judge (Cognitive Matrix)]
     Coach[Step 9: Coach Agent]
-    Context[Step 10: RAG Context]
     XAI[Step 11: XAI Reporter]
     
     %% Flows - Common Start
@@ -77,7 +75,6 @@ graph TD
     Panel --> AnalysisData
     
     AnalysisData --> JudgeStandard
-    AnalysisData --> JudgeCognitive
     
     JudgeStandard -->|Verdict| Coach
     Coach -->|CoachingPlan| XAI
@@ -108,7 +105,7 @@ graph TD
 - **Input:** `safe_data`.
 - **Output:** `InteractionAnalysis`.
     - `driver_classification`: "Driver" vs "Passenger".
-    - `input_control_ratio`: Quantitative metric of user control.
+    - `imperative_command_count`: Number of direct commands.
 
 ### Step 4: Profiler (`step_profiler`)
 **Objective:** Behavioral and cognitive bias analysis.
@@ -128,7 +125,6 @@ graph TD
 - **Process:** Toulmin Model application.
 - **Output:** `ArgumentaatioAnalyysi`.
     - `toulmin_analyysi`: Breakdown into Claim, Data, Warrant.
-    - `kognitiivinen_taso`: Bloom's Taxonomy level.
 
 #### Step 5b: Falsifier (`step_falsifier`)
 **Objective:** Stress-testing the logic.
@@ -136,31 +132,25 @@ graph TD
 - **Process:** Checks iteration loops and critical handling errors.
 - **Output:** `LogiikkaAuditointi`.
     - `walton_stressitesti_loydokset`: Results of critical questions.
-    - `paattelyketjun_uskollisuus_auditointi`: Check for post-hoc rationalization.
 
 #### Step 5c: Causal Analyst (`step_causal`)
 **Objective:** Verifying cause-and-effect in learning.
 - **Input:** `TodistusKartta`, `safe_data`.
 - **Process:** Counterfactual analysis ("Would this result exist without the user?").
 - **Output:** `KausaalinenAuditointi`.
-    - `kontrafaktuaalinen_testi`: Simulation results.
     - `abduktiivinen_paatelma`: "Genuine Insight" vs "Lucky Guess".
 
 #### Step 5d: Performativity Detector (`step_detector`)
 **Objective:** Detecting "Illusion of Competence".
 - **Input:** `TodistusKartta`, `safe_data`.
-- **Process:** Pre-mortem analysis and heuristic checks for "Role-Playing".
 - **Output:** `PerformatiivisuusAuditointi`.
-    - `performatiivisuus_heuristiikat`: Flags for "Theatricality".
     - `yleisarvio_aitoudesta`: "Organic" vs "Performative".
 
 #### Step 5e: Factual Overseer (`step_overseer`)
 **Objective:** Hallucination and Fact Checking.
 - **Input:** `TodistusKartta`, `safe_data`.
-- **Process:** Uses **Google Search Tool** (Hook) to verify external claims.
 - **Output:** `EtiikkaJaFakta`.
-    - `faktantarkistus_rfi`: Verification results ("Confirmed"/"Debunked") against search results.
-    - `eettiset_havainnot`: Plagiarism or safety issues.
+    - `faktantarkistus_rfi`: Verification results against external signals.
 
 ---
 
@@ -170,7 +160,6 @@ graph TD
 #### Step 5: Panel (`step_panel`)
 **Objective:** Parallel execution of specialized critics.
 - **Input:** `TodistusKartta`, `safe_data`.
-- **Use:** Used in "Fused" workflows to reduce latency.
 - **Output:** `PanelAudit` (Consolidated Schema).
     - `logiikka_auditointi`: (See 5a)
     - `falsifiointi_auditointi`: (See 5b)
@@ -186,20 +175,18 @@ graph TD
 - **Output:** `ArchivistOutput`.
     - `compliance_score`: Alignment with known standards.
 
-### Step 7 & 8: Judge (`step_judge` / `step_judge_cognitive`)
+### Step 7: Judge (`step_judge`)
 **Objective:** Authoritative scoring based on the Matrix.
-- **Input:** Aggregated results from ALL previous steps (Logic, Falsification, Profiling, etc.).
-- **Process:**
-    1.  **Truth Check:** Reads `TodistusKartta`.
-    2.  **Critique Integration:** Reads either `PanelAudit` OR individual critic outputs.
-    3.  **Scale Application:** Fetches DB Scale (`min`/`max`).
-- **Output:** `TuomioJaPisteet`.
+- **Input:** Aggregated results from ALL previous steps.
+- **Process:** Application of **BARS Matrix** (e.g., `matrix_standard_v1`).
+- **Output:** `EvaluationResult`.
     - `total_score`: Final numeric grade.
     - `dimensions`: Breakdown per matrix dimension.
+    - `matrix_id`: The ID of the matrix used.
 
 ### Step 9: Coach (`step_coach`)
 **Objective:** Remediation.
-- **Input:** `TuomioJaPisteet`.
+- **Input:** `EvaluationResult`.
 - **Output:** `CoachingPlan`.
 
 ### Step 11: XAI Reporter (`step_xai`)

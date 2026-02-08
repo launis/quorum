@@ -1,125 +1,141 @@
-# API Reference & Directory Structure
+# Reference Manual & API (V2.9)
 
-This document provides a reference for the application's V2.5 directory structure and the backend REST API.
+This document serves as the technical reference for **Cognitive Quorum V2026**. It covers the directory structure, CLI commands, and the Backend API.
 
 ---
 
-## Directory Structure (V2.5)
+## 1. Directory Structure (V2.9)
+
+The project follows a **Modular Monolith** architecture.
 
 ```text
 quorum/
-├── backend/                # Modular Async Monolith Core (Python 3.13)
-│   ├── agents/             # Specialized Agent Classes (BaseAgent implementations)
-│   ├── api/                # FastAPI Routers (Control Plane)
-│   ├── core/               # Workflow Engine & Pipeline Runner (Logic)
-│   ├── database/           # Abstracted DB Wrapper (TinyDB / Firestore)
-│   ├── hooks/              # Deterministic Logic Implementations
-│   ├── llm/                # LLM Provider Adapters (Gemini 1.5, Vertex AI)
-│   ├── models/             # Pydantic V2 Data Models (State, Domain)
-│   ├── services/           # Business Logic Services (Auth, IAM, PromptBuilder)
-│   ├── config.py           # Configuration (Settings, Env Vars)
-│   ├── main.py             # FastAPI App Entry Point
-│   └── worker.py           # Arq Worker Entry Point (Background Service)
-├── data/                   # Data Persistence (Local)
-│   ├── db.json             # Runtime Database (Production)
-│   ├── db_mock.json        # Runtime Database (Mock/Dev)
-│   ├── seed_data.json      # Configuration Source of Truth
-│   └── uploads/            # User Uploads
-├── docs/                   # MkDocs Documentation
-├── client_app/             # Client App (Flutter / Native)
+├── backend/                # Async Python 3.14+ Core
+│   ├── agents/             # Specialized Agent Logic (Judge, Analyst)
+│   ├── api/                # FastAPI Routers (The Control Plane)
+│   │   ├── routes/
+│   │   │   ├── config/     # CRUD for Rules, Matrices, Workflows
+│   │   │   └── execution/  # Job Submission & Status
+│   ├── core/               # GraphEngine & WorkflowRunner
+│   ├── database/           # AbstractRepository (TinyDB / Firestore)
+│   ├── hooks/              # Deterministic Logic (Scoring, Searching)
+│   ├── llm/                # AI Provider Adapters (Vertex, OpenAI)
+│   ├── models/             # Pydantic V2 Schemas (SSOT)
+│   ├── services/           # Business Logic (Auth, PromptBuilder)
+│   ├── seed/               # Data Seeding Logic
+│   ├── config.py           # Environment Settings
+│   └── worker.py           # Arq Worker Entry Point
+├── data/                   # Local Persistence
+│   ├── db.json             # Local Production DB (GitIgnored)
+│   ├── db_mock.json        # Test DB (Mock LLMs)
+│   └── seed_data.json      # THE BLUEPRINT (Source of Truth)
+├── docs/                   # Documentation (MkDocs)
+├── client_app/             # Flutter Client (Cognitive Studio)
 │   ├── lib/
 │   │   ├── features/
-│   │   │   ├── admin/      # Organization & User Management
-│   │   │   ├── auth/       # Authentication & Guard
-│   │   │   ├── settings/   # Localization & Theme
-│   │   │   └── orchestration/ # Workflow Execution UI
-│   │   └── router/         # GoRouter Config
-├── scripts/                # Utility Scripts (Seeding, OpenAPI Gen)
-├── pyproject.toml          # Project Metadata & Dependnecies
-└── uv.lock                 # Strict Dependency Lockfile
+│   │   │   ├── admin/      # System Administration
+│   │   │   ├── auth/       # Login & Guard
+│   │   │   ├── registry/   # Component Management
+│   │   │   ├── studio/     # Workflow Editor & Designer
+│   │   │   └── shell/      # Navigation & Layout
+│   │   └── router/         # GoRouter Configuration
+├── scripts/                # CI/CD & Utility Scripts
+├── .env.example            # Environment Template
+└── pyproject.toml          # Python Dependencies (uv)
 ```
 
 ---
 
-## API Reference
+## 2. CLI Command Reference
 
-The backend exposes a RESTful API for management and job submission.
+### Operational Commands (Windows)
 
-**Interactive Documentation:**
-*   **Swagger UI**: [http://localhost:8000/docs](http://localhost:8000/docs)
-*   **ReDoc**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
+| Command | Description |
+| :--- | :--- |
+| `run_full_docker.bat` | **Start System**. Rebuilds Backend/Worker, starts Redis/Firestore, and launches the stack. |
+| `kill_services.bat` | **Stop System**. Aggressively terminates Python, Docker processes, and frees ports. |
 
-### Key Endpoints
+### Data Management (Seeding)
 
-#### Execution (Async)
-*   `POST /workflows/{id}/run`: Enqueue a workflow execution job. Returns `job_id`.
-*   `GET /executions/{id}/status`: Poll the status of a specific job (`queued`, `in_progress`, `completed`).
+Managed via `backend/seed/run_seed.py`.
 
-#### Management
-*   `GET /prompts`: List all prompt templates.
-*   `PUT /prompts/{id}`: Update a prompt template.
-*   `POST /system/reset-db`: Reset runtime DB from `seed_data.json`.
+| Target | Command | Purpose |
+| :--- | :--- | :--- |
+| **Local** | `python backend/seed/run_seed.py local` | Resets `data/db.json` from `seed_data.json`. Use for local dev. |
+| **Mock** | `python backend/seed/run_seed.py mock` | Resets `data/db_mock.json`. Use for offline testing. |
+| **Cloud** | `python backend/seed/run_seed.py firestore` | **DANGER**. Overwrites Production Firestore with Seed Data. |
 
-#### Identity & Access
-*   `POST /auth/token`: Exchange credentials for JWT.
-*   `GET /users/me`: Get current user context.
+### Backend Development (uv)
 
-#### BFF Data Contracts (View)
-The Backend For Frontend (BFF) transforms internal state into UI-ready JSON.
+We use `uv` for dependency management.
 
-*   **ReportView**: The main structure returned by `/executions/{id}/view`.
-*   **Timeline Event**: Standard object for the "Process Progress" feed.
-    *   `timestamp` (ISOString): Time of event.
-    *   `label` (String): UI display name (e.g. "Vartija").
-    *   `content` (String): Main body text.
-    *   `events` (List): The unification key for the timeline section (replacing legacy `entries`).
+*   **Sync Dependencies**: `uv sync`
+*   **Add Package**: `uv add <package>`
+*   **Run Linter**: `uv run ruff check .`
+*   **Format Code**: `uv run ruff format .`
 
----
+### Frontend Development (Flutter)
 
-## Observability
-
-*   **Logfire**: Distributed tracing is enabled for all API requests and Worker tasks.
-*   **Redis**: Job queue persistence.
+*   **Run App**: `flutter run -d windows` (or `chrome`)
+*   **Generate Code**: `dart run build_runner build --delete-conflicting-outputs`
+*   **Update Localizations**: `flutter gen-l10n`
 
 ---
 
-## Configuration
+## 3. API Reference (FastAPI)
 
-The system is configured via environment variables (see `.env.example`).
+The API is accessible at `http://localhost:8000` (Local) or `https://api.quorum.com` (Prod).
 
-*   `ENV`: `MOCK` or `PROD`
-*   `REDIS_URL`: Connection string for the job queue.
-*   `FIRESTORE_CREDENTIALS`: Path to GCP Service Account JSON (Prod only).
+**Documentation**:
+*   **Swagger UI**: `/docs`
+*   **ReDoc**: `/redoc`
+
+### Execution API (`/execution`)
+Manages the lifecycle of cognitive jobs.
+
+*   `POST /execution/workflows/{id}/run`: Submit a job.
+    *   **Input**: JSON payload matching the Workflow's input schema.
+    *   **Output**: `job_id`.
+*   `GET /execution/jobs/{job_id}`: Poll status.
+    *   **Returns**: `status` (queued/running/completed/failed), `result` (if done).
+
+### Configuration API (`/config`)
+Manages the "Brains" of the system.
+
+*   `GET /config/components`: List Registry items (Prompts, Matrices).
+*   `GET /config/workflows`: List available Workflow definitions.
+*   `PATCH /config/workflows/{id}`: Update specific workflow steps (Hot-Reload).
+*   `POST /config/ontology/dimensions`: Add new evaluation criteria.
+
+### System & Auth
+*   `POST /auth/login`: Authenticate via Firebase/Email.
+*   `POST /system/reset`: **Root Only**. Reset the database to factory settings.
 
 ---
 
-## Development Standards & CI/CD
+## 4. Environment Variables
 
-### Dependency Management (uv)
-This project uses **uv** for strict dependency management. `requirements.txt` is deprecated.
+Defined in `.env`.
 
-*   **Install Dependencies**: `uv sync`
-*   **Add Package**: `uv add package_name`
-*   **Run Commands**: `uv run cmd_name`
+| Variable | Description | Default |
+| :--- | :--- | :--- |
+| `ENV` | Environment Mode. | `development` / `production` |
+| `DATABASE_TYPE` | Storage engine. | `tinydb` / `firestore` |
+| `REDIS_URL` | Redis connection for Arq. | `redis://localhost:6379` |
+| `GCP_PROJECT_ID` | Google Cloud Project ID. | `quorum-prod` |
+| `LOGFIRE_TOKEN` | Observability Token. | `...` |
 
-### CI Pipelines (GitHub Actions)
-Pipelines are defined in `.github/workflows/` and use `uv` for consistent environments.
+---
 
-    *   Runs on every push.
-    *   Generates `docs/swagger/openapi.json`.
-    *   Fails if the generated file differs from git (ensures API specs are up-to-date).
-    *   **Manual Trigger**: `uv run python scripts/generate_openapi.py`
+## 5. Error Codes
 
-2.  **Documentation Deploy (`docs.yml`)**:
-    *   Runs on push to `main`.
-    *   Installs dependencies via `uv`.
-    *   Builds site with `mkdocs build`.
-    *   Deploys to **GitHub Pages**.
+The API returns standard HTTP codes plus a detailed `error_code` in the JSON body.
 
-### Code Quality
-*   **Formatting**: `uv run ruff format .`
-*   **Flutter**:
-    *   **Analyze**: `flutter analyze`
-    *   **Test**: `flutter test`
-    *   **Localization**: `flutter gen-l10n`
-    *   **Code Generation**: `dart run build_runner build --delete-conflicting-outputs`
+*   **400 Bad Request**: Invalid Schema or Missing Input.
+    *   `INVALID_JSON_PAYLOAD`: Input does not match Pydantic model.
+    *   `EMPTY_INPUT`: Required text field was empty.
+*   **404 Not Found**: Resource missing.
+    *   `WORKFLOW_NOT_FOUND`: ID incorrect.
+    *   `STEP_NOT_FOUND`: Step ID missing in definition.
+*   **500 Internal Error**: System failure.
+    *   `WORKFLOW_EXECUTION_FAILED`: Unhandled exception in Worker.

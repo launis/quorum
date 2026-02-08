@@ -1,54 +1,47 @@
-# Hooks System Documentation
+# Hooks System Documentation (V2.9)
 
-## Yleiskatsaus (Overview)
+## Overview
 
-**Hookit** ovat deterministisiä Python-funktioita, jotka suoritetaan workflow-agenttien yhteydessä. Ne mahdollistavat:
+**Hooks** are deterministic Python functions executed by the `GraphEngine` at specific points in a step's lifecycle. They provide a mechanism for:
 
-1. **Syötteiden esikäsittelyn** (Pre-hooks) - Ennen agentin LLM-kutsua
-2. **Tulosten jälkikäsittelyn** (Post-hooks) - Agentin suorituksen jälkeen
-3. **Deterministisen logiikan** - Ei satunnaisuutta, toistettavat tulokset
-4. **Ulkoisten palveluiden integraation** - Google Search, tietokannat, jne.
+1.  **Input Pre-processing (Pre-hooks)**: executed before the Agent's LLM call.
+2.  **Output Post-processing (Post-hooks)**: executed after the Agent's handler returns.
+3.  **Deterministic Logic**: Pure code execution without LLM variance.
+4.  **External Integrations**: Google Search, Database Archival, etc.
 
-```
-┌─────────────┐    ┌────────────┐    ┌─────────────┐    ┌─────────────┐
-│  Pre-Hooks  │ -> │   Agent    │ -> │  Post-Hooks │ -> │   Output    │
-│ (sanitize,  │    │  (LLM)     │    │  (scoring,  │    │   (state)   │
-│  metrics)   │    │            │    │   report)   │    │             │
-└─────────────┘    └────────────┘    └─────────────┘    └─────────────┘
+```mermaid
+graph LR
+    A[Pre-Hooks] --> B[Agent Execution]
+    B --> C[Post-Hooks]
+    C --> D[State Update]
 ```
 
 > [!IMPORTANT]
-> **Yksi mekanismi (Jan 2026)**: Hookit suoritetaan **ainoastaan** HOOK_MAPPING:n kautta.
-> Vanha mekanismi (agenttiluokkien metodit) on poistettu. 
-> Kaikki hookit määritellään `seed_data.json`:ssa ja resolvoidaan `runner.py`:n `_execute_hook()`-metodissa.
+> **Single Mechanism**: Hooks are **only** executed via the `HOOK_MAPPING` registry. Class-based hook methods have been deprecated and removed.
 
 ---
 
-## Arkkitehtuuri
+## Architecture
 
-### Hook-rekisteri (HOOK_MAPPING)
+### Hook Registry (`HOOK_MAPPING`)
 
-Kaikki hookit on rekisteröity keskitetysti tiedostossa `backend/core/runner.py` (metodissa `_execute_hook`):
+All hooks are registered centrally in `backend/core/engine.py`. This is the **Single Source of Truth**.
 
 ```python
+# backend/core/engine.py
 HOOK_MAPPING = {
     "generate_report": ("backend.hooks.reporting", "generate_report"),
     "verify_structure": ("backend.hooks.validation", "verify_structure"),
     "execute_google_search": ("backend.hooks.search", "execute_google_search"),
     "sanitize_text": ("backend.hooks.security", "sanitize_text_hook"),
     "check_banned_phrases": ("backend.hooks.security", "check_banned_phrases_hook"),
-    "calculate_text_metrics": ("backend.hooks.metrics", "calculate_text_metrics_hook"),
-    "calculate_control_ratio": ("backend.hooks.metrics", "calculate_control_ratio_hook"),
-    "detect_performative_patterns": ("backend.hooks.linguistics", "detect_performative_patterns"),
-    "apply_scoring_logic": ("backend.hooks.scoring", "apply_scoring_logic"),
-    "retrieve_precedent": ("backend.hooks.archival", "retrieve_precedent"),
-    "generate_bibliography": ("backend.hooks.references", "generate_bibliography_hook"),
+    # ...
 }
 ```
 
-### Konfigurointi (seed_data.json)
+### Configuration (`seed_data.json`)
 
-Hookit aktivoidaan workflow-stepeille `config`-kentässä:
+Hooks are activated per-step in the `config` field of `seed_data.json`.
 
 ```json
 {
@@ -63,309 +56,90 @@ Hookit aktivoidaan workflow-stepeille `config`-kentässä:
 
 ---
 
-## Hookit yksityiskohtaisesti
+## Hook Reference
 
-### 1. Turvallisuus (Security)
+### 1. Security Hooks (`backend/hooks/security.py`)
 
-#### `sanitize_text` / `sanitize_text_hook`
-**Tiedosto:** `backend/hooks/security.py`  
-**Tyyppi:** Pre-hook  
-**Agentti:** Guard
+#### `sanitize_text` (Pre-hook)
+*   **Agent**: Guard
+*   **Action**: Scans `history_text`, `product_text`, and `reflection_text` for PII (Emails, Finnish SSNs, Phone Numbers, IP Addresses).
+*   **Output**: 
+    *   Redacts PII in `aux_data["sanitized_inputs"]`.
+    *   Logs detected threats in `aux_data["pii_threats_detected"]`.
 
-**Toiminta:**
-- Tunnistaa ja poistaa PII-tiedot (Personal Identifiable Information)
-- Regex-pohjaiset tunnistimet:
-  - Sähköpostit
-  - Suomalaiset puhelinnumerot
-  - HETU (henkilötunnus)
-  - Luottokorttinumerot
-  - IP-osoitteet
+#### `check_banned_phrases` (Pre-hook)
+*   **Agent**: Guard
+*   **Action**: Fetches banned phrases from the database (via `repository`) and scans inputs.
+*   **Behavior**:
+    *   **Zero-Fallback**: Requires `repository` injection. Falls back to empty list if missing (logs error).
+    *   **Blocking**: Raises `SecurityViolationError` if a banned phrase is detected.
 
-**Tallentaa:**
-- `aux_data["sanitized_inputs"]` - Puhdistetut tekstit
-- `aux_data["pii_threats_detected"]` - Lista havaituista uhista
+### 2. Metrics Hooks (`backend/hooks/metrics.py`)
 
----
+#### `calculate_text_metrics` (Pre-hook)
+*   **Agent**: Profiler
+*   **Action**: Calculates objective metrics (Word Count, Lexical Diversity, etc.).
+*   **Output**: Writes a `TextMetrics` object to the strict field `state.audit_metrics`.
 
-#### `check_banned_phrases` / `check_banned_phrases_hook`
-**Tiedosto:** `backend/hooks/security.py`  
-**Tyyppi:** Pre-hook  
-**Agentti:** Guard
+#### `calculate_control_ratio` (Pre-hook)
+*   **Agent**: Interaction
+*   **Action**: Calculates the ratio of Human vs. AI characters in the conversation history.
+*   **Output**: Writes a float (0.0 - 1.0) to `state.input_control_ratio`.
 
-**Toiminta:**
-- Skannaa syötteet kiellettyjen fraasien varalta
-- Oletuslista sisältää jailbreak-yritysten tunnistamisen:
-  - "jailbreak", "ignore instructions", "pretend you are", jne.
+### 3. Validation Hooks (`backend/hooks/validation.py`)
 
-**Tallentaa:**
-- `aux_data["banned_phrases_detected"]` - Lista havaituista fraseista
-- `aux_data["security_threat"]` - Boolean lippu
+#### `verify_structure` (Pre-hook)
+*   **Agent**: Analyst
+*   **Action**: Enforces minimum content length (100 chars) for inputs.
+*   **Behavior**: **Blocking**. Raises `ValueError` if inputs are too short, preventing wasted LLM calls.
 
----
+### 4. Linguistics Hooks (`backend/hooks/linguistics.py`)
 
-### 2. Metriikka (Metrics)
+#### `detect_performative_patterns` (Pre-hook)
+*   **Agent**: Detector
+*   **Action**: Scans for "AI-ese" filler words (e.g., "delve into", "tapestry").
+*   **Output**: Writes JSON list of matches to `aux_data["performative_patterns_detected"]`.
 
-#### `calculate_text_metrics` / `calculate_text_metrics_hook`
-**Tiedosto:** `backend/hooks/metrics.py`  
-**Tyyppi:** Pre-hook  
-**Agentti:** Profiler
+### 5. Search Hooks (`backend/hooks/search.py`)
 
-**Toiminta:**
-- Laskee objektiiviset tekstimetriikkat:
-  - `word_count` - Sanojen määrä
-  - `sentence_count` - Lauseiden määrä
-  - `avg_sentence_length` - Keskimääräinen lausepituus
-  - `lexical_diversity` - Sanaston rikkaus (0-1)
-  - `capitalization_ratio` - Isojen kirjainten osuus
+#### `execute_google_search` (Pre-hook)
+*   **Agent**: Overseer
+*   **Action**: Executes Google Custom Search queries based on hypotheses from the Analyst agent.
+*   **Output**: Writes search results JSON to `aux_data["google_search_results"]`.
 
-**Tallentaa:**
-- `aux_data["profiler_metrics"]` - Metriikkaobjekti
+### 6. Archival Hooks (`backend/hooks/archival.py`)
 
----
+#### `retrieve_precedent` (Pre-hook)
+*   **Agent**: Archivist
+*   **Action**: Retrieves the last 3-5 completed executions from the database to provide "Case Law" context.
+*   **Requirement**: Requires `repository` injection.
+*   **Output**: Writes summary text to `aux_data["archivist_precedents"]`.
 
-#### `calculate_control_ratio` / `calculate_control_ratio_hook`
-**Tiedosto:** `backend/hooks/metrics.py`  
-**Tyyppi:** Pre-hook  
-**Agentti:** Interaction
+### 7. Scoring Hooks (`backend/hooks/scoring.py`)
 
-**Toiminta:**
-- Analysoi keskusteluhistorian käyttäjän vs. AI:n osuudet
-- Tunnistaa headerit: "User:", "AI:", "Human:", jne.
-- Laskee käyttäjän merkkien osuuden kokonaismäärästä
+#### `apply_scoring_logic` (Post-hook)
+*   **Agent**: Judge
+*   **Action**: Applies deterministic penalties and calculates averages.
+    *   **Security Threat**: Caps all scores at 1.
+    *   **Logical Fallacy**: Caps scores at 2 (if > 2).
+*   **Output**: Updates `aux_data` with `score_summary`, `calculated_average`, and `penalties_applied`.
 
-**Tallentaa:**
-- `aux_data["input_control_ratio"]` - Float (0.0 = puhdas AI, 1.0 = puhdas käyttäjä)
+### 8. Reporting Hooks (`backend/hooks/reporting.py`)
 
-**Käyttö raportissa:**
-- Näytetään käyttäjän aktiivisuusaste prosentteina
-- Luokitellaan: Matkustaja (<30%), Kuski (>70%), Tasainen (30-70%)
+#### `generate_report` (Post-hook)
+*   **Agent**: XAI Reporter
+*   **Action**: Aggregates all results, generates comparison matrices (for Dual Execution), and renders the final Markdown report using `report_template.jinja2`.
+*   **Output**: Hoists result to `state.xai_report_formatted`.
 
 ---
 
-### 3. Validointi (Validation)
+## Developer Guide: Creating a New Hook
 
-#### `verify_structure`
-**Tiedosto:** `backend/hooks/validation.py`  
-**Tyyppi:** Pre-hook  
-**Agentti:** Analyst
-
-**Toiminta:**
-- Tarkistaa syötteiden minimipituudet (100 merkkiä)
-- Generoi varoitukset liian lyhyistä syötteistä
-
-**Tallentaa:**
-- `aux_data["structural_warnings"]` - Lista varoituksista
-
-**Käyttö raportissa:**
-- Näytetään **"Rakenteelliset Varoitukset"** -osiossa (osio 6)
-
----
-
-### 4. Kielianalyysi (Linguistics)
-
-#### `detect_performative_patterns`
-**Tiedosto:** `backend/hooks/linguistics.py`  
-**Tyyppi:** Pre-hook  
-**Agentti:** Detector (Performativity)
-
-**Toiminta:**
-- Havaitsee AI-generoidulle tekstille tyypillisiä kliseitä:
-  - "delve into", "tapestry", "comprehensive overview"
-  - "testament to", "pivotal role", "landscape of", jne.
-
-**Tallentaa:**
-- `aux_data["performative_patterns_detected"]` - JSON-lista havainnoista
-
-**Käyttö raportissa:**
-- Näytetään "Pre-Mortem Signals" osiossa
-
----
-
-### 5. Haku (Search)
-
-#### `execute_google_search`
-**Tiedosto:** `backend/hooks/search.py`  
-**Tyyppi:** Pre-hook  
-**Agentti:** Overseer
-
-**Toiminta:**
-- Suorittaa Google Custom Search API -hakuja
-- Hakukyselyt tulevat Analyst-agentin hypoteeseista (`hakusana_ehdotus`)
-- Maksimissaan 3 hakua, 3 tulosta per haku
-
-**Vaatii:**
-- `GOOGLE_SEARCH_API_KEY` ympäristömuuttuja
-- `GOOGLE_SEARCH_CX` ympäristömuuttuja
-
-**Tallentaa:**
-- `aux_data["google_search_results"]` - JSON hakutuloksista
-
-**Käyttö raportissa:**
-- Näytetään **"Faktantarkistuksen Lähteet"** -osiossa (osio 8)
-
----
-
-### 6. Arkistointi (Archival)
-
-#### `retrieve_precedent`
-**Tiedosto:** `backend/hooks/archival.py`  
-**Tyyppi:** Pre-hook (async)  
-**Agentti:** Archivist
-
-**Toiminta:**
-- Hakee aiempien suoritusten tuloksia tietokannasta
-- Muodostaa "ennakkotapaukset" (case law) -kontekstin
-- Käyttää viimeisiä 3-5 valmistunutta suoritusta
-
-**Tallentaa:**
-- `aux_data["archivist_precedents"]` - Tekstiyhteenveto aiemmista tapauksista
-
-**Käyttö raportissa:**
-- Näytetään **"Historiallinen Konteksti (Ennakkotapaukset)"** -osiossa (osio 7)
-
----
-
-### 7. Pisteytys (Scoring)
-
-#### `apply_scoring_logic`
-**Tiedosto:** `backend/hooks/scoring.py`  
-**Tyyppi:** Post-hook  
-**Agentti:** Judge
-
-**Toiminta:**
-- Soveltaa deterministisiä rangaistuksia:
-  1. **Turvallisuusuhka** → Kaikki pisteet = 1
-  2. **Post-hoc rationalisointi** → Maksimipisteet = 2
-- Laskee keskiarvon kaikista arviointikategorioista
-
-**Tallentaa:**
-- `aux_data["score_summary"]` - Yhteenvetoteksti
-- `aux_data["calculated_average"]` - Keskiarvo (float)
-- `aux_data["penalties_applied"]` - Lista rangaistuksista
-
-**Käyttö raportissa:**
-- Näytetään "Rangaistukset" -osiossa
-- Keskiarvo näkyy pisteytystaulukossa
-
----
-
-### 8. Viitteet (References)
-
-#### `generate_bibliography` / `generate_bibliography_hook`
-**Tiedosto:** `backend/hooks/references.py`  
-**Tyyppi:** Post-hook  
-**Agentti:** Coach
-
-**Toiminta:**
-- Skannaa tekstistä viittauksia tieteellisiin lähteisiin
-- Käyttää `ReferenceManager`-palvelua
-- Generoi lähdeluettelon
-
-**Tallentaa:**
-- `aux_data["bibliography"]` - Lista viitteistä
-
----
-
-### 9. Raportointi (Reporting)
-
-#### `generate_report`
-**Tiedosto:** `backend/hooks/reporting.py`  
-**Tyyppi:** Post-hook  
-**Agentti:** XAI Reporter
-
-**Toiminta:**
-- Kokoaa kaikki workflow-tulokset yhteen
-- Renderöi Jinja2-mallipohjan (`report_template.jinja2`)
-- Tuottaa lopullisen XAI-raportin Markdown-muodossa
-
-**Kokoaa tiedot:**
-- Pisteet kaikilta arviointikategorioilta
-- Eettiset havainnot (Overseer)
-- Valmennussuunnitelma (Coach)
-- Performatiivisuussignaalit (Detector)
-- Rangaistukset (Scoring hook)
-- Vuorovaikutusanalyysi (Interaction hook)
-
-**Tallentaa:**
-- `state.xai_report_formatted` - Valmis Markdown-raportti
-
----
-
-## Hook-taulukko
-
-| Hook | Tiedosto | Pre/Post | Agentti | Tallentaa |
-|------|----------|----------|---------|-----------|
-| `sanitize_text` | security.py | Pre | Guard | `sanitized_inputs`, `pii_threats_detected` |
-| `check_banned_phrases` | security.py | Pre | Guard | `banned_phrases_detected`, `security_threat` |
-| `calculate_text_metrics` | metrics.py | Pre | Profiler | `profiler_metrics` |
-| `calculate_control_ratio` | metrics.py | Pre | Interaction | `input_control_ratio` |
-| `verify_structure` | validation.py | Pre | Analyst | `structural_warnings` |
-| `detect_performative_patterns` | linguistics.py | Pre | Detector | `performative_patterns_detected` |
-| `execute_google_search` | search.py | Pre | Overseer | `google_search_results` |
-| `retrieve_precedent` | archival.py | Pre | Archivist | `archivist_precedents` |
-| `apply_scoring_logic` | scoring.py | Post | Judge | `score_summary`, `calculated_average`, `penalties_applied` |
-| `generate_bibliography` | references.py | Post | Coach | `bibliography` |
-| `generate_report` | reporting.py | Post | XAI | `xai_report_formatted` |
-
----
-
-## Oman hookin luominen
-
-### 1. Luo hook-funktio
-
-```python
-# backend/hooks/my_hook.py
-from backend.models.state import WorkflowState
-
-def my_custom_hook(state: WorkflowState) -> WorkflowState:
-    """Esimerkki hookista."""
-    # Lue syötteet
-    text = state.inputs.history_text or ""
-    
-    # Tee jotain deterministä
-    result = len(text.split())
-    
-    # Tallenna tulokset
-    state.aux_data["my_hook_result"] = result
-    
-    return state
-```
-
-### 2. Rekisteröi HOOK_MAPPING:iin
-
-```python
-# backend/core/runner.py
-HOOK_MAPPING = {
-    # ... muut hookit ...
-    "my_custom_hook": ("backend.hooks.my_hook", "my_custom_hook"),
-}
-```
-
-### 3. Aktivoi seed_data.json:ssa
-
-```json
-{
-    "id": "step_my_agent",
-    "config": {
-        "pre_hooks": ["my_custom_hook"],
-        "post_hooks": []
-    }
-}
-```
-
----
-
-## Testaus
-
-Hookien testit löytyvät tiedostosta `tests/test_hooks_comprehensive.py`. Testit kattavat:
-
-1. **Signatuurit** - Kaikki wrapper-funktiot ovat käytettävissä
-2. **Validit syötteet** - Normaalit käyttötapaukset
-3. **Reunatapaukset** - Tyhjät syötteet, puuttuvat kentät
-4. **Virheenkäsittely** - None-tilanteet, puuttuvat attribuutit
-5. **Integraatio** - HOOK_MAPPING sisältää kaikki hookit
-
-Testien ajo:
-```bash
-python -m pytest tests/test_hooks_comprehensive.py -v
-```
+1.  **Define the Function**: Create a python function in `backend/hooks/` that accepts `state: WorkflowState` and optionally `repository`.
+    ```python
+    def my_hook(state: WorkflowState) -> WorkflowState:
+        state.aux_data["my_metric"] = 123
+        return state
+    ```
+2.  **Register**: Add it to `HOOK_MAPPING` in `backend/core/engine.py`.
+3.  **Configure**: Add the hook name to the `pre_hooks` or `post_hooks` list in `seed_data.json` for the desired step.

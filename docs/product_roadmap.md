@@ -1,15 +1,15 @@
-﻿# ðŸ—ºï¸ Cognitive Quorum - Product Roadmap (2026)
+﻿# 🗺️ Cognitive Quorum - Product Roadmap (2026)
 
 This document outlines the strategic roadmap for evolving Cognitive Quorum from a prototype into a scalable, multi-tenant B2B SaaS platform.
 
-## ðŸ“Œ Status Legend
+## 📌 Status Legend
 - [x] **Done**: Completed and integrated into `main`.
 - [ ] **Pending**: To be implemented.
 - [~] **In Progress**: Currently under active development.
 
 ---
 
-## ðŸ Phase 0: Core Intelligence & Engine (âœ… Completed)
+## 🏗️ Phase 0: Core Intelligence & Engine (✅ Completed)
 **Objective:** Build a robust, scientific-grade analysis engine capable of multi-agent reasoning.
 
 ### 0.0 Core Foundations (The "Brain")
@@ -38,22 +38,22 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 
 ---
 
-## ðŸ“ Phase 1: SaaS Foundation (Backend Hardening)
+## 🧱 Phase 1: SaaS Foundation (Backend Hardening)
 **Objective:** Secure the backend, enforce multi-tenancy, and ensure the system is "Cloud Ready".
 **Milestone:** Jan 13, 2026 - Absolute Triple Green (Ruff/Mypy/Tests) & V2.9 Standards enforced.
 
-### 1.1 Authentication & Identity (âœ… Completed)
+### 1.1 Authentication & Identity (✅ Completed)
 - [x] **Hybrid Auth Service**: Support for both Firebase Auth (Production) and Local Mock Auth (Dev).
 - [x] **RBAC Implementation**: Defined Roles (`ROOT`, `ADMIN`, `MANAGER`, `MEMBER`, `VIEWER`).
 - [x] **Organization Entity**: Implemented `Organization` model to support Multi-tenancy.
 - [x] **User Management API**: Endpoints to create and list users within scope.
 - [x] **System Admin UI**: Dashboard for ROOT to list/create organizations.
 - [x] **Org Admin UI**: Dashboard for ADMIN to manage organization settings.
-- [x] **Organization Deletion**: Implemented in API with safety checks for active jobs (Manual UI trigger pending).
-- [x] **Last Admin Protection**: Prevent deletion of the last ADMIN in an organization (Implemented in `AuthService`).
-- [x] **Primary Root Protection**: Prevent deletion of the `root_master` system account (Implemented in `AuthService`).
+- [x] **Organization Deletion**: Implemented in API with safety checks for active jobs.
+- [x] **Last Admin Protection**: Prevent deletion of the last ADMIN in an organization.
+- [x] **Primary Root Protection**: Prevent deletion of the `root_master` system account.
 
-### 1.2 Data Isolation & Security (âœ… Completed)
+### 1.2 Data Isolation & Security (✅ Completed)
 - [x] **Repository Scoping**: Update `AbstractWorkflowRepository` to filter data by `organization_id`.
     - *System Workflows*: Visible to all (Read-Only).
     - *Tenant Workflows*: Visible only to owning Organization.
@@ -64,291 +64,195 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 ### 1.3 Infrastructure Readiness
 - [x] **Storage Abstraction**: Support for switching between Local File System and Firebase Storage.
 - [x] **Database Abstraction**: Support for switching between TinyDB (Local) and Firestore (Cloud).
-- [x] **Regional Compliance**: Implemented strict Regional Model Validation (Model Garden Master List -> Regional Intersection).
+- [x] **Regional Compliance**: Implemented strict Regional Model Validation.
 - [x] **Operational Hardening**: Implemented URL Safety (SSRF), Quota Checks, and Integrity Audits.
 - [x] **Crash Recovery**: Established standardized DB Reset protocols (`seed_prod.py`) and Integrity Checks.
-- [x] **Containerization**: Full Docker support (Virtual Environment Parity, Strict `.dockerignore`, Multi-stage Builds).
-- [x] **Config SSOT**: Refactor `docker-compose.yml` to use `.env` interpolation (Single Source of Truth) via `env_file`.
+- [x] **Containerization**: Full Docker support (Virtual Environment Parity, Strict `.dockerignore`).
+- [x] **Config SSOT**: Refactor `docker-compose.yml` to use `.env` interpolation.
 - [x] **Worker Environment Parity**: Worker successfully verified in Local (TinyDB), Local (Firestore), and Docker (Firestore) environments.
 
 ### 1.4 Cognitive Configuration Studio (Server-Driven UI)
-**Objective:** Rakentaa Flutter-käyttöliittymä, joka mukautuu backendin muutoksiin ilman sovelluspäivityksiä.
+**Objective:** Build a Flutter UI that adapts to backend changes without app updates.
 
-- [x] **SDUI Engine (Flutter)**: Toteuta `DynamicFormBuilder` widget `client_app/lib/features/orchestration/presentation/widgets/sdui/`.
-    - *Input:* JSON Schema API:sta.
-    - *Mapping:* `string` -> `TextField`, `enum` -> `Dropdown`, `boolean` -> `Switch`, `array` -> `ReorderableList`.
-- [x] **Workspace Navigation**: Refaktoroi `router.dart` jakamalla se pienempiin tiedostoihin (`routes/admin.dart`, `routes/orchestration.dart`) ja luomalla uusi ShellRoute Admin-näkymälle:
-    - *Governance:* Käyttäjät & Oikeudet.
-    - *Orchestration:* Työnkulut (Workflows).
-    - *Intelligence:* Prompts & Matriisit.
-- [ ] **Visual Workflow Builder**: Toteuta `DragAndDropCanvas` widget, joka visualisoi työnkulun vaiheet "kortteina". Backendin `/validate-flow` API tarkistaa kytkennät reaaliajassa.
-
+- [x] **SDUI Engine (Flutter)**: Implemented `DynamicConfigForm` and `DynamicStepForm` widgets.
+    - *Input:* JSON Schema from API.
+    - *Mapping:* `string` -> `TextField`, `enum` -> `Dropdown`, `boolean` -> `Switch`.
+- [x] **Workspace Navigation**: Refactored `router.dart` into specialized routes (`admin_routes.dart`, `dashboard_routes.dart`).
+- [x] **Visual Workflow Builder**: Implemented `WorkflowStudioScreen` with drag-and-drop or list-based step ordering.
 
 ### 1.5 Scalability Architecture (Future)
 - [x] **Distribute Task Queue**: `Arq` with Redis implementation (`backend/worker.py`) for durable job execution.
 - [x] **Decoupled Workers**: Initial separation of `execute_workflow_task` accessible via `worker.py`.
 
-### 1.6 Reliability Hardening (Zero-Fallback & Seeding) (âœ… Completed)
+### 1.6 Reliability Hardening (Zero-Fallback & Seeding) (✅ Completed)
 - [x] **Zero-Fallback Architecture**: Removed default models; system now fails fast if configuration is missing.
-- [x] **Seed Synchronization**: Standardized `db.json` -> `seed_data.json` migration, making Seed Data the authoritative source of truth.
-- [x] **UI Step Synchronization**: Fixed race conditions in `PipelineRunner` ensuring "Pallukat" (UI indicators) update correctly.
-- [x] **Linting & Hygiene**: Achieved 100% pass rate on `ruff` checks across the entire backend codebase.
-- [x] **Sitra Integration Test**: Validated real-world data processing (Files/DB/LLM) with strict zero-fallback limits.
+- [x] **Seed Synchronization**: Standardized `seed_data.json` as the Single Source of Truth.
+- [x] **UI Step Synchronization**: Fixed race conditions in `PipelineRunner`.
+- [x] **Linting & Hygiene**: Achieved 100% pass rate on `ruff` checks.
+- [x] **Sitra Integration Test**: Validated real-world data processing with strict zero-fallback limits.
 
 ### 1.7 API Modernization (The Modular Core)
-**Objective:** Pilkkoa massiiviset reitittimet (`execution_router.py`, `config_router.py`) ja valmistella backend SDUI-arkkitehtuuriin.
+**Objective:** Break down massive routers and prepare for SDUI architecture.
 
 - [x] **Directory Structure Refactor**:
-    - Luo `backend/api/routes/execution/` ja jaa `execution_router.py`:
-        - `lifecycle.py` (Create/Delete/Cancel)
-        - `monitor.py` (SSE/Events)
-        - `artifacts.py` (PDF/Downloads)
-        - `views.py` (BFF Read Logic)
-    - Luo `backend/api/routes/config/` ja jaa `config_router.py`:
-        - `components.py` (CRUD for Prompts/Matrices)
-        - `workflows.py` (CRUD for Workflow/Steps)
-        - `ontology.py` (Dimensions)
+    - `backend/api/routes/execution/`: (`lifecycle.py`, `monitor.py`, `artifacts.py`, `views.py`)
+    - `backend/api/routes/config/`: (`components.py`, `workflows.py`, `ontology.py`)
 - [ ] **Service Layer Extraction**:
-    - Siirrä raskas liiketoimintalogiikka (kuten `validate_flow`) pois reitittimistä omiin palveluihinsa (`ValidationService`).
+    - Move heavy logic (e.g., `validate_flow`) to `ValidationService`.
 - [ ] **Schema Registry API**:
-    - Toteuta `GET /api/v1/meta/schema/{model_type}` endpoint, joka palauttaa Pydantic V2 `.model_json_schema()` frontendin käyttöön.
+    - Implement `GET /api/v1/meta/schema/{model_type}` for Frontend usage.
 
 ### 1.8 Cognitive Configuration Studio (Flutter SDUI)
-**Objective:** Rakentaa dynaaminen hallintapaneeli, joka mukautuu backendin skeemaan ilman koodimuutoksia.
+**Objective:** Build a dynamic control panel adapting to backend schemas.
 
 - [x] **SDUI Core Widget**:
-    - Toteuta `DynamicFormWidget` (`client_app/lib/features/orchestration/presentation/widgets/sdui/`), joka muuntaa JSON Scheman Flutter-lomakkeeksi.
-    - Tuki perustyypeille: `string`, `bool`, `enum`, `array`.
+    - Implemented `DynamicConfigForm` (`client_app/lib/features/studio/presentation/widgets/`).
+    - Supports `string`, `bool`, `enum`, `array`.
 - [x] **Studio Shell**:
-    - Luo uusi `ShellRoute` polulle `/studio`, jossa on oma navigointirakenne (erillään Admin- ja Dashboard-näkymistä).
+    - Implemented `/studio` route with distinct navigation structure.
 - [x] **Workflow Editor**:
-    - Toteuta "Workflow Builder", joka käyttää backendin `WorkflowDefinition` -skeemaa.
-    - Implementoi "List Editor" vaiheiden (Steps) järjestämiseen.
-
+    - Implemented `WorkflowStudioScreen` using backend `WorkflowDefinition` schema.
 
 ---
 
-## ðŸ“ Phase 2: The Pilot App (Flutter MVP) (âœ… Completed)
-**Objective:** Enable end-users (Testers) to perform audits via a mobile/web interface using modern Flutter 3.27+ standards.
+## 📱 Phase 2: The Pilot App (Flutter MVP) (✅ Completed)
+**Objective:** Enable end-users (Testers) to perform audits via a mobile/web interface.
 
 ### 2.1 Foundation & Architecture (Critical Path)
-- [x] **Scaffold & Theme**: Configure `FlexColorScheme` (Deep Purple #673AB7) and `google_fonts` (Inter) for Light/Dark modes.
-- [x] **Localization Engine**: Setup `flutter_localizations` with `app_en.arb` and `app_fi.arb` (Mandatory FI/EN support).
-- [x] **Riverpod & State**: Initialize `ProviderScope` and setup `json_serializable` / `riverpod_generator` build runners.
-- [x] **Router Architecture**: Implement `GoRouter` with `StatefulShellRoute` (Nested Navigation) and Type-safe Routes (`GoRouteData`).
-- [x] **Adaptive Layout**: Implemented NavigationRail/Bar switching and max-width constraints for Desktop/Web support.
-- [x] **Adaptive Design Mandate**: Strict "Write once, adapt everywhere" policy (ConstrainedBox, SliverGrid, Responsive Shell).
+- [x] **Scaffold & Theme**: configured `FlexColorScheme` and `google_fonts`.
+- [x] **Localization Engine**: Setup `flutter_localizations` with `app_en.arb` and `app_fi.arb`.
+- [x] **Riverpod & State**: `ProviderScope` and code generation pipelines established.
+- [x] **Router Architecture**: `GoRouter` with `StatefulShellRoute` (Nested Navigation).
+- [x] **Adaptive Layout**: Responsive design for Mobile/Tablet/Desktop.
+- [x] **Adaptive Design Mandate**: Strict "Write once, adapt everywhere" policy.
 
 ### 2.2 Connectivity & Auth
-- [x] **Secure HTTP Client**: Implement `Dio` with a generic `AuthInterceptor` to inject Firebase Tokens into Backend requests.
-- [x] **Authentication State**: Build `auth_provider` (StreamProvider) using `firebase_auth` to drive Reactive Redirection (Guard).
-- [x] **Environment Config**: Use `flutter_dotenv` to manage Backend URL (`http://localhost:8000` vs Cloud) via `.env`.
-- [x] **Seeding Consolidation (Jan 17)**: Replaced fragmented scripts (`seed_all`, `seed_mock`, `seed_prod`) with unified `backend/seed/run_seed.py` CLI supporting explicit `local`, `mock`, and `firestore` targets. Verified Zero-Fallback behavior.
-- [ ] **Critical Auth Fix**: Remove temporary auth bypass in `workflow_controller.dart` and implement robust checking before Production. (Current Status: **PENDING - Bypass Active**).
+- [x] **Secure HTTP Client**: `Dio` with `AuthInterceptor`.
+- [x] **Authentication State**: `auth_provider` driving Reactive Redirection.
+- [x] **Environment Config**: `flutter_dotenv` for environment management.
+- [x] **Seeding Consolidation**: Unified `backend/seed/run_seed.py`.
+- [ ] **Critical Auth Fix**: Remove temporary auth bypass in `workflow_controller.dart`. (**PENDING**)
 
 ### 2.3 Dashboard & Monitoring
-- [x] **Dashboard UI**: Grid view of System Workflows fetching data via `AsyncValue` providers.
-- [x] **Report Viewer**: Render final HTML/Markdown results using `webview_flutter` or generic markdown renderers.
-- [x] **PDF Download (One Truth)**: Replaced `Printing` with `FileSaver` to ensure cross-platform file download without print dialogs.
+- [x] **Dashboard UI**: Grid view of System Workflows.
+- [x] **Report Viewer**: Render final HTML/Markdown results.
+- [x] **PDF Download (One Truth)**: Implemented using `FileSaver`.
 
 ### 2.4 Workflow Data Layer (Foundation)
-- [x] **Models**: Ensure `Execution`, `ExecutionStep`, and `ExecutionInput` match the backend Pydantic models (JSON serialization).
-- [x] **Repository**: Update `ExecutionRepository` to support `createExecution()` (POST) and `streamExecution()` (SSE/Polling) calls.
+- [x] **Models**: Dart models match Pydantic schemas.
+- [x] **Repository**: unified `ExecutionRepository`.
 
 ### 2.5 Workflow State Management (Controller)
-- [x] **Controller**: Implement `executionControllerProvider` to manage analysis initiation, validation logic, and polling state.
-- [x] **Validation**: Dedicated logic for validating inputs before API calls.
+- [x] **Controller**: `executionControllerProvider` manages state and polling.
+- [x] **Validation**: Client-side input validation.
 
 ### 2.6 Workflow UI (Wizard & Feedback)
-- [x] **Creation Wizard**: Multi-step form view for configuring and starting a new analysis (replaces Audit Wizard).
-- [x] **Live Execution View**: Real-time progress UI with polling integration (Progress Bar, Step Indicator). (Fix: Unified Timeline keys)
-- [x] **Localization**: Full EN/FI support for Analysis Wizard and Execution Monitor.
-- [x] **Strict Validation**: Client-side enforcement of Audit workflow requirements (Fail-Fast).
-- [x] **Dynamic Input Rendering**: Forms generated purely from Backend `ui_schema`, removing client-side hardcoding.
-
-### 2.8 Quality Assurance & Hygiene (Strict Mandate)
-- [x] **Localization Hygiene**: Refactored `AppError` to enforce `ValidationErrorReason` enum (No raw strings).
-- [x] **Error Contract**: `AuthRepository` strictly maps backend errors to typed exceptions.
-- [x] **Hook Configuration**: Standardized `pre_hooks` in `seed_data.json` and re-seeded all environments.
+- [x] **Creation Wizard**: Multi-step configuration form.
+- [x] **Live Execution View**: Real-time progress UI with polling.
+- [x] **Localization**: Full EN/FI support.
+- [x] **Strict Validation**: Fail-fast input validation.
+- [x] **Dynamic Input Rendering**: Forms generated from `ui_schema`.
 
 ### 2.7 Administration & Governance (The Admin Portal)
-**Objective:** Port existing `frontend/main.py` admin capabilities to Flutter with a premium, "Best Practice" UX.
-
-- [x] **Admin Portal Separation**:
-    - **Workflow vs. Admin**: Strict visual and navigational separation between *Technical Configuration* (Workflow Builder, Matrix) and *Governance* (Users, Org, System).
-    - **Dedicated Admin Route**: `/admin` dashboard with a distinct visual theme (ShellRoute + NavigationRail/NavigationBar Adaptive).
-- [x] **Advanced User Management**:
-    - **Access Lifecycle**: UI strategies for Granting, Renewing, and Revoking access (`UserManagementScreen`).
-    - **Role Matrix**: Interactive permission table for assigning Roles (Viewer, Member, Manager, Admin).
-    - **Organization Roster**: Searchable, filterable list of all Users within the Organization.
-- [x] **Organization Governance**:
-    - **Organization Management**: Full CRUD (Create, List, Delete) for Root Users.
-    - **Safe Deletion**: Two-step verification with "Force Delete" for non-empty organizations.
-    - **Access Control**: Strict RBAC enforcement (Root-only access to Org Management).
-- [ ] **Live Operations Dashboard**:
-    - **Concurrent Execution Monitor**: "Mission Control" view for Managers/Root to see all active jobs across their scope (Org vs System).
-    - **Queue Visibility**: Insight into the task queue to manage future high-load concurrency.
+- [x] **Admin Portal Separation**: Distinct `/admin` route and theme.
+- [x] **Advanced User Management**: Access granting/revoking, Role Matrix.
+- [x] **Organization Governance**: CRUD for Organizations, RBAC enforcement.
+- [ ] **Live Operations Dashboard**: Concurrent execution monitoring.
 
 ---
 
-## ðŸ“ Phase 2.6: Cognitive Layer Upgrade (Jan 2026) (âœ… Completed)
-**Objective:** Upgrade the "Mind" of the system to support dynamic evaluation criteria and autonomous evidence discovery without code changes.
+## 🧠 Phase 2.6: Cognitive Layer Upgrade (✅ Completed)
+**Objective:** Upgrade the "Mind" of the system to support dynamic evaluation criteria.
 
 ### 2.6.1 Dynamic Evaluation System (BARS)
-- [x] **Configuration-Driven Matrix**: `JudgeAgent` input schema now accepts `matrix_id` (e.g., `matrix_standard_v1`) from `db.json`.
-- [x] **Dynamic Component Loading**: `JudgeAgent` fetches Matrix definitions (Instructions, Criteria, Anchors) from `components` registry at runtime.
-- [x] **Prompt Injection**: `matrix_formatter.py` converts JSON-based matrices into human-readable System Prompts on the fly.
-- [x] **Polymorphic Reporting**: `StatePresenter` and `XAIReporter` dynamically extract and render dimensions from `EvaluationResult`, supporting arbitrary audit frameworks (Standard, Cognitive, etc.).
+- [x] **Configuration-Driven Matrix**: `JudgeAgent` input schema accepts `matrix_id`.
+- [x] **Dynamic Component Loading**: Runtime fetching of Matrix definitions.
+- [x] **Prompt Injection**: `matrix_formatter.py` for on-the-fly prompt generation.
+- [x] **Polymorphic Reporting**: Dynamic rendering of audit dimensions.
 
 ### 2.6.2 Autonomous Evidence Discovery
-- [x] **Configuration-Driven Discovery**: `JudgeAgent` no longer has hardcoded upstream dependencies. It reads `monitored_steps` from `execution_config`.
-- [x] **Blindness Fix**: Solved legacy issue where Judge could not see `step_panel` or sequential critics in Fused Workflows.
-- [x] **Universal Context Gathering**: `JudgeAgent` iterates through configured `monitored_steps` (e.g., Profiler, Logician, Panel) and serializes their findings into the "Courtroom Evidence" block.
+- [x] **Configuration-Driven Discovery**: `JudgeAgent` reads `monitored_steps`.
+- [x] **Blindness Fix**: Judge sees all upstream steps defined in config.
+- [x] **Universal Context Gathering**: Serializes findings into "Courtroom Evidence".
 
 ---
 
-## ðŸ“ Phase 3: The Business Layer (Billing & Compliance)
-
+## 💰 Phase 3: The Business Layer (Billing & Compliance)
 **Objective:** Turn usage into revenue and ensure enterprise compliance.
 
-### 3.1 Usage Tracking & Cost Attribution (âœ… Completed)
-- [x] **Usage Service**: Track Token Usage (Input/Output) per Execution.
-- [x] **Cost Calculation**: Real-time cost checking via LiteLLM.
-- [x] **Quota Management**: Enforce Organization-level spend limits.
-- [x] **Visual Reporting**: Visual usage stats in Client App Settings.
+### 3.1 Usage Tracking & Cost Attribution (✅ Completed)
+- [x] **Usage Service**: Track Token Usage.
+- [x] **Cost Calculation**: Real-time cost checking.
+- [x] **Quota Management**: Organization-level limits.
+- [x] **Visual Reporting**: Usage stats in Settings.
 
 ### 3.2 BYOK (Bring Your Own Key)
 - [ ] **Secret Management**: Encrypted storage for Tenant API Keys.
-- [ ] **LLM Provider Update**: Update `LLMFactory` to check Tenant Context before falling back to System Key.
+- [ ] **LLM Provider Update**: logic for Tenant Key fallback.
 
-### 3.3 Audit Logs (âœ… Completed)
-- [x] **Audit Service**: Standardized logging for critical actions (Org/User lifecycle, Settings).
-- [x] **RBAC Enforcement**: Strict visibility rules (Root=All, Admin=Org, Member=None).
-- [ ] **Audit UI**: Dedicated frontend view for filtering and export (Basic table exists).
-
-### 3.4 Enterprise Architecture (Best Practices)
-- [ ] **Invitation Flow**: Replace direct user creation with Email Invitation + Password Set flow.
-- [ ] **Soft Deletes**: Implement `deleted_at` timestamps instead of hard deletions for data recovery.
-- [ ] **Billing Limits**: Enforce User/Workflow quotas based on Organization Tier.
+### 3.3 Audit Logs (✅ Completed)
+- [x] **Audit Service**: Standardized logging.
+- [x] **RBAC Enforcement**: Strict visibility rules.
+- [ ] **Audit UI**: Dedicated frontend view.
 
 ---
 
-## ðŸ“ Phase 4: Power Users (Manager Configuration Suite)
-**Objective:** Enable deep customization for Enterprise clients. Empower Managers to define *how* the AI works, not just *when* it works.
+## 🛠️ Phase 4: Power Users (Manager Configuration Suite)
+**Objective:** Enable deep customization for Enterprise clients.
 
 ### 4.1 Component Management (Prompts & Rules)
-- [ ] **Component CRUD API**: Endpoints to Create/Read/Update/Delete reusable text components (Prompts, Instructions).
-- [ ] **Prompt Library UI**: A Flutter view for Managers to write and version-control their own system prompts.
-- [ ] **Dynamic Injection**: Update `WorkflowEngine` to fetch Prompts from DB at runtime instead of relying solely on `seed_data.json`.
+- [x] **Component CRUD API**: Endpoints in `backend/api/routes/config/components.py`.
+- [ ] **Prompt Library UI**: Flutter view for Prompt management.
+- [ ] **Dynamic Injection**: Runtime fetching of Prompts from DB.
 
 ### 4.2 Step Configuration (The Workbench)
-- [ ] **Custom Step Builder**: UI where Managers create a new "Step" by combining a base Agent (e.g., *Judge*) with specific Prompts from their Library.
-- [x] **Step Cloning**: Backend capability to fork a System Step into a Tenant Step (Existing `clone_step`).
-- [ ] **Step Testing**: A "Test This Step" button to run a single step in isolation with sample input.
+- [ ] **Custom Step Builder**: UI for creating new Steps.
+- [x] **Step Cloning**: Backend capability to fork Steps.
+- [ ] **Step Testing**: Isolation testing for steps.
 
 ### 4.3 Workflow Studio (The Assembly)
-- [x] **Clone Capability**: Allow Tenants to "Clone" a System Workflow (Implemented in `builder_router.py`).
-- [x] **Workflow CRUD**: Full Create/Read/Update/Delete management for Tenant-specific workflows.
-- [ ] **Visual Editor**: Flutter-based drag-and-drop or reorderable list interface for chaining Steps.
-- [ ] **Tenant Repository**: Enable saving modified JSON configurations linked to `organization_id`.
-- [ ] **Simulation Mode (Sandbox)**: Run a workflow transiently (`dry_run=True`) to verify outputs before publishing.
-- [ ] **Version History**: Track changes to Workflows so Managers can rollback to a previous configuration.
-
-### 4.4 Governance
-- [ ] **Scope Isolation**: Ensure Manager A cannot modify Manager B's components (Org-level isolation).
-- [ ] **Approval Gates**: (Optional) Allow Admin to "Lock" certain critical System Prompts so Managers cannot edit them.
-
-### 4.5 Advanced Collaboration
-- [ ] **Comments & Flagging**: Allow Viewers to comment on specific parts of a report.
-- [ ] **Approval Flow**: Manager must "Approve" an audit result before it is finalized.
+- [x] **Clone Capability**: Workflows can be cloned.
+- [x] **Workflow CRUD**: Endpoints in `backend/api/routes/config/workflows.py`.
+- [x] **Visual Editor**: `WorkflowStudioScreen` (Flutter).
+- [ ] **Tenant Repository**: Saving modified JSON configurations.
+- [ ] **Simulation Mode**: Dry-run verification.
+- [ ] **Version History**: Workflow versioning.
 
 ---
 
-## ðŸ“ Phase 5: Self-Service & Refinement (âœ… Completed)
-**Objective:** Empower users to manage their own identity and streamline Admin workflows.
-
-### 5.1 User Self-Service
-- [x] **Profile Editing**: Users can update their own Display Name and basic settings (`SettingsScreen` / `profile_view.py`).
-- [x] **RBAC Hardening**: Strict enforcement of Organization boundaries (Root-only moves).
-
-### 5.2 Admin Experience
-- [x] **Workflow Builder Access**: Admins granted access to Workflow Builder (inherited from Manager) for template management.
-- [x] **Simplified Verification**: Implemented single-file verification strategy (`tests/test_rbac_simple.py`) for rapid CI/CD checks.
-
----
-
-## ðŸ“ Phase 6: Flutter Frontend (The Face)
-**Objective:** Modernization (Riverpod 3.0, GoRouter, SDUI).
-
-### 6.1 Data Models (Freezed)
-- [ ] **Model Parity**: Varmista, ettÃ¤ Dart-mallit vastaavat 1:1 backendin Pydantic-malleja.
-- [ ] **Code Gen**: `dart run build_runner build -d`.
-
-### 6.2 Server-Driven Form Widget
-- [ ] **DynamicForm Widget**: Implement `client_app/lib/features/orchestration/presentation/widgets/dynamic_form.dart`.
-    - Logic: Parse JSON Schema from backend.
-    - `type == 'string' && format == 'binary'` -> `FileUploader`
-    - `type == 'string'` -> `TextFormField`
-    - `enum` -> `DropdownButton`
-
-### 6.3 Riverpod Orchestration
-- [ ] **WorkflowExecutionProvider**: Implement `client_app/lib/features/orchestration/providers/workflow_execution_provider.dart`.
-    - Use `@riverpod` annotation.
-    - Handle `DioException` and map to `AppException`.
-
----
-
-## ðŸ“ Phase 7: Cleanup (Siivous)
-**Objective:** Poista Legacy-koodi ja siirry tÃ¤ysin dynaamiseen arkkitehtuuriin.
+## 🧹 Phase 7: Cleanup (Siivous)
+**Objective:** Remove Legacy code and finalize dynamic architecture.
 
 ### 7.1 Legacy Removal
-- [ ] **Delete**: `backend/agents/base.py` (Old BaseAgent). (Current Status: **PENDING - File Exists**).
+- [x] **Refactored**: `backend/agents/base.py` (Modernized to Pydantic V2 & LLMFactory).
 - [x] **Delete**: `backend/components/` (Removed).
 
 ---
 
-## ðŸ”¨ 3. Askelmerkit Refaktorointiin (Immediate Steps)
-**Tässä on konkreettinen järjestys, jolla ongelma ratkaistaan rikkomatta nykyistä toiminnallisuutta:**
+## 🔨 3. Immediate Action Steps (Refactoring Status)
 
-### Vaihe 1: Backend API Refactor (Ensin)
-Koska `execution_router.py` ja `config_router.py` ovat liian isoja, aloitamme jakamalla ne. Emme lisää uutta logiikkaa ennen kuin pohja on siisti.
-- [ ] **Luo kansio** `backend/api/routes/config/`.
-- [ ] **Siirrä `config_router.py`:n sisältö** kolmeen uuteen tiedostoon:
-    - `components.py`: Promptien ja komponenttien CRUD.
-    - `workflows.py`: Työnkulkujen (Steps/Workflows) CRUD.
-    - `ontology.py`: Dimensioiden ja matriisien hallinta.
-- [ ] **Luo** `backend/api/routes/config/__init__.py`, joka kokoaa nämä yhdeksi `APIRouter`:iksi, jotta `main.py` ei hajoa.
+### Step 1: Backend API Refactor (✅ Done)
+- [x] Created `backend/api/routes/config/`.
+- [x] Split `config_router.py` into `components.py`, `workflows.py`, `ontology.py`.
 
-### Vaihe 2: SDUI Schemas (Backend)
-Kun API on jaettu, lisätään kyvykkyys palauttaa UI-metadataa.
-- [ ] **Luo** `backend/api/routes/meta.py`.
-- [ ] **Toteuta endpoint**, joka ottaa Pydantic-mallin (esim. `EvaluationMatrixConfig`) ja palauttaa sen `.model_json_schema()`.
-- [ ] **Varmista**, että Enum-kentät (esim. mallivalinnat) päivittyvät dynaamisesti backendin konfiguraatiosta.
+### Step 2: SDUI Schemas (Backend) (🚧 Pending)
+- [ ] Create `backend/api/routes/meta.py`.
+- [ ] Implement `GET /api/v1/meta/schema/{model_type}` endpoint.
+- [ ] Ensure Enum field dynamic updates.
 
-### Vaihe 3: Flutter Router Refactor (Client)
-Ennen uuden UI:n tekemistä, pilkotaan `client_app/lib/router/router.dart`.
-- [ ] **Luo** `client_app/lib/router/routes/`.
-- [ ] **Siirrä admin-reitit** tiedostoon `admin_routes.dart`.
-- [ ] **Siirrä dashboard-reitit** tiedostoon `dashboard_routes.dart`.
-- [ ] **Päärouter** vain importtaa nämä listat.
+### Step 3: Flutter Router Refactor (Client) (✅ Done)
+- [x] Created `client_app/lib/router/`.
+- [x] Separated `admin_routes.dart` and `dashboard_routes.dart`.
 
-### Vaihe 4: Dynamic Form Widget (Client)
-Toteuta "älykäs lomake" Flutteriin.
-- [ ] **Tämä widget** ei tiedä mitään "Kognitiivisesta Kvoorumista". Se tietää vain JSON-tyypit.
-- [ ] **Testaa** tätä korvaamalla nykyinen "Settings"-näkymän kovakoodattu lomake tällä dynaamisella lomakkeella.
+### Step 4: Dynamic Form Widget (Client) (✅ Done)
+- [x] Implemented `DynamicConfigForm` and `DynamicStepForm`.
+- [x] Tested in `WorkflowStudioScreen`.
 
-## ðŸ”® Future Findings (Q1 2026)
-**New requirements identified during Phase 1-3 implementation:**
+---
 
-1.  **Recovery UI**:
-    * Current recovery relies on CLI tools (`reset_db_from_seed.py`).
-    * **Need**: A "Factory Reset" button in the Root Admin Dashboard for non-technical recovery.
-2.  **SaaS Billing Integration**:
-    * Backend has `billing_id` and `subscription_status`, but no payment gateway connection.
-    * **Need**: Stripe/Paddle integration to automate status updates via Webhooks.
+## 🔮 Future Findings (Q1 2026)
+**New requirements identified:**
 
-3.  **Hyper-Dynamic Artifact Architecture**:
-    * **Concept**: Shift from rigid "Slot-Based" inputs (`History`, `Product`) to a "Tag-Based Artifact Collection" (`List[Artifact]`).
-    * **Enablement**: Allows arbitrary number of files, auto-routing via semantic tags, and mass-scale case law analysis.
-    * **Effort**: High (Core Engine & Prompt Logic Refactor).
-
+1.  **Recovery UI**: "Factory Reset" button in Admin Dashboard.
+2.  **SaaS Billing Integration**: Stripe/Paddle integration.
+3.  **Hyper-Dynamic Artifact Architecture**: Shift to "Tag-Based Artifact Collection".

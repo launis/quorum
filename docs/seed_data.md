@@ -1,77 +1,90 @@
-# Backend Seed Directory
+# System Seeding & Data Lifecycle (V2.9)
 
-This document explains the central logic for managing the application's database state. It handles **seeding** (populating databases from a source file) and **synchronization** (saving database state back to the source file).
+In **Cognitive Quorum V2026**, the system follows a strict **Unidirectional Data Flow**. The `backend/seed/seed_data.json` file is the **Immutable Source of Truth** (SSOT) for all configuration, logic, and structure.
 
-## Core Files
+We do *not* sync runtime database changes back to the codebase. Instead, we edit the "DNA" of the system (`seed_data.json`) and re-seed the "Organism" (Database).
 
-- **`backend/seed/seed_data.json`**: The **Source of Truth**. This JSON file contains the "Golden State" of the system configuration (Agents, Workflows, Components, System Config). It is version-controlled and used to reset databases.
-- **`backend/seed/seeder.py`**: The core Python module that implements the logic for reading `seed_data.json` and upserting it into the target database (TinyDB or Firestore).
-- **`backend/seed/syncer.py`**: The core Python module that implements the logic for reading a target database and exporting its configuration back to `seed_data.json`.
+---
 
-## Operation Scripts (Run these)
+## 1. The Source of Truth (`seed_data.json`)
 
-These scripts are wrappers that configure the environment variables correctly before calling the core modules. **Always use these scripts instead of calling modules directly.**
+Located at `backend/seed/seed_data.json`. This version-controlled file contains the "Golden State" of the system.
 
-### Database Resets (Destructive)
+### Schema Structure
+The file defines five core domains:
 
-These scripts **wipe and re-populate** the target database using the data from `seed_data.json`.
+1.  **`system_config`**: Global settings and **Model Registry**.
+    *   Defines valid LLM models (e.g., `vertex_ai/gemini-2.5-pro`).
+    *   Maps abstract Agent Roles (`JudgeAgent`) to specific Models (`precise`).
+2.  **`organizations`**: Multi-tenancy definitions.
+    *   Includes `system` (Root) and tenant configs (Quotas, Tiers).
+3.  **`users`**: Seeded identities.
+    *   **Root User**: `root_master` (God Mode).
+    *   **Tenant Admins**: `admin_1`, etc.
+4.  **`components`**: Reusable Logic Blocks.
+    *   **Prompts**: Mandates, Rules, Protocols.
+    *   **Matrices (BARS)**: Evaluation criteria (automatically hydrates Ontology).
+5.  **`workflows`**: Execution Blueprints.
+    *   Defines the graph structure, steps, and default configuration.
 
-- **`run_seed.py` (Unified CLI)**
-  - **Targets:** `mock`, `local`, `firestore`
-  - **Usage:** Replaces legacy individual scripts.
-  - **Commands:**
-    - Mock: `python backend/seed/run_seed.py mock`
-    - Local Prod: `python backend/seed/run_seed.py local`
-    - Firestore: `python backend/seed/run_seed.py firestore`
+---
 
-### Synchronization (Saving Work)
+## 2. The Unified Seeder CLI (`run_seed.py`)
 
-These scripts update `seed_data.json` from a database source.
+We use a single entry point for all seeding operations. This script wipes the target database and repopulates it from `seed_data.json`.
 
-- **`sync_db_to_seed.py`**
-  - **Source:** Production Database (`data/db.json`)
-  - **Action:** Reads the current configuration from Prod DB and saves it to `seed_data.json`.
-  - **Usage:** Run this after making changes in the Admin UI that you want to save to the repository.
-  - **Command:** `python backend/seed/sync_db_to_seed.py`
+**Location**: `backend/seed/run_seed.py`
 
-- **`deploy_mock_to_prod.py`**
-  - **Source:** Mock Database (`backend/database/db_mock.json`)
-  - **Action:** 
-    1. Syncs Mock DB -> `seed_data.json`.
-    2. Seeds `seed_data.json` -> Production DB.
-  - **Usage:** Run this to promote changes tested in Mock mode directly to local Production mode.
-  - **Command:** `python backend/seed/deploy_mock_to_prod.py`
+### Usage
 
-### Verification (Checking Sync Status)
+```bash
+# 1. Local Development (Standard)
+# Resets 'data/db.json'. Use this for normal feature development.
+python backend/seed/run_seed.py local
 
-These scripts **read** the databases and compare them to `seed_data.json` to verify everything is in sync. They are **read-only** and safe to run at any time.
+# 2. Mock Mode (Offline/Testing)
+# Resets 'data/db_mock.json'. Use this for unit tests or UI work without LLM costs.
+python backend/seed/run_seed.py mock
 
-- **`verify_sync.py`**
-  - **Action:** Compares `seed_data.json` against:
-    1. Local Production DB (`data/db.json`)
-    2. Mock DB (`backend/database/db_mock.json`)
-    3. Firestore DB (if `service-account.json` is present)
-  - **Goal:** Output should read **"ALL SYSTEMS SYNCED"**.
-  - **Command:** `python backend/seed/verify_sync.py`
+# 3. Production (Google Cloud Firestore)
+# WARNING: Destructive operation. Overwrites the Cloud Database.
+# Requires 'GOOGLE_APPLICATION_CREDENTIALS'.
+python backend/seed/run_seed.py firestore
+```
 
+---
 
-## Database Hierarchy & Roles
+## 3. Data Lifecycle Models
 
-Understanding the specific role of each data location is critical for the "Source of Truth" workflow.
+### The "Blueprint Authority" Model
+In V2.9, we moved away from bi-directional syncing.
 
-### 1. The Source of Truth (`backend/seed/seed_data.json`)
-*   **Role:** The **Golden Master**. This Git-committed file contains the definitive initial state for the system (Agents, Models, Prompts, Configs).
-*   **Workflow:** All databases are seeded *from* this file. When you make stable changes in the UI that should be permanent, you sync them back *to* this file.
+*   **OLD Way (V2.5)**: Edit in UI -> Sync to Code -> Commit. (Drift Prone).
+*   **NEW Way (V2.9)**: Edit `seed_data.json` -> Seed to DB -> View in UI. (GitOps).
 
-### 2. The Mock Database (`backend/database/db_mock.json`)
-*   **Role:** **Transient / Experimental**. Used when running the backend in `MOCK_DB=true` mode.
-*   **Purpose:** Allows rapid iteration and testing without affecting your main local database. You can trash this database freely and re-seed it in seconds.
-*   **Zero-Cost Mocking:** When running in this mode, **NO real LLM calls are made**. The system is completely disconnected from Vertex AI / OpenAI.
+### Why?
+1.  **Reviewability**: Configurations (Prompts, Matrices) are code. They should be reviewed in Pull Requests.
+2.  **Predictability**: The database is always a pure derivation of the code.
+3.  **Strict Typing**: Seeding enforces Pydantic validation. You cannot seed invalid data.
 
-### 3. The Local Production Database (`data/db.json`)
-*   **Role:** **Local Persistence**. Used when running the backend in standard mode.
-*   **Purpose:** Represents the "real" state of your local application. This is where your actual work and history live when running locally. It isolates your persistent local data from the experimental mock data.
+---
 
-### 4. Firestore DB (Google Cloud)
-*   **Role:** **Live Production**. The actual cloud database used by the deployed application.
-*   **Purpose:** Serves real users. It is updated only via the `seed_firestore.py` script (for config) or by actual user usage.
+## 4. Derived Data (Ontology)
+
+The Seeder performs **Intelligent Extraction**. It does not just copy JSON; it transforms it.
+
+*   **Example**: The `dimensions` table in the database is NOT in `seed_data.json`.
+*   **Mechanism**: The Seeder scans all `evaluation_matrix` components in `seed_data.json`. It extracts every `criteria` item and instantiates it as a `Dimension` record in the database.
+*   **Benefit**: You only define criteria once (in the Matrix), and the system ensures the Ontology Registry is automatically synced.
+
+---
+
+## 5. Development Workflow
+
+To add a new feature (e.g., a new "Reviewer" Agent):
+
+1.  **Define Agent**: Add `ReviewerAgent` to `system_config` in `seed_data.json`.
+2.  **Add Prompts**: Add `instruction_review_guidelines` to `components`.
+3.  **Create Workflow**: Add a workflow to `workflows` that uses this agent.
+4.  **Apply**: Run `python backend/seed/run_seed.py local`.
+5.  **Verify**: Open the Studio (`localhost:8000`) and test the workflow.

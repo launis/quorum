@@ -1,101 +1,148 @@
-# System Architecture (V2.6)
+# System Architecture (V2.9 / 2026)
 
-Cognitive Quorum v2.6 is a **Modular Monolith** built on Python 3.13, designed for deterministic, verifiable AI workflows. It combines a rigorous Pydantic-based backbone with a flexible, **Configuration-Driven Intelligence** layer.
+**Status:** V2.9 Production Standard (Feb 2026)
+**Core Philosophy:** "Zero-Magic" Modular Async Monolith
 
-## High-Level Diagram
+Cognitive Quorum V2.9 is a deterministic, highly verifiable AI orchestration platform. It rejects the "black box" nature of standard agent frameworks in favor of a strictly typed, schema-driven architecture where every state transition is audited and persisted.
+
+---
+
+## 1. High-Level Architecture
+
+The system follows a **Separated Execution Model**: the API accepts requests, but the actual intelligence runs in a detached Async Worker pool. This decouples the user experience from the latency of deep cognitive reasoning.
 
 ```mermaid
 graph TD
-    User["User / Client"] -->|HTTP / gRPC| Client["Client App (Flutter)"]
-    Client -->|REST API| Backend["Backend (FastAPI)"]
-    
-    Backend -->|Enqueue Job| Redis[(Redis / Arq)]
-    Redis -->|Pull Job| Worker["Async Worker Service"]
-    
-    subgraph "Backend Core"
-        Worker --> Engine["Workflow Engine"]
-        Engine -->|Load Config| DB[("TinyDB / Firestore")]
-        Engine -->|Execute Step| Runner["Pipeline Runner"]
+    subgraph "Client Layer (Flutter)"
+        App["Thick Client (Riverpod)"]
+        Router["GoRouter"]
+    end
+
+    subgraph "Orchestration Layer (FastAPI)"
+        API["Execution API"]
+        BFF["BFF Transformer"]
+        Queue[(Redis / Arq)]
+    end
+
+    subgraph "Cognitive Layer (Async Workers)"
+        Worker["Arq Worker Pool"]
+        Engine["GraphEngine (Core)"]
+        State[("WorkflowState Blackboard")]
         
-        Runner --> Agent["Agent Instance"]
+        Engine -->|Invoke| Agent["Agent Wrapper"]
+        Agent -->|1. Reason| LLM["Gemini 1.5 Pro (Thinking)"]
+        Agent -->|2. Verify| Hooks["Deterministic Hooks"]
     end
-    
-    subgraph "Cognitive Layer"
-        Agent -->|1. Fetch Components| Registry["Components Registry (db.json)"]
-        Agent -->|2. Build Context| PromptBuilder["Prompt Builder"]
-        Agent -->|3. Generate| LLM["LLM Provider (Gemini)"]
-        Agent -->|4. Validate| Schema["Strict JSON Schema"]
+
+    subgraph "Persistence Layer"
+        DB[("TinyDB / Firestore")]
+        VectorDB[("ChromaDB")]
     end
-    
-    Agent -->|Update State| State[("WorkflowState")]
+
+    App -->|JSON/Multipart| API
+    API -->|Enqueue Job| Queue
+    Queue -->|Pull Job| Worker
+    Worker --> Engine
+    Engine <-->|Load/Save| DB
+    Hooks <--> VectorDB
 ```
 
-## Core Components
+---
 
-### 1. Backend & Worker
-The backend is split into two primary runtime components:
+## 2. Core Components Analysis
 
-*   **API Service (`backend/api/`)**: Handles HTTP requests and enqueues jobs to Redis.
-*   **Worker Service (`backend/worker.py`)**: A distributed execution engine powered by **Arq**. It executes the workflows asynchronously, allowing for long-running "Deep Research" tasks.
+### A. The "Spine" (Execution Engine)
+*   **Location**: `backend/core/engine.py` (Class: `GraphEngine`)
+*   **Role**: The deterministic runtime that loads definitions and executes steps.
+*   **Key Feature: Strict Object Mode**:
+    *   The Engine **never** passes raw dictionaries to Agents.
+    *   It hydrates a `WorkflowState` Pydantic object before execution.
+    *   If the DB data does not match the Schema, the Engine **crashes fast** rather than propagating corruption.
+*   **Centralized Hook Mapping**: All external logic (Math, Search, PII) is registered in `HOOK_MAPPING`, preventing "implicit" code execution.
 
-### 2. State Management (WorkflowState)
-Quorum uses a strict **`WorkflowState`** Pydantic model (`backend/models/state.py`).
+### B. The "Mind" (Agent Graph)
+*   **Location**: `backend/agents/`
+*   **Pattern**: Functional Wrapper.
+*   **Behavior**: Agents are stateless. They receive `WorkflowState`, perform **one** specific cognitive task (e.g., "Generate Hypothesis"), and return a structured Pydantic object (e.g., `TodistusKartta`).
+*   **Reasoning Continuity**: To solve "Chain-of-Thought Amnesia", the engine extracts hidden "Thinking Tokens" from Gemini and passes them to the next agent via `state.reasoning_context`.
 
-*   **Audit Results Dictionary**: V2.6 introduces a dynamic `audit_results` dictionary, allowing multiple Judges or Panels to contribute to the same state without overwriting each other.
-*   **Persisted & Replayable**: The state is serialized to JSON after every step.
-*   **Optimistic Locking**: Uses a `version` field to prevent race conditions during distributed execution.
+### C. The "Hand" (Async Worker)
+*   **Location**: `backend/worker.py`
+*   **Tech**: `arq` (Redis-based).
+*   **Why**: Standard HTTP/WSGI servers timeout after 60s. Cognitive Workflows (e.g., Causal Analysis) take 5-15 minutes.
+*   **Resilience**: Workers are stateless. If a worker dies, the job is re-queueable. The `WorkflowState.version` field prevents race conditions ("Optimistic Locking").
 
-### 3. Agent Architecture ("Thin Agents")
-Agents are "thin" wrappers that coordinate:
-1.  **Configuration**: Fetching prompts/matrices from the `Components Registry`.
-2.  **Hooks**: Calling deterministic Python code (Math, Search, PII).
-3.  **Generation**: Invoking the LLM with strict schemas.
+### D. The "Face" (Flutter Client)
+*   **Location**: `client_app/`
+*   **Architecture**: Feature-First, Riverpod-based.
+*   **Modules**:
+    *   `orchestration`: The flowchart UI and execution monitoring.
+    *   `studio`: The Matrix Editor and Configuration tools.
+    *   `admin`: User management and System settings.
+*   **BFF Pattern**: The frontend does not parse raw Agent outputs. The Backend exposes a "BFF" (Backend for Frontend) view that transforms complex graphs into UI-ready view models.
 
-### 4. Deterministic Hooks (`backend/hooks/`)
-To prevent "hallucinated logic", complex operations are offloaded to Python code:
-*   **`archival.py`**: Similarity search via Vector DB.
-*   **`security.py`**: PII masking via Microsoft Presidio.
-*   **`linguistics.py`**: Pattern analysis for performative language detection.
+---
 
-### 5. BFF & Reporting Layer (PDF)
-The Backend for Frontend (BFF) transforms raw execution state into human-readable views.
-*   **PDF Generation**: Uses `Jinja2` templates + `WeasyPrint` to render pixel-perfect reports on the server.
-*   **Timeline Unification**: Aggregates logs from all agents into a single chronological feed (`events` key).
-*   **Client Download**: The Flutter client uses `FileSaver` to download the binary blob, ensuring consistent file handling across Web and Desktop without relying on browser print dialogs.
+## 3. Data & Persistence Strategy
 
-## Data-Driven Configuration
+The system supports a **Dual-Database** strategy for development velocity vs. production scale.
 
-In V2.6, the *Workflow Definition* and *Cognitive Strategy* are strictly separated from code.
-A workflow in `db.json` defines:
-1.  **Sequence**: Which agents run in what order.
-2.  **Components**: Which **Evaluation Matrices** (BARS) and **Mandates** are active.
-3.  **Model Strategy**: Dynamic mapping resolved against the **Regional Model Registry**.
+### Primary Store: AbstractWorkflowRepository
+*   **Interface**: `backend/database/repository.py`
+*   **Implementation A (Local)**: `TinyDBRepository` (JSON file). Zero-setup dev env.
+*   **Implementation B (Cloud)**: `FirestoreRepository`. Production scale.
 
-This allows for "No-Code" tuning of the AI's personality and evaluation criteria.
+### Vector Store: KnowledgeBaseService
+*   **Implementation**: `ChromaDB` (Local/Server).
+*   **Use Case**: RAG (Retrieval Augmented Generation) for the Analyst Agent.
 
-## Technology Stack
+### Schema Enforcement
+*   **Source of Truth**: `backend/models/state.py`.
+*   **Migration Strategy**: "Field Addition Only". We never rename fields; we add new ones and deprecate old ones to maintain backward compatibility with serialized JSON blobs.
 
-*   **Language**: Python 3.13 & Dart (Flutter)
-*   **Observability**: Logfire (Distributed Tracing)
-*   **API**: FastAPI + Pydantic v2 (Strict Mode)
-*   **Client**: Flutter (Riverpod 3.0 + GoRouter)
-*   **Database**: TinyDB (Local) / Firestore (Cloud)
-*   **Vector Search**: ChromaDB
-*   **LLM Provider**: **Google Cloud Vertex AI** (Region: `europe-north1` / Hamina)
+---
 
-## Deployment Architecture (Docker)
+## 4. Security & Compliance
 
-The system is fully containerized using Docker Compose.
+### Identity & Access Management (IAM)
+*   **Scope**: `auth_router.py`.
+*   **Model**: RBAC (Root, Admin, Manager, Member, Viewer).
+*   **Multi-Tenancy**: All DB queries are scoped by `organization_id`.
 
-*   **Shared Image**: `backend` and `worker` share the same Docker image.
-*   **Bind Mounts**: Development uses host-to-container mapping for rapid iteration.
-*   **Configuration**: Environment variables (`.env`) injected via Compose enforce Single Source of Truth.
+### PII Protection
+*   **Agent**: `GuardAgent`.
+*   **Mechanism**: Microsoft **Presidio**.
+*   **Flow**:
+    1.  User submits raw text.
+    2.  `GuardAgent` scans for Names, SSNs, Phones.
+    3.  If detected, it swaps them for placeholders (`<PERSON_1>`).
+    4.  Downstream agents **only** see the sanitized text.
 
-## Identity & Security
+---
 
-### 1. Multi-Tenancy
-*   **Strict Scoping**: All resources are filtered by `organization_id`.
-*   **System Organization**: A protected "God Tenant" (`id="system"`) for Platform Admin.
+## 5. Technology Stack (V2.9 Locked)
 
-### 2. Role Hierarchy
-*   **ROOT / ADMIN / MANAGER / MEMBER / VIEWER**: A strict 5-tier RBAC model managed by the Auth Service.
+| Component | Technology | Version | Purpose |
+| :--- | :--- | :--- | :--- |
+| **Backend** | Python | 3.13 | Core Logic (Async) |
+| **Web Framework** | FastAPI | 0.115+ | REST API |
+| **Worker** | Arq | 0.26+ | Job Queue |
+| **DB (Doc)** | TinyDB / Firestore | 4.7+ | State Persistence |
+| **DB (Vector)** | ChromaDB | 0.4+ | Semantic Search |
+| **Frontend** | Flutter | 3.27+ | UI / Client |
+| **State Mgmt** | Riverpod | 2.6+ | Reactive State |
+| **Routing** | GoRouter | 14.0+ | Navigation |
+| **LLM** | Vertex AI | Gemini 1.5 | Cognitive Engine |
+
+---
+
+## 6. Deployment (Docker)
+
+The system is deployed as a consolidated **Docker Compose** stack.
+
+*   `backend`: Exposes Port 8000.
+*   `execution-worker`: Runs the Arq process (scales horizontally).
+*   `redis`: Message Broker.
+*   `client`: Nginx serving the Flutter Web build (Port 8080).
+
+> **Note**: In Development, the `backend` and `worker` bind-mount the local source code for hot-reloading. In Production, they use immutable builds.

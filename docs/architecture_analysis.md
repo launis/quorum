@@ -1,128 +1,94 @@
-# Technical Architecture and Analysis (V2.5 Refactor)
+# Technical Architecture Validation & Analysis (V2.9)
 
-This document describes the technical architecture of the Cognitive Quorum v2.5 system and analyzes its core features following the January 2026 refactoring (Async Modernization).
+**Status:** V2.9 / V2026 Production Standard
+**Architecture:** Modular Async Monolith (Python 3.13 + FastAPI + Arq)
 
----
-
-## 1. Core Architecture: Modular Async Monolith
-
-The system is built on modern Python standards (3.13+), emphasizing static typing, async concurrency, and distributed execution.
-
-### Backend (FastAPI + Arq)
-- **Framework:** FastAPI (HTTP) + Arq (Redis-based Async Workers).
-- **Validation:** Pydantic V2 (Strict Mode) utilizing `typing.Annotated`.
-- **Documentation:** 100% Google-style docstrings and automatically generated OpenAPI / Swagger.
-- **Structure:**
-    - `backend/api/`: Lightweight HTTP routers (enqueue jobs).
-    - `backend/worker.py`: Heavy-lifting background worker (processes jobs).
-    - `backend/core/engine.py`: Core orchestration logic (Dependency Injection).
-
-### Client App (Flutter)
-- **Role:** Responsive, State-Managed "Thick Client" (iOS/Android/Web/Desktop).
-- **Communication:** REST API calls to backend, managed via Riverpod Repository Pattern.
-- **State Management:** Local reactive state (Riverpod) for responsiveness, synced with Backend state (`WorkflowState`).
-- **Rendering:** Native rendering (Impeller/Skia) for fluid 60fps animations.
-
-### Resilience & Observability
-- **Logfire:** Distributed tracing across API and Workers.
-- **Optimistic Locking:** `WorkflowState.version` ensures data integrity during concurrent writes.
-- **Redis Broker:** Decouples ingestion from processing, allowing the API to remain responsive under load.
+This document validates the technical architecture of the Cognitive Quorum system against the **V2026 "Zero-Magic" Manifesto**, analyzing its core strengths, data flow, and safeguards.
 
 ---
 
-## 2. Agent Architecture (Cognitive Assembly Line)
+## 1. Core Pattern: Modular Async Monolith
 
-Agents are not independent "black boxes" but function as part of a deterministic pipeline.
-All agents inherit from `BaseAgent` and enforce strict Input/Output state contracts (`WorkflowState`).
+The system rejects microservices complexity in favor of a strictly typed, distributed monolith.
 
-| Agent | Role | Responsibility |
+### The "Spine" (Execution Control)
+*   **Framework:** FastAPI (HTTP) + Arq (Redis-based Async Workers).
+*   **Concurrency:** Fully Async/Await (Python 3.13).
+*   **State Management:** `WorkflowState` (Pydantic V2) acts as the single source of truth ("Blackboard Pattern").
+*   **Strict Object Mode:** The `GraphEngine` (`backend/core/engine.py`) enforces that all data passed between agents is a validated Pydantic Object, not a loose dictionary.
+
+### The "Mind" (Cognitive Strategy)
+*   **Separation of Concerns:** Logic is defined in JSON (`seed_data.json`), not Python code.
+*   **Unidirectional Data Flow:** Configuration changes (e.g., new matrix criteria) flow from `seed_data.json` -> Database -> Runtime. The runtime never mutates the configuration.
+
+---
+
+## 2. Distributed Sync Loop
+
+The system solves the "Long-Running AI" problem via a detached execution loop:
+
+1.  **Ingest (API)**: `POST /execution` pushes a job to Redis and returns `202 Accepted` immediately.
+2.  **Pickup (Worker)**: Arq Worker picks up the job.
+3.  **Hydrate (Engine)**: `GraphEngine` loads the full `WorkflowState` from Firestore/TinyDB.
+4.  **Execute (Agent)**: The Agent runs (taking 10s - 120s), calling the LLM.
+5.  **Persist (DB)**: The Engine saves the updated state to the DB.
+6.  **Polling (Client)**: The Flutter client polls the DB for changes, updating the UI in real-time.
+
+> **Resilience:** If a Worker crashes, the state is safe in the DB. The job can be retried or resumed without data loss.
+
+---
+
+## 3. Cognitive Assembly Line (The Agents)
+
+Agents are specialized processors in a deterministic graph.
+
+| Agent | Responsibility | Output Schema |
 | :--- | :--- | :--- |
-| **GuardAgent** | Gatekeeper | Security, PII protection (Presidio-hook), input sanitization. |
-| **AnalystAgent** | Analyst | Data preprocessing, hypothesis generation, and evidence gathering (RAG). |
-| **InteractionAnalyst** | Interaction | Analyzes dynamics between the user and AI (Driver/Passenger). |
-| **ProfilerAgent** | Profiler | Identifies user intent and cognitive biases. |
-| **LogicianAgent** | Logician | Constructs logical argument structures (Toulmin). |
-| **FalsifierAgent** | Falsifier | Attempts to refute hypotheses and tests reasoning durability. |
-| **CausalAgent** | Causal | Analyzes cause-effect relationships. |
-| **DetectorAgent** | Detector | Identifies performativity and pretense. |
-| **OverseerAgent** | Overseer | Fact-checking (Google Search) and ethical oversight. |
-| **PanelAgent** | Panel | "Fan-out" agent simulating a panel of experts. |
-| **ArchivistAgent** | Archivist | Analyzes the process and compares it to precedents (Case Law). |
-| **JudgeAgent** | Judge | Delivers final verdict and scores performance (Dynamic Matrices). |
-| **CoachAgent** | Coach | Provides development suggestions and pedagogical feedback. |
-| **XAIReporter** | Reporter | Produces an explainable (XAI) final report. |
+| **Guard** | Security & PII Redaction | `TaintedData` -> `SafeData` |
+| **Analyst** | Grounding & Evidence Extraction | `TodistusKartta` |
+| **Interaction** | User Agency Analysis | `InteractionAnalysis` |
+| **Profiler** | Bias & Intent Profiling | `ProfilerAnalysis` |
+| **Logician** | Argument Structure (Toulmin) | `ArgumentaatioAnalyysi` |
+| **Falsifier** | Stress Testing (Popperian) | `LogiikkaAuditointi` |
+| **Overseer** | Fact-Checking (Google) | `EtiikkaJaFakta` |
+| **Judge** | **BARS Scoring** & Verdict | `EvaluationResult` |
+| **Reporter** | XAI Explanation | `XAIReport` |
 
 ---
 
-## 3. Distributed Sync Loop
+## 4. Advanced "Zero-Magic" Features
 
-The system maintains state (`WorkflowState`) centrally, efficiently managed across distributed components.
+We explicitly avoid "Magic" frameworks (LangChain, AutoGPT) in favor of explicit, deterministic code.
 
-1.  **API**: Enqueues a Job ID to Redis (`backend/api/execution_router.py`). The API responds immediately (HTTP 202), preventing client timeouts.
-2.  **Worker**: Pulls Job (`backend/worker.py`).
-3.  **Engine**: Loads `WorkflowState` from DB (TinyDB/Firestore).
-4.  **Runner**: Executes one Step (Agent).
-5.  **Agent**: Calls LLM Provider (`backend/llm/provider.py`) - Extracts **Reasoning Tokens**.
-6.  **Agent**: Updates State (e.g. `state.step_analyst`).
-7.  **Engine**: Persists State to DB (incrementing `version`).
+### A. Centralized Hook Mapping
+Instead of dynamic imports or "plugin discovery", all hooks are explicitly registered in `backend/core/engine.py:HOOK_MAPPING`.
+*   *Benefit:* Readable, Grep-able, Debuggable.
 
-This ensures that if a Worker crashes, the job can be retried or resumed from the last checkpoint.
+### B. Reasoning Token Continuity
+To solve LLM amnesia, we extract the "Hidden Thinking" tokens (Gemini 1.5 Thinking) and pass them explicitly to the next agent via `state.reasoning_context`.
 
-### Performance & Scalability Analysis
-The refactoring to an Async Worker architecture addresses critical bottlenecks identified in V1:
-
-*   **Timeout Decoupling**: Standard HTTP clients (browsers, proxies) timeout after 60-300 seconds. Deep cognitive workflows (e.g., Causal Analysis or broad Research) can run for 15+ minutes. By offloading to `arq` workers (configured with `job_timeout=900s`), the system can execute long-running tasks without connection loss.
-*   **Horizontal Scalability**: The decoupling allows independent scaling of API nodes (handling high concurrency lightweight requests) and Worker nodes (handling CPU/Memory intensive reasoning).
-*   **State Parity**: The database (TinyDB vs Firestore) serves as the synchronization point. Worker-based updates are immediately visible to the Polling Client, solving the "Silent Execution" paradox.
+### C. Heuristic Pydantic Repair
+The system acknowledges that LLMs generate malformed JSON.
+*   **Layer 1:** Strict Pydantic Validation.
+*   **Layer 2:** Regex Repair (fixing missing quotes).
+*   **Layer 3:** Automatic Retry with Error Context (`tenacity`).
 
 ---
 
-## 4. Advanced Features (Hooks)
+## 5. Scalability & Performance Analysis
 
-Agents utilize deterministic "Hooks" for tasks requiring precision beyond LLM capabilities.
+### Timeout Decoupling
+Standard HTTP timeouts (60s) are incompatible with Deep Reasoning (10m+).
+*   **Solution:** The Async Worker model allows jobs to run for 20+ minutes (`job_timeout=1500s`) without the client connection dropping.
 
-*   **RAG (Retrieval-Augmented Generation):** Semantic document search (`backend/services/knowledge_base_service.py`).
-*   **Linguistics:** Pattern analysis for performative language detection (`backend/hooks/linguistics.py`).
-*   **PII Protection (Presidio):** PII detection and masking (`backend/hooks/security.py`).
-*   **Google Search:** Real-time data retrieval (`backend/hooks/search.py`).
+### Horizontal Scaling
+*   **Stateless Workers:** You can run 1 or 100 worker nodes. They simply pull from Redis.
+*   **Database Bottleneck:** Minimized by "Optimistic Locking" (`version` field) and efficient updates.
 
 ---
 
-## 5. Documentation and Quality Assurance
+## 6. Verification Strategy
 
-Following the refactoring, the codebase adheres to strict standards:
-
-*   **Python 3.13:** Compliant with modern async standards.
-*   **Full Typing:** 100% Type Hinting coverage.
-*   **Google-Style Docstrings:** Monitored via Ruff (`D100-D106`).
-*   **English Codebase:** Internal docs are English; User-facing content supports localisation.
-
-```mermaid
-graph TD
-    User["User"] --> Client["Client App (Flutter)"]
-    
-    Client -- REST API --> API["API Service (FastAPI)"]
-    API -- Enqueue --> Redis[(Redis)]
-    Redis -- Pull --> Worker["Async Worker (Arq)"]
-    
-    subgraph "Execution Core"
-        Worker --> Engine["Workflow Engine"]
-        Engine -- "Load State" --> DB[("TinyDB / Firestore")]
-        Engine -- "Execute Step" --> Runner["Pipeline Runner"]
-        
-        subgraph "Agent Execution"
-            Runner --> Agent["Base Agent"]
-            Agent --> Prompt["Prompt Builder"]
-            Agent --> LLM["LLM Provider (Gemini 1.5)"]
-            
-            Agent -- "Invoke Hook" --> Hooks["Deterministic Hooks"]
-            Hooks --> PII["Security/PII"]
-            Hooks --> RAG["Knowledge Base"]
-            Hooks --> Stats["Linguistics/Metrics"]
-        end
-        
-        Agent -- "Update State" --> Engine
-    end
-    
-    Engine -- "Save Result" --> DB
-```
+*   **Backend:** `pytest` + `unittest.mock` (No network calls in tests).
+*   **Frontend:** `flutter_test` + `mocktail` (No code generation).
+*   **Philosophy:** "Fail Fast". If the DB schema doesn't match the Pydantic model, the system crashes immediately rather than corrupting data.

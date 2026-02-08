@@ -1,105 +1,142 @@
-# Dynamic Prompt Engineering (V2.6)
+# Dynamic Prompt Engineering (V2.9)
 
-In Cognitive Quorum v2.6, prompts are dynamically assembled artifacts. The system uses a **Polymorphic Injection** strategy to combine rigid System Mandates with configuration-driven Evaluation Matrices (BARS).
+In Cognitive Quorum V2026, prompt engineering is an **architectural discipline**, not just text editing. The system uses a **Polymorphic Injection** strategy to dynamically assemble prompts from database components, strict Pydantic schemas, and runtime state.
+
+Instead of static text files, prompts are constructed at runtime by the `PromptBuilder` service (`backend/services/prompt_builder.py`), ensuring that every agent receives exactly the context it needs—and nothing else.
 
 ---
 
-## 1. Composition Architecture
+## 1. The Composition Architecture
 
-The `PromptBuilder` service (`backend/services/prompt_builder.py`) and `MatrixFormatter` (`backend/services/matrix_formatter.py`) collaborate to assemble the final prompt.
+The prompt generation pipeline follows a strict **Builder Pattern**:
 
-### The 4-Layer "Hamburger" Model
+1.  **Resolution**: The system fetches the Step Configuration from `seed_data.json` (or DB).
+2.  **Component Fetch**: It retrieves all referenced components listed in `execution_config.llm_prompts` (e.g., `["mandate_slow_thinking", "matrix_cognitive_v2"]`).
+3.  **Formatting**: 
+    *   Text components are appended directly.
+    *   Matrix components are transformed by `MatrixFormatter` into markdown rubrics.
+4.  **Injection**: The `PromptBuilder` scans the assembled text for Handlebars-style placeholders (`{{VARIABLE}}`) and injects runtime data.
+
+### The "Sandwich" Model
+
+A typical prompt is constructed in layers:
 
 1.  **Directives Layer (The Bun)**:
-    *   **Mandates**: Irrevocable constraints (e.g., "Mandaatti 1: Hidas ajattelu").
-    *   **Rules**: Operational boundaries (e.g., "Sääntö 2: Pysy roolissasi").
-    *   *Source*: injected from `db.json` via `llm_prompts` config.
+    *   **System Mandates**: Irrevocable constraints (e.g., "Mandaatti 1: Hidas ajattelu").
+    *   **Agent Identity**: "You are the Judge."
 2.  **Context Layer (The Lettuce)**:
-    *   **WorkflowState**: Dynamic data from previous steps (e.g., `{{ step_analyst.hypotheses }}`).
-    *   **Evidence**: Quotes and findings discovered from upstream agents.
+    *   **Injected State**: `{{HISTORY_TEXT}}`, `{{PRODUCT_TEXT}}`.
+    *   **Upstream Evidence**: `{{PREVIOUS_STEP_OUTPUTS}}` (The "Baton").
+    *   **External Data**: `{{GOOGLE_SEARCH_RESULTS}}`, `{{PROFILER_METRICS}}`.
 3.  **Cognitive Layer (The Meat)**:
-    *   **Evaluation Matrix (BARS)**: The specific "Lens" for the Judge.
-    *   *Dynamic Injection*: The `JudgeAgent` looks up `matrix_id` (e.g., `matrix_cognitive_v2`) in `db.json`, formats it into a human-readable rubric, and injects it into the system prompt.
+    *   **Evaluation Matrix (BARS)**: Behaviorally Anchored Rating Scales dynamically formatted from JSON.
+    *   **Task Instructions**: Specific rules for the current step.
 4.  **Output Layer (The Plate)**:
-    *   **Strict JSON Schema**: The Pydantic model (`EvaluationResult`) required for the response.
-
-### Data Flow
-```mermaid
-graph LR
-    DB[("db.json")] -->|Fetch Matrix| Registry["Component Registry"]
-    Registry -->|Format JSON| Formatter["MatrixFormatter"]
-    
-    Formatter -- "Role & Criteria" --> Builder["Prompt Builder"]
-    State[("WorkflowState")] --> Builder
-    Mandates["System Mandates"] --> Builder
-    
-    Builder -- Render --> Final["Final Prompt String"]
-    Final --> LLM["LLM (Gemini 1.5)"]
-```
+    *   **Strict JSON Schema**: `{{SCHEMA_EXAMPLE}}` (Auto-generated from Pydantic V2 models).
+    *   **Formatting Rules**: "You MUST output valid JSON..."
 
 ---
 
-## 2. Behaviorally Anchored Rating Scales (BARS)
+## 2. Dynamic Injection Variables
 
-V2.6 moves away from generic "Rate 1-5" instructions. We use **BARS** matrices defined in `db.json`.
+The `PromptBuilder` supports a specific set of injection keys. These are **Case-Sensitive**.
 
-**Why BARS?**
-*   **Objectivity**: Instead of "Good/Bad", anchors describe specific behaviors (e.g., "User accepted first output without question").
-*   **No-Code Updates**: You can change the evaluation criteria by editing `db.json` without touching Python code.
+### Core Workflow State
+| Placeholder | Description | Source |
+| :--- | :--- | :--- |
+| `{{HISTORY_TEXT}}` | The raw chat log or input text being analyzed. | `state.inputs.history_text` |
+| `{{PRODUCT_TEXT}}` | The target product/service description. | `state.inputs.product_text` |
+| `{{REFLECTION_TEXT}}` | Strategic reflection or self-analysis input. | `state.inputs.reflection_text` |
+| `{{CURRENT_STEP_NAME}}` | The ID of the currently executing step. | `state.current_step_name` |
 
-**Structure:**
+### Context & Evidence (The Baton)
+| Placeholder | Description | Source |
+| :--- | :--- | :--- |
+| `{{PREVIOUS_STEP_OUTPUTS}}` | A summary of findings from all previous agents. | `state.step_results` (Filtered) |
+| `{{GOOGLE_SEARCH_RESULTS}}` | Results from the *Analyst* agent's web searches. | `state.aux_data.google_search_results` |
+| `{{PROFILER_METRICS}}` | Quantitative metrics (token counts, etc.). | `state.aux_data.profiler_metrics` |
+
+### System & Environment
+| Placeholder | Description | Source |
+| :--- | :--- | :--- |
+| `{{CURRENT_DATE}}` | Server date (DD.MM.YYYY). | `datetime.now()` |
+| `{{DYNAMIC_TIME}}` | Server time (HH:MM). | `datetime.now()` |
+| `{{DYNAMIC_LOCATION}}` | Server location (City, Country) via IP. | `ipapi.co` (with timeout) |
+| `{{BANNED_PHRASES}}` | Comma-separated list of prohibited terms. | `db.json` (Banned Phrases) |
+
+### Structural Enforcement
+| Placeholder | Description | Source |
+| :--- | :--- | :--- |
+| `{{SCHEMA_EXAMPLE}}` | **CRITICAL**. The JSON structure the agent *must* output. | `model.model_json_schema()` |
+
+---
+
+## 3. Behaviorally Anchored Rating Scales (BARS)
+
+V2.9 rejects generic "Rate 1-5" instructions. We use **BARS** matrices defined as JSON components. The `MatrixFormatter` transforms these into human-readable instructions.
+
+**JSON Source (`db.json`):**
 ```json
-"criteria": [
-  {
-    "id": "agency",
-    "label": "Strateginen Ohjaus",
-    "anchors": {
-      "1": "Matkustaja: Ulkoistaa ajattelun.",
-      "4": "Arkkitehti: Purkaa ongelman osiin."
-    }
+{
+  "id": "matrix_agency",
+  "type": "evaluation_matrix",
+  "content": {
+    "scale": {"min": 1, "max": 4},
+    "criteria": [
+      {
+        "id": "agency",
+        "label": "Strateginen Ohjaus",
+        "anchors": {
+          "1": "Matkustaja: Ulkoistaa ajattelun.",
+          "4": "Arkkitehti: Purkaa ongelman osiin."
+        }
+      }
+    ]
   }
-]
+}
+```
+
+**Formatted Prompt Output:**
+```markdown
+### EVALUATION MATRIX: matrix_agency
+Scale: 1-4
+
+### CRITERIA FOR EVALUATION:
+#### Dimension: Strateginen Ohjaus (ID: agency)
+**JSON Requirement**: You MUST use the exact ID 'agency' as the value for 'dimension_id'...
+Proficiency Levels (Anchors):
+  - Level 1: Matkustaja: Ulkoistaa ajattelun.
+  - Level 4: Arkkitehti: Purkaa ongelman osiin.
+  [SCORING INSTRUCTION]: Map the Anchor Levels (1-4) to the required Scale (1-4).
 ```
 
 ---
 
-## 3. Strict JSON Enforcement
+## 4. Strict Type-Driven Prompting
 
-We use **Type-Driven Prompting**.
+To ensure system stability, we allow **no hallucinations** in the output structure.
 
-1.  **Schema Definition**: Every agent output is defined as a Pydantic V2 model.
-2.  **Schema Injection**: The `PromptBuilder` automatically generates the JSON Schema of the target model using `model.model_json_schema()`.
-3.  **Instruction**: "You MUST output valid JSON adhering to this schema..."
+1.  **Schema Definition**: Every Agent (e.g., `JudgeAgent`) defines a Pydantic V2 `OUTPUT_SCHEMA` (e.g., `EvaluationResult`).
+2.  **Auto-Generation**: `PromptBuilder` calls `_generate_schema_json()` on the agent instance.
+3.  **Validation**: The `GraphEngine` validates the LLM's response against this schema. If it fails, the step fails (Fail-Fast).
 
-This ensures >99% reliability. Failures trigger a **Heuristic Repair** loop.
-
----
-
-## 4. Reasoning Tokens (Chain-of-Thought)
-
-V2.6 supports **Reasoning Token Extraction** (e.g., Gemini 1.5 Thinking models / CoT).
-
-*   **The Problem**: Standard LLM outputs lose the "hidden thought process".
-*   **The Solution**: Agents generate a `reasoning_trace` (CoT) alongside their structured JSON.
-*   **State Persistence**: This trace is stored in `WorkflowState` and can be passed to the *next* agent as context.
+**Example Instruction:**
+> "Return the result purely as size-optimized JSON. Use this schema:
+> `{{SCHEMA_EXAMPLE}}`"
 
 ---
 
 ## 5. Development Workflow
 
 To add a new prompt or matrix:
-1.  **Define Matrix**: Add a new `evaluation_matrix` entry to `db.json` under `components`.
-2.  **Configure Workflow**: Update the `step_judge` config in `db.json` to point to the new `matrix_id`.
-3.  **No Code Change Required**: The `JudgeAgent` will automatically load and use the new criteria.
 
----
-
-## 6. Authoritative Language Enforcement
-
-To ensure strict compliance with language requirements (e.g., Finnish content vs. English schemas), V2.6 employs **Authoritative Instruction Injection**.
-
-*   **The Conflict**: Pydantic schemas are best defined in English for technical precision, but the output content must be Finnish.
-*   **The Solution**: An explicit, high-priority instruction (`INSTRUCTION_LANGUAGE_FI`) is injected *after* standard rules but *before* the task definition.
-*   **Mechanism**:
-    > "KIELI: Kirjoita vastauksesi... AINA suomeksi. Tämä on EHDOTON vaatimus."
-    This overrides the implicit language bias of the English schema descriptions ("System 2" Override).
+1.  **Create Component**: Add a new entry to `seed_data.json` under `components`.
+    *   Type: `prompt` (for text) or `evaluation_matrix` (for BARS).
+2.  **Reference in Step**: Update the `step_definition` in `seed_data.json`:
+    ```json
+    "execution_config": {
+      "llm_prompts": ["mandate_system_1", "my_new_prompt", "matrix_custom"]
+    }
+    ```
+3.  **Run Seeder**: `python backend/seed/run_seed.py local` to apply changes.
+4.  **No Code Required**: The `PromptBuilder` handles the rest dynamically.

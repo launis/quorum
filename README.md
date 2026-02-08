@@ -1,38 +1,36 @@
-# Cognitive Quorum V2.5
+# Cognitive Quorum V2.9 (2026)
 
 **Structured, Auditable, and Deterministic AI Orchestration.**
 
-Cognitive Quorum is a Modular Monolith architecture designed to perform complex cognitive labor—such as scientific peer review, legal auditing, or strategic analysis—with a level of rigor that generic "chatbots" cannot achieve.
+> **Status:** Production / Stable (V2.9)
+> **Architecture:** Modular Async Monolith
+> **Philosophy:** Zero-Magic, Strict Typing, Deterministic Execution.
 
-V2.5 resolves the "Black Box" problem of Agentic AI by separating **Cognitive Strategy** (defined in a database) from **Execution Structure** (enforced by strict Python code).
+Cognitive Quorum is a specialized AI orchestration platform designed for high-stakes cognitive labor—scientific peer review, legal auditing, and strategic analysis. Unlike generic chatbot frameworks, Quorum enforces a **Strict Object Mode**, ensuring that every step of the AI's reasoning is validated, persisted, and auditable.
 
 ---
 
-## 🚀 Key Features
+## 🚀 Key Features (V2.9)
 
-### 1. The Cognitive Assembly Line
-Instead of a single agent trying to "do it all", Quorum pipes data through **12 Specialized Agents**:
-*   **GuardAgent**: Sanitizes inputs and blocks prompt injection.
-*   **AnalystAgent**: Grounds claims in evidence ("Chain of Trust").
-*   **LoogikkoAgent**: Maps arguments to Toulmin structures (Claim, Data, Warrant).
-*   **FalsifierAgent**: Actively attempts to disprove hypotheses (Devil's Advocate).
-*   **CausalAgent**: Distinguishes correlation from causation using **DoWhy**.
-*   **JudgeAgent**: Renders final verdicts based on a strict scoring matrix.
-*   *(And 6 others: Detector, Overseer, Panel, Coach, XAI, Archivist)*
+### 1. The "Zero-Magic" Manifesto
+We reject "black box" agent frameworks. Quorum uses explicit, deterministic Python code:
+*   **Strict Pydantic V2**: Every agent input/output is a typed Schema, not a dictionary.
+*   **Centralized Hooks**: All external logic (Search, Math, PII) is registered in `backend/core/engine.py`.
+*   **No "Implicit" State**: State is passed explicitly via the `WorkflowState` blackboard.
 
-### 2. Hybrid Intelligence ("The Spine")
-We do not trust LLMs to do math or handle PII. Quorum offloads high-stakes tasks to **Deterministic Hooks**:
-*   **Privacy**: Microsoft **Presidio** for PII masking.
-*   **Stats**: **DoWhy** for Causal Inference.
-*   **Search**: Google Custom Search for fact-checking.
-*   **Memory**: **ChromaDB** for RAG (Retrieval-Augmented Generation).
+### 2. Modular Async Monolith
+The system decouples **User Interaction** from **Cognitive Reasoning**:
+*   **API (FastAPI)**: Handles HTTP requests and enqueues jobs (Response &lt; 50ms).
+*   **Worker (Arq/Redis)**: Executes deep reasoning tasks (run times of 10m+) without timeouts.
+*   **Client (Flutter)**: A "Thick Client" that polls the DB for real-time updates using **Riverpod**.
 
-### 3. Strict Type Safety
-Quorum is an "Anti-Hallucination" engine.
-*   **Pydantic V2**: Every agent output is validated against a strict schema (`typing.Annotated`).
-*   **Self-Correction**: If an LLM generates invalid JSON, the engine catches it and forces a retry with error feedback.
-*   **State Management**: A monolithic `WorkflowState` object ensures data integrity across the pipeline.
-*   **Cognitive Continuity**: Captures **Reasoning Tokens** ("Show Your Work") to maintain context between agent turns.
+### 3. Cognitive Assembly Line
+12 Specialized Agents work in a deterministic graph:
+*   **Guard**: Presidio-based PII redaction.
+*   **Analyst**: RAG-based evidence extraction.
+*   **Logician**: Toulmin Argument Mapping.
+*   **Falsifier**: POA (Popperian) Stress Testing.
+*   **Judge**: BARS (Behaviorally Anchored Rating Scales) Scoring.
 
 ---
 
@@ -40,111 +38,117 @@ Quorum is an "Anti-Hallucination" engine.
 
 ```mermaid
 graph LR
-    User[User / Client App] -->|HTTP Request| API[FastAPI Gateway]
-    API -->|Enqueue Job| Redis[(Redis / Arq)]
-    Redis -->|Pull Job| Worker[Async Worker]
-    Worker -->|Execute| Engine[Workflow Engine]
-    Engine -->|Orchestrate| Agents[Agent Pipeline]
-    Engine -->|Persist| DB[(TinyDB / Firestore)]
+    User[Flutter Client] -->|JSON/Multipart| API[FastAPI Gateway]
+    API -->|Enqueue| Redis[(Redis Broker)]
+    Redis -->|Pull| Worker[Async Worker]
+    
+    subgraph "Execution Core"
+        Worker --> Engine[GraphEngine]
+        Engine -->|Hydrate| State[WorkflowState]
+        Engine -->|Invoke| Agents[Agent Graph]
+        Agents -->|Generate| LLM[Gemini 1.5]
+    end
+    
+    Engine -->|Persist| DB[(Firestore / TinyDB)]
 ```
+
+For a deep dive, see **[System Architecture](docs/architecture.md)**.
+
+---
+
+## � Documentation Index
+
+### Core Architecture
+*   **[Master Architecture](docs/architecture.md)**: The authoritative system reference.
+*   **[Architecture Analysis](docs/architecture_analysis.md)**: Breakdown of the "Modular Async Monolith".
+*   **[Management Architecture](docs/management_architecture.md)**: Admin & Studio routing.
+*   **[Data Management](docs/data_management.md)**: Database & Lifecycle strategies.
+
+### Cognitive System
+*   **[Structured Cognitive Architecture](docs/structured_cognitive_architecture.md)**: The "Mind" and "Spine" philosophy.
+*   **[Prompt Engineering](docs/prompt_engineering.md)**: The "Sandwich" caching strategy.
+*   **[API Models & Schemas](docs/api_models.md)**: Reference for `WorkflowState` and Agent IO.
+*   **[Workflow Data Architecture](docs/workflow_data_architecture.md)**: Data contracts and flow.
+
+### Implementation & Verification
+*   **[Simplified Verification Strategy](docs/simplified_verification_strategy.md)**: "Zero-Magic" testing guide.
+*   **[Test Strategy](docs/test_strategy.md)**: Detailed Backend/Frontend test commands.
+*   **[Seed Data & Unidirectional Flow](docs/seed_data.md)**: Configuration management.
+*   **[Hooks & Tools](docs/hooks.md)**: Deterministic function reference.
+
+### Development Standards
+*   **[Product Roadmap](docs/product_roadmap.md)**: Current status and future plans.
+*   **[Flutter Development Guide](docs/flutterpromptohje.md)**: Frontend standards.
 
 ---
 
 ## 🛠️ Technology Stack
 
-*   **Language**: Python 3.14 (PEP 649 Compliant) & Dart (Flutter).
-*   **Client**: **Flutter** (Data-Driven, Responsive Client).
-*   **Core**: **FastAPI**, Pydantic V2.
-*   **Tooling**: **uv** (Package Management), **Ruff** (Linting/Style).
-*   **Async Processing**: **Arq** (Task Queue), **Redis** (Broker).
-*   **Observability**: **Logfire** (Distributed Tracing).
-*   **Database**: **TinyDB** (JSON-based, portable) + Firestore (Production).
-*   **AI Model**: Google **Gemini 2.5** (Flash/Pro) + **Reasoning Models**.
+*   **Language**: Python 3.13 (Async) & Dart 3.5+
+*   **Frameworks**: FastAPI, Arq, Riverpod 2.6+, GoRouter
+*   **Database**: TinyDB (Local) / Firestore (Cloud)
+*   **LLM**: Google Vertex AI (Gemini 1.5 Pro)
+*   **Tools**: `uv` (Package Mgmt), `ruff` (Linting), `presidio` (PII)
 
 ---
 
 ## 📦 Getting Started
 
 ### Prerequisites
-*   Python 3.14 (managed via `uv`)
+*   Python 3.13+ (Recommended: Use `uv`)
+*   Docker & Docker Compose
 *   Flutter SDK (3.27+)
-*   Google Gemini API Key
-*   Docker (for Redis)
 
 ### Installation
 
-1.  Clone the repository:
+1.  **Clone & Setup Backend**:
     ```bash
     git clone https://github.com/launis/quorum.git
     cd quorum
-    ```
-
-2.  Install Backend dependencies (using **uv**):
-    ```bash
     uv sync
     ```
 
-3.  Install Client dependencies:
-    ```bash
-    cd client_app
-    flutter pub get
-    cd ..
-    ```
-
-4.  Create a `.env` file:
+2.  **Environment Setup**:
+    Create `.env` based on `.env.example`:
     ```env
-    GOOGLE_API_KEY=your_key_here
-    GOOGLE_SEARCH_API_KEY=optional
-    GOOGLE_SEARCH_CX=optional
-    LOGFIRE_TOKEN=optional
+    GOOGLE_API_KEY=your_key
+    ANTHROPIC_API_KEY=optional
     ```
 
-### Running the System
-
-1.  **Start Infrastructure** (Redis):
+3.  **Run Infrastructure**:
     ```bash
     docker-compose up -d redis
     ```
 
-2.  **Start the API**:
+4.  **Start Backend Services**:
     ```bash
+    # Terminal 1: API
     uv run uvicorn backend.main:app --reload
-    ```
 
-3.  **Start the Async Worker**:
-    ```bash
+    # Terminal 2: Worker
     uv run backend/worker.py
     ```
 
-4.  **Start the Client App**:
+5.  **Start Client**:
     ```bash
     cd client_app
-    flutter run
+    flutter run -d chrome
     ```
 
-5.  **Access the System**:
-    *   **Client UI**: (Opens in application window)
-    *   **API Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
-
----
-
-## 📚 Documentation
-
-Detailed documentation is available in the `docs/` directory or via the built site.
-
-*   **[System Architecture](docs/architecture.md)**
-*   **[Cognitive Whitepaper](docs/structured_cognitive_architecture.md)**
-*   **[API Reference](docs/reference.md)**
-
-To build the docs site locally:
+### Running Tests
+See **[Test Strategy](docs/test_strategy.md)** for details.
 ```bash
-uv run mkdocs serve
-# Access: http://localhost:8001
+# Backend
+uv run pytest
+
+# Frontend
+cd client_app && flutter test
 ```
 
 ---
 
 ## 🛡️ License
 
-Private / Proprietary.
-(C) 2025-2026 Risto Launis / Cognitive Quorum Team.
+**Proprietary / Confidential.**
+(C) 2024-2026 Risto Launis / Cognitive Quorum Team.
+All rights reserved.

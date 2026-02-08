@@ -1,45 +1,87 @@
-# Cognitive Quorum v2.5 Documentation
+# Cognitive Quorum V2.9 Documentation
 
-**Robust, Auditable, and Deterministic AI Orchestration.**
+**Structured, Auditable, and Deterministic AI Orchestration.**
 
-## Overview
+## 📚 Overview
 
-Cognitive Quorum v2.5 is a Modular Async Monolith designed for **High-Fidelity AI Auditing**. It orchestrates a pipeline of 12 specialized agents to perform rigorous cognitive labor, from logical mapping to causal inference.
+Cognitive Quorum V2.9 (2026) is a **Modular Async Monolith** designed for high-fidelity cognitive labor. It orchestrates a pipeline of 12 specialized agents to perform rigorous analysis, from logical mapping to causal inference, enforcing a **"Zero-Magic"** philosophy where every step is strictly typed and auditable.
 
-## Key Features (V2.5 - "Async Modernization")
+---
 
-*   **Async Distributed Workers:** Powered by **Arq** and **Redis** for non-blocking execution.
-*   **Vertex AI (Hamina):** 100% Data Residency in `europe-north1`. No data leaves the EU.
-*   **Gemini 1.5 Integration:** High-fidelity reasoning with **Heuristic JSON Repair** layer.
-*   **3-Tier Database:** Consistent `Mock -> Local Prod -> Cloud Prod` environment synchronization.
-*   **12-Agent Assembly Line:** Detailed pipeline including Archivist, Coach, and Panel agents.
-*   **Strict Typing:** Powered by Pydantic V2 (PEP 649) and `Annotated` schemas.
-*   **Observability:** Distributed tracing via **Logfire**.
+## 🏛️ Architecture (The "Spine")
 
-## Navigation
+The system is built on a strictly typed, distributed execution model.
 
-### Architecture
-*   [System Architecture](architecture.md) - The Modular Async Monolith.
-*   [Architecture Analysis](architecture_analysis.md) - Deep dive into Async Workers, RAG, and Causal layers.
-*   [Cognitive Whitepaper](structured_cognitive_architecture.md) - The theory behind the 12 agents.
+*   **[System Architecture](architecture.md)**
+    The authoritative master reference for the V2.9 Modular Async Monolith.
+*   **[Architecture Analysis](architecture_analysis.md)**
+    Deep dive into the Async Worker pattern, Timeout Decoupling, and Scalability.
+*   **[Management Architecture](management_architecture.md)**
+    Admin Panel, Tenant Isolation, and RBAC strategies.
+*   **[Data Management](data_management.md)**
+    Database schemas, Optimistic Locking, and Dual-Database persistence (TinyDB/Firestore).
 
-### Implementation
-*   [Components](components.md) - Agents, Workers, and Hooks reference.
-*   [Data Management](data_management.md) - Database structure and Optimistic Locking.
-*   [Prompt Engineering](prompt_engineering.md) - Jinja2 + Pydantic strategy.
-*   [API Models & Schemas](api_models.md) - Strict Pydantic V2 definitions.
-*   [API Reference](reference.md) - Endpoints and Directory Structure.
-*   [Testing Strategy](test_strategy.md) - Comprehensive Testing Guide (Backend & Client).
-*   [Seed Data & Sync](seed_data.md) - Database management and Source of Truth.
+---
 
+## 🧠 Cognitive System (The "Mind")
 
+How the AI reasons, grounds itself, and maintains continuity.
 
-## Quick Start
+*   **[Structured Cognitive Architecture](structured_cognitive_architecture.md)**
+    The core philosophy: "Separation of Mind and Spine", BARS Scoring, and the 12-Agent Pipeline.
+*   **[Prompt Engineering](prompt_engineering.md)**
+    The "Sandwich" Strategy, Jinja2 Templates, and "Thinking Token" extraction.
+*   **[Workflow Data Architecture](workflow_data_architecture.md)**
+    Data contracts between agents (`TodistusKartta`, `ArgumentaatioAnalyysi`).
+
+---
+
+## 🛠️ Implementation (The "Hand")
+
+Technical references for the code that powers the system.
+
+*   **[API Models & Schemas](api_models.md)**
+    Strict Pydantic V2 definitions for `WorkflowState` and Agent Input/Output.
+*   **[Components Registry](components.md)**
+    Reference for all 12 Agents, Deterministic Hooks, and Tools.
+*   **[Hooks & Tools](hooks.md)**
+    Documentation for the deterministic Python functions (Search, Math, PII).
+*   **[Seed Data & Sync](seed_data.md)**
+    The "Unidirectional Data Flow" strategy for configuration management.
+*   **[API Reference](reference.md)**
+    Endpoints, Directory Structure, and Swagger documentation.
+
+---
+
+## ✅ Quality & Verification
+
+Strategies for ensuring the system works as expected without "Magic".
+
+*   **[Simplified Verification Strategy](simplified_verification_strategy.md)**
+    The "Zero-Magic" testing philosophy: `pytest`, `unittest.mock`, and `mocktail`.
+*   **[Test Strategy](test_strategy.md)**
+    Detailed commands for running Backend (Unit/Integration) and Frontend tests.
+
+---
+
+## 🚀 Development Guides
+
+*   **[Product Roadmap](product_roadmap.md)**
+    Current status (V2.9), active tasks, and future milestones.
+*   **[Flutter Development Guide](flutterpromptohje.md)**
+    Standards for the Frontend "Thick Client" (Riverpod, Localization, Widgets).
+
+---
+
+## ⚡ Quick Start
 
 1.  **Sync Dependencies**: `uv sync`
 2.  **Start Infrastructure**: `docker-compose up -d redis`
 3.  **Run API**: `uv run uvicorn backend.main:app --reload`
-4.  **Run Worker**: `uv run python -m backend.run_worker`
+4.  **Run Worker**: `uv run backend/worker.py`
 5.  **Run Client**: `cd client_app && flutter run`
-6.  **API Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
-7.  **Project Docs**: `uv run mkdocs serve` (http://localhost:8001)
+6.  **Read the Docs**: `uv run mkdocs serve` (http://localhost:8001)
+
+---
+
+*(C) 2024-2026 Risto Launis / Cognitive Quorum Team*
