@@ -59,7 +59,7 @@ graph TD
     
     %% Path B Flows
     Analyst -->|TodistusKartta| Panel
-    Panel -->|PanelAudit (All-in-One)| Archivist
+    Panel -- "PanelAudit (All-in-One)" --> Archivist
     
     %% Rejoining
     Guard -->|SafeData| Archivist
