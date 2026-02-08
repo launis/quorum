@@ -39,7 +39,7 @@ graph TD
     end
     
     Archivist[Step 6: Archivist Agent]
-    JudgeStandard[Step 7: Judge (Standard Matrix)]
+    JudgeStandard["Step 7: Judge (Standard Matrix)"]
     Coach[Step 9: Coach Agent]
     XAI[Step 11: XAI Reporter]
     
