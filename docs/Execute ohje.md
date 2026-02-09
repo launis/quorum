@@ -64,10 +64,11 @@
         1.  Backend Dependencies (if any).
         2.  Backend Core/Models (Pydantic + x-ui-label).
         3.  Backend L10n Updates (JSON files).
-        4.  Backend API/Router.
-        5.  Frontend Models (Freezed) & Repository.
-        6.  Frontend Controller (Riverpod + Optimistic Logic).
-        7.  Frontend UI (Widgets/Screens - Master/Detail).
+        4.  Backend Repositories (TinyDB & Firestore - Dual Impl).
+        5.  Backend API/Router.
+        6.  Frontend Models (Freezed) & Repository.
+        7.  Frontend Controller (Riverpod + Optimistic Logic).
+        8.  Frontend UI (Widgets/Screens - Master/Detail).
 
 3.  **Strict File Scoping (Anti-Hallucination):**
     -   Each prompt header MUST explicitly list files in two categories:
@@ -118,3 +119,9 @@
     -   **Python:** `ruff check <target_files> --fix` -> `mypy <target_files>` -> `pytest <test_file>`.
     -   **Flutter:** `dart format <target_files>` -> `dart analyze <target_files>` -> `flutter test <test_file>`.
     -   **Rule:** Fix ALL errors before marking the step as complete.
+
+7.  **DATA PERSISTENCE & PARITY (Dual Backend):**
+    -   **Strict Requirement:** ANY database modification MUST be implemented in BOTH:
+        -   `backend/database/repository.py` (TinyDB)
+        -   `backend/database/firestore_repo.py` (Firebase/Firestore)
+    -   **Constraint:** Maintain strict parity between Local and Cloud implementations.

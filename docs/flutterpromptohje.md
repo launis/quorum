@@ -223,9 +223,11 @@ The `seed_data.json` file MUST adhere to the **Single Source of Truth (SSOT)** p
 
 ## 💾 PART 6: DATA ARCHITECTURE & SEEDING PROTOCOLS
 
-1.  **Repository Parity Mandate**:
-    *   **Dual Repos**: `firestore_repo.py` (Truth) and `repository.py` (Dev) MUST be strictly synchronized.
-    *   **Feature Parity**: Any method added to one MUST be added to the other.
+1.  **Repository Parity Mandate (Dual Backend)**:
+    *   **Strict Requirement**: ANY database modification MUST be implemented in BOTH:
+        -   `backend/database/repository.py` (TinyDB)
+        -   `backend/database/firestore_repo.py` (Firebase/Firestore)
+    *   **Constraint**: Maintain strict parity between Local and Cloud implementations.
 
 2.  **Seeding Authority**:
     *   **Master Seed**: `backend/seed/seed_data.json` is the authoritative baseline.
