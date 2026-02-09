@@ -72,8 +72,6 @@ class JudgeAgent(BaseAgent):
         # (LLM often returns the Matrix Name "Kognitiivinen..." instead of ID "matrix_standard_v1")
         if execution_context and "matrix_id" in execution_context:
             result["matrix_id"] = execution_context["matrix_id"]
-        elif "matrix_id" not in result:
-             result["matrix_id"] = "unknown_matrix"
 
         # STRICT SCALE ENFORCEMENT (User Mandate: "ikinä ei saa palata default arvoihin")
         # We must fetch the Truth from the Database. If we can't, we crash.
@@ -109,16 +107,12 @@ class JudgeAgent(BaseAgent):
 
         if "critical_findings" not in result:
             result["critical_findings"] = []
-        if "dimensions" not in result:
-            result["dimensions"] = []
-        if "total_score" not in result:
-            result["total_score"] = 0
 
         # --- USER REQUEST: Semantic Labels in Reports ---
         # Populate 'dimension_label' using the source of truth (DB Component).
         # result["dimensions"] has [{dimension_id, score, ...}]
         # comp["content"]["criteria"] has [{id, label, ...}]
-        if result["dimensions"] and comp and comp.get("content"):
+        if "dimensions" in result and result["dimensions"] and comp and comp.get("content"):
             criteria_list = comp["content"].get("criteria", [])
             # Create lookup map: id -> label
             label_map = {}
@@ -214,20 +208,13 @@ class JudgeAgent(BaseAgent):
 
         # 2. Evidence Collection (Config-Driven + Auto-Discovery)
         # Scan state for known critic outputs defined in configuration.
-        # Fallback to hardcoded list if config is missing (Safety Net).
+        # Fallback to hardcoded list if config is missing (Safety Net) -> REMOVED per user request
         monitored_steps = config.get("monitored_steps")
         if not monitored_steps:
-             logger.warning("[JudgeAgent] 'monitored_steps' missing in config. Using fallback allowlist.")
-             monitored_steps = {
-                "step_profiler": "PROFILOIJA (BIAS AUDIT)",
-                "step_logician": "LOOGIKKO (LOGIC AUDIT)",
-                "step_falsifier": "FALSIFIOIJA (CRITICAL AUDIT)",
-                "step_causal": "KAUSAALINEN (IMPACT AUDIT)",
-                "step_detector": "PERFORMATIIVISUUS (ILLUSION AUDIT)",
-                "step_overseer": "VALVOJA (FACTUAL AUDIT)",
-                "step_archivist": "ARKISTONHOITAJA (BEST PRACTICES)",
-                "step_panel": "PANEELIN HAVAINNOT (PANEL AUDIT)"
-            }
+             # FAIL FAST: monitored_steps is MANDATORY.
+             msg = "JUDGE_CONFIGURATION_INVALID: 'monitored_steps' missing in config."
+             logger.error(msg)
+             raise AgentExecutionError(detail="JUDGE_CONFIGURATION_INVALID", original_error=ValueError(msg))
 
         found_evidence_count = 0
         for key, title in monitored_steps.items():

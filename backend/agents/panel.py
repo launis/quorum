@@ -53,15 +53,18 @@ class PanelAgent(BaseAgent):
         # Collect all relevant data for all potential critics from inputs
         # Maps keys if they exist in input_data
 
-        # Safe access helper
-        def safe_get(key, default="Ei saatavilla"):
-             return input_data.get(key) or default
+        # Strict Validation Helper (Fail-Safe)
+        def strict_get(key):
+             val = input_data.get(key)
+             if not val:
+                 raise ValueError(f"PanelAgent: Mandatory input '{key}' missing.")
+             return val
 
         prompt_input_data = {
             "inputs": {
-                "history_text": safe_get("history_text"),
-                "product_text": safe_get("product_text"),
-                "reflection_text": safe_get("reflection_text"),
+                "history_text": strict_get("history_text"),
+                "product_text": strict_get("product_text"),
+                "reflection_text": input_data.get("reflection_text"), # Optional, no default text
             }
         }
 
@@ -73,21 +76,24 @@ class PanelAgent(BaseAgent):
             prompt_input_data["profiili"] = input_data["step_profiler"]
 
         # Add aux data if relevant (like search results)
-        google_search_results = "Ei hakutuloksia."
+        # REMOVED default value "Ei hakutuloksia" per strict requirements.
+        google_search_results = None
         if auxiliary_data and "google_search_results" in auxiliary_data:
              google_search_results = auxiliary_data["google_search_results"]
         # Also check input_data just in case
         elif "google_search_results" in input_data:
              google_search_results = input_data["google_search_results"]
 
+        search_section = ""
+        if google_search_results:
+             search_section = f"\nULKOISEN FAKTANTARKISTUKSEN TULOKSET:\n{google_search_results}\n---"
+
         return f"""
         INPUT DATA FOR THE PANEL:
         ---
         {json.dumps(prompt_input_data, indent=2, ensure_ascii=False)}
         ---
-        ULKOISEN FAKTANTARKISTUKSEN TULOKSET (jos saatavilla):
-        {google_search_results}
-        ---
+        {search_section}
         """
 
     async def execute(
