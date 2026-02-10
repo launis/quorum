@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from backend.agents.base import BaseAgent
 
 # 3. Local Imports
-from backend.models.domain import TodistusKartta
+from backend.models.domain import AnalystOutput
 from backend.models.state import WorkflowState
 
 if TYPE_CHECKING:
@@ -33,16 +33,16 @@ class AnalystAgent(BaseAgent):
     # Contracts
     REQUIRES_KEYS = ["history_text", "product_text", "reflection_text"]
     PRODUCES_KEYS = ["step_analyst"]
-    OUTPUT_SCHEMA = TodistusKartta
+    OUTPUT_SCHEMA = AnalystOutput
 
     def get_response_schema(self) -> type[BaseModel] | None:
         """Returns the Pydantic model for the agent's expected output.
 
         Returns:
-            Optional[Type[BaseModel]]: The TodistusKartta schema.
+            Optional[Type[BaseModel]]: The AnalystOutput schema.
 
         """
-        return TodistusKartta
+        return AnalystOutput
 
     async def execute(
         self,

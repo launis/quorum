@@ -66,7 +66,7 @@ class SseClient {
           for (final line in lines) {
             if (line.isNotEmpty) {
                // Temporary Debug Logging
-               print('SSE RAW: $line'); 
+               // print('SSE RAW: $line'); 
             }
             // Filter lines starting with data:
             if (line.startsWith('data:')) {
@@ -75,14 +75,14 @@ class SseClient {
               if (rawData.isNotEmpty) {
                 try {
                   final json = jsonDecode(rawData);
-                  print('SSE Decoded Type: ${json.runtimeType}');
+                  // print('SSE Decoded Type: ${json.runtimeType}');
                   if (json is Map<String, dynamic>) {
                     yield parser(json);
                   } else {
-                    print('SSE Type Mismatch: Expected Map<String, dynamic>, got ${json.runtimeType}');
+                    // print('SSE Type Mismatch: Expected Map<String, dynamic>, got ${json.runtimeType}');
                   }
                 } catch (e) {
-                  print('SSE JSON Decode Error: $e');
+                  // print('SSE JSON Decode Error: $e');
                   // Ignore malformed JSON strings as per "Parse valid JSON strings" instruction
                 }
               }

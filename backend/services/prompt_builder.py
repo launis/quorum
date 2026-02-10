@@ -56,7 +56,8 @@ class PromptBuilder:
 
                 # State Variables
                 if current_state:
-                    content = self._inject_state_variables(content, current_state)
+                    step_name = step_data.get("name", step_data.get("id", "Unknown"))
+                    content = self._inject_state_variables(content, current_state, step_name)
 
                 # Global Variables
                 content = await self._inject_global_variables(content)
@@ -164,7 +165,7 @@ class PromptBuilder:
 
         return content
 
-    def _inject_state_variables(self, content: str, state: WorkflowState) -> str:
+    def _inject_state_variables(self, content: str, state: WorkflowState, step_name: str = "Unknown") -> str:
         """Injects dynamic values from the WorkflowState.
 
         Handles History, Product, Reflection, and previous outputs.
@@ -172,16 +173,30 @@ class PromptBuilder:
         Args:
             content (str): The prompt content.
             state (WorkflowState): The current state.
+            step_name (str): Name of the current step.
 
         Returns:
             str: Content with state variables injected.
         """
+        inputs = state.context_variables.get("inputs", {})
+        if not isinstance(inputs, dict):
+            inputs = {}
+
+        # 1. Summarize Previous Outputs
+        # We use context_variables as the source of truth for step outputs
+        prev_summary = []
+        for key, val in state.context_variables.items():
+            if key == "inputs":
+                continue
+            prev_summary.append(f"{key}: {str(val)[:200]}...")  # Truncate for prompt context
+        prev_summary_str = "\n".join(prev_summary)
+
         replacements = {
-            "{{CURRENT_STEP_NAME}}": state.current_step_name or "Unknown",
-            "{{HISTORY_TEXT}}": state.inputs.history_text,
-            "{{PRODUCT_TEXT}}": state.inputs.product_text,
-            "{{REFLECTION_TEXT}}": state.inputs.reflection_text,
-            "{{PREVIOUS_STEP_OUTPUTS}}": state.get_previous_outputs_summary(),
+            "{{CURRENT_STEP_NAME}}": step_name,
+            "{{HISTORY_TEXT}}": inputs.get("history_text", "N/A"),
+            "{{PRODUCT_TEXT}}": inputs.get("product_text", "N/A"),
+            "{{REFLECTION_TEXT}}": inputs.get("reflection_text", "N/A"),
+            "{{PREVIOUS_STEP_OUTPUTS}}": prev_summary_str,
         }
 
         for key, value in replacements.items():
@@ -189,11 +204,12 @@ class PromptBuilder:
                 content = content.replace(key, str(value))
 
         if "{{GOOGLE_SEARCH_RESULTS}}" in content:
-            search_res = state.aux_data.get("google_search_results", "[]")
+            # Look in context_variables for specific keys or derived data
+            search_res = state.context_variables.get("google_search_results", "[]")
             content = content.replace("{{GOOGLE_SEARCH_RESULTS}}", str(search_res))
 
         if "{{PROFILER_METRICS}}" in content:
-            metrics = state.aux_data.get("profiler_metrics", {})
+            metrics = state.context_variables.get("profiler_metrics", {})
             content = content.replace("{{PROFILER_METRICS}}", json.dumps(metrics, indent=2))
 
         return content
@@ -283,10 +299,11 @@ class PromptBuilder:
             task_key = step_data.get("task_key")
             if task_key:
                 from backend.core.registry import TaskRegistry
+
                 task_def = TaskRegistry.get(task_key)
                 if task_def and task_def.metadata:
                     agent_class = task_def.metadata.get("agent_class")
-        
+
         if not agent_class:
             agent_class = "UnknownAgent"
 
@@ -330,18 +347,19 @@ class PromptBuilder:
             # Fetch step name/component for header
             s_rec = await self.repository.get_step_by_id(step_id)
             step_name = s_rec.get("name", s_rec.get("id", step_id)) if s_rec else step_id
-            
+
             component = "Unknown"
             if s_rec:
-                component = s_rec.get("component")
+                component = str(s_rec.get("component") or "Unknown")
                 if not component or component == "UnknownAgent":
                     task_key = s_rec.get("task_key")
                     if task_key:
                         from backend.core.registry import TaskRegistry
+
                         task_def = TaskRegistry.get(task_key)
                         if task_def and task_def.metadata:
                             component = task_def.metadata.get("agent_class", task_key)
-            
+
             full_chain.append(f"## Step {i + 1}: {step_name} ({component})")
             full_chain.append("-" * 40)
             full_chain.append(prompt if prompt else "(No Prompt Configured)")

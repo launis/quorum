@@ -7,7 +7,7 @@ Generates Hypotheses and RAG evidence needs.
 import logging
 
 from backend.core.registry import TaskRegistry
-from backend.models.domain import TodistusKartta
+from backend.models.domain import AnalystOutput
 
 logger = logging.getLogger(__name__)
 
@@ -21,16 +21,16 @@ from backend.agents.analyst import AnalystAgent
 TaskRegistry.register_agent(
     task_keys=["analyst"],
     agent_cls=AnalystAgent,
-    output_model=TodistusKartta
+    output_model=AnalystOutput
 )
 
 
 # --- Class-Based Agent Registration ---
 
 from backend.agents.logician import LogicianAgent
-from backend.models.domain import ArgumentaatioAnalyysi
+from backend.models.domain import LogicianData
 
-TaskRegistry.register_agent(task_keys=["logician"], agent_cls=LogicianAgent, output_model=ArgumentaatioAnalyysi)
+TaskRegistry.register_agent(task_keys=["logician"], agent_cls=LogicianAgent, output_model=LogicianData)
 
 from backend.agents.profiler import ProfilerAgent
 from backend.models.domain import ProfilerAnalysis

@@ -73,6 +73,7 @@
   "waitingToStart": "Waiting to start...",
   "executionStarted": "Execution Started...",
   "executionFailed": "Execution Failed: {error}",
+  "executionRejected": "Execution Rejected: {error}",
   "unknownState": "Unknown State",
   "downloadNotImplemented": "Download not implemented yet",
   "detailsComingSoon": "Details view coming soon...",

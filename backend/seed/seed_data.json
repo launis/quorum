@@ -374,13 +374,13 @@
       "type": "task"
     },
     {
-      "content": "SINÄ TOIMIT SEURAAVANA ASIANTUNTIJAPANEELINA (Jokainen rooli analysoi saman aineiston):\n\nROOLI 1: Logician (Structure Audit)\n1. JÄSENNÄ käyttäjän prompti Toulmin-mallilla (Claim, Data, Warrant).\n2. ARVIOI onko prompti looginen vai pelkkä assosiaatioketju.\n3. RAJOITE: Perusta analyysi VAIN annettuun aineistoon. ÄLÄ käytä koulutusdatan geneerisiä esimerkkejä (kuten 'Kadut ovat märät').\nOUTPUT: logiikka_auditointi\n\nROOLI 2: Falsifier (Critical Loop)\n1. ETSI 'Iteraatiosilmukkaa' (Missä käyttäjä korjasi tekoälyä?).\n2. MERKITSE 'uskollisuus_score': 'HEIKKO' jos ei yhtään iteraatiota.\nOUTPUT: falsifiointi_auditointi\n\nROOLI 3: Causal Analyst (Impact)\n1. VERTAA versiota 1 ja viimeistä.\n2. MÄÄRITÄ johtuiko muutos käyttäjän EKSPLISIITTISESTÄ ohjeesta.\nOUTPUT: kausaalinen_auditointi\n\nROOLI 4: Performativity Detector (Illusion)\n1. ETSI 'Väsyneitä komentoja' ('Jatkan', 'Lisää').\n2. LIPUTA jos käyttäjä vain näyttelee ohjaavaa roolia.\nOUTPUT: performatiivisuus_auditointi\n\nROOLI 5: Factual Overseer (Hallucination)\n1. TARKISTA onko faktoja keksinyt AI vai Käyttäjä.\n2. VERTAA väitteitä 'ULKOISEN FAKTANTARKISTUKSEN TULOKSET' -osiossa annettuihin hakutuloksiin (jos saatavilla).\n3. JOS väite on ristiriidassa hakutulosten kanssa, kirjaa se virheeksi.\nOUTPUT: etiikka_ja_fakta\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (älä muuta kenttien nimiä):\n{{SCHEMA_EXAMPLE}}",
+      "content": "SINÄ TOIMIT SEURAAVANA ASIANTUNTIJAPANEELINA (Jokainen rooli analysoi saman aineiston):\n\nROOLI 1: Logician (Structure Audit)\n1. JÄSENNÄ käyttäjän prompti Toulmin-mallilla (Claim, Data, Warrant).\n2. ARVIOI onko prompti looginen vai pelkkä assosiaatioketju.\n3. RAJOITE: Perusta analyysi VAIN annettuun aineistoon. ÄLÄ käytä koulutusdatan geneerisiä esimerkkejä (kuten 'Kadut ovat märät').\nOUTPUT: logician_data\n\nROOLI 2: Falsifier (Critical Loop)\n1. ETSI 'Iteraatiosilmukkaa' (Missä käyttäjä korjasi tekoälyä?).\n2. MERKITSE 'uskollisuus_score': 'HEIKKO' jos ei yhtään iteraatiota.\nOUTPUT: falsifier_data\n\nROOLI 3: Causal Analyst (Impact)\n1. VERTAA versiota 1 ja viimeistä.\n2. MÄÄRITÄ johtuiko muutos käyttäjän EKSPLISIITTISESTÄ ohjeesta.\nOUTPUT: causal_analysis\n\nROOLI 4: Performativity Detector (Illusion)\n1. ETSI 'Väsyneitä komentoja' ('Jatkan', 'Lisää').\n2. LIPUTA jos käyttäjä vain näyttelee ohjaavaa roolia.\nOUTPUT: performativity_analysis\n\nROOLI 5: Factual Overseer (Hallucination)\n1. TARKISTA onko faktoja keksinyt AI vai Käyttäjä.\n2. VERTAA väitteitä 'ULKOISEN FAKTANTARKISTUKSEN TULOKSET' -osiossa annettuihin hakutuloksiin (jos saatavilla).\n3. JOS väite on ristiriidassa hakutulosten kanssa, kirjaa se virheeksi.\nOUTPUT: overseer_data\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (älä muuta kenttien nimiä):\n{{SCHEMA_EXAMPLE}}",
       "description": "Panel Agent - Unified Critics",
       "id": "TASK_PANEL",
       "type": "task"
     },
     {
-      "content": "VAIHE 13: XAI-RAPORTOIJA (XAI REPORTER)\n\nSINUN TEHTÄVÄSI:\nToimit Järjestelmän XAI-Raportoijana (Explainable AI). Tehtäväsi on selittää käyttäjälle *miksi* hän sai tietyn tuomion ja *miten* järjestelmä päätyi lopputulokseen.\n\nOHJEET:\n1. **TIIVISTÄ PROSESSI**: Kerro lyhyesti, mitä vaiheita (Guard -> Judge -> Coach) syöte kävi läpi.\n2. **SELITÄ PÄÄTÖS (DRIVERS LICENSE)**:\n   - Jos hylätty (1-2p): Selitä, että syöte oli liian passiivinen (\"Matkustaja\").\n   - Jos hyväksytty (3-4p): Selitä, mitkä elementit tekivät siitä \"Kuljettajan\" syötteen.\n3. **AVAIMET JATKOON**: Viittaa Coachin antamaan \"CoachingPlan\"-suunnitelmaan.\\n4. **VERSION COMPATIBILITY**: Support ALL matrix versions (Standard V1 & Cognitive V2). DO NOT reject input based on version mismatch.\\n\\nTÄYTÄ SCHEMA: `XAIReport`\n- `executive_summary`: Johdon yhteenveto päätöksestä.\n- `final_verdict`: Lopullinen tuomio selkokielellä.\n- `confidence_score`: Kuinka varma järjestelmä on arviostaan (0.0 - 1.0).\n\n{{SCHEMA_EXAMPLE}}",
+      "content": "VAIHE 13: XAI-RAPORTOIJA (XAI REPORTER)\n\nSINUN TEHTÄVÄSI:\nToimit Järjestelmän XAI-Raportoijana (Explainable AI). Tehtäväsi on selittää käyttäjälle *miksi* hän sai tietyn tuomion ja *miten* järjestelmä päätyi lopputulokseen.\n\nOHJEET:\n1. **TIIVISTÄ PROSESSI**: Kerro lyhyesti, mitä vaiheita (Guard -> Judge -> Coach) syöte kävi läpi.\n2. **SELITÄ PÄÄTÖS (DRIVERS LICENSE)**:\n   - Jos hylätty (1-2p): Selitä, että syöte oli liian passiivinen (\"Matkustaja\").\n   - Jos hyväksytty (3-4p): Selitä, mitkä elementit tekivät siitä \"Kuljettajan\" syötteen.\n3. **AVAIMET JATKOON**: Viittaa Coachin antamaan \"CoachingPlan\"-suunnitelmaan.\\n4. **VERSION COMPATIBILITY**: Support ALL matrix versions (Standard V1 & Cognitive V2). DO NOT reject input based on version mismatch.\\n\\nTÄYTÄ SCHEMA: `XAIOutput`\n- `executive_summary`: Johdon yhteenveto päätöksestä.\n- `final_verdict`: Lopullinen tuomio selkokielellä.\n- `confidence_score`: Kuinka varma järjestelmä on arviostaan (0.0 - 1.0).\n\n{{SCHEMA_EXAMPLE}}",
       "description": "XAI Reporter - License Certification",
       "id": "TASK_XAI",
       "type": "task"
@@ -506,11 +506,11 @@
     },
     {
       "content": [
-        "logiikka_auditointi",
-        "falsifiointi_auditointi",
-        "kausaalinen_auditointi",
-        "performatiivisuus_auditointi",
-        "etiikka_ja_fakta"
+        "logician_data",
+        "falsifier_data",
+        "causal_analysis",
+        "performativity_analysis",
+        "overseer_data"
       ],
       "description": "Standard fields to hoist for Panel Audit.",
       "id": "PANEL_OUTPUT_CONFIG",
@@ -797,7 +797,7 @@
         { "id": "step_judge", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "todistus_kartta": "$step_analyst", "step_profiler": "$step_profiler", "step_logician": "$step_logician", "step_falsifier": "$step_falsifier", "step_causal": "$step_causal", "step_detector": "$step_detector", "step_overseer": "$step_overseer", "step_archivist": "$step_archivist" } },
         { "id": "step_coach", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "tuomio": "$step_judge" } },
         { "id": "step_context", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text" } },
-        { "id": "step_xai", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "tuomio": "$step_judge", "coaching_plan": "$step_coach" } }
+        { "id": "step_xai", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "tuomio": "$step_judge", "coaching_plan": "$step_coach" }, "config": { "post_hooks": ["generate_report"] } }
       ],
       "created_at": "2026-01-01T00:00:00",
       "updated_at": "2026-01-25T23:48:39+02:00"
@@ -823,7 +823,7 @@
         { "id": "step_judge", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "todistus_kartta": "$step_analyst", "step_profiler": "$step_profiler", "step_archivist": "$step_archivist", "panel_audit": "$step_panel" } },
         { "id": "step_coach", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "tuomio": "$step_judge" } },
         { "id": "step_context", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text" } },
-        { "id": "step_xai", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "tuomio": "$step_judge", "coaching_plan": "$step_coach" } }
+        { "id": "step_xai", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "tuomio": "$step_judge", "coaching_plan": "$step_coach" }, "config": { "post_hooks": ["generate_report"] } }
       ],
       "created_at": "2026-01-01T00:00:00",
       "updated_at": "2026-01-25T23:48:39+02:00"
@@ -950,6 +950,7 @@
       "description": "Imported from sequential_audit_chain",
       "task_key": "analyst",
       "config": {
+        "output_schema": "AnalystOutput",
         "llm_prompts": [
           "GLOBAL_CONTEXT",
           "HEADER_MANDATES",
@@ -982,6 +983,7 @@
       "description": "Imported from sequential_audit_chain",
       "task_key": "archivist",
       "config": {
+        "output_schema": "AnalystOutput",
         "llm_prompts": [
           "GLOBAL_CONTEXT",
           "HEADER_MANDATES",
@@ -1026,6 +1028,7 @@
       "description": "Imported from sequential_audit_chain",
       "task_key": "causal",
       "config": {
+        "output_schema": "PanelOutput",
         "llm_prompts": [
           "GLOBAL_CONTEXT",
           "HEADER_MANDATES",
@@ -1055,6 +1058,7 @@
       "description": "Imported from sequential_audit_chain",
       "task_key": "coach",
       "config": {
+        "output_schema": "XAIOutput",
         "llm_prompts": [
           "GLOBAL_CONTEXT",
           "HEADER_MANDATES",
@@ -1099,6 +1103,7 @@
       "description": "Imported from sequential_audit_chain",
       "task_key": "retrieve_context",
       "config": {
+        "output_schema": "AnalystOutput",
         "llm_prompts": [],
         "model_strategy": "strict"
       },
@@ -1114,6 +1119,7 @@
       "description": "Imported from sequential_audit_chain",
       "task_key": "detector",
       "config": {
+        "output_schema": "PanelOutput",
         "llm_prompts": [
           "GLOBAL_CONTEXT",
           "HEADER_MANDATES",
@@ -1158,6 +1164,7 @@
       "description": "Imported from sequential_audit_chain",
       "task_key": "falsifier",
       "config": {
+        "output_schema": "PanelOutput",
         "llm_prompts": [
           "GLOBAL_CONTEXT",
           "HEADER_MANDATES",
@@ -1188,6 +1195,7 @@
       "description": "Imported from sequential_audit_chain",
       "task_key": "guard",
       "config": {
+        "output_schema": "GuardOutput",
         "llm_prompts": [
           "GLOBAL_CONTEXT",
           "HEADER_MANDATES",
@@ -1220,6 +1228,7 @@
       "description": "Imported from sequential_audit_chain",
       "task_key": "interaction",
       "config": {
+        "output_schema": "AnalystOutput",
         "llm_prompts": [
           "GLOBAL_CONTEXT",
           "HEADER_MANDATES",
@@ -1250,6 +1259,7 @@
       "description": "Imported from sequential_audit_chain",
       "task_key": "judge",
       "config": {
+        "output_schema": "JudgeOutput",
         "llm_prompts": [
           "GLOBAL_CONTEXT",
           "HEADER_MANDATES",
@@ -1304,6 +1314,7 @@
       "description": "Imported from sequential_audit_chain_cognitive",
       "task_key": "judge",
       "config": {
+        "output_schema": "JudgeOutput",
         "llm_prompts": [
           "GLOBAL_CONTEXT",
           "HEADER_MANDATES",
@@ -1358,6 +1369,7 @@
       "description": "Imported from sequential_audit_chain",
       "task_key": "logician",
       "config": {
+        "output_schema": "LogicianOutput",
         "llm_prompts": [
           "GLOBAL_CONTEXT",
           "HEADER_MANDATES",
@@ -1389,6 +1401,7 @@
       "description": "Imported from sequential_audit_chain",
       "task_key": "overseer",
       "config": {
+        "output_schema": "PanelOutput",
         "llm_prompts": [
           "GLOBAL_CONTEXT",
           "HEADER_MANDATES",
@@ -1436,6 +1449,7 @@
       "description": "Imported from fused_audit_chain",
       "task_key": "panel",
       "config": {
+        "output_schema": "PanelOutput",
         "llm_prompts": [
           "GLOBAL_CONTEXT",
           "HEADER_MANDATES",
@@ -1465,6 +1479,7 @@
       "description": "Imported from sequential_audit_chain",
       "task_key": "profiler",
       "config": {
+        "output_schema": "AnalystOutput",
         "llm_prompts": [
           "GLOBAL_CONTEXT",
           "HEADER_MANDATES",
@@ -1493,6 +1508,7 @@
       "description": "Imported from sequential_audit_chain",
       "task_key": "xai",
       "config": {
+        "output_schema": "XAIOutput",
         "llm_prompts": [
           "GLOBAL_CONTEXT",
           "HEADER_MANDATES",
@@ -1538,6 +1554,7 @@
        "description": "RAG Retrieval",
        "task_key": "retrieve_context",
        "config": {
+         "output_schema": "AnalystOutput",
          "model_strategy": "deep",
          "llm_prompts": [
             "GLOBAL_CONTEXT",

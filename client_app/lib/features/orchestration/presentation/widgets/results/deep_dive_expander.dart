@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
 
 class DeepDiveExpander extends StatelessWidget {
   final String title;
@@ -28,19 +29,24 @@ class DeepDiveExpander extends StatelessWidget {
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
         ),
       ),
-      child: ExpansionTile(
-        initiallyExpanded: initiallyExpanded,
-        shape: const Border(), // Remove internal border
-        collapsedShape: const Border(),
-        leading: Icon(icon, color: theme.colorScheme.primary),
-        title: Text(
-          title,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
         ),
-        childrenPadding: const EdgeInsets.all(16),
-        children: [child],
+      ),
+      child: Semantics(
+        excludeSemantics: Platform.isWindows,
+        child: ExpansionTile(
+          initiallyExpanded: initiallyExpanded,
+          shape: const Border(), // Remove internal border
+          collapsedShape: const Border(),
+          leading: Icon(icon, color: theme.colorScheme.primary),
+          title: Text(
+            title,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          childrenPadding: const EdgeInsets.all(16),
+          children: [child],
+        ),
       ),
     );
   }

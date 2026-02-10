@@ -19,6 +19,35 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
     def __init__(self, client: firestore.AsyncClient):
         self.db = client
 
+    # --- Helper: Universal Serializer (Parity with TinyDB) ---
+    def _serialize_for_firestore(self, data: dict[str, Any] | list | Any) -> Any:
+        """Recursively converts datetime, UUID, and Pydantic objects to JSON-safe types."""
+        import uuid
+        from datetime import datetime
+
+        # Check for PyDantc model first
+        if hasattr(data, "model_dump"):
+            return self._serialize_for_firestore(data.model_dump())
+
+        if isinstance(data, datetime):
+            # Firestore can handle datetime, but for purity/parity we might want ISO string?
+            # Actually Firestore native types are better for querying.
+            # But prompt requested "Ensure WorkflowState is correctly serialized to JSON/Dict"
+            # And "Ensure TraceEvent list is stored correctly."
+            # If we serialize to JSON-dict (dict with only primitives), we are safe.
+            return data.isoformat()
+
+        if isinstance(data, uuid.UUID):
+            return str(data)
+
+        if isinstance(data, dict):
+            return {k: self._serialize_for_firestore(v) for k, v in data.items()}
+
+        if isinstance(data, list):
+            return [self._serialize_for_firestore(v) for v in data]
+
+        return data
+
     async def get_execution(self, execution_id: str) -> dict[str, Any] | None:
         doc_ref = self.db.collection("executions").document(execution_id)
         doc = await doc_ref.get()
@@ -36,25 +65,27 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
         return None
 
     async def create_execution(self, execution_data: dict[str, Any]) -> str:
+        # Serializer for safety
+        safe_data = self._serialize_for_firestore(execution_data)
+
         # If ID not provided, Firestore auto-generates, but we usually want to know it.
         # Ideally execution_data has 'execution_id' or we let firestore gen it.
         # Standard: use 'execution_id' key if present as doc ID.
-        if "execution_id" in execution_data:
-            doc_id = execution_data["execution_id"]
-            await self.db.collection("executions").document(doc_id).set(execution_data)
+        if "execution_id" in safe_data:
+            doc_id = safe_data["execution_id"]
+            await self.db.collection("executions").document(doc_id).set(safe_data)
             return doc_id
         else:
-            _, doc_ref = await self.db.collection("executions").add(execution_data)
+            _, doc_ref = await self.db.collection("executions").add(safe_data)
             return doc_ref.id
 
     async def update_execution(self, execution_id: str, updates: dict[str, Any]) -> bool:
         doc_ref = self.db.collection("executions").document(execution_id)
-        # Ensure generic state dicts are handled; Firestore accepts dicts natively.
-        # If updates contains complex objects, they must be serialized before calling this.
-        # But 'updates' usually comes from Engine which manages serialization if needed?
-        # Engine stores Pydantic dumps typically.
+
+        safe_updates = self._serialize_for_firestore(updates)
+
         try:
-            await doc_ref.update(updates)
+            await doc_ref.update(safe_updates)
             return True
         except Exception as e:
             logger.error(f"Firestore update failed: {e}")
@@ -83,10 +114,8 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
 
     async def log_audit_event(self, event_data: dict[str, Any]) -> None:
         """Log an audit event to Firestore."""
-        # Use a batch or direct write? Direct is fine for audit.
-        # Collection: 'audit_logs'
-        # document ID: event_data['id']
-        await self.db.collection("audit_logs").document(event_data["id"]).set(event_data)
+        safe_data = self._serialize_for_firestore(event_data)
+        await self.db.collection("audit_logs").document(safe_data["id"]).set(safe_data)
 
     async def get_audit_logs(
         self,
@@ -136,14 +165,15 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
         return None
 
     async def create_workflow(self, workflow_data: dict[str, Any]) -> str:
-        # workflow_data MUST have 'id'
-        doc_id = workflow_data["id"]
-        await self.db.collection("workflows").document(doc_id).set(workflow_data)
+        safe_data = self._serialize_for_firestore(workflow_data)
+        doc_id = safe_data["id"]
+        await self.db.collection("workflows").document(doc_id).set(safe_data)
         return doc_id
 
     async def update_workflow(self, workflow_id: str, updates: dict[str, Any]) -> bool:
+        safe_updates = self._serialize_for_firestore(updates)
         try:
-            await self.db.collection("workflows").document(workflow_id).update(updates)
+            await self.db.collection("workflows").document(workflow_id).update(safe_updates)
             return True
         except Exception as e:
             logger.error(f"Failed to update workflow {workflow_id}: {e}")
@@ -165,15 +195,17 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
         return doc.to_dict() if doc.exists else None
 
     async def create_step(self, step_data: dict[str, Any]) -> str:
-        doc_id = step_data.get("id")
+        safe_data = self._serialize_for_firestore(step_data)
+        doc_id = safe_data.get("id")
         if not doc_id:
             raise ValueError("Step ID missing")
-        await self.db.collection("steps").document(doc_id).set(step_data)
+        await self.db.collection("steps").document(doc_id).set(safe_data)
         return doc_id
 
     async def update_step(self, step_id: str, updates: dict[str, Any]) -> bool:
+        safe_updates = self._serialize_for_firestore(updates)
         try:
-            await self.db.collection("steps").document(step_id).update(updates)
+            await self.db.collection("steps").document(step_id).update(safe_updates)
             return True
         except Exception:
             return False
@@ -185,7 +217,9 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
         except Exception:
             return False
 
-    async def get_all_components(self, type: str | None = None, exclude_types: list[str] | None = None) -> list[dict[str, Any]]:
+    async def get_all_components(
+        self, type: str | None = None, exclude_types: list[str] | None = None
+    ) -> list[dict[str, Any]]:
         query = self.db.collection("components")
         if type:
             query = query.where("type", "==", type)
@@ -194,7 +228,7 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
         results = [doc.to_dict() async for doc in docs]
 
         if exclude_types:
-             results = [c for c in results if c.get("type") not in exclude_types]
+            results = [c for c in results if c.get("type") not in exclude_types]
 
         return results
 
@@ -264,6 +298,13 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
             logger.error(f"Failed to update component metadata {component_id}: {e}")
             return False
 
+    async def register_component(self, component_data: dict[str, Any]) -> str:
+        """Register a new component."""
+        safe_data = self._serialize_for_firestore(component_data)
+        doc_id = safe_data["id"]
+        await self.db.collection("components").document(doc_id).set(safe_data)
+        return doc_id
+
     async def get_banned_phrases(self) -> list[dict[str, Any]]:
         """Retrieve all banned phrases."""
         docs = await self.db.collection("banned_phrases").stream()
@@ -275,6 +316,8 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
         query = self.db.collection("banned_phrases").where("phrase", "==", phrase).limit(1)
         docs = await query.get()  # .get() is efficient for small limit
         if not docs:
+            # Serialized timestamp handled by Firestore SERVER_TIMESTAMP,
+            # but we use safe_data in other places. Here manual is fine.
             await self.db.collection("banned_phrases").add(
                 {"phrase": phrase, "language": language, "timestamp": firestore.SERVER_TIMESTAMP}
             )
@@ -336,9 +379,10 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
 
     async def update_model_registry(self, registry_data: dict[str, Any]) -> bool:
         """Update the model registry configuration."""
+        safe_data = self._serialize_for_firestore(registry_data)
         try:
             # Document must be 'model_registry'
-            await self.db.collection("system_config").document("model_registry").set(registry_data)
+            await self.db.collection("system_config").document("model_registry").set(safe_data)
             return True
         except Exception as e:
             logger.error(f"Firestore model registry update failed: {e}")
@@ -358,14 +402,16 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
 
     async def create_organization(self, org_data: dict[str, Any]) -> str:
         """Create a new organization."""
-        doc_id = org_data["id"]
-        await self.db.collection("organizations").document(doc_id).set(org_data)
+        safe_data = self._serialize_for_firestore(org_data)
+        doc_id = safe_data["id"]
+        await self.db.collection("organizations").document(doc_id).set(safe_data)
         return doc_id
 
     async def update_organization(self, org_id: str, updates: dict[str, Any]) -> bool:
         """Update an organization."""
+        safe_updates = self._serialize_for_firestore(updates)
         try:
-            await self.db.collection("organizations").document(org_id).update(updates)
+            await self.db.collection("organizations").document(org_id).update(safe_updates)
             return True
         except Exception as e:
             logger.error(f"Failed to update organization {org_id}: {e}")
@@ -461,3 +507,13 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
             logger.error(f"Failed to scan components for dimension usage: {e}")
 
         return matches
+
+    async def log_usage(self, record: Any) -> None:
+        """Log a usage record."""
+        safe_data = self._serialize_for_firestore(record)
+        # Use ID from record if available, otherwise auto-gen
+        doc_id = safe_data.get("id")
+        if doc_id:
+            await self.db.collection("usage").document(doc_id).set(safe_data)
+        else:
+            await self.db.collection("usage").add(safe_data)

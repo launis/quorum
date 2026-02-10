@@ -1,193 +1,85 @@
-"""Workflow State Management.
+"""Workflow State Management (Event Sourcing).
 
-This module defines the `WorkflowState` and `InputData` models, which serve as the
-"blackboard" or shared memory for the entire execution pipeline. It handles
-the persistence of agent outputs and the continuity of the reasoning process.
+This module defines the new Event Sourcing state model, replacing the old mutable blackboard.
+It uses an append-only log of `TraceEvent`s and a `ReasoningTrace` to capture cognitive processes.
 """
 
+import uuid
 from datetime import datetime, timezone
-from typing import Annotated, Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from backend.models.domain import (
-    EvaluationResult,
-    XAIReport,
-    TextMetrics,
-)
+
+class ReasoningTrace(BaseModel):
+    """Stores hidden Chain-of-Thought (preserves "Thinking Tokens")."""
+
+    thought_process: str = Field(description="The raw chain-of-thought or reasoning trace.")
+    conclusion: str = Field(description="The final conclusion derived from the reasoning.")
+    confidence_score: float = Field(ge=0.0, le=1.0, description="Confidence in the conclusion.")
+    model_name: str | None = Field(default=None, description="The model used for reasoning.")
+    token_usage: dict[str, int] = Field(default_factory=dict, description="Token usage statistics.")
+
+    model_config = ConfigDict(frozen=True)
 
 
-class InputData(BaseModel):
-    """Raw input data received from the user/API.
+class TraceEvent(BaseModel):
+    """Immutable event log item representing a distinct step or state change."""
 
-    Attributes:
-        history_text (str): Historical context (chat logs, previous events).
-        product_text (str): The primary artifact or text to be analyzed.
-        reflection_text (str): Self-reflection or meta-commentary provided by the user.
-        bibliography_context (Optional[list[str]]): Optional list of reference citations.
-    """
+    event_id: uuid.UUID = Field(default_factory=uuid.uuid4, description="Unique event identifier.")
+    timestamp: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc), description="Event timestamp."
+    )
 
-    history_text: Annotated[str, Field(min_length=1, description="Historical context (chat logs, previous events).")]
-    product_text: Annotated[str, Field(min_length=1, description="The primary artifact or text to be analyzed.")]
-    reflection_text: Annotated[str, Field(min_length=1, description="Self-reflection or meta-commentary provided by the user.")]
+    step_name: str = Field(
+        ...,
+        description="Name of the step that generated this event.",
+        json_schema_extra={"x-ui-label": "Step Name"}
+    )
 
-    # Optional bibliography context
-    bibliography_context: Annotated[list[str] | None, Field(description="Optional list of reference citations.")] = None
+    event_type: Literal["input", "reasoning", "decision", "error", "output"] = Field(
+        ...,
+        description="Type of the event.",
+        json_schema_extra={"x-ui-label": "Event Type"}
+    )
 
-    model_config = ConfigDict(validate_assignment=True)
+    content: dict[str, Any] = Field(
+        default_factory=dict, description="Structured content of the event."
+    )
+    reasoning: ReasoningTrace | None = Field(
+        default=None, description="Associated reasoning trace."
+    )
+    metadata: dict[str, Any] = Field(
+        default_factory=dict, description="Additional metadata."
+    )
+
+    model_config = ConfigDict(frozen=True)
 
 
 class WorkflowState(BaseModel):
-    """Represents the central "Blackboard" state for a workflow execution.
+    """Aggregate root containing the execution trace and current state."""
 
-    This state object persists in memory throughout the lifecycle of an execution,
-    serving as the shared data repository for all agents. It contains input data,
-    metadata, and the cumulative outputs of all executed steps.
+    execution_id: uuid.UUID = Field(
+        default_factory=uuid.uuid4, description="Unique execution identifier."
+    )
+    workflow_id: str = Field(..., description="The ID of the workflow definition.")
 
-    Attributes:
-        execution_id (str): Unique UUID for this execution instance.
-        workflow_id (Optional[str]): ID of the workflow definition being executed.
-        workflow_name (Optional[str]): Human-readable name of the workflow.
-        start_time (datetime): Timestamp when the execution began.
-        current_step_name (str): The identifier of the currently active step/agent.
-        version (int): Optimistic locking version.
-        organization_id (Optional[str]): Organization ID executing this workflow.
-        user_id (Optional[str]): User ID initiating this workflow.
-        inputs (InputData): Immutable input data provided at initialization.
-        step_results (Dict[str, Any]): Dynamic container for agent outputs.
-        xai_report_formatted (Optional[str]): Final markdown report cache.
-        audit_results (dict[str, EvaluationResult]): Dynamic container for matrix-based evaluations.
-        reasoning_context (dict): Storage for encrypted reasoning blobs with metadata.
-        last_reasoning_trace (Optional[str]): The encrypted reasoning token from the immediately preceding step.
-        aux_data (dict): Temporary storage for hooks and side-effects.
-    """
+    status: Literal["pending", "running", "completed", "failed"] = Field(
+        default="pending",
+        description="Current status of the workflow execution.",
+        json_schema_extra={"x-ui-label": "Status"}
+    )
 
-    # Metadata
-    execution_id: Annotated[str, Field(description="Unique UUID for this execution instance.")]
-    workflow_id: Annotated[str | None, Field(description="ID of the workflow being executed.")] = None
-    workflow_name: Annotated[str | None, Field(description="Name of the workflow being executed.")] = None
-    start_time: Annotated[datetime, Field(default_factory=lambda: datetime.now(timezone.utc), description="Execution start timestamp.")]
-    current_step_name: Annotated[str, Field(description="Name of the currently executing step/agent.")] = "init"
-    version: Annotated[int, Field(default=1, description="Optimistic locking version.")] = 1
+    execution_trace: list[TraceEvent] = Field(
+        default_factory=list, description="Immutable log of all events."
+    )
+    context_variables: dict[str, Any] = Field(
+        default_factory=dict, description="Current snapshots of context variables."
+    )
 
-    # Identity Context (New Jan 2026)
-    organization_id: Annotated[str | None, Field(description="Organization ID executing this workflow.")] = None
-    user_id: Annotated[str | None, Field(description="User ID initiating this workflow.")] = None
+    model_config = ConfigDict(frozen=True)
 
-    # Inputs (Read-only for agents)
-    inputs: Annotated[InputData, Field(description="Immutable input data.")]
-
-    # Dynamic Step Results (Replaces hardcoded step fields)
-    step_results: Annotated[
-        dict[str, Any],
-        Field(default_factory=dict, description="Dynamic container for agent outputs keyed by step ID."),
-    ]
-
-    # Formatted output
-    xai_report_formatted: Annotated[str | None, Field(description="Final markdown report cache.")] = None
-
-    step_xai: Annotated[XAIReport | None, Field(description="XAI Reporter output.")] = None
-
-    # Dynamic Evaluation Results (New Multi-Matrix System)
-    # Key = Step ID (e.g. "step_judge_cognitive")
-    # Value = EvaluationResult object
-    audit_results: Annotated[
-        dict[str, EvaluationResult],
-        Field(default_factory=dict, description="Dynamic container for matrix-based evaluations."),
-    ]
-
-    # Reasoning Context (Stateless Blob Storage for Gemini 3 / GPT-5.1)
-    # Key = Step ID
-    # Value = { "token": "...", "model": "gemini-1.5-pro", "provider": "google" }
-    reasoning_context: Annotated[
-        dict[str, dict[str, str]],
-        Field(default_factory=dict, description="Storage for encrypted reasoning blobs with metadata."),
-    ]
-
-    # Transient Reasoning Trace (The "Hot Potato" token for next step)
-    last_reasoning_trace: Annotated[
-        str | None,
-        Field(default=None, description="The encrypted reasoning token from the immediately preceding step."),
-    ]
-
-    # Auxiliary Data
-    aux_data: Annotated[
-        dict[str, Any], Field(default_factory=dict, description="Temporary storage for hooks and side-effects.")
-    ]
-
-    # STRIKTI TYYPITYS (Object Mandate Enforcement)
-    # These fields ensure data remains as Pydantic Objects, preventing dict-degradation.
-    audit_metrics: Annotated[TextMetrics | None, Field(description="Strictly typed text metrics.")] = None
-    input_control_ratio: Annotated[float | None, Field(description="Strictly typed control ratio.")] = None
-
-    # Usage Metrics (Cost Tracking)
-    usage: Annotated[
-        dict[str, dict[str, float | int | str]],
-        Field(default_factory=dict, description="Accumulated usage stats per step (cost, tokens)."),
-    ]
-
-    model_config = ConfigDict(validate_assignment=True)
-
-    def get_previous_outputs_summary(self) -> str:
-        """Generates a text summary of all previous agent outputs.
-
-        Used to provide context to subsequent agents.
-
-        Returns:
-            str: Concatenated JSON dumps of visited steps.
-
-        """
-        summary = []
-
-        # Display names for known steps (preserving Finnish localization)
-        step_display_names = {
-            "step_guard": "Vartija",
-            "step_analyst": "Analyytikko",
-            "step_profiler": "Profiloija",
-            "step_logician": "Loogikko",
-            "step_falsifier": "Falsifioija",
-            "step_overseer": "Valvoja",
-            "step_causal": "Kausaalinen",
-            "step_detector": "Tunnistaja",
-            "step_judge": "Tuomari",
-            "step_archivist": "Arkistonhoitaja",
-            "step_coach": "Valmentaja",
-            "step_interaction": "Vuorovaikutusanalysaattori",
-            "step_panel": "Paneeli",
-            "step_xai": "XAI Raportoija",
-        }
-
-        # Iterate through the mapping to maintain order, but check step_results
-        for step_id, display_name in step_display_names.items():
-            if step_id in self.step_results:
-                data = self.step_results[step_id]
-                # Use model_dump_json() for Pydantic v2 or json() for v1
-                # formatting for readability
-                try:
-                    content = data.model_dump_json(indent=2)
-                except AttributeError:
-                    content = str(data)
-                summary.append(f"--- {display_name} ---\n{content}\n")
-
-        # Handle any other steps that might be in step_results but not in the standard mapping?
-        # For now, sticking to the preservation of existing behavior logic.
-
-        if not summary:
-            return "(Ei aiempia tuloksia)"
-
-        return "\n".join(summary)
-
-    def get_latest_reasoning_metadata(self) -> dict[str, str] | None:
-        """Retrieves the reasoning metadata (token + model) from the most recently executed relevant step."""
-        priority_steps = ["step_xai", "step_panel", "step_coach", "step_judge", "step_judge_cognitive", "step_analyst"]
-        for step_id in priority_steps:
-            if step_id in self.reasoning_context:
-                return self.reasoning_context[step_id]
-        return None
-
-    def __getattr__(self, name: str) -> Any:
-        """Fallback to step_results for legacy 'step_X' access."""
-        # Avoid infinite recursion for Pydantic internal lookups if any (usually not an issue with __getattr__)
-        if name.startswith("step_") and name in self.step_results:
-            return self.step_results[name]
-        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+    def add_event(self, event: TraceEvent) -> WorkflowState:
+        """Returns a new WorkflowState with the added event (Functional style)."""
+        new_trace = self.execution_trace + [event]
+        return self.model_copy(update={"execution_trace": new_trace})

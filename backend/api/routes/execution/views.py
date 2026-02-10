@@ -50,6 +50,37 @@ async def get_execution_view(
         else:
             raw_data = execution
 
+        # ---------------------------------------------------------
+        # DYNAMIC STEP RESOLUTION (SSOT from Database)
+        # ---------------------------------------------------------
+        # ReportTransformer might not use steps list yet, but let's be consistent if we merge logic later.
+        # Currently ReportView is different from AssessmentView.
+        # If we use AssessmentTransformer here (for some reason?), we should pass steps.
+        
+        # Wait, views.py uses ReportTransformer for the "Report View" (Final Output).
+        # Does ReportView need the step list? Not strictly. 
+        # But if we were using AssessmentTransformer here...
+        
+        # Let's check imports. views.py imports ReportTransformer.
+        # bff_transformer.py defines AssessmentTransformer AND ReportTransformer.
+        # Does ReportTransformer need steps? 
+        # Usually it just renders the report content.
+        
+        # However, for 'get_execution_view', if it returns ReportView, that's the "Result" screen.
+        # It DOES contain 'steps' logic if we want to show the timeline there too?
+        # ReportView in models/view.py might not have 'steps'.
+        
+        # Let's assume ReportTransformer doesn't need it yet, 
+        # BUT if I ever switch this to return AssessmentView (Monitoring), I'll need it.
+        # For now, I'll leave views.py alone UNLESS I see it using AssessmentTransformer.
+        
+        # Actually... let's check monitor.py again. monitor.py uses AssessmentTransformer.
+        # views.py uses ReportTransformer.
+        
+        # The user request was "list only from database". 
+        # This primarily affects the Monitoring Screen (AssessmentTransformer).
+        # So monitor.py change is the critical one.
+        
         # Resolve Scale (Simplified for now)
         valid_range = None
 

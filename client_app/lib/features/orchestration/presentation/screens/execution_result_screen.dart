@@ -283,7 +283,6 @@ class _ExecutionResultScreenState extends ConsumerState<ExecutionResultScreen> {
            );
 
         case _PdfStatus.idle:
-        default:
           return IconButton(
             onPressed: _startDownload,
             icon: const Icon(Icons.download),

@@ -36,6 +36,7 @@
   "waitingToStart": "Odottaa käynnistymistä...",
   "executionStarted": "Suoritus käynnistetty...",
   "executionFailed": "Suoritus epäonnistui: {error}",
+  "executionRejected": "Suoritus hylätty: {error}",
   "unknownState": "Tuntematon tila",
   "downloadNotImplemented": "Lataus ei vielä käytössä",
   "detailsComingSoon": "Yksityiskohdat tulossa pian...",

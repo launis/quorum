@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:convert';
+import 'dart:io';
 import 'package:client_app/features/orchestration/domain/models/execution.dart';
 import 'package:client_app/features/orchestration/domain/models/report_view.dart';
 import 'package:client_app/features/orchestration/presentation/widgets/sdui/generic_grid.dart';
@@ -36,7 +38,13 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
     debugPrint('Fetching ReportView for $execId via Repository (Auth)');
     
     // Use the Authenticated Repository via Riverpod
-    final result = await ref.read(executionRepositoryProvider).getReportView(execId).run();
+    final task = ref.read(executionRepositoryProvider).getReportView(execId);
+    
+    // Run with 15s timeout to prevent infinite spinner
+    final result = await task.run().timeout(
+      const Duration(seconds: 15),
+      onTimeout: () => throw Exception('Aikakatkaisu: Palvelin ei vastannut 15 sekuntiin.'),
+    );
     
     return result.fold(
       (error) {
@@ -186,12 +194,14 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
         // BFF Timeline is a list of events.
         final events = section.data['events'] as List<dynamic>? ?? [];
         return Card(
-             child: ExpansionTile(
-                title: Text(section.title),
-                children: events.map((e) {
-                    final ts = e['timestamp'] as String? ?? '';
-                    String timeDisplay = ts;
-                    if (ts.length >= 16) {
+             child: Semantics(
+                excludeSemantics: Platform.isWindows,
+                child: ExpansionTile(
+                  title: Text(section.title),
+                  children: events.map((e) {
+                      final ts = e['timestamp'] as String? ?? '';
+                      String timeDisplay = ts;
+                      if (ts.length >= 16) {
                        // Simple substring for HH:mm if ISO format (T12:34)
                        final tIndex = ts.indexOf('T');
                        if (tIndex != -1 && tIndex + 5 < ts.length) {

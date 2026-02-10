@@ -11,11 +11,12 @@ from pydantic import BaseModel
 from backend.agents.base import BaseAgent
 
 # 3. Local Imports
+# 3. Local Imports
 from backend.models.domain import (
-    EtiikkaJaFakta,
-    KausaalinenAuditointi,
-    LogiikkaAuditointi,
-    PerformatiivisuusAuditointi,
+    CausalAnalysis,
+    FalsifierData,
+    OverseerData,
+    PerformativityAnalysis,
 )
 
 if TYPE_CHECKING:
@@ -37,10 +38,10 @@ class LogicalFalsifierAgent(BaseAgent):
         """Returns the expected output schema.
 
         Returns:
-            Optional[Type[BaseModel]]: LogiikkaAuditointi schema.
+            Optional[Type[BaseModel]]: FalsifierData schema.
 
         """
-        return LogiikkaAuditointi
+        return FalsifierData
 
     async def prepare_context(self, input_data: dict, execution_context: dict | None, **kwargs) -> str | None:
         """Lifecycle Hook: Pre-Execution."""
@@ -92,10 +93,10 @@ class FactualOverseerAgent(BaseAgent):
         """Returns the expected output schema.
 
         Returns:
-            Optional[Type[BaseModel]]: EtiikkaJaFakta schema.
+            Optional[Type[BaseModel]]: OverseerData schema.
 
         """
-        return EtiikkaJaFakta
+        return OverseerData
 
     async def prepare_context(self, input_data: dict, execution_context: dict | None, **kwargs) -> str | None:
         """Lifecycle Hook: Pre-Execution."""
@@ -117,10 +118,7 @@ class FactualOverseerAgent(BaseAgent):
         if "google_search_results" in input_data:
             search_results = input_data["google_search_results"]
             context_parts.append(f"### HAKUTULOKSET (GOOGLE SEARCH RESULTS):\n{search_results}")
-        # Legacy/Fallback check in execution_context
-        elif execution_context and "google_search_results" in execution_context:
-             search_results = execution_context["google_search_results"]
-             context_parts.append(f"### HAKUTULOKSET (GOOGLE SEARCH RESULTS):\n{search_results}")
+        # STRICT MODE: No fallback to execution_context for data inputs.
 
 
         if context_parts:
@@ -167,10 +165,10 @@ class CausalAnalystAgent(BaseAgent):
         """Returns the expected output schema.
 
         Returns:
-            Optional[Type[BaseModel]]: KausaalinenAuditointi schema.
+            Optional[Type[BaseModel]]: CausalAnalysis schema.
 
         """
-        return KausaalinenAuditointi
+        return CausalAnalysis
 
     async def prepare_context(self, input_data: dict, execution_context: dict | None, **kwargs) -> str | None:
         """Lifecycle Hook: Pre-Execution."""
@@ -222,10 +220,10 @@ class PerformativityDetectorAgent(BaseAgent):
         """Returns the expected output schema.
 
         Returns:
-            Optional[Type[BaseModel]]: PerformatiivisuusAuditointi schema.
+            Optional[Type[BaseModel]]: PerformativityAnalysis schema.
 
         """
-        return PerformatiivisuusAuditointi
+        return PerformativityAnalysis
 
     async def prepare_context(self, input_data: dict, execution_context: dict | None, **kwargs) -> str | None:
         """Lifecycle Hook: Pre-Execution."""

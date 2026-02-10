@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, status
 from sse_starlette.sse import EventSourceResponse
 
 from backend.database.repository import AbstractWorkflowRepository
+from backend.api.bff_transformer import AssessmentTransformer
 from backend.dependencies import get_async_repository
 from backend.exceptions import AppException, ResourceNotFoundError
 from backend.logging_config import log_error
@@ -18,7 +19,9 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/executions", tags=["Executions"])
 
 
-@router.get("/recent", summary="Get Recent Executions", response_model=list[dict[str, Any]])
+from backend.api.schemas import ExecutionResponse
+
+@router.get("/recent", summary="Get Recent Executions", response_model=list[ExecutionResponse])
 async def get_recent_executions(
     limit: int = 10,
     repository: AbstractWorkflowRepository = Depends(get_async_repository),
@@ -36,21 +39,13 @@ async def get_recent_executions(
 
         results = []
         for e in executions[:limit]:
-            item = e.copy()
-            if "execution_id" not in item and "id" in item:
-                item["execution_id"] = item["id"]
-
-            if "start_time" not in item:
-                item["start_time"] = (
-                    item.get("started_at") or item.get("timestamp") or datetime.now(timezone.utc)
-                )
-
-            if "results" in item and "result" not in item:
-                item["result"] = item["results"]
-            if "result" not in item:
-                item["result"] = {}
-
-            results.append(item)
+            # Use DTO to normalize
+            try:
+                dto = ExecutionResponse.model_validate(e)
+                results.append(dto)
+            except Exception as validation_err:
+                logger.warning(f"Skipping malformed execution in recent list: {validation_err}")
+                continue
 
         return results
 
@@ -65,34 +60,21 @@ async def get_recent_executions(
         raise wrapped_error from e
 
 
-@router.get("/{execution_id}", summary="Get Execution Details", response_model=dict[str, Any])
+@router.get("/{execution_id}", summary="Get Execution Details", response_model=ExecutionResponse)
 async def get_execution(
     execution_id: str,
     repository: AbstractWorkflowRepository = Depends(get_async_repository),
     current_user: Any = Depends(AuthService.get_current_user()),
 ):
-    """Get execution details by ID."""
+    """Get execution details by ID. Returns standardized ExecutionResponse."""
     try:
         execution = await repository.get_execution(execution_id)
 
         if not execution:
             raise ResourceNotFoundError(f"Execution '{execution_id}' not found.")
 
-        item = execution.copy()
-        if "execution_id" not in item and "id" in item:
-            item["execution_id"] = item["id"]
-
-        if "start_time" not in item:
-            item["start_time"] = (
-                item.get("started_at") or item.get("timestamp") or datetime.now(timezone.utc)
-            )
-
-        if "results" in item and "result" not in item:
-            item["result"] = item["results"]
-        if "result" not in item:
-            item["result"] = {}
-
-        return item
+        # Normalize via DTO
+        return ExecutionResponse.model_validate(execution)
 
     except ResourceNotFoundError as e:
         if "error_code" not in e.details:
@@ -118,24 +100,16 @@ async def get_execution(
 async def monitor_execution(
     execution_id: str,
     repository: AbstractWorkflowRepository = Depends(get_async_repository),
+    view: str = "assessment",  # 'assessment' or 'raw'
 ):
     """Server-Sent Events alias for monitoring."""
-    logger.info(f"[Monitor] Request for execution_id: {execution_id}")
+    logger.info(f"[Monitor] Request for execution_id: {execution_id}, view: {view}")
     
     # Pre-check existence to fail fast with 404
     exists = await repository.get_execution(execution_id)
     if not exists:
          logger.warning(f"[Monitor] Execution {execution_id} NOT FOUND in repository.")
-         # Debug: List recent to see if it's there
-         recent = await repository.get_all_executions()
-         ids = [e.get("id") for e in recent]
-         logger.info(f"[Monitor] available IDs: {ids}")
          raise ResourceNotFoundError(f"Execution '{execution_id}' not found.")
-
-    # Placeholder for SSE logic. Using basic polling fallback via client for now, or real SSE if implemented.
-    # As per instructions, "Ensure SSE stream setup".
-    # Since we don't have Redis PubSub implementation details in scope, we return 501 or basic stream.
-    # Returning basic stream that yields once current status?
 
     import asyncio
     import json
@@ -143,57 +117,44 @@ async def monitor_execution(
 
     async def event_generator():
         # Simple polling simulator for now to satisfy contract without Redis
-        # In prod, this listens to Redis channel
-        cached_status = None
-        
         try:
              # Poll more frequently for smoother UI updates (1s is fine for local)
              for i in range(120): # Increased to 2 min timeout
                   exec_data = await repository.get_execution(execution_id)
                   if not exec_data:
-                      logger.error(f"[Monitor] Execution {execution_id} disappeared during polling!")
                       yield {"event": "error", "data": "Execution not found"}
                       break
     
-                  # Yield full data if status changed OR every X ticks?
-                  # For progress bar, we want updates even if status is 'running' but step changed.
-                  # Ideally check hash or modified time. 
-                  # For now, yield every time or check content change.
-                  
-                  # Simplify: Yield every second if running, or if status changed.
                   current_status = exec_data.get("status")
+                  payload = ""
                   
-                  # Map fields for Frontend compatibility (matches views.py logic)
-                  formatted_data = exec_data.copy()
-                  if "execution_id" not in formatted_data and "id" in formatted_data:
-                      formatted_data["execution_id"] = formatted_data["id"]
-                  
-                  if "start_time" not in formatted_data:
-                      formatted_data["start_time"] = (
-                          formatted_data.get("started_at") or formatted_data.get("timestamp") or datetime.now(timezone.utc)
-                      )
+                  if view == "raw":
+                       # Option B: Explicit DTO Layer
+                       # Normalize data using Pydantic Schema
+                       try:
+                           dto = ExecutionResponse.model_validate(exec_data)
+                           payload = dto.model_dump_json(warnings=False)
+                       except Exception as validation_err:
+                           logger.error(f"[Monitor] DTO Validation Failed: {validation_err}")
+                           # Fallback to rough dump if validation fails to keep stream alive?
+                           # No, user requested NO fallbacks. But we should probably send error event.
+                           yield {"event": "error", "data": f"Serialization Error: {validation_err}"}
+                           break
+                  else:
+                      # Default: AssessmentTransformer for BFF (Frontend Compatibility)
+                      try:
+                          transformer = AssessmentTransformer(language="fi") # Default to Finnish for Monitoring
+                          assessment_view = transformer.transform(exec_data)
+                          payload = assessment_view.model_dump_json()
+                      except Exception as trans_err:
+                            logger.error(f"[Monitor] Transformation Failed: {trans_err}")
+                            yield {"event": "error", "data": "Transformation Failed"}
+                            break
 
-                  # Ensure result is mapped (Fix for Flutter client expecting 'result')
-                  if "results" in formatted_data and "result" not in formatted_data:
-                      formatted_data["result"] = formatted_data["results"]
-                  if "result" not in formatted_data:
-                      formatted_data["result"] = {}
-    
-                  # Serialize properly
-                  try:
-                      payload = json.dumps(jsonable_encoder(formatted_data))
-                  except Exception as ser_err:
-                        logger.error(f"[Monitor] Serialization Failed: {ser_err}")
-                        yield {"event": "error", "data": "Serialization Failed"}
-                        break
-
-                  logger.info(f"[Monitor] Yielding update for {execution_id}. Payload len: {len(payload)}")
+                  # logger.debug(f"[Monitor] Yielding update for {execution_id}. Payload len: {len(payload)}")
                   yield {"event": "update", "data": payload}
     
                   if current_status in ("completed", "failed", "cancelled", "rejected"):
-                      # Send one last update then close? 
-                      # Or keep open? Browser auto-reconnects on close.
-                      # Let's verify we sent the 'completed' state then break.
                       logger.info(f"[Monitor] Execution {execution_id} finished ({current_status}). Closing stream.")
                       break
     

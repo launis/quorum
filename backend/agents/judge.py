@@ -197,14 +197,14 @@ class JudgeAgent(BaseAgent):
 
         # --- EVIDENCE COLLECTION STRATEGY ---
         # 1. Core Map (Analyst) - Token Optimized
-        todistus_kartta = kwargs.get("todistus_kartta")
-        if not todistus_kartta:
-            todistus_kartta = input_data.get("step_analyst")
+        analyst_output = kwargs.get("step_analyst")
+        if not analyst_output:
+            analyst_output = input_data.get("step_analyst")
 
-        if todistus_kartta:
-            content = serialize_evidence(todistus_kartta)
+        if analyst_output:
+            content = serialize_evidence(analyst_output)
             eval_ctx.append(f"### TODISTUSKARTTA (PROCESSED EVIDENCE):\n{content}")
-            logger.info("[JudgeAgent] Using TodistusKartta (Step 2) for evaluation.")
+            logger.info("[JudgeAgent] Using AnalystOutput (Step 2) for evaluation.")
 
         # 2. Evidence Collection (Config-Driven + Auto-Discovery)
         # Scan state for known critic outputs defined in configuration.
@@ -232,20 +232,12 @@ class JudgeAgent(BaseAgent):
         if found_evidence_count > 0:
             logger.info(f"[JudgeAgent] Successfully injected {found_evidence_count} evidence blocks.")
 
-        # 4. Fallback to Raw Inputs
-        # Only if we literally have zero evidence maps (rare)
+        # 4. STRICT EVIDENCE REQUIREMENT
+        # We must have structured evidence or an AnalystOutput.
         if not eval_ctx:
-            logger.warning("[JudgeAgent] No structured evidence found. Falling back to raw inputs.")
-            try:
-                # Basic keys expected in input_data
-                if input_data.get("history_text"):
-                    eval_ctx.append(f"### CHAT HISTORY TO EVALUATE:\n{input_data['history_text']}")
-                if input_data.get("product_text"):
-                    eval_ctx.append(f"### PRODUCT TO EVALUATE:\n{input_data['product_text']}")
-                if input_data.get("reflection_text"):
-                    eval_ctx.append(f"### STUDENT REFLECTION:\n{input_data['reflection_text']}")
-            except Exception:
-                pass
+            msg = "JUDGE_EVIDENCE_MISSING: No structured evidence found (Analyst or Critic outputs)."
+            logger.error(f"[JudgeAgent] {msg}")
+            raise AgentExecutionError(detail="JUDGE_EVIDENCE_MISSING", original_error=ValueError(msg))
 
         if eval_ctx:
             return base_prompt + "\n\n" + "\n\n".join(eval_ctx)

@@ -134,6 +134,8 @@ class ExecutionListItem extends StatelessWidget {
       running: (e) => e.currentStepName,
       completed: (e) => e.currentStepName,
       failed: (e) => e.currentStepName,
+      rejected: (e) => e.currentStepName,
+      interrupted: (e) => e.currentStepName,
       cancelling: (e) => e.currentStepName,
       unknown: (_) => null,
     );

@@ -22,8 +22,8 @@ class TaskDefinition:
 
 class TaskRegistry:
     """Registry for functional agent tasks."""
-
     _tasks: dict[str, TaskDefinition] = {}
+    agents_map: dict[str, Any] = {}
 
     @classmethod
     def register_task(
@@ -63,6 +63,11 @@ class TaskRegistry:
         return cls._tasks.get(name)
 
     @classmethod
+    def get_all_agents(cls) -> dict[str, Any]:
+        """Retrieve all registered agents as instances."""
+        return cls.agents_map
+
+    @classmethod
     def register_agent(
         cls,
         task_keys: list[str],
@@ -77,6 +82,11 @@ class TaskRegistry:
         3. Calls agent.execute(state).
         4. Extracts result from agent.state_field.
         """
+        # Populate Metadata Registry
+        try:
+            cls.agents_map[agent_cls.__name__] = agent_cls()
+        except Exception as e:
+            logger.warning(f"Could not instantiate {agent_cls.__name__} for metadata: {e}")
 
         # Create Generic Input Schema if not strictly defined
         # We assume input is a Dict that can be mapped to State
@@ -136,9 +146,11 @@ class TaskRegistry:
                     # 1. Standardize Inputs
                     # 1. Standardize Inputs (Pure Object Flow)
                     # Do NOT use model_dump() here as it recursively flattens nested objects into dicts.
-                    # We want to keep nested objects (e.g. TextMetrics) as objects so we can call .model_dump_json() on them.
+                    # We want to keep nested objects (e.g. TextMetrics) as objects so we can call
+                    # .model_dump_json() on them.
                     if hasattr(input_data, "model_dump"):
-                        # Iterating over the model yields (key, value) pairs where value keeps its type (Object)
+                        # Iterating over the model yields (key, value) pairs where value keeps its type
+                        # (Object)
                         vars_to_inject = dict(input_data)
                     elif isinstance(input_data, dict):
                         vars_to_inject = input_data
@@ -147,9 +159,10 @@ class TaskRegistry:
 
                     # 2. Add System Context Variables
                     from datetime import datetime
+
                     vars_to_inject["CURRENT_DATE"] = datetime.now().strftime("%Y-%m-%d")
                     vars_to_inject["DYNAMIC_TIME"] = datetime.now().strftime("%H:%M:%S")
-                    vars_to_inject["DYNAMIC_LOCATION"] = "Sijainti: VIRTUAL_ENCLAVE" # Default
+                    vars_to_inject["DYNAMIC_LOCATION"] = "Sijainti: VIRTUAL_ENCLAVE"  # Default
 
                     # 3. Perform Substitution
                     if system_instruction:
@@ -161,6 +174,7 @@ class TaskRegistry:
                                 replacement = value.model_dump_json()
                             elif hasattr(value, "dict"):
                                 import json
+
                                 replacement = json.dumps(value.dict(), default=str)
                             else:
                                 replacement = str(value)
@@ -179,7 +193,7 @@ class TaskRegistry:
                 else:
                     logger.warning(f"[{agent_cls.__name__}] 'llm_prompts' key present but empty list.")
             else:
-                pass # No prompt config
+                pass  # No prompt config
 
             # 4. Execute using New Signature
             # Input is Pydantic model (InputData), convert to dict
@@ -192,13 +206,15 @@ class TaskRegistry:
                 if k in ["temperature", "max_tokens", "top_p", "top_k", "frequency_penalty", "presence_penalty"]:
                     registry_kwargs[k] = v
 
-            logger.debug(f"[{agent_cls.__name__}] Registry Kwargs: {registry_kwargs} (from config: {model_config.keys()})")
+            logger.debug(
+                f"[{agent_cls.__name__}] Registry Kwargs: {registry_kwargs} (from config: {model_config.keys()})"
+            )
 
             # Apply Execution Config/Step Config on top (Overrides)
             exec_kwargs = registry_kwargs.copy()
             if execution_config:
-                # Sanity: If execution_config has keys like 'temperature' that are None/Default, we might need to be careful?
-                # But strict mode says we cleaned them from steps.
+                # Sanity: If execution_config has keys like 'temperature' that are None/Default,
+                # we might need to be careful? But strict mode says we cleaned them from steps.
                 exec_kwargs.update(execution_config)
 
             logger.debug(f"[{agent_cls.__name__}] Final Exec Kwargs keys: {list(exec_kwargs.keys())}")
@@ -207,28 +223,16 @@ class TaskRegistry:
                 execution_context=execution_config,
                 system_instruction=system_instruction,
                 repository=repo,
-                **exec_kwargs
+                **exec_kwargs,
             )
 
             # 5. Extract/Validate Result
             # The agent returns a dictionary (or Pydantic dump)
             # We convert it to the expected output_model
 
-            # Hooks would go here if we kept them, but the prompt says:
-            # "Remove the complex logic that tried to wrap inputs into a state object or extract outputs from specific state fields."
-            # "The input is now just the input, and the output is just the output."
-            # So I am dropping the HOOK logic from the Wrapper. Hooks should be handled by the GraphEngine or explicitly if needed,
-            # but the Wrapper's job is just to adapt the Class to the Task function signature.
-            # *Wait, the previous code had Hooks logic inside the wrapper.*
-            # If I remove it, hooks won't run. The prompt says "Remove the complex logic that tried to wrap inputs...".
-            # It didn't explicitly say "Remove hooks".
-            # However, hooks relied on `result_state` (which was a `WorkflowState`).
-            # Now `result_dict` is just the output of *this* agent step.
-            # The hooks in the previous code were mutating `result_state` (WorkflowState).
-            # If the architecture is moving to stateless agents returning results, then `GraphEngine` might need to handle hooks or
-            # hooks need to be adapted to work on `step_results`.
+            # Hooks would go here...
+            # ...
             # Given the strict instruction "Return result directly", I will remove the Hooks logic from here.
-            # If hooks are needed, they should be applied elsewhere or reimplemented. I will follow the explicit instruction to simplify.
 
             if isinstance(result_dict, output_model):
                 return result_dict
@@ -248,9 +252,5 @@ class TaskRegistry:
                 input_schema=GenericInput,  # Generic adapter
                 output_schema=output_model,
                 description=agent_cls.__doc__ or f"Adapter for {agent_cls.__name__}",
-                metadata={
-                    "agent_class": agent_cls.__name__,
-                    "module": agent_cls.__module__,
-                    "type": agent_type
-                }
+                metadata={"agent_class": agent_cls.__name__, "module": agent_cls.__module__, "type": agent_type},
             )

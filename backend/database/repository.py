@@ -1,5 +1,6 @@
 """Abstract Repository Interface."""
 
+import uuid  # For valid checks if needed
 from abc import ABC, abstractmethod
 from typing import Any
 
@@ -55,7 +56,7 @@ class AbstractWorkflowRepository(ABC):
 
     # Alias for compatibility if needed or strictly mapped
     async def get_workflow(self, workflow_id: str) -> WorkflowDefinition | None:
-         return await self.get_workflow_definition(workflow_id)
+        return await self.get_workflow_definition(workflow_id)
 
     @abstractmethod
     async def log_audit_event(self, event_data: dict[str, Any]) -> None:
@@ -126,7 +127,9 @@ class AbstractWorkflowRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_all_components(self, type: str | None = None, exclude_types: list[str] | None = None) -> list[dict[str, Any]]:
+    async def get_all_components(
+        self, type: str | None = None, exclude_types: list[str] | None = None
+    ) -> list[dict[str, Any]]:
         """Retrieve all components, optionally filtered."""
         pass
 
@@ -200,6 +203,54 @@ class AbstractWorkflowRepository(ABC):
         """Return list of component IDs that reference this dimension."""
         pass
 
+    @abstractmethod
+    async def log_usage(self, record: Any) -> None:
+        """Log a usage record."""
+        pass
+
+    # --- Organization Management ---
+
+    @abstractmethod
+    async def list_organizations(self) -> list[dict[str, Any]]:
+        """List all organizations."""
+        pass
+
+    @abstractmethod
+    async def get_organization(self, org_id: str) -> dict[str, Any] | None:
+        """Get organization by ID."""
+        pass
+
+    @abstractmethod
+    async def create_organization(self, org_data: dict[str, Any]) -> str:
+        """Create a new organization."""
+        pass
+
+    @abstractmethod
+    async def update_organization(self, org_id: str, updates: dict[str, Any]) -> bool:
+        """Update an organization."""
+        pass
+
+    @abstractmethod
+    async def delete_organization(self, org_id: str) -> bool:
+        """Delete an organization."""
+        pass
+
+    @abstractmethod
+    async def list_users(self, org_id: str | None = None) -> list[dict[str, Any]]:
+        """List users, optionally filtered by organization."""
+        pass
+
+    @abstractmethod
+    async def delete_org_data(self, org_id: str) -> None:
+        """Delete all data associated with an organization."""
+        pass
+
+    @abstractmethod
+    async def get_org_usage_total(self, org_id: str, since: str | None = None) -> float:
+        """Calculate total usage cost for an organization."""
+        pass
+
+
 class TinyDBRepository(AbstractWorkflowRepository):
     """TinyDB implementation of the Workflow Repository."""
 
@@ -215,25 +266,30 @@ class TinyDBRepository(AbstractWorkflowRepository):
         self.knowledge_base = client.table("knowledge_base")
         self.organizations = client.table("organizations")
         self.users = client.table("users")
+        self.usage = client.table("usage")
 
     # --- Helper: Universal Serializer ---
-    def _serialize_for_tinydb(self, data: dict[str, Any]) -> dict[str, Any]:
-        """Recursively converts datetime objects to ISO format strings."""
+    def _serialize_for_tinydb(self, data: dict[str, Any] | list | Any) -> Any:
+        """Recursively converts datetime, UUID, and Pydantic objects to JSON-safe types."""
         from datetime import datetime
 
-        # Determine if we have a dict or list (handle recursiveness)
-        # But top level is usually dict for these methods.
+        # Check for PyDantc model first
+        if hasattr(data, "model_dump"):
+            return self._serialize_for_tinydb(data.model_dump())
 
-        def _convert(obj):
-            if isinstance(obj, datetime):
-                return obj.isoformat()
-            if isinstance(obj, dict):
-                return {k: _convert(v) for k, v in obj.items()}
-            if isinstance(obj, list):
-                return [_convert(v) for v in obj]
-            return obj
+        if isinstance(data, datetime):
+            return data.isoformat()
 
-        return _convert(data) # Expecting dict input mostly
+        if isinstance(data, uuid.UUID):
+            return str(data)
+
+        if isinstance(data, dict):
+            return {k: self._serialize_for_tinydb(v) for k, v in data.items()}
+
+        if isinstance(data, list):
+            return [self._serialize_for_tinydb(v) for v in data]
+
+        return data
 
     # --- Organization Methods (Required by organization_router.py) ---
 
@@ -289,12 +345,12 @@ class TinyDBRepository(AbstractWorkflowRepository):
             total += ex.get("cost_estimate", 0.0)
         return total
 
-
     async def get_banned_phrases(self) -> list[dict[str, Any]]:
         return self.banned_phrases.all()
 
     async def add_banned_phrase(self, phrase: str, language: str = "en") -> None:
         from tinydb import Query
+
         # Check duplicate
         if not self.banned_phrases.contains(Query().phrase == phrase):
             self.banned_phrases.insert({"phrase": phrase, "language": language})
@@ -419,7 +475,9 @@ class TinyDBRepository(AbstractWorkflowRepository):
         res = self.steps.remove(Query().id == step_id)
         return bool(res)
 
-    async def get_all_components(self, type: str | None = None, exclude_types: list[str] | None = None) -> list[dict[str, Any]]:
+    async def get_all_components(
+        self, type: str | None = None, exclude_types: list[str] | None = None
+    ) -> list[dict[str, Any]]:
         if type:
             return self.components.search(Query().type == type)
 
@@ -508,18 +566,19 @@ class TinyDBRepository(AbstractWorkflowRepository):
             import json
             import logging
             import os
+
             logger = logging.getLogger(__name__)
 
             file_path = f"data/workflows/{workflow_id}.json"
             if os.path.exists(file_path):
-                 try:
-                     with open(file_path, encoding="utf-8") as f:
-                         data = json.load(f)
-                         if "description" not in data:
-                             data["description"] = "Loaded from file"
-                 except Exception as e:
-                     logger.error(f"Failed to load workflow from disk: {e}")
-                     return None
+                try:
+                    with open(file_path, encoding="utf-8") as f:
+                        data = json.load(f)
+                        if "description" not in data:
+                            data["description"] = "Loaded from file"
+                except Exception as e:
+                    logger.error(f"Failed to load workflow from disk: {e}")
+                    return None
             else:
                 return None
 
@@ -543,23 +602,7 @@ class TinyDBRepository(AbstractWorkflowRepository):
 
     async def get_model_registry(self) -> dict[str, Any]:
         """Retrieve the model registry configuration.
-        
-        Prioritizes configuration stored in 'system_config' table (id='model_registry').
-        Falls back to 'components' table for backwards compatibility.
-        Falls back to hardcoded defaults if missing from both.
-        """
-        # 1. Try to fetch from system_config table (PRIMARY source per seed_data.json)
-        try:
-            system_config_table = self.client.table("system_config")
-            config_entry = system_config_table.get(Query().id == "model_registry")
-            if config_entry and "models" in config_entry:
-                return config_entry
-        except Exception:
-            pass
 
-    async def get_model_registry(self) -> dict[str, Any]:
-        """Retrieve the model registry configuration.
-        
         Prioritizes configuration stored in 'system_config' table (id='model_registry').
         Falls back to 'components' table for backwards compatibility.
         Falls back to hardcoded defaults if missing from both.
@@ -619,8 +662,11 @@ class TinyDBRepository(AbstractWorkflowRepository):
 
             for crit in criteria:
                 if isinstance(crit, dict) and crit.get("dimension_id") == dimension_id:
-                    matches.append(c.get("id"))
+                    matches.append(str(c.get("id")))
                     break
         return matches
 
-
+    async def log_usage(self, record: Any) -> None:
+        """Log a usage record."""
+        safe_data = self._serialize_for_tinydb(record)
+        self.usage.insert(safe_data)

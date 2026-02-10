@@ -8,27 +8,27 @@ part of 'execution_controller.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// **Execution Data Stream**
+/// **Execution Data Stream (Full Domain Model)**
 ///
 /// Real-time monitoring of a specific execution via SSE.
-/// Used by Detailed View.
+/// Used by ExecutionResultScreen and ExecutionDetailsScreen.
 
 @ProviderFor(executionStream)
 final executionStreamProvider = ExecutionStreamFamily._();
 
-/// **Execution Data Stream**
+/// **Execution Data Stream (Full Domain Model)**
 ///
 /// Real-time monitoring of a specific execution via SSE.
-/// Used by Detailed View.
+/// Used by ExecutionResultScreen and ExecutionDetailsScreen.
 
 final class ExecutionStreamProvider
     extends
         $FunctionalProvider<AsyncValue<Execution>, Execution, Stream<Execution>>
     with $FutureModifier<Execution>, $StreamProvider<Execution> {
-  /// **Execution Data Stream**
+  /// **Execution Data Stream (Full Domain Model)**
   ///
   /// Real-time monitoring of a specific execution via SSE.
-  /// Used by Detailed View.
+  /// Used by ExecutionResultScreen and ExecutionDetailsScreen.
   ExecutionStreamProvider._({
     required ExecutionStreamFamily super.from,
     required String super.argument,
@@ -74,10 +74,10 @@ final class ExecutionStreamProvider
 
 String _$executionStreamHash() => r'c497ee1b811204bbf03b40c9ceb350d1ac0f8e0f';
 
-/// **Execution Data Stream**
+/// **Execution Data Stream (Full Domain Model)**
 ///
 /// Real-time monitoring of a specific execution via SSE.
-/// Used by Detailed View.
+/// Used by ExecutionResultScreen and ExecutionDetailsScreen.
 
 final class ExecutionStreamFamily extends $Family
     with $FunctionalFamilyOverride<Stream<Execution>, String> {
@@ -90,16 +90,115 @@ final class ExecutionStreamFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// **Execution Data Stream**
+  /// **Execution Data Stream (Full Domain Model)**
   ///
   /// Real-time monitoring of a specific execution via SSE.
-  /// Used by Detailed View.
+  /// Used by ExecutionResultScreen and ExecutionDetailsScreen.
 
   ExecutionStreamProvider call(String executionId) =>
       ExecutionStreamProvider._(argument: executionId, from: this);
 
   @override
   String toString() => r'executionStreamProvider';
+}
+
+/// **Assessment View Data Stream (Server-Driven UI)**
+///
+/// Real-time monitoring via SSE, projected to a View Model.
+/// Used by ExecutionMonitorScreen.
+
+@ProviderFor(assessmentStream)
+final assessmentStreamProvider = AssessmentStreamFamily._();
+
+/// **Assessment View Data Stream (Server-Driven UI)**
+///
+/// Real-time monitoring via SSE, projected to a View Model.
+/// Used by ExecutionMonitorScreen.
+
+final class AssessmentStreamProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<AssessmentView>,
+          AssessmentView,
+          Stream<AssessmentView>
+        >
+    with $FutureModifier<AssessmentView>, $StreamProvider<AssessmentView> {
+  /// **Assessment View Data Stream (Server-Driven UI)**
+  ///
+  /// Real-time monitoring via SSE, projected to a View Model.
+  /// Used by ExecutionMonitorScreen.
+  AssessmentStreamProvider._({
+    required AssessmentStreamFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'assessmentStreamProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$assessmentStreamHash();
+
+  @override
+  String toString() {
+    return r'assessmentStreamProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<AssessmentView> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<AssessmentView> create(Ref ref) {
+    final argument = this.argument as String;
+    return assessmentStream(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is AssessmentStreamProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$assessmentStreamHash() => r'958a8bda9806b36c47f609a923196f9338d954b8';
+
+/// **Assessment View Data Stream (Server-Driven UI)**
+///
+/// Real-time monitoring via SSE, projected to a View Model.
+/// Used by ExecutionMonitorScreen.
+
+final class AssessmentStreamFamily extends $Family
+    with $FunctionalFamilyOverride<Stream<AssessmentView>, String> {
+  AssessmentStreamFamily._()
+    : super(
+        retry: null,
+        name: r'assessmentStreamProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// **Assessment View Data Stream (Server-Driven UI)**
+  ///
+  /// Real-time monitoring via SSE, projected to a View Model.
+  /// Used by ExecutionMonitorScreen.
+
+  AssessmentStreamProvider call(String executionId) =>
+      AssessmentStreamProvider._(argument: executionId, from: this);
+
+  @override
+  String toString() => r'assessmentStreamProvider';
 }
 
 /// **Execution Actions Controller**

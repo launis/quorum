@@ -57,7 +57,7 @@ def generate_report(state: WorkflowState) -> WorkflowState:
             logger.warning("[ReportingHook] No XAI Report data available.")
             return state
 
-        xai_data = state.step_xai  # This is a Pydantic Model (XAIReport) OR dict
+        xai_data = state.step_xai  # This is a Pydantic Model (XAIOutput) OR dict
 
         # --- DYNAMIC EVALUATION DISCOVERY ---
         eval_steps = []

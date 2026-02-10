@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/orchestration/domain/models/execution.dart';
 import 'package:client_app/features/orchestration/presentation/providers/execution_controller.dart';
 import 'package:client_app/features/orchestration/presentation/widgets/results/result_dashboard.dart';
+import 'package:client_app/features/orchestration/presentation/widgets/execution_timeline.dart';
+import 'package:client_app/features/orchestration/domain/models/assessment_view.dart'; // For StepProgressItem
 import 'package:intl/intl.dart';
 
 class ExecutionDetailsScreen extends ConsumerWidget {
@@ -152,13 +154,81 @@ class _OverviewTab extends StatelessWidget {
         // Steps Progress
         Text(l10n.workflowProgress, style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
-        _StepProgressList(
-          currentStep: execution.currentStepName,
-          workflowId: execution.workflowName,
-          status: execution.status,
+        ExecutionTimeline(
+          steps: _buildStepItems(context, execution),
+          compact: false,
         ),
       ],
     );
+  }
+
+  List<StepProgressItem> _buildStepItems(BuildContext context, Execution execution) {
+    // 1. DYNAMIC: Use steps from Backend (SSOT)
+    if (execution.workflowSteps != null && execution.workflowSteps!.isNotEmpty) {
+      return _buildDynamicStepItems(context, execution, execution.workflowSteps!);
+    }
+    
+    // 2. NO FALLBACK: Return empty if no steps provided
+    return [];
+  }
+
+  List<StepProgressItem> _buildDynamicStepItems(BuildContext context, Execution execution, List<String> steps) {
+    // Determine Current Index
+    int currentIndex = -1;
+    if (execution.currentStepName != null) {
+      currentIndex = steps.indexOf(execution.currentStepName!);
+    }
+    if (currentIndex == -1 && execution.status == ExecutionStatus.completed) {
+      currentIndex = steps.length;
+    }
+
+    // Build List
+    return steps.asMap().entries.map((entry) {
+       final index = entry.key;
+       final stepKey = entry.value;
+       
+       String status = 'pending';
+       bool isCompleted = index < currentIndex;
+       bool isCurrent = index == currentIndex && execution.status != ExecutionStatus.completed;
+       
+       if (execution.status == ExecutionStatus.completed) {
+         isCompleted = true;
+         isCurrent = false;
+       }
+       
+       if (isCompleted) status = 'completed';
+       if (isCurrent) status = 'running';
+       if (isCurrent && execution.status == ExecutionStatus.failed) status = 'failed';
+
+       return StepProgressItem(
+         id: stepKey,
+         label: _getStepLabel(context, stepKey),
+         status: status,
+       );
+    }).toList();
+  }
+
+  String _getStepLabel(BuildContext context, String stepKey) {
+    final l10n = AppLocalizations.of(context)!;
+    return switch (stepKey) {
+      'step_guard' => l10n.stepGuard,
+      'step_analyst' => l10n.stepAnalyst,
+      'step_interaction' => l10n.stepInteraction,
+      'step_profiler' => l10n.stepProfiler,
+      'step_panel' => l10n.stepPanel,
+      'step_archivist' => l10n.stepArchivist,
+      'step_judge' => l10n.stepJudge,
+      'step_coach' => l10n.stepCoach,
+      'step_xai' => l10n.stepXai,
+      'step_logician' => l10n.stepLogician,
+      'step_falsifier' => l10n.stepFalsifier,
+      'step_causal' => l10n.stepCausal,
+      'step_detector' => l10n.stepDetector,
+      'step_overseer' => l10n.stepOverseer,
+      'step_context' => l10n.stepContext,
+      'init' => l10n.stepInitializing,
+      _ => stepKey,
+    };
   }
 
   Widget _infoRow(String label, String value) {
@@ -178,7 +248,7 @@ class _OverviewTab extends StatelessWidget {
     return switch (status) {
       ExecutionStatus.completed => Colors.green,
       ExecutionStatus.running => Colors.blue,
-      ExecutionStatus.failed || ExecutionStatus.rejected => Colors.red,
+      ExecutionStatus.failed || ExecutionStatus.rejected || ExecutionStatus.interrupted => Colors.red,
       _ => Colors.grey,
     };
   }
@@ -187,179 +257,9 @@ class _OverviewTab extends StatelessWidget {
     return switch (status) {
       ExecutionStatus.completed => Icons.check_circle,
       ExecutionStatus.running => Icons.sync,
-      ExecutionStatus.failed || ExecutionStatus.rejected => Icons.error,
+      ExecutionStatus.failed || ExecutionStatus.rejected || ExecutionStatus.interrupted => Icons.error,
       _ => Icons.hourglass_empty,
     };
-  }
-}
-
-class _StepProgressList extends StatelessWidget {
-  final String? currentStep;
-  final String? workflowId;
-  final ExecutionStatus status;
-
-  const _StepProgressList({
-    this.currentStep,
-    this.workflowId,
-    required this.status,
-  });
-
-  static const _stepsSequential = [
-    'step_guard',
-    'step_analyst',
-    'step_interaction',
-    'step_profiler',
-    'step_logician',
-    'step_falsifier',
-    'step_causal',
-    'step_detector',
-    'step_overseer',
-    'step_archivist',
-    'step_judge',
-    'step_judge_cognitive',
-    'step_coach',
-    'step_context',
-    'step_xai',
-  ];
-
-  static const _stepsFused = [
-    'step_guard',
-    'step_analyst',
-    'step_interaction',
-    'step_profiler',
-    'step_panel',
-    'step_archivist',
-    'step_judge',
-    'step_coach',
-    'step_context',
-    'step_xai',
-  ];
-
-  // Specific mappings for known workflows
-  static const Map<String, List<String>> _workflowSteps = {
-    'sequential_audit_chain': _stepsSequential,
-    'sequential_audit_chain_dual': _stepsSequential,
-    'fused_audit_chain': _stepsFused,
-    'fused_audit_chain_dual': _stepsFused,
-    'fused_audit_chain_cognitive': _stepsFused,
-    'courtroom_3_0_fused': _stepsFused,
-    'simple_audit': ['step_guard', 'step_analyst', 'step_judge', 'step_xai'],
-    // Human-readable names (from seed_data.json)
-    'Courtroom 2.0 (Full Audit)': _stepsSequential,
-    'Courtroom 2.0 (Cognitive Audit)': _stepsSequential,
-    'Courtroom 2.0 (Dual Matrix)': _stepsSequential,
-    'Courtroom 3.0 (Fused Critics)': _stepsFused,
-    'Courtroom 3.0 (Fused Cognitive)': _stepsFused,
-    'Courtroom 3.0 (Fused Dual)': _stepsFused,
-  };
-
-    String _getStepLabel(BuildContext context, String stepKey) {
-    final l10n = AppLocalizations.of(context)!;
-    return switch (stepKey) {
-      'step_guard' => l10n.stepGuard,
-      'step_analyst' => l10n.stepAnalyst,
-      'step_interaction' => l10n.stepInteraction,
-      'step_profiler' => l10n.stepProfiler,
-      'step_panel' => l10n.stepPanel,
-      'step_archivist' => l10n.stepArchivist,
-      'step_judge' => l10n.stepJudge,
-      'step_coach' => l10n.stepCoach,
-      'step_xai' => l10n.stepXai,
-      'step_logician' => l10n.stepLogician,
-      'step_falsifier' => l10n.stepFalsifier,
-      'step_causal' => l10n.stepCausal,
-      'step_detector' => l10n.stepDetector,
-      'step_overseer' => l10n.stepOverseer,
-      'step_judge_cognitive' => l10n.stepJudgeCognitive,
-      'step_context' => l10n.stepContext,
-      'init' => l10n.stepInitializing,
-      _ => stepKey,
-    };
-  }
-
-  @override
-  Widget build(BuildContext context) {
-     if (workflowId == null || !_workflowSteps.containsKey(workflowId)) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Text(
-            'Error: Unknown workflow configuration "$workflowId".',
-            style: const TextStyle(color: Colors.red),
-          ),
-        ),
-      );
-    }
-
-    final steps = _workflowSteps[workflowId]!;
-    
-    int currentIndex = -1;
-    if (currentStep != null) {
-      currentIndex = steps.indexOf(currentStep!);
-    }
-    // If completed/unknown or not in list
-    if (currentIndex == -1 && currentStep == 'completed') {
-      currentIndex = steps.length;
-    }
-
-    return Card(
-      child: ListView.separated(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: steps.length,
-        separatorBuilder: (_, _) => const Divider(height: 1),
-        itemBuilder: (context, index) {
-          final stepKey = steps[index];
-          final stepLabel = _getStepLabel(context, stepKey);
-
-          // Steps before current index are completed
-          bool isCompleted = index < currentIndex;
-          // Current step is the one matching index (if running/pending)
-          bool isCurrent =
-              index == currentIndex && status != ExecutionStatus.completed;
-
-          // Visually, if completed, ALL are completed
-          if (status == ExecutionStatus.completed) {
-            isCompleted = true;
-            isCurrent = false;
-          }
-
-          return ListTile(
-            dense: true,
-            leading: _buildStepIcon(isCompleted, isCurrent),
-            title: Text(
-              stepLabel,
-              style: TextStyle(
-                fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
-                color: isCurrent ? Theme.of(context).primaryColor : null,
-              ),
-            ),
-            trailing:
-                isCurrent
-                    ? const SizedBox(
-                      width: 12,
-                      height: 12,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                    : null,
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildStepIcon(bool isCompleted, bool isCurrent) {
-    if (isCompleted) {
-      return const Icon(Icons.check_circle, color: Colors.green, size: 20);
-    }
-    if (isCurrent) {
-      return const Icon(Icons.play_circle_fill, color: Colors.blue, size: 20);
-    }
-    return const Icon(
-      Icons.radio_button_unchecked,
-      color: Colors.grey,
-      size: 20,
-    );
   }
 }
 
@@ -403,6 +303,20 @@ class _ReportTab extends StatelessWidget {
             child: Text(
               l10n.executionFailed('${data.error}'),
               style: const TextStyle(color: Colors.red),
+            ),
+          ),
+      rejected:
+          (data) => Center(
+            child: Text(
+              l10n.executionRejected('${data.error}'),
+              style: const TextStyle(color: Colors.orange),
+            ),
+          ),
+      interrupted:
+          (data) => Center(
+            child: Text(
+              "Interrupted: ${data.error}",
+              style: const TextStyle(color: Colors.orange),
             ),
           ),
       cancelling: (_) => Center(child: Text(l10n.cancelling)),

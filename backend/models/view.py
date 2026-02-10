@@ -42,3 +42,21 @@ class ReportView(BaseModel):
     title: str = Field(default="Auditintiraportti", description="Page title")
     status_theme: str = Field(default="success", description="Visual theme: 'success' | 'warning' | 'danger'")
     sections: list[UiSection] = Field(default_factory=list, description="Ordered list of UI sections")
+
+
+class StepProgressItem(BaseModel):
+    """Progress indicator for a single step (BFF)."""
+    id: str = Field(..., description="Step ID (e.g. step_guard)")
+    label: str = Field(..., description="Human-readable label")
+    status: str = Field(..., description="Status: pending, running, completed, failed")
+
+
+class AssessmentView(BaseModel):
+    """BFF View Model for the Execution Monitor."""
+    sessionId: str = Field(..., description="Execution ID")
+    statusLabel: str = Field(..., description="Human-readable status")
+    uiVariant: str = Field(..., description="UI Theme: default, success, warning, error")
+    statusMessage: str = Field(..., description="Contextual status message")
+    showWarningBanner: bool = Field(default=False, description="Whether to show warning banner")
+    steps: list[StepProgressItem] = Field(default_factory=list, description="Ordered list of steps with status")
+    finalScore: int | None = Field(default=None, description="Final score if available")

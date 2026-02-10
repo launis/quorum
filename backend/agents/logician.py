@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from backend.agents.base import BaseAgent
 
 # 3. Local Imports
-from backend.models.domain import ArgumentaatioAnalyysi
+from backend.models.domain import LogicianData
 
 if TYPE_CHECKING:
     pass
@@ -34,15 +34,15 @@ class LogicianAgent(BaseAgent):
         """Returns the expected output schema.
 
         Returns:
-            Optional[Type[BaseModel]]: ArgumentaatioAnalyysi schema.
+            Optional[Type[BaseModel]]: LogicianData schema.
 
         """
-        return ArgumentaatioAnalyysi
+        return LogicianData
 
     async def prepare_context(self, input_data: dict, execution_context: dict | None, **kwargs) -> str | None:
         """Lifecycle Hook: Pre-Execution.
 
-        Injects the Evidence Map (TodistusKartta) from the Analyst step.
+        Injects the Evidence Map (AnalystOutput) from the Analyst step.
 
         Args:
             input_data (dict): Inputs.
@@ -53,16 +53,16 @@ class LogicianAgent(BaseAgent):
             Optional[str]: Formatted context.
         """
         # 1. Resolve Input (Prefer kwargs from wiring, then input_data)
-        todistus_kartta = kwargs.get("todistus_kartta")
-        if not todistus_kartta:
-            todistus_kartta = input_data.get("step_analyst")
+        analyst_output = kwargs.get("step_analyst")
+        if not analyst_output:
+            analyst_output = input_data.get("step_analyst")
 
         # 2. Format Context
-        if todistus_kartta:
+        if analyst_output:
             content = (
-                todistus_kartta.model_dump_json(indent=2)
-                if hasattr(todistus_kartta, "model_dump_json")
-                else str(todistus_kartta)
+                analyst_output.model_dump_json(indent=2)
+                if hasattr(analyst_output, "model_dump_json")
+                else str(analyst_output)
             )
             return f"### TODISTUSKARTTA (EVIDENCE MAP):\n{content}"
 
@@ -84,6 +84,6 @@ class LogicianAgent(BaseAgent):
             **kwargs: Args.
 
         Returns:
-            dict: ArgumentaatioAnalyysi.
+            dict: LogicianData.
         """
         return await super().execute(input_data, execution_context, system_instruction, **kwargs)

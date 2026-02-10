@@ -9,20 +9,20 @@ from pydantic import BaseModel
 from backend.exceptions import ResourceNotFoundError
 from backend.models.domain import (
     ArchivistOutput,
-    ArgumentaatioAnalyysi,
+    CausalAnalysis,
     CoachingPlan,
-    EtiikkaJaFakta,
     EvaluationMatrixConfig,
     EvaluationResult,
+    FalsifierData,
     InteractionAnalysis,
-    KausaalinenAuditointi,
-    LogiikkaAuditointi,
-    PanelAudit,
-    PerformatiivisuusAuditointi,
+    LogicianData,
+    OverseerData,
+    PanelOutput,
+    PerformativityAnalysis,
     ProfilerAnalysis,
-    TaintedData,
-    TodistusKartta,
-    XAIReport,
+    TaintedDataContent,
+    AnalystOutput,
+    XAIOutput,
 )
 from backend.models.workflow import WorkflowDefinition
 
@@ -41,21 +41,21 @@ MODEL_REGISTRY = {
     "evaluation_matrix": EvaluationMatrixConfig,
 
     # Agent Output Models (Domain)
-    "tainted_data": TaintedData,  # Guard
-    "todistus_kartta": TodistusKartta,  # Analyst
+    "tainted_data": TaintedDataContent,  # Guard
+    "todistus_kartta": AnalystOutput,  # Analyst
     "profiler_analysis": ProfilerAnalysis,  # Profiler
-    "argumentaatio_analyysi": ArgumentaatioAnalyysi,  # Logician
-    "logiikka_auditointi": LogiikkaAuditointi,  # Falsifier
-    "etiikka_ja_fakta": EtiikkaJaFakta,  # Overseer
-    "kausaalinen_auditointi": KausaalinenAuditointi,  # Causal
-    "performatiivisuus_auditointi": PerformatiivisuusAuditointi,  # Performativity
+    "argumentaatio_analyysi": LogicianData,  # Logician
+    "logiikka_auditointi": FalsifierData,  # Falsifier
+    "etiikka_ja_fakta": OverseerData,  # Overseer
+    "kausaalinen_auditointi": CausalAnalysis,  # Causal
+    "performatiivisuus_auditointi": PerformativityAnalysis,  # Performativity
     "coaching_plan": CoachingPlan, # Coach
     "archivist_output": ArchivistOutput, # Archivist
     "interaction_analysis": InteractionAnalysis, # Interaction
-    "xai_report": XAIReport,  # XAI
+    "xai_report": XAIOutput,  # XAI
 
     # Aggregates
-    "panel_audit": PanelAudit,
+    "panel_audit": PanelOutput,
     "evaluation_result": EvaluationResult,
 }
 

@@ -48,6 +48,7 @@ sealed class Execution with _$Execution {
     @JsonKey(name: 'current_step_name') String? currentStepName,
     @JsonKey(name: 'current_step_index') int? currentStepIndex,
     @JsonKey(name: 'total_steps') int? totalSteps,
+    @JsonKey(name: 'workflow_steps') List<String>? workflowSteps,
     @Default(ExecutionStatus.pending) ExecutionStatus status,
   }) = ExecutionPending;
 
@@ -62,6 +63,7 @@ sealed class Execution with _$Execution {
     @JsonKey(name: 'current_step_name') String? currentStepName,
     @JsonKey(name: 'current_step_index') int? currentStepIndex,
     @JsonKey(name: 'total_steps') int? totalSteps,
+    @JsonKey(name: 'workflow_steps') List<String>? workflowSteps,
     @Default(ExecutionStatus.started) ExecutionStatus status,
   }) = ExecutionStarted;
 
@@ -83,6 +85,7 @@ sealed class Execution with _$Execution {
     @JsonKey(name: 'current_step_name') String? currentStepName,
     @JsonKey(name: 'current_step_index') int? currentStepIndex,
     @JsonKey(name: 'total_steps') int? totalSteps,
+    @JsonKey(name: 'workflow_steps') List<String>? workflowSteps,
     @Default(ExecutionStatus.running) ExecutionStatus status,
   }) = ExecutionRunning;
 
@@ -132,9 +135,26 @@ sealed class Execution with _$Execution {
     @JsonKey(name: 'step_coach') Map<String, dynamic>? stepCoach,
     @JsonKey(name: 'step_interaction') Map<String, dynamic>? stepInteraction,
     @JsonKey(name: 'step_panel') Map<String, dynamic>? stepPanel,
+    @JsonKey(name: 'workflow_steps') List<String>? workflowSteps,
 
     @Default(ExecutionStatus.completed) ExecutionStatus status,
   }) = ExecutionCompleted;
+
+  /// State: Execution was rejected.
+  const factory Execution.rejected({
+    @JsonKey(name: 'execution_id') required String id,
+    @JsonKey(name: 'start_time') required DateTime createdAt,
+    @JsonKey(name: 'workflow_name') String? workflowName,
+    @JsonKey(name: 'organization_id') String? organizationId,
+    @JsonKey(name: 'user_id') String? userId,
+    @Default({}) Map<String, dynamic> inputs,
+    @JsonKey(name: 'current_step_name') String? currentStepName,
+    @JsonKey(name: 'current_step_index') int? currentStepIndex,
+    @JsonKey(name: 'total_steps') int? totalSteps,
+    @JsonKey(name: 'workflow_steps') List<String>? workflowSteps,
+    String? error,
+    @Default(ExecutionStatus.rejected) ExecutionStatus status,
+  }) = ExecutionRejected;
 
   /// State: Execution failed or was rejected.
   const factory Execution.failed({
@@ -147,11 +167,28 @@ sealed class Execution with _$Execution {
     @JsonKey(name: 'current_step_name') String? currentStepName,
     @JsonKey(name: 'current_step_index') int? currentStepIndex,
     @JsonKey(name: 'total_steps') int? totalSteps,
+    @JsonKey(name: 'workflow_steps') List<String>? workflowSteps,
 
     /// Error message or failure reason.
     String? error,
     @Default(ExecutionStatus.failed) ExecutionStatus status,
   }) = ExecutionFailed;
+
+  /// State: Execution was interrupted.
+  const factory Execution.interrupted({
+    @JsonKey(name: 'execution_id') required String id,
+    @JsonKey(name: 'start_time') required DateTime createdAt,
+    @JsonKey(name: 'workflow_name') String? workflowName,
+    @JsonKey(name: 'organization_id') String? organizationId,
+    @JsonKey(name: 'user_id') String? userId,
+    @Default({}) Map<String, dynamic> inputs,
+    @JsonKey(name: 'current_step_name') String? currentStepName,
+    @JsonKey(name: 'current_step_index') int? currentStepIndex,
+    @JsonKey(name: 'total_steps') int? totalSteps,
+    @JsonKey(name: 'workflow_steps') List<String>? workflowSteps,
+    String? error,
+    @Default(ExecutionStatus.interrupted) ExecutionStatus status,
+  }) = ExecutionInterrupted;
 
   /// State: Execution is being cancelled.
   const factory Execution.cancelling({
@@ -164,6 +201,7 @@ sealed class Execution with _$Execution {
     @JsonKey(name: 'current_step_name') String? currentStepName,
     @JsonKey(name: 'current_step_index') int? currentStepIndex,
     @JsonKey(name: 'total_steps') int? totalSteps,
+    @JsonKey(name: 'workflow_steps') List<String>? workflowSteps,
     @Default(ExecutionStatus.cancelling) ExecutionStatus status,
   }) = ExecutionCancelling;
 
@@ -176,6 +214,7 @@ sealed class Execution with _$Execution {
     @JsonKey(name: 'current_step_name') String? currentStepName,
     @JsonKey(name: 'current_step_index') int? currentStepIndex,
     @JsonKey(name: 'total_steps') int? totalSteps,
+    @JsonKey(name: 'workflow_steps') List<String>? workflowSteps,
     @Default(ExecutionStatus.unknown) ExecutionStatus status,
     Map<String, dynamic>? result,
     String? error,

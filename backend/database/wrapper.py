@@ -69,6 +69,16 @@ class AbstractTable(ABC):
         """Truncate the table."""
         pass
 
+    @abstractmethod
+    def count(self, query: Any = None) -> int:
+        """Count documents."""
+        pass
+
+    @abstractmethod
+    def contains(self, query: Any) -> bool:
+        """Check if document exists."""
+        pass
+
 
 class AbstractDatabase(ABC):
     """Abstract base class for database clients."""
@@ -137,6 +147,18 @@ class TinyDBTable(AbstractTable):
         """Truncate table."""
         with TinyDB(self._path, encoding="utf-8") as db:
             self._get_table(db).truncate()
+
+    def count(self, query: Any = None) -> int:
+        """Count documents."""
+        with TinyDB(self._path, encoding="utf-8") as db:
+            if query:
+                return self._get_table(db).count(query)
+            return len(self._get_table(db))
+
+    def contains(self, query: Any) -> bool:
+        """Check if document exists."""
+        with TinyDB(self._path, encoding="utf-8") as db:
+            return self._get_table(db).contains(query)
 
 
 class TinyDBClient(AbstractDatabase):
@@ -279,6 +301,30 @@ class FirestoreTable(AbstractTable):
         if deleted >= batch_size:
             # Recursively call if more exist
             self.truncate()
+
+    def count(self, query: Any = None) -> int:
+        """Count documents."""
+        if query:
+            # In-memory count for query
+            docs = self._collection.stream()
+            c = 0
+            for doc in docs:
+                if query(doc.to_dict()):
+                    c += 1
+            return c
+        else:
+            # Total count
+            try:
+                aggregate_query = self._collection.count()
+                snapshots = aggregate_query.get()
+                return int(snapshots[0][0].value)
+            except Exception:
+                docs = self._collection.stream()
+                return len(list(docs))
+
+    def contains(self, query: Any) -> bool:
+        """Check if document exists."""
+        return self.get(query) is not None
 
     def close(self):
         """Close the table connection (no-op for Firestore)."""

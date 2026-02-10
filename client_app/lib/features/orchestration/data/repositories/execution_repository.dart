@@ -10,6 +10,7 @@ import 'package:client_app/api/api_client.dart';
 import 'package:client_app/core/error/app_error.dart';
 import 'package:client_app/features/orchestration/domain/models/execution.dart';
 import 'package:client_app/features/orchestration/domain/models/execution_input.dart';
+import 'package:client_app/features/orchestration/domain/models/assessment_view.dart';
 
 part 'execution_repository.g.dart';
 
@@ -188,7 +189,8 @@ class ExecutionRepository {
   ///
   /// Endpoint: `GET /executions/{id}/events`
   Stream<Execution> streamExecution(String id) {
-    final url = '/executions/$id/events';
+    // Request RAW view for full Execution model
+    final url = '/executions/$id/events?view=raw';
     
     // We utilize the SseClient helper
     final stream = SseClient.connect<Execution>(
@@ -198,6 +200,20 @@ class ExecutionRepository {
     );
     
     return stream;
+  }
+
+  /// Streams the execution as an AssessmentView (BFF).
+  ///
+  /// Endpoint: `GET /executions/{id}/events`
+  Stream<AssessmentView> streamAssessment(String id) {
+    // Request ASSESSMENT view for UI-optimized model
+    final url = '/executions/$id/events?view=assessment';
+    
+    return SseClient.connect<AssessmentView>(
+      url: url,
+      parser: (json) => AssessmentView.fromJson(json),
+      dio: _client,
+    );
   }
 
   /// Checks if the status is final/terminal.

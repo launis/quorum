@@ -116,22 +116,13 @@ class CoachAgent(BaseAgent):
                                      elif "falsi" in dim_id:
                                          focus_keywords.update(["falsif", "popp", "scien", "test"])
 
-                        # Fallback Logic: Check legacy pisteet
-                        elif "pisteet" in data:
-                             p = data.get("pisteet", {})
-                             for k, v in p.items():
-                                 if v and isinstance(v, dict):
-                                     val = v.get("arvosana")
-                                     k_lower = k.lower()
-                                     if isinstance(val, (int, float)) and val < 3:
-                                          weak_areas.append(f"- [{key}] {k}: Score {val} (Low)")
-                                          focus_keywords.add(k_lower)
-                                          if "analy" in k_lower:
-                                              focus_keywords.update(["bias", "analy"])
-                                          elif "arvio" in k_lower:
-                                              focus_keywords.update(["eval", "assess"])
-                                          elif "syn" in k_lower:
-                                              focus_keywords.update(["synth", "integ"])
+                                         focus_keywords.update(["falsif", "popp", "scien", "test"])
+
+                        # STRICT MODE: Legacy 'pisteet' support is REMOVED.
+                        # If the schema is old, we simply won't find weak areas here,
+                        # potentially resulting in Generic coaching (which is safe),
+                        # OR we could log a warning.
+
                 except Exception as e:
                     logger.warning(f"[CoachAgent] Failed to analyze weak areas for {key}: {e}")
 

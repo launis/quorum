@@ -2,6 +2,7 @@ import 'package:client_app/features/orchestration/presentation/widgets/results/l
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:convert';
+import 'dart:io';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
 class SpecialistSection extends StatefulWidget {
@@ -28,8 +29,10 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ExpansionTile(
-        leading: _buildIconForType(),
+      child: Semantics(
+        excludeSemantics: Platform.isWindows,
+        child: ExpansionTile(
+          leading: _buildIconForType(),
         title: Text(
           widget.title,
           style: const TextStyle(fontWeight: FontWeight.bold),
@@ -1085,15 +1088,60 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                     subtitle,
                     style: const TextStyle(
                       fontSize: 12,
-                      fontStyle: FontStyle.italic,
+    return ExpansionTile(
+      tilePadding: EdgeInsets.zero,
+      title: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: color ?? Colors.grey[100],
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 32, color: Colors.black54),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.black54,
+                        ),
+                      ),
+                      if (helpKey != null) _buildHelpButton(context, helpKey),
+                    ],
+                  ),
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
-              ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      children: [
+        if (subtitle != null)
+          Padding(
+            padding: const EdgeInsets.only(left: 12, right: 12, bottom: 12),
+            child: Text(
+              subtitle,
+              style: const TextStyle(
+                fontSize: 12,
+                fontStyle: FontStyle.italic,
+              ),
             ),
           ),
-        ],
-      ),
+      ],
     );
   }
 

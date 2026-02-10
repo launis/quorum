@@ -10,7 +10,7 @@ from backend.agents.base import BaseAgent
 
 # 3. Local Imports
 from backend.exceptions import AgentExecutionError
-from backend.models.domain import PanelAudit
+from backend.models.domain import PanelOutput
 
 if TYPE_CHECKING:
     pass
@@ -112,13 +112,13 @@ class PanelAgent(BaseAgent):
             **kwargs: Args.
 
         Returns:
-             dict: The composite PanelAudit result.
+             dict: The composite PanelOutput result.
         """
         # 1. Construct User Prompt
         try:
             user_content = self.construct_user_prompt(input_data, auxiliary_data=input_data) # Assuming input_data contains merged aux
 
-            # 2. Call LLM with strict PanelAudit schema
+            # 2. Call LLM with strict PanelOutput schema
             if not self.llm_provider:
                 raise ValueError("PanelAgent requires a configured LLM Provider.")
 
@@ -129,7 +129,7 @@ class PanelAgent(BaseAgent):
             response = await self.llm_provider.generate(
                 prompt=user_content,
                 system_instruction=system_instruction,
-                response_schema=PanelAudit,
+                response_schema=PanelOutput,
                 mock_identity="PanelAgent",
                 **kwargs,
             )
@@ -139,14 +139,14 @@ class PanelAgent(BaseAgent):
 
             # OPTIMIZATION: Use pre-parsed content if available (Instructor Pattern)
             if response.parsed_content is not None:
-                if isinstance(response.parsed_content, PanelAudit):
+                if isinstance(response.parsed_content, PanelOutput):
                     panel_data = response.parsed_content
                 elif isinstance(response.parsed_content, dict):
-                    panel_data = PanelAudit(**response.parsed_content)
+                    panel_data = PanelOutput(**response.parsed_content)
                 else:
                     logger.warning(
                         f"[PanelAgent] parsed_content was {type(response.parsed_content)}, "
-                        "expected Dict or PanelAudit. Trying legacy parsing."
+                        "expected Dict or PanelOutput. Trying legacy parsing."
                     )
 
             # Fallback (Legacy) - Only used if Provider didn't parse
@@ -156,7 +156,7 @@ class PanelAgent(BaseAgent):
                     try:
                         clean_content = raw_content.replace("```json", "").replace("```", "").strip()
                         raw_dict = json.loads(clean_content)
-                        panel_data = PanelAudit(**raw_dict)
+                        panel_data = PanelOutput(**raw_dict)
                     except json.JSONDecodeError as e:
                         error_code = "PANEL_RESPONSE_MALFORMED"
                         logger.error(f"{error_code}: Could not parse JSON string - {e}")
@@ -164,27 +164,27 @@ class PanelAgent(BaseAgent):
 
             if panel_data:
                 # 4. Result Construction
-                # We return the PanelAudit object (or dict).
+                # We return the PanelOutput object (or dict).
                 # NOTE: The "Fan-Out" to logging/falsifier/etc fields is no longer done by modifying 'state' here.
                 # It must be done by the Engine using mapping_expressions or result_mapping logic if needed.
                 # OR we return a dict with those keys if Engine supports flattening.
 
-                # For compatibility with new Engine, we return the PanelAudit.
+                # For compatibility with new Engine, we return the PanelOutput.
                 # If we need to fan out, we might return a dict like:
                 # {
                 #   "step_panel": panel_data,
-                #   "step_logician": panel_data.logiikka_auditointi, ...
+                #   "step_logician": panel_data.logician_data, ...
                 # }
                 # But BaseAgent usually returns one result.
                 # Let's assume Engine takes the result for this step ID.
 
-                logger.info("[PanelAgent] Successfully generated PanelAudit.")
+                logger.info("[PanelAgent] Successfully generated PanelOutput.")
 
                 # To support fan-out in the new architecture, we might explicitly return the sub-models
                 # But typically the step result is just "step_panel".
-                # Downstream steps will look up "step_panel.logiikka_auditointi".
+                # Downstream steps will look up "step_panel.logician_data".
 
-                if isinstance(panel_data, PanelAudit):
+                if isinstance(panel_data, PanelOutput):
                    return panel_data.model_dump()
                 return panel_data
 

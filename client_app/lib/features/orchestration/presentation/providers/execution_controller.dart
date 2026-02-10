@@ -4,26 +4,36 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
 
 import 'package:client_app/core/error/app_error.dart';
-import 'package:client_app/core/network/sse_client.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:client_app/features/orchestration/data/repositories/execution_repository.dart';
-import 'package:client_app/features/orchestration/domain/models/execution.dart';
 import 'package:client_app/features/orchestration/domain/models/execution_file.dart';
 import 'package:client_app/features/orchestration/domain/models/execution_input.dart';
+import 'package:client_app/features/orchestration/domain/models/assessment_view.dart';
+import 'package:client_app/features/orchestration/domain/models/execution.dart';
 import 'package:client_app/features/orchestration/presentation/providers/execution_providers.dart';
 import 'package:client_app/features/orchestration/domain/logic/workflow_input_validator.dart';
 import 'package:client_app/api/api_client.dart';
 
 part 'execution_controller.g.dart';
 
-/// **Execution Data Stream**
+/// **Execution Data Stream (Full Domain Model)**
 ///
 /// Real-time monitoring of a specific execution via SSE.
-/// Used by Detailed View.
+/// Used by ExecutionResultScreen and ExecutionDetailsScreen.
 @riverpod
 Stream<Execution> executionStream(Ref ref, String executionId) {
   final repository = ref.watch(executionRepositoryProvider);
   return repository.streamExecution(executionId);
+}
+
+/// **Assessment View Data Stream (Server-Driven UI)**
+///
+/// Real-time monitoring via SSE, projected to a View Model.
+/// Used by ExecutionMonitorScreen.
+@riverpod
+Stream<AssessmentView> assessmentStream(Ref ref, String executionId) {
+  final repository = ref.watch(executionRepositoryProvider);
+  return repository.streamAssessment(executionId);
 }
 
 /// **Execution Actions Controller**

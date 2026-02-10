@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from backend.agents.base import BaseAgent
 
 # 3. Local Imports
-from backend.models.domain import DimensionResultItem, ScoreCardItem, XAIReport
+from backend.models.domain import DimensionResultItem, JudgeScoreCard, XAIOutput, XAIScoreItem
 
 if TYPE_CHECKING:
     pass
@@ -35,10 +35,10 @@ class XAIReporterAgent(BaseAgent):
         The dynamic generation was causing issues with Optional fields and Type mismatches.
 
         Returns:
-            Optional[Type[BaseModel]]: XAIReport schema.
+            Optional[Type[BaseModel]]: XAIOutput schema.
 
         """
-        return XAIReport
+        return XAIOutput
 
     async def prepare_context(self, input_data: dict, execution_context: dict | None, **kwargs) -> str | None:
         """Lifecycle Hook: Pre-Execution.
@@ -100,13 +100,8 @@ class XAIReporterAgent(BaseAgent):
                     max_val = data.get("scale_max", "UNKNOWN")
                     lines.append(f"  - **{d_id}**: {score}/{max_val} - {reason}")
             else:
-                 # Fallback check for legacy 'pisteet'
-                 pisteet = data.get("pisteet")
-                 if pisteet:
-                     lines.append("  **Dimensions (Legacy):**")
-                     for key, val in pisteet.items():
-                         if val:
-                             lines.append(f"  - **{key}**: {val.get('arvosana')}/5 - {val.get('perustelu')}")
+                 # Strict Mode: No fallback for legacy 'pisteet'.
+                 pass
 
             # 3. Critical Findings
             crit_findings = data.get("critical_findings", [])
@@ -194,7 +189,7 @@ class XAIReporterAgent(BaseAgent):
                         verdict = f"Score: {total_score}/{max_score}"
 
                     score_cards.append(
-                        ScoreCardItem(
+                        JudgeScoreCard(
                             agent_name=agent_name,
                             total_score=total_score,
                             max_score=max_score,

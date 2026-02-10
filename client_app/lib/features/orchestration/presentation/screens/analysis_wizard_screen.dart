@@ -9,6 +9,7 @@ import 'package:client_app/features/orchestration/presentation/providers/executi
 import 'package:client_app/features/orchestration/presentation/widgets/wizard/workflow_selector.dart';
 import 'package:client_app/features/orchestration/presentation/widgets/wizard/dynamic_input_form.dart';
 import 'package:client_app/features/orchestration/presentation/providers/workflow_controller.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 import 'package:collection/collection.dart';
 
 class AnalysisWizardScreen extends ConsumerWidget {
@@ -126,8 +127,10 @@ class AnalysisWizardScreen extends ConsumerWidget {
   }
 
   Future<void> _submit(BuildContext context, WidgetRef ref) async {
+    final logger = ref.read(loggerServiceProvider);
+    
     try {
-      print('[AnalysisWizard] Submit pressed');
+      logger.info('AnalysisWizard', 'Submit pressed');
       final wizardState = ref.read(wizardStateProvider);
       final workflowList = ref.read(workflowListProvider);
 
@@ -138,14 +141,14 @@ class AnalysisWizardScreen extends ConsumerWidget {
               .firstOrNull;
       
       if (workflow == null) {
-         print('[AnalysisWizard] Workflow not found for ID: ${wizardState.selectedWorkflowId}');
+         logger.warning('AnalysisWizard', 'Workflow not found for ID: ${wizardState.selectedWorkflowId}');
          ScaffoldMessenger.of(ref.context).showSnackBar(
            const SnackBar(content: Text('Error: Invalid Workflow Selection. Please refresh.')),
          );
          return;
       }
 
-      print('[AnalysisWizard] Selected workflow: ${workflow.id}');
+      logger.info('AnalysisWizard', 'Selected workflow: ${workflow.id}');
 
       // Determine Required Keys based on Schema OR Fallback
       final List<String> requiredInputs;
@@ -158,7 +161,7 @@ class AnalysisWizardScreen extends ConsumerWidget {
         requiredInputs = [];
       }
       
-      print('[AnalysisWizard] Required inputs: $requiredInputs');
+      logger.debug('AnalysisWizard', 'Required inputs: $requiredInputs');
       
       // Sanitize inputs for logging (avoid printing file bytes)
       final sanitizedInputs = wizardState.inputs.map((key, value) {
@@ -167,7 +170,7 @@ class AnalysisWizardScreen extends ConsumerWidget {
         }
         return MapEntry(key, value);
       });
-      print('[AnalysisWizard] Current inputs: $sanitizedInputs');
+      logger.debug('AnalysisWizard', 'Current inputs: $sanitizedInputs');
 
       // Delegate strictly to Controller.
       // Validation is handled inside startAnalysis (Fail-fast).
@@ -181,14 +184,14 @@ class AnalysisWizardScreen extends ConsumerWidget {
             requiredInputs: requiredInputs,
           );
       
-      print('[AnalysisWizard] StartAnalysis returned ID: $executionId');
+      logger.info('AnalysisWizard', 'StartAnalysis returned ID: $executionId');
       
       if (executionId != null && context.mounted) {
         // Explicit navigation to the NEW execution
         context.go('/dashboard/executions/$executionId');
       }
     } catch (e, stack) {
-      print('[AnalysisWizard] Error in _submit: $e\n$stack');
+      logger.error('AnalysisWizard', 'Error in _submit', e, stack);
       // Ensure specific errors are rethrown or handled if not by ref.listen
        if (context.mounted) {
          ScaffoldMessenger.of(context).showSnackBar(

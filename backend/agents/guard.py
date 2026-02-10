@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from backend.agents.base import BaseAgent
 
 # 3. Local Imports
-from backend.models.domain import TaintedData
+from backend.models.domain import TaintedDataContent
 
 if TYPE_CHECKING:
     pass
@@ -35,16 +35,16 @@ class GuardAgent(BaseAgent):
     PRODUCES_KEYS = ["step_guard"]
     # OUTPUT_SCHEMA is already handled by get_response_schema() logic generally,
     # but we can explicit it here if needed for static analysis.
-    OUTPUT_SCHEMA = TaintedData
+    OUTPUT_SCHEMA = TaintedDataContent
 
     def get_response_schema(self) -> type[BaseModel] | None:
-        """Returns the TaintedData schema definition.
+        """Returns the TaintedDataContent schema definition.
 
         Returns:
-            Type[TaintedData]: The schema class.
+            Type[TaintedDataContent]: The schema class.
 
         """
-        return TaintedData
+        return TaintedDataContent
 
     async def execute(
         self,

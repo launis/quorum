@@ -22,14 +22,19 @@ from backend.agents.critics import (
     LogicalFalsifierAgent,
     PerformativityDetectorAgent,
 )
-from backend.models.domain import EtiikkaJaFakta, KausaalinenAuditointi, LogiikkaAuditointi, PerformatiivisuusAuditointi
+from backend.models.domain import (
+    CausalAnalysis,
+    FalsifierData,
+    OverseerData,
+    PerformativityAnalysis,
+)
 
-TaskRegistry.register_agent(task_keys=["falsifier"], agent_cls=LogicalFalsifierAgent, output_model=LogiikkaAuditointi)
+TaskRegistry.register_agent(task_keys=["falsifier"], agent_cls=LogicalFalsifierAgent, output_model=FalsifierData)
 
-TaskRegistry.register_agent(task_keys=["overseer"], agent_cls=FactualOverseerAgent, output_model=EtiikkaJaFakta)
+TaskRegistry.register_agent(task_keys=["overseer"], agent_cls=FactualOverseerAgent, output_model=OverseerData)
 
-TaskRegistry.register_agent(task_keys=["causal"], agent_cls=CausalAnalystAgent, output_model=KausaalinenAuditointi)
+TaskRegistry.register_agent(task_keys=["causal"], agent_cls=CausalAnalystAgent, output_model=CausalAnalysis)
 
 TaskRegistry.register_agent(
-    task_keys=["detector"], agent_cls=PerformativityDetectorAgent, output_model=PerformatiivisuusAuditointi
+    task_keys=["detector"], agent_cls=PerformativityDetectorAgent, output_model=PerformativityAnalysis
 )
