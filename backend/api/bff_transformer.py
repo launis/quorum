@@ -97,62 +97,62 @@ class ReportTransformer:
         panel = steps.get("step_panel", {})
 
         # 1. Logic / Logician
-        logician_data = steps.get("step_logician") or panel.get("logiikka_auditointi")
+        logician_data = steps.get("step_logician") or panel.get("logician_data") or panel.get("logiikka_auditointi")
         if logician_data:
             sections.append(
                 UiSection(
                     id="logic-analysis",
                     type=SectionType.LOGIC_ANALYSIS,
                     title=self._t("Logic Analysis", "Logiikka-analyysi"),
-                    data=logician_data if isinstance(logician_data, dict) else logician_data.dict(),
+                    data=self._transform_logician_data(logician_data if isinstance(logician_data, dict) else logician_data.dict()),
                 )
             )
 
         # 2. Falsification / Falsifier
-        falsifier_data = steps.get("step_falsifier") or panel.get("falsifiointi_auditointi")
+        falsifier_data = steps.get("step_falsifier") or panel.get("falsifier_data") or panel.get("falsifiointi_auditointi")
         if falsifier_data:
             sections.append(
                 UiSection(
                     id="stress-test",
                     type=SectionType.STRESS_TEST,
                     title=self._t("Falsification & Stress Test", "Falsifiointi & Stressitesti"),
-                    data=falsifier_data if isinstance(falsifier_data, dict) else falsifier_data.dict(),
+                    data=self._transform_falsifier_data(falsifier_data if isinstance(falsifier_data, dict) else falsifier_data.dict()),
                 )
             )
 
         # 3. Causal / Causal Analyst
-        causal_data = steps.get("step_causal") or panel.get("kausaalinen_auditointi")
+        causal_data = steps.get("step_causal") or panel.get("causal_analysis") or panel.get("kausaalinen_auditointi")
         if causal_data:
             sections.append(
                 UiSection(
                     id="causal-analysis",
                     type=SectionType.CAUSAL_ANALYSIS,
                     title=self._t("Causal Audit", "Kausaalinen Auditointi"),
-                    data=causal_data if isinstance(causal_data, dict) else causal_data.dict(),
+                    data=self._transform_causal_data(causal_data if isinstance(causal_data, dict) else causal_data.dict()),
                 )
             )
 
         # 4. Performativity / Detector
-        detector_data = steps.get("step_detector") or panel.get("performatiivisuus_auditointi")
+        detector_data = steps.get("step_detector") or panel.get("performativity_analysis") or panel.get("performatiivisuus_auditointi")
         if detector_data:
             sections.append(
                 UiSection(
                     id="performativity-check",
                     type=SectionType.PERFORMATIVITY_CHECK,
                     title=self._t("Performativity Check", "Performatiivisuustarkistus"),
-                    data=detector_data if isinstance(detector_data, dict) else detector_data.dict(),
+                    data=self._transform_detector_data(detector_data if isinstance(detector_data, dict) else detector_data.dict()),
                 )
             )
 
         # 5. Facts & Ethics / Overseer
-        overseer_data = steps.get("step_overseer") or panel.get("etiikka_ja_fakta")
+        overseer_data = steps.get("step_overseer") or panel.get("overseer_data") or panel.get("etiikka_ja_fakta")
         if overseer_data:
             sections.append(
                 UiSection(
                     id="fact-check",
                     type=SectionType.FACT_CHECK,
                     title=self._t("Facts & Ethics", "Fakta & Etiikka"),
-                    data=overseer_data if isinstance(overseer_data, dict) else overseer_data.dict(),
+                    data=self._transform_overseer_data(overseer_data if isinstance(overseer_data, dict) else overseer_data.dict()),
                 )
             )
 
@@ -231,7 +231,12 @@ class ReportTransformer:
         dimensions = []
 
         # 1. Primary Source: 'score_cards' (V3 Standard)
-        if "score_cards" in judge_step and isinstance(judge_step["score_cards"], list) and judge_step["score_cards"]:
+        if "score_card" in judge_step:
+            card = judge_step["score_card"]
+            raw_score = card.get("total_score")
+            verdict = card.get("final_verdict")
+            dimensions = card.get("dimensions", [])
+        elif "score_cards" in judge_step and isinstance(judge_step["score_cards"], list) and judge_step["score_cards"]:
             card = judge_step["score_cards"][0]
             raw_score = card.get("total_score")
             verdict = card.get("verdict")
@@ -363,7 +368,7 @@ class ReportTransformer:
         if not step or not isinstance(step, dict):
             return None
 
-        hypotheses = step.get("hypoteesit", [])
+        hypotheses = step.get("hypotheses") or step.get("hypoteesit", [])
         if not hypotheses:
             return None
 
@@ -373,8 +378,8 @@ class ReportTransformer:
             rows.append(
                 {
                     "id": h_data.get("id"),
-                    "claim": h_data.get("vaite_teksti"),
-                    "proven": "✅" if h_data.get("loytyyko_todisteita") else "❌",
+                    "claim": h_data.get("claim_text") or h_data.get("vaite_teksti"),
+                    "proven": "✅" if (h_data.get("evidence_found") or h_data.get("loytyyko_todisteita")) else "❌",
                 }
             )
 
@@ -409,13 +414,13 @@ class ReportTransformer:
                 "items": [
                     {
                         "label": self._t("Threat Detected", "Uhka Havaittu"),
-                        "value": self._t("Yes", "Kyllä") if sec.get("uhka_havaittu") else self._t("No", "Ei"),
-                        "highlight": sec.get("uhka_havaittu"),
+                        "value": self._t("Yes", "Kyllä") if (sec.get("threat_detected") or sec.get("uhka_havaittu")) else self._t("No", "Ei"),
+                        "highlight": sec.get("threat_detected") or sec.get("uhka_havaittu"),
                     },
-                    {"label": self._t("Risk Level", "Riski Taso"), "value": sec.get("riski_taso", "N/A")},
+                    {"label": self._t("Risk Level", "Riski Taso"), "value": sec.get("risk_level") or sec.get("riski_taso", "N/A")},
                     {
                         "label": self._t("Anonymized", "Anonymisoitu"),
-                        "value": self._t("Yes", "Kyllä") if sec.get("anonymisointi_tehty") else self._t("No", "Ei"),
+                        "value": self._t("Yes", "Kyllä") if (sec.get("anonymized") or sec.get("anonymisointi_tehty")) else self._t("No", "Ei"),
                     },
                 ]
             },
@@ -434,29 +439,8 @@ class ReportTransformer:
         )
 
     def _transform_profiler_data(self, step: dict) -> dict:
-        """Adapts Backend English Schema to Frontend Finnish Schema."""
-        data = step.copy()
-        
-        # 1. Biases (List[str] -> List[Dict])
-        biases = step.get("cognitive_biases", [])
-        if biases and isinstance(biases, list):
-             # Frontend expects [{'nimi': 'Bias Name'}]
-             if isinstance(biases[0], str):
-                 data["tunnistetut_vinoumat"] = [{"nimi": b} for b in biases]
-             else:
-                 data["tunnistetut_vinoumat"] = biases
-        
-        # 2. Profile & Intent
-        if "emotional_tone" in step:
-            data["psykologinen_profiili"] = step["emotional_tone"]
-        if "author_intent" in step:
-            data["intentio_analyysi"] = step["author_intent"]
-            
-        # 3. Metrics
-        if "metrics" in step:
-            data["teksti_metriikka"] = step["metrics"]
-            
-        return data
+        """Pass-through for Profiler Schema (Frontend now supports English)."""
+        return step.copy()
 
     def _extract_interaction_section(self, steps: dict) -> UiSection | None:
         step = steps.get("step_interaction")
@@ -471,28 +455,44 @@ class ReportTransformer:
         )
 
     def _transform_interaction_data(self, step: dict) -> dict:
-        """Adapts Backend Interaction Schema to Frontend Driver Profile."""
-        data = step.copy()
-        
-        # Map Role
-        if "role_classification" in step and "driver_classification" not in data:
-            data["driver_classification"] = step["role_classification"]
-            
-        # Map Quality Score to Ratio
-        if "input_quality_score" in step and "input_control_ratio" not in data:
-            data["input_control_ratio"] = step["input_quality_score"]
-            
-        # Map Suggestions to Strategies (Close enough for UI)
-        if "improvement_suggestions" in step and "tunnistetut_strategiat" not in data:
-            data["tunnistetut_strategiat"] = step["improvement_suggestions"]
-            
-        return data
+        """Pass-through for Interaction Schema (Frontend now supports English)."""
+        return step.copy()
 
     def _extract_coach_section(self, steps: dict) -> UiSection | None:
         step = steps.get("step_coach")
         if not step or not isinstance(step, dict):
             return None
 
+        # 1. New English Schema (CoachingPlan)
+        if "actionable_steps" in step or "focus_areas" in step:
+            content = ""
+            if "focus_areas" in step and step["focus_areas"]:
+                content += f"### {self._t('Focus Areas', 'Painopisteet')}\n"
+                content += "\n".join([f"- {item}" for item in step["focus_areas"]]) + "\n\n"
+            
+            if "actionable_steps" in step and step["actionable_steps"]:
+                content += f"### {self._t('Actionable Steps', 'Toimenpiteet')}\n"
+                content += "\n".join([f"- {item}" for item in step["actionable_steps"]]) + "\n\n"
+            
+            if "bibliography" in step and step["bibliography"]:
+                content += f"### {self._t('References', 'Lähteet')}\n"
+                # Handle bibliography (list of dicts or strings)
+                for ref in step["bibliography"]:
+                    if isinstance(ref, dict):
+                        # Construct citation string
+                        cit = f"{ref.get('author', '')} {ref.get('year', '')}. {ref.get('title', '')}."
+                        content += f"- {cit}\n"
+                    else:
+                        content += f"- {ref}\n"
+
+            return UiSection(
+                id="coach-markdown",
+                type=SectionType.MARKDOWN_BLOCK,
+                title=self._t("Coach Feedback", "Valmentajan Palaute"),
+                data={"content": content},
+            )
+
+        # 2. Legacy Finnish Schema
         feedback = step.get("kannustava_palaute") or step.get("motivaatio")
         if not feedback:
             return None
@@ -517,18 +517,8 @@ class ReportTransformer:
         )
 
     def _transform_archivist_data(self, step: dict) -> dict:
-        """Adapts Backend Archivist Schema to Frontend Compliance Check."""
-        data = step.copy()
-        
-        # Compliance Score (derived from adherence)
-        if "stare_decisis_adherence" in step and "compliance_score" not in data:
-            data["compliance_score"] = 100 if step["stare_decisis_adherence"] else 40
-            
-        # Analysis
-        if "consistency_analysis" in step and "analysis" not in data:
-            data["analysis"] = step["consistency_analysis"]
-            
-        return data
+        """Pass-through for Archivist Schema (Frontend now supports English)."""
+        return step.copy()
 
     def _extract_usage_section(self, raw_data: dict) -> UiSection | None:
         usage = raw_data.get("usage")
@@ -537,7 +527,25 @@ class ReportTransformer:
             return None
 
         total_tokens = usage.get("total_tokens", 0)
-        cost = usage.get("total_cost", 0.0)
+    def _transform_logician_data(self, data: dict) -> dict:
+        """Pass-through for Logician Schema (Frontend now supports English)."""
+        return data.copy()
+
+    def _transform_falsifier_data(self, data: dict) -> dict:
+        """Pass-through for Falsifier Schema (Frontend now supports English)."""
+        return data.copy()
+
+    def _transform_causal_data(self, data: dict) -> dict:
+        """Pass-through for Causal Schema (Frontend now supports English)."""
+        return data.copy()
+
+    def _transform_detector_data(self, data: dict) -> dict:
+        """Pass-through for Performativity Schema (Frontend now supports English)."""
+        return data.copy()
+
+    def _transform_overseer_data(self, data: dict) -> dict:
+        """Pass-through for Overseer Schema (Frontend now supports English)."""
+        return data.copy()
 
 
 class AssessmentTransformer:

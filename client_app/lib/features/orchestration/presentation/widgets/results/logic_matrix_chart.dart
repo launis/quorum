@@ -115,18 +115,28 @@ class LogicMatrixChart extends StatelessWidget {
 
   double _calculateBloomScore(String level) {
     final lower = level.toLowerCase();
-    if (lower.contains("luominen") || lower.contains("creating")) return 5.5;
-    if (lower.contains("arviointi") || lower.contains("evaluating")) return 4.5;
-    if (lower.contains("analysointi") || lower.contains("analyzing")) return 3.5;
-    if (lower.contains("soveltaminen") || lower.contains("applying")) return 2.5;
-    if (lower.contains("ymmärtäminen") || lower.contains("understanding")) return 1.5;
-    if (lower.contains("muistaminen") || lower.contains("remembering")) return 0.5;
+    // English (Primary)
+    if (lower.contains("creating")) return 5.5;
+    if (lower.contains("evaluating")) return 4.5;
+    if (lower.contains("analyzing")) return 3.5;
+    if (lower.contains("applying")) return 2.5;
+    if (lower.contains("understanding")) return 1.5;
+    if (lower.contains("remembering")) return 0.5;
+
+    // Finnish (Legacy Backward Compatibility)
+    if (lower.contains("luominen")) return 5.5;
+    if (lower.contains("arviointi")) return 4.5;
+    if (lower.contains("analysointi")) return 3.5;
+    if (lower.contains("soveltaminen")) return 2.5;
+    if (lower.contains("ymmärtäminen")) return 1.5;
+    if (lower.contains("muistaminen")) return 0.5;
 
     // Handle "Not Detected" / Missing Prompt cases
     if (lower.contains("ei havaittu") ||
         lower.contains("not detected") ||
         lower.contains("puuttuu") ||
-        lower.contains("missing")) {
+        lower.contains("missing") ||
+        lower.contains("n/a")) {
       return 0.0;
     }
 

@@ -1,0 +1,14 @@
+﻿Analyzing specialist_section.dart...
+
+  error - specialist_section.dart:94:6 - Expected to find ')'. - expected_token
+  error - specialist_section.dart:743:18 - Expected to find ')'. - expected_token
+warning - specialist_section.dart:373:33 - The left operand can't be null, so the right operand is never executed. Try removing the operator and the right operand. - dead_null_aware_expression
+warning - specialist_section.dart:381:33 - The left operand can't be null, so the right operand is never executed. Try removing the operator and the right operand. - dead_null_aware_expression
+warning - specialist_section.dart:1354:11 - The value of the local variable 'isPassive' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - specialist_section.dart:1540:10 - The declaration '_buildProfileIcon' isn't referenced. Try removing the declaration of '_buildProfileIcon'. - unused_element
+   info - specialist_section.dart:364:46 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - specialist_section.dart:1368:51 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - specialist_section.dart:1509:54 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - specialist_section.dart:1595:48 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+
+10 issues found.

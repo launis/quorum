@@ -116,7 +116,7 @@ class _ExecutionMonitorScreenState extends ConsumerState<ExecutionMonitorScreen>
         },
       ),
       floatingActionButton:
-          asyncExecution.asData?.value.finalScore != null
+          asyncExecution.asData?.value.uiVariant == 'success'
               ? FloatingActionButton.extended(
                 onPressed:
                     () => context.go(
@@ -212,7 +212,7 @@ class _MonitorView extends StatelessWidget {
                ExecutionTimeline(steps: assessment.steps, compact: true),
             ],
 
-            if (assessment.finalScore != null || assessment.uiVariant == 'success') ...[
+            if (assessment.uiVariant == 'success') ...[
               const SizedBox(height: 16),
               _CompletionBanner(executionId: assessment.sessionId),
             ],

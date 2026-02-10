@@ -161,7 +161,8 @@ class PdfReportGenerator {
   pw.Widget _buildDriverProfile(Map<String, dynamic> data) {
       final role = data['driver_classification'] ?? 'N/A';
       final ratio = data['input_control_ratio'];
-      final strategies = data['tunnistetut_strategiat'] as List<dynamic>? ?? [];
+      final strategies = (data['identified_strategies'] ?? 
+          data['tunnistetut_strategiat']) as List<dynamic>? ?? [];
 
       return pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -176,7 +177,8 @@ class PdfReportGenerator {
   }
 
   pw.Widget _buildLogicAnalysis(Map<String, dynamic> data) {
-      final toulmin = data['toulmin_analyysi'] as List<dynamic>? ?? [];
+      final toulmin = (data['toulmin_analysis'] ?? 
+          data['toulmin_analyysi']) as List<dynamic>? ?? [];
       final reasoning = data['reasoning_trace'];
       
       return pw.Column(
@@ -205,7 +207,7 @@ class PdfReportGenerator {
   }
 
   pw.Widget _buildArchivistCheck(Map<String, dynamic> data) {
-      final analysis = data['analysis'];
+      final analysis = data['consistency_analysis'] ?? data['analysis'];
       return pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [

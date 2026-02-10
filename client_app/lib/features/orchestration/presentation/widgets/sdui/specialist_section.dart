@@ -91,6 +91,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
           ),
         ],
       ),
+    ),
     );
   }
 
@@ -174,363 +175,460 @@ class _SpecialistSectionState extends State<SpecialistSection> {
 
   // --- 1. LOGIC ANALYSIS (Toulmin & Cognitive) ---
   Widget _buildLogicAnalysis(BuildContext context) {
-    // Keys match LogicianAgent output schema (v2.0)
-    // "kognitiivinen_taso" is the canonical key. "kognitiivinen_analyysi" is legacy.
-    final cog =
-        (widget.data['kognitiivinen_taso'] ??
-                widget.data['kognitiivinen_analyysi'])
-            as Map<String, dynamic>? ??
+    // Keys match LogicianOutput (v2026 Canonical)
+    // "cognitive_level" is the canonical key. "kognitiivinen_taso"/legacy are fallbacks.
+    final cog = (widget.data['cognitive_level'] ??
+            widget.data['kognitiivinen_taso'] ??
+            widget.data['kognitiivinen_analyysi']) as Map<String, dynamic>? ??
         {};
-    final toulmin =
-        (widget.data['toulmin_analyysi'] as List?)
-            ?.cast<Map<String, dynamic>>() ??
-        [];
+    
+    final toulmin = (widget.data['toulmin_analysis'] ??
+            widget.data['toulmin_analyysi'] as List?)
+        ?.cast<Map<String, dynamic>>() ??
+    [];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (widget.data['metodologinen_loki'] != null) ...[
-          _buildInfoCard(
-            AppLocalizations.of(context)!.lblMethodologicalLog,
-            widget.data['metodologinen_loki'],
-            Icons.history_edu,
-            helpKey: "metodologia",
-          ),
-          const SizedBox(height: 16),
-        ],
+    final methodology = widget.data['methodological_log'] ??
+        widget.data['metodologinen_loki'] as String?;
 
-        // Responsive Layout for Bloom & Toulmin
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final isWide = constraints.maxWidth > 800;
+    final List<Widget> children = [];
 
-            // Enhanced Bloom Widget (Report Style)
-            final bloomWidget =
-                cog.isNotEmpty
-                    ? Card(
-                      color: Colors.teal[50], // Distinct color for Cognitive
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                const Icon(
-                                  Icons.psychology,
-                                  color: Colors.teal,
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    "${AppLocalizations.of(context)!.lblCognitiveLevel}: ${cog['bloom_taso'] ?? 'N/A'}",
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                      color: Colors.teal,
-                                    ),
-                                  ),
-                                ),
-                                _buildHelpButton(context, "bloom"),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              AppLocalizations.of(context)!.lblStrategicDepth,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                                color: Colors.grey,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            SelectableText(
-                              cog['strateginen_syvyys'] ?? "Ei analyysiä.",
-                              style: const TextStyle(fontSize: 14, height: 1.5),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                    : const SizedBox.shrink();
+    if (methodology != null) {
+      children.add(_buildInfoCard(
+        AppLocalizations.of(context)!.lblMethodologicalLog,
+        methodology,
+        Icons.history_edu,
+        helpKey: "metodologia",
+      ));
+      children.add(const SizedBox(height: 16));
+    }
 
-            final toulminWidget =
-                toulmin.isNotEmpty
-                    ? Column(
+    children.add(
+      LayoutBuilder(
+        builder: (context, constraints) {
+          final isWide = constraints.maxWidth > 800;
+
+          // Enhanced Bloom Widget (Report Style)
+          final bloomWidget = cog.isNotEmpty
+              ? Card(
+                  color: Colors.teal[50], // Distinct color for Cognitive
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
-                            Text(
-                              AppLocalizations.of(context)!.lblArguments,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
+                            const Icon(
+                              Icons.psychology,
+                              color: Colors.teal,
                             ),
-                            _buildHelpButton(context, "toulmin"),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        ...toulmin
-                            .map(
-                              (t) => Card(
-                                margin: const EdgeInsets.only(bottom: 8),
-                                color: Colors.indigo[50],
-                                child: Padding(
-                                  padding: const EdgeInsets.all(12),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      _buildLabelValue(
-                                        "Väite (Claim)",
-                                        t['claim'],
-                                      ),
-                                      const SizedBox(height: 4),
-                                      const Divider(),
-                                      const SizedBox(height: 4),
-                                      _buildLabelValue(
-                                        "Perustelu (Warrant)",
-                                        t['warrant'],
-                                      ),
-                                      if (t['backing'] != null) ...[
-                                        const SizedBox(height: 4),
-                                        _buildLabelValue(
-                                          "Tuki (Backing)",
-                                          t['backing'],
-                                        ),
-                                      ],
-                                    ],
-                                  ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                "${AppLocalizations.of(context)!.lblCognitiveLevel}: ${cog['bloom_level'] ?? cog['bloom_taso'] ?? 'N/A'}",
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: Colors.teal,
                                 ),
                               ),
-                            )
-                            .toList(),
+                            ),
+                            _buildHelpButton(context, "bloom"),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          AppLocalizations.of(context)!.lblStrategicDepth,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        SelectableText(
+                          cog['strategic_depth'] ??
+                              cog['strateginen_syvyys'] ??
+                              "Ei analyysiä.",
+                          style: const TextStyle(fontSize: 14, height: 1.5),
+                        ),
                       ],
-                    )
-                    : const SizedBox.shrink();
+                    ),
+                  ),
+                )
+              : const SizedBox.shrink();
 
-            // New Visualization Widget
-            final matrixChart = LogicMatrixChart(
-              bloomLevel: cog['bloom_taso'] as String? ?? 'N/A',
-              toulminArguments: toulmin,
-            );
+          final List<Widget> toulminChildren = [];
+          toulminChildren.add(
+            Row(
+              children: [
+                Text(
+                  AppLocalizations.of(context)!.lblArguments,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                _buildHelpButton(context, "toulmin"),
+              ],
+            ),
+          );
+          toulminChildren.add(const SizedBox(height: 8));
 
-            if (isWide) {
-              return Row(
+          toulminChildren.addAll(toulmin.map<Widget>((t) => Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            color: Colors.indigo[50],
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Left Column: Text Analysis
-                  Expanded(
-                    flex: 1,
-                    child: Column(
-                      children: [
-                        bloomWidget,
-                        if (cog.isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          _buildValidationScoreCard(
-                            AppLocalizations.of(context)!.lblBloomScore,
-                            _calculateBloomScore(cog['bloom_taso'] ?? 'N/A'),
-                            6.0,
-                          ),
-                        ],
+                  _buildLabelValue(
+                    "Väite (Claim)",
+                    t['claim'],
+                  ),
+                  const SizedBox(height: 4),
+                  const Divider(),
+                  const SizedBox(height: 4),
+                  _buildLabelValue(
+                    "Perustelu (Warrant)",
+                    t['warrant'],
+                  ),
+                  if (t['backing'] != null) ...[
+                    const SizedBox(height: 4),
+                    _buildLabelValue(
+                      "Tuki (Backing)",
+                      t['backing'],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          )));
+
+          final toulminWidget = toulmin.isNotEmpty
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: toulminChildren,
+                )
+              : const SizedBox.shrink();
+
+          // New Visualization Widget
+          final matrixChart = LogicMatrixChart(
+            bloomLevel:
+                (cog['bloom_level'] ?? cog['bloom_taso']) as String? ?? 'N/A',
+            toulminArguments: toulmin,
+          );
+
+          if (isWide) {
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Left Column: Text Analysis
+                Expanded(
+                  flex: 1,
+                  child: Column(
+                    children: [
+                      bloomWidget,
+                      if (cog.isNotEmpty) ...<Widget>[
+                        const SizedBox(height: 8),
+                        _buildValidationScoreCard(
+                          AppLocalizations.of(context)!.lblBloomScore,
+                          _calculateBloomScore(cog['bloom_level'] ??
+                              cog['bloom_taso'] ??
+                              'N/A'),
+                          6.0,
+                        ),
+                      ],
+                      const SizedBox(height: 16),
+                      toulminWidget,
+                      if (toulmin.isNotEmpty) ...<Widget>[
+                        const SizedBox(height: 8),
+                        _buildValidationScoreCard(
+                          AppLocalizations.of(context)!.lblToulminScore,
+                          _calculateToulminScore(toulmin),
+                          6.0,
+                        ),
+                      ],
+                      // WALTON SECTION
+                      if (widget.data['walton_skeema'] != null) ...<Widget>[
                         const SizedBox(height: 16),
-                        toulminWidget,
-                        if (toulmin.isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          _buildValidationScoreCard(
-                            AppLocalizations.of(context)!.lblToulminScore,
-                            _calculateToulminScore(toulmin),
-                            6.0,
+                        _buildWaltonSection(widget.data['walton_scheme'] ??
+                            widget.data['walton_skeema']),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+
+                // Right Column: Matrix Visualization
+                Expanded(
+                  flex: 1,
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: Colors.grey[200]!,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          AppLocalizations.of(context)!.lblLogicMatrix,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
                           ),
-                        ],
-                        // WALTON SECTION
-                        if (widget.data['walton_skeema'] != null) ...[
-                          const SizedBox(height: 16),
-                          _buildWaltonSection(widget.data['walton_skeema']),
-                        ],
+                        ),
+                        Text(
+                          AppLocalizations.of(context)!.lblMatrixSubtitle,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        matrixChart,
                       ],
                     ),
                   ),
-                  const SizedBox(width: 16),
+                ),
+              ],
+            );
+          } else {
+            // Mobile / Narrow: Stacked
+            return Column(
+              children: [
+                matrixChart,
+                const SizedBox(height: 16),
+                bloomWidget,
+                const SizedBox(height: 16),
+                toulminWidget,
+              ],
+            );
+          }
+        },
+      ),
+    );
 
-                  // Right Column: Matrix Visualization
-                  Expanded(
-                    flex: 1,
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: Colors.grey.withValues(alpha: 0.2),
-                        ),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            AppLocalizations.of(context)!.lblLogicMatrix ??
-                                "Logiikkamatriisi",
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          Text(
-                            AppLocalizations.of(context)!.lblMatrixSubtitle ??
-                                "Visuaalinen analyysi päättelyn laadusta.",
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          matrixChart,
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            } else {
-              // Mobile / Narrow: Stacked
-              return Column(
-                children: [
-                  matrixChart,
-                  const SizedBox(height: 16),
-                  bloomWidget,
-                  const SizedBox(height: 16),
-                  toulminWidget,
-                ],
-              );
-            }
-          },
-        ),
-      ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: children,
     );
   }
 
   // --- 2. STRESS TEST (Falsifier) ---
   Widget _buildStressTest(BuildContext context) {
-    final findings =
-        widget.data['walton_stressitesti_loydokset'] as List<dynamic>? ?? [];
-    final fidelity =
-        widget.data['paattelyketjun_uskollisuus_auditointi']
-            as Map<String, dynamic>? ??
-        {};
+    // English Keys: stress_test_findings, fidelity_audit
+    final findings = (widget.data['stress_test_findings'] ??
+            widget.data['walton_stressitesti_loydokset'] as List?)
+        ?.cast<Map<String, dynamic>>() ??
+    [];
 
-    return Column(
-      children: [
-        if (fidelity.isNotEmpty)
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.orange[50],
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Column(
+    final fidelity = (widget.data['fidelity_audit'] ??
+            widget.data['paattelyketjun_uskollisuus_auditointi'])
+        as Map<String, dynamic>? ??
+    {};
+
+    final List<Widget> children = [];
+
+    if (fidelity.isNotEmpty) {
+      children.add(Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.orange[50],
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        Text(
-                          AppLocalizations.of(context)!.lblFidelity,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        _buildHelpButton(context, "stress_test"),
-                      ],
+                    Text(
+                      AppLocalizations.of(context)!.lblFidelity,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    _buildSignalMeter(fidelity['uskollisuus_score']),
+                    _buildHelpButton(context, "stress_test"),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  fidelity['onko_post_hoc_rationalisointia'] == true
-                      ? AppLocalizations.of(context)!.lblPostHocWarning
-                      : AppLocalizations.of(context)!.lblNoRationalization,
-                  style: TextStyle(
-                    color:
-                        fidelity['onko_post_hoc_rationalisointia'] == true
-                            ? Colors.red[800]
-                            : Colors.green[800],
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                _buildSignalMeter(
+                    fidelity['fidelity_score'] ?? fidelity['uskollisuus_score']),
               ],
             ),
-          ),
-        const SizedBox(height: 16),
-        ...findings.map((f) {
-          final passed = f['kestiko_todistusaineisto'] == true;
-          return ListTile(
-            leading: CircleAvatar(
-              backgroundColor: passed ? Colors.green : Colors.red,
-              child: Icon(
-                passed ? Icons.check : Icons.close,
-                color: Colors.white,
-                size: 16,
+            const SizedBox(height: 8),
+            Text(
+              (fidelity['is_post_hoc'] ??
+                          fidelity['onko_post_hoc_rationalisointia']) ==
+                      true
+                  ? AppLocalizations.of(context)!.lblPostHocWarning
+                  : AppLocalizations.of(context)!.lblNoRationalization,
+              style: TextStyle(
+                color: (fidelity['is_post_hoc'] ??
+                            fidelity['onko_post_hoc_rationalisointia']) ==
+                        true
+                    ? Colors.red[800]
+                    : Colors.green[800],
+                fontWeight: FontWeight.w600,
               ),
             ),
-            title: Text(f['kysymys'] ?? ''),
-            subtitle: Text(f['havainto'] ?? ''),
-            dense: true,
-          );
-        }).toList(),
-      ],
-    );
+            const SizedBox(height: 12),
+            _buildLabelValue(
+              "Post-Hoc Rationalization",
+              (fidelity['is_post_hoc'] ??
+                      fidelity['onko_post_hoc_rationalisointia'])
+                  .toString(),
+            ),
+            const SizedBox(height: 4),
+            _buildLabelValue(
+              "Perustelu",
+              fidelity['justification'] ?? fidelity['perustelu'] ?? '-',
+            ),
+            const SizedBox(height: 4),
+            _buildLabelValue(
+              "Uskollisuus Score",
+              fidelity['fidelity_score'] ?? fidelity['uskollisuus_score'] ?? '-',
+            ),
+          ],
+        ),
+      ));
+      children.add(const SizedBox(height: 16));
+    }
+
+    children.addAll(findings.map<Widget>((f) {
+      final passed =
+          (f['evidence_held'] ?? f['kestiko_todistusaineisto']) == true;
+      return Card(
+        margin: const EdgeInsets.only(bottom: 8),
+        color: passed ? Colors.green[50] : Colors.red[50],
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildLabelValue(
+                AppLocalizations.of(context)!.lblQuestion,
+                f['question'] ?? f['kysymys'],
+              ),
+              const SizedBox(height: 4),
+              _buildLabelValue(
+                AppLocalizations.of(context)!.lblEvidenceHeld,
+                // Handle English boolean or Finnish string/boolean
+                (f['evidence_held'] ?? f['kestiko_todistusaineisto']).toString(),
+              ),
+              const SizedBox(height: 4),
+              _buildLabelValue(
+                AppLocalizations.of(context)!.lblObservation,
+                f['observation'] ?? f['havainto'],
+              ),
+            ],
+          ),
+        ),
+      );
+    }));
+
+    return Column(children: children);
   }
 
   // --- 3. CAUSAL ANALYSIS ---
   Widget _buildCausalAnalysis(BuildContext context) {
-    // ... (Keep existing implementation or minimal tweaks)
-    final simul =
-        widget.data['kontrafaktuaalinen_testi'] as Map<String, dynamic>? ?? {};
-    final abd = widget.data['abduktiivinen_paatelma'] as String?;
+    // English Keys: causal_audit, counterfactual_test, abductive_conclusion
+    final audit = (widget.data['causal_audit'] ??
+            widget.data['kausaalinen_auditointi']) as Map<String, dynamic>? ??
+        {};
+    final counter = (widget.data['counterfactual_test'] ??
+            widget.data['kontrafaktuaalinen_testi'])
+        as Map<String, dynamic>? ??
+    {};
+    final abductive = widget.data['abductive_conclusion'] ??
+        widget.data['abduktiivinen_paatelma'] as String?;
 
     return Column(
-      children: [
-        if (abd != null)
+      children: <Widget>[
+        if (abductive != null)
           _buildInfoCard(
             AppLocalizations.of(context)!.lblAbductiveReasoning,
-            abd,
+            abductive,
             Icons.lightbulb_outline,
             color: Colors.teal[50],
             helpKey: "causal",
           ),
         const SizedBox(height: 16),
 
-        if (simul.isNotEmpty)
-          Row(
+        if (audit.isNotEmpty)
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.teal[50],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      AppLocalizations.of(context)!.lblCausalAudit,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    _buildHelpButton(context, "causal"),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  "Aikajana Validi: ${audit['timeline_valid'] ?? audit['aikajana_validi'] ?? '-'}",
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(audit['observation'] ?? audit['havainto'] ?? '-'),
+              ],
+            ),
+          ),
+        const SizedBox(height: 16),
+
+        if (counter.isNotEmpty)
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: _buildComparisonBlock(
-                  AppLocalizations.of(context)!.lblScenarioActual,
-                  simul['skenaario_A_toteutunut'],
-                  Colors.grey[200]!,
-                ),
+              Text(
+                AppLocalizations.of(context)!.lblCounterfactualTest,
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
-              const SizedBox(width: 8),
-              const Icon(Icons.arrow_forward),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildComparisonBlock(
-                  AppLocalizations.of(context)!.lblScenarioSimulation,
-                  simul['skenaario_B_simulaatio'],
-                  Colors.teal[100]!,
-                ),
+              const SizedBox(height: 8),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _buildComparisonBlock(
+                      AppLocalizations.of(context)!.lblScenarioActual,
+                      counter['scenario_a_actual'] ??
+                          counter['skenaario_A_toteutunut'],
+                      Colors.grey[200]!,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.arrow_forward),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildComparisonBlock(
+                      AppLocalizations.of(context)!.lblScenarioSimulation,
+                      counter['scenario_b_simulated'] ??
+                          counter['skenaario_B_simulaatio'],
+                      Colors.teal[100]!,
+                    ),
+                  ),
+                ],
               ),
+              if (counter['plausibility_score'] != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Text(
+                    "${AppLocalizations.of(context)!.lblCredibility}: ${counter['plausibility_score'] ?? counter['uskottavuus_arvio']}",
+                    style: const TextStyle(fontStyle: FontStyle.italic),
+                  ),
+                ),
             ],
-          ),
-        if (simul['uskottavuus_arvio'] != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 8.0),
-            child: Text(
-              "${AppLocalizations.of(context)!.lblCredibility}: ${simul['uskottavuus_arvio']}",
-              style: const TextStyle(fontStyle: FontStyle.italic),
-            ),
           ),
       ],
     );
@@ -538,342 +636,507 @@ class _SpecialistSectionState extends State<SpecialistSection> {
 
   // --- 4. PROFILER ANALYSIS ---
   Widget _buildProfilerAnalysis(BuildContext context) {
-    final biases = widget.data['tunnistetut_vinoumat'] as List<dynamic>? ?? [];
-    final profile = widget.data['psykologinen_profiili'] as String?;
-    final intent = widget.data['intentio_analyysi'] as String?;
-    final metrics =
-        widget.data['teksti_metriikka'] as Map<String, dynamic>? ?? {};
+    // English Keys: detected_biases, psychological_profile, author_intent, text_metrics
+    // New Keys: cognitive_biases, emotional_tone, metrics
+    final biasesRaw = (widget.data['cognitive_biases'] ??
+            widget.data['detected_biases'] ??
+            widget.data['tunnistetut_vinoumat'] as List?) ??
+        [];
+
+    final profile = widget.data['psychological_profile'] ??
+        widget.data['psykologinen_profiili'] as String?;
+
+    final intent = widget.data['author_intent'] ??
+        widget.data['intentio_analyysi'] as String?;
+
+    final tone = widget.data['emotional_tone'] as String?;
+
+    final metrics = (widget.data['metrics'] ??
+            widget.data['text_metrics'] ??
+            widget.data['teksti_metriikka']) as Map<String, dynamic>? ??
+        {};
+
+    final List<Widget> children = [];
+
+    if (metrics.isNotEmpty) {
+      children.add(Row(
+        children: [
+          Text(
+            "${AppLocalizations.of(context)!.lblTextMetrics}:",
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          _buildHelpButton(context, "profiler"),
+        ],
+      ));
+      children.add(const SizedBox(height: 8));
+
+      children.add(Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: metrics.entries.map<Widget>((e) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Row(
+              children: [
+                Text(
+                  "${e.key}: ",
+                  style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey,
+                      fontWeight: FontWeight.bold),
+                ),
+                Expanded(
+                    child: Text(e.value.toString(),
+                        style: const TextStyle(fontSize: 12))),
+              ],
+            ),
+          );
+        }).toList(),
+      ));
+      children.add(const SizedBox(height: 16));
+    }
+
+    if (biasesRaw.isNotEmpty) {
+      children.add(Text(
+        "${AppLocalizations.of(context)!.lblBias}:",
+        style: const TextStyle(fontWeight: FontWeight.bold),
+      ));
+      children.add(const SizedBox(height: 8));
+      children.add(Wrap(
+        spacing: 8,
+        runSpacing: 4,
+        children: biasesRaw.map<Widget>((b) {
+          String label;
+          if (b is String) {
+            label = b;
+          } else if (b is Map) {
+            label = b['nimi'] ?? b['name'] ?? b.toString();
+          } else {
+            label = b.toString();
+          }
+
+          return Chip(
+            label: Text(label),
+            avatar: const Icon(
+              Icons.warning_amber_rounded,
+              size: 16,
+            ),
+            backgroundColor: Colors.pink[50],
+            labelStyle: const TextStyle(fontSize: 12),
+          );
+        }).toList(),
+      ));
+      children.add(const SizedBox(height: 16));
+    }
+
+    if (intent != null) {
+      children.add(_buildInfoCard(
+        AppLocalizations.of(context)!.lblIntent,
+        intent,
+        Icons.ads_click,
+        color: Colors.blue[50],
+      ));
+    }
+    children.add(const SizedBox(height: 8));
+
+    if (tone != null) {
+      children.add(_buildInfoCard(
+        "Emotionaalinen Sävy",
+        tone,
+        Icons.mood,
+        color: Colors.purple[50],
+      ));
+    }
+    children.add(const SizedBox(height: 8));
+
+    if (profile != null) {
+      children.add(_buildInfoCard(
+        AppLocalizations.of(context)!.lblPsychProfile,
+        profile,
+        Icons.person_outline,
+      ));
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (metrics.isNotEmpty) ...[
-          Row(
-            children: [
-              Text(
-                "${AppLocalizations.of(context)!.lblTextMetrics}:",
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              _buildHelpButton(context, "profiler"),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: _buildMetricMeter(
-                  "Sanaston monipuolisuus",
-                  metrics['lexical_diversity'],
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildMetricMeter(
-                  "Huuto/Kapitalisaatio",
-                  metrics['capitalization_ratio'],
-                  inverseBad: true,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-        ],
-
-        if (biases.isNotEmpty) ...[
-          Text(
-            "${AppLocalizations.of(context)!.lblBias}:",
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 4,
-            children:
-                biases
-                    .map(
-                      (b) => Chip(
-                        label: Text(b['nimi'] ?? 'Vinouma'),
-                        avatar: const Icon(
-                          Icons.warning_amber_rounded,
-                          size: 16,
-                        ),
-                        backgroundColor: Colors.pink[50],
-                        labelStyle: const TextStyle(fontSize: 12),
-                      ),
-                    )
-                    .toList(),
-          ),
-          const SizedBox(height: 16),
-        ],
-        if (intent != null)
-          _buildInfoCard(
-            AppLocalizations.of(context)!.lblIntent,
-            intent,
-            Icons.ads_click,
-            color: Colors.blue[50],
-          ),
-        const SizedBox(height: 8),
-        if (profile != null)
-          _buildInfoCard(
-            AppLocalizations.of(context)!.lblPsychProfile,
-            profile,
-            Icons.person_outline,
-          ),
-      ],
+      children: children,
     );
   }
 
   // --- 5. FACT CHECK ---
+
   Widget _buildFactCheck(BuildContext context) {
-    final facts = widget.data['faktantarkistus_rfi'] as List<dynamic>? ?? [];
-    final ethics = widget.data['eettiset_havainnot'] as List<dynamic>? ?? [];
+    // English Keys: fact_check_rfi, ethical_observations
+    final facts = (widget.data['fact_check_rfi'] ??
+            widget.data['faktantarkistus_rfi'] as List?)
+        ?.cast<Map<String, dynamic>>() ??
+    [];
+    
+    final ethics = (widget.data['ethical_observations'] ??
+            widget.data['eettiset_havainnot'] as List?)
+        ?.cast<Map<String, dynamic>>() ??
+    [];
 
-    return Column(
-      children: [
-        if (ethics.isNotEmpty) ...[
-          ...ethics.map((e) {
-            // Defensive Check: If LLM returns strings instead of objects
-            if (e is! Map) {
-              return Card(
-                color: Colors.red[50],
-                child: ListTile(
-                  leading: const Icon(
-                    Icons.warning_amber,
-                    color: Colors.orange,
-                  ),
-                  title: const Text('Eettinen Huomio (Muu muoto)'),
-                  subtitle: Text(e.toString()),
-                ),
-              );
-            }
+    final List<Widget> children = [];
 
-            return Card(
-              color: Colors.red[50],
-              child: ListTile(
-                leading: const Icon(Icons.security, color: Colors.red),
-                title: Text(
-                  e['tyyppi'] ??
-                      AppLocalizations.of(context)!.lblEthicalObservation,
-                ),
-                subtitle: Text(e['kuvaus'] ?? ''),
-                trailing: Chip(
-                  label: Text(e['vakavuus'] ?? 'N/A'),
-                  backgroundColor: Colors.white,
-                ),
+    if (ethics.isNotEmpty) {
+      children.addAll(ethics.map<Widget>((e) {
+        // Defensive Check: If LLM returns strings instead of objects
+        if (e is! Map) {
+          return Card(
+            color: Colors.red[50],
+            child: ListTile(
+              leading: const Icon(
+                Icons.warning_amber,
+                color: Colors.orange,
               ),
-            );
-          }).toList(),
-          const SizedBox(height: 16),
-        ],
-        Row(
-          children: [
-            Text(
-              AppLocalizations.of(context)!.lblFactCheck,
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              title: const Text('Eettinen Huomio (Muu muoto)'),
+              subtitle: Text(e.toString()),
             ),
-            _buildHelpButton(context, "fact_check"),
-          ],
-        ),
-        if (facts.isEmpty)
-          const Padding(
-            padding: EdgeInsets.all(8),
-            child: Text("Ei faktantarkistuspyyntöjä."),
-          ),
-        ...facts.map((f) {
-          // Defensive Check
-          if (f is! Map) {
-            return ListTile(
-              leading: const Icon(Icons.error_outline, color: Colors.grey),
-              title: Text(f.toString()),
-            );
-          }
-
-          final status = f['verifiointi_tulos'];
-          Color c = Colors.grey;
-          IconData i = Icons.help_outline;
-          if (status == 'Vahvistettu') {
-            c = Colors.green;
-            i = Icons.check_circle;
-          }
-          if (status == 'Kumottu') {
-            c = Colors.red;
-            i = Icons.cancel;
-          }
-
-          return ListTile(
-            leading: Icon(i, color: c),
-            title: Text(f['vaite'] ?? ''),
-            subtitle: Text(f['lahde_tai_paattely'] ?? ''),
           );
-        }).toList(),
-      ],
+        }
+
+        return Card(
+          color: Colors.red[50],
+          child: ListTile(
+            leading: const Icon(Icons.security, color: Colors.red),
+            title: Text(
+              e['issue_type'] ?? e['tyyppi'] ??
+                  AppLocalizations.of(context)!.lblEthicalObservation,
+            ),
+            subtitle: Text(e['description'] ?? e['kuvaus'] ?? ''),
+            trailing: Chip(
+              label: Text(e['severity'] ?? e['vakavuus'] ?? 'N/A'),
+              backgroundColor: Colors.white,
+            ),
+          ),
+        );
+      }));
+      children.add(const SizedBox(height: 16));
+    }
+
+    children.add(
+      Row(
+        children: [
+          Text(
+            AppLocalizations.of(context)!.lblFactCheck,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          _buildHelpButton(context, "fact_check"),
+        ],
+      ),
     );
+
+    if (facts.isEmpty) {
+      children.add(
+        const Padding(
+          padding: EdgeInsets.all(8),
+          child: Text("Ei faktantarkistuspyyntöjä."),
+        ),
+      );
+    }
+
+    children.addAll(facts.map<Widget>((f) {
+      // Defensive Check
+      if (f is! Map) {
+        return ListTile(
+          leading: const Icon(Icons.error_outline, color: Colors.grey),
+          title: Text(f.toString()),
+        );
+      }
+
+      final status = f['verifiointi_tulos'];
+      Color c = Colors.grey;
+      IconData i = Icons.help_outline;
+      if (status == 'Vahvistettu') {
+        c = Colors.green;
+        i = Icons.check_circle;
+      }
+      if (status == 'Kumottu') {
+        c = Colors.red;
+        i = Icons.cancel;
+      }
+
+      return ListTile(
+        leading: Icon(i, color: c),
+        title: Text(f['vaite'] ?? ''),
+        subtitle: Text(f['lahde_tai_paattely'] ?? ''),
+      );
+    }));
+
+    return Column(children: children);
   }
 
   // --- 6. PERFORMATIVITY CHECK ---
   Widget _buildPerformativityCheck(BuildContext context) {
-    final heuristics =
-        widget.data['performatiivisuus_heuristiikat'] as List<dynamic>? ?? [];
-    final overall = widget.data['yleisarvio_aitoudesta'] as String?;
+    // English Keys: performativity_heuristics, authenticity_assessment
+    final heuristics = (widget.data['performativity_heuristics'] ??
+            widget.data['performatiivisuus_heuristiikat'] as List?)
+        ?.cast<Map<String, dynamic>>() ??
+    [];
+    
+    final overall = widget.data['authenticity_assessment'] ??
+        widget.data['yleisarvio_aitoudesta'] as String?;
 
-    return Column(
-      children: [
-        if (overall != null)
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.purple[50]!, Colors.blue[50]!],
-              ),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
+    final List<Widget> children = [];
+
+    if (overall != null) {
+      children.add(Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.purple[50]!, Colors.blue[50]!],
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      AppLocalizations.of(context)!.lblAuthenticity,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    _buildHelpButton(context, "performativity"),
-                  ],
+                Text(
+                  AppLocalizations.of(context)!.lblAuthenticity,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 8),
-                _buildAuthenticityMeter(overall),
+                _buildHelpButton(context, "performativity"),
               ],
             ),
+            const SizedBox(height: 8),
+            _buildAuthenticityMeter(overall),
+          ],
+        ),
+      ));
+      children.add(const SizedBox(height: 16));
+    }
+
+    children.add(Text(
+      "${AppLocalizations.of(context)!.lblHeuristics}:",
+      style: const TextStyle(fontWeight: FontWeight.bold),
+    ));
+
+    children.add(Wrap(
+      spacing: 8,
+      runSpacing: 4,
+      children: heuristics.map<Widget>((b) {
+        final raised = (b['flag_raised'] ?? b['lippu_nostettu']) == true;
+        return Chip(
+          label: Text(b['heuristic_name'] ?? b['heuristiikka'] ?? ''),
+          avatar: Icon(
+            raised ? Icons.flag : Icons.check,
+            size: 16,
+            color: raised ? Colors.red : Colors.green,
           ),
-        const SizedBox(height: 16),
-        Text(
-          "${AppLocalizations.of(context)!.lblHeuristics}:",
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        Wrap(
-          spacing: 8,
-          runSpacing: 4,
-          children:
-              heuristics.map((b) {
-                final raised = b['lippu_nostettu'] == true;
-                return Chip(
-                  label: Text(b['heuristiikka'] ?? ''),
-                  avatar: Icon(
-                    raised ? Icons.flag : Icons.check,
-                    size: 16,
-                    color: raised ? Colors.red : Colors.green,
-                  ),
-                  backgroundColor: raised ? Colors.red[50] : Colors.green[50],
-                  labelStyle: TextStyle(
-                    fontSize: 12,
-                    color: raised ? Colors.red[900] : Colors.green[900],
-                  ),
-                );
-              }).toList(),
-        ),
-      ],
-    );
+          backgroundColor: raised ? Colors.red[50] : Colors.green[50],
+          labelStyle: TextStyle(
+            fontSize: 12,
+            color: raised ? Colors.red[900] : Colors.green[900],
+          ),
+        );
+      }).toList(),
+    ));
+
+    return Column(children: children);
   }
 
   // --- 7. ARCHIVIST CHECK ---
   Widget _buildArchivistCheck(BuildContext context) {
+    // English Keys: compliance_score, consistency_analysis, precedents
     final score = widget.data['compliance_score'];
-    final recs = widget.data['recommendations'] as List<dynamic>? ?? [];
-    final analysis = widget.data['analysis'] as String?;
+    final recs = (widget.data['recommendations'] ??
+            widget.data['suositukset'] as List?) ??
+        [];
+    
+    final analysis = widget.data['consistency_analysis'] ??
+        widget.data['analysis'] as String?;
 
     double normalizedScore = 0;
     if (score is num) normalizedScore = score / 100.0;
 
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              SizedBox(
-                height: 100,
-                width: 100,
-                child: Stack(
-                  children: [
-                    Center(
-                      child: SizedBox(
-                        height: 80,
-                        width: 80,
-                        child: CircularProgressIndicator(
-                          value: normalizedScore,
-                          color: _getColorForScore(normalizedScore),
-                          backgroundColor: Colors.grey[200],
-                          strokeWidth: 10,
-                          strokeCap: StrokeCap.round,
+    final List<Widget> children = [];
+
+    children.add(Container(
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        children: [
+          SizedBox(
+            height: 100,
+            width: 100,
+            child: Stack(
+              children: [
+                Center(
+                  child: SizedBox(
+                    height: 80,
+                    width: 80,
+                    child: CircularProgressIndicator(
+                      value: normalizedScore,
+                      color: _getColorForScore(normalizedScore),
+                      backgroundColor: Colors.grey[200],
+                      strokeWidth: 10,
+                      strokeCap: StrokeCap.round,
+                    ),
+                  ),
+                ),
+                Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        "${score ?? '?'}",
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 24,
                         ),
                       ),
-                    ),
-                    Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            "${score ?? '?'}",
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 24,
-                            ),
-                          ),
-                          const Text(
-                            "Score",
-                            style: TextStyle(fontSize: 10, color: Colors.grey),
-                          ),
-                        ],
+                      const Text(
+                        "Score",
+                        style: TextStyle(fontSize: 10, color: Colors.grey),
                       ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 24),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      AppLocalizations.of(context)!.lblComplianceAnalysis,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
+                    _buildHelpButton(context, "archivist"),
                   ],
                 ),
+                const SizedBox(height: 4),
+                // Handle "ei analyysiä" case if null or empty, or explicitly suppressed
+                Text(
+                  analysis != null && analysis.isNotEmpty
+                      ? analysis
+                      : "Ei analyysiä.",
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ));
+    children.add(const SizedBox(height: 16));
+
+    children.addAll(recs.map<Widget>((r) => ListTile(
+      leading: const Icon(
+        Icons.task_alt,
+        size: 16,
+        color: Colors.brown,
+      ),
+      title: Text(r.toString()),
+      dense: true,
+    )));
+
+    return Column(children: children);
+  }
+
+  Widget _buildGenericMap(Map<String, dynamic> map) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: map.entries.map<Widget>((e) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "${e.key}: ",
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
-              const SizedBox(width: 24),
+              Expanded(child: Text(e.value.toString())),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildWaltonSection(Map<String, dynamic> walton) {
+    final scheme = walton['identified_scheme'] ?? walton['tunnistettu_skeema'] ?? 'N/A';
+    final questions = (walton['critical_questions'] ?? walton['kriittiset_kysymykset'] as List?) ?? [];
+
+    final List<Widget> cardChildren = [];
+    
+    cardChildren.add(Row(
+      children: [
+        const Icon(Icons.balance, color: Colors.purple),
+        const SizedBox(width: 8),
+        Text(
+          AppLocalizations.of(context)!.lblWaltonScheme,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: Colors.purple,
+          ),
+        ),
+        if (walton.isNotEmpty) const Spacer(),
+        _buildHelpButton(context, "walton"),
+      ],
+    ));
+    
+    cardChildren.add(const SizedBox(height: 12));
+    cardChildren.add(Text(
+      scheme,
+      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+    ));
+
+    if (questions.isNotEmpty) {
+      cardChildren.add(const SizedBox(height: 12));
+      cardChildren.add(const Divider());
+      cardChildren.add(const SizedBox(height: 8));
+      cardChildren.add(Text(
+        "${AppLocalizations.of(context)!.lblCriticalQuestions}:",
+        style: const TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 12,
+          color: Colors.grey,
+        ),
+      ));
+      
+      cardChildren.addAll(questions.map<Widget>((q) {
+        return Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "• ",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.purple,
+                ),
+              ),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          AppLocalizations.of(context)!.lblComplianceAnalysis,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        _buildHelpButton(context, "archivist"),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    // Handle "ei analyysiä" case if null or empty, or explicitly suppressed
-                    Text(
-                      analysis != null && analysis.isNotEmpty
-                          ? analysis
-                          : "Ei analyysiä.",
-                    ),
-                  ],
+                child: Text(
+                  q.toString(),
+                  style: const TextStyle(fontSize: 13),
                 ),
               ),
             ],
           ),
+        );
+      }));
+    }
+
+    return Card(
+      color: Colors.purple[50],
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: cardChildren,
         ),
-        const SizedBox(height: 16),
-        ...recs
-            .map(
-              (r) => ListTile(
-                leading: const Icon(
-                  Icons.task_alt,
-                  size: 16,
-                  color: Colors.brown,
-                ),
-                title: Text(r.toString()),
-                dense: true,
-              ),
-            )
-            .toList(),
-      ],
+      ),
     );
   }
-
-  // --- HELPERS & METERS ---
 
   Widget _buildSignalMeter(dynamic score) {
     // Score expected: KORKEA, EPÄVARMA, HEIKKO
@@ -964,82 +1227,9 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     return Colors.red;
   }
 
-  Widget _buildMetricMeter(
-    String label,
-    dynamic value, {
-    bool inverseBad = false,
-  }) {
-    double v = 0.0;
-    if (value is num) v = value.toDouble();
-    if (v > 1.0) v = 1.0; // clamp
-    if (v < 0) v = 0;
 
-    Color color = Colors.blue;
-    if (inverseBad) {
-      if (v > 0.3) color = Colors.orange;
-      if (v > 0.7) color = Colors.red;
-    } else {
-      if (v < 0.3) color = Colors.orange;
-      if (v < 0.1) color = Colors.red;
-    }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 10,
-                color: Colors.grey,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Text(
-              (v * 100).toStringAsFixed(0) + "%",
-              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
-            value: v,
-            minHeight: 6,
-            backgroundColor: Colors.grey[200],
-            valueColor: AlwaysStoppedAnimation<Color>(color),
-          ),
-        ),
-      ],
-    );
-  }
 
-  Widget _buildGenericMap(Map<String, dynamic> map) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children:
-          map.entries
-              .map(
-                (e) => Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "${e.key}: ",
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      Expanded(child: Text(e.value.toString())),
-                    ],
-                  ),
-                ),
-              )
-              .toList(),
-    );
-  }
 
   Widget _buildInfoCard(
     String title,
@@ -1049,45 +1239,6 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     Color? color,
     String? helpKey,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color ?? Colors.grey[100],
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 32, color: Colors.black54),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.black54,
-                      ),
-                    ),
-                    if (helpKey != null) _buildHelpButton(context, helpKey),
-                  ],
-                ),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                if (subtitle != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 12,
     return ExpansionTile(
       tilePadding: EdgeInsets.zero,
       title: Container(
@@ -1263,13 +1414,19 @@ class _SpecialistSectionState extends State<SpecialistSection> {
       tooltip: "Lisätietoa",
     );
   }
-
   // --- 8. DRIVER PROFILE (Interaction) ---
   Widget _buildDriverProfile(BuildContext context) {
-    final roleRaw = widget.data['driver_classification'] as String? ?? 'N/A';
+    final roleRaw = widget.data['role_classification'] ??
+        widget.data['driver_classification'] as String? ??
+        'N/A';
+
     final ratio = widget.data['input_control_ratio'];
+    final quality = widget.data['input_quality_score'];
+
     final strategies =
-        widget.data['tunnistetut_strategiat'] as List<dynamic>? ?? [];
+        (widget.data['improvement_suggestions'] ??
+            widget.data['tunnistetut_strategiat'] as List<dynamic>?) ??
+        [];
     final l10n = AppLocalizations.of(context)!;
     final role = _getLocalizedRole(roleRaw, l10n);
 
@@ -1281,23 +1438,18 @@ class _SpecialistSectionState extends State<SpecialistSection> {
       l10n.roleArchitect,
     ];
 
-    // Clean up role string for check
-    final rLower = roleRaw.toLowerCase();
-    final isPassive =
-        rLower.contains('matkustaja') || rLower.contains('passenger');
-
     // If Ratio is 0 but role is Active, we still want to show it (e.g. 0% is valid data)
     final showRatio = ratio != null;
+    final showQuality = quality != null;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
+    final List<Widget> children = [];
+
+        children.add(Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: Colors.blue[50],
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.blue.withOpacity(0.2)),
+            border: Border.all(color: Colors.blue[100]!),
           ),
           child: Column(
             children: [
@@ -1317,7 +1469,9 @@ class _SpecialistSectionState extends State<SpecialistSection> {
               ),
               const SizedBox(height: 10),
               Text(
-                (showRatio ? "${(ratio! * 100).toStringAsFixed(0)}%" : "N/A"),
+                showRatio
+                    ? "${(ratio! * 100).toStringAsFixed(0)}%"
+                    : (showQuality ? "$quality/5.0" : "N/A"),
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 32,
@@ -1325,7 +1479,9 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                 ),
               ),
               Text(
-                AppLocalizations.of(context)!.lblControlRatio,
+                showRatio
+                    ? AppLocalizations.of(context)!.lblControlRatio
+                    : (showQuality ? "Laatu Pisteet" : "Muu Mittari"),
                 style: const TextStyle(fontSize: 12, color: Colors.grey),
               ),
 
@@ -1382,22 +1538,22 @@ class _SpecialistSectionState extends State<SpecialistSection> {
               ),
             ],
           ),
-        ),
+        ));
 
-        const SizedBox(height: 16),
+        children.add(const SizedBox(height: 16));
 
         // Strategies
-        if (strategies.isNotEmpty) ...[
-          const Text(
+        if (strategies.isNotEmpty) {
+          children.add(Text(
             "Tunnistetut Strategiat:",
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ));
+          children.add(const SizedBox(height: 8));
+          children.add(Wrap(
             spacing: 8,
             runSpacing: 4,
             children:
-                strategies.map((s) {
+                strategies.map<Widget>((s) {
                   final label =
                       s is String ? s : (s['nimi'] ?? s['name'] ?? 'Strategia');
                   return Chip(
@@ -1405,48 +1561,48 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                     backgroundColor: Colors.blue[50],
                   );
                 }).toList(),
-          ),
-          const SizedBox(height: 16),
-        ],
+          ));
+          children.add(const SizedBox(height: 16));
+        }
 
         // Coherence Analysis (Linjakkuus)
-        if (widget.data['linjakkuus_analyysi'] != null) ...[
-          _buildInfoCard(
+        if (widget.data['linjakkuus_analyysi'] != null) {
+          children.add(_buildInfoCard(
             "Linjakkuus (Coherence)",
             widget.data['linjakkuus_analyysi'],
             Icons.linear_scale,
             color: Colors.white,
-          ),
-          const SizedBox(height: 8),
-        ],
+          ));
+          children.add(const SizedBox(height: 8));
+        }
 
         // Deviations (Poikkeamat)
-        if (widget.data['poikkeamat_linjasta'] != null) ...[
-          _buildInfoCard(
+        if (widget.data['poikkeamat_linjasta'] != null) {
+          children.add(_buildInfoCard(
             "Poikkeamat Linjasta",
             widget.data['poikkeamat_linjasta'],
             Icons.call_split,
-            color: Colors.white, // Use white to align with above card
-          ),
-          const SizedBox(height: 8),
-        ],
+            color: Colors.white,
+          ));
+          children.add(const SizedBox(height: 8));
+        }
 
         // Recommendation (Suositus)
-        if (widget.data['suositus_tuomarille'] != null) ...[
-          Container(
+        if (widget.data['suositus_tuomarille'] != null) {
+          children.add(Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.green[50], // Highlight recommendation
+              color: Colors.green[50],
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.green.withOpacity(0.3)),
+              border: Border.all(color: Colors.green[100]!),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
+                 Row(
                   children: [
-                    Icon(Icons.recommend, color: Colors.green),
-                    SizedBox(width: 8),
+                    const Icon(Icons.recommend, color: Colors.green),
+                    const SizedBox(width: 8),
                     Text(
                       "Suositus Tuomarille",
                       style: TextStyle(
@@ -1463,29 +1619,16 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                 ),
               ],
             ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildProfileIcon(String role) {
-    IconData icon = Icons.person;
-    if (role.toLowerCase().contains("driver") ||
-        role.toLowerCase().contains("ohjaaja"))
-      icon = Icons.directions_car;
-    if (role.toLowerCase().contains("passenger") ||
-        role.toLowerCase().contains("matkustaja"))
-      icon = Icons.airline_seat_recline_normal;
+          ));
+        }
 
     return Column(
-      children: [
-        Icon(icon, size: 48, color: Colors.blue),
-        const SizedBox(height: 8),
-        Text(role, style: const TextStyle(fontSize: 10, color: Colors.grey)),
-      ],
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: children,
     );
   }
+
+
 
   // LOGIC HELPERS
   double _calculateBloomScore(String level) {
@@ -1524,7 +1667,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
       decoration: BoxDecoration(
         color: Colors.green[50],
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.green.withOpacity(0.3)),
+        border: Border.all(color: Colors.green[100]!),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1546,79 +1689,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     );
   }
 
-  Widget _buildWaltonSection(Map<String, dynamic> walton) {
-    final scheme = walton['tunnistettu_skeema'] ?? 'N/A';
-    final questions = (walton['kriittiset_kysymykset'] as List?) ?? [];
 
-    return Card(
-      color: Colors.purple[50],
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.balance, color: Colors.purple),
-                const SizedBox(width: 8),
-                Text(
-                  AppLocalizations.of(context)!.lblWaltonScheme,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: Colors.purple,
-                  ),
-                ),
-                if (walton.isNotEmpty) const Spacer(),
-                _buildHelpButton(context, "walton"),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              scheme,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-            ),
-            if (questions.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              const Divider(),
-              const SizedBox(height: 8),
-              Text(
-                "${AppLocalizations.of(context)!.lblCriticalQuestions}:",
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                  color: Colors.grey,
-                ),
-              ),
-              ...questions.map(
-                (q) => Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "• ",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.purple,
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          q.toString(),
-                          style: const TextStyle(fontSize: 13),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
 
   String _getLocalizedRole(String raw, AppLocalizations l10n) {
     final r = raw.toLowerCase();

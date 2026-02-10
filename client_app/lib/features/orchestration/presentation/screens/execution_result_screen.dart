@@ -12,6 +12,7 @@ import 'package:client_app/app_config.dart';
 import 'package:http/http.dart' as http;
 // Still imported just in case, or remove if unused? Keep for safety.
 import 'package:file_saver/file_saver.dart'; // Added import
+import 'package:url_launcher/url_launcher.dart'; // Added import for opening local files
 import 'package:client_app/features/auth/presentation/providers/firebase_instance_provider.dart';
 import 'package:client_app/features/auth/presentation/providers/mock_auth_provider.dart';
 
@@ -89,7 +90,7 @@ class _ExecutionResultScreenState extends ConsumerState<ExecutionResultScreen> {
     setState(() {
       _status = _PdfStatus.downloading;
       _progress = 0.0;
-      _message = 'Aloitetaan...';
+      _message = 'Tarkistetaan...';
       _pdfBytes = null;
     });
 
@@ -100,9 +101,41 @@ class _ExecutionResultScreenState extends ConsumerState<ExecutionResultScreen> {
 
       if (token == null) throw Exception('Ei kirjautumista');
 
+      // 1. Check if Local File Exists (For Desktop/Local scenarios)
+      // Query param check_local=true
+      final checkUrl = Uri.parse(
+          '${AppConfig.apiBaseUrl}/executions/${widget.executionId}/pdf/download?check_local=true');
+
+      try {
+        final checkResp = await http.get(checkUrl, headers: {'Authorization': 'Bearer $token'});
+        if (checkResp.statusCode == 200) {
+          final data = json.decode(utf8.decode(checkResp.bodyBytes));
+          if (data['exists'] == true && data['local_path'] != null) {
+            final String localPath = data['local_path'];
+            // Attempt to open locally
+            if (await canLaunchUrl(Uri.file(localPath))) {
+              await launchUrl(Uri.file(localPath));
+              if (mounted) {
+                setState(() {
+                  _status = _PdfStatus.idle; // Reset to idle since we just opened it
+                  _message = '';
+                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Avataan tiedosto...'), backgroundColor: Colors.green),
+                );
+              }
+              return; // Done
+            }
+          }
+        }
+      } catch (e) {
+        // Ignore check errors, proceed to download
+      }
+
+      // 2. Normal Download Flow (if check failed or file missing)
+      setState(() => _message = "Aloitetaan lataus...");
       final url = Uri.parse('${AppConfig.apiBaseUrl}/executions/${widget.executionId}/pdf/download');
       
-      // 1. Initial Check
       var response = await http.get(url, headers: {'Authorization': 'Bearer $token'});
 
       if (response.statusCode == 200) {
@@ -114,13 +147,13 @@ class _ExecutionResultScreenState extends ConsumerState<ExecutionResultScreen> {
               _message = 'Valmis';
               _progress = 1.0;
             });
-            // Optional: Auto-open if cached? User wanted manual open button.
+            // Manual Open
         }
         return;
       }
 
       if (response.statusCode == 202) {
-         // 2. Start SSE
+         // 3. Start SSE
          final progressUrl = Uri.parse('${AppConfig.apiBaseUrl}/executions/${widget.executionId}/pdf/progress');
          _activeClient = http.Client();
          final request = http.Request('GET', progressUrl);
@@ -157,6 +190,10 @@ class _ExecutionResultScreenState extends ConsumerState<ExecutionResultScreen> {
                                       _pdfBytes = finalResp.bodyBytes;
                                       _status = _PdfStatus.ready;
                                   });
+                                  // Auto-save on first generation?
+                                  // User aid: "ekalla kerralla lataa itse omalle koneelle"
+                                  // So we should probably invoke _openPdf() automatically here?
+                                  _openPdf(); 
                               }
                               return;
                           }

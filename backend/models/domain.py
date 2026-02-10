@@ -92,73 +92,44 @@ class GuardInput(BaseModel):
         return self
 
 
-class SecurityCheck(BaseModel):
-    """Result of the safety and PII analysis."""
+class TaintedDataContent(BaseModel):
+    """Raw input data wrapper."""
 
-    uhka_havaittu: bool = Field(
+    chat_history: str = Field(..., description="Chat history.")
+    product_text: str = Field(..., description="Product text.")
+    reflection_text: str = Field(..., description="Reflection text.")
+    safe_data: str = Field(..., description="Safe data marker.")
+
+
+class SecurityCheck(BaseModel):
+    """Security check results."""
+
+    threat_detected: bool = Field(
         ...,
-        description="True if a security threat was detected.",
+        description="Threat detected flag.",
         json_schema_extra={"x-ui-label": "Threat Detected"},
     )
-    riski_taso: Literal["MATALA", "KESKITASO", "KORKEA"] = Field(
+    risk_level: Literal["MATALA", "KESKITASO", "KORKEA"] = Field(
         ...,
-        description="Assessed risk level.",
+        description="Risk level.",
         json_schema_extra={"x-ui-label": "Risk Level"},
     )
-    adversariaalinen_simulaatio_tulos: str = Field(
+    simulation_result: Literal[
+        "Passiivinen Matkustaja", "Aktiivinen Arkkitehti", "Haitallinen Toimija"
+    ] = Field(
         ...,
-        description="Explanation of the threat simulation.",
+        description="Simulation result.",
         json_schema_extra={"x-ui-label": "Simulation Result"},
     )
-    anonymisointi_tehty: bool = Field(
-        default=False,
-        description="True if PII redaction was performed.",
-        json_schema_extra={"x-ui-label": "PII Redacted"},
+    anonymized: bool = Field(
+        ...,
+        description="Was anonymization performed?",
+        json_schema_extra={"x-ui-label": "Anonymized"},
     )
-    tietosuoja_raportti: str | None = Field(
-        default=None,
-        description="Report on what PII was removed.",
-        json_schema_extra={"x-ui-label": "Privacy Report"},
-    )
-
-
-class TaintedDataContent(BaseModel):
-    """Wrapper for file pointers to potential PII-laden content."""
-
-    keskusteluhistoria: str | None = Field(
-        default=None,
-        description="Pointer to history file.",
-        json_schema_extra={"x-ui-label": "History File"},
-    )
-    lopputuote: str | None = Field(
-        default=None,
-        description="Pointer to product file.",
-        json_schema_extra={"x-ui-label": "Product File"},
-    )
-    reflektiodokumentti: str | None = Field(
-        default=None,
-        description="Pointer to reflection file.",
-        json_schema_extra={"x-ui-label": "Reflection File"},
-    )
-
-
-class SafeDataContent(BaseModel):
-    """Sanitized data content (PII removed)."""
-
-    keskusteluhistoria: str | None = Field(
-        default=None,
-        description="Sanitized history.",
-        json_schema_extra={"x-ui-label": "Sanitized History"},
-    )
-    lopputuote: str | None = Field(
-        default=None,
-        description="Sanitized product.",
-        json_schema_extra={"x-ui-label": "Sanitized Product"},
-    )
-    reflektiodokumentti: str | None = Field(
-        default=None,
-        description="Sanitized reflection.",
-        json_schema_extra={"x-ui-label": "Sanitized Reflection"},
+    pii_findings: list[str] = Field(
+        default_factory=list,
+        description="PII findings.",
+        json_schema_extra={"x-ui-label": "PII Findings"},
     )
 
 
@@ -167,107 +138,69 @@ class GuardOutput(ReasoningTrace):
 
     security_check: SecurityCheck = Field(
         ...,
-        description="Security analysis results.",
+        description="Security scan results.",
         json_schema_extra={"x-ui-label": "Security Check"},
     )
-    data: TaintedDataContent = Field(
+    tainted_data: TaintedDataContent = Field(
         ...,
-        description="Pointer to source files.",
-        json_schema_extra={"x-ui-label": "Source Data"},
+        description="Raw input data (tainted).",
+        json_schema_extra={"x-ui-label": "Input Data"},
     )
-    safe_data: Literal["DATA_CHECKED_AND_SECURED"] = Field(
-        default="DATA_CHECKED_AND_SECURED",
-        description="Confirmation tag.",
-        json_schema_extra={"x-ui-label": "Status Tag"},
-    )
-    sanitized_content: SafeDataContent | None = Field(
-        default=None,
-        description="Sanitized content payload.",
-        json_schema_extra={"x-ui-label": "Sanitized Content"},
-    )
-
     model_config = ConfigDict(frozen=True)
 
 
 # --- 2. ANALYST LAYER ---
 
 
-class Hypoteesi(BaseModel):
-    """A research hypothesis formulated by the Analyst."""
+class Hypothesis(BaseModel):
+    """A single hypothesis formed by the Analyst."""
 
-    id: str = Field(
+    id: str = Field(..., description="Hypothesis ID.")
+    claim_text: str = Field(
         ...,
-        description="Unique ID for the hypothesis.",
-        json_schema_extra={"x-ui-label": "ID"},
+        description="The claim text.",
+        json_schema_extra={"x-ui-label": "Claim"},
     )
-    vaite_teksti: str = Field(
+    evidence_found: bool = Field(
         ...,
-        description="The hypothesis claim text.",
-        json_schema_extra={"x-ui-label": "Hypothesis"},
-    )
-    loytyyko_todisteita: bool = Field(
-        ...,
-        description="Whether evidence was found.",
+        description="Was evidence found?",
         json_schema_extra={"x-ui-label": "Evidence Found"},
     )
-    hakusana_ehdotus: str | None = Field(
-        default=None,
-        description="Suggested Google search query.",
+    search_query: str = Field(
+        ...,
+        description="Search query used.",
         json_schema_extra={"x-ui-label": "Search Query"},
     )
-
-
-class RagTodiste(BaseModel):
-    """Evidence retrieved via RAG."""
-
-    viittaa_hypoteesiin_id: str | list[str] = Field(
-        ...,
-        description="ID(s) of the hypothesis this evidence supports.",
-        json_schema_extra={"x-ui-label": "Linked Hypothesis"},
-    )
-    perusteet: str = Field(
-        ...,
-        description="Reasoning why this evidence is relevant.",
-        json_schema_extra={"x-ui-label": "Relevance Reasoning"},
-    )
-    konteksti_segmentti: str = Field(
-        ...,
-        description="The concise text excerpt (quote).",
-        json_schema_extra={"x-ui-label": "Quote"},
-    )
-    relevanssi_score: int = Field(
-        ...,
-        ge=1,
-        le=100,
-        description="Relevance score (1-100).",
-        json_schema_extra={"x-ui-label": "Relevance Score"},
+    quotes: list[str] = Field(
+        default_factory=list,
+        description="Direct quotes found.",
+        json_schema_extra={"x-ui-label": "Quotes"},
     )
 
 
 class AnalystOutput(ReasoningTrace):
     """Output schema for the Analyst Agent."""
 
-    hypoteesit: list[Hypoteesi] = Field(
+    hypotheses: list[Hypothesis] = Field(
         ...,
-        description="List of formulated hypotheses.",
+        description="List of hypotheses.",
         json_schema_extra={"x-ui-label": "Hypotheses"},
     )
-    rag_todisteet: list[RagTodiste] = Field(
-        ...,
-        description="Evidence collected from RAG.",
-        json_schema_extra={"x-ui-label": "Evidence"},
+    rag_evidence: list[str] = Field(
+        default_factory=list,
+        description="RAG evidence snippets.",
+        json_schema_extra={"x-ui-label": "RAG Evidence"},
     )
-
     model_config = ConfigDict(frozen=True)
 
 
 # --- 3. LOGICIAN LAYER ---
 
 
-class ToulminKomponentti(BaseModel):
+class ToulminComponent(BaseModel):
     """Component of the Toulmin Argumentation Model."""
 
-    vaite_id: str = Field(
+    id: str = Field(
         ...,
         description="Reference ID.",
         json_schema_extra={"x-ui-label": "ID"},
@@ -304,30 +237,30 @@ class ToulminKomponentti(BaseModel):
     )
 
 
-class KognitiivinenTaso(BaseModel):
+class CognitiveLevel(BaseModel):
     """Assessment of cognitive depth."""
 
-    bloom_taso: str = Field(
+    bloom_level: str = Field(
         ...,
         description="Bloom's Taxonomy Level.",
         json_schema_extra={"x-ui-label": "Bloom Level"},
     )
-    strateginen_syvyys: str = Field(
+    strategic_depth: str = Field(
         ...,
         description="Strategic depth analysis.",
         json_schema_extra={"x-ui-label": "Strategic Depth"},
     )
 
 
-class WaltonSkeema(BaseModel):
+class WaltonScheme(BaseModel):
     """Walton's Argumentation Scheme."""
 
-    tunnistettu_skeema: str = Field(
+    identified_scheme: str = Field(
         ...,
         description="Identified Argumentation Scheme.",
         json_schema_extra={"x-ui-label": "Identified Scheme"},
     )
-    kriittiset_kysymykset: list[str] = Field(
+    critical_questions: list[str] = Field(
         ...,
         description="Critical Questions posed.",
         json_schema_extra={"x-ui-label": "Critical Questions"},
@@ -337,17 +270,17 @@ class WaltonSkeema(BaseModel):
 class LogicianData(BaseModel):
     """The core data payload of Logician analysis."""
 
-    toulmin_analyysi: list[ToulminKomponentti] = Field(
+    toulmin_analysis: list[ToulminComponent] = Field(
         ...,
         description="Toulmin analysis breakdown.",
         json_schema_extra={"x-ui-label": "Toulmin Analysis"},
     )
-    kognitiivinen_taso: KognitiivinenTaso = Field(
+    cognitive_level: CognitiveLevel = Field(
         ...,
         description="Cognitive level assessment.",
         json_schema_extra={"x-ui-label": "Cognitive Level"},
     )
-    walton_skeema: WaltonSkeema = Field(
+    walton_scheme: WaltonScheme = Field(
         ...,
         description="Argumentation scheme analysis.",
         json_schema_extra={"x-ui-label": "Argumentation Scheme"},
@@ -378,17 +311,17 @@ class LogicianOutput(ReasoningTrace):
 class WaltonStressTest(BaseModel):
     """Stress test using Walton's critical questions."""
 
-    kysymys: str = Field(
+    question: str = Field(
         ...,
         description="The critical question asked.",
         json_schema_extra={"x-ui-label": "Question"},
     )
-    kestiko_todistusaineisto: bool = Field(
+    evidence_held: bool = Field(
         ...,
         description="Did the evidence hold up?",
         json_schema_extra={"x-ui-label": "Result"},
     )
-    havainto: str = Field(
+    observation: str = Field(
         ...,
         description="Observation notes.",
         json_schema_extra={"x-ui-label": "Observation"},
@@ -398,17 +331,17 @@ class WaltonStressTest(BaseModel):
 class ReasoningFidelity(BaseModel):
     """Audit of the chain of reasoning fidelity."""
 
-    onko_post_hoc_rationalisointia: bool = Field(
+    is_post_hoc: bool = Field(
         ...,
         description="True if post-hoc rationalization detected.",
         json_schema_extra={"x-ui-label": "Post-Hoc Rationalization"},
     )
-    perustelu: str = Field(
+    justification: str = Field(
         ...,
         description="Reasoning.",
         json_schema_extra={"x-ui-label": "Justification"},
     )
-    uskollisuus_score: Literal["KORKEA", "EPÄVARMA", "HEIKKO"] = Field(
+    fidelity_score: Literal["KORKEA", "EPÄVARMA", "HEIKKO"] = Field(
         ...,
         description="Fidelity score.",
         json_schema_extra={"x-ui-label": "Fidelity Score"},
@@ -418,27 +351,38 @@ class ReasoningFidelity(BaseModel):
 class FalsifierData(BaseModel):
     """Output from the Falsifier component."""
 
-    walton_stressitesti_loydokset: list[WaltonStressTest] = Field(
+    stress_test_findings: list[WaltonStressTest] = Field(
         ...,
         description="Stress test results.",
         json_schema_extra={"x-ui-label": "Stress Test"},
     )
-    paattelyketjun_uskollisuus_auditointi: ReasoningFidelity = Field(
+    fidelity_audit: ReasoningFidelity = Field(
         ...,
         description="Fidelity audit.",
         json_schema_extra={"x-ui-label": "Fidelity Audit"},
     )
 
 
+class FalsifierOutput(ReasoningTrace):
+    """Output schema for the Falsifier Agent."""
+
+    falsifier_data: FalsifierData = Field(
+        ...,
+        description="Falsification audit result.",
+        json_schema_extra={"x-ui-label": "Falsification Audit"},
+    )
+    model_config = ConfigDict(frozen=True)
+
+
 class CausalAnalysisData(BaseModel):
     """Data from Causal Audit."""
 
-    aikajana_validi: bool = Field(
+    timeline_valid: bool = Field(
         ...,
         description="Is the timeline valid?",
         json_schema_extra={"x-ui-label": "Timeline Valid"},
     )
-    havainto: str = Field(
+    observation: str = Field(
         ...,
         description="General observations.",
         json_schema_extra={"x-ui-label": "Observations"},
@@ -448,17 +392,17 @@ class CausalAnalysisData(BaseModel):
 class CounterfactualTest(BaseModel):
     """Counterfactual Simulation Test."""
 
-    skenaario_A_toteutunut: str = Field(
+    scenario_a_actual: str = Field(
         ...,
         description="Actual scenario.",
         json_schema_extra={"x-ui-label": "Actual Scenario"},
     )
-    skenaario_B_simulaatio: str = Field(
+    scenario_b_simulated: str = Field(
         ...,
         description="Counterfactual simulation.",
         json_schema_extra={"x-ui-label": "Simulation"},
     )
-    uskottavuus_arvio: str = Field(
+    plausibility_score: str = Field(
         ...,
         description="Plausibility assessment.",
         json_schema_extra={"x-ui-label": "Plausibility"},
@@ -468,37 +412,48 @@ class CounterfactualTest(BaseModel):
 class CausalAnalysis(BaseModel):
     """Output from the Causal component."""
 
-    kausaalinen_auditointi: CausalAnalysisData = Field(
+    causal_audit: CausalAnalysisData = Field(
         ...,
         description="Causal audit data.",
         json_schema_extra={"x-ui-label": "Causal Audit"},
     )
-    kontrafaktuaalinen_testi: CounterfactualTest = Field(
+    counterfactual_test: CounterfactualTest = Field(
         ...,
         description="Counterfactual test.",
         json_schema_extra={"x-ui-label": "Counterfactual Test"},
     )
-    abduktiivinen_paatelma: Literal["Aito Oivallus", "Post-Hoc Rationalisointi", "Epävarma"] = Field(
+    abductive_conclusion: Literal["Aito Oivallus", "Post-Hoc Rationalisointi", "Epävarma"] = Field(
         ...,
         description="Abductive conclusion.",
         json_schema_extra={"x-ui-label": "Abductive Conclusion"},
     )
 
 
+class CausalOutput(ReasoningTrace):
+    """Output schema for the Causal Agent."""
+
+    causal_analysis: CausalAnalysis = Field(
+        ...,
+        description="Causal audit result.",
+        json_schema_extra={"x-ui-label": "Causal Audit"},
+    )
+    model_config = ConfigDict(frozen=True)
+
+
 class PerformativityHeuristic(BaseModel):
     """Heuristic check for performativity."""
 
-    heuristiikka: str = Field(
+    heuristic_name: str = Field(
         ...,
         description="Heuristic name.",
         json_schema_extra={"x-ui-label": "Heuristic"},
     )
-    lippu_nostettu: bool = Field(
+    flag_raised: bool = Field(
         ...,
         description="Flag raised?",
         json_schema_extra={"x-ui-label": "Flag Raised"},
     )
-    kuvaus: str = Field(
+    description: str = Field(
         ...,
         description="Description.",
         json_schema_extra={"x-ui-label": "Description"},
@@ -508,12 +463,12 @@ class PerformativityHeuristic(BaseModel):
 class PreMortemAnalysis(BaseModel):
     """Pre-Mortem Analysis results."""
 
-    suoritettu: bool = Field(
+    performed: bool = Field(
         ...,
         description="Was Pre-Mortem performed?",
         json_schema_extra={"x-ui-label": "Performed"},
     )
-    hiljaiset_signaalit: list[str] = Field(
+    weak_signals: list[str] = Field(
         ...,
         description="Detected weak signals.",
         json_schema_extra={"x-ui-label": "Weak Signals"},
@@ -523,37 +478,48 @@ class PreMortemAnalysis(BaseModel):
 class PerformativityAnalysis(BaseModel):
     """(Renamed for schema clarity vs Detector) - Output from Performativity component."""
 
-    performatiivisuus_heuristiikat: list[PerformativityHeuristic] = Field(
+    performativity_heuristics: list[PerformativityHeuristic] = Field(
         ...,
         description="Heuristics check.",
         json_schema_extra={"x-ui-label": "Heuristics"},
     )
-    pre_mortem_analyysi: PreMortemAnalysis = Field(
+    pre_mortem_analysis: PreMortemAnalysis = Field(
         ...,
         description="Pre-Mortem analysis.",
         json_schema_extra={"x-ui-label": "Pre-Mortem"},
     )
-    yleisarvio_aitoudesta: Literal["Orgaaninen", "Performatiivinen", "Epäilyttävä"] = Field(
+    authenticity_assessment: Literal["Orgaaninen", "Performatiivinen", "Epäilyttävä"] = Field(
         ...,
         description="Overall authenticity assessment.",
         json_schema_extra={"x-ui-label": "Authenticity"},
     )
 
 
+class PerformativityOutput(ReasoningTrace):
+    """Output schema for the Performativity/Detector Agent."""
+
+    performativity_analysis: PerformativityAnalysis = Field(
+        ...,
+        description="Performativity audit result.",
+        json_schema_extra={"x-ui-label": "Performativity Audit"},
+    )
+    model_config = ConfigDict(frozen=True)
+
+
 class FactCheckRFI(BaseModel):
     """Request for Information (Fact Check)."""
 
-    vaite: str = Field(
+    claim: str = Field(
         ...,
         description="Claim to check.",
         json_schema_extra={"x-ui-label": "Claim"},
     )
-    verifiointi_tulos: Literal["Vahvistettu", "Kumottu", "Ei voitu vahvistaa"] = Field(
+    verification_result: Literal["Vahvistettu", "Kumottu", "Ei voitu vahvistaa"] = Field(
         ...,
         description="Result.",
         json_schema_extra={"x-ui-label": "Result"},
     )
-    lahde_tai_paattely: str = Field(
+    source_or_reasoning: str = Field(
         ...,
         description="Source or reasoning.",
         json_schema_extra={"x-ui-label": "Source/Reasoning"},
@@ -563,17 +529,17 @@ class FactCheckRFI(BaseModel):
 class EthicalObservation(BaseModel):
     """Ethical Observation."""
 
-    tyyppi: Literal["Syrjintä", "Haitallinen sisältö", "Plagiointi", "Ei havaittu"] = Field(
+    issue_type: Literal["Syrjintä", "Haitallinen sisältö", "Plagiointi", "Ei havaittu"] = Field(
         ...,
         description="Type of issue.",
         json_schema_extra={"x-ui-label": "Issue Type"},
     )
-    vakavuus: Literal["Kriittinen", "Varoitus", "N/A"] = Field(
+    severity: Literal["Kriittinen", "Varoitus", "N/A"] = Field(
         ...,
         description="Severity.",
         json_schema_extra={"x-ui-label": "Severity"},
     )
-    kuvaus: str = Field(
+    description: str = Field(
         ...,
         description="Description.",
         json_schema_extra={"x-ui-label": "Description"},
@@ -583,16 +549,27 @@ class EthicalObservation(BaseModel):
 class OverseerData(BaseModel):
     """Output from the Overseer component."""
 
-    faktantarkistus_rfi: list[FactCheckRFI] = Field(
+    fact_checks: list[FactCheckRFI] = Field(
         default_factory=list,
         description="Fact check report.",
         json_schema_extra={"x-ui-label": "Fact Checks"},
     )
-    eettiset_havainnot: list[EthicalObservation] = Field(
+    ethical_observations: list[EthicalObservation] = Field(
         default_factory=list,
         description="Ethical audit report.",
         json_schema_extra={"x-ui-label": "Ethical Issues"},
     )
+
+
+class OverseerOutput(ReasoningTrace):
+    """Output schema for the Overseer Agent."""
+
+    overseer_data: OverseerData = Field(
+        ...,
+        description="Ethics audit result.",
+        json_schema_extra={"x-ui-label": "Ethics Audit"},
+    )
+    model_config = ConfigDict(frozen=True)
 
 
 class PanelOutput(ReasoningTrace):
@@ -828,31 +805,83 @@ class ArchiveCase(BaseModel):
 
 class ArchivistOutput(ReasoningTrace):
     """Output schema for the Archivist Agent."""
-    relevant_cases: list[ArchiveCase] = Field(..., description="Relevant past cases.")
-    consistency_analysis: str = Field(..., description="Analysis of consistency with precedents.")
-    stare_decisis_adherence: bool = Field(..., description="Whether the decision follows precedent.")
+    relevant_cases: list[ArchiveCase] = Field(
+        ...,
+        description="Relevant past cases.",
+        json_schema_extra={"x-ui-label": "Relevant Cases"},
+    )
+    consistency_analysis: str = Field(
+        ...,
+        description="Analysis of consistency with precedents.",
+        json_schema_extra={"x-ui-label": "Consistency Analysis"},
+    )
+    stare_decisis_adherence: bool = Field(
+        ...,
+        description="Whether the decision follows precedent.",
+        json_schema_extra={"x-ui-label": "Stare Decisis"},
+    )
     model_config = ConfigDict(frozen=True)
 
 class CoachingPlan(ReasoningTrace):
     """Output schema for the Coach Agent."""
-    actionable_steps: list[str] = Field(..., description="Concrete steps for improvement.")
-    bibliography: list[dict[str, Any]] = Field(..., description="Recommended reading.")
-    focus_areas: list[str] = Field(..., description="Key areas to focus on.")
+    actionable_steps: list[str] = Field(
+        ...,
+        description="Concrete steps for improvement.",
+        json_schema_extra={"x-ui-label": "Actionable Steps"},
+    )
+    bibliography: list[dict[str, Any]] = Field(
+        ...,
+        description="Recommended reading.",
+        json_schema_extra={"x-ui-label": "References"},
+    )
+    focus_areas: list[str] = Field(
+        ...,
+        description="Key areas to focus on.",
+        json_schema_extra={"x-ui-label": "Focus Areas"},
+    )
     model_config = ConfigDict(frozen=True)
 
 class ProfilerAnalysis(ReasoningTrace):
     """Output schema for the Profiler Agent."""
-    author_intent: str = Field(..., description="Assessed intent of the author.")
-    cognitive_biases: list[str] = Field(..., description="Detected cognitive biases.")
-    emotional_tone: str = Field(..., description="Emotional tone analysis.")
-    metrics: dict[str, Any] = Field(default_factory=dict, description="Quantitative text metrics.")
+    author_intent: str = Field(
+        ...,
+        description="Assessed intent of the author.",
+        json_schema_extra={"x-ui-label": "Author Intent"},
+    )
+    cognitive_biases: list[str] = Field(
+        ...,
+        description="Detected cognitive biases.",
+        json_schema_extra={"x-ui-label": "Cognitive Biases"},
+    )
+    emotional_tone: str = Field(
+        ...,
+        description="Emotional tone analysis.",
+        json_schema_extra={"x-ui-label": "Emotional Tone"},
+    )
+    metrics: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Quantitative text metrics.",
+        json_schema_extra={"x-ui-label": "Metrics"},
+    )
     model_config = ConfigDict(frozen=True)
 
 class InteractionAnalysis(ReasoningTrace):
     """Output schema for the Interaction Agent."""
-    role_classification: Literal["Driver", "Passenger"] = Field(..., description="User role classification.")
-    input_quality_score: float = Field(..., description="Quality score of user input.")
-    improvement_suggestions: list[str] = Field(..., description="Suggestions for better prompting.")
+    role_classification: Literal["Driver", "Passenger"] = Field(
+        ...,
+        description="User role classification.",
+        json_schema_extra={"x-ui-label": "Role"},
+    )
+    input_quality_score: float = Field(
+        ...,
+        description="Quality score of user input.",
+        json_schema_extra={"x-ui-label": "Input Quality"},
+    )
+    improvement_suggestions: list[str] = Field(
+        ...,
+        description="Suggestions for better prompting.",
+        json_schema_extra={"x-ui-label": "Suggestions"},
+    )
     model_config = ConfigDict(frozen=True)
 
 class EvaluationCriterion(BaseModel):

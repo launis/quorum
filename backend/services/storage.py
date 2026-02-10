@@ -50,6 +50,18 @@ class AbstractStorage(ABC):
         """
         pass
 
+    @abstractmethod
+    def get_local_path(self, path: str) -> str | None:
+        """Returns the absolute local path if available (LocalStorage only).
+
+        Args:
+            path (str): Relative path/key.
+
+        Returns:
+            str | None: Absolute path if local, else None.
+        """
+        pass
+
 
 class LocalFileStorage(AbstractStorage):
     """Local file system implementation of AbstractStorage.
@@ -129,6 +141,10 @@ class LocalFileStorage(AbstractStorage):
         full_path = self.base_path / path
         return full_path.exists()
 
+    def get_local_path(self, path: str) -> str | None:
+        """Returns the resolved absolute path."""
+        return str((self.base_path / path).resolve())
+
 
 class NoOpStorage(AbstractStorage):
     """Storage implementation that does nothing (for when storage is disabled)."""
@@ -146,6 +162,9 @@ class NoOpStorage(AbstractStorage):
     def exists(self, path: str) -> bool:
         """Mock exists."""
         return False
+
+    def get_local_path(self, path: str) -> str | None:
+        return None
 
 
 # --- Firebase Implementation ---
@@ -235,6 +254,10 @@ class FirebaseStorage(AbstractStorage):
         """
         blob = self.bucket.blob(path)
         return blob.exists()
+
+    def get_local_path(self, path: str) -> str | None:
+        """Firebase does not have a local path."""
+        return None
 
 
 def get_storage_client() -> AbstractStorage:

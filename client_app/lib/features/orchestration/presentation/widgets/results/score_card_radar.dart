@@ -51,8 +51,6 @@ class ScoreCardRadar extends StatelessWidget {
                         style: textTheme.bodyMedium?.copyWith(
                           fontStyle: FontStyle.italic,
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),

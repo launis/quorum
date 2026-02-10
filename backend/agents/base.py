@@ -166,7 +166,6 @@ class BaseAgent(BaseComponent):
                     if hasattr(data, "semanttinen_tarkistussumma"):
                         data.semanttinen_tarkistussumma = checksum
                         logger.debug(f"[{self.__class__.__name__}] Calc Checksum (Model): {checksum[:8]}...")
-                        logger.debug(f"[{self.__class__.__name__}] Calc Checksum (Model): {checksum[:8]}...")
                 except Exception as e:
                     # STRICT MODE: Data integrity is critical.
                     error_msg = f"[{self.__class__.__name__}] Critical: Failed to calculate authoritative checksum (Model). Data integrity compromised."

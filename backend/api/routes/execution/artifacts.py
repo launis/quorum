@@ -57,12 +57,13 @@ def _enforce_pdf_access(user: TokenData, execution: dict[str, Any]) -> None:
 )
 async def download_execution_pdf(
     execution_id: str,
+    check_local: bool = False,
     repository: AbstractWorkflowRepository = Depends(get_async_repository),
     current_user: TokenData = Depends(AuthService.get_current_user()),
     arq_pool: Any = Depends(get_arq_pool),
     storage: AbstractStorage = Depends(get_storage_service_dep),
 ):
-    """Download PDF or Queue Generation."""
+    """Download PDF, Queue Generation, or Check Local Existence."""
     try:
         # 1. Fetch & Check Access
         execution = await repository.get_execution(execution_id)
@@ -76,6 +77,15 @@ async def download_execution_pdf(
         rel_path = f"executions/{execution_id}/report.pdf"
 
         if storage.exists(rel_path):
+            if check_local:
+                # Return JSON with local path if available
+                local_path = storage.get_local_path(rel_path)
+                return JSONResponse({
+                    "status": "ready",
+                    "exists": True,
+                    "local_path": local_path
+                })
+
             if isinstance(storage, LocalFileStorage):
                 full_path = storage.base_path / rel_path
                 return FileResponse(
@@ -92,6 +102,14 @@ async def download_execution_pdf(
                     media_type="application/pdf",
                     headers={"Content-Disposition": f'attachment; filename="report_{execution_id}.pdf"'}
                 )
+        
+        # If check_local is true but file missing
+        if check_local:
+             return JSONResponse({
+                "status": "missing",
+                "exists": False,
+                "local_path": None
+            })
 
         # 3. Queue Job if missing
         if arq_pool:

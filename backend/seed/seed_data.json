@@ -302,13 +302,13 @@
       "type": "instruction"
     },
     {
-      "content": "VAIHE 1: VARTIJA (Input Hygiene Audit)\nTEHTÄVÄT:\n1. SUORITA TEKNINEN TARKASTUS: Onko syöte 'roskaa' (epämääräistä) vai 'koodia' (strukturoitua)?\n2. TÄYTÄ 'SecurityCheck':\n   - 'uhka_havaittu': Aseta FALSE (älä keskeytä ajoa osaamattomuuden takia).\n   - 'riski_taso': Aseta 'KORKEA', jos havaitset 'Lazy Prompting' (alle 5 sanaa, ei kontekstia).\n   - 'adversariaalinen_simulaatio_tulos': Luokittele käyttäjä: 'Passiivinen Matkustaja' vs 'Aktiivinen Arkkitehti'.\n3. TÄYTÄ 'safe_data' (TÄRKEÄ - CRITICAL):\n   - ÄLÄ kopioi alkuperäistä tekstiä tähän kenttään.\n   - Aseta arvoksi VAIN merkkijono: \"DATA_CHECKED_AND_SECURED\".\n   - Syytteessä annettu teksti on jo järjestelmässä, sen kopiointi on turhaa ja aiheuttaa virheitä.\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (älä muuta kenttien nimiä):\n{{SCHEMA_EXAMPLE}}",
+      "content": "VAIHE 1: VARTIJA (Input Hygiene Audit)\nTEHTÄVÄT:\n1. SUORITA TEKNINEN TARKASTUS: Onko syöte 'roskaa' (epämääräistä) vai 'koodia' (strukturoitua)?\n2. TÄYTÄ 'SecurityCheck':\n   - 'threat_detected': Aseta FALSE (älä keskeytä ajoa osaamattomuuden takia).\n   - 'risk_level': Aseta 'KORKEA', jos havaitset 'Lazy Prompting' (alle 5 sanaa, ei kontekstia).\n   - 'simulation_result': Luokittele käyttäjä: 'Passiivinen Matkustaja' vs 'Aktiivinen Arkkitehti'.\n3. TÄYTÄ 'tainted_data' (TÄRKEÄ - CRITICAL):\n   - ÄLÄ kopioi alkuperäistä tekstiä tähän kenttään.\n   - Aseta arvoksi VAIN merkkijono: \"DATA_CHECKED_AND_SECURED\".\n   - Syytteessä annettu teksti on jo järjestelmässä, sen kopiointi on turhaa ja aiheuttaa virheitä.\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (älä muuta kenttien nimiä):\n{{SCHEMA_EXAMPLE}}",
       "description": "Vartija - Input Hygiene Audit",
       "id": "TASK_GUARD",
       "type": "task"
     },
     {
-      "content": "VAIHE 2: ANALYYTIKKO (Context Engineering Audit)\nTEHTÄVÄT:\n1. ETSI todisteita 'Grounding'-tekniikasta VAIN annetuista syötetiedostoista (history_text, product_text, etc.).\n2. TÄYTÄ 'TodistusKartta':\n   - 'Hypoteesit': TARKISTA INPUT: Jos input on tyhjä, geneerinen tai ei sisällä substanssia, ÄLÄ KEKSI hypoteeseja. Kirjaa 'Ei hypoteeseja'. JOS JA VAIN JOS inputissa on dataa, listaa eksplisiittiset väitteet.\n   - 'Loytyyko_todisteita': True, jos ja vain jos inputissa on faktoja. Jos tyhjä -> False.\n   - 'Rag_todisteet': Poimi suorat sitaatit. Jos input on tyhjä -> [].\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (älä muuta kenttien nimiä):\n{{SCHEMA_EXAMPLE}}",
+      "content": "VAIHE 2: ANALYYTIKKO (Context Engineering Audit)\nTEHTÄVÄT:\n1. ETSI todisteita 'Grounding'-tekniikasta VAIN annetuista syötetiedostoista (history_text, product_text, etc.).\n2. TÄYTÄ 'AnalystOutput':\n   - 'hypotheses': TARKISTA INPUT: Jos input on tyhjä, geneerinen tai ei sisällä substanssia, ÄLÄ KEKSI hypoteeseja. Kirjaa 'Ei hypoteeseja'. JOS JA VAIN JOS inputissa on dataa, listaa eksplisiittiset väitteet.\n   - 'evidence_found': True, jos ja vain jos inputissa on faktoja. Jos tyhjä -> False.\n   - 'rag_evidence': Poimi suorat sitaatit. Jos input on tyhjä -> [].\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (älä muuta kenttien nimiä):\n{{SCHEMA_EXAMPLE}}",
       "description": "Analyytikko - Context Engineering Audit",
       "id": "TASK_ANALYST",
       "type": "task"
@@ -326,19 +326,19 @@
       "type": "task"
     },
     {
-      "content": "VAIHE 6: FALSIFIOIJA (Critical Loop Audit)\nTEHTÄVÄT:\n1. ETSI 'Iteraatiosilmukkaa': Missä kohtaa käyttäjä sanoi 'Ei' tai 'Korjaa'?\n2. TÄYTÄ 'walton_stressitesti_loydokset':\n   - 'Kysymys': Käyttäjän korjauskäsky.\n   - 'Havainto': Oliko käyttäjä kriittinen vai 'Jees-mies'?\n3. TÄYTÄ 'PaattelyketjunUskollisuus': Merkitse 'HEIKKO', jos käyttäjä hyväksyi ensimmäisen version ilman yhtäkään muutosta.\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (älä muuta kenttien nimiä):\n{{SCHEMA_EXAMPLE}}",
+      "content": "VAIHE 6: FALSIFIOIJA (Critical Loop Audit)\nTEHTÄVÄT:\n1. ETSI 'Iteraatiosilmukkaa': Missä kohtaa käyttäjä sanoi 'Ei' tai 'Korjaa'?\n2. TÄYTÄ 'stress_test_findings':\n   - 'question': Käyttäjän korjauskäsky.\n   - 'observation': Oliko käyttäjä kriittinen vai 'Jees-mies'?\n3. TÄYTÄ 'fidelity_audit': Merkitse 'HEIKKO', jos käyttäjä hyväksyi ensimmäisen version ilman yhtäkään muutosta.\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (älä muuta kenttien nimiä):\n{{SCHEMA_EXAMPLE}}",
       "description": "Falsifier - Critical Loop Audit",
       "id": "TASK_FALSIFIER",
       "type": "task"
     },
     {
-      "content": "VAIHE 9: VALVOJA (Hallucination Management)\nTEHTÄVÄT:\n1. ANALYSOI hakutulokset (jotka on toimitettu kontekstissa 'google_search_results'). TARKISTA faktojen paikkansapitävyys.\n2. JOS virhe löytyy: Tarkista, huomasiko/korjasiko käyttäjä sen?\n3. TUOMIO: Jos käyttäjä jätti virheen lopputuotteeseen -> Kirjaa 'KRIITTINEN LAIMINLYÖNTI'.\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (älä muuta kenttien nimiä):\n{{SCHEMA_EXAMPLE}}",
+      "content": "VAIHE 9: VALVOJA (Hallucination Management)\nTEHTÄVÄT:\n1. ANALYSOI hakutulokset (jotka on toimitettu kontekstissa 'google_search_results'). TARKISTA faktojen paikkansapitävyys.\n2. JOS virhe löytyy: Tarkista, huomasiko/korjasiko käyttäjä sen?\n3. TUOMIO: Jos käyttäjä jätti virheen lopputuotteeseen -> Kirjaa 'KRIITTINEN LAIMINLYÖNTI'.\n4. TÄYTÄ 'fact_checks' havainnoillasi.\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (älä muuta kenttien nimiä):\n{{SCHEMA_EXAMPLE}}",
       "description": "Overseer - Hallucination Management",
       "id": "TASK_OVERSEER",
       "type": "task"
     },
     {
-      "content": "VAIHE 7: KAUSAALINEN (Impact Verification)\nTEHTÄVÄT:\n1. VERTAA versiota 1 ja viimeistä versiota.\n2. ARVIOI: Johtuiko laadun paraneminen EKSPLISIITTISESTI käyttäjän ohjeesta?\n3. TÄYTÄ 'KausaalinenAuditointi':\n   - 'Abduktiivinen_paatelma': Merkitse 'Aito Ohjaus' vain, jos käyttäjä toi uutta informaatiota prosessiin. Muuten 'Post-Hoc Rationalisointi'.\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (älä muuta kenttien nimiä):\n{{SCHEMA_EXAMPLE}}",
+      "content": "VAIHE 7: KAUSAALINEN (Impact Verification)\nTEHTÄVÄT:\n1. VERTAA versiota 1 ja viimeistä versiota.\n2. ARVIOI: Johtuiko laadun paraneminen EKSPLISIITTISESTI käyttäjän ohjeesta?\n3. TÄYTÄ 'causal_audit':\n   - 'abductive_conclusion': Merkitse 'Aito Ohjaus' vain, jos käyttäjä toi uutta informaatiota prosessiin. Muuten 'Post-Hoc Rationalisointi'.\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (älä muuta kenttien nimiä):\n{{SCHEMA_EXAMPLE}}",
       "description": "Causal Analyst - Impact Verification",
       "id": "TASK_CAUSAL",
       "type": "task"
@@ -356,13 +356,13 @@
       "type": "task"
     },
     {
-      "content": "VAIHE 9: TUOMARI (JUDGE) - GRAND UNIFICATION\n\nSINUN TEHTÄVÄSI:\nToimit Järjestelmän Tuomarina. Tehtäväsi EI ole arvioida syötetekstin laatua, vaan käyttäjän **Promptauskompetenssia** (Driver vs. Passenger).\n\nKÄYTÄ SEURAAVAA LOGIIKKAA (DRIVER'S LICENSE):\n\n1. **AJOKORTTIMALLI (MANDATE 4)**:\n   - Järjestelmä on kuin auto. Käyttäjä on joko **Kuljettaja** (Driver) tai **Matkustaja** (Passenger).\n   - Kuljettaja ottaa vastuun, ohjaa, antaa kontekstin ja määrittelee tavoitteet.\n   - Matkustaja on passiivinen, heittää epämääräisen syötteen (\"tee tästä jotain\") ja odottaa auton ajavan itsestään.\n\n2. **PISTEYTYS (ALLE 2 PISTETTÄ = HYLÄTTY)**:\n   - Arvioi asteikolla 1-4.\n   - 1-2 pistettä: PASSIVE / PASSENGER. Hylkäys. (Ei pääse rattiin).\n   - 3-4 pistettä: ACTIVE / DRIVER. Hyväksyntä.\n   - **Kriittinen sääntö**: Jos syöte on pelkkä tiedosto ilman ohjeita: MAKSIMI 2/4.\n\n3. **KONFLIKTIN RATKAISU**:\n   - Analysoi aiempien agenttien (Step 1-8) raportit.\n   - Jos PanelAgent/Analyst on löytänyt ristiriitoja, ratkaise ne \"Kuljettajan eduksi\" vain jos käyttäjä on osoittanut kompetenssia.\n\n4. **TUNNISTA \"MESTARUUSPOIKKEAMA\"**:\n   - Joskus syöte on lyhyt, koska käyttäjä on MESTARI (osaa tiivistää). Erota tämä laiskuudesta.\n\nTÄYTÄ SCHEMA: `TuomioJaPisteet`\n- `pisteet`: Anna arvosana (1-4) analyysille, arvioinnille ja synteesille.\n- `konfliktin_ratkaisut`: Kirjaa ratkaistut erimielisyydet.\n- `mestaruus_poikkeama`: Tunnistettiinko mestari?\n- `aitous_epaily`: Epäilläänkö generoitua tekstiä?\n\n{{SCHEMA_EXAMPLE}}",
+      "content": "VAIHE 9: TUOMARI (JUDGE) - GRAND UNIFICATION\n\nSINUN TEHTÄVÄSI:\nToimit Järjestelmän Tuomarina. Tehtäväsi EI ole arvioida syötetekstin laatua, vaan käyttäjän **Promptauskompetenssia** (Driver vs. Passenger).\n\nKÄYTÄ SEURAAVAA LOGIIKKAA (DRIVER'S LICENSE):\n\n1. **AJOKORTTIMALLI (MANDATE 4)**:\n   - Järjestelmä on kuin auto. Käyttäjä on joko **Kuljettaja** (Driver) tai **Matkustaja** (Passenger).\n   - Kuljettaja ottaa vastuun, ohjaa, antaa kontekstin ja määrittelee tavoitteet.\n   - Matkustaja on passiivinen, heittää epämääräisen syötteen (\"tee tästä jotain\") ja odottaa auton ajavan itsestään.\n\n2. **PISTEYTYS (ALLE 2 PISTETTÄ = HYLÄTTY)**:\n   - Arvioi asteikolla 1-4.\n   - 1-2 pistettä: PASSIVE / PASSENGER. Hylkäys. (Ei pääse rattiin).\n   - 3-4 pistettä: ACTIVE / DRIVER. Hyväksyntä.\n   - **Kriittinen sääntö**: Jos syöte on pelkkä tiedosto ilman ohjeita: MAKSIMI 2/4.\n\nTÄYTÄ SCHEMA: `JudgeScoreCard`\n- `total_score`: Anna arvosana (1-4) analyysille, arvioinnille ja synteesille.\n- `final_verdict`: Sanallinen tuomio.\n- `dimensions`: Pistesaldoa eriteltynä matriisin mukaan.\n\n{{SCHEMA_EXAMPLE}}",
       "description": "Judge - Competence Scoring",
       "id": "TASK_JUDGE",
       "type": "task"
     },
     {
-      "content": "VAIHE 12: VALMENTAJA (COACH)\n\nSINUN TEHTÄVÄSI:\nToimit Järjestelmän Valmentajana (Coach). Tehtäväsi on auttaa käyttäjää kehittymään \"Matkustajasta\" (Passenger) \"Kuljettajaksi\" (Driver).\n\nOHJEET:\n1. **ANALYSOI TUOMIO**: Katso Tuomarin (Step 11) antama `pisteet` ja `konfliktin_ratkaisut`.\n2. **TUNNISTA PROFIILI**:\n   - **Passenger (1-2 pistettä)**: Käyttäjä on passiivinen. Ohjaa häntä ottamaan vastuu.\n   - **Driver (3-4 pistettä)**: Käyttäjä on aktiivinen. Anna syvällisempää optimointipalautetta.\n3. **KONSTRUKTIIVINEN JA RIKASTETTU PALAUTE**:\n   - Älä vain hauku. Kerro *miten* promptia pitää parantaa.\n   - **Enriched Feedback**: Viittaa akateemisiin lähteisiin (esim. Kahneman, Strathern, Popper) perustellaksesi neuvosi. Esim. \"Vältä myötäilyvinoumaa (Sycophancy Bias).\"\n\nTÄYTÄ SCHEMA: `CoachingPlan`\n- `analyysi_haasteista`: Miksi käyttäjä sai ne pisteet jotka sai?\n- `toimenpiteet`: Konkreettinen lista: Tee A, Tee B.\n- `motivaatio`: Miksi tämä parantaa lopputulosta?\n\n{{SCHEMA_EXAMPLE}}",
+      "content": "VAIHE 12: VALMENTAJA (COACH)\n\nSINUN TEHTÄVÄSI:\nToimit Järjestelmän Valmentajana (Coach). Tehtäväsi on auttaa käyttäjää kehittymään \"Matkustajasta\" (Passenger) \"Kuljettajaksi\" (Driver).\n\nOHJEET:\n1. **ANALYSOI TUOMIO**: Katso Tuomarin (Step 11) antama `score_card`.\n2. **TUNNISTA PROFIILI**:\n   - **Passenger (1-2 pistettä)**: Käyttäjä on passiivinen. Ohjaa häntä ottamaan vastuu.\n   - **Driver (3-4 pistettä)**: Käyttäjä on aktiivinen. Anna syvällisempää optimointipalautetta.\n3. **KONSTRUKTIIVINEN JA RIKASTETTU PALAUTE**:\n   - Älä vain hauku. Kerro *miten* promptia pitää parantaa.\n   - **Enriched Feedback**: Viittaa akateemisiin lähteisiin (esim. Kahneman, Strathern, Popper) perustellaksesi neuvosi. Esim. \"Vältä myötäilyvinoumaa (Sycophancy Bias).\"\n\nTÄYTÄ SCHEMA: `CoachingPlan`\n- `focus_areas`: Miksi käyttäjä sai ne pisteet jotka sai?\n- `actionable_steps`: Konkreettinen lista: Tee A, Tee B.\n- `bibliography`: Lähdeviitteet.\n\n{{SCHEMA_EXAMPLE}}",
       "description": "Coach - Technical Remediation",
       "id": "TASK_COACH",
       "type": "task"
@@ -1228,7 +1228,7 @@
       "description": "Imported from sequential_audit_chain",
       "task_key": "interaction",
       "config": {
-        "output_schema": "AnalystOutput",
+        "output_schema": "InteractionAnalysis",
         "llm_prompts": [
           "GLOBAL_CONTEXT",
           "HEADER_MANDATES",
@@ -1401,7 +1401,7 @@
       "description": "Imported from sequential_audit_chain",
       "task_key": "overseer",
       "config": {
-        "output_schema": "PanelOutput",
+        "output_schema": "OverseerOutput",
         "llm_prompts": [
           "GLOBAL_CONTEXT",
           "HEADER_MANDATES",
@@ -1444,6 +1444,113 @@
       }
     },
     {
+      "id": "step_falsifier",
+      "name": "Falsifioija",
+      "description": "Critical Loop Audit",
+      "task_key": "falsifier",
+      "config": {
+        "output_schema": "FalsifierOutput",
+        "llm_prompts": [
+           "GLOBAL_CONTEXT",
+           "HEADER_MANDATES",
+           "MANDATE_5",
+           "HEADER_RULES",
+           "RULE_5",
+           "INSTRUCTION_NO_HALLUCINATION",
+           "INSTRUCTION_LANGUAGE_FI",
+           "HEADER_INSTRUCTIONS",
+           "TASK_FALSIFIER"
+        ],
+        "model_strategy": "deep",
+        "pre_hooks": []
+      },
+      "inputs": {
+        "history_text": "$history_text",
+        "product_text": "$product_text",
+        "reflection_text": "$reflection_text"
+      }
+    },
+    {
+      "id": "step_causal",
+      "name": "Kausaalinen",
+      "description": "Impact Verification",
+      "task_key": "causal",
+      "config": {
+        "output_schema": "CausalOutput",
+        "llm_prompts": [
+           "GLOBAL_CONTEXT",
+           "HEADER_MANDATES",
+           "MANDATE_5",
+           "HEADER_RULES",
+           "RULE_5",
+           "INSTRUCTION_NO_HALLUCINATION",
+           "INSTRUCTION_LANGUAGE_FI",
+           "HEADER_INSTRUCTIONS",
+           "TASK_CAUSAL"
+        ],
+         "model_strategy": "deep",
+         "pre_hooks": []
+      },
+      "inputs": {
+        "history_text": "$history_text",
+        "product_text": "$product_text",
+        "reflection_text": "$reflection_text"
+      }
+    },
+    {
+      "id": "step_detector",
+      "name": "Performatiivisuus",
+      "description": "Illusion of Control Audit",
+      "task_key": "detector",
+      "config": {
+        "output_schema": "PerformativityOutput",
+        "llm_prompts": [
+           "GLOBAL_CONTEXT",
+           "HEADER_MANDATES",
+           "MANDATE_5",
+           "HEADER_RULES",
+           "RULE_5",
+           "INSTRUCTION_NO_HALLUCINATION",
+           "INSTRUCTION_LANGUAGE_FI",
+           "HEADER_INSTRUCTIONS",
+           "TASK_PERFORMATIVITY"
+        ],
+         "model_strategy": "deep",
+         "pre_hooks": []
+      },
+      "inputs": {
+        "history_text": "$history_text",
+        "product_text": "$product_text",
+        "reflection_text": "$reflection_text"
+      }
+    },
+    {
+       "id": "step_archivist",
+       "name": "Arkistonhoitaja",
+       "description": "Best Practices Audit",
+       "task_key": "archivist",
+       "config": {
+         "output_schema": "ArchivistOutput",
+         "llm_prompts": [
+            "GLOBAL_CONTEXT",
+            "HEADER_MANDATES",
+            "MANDATE_5",
+            "HEADER_RULES",
+            "RULE_5",
+            "INSTRUCTION_NO_HALLUCINATION",
+            "INSTRUCTION_LANGUAGE_FI",
+            "HEADER_INSTRUCTIONS",
+            "TASK_ARCHIVIST"
+         ],
+         "model_strategy": "deep",
+         "pre_hooks": []
+       },
+       "inputs": {
+        "history_text": "$history_text",
+        "product_text": "$product_text"
+       }
+    },
+    {
       "id": "step_panel",
       "name": "Paneeli",
       "description": "Imported from fused_audit_chain",
@@ -1479,7 +1586,7 @@
       "description": "Imported from sequential_audit_chain",
       "task_key": "profiler",
       "config": {
-        "output_schema": "AnalystOutput",
+        "output_schema": "ProfilerAnalysis",
         "llm_prompts": [
           "GLOBAL_CONTEXT",
           "HEADER_MANDATES",

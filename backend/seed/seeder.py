@@ -282,4 +282,12 @@ def _delete_collection(coll_ref, batch_size=50):
 
 
 if __name__ == "__main__":
-    seed_database()
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="Seed the database.")
+    parser.add_argument("env", nargs="?", default="LOCAL", help="Target environment: LOCAL or STAGING/PROD (default: LOCAL)")
+    parser.add_argument("--db-path", default=None, help="Optional path to target database JSON file.")
+    
+    args = parser.parse_args()
+    
+    seed_database(target_env=args.env, target_db_path=args.db_path)

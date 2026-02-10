@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'dart:convert';
 import 'dart:io';
 import 'package:client_app/features/orchestration/domain/models/execution.dart';
@@ -13,7 +13,7 @@ import 'package:client_app/features/orchestration/data/repositories/execution_re
 
 import 'package:client_app/features/orchestration/presentation/widgets/output_renderer.dart';
 import 'package:client_app/features/orchestration/presentation/widgets/sdui/specialist_section.dart';
-import 'package:client_app/app_config.dart';
+
 
 class ResultDashboard extends ConsumerStatefulWidget {
   final Execution execution;
@@ -198,7 +198,7 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
                 excludeSemantics: Platform.isWindows,
                 child: ExpansionTile(
                   title: Text(section.title),
-                  children: events.map((e) {
+                  children: events.map<Widget>((e) {
                       final ts = e['timestamp'] as String? ?? '';
                       String timeDisplay = ts;
                       if (ts.length >= 16) {
@@ -221,7 +221,8 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
                     );
                 }).toList(),
              ),
-        );
+        ),
+      );
 
       // --- Specialist Sections (Backbone) ---
       case 'LOGIC_ANALYSIS':
