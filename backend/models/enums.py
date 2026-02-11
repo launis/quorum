@@ -1,0 +1,45 @@
+from enum import Enum
+
+class RiskLevel(str, Enum):
+    LOW = "RISK_LOW"
+    MEDIUM = "RISK_MEDIUM"
+    HIGH = "RISK_HIGH"
+
+class SimulationType(str, Enum):
+    PASSIVE = "SIM_PASSIVE"
+    ACTIVE = "SIM_ACTIVE"
+    MALICIOUS = "SIM_MALICIOUS"
+
+class BloomLevel(str, Enum):
+    REMEMBERING = "BLOOM_REMEMBERING"
+    UNDERSTANDING = "BLOOM_UNDERSTANDING"
+    APPLYING = "BLOOM_APPLYING"
+    ANALYZING = "BLOOM_ANALYZING"
+    EVALUATING = "BLOOM_EVALUATING"
+    CREATING = "BLOOM_CREATING"
+
+class StrategicDepth(str, Enum):
+    LOW = "STRAT_LOW"
+    MEDIUM = "STRAT_MEDIUM"
+    HIGH = "STRAT_HIGH"
+    VISIONARY = "STRAT_VISIONARY"
+
+class FidelityLevel(str, Enum):
+    WEAK = "FIDELITY_WEAK"
+    UNCERTAIN = "FIDELITY_UNCERTAIN"
+    HIGH = "FIDELITY_HIGH"
+
+class PlausibilityLevel(str, Enum):
+    IMPOSSIBLE = "PLAUS_IMPOSSIBLE"
+    PLAUSIBLE = "PLAUS_PLAUSIBLE"
+    HIGH = "PLAUS_HIGH"
+
+class AbductiveConclusion(str, Enum):
+    POST_HOC = "ABDUCT_POST_HOC"
+    UNCERTAIN = "ABDUCT_UNCERTAIN"
+    GENUINE = "ABDUCT_GENUINE"
+
+class AuthenticityLevel(str, Enum):
+    SUSPICIOUS = "AUTH_SUSPICIOUS"
+    PERFORMATIVE = "AUTH_PERFORMATIVE"
+    ORGANIC = "AUTH_ORGANIC"

@@ -73,6 +73,7 @@ graph TD
     *   The Engine **never** passes raw dictionaries to Agents.
     *   It hydrates a `WorkflowState` Pydantic object before execution.
     *   If the DB data does not match the Schema, the Engine **crashes fast** rather than propagating corruption.
+    *   **Strict Enums**: Categorical data (Risk, Fidelity, etc.) is typed as strict Enums (`backend.models.enums`), rejecting fuzzy string matching.
 
 ### B. The "Mind" (Agent Graph)
 *   **Location**: `backend/agents/`
@@ -113,6 +114,7 @@ The system supports a **Dual-Database** strategy for development velocity vs. pr
 ### Schema Enforcement
 *   **Source of Truth**: `backend/models/state.py`.
 *   **Migration Strategy**: "Field Addition Only". We never rename fields; we add new ones and deprecate old ones to maintain backward compatibility with serialized JSON blobs.
+*   **Strict Enums**: All categorical data (Risk, Fidelity, etc.) must use Enums defined in `backend/models/enums.py`. Fuzzy string matching is strictly forbidden.
 
 ---
 

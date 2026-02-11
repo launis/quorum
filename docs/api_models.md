@@ -47,7 +47,7 @@ Security and PII redaction.
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
-| `security_check` | `SecurityCheck` | Threat analysis (`threat_detected`, `risk_score`). |
+| `security_check` | `SecurityCheck` | Threat analysis (`RiskLevel`, `SimulationType`). |
 | `tainted_data` | `TaintedDataContent` | Original input wrapper. |
 
 ### 2. Analyst Agent (`AnalystOutput`)
@@ -102,7 +102,7 @@ Argumentation Structure Analysis.
 | `falsifier_data` | `FalsifierData` | Stress test findings (`stress_test_findings`). |
 | `overseer_data` | `OverseerData` | Fact checks & ethical audit. |
 | `causal_analysis` | `CausalAnalysis` | Counterfactuals & abductive reasoning. |
-| `performativity_analysis` | `PerformativityAnalysis` | Performative vs Organic assessment. |
+| `performativity_analysis` | `PerformativityAnalysis` | `AuthenticityLevel` assessment. |
 
 ### 8. Archivist Agent (`ArchivistOutput`)
 Precedent & Compliance Audit.
@@ -120,7 +120,7 @@ Precedent & Compliance Audit.
 | :--- | :--- | :--- |
 | `score_card` | `JudgeScoreCard` | The final score. |
 | -> `total_score` | `float` | Aggregated score. |
-| -> `verdict` | `str` | Final decision. |
+| -> `verdict` | `str` | Final decision (Derived from `EvaluationMatrix` Enums). |
 | -> `dimensions` | `list[DimensionResultItem]` | Score per dimension (Radar Chart). |
 
 ### 10. Coach Agent (`CoachingPlan`)

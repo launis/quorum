@@ -10,31 +10,8 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator, model_validator
 
 # --- 0. BASE LAYER ---
-
-
 # --- L10N LOOKUP (Backend-Driven Helper) ---
 from backend.services.localization import LocalizationService
-
-
-def _map_l10n_values(definitions: list[tuple[str, float]]) -> dict[str, float]:
-    """Helper to build reverse mapping from localized strings to numeric values."""
-    mapping = {}
-    for key, val in definitions:
-        # Check EN, FI, and current context for robustness
-        mapping[LocalizationService.translate(key, "en")] = val
-        mapping[LocalizationService.translate(key, "fi")] = val
-        mapping[LocalizationService.translate(key)] = val
-    return mapping
-
-
-def _map_l10n_boolean(definitions: list[tuple[str, bool]]) -> dict[str, bool]:
-    """Helper to build reverse mapping from localized strings to boolean values."""
-    mapping = {}
-    for key, val in definitions:
-        mapping[LocalizationService.translate(key, "en")] = val
-        mapping[LocalizationService.translate(key, "fi")] = val
-        mapping[LocalizationService.translate(key)] = val
-    return mapping
 
 # --- L10N LOOKUP (Backend-Driven Helper) ---
 # DEPRECATED: Now using LocalizationService
@@ -111,7 +88,7 @@ class GuardInput(BaseModel):
     reflection_text: str | None = Field(default=None, json_schema_extra={"x-ui-label": "INPUT_REFLECTION_TEXT"})
 
     @model_validator(mode="after")
-    def validate_banned_phrases(self, info: ValidationInfo) -> 'GuardInput':
+    def validate_banned_phrases(self, info: ValidationInfo) -> GuardInput:
         """Validates that no banned phrases are present in the input."""
         context = info.context
         if not context or "banned_phrases" not in context:
@@ -140,6 +117,9 @@ class TaintedDataContent(BaseModel):
     safe_data: str = Field(..., description="Safe data marker.", json_schema_extra={"x-ui-label": "INPUT_SAFE_DATA"})
 
 
+from backend.models.enums import AuthenticityLevel, RiskLevel, SimulationType
+
+
 class SecurityCheck(BaseModel):
     """Security check results."""
 
@@ -148,7 +128,7 @@ class SecurityCheck(BaseModel):
         description="Threat detected flag.",
         json_schema_extra={"x-ui-label": "Threat Detected"},
     )
-    risk_level: str = Field(
+    risk_level: RiskLevel = Field(
         ...,
         description="Risk level.",
         json_schema_extra={"x-ui-label": "Risk Level"},
@@ -169,42 +149,53 @@ class SecurityCheck(BaseModel):
     def calc_scores(cls, data: Any) -> Any:
         if isinstance(data, dict):
             # 1. Calc Risk
-            mapping_risk = _map_l10n_values([
-                ("Risk.Low", 1.0),
-                ("Risk.Medium", 2.0),
-                ("Risk.High", 3.0)
-            ])
-            
+            # Map Enum -> Score directly (Strict)
+            risk_map = {
+                RiskLevel.LOW: 1.0,
+                RiskLevel.MEDIUM: 2.0,
+                RiskLevel.HIGH: 3.0
+            }
+
             risk_score = data.get("risk_score")
             risk_level = data.get("risk_level")
-            
+
             # Only calculate if not present
             if risk_score is None and risk_level:
-                for k, v in mapping_risk.items():
-                    if k.lower() in risk_level.lower():
-                        data["risk_score"] = v
-                        break
-            
+                # If incoming data is already an Enum member (during object construction)
+                if isinstance(risk_level, RiskLevel):
+                     data["risk_score"] = risk_map[risk_level]
+                # If incoming data is a raw string (from JSON/LLM) that MATCHES the Enum value
+                elif risk_level in risk_map: # This checks keys (Enum members) but if risk_level is string...
+                     # Pydantic V2 validation happens AFTER this 'before' validator usually,
+                     # but we need to resolve the score now.
+                     # Let's try to parse the string to Enum
+                     try:
+                         enum_val = RiskLevel(risk_level)
+                         data["risk_score"] = risk_map[enum_val]
+                     except ValueError:
+                         pass # Let Pydantic validation fail later on the field itself
+
             # 2. Calc Simulation
-            mapping_sim = _map_l10n_values([
-                ("Simulation.Passive", 1.0),
-                ("Simulation.Active", 2.0),
-                ("Simulation.Malicious", 3.0)
-            ])
-            
+            sim_map = {
+                SimulationType.PASSIVE: 1.0,
+                SimulationType.ACTIVE: 2.0,
+                SimulationType.MALICIOUS: 3.0
+            }
+
             sim_score = data.get("simulation_score")
             sim_res = data.get("simulation_result")
 
             # Only calculate if not present
             if sim_score is None and sim_res:
-                for k, v in mapping_sim.items():
-                    if k.lower() in sim_res.lower():
-                        data["simulation_score"] = v
-                        break
+                 try:
+                     enum_val = SimulationType(sim_res)
+                     data["simulation_score"] = sim_map[enum_val]
+                 except ValueError:
+                     pass
 
         return data
-    
-    simulation_result: str | None = Field(
+
+    simulation_result: SimulationType | None = Field(
          default=None,
          description="Simulation result description.",
          json_schema_extra={"x-ui-label": "Simulation Result"},
@@ -328,15 +319,18 @@ class ToulminComponent(BaseModel):
     model_config = ConfigDict(frozen=True)
 
 
+from backend.models.enums import BloomLevel, StrategicDepth
+
+
 class CognitiveLevel(BaseModel):
     """Assessment of cognitive depth."""
 
-    bloom_level: str = Field(
+    bloom_level: BloomLevel = Field(
         ...,
         description="Bloom's Taxonomy Level.",
         json_schema_extra={"x-ui-label": "Bloom Level"},
     )
-    strategic_depth: str = Field(
+    strategic_depth: StrategicDepth = Field(
         ...,
         description="Strategic depth analysis.",
         json_schema_extra={"x-ui-label": "Strategic Depth"},
@@ -367,40 +361,49 @@ class CognitiveLevel(BaseModel):
             if not data.get("description"):
                 data["description"] = LocalizationService.translate(key)
 
-            # Bloom Mapping (Dynamic L10n)
-            bloom_map = _map_l10n_values([
-                ("Bloom.Remembering", 1.0), ("Bloom.Understanding", 2.0),
-                ("Bloom.Applying", 3.0), ("Bloom.Analyzing", 4.0),
-                ("Bloom.Evaluating", 5.0), ("Bloom.Creating", 6.0)
-            ])
+            # Bloom Mapping (Enum-Based)
+            bloom_map = {
+                BloomLevel.REMEMBERING: 1.0,
+                BloomLevel.UNDERSTANDING: 2.0,
+                BloomLevel.APPLYING: 3.0,
+                BloomLevel.ANALYZING: 4.0,
+                BloomLevel.EVALUATING: 5.0,
+                BloomLevel.CREATING: 6.0
+            }
 
             bloom_level = data.get("bloom_level")
             current_bloom_score = data.get("bloom_score")
-            
+
             if current_bloom_score is None and bloom_level:
-                # Simple fuzzy match or exact match
-                for k, v in bloom_map.items():
-                    if k.lower() in bloom_level.lower():
-                        data["bloom_score"] = v
-                        break
-            
-            # Strategic Mapping (Dynamic L10n)
-            strat_map = _map_l10n_values([
-                ("Strategic.Low", 1.0), ("Strategic.Medium", 2.0),
-                ("Strategic.High", 3.0), ("Strategic.Visionary", 4.0)
-            ])
+                try:
+                    # Robustly handle both Enum and String input
+                    enum_val = bloom_level if isinstance(bloom_level, BloomLevel) else BloomLevel(bloom_level)
+                    if enum_val in bloom_map:
+                         data["bloom_score"] = bloom_map[enum_val]
+                except ValueError:
+                    pass
+
+            # Strategic Mapping (Enum-Based)
+            strat_map = {
+                StrategicDepth.LOW: 1.0,
+                StrategicDepth.MEDIUM: 2.0,
+                StrategicDepth.HIGH: 3.0,
+                StrategicDepth.VISIONARY: 4.0
+            }
 
             strategic_depth = data.get("strategic_depth")
             current_strat_score = data.get("strategic_score")
 
             if current_strat_score is None and strategic_depth:
-                 for k, v in strat_map.items():
-                    if k.lower() in strategic_depth.lower():
-                        data["strategic_score"] = v
-                        break
-        
+                 try:
+                     enum_val = strategic_depth if isinstance(strategic_depth, StrategicDepth) else StrategicDepth(strategic_depth)
+                     if enum_val in strat_map:
+                         data["strategic_score"] = strat_map[enum_val]
+                 except ValueError:
+                     pass
+
         return data
-    
+
     model_config = ConfigDict(frozen=True)
 
 
@@ -459,7 +462,7 @@ class LogicianData(BaseModel):
             if not data.get("description"):
                 data["description"] = LocalizationService.translate(key)
         return data
-    
+
     model_config = ConfigDict(frozen=True)
 
 
@@ -498,55 +501,46 @@ class WaltonStressTest(BaseModel):
     model_config = ConfigDict(frozen=True)
 
 
-class ReasoningFidelity(BaseModel):
-    """Audit of the chain of reasoning fidelity."""
+from backend.models.enums import FidelityLevel
 
-    is_post_hoc: bool = Field(
+class ReasoningFidelity(BaseModel):
+    """Fidelity of reasoning."""
+
+    fidelity_score: FidelityLevel = Field(
         ...,
-        description="True if post-hoc rationalization detected.",
-        json_schema_extra={"x-ui-label": "Post-Hoc Rationalization"},
-    )
-    justification: str = Field(
-        ...,
-        description="Reasoning.",
-        json_schema_extra={"x-ui-label": "Justification"},
-    )
-    fidelity_score: Literal["Weak", "Uncertain", "High"] = Field(
-        ...,
-        description="Fidelity score.",
+        description="Fidelity level.",
         json_schema_extra={"x-ui-label": "Fidelity Score"},
     )
     fidelity_numeric: float = Field(
         ...,
-        description="Numeric Fidelity score (1-3).",
+        description="Numeric fidelity score (1-3).",
+        json_schema_extra={"x-ui-label": "Fidelity Numeric"},
     )
-    description_key: str = Field(
-        default="fidelity_desc",
-        description="Localization key.",
-    )
-    description: str = Field(default="", description="Localized description.", json_schema_extra={"x-ui-label": "Description"})
+    justification: str = Field(..., description="Justification.", json_schema_extra={"x-ui-label": "Justification"})
+    quote: str | None = Field(default=None, description="Direct quote.", json_schema_extra={"x-ui-label": "Quote"})
 
     @model_validator(mode="before")
     @classmethod
     def calc_fidelity(cls, data: Any) -> Any:
         if isinstance(data, dict):
-            key = data.get("description_key", "fidelity_desc")
-            if not data.get("description"):
-                data["description"] = LocalizationService.translate(key)
-                
             mapping = {
-                "Weak": 1.0, 
-                "Uncertain": 2.0, 
-                "High": 3.0
+                FidelityLevel.WEAK: 1.0,
+                FidelityLevel.UNCERTAIN: 2.0,
+                FidelityLevel.HIGH: 3.0
             }
-            
+
             val = data.get("fidelity_score")
-            # Only calculate if not provided
+            # Only calc if numeric missing
             if data.get("fidelity_numeric") is None:
-                if val not in mapping:
-                    # STRICT VALIDATION: No fallback allowed.
-                    raise ValueError(f"Invalid fidelity_score: {val}. Must be one of {list(mapping.keys())}")
-                data["fidelity_numeric"] = mapping[val]
+                if val:
+                    # Handle both Enum and String input
+                    try:
+                        enum_val = val if isinstance(val, FidelityLevel) else FidelityLevel(val)
+                        if enum_val in mapping:
+                            data["fidelity_numeric"] = mapping[enum_val]
+                    except ValueError:
+                        pass # Let Pydantic fail
+
         return data
 
     model_config = ConfigDict(frozen=True)
@@ -595,110 +589,85 @@ class CausalAnalysisData(BaseModel):
     model_config = ConfigDict(frozen=True)
 
 
-class CounterfactualTest(BaseModel):
-    """Counterfactual Simulation Test."""
+from backend.models.enums import PlausibilityLevel
 
-    scenario_a_actual: str = Field(
+
+class CounterfactualTest(BaseModel):
+    """Counterfactual test result."""
+
+    plausibility_score: PlausibilityLevel = Field(
         ...,
-        description="Actual scenario.",
-        json_schema_extra={"x-ui-label": "Actual Scenario"},
-    )
-    scenario_b_simulated: str = Field(
-        ...,
-        description="Counterfactual simulation.",
-        json_schema_extra={"x-ui-label": "Simulation"},
-    )
-    plausibility_score: Literal["Impossible", "Plausible", "High"] = Field(
-        ...,
-        description="Plausibility assessment.",
-        json_schema_extra={"x-ui-label": "Plausibility"},
+        description="Plausibility score.",
+        json_schema_extra={"x-ui-label": "Plausibility Score"},
     )
     plausibility_numeric: float = Field(
         ...,
-        description="Numeric Plausibility score (1-3).",
+        description="Numeric plausibility (1-3).",
+        json_schema_extra={"x-ui-label": "Plausibility Numeric"},
     )
-    description_key: str = Field(
-        default="plausibility_desc",
-        description="Localization key.",
-    )
-    description: str = Field(default="", description="Localized description.", json_schema_extra={"x-ui-label": "Description"})
+    actual_scenario: str = Field(..., description="Actual outcome.", json_schema_extra={"x-ui-label": "Actual Scenario"})
+    simulation_result: str = Field(..., description="Simulation outcome.", json_schema_extra={"x-ui-label": "Simulation Result"})
 
     @model_validator(mode="before")
     @classmethod
     def calc_plausibility(cls, data: Any) -> Any:
         if isinstance(data, dict):
-            key = data.get("description_key", "plausibility_desc")
-            if not data.get("description"):
-                data["description"] = LocalizationService.translate(key)
-                
             mapping = {
-                "Impossible": 1.0,
-                "Plausible": 2.0,
-                "High": 3.0
+                PlausibilityLevel.IMPOSSIBLE: 1.0,
+                PlausibilityLevel.PLAUSIBLE: 2.0,
+                PlausibilityLevel.HIGH: 3.0
             }
-                
             val = data.get("plausibility_score")
-            # Only calc if numeric missing
             if data.get("plausibility_numeric") is None:
-                if val not in mapping:
-                    # STRICT VALIDATION: No fallback allowed.
-                    raise ValueError(f"Invalid plausibility_score: {val}. Must be one of {list(mapping.keys())}")
-                data["plausibility_numeric"] = mapping[val]
+                if val:
+                     try:
+                        enum_val = val if isinstance(val, PlausibilityLevel) else PlausibilityLevel(val)
+                        if enum_val in mapping:
+                            data["plausibility_numeric"] = mapping[enum_val]
+                     except ValueError:
+                        pass
         return data
 
     model_config = ConfigDict(frozen=True)
 
 
+from backend.models.enums import AbductiveConclusion
+
+
 class CausalAnalysis(BaseModel):
-    """Output from the Causal component."""
+    """Causal analysis result."""
 
-    causal_audit: CausalAnalysisData = Field(
+    abductive_conclusion: AbductiveConclusion = Field(
         ...,
-        description="Causal audit data.",
-        json_schema_extra={"x-ui-label": "Causal Audit"},
-
-    )
-    counterfactual_test: CounterfactualTest = Field(
-        ...,
-        description="Counterfactual test.",
-        json_schema_extra={"x-ui-label": "Counterfactual Test"},
-    )
-    abductive_conclusion: Literal["Post-Hoc Rationalization", "Uncertain", "Genuine Insight"] = Field(
-        ...,
-        description="Abductive conclusion.",
+        description="Abductive conclusion type.",
         json_schema_extra={"x-ui-label": "Abductive Conclusion"},
     )
     abductive_score: float = Field(
         ...,
-        description="Numeric Abductive score (1-3).",
+        description="Numeric abductive score (1-3).",
+        json_schema_extra={"x-ui-label": "Abductive Score"},
     )
-    description_key: str = Field(
-        default="abductive_desc",
-        description="Localization key.",
-    )
-    description: str = Field(default="", description="Localized description.", json_schema_extra={"x-ui-label": "Description"})
+    observation: str = Field(..., description="Observation.", json_schema_extra={"x-ui-label": "Observation"})
+    hypothesis: str = Field(..., description="Hypothesis.", json_schema_extra={"x-ui-label": "Hypothesis"})
 
     @model_validator(mode="before")
     @classmethod
     def calc_abductive(cls, data: Any) -> Any:
         if isinstance(data, dict):
-            key = data.get("description_key", "abductive_desc")
-            if not data.get("description"):
-                data["description"] = LocalizationService.translate(key)
-                
             mapping = {
-                "Post-Hoc Rationalization": 1.0,
-                "Uncertain": 2.0,
-                "Genuine Insight": 3.0
+                AbductiveConclusion.POST_HOC: 1.0,
+                AbductiveConclusion.UNCERTAIN: 2.0,
+                AbductiveConclusion.GENUINE: 3.0
             }
-                
             val = data.get("abductive_conclusion")
-            # Only calc if numeric missing
             if data.get("abductive_score") is None:
-                if val not in mapping:
-                    # STRICT VALIDATION: No fallback allowed.
-                    raise ValueError(f"Invalid abductive_conclusion: {val}. Must be one of {list(mapping.keys())}")
-                data["abductive_score"] = mapping[val]
+                if val:
+                    try:
+                        enum_val = val if isinstance(val, AbductiveConclusion) else AbductiveConclusion(val)
+                        if enum_val in mapping:
+                            data["abductive_score"] = mapping[enum_val]
+                    except ValueError:
+                        pass
         return data
 
     model_config = ConfigDict(frozen=True)
@@ -752,6 +721,7 @@ class PreMortemAnalysis(BaseModel):
     model_config = ConfigDict(frozen=True)
 
 
+
 class PerformativityAnalysis(BaseModel):
     """(Renamed for schema clarity vs Detector) - Output from Performativity component."""
 
@@ -765,14 +735,15 @@ class PerformativityAnalysis(BaseModel):
         description="Pre-Mortem analysis.",
         json_schema_extra={"x-ui-label": "Pre-Mortem"},
     )
-    authenticity_assessment: Literal["Suspicious", "Performative", "Organic"] = Field(
+    authenticity_assessment: AuthenticityLevel = Field(
         ...,
-        description="Overall authenticity assessment.",
-        json_schema_extra={"x-ui-label": "Authenticity"},
+        description="Authenticity assessment.",
+        json_schema_extra={"x-ui-label": "Authenticity Assessment"},
     )
     authenticity_score: float = Field(
         ...,
-        description="Numeric Authenticity score (1-3).",
+        description="Numeric authenticity score (1-3).",
+        json_schema_extra={"x-ui-label": "Authenticity Score"},
     )
     description_key: str = Field(
         default="authenticity_desc",
@@ -787,20 +758,22 @@ class PerformativityAnalysis(BaseModel):
             key = data.get("description_key", "authenticity_desc")
             if not data.get("description"):
                 data["description"] = LocalizationService.translate(key)
-                
+
+            # Strict mapping
             mapping = {
-                "Suspicious": 1.0,
-                "Performative": 2.0,
-                "Organic": 3.0
+                AuthenticityLevel.SUSPICIOUS: 1.0,
+                AuthenticityLevel.PERFORMATIVE: 2.0,
+                AuthenticityLevel.ORGANIC: 3.0
             }
-                
             val = data.get("authenticity_assessment")
-            # Only calc if numeric missing
             if data.get("authenticity_score") is None:
-                if val not in mapping:
-                    # STRICT VALIDATION: No fallback allowed.
-                    raise ValueError(f"Invalid authenticity_assessment: {val}. Must be one of {list(mapping.keys())}")
-                data["authenticity_score"] = mapping[val]
+                if val:
+                    try:
+                        enum_val = val if isinstance(val, AuthenticityLevel) else AuthenticityLevel(val)
+                        if enum_val in mapping:
+                             data["authenticity_score"] = mapping[enum_val]
+                    except ValueError:
+                        pass
         return data
 
     model_config = ConfigDict(frozen=True)
@@ -1146,7 +1119,7 @@ class ReportContext(BaseModel):
     structural_warnings: list[str] = Field(default_factory=list, description="Structural warnings.")
     archivist_precedents: Any | None = Field(default=None, description="Archivist precedents.")
     google_search_results: list[dict[str, Any]] = Field(default_factory=list, description="Google search results.")
-    
+
     # Specialist Agents (Deep Analysis)
     logician_data: LogicianData | None = Field(default=None, description="Logician analysis.")
     falsifier_data: FalsifierData | None = Field(default=None, description="Falsifier analysis.")
@@ -1221,14 +1194,14 @@ class ArchivistOutput(ReasoningTrace):
                 "Aligned": 4.0,
                 "Strongly Aligned": 5.0
             }
-            
+
             # Access the raw string value
             val = data.get("compliance_analysis")
             if val not in mapping:
                 # STRICT VALIDATION: No fallback allowed.
                 raise ValueError(f"Invalid compliance_analysis: {val}. Must be one of {list(mapping.keys())}")
             data["compliance_score"] = mapping[val]
-            
+
         return data
     model_config = ConfigDict(frozen=True)
 
@@ -1328,7 +1301,7 @@ class EvaluationResult(BaseModel):
     total_score: float = Field(..., description="Total score.")
     final_verdict: str = Field(..., description="Final verdict.")
     dimensions: list[DimensionResultItem]
-    
+
     # Scale Metadata (Added for XAI/BFF Compatibility)
     scale_min: float = Field(default=0.0, description="Minimum possible score.")
     scale_max: float = Field(default=5.0, description="Maximum possible score.")
@@ -1356,18 +1329,18 @@ class EvaluationResult(BaseModel):
 class SanitizationResult(BaseModel):
     """Result of the text sanitization process (Security Hook)."""
     sanitized_inputs: dict[str, str] = Field(
-        ..., 
-        description="Sanitized input text fields.", 
+        ...,
+        description="Sanitized input text fields.",
         json_schema_extra={"x-ui-label": "Sanitized Inputs"}
     )
     pii_threats_detected: list[str] = Field(
-        default_factory=list, 
-        description="List of detected PII threats.", 
+        default_factory=list,
+        description="List of detected PII threats.",
         json_schema_extra={"x-ui-label": "PII Threats"}
     )
     banned_phrases_detected: list[str] = Field(
-        default_factory=list, 
-        description="List of detected banned phrases.", 
+        default_factory=list,
+        description="List of detected banned phrases.",
         json_schema_extra={"x-ui-label": "Banned Phrases"}
     )
     banned_phrases_error: str | None = Field(
@@ -1375,7 +1348,7 @@ class SanitizationResult(BaseModel):
         description="Error message if banned phrases fetch failed.",
         json_schema_extra={"x-ui-label": "Banned Phrases Error"}
     )
-    
+
     model_config = ConfigDict(frozen=True)
 
 
@@ -1384,18 +1357,18 @@ class PerformativePattern(BaseModel):
     pattern_id: str = Field(..., description="ID of the pattern.", json_schema_extra={"x-ui-label": "Pattern ID"})
     detected_phrase: str = Field(..., description="The exact phrase detected.", json_schema_extra={"x-ui-label": "Detected Phrase"})
     category: str = Field(..., description="Category of the pattern.", json_schema_extra={"x-ui-label": "Category"})
-    
+
     model_config = ConfigDict(frozen=True)
 
 
 class LinguisticsResult(BaseModel):
     """Result of the linguistics analysis (Hook)."""
     performative_patterns: list[PerformativePattern] = Field(
-        default_factory=list, 
-        description="Detected patterns.", 
+        default_factory=list,
+        description="Detected patterns.",
         json_schema_extra={"x-ui-label": "Performative Patterns"}
     )
-    
+
     model_config = ConfigDict(frozen=True)
 
 
@@ -1405,18 +1378,18 @@ class BibliographyItem(BaseModel):
     title: str = Field(..., description="Title of the source.", json_schema_extra={"x-ui-label": "Title"})
     url: str | None = Field(default=None, description="URL if available.", json_schema_extra={"x-ui-label": "URL"})
     snippet: str | None = Field(default=None, description="Relevant snippet.", json_schema_extra={"x-ui-label": "Snippet"})
-    
+
     model_config = ConfigDict(frozen=True)
 
 
 class BibliographyResult(BaseModel):
     """Result of the bibliography generation (Hook)."""
     references: list[BibliographyItem] = Field(
-        default_factory=list, 
-        description="List of references.", 
+        default_factory=list,
+        description="List of references.",
         json_schema_extra={"x-ui-label": "References"}
     )
-    
+
     model_config = ConfigDict(frozen=True)
 
 
@@ -1426,11 +1399,11 @@ class ScoringResult(BaseModel):
     calculated_average: float = Field(..., description="Calculated average.", json_schema_extra={"x-ui-label": "Average Score"})
     score_summary: str = Field(..., description="Summary text.", json_schema_extra={"x-ui-label": "Summary"})
     penalties_applied: list[str] = Field(
-        default_factory=list, 
-        description="List of penalties applied.", 
+        default_factory=list,
+        description="List of penalties applied.",
         json_schema_extra={"x-ui-label": "Penalties"}
     )
-    
+
     model_config = ConfigDict(frozen=True)
 
 
@@ -1438,7 +1411,7 @@ class ReportResult(BaseModel):
     """Result of the report generation (Hook)."""
     report_content: str = Field(..., description="The generated Markdown report.", json_schema_extra={"x-ui-label": "Report Content"})
     format: str = Field(default="markdown", description="Report format.", json_schema_extra={"x-ui-label": "Format"})
-    
+
     model_config = ConfigDict(frozen=True)
 
 
@@ -1446,11 +1419,11 @@ class ValidationResult(BaseModel):
     """Result of the structure verification (Hook)."""
     is_valid: bool = Field(..., description="Is the structure valid?", json_schema_extra={"x-ui-label": "Is Valid"})
     errors: list[str] = Field(
-        default_factory=list, 
-        description="Validation errors.", 
+        default_factory=list,
+        description="Validation errors.",
         json_schema_extra={"x-ui-label": "Errors"}
     )
-    
+
     model_config = ConfigDict(frozen=True)
 
 
@@ -1459,19 +1432,19 @@ class SearchResultItem(BaseModel):
     title: str = Field(..., description="Title of the result.", json_schema_extra={"x-ui-label": "Title"})
     link: str = Field(..., description="Link to the result.", json_schema_extra={"x-ui-label": "Link"})
     snippet: str = Field(..., description="Snippet of the result.", json_schema_extra={"x-ui-label": "Snippet"})
-    
+
     model_config = ConfigDict(frozen=True)
 
 
 class SearchResult(BaseModel):
     """Result of the Google Search (Hook)."""
     results: list[SearchResultItem] = Field(
-        default_factory=list, 
-        description="Search results.", 
+        default_factory=list,
+        description="Search results.",
         json_schema_extra={"x-ui-label": "Search Results"}
     )
     error: str | None = Field(default=None, description="Error message if search failed.", json_schema_extra={"x-ui-label": "Error"})
-    
+
     model_config = ConfigDict(frozen=True)
 
 
