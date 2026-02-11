@@ -111,6 +111,12 @@ async def monitor_execution(
          logger.warning(f"[Monitor] Execution {execution_id} NOT FOUND in repository.")
          raise ResourceNotFoundError(f"Execution '{execution_id}' not found.")
 
+    # Fetch Workflow Definition (Strict SSOT)
+    workflow_id = exists.get("workflow_id")
+    workflow_definition = None
+    if workflow_id:
+        workflow_definition = await repository.get_workflow_definition(workflow_id)
+
     import asyncio
     import json
     from fastapi.encoders import jsonable_encoder
@@ -144,7 +150,7 @@ async def monitor_execution(
                       # Default: AssessmentTransformer for BFF (Frontend Compatibility)
                       try:
                           transformer = AssessmentTransformer(language="fi") # Default to Finnish for Monitoring
-                          assessment_view = transformer.transform(exec_data)
+                          assessment_view = transformer.transform(exec_data, workflow_definition)
                           payload = assessment_view.model_dump_json()
                       except Exception as trans_err:
                             logger.error(f"[Monitor] Transformation Failed: {trans_err}")

@@ -58,7 +58,8 @@ def configure_logfire():
 
     try:
         logfire.configure()
-        logfire.instrument_pydantic()
+        # Reduce console noise: Pydantic instrumentation is too verbose for local dev
+        # logfire.instrument_pydantic()
     except Exception as e:
         logging.getLogger(__name__).warning(
             f"Logfire validation failed (likely no token): {e}. Observability disabled."
@@ -149,12 +150,19 @@ def setup_logging(log_level=logging.INFO):
     logging.getLogger("urllib3").setLevel(logging.WARNING)
     logging.getLogger("arq").setLevel(logging.WARNING)
 
-    # LiteLLM is extremely verbose on DEBUG
-    logging.getLogger("LiteLLM").setLevel(logging.WARNING)
+    # LiteLLM is extremely verbose on DEBUG, but we want INFO for Router
+    # Explicitly clear handlers to prevent them from writing to console (if they add their own)
+    for llm_logger_name in ["LiteLLM", "LiteLLM Router"]:
+        llm_logger = logging.getLogger(llm_logger_name)
+        llm_logger.handlers = []
+        llm_logger.propagate = True
+        llm_logger.setLevel(logging.INFO)
+
     try:
         import litellm
 
-        litellm.set_verbose = False
+        litellm.set_verbose = False  # Keep DEBUG off
+        litellm.suppress_debug_info = True # Suppress print statements
     except Exception:
         pass
 

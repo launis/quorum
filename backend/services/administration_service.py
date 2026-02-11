@@ -70,7 +70,8 @@ class AdministrationService:
             seed_database()
             await tracker.update("Seeding Completed", 100)
 
-            result = AdminOperationResponse(status="completed", message="Database rebuilt from seed_data.json")
+            from backend.services.localization import LocalizationService
+            result = AdminOperationResponse(status="completed", message=LocalizationService.translate("DB_REBUILT"))
             await tracker.complete(result.model_dump())
             return result
         except Exception as e:

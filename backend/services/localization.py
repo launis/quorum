@@ -1,9 +1,24 @@
 import json
 import logging
+from contextvars import ContextVar
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
+
+# Context Variable for Request-Scope Language
+_language_var: ContextVar[str] = ContextVar("language", default="en")
+
+
+def set_language(lang: str):
+    """Sets the language for the current context (request)."""
+    _language_var.set(lang)
+
+
+def get_language() -> str:
+    """Gets the language from the current context."""
+    return _language_var.get()
+
 
 class LocalizationService:
     """Service to handle server-side translation for SDUI schemas."""
@@ -40,54 +55,81 @@ class LocalizationService:
             logger.error(f"Critical error loading translations: {e}", exc_info=True)
 
     @classmethod
-    def translate(cls, key: str, lang: str = "en") -> str:
-        """Translates a key into the target language.
+    def translate(cls, key: str, lang: Optional[str] = None, **kwargs) -> str:
+        """Translates a key into the target language with optional interpolation.
         
         Args:
-            key (str): The translation key (usually the English text).
-            lang (str): The target language code (e.g., 'fi').
+            key (str): The translation key.
+            lang (str): The target language code (e.g., 'fi'). If None, uses Context.
+            **kwargs: Arguments for string interpolation (e.g., name="User").
             
         Returns:
-            str: The translated string, or the key itself if no translation found.
+            str: The translated and formatted string.
         """
         cls.load_if_needed()
 
+        # Resolve Language from Context if not provided
+        if lang is None:
+            lang = get_language()
+
         # Fallback logic: "fi-FI" -> "fi"
         lang_simple = lang.split("-")[0].lower()
-
-        # 1. Try exact match in target language
         target_dict = cls._translations.get(lang_simple, {})
-        if key in target_dict:
-            return target_dict[key]
+        
+        # 1. Try exact match in target language
+        val = target_dict.get(key)
 
-        # 2. Try Fallback to English (if requested something else)
-        if lang_simple != "en":
-             en_dict = cls._translations.get("en", {})
-             if key in en_dict:
-                 return en_dict[key]
+        # 2. Try Fallback to English
+        if val is None and lang_simple != "en":
+             val = cls._translations.get("en", {}).get(key)
+        
+        # 3. Fallback to Key
+        if val is None:
+            val = key
 
-        # 3. Return Key
-        return key
+        # 4. Interpolation
+        if kwargs:
+            try:
+                return val.format(**kwargs)
+            except KeyError as e:
+                logger.warning(f"Localization missing argument '{e.args[0]}' for key '{key}' in lang '{lang}'")
+                return val # Return unformatted string rather than crashing
+            except Exception as e:
+                logger.error(f"Localization format error for key '{key}': {e}")
+                return val
+        
+        return val
 
-    def get(self, key: str, lang: str = "en", default: str = None) -> str:
+    def get(self, key: str, lang: Optional[str] = None, default: str = None, **kwargs) -> str:
         """Instance method alias for translate with custom default fallback."""
-        val = self.translate(key, lang)
+        val = self.translate(key, lang, **kwargs)
         if val == key and default:
             return default
         return val
 
 
-def localize_schema(schema: dict[str, Any], lang: str) -> dict[str, Any]:
+def localize_schema(schema: dict[str, Any], lang: Optional[str] = None) -> dict[str, Any]:
     """Recursively traverses a JSON Schema and translates SDUI hints."""
+    # If lang is provided explicitly (legacy), use it. Otherwise translate() picks up Context.
+    
     if isinstance(schema, dict):
-        # 1. Translate UI Hints in current node
+        # 1. Translate UI Hints (Pydantic / JSON Schema proper)
         if "x-ui-label" in schema and isinstance(schema["x-ui-label"], str):
             schema["x-ui-label"] = LocalizationService.translate(schema["x-ui-label"], lang)
 
         if "x-ui-group" in schema and isinstance(schema["x-ui-group"], str):
             schema["x-ui-group"] = LocalizationService.translate(schema["x-ui-group"], lang)
+            
+        # 2. Translate Generic UI Schema (Workflow Config)
+        # Seed data uses "label" for input fields
+        if "label" in schema and isinstance(schema["label"], str):
+             # heuristic: only translate if it looks like a key (uppercase start?) 
+             # or just always try. If key missing, it falls back to value.
+             # But if value is long English text "1. Chat History...", we don't want to use that as key.
+             # We rely on seed_data being updated to simple keys first.
+            schema["label"] = LocalizationService.translate(schema["label"], lang)
 
-        # 2. Recurse into children
+        # 3. Recurse into children
         for key, value in schema.items():
             schema[key] = localize_schema(value, lang)
 

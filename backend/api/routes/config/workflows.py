@@ -9,6 +9,7 @@ from tinydb import Query
 
 from backend.dependencies import DatabaseDep, RegistryDep, RepositoryDep
 from backend.services.validation_service import WorkflowValidator
+from backend.services.localization import localize_schema
 
 logger = logging.getLogger(__name__)
 
@@ -196,7 +197,11 @@ async def get_workflows(repository: RepositoryDep):
     # Hydrate all
     results = []
     for wf in workflows:
-        results.append(await _hydrate_workflow_steps(wf, repository))
+        hydrated = await _hydrate_workflow_steps(wf, repository)
+        # Localize UI Schema (Dynamic Input Form)
+        if "ui_schema" in hydrated and isinstance(hydrated["ui_schema"], dict):
+             hydrated["ui_schema"] = localize_schema(hydrated["ui_schema"])
+        results.append(hydrated)
     return results
 
 
@@ -211,7 +216,13 @@ async def get_workflow(wf_id: str, repository: RepositoryDep):
         logger.error(f"{error_code}: ID {wf_id}", exc_info=True)
         raise ResourceNotFoundError("Workflow", wf_id, details={"error_code": error_code})
     
-    return await _hydrate_workflow_steps(wf, repository)
+    hydrated = await _hydrate_workflow_steps(wf, repository)
+    
+    # Localize UI Schema
+    if "ui_schema" in hydrated and isinstance(hydrated["ui_schema"], dict):
+         hydrated["ui_schema"] = localize_schema(hydrated["ui_schema"])
+         
+    return hydrated
 
 
 @router.put("/workflows/{wf_id}", summary="Update Workflow", response_description="Update status.")

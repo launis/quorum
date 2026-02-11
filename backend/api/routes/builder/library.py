@@ -43,7 +43,6 @@ COMPONENT_REGISTRY: dict[str, type[BaseModel]] = {
 async def get_component_schema(
     component_type: str,
     current_user: CurrentUserDep,
-    accept_language: Annotated[str | None, Header()] = "en",
 ):
     """Retrieve the JSON Schema for a specific component type (SDUI)."""
     model_class = COMPONENT_REGISTRY.get(component_type)
@@ -56,7 +55,7 @@ async def get_component_schema(
         raise ResourceNotFoundError("ComponentSchema", component_type, details={"error_code": error_code})
 
     schema = model_class.model_json_schema()
-    return localize_schema(schema, accept_language or "en")
+    return localize_schema(schema)
 
 
 @router.get(

@@ -95,7 +95,7 @@ class TaskRegistry:
             model_config = {"extra": "allow"}
 
         async def agent_wrapper(input_data: BaseModel, execution_config: dict[str, Any] | None = None) -> BaseModel:
-            print(f"DEBUG: agent_wrapper CALLED. Config: {execution_config}")
+            logger.debug(f"agent_wrapper CALLED. Config: {execution_config}")
             # 1. Instantiate
             agent = agent_cls()
 

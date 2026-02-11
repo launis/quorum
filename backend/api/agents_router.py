@@ -139,7 +139,6 @@ async def list_agents(
     workflow_id: str | None = APIQuery(
         None, description="Optional Workflow ID to resolve model strategies contextually."
     ),
-    accept_language: Annotated[str | None, Header()] = "en",
 ):
     """List all available agents with their metadata, models, and schemas.
 
@@ -149,7 +148,6 @@ async def list_agents(
         workflow_id (Optional[str]): Context for model resolution.
         db (DatabaseDep): Database dependency.
         registry (RegistryDep): Injected registry service.
-        accept_language (str): Locale for UI labels (default 'en').
 
     Returns:
         List[Dict]: A list of agent definition objects.
@@ -295,12 +293,12 @@ async def list_agents(
                     "description": f"{d_dbg} {desc_base}",
                     "model": model_display,
                     "input_schema": (
-                        localize_schema(input_schema, accept_language or "en")
+                        localize_schema(input_schema)
                         if input_schema
                         else None
                     ),
                     "output_schema": (
-                        localize_schema(response_schema, accept_language or "en")
+                        localize_schema(response_schema)
                         if response_schema
                         else None
                     ),

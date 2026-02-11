@@ -16,6 +16,9 @@ import 'package:url_launcher/url_launcher.dart'; // Added import for opening loc
 import 'package:client_app/features/auth/presentation/providers/firebase_instance_provider.dart';
 import 'package:client_app/features/auth/presentation/providers/mock_auth_provider.dart';
 
+import 'dart:io'; // Added for File check
+import 'package:shared_preferences/shared_preferences.dart'; // Added for caching
+
 enum _PdfStatus { idle, downloading, ready, error }
 
 class ExecutionResultScreen extends ConsumerStatefulWidget {
@@ -47,29 +50,47 @@ class _ExecutionResultScreenState extends ConsumerState<ExecutionResultScreen> {
       _message = '';
       _progress = 0.0;
     });
-    
-    // Call backend cancel if desired: DELETE /executions/$id/pdf/cancel
-    // For now client-side stop is enough UX.
   }
 
-  Future<void> _openPdf() async {
+  Future<void> _openSavedFile(String path) async {
+    if (await canLaunchUrl(Uri.file(path))) {
+      await launchUrl(Uri.file(path));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Avataan tiedosto...'), backgroundColor: Colors.green),
+        );
+      }
+    } else {
+        if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+             SnackBar(content: Text('Virhe: Ei voida avata tiedostoa: $path'), backgroundColor: Colors.red),
+           );
+        }
+    }
+  }
+
+  Future<void> _saveAndOpenPdf() async {
     if (_pdfBytes != null) {
       try {
         final timestamp = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
-        // Append .pdf extension manually since 'ext' param is not supported in v0.3.1
         final filename = 'AUDIT_REPORT_${widget.executionId}_$timestamp.pdf';
         
-        await FileSaver.instance.saveFile(
+        // Save file
+        final String path = await FileSaver.instance.saveFile(
           name: filename,
           bytes: _pdfBytes!,
           mimeType: MimeType.pdf,
         );
 
-        if (mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(
-             const SnackBar(content: Text('Tiedosto tallennettu onnistuneesti!'), backgroundColor: Colors.green),
-           );
+        // Cache the path
+        if (path.isNotEmpty) {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('pdf_path_${widget.executionId}', path);
+            
+            // Open it
+            await _openSavedFile(path);
         }
+
       } catch (e) {
         if (mounted) {
            ScaffoldMessenger.of(context).showSnackBar(
@@ -77,13 +98,24 @@ class _ExecutionResultScreenState extends ConsumerState<ExecutionResultScreen> {
            );
         }
       }
-    } else {
-        if (mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(
-             const SnackBar(content: Text('Virhe: PDF-dataa ei ole ladattu.'), backgroundColor: Colors.orange),
-           );
+    }
+  }
+
+  Future<void> _handleDownloadAction() async {
+    // 1. Check Cache First
+    final prefs = await SharedPreferences.getInstance();
+    final cachedPath = prefs.getString('pdf_path_${widget.executionId}');
+
+    if (cachedPath != null) {
+        final file = File(cachedPath);
+        if (await file.exists()) {
+            await _openSavedFile(cachedPath);
+            return;
         }
     }
+
+    // 2. Start Download if not found
+    await _startDownload();
   }
 
   Future<void> _startDownload() async {
@@ -101,38 +133,8 @@ class _ExecutionResultScreenState extends ConsumerState<ExecutionResultScreen> {
 
       if (token == null) throw Exception('Ei kirjautumista');
 
-      // 1. Check if Local File Exists (For Desktop/Local scenarios)
-      // Query param check_local=true
-      final checkUrl = Uri.parse(
-          '${AppConfig.apiBaseUrl}/executions/${widget.executionId}/pdf/download?check_local=true');
-
-      try {
-        final checkResp = await http.get(checkUrl, headers: {'Authorization': 'Bearer $token'});
-        if (checkResp.statusCode == 200) {
-          final data = json.decode(utf8.decode(checkResp.bodyBytes));
-          if (data['exists'] == true && data['local_path'] != null) {
-            final String localPath = data['local_path'];
-            // Attempt to open locally
-            if (await canLaunchUrl(Uri.file(localPath))) {
-              await launchUrl(Uri.file(localPath));
-              if (mounted) {
-                setState(() {
-                  _status = _PdfStatus.idle; // Reset to idle since we just opened it
-                  _message = '';
-                });
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Avataan tiedosto...'), backgroundColor: Colors.green),
-                );
-              }
-              return; // Done
-            }
-          }
-        }
-      } catch (e) {
-        // Ignore check errors, proceed to download
-      }
-
-      // 2. Normal Download Flow (if check failed or file missing)
+      // Skip "check_local" backend call as we rely on client-side cache now, 
+      // or we can keep it as fallback, but for now let's simplify to direct download.
       setState(() => _message = "Aloitetaan lataus...");
       final url = Uri.parse('${AppConfig.apiBaseUrl}/executions/${widget.executionId}/pdf/download');
       
@@ -193,7 +195,7 @@ class _ExecutionResultScreenState extends ConsumerState<ExecutionResultScreen> {
                                   // Auto-save on first generation?
                                   // User aid: "ekalla kerralla lataa itse omalle koneelle"
                                   // So we should probably invoke _openPdf() automatically here?
-                                  _openPdf(); 
+                                  _saveAndOpenPdf(); 
                               }
                               return;
                           }
@@ -303,7 +305,7 @@ class _ExecutionResultScreenState extends ConsumerState<ExecutionResultScreen> {
 
         case _PdfStatus.ready:
           return FilledButton.icon(
-              onPressed: _openPdf,
+              onPressed: _saveAndOpenPdf,
               style: FilledButton.styleFrom(
                   backgroundColor: Colors.green,
                   foregroundColor: Colors.white,
@@ -314,14 +316,14 @@ class _ExecutionResultScreenState extends ConsumerState<ExecutionResultScreen> {
         
         case _PdfStatus.error:
            return IconButton(
-              onPressed: _startDownload,
+              onPressed: _handleDownloadAction,
               icon: const Icon(Icons.refresh, color: Colors.red),
               tooltip: "Yritä uudelleen",
            );
 
         case _PdfStatus.idle:
           return IconButton(
-            onPressed: _startDownload,
+            onPressed: _handleDownloadAction,
             icon: const Icon(Icons.download),
             tooltip: l10n.downloadReportTooltip,
           );

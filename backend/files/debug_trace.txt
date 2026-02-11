@@ -1,7 +1,0 @@
-
---- REQUEST 94ef2409-b378-4b7f-a5a5-d7baae168587 ---
-Key: json_payload, Type: <class 'str'>, Value: {"project_id":"sequential_audit_chain","settings":{},"description":null}
-Key: history_text, Type: <class 'starlette.datastructures.UploadFile'>, Value: UploadFile(filename='keskusteluhistoria SITRA.pdf', size=1425405, headers=Headers({'content-disposit
-Key: product_text, Type: <class 'starlette.datastructures.UploadFile'>, Value: UploadFile(filename='lopputuote sitra.pdf', size=80203, headers=Headers({'content-disposition': 'for
-Key: reflection_text, Type: <class 'starlette.datastructures.UploadFile'>, Value: UploadFile(filename='Reflektiodokumentti sitra.pdf', size=93769, headers=Headers({'content-dispositi
---------------------------

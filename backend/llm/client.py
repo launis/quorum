@@ -84,7 +84,7 @@ class LLMClient:
                 prompt=prompt,
                 system_instruction=system_instruction,
                 response_schema=response_model,
-                temperature=kwargs.get("temperature", 0.0),
+                temperature=kwargs.get("temperature"),
                 max_tokens=kwargs.get("max_tokens"),
             )
 
@@ -139,8 +139,8 @@ class LLMClient:
             response = await provider.generate(
                 prompt=prompt,
                 system_instruction=system_instruction,
-                temperature=kwargs.get("temperature", 0.7),
-                max_tokens=kwargs.get("max_tokens", 1024),
+                temperature=kwargs.get("temperature"),
+                max_tokens=kwargs.get("max_tokens"),
                 **kwargs
             )
             return response.content

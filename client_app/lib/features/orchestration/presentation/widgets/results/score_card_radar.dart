@@ -57,17 +57,32 @@ class ScoreCardRadar extends StatelessWidget {
                 ),
                 // Total Score Badge
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  width: 60,
+                  height: 60,
                   decoration: BoxDecoration(
                     color: colorScheme.primaryContainer,
                     shape: BoxShape.circle,
+                    border: Border.all(color: colorScheme.primary, width: 2),
                   ),
-                  child: Text(
-                    card.totalScore.toStringAsFixed(1),
-                    style: textTheme.headlineSmall?.copyWith(
-                      color: colorScheme.onPrimaryContainer,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        card.totalScore.toStringAsFixed(1),
+                        style: textTheme.titleLarge?.copyWith(
+                          color: colorScheme.onPrimaryContainer,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                      Text(
+                        "(Scale: ${card.minScore}-${card.maxScore})",
+                        style: textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onPrimaryContainer.withOpacity(0.7),
+                          fontSize: 8,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],

@@ -98,12 +98,66 @@ class JudgeAgent(BaseAgent):
             result["scale_min"] = scale["min"]
             result["scale_max"] = scale["max"]
 
+            # FIX: Propagate scale to all child score_cards if present
+            # This ensures bff_transformer can rigorously validate each card.
+            if "score_cards" in result and isinstance(result["score_cards"], list):
+                for card in result["score_cards"]:
+                    if isinstance(card, dict):
+                        card["scale_min"] = scale["min"]
+                        card["scale_max"] = scale["max"]
+
         except Exception as e:
             logger.critical(f"[JudgeAgent] STRICT SCALE RESOLUTION FAILED: {e}")
             raise AgentExecutionError(
                 detail="JUDGE_STRICT_SCALE_FAILURE",
                 original_error=e
             )
+
+            raise AgentExecutionError(
+                detail="JUDGE_STRICT_SCALE_FAILURE",
+                original_error=e
+            )
+
+        # --- FIX: DETERMINISTIC SCORING (User Request: "Miten se lasketaan?") ---
+        # The LLM often hallucinates the 'total_score' (e.g., summing them up instead of averaging).
+        # We enforces a strict mathematical AVERAGE of the dimensions to ensure consistency
+        # and checking that it falls within the scale.
+
+        def calculate_average_score(dimensions: list[dict]) -> float:
+            if not dimensions:
+                return 0.0
+            
+            total_sum = 0.0
+            count = 0
+            for d in dimensions:
+                val = d.get("score")
+                if val is not None:
+                    # Handle string numbers if necessary
+                    try:
+                        total_sum += float(val)
+                        count += 1
+                    except (ValueError, TypeError):
+                        pass
+            
+            if count == 0:
+                return 0.0
+                
+            return round(total_sum / count, 2)
+
+        # 1. Update Root Total Score
+        if "dimensions" in result:
+             # Just in case dimensions is None
+             dims = result.get("dimensions") or []
+             result["total_score"] = calculate_average_score(dims)
+             logger.info(f"[JudgeAgent] Calculated Deterministic Total Score: {result['total_score']}")
+
+        # 2. Update Child Score Cards (if any)
+        if "score_cards" in result and isinstance(result["score_cards"], list):
+            for card in result["score_cards"]:
+                if isinstance(card, dict) and "dimensions" in card:
+                    dims = card.get("dimensions") or []
+                    card["total_score"] = calculate_average_score(dims)
+
 
         if "critical_findings" not in result:
             result["critical_findings"] = []

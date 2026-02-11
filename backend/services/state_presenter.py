@@ -244,7 +244,7 @@ class StatePresenter:
                 report["lahdet"] = state.step_coach.lahdeluettelo
 
         if state.step_archivist:
-            report["linjakkuus"] = state.step_archivist.linjakkuus_analyysi
+            report["linjakkuus"] = state.step_archivist.compliance_analysis
 
         # Assign to root
         flat["Report"] = report

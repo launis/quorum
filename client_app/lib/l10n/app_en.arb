@@ -440,6 +440,10 @@
   "lblLogicMatrix": "Logic Matrix",
   "lblMatrixSubtitle": "Visual analysis of reasoning quality.",
   "lblFidelity": "Reasoning Fidelity",
-  "lblPostHocWarning": "Post-Hoc Warning",
-  "lblNoRationalization": "No Rationalization"
+  "lblPostHocWarning": "⚠️ Post-Hoc Rationalization detected!",
+  "lblNoRationalization": "✅ No rationalization.",
+  "lblHeuristics": "Heuristics",
+  "plausibility_desc": "Plausibility measures scenario realism and consistency.",
+  "helpLogicMatrix": "The Logic Matrix visualizes the relationship between argumentation quality and cognitive depth. NEW: Bubble size represents Strategic Depth (Agency). Large bubble implies visionary approach.",
+  "helpStrategicDepth": "Strategic Depth measures the user's ability to plan, anticipate, and guide the process purposefully."
 }

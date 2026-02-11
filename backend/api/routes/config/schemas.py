@@ -68,7 +68,6 @@ MODEL_REGISTRY = {
 )
 def get_model_schema(
     model_name: str,
-    accept_language: Annotated[str | None, Header()] = "en"
 ):
     """Dynamic Registry Lookup for SDUI."""
     if model_name not in MODEL_REGISTRY:
@@ -87,11 +86,11 @@ def get_model_schema(
     model_class = cast(type[BaseModel], MODEL_REGISTRY[model_name])
 
     schema = model_class.model_json_schema()
-    return localize_schema(schema, accept_language or "en")
+    return localize_schema(schema)
 
 
 @router.get("", summary="List Schemas", response_description="All Pydantic Schemas.")
-def get_schemas(accept_language: Annotated[str | None, Header()] = "en"):
+def get_schemas():
     """Get all available JSON Schemas (Global Registry)."""
     import inspect
 
@@ -106,7 +105,7 @@ def get_schemas(accept_language: Annotated[str | None, Header()] = "en"):
     for name, model_cls in MODEL_REGISTRY.items():
          try:
             json_schema = model_cls.model_json_schema()
-            json_schema = localize_schema(json_schema, accept_language or "en")
+            json_schema = localize_schema(json_schema)
             schema_data[name] = {"schema": json_schema}
          except Exception:
              pass
@@ -120,7 +119,7 @@ def get_schemas(accept_language: Annotated[str | None, Header()] = "en"):
                      continue
                 try:
                     json_schema = obj.model_json_schema()
-                    json_schema = localize_schema(json_schema, accept_language or "en")
+                    json_schema = localize_schema(json_schema)
 
                     example = None
                     if hasattr(obj, "model_config"):

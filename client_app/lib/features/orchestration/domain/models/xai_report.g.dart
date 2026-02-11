@@ -10,6 +10,7 @@ _ScoreCardItem _$ScoreCardItemFromJson(Map<String, dynamic> json) =>
     _ScoreCardItem(
       agentName: json['agent_name'] as String,
       totalScore: (json['total_score'] as num).toDouble(),
+      minScore: (json['min_score'] as num?)?.toInt() ?? 0,
       maxScore: (json['max_score'] as num?)?.toInt() ?? 5,
       verdict: json['verdict'] as String,
       dimensions:
@@ -25,6 +26,7 @@ Map<String, dynamic> _$ScoreCardItemToJson(_ScoreCardItem instance) =>
     <String, dynamic>{
       'agent_name': instance.agentName,
       'total_score': instance.totalScore,
+      'min_score': instance.minScore,
       'max_score': instance.maxScore,
       'verdict': instance.verdict,
       'dimensions': instance.dimensions,

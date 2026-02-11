@@ -10,6 +10,7 @@ abstract class ScoreCardItem with _$ScoreCardItem {
   const factory ScoreCardItem({
     @JsonKey(name: 'agent_name') required String agentName,
     @JsonKey(name: 'total_score') required double totalScore,
+    @JsonKey(name: 'min_score') @Default(0) int minScore,
     @JsonKey(name: 'max_score') @Default(5) int maxScore,
     required String verdict,
     @Default([]) List<DimensionResultItem> dimensions,

@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ScoreCardItem {
 
-@JsonKey(name: 'agent_name') String get agentName;@JsonKey(name: 'total_score') double get totalScore;@JsonKey(name: 'max_score') int get maxScore; String get verdict; List<DimensionResultItem> get dimensions;
+@JsonKey(name: 'agent_name') String get agentName;@JsonKey(name: 'total_score') double get totalScore;@JsonKey(name: 'min_score') int get minScore;@JsonKey(name: 'max_score') int get maxScore; String get verdict; List<DimensionResultItem> get dimensions;
 /// Create a copy of ScoreCardItem
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $ScoreCardItemCopyWith<ScoreCardItem> get copyWith => _$ScoreCardItemCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ScoreCardItem&&(identical(other.agentName, agentName) || other.agentName == agentName)&&(identical(other.totalScore, totalScore) || other.totalScore == totalScore)&&(identical(other.maxScore, maxScore) || other.maxScore == maxScore)&&(identical(other.verdict, verdict) || other.verdict == verdict)&&const DeepCollectionEquality().equals(other.dimensions, dimensions));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ScoreCardItem&&(identical(other.agentName, agentName) || other.agentName == agentName)&&(identical(other.totalScore, totalScore) || other.totalScore == totalScore)&&(identical(other.minScore, minScore) || other.minScore == minScore)&&(identical(other.maxScore, maxScore) || other.maxScore == maxScore)&&(identical(other.verdict, verdict) || other.verdict == verdict)&&const DeepCollectionEquality().equals(other.dimensions, dimensions));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,agentName,totalScore,maxScore,verdict,const DeepCollectionEquality().hash(dimensions));
+int get hashCode => Object.hash(runtimeType,agentName,totalScore,minScore,maxScore,verdict,const DeepCollectionEquality().hash(dimensions));
 
 @override
 String toString() {
-  return 'ScoreCardItem(agentName: $agentName, totalScore: $totalScore, maxScore: $maxScore, verdict: $verdict, dimensions: $dimensions)';
+  return 'ScoreCardItem(agentName: $agentName, totalScore: $totalScore, minScore: $minScore, maxScore: $maxScore, verdict: $verdict, dimensions: $dimensions)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $ScoreCardItemCopyWith<$Res>  {
   factory $ScoreCardItemCopyWith(ScoreCardItem value, $Res Function(ScoreCardItem) _then) = _$ScoreCardItemCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'agent_name') String agentName,@JsonKey(name: 'total_score') double totalScore,@JsonKey(name: 'max_score') int maxScore, String verdict, List<DimensionResultItem> dimensions
+@JsonKey(name: 'agent_name') String agentName,@JsonKey(name: 'total_score') double totalScore,@JsonKey(name: 'min_score') int minScore,@JsonKey(name: 'max_score') int maxScore, String verdict, List<DimensionResultItem> dimensions
 });
 
 
@@ -65,11 +65,12 @@ class _$ScoreCardItemCopyWithImpl<$Res>
 
 /// Create a copy of ScoreCardItem
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? agentName = null,Object? totalScore = null,Object? maxScore = null,Object? verdict = null,Object? dimensions = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? agentName = null,Object? totalScore = null,Object? minScore = null,Object? maxScore = null,Object? verdict = null,Object? dimensions = null,}) {
   return _then(_self.copyWith(
 agentName: null == agentName ? _self.agentName : agentName // ignore: cast_nullable_to_non_nullable
 as String,totalScore: null == totalScore ? _self.totalScore : totalScore // ignore: cast_nullable_to_non_nullable
-as double,maxScore: null == maxScore ? _self.maxScore : maxScore // ignore: cast_nullable_to_non_nullable
+as double,minScore: null == minScore ? _self.minScore : minScore // ignore: cast_nullable_to_non_nullable
+as int,maxScore: null == maxScore ? _self.maxScore : maxScore // ignore: cast_nullable_to_non_nullable
 as int,verdict: null == verdict ? _self.verdict : verdict // ignore: cast_nullable_to_non_nullable
 as String,dimensions: null == dimensions ? _self.dimensions : dimensions // ignore: cast_nullable_to_non_nullable
 as List<DimensionResultItem>,
@@ -157,10 +158,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'agent_name')  String agentName, @JsonKey(name: 'total_score')  double totalScore, @JsonKey(name: 'max_score')  int maxScore,  String verdict,  List<DimensionResultItem> dimensions)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'agent_name')  String agentName, @JsonKey(name: 'total_score')  double totalScore, @JsonKey(name: 'min_score')  int minScore, @JsonKey(name: 'max_score')  int maxScore,  String verdict,  List<DimensionResultItem> dimensions)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ScoreCardItem() when $default != null:
-return $default(_that.agentName,_that.totalScore,_that.maxScore,_that.verdict,_that.dimensions);case _:
+return $default(_that.agentName,_that.totalScore,_that.minScore,_that.maxScore,_that.verdict,_that.dimensions);case _:
   return orElse();
 
 }
@@ -178,10 +179,10 @@ return $default(_that.agentName,_that.totalScore,_that.maxScore,_that.verdict,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'agent_name')  String agentName, @JsonKey(name: 'total_score')  double totalScore, @JsonKey(name: 'max_score')  int maxScore,  String verdict,  List<DimensionResultItem> dimensions)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'agent_name')  String agentName, @JsonKey(name: 'total_score')  double totalScore, @JsonKey(name: 'min_score')  int minScore, @JsonKey(name: 'max_score')  int maxScore,  String verdict,  List<DimensionResultItem> dimensions)  $default,) {final _that = this;
 switch (_that) {
 case _ScoreCardItem():
-return $default(_that.agentName,_that.totalScore,_that.maxScore,_that.verdict,_that.dimensions);case _:
+return $default(_that.agentName,_that.totalScore,_that.minScore,_that.maxScore,_that.verdict,_that.dimensions);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -198,10 +199,10 @@ return $default(_that.agentName,_that.totalScore,_that.maxScore,_that.verdict,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'agent_name')  String agentName, @JsonKey(name: 'total_score')  double totalScore, @JsonKey(name: 'max_score')  int maxScore,  String verdict,  List<DimensionResultItem> dimensions)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'agent_name')  String agentName, @JsonKey(name: 'total_score')  double totalScore, @JsonKey(name: 'min_score')  int minScore, @JsonKey(name: 'max_score')  int maxScore,  String verdict,  List<DimensionResultItem> dimensions)?  $default,) {final _that = this;
 switch (_that) {
 case _ScoreCardItem() when $default != null:
-return $default(_that.agentName,_that.totalScore,_that.maxScore,_that.verdict,_that.dimensions);case _:
+return $default(_that.agentName,_that.totalScore,_that.minScore,_that.maxScore,_that.verdict,_that.dimensions);case _:
   return null;
 
 }
@@ -213,11 +214,12 @@ return $default(_that.agentName,_that.totalScore,_that.maxScore,_that.verdict,_t
 @JsonSerializable()
 
 class _ScoreCardItem implements ScoreCardItem {
-  const _ScoreCardItem({@JsonKey(name: 'agent_name') required this.agentName, @JsonKey(name: 'total_score') required this.totalScore, @JsonKey(name: 'max_score') this.maxScore = 5, required this.verdict, final  List<DimensionResultItem> dimensions = const []}): _dimensions = dimensions;
+  const _ScoreCardItem({@JsonKey(name: 'agent_name') required this.agentName, @JsonKey(name: 'total_score') required this.totalScore, @JsonKey(name: 'min_score') this.minScore = 0, @JsonKey(name: 'max_score') this.maxScore = 5, required this.verdict, final  List<DimensionResultItem> dimensions = const []}): _dimensions = dimensions;
   factory _ScoreCardItem.fromJson(Map<String, dynamic> json) => _$ScoreCardItemFromJson(json);
 
 @override@JsonKey(name: 'agent_name') final  String agentName;
 @override@JsonKey(name: 'total_score') final  double totalScore;
+@override@JsonKey(name: 'min_score') final  int minScore;
 @override@JsonKey(name: 'max_score') final  int maxScore;
 @override final  String verdict;
  final  List<DimensionResultItem> _dimensions;
@@ -241,16 +243,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ScoreCardItem&&(identical(other.agentName, agentName) || other.agentName == agentName)&&(identical(other.totalScore, totalScore) || other.totalScore == totalScore)&&(identical(other.maxScore, maxScore) || other.maxScore == maxScore)&&(identical(other.verdict, verdict) || other.verdict == verdict)&&const DeepCollectionEquality().equals(other._dimensions, _dimensions));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ScoreCardItem&&(identical(other.agentName, agentName) || other.agentName == agentName)&&(identical(other.totalScore, totalScore) || other.totalScore == totalScore)&&(identical(other.minScore, minScore) || other.minScore == minScore)&&(identical(other.maxScore, maxScore) || other.maxScore == maxScore)&&(identical(other.verdict, verdict) || other.verdict == verdict)&&const DeepCollectionEquality().equals(other._dimensions, _dimensions));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,agentName,totalScore,maxScore,verdict,const DeepCollectionEquality().hash(_dimensions));
+int get hashCode => Object.hash(runtimeType,agentName,totalScore,minScore,maxScore,verdict,const DeepCollectionEquality().hash(_dimensions));
 
 @override
 String toString() {
-  return 'ScoreCardItem(agentName: $agentName, totalScore: $totalScore, maxScore: $maxScore, verdict: $verdict, dimensions: $dimensions)';
+  return 'ScoreCardItem(agentName: $agentName, totalScore: $totalScore, minScore: $minScore, maxScore: $maxScore, verdict: $verdict, dimensions: $dimensions)';
 }
 
 
@@ -261,7 +263,7 @@ abstract mixin class _$ScoreCardItemCopyWith<$Res> implements $ScoreCardItemCopy
   factory _$ScoreCardItemCopyWith(_ScoreCardItem value, $Res Function(_ScoreCardItem) _then) = __$ScoreCardItemCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'agent_name') String agentName,@JsonKey(name: 'total_score') double totalScore,@JsonKey(name: 'max_score') int maxScore, String verdict, List<DimensionResultItem> dimensions
+@JsonKey(name: 'agent_name') String agentName,@JsonKey(name: 'total_score') double totalScore,@JsonKey(name: 'min_score') int minScore,@JsonKey(name: 'max_score') int maxScore, String verdict, List<DimensionResultItem> dimensions
 });
 
 
@@ -278,11 +280,12 @@ class __$ScoreCardItemCopyWithImpl<$Res>
 
 /// Create a copy of ScoreCardItem
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? agentName = null,Object? totalScore = null,Object? maxScore = null,Object? verdict = null,Object? dimensions = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? agentName = null,Object? totalScore = null,Object? minScore = null,Object? maxScore = null,Object? verdict = null,Object? dimensions = null,}) {
   return _then(_ScoreCardItem(
 agentName: null == agentName ? _self.agentName : agentName // ignore: cast_nullable_to_non_nullable
 as String,totalScore: null == totalScore ? _self.totalScore : totalScore // ignore: cast_nullable_to_non_nullable
-as double,maxScore: null == maxScore ? _self.maxScore : maxScore // ignore: cast_nullable_to_non_nullable
+as double,minScore: null == minScore ? _self.minScore : minScore // ignore: cast_nullable_to_non_nullable
+as int,maxScore: null == maxScore ? _self.maxScore : maxScore // ignore: cast_nullable_to_non_nullable
 as int,verdict: null == verdict ? _self.verdict : verdict // ignore: cast_nullable_to_non_nullable
 as String,dimensions: null == dimensions ? _self._dimensions : dimensions // ignore: cast_nullable_to_non_nullable
 as List<DimensionResultItem>,

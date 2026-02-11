@@ -121,7 +121,7 @@
                 <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
                     <div>
                         <div class="label">Total Score</div>
-                        <div class="value" style="font-size: 24px; color: #1976D2;">{{ section.data.total_score }}</div>
+                        <div class="value" style="font-size: 24px; color: #1976D2;">{{ section.data.total_score }} <span style="font-size: 14px; color: #999;">(Scale: {{ section.data.min_score|default(section.data.scale_min) }} - {{ section.data.max_score|default(section.data.scale_max) }})</span></div>
                     </div>
                     <div>
                         <div class="label">Verdict</div>
@@ -210,12 +210,41 @@
         {% elif section.type == 'LOGIC_ANALYSIS' %}
             <div class="card">
                 <h2>{{ section.title }}</h2>
+                
+                {# --- 1. Bubble Chart (3D Position) --- #}
+                {% if section.data.logic_chart_image %}
+                <div class="radar-chart">
+                    <img src="{{ section.data.logic_chart_image }}" alt="Logic Matrix Position" style="max-height: 300px;" />
+                </div>
+                {% endif %}
+
+                {# --- 2. Gauges (Visual Bars) --- #}
                 {% set cog = section.data.get('kognitiivinen_taso', {}) %}
                 {% if cog %}
-                <div style="background: #E0F2F1; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
-                    <div class="label">Cognitive Level (Bloom)</div>
-                    <div class="value" style="color: #00695C;">{{ cog.bloom_taso }}</div>
-                    <div style="font-size: 11px; margin-top: 4px;">{{ cog.strateginen_syvyys }}</div>
+                <div style="background: #E0F2F1; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #B2DFDB;">
+                    
+                    {# Bloom Gauge #}
+                    <div style="margin-bottom: 12px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <span class="label">Cognitive Level (Bloom)</span>
+                            <span class="value" style="font-size: 12px; color: #00695C;">{{ cog.bloom_taso }} ({{ cog.bloom_score|default(0)|round(1) }}/6.0)</span>
+                        </div>
+                        <div style="background: #B2DFDB; height: 8px; border-radius: 4px; overflow: hidden;">
+                             <div style="background: #00695C; width: {{ (cog.bloom_score|default(0) / 6.0) * 100 }}%; height: 100%;"></div>
+                        </div>
+                    </div>
+
+                    {# Strategic Gauge #}
+                    <div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <span class="label">Strategic Depth</span>
+                             <span class="value" style="font-size: 12px; color: #00695C;">{{ cog.strateginen_syvyys }} ({{ cog.strategic_score|default(0)|round(1) }}/4.0)</span>
+                        </div>
+                        <div style="background: #B2DFDB; height: 8px; border-radius: 4px; overflow: hidden;">
+                             {# Strategy is 1-4, so fraction is score/4 #}
+                             <div style="background: #00796B; width: {{ (cog.strategic_score|default(0) / 4.0) * 100 }}%; height: 100%;"></div>
+                        </div>
+                    </div>
                 </div>
                 {% endif %}
                 
@@ -223,15 +252,19 @@
                 {% if toulmin %}
                 <h3>Arguments (Toulmin)</h3>
                 {% for t in toulmin %}
-                <div style="background: #E8EAF6; padding: 10px; margin-bottom: 8px; border-radius: 4px;">
-                    <div style="font-weight: bold;">Claim: {{ t.claim }}</div>
-                    <div style="font-size: 11px; color: #555;">Warrant: {{ t.warrant }}</div>
+                <div style="background: #E8EAF6; padding: 10px; margin-bottom: 8px; border-radius: 4px; border-left: 4px solid #3F51B5;">
+                    <div style="font-weight: bold; color: #303F9F;">Claim: {{ t.claim }}</div>
+                    <div style="font-size: 11px; color: #555; margin-top: 2px;">Warrant: {{ t.warrant }}</div>
+                    {% if t.backing %}
+                    <div style="font-size: 10px; color: #777; margin-top: 2px; font-style: italic;">Backing: {{ t.backing }}</div>
+                    {% endif %}
                 </div>
                 {% endfor %}
                 {% endif %}
             </div>
 
         {% elif section.type == 'STRESS_TEST' %}
+            {# ... Stress Test remains ... #}
             <div class="card">
                 <h2>{{ section.title }}</h2>
                 {% set findings = section.data.get('walton_stressitesti_loydokset', []) %}
@@ -254,21 +287,45 @@
 
         {% elif section.type == 'FACT_CHECK' %}
             <div class="card">
-                <h2>{{ section.title }}</h2>
-                {% set facts = section.data.get('faktantarkistus_rfi', []) %}
-                {% for f in facts %}
-                <div style="margin-bottom: 8px;">
-                     {% if f.verifiointi_tulos == 'Vahvistettu' %}
-                        <span class="chip green">Vahvistettu</span>
-                     {% elif f.verifiointi_tulos == 'Kumottu' %}
-                        <span class="chip red">Kumottu</span>
+                <h2>Facts & Ethics</h2>
+                
+                {# 1. Fact Checks (using processed_facts) #}
+                {% if section.data.processed_facts %}
+                <h3>Fact Checks</h3>
+                {% for f in section.data.processed_facts %}
+                <div style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px dashed #eee;">
+                     {% if f.is_verified %}
+                        <span class="chip green">Verified</span>
+                     {% elif f.verification_result == 'Debunked' or f.verification_result == 'Kumottu' %}
+                        <span class="chip red">Debunked</span>
                      {% else %}
-                        <span class="chip">?</span>
+                        <span class="chip">Unverified</span>
                      {% endif %}
-                     <span style="font-weight: bold;">{{ f.vaite }}</span>
-                     <div style="font-size: 10px; color: #666; margin-left: 20px;">{{ f.lahde_tai_paattely }}</div>
+                     <span style="font-weight: bold;">{{ f.claim }}</span>
+                     <div style="font-size: 10px; color: #666; margin-left: 5px; margin-top: 2px;">
+                        Reasoning: {{ f.source_or_reasoning }}
+                     </div>
                 </div>
                 {% endfor %}
+                {% endif %}
+
+                {# 2. Ethical Issues (using processed_ethics) #}
+                {% if section.data.processed_ethics %}
+                <h3 style="margin-top: 15px;">Ethical Issues</h3>
+                {% for e in section.data.processed_ethics %}
+                <div style="margin-bottom: 8px; padding: 8px; background: #FFF3E0; border-radius: 4px; border-left: 4px solid #FF9800;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="font-weight: bold; color: #EF6C00;">{{ e.issue_type }}</span>
+                        {% if e.is_critical %}
+                            <span class="chip red">CRITICAL</span>
+                        {% else %}
+                            <span class="chip" style="background: #FFE0B2; color: #E65100;">{{ e.severity }}</span>
+                        {% endif %}
+                    </div>
+                    <div style="font-size: 11px; margin-top: 4px;">{{ e.description }}</div>
+                </div>
+                {% endfor %}
+                {% endif %}
             </div>
 
         {% elif section.type == 'ARCHIVIST_CHECK' %}
@@ -337,15 +394,23 @@
                  <div class="timeline-item">
                     <div>
                         <div class="label">Causal Observation</div>
-                        <div>{{ section.data.kausaalinen_auditointi.havainnot }}</div>
+                        <div>{{ section.data.causal_audit.observation }}</div>
                     </div>
                  </div>
                  <div class="timeline-item">
                     <div>
                         <div class="label">Abductive Conclusion</div>
-                        <div class="value">{{ section.data.abduktiivinen_paatelma }}</div>
+                        <div class="value">{{ section.data.abductive_conclusion }}</div>
                     </div>
                  </div>
+                 
+                 {% if section.data.counterfactual_test.plausibility_numeric %}
+                 <div style="margin-top: 10px; padding: 10px; background: #e0f2f1; border-radius: 4px;">
+                    <div class="label">Plausibility Score</div>
+                    <div class="value" style="color: #00695c;">{{ section.data.counterfactual_test.plausibility_numeric }} / 3.0</div>
+                    <div style="font-size: 11px;">{{ section.data.counterfactual_test.description }}</div>
+                 </div>
+                 {% endif %}
             </div>
 
         {% elif section.type == 'PERFORMATIVITY_CHECK' %}

@@ -123,44 +123,47 @@ class ComparisonMatrix extends StatelessWidget {
     final rLeft = left?['reasoning'] as String?;
     final rRight = right?['reasoning'] as String?;
 
-    return ExpansionTile(
-      title: Row(
-        children: [
-          Expanded(
-            flex: 3,
-            child: Text(
-              dimension.toUpperCase(),
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.bold,
+    return Semantics(
+      excludeSemantics: Platform.isWindows,
+      child: ExpansionTile(
+        title: Row(
+          children: [
+            Expanded(
+              flex: 3,
+              child: Text(
+                dimension.toUpperCase(),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              sLeft.toString(),
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontWeight: FontWeight.bold),
+            Expanded(
+              flex: 2,
+              child: Text(
+                sLeft.toString(),
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              sRight.toString(),
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontWeight: FontWeight.bold),
+            Expanded(
+              flex: 2,
+              child: Text(
+                sRight.toString(),
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
-          ),
-          Expanded(flex: 2, child: _renderDelta(delta)),
+            Expanded(flex: 2, child: _renderDelta(delta)),
+          ],
+        ),
+        shape: const Border(),
+        childrenPadding: const EdgeInsets.all(12),
+        children: [
+          if (rLeft != null) _reasoningBlock(context, leftLabel, rLeft),
+          if (rLeft != null && rRight != null) const SizedBox(height: 8),
+          if (rRight != null) _reasoningBlock(context, rightLabel, rRight),
         ],
       ),
-      shape: const Border(),
-      childrenPadding: const EdgeInsets.all(12),
-      children: [
-        if (rLeft != null) _reasoningBlock(context, leftLabel, rLeft),
-        if (rLeft != null && rRight != null) const SizedBox(height: 8),
-        if (rRight != null) _reasoningBlock(context, rightLabel, rRight),
-      ],
     );
   }
 

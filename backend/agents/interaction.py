@@ -24,7 +24,7 @@ class InteractionAnalystAgent(BaseAgent):
 
     Analyses the 'history_text' to evaluate Prompt Engineering competence.
     Hybrid logic:
-    - AI: Qualitative analysis (Strategies, Driver Classification).
+    - AI: Qualitative analysis (Strategies, Role Classification: Passenger/Navigator/Driver/Architect).
     - Python: Quantitative analysis (Input Control Ratio).
     """
 

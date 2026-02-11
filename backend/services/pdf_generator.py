@@ -170,7 +170,72 @@ class PdfReportService:
                         max_score = int(section.data.get("max_score", 4))
                         chart_b64 = ChartService.generate_radar_chart(scores, max_val=max_score)
                         # Inject back into data view for template
+                        # Inject back into data view for the template
                         section.data["chart_image"] = chart_b64
+
+                elif section.type == SectionType.LOGIC_ANALYSIS and section.data:
+                    # Logic Matrix Bubble Chart
+                    # Extract scores (Standardized keys from domain model)
+                    cog = section.data.get("cognitive_level") or section.data.get("kognitiivinen_taso", {})
+                    # Handle both Pydantic models (dict) and raw dicts
+                    if hasattr(cog, "dict"): cog = cog.dict()
+                    
+                    bloom = float(cog.get("bloom_score", 0))
+                    strat = float(cog.get("strategic_score", 0))
+                    
+                    # Toulmin score might be flat in data or calculated
+                    toulmin_score = float(section.data.get("toulmin_score", 0))
+                    
+                    if bloom > 0 and strat > 0:
+                        chart_b64 = ChartService.generate_bubble_chart(
+                            x_val=bloom,
+                            y_val=strat,
+                            size_val=toulmin_score,
+                            title="Logic Matrix Position"
+                        )
+                        section.data["logic_chart_image"] = chart_b64
+
+                elif section.type == SectionType.FACT_CHECK and section.data:
+                    # Preprocess for Template (English Standardization)
+                    
+                    # 1. Facts
+                    raw_facts = section.data.get("fact_checks") or section.data.get("faktantarkistus_rfi", [])
+                    processed_facts = []
+                    for f in raw_facts:
+                        # Normalize to dict
+                        item = f.dict() if hasattr(f, "dict") else f
+                        
+                        # Map Legacy to English if needed
+                        claim = item.get("claim") or item.get("vaite")
+                        result = item.get("verification_result") or item.get("verifiointi_tulos")
+                        source = item.get("source_or_reasoning") or item.get("lahde_tai_paattely")
+                        is_ver = item.get("is_verified") 
+                        
+                        # Fallback calculation if boolean missing
+                        if is_ver is None and result:
+                            # Check common strings for verified status
+                            is_ver = str(result).lower() in ["verified", "vahvistettu"]
+
+                        processed_facts.append({
+                            "claim": claim,
+                            "verification_result": result,
+                            "source_or_reasoning": source,
+                            "is_verified": is_ver
+                        })
+                    section.data["processed_facts"] = processed_facts
+
+                    # 2. Ethics (Overseer also populates this section type in BFF)
+                    raw_ethics = section.data.get("ethical_issues") or section.data.get("eettiset_havainnot", [])
+                    processed_ethics = []
+                    for e in raw_ethics:
+                        item = e.dict() if hasattr(e, "dict") else e
+                        processed_ethics.append({
+                            "issue_type": item.get("issue_type") or item.get("ongelma_tyyppi"),
+                            "severity": item.get("severity") or item.get("vakavuus"),
+                            "description": item.get("description") or item.get("kuvaus"),
+                            "is_critical": item.get("is_critical") or (str(item.get("severity")).lower() == "critical")
+                        })
+                    section.data["processed_ethics"] = processed_ethics
 
             # 5. Render Template
             await self.progress.emit_progress(execution_id, task_key, "Preparing report layout...", 0.8)

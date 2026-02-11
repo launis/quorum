@@ -192,6 +192,10 @@
   "lblFidelity": "Päättelyketjun Uskollisuus",
   "lblPostHocWarning": "⚠️ Post-Hoc Rationalisointia havaittu!",
   "lblNoRationalization": "✅ Ei rationalisointia.",
+  "lblHeuristics": "Heuristiikat",
+  "plausibility_desc": "Uskottavuus mittaa skenaarion realismia ja johdonmukaisuutta.",
+  "lblHeuristics": "Heuristiikat",
+  "plausibility_desc": "Uskottavuus mittaa skenaarion realismia ja johdonmukaisuutta.",
   "lblAbductiveReasoning": "Abduktiivinen Päätelmä",
   "lblScenarioActual": "Toteutunut",
   "lblScenarioSimulation": "Simulaatio",
@@ -347,6 +351,10 @@
   "lblLogicMatrix": "Logiikkamatriisi",
   "lblMatrixSubtitle": "Visuaalinen analyysi päättelyn laadusta.",
   "lblFidelity": "Uskollisuus",
-  "lblPostHocWarning": "Post-Hoc Varoitus",
-  "lblNoRationalization": "Ei Rationalisointia"
+  "lblPostHocWarning": "⚠️ Post-Hoc Rationalisointia havaittu!",
+  "lblNoRationalization": "✅ Ei rationalisointia.",
+  "lblHeuristics": "Heuristiikat",
+  "helpLogicMatrix": "Logiikkamatriisi visualisoi argumentaation laadun ja kognitiivisen syvyyden suhdetta. UUSI: Pallon koko kuvaa strategista syvyyttä (Agentuuri). Suuri pallo tarkoittaa visionääristä otetta.",
+  "helpStrategicDepth": "Strateginen syvyys mittaa käyttäjän kykyä suunnitella, ennakoida ja ohjata prosessia tavoitteellisesti.",
+  "plausibility_desc": "Uskottavuus mittaa skenaarion realismia ja johdonmukaisuutta."
 }

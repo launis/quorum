@@ -28,8 +28,45 @@ class DynamicConfigForm extends HookConsumerWidget {
 
     return ListView(
       padding: const EdgeInsets.all(16.0),
-      children:
-          config.entries.map((entry) {
+      children: [
+        // SAFETY WARNING: Localization Keys
+        Container(
+          margin: const EdgeInsets.only(bottom: 16.0),
+          padding: const EdgeInsets.all(12.0),
+          decoration: BoxDecoration(
+            color: Colors.orange.withOpacity(0.1),
+            border: Border.all(color: Colors.orange.withOpacity(0.5)),
+            borderRadius: BorderRadius.circular(8.0),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Editing Raw Configuration',
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            color: Colors.orange[800],
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Labels like "History Text" are Translation Keys. Do not rename them to "Historiateksti" or localization will break.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        ...config.entries.map((entry) {
             final key = entry.key;
             final value = entry.value;
             final label = _capitalize(key);
@@ -82,6 +119,7 @@ class DynamicConfigForm extends HookConsumerWidget {
               subtitle: Text('Unsupported type: ${value.runtimeType}'),
             );
           }).toList(),
+      ],
     );
   }
 

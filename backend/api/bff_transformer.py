@@ -49,26 +49,57 @@ class ReportTransformer:
         for key in judge_keys:
             step_data = steps.get(key)
             if step_data:
-                try:
-                    title = (
-                        self._t("Analysis Result", "Analyysin Tulos")
-                        if key == "step_judge"
-                        else self._t("Cognitive Assessment", "Kognitiivinen Arvio")
-                    )
-                    agent_name = (
-                        self._t("Judge", "Tuomari")
-                        if key == "step_judge"
-                        else self._t("Cognitive Judge", "Kognitiivinen Tuomari")
-                    )
+                # Determine base title and agent name
+                base_title = (
+                    self._t("Analysis Result", "Analyysin Tulos")
+                    if key == "step_judge"
+                    else self._t("Cognitive Assessment", "Kognitiivinen Arvio")
+                )
+                base_agent_name = (
+                    self._t("Judge", "Tuomari")
+                    if key == "step_judge"
+                    else self._t("Cognitive Judge", "Kognitiivinen Tuomari")
+                )
 
-                    score_data = self._extract_score_data(step_data, agent_name=agent_name, valid_range=valid_range)
+                # Extract all cards (Legacy or V3 Array)
+                cards = []
+                if "score_cards" in step_data and isinstance(step_data["score_cards"], list):
+                     cards = step_data["score_cards"]
+                elif "score_card" in step_data:
+                     cards = [step_data["score_card"]]
+                else:
+                     cards = [step_data] # Legacy fallback where step is the card
 
-                    sections.append(
-                        UiSection(id=f"score-card-{key}", type=SectionType.SCORE_CARD, title=title, data=score_data)
-                    )
-                except ValueError as e:
-                    logger.error(f"Score validation failed for {key}: {e}")
-                    # We continue, maybe just missing ONE judge
+                for idx, card in enumerate(cards):
+                    try:
+                        # Use specific agent name from card if available
+                        # This enables "Judge (matrix_v1)" vs "Judge (matrix_v2)" differentiation
+                        card_agent_name = card.get("agent_name") or base_agent_name
+                        
+                        # Construct title
+                        # If we have multiple cards or different name, append it
+                        if len(cards) > 1 or card_agent_name != base_agent_name:
+                             # E.g. "Analyysin Tulos (Judge (matrix_standard_v1))"
+                             card_title = f"{base_title} ({card_agent_name})"
+                        else:
+                             card_title = base_title
+
+                        # Extract score data using the CARD as the source
+                        # valid_range is ignored if card has its own scale_min/max
+                        score_data = self._extract_score_data(card, agent_name=card_agent_name, valid_range=valid_range)
+
+                        # Create unique ID for the section
+                        # If index > 0, append index to avoid collision
+                        section_id = f"score-card-{key}"
+                        if idx > 0:
+                            section_id += f"-{idx}"
+
+                        sections.append(
+                            UiSection(id=section_id, type=SectionType.SCORE_CARD, title=card_title, data=score_data)
+                        )
+                    except ValueError as e:
+                        logger.error(f"Score validation failed for {key} (card {idx}): {e}")
+                        # Continue to next card
 
         # --- A2. Key Metrics (Usage & Cost) ---
         usage_section = self._extract_usage_section(raw_data)
@@ -215,7 +246,7 @@ class ReportTransformer:
                 # Timestamp to metadata
                 timestamp = event.get("timestamp") or event.get("metadata", {}).get("timestamp")
                 if timestamp:
-                    if "metadata" not in content:
+                    if content.get("metadata") is None:
                         content["metadata"] = {}
                     content["metadata"]["luontiaika"] = timestamp
 
@@ -276,6 +307,7 @@ class ReportTransformer:
         return {
             "agent_name": agent_name,
             "total_score": score,
+            "min_score": int(scale_min),
             "max_score": int(scale_max),
             "verdict": verdict,
             "dimensions": dimensions,
@@ -572,31 +604,55 @@ class AssessmentTransformer:
                 reconstructed[step_name] = content
         return reconstructed
 
-    def _get_workflow_steps(self, workflow_id: str, current_data: dict) -> list[StepProgressItem]:
-        """Determines the steps for the workflow and their status."""
-        
-        # 1. Define Standard Chains (Match Frontend/Seed)
-        steps_sequential = [
-            'step_guard', 'step_analyst', 'step_interaction', 'step_profiler',
-            'step_logician', 'step_falsifier', 'step_causal', 'step_detector',
-            'step_overseer', 'step_archivist', 'step_judge',
-            'step_coach', 'step_context', 'step_xai'
-        ]
-        
-        steps_fused = [
-             'step_guard', 'step_analyst', 'step_interaction', 'step_profiler',
-             'step_panel', 'step_archivist', 'step_judge', 'step_coach',
-             'step_context', 'step_xai'
-        ]
 
-        # 2. Map Workflow ID to Chain
-        # Fallback to sequential if unknown
-        chain = steps_sequential
-        if "fused" in workflow_id or "courtroom_3" in workflow_id:
-            chain = steps_fused
+
+    def _get_workflow_steps(self, workflow_id: str, current_data: dict, workflow_definition: Any | None = None) -> list[StepProgressItem]:
+        """Determines the steps for the workflow and their status dynamically."""
         
+        chain = []
+        if workflow_definition:
+             # Extract steps from definition
+             # Assuming workflow_definition is a dict or Pydantic model with 'steps'
+             steps = getattr(workflow_definition, "steps", [])
+             if isinstance(steps, list):
+                 for s in steps:
+                     # Handle Pydantic model or dict
+                     sid = getattr(s, "id", None) or s.get("id")
+                     if sid:
+                         chain.append(sid)
+        
+        if not chain:
+            # Fallback for legacy/missing definition (though we want to be strict, 
+            # safe fallback prevents immediate crash during transition)
+            # But user asked for REMOVING hardcoded logic.
+            # If I return empty, the UI might be empty.
+            # Let's log a warning? 
+            # For now I will return an empty list if not found, to enforce strictness as requested.
+            pass
+
         # 3. Determine Status for each step
         progress_items = []
+        for step_id in chain:
+            step_status = "pending"
+            step_res = current_data.get(step_id)
+            
+            if step_res:
+                step_status = "completed"
+                # Check for specific status flags if available
+                if step_res.get("status") == "failed":
+                    step_status = "failed"
+            
+            # Simple heuristic: if a later step is present, earlier ones are likely completed
+            # (Refinement: rely on strict status from DB if available)
+            
+            label = self._t(f"STEP_{step_id.upper()}", step_id)
+            progress_items.append(StepProgressItem(
+                id=step_id,
+                label=label,
+                status=step_status
+            ))
+            
+        return progress_items
         
         # Check actual results to see what's done
         # We look at 'results' (final) or 'execution_trace' (intermediate)
@@ -650,11 +706,11 @@ class AssessmentTransformer:
         
         return progress_items
 
-    def transform(self, raw_data: dict) -> AssessmentView:
+    def transform(self, raw_data: dict, workflow_definition: Any | None = None, valid_range: tuple[float, float] | None = None) -> AssessmentView:
         """Transforms raw execution state into a live Monitoring View (AssessmentView)."""
         
         # 1. Basic Info
-        exec_id = raw_data.get("id") or raw_data.get("execution_id") or "unknown"
+        execution_id = raw_data.get("id") or raw_data.get("execution_id") or "unknown"
         status = raw_data.get("status", "pending")
         workflow_id = raw_data.get("workflow_id") or raw_data.get("config", {}).get("workflow_id", "unknown")
         
@@ -686,7 +742,7 @@ class AssessmentTransformer:
              steps_data = self._reconstruct_state_from_trace(raw_data["results"]["execution_trace"])
 
         # GENERATE STEPS LIST
-        steps_list = self._get_workflow_steps(workflow_id, steps_data)
+        steps_list = self._get_workflow_steps(workflow_id, steps_data, workflow_definition)
         
         # Filter out pending steps if the execution is completed or failed
         # This hides "phantom" steps like judge_cognitive that weren't part of the run
@@ -744,7 +800,7 @@ class AssessmentTransformer:
                  pass
 
         return AssessmentView(
-            sessionId=str(exec_id),
+            sessionId=str(execution_id),
             statusLabel=str(status_label),
             uiVariant=str(ui_variant),
             statusMessage=str(status_message or ""),

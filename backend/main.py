@@ -147,6 +147,29 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
 app.add_middleware(RequestIdMiddleware)
 
 
+class LocalizationMiddleware(BaseHTTPMiddleware):
+    """Middleware to inject Accept-Language into context."""
+
+    async def dispatch(self, request: Request, call_next):
+        from backend.services.localization import set_language
+
+        # Extract Accept-Language header (e.g., "fi,en;q=0.9")
+        # For simplicity, we take the first preferred language.
+        accept_language = request.headers.get("Accept-Language", "en")
+        
+        # Parse logic could be more robust (q-factor), but splitting by comma/semi-colon is a good start
+        # "fi,en;q=0.9" -> "fi"
+        preferred_lang = accept_language.split(",")[0].split(";")[0].strip()
+        
+        # Set Context
+        set_language(preferred_lang)
+        
+        response = await call_next(request)
+        return response
+
+app.add_middleware(LocalizationMiddleware)
+
+
 # --- 4. Global Error Handlers (RFC 7807 Problem Details) ---
 
 from backend.exceptions import AppException

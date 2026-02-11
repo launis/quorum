@@ -9,10 +9,12 @@ class LogicMatrixChart extends StatelessWidget {
     super.key,
     required this.bloomLevel,
     required this.toulminArguments,
+    this.strategicScore = 2.0, // Default to middle if missing
   });
 
   final String bloomLevel;
   final List<dynamic> toulminArguments;
+  final double strategicScore;
 
   @override
   Widget build(BuildContext context) {
@@ -28,6 +30,10 @@ class LogicMatrixChart extends StatelessWidget {
     else if (x >= 3 && y < 3) quadrantLabel = "Abstrakti (Korkea Bloom + Heikko Toulmin)";
     else quadrantLabel = "Pinnallinen (Matala Bloom + Heikko Toulmin)";
 
+    // Bubble Size Calculation (Z-Axis)
+    // Scale 0-4 -> Radius 8-24
+    double radius = 8.0 + (strategicScore.clamp(0.0, 4.0) * 4.0);
+
     return Column(
       children: [
         SizedBox(
@@ -39,9 +45,9 @@ class LogicMatrixChart extends StatelessWidget {
                   x,
                   y,
                   dotPainter: FlDotCirclePainter(
-                    radius: 12,
-                    color: Colors.blueAccent,
-                    strokeColor: Colors.white,
+                    radius: radius,
+                    color: Colors.blueAccent.withValues(alpha: 0.7), // Transparent for overlapping
+                    strokeColor: Colors.blue[900]!,
                     strokeWidth: 2,
                   ),
                 ),
@@ -108,6 +114,11 @@ class LogicMatrixChart extends StatelessWidget {
         Text(
           quadrantLabel,
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.blueGrey),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          "Pallon koko: Strateginen Syvyys ($strategicScore/4.0)",
+          style: const TextStyle(fontSize: 10, color: Colors.grey, fontStyle: FontStyle.italic),
         )
       ],
     );

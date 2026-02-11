@@ -116,3 +116,86 @@ class ChartService:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 details={"error_code": error_code, "original_error": str(e)}
             ) from e
+
+    @staticmethod
+    def generate_bubble_chart(
+        x_val: float,
+        y_val: float,
+        size_val: float,
+        x_label: str = "Cognitive Level (Bloom)",
+        y_label: str = "Strategic Depth",
+        title: str = "Logic Matrix Position"
+    ) -> str:
+        """Generates a 2D bubble chart representing the 3D Logic Matrix position.
+        
+        Args:
+            x_val: Bloom Score (1-6)
+            y_val: Strategic Score (1-4)
+            size_val: Toulmin Score (determines bubble size)
+            x_label: Label for X-axis
+            y_label: Label for Y-axis
+            title: Chart title
+            
+        Returns:
+            Base64 encoded PNG
+        """
+        try:
+            # Figure setup
+            fig = Figure(figsize=(6, 4), dpi=100)
+            ax = fig.add_subplot(111)
+
+            # Define Limits (Fixed scales per domain model)
+            # Bloom: 1-6, Strategy: 1-4
+            ax.set_xlim(0.5, 6.5)
+            ax.set_ylim(0.5, 4.5)
+
+            # Grid and Labels
+            ax.grid(True, linestyle='--', alpha=0.6)
+            ax.set_xlabel(x_label)
+            ax.set_ylabel(y_label)
+            ax.set_title(title)
+            
+            # Quadrant/Zone background (Optional stylistic touch)
+            # We keep it simple for now to match "Standard Style"
+
+            # Normalize size for display (Toulmin score 0-6 usually)
+            # Matplotlib scatter s is area in points^2. 
+            # We want it visible. Base size 100, factor 50?
+            # If size_val is 0, we still want a small dot.
+            display_size = max(50, (size_val + 1) * 100)
+
+            # Plot the single point
+            # Color: Use primary brand color or variant based on score?
+            # Let's use a distinct color.
+            scatter = ax.scatter(
+                [x_val], 
+                [y_val], 
+                s=[display_size], 
+                c=['#1976D2'], 
+                alpha=0.6, 
+                edgecolors='black',
+                linewidth=1
+            )
+
+            # Annotation
+            ax.text(
+                x_val, 
+                y_val + 0.3, # Offset slightly up
+                f"Bloom: {x_val:.1f}\nStrat: {y_val:.1f}", 
+                ha='center', 
+                va='bottom', 
+                fontsize=8,
+                bbox=dict(facecolor='white', alpha=0.7, edgecolor='none', boxstyle='round,pad=0.2')
+            )
+
+            # Output to base64
+            buf = io.BytesIO()
+            fig.savefig(buf, format='png', bbox_inches='tight')
+            buf.seek(0)
+            img_str = base64.b64encode(buf.read()).decode('utf-8')
+
+            return f"data:image/png;base64,{img_str}"
+
+        except Exception as e:
+            logger.error(f"Failed to generate bubble chart: {e}", exc_info=True)
+            return ""  # Return empty string on failure instead of crashing report

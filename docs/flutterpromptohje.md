@@ -318,12 +318,17 @@ For detailed implementation logic, refer to these Knowledge Items:
 1.  **Dual Sovereign Locations**:
     *   **Frontend**: `client_app/lib/l10n` (Standard .arb files).
     *   **Backend**: `backend/l10n` (JSON files `en.json`, `fi.json`).
-    *   **Backend Service**: Use `backend.services.localization.LocalizationService.translate(key, lang)` to separate code from content.
+    *   **Backend Service**: Use `backend.services.localization.LocalizationService.translate(key, **kwargs)` to separate code from content.
+    *   **Context**: Language is determined automatically via `ContextVar` (from `Accept-Language` header). Do NOT pass `lang` explicitly.
 
 2.  **Mandates**:
     *   **Separation**: Frontend and Backend maintain separate, independent localization trees.
     *   **Hardcoding**: STRICTLY BANNED. All user-facing strings must use the localization keys.
     *   **Parity**: Keys should be added to both English (`en`) and Finnish (`fi`) files immediately.
+    *   **Interpolation**: Use `**kwargs` in `translate` for dynamic values.
+        *   *JSON*: `"welcome": "Hello {name}"`
+        *   *Python*: `LocalizationService.translate("welcome", name="User")`
+        *   *Safety*: Service swallows `KeyError` if arguments are missing, returning the raw string.
 
 ## 🌍 PART 11:HYBRID SERVER-DRIVEN UI (SDUI) STANDARDS:
     * **Philosophy**: "Schema defines Data, Frontend defines Experience".
@@ -331,3 +336,75 @@ For detailed implementation logic, refer to these Knowledge Items:
         * **Default**: Use generic `DynamicFormWidget` based on `UI_Schema`.
         * **Premium Override**: Frontend MAY implement custom, high-fidelity Widgets (e.g., Drag & Drop, Visual Selectors) for specific steps, provided they output the exact data structure required by the Schema.
     * **Constraint**: Hardcoding *forms* is banned, but hardcoding *components* that map to schema fields is allowed for UX.
+
+## 🌍 PART 12: BACKEND LOCALIZATION PATTERNS (DOMAIN STANDARDIZATION)
+
+When defining Domain Models that accept free-text input from LLMs (which may be in Finnish or English) but require standardized numeric or boolean values for logic, follow this **Validation Pattern**:
+
+1.  **Dual Fields**: Define one field for the **Raw Input** (String) and one for the **Standardized Value** (Float/Bool).
+2.  **Validator**: Use a `@model_validator(mode="after")` to map the Raw Input to the Standardized Value using `_map_l10n_values`.
+
+### Implementation Template
+
+```python
+def _map_l10n_values(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """Helper to create a mapping from (TranslatedKey -> Value) for all supported languages."""
+    mapping = {}
+    for key, val in pairs:
+        # Add English (Fallbacks)
+        mapping[LocalizationService.translate(key, "en")] = val
+        # Add Finnish (Primary)
+        mapping[LocalizationService.translate(key, "fi")] = val
+        # Add Raw Key (Failsafe)
+        mapping[key] = val
+    return mapping
+
+class RiskAssessment(BaseModel):
+    # 1. Raw Input (LLM generates this, potentially in Finnish)
+    risk_level: str = Field(..., description="Risk level (Low/Medium/High).")
+    
+    # 2. Standardized Value (Logic uses this)
+    risk_score: float = Field(default=0.0, description="Numeric score (1.0-3.0).")
+
+    @model_validator(mode="after")
+    def calculate_score(self, info: ValidationInfo) -> 'RiskAssessment':
+        # 3. Define Mapping (Key -> Standard Value)
+        mapping = _map_l10n_values([
+            ("Risk.Low", 1.0),
+            ("Risk.Medium", 2.0),
+            ("Risk.High", 3.0)
+        ])
+            
+        # 4. Fuzzy Match Logic
+        if self.risk_score == 0.0 and self.risk_level:
+            for k, v in mapping.items():
+                if k.lower() in self.risk_level.lower():
+                    self.risk_score = v
+                    break
+        return self
+```
+
+### Key Principles
+*   **Resilience**: logic works regardless of whether the LLM outputs "High Risk" (EN) or "Korkea Riski" (FI).
+*   **SSOT**: The `l10n/*.json` files remain the single source of truth for the string values.
+*   **Failsafe**: If exact match fails, fuzzy matching (`in`) ensures robustness against minor LLM variations.
+
+## 🏗️ PART 13: STUDIO & BUILDER LOCALIZATION SAFETY
+
+The **Cognitive Studio** (Workflow Builder) operates in **Raw Mode**. It interacts directly with the `seed_data.json` / Registry structure key-values.
+
+### 1. The Hazard
+*   **What you see**: Inputs labeled `History Text`, `Product Text`, `Reflection Text`.
+*   **What they are**: These are **Translation Keys** (lookups), NOT English defaults.
+*   **The Risk**: If an Administrator renames `History Text` to `Historiateksti` in the Studio UI:
+    1.  The **Key** in the database becomes `Historiateksti`.
+    2.  The Backend `localize_schema` function looks for `Historiateksti` in `fi.json` / `en.json`.
+    3.  It finds nothing.
+    4.  **Result**: English users see "Historiateksti" (Broken Localization).
+
+### 2. The Rule
+> **"Edit Values, Never Keys"**
+
+*   **Allowed**: Changing numerical weights, thresholds, prompts (if they are content).
+*   **Forbidden**: Renaming generic UI labels in the Builder Config.
+*   **Protocol**: To change a label, edit `backend/l10n/*.json` and `backend/seed/seed_data.json` instead. The Studio is for **Assembly**, not **Copywriting**.

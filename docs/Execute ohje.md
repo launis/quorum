@@ -21,6 +21,8 @@
 
 2.  **Server-Driven Localization (Quorum System):**
     -   **Concept:** The Backend dictates UI text/labels based on the `Accept-Language` header sent by the Frontend.
+    -   **Mechanism:** `LocalizationMiddleware` extracts the header and sets a `ContextVar`.
+    -   **Usage:** Call `LocalizationService.translate("KEY")` without passing `lang`.
     -   **Frontend:** `ApiClient` automatically handles the header. Do NOT hardcode strings. Use labels provided by the API schema.
     -   **Backend (Pydantic):** Use `x-ui-label` in `json_schema_extra` for default English labels.
         ```python
@@ -63,7 +65,7 @@
     -   **Standard Sequence:**
         1.  Backend Dependencies (if any).
         2.  Backend Core/Models (Pydantic + x-ui-label).
-        3.  Backend L10n Updates (JSON files).
+        3.  Backend L10n Updates (JSON files + `LocalizationService` Context Logic).
         4.  Backend Repositories (TinyDB & Firestore - Dual Impl).
         5.  Backend API/Router.
         6.  Frontend Models (Freezed) & Repository.
@@ -98,7 +100,7 @@
     -   **Backend (Python):**
         -   NO `HTTPException` (Use `backend/exceptions.py` & RFC 7807).
         -   NO raw `dict` returns (Use Pydantic V2 models).
-        -   **L10N ENFORCEMENT:** MUST use `json_schema_extra` with `x-ui-label` for all user-facing fields. MUST add corresponding keys to `backend/l10n/fi.json`.
+        -   **L10N ENFORCEMENT (Context):** MUST use `json_schema_extra` with `x-ui-label` for Pydantic models. For logic/messages, MUST use `LocalizationService.translate("KEY")` (Auto-Context). MUST add keys to `backend/l10n/{lang}.json`.
     -   **Frontend (Flutter):**
         -   NO `ChangeNotifier` or manual `Provider` (Use `@riverpod` Generator ONLY).
         -   NO `setState` for business logic (UI state only).

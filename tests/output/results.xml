@@ -1,81 +1,112 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="2" time="6.879" timestamp="2026-02-07T15:52:47.174012+02:00" hostname="Laptop-Risto"><testcase classname="backend.tests.integration.test_config_integrity" name="test_agent_wrapper_propagates_temperature" time="1.484" /><testcase classname="backend.tests.integration.test_config_integrity" name="test_prompt_substitution" time="0.004"><failure message="ValueError: Provider type not set and no default allowed.">async def test_prompt_substitution():
-        """Verify that variable variables like {{HISTORY_TEXT}} are actually replaced."""
-        # 1. Setup Mock Prompt with Placeholders
-        raw_prompt = "Analyze the following: {{HISTORY_TEXT}}. End of input."
-        expected_prompt_snippet = "Analyze the following: CRITICAL_DATA_FOUND. End of input."
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="3" failures="0" skipped="0" tests="3" time="0.343" timestamp="2026-02-11T01:45:30.945002+02:00" hostname="Laptop-Risto"><testcase classname="backend.tests.unit.test_reporting_hook" name="test_generate_report_no_data" time="0.001"><error message="failed on setup with &quot;AttributeError: &lt;module 'backend.hooks.reporting' from 'c:\\src\\quorum\\backend\\hooks\\reporting.py'&gt; does not have the attribute 'LocalizationService'&quot;">@pytest.fixture(autouse=True)
+    def mock_localization():
+&gt;       with patch("backend.hooks.reporting.LocalizationService") as mock:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+backend\tests\unit\test_reporting_hook.py:14: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Python314\Lib\unittest\mock.py:1503: in __enter__
+    original, local = self.get_original()
+                      ^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = &lt;unittest.mock._patch object at 0x0000018F5180DE80&gt;
+
+    def get_original(self):
+        target = self.getter()
+        name = self.attribute
     
-        mock_db_config = {"model_name": "mock", "temperature": 0.1}
+        original = DEFAULT
+        local = False
     
-        with patch("backend.dependencies.get_async_repository", new_callable=AsyncMock), \
-             patch("backend.services.agent_registry.AgentRegistry") as MockRegistryClass, \
-             patch("backend.services.component_registry.ComponentRegistry") as MockComponentRegistry, \
-             patch("backend.agents.base.LLMFactory") as MockLLMFactory:
+        try:
+            original = target.__dict__[name]
+        except (AttributeError, KeyError):
+            original = getattr(target, name, DEFAULT)
+        else:
+            local = True
     
-            # Registry returns simple config
-            mock_registry_instance = MockRegistryClass.return_value
-            mock_registry_instance.resolve_model_config = AsyncMock(return_value=mock_db_config)
+        if name in _builtins and isinstance(target, ModuleType):
+            self.create = True
     
-            # Component Registry returns our TEMPLATE
-            mock_instance = MagicMock()
-            mock_instance.resolve_prompts.return_value = "Analyzed: {{HISTORY_TEXT}}"
-            MockComponentRegistry.return_value = mock_instance
-    
-            # Registry returns simple config
-            mock_registry_instance = MockRegistryClass.return_value
-            mock_registry_instance.resolve_model_config = AsyncMock(return_value=mock_db_config)
-    
-    
-    
-            # Mock Factory creation
-            MockLLMFactory.create_provider.return_value = MagicMock()
-    
-            # 3. Register Mock Agent
-            TaskRegistry.register_agent(["test_prompt_integ"], MockGuardAgent, dict)
-            task_def = TaskRegistry.get("test_prompt_integ")
-            wrapper_func = task_def.handler
-    
-            # 4. Input with DATA
-            input_dict = {"history_text": "CRITICAL_DATA_FOUND"}
-    
-            # 5. Execute with 'llm_prompts' key to trigger substitution logic
-            # MUST BE INSIDE WITH BLOCK because resolving happens here
-&gt;           result = await wrapper_func(
-                input_data=input_dict,
-                execution_config={"llm_prompts": ["SOME_KEY"]}
+        if not self.create and original is DEFAULT:
+&gt;           raise AttributeError(
+                "%s does not have the attribute %r" % (target, name)
             )
+E           AttributeError: &lt;module 'backend.hooks.reporting' from 'c:\\src\\quorum\\backend\\hooks\\reporting.py'&gt; does not have the attribute 'LocalizationService'
 
-backend\tests\integration\test_config_integrity.py:140: 
+C:\Python314\Lib\unittest\mock.py:1473: AttributeError</error></testcase><testcase classname="backend.tests.unit.test_reporting_hook" name="test_generate_report_with_data" time="0.001"><error message="failed on setup with &quot;AttributeError: &lt;module 'backend.hooks.reporting' from 'c:\\src\\quorum\\backend\\hooks\\reporting.py'&gt; does not have the attribute 'LocalizationService'&quot;">@pytest.fixture(autouse=True)
+    def mock_localization():
+&gt;       with patch("backend.hooks.reporting.LocalizationService") as mock:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+backend\tests\unit\test_reporting_hook.py:14: 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-backend\core\registry.py:110: in agent_wrapper
-    agent.set_model(model_name, provider=provider_type)
+C:\Python314\Lib\unittest\mock.py:1503: in __enter__
+    original, local = self.get_original()
+                      ^^^^^^^^^^^^^^^^^^^
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
-self = &lt;test_config_integrity.MockGuardAgent object at 0x000001BB19E0FED0&gt;
-model_name = 'mock', provider = None, usage_service = None
-organization_id = None
+self = &lt;unittest.mock._patch object at 0x0000018F518B02D0&gt;
 
-    def set_model(
-        self,
-        model_name: str,
-        provider: str | None = None,
-        usage_service: Any = None,
-        organization_id: str | None = None,
-    ):
-        """Dynamically updates the agent's model preference and ensures LLMProvider is ready.
+    def get_original(self):
+        target = self.getter()
+        name = self.attribute
     
-        Args:
-            model_name (str): The new model name.
-            provider (Optional[str]): The provider type.
-            usage_service (Any): UsageService instance for tracking.
-            organization_id (Optional[str]): Contextual Org ID.
-        """
-        self.model = model_name
-        if provider:
-            self.provider_type = provider
+        original = DEFAULT
+        local = False
     
-        current_provider_type = self.provider_type
-        if not current_provider_type:
-&gt;            raise ValueError("Provider type not set and no default allowed.")
-E            ValueError: Provider type not set and no default allowed.
+        try:
+            original = target.__dict__[name]
+        except (AttributeError, KeyError):
+            original = getattr(target, name, DEFAULT)
+        else:
+            local = True
+    
+        if name in _builtins and isinstance(target, ModuleType):
+            self.create = True
+    
+        if not self.create and original is DEFAULT:
+&gt;           raise AttributeError(
+                "%s does not have the attribute %r" % (target, name)
+            )
+E           AttributeError: &lt;module 'backend.hooks.reporting' from 'c:\\src\\quorum\\backend\\hooks\\reporting.py'&gt; does not have the attribute 'LocalizationService'
 
-backend\agents\base.py:89: ValueError</failure></testcase></testsuite></testsuites>
+C:\Python314\Lib\unittest\mock.py:1473: AttributeError</error></testcase><testcase classname="backend.tests.unit.test_reporting_hook" name="test_generate_report_attributes_fallback" time="0.001"><error message="failed on setup with &quot;AttributeError: &lt;module 'backend.hooks.reporting' from 'c:\\src\\quorum\\backend\\hooks\\reporting.py'&gt; does not have the attribute 'LocalizationService'&quot;">@pytest.fixture(autouse=True)
+    def mock_localization():
+&gt;       with patch("backend.hooks.reporting.LocalizationService") as mock:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+backend\tests\unit\test_reporting_hook.py:14: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Python314\Lib\unittest\mock.py:1503: in __enter__
+    original, local = self.get_original()
+                      ^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = &lt;unittest.mock._patch object at 0x0000018F518B1810&gt;
+
+    def get_original(self):
+        target = self.getter()
+        name = self.attribute
+    
+        original = DEFAULT
+        local = False
+    
+        try:
+            original = target.__dict__[name]
+        except (AttributeError, KeyError):
+            original = getattr(target, name, DEFAULT)
+        else:
+            local = True
+    
+        if name in _builtins and isinstance(target, ModuleType):
+            self.create = True
+    
+        if not self.create and original is DEFAULT:
+&gt;           raise AttributeError(
+                "%s does not have the attribute %r" % (target, name)
+            )
+E           AttributeError: &lt;module 'backend.hooks.reporting' from 'c:\\src\\quorum\\backend\\hooks\\reporting.py'&gt; does not have the attribute 'LocalizationService'
+
+C:\Python314\Lib\unittest\mock.py:1473: AttributeError</error></testcase></testsuite></testsuites>

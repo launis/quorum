@@ -85,25 +85,25 @@
       "models": {
         "google": {
           "deep": {
-            "max_tokens": 16384,
+            "max_tokens": 65536,
             "model_name": "vertex_ai/gemini-2.5-pro",
             "temperature": 0.5,
             "top_p": null
           },
           "fast": {
-            "max_tokens": 16384,
+            "max_tokens": 65536,
             "model_name": "vertex_ai/gemini-2.5-flash",
             "temperature": 0.7,
             "top_p": null
           },
           "strict": {
-            "max_tokens": 16384,
+            "max_tokens": 65536,
             "model_name": "vertex_ai/gemini-2.5-flash",
             "temperature": 0.1,
             "top_p": null
           },
           "precise": {
-            "max_tokens": 16384,
+            "max_tokens": 65536,
             "model_name": "vertex_ai/gemini-2.5-pro",
             "temperature": 0.2,
             "top_p": null
@@ -120,7 +120,7 @@
           "LogicalFalsifierAgent": "strict",
           "FactualOverseerAgent": "strict",
           "CausalAnalystAgent": "deep",
-          "PerformativityDetectorAgent": "fast",
+          "PerformativityDetectorAgent": "precise",
           "ArchivistAgent": "precise",
           "RetrievalAgent": "deep"
         }
@@ -350,7 +350,7 @@
       "type": "task"
     },
     {
-      "content": "VAIHE 10: ARKISTONHOITAJA (Best Practices Audit)\nTEHTÄVÄT:\n1. VERTAA käyttäjän tyyliä 'State of the Art' -käytäntöihin (esim. OpenAI Cookbook).\n2. ARVIOI 'Linjakkuus': Noudattaako käyttäjä systemaattista prosessia vai 'Brute Force' -yritystä?\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (älä muuta kenttien nimiä):\n{{SCHEMA_EXAMPLE}}",
+      "content": "VAIHE 10: ARKISTONHOITAJA (Best Practices Audit)\nTEHTÄVÄT:\n1. VERTAA käyttäjän tyyliä 'State of the Art' -käytäntöihin (esim. OpenAI Cookbook).\n2. ARVIOI 'Linjakkuus': Noudattaako käyttäjä systemaattista prosessia vai 'Brute Force' -yritystä?\n3. ANNA 'compliance_score' (1-5): 1=Täysin satunnainen, 3=Jonkinlainen prosessi, 5=Täydellinen best practices -noudattaminen.\n\nKÄSKE: Tulosta vastauksesi TÄSMÄLLEEN seuraavan JSON-skeeman mukaisesti (älä muuta kenttien nimiä):\n{{SCHEMA_EXAMPLE}}",
       "description": "Archivist - Best Practices Audit",
       "id": "TASK_ARCHIVIST",
       "type": "task"
@@ -767,17 +767,17 @@
       "ui_schema": {
         "history_text": {
           "icon": "history",
-          "label": "1. Chat History / Evidence (Chat Logs)",
+          "label": "INPUT_HISTORY_TEXT",
           "type": "file"
         },
         "product_text": {
           "icon": "inventory_2",
-          "label": "2. Product / Evaluation Target (Final Product)",
+          "label": "INPUT_PRODUCT_TEXT",
           "type": "file"
         },
         "reflection_text": {
           "icon": "lightbulb",
-          "label": "3. Reflection / Self-Evaluation",
+          "label": "INPUT_REFLECTION_TEXT",
           "type": "file"
         }
       },
@@ -807,9 +807,9 @@
       "name": "Courtroom 3.0 (Fused Critics)",
       "description": "Optimized workflow merging logical, causal, and performativity analysis into one parallel step.",
       "ui_schema": {
-        "history_text": { "icon": "history", "label": "1. Chat History / Evidence (Chat Logs)", "type": "file" },
-        "product_text": { "icon": "inventory_2", "label": "2. Product / Evaluation Target (Final Product)", "type": "file" },
-        "reflection_text": { "icon": "lightbulb", "label": "3. Reflection / Self-Evaluation", "type": "file" }
+        "history_text": { "icon": "history", "label": "INPUT_HISTORY_TEXT", "type": "file" },
+        "product_text": { "icon": "inventory_2", "label": "INPUT_PRODUCT_TEXT", "type": "file" },
+        "reflection_text": { "icon": "lightbulb", "label": "INPUT_REFLECTION_TEXT", "type": "file" }
       },
       "organization_id": null,
       "is_public": true,
@@ -820,7 +820,7 @@
         { "id": "step_profiler", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text" } },
         { "id": "step_panel", "inputs": { "todistus_kartta": "$step_analyst", "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text" } },
         { "id": "step_archivist", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text" } },
-        { "id": "step_judge", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "todistus_kartta": "$step_analyst", "step_profiler": "$step_profiler", "step_archivist": "$step_archivist", "panel_audit": "$step_panel" } },
+        { "id": "step_judge", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "todistus_kartta": "$step_analyst", "step_profiler": "$step_profiler", "step_archivist": "$step_archivist", "step_panel": "$step_panel" } },
         { "id": "step_coach", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "tuomio": "$step_judge" } },
         { "id": "step_context", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text" } },
         { "id": "step_xai", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "tuomio": "$step_judge", "coaching_plan": "$step_coach" }, "config": { "post_hooks": ["generate_report"] } }
@@ -833,9 +833,9 @@
       "name": "Courtroom 2.0 (Cognitive Audit)",
       "description": "Sequential audit using the new Cognitive BARS Matrix.",
       "ui_schema": {
-        "history_text": { "icon": "history", "label": "1. Chat History / Evidence", "type": "file" },
-        "product_text": { "icon": "inventory_2", "label": "2. Product / Evaluation Target", "type": "file" },
-        "reflection_text": { "icon": "lightbulb", "label": "3. Reflection / Self-Evaluation", "type": "file" }
+        "history_text": { "icon": "history", "label": "INPUT_HISTORY_TEXT", "type": "file" },
+        "product_text": { "icon": "inventory_2", "label": "INPUT_PRODUCT_TEXT", "type": "file" },
+        "reflection_text": { "icon": "lightbulb", "label": "INPUT_REFLECTION_TEXT", "type": "file" }
       },
       "organization_id": null,
       "is_public": false,
@@ -850,7 +850,7 @@
         { "id": "step_detector", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "todistus_kartta": "$step_analyst" } },
         { "id": "step_overseer", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "todistus_kartta": "$step_analyst" } },
         { "id": "step_archivist", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text" } },
-        { "id": "step_judge_cognitive", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "todistus_kartta": "$step_analyst", "step_profiler": "$step_profiler", "step_logician": "$step_logician", "step_falsifier": "$step_falsifier", "step_causal": "$step_causal", "step_detector": "$step_detector", "step_overseer": "$step_overseer", "step_archivist": "$step_archivist", "step_panel": "$step_panel" } },
+        { "id": "step_judge_cognitive", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "todistus_kartta": "$step_analyst", "step_profiler": "$step_profiler", "step_logician": "$step_logician", "step_falsifier": "$step_falsifier", "step_causal": "$step_causal", "step_detector": "$step_detector", "step_overseer": "$step_overseer", "step_archivist": "$step_archivist" } },
         { "id": "step_coach", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "tuomio": "$step_judge_cognitive" } },
         { "id": "step_context", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text" } },
         { "id": "step_xai", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "tuomio": "$step_judge_cognitive", "coaching_plan": "$step_coach" } }
@@ -863,9 +863,9 @@
       "name": "Courtroom 3.0 (Fused Cognitive)",
       "description": "Fused workflow using the new Cognitive BARS Matrix.",
       "ui_schema": {
-        "history_text": { "icon": "history", "label": "1. Chat History / Evidence", "type": "file" },
-        "product_text": { "icon": "inventory_2", "label": "2. Product / Evaluation Target", "type": "file" },
-        "reflection_text": { "icon": "lightbulb", "label": "3. Reflection / Self-Evaluation", "type": "file" }
+        "history_text": { "icon": "history", "label": "INPUT_HISTORY_TEXT", "type": "file" },
+        "product_text": { "icon": "inventory_2", "label": "INPUT_PRODUCT_TEXT", "type": "file" },
+        "reflection_text": { "icon": "lightbulb", "label": "INPUT_REFLECTION_TEXT", "type": "file" }
       },
       "organization_id": null,
       "is_public": false,
@@ -876,7 +876,7 @@
         { "id": "step_profiler", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text" } },
         { "id": "step_panel", "inputs": { "todistus_kartta": "$step_analyst", "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text" } },
         { "id": "step_archivist", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text" } },
-        { "id": "step_judge_cognitive", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "todistus_kartta": "$step_analyst", "panel_audit": "$step_panel" } },
+        { "id": "step_judge_cognitive", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "todistus_kartta": "$step_analyst", "step_profiler": "$step_profiler", "step_archivist": "$step_archivist", "step_panel": "$step_panel" } },
         { "id": "step_coach", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "tuomio": "$step_judge_cognitive" } },
         { "id": "step_context", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text" } },
         { "id": "step_xai", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "tuomio": "$step_judge_cognitive", "coaching_plan": "$step_coach" } }
@@ -889,9 +889,9 @@
       "name": "Courtroom 2.0 (Dual Matrix)",
       "description": "Sequential audit using BOTH Process and Cognitive BARS Matrices.",
       "ui_schema": {
-        "history_text": { "icon": "history", "label": "1. Chat History / Evidence", "type": "file" },
-        "product_text": { "icon": "inventory_2", "label": "2. Product / Evaluation Target", "type": "file" },
-        "reflection_text": { "icon": "lightbulb", "label": "3. Reflection / Self-Evaluation", "type": "file" }
+        "history_text": { "icon": "history", "label": "INPUT_HISTORY_TEXT", "type": "file" },
+        "product_text": { "icon": "inventory_2", "label": "INPUT_PRODUCT_TEXT", "type": "file" },
+        "reflection_text": { "icon": "lightbulb", "label": "INPUT_REFLECTION_TEXT", "type": "file" }
       },
       "organization_id": null,
       "is_public": false,
@@ -906,8 +906,8 @@
         { "id": "step_detector", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "todistus_kartta": "$step_analyst" } },
         { "id": "step_overseer", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "todistus_kartta": "$step_analyst" } },
         { "id": "step_archivist", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text" } },
-        { "id": "step_judge", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "todistus_kartta": "$step_analyst" } },
-        { "id": "step_judge_cognitive", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "todistus_kartta": "$step_analyst" } },
+        { "id": "step_judge", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "todistus_kartta": "$step_analyst", "step_profiler": "$step_profiler", "step_logician": "$step_logician", "step_falsifier": "$step_falsifier", "step_causal": "$step_causal", "step_detector": "$step_detector", "step_overseer": "$step_overseer", "step_archivist": "$step_archivist" } },
+        { "id": "step_judge_cognitive", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "todistus_kartta": "$step_analyst", "step_profiler": "$step_profiler", "step_logician": "$step_logician", "step_falsifier": "$step_falsifier", "step_causal": "$step_causal", "step_detector": "$step_detector", "step_overseer": "$step_overseer", "step_archivist": "$step_archivist" } },
         { "id": "step_coach", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "step_judge": "$step_judge", "step_judge_cognitive": "$step_judge_cognitive" } },
         { "id": "step_context", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text" } },
         { "id": "step_xai", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "step_judge": "$step_judge", "step_judge_cognitive": "$step_judge_cognitive", "coaching_plan": "$step_coach" } }
@@ -920,9 +920,9 @@
       "name": "Courtroom 3.0 (Fused Dual)",
       "description": "Fused workflow using BOTH Process and Cognitive BARS Matrices.",
       "ui_schema": {
-        "history_text": { "icon": "history", "label": "1. Chat History / Evidence", "type": "file" },
-        "product_text": { "icon": "inventory_2", "label": "2. Product / Evaluation Target", "type": "file" },
-        "reflection_text": { "icon": "lightbulb", "label": "3. Reflection / Self-Evaluation", "type": "file" }
+        "history_text": { "icon": "history", "label": "INPUT_HISTORY_TEXT", "type": "file" },
+        "product_text": { "icon": "inventory_2", "label": "INPUT_PRODUCT_TEXT", "type": "file" },
+        "reflection_text": { "icon": "lightbulb", "label": "INPUT_REFLECTION_TEXT", "type": "file" }
       },
       "organization_id": null,
       "is_public": true,
@@ -933,8 +933,8 @@
         { "id": "step_profiler", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "profiler_metrics": "$aux_data.profiler_metrics", "input_control_ratio": "$aux_data.input_control_ratio" } },
         { "id": "step_panel", "inputs": { "todistus_kartta": "$step_analyst", "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text" } },
         { "id": "step_archivist", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text" } },
-        { "id": "step_judge", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "todistus_kartta": "$step_analyst", "panel_audit": "$step_panel" } },
-        { "id": "step_judge_cognitive", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "todistus_kartta": "$step_analyst", "panel_audit": "$step_panel" } },
+        { "id": "step_judge", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "todistus_kartta": "$step_analyst", "step_profiler": "$step_profiler", "step_archivist": "$step_archivist", "step_panel": "$step_panel" } },
+        { "id": "step_judge_cognitive", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "todistus_kartta": "$step_analyst", "step_profiler": "$step_profiler", "step_archivist": "$step_archivist", "step_panel": "$step_panel" } },
         { "id": "step_coach", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "step_judge": "$step_judge", "step_judge_cognitive": "$step_judge_cognitive" } },
         { "id": "step_context", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text" } },
         { "id": "step_xai", "inputs": { "history_text": "$inputs.history_text", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "step_judge": "$step_judge", "step_judge_cognitive": "$step_judge_cognitive", "coaching_plan": "$step_coach" } }
@@ -1642,7 +1642,8 @@
           "HEADER_INSTRUCTIONS",
           "TASK_XAI"
         ],
-        "pre_hooks": [
+        "pre_hooks": [],
+        "post_hooks": [
           "generate_report"
         ],
         "model_strategy": "deep"
@@ -1656,7 +1657,7 @@
       }
     },
     {
-       "id": "step_retrieval",
+       "id": "step_context",
        "name": "Tiedonhakija",
        "description": "RAG Retrieval",
        "task_key": "retrieve_context",

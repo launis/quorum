@@ -57,7 +57,7 @@ class _DynamicInputFormState extends ConsumerState<DynamicInputForm> {
               final val = entry.value as Map<String, dynamic>;
               final key = entry.key;
               final type = val['type'] as String? ?? 'text';
-              final label = val['label'] as String? ?? key;
+              final label = _getLocalizedLabel(context, val['label'] as String? ?? key);
               final iconData = _getIcon(val['icon'] as String?);
               final minLines = val['minLines'] as int? ?? 1;
 
@@ -97,6 +97,20 @@ class _DynamicInputFormState extends ConsumerState<DynamicInputForm> {
         ],
       ),
     );
+  }
+
+  String _getLocalizedLabel(BuildContext context, String key) {
+    final l10n = AppLocalizations.of(context)!;
+    switch (key) {
+      case 'INPUT_HISTORY_TEXT':
+        return l10n.inputChatHistory;
+      case 'INPUT_PRODUCT_TEXT':
+        return l10n.inputProductTarget;
+      case 'INPUT_REFLECTION_TEXT':
+        return l10n.inputReflection;
+      default:
+        return key;
+    }
   }
 
   IconData? _getIcon(String? iconName) {

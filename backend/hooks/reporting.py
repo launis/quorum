@@ -52,28 +52,49 @@ def generate_report(state: WorkflowState) -> WorkflowState:
         env = Environment(loader=FileSystemLoader(template_dir))
         template = env.get_template("report_template.jinja2")
 
-        # 2. Gather Data from State
-        if not getattr(state, "step_xai", None):
-            logger.warning("[ReportingHook] No XAI Report data available.")
-            return state
+        # 2. Gather Data from State (Event Sourcing Support)
+        # Check context_variables first (GraphEngine standard)
+        xai_data = state.context_variables.get("step_xai")
+        
+        # Fallback to attributes (Legacy Blackboard)
+        if not xai_data:
+            xai_data = getattr(state, "step_xai", None)
 
-        xai_data = state.step_xai  # This is a Pydantic Model (XAIOutput) OR dict
+        if not xai_data:
+            logger.warning("[ReportingHook] No XAI Report data available (checked context_variables and attributes).")
+            return state
 
         # --- DYNAMIC EVALUATION DISCOVERY ---
         eval_steps = []
 
-        # 1. V1 Legacy Discovery (Attributes on State)
+        # 1. Discovery from context_variables (V2)
+        if state.context_variables:
+            for key, val in state.context_variables.items():
+                if key.startswith("step_") and val:
+                    # Check if it looks like an evaluation
+                    # Typically we check for 'pisteet' or 'total_score'
+                    pisteet = safe_get(val, "pisteet")
+                    total_score = safe_get(val, "total_score")
+                    
+                    if pisteet or total_score is not None:
+                         # De-duplicate if in audit_results
+                         if hasattr(state, "audit_results") and key in state.audit_results:
+                             continue
+                         eval_steps.append((key, val))
+
+        # 2. V1 Legacy Discovery (Attributes on State)
         for attr_name in dir(state):
             if attr_name.startswith("step_"):
                 val = getattr(state, attr_name)
                 pisteet = safe_get(val, "pisteet")
                 if val and pisteet:
-                    # Prevent duplicates if V2 system also populated this (unlikely but safe)
-                    if attr_name not in state.audit_results:
-                        eval_steps.append((attr_name, val))
+                    if attr_name not in eval_steps: # Avoid duplicates
+                         # Also check audit_results if present
+                         if not (hasattr(state, "audit_results") and state.audit_results and attr_name in state.audit_results):
+                             eval_steps.append((attr_name, val))
 
-        # 2. V2 Dynamic Discovery (audit_results dict)
-        if state.audit_results:
+        # 3. V2 Dynamic Discovery (audit_results dict) - Prioritized
+        if hasattr(state, "audit_results") and state.audit_results:
             for step_id, res in state.audit_results.items():
                 eval_steps.append((step_id, res))
 
@@ -232,14 +253,17 @@ def generate_report(state: WorkflowState) -> WorkflowState:
             typed_scores[k] = v
 
         # Prepare arguments for ReportContext
+        # Helper for aux_data access (Attribute or Dict)
+        def get_aux(key, default=None):
+             aux = getattr(state, "aux_data", {})
+             if isinstance(aux, dict):
+                 return aux.get(key, default)
+             return getattr(aux, key, default)
+
         ctx_args = {
             "summary": exec_summary,
             "critical_findings": critical_findings,
-            "pre_mortem_signals": (
-                state.aux_data.get("performative_patterns_detected", [])
-                if isinstance(state.aux_data, dict)
-                else getattr(state.aux_data, "performative_patterns_detected", [])
-            ),
+            "pre_mortem_signals": get_aux("performative_patterns_detected", []),
             "hitl_required": False,
             "ethical_issues": [],
             "audit_questions": [],
@@ -249,42 +273,18 @@ def generate_report(state: WorkflowState) -> WorkflowState:
             "timestamp": datetime.now().strftime("%d.%m.%Y %H:%M"),
             "coaching_plan": None,
             # Hook-injected data (Jan 2026)
-            "penalties_applied": (
-                state.aux_data.get("penalties_applied", [])
-                if isinstance(state.aux_data, dict)
-                else getattr(state.aux_data, "penalties_applied", [])
-            ),
-            "score_summary": (
-                state.aux_data.get("score_summary")
-                if isinstance(state.aux_data, dict)
-                else getattr(state.aux_data, "score_summary", None)
-            ),
-            "input_control_ratio": (
-                state.aux_data.get("input_control_ratio")
-                if isinstance(state.aux_data, dict)
-                else getattr(state.aux_data, "input_control_ratio", None)
-            ),
+            "penalties_applied": get_aux("penalties_applied", []),
+            "score_summary": get_aux("score_summary"),
+            "input_control_ratio": get_aux("input_control_ratio"),
             # Hook outputs (Jan 2026 - Expanded)
-            "structural_warnings": (
-                state.aux_data.get("structural_warnings", [])
-                if isinstance(state.aux_data, dict)
-                else getattr(state.aux_data, "structural_warnings", [])
-            ),
-            "archivist_precedents": (
-                state.aux_data.get("archivist_precedents")
-                if isinstance(state.aux_data, dict)
-                else getattr(state.aux_data, "archivist_precedents", None)
-            ),
-            "google_search_results": (
-                state.aux_data.get("google_search_results", [])
-                if isinstance(state.aux_data, dict)
-                else getattr(state.aux_data, "google_search_results", [])
-            ),
+            "structural_warnings": get_aux("structural_warnings", []),
+            "archivist_precedents": get_aux("archivist_precedents"),
+            "google_search_results": get_aux("google_search_results", []),
         }
 
         # Add Overseer Data if available
-        # Add Overseer Data if available
-        if state.step_overseer:
+        step_overseer = state.context_variables.get("step_overseer") or getattr(state, "step_overseer", None)
+        if step_overseer:
             # Helper to serialize list of models
             def serialize_list(items):
                 serialized = []
@@ -297,13 +297,14 @@ def generate_report(state: WorkflowState) -> WorkflowState:
                         serialized.append(item.__dict__)
                 return serialized
 
-            ctx_args["ethical_issues"] = serialize_list(state.step_overseer.eettiset_havainnot)
-            ctx_args["audit_questions"] = serialize_list(state.step_overseer.faktantarkistus_rfi)
+            ctx_args["ethical_issues"] = serialize_list(safe_get(step_overseer, "eettiset_havainnot"))
+            ctx_args["audit_questions"] = serialize_list(safe_get(step_overseer, "faktantarkistus_rfi"))
 
         # Add Coaching Plan
-        if state.step_coach:
+        step_coach = state.context_variables.get("step_coach") or getattr(state, "step_coach", None)
+        if step_coach:
             # V1 vs V2 check
-            cp = safe_get(state.step_coach, "coaching_plan") or state.step_coach
+            cp = safe_get(step_coach, "coaching_plan") or step_coach
             if hasattr(cp, "model_dump"):
                 ctx_args["coaching_plan"] = cp.model_dump()
             else:
@@ -325,24 +326,53 @@ def generate_report(state: WorkflowState) -> WorkflowState:
             disclaimer=disclaimer,
         )
 
-        # 4. Save to State
-        # Usage: XAIReport.xai_report_formatted AND WorkflowState.xai_report_formatted (Top-Level)
-        if result := getattr(state, "step_xai", None):
-            result.xai_report_formatted = output_text
-            state.xai_report_formatted = output_text  # <--- CRITICAL FIX: Hoist to top-level for Frontend
-            logger.debug("[ReportingHook] Report generated and saved to state.xai_report_formatted")
-        else:
-            state.aux_data["final_report_markdown"] = output_text
-            state.xai_report_formatted = output_text  # Fallback hoist
+        # 4. Save to State (Event Sourcing / Context Variables)
+        # We cannot mutate 'state' directly because it is frozen.
+        # We must create a copy with updated context_variables.
+        
+        new_context = state.context_variables.copy()
+        
+        # 1. Update the XAI Step output itself (if it was a dict)
+        # If it was a Pydantic model, we can't easily mutate it in place inside the dict without replacement.
+        # But xai_data reference might be a copy or original. 
+        # Safest is to explicitly set the key in new_context.
+        
+        if xai_data and isinstance(xai_data, dict):
+             xai_data["xai_report_formatted"] = output_text
+             new_context["step_xai"] = xai_data
+        elif xai_data and hasattr(xai_data, "model_copy"):
+             # It's a Pydantic model. Create a copy with the new field?
+             # But XAIOutput model might not have xai_report_formatted field if strict.
+             # Use extra='allow' or setattr if permitted. 
+             try:
+                 setattr(xai_data, "xai_report_formatted", output_text)
+                 new_context["step_xai"] = xai_data
+             except Exception:
+                 # If model is frozen or strict, we can't attach it there.
+                 pass
+
+        # 2. Hoist to Top-Level Context for Frontend
+        new_context["xai_report_formatted"] = output_text
+        new_context["final_report_markdown"] = output_text # Legacy support
+
+        logger.debug("[ReportingHook] Report generated and saved to context_variables['xai_report_formatted']")
+        
+        # Return new state
+        return state.model_copy(update={"context_variables": new_context})
 
     except Exception as e:
         err_msg = f"⚠️ [ReportingHook] Report generation failed: {str(e)}"
         logger.error(err_msg, exc_info=True)
-        if result := getattr(state, "step_xai", None):
-            result.xai_report_formatted = (
+        
+        # Attempt to write error report
+        try:
+            error_report = (
                 f"# Virhe Raportoinnissa\n\nJärjestelmä ei voinut generoida raporttia.\n\n**Tekninen syy:** `{str(e)}`"
             )
-            # Optional: Mark comparison data as failed/empty to avoid UI guessing
-            result.comparison_data = None
+            new_context = state.context_variables.copy()
+            new_context["xai_report_formatted"] = error_report
+            return state.model_copy(update={"context_variables": new_context})
+        except Exception:
+             return state
 
     return state
