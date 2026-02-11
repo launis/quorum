@@ -25,7 +25,21 @@ The V2.9 iteration enforces a **Unidirectional Data Flow** where the "DNA" of th
 
 ---
 
-## 2. Dynamic Evaluation System (BARS)
+## 2. Two-Level Architecture (Hybrid Rubric)
+ 
+ The system implements a **Hybrid Rubric** designed to manage the tension between Reliability and Validity (The "Measurement Paradox"):
+ 
+ ### Level 1: Analytical (Cognitive Assessment Matrix)
+ *   **Goal**: Reliability.
+ *   **Mechanism**: **BARS** (Behaviorally Anchored Rating Scales) rooted in Bloom's Taxonomy and Toulmin's Argumentation.
+ *   **Focus**: The logical validity of the *process* and *artifact*.
+ 
+ ### Level 2: Holistic (Cognitive Quorum)
+ *   **Goal**: Validity (Mastery).
+ *   **Mechanism**: **Multi-Agent System (MAS)** where specialized agents (Critics) challenge the consensus.
+ *   **Focus**: Strategic guidance (`Agency`) and genuine insight that may break rules.
+ 
+ ## 3. Dynamic Evaluation System (BARS)
 
 The system uses **Behaviorally Anchored Rating Scales (BARS)** to decouple the *definition* of quality from the *code* that measures it.
 
@@ -73,6 +87,13 @@ The standard `Courtroom 2.0` workflow consists of:
 
 ### I. The Guardians (Input Processing)
 *   **Vartija (Guard)**: Regex/LLM hybrid for PII stripping and Prompt Injection defense.
+    *   **Architectural Decision: Parallel Audit**: The Guard is designed as a "Sidecar Auditor" rather than a sequential filter.
+    *   **Mechanism**: It returns a security status (`DATA_CHECKED_AND_SECURED`) instead of echoing the full text. This prevents "Prompt Injection Mirroring" (where an LLM inadvertently executes the attack while repeating it) and halves token costs.
+    *   **Circuit Breaker**: If `threat_detected=True`, the Workflow Engine halts execution immediately via `FatalInterruption`.
+*   **Tiedonhakija (Context Retrieval)**: RAG Agent executing the **Sidebar Pattern**.
+    *   **Architectural Decision**: Fetches external context *before* analysis but is **NOT** connected to the Analyst.
+    *   **Rationale ("Hallucination Masking")**: If the Analyst sees the "Truth" (RAG) before the "Claim" (User Input), it risks auto-correcting user errors. We keep the Analyst "blind" to ensure it captures the user's *actual* argument, enabling the Falsifier to spot discrepancies later.
+    *   **Consumer**: Context is routed directly to the **Overseer** and **Judge** for fact-checking.
 *   **Analyytikko (Analyst)**: Structuring raw text into an `EvidenceMap`.
 
 ### II. The Critics (Parallel Processing)
@@ -83,6 +104,9 @@ The standard `Courtroom 2.0` workflow consists of:
 
 ### III. The Synthesis (Judgement)
 *   **Tuomari (Judge)**: The matrix-driven decision engine. Synthesizes critic outputs into a strict `EvaluationResult`.
+    *   **Deterministic Penalty ("Passiveness Cutter")**: Implements `OP_RULE_4`. If the user is rated as a "Passenger" (Scale Minimum) in *any* dimension, the Total Score is automatically capped at the **Lower Third** of the scale.
+        *   *Formula*: `Cap = Min + ((Max - Min) / 3)`.
+        *   *Rationale*: A "Passenger" performance cannot mathematically exceed the "Driver" threshold (Level 3 equivalent), regardless of the scoring scale used (1-4, 1-100, etc.).
 *   **Valmentaja (Coach)**: Pedagogical feedback generator. Translates scores into actionable advice.
 
 ### IV. The Reporter (Output)

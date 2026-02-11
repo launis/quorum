@@ -1,6 +1,7 @@
 """Mock Data Store for AI Layer Testing (Zero-Token Cost)."""
 
 from typing import Any
+from datetime import datetime
 
 from backend.models.domain import (
     ArchivistOutput,
@@ -13,9 +14,9 @@ from backend.models.domain import (
     EvaluationResult,
     FactCheckRFI,
     FalsifierData,
-    Hypoteesi,
+    Hypothesis,
     InteractionAnalysis,
-    KognitiivinenTaso,
+    CognitiveLevel,
     LogicianData,
     Metadata,
     OverseerData,
@@ -24,36 +25,234 @@ from backend.models.domain import (
     PerformativityHeuristic,
     PreMortemAnalysis,
     ProfilerAnalysis,
-    RagTodiste,
     ReasoningFidelity,
-    SafeDataContent,
+
     JudgeScoreCard,
     SecurityCheck,
     TaintedDataContent,
     AnalystOutput,
-    ToulminKomponentti,
-    WaltonSkeema,
+    ToulminComponent,
+    WaltonScheme,
     WaltonStressTest,
+    GuardOutput,
     XAIOutput,
     XAIScoreItem,
+    ArchiveCase
 )
 
-# ... (omitted lines)
+# 0. Shared Metadata
+MOCK_METADATA = Metadata(
+    luontiaika=datetime.now(),
+    agentti="MockAgent",
+    vaihe=1,
+    versio="1.0",
+    suoritus_ymparisto="Testing"
+)
 
-# 9. XAI Report
+# 1. Analyst Agent
+MOCK_ANALYST_OUTPUT = AnalystOutput(
+    reasoning_trace="Mock reasoning trace for Analyst.",
+    metadata=MOCK_METADATA.model_copy(update={"agentti": "AnalystAgent", "vaihe": 2}),
+    hypotheses=[
+        Hypothesis(
+            id="hyp-1",
+            claim_text="Mock Claim 1",
+            evidence_found=True,
+            search_query="mock query",
+            quotes=["quote 1"]
+        )
+    ],
+    rag_evidence=["Evidence 1"]
+)
+
+# ... (Panel Components) ...
+
+MOCK_LOGICIAN_DATA = LogicianData(
+    toulmin_analysis=[
+        ToulminComponent(
+            id="toul-1",
+            claim="Toulmin Claim",
+            data="Data",
+            warrant="Warrant"
+        )
+    ],
+    cognitive_level=CognitiveLevel(
+        bloom_level="Bloom.Analyzing",
+        strategic_depth="Strategic.High",
+        bloom_score=4.0,
+        strategic_score=3.0,
+        description="Analyzing High"
+    ),
+    walton_scheme=WaltonScheme(
+        identified_scheme="Expert Opinion",
+        critical_questions=["Expert credible?"]
+    ),
+    toulmin_score=4.0,
+    description="Logician Analysis"
+)
+
+MOCK_FALSIFIER_DATA = FalsifierData(
+    stress_test_findings=[
+        WaltonStressTest(
+            question="Stress Question 1",
+            evidence_held=True,
+            observation="Observed pass"
+        )
+    ],
+    fidelity_audit=ReasoningFidelity(
+        is_post_hoc=False,
+        justification="Sound reasoning",
+        fidelity_score="High",
+        fidelity_numeric=3.0
+    )
+)
+
+MOCK_CAUSAL_ANALYSIS = CausalAnalysis(
+    causal_audit=CausalAnalysisData(
+        timeline_valid=True,
+        observation="Valid timeline"
+    ),
+    counterfactual_test=CounterfactualTest(
+        scenario_a_actual="A",
+        scenario_b_simulated="B",
+        plausibility_score="Plausible",
+        plausibility_numeric=2.0
+    ),
+    abductive_conclusion="Genuine Insight",
+    abductive_score=3.0
+)
+
+MOCK_PERFORMATIVITY_ANALYSIS = PerformativityAnalysis(
+    performativity_heuristics=[
+        PerformativityHeuristic(
+            heuristic_name="H1",
+            flag_raised=False,
+            description="No flags"
+        )
+    ],
+    pre_mortem_analysis=PreMortemAnalysis(
+        performed=True,
+        weak_signals=["Signal 1"]
+    ),
+    authenticity_assessment="Organic",
+    authenticity_score=3.0
+)
+
+MOCK_OVERSEER_DATA = OverseerData(
+    fact_checks=[
+        FactCheckRFI(
+            claim="Fact Check Claim 1",
+            verification_result="Verified",
+            source_or_reasoning="Source 1"
+        )
+    ],
+    ethical_issues=[
+        EthicalObservation(
+            issue_type="Bias",
+            severity="None",
+            description="No issues"
+        )
+    ]
+)
+
+# 2. Panel Agent
+MOCK_PANEL_OUTPUT = PanelOutput(
+    reasoning_trace="Mock Panel Trace",
+    metadata=MOCK_METADATA.model_copy(update={"agentti": "PanelAgent", "vaihe": 3}),
+    logician_data=MOCK_LOGICIAN_DATA,
+    falsifier_data=MOCK_FALSIFIER_DATA,
+    causal_analysis=MOCK_CAUSAL_ANALYSIS,
+    performativity_analysis=MOCK_PERFORMATIVITY_ANALYSIS,
+    overseer_data=MOCK_OVERSEER_DATA
+)
+
+# 3. Judge Agent
+MOCK_JUDGE_OUTPUT = EvaluationResult(
+    matrix_id="matrix_standard_v1",
+    timestamp=datetime.now(),
+    total_score=4.5,
+    final_verdict="Excellent",
+    dimensions=[
+        DimensionResultItem(
+            dimension_id="logic",
+            dimension_label="Logic",
+            score=5,
+            reasoning="Perfect logic"
+        )
+    ],
+    scale_min=1.0,
+    scale_max=5.0,
+    score_cards=[
+         JudgeScoreCard(
+            agent_name="MockJudge",
+            total_score=4.5,
+            max_score=5,
+            verdict="Excellent",
+            dimensions=[
+                DimensionResultItem(
+                    dimension_id="logic",
+                    dimension_label="Logic",
+                    score=5,
+                    reasoning="Perfect logic"
+                )
+            ]
+        )
+    ]
+)
+
+# 4. Other Agents
+MOCK_INTERACTION_OUTPUT = InteractionAnalysis(
+    reasoning_trace="Mock Interaction Trace",
+    metadata=MOCK_METADATA.model_copy(update={"agentti": "InteractionAgent"}),
+    role_classification="Architect",
+    input_quality_score=0.9,
+    improvement_suggestions=["Suggestion 1"]
+)
+
+MOCK_PROFILER_OUTPUT = ProfilerAnalysis(
+    reasoning_trace="Mock Profiler Trace",
+    metadata=MOCK_METADATA.model_copy(update={"agentti": "ProfilerAgent"}),
+    author_intent="Inform",
+    cognitive_biases=["Bias 1"],
+    emotional_tone="Neutral",
+    metrics={"word_count": 100}
+)
+
+MOCK_ARCHIVIST_OUTPUT = ArchivistOutput(
+    reasoning_trace="Mock Archivist Trace",
+    metadata=MOCK_METADATA.model_copy(update={"agentti": "ArchivistAgent"}),
+    relevant_cases=[
+        ArchiveCase(
+            case_id="case-1",
+            similarity_score=0.8,
+            verdict="Pass",
+            summary="Similar case"
+        )
+    ],
+    consistency_analysis="Consistent",
+    stare_decisis_adherence=True,
+    compliance_analysis="Aligned",
+    compliance_score=4.0
+)
+
+MOCK_COACH_OUTPUT = CoachingPlan(
+    reasoning_trace="Mock Coach Trace",
+    metadata=MOCK_METADATA.model_copy(update={"agentti": "CoachAgent"}),
+    actionable_steps=["Step 1"],
+    bibliography=[],
+    focus_areas=["Area 1"]
+)
+
 MOCK_XAI_OUTPUT = XAIOutput(
-    metadata=MOCK_METADATA.model_copy(update={"agentti": "XAI", "vaihe": 13}),
-    metodologinen_loki="Mock XAI",
-    edellisen_vaiheen_validointi="Pass",
-    semanttinen_tarkistussumma="hash_xai",
-    executive_summary="[TIIVISTELMÄ]",
-    analysis_strengths="[VAHVUUDET]",
-    analysis_weaknesses="[HEIKKOUDET]",
-    analysis_opportunities="[MAHDOLLISUUDET]",
-    analysis_recommendations="[SUOSITUKSET]",
-    final_verdict="[LOPPUTULOS]",
+    reasoning_trace="Mock XAI Trace",
+    metadata=MOCK_METADATA.model_copy(update={"agentti": "XAIReporterAgent"}),
+    executive_summary="Summary",
+    analysis_strengths="Strengths",
+    analysis_weaknesses="Weaknesses",
+    analysis_opportunities="Opportunities",
+    analysis_recommendations="Recommendations",
+    final_verdict="Verdict",
     confidence_score=0.95,
-    comparison_data={"status": "Mock Comparison Data"},
     score_cards=[
         JudgeScoreCard(
             agent_name="Standard Judge",
@@ -65,58 +264,45 @@ MOCK_XAI_OUTPUT = XAIOutput(
                 DimensionResultItem(dimension_id="ethics", score=4.5, reasoning="Good ethics"),
             ],
         )
-    ],
+    ]
 )
 
-
-# 10. Tainted Data (Guard Agent Model)
-MOCK_TAINTED_DATA = TaintedDataContent(
-    metadata=MOCK_METADATA.model_copy(update={"agentti": "GuardAgent", "vaihe": 1}),
-    metodologinen_loki="Mock Guard Scan",
-    edellisen_vaiheen_validointi="N/A",
-    semanttinen_tarkistussumma="hash_guard",
-    data=TaintedDataContent(
-        keskusteluhistoria="{{FILE: Keskusteluhistoria.pdf}}",
-        lopputuote="{{FILE: Lopputuote.pdf}}",
-        reflektiodokumentti="{{FILE: Reflektiodokumentti.pdf}}",
-    ),
+MOCK_GUARD_OUTPUT = GuardOutput(
+    reasoning_trace="Mock Guard Trace",
     security_check=SecurityCheck(
-        uhka_havaittu=False,
-        adversariaalinen_simulaatio_tulos="[SIMULAATION TULOS]",
-        riski_taso="MATALA",
-        anonymisointi_tehty=True,
-        tietosuoja_raportti="Mock data redacted.",
+        threat_detected=False,
+        risk_level="Low",
+        risk_score=1.0,
+        simulation_score=1.0, 
+        anonymized=True
     ),
-    safe_data=SafeDataContent(
-        keskusteluhistoria="Sanitized history",
-        lopputuote="Sanitized product",
-        reflektiodokumentti="Sanitized reflection",
-    ),
+    tainted_data=TaintedDataContent(
+        chat_history="History",
+        product_text="Product",
+        reflection_text="Reflection",
+        safe_data="Safe"
+    )
 )
 
 
-# Registry Mapping
-# Maps the Pydantic MODEL CLASS to the instance
 MOCK_REGISTRY: dict[type[Any], Any] = {
     AnalystOutput: MOCK_ANALYST_OUTPUT,
     PanelOutput: MOCK_PANEL_OUTPUT,
-
-    TaintedDataContent: MOCK_TAINTED_DATA,
+    GuardOutput: MOCK_GUARD_OUTPUT,
     InteractionAnalysis: MOCK_INTERACTION_OUTPUT,
     ProfilerAnalysis: MOCK_PROFILER_OUTPUT,
     ArchivistOutput: MOCK_ARCHIVIST_OUTPUT,
     EvaluationResult: MOCK_JUDGE_OUTPUT,
     CoachingPlan: MOCK_COACH_OUTPUT,
     XAIOutput: MOCK_XAI_OUTPUT,
-    # Expose Panel Components individually in case tasks are run in isolation
-    LogicianData: MOCK_PANEL_OUTPUT.logician_data,
-    FalsifierData: MOCK_PANEL_OUTPUT.falsifier_data,
-    CausalAnalysis: MOCK_PANEL_OUTPUT.causal_analysis,
-    PerformativityAnalysis: MOCK_PANEL_OUTPUT.performativity_analysis,
-    OverseerData: MOCK_PANEL_OUTPUT.overseer_data,
+    
+    # Components
+    LogicianData: MOCK_LOGICIAN_DATA,
+    FalsifierData: MOCK_FALSIFIER_DATA,
+    CausalAnalysis: MOCK_CAUSAL_ANALYSIS,
+    PerformativityAnalysis: MOCK_PERFORMATIVITY_ANALYSIS,
+    OverseerData: MOCK_OVERSEER_DATA,
 }
-
-# --- Lookups & Helpers ---
 
 AGENT_CLASS_TO_MOCK_KEY = {
     "GuardAgent": "guard_agent",
@@ -135,25 +321,23 @@ AGENT_CLASS_TO_MOCK_KEY = {
     "PanelAgent": "panel_agent",
 }
 
-
 def get_fallback_data(key: str) -> dict[str, Any]:
-    """Retrieves the default mock data for a given agent key."""
     if key == "guard_agent":
-        return MOCK_TAINTED_DATA.model_dump()
+        return MOCK_GUARD_OUTPUT.model_dump()
     elif key == "analyst_agent":
         return MOCK_ANALYST_OUTPUT.model_dump()
     elif key == "interaction_agent":
         return MOCK_INTERACTION_OUTPUT.model_dump()
     elif key == "logician_agent":
-        return MOCK_PANEL_OUTPUT.logician_data.model_dump()
+        return MOCK_LOGICIAN_DATA.model_dump()
     elif key == "falsifier_agent":
-        return MOCK_PANEL_OUTPUT.falsifier_data.model_dump()
+        return MOCK_FALSIFIER_DATA.model_dump()
     elif key == "causal_agent":
-        return MOCK_PANEL_OUTPUT.causal_analysis.model_dump()
+        return MOCK_CAUSAL_ANALYSIS.model_dump()
     elif key == "performativity_agent":
-        return MOCK_PANEL_OUTPUT.performativity_analysis.model_dump()
+        return MOCK_PERFORMATIVITY_ANALYSIS.model_dump()
     elif key == "fact_checker_agent":
-        return MOCK_PANEL_OUTPUT.overseer_data.model_dump()
+        return MOCK_OVERSEER_DATA.model_dump()
     elif key == "profiler_agent":
         return MOCK_PROFILER_OUTPUT.model_dump()
     elif key == "archivist_agent":

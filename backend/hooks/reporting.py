@@ -280,9 +280,11 @@ def generate_report(state: WorkflowState) -> WorkflowState:
             "structural_warnings": get_aux("structural_warnings", []),
             "archivist_precedents": get_aux("archivist_precedents"),
             "google_search_results": get_aux("google_search_results", []),
+            "word_count": get_aux("word_count"),  # New Field
         }
 
         # Add Overseer Data if available
+        print("DEBUG: Extracting Overseer Data...")
         step_overseer = state.context_variables.get("step_overseer") or getattr(state, "step_overseer", None)
         if step_overseer:
             # Helper to serialize list of models
@@ -310,6 +312,29 @@ def generate_report(state: WorkflowState) -> WorkflowState:
             else:
                 ctx_args["coaching_plan"] = cp
 
+        # Add Specialist Agents (Deep Analysis)
+        def extract_specialist_data(step_name, data_attr):
+             step_data = state.context_variables.get(step_name)
+             if not step_data:
+                 step_data = getattr(state, step_name, None)
+             
+             if not step_data:
+                 return None
+
+             # access inner data wrapper
+             val = getattr(step_data, data_attr, None)
+             if val:
+                 return val
+             if isinstance(step_data, dict):
+                 return step_data.get(data_attr)
+             return None
+
+        ctx_args["logician_data"] = extract_specialist_data("step_logician", "logician_data")
+        ctx_args["falsifier_data"] = extract_specialist_data("step_falsifier", "falsifier_data")
+        ctx_args["causal_analysis"] = extract_specialist_data("step_causal", "causal_analysis")
+        ctx_args["performativity_analysis"] = extract_specialist_data("step_detector", "performativity_analysis")
+        ctx_args["overseer_data"] = extract_specialist_data("step_overseer", "overseer_data")
+
         # Instantiate Model to validate
         report_context = ReportContext(**ctx_args)
 
@@ -330,32 +355,30 @@ def generate_report(state: WorkflowState) -> WorkflowState:
         # We cannot mutate 'state' directly because it is frozen.
         # We must create a copy with updated context_variables.
         
+        try:
+            from backend.models.domain import ReportResult
+            report_result = ReportResult(report_content=output_text, format="markdown")
+        except ImportError:
+            logger.error("[ReportingHook] Could not import ReportResult")
+            # Fallback to avoid complete failure if model missing (should not happen in strict mode)
+            # In strict mode we might want to raise, but reporting is end of chain.
+            return state
+
         new_context = state.context_variables.copy()
         
-        # 1. Update the XAI Step output itself (if it was a dict)
-        # If it was a Pydantic model, we can't easily mutate it in place inside the dict without replacement.
-        # But xai_data reference might be a copy or original. 
-        # Safest is to explicitly set the key in new_context.
+        # 1. Store strict result
+        new_context["report_result"] = report_result
+
+        # 2. Legacy / Frontend support
+        new_context["xai_report_formatted"] = output_text
+        new_context["final_report_markdown"] = output_text 
         
+        # 3. Update Step XAI if present (Best Effort)
         if xai_data and isinstance(xai_data, dict):
              xai_data["xai_report_formatted"] = output_text
              new_context["step_xai"] = xai_data
-        elif xai_data and hasattr(xai_data, "model_copy"):
-             # It's a Pydantic model. Create a copy with the new field?
-             # But XAIOutput model might not have xai_report_formatted field if strict.
-             # Use extra='allow' or setattr if permitted. 
-             try:
-                 setattr(xai_data, "xai_report_formatted", output_text)
-                 new_context["step_xai"] = xai_data
-             except Exception:
-                 # If model is frozen or strict, we can't attach it there.
-                 pass
 
-        # 2. Hoist to Top-Level Context for Frontend
-        new_context["xai_report_formatted"] = output_text
-        new_context["final_report_markdown"] = output_text # Legacy support
-
-        logger.debug("[ReportingHook] Report generated and saved to context_variables['xai_report_formatted']")
+        logger.debug("[ReportingHook] Report generated and saved to context_variables['report_result']")
         
         # Return new state
         return state.model_copy(update={"context_variables": new_context})

@@ -34,6 +34,8 @@ HOOK_MAPPING = {
     "retrieve_precedent": ("backend.hooks.archival", "retrieve_precedent"),
     # References (use wrapper function)
     "generate_bibliography": ("backend.hooks.references", "generate_bibliography_hook"),
+    # Passiveness Cutter (Strict Penalty)
+    "enforce_passivity_penalty": ("backend.hooks.scoring", "enforce_passivity_penalty"),
 }
 
 
@@ -274,6 +276,29 @@ class GraphEngine:
 
                 logger.debug(f"Step '{step.id}' event added to trace.")
 
+                # --- 8.1 CONDITIONAL STOP / EARLY EXIT ---
+                # Check for explicit stop signals in the payload
+                stop_signal = False
+                stop_reason = ""
+
+                # 1. Generic Flag
+                if content_payload.get("stop_execution") is True:
+                    stop_signal = True
+                    stop_reason = f"Generic Stop Signal from '{step.id}'"
+
+                # 2. GuardAgent Specific
+                # Structure: content_payload = { "security_check": { "threat_detected": bool, ... }, ... }
+                sec_check = content_payload.get("security_check")
+                if isinstance(sec_check, dict) and sec_check.get("threat_detected") is True:
+                    stop_signal = True
+                    stop_reason = f"Security Threat Detected by '{step.id}'"
+                
+                if stop_signal:
+                    logger.warning(f"[GraphEngine] 🛑 HALTING EXECUTION: {stop_reason}")
+                    execution_state = execution_state.model_copy(update={"status": "stopped"})
+                    # Stop the loop
+                    break
+
                 # --- 8.5 POST-HOOKS ---
                 if step.config and "post_hooks" in step.config:
                     post_hooks = step.config["post_hooks"]
@@ -318,7 +343,7 @@ class GraphEngine:
                 )
                 execution_state = execution_state.add_event(error_event)
 
-                failed_state_dump = execution_state.model_dump()
+                failed_state_dump = execution_state.model_dump(mode='json')
                 raise WorkflowExecutionError(
                     step_id=step.id,
                     task_key=step.task_key,
@@ -327,11 +352,10 @@ class GraphEngine:
                 ) from e
 
         # Final Status Update
-        # execution_state.status = "completed" # status field is read-only/frozen?
-        # Inherently 'frozen=True', so we must use model_copy
-        execution_state = execution_state.model_copy(update={"status": "completed"})
+        if execution_state.status == "running":
+            execution_state = execution_state.model_copy(update={"status": "completed"})
 
-        logger.info(f"Workflow '{definition.id}' execution completed.")
+        logger.info(f"Workflow '{definition.id}' execution completed. Final Status: {execution_state.status}")
         return execution_state.model_dump()
 
     async def _execute_hook(self, hook_name: str, state: WorkflowState, repository: Any) -> WorkflowState:

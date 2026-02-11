@@ -92,32 +92,57 @@ def execute_google_search(state: WorkflowState) -> WorkflowState:
         logging.debug("DEBUG: [SearchHook] No queries generated. Skipping search.")
         return state
 
+
     try:
         # Use Tool
-        logging.debug(f"DEBUG: [SearchHook] Executing {len(queries)} searches...")
-        results = tool.search(queries, limit=3)
+        logger.debug(f"[SearchHook] Executing {len(queries)} searches...")
+        from backend.hooks.search_client import GoogleSearchTool
         
-        result_json = json.dumps(results, indent=2)
-        logging.debug(f"DEBUG: [SearchHook] Search complete. Result size: {len(result_json)} chars")
+        tool = GoogleSearchTool()
+        # Note: tool.search returns list of dicts: title, link, snippet
+        results_raw = tool.search(queries, limit=3)
         
-        # Store result
-        if isinstance(aux_data, dict):
-            aux_data["google_search_results"] = result_json
-            # Ensure calling code sees the update if it was a deep copy? 
-            # Dictionaries are mutable references, so it should be fine.
-            # But if get_attr returned a copy... 
-            # Direct dict access is safest if known dict.
-            # But we used get_attr.
-            pass
+        from backend.models.domain import SearchResult, SearchResultItem
         
-        # Write back aux_data if needed (for safety)
-        set_attr(state, "aux_data", aux_data)
+        items = []
+        if results_raw:
+             for r in results_raw:
+                  items.append(SearchResultItem(
+                      title=r.get("title", "No Title"),
+                      link=r.get("link", "#"),
+                      snippet=r.get("snippet", "")
+                  ))
+        
+        search_result = SearchResult(results=items)
+        
+        # Store in context_variables (Strict)
+        new_context = state.context_variables.copy()
+        new_context["search_result"] = search_result
+        
+        # Legacy support
+        # aux_data is usually a separate field, not in context_variables
+        # But V2 engine uses context_variables as primary blackboard.
+        # We should update aux_data too if it exists.
+        
+        if state.aux_data:
+             state.aux_data["google_search_results"] = json.dumps(results_raw, indent=2)
+             
+        # Also store raw list in context for easy access?
+        new_context["google_search_results"] = items # Store list of models
+        
+        logger.debug(f"[SearchHook] Search complete. Found {len(items)} results.")
+        
+        return state.model_copy(update={"context_variables": new_context})
 
     except Exception as e:
-        logger.error(f"   [SearchHook] Search failed: {e}")
-        logging.debug(f"DEBUG: [SearchHook] Exception: {e}")
-        if isinstance(aux_data, dict):
-             aux_data["google_search_results"] = f"Search failed: {str(e)}"
-             set_attr(state, "aux_data", aux_data)
-
-    return state
+        logger.error(f"[SearchHook] Search failed: {e}")
+        
+        # Return empty result with error
+        try:
+            from backend.models.domain import SearchResult
+            res = SearchResult(results=[], error=str(e))
+            new_context = state.context_variables.copy()
+            new_context["search_result"] = res
+            return state.model_copy(update={"context_variables": new_context})
+        except ImportError:
+            return state

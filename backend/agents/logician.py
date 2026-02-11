@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from backend.agents.base import BaseAgent
 
 # 3. Local Imports
-from backend.models.domain import LogicianData
+from backend.models.domain import LogicianOutput
 
 if TYPE_CHECKING:
     pass
@@ -34,10 +34,10 @@ class LogicianAgent(BaseAgent):
         """Returns the expected output schema.
 
         Returns:
-            Optional[Type[BaseModel]]: LogicianData schema.
+            Optional[Type[BaseModel]]: LogicianOutput schema.
 
         """
-        return LogicianData
+        return LogicianOutput
 
     async def prepare_context(self, input_data: dict, execution_context: dict | None, **kwargs) -> str | None:
         """Lifecycle Hook: Pre-Execution.

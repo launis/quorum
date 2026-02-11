@@ -162,6 +162,8 @@ class JudgeAgent(BaseAgent):
         if "critical_findings" not in result:
             result["critical_findings"] = []
 
+
+
         # --- USER REQUEST: Semantic Labels in Reports ---
         # Populate 'dimension_label' using the source of truth (DB Component).
         # result["dimensions"] has [{dimension_id, score, ...}]

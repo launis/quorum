@@ -62,9 +62,10 @@ def generate_bibliography_hook(state) -> WorkflowState:
     # Try to get text content from various sources
     text_dump = ""
 
-    if hasattr(state, "inputs") and state.inputs:
+    inputs = state.context_variables.get("inputs", {})
+    if isinstance(inputs, dict):
         for field in ["history_text", "product_text", "reflection_text"]:
-            text = getattr(state.inputs, field, "") or ""
+            text = inputs.get(field, "") or ""
             text_dump += text + "\n"
 
     # Also include coach findings if available
@@ -79,11 +80,39 @@ def generate_bibliography_hook(state) -> WorkflowState:
         return state
 
     # Default knowledge base structure
-    knowledge_base = state.aux_data.get("knowledge_base", {"references": [], "concepts": {}})
+    # Use config from context if available, else default
+    # Note: aux_data is gone, so we check context_variables or default
+    knowledge_base = state.context_variables.get("knowledge_base", {"references": [], "concepts": {}})
 
     references = generate_bibliography(text_dump, knowledge_base)
-    state.aux_data["bibliography"] = references
+    
+    # Create strictly typed result
+    try:
+        from backend.models.domain import BibliographyResult, BibliographyItem
+        
+        items = []
+        if references:
+            for ref in references:
+                if isinstance(ref, dict):
+                     items.append(BibliographyItem(
+                        source_id=str(ref.get("source_id", "unknown")),
+                        title=str(ref.get("title", "Untitled")),
+                        url=ref.get("url"),
+                        snippet=ref.get("snippet")
+                    ))
+        
+        result = BibliographyResult(references=items)
+    except ImportError:
+        logger.error("[ReferenceHook] Could not import BibliographyResult")
+        return state
+
+    # IMMUTABILITY FIX
+    new_context = state.context_variables.copy()
+    new_context["bibliography_result"] = result
+    
+    # Legacy support
+    new_context["bibliography"] = references
 
     logger.debug(f"[ReferenceHook] Generated {len(references)} references.")
 
-    return state
+    return state.model_copy(update={"context_variables": new_context})

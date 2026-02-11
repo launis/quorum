@@ -13,10 +13,10 @@ from backend.agents.base import BaseAgent
 # 3. Local Imports
 # 3. Local Imports
 from backend.models.domain import (
-    CausalAnalysis,
-    FalsifierData,
-    OverseerData,
-    PerformativityAnalysis,
+    CausalOutput,
+    FalsifierOutput,
+    OverseerOutput,
+    PerformativityOutput,
 )
 
 if TYPE_CHECKING:
@@ -38,10 +38,10 @@ class LogicalFalsifierAgent(BaseAgent):
         """Returns the expected output schema.
 
         Returns:
-            Optional[Type[BaseModel]]: FalsifierData schema.
+            Optional[Type[BaseModel]]: FalsifierOutput schema.
 
         """
-        return FalsifierData
+        return FalsifierOutput
 
     async def prepare_context(self, input_data: dict, execution_context: dict | None, **kwargs) -> str | None:
         """Lifecycle Hook: Pre-Execution."""
@@ -93,10 +93,10 @@ class FactualOverseerAgent(BaseAgent):
         """Returns the expected output schema.
 
         Returns:
-            Optional[Type[BaseModel]]: OverseerData schema.
+            Optional[Type[BaseModel]]: OverseerOutput schema.
 
         """
-        return OverseerData
+        return OverseerOutput
 
     async def prepare_context(self, input_data: dict, execution_context: dict | None, **kwargs) -> str | None:
         """Lifecycle Hook: Pre-Execution."""
@@ -165,10 +165,10 @@ class CausalAnalystAgent(BaseAgent):
         """Returns the expected output schema.
 
         Returns:
-            Optional[Type[BaseModel]]: CausalAnalysis schema.
+            Optional[Type[BaseModel]]: CausalOutput schema.
 
         """
-        return CausalAnalysis
+        return CausalOutput
 
     async def prepare_context(self, input_data: dict, execution_context: dict | None, **kwargs) -> str | None:
         """Lifecycle Hook: Pre-Execution."""
@@ -220,10 +220,10 @@ class PerformativityDetectorAgent(BaseAgent):
         """Returns the expected output schema.
 
         Returns:
-            Optional[Type[BaseModel]]: PerformativityAnalysis schema.
+            Optional[Type[BaseModel]]: PerformativityOutput schema.
 
         """
-        return PerformativityAnalysis
+        return PerformativityOutput
 
     async def prepare_context(self, input_data: dict, execution_context: dict | None, **kwargs) -> str | None:
         """Lifecycle Hook: Pre-Execution."""

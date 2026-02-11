@@ -1142,9 +1142,17 @@ class ReportContext(BaseModel):
     penalties_applied: list[str] = Field(default_factory=list, description="Penalties applied.")
     score_summary: str | None = Field(default=None, description="Score summary.")
     input_control_ratio: float | None = Field(default=None, description="Input control ratio.")
+    word_count: int | None = Field(default=None, description="Total word count.")
     structural_warnings: list[str] = Field(default_factory=list, description="Structural warnings.")
     archivist_precedents: Any | None = Field(default=None, description="Archivist precedents.")
     google_search_results: list[dict[str, Any]] = Field(default_factory=list, description="Google search results.")
+    
+    # Specialist Agents (Deep Analysis)
+    logician_data: LogicianData | None = Field(default=None, description="Logician analysis.")
+    falsifier_data: FalsifierData | None = Field(default=None, description="Falsifier analysis.")
+    causal_analysis: CausalAnalysis | None = Field(default=None, description="Causal analysis.")
+    performativity_analysis: PerformativityAnalysis | None = Field(default=None, description="Performativity analysis.")
+    overseer_data: OverseerData | None = Field(default=None, description="Overseer analysis.")
 
     model_config = ConfigDict(frozen=False)
 
@@ -1343,6 +1351,132 @@ class EvaluationResult(BaseModel):
 
 # --- REGISTRY ---
 
+# --- 10. HOOK RESULT MODELS (Standardized) ---
+
+class SanitizationResult(BaseModel):
+    """Result of the text sanitization process (Security Hook)."""
+    sanitized_inputs: dict[str, str] = Field(
+        ..., 
+        description="Sanitized input text fields.", 
+        json_schema_extra={"x-ui-label": "Sanitized Inputs"}
+    )
+    pii_threats_detected: list[str] = Field(
+        default_factory=list, 
+        description="List of detected PII threats.", 
+        json_schema_extra={"x-ui-label": "PII Threats"}
+    )
+    banned_phrases_detected: list[str] = Field(
+        default_factory=list, 
+        description="List of detected banned phrases.", 
+        json_schema_extra={"x-ui-label": "Banned Phrases"}
+    )
+    banned_phrases_error: str | None = Field(
+        default=None,
+        description="Error message if banned phrases fetch failed.",
+        json_schema_extra={"x-ui-label": "Banned Phrases Error"}
+    )
+    
+    model_config = ConfigDict(frozen=True)
+
+
+class PerformativePattern(BaseModel):
+    """A single detected performative pattern."""
+    pattern_id: str = Field(..., description="ID of the pattern.", json_schema_extra={"x-ui-label": "Pattern ID"})
+    detected_phrase: str = Field(..., description="The exact phrase detected.", json_schema_extra={"x-ui-label": "Detected Phrase"})
+    category: str = Field(..., description="Category of the pattern.", json_schema_extra={"x-ui-label": "Category"})
+    
+    model_config = ConfigDict(frozen=True)
+
+
+class LinguisticsResult(BaseModel):
+    """Result of the linguistics analysis (Hook)."""
+    performative_patterns: list[PerformativePattern] = Field(
+        default_factory=list, 
+        description="Detected patterns.", 
+        json_schema_extra={"x-ui-label": "Performative Patterns"}
+    )
+    
+    model_config = ConfigDict(frozen=True)
+
+
+class BibliographyItem(BaseModel):
+    """A single bibliographic reference."""
+    source_id: str = Field(..., description="Unique source ID.", json_schema_extra={"x-ui-label": "Source ID"})
+    title: str = Field(..., description="Title of the source.", json_schema_extra={"x-ui-label": "Title"})
+    url: str | None = Field(default=None, description="URL if available.", json_schema_extra={"x-ui-label": "URL"})
+    snippet: str | None = Field(default=None, description="Relevant snippet.", json_schema_extra={"x-ui-label": "Snippet"})
+    
+    model_config = ConfigDict(frozen=True)
+
+
+class BibliographyResult(BaseModel):
+    """Result of the bibliography generation (Hook)."""
+    references: list[BibliographyItem] = Field(
+        default_factory=list, 
+        description="List of references.", 
+        json_schema_extra={"x-ui-label": "References"}
+    )
+    
+    model_config = ConfigDict(frozen=True)
+
+
+class ScoringResult(BaseModel):
+    """Result of the scoring logic (Hook)."""
+    total_score: float = Field(..., description="Total aggregated score.", json_schema_extra={"x-ui-label": "Total Score"})
+    calculated_average: float = Field(..., description="Calculated average.", json_schema_extra={"x-ui-label": "Average Score"})
+    score_summary: str = Field(..., description="Summary text.", json_schema_extra={"x-ui-label": "Summary"})
+    penalties_applied: list[str] = Field(
+        default_factory=list, 
+        description="List of penalties applied.", 
+        json_schema_extra={"x-ui-label": "Penalties"}
+    )
+    
+    model_config = ConfigDict(frozen=True)
+
+
+class ReportResult(BaseModel):
+    """Result of the report generation (Hook)."""
+    report_content: str = Field(..., description="The generated Markdown report.", json_schema_extra={"x-ui-label": "Report Content"})
+    format: str = Field(default="markdown", description="Report format.", json_schema_extra={"x-ui-label": "Format"})
+    
+    model_config = ConfigDict(frozen=True)
+
+
+class ValidationResult(BaseModel):
+    """Result of the structure verification (Hook)."""
+    is_valid: bool = Field(..., description="Is the structure valid?", json_schema_extra={"x-ui-label": "Is Valid"})
+    errors: list[str] = Field(
+        default_factory=list, 
+        description="Validation errors.", 
+        json_schema_extra={"x-ui-label": "Errors"}
+    )
+    
+    model_config = ConfigDict(frozen=True)
+
+
+class SearchResultItem(BaseModel):
+    """Single search result."""
+    title: str = Field(..., description="Title of the result.", json_schema_extra={"x-ui-label": "Title"})
+    link: str = Field(..., description="Link to the result.", json_schema_extra={"x-ui-label": "Link"})
+    snippet: str = Field(..., description="Snippet of the result.", json_schema_extra={"x-ui-label": "Snippet"})
+    
+    model_config = ConfigDict(frozen=True)
+
+
+class SearchResult(BaseModel):
+    """Result of the Google Search (Hook)."""
+    results: list[SearchResultItem] = Field(
+        default_factory=list, 
+        description="Search results.", 
+        json_schema_extra={"x-ui-label": "Search Results"}
+    )
+    error: str | None = Field(default=None, description="Error message if search failed.", json_schema_extra={"x-ui-label": "Error"})
+    
+    model_config = ConfigDict(frozen=True)
+
+
+# --- REGISTRY ---
+
 DOMAIN_REGISTRY = {
     "GuardOutput": GuardOutput,
     "AnalystOutput": AnalystOutput,
@@ -1355,4 +1489,13 @@ DOMAIN_REGISTRY = {
     "ProfilerAnalysis": ProfilerAnalysis,
     "InteractionAnalysis": InteractionAnalysis,
     "ContextData": ContextData,
+    # Hook Results
+    "SanitizationResult": SanitizationResult,
+    "LinguisticsResult": LinguisticsResult,
+    "BibliographyResult": BibliographyResult,
+    "TextMetrics": TextMetrics,
+    "ScoringResult": ScoringResult,
+    "ReportResult": ReportResult,
+    "ValidationResult": ValidationResult,
+    "SearchResult": SearchResult,
 }

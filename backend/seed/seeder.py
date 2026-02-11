@@ -79,7 +79,8 @@ def _seed_tinydb(db_path: str, seed_data: dict):
                 c["id"] = cid
                 components_table.upsert(c, Query().id == cid)
                 count += 1
-        except Exception:
+        except Exception as e:
+            print(f"[Seeder] Error upserting component {c.get('id')}: {e}")
             pass
     print(f"[Seeder] Upserted {count} components.")
 
@@ -167,9 +168,14 @@ def _seed_tinydb(db_path: str, seed_data: dict):
         try:
             sid = step.get("id")
             if sid:
+                # Filter out workflow-inline steps that lack description (prevents incomplete overrides)
+                if not step.get("description"):
+                    print(f"[Seeder] Skipping incomplete step definition: {sid}")
+                    continue
                 steps_table.upsert(step, Query().id == sid)
                 count += 1
-        except Exception:
+        except Exception as e:
+            print(f"[Seeder] Error upserting step {step.get('id')}: {e}")
             pass
     print(f"[Seeder] Upserted {count} steps to Registry.")
 

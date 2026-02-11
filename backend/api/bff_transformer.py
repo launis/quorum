@@ -560,23 +560,38 @@ class ReportTransformer:
 
         total_tokens = usage.get("total_tokens", 0)
     def _transform_logician_data(self, data: dict) -> dict:
-        """Pass-through for Logician Schema (Frontend now supports English)."""
+        """Flattens LogicianOutput (removes 'logician_data' wrapper) for frontend."""
+        # 1. Check for wrapper
+        if "logician_data" in data and isinstance(data["logician_data"], dict):
+            # Merge inner data with any top-level metadata if needed, 
+            # but usually we just want the inner payload.
+            return data["logician_data"].copy()
+        
+        # 2. Fallback (already flat or legacy)
         return data.copy()
 
     def _transform_falsifier_data(self, data: dict) -> dict:
-        """Pass-through for Falsifier Schema (Frontend now supports English)."""
+        """Flattens FalsifierOutput (removes 'falsifier_data' wrapper) for frontend."""
+        if "falsifier_data" in data and isinstance(data["falsifier_data"], dict):
+            return data["falsifier_data"].copy()
         return data.copy()
 
     def _transform_causal_data(self, data: dict) -> dict:
-        """Pass-through for Causal Schema (Frontend now supports English)."""
+        """Flattens CausalOutput (removes 'causal_analysis' wrapper) for frontend."""
+        if "causal_analysis" in data and isinstance(data["causal_analysis"], dict):
+            return data["causal_analysis"].copy()
         return data.copy()
 
     def _transform_detector_data(self, data: dict) -> dict:
-        """Pass-through for Performativity Schema (Frontend now supports English)."""
+        """Flattens PerformativityOutput (removes 'performativity_analysis' wrapper) for frontend."""
+        if "performativity_analysis" in data and isinstance(data["performativity_analysis"], dict):
+            return data["performativity_analysis"].copy()
         return data.copy()
 
     def _transform_overseer_data(self, data: dict) -> dict:
-        """Pass-through for Overseer Schema (Frontend now supports English)."""
+        """Flattens OverseerOutput (removes 'overseer_data' wrapper) for frontend."""
+        if "overseer_data" in data and isinstance(data["overseer_data"], dict):
+            return data["overseer_data"].copy()
         return data.copy()
 
 

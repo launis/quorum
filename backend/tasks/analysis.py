@@ -28,9 +28,9 @@ TaskRegistry.register_agent(
 # --- Class-Based Agent Registration ---
 
 from backend.agents.logician import LogicianAgent
-from backend.models.domain import LogicianData
+from backend.models.domain import LogicianOutput
 
-TaskRegistry.register_agent(task_keys=["logician"], agent_cls=LogicianAgent, output_model=LogicianData)
+TaskRegistry.register_agent(task_keys=["logician"], agent_cls=LogicianAgent, output_model=LogicianOutput)
 
 from backend.agents.profiler import ProfilerAgent
 from backend.models.domain import ProfilerAnalysis

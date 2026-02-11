@@ -131,22 +131,28 @@ def calculate_control_ratio(text: str) -> float:
     return round(user_chars / total_chars, 4)
 
 
+
 # --- WORKFLOW STATE WRAPPERS (for HOOK_MAPPING compatibility) ---
 
 
 def calculate_text_metrics_hook(state: WorkflowState) -> WorkflowState:
     """WorkflowState wrapper for calculate_text_metrics.
 
-    Extracts text from state.inputs, calculates metrics, and stores in aux_data.
+    Extracts text from state.context_variables['inputs'], calculates metrics,
+    and stores result in state.context_variables['audit_metrics'].
     """
     logger.debug("[MetricsHook] Running calculate_text_metrics_hook...")
 
-    if not hasattr(state, "inputs") or not state.inputs:
+    if not state.context_variables:
+        return state
+
+    inputs = state.context_variables.get("inputs", {})
+    if not isinstance(inputs, dict):
         return state
 
     # Combine history and product text
-    history = getattr(state.inputs, "history_text", "") or ""
-    product = getattr(state.inputs, "product_text", "") or ""
+    history = inputs.get("history_text", "") or ""
+    product = inputs.get("product_text", "") or ""
     text = history + "\n" + product
 
     if not text.strip():
@@ -159,29 +165,28 @@ def calculate_text_metrics_hook(state: WorkflowState) -> WorkflowState:
     logger.info(f"[MetricsHook] Calculated Metrics Type: {type(metrics)}")
     logger.info(f"[MetricsHook] Metrics Content: {metrics}")
     
-    # Write to strict field to ensure Object persistence
-    state.audit_metrics = metrics
+    # IMMUTABILITY FIX: Update context_variables via model_copy
+    new_context = state.context_variables.copy()
+    new_context["audit_metrics"] = metrics
     
-    # Verify write
-    if state.audit_metrics is None:
-        logger.error("[MetricsHook] CRITICAL: Failed to write metrics to state.audit_metrics!")
-    else:
-        logger.info("[MetricsHook] SUCCESS: Metrics written to strict state field.")
-
-    return state
+    return state.model_copy(update={"context_variables": new_context})
 
 
 def calculate_control_ratio_hook(state: WorkflowState) -> WorkflowState:
     """WorkflowState wrapper for calculate_control_ratio.
 
-    Extracts history_text from state.inputs, calculates ratio, and stores in strict field.
+    Extracts history_text, calculates ratio, stores in state.context_variables['input_control_ratio'].
     """
     logger.debug("[MetricsHook] Running calculate_control_ratio_hook...")
 
-    if not hasattr(state, "inputs") or not state.inputs:
+    if not state.context_variables:
         return state
 
-    history_text = getattr(state.inputs, "history_text", "") or ""
+    inputs = state.context_variables.get("inputs", {})
+    if not isinstance(inputs, dict):
+        return state
+
+    history_text = inputs.get("history_text", "") or ""
 
     if not history_text.strip():
         logger.warning("[MetricsHook] No history text to analyze.")
@@ -192,6 +197,8 @@ def calculate_control_ratio_hook(state: WorkflowState) -> WorkflowState:
     # HEAVY DEBUGGING
     logger.info(f"[MetricsHook] Control Ratio: {ratio} (Type: {type(ratio)})")
     
-    state.input_control_ratio = ratio
+    # IMMUTABILITY FIX: Update context_variables via model_copy
+    new_context = state.context_variables.copy()
+    new_context["input_control_ratio"] = ratio
     
-    return state
+    return state.model_copy(update={"context_variables": new_context})

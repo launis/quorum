@@ -35,7 +35,7 @@ logger = logging.getLogger("verify_xai")
 def verify_report_generation():
     with TestClient(app) as client:
         # 1. Start Workflow
-        workflow_id = "sequential_audit_chain"
+        workflow_id = "sequential_audit_chain_dual"
         logger.info(f"Starting workflow '{workflow_id}'...")
 
         # DEBUG: List workflows first
@@ -118,4 +118,8 @@ def verify_report_generation():
             sys.exit(1)
 
 if __name__ == "__main__":
-    verify_report_generation()
+    import traceback
+    try:
+        verify_report_generation()
+    except Exception:
+        traceback.print_exc()

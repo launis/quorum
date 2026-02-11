@@ -23,18 +23,18 @@ from backend.agents.critics import (
     PerformativityDetectorAgent,
 )
 from backend.models.domain import (
-    CausalAnalysis,
-    FalsifierData,
-    OverseerData,
-    PerformativityAnalysis,
+    CausalOutput,
+    FalsifierOutput,
+    OverseerOutput,
+    PerformativityOutput,
 )
 
-TaskRegistry.register_agent(task_keys=["falsifier"], agent_cls=LogicalFalsifierAgent, output_model=FalsifierData)
+TaskRegistry.register_agent(task_keys=["falsifier"], agent_cls=LogicalFalsifierAgent, output_model=FalsifierOutput)
 
-TaskRegistry.register_agent(task_keys=["overseer"], agent_cls=FactualOverseerAgent, output_model=OverseerData)
+TaskRegistry.register_agent(task_keys=["overseer"], agent_cls=FactualOverseerAgent, output_model=OverseerOutput)
 
-TaskRegistry.register_agent(task_keys=["causal"], agent_cls=CausalAnalystAgent, output_model=CausalAnalysis)
+TaskRegistry.register_agent(task_keys=["causal"], agent_cls=CausalAnalystAgent, output_model=CausalOutput)
 
 TaskRegistry.register_agent(
-    task_keys=["detector"], agent_cls=PerformativityDetectorAgent, output_model=PerformativityAnalysis
+    task_keys=["detector"], agent_cls=PerformativityDetectorAgent, output_model=PerformativityOutput
 )

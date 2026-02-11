@@ -1,8 +1,9 @@
 # Workflow Data Architecture: Courtroom Audit Chains (V2.9)
 
 **Workflows Covered:**
-1.  **Courtroom 2.0 (Sequential):** `sequential_audit_chain`
-2.  **Courtroom 3.0 (Fused):** `fused_audit_chain_dual`
+1.  **Courtroom 2.0 (Sequential):** `sequential_audit_chain`, `sequential_audit_chain_cognitive`
+2.  **Courtroom 3.0 (Fused):** `fused_audit_chain`, `fused_audit_chain_dual`
+3.  **Universal Pattern:** The "Sidebar RAG" (Step 1b) applies to ALL workflows.
 
 **Description:** This document details the data lineage and information flow. It illustrates how the system branches between a "Sequential" execution of specialist critics and a "Fused" parallel execution via the Panel Agent.
 
@@ -17,6 +18,7 @@ graph TD
     %% Nodes
     UserInput[User Input Files]
     Guard[Step 1: Guard Agent]
+    Context[Step 1b: Context Retrieval]
     Analyst[Step 2: Analyst Agent]
     Interaction[Step 3: Interaction Agent]
     Profiler[Step 4: Profiler Agent]
@@ -45,6 +47,10 @@ graph TD
     
     %% Flows - Common Start
     UserInput -->|Raw Strings| Guard
+    Guard -->|SafeData| Context
+    Context -.->|Sidebar Context| Overseer
+    Context -.->|Sidebar Context| JudgeStandard
+    
     Guard -->|SafeData| Analyst
     Guard -->|SafeData| Interaction
     Guard -->|SafeData| Profiler
@@ -96,6 +102,14 @@ graph TD
 - **Process:** Regex scanning, PII detection logic.
 - **Output:** `TaintedData` schema.
     - `safe_data`: **CRITICAL.** Sanitized text used by ALL subsequent agents.
+
+### Step 1b: Context Retrieval (`step_context`)
+**Objective:** Fetch external knowledge (RAG) for fact-checking.
+- **Input:** `safe_data`.
+- **Process:** Semantic Search / Knowledge Base Lookup.
+- **Output:** `AnalystOutput` (reused schema for simplicity).
+    - `rag_evidence`: List of retrieved context snippets.
+    - **Note:** This output is **NOT** sent to the Analyst. It sideslips directly to the Overseer and Judge.
 
 ### Step 2: Analyst (`step_analyst`)
 **Objective:** Establish the "Ground Truth".
@@ -153,7 +167,7 @@ graph TD
 
 #### Step 5e: Factual Overseer (`step_overseer`)
 **Objective:** Hallucination and Fact Checking.
-- **Input:** `TodistusKartta`, `safe_data`.
+- **Input:** `TodistusKartta`, `safe_data`, `rag_evidence` (Sidebar Context).
 - **Output:** `EtiikkaJaFakta`.
     - `faktantarkistus_rfi`: Verification results against external signals.
 
@@ -164,7 +178,7 @@ graph TD
 
 #### Step 5: Panel (`step_panel`)
 **Objective:** Parallel execution of specialized critics.
-- **Input:** `TodistusKartta`, `safe_data`.
+- **Input:** `TodistusKartta`, `safe_data`, `rag_evidence` (Sidebar Context).
 - **Output:** `PanelAudit` (Consolidated Schema).
     - `logiikka_auditointi`: (See 5a)
     - `falsifiointi_auditointi`: (See 5b)

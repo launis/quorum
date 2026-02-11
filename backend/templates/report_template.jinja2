@@ -32,6 +32,7 @@
 
 {% if report_content.input_control_ratio is not none %}
 ### 📊 Vuorovaikutusanalyysi
+**Sanamäärä:** {{ report_content.word_count if report_content.word_count is not none else "Ei saatavilla" }}
 **Käyttäjän aktiivisuusaste:** {{ (report_content.input_control_ratio * 100) | round(1) }}%
 {% if report_content.input_control_ratio < 0.3 %}
 *⚠️ Matala aktiivisuus: Käyttäjä oli pääosin passiivinen (Matkustaja).*
@@ -79,7 +80,36 @@ Ei erillistä valmennussuunnitelmaa.
 
 ---
 
-## 4. Eettiset Havainnot
+{% if report_content.logician_data or report_content.falsifier_data or report_content.causal_analysis or report_content.performativity_analysis %}
+## 4. Syväanalyysi (Deep Analysis)
+
+{% if report_content.logician_data %}
+### 🧠 Logiikka (Logician)
+- **Toulmin Score:** {{ report_content.logician_data.toulmin_score }}
+- **Kognitiivinen Taso:** {{ report_content.logician_data.cognitive_level.bloom_level }} ({{ report_content.logician_data.cognitive_level.strategic_depth }})
+- **Argumentaatio:** {{ report_content.logician_data.walton_scheme.identified_scheme }}
+{% endif %}
+
+{% if report_content.falsifier_data %}
+### 🧪 Falsifiointi (Falsifier)
+- **Fideliteetti:** {{ report_content.falsifier_data.fidelity_audit.fidelity_score }}
+{% endif %}
+
+{% if report_content.causal_analysis %}
+### 🔗 Kausaalisuus (Causal)
+- **Abduktiivinen Päätelmä:** {{ report_content.causal_analysis.abductive_conclusion }}
+- **Vastafaktuaalisuus:** {{ report_content.causal_analysis.counterfactual_test.plausibility_score }}
+{% endif %}
+
+{% if report_content.performativity_analysis %}
+### 🎭 Performatiivisuus (Detector)
+- **Autenttisuus:** {{ report_content.performativity_analysis.authenticity_assessment }}
+{% endif %}
+
+---
+{% endif %}
+
+## 5. Eettiset Havainnot
 {% if report_content.ethical_issues %}
 {% for issue in report_content.ethical_issues %}
 - [{{ issue.vakavuus }}] {{ issue.kuvaus }}
@@ -90,7 +120,7 @@ Ei eettisiä huomioita.
 
 ---
 
-## 5. Auditointikysymykset (RFI)
+## 6. Auditointikysymykset (RFI)
 {% if report_content.audit_questions %}
 {% for q in report_content.audit_questions %}
 - **Kysymys:** {{ q.vaite }}
@@ -103,7 +133,7 @@ Ei avoimia kysymyksiä.
 ---
 
 {% if report_content.structural_warnings %}
-## 6. Rakenteelliset Varoitukset
+## 7. Rakenteelliset Varoitukset
 
 ⚠️ **Syötteiden validoinnissa havaittiin ongelmia:**
 
@@ -115,7 +145,7 @@ Ei avoimia kysymyksiä.
 
 {% endif %}
 {% if report_content.archivist_precedents %}
-## 7. Historiallinen Konteksti (Ennakkotapaukset)
+## 8. Historiallinen Konteksti (Ennakkotapaukset)
 
 📚 Aiempien suoritusten perusteella:
 
@@ -125,7 +155,7 @@ Ei avoimia kysymyksiä.
 
 {% endif %}
 {% if report_content.google_search_results %}
-## 8. Faktantarkistuksen Lähteet
+## 9. Faktantarkistuksen Lähteet
 
 🔍 **Ulkoiset lähteet arviointitueksi:**
 
