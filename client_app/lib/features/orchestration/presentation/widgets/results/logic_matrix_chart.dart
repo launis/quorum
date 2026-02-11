@@ -18,7 +18,6 @@ class LogicMatrixChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint("LogicMatrixChart received bloomLevel: '$bloomLevel' (Code units: ${bloomLevel.codeUnits})");
     final x = _calculateBloomScore(bloomLevel);
     final y = _calculateToulminScore(toulminArguments);
 

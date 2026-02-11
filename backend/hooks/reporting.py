@@ -284,7 +284,6 @@ def generate_report(state: WorkflowState) -> WorkflowState:
         }
 
         # Add Overseer Data if available
-        print("DEBUG: Extracting Overseer Data...")
         step_overseer = state.context_variables.get("step_overseer") or getattr(state, "step_overseer", None)
         if step_overseer:
             # Helper to serialize list of models
