@@ -14,7 +14,8 @@ from backend.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend.logging_config import log_error
 from backend.models.auth import TokenData, UserRole
 from backend.services.auth import AuthService
-from backend.services.storage import AbstractStorage, LocalFileStorage
+from backend.services.storage import AbstractStorage
+from backend.services.drivers.local_file_driver import LocalFileDriver
 
 logger = logging.getLogger(__name__)
 
@@ -76,17 +77,21 @@ async def download_execution_pdf(
         # 2. Check File
         rel_path = f"executions/{execution_id}/report.pdf"
 
-        if storage.exists(rel_path):
+        if await storage.exists(rel_path):
             if check_local:
                 # Return JSON with local path if available
-                local_path = storage.get_local_path(rel_path)
+                # Use LocalFileDriver check
+                local_path = None
+                if isinstance(storage, LocalFileDriver):
+                    local_path = str(storage.base_path / rel_path)
+                
                 return JSONResponse({
                     "status": "ready",
                     "exists": True,
                     "local_path": local_path
                 })
 
-            if isinstance(storage, LocalFileStorage):
+            if isinstance(storage, LocalFileDriver):
                 full_path = storage.base_path / rel_path
                 return FileResponse(
                     path=full_path,
@@ -95,7 +100,7 @@ async def download_execution_pdf(
                     content_disposition_type="attachment"
                 )
             else:
-                content = storage.read(rel_path)
+                content = await storage.read(rel_path)
                 from fastapi.responses import Response
                 return Response(
                     content=content,
@@ -223,14 +228,17 @@ async def cancel_pdf_generation(
         exec_data = execution.model_dump() if hasattr(execution, 'model_dump') else execution
         _enforce_pdf_access(current_user, exec_data)
 
-        from backend.services.storage import LocalFileStorage, get_storage_client
+        from backend.services.drivers.local_file_driver import LocalFileDriver
+        from backend.services.storage import get_storage_client
+        
+        # Depends on get_storage_client usually, but here we instantiate fresh if needed or reuse?
+        # Actually it's cleaner to depend on get_storage_service_dep like the download endpoint
+        # But this function doesn't take it as dependency. Let's create it.
         storage = get_storage_client()
         rel_path = f"executions/{execution_id}/report.pdf"
 
-        if isinstance(storage, LocalFileStorage):
-            full_path = storage.base_path / rel_path
-            if full_path.exists():
-                os.remove(full_path)
+        # Safe delete via driver
+        await storage.delete(rel_path)
 
         return {"status": "success", "message": "PDF cancelled and file removed."}
 

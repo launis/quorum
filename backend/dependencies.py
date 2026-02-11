@@ -101,56 +101,16 @@ async def get_prompt_builder_dep(
 
 
 def get_storage_service_dep() -> AbstractStorage:
-    """Dependency to provide a Singleton Storage Service.
-
-    Selects FirebaseStorage if STORAGE_BACKEND is 'FIRESTORE', otherwise LocalFileStorage.
-    """
+    """Dependency to provide a Singleton Storage Service."""
     global _storage_service_instance
 
     if _storage_service_instance is not None:
         return _storage_service_instance
 
-    settings = get_settings()
-    from backend.services.storage import FirebaseStorage, LocalFileStorage, NoOpStorage
+    from backend.services.storage import get_storage_client
 
-    # Remove debug logging
-    # logger.warning(f"### DEBUG CONFIG ###: ...")
-
-    if settings.storage_backend == "NONE":
-        logger.info("[Dependencies] Storage disabled (NoOp).")
-        _storage_service_instance = NoOpStorage()
-        return _storage_service_instance
-
-    from backend.settings import StorageBackend
-
-    match settings.active_backend:
-        case StorageBackend.FIRESTORE:
-            # Logic matched with repository selection: FIRESTORE means Cloud
-            bucket_name = settings.storage_bucket_name
-
-            if bucket_name:
-                logger.info(f"[Dependencies] Initializing Firebase Cloud Storage (Bucket: {bucket_name}).")
-                _storage_service_instance = FirebaseStorage(bucket_name=bucket_name)
-            else:
-                # STRICT ZERO-FALLBACK
-                msg = (
-                    "CRITICAL: Firestore backend selected but STORAGE_BUCKET_NAME is missing. "
-                    "Zero-fallback policy in effect."
-                )
-                logger.critical(msg)
-                raise RuntimeError(msg)
-
-        case StorageBackend.LOCAL | StorageBackend.MOCK:
-            # Both Local and Mock use LocalFileStorage
-            logger.info(f"[Dependencies] Initializing Local File Storage at {settings.files_dir}.")
-            # Force usage of the centralized data/files directory
-            _storage_service_instance = LocalFileStorage(base_path=settings.files_dir)
-
-        case _:
-            # Fallback for unexpected enum values
-            logger.warning(f"[Dependencies] Unknown backend '{settings.active_backend}', defaulting to Local.")
-            _storage_service_instance = LocalFileStorage(base_path=settings.files_dir)
-
+    _storage_service_instance = get_storage_client()
+    logger.info(f"[Dependencies] Initialized Storage Service: {_storage_service_instance.__class__.__name__}")
     return _storage_service_instance
 
 

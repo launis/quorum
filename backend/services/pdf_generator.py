@@ -75,7 +75,7 @@ class PdfReportService:
 
         try:
             # 1. Start
-            await self.progress.emit_progress(execution_id, task_key, "Fetching report data...", 0.1)
+            await self.progress.emit_progress(execution_id, task_key, "Fetching report data...", 0.05)
 
             # 2. Fetch Data
             execution = await self.repository.get_execution(execution_id)
@@ -83,7 +83,7 @@ class PdfReportService:
                 raise ValueError(f"Execution {execution_id} not found")
 
             # 3. Transform
-            await self.progress.emit_progress(execution_id, task_key, "Analyzing results...", 0.3)
+            await self.progress.emit_progress(execution_id, task_key, "Analyzing results...", 0.10)
             # Use dump() compatibility if it's a Pydantic object, or dict if it's already dict
             # BFF Transformer generally expects a dict representation of the execution
             ex_data = execution.model_dump() if hasattr(execution, 'model_dump') else execution
@@ -93,7 +93,7 @@ class PdfReportService:
             report_view = self.transformer.transform(ex_data)
 
             # 4. Generate Visualizations (Radar Charts)
-            await self.progress.emit_progress(execution_id, task_key, "Generating visualization...", 0.5)
+            await self.progress.emit_progress(execution_id, task_key, "Generating visualization...", 0.15)
 
             # Metadata Lookup Strategy: Fetch Matrix Config to translate IDs -> Labels
             # The Result object has 'dimension_id' (e.g. 'agency'), but we want 'Strateginen Ohjaus'.
@@ -166,8 +166,9 @@ class PdfReportService:
                                 logger.warning(f"Skipping dimension with missing ID/Label in report {execution_id}")
 
                         # Generate chart
-                        # Retrieve dynamic max_score from section data (populated by ReportTransformer from DB or default)
-                        max_score = int(section.data.get("max_score", 4))
+                        # Retrieve dynamic max_score from section data (populated by ReportTransformer from DB)
+                        # Strict Mode: Fail if max_score is missing (no default=4)
+                        max_score = int(section.data["max_score"])
                         chart_b64 = ChartService.generate_radar_chart(scores, max_val=max_score)
                         # Inject back into data view for template
                         # Inject back into data view for the template
@@ -238,17 +239,23 @@ class PdfReportService:
                     section.data["processed_ethics"] = processed_ethics
 
             # 5. Render Template
-            await self.progress.emit_progress(execution_id, task_key, "Preparing report layout...", 0.8)
+            await self.progress.emit_progress(execution_id, task_key, "Preparing report layout...", 0.20)
 
             template = self.env.get_template("dashboard_pdf.html")
             html_content = template.render(view=report_view)
 
             # 6. Generate PDF
             # WeasyPrint is CPU intensive and blocking.
-            await self.progress.emit_progress(execution_id, task_key, "Writing PDF file (this may take a moment)...", 0.9)
+            await self.progress.emit_progress(execution_id, task_key, "Consulting Print Engine (WeasyPrint)...", 0.30)
+            
+            import asyncio
+            loop = asyncio.get_running_loop()
+            
+            # Run blocking PDF generation in a thread pool
+            def _render_pdf():
+                return weasyprint.HTML(string=html_content).write_pdf()
 
-            # WeasyPrint requires GTK3 on Windows, assume it's set up per knowledge base.
-            pdf_bytes = weasyprint.HTML(string=html_content).write_pdf()
+            pdf_bytes = await loop.run_in_executor(None, _render_pdf)
 
             # 7. Complete
             await self.progress.emit_progress(execution_id, task_key, "Done", 1.0)

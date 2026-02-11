@@ -171,7 +171,7 @@ async def generate_pdf_job(ctx: Any, *, execution_id: str) -> str:
         output_path_rel = f"executions/{execution_id}/report.pdf"
 
         # Returns absolute path (if local) or URI (if cloud)
-        saved_path = storage.save(output_path_rel, pdf_bytes)
+        saved_path = await storage.save(output_path_rel, pdf_bytes)
 
         logger.info(f"[Job] PDF generated successfully: {saved_path}")
         return saved_path

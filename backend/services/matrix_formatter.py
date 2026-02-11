@@ -46,9 +46,12 @@ def format_matrix_component(component: dict[str, Any]) -> str:
         f"### EVALUATION MATRIX: {name}",
         f"Description: {desc}",
         f"Scale: {scale_min}-{scale_max}",
-        "",
-        "### CRITERIA FOR EVALUATION:",
     ]
+    
+
+        
+    prompt_lines.append("")
+    prompt_lines.append("### CRITERIA FOR EVALUATION:")
 
     for crit in criteria:
         c_label = crit.get("label", "Unknown")

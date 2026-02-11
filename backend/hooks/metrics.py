@@ -135,8 +135,59 @@ def calculate_control_ratio(text: str) -> float:
 # --- WORKFLOW STATE WRAPPERS (for HOOK_MAPPING compatibility) ---
 
 
+
+def calculate_behavioral_metrics(history_text: str, reflection_text: str) -> dict[str, float]:
+    """Calculates heuristic behavioral metrics (Say-Do Gap, Automation Bias).
+    
+    NOTE: These are heuristic approximations to serve as a 'Single Source of Truth' 
+    alongside the LLM's qualitative analysis.
+    """
+    metrics = {
+        "say_do_gap": 0.0,
+        "automation_bias": 0.0,
+        "illusion_of_competence": 0.0
+    }
+    
+    if not history_text:
+        return metrics
+
+    # 1. Automation Bias (Heuristic: Short, affirmative user messages)
+    # If user messages are consistently short (< 5 words) and frequent.
+    user_lines = [line.lower().strip() for line in history_text.split('\n') 
+                  if line.lower().startswith(('user:', 'human:', 'k:', 'me:', 'minä:'))]
+    
+    if user_lines:
+        short_responses = sum(1 for line in user_lines if len(line.split()) < 5)
+        if len(user_lines) > 2 and (short_responses / len(user_lines) > 0.7):
+            metrics["automation_bias"] = 1.0
+
+    # 2. Say-Do Gap / Illusion of Competence
+    # If Reflection exists (Claims) but History is purely mechanical (Do).
+    # Heuristic: Reflection has content, but History is dominated by "Execute" commands or short confirmations.
+    if reflection_text and len(reflection_text) > 50:
+        # Check if history is "rich" or "mechanical"
+        # Mechanical keywords
+        mechanical_keywords = ["tilaa", "vahvista", "generoi", "ok", "kyllä", "jatka"]
+        mechanical_count = 0
+        total_words = 0
+        
+        for line in user_lines:
+            words = line.split()
+            total_words += len(words)
+            for w in words:
+                if any(mk in w for mk in mechanical_keywords):
+                    mechanical_count += 1
+        
+        # If > 50% of user words are mechanical commands, assume Gap.
+        if total_words > 0 and (mechanical_count / total_words > 0.5):
+            metrics["say_do_gap"] = 1.0
+            metrics["illusion_of_competence"] = 1.0
+
+    return metrics
+
+
 def calculate_text_metrics_hook(state: WorkflowState) -> WorkflowState:
-    """WorkflowState wrapper for calculate_text_metrics.
+    """WorkflowState wrapper for calculate_text_metrics and behavioral metrics.
 
     Extracts text from state.context_variables['inputs'], calculates metrics,
     and stores result in state.context_variables['audit_metrics'].
@@ -153,21 +204,39 @@ def calculate_text_metrics_hook(state: WorkflowState) -> WorkflowState:
     # Combine history and product text
     history = inputs.get("history_text", "") or ""
     product = inputs.get("product_text", "") or ""
+    reflection = inputs.get("reflection_text", "") or ""
     text = history + "\n" + product
 
-    if not text.strip():
-        logger.warning("[MetricsHook] No text to analyze.")
-        return state
+    # Helper to create default metrics
+    def create_defaults():
+        return TextMetrics(
+            word_count=0,
+            sentence_count=0,
+            avg_sentence_length=0.0,
+            lexical_diversity=0.0,
+            capitalization_ratio=0.0
+        ).model_dump()
 
-    metrics = calculate_text_metrics(text)
+    final_metrics = create_defaults()
     
-    # HEAVY DEBUGGING (Object Mandate Verification)
-    logger.info(f"[MetricsHook] Calculated Metrics Type: {type(metrics)}")
-    logger.info(f"[MetricsHook] Metrics Content: {metrics}")
+    if text.strip():
+        metrics = calculate_text_metrics(text)
+        final_metrics = metrics.model_dump()
+
+    # Add Behavioral
+    behavioral = calculate_behavioral_metrics(history, reflection)
+    final_metrics.update(behavioral)
     
+    # Add Control Ratio (Compute it here to ensure it's in the main dictionary for UI)
+    control_res = calculate_control_ratio(history)
+    final_metrics["control_ratio"] = control_res  # This enables the UI Gauge!
+    
+    logger.info(f"[MetricsHook] Final Merged Metrics: {final_metrics}")
+
     # IMMUTABILITY FIX: Update context_variables via model_copy
     new_context = state.context_variables.copy()
-    new_context["audit_metrics"] = metrics
+    new_context["audit_metrics"] = final_metrics
+    new_context["profiler_metrics"] = final_metrics
     
     return state.model_copy(update={"context_variables": new_context})
 
@@ -188,17 +257,14 @@ def calculate_control_ratio_hook(state: WorkflowState) -> WorkflowState:
 
     history_text = inputs.get("history_text", "") or ""
 
-    if not history_text.strip():
-        logger.warning("[MetricsHook] No history text to analyze.")
-        return state
-
-    ratio = calculate_control_ratio(history_text)
+    # Return Dict now
+    ratio_data = calculate_control_ratio(history_text)
     
     # HEAVY DEBUGGING
-    logger.info(f"[MetricsHook] Control Ratio: {ratio} (Type: {type(ratio)})")
+    logger.info(f"[MetricsHook] Control Ratio Data: {ratio_data}")
     
     # IMMUTABILITY FIX: Update context_variables via model_copy
     new_context = state.context_variables.copy()
-    new_context["input_control_ratio"] = ratio
+    new_context["input_control_ratio"] = ratio_data
     
     return state.model_copy(update={"context_variables": new_context})

@@ -75,6 +75,9 @@ class Settings(BaseSettings):
     ] = "LOCAL"
     environment: Annotated[str, Field(description="development, staging, or production")] = "development"
     storage_bucket_name: Annotated[str | None, Field(description="Firebase Storage Bucket Name")] = None
+    
+    # URL for generating public links in Local mode
+    api_url: Annotated[str | None, Field(description="Public API Base URL")] = "http://localhost:8000"
 
     # --- Paths ---
     log_file_name: Annotated[str, Field(description="Name of the debug log file")] = "backend_debug.log"
@@ -157,11 +160,17 @@ class Settings(BaseSettings):
         Priority 2: Mock mode.
         Default: Local storage.
         """
-        if self.storage_backend.upper() == "FIRESTORE":
-            return StorageBackend.FIRESTORE
         if self.use_mock_db:
             return StorageBackend.MOCK
-        return StorageBackend.LOCAL
+
+        # Strict matching
+        value = self.storage_backend.upper()
+        if value == "FIRESTORE":
+            return StorageBackend.FIRESTORE
+        if value == "LOCAL":
+            return StorageBackend.LOCAL
+            
+        raise ValueError(f"CRITICAL: Invalid STORAGE_BACKEND '{self.storage_backend}'. Must be LOCAL or FIRESTORE (or set USE_MOCK_DB=True).")
 
     @computed_field  # type: ignore[prop-decorator]
     @property

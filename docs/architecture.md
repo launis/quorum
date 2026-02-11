@@ -102,10 +102,13 @@ graph TD
 
 The system supports a **Dual-Database** strategy for development velocity vs. production scale.
 
-### Primary Store: AbstractWorkflowRepository
+### Primary Store: UnifiedWorkflowRepository (Driver Pattern)
 *   **Interface**: `backend/database/repository.py`
-*   **Implementation A (Local)**: `TinyDBRepository` (JSON file). Zero-setup dev env.
-*   **Implementation B (Cloud)**: `FirestoreRepository`. Production scale.
+*   **Protocol**: `StorageDriver` (Defines CRUD + Query contract).
+*   **Drivers**:
+    *   `TinyDBDriver`: Adapter for local JSON file (Dev).
+    *   `FirestoreDriver`: Adapter for Google Cloud Firestore (Prod).
+*   **Advantage**: Business logic (filtering, aggregation) is unified in the Repository, while I/O is abstracted.
 
 ### Vector Store: KnowledgeBaseService
 *   **Implementation**: `ChromaDB` (Local/Server).

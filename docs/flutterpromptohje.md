@@ -412,3 +412,81 @@ The **Cognitive Studio** (Workflow Builder) operates in **Raw Mode**. It interac
 *   **Allowed**: Changing numerical weights, thresholds, prompts (if they are content).
 *   **Forbidden**: Renaming generic UI labels in the Builder Config.
 *   **Protocol**: To change a label, edit `backend/l10n/*.json` and `backend/seed/seed_data.json` instead. The Studio is for **Assembly**, not **Copywriting**.
+
+## 🧩 PART 14: LOGIC & VALIDATION MANDATES (STRICT SCALE)
+
+When implementing AI steps that must output specific numeric values (e.g., Scores 1-100 or 1-5), you must follow the **"Fail Fast & Explicit"** pattern.
+
+### 1. The Hazard
+*   **Silent Failure**: The AI outputs `0` or `101` when the scale is `1-100`.
+*   **Soft Fail**: Code clamps the value (`max(1, min(100, val))`).
+*   **Result**: Valid-looking data that is actually corrupt/hallucinated.
+
+### 2. The Solution (Fail Fast)
+*   **Code**: If a value is out of bounds, **CRASH** the step immediately (`raise ValueError`). Do not fix it silently.
+*   **Why**: This forces the Prompt Engineer to fix the *instruction*, rather than hiding the problem in the code.
+
+### 3. The Instruction (Explicit Prompting)
+*   **Source of Truth**: The "Rule" must exist in the Database (Component), NOT just in Python code.
+*   **Pattern**:
+    1.  Define the instruction in `seed_data.json` as a reusable component (e.g., `INSTRUCTION_STRICT_SCALE`).
+    2.  Inject this component into the `llm_prompts` list of the Agent.
+    3.  **Do NOT hardcode** the prompt text ("Must be between 1-100") in Python.
+
+### 4. Implementation Example (Seed Data)
+```json
+{
+  "id": "INSTRUCTION_STRICT_SCALE",
+  "type": "instruction",
+  "content": "**TÄRKEÄÄ**: Kaikkien pisteiden ON oltava määritellyn asteikon (Scale) sisällä.\n\nSinun on noudatettava asteikon rajoja ehdottomasti. Pisteet alle asteikon minimin tai yli maksimin ovat kiellettyjä.",
+  "description": "Pakottaa noudattamaan matriisin asteikkoa (Fail Fast)."
+}
+```
+*   **Effect**: The Prompt aligns with the Code's strict validation. If the AI fails, the error log points to the prompt, and you fix the prompt.
+
+## 🧬 PART 15: STRICT TYPING & SPECIALIST DATA (BFF MANDATE)
+
+### 15.1. UiSection Contract
+*   **Mandate**: The `UiSection` model (used for frontend rendering) strictly enforces `data: dict[str, Any]`.
+*   **Forbidden**: passing `None` as data.
+*   **Frontend Impact**: Pydantic will raise a `ValidationError` if `data` is missing, causing a 500 Internall Server Error for the entire report.
+*   **Solution**: In the BFF Transformer, always default to an empty dictionary `{}` if the data source is missing or invalid.
+    ```python
+    # BAD (Crashes if logician_data is None)
+    return UiSection(..., data=self._transform_logician_data(steps.get("step_logician")))
+
+    # GOOD (Safe Fallback)
+    data = self._transform_logician_data(...) or {}
+    return UiSection(..., data=data)
+    ```
+
+### 15.2. Specialist Data Interchange Protocols (Wrapped vs. Unwrapped)
+The system supports two distinct data formats for Specialist Agents, and the BFF Layer **MUST** support both.
+
+1.  **Wrapped Format (Standard Agents)**:
+    *   **Source**: Standalone Agents (e.g., `step_logician`, `step_falsifier`).
+    *   **Structure**: `{ "logician_data": { "compliance_score": ... } }`
+    *   **Reason**: Matches the `LogicianOutput` Pydantic model structure.
+
+2.  **Unwrapped Format (Panel Agent)**:
+    *   **Source**: The Consolidated Panel Agent (`step_panel`).
+    *   **Structure**: `{ "compliance_score": ... }` (The inner data directly).
+    *   **Reason**: The Panel Agent aggregates multiple outputs, and inside its own structure, the fields are already named (e.g., `panel.logician_data`). When extracted, it looks like raw data.
+
+### 15.3. Transformer Implementation Pattern
+When implementing `_transform_*` methods in `bff_transformer.py`, follow this **Robustness Pattern**:
+
+```python
+def _transform_specialist_data(self, data: dict) -> dict:
+    # 1. Try Wrapped (Standard)
+    if "specialist_data" in data:
+        return data["specialist_data"].copy()
+
+    # 2. Try Unwrapped (Panel/Direct)
+    if data and isinstance(data, dict):
+        return data.copy()
+
+    # 3. Fail Safe (UI robustness)
+    logger.warning("Specialist Data missing/invalid. Returning empty dict.")
+    return {}
+```

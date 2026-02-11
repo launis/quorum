@@ -59,7 +59,7 @@ class DocumentService:
             try:
                 # 1. Archive to Storage (IO-bound)
                 relative_path = f"{execution_id}/{filename}"
-                saved_path = await run_in_threadpool(self.storage_client.save, relative_path, file_bytes)
+                saved_path = await self.storage_client.save(relative_path, file_bytes)
 
                 # 2. Extract Text (CPU-bound)
                 lower_name = filename.lower()
@@ -137,7 +137,7 @@ class DocumentService:
         try:
             # 1. Archive
             relative_path = f"knowledge_base/{job_id}/{filename}"
-            await run_in_threadpool(self.storage_client.save, relative_path, content)
+            await self.storage_client.save(relative_path, content)
 
             # 2. Parse (CPU-bound)
             if is_docx:

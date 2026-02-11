@@ -163,6 +163,12 @@
       "type": "header"
     },
     {
+      "content": "**TÄRKEÄÄ**: Kaikkien pisteiden ON oltava määritellyn asteikon (Scale) sisällä.\n\nSinun on noudatettava asteikon rajoja ehdottomasti. Pisteet alle asteikon minimin tai yli maksimin ovat kiellettyjä.",
+      "description": "Pakottaa noudattamaan matriisin asteikkoa (Fail Fast).",
+      "id": "INSTRUCTION_STRICT_SCALE",
+      "type": "instruction"
+    },
+    {
       "content": "### 2. OPERATIIVISET SÄÄNNÖT (OPERATIONAL RULES)",
       "description": "Sääntöosion erotin.",
       "id": "HEADER_RULES",
@@ -1088,6 +1094,7 @@
           "HEURISTIC_2",
           "HEURISTIC_3",
           "INSTRUCTION_LANGUAGE_FI",
+          "INSTRUCTION_STRICT_SCALE",
           "HEADER_INSTRUCTIONS",
           "TASK_COACH",
           "INSTRUCTION_COACH_CITATION"
@@ -1293,6 +1300,7 @@
           "HEURISTIC_2",
           "HEURISTIC_3",
           "INSTRUCTION_LANGUAGE_FI",
+          "INSTRUCTION_STRICT_SCALE",
           "HEADER_INSTRUCTIONS",
           "TASK_JUDGE"
         ],
@@ -1350,6 +1358,7 @@
           "HEURISTIC_2",
           "HEURISTIC_3",
           "INSTRUCTION_LANGUAGE_FI",
+          "INSTRUCTION_STRICT_SCALE",
           "HEADER_INSTRUCTIONS",
           "TASK_JUDGE"
         ],

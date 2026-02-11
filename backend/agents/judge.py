@@ -140,7 +140,9 @@ class JudgeAgent(BaseAgent):
                         pass
             
             if count == 0:
-                return 0.0
+                # FAIL FAST: Do not return 0.0 (which might be out of range).
+                # If we cannot calculate a score, the Agent failed.
+                raise ValueError("No valid dimension scores found to calculate total.")
                 
             return round(total_sum / count, 2)
 

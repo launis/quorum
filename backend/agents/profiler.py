@@ -63,7 +63,39 @@ class ProfilerAgent(BaseAgent):
              if "profiler_metrics" in input_data:
                  logger.info(f"[ProfilerAgent] Metrics found: {input_data['profiler_metrics']}")
              
-             return await super().execute(input_data, execution_context, system_instruction, **kwargs)
+             result = await super().execute(input_data, execution_context, system_instruction, **kwargs)
+             
+             # MERGE HOOK METRICS (Linguistic) with LLM METRICS (Psychometric)
+             if "profiler_metrics" in input_data and hasattr(result, "metrics"):
+                 hook_metrics = input_data["profiler_metrics"]
+                 # Ensure result.metrics is a dict (it might be None or already populated)
+                 if result.metrics is None:
+                     result.metrics = {}
+                 
+                 # Merge: Hook metrics take precedence or append? 
+                 # Usually hooking metrics (word_count) are unrelated to LLM metrics (say_do_gap).
+                 logger.info(f"[ProfilerAgent] Merging hook metrics: {hook_metrics.keys()}")
+                 
+                 # We need to copy to avoid mutating frozen pydantic models if frozen=True
+                 # But ProfilerAnalysis is frozen=True.
+                 # WE need to copy to avoid mutating frozen pydantic models if frozen=True
+                 # But ProfilerAnalysis is frozen=True.
+                 if hasattr(result, "model_copy"):
+                     updated_metrics = result.metrics.copy()
+                     # Force clamp if present from manual entry or hook error
+                     if "control_ratio" in hook_metrics:
+                         val = hook_metrics["control_ratio"]
+                         if val > 1.0:
+                             logger.warning(f"[ProfilerAgent] Anomaly detected: control_ratio {val} > 1.0. Clamping to 1.0.")
+                             hook_metrics["control_ratio"] = 1.0
+                     
+                     updated_metrics.update(hook_metrics)
+                     result = result.model_copy(update={"metrics": updated_metrics})
+                 else:
+                     # Fallback for dict
+                     result.metrics.update(hook_metrics)
+                     
+             return result
         except Exception as e:
             logger.critical(f"[ProfilerAgent] CRASHED: {e}", exc_info=True)
             raise e

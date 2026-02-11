@@ -72,34 +72,32 @@ class ReportTransformer:
 
                 for idx, card in enumerate(cards):
                     try:
+                        # Fail Fast: Try/Except used for context logging, BUT we re-raise.
+                        
                         # Use specific agent name from card if available
-                        # This enables "Judge (matrix_v1)" vs "Judge (matrix_v2)" differentiation
                         card_agent_name = card.get("agent_name") or base_agent_name
                         
                         # Construct title
-                        # If we have multiple cards or different name, append it
                         if len(cards) > 1 or card_agent_name != base_agent_name:
-                             # E.g. "Analyysin Tulos (Judge (matrix_standard_v1))"
-                             card_title = f"{base_title} ({card_agent_name})"
+                                card_title = f"{base_title} ({card_agent_name})"
                         else:
-                             card_title = base_title
+                                card_title = base_title
 
-                        # Extract score data using the CARD as the source
-                        # valid_range is ignored if card has its own scale_min/max
+                        # Extract score data using the CARD as the source. 
+                        # STRICT: Card must self-contain scale info if valid_range is None.
                         score_data = self._extract_score_data(card, agent_name=card_agent_name, valid_range=valid_range)
 
                         # Create unique ID for the section
-                        # If index > 0, append index to avoid collision
                         section_id = f"score-card-{key}"
                         if idx > 0:
                             section_id += f"-{idx}"
 
                         sections.append(
-                            UiSection(id=section_id, type=SectionType.SCORE_CARD, title=card_title, data=score_data)
+                            UiSection(id=section_id, type=SectionType.SCORE_CARD, title=card_title, data=score_data or {})
                         )
                     except ValueError as e:
                         logger.error(f"Score validation failed for {key} (card {idx}): {e}")
-                        # Continue to next card
+                        raise e # User requires strict fail fast (palauttaa virheen)
 
         # --- A2. Key Metrics (Usage & Cost) ---
         usage_section = self._extract_usage_section(raw_data)
@@ -135,7 +133,7 @@ class ReportTransformer:
                     id="logic-analysis",
                     type=SectionType.LOGIC_ANALYSIS,
                     title=self._t("Logic Analysis", "Logiikka-analyysi"),
-                    data=self._transform_logician_data(logician_data if isinstance(logician_data, dict) else logician_data.dict()),
+                    data=self._transform_logician_data(logician_data if isinstance(logician_data, dict) else logician_data.dict()) or {},
                 )
             )
 
@@ -147,7 +145,7 @@ class ReportTransformer:
                     id="stress-test",
                     type=SectionType.STRESS_TEST,
                     title=self._t("Falsification & Stress Test", "Falsifiointi & Stressitesti"),
-                    data=self._transform_falsifier_data(falsifier_data if isinstance(falsifier_data, dict) else falsifier_data.dict()),
+                    data=self._transform_falsifier_data(falsifier_data if isinstance(falsifier_data, dict) else falsifier_data.dict()) or {},
                 )
             )
 
@@ -159,7 +157,7 @@ class ReportTransformer:
                     id="causal-analysis",
                     type=SectionType.CAUSAL_ANALYSIS,
                     title=self._t("Causal Audit", "Kausaalinen Auditointi"),
-                    data=self._transform_causal_data(causal_data if isinstance(causal_data, dict) else causal_data.dict()),
+                    data=self._transform_causal_data(causal_data if isinstance(causal_data, dict) else causal_data.dict()) or {},
                 )
             )
 
@@ -171,7 +169,7 @@ class ReportTransformer:
                     id="performativity-check",
                     type=SectionType.PERFORMATIVITY_CHECK,
                     title=self._t("Performativity Check", "Performatiivisuustarkistus"),
-                    data=self._transform_detector_data(detector_data if isinstance(detector_data, dict) else detector_data.dict()),
+                    data=self._transform_detector_data(detector_data if isinstance(detector_data, dict) else detector_data.dict()) or {},
                 )
             )
 
@@ -183,7 +181,7 @@ class ReportTransformer:
                     id="fact-check",
                     type=SectionType.FACT_CHECK,
                     title=self._t("Facts & Ethics", "Fakta & Etiikka"),
-                    data=self._transform_overseer_data(overseer_data if isinstance(overseer_data, dict) else overseer_data.dict()),
+                    data=self._transform_overseer_data(overseer_data if isinstance(overseer_data, dict) else overseer_data.dict()) or {},
                 )
             )
 
@@ -561,38 +559,75 @@ class ReportTransformer:
         total_tokens = usage.get("total_tokens", 0)
     def _transform_logician_data(self, data: dict) -> dict:
         """Flattens LogicianOutput (removes 'logician_data' wrapper) for frontend."""
-        # 1. Check for wrapper
+        # 1. Wrapped (Standard Agent)
         if "logician_data" in data and isinstance(data["logician_data"], dict):
-            # Merge inner data with any top-level metadata if needed, 
-            # but usually we just want the inner payload.
             return data["logician_data"].copy()
         
-        # 2. Fallback (already flat or legacy)
-        return data.copy()
+        # 2. Unwrapped (Panel Agent) - Use direct data
+        if data:
+            return data.copy()
+
+        # 3. Fallback
+        # 3. Strict Fail
+        raise ValueError("Logician Data: Missing or invalid format.")
 
     def _transform_falsifier_data(self, data: dict) -> dict:
         """Flattens FalsifierOutput (removes 'falsifier_data' wrapper) for frontend."""
+        # 1. Wrapped
         if "falsifier_data" in data and isinstance(data["falsifier_data"], dict):
             return data["falsifier_data"].copy()
-        return data.copy()
+        
+        # 2. Unwrapped
+        if data:
+            return data.copy()
+
+        # 3. Fallback
+        # 3. Strict Fail
+        raise ValueError("Falsifier Data: Missing or invalid format.")
 
     def _transform_causal_data(self, data: dict) -> dict:
         """Flattens CausalOutput (removes 'causal_analysis' wrapper) for frontend."""
+        # 1. Wrapped
         if "causal_analysis" in data and isinstance(data["causal_analysis"], dict):
             return data["causal_analysis"].copy()
-        return data.copy()
+        
+        # 2. Unwrapped
+        if data:
+            return data.copy()
+
+        # 3. Fallback
+        # 3. Strict Fail
+        raise ValueError("Causal Data: Missing or invalid format.")
 
     def _transform_detector_data(self, data: dict) -> dict:
         """Flattens PerformativityOutput (removes 'performativity_analysis' wrapper) for frontend."""
+        # 1. Wrapped
         if "performativity_analysis" in data and isinstance(data["performativity_analysis"], dict):
             return data["performativity_analysis"].copy()
-        return data.copy()
+        
+        # 2. Unwrapped
+        if data:
+            return data.copy()
+
+        # 3. Fallback
+        # 3. Strict Fail
+        raise ValueError("Performativity Data: Missing or invalid format.")
 
     def _transform_overseer_data(self, data: dict) -> dict:
         """Flattens OverseerOutput (removes 'overseer_data' wrapper) for frontend."""
+        # 1. Wrapped
         if "overseer_data" in data and isinstance(data["overseer_data"], dict):
             return data["overseer_data"].copy()
-        return data.copy()
+        
+        # 2. Unwrapped
+        if data:
+            return data.copy()
+
+        # 3. Fallback
+        # 3. Strict Fail
+        raise ValueError("Overseer Data: Missing or invalid format.")
+
+        return {}
 
 
 class AssessmentTransformer:

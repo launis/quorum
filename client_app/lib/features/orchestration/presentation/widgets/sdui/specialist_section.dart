@@ -748,23 +748,79 @@ class _SpecialistSectionState extends State<SpecialistSection> {
       children.add(Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: metrics.entries.map<Widget>((e) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: Row(
-              children: [
-                Text(
-                  "${e.key}: ",
-                  style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                      fontWeight: FontWeight.bold),
-                ),
-                Expanded(
-                    child: Text(e.value.toString(),
-                        style: const TextStyle(fontSize: 12))),
-              ],
-            ),
-          );
+          // Special handling for known metrics to be visualized better
+          if (e.key == 'driver' || e.key == 'passenger' || e.key == 'control_ratio') {
+              // Drivers/Passengers are likely parts of a ratio, maybe show as pie or bar?
+              // But control_ratio is a single float.
+          }
+          
+          // Parse complex objects if stringified (as seen in screenshot: "{driver: 0.9...}")
+          String label = e.key;
+          String valueStr = e.value.toString();
+          Map<String, dynamic>? parsedDetails;
+          
+          if (valueStr.trim().startsWith('{') && valueStr.trim().endsWith('}')) {
+             try {
+                // It's a map-like string (not strict JSON usually in these raw prints)
+                // We'll just display it cleanly for now, or try to parse if standard JSON.
+             } catch (_) {}
+          }
+
+          // Render 'control_ratio' specifically if found (example based on screenshot)
+          if (e.key == 'control_ratio' && e.value is Map) {
+             final valMap = e.value as Map;
+             return Padding(
+               padding: const EdgeInsets.only(bottom: 8.0),
+               child: UnifiedMetricGauge(
+                 label: "Control Ratio (Driver vs Passenger)",
+                 value: (valMap['driver'] as num? ?? 0.0).toDouble(),
+                 max: 1.0, 
+                 displayValue: "${((valMap['driver'] as num? ?? 0.0) * 100).toInt()}% Driver",
+                 descriptionFi: "Ohjaussuhde kertoo, kuinka paljon käyttäjä ohjaa keskustelua suhteessa tekoälyyn.",
+                 descriptionEn: valMap['justification'] ?? "",
+                 color: Colors.pink,
+                 axisLabels: const ['Passenger', '', 'Driver'],
+               ),
+             );
+          }
+          
+           // General Fallback for other metrics
+           return Container(
+             margin: const EdgeInsets.only(bottom: 8),
+             padding: const EdgeInsets.all(8),
+             decoration: BoxDecoration(
+               color: Colors.grey[100],
+               borderRadius: BorderRadius.circular(4),
+               border: Border.all(color: Colors.grey[300]!)
+             ),
+             child: Column(
+               crossAxisAlignment: CrossAxisAlignment.start,
+               children: [
+                 Text(
+                   e.key.toUpperCase().replaceAll('_', ' '),
+                   style: const TextStyle(
+                       fontSize: 10, 
+                       fontWeight: FontWeight.bold,
+                       color: Colors.grey
+                   ),
+                 ),
+                 const SizedBox(height: 4),
+                 if (e.value is Map) 
+                    ...((e.value as Map).entries.map((sub) => Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                           Text("${sub.key}: ", style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+                           Expanded(child: Text(sub.value.toString(), style: const TextStyle(fontSize: 12))),
+                        ],
+                      ),
+                    )))
+                 else
+                    Text(e.value.toString(), style: const TextStyle(fontSize: 13)),
+               ],
+             ),
+           );
         }).toList(),
       ));
       children.add(const SizedBox(height: 16));

@@ -42,14 +42,27 @@ The system utilizes a 3-tier hierarchy to differentiate between development spee
 
 ## 3. Backend Data Layer (`backend/`)
 
-### Repository Pattern (`backend/database/`)
-The system abstracts data access via the `AbstractWorkflowRepository` interface.
+### Unified Workflow Repository & Storage Drivers
+The system abstracts data access via the **Storage Driver Pattern**, enabling a single repository implementation to support multiple backends with identical business logic.
 
-*   **Interface**: `AbstractWorkflowRepository` in `backend/database/repository.py`.
-*   **Local Implementation**: `TinyDBRepository` in `backend/database/repository.py`.
-    *   **Behavior**: Serializes datetime/UUIDs to JSON strings using `_serialize_for_tinydb`.
-*   **Cloud Implementation**: `FirestoreWorkflowRepository` in `backend/database/firestore_repo.py`.
-    *   **Behavior**: Uses native Firestore serialization where possible, but enforces ISO strings for dates to ensure parity with TinyDB.
+#### 1. The Protocol (`backend/database/driver.py`)
+The `StorageDriver` protocol defines the contract for all CRUD and Query operations.
+*   **Methods**: `get`, `upsert`, `update`, `delete`, `query`, `count`.
+*   **Filters**: Abstract `Filter` objects (field, operator, value) are translated by the driver into native queries.
+
+#### 2. The Repository (`backend/database/repository.py`)
+*   **Class**: `UnifiedWorkflowRepository`
+*   **Role**: Contains all business logic (e.g., aggregating metrics, complex filtering, schema hydration).
+*   **Behavior**: It delegates raw I/O to the injected `StorageDriver`. This ensures that logic like "fetch all steps for a workflow" is written once and works everywhere.
+
+#### 3. Driver Implementations
+*   **TinyDBDriver** (`backend/database/tinydb_driver.py`):
+    *   **Backend**: Local JSON file (`TinyDB`).
+    *   **Behavior**: Serializes datetime/UUIDs to JSON strings. Implements in-memory filtering for complex queries.
+*   **FirestoreDriver** (`backend/database/firestore_driver.py`):
+    *   **Backend**: Google Cloud Firestore (Native).
+    *   **Behavior**: Uses `google-cloud-firestore` AsyncClient. Maps abstract filters to native `where()` clauses.
+    *   **Parity**: Enforces strict serialization parity with TinyDB (e.g., storing Datetime as ISO strings if needed for consistency).
 
 ### Strict Pydantic V2
 The system utilizes **Pydantic V2** for all internal state management.
@@ -86,3 +99,47 @@ Repositories are no longer monolithic. They are distributed by feature (e.g., `c
 *   **Run-at-Boot**: All core workflows (e.g., `sequential_audit_chain`) must be fully defined and runnable immediately after seeding.
 *   **UI Schema**: The Frontend renders inputs based on the `ui_schema` field in `WorkflowDefinition`. If this component is missing or empty in the seed, the UI will render an empty form (Zero-Fallback).
 *   **Ontology Registry**: Evaluation matrices (`evaluation_matrix`) are stored in the `components` table but reference dimensions from the `ontology` configuration.
+
+---
+
+## 6. File Storage Strategy
+
+The system abstracts file operations via the **File Driver Pattern** (`backend/services/file_driver.py`), ensuring parity between local development and cloud production.
+
+### The Protocol (`FileDriver`)
+The `FileDriver` protocol defines the ASYNC contract for file I/O:
+*   **Methods**: `save`, `read`, `delete`, `exists`, `get_url`.
+*   **Async-First**: All operations are non-blocking (`await driver.save(...)`), critical for high-throughput API endpoints.
+
+### Driver Implementations
+1.  **LocalFileDriver** (`backend/services/drivers/local_file_driver.py`):
+    *   **Backend**: Local file system (`data/files/`).
+    *   **Implementation**: Uses `aiofiles` for asynchronous I/O.
+    *   **Usage**: Default for development and testing.
+
+2.  **GCSFileDriver** (`backend/services/drivers/gcs_file_driver.py`):
+    *   **Backend**: Google Cloud Storage.
+    *   **Implementation**: Wraps `google-cloud-storage` sync client in `asyncio.to_thread` (or uses AsyncClient if available).
+    *   **Usage**: Production (`STORAGE_BACKEND=FIRESTORE` implies GCS for files).
+
+### Dependency Injection
+The `get_storage_client()` factory (`backend/services/storage.py`) determines the active driver based on environment settings, ensuring code agnostic of the underlying storage mechanism.
+
+---
+
+## 7. Specialist Data Interchange Protocols
+
+To ensure robust UI rendering across different backend configurations (Standalone Agents vs. Consolidated Panel), the system mandates a strict data interchange protocol.
+
+### 7.1. The "Wrapped vs. Unwrapped" Dual Standard
+The BFF Layer (`bff_transformer.py`) must support two formats for specialist data (Logician, Falsifier, Causal, Detector, Overseer):
+
+1.  **Wrapped (Standard)**: Output from standalone agents matches the Pydantic definition exactly.
+    *   Example: `LogicianOutput(logician_data={...})` -> JSON `{ "logician_data": {...} }`.
+2.  **Unwrapped (Panel)**: Output from the Panel Agent is "flattened" when extracted.
+    *   Example: `PanelOutput(logician_data={...})` -> extracted as `{...}` directly.
+
+### 7.2. UI Safety Mandate (UiSection)
+*   The `UiSection.data` field is strictly typed as `dict[str, Any]`.
+*   **Prohibition**: Never pass `None`.
+*   **Requirement**: Data Transformers must return an empty dictionary `{}` if the input data is missing or invalid, ensuring the UI component renders (as empty/hidden) rather than crashing the report generation with a 500 error.

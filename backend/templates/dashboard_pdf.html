@@ -6,101 +6,142 @@
     <style>
         @page {
             size: A4;
-            margin: 2cm;
+            margin: 1.5cm;
             @bottom-center {
                 content: "Page " counter(page) " of " counter(pages);
                 font-family: 'Inter', sans-serif;
-                font-size: 10px;
-                color: #666;
+                font-size: 9px;
+                color: #888;
             }
         }
         body {
             font-family: 'Inter', sans-serif;
-            color: #333;
-            line-height: 1.5;
-            font-size: 12px;
+            color: #2c3e50;
+            line-height: 1.4;
+            font-size: 11px;
+            background-color: #fff;
         }
-        h1, h2, h3, h4 {
-            color: #1a1a1a;
-            margin-top: 0;
-        }
-        h1 { font-size: 24px; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1.5px; text-align: center; }
-        h2 { font-size: 18px; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-top: 20px; margin-bottom: 15px; }
-        h3 { font-size: 14px; margin-bottom: 10px; color: #555; }
+        h1, h2, h3, h4 { color: #2c3e50; margin-top: 0; }
+        h1 { font-size: 22px; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; text-align: center; color: #1a237e; }
+        h2 { font-size: 16px; border-bottom: 2px solid #eee; padding-bottom: 8px; margin-top: 15px; margin-bottom: 12px; font-weight: 700; }
+        h3 { font-size: 13px; margin-bottom: 8px; color: #555; font-weight: 600; }
 
         .card {
             border: 1px solid #e0e0e0;
             border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
+            padding: 12px;
+            margin-bottom: 12px;
             background-color: #fff;
             break-inside: avoid;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
+        
         .header-card {
             border: 2px solid;
             text-align: center;
-            padding: 20px;
-            margin-bottom: 30px;
+            padding: 15px;
+            margin-bottom: 20px;
             border-radius: 12px;
+            background-color: #f8f9fa;
         }
-        .header-success { border-color: #4CAF50; color: #4CAF50; }
-        .header-warning { border-color: #FF9800; color: #FF9800; }
-        .header-danger { border-color: #F44336; color: #F44336; }
+        .header-success { border-color: #4CAF50; color: #2E7D32; }
+        .header-warning { border-color: #FF9800; color: #EF6C00; }
+        .header-danger { border-color: #F44336; color: #C62828; }
 
-        .grid-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        .grid-item {
-            flex: 1;
-            min-width: 150px;
-            padding: 10px;
-            background: #f9f9f9;
-            border-radius: 4px;
-        }
-        .label { font-size: 10px; color: #666; font-weight: bold; text-transform: uppercase; }
-        .value { font-size: 14px; font-weight: bold; margin-top: 2px; }
+        /* Generic Grid System */
+        .grid-container { display: flex; flex-wrap: wrap; gap: 8px; }
+        .grid-item { flex: 1; min-width: 140px; padding: 8px; background: #f5f5f5; border-radius: 4px; border: 1px solid #eee; }
+        .label { font-size: 9px; color: #616161; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+        .value { font-size: 13px; font-weight: 600; color: #212121; }
+        .sub-value { font-size: 10px; color: #757575; }
 
-        table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-        th, td { text-align: left; padding: 8px; border-bottom: 1px solid #eee; }
-        th { font-size: 11px; text-transform: uppercase; color: #666; }
-
-        .radar-chart {
-            text-align: center;
-            margin: 20px 0;
-        }
-        .radar-chart img {
-            max-width: 100%;
-            height: auto;
-        }
-
-        .markdown-block { background: #fafafa; padding: 15px; border-radius: 8px; }
-        .timeline-item {
-            padding: 8px 0;
-            border-bottom: 1px solid #eee;
-            display: flex;
-        }
-        .timestamp { width: 80px; font-size: 10px; color: #888; }
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; margin-bottom: 8px; font-size: 10px; }
+        th, td { text-align: left; padding: 6px; border-bottom: 1px solid #eee; }
+        th { font-size: 10px; text-transform: uppercase; color: #666; background-color: #f9f9f9; }
+        
+        /* Timeline */
+        .timeline-item { padding: 6px 0; border-bottom: 1px solid #f0f0f0; display: flex; font-size: 10px; }
+        .timestamp { width: 70px; color: #9e9e9e; font-family: monospace; }
         .content { flex: 1; }
-        .actor { font-weight: bold; font-size: 11px; margin-bottom: 2px; }
+        .actor { font-weight: 700; margin-bottom: 1px; color: #455a64; }
 
-        /* Specialist Specifics */
-        .chip {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 10px;
-            background: #eee;
-            margin-right: 4px;
-            margin-bottom: 4px;
+        /* Gauges & Visuals - Mimicking Flutter UnifiedMetricGauge */
+        .gauge-container { margin-bottom: 10px; }
+        .gauge-header { display: flex; justify-content: space-between; margin-bottom: 3px; }
+        .gauge-track { background: #E0E0E0; height: 8px; border-radius: 4px; overflow: hidden; display: flex; }
+        .gauge-bar { height: 100%; border-radius: 4px; }
+        .gauge-labels { display: flex; justify-content: space-between; margin-top: 2px; font-size: 8px; color: #757575; }
+        
+        /* Chips */
+        .chip { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 600; margin-right: 3px; border: 1px solid transparent; }
+        .chip.green { background: #E8F5E9; color: #2E7D32; border-color: #A5D6A7; }
+        .chip.red { background: #FFEBEE; color: #C62828; border-color: #EF9A9A; }
+        .chip.blue { background: #E3F2FD; color: #1565C0; border-color: #90CAF9; }
+        .chip.orange { background: #FFF3E0; color: #EF6C00; border-color: #FFCC80; }
+        
+        /* Box Styles */
+        .box-teal { background-color: #E0F2F1; border: 1px solid #B2DFDB; padding: 10px; border-radius: 6px; margin-bottom: 8px; }
+        .box-blue { background-color: #E3F2FD; border: 1px solid #BBDEFB; padding: 10px; border-radius: 6px; margin-bottom: 8px; }
+        .box-orange { background-color: #FFF3E0; border: 1px solid #FFE0B2; padding: 10px; border-radius: 6px; margin-bottom: 8px; }
+        .box-purple { background-color: #F3E5F5; border: 1px solid #E1BEE7; padding: 10px; border-radius: 6px; margin-bottom: 8px; }
+        .box-pink { background-color: #FCE4EC; border: 1px solid #F8BBD0; padding: 10px; border-radius: 6px; margin-bottom: 8px; }
+        .box-grey { background-color: #F5F5F5; border: 1px solid #E0E0E0; padding: 10px; border-radius: 6px; margin-bottom: 8px; }
+        
+
+        .finding-held { border-left-color: #4CAF50 !important; }
+        .finding-broken { border-left-color: #F44336 !important; }
+        .text-held { color: #2E7D32; }
+        .text-broken { color: #C62828; }
+
+        /* Logic Matrix */
+        .matrix-container {
+            position: relative;
+            width: 100%;
+            height: 200px;
+            background-color: #FAFAFA;
+            border: 1px solid #E0E0E0;
+            border-radius: 6px;
+            margin-top: 15px;
+            margin-bottom: 25px;
+            margin-left: 20px; /* Space for Y label */
+            width: calc(100% - 20px);
         }
-        .chip.red { background: #ffebee; color: #c62828; }
-        .chip.green { background: #e8f5e9; color: #2e7d32; }
+        .matrix-grid-line-x { position: absolute; left: 0; right: 0; border-bottom: 1px dashed #E0E0E0; }
+        .matrix-grid-line-y { position: absolute; top: 0; bottom: 0; border-left: 1px dashed #E0E0E0; }
+        
+        .matrix-axis-label-x {
+            position: absolute;
+            bottom: -20px;
+            width: 100%;
+            text-align: center;
+            font-size: 9px;
+            color: #757575;
+            font-weight: 600;
+        }
+        .matrix-axis-label-y {
+            position: absolute;
+            left: -30px;
+            top: 50%;
+            transform: translateY(-50%) rotate(-90deg);
+            text-align: center;
+            font-size: 9px;
+            color: #757575;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .matrix-bubble {
+            position: absolute;
+            border-radius: 50%;
+            background-color: rgba(63, 81, 181, 0.6);
+            border: 1px solid #3F51B5;
+            transform: translate(-50%, 50%); /* Correct origin for bottom-left coords */
+        }
     </style>
 </head>
 <body>
 
+    {# Header matches Flutter Card logic #}
     {% if view.status_theme == 'success' %}
     <div class="header-card header-success">
     {% elif view.status_theme == 'warning' %}
@@ -109,340 +150,526 @@
     <div class="header-card header-danger">
     {% endif %}
         <h1>{{ view.title }}</h1>
-        <div>Execution ID: {{ view.view_id }}</div>
+        <div style="font-size: 10px; color: #666;">ID: {{ view.view_id }}</div>
     </div>
 
     {% for section in view.sections %}
-    <div class="section">
-        {% if section.type == 'SCORE_CARD' %}
-            <!-- Score Card matches ScoreCardRadar widget -->
-            <div class="card">
-                <h2>{{ section.title }}</h2>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
-                    <div>
-                        <div class="label">Total Score</div>
-                        <div class="value" style="font-size: 24px; color: #1976D2;">{{ section.data.total_score }} <span style="font-size: 14px; color: #999;">(Scale: {{ section.data.min_score|default(section.data.scale_min) }} - {{ section.data.max_score|default(section.data.scale_max) }})</span></div>
-                    </div>
-                    <div>
-                        <div class="label">Verdict</div>
-                        <div class="value">{{ section.data.verdict }}</div>
-                    </div>
-                </div>
-                
-                {% if section.data.chart_image %}
-                <div class="radar-chart">
-                    <img src="{{ section.data.chart_image }}" alt="Radar Chart" />
-                </div>
-                {% endif %}
-
-                <div class="grid-container">
-                {% for dim in section.data.dimensions %}
-                    <div class="grid-item">
-                        <div class="label">{{ dim.label }}</div>
-                        <div class="value">{{ dim.score }}</div>
-                        <div style="font-size: 10px; color: #555; margin-top: 4px;">{{ dim.reasoning }}</div>
-                    </div>
-                {% endfor %}
-                </div>
-            </div>
-
-        {% elif section.type == 'KEY_VALUE_GRID' %}
-            <div class="card">
-                <h2>{{ section.title }}</h2>
-                <div class="grid-container">
-                    {% for item in section.data['items'] %}
-                    <div class="grid-item">
-                        <div class="label">{{ item.label }}</div>
-                        <div class="value">{{ item.value }}</div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-
-        {% elif section.type == 'DATA_TABLE' %}
-            <div class="card">
-                <h2>{{ section.title }}</h2>
-                <table>
-                    <thead>
-                        <tr>
-                            {% for col in section.data.columns %}
-                            <th>{{ col.label }}</th>
-                            {% endfor %}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for row in section.data.rows %}
-                        <tr>
-                            {% for col in section.data.columns %}
-                            <td>{{ row[col.key] }}</td>
-                            {% endfor %}
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-
-        {% elif section.type == 'MARKDOWN_BLOCK' %}
-            <div class="card">
-                <h2>{{ section.title }}</h2>
-                <div class="markdown-block">
-                    <!-- Simple whitespace preservation for markdown content -->
-                    <pre style="white-space: pre-wrap; font-family: inherit;">{{ section.data.content }}</pre>
-                </div>
-            </div>
-
-        {% elif section.type == 'TIMELINE_FEED' %}
-            <div class="card">
-                <h2>{{ section.title }}</h2>
-                {% for event in section.data.events %}
-                <div class="timeline-item">
-                    <div class="timestamp">{{ event.timestamp[:19] }}</div>
-                    <div class="content">
-                        <div class="actor">{{ event.actor }}</div>
-                        <div>{{ event.message }}</div>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-
-        {# --- SPECIALIST SECTIONS --- #}
+    <div class="section-wrapper">
         
-        {% elif section.type == 'LOGIC_ANALYSIS' %}
-            <div class="card">
-                <h2>{{ section.title }}</h2>
-                
-                {# --- 1. Bubble Chart (3D Position) --- #}
-                {% if section.data.logic_chart_image %}
-                <div class="radar-chart">
-                    <img src="{{ section.data.logic_chart_image }}" alt="Logic Matrix Position" style="max-height: 300px;" />
-                </div>
-                {% endif %}
-
-                {# --- 2. Gauges (Visual Bars) --- #}
-                {% set cog = section.data.get('kognitiivinen_taso', {}) %}
-                {% if cog %}
-                <div style="background: #E0F2F1; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #B2DFDB;">
-                    
-                    {# Bloom Gauge #}
-                    <div style="margin-bottom: 12px;">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                            <span class="label">Cognitive Level (Bloom)</span>
-                            <span class="value" style="font-size: 12px; color: #00695C;">{{ cog.bloom_taso }} ({{ cog.bloom_score|default(0)|round(1) }}/6.0)</span>
-                        </div>
-                        <div style="background: #B2DFDB; height: 8px; border-radius: 4px; overflow: hidden;">
-                             <div style="background: #00695C; width: {{ (cog.bloom_score|default(0) / 6.0) * 100 }}%; height: 100%;"></div>
-                        </div>
-                    </div>
-
-                    {# Strategic Gauge #}
+        {# --- 1. LOGIC ANALYSIS (Teal) --- #}
+        {% if section.type == 'LOGIC_ANALYSIS' %}
+        <div class="card" style="border-left: 4px solid #009688;">
+            <h2 style="color: #00796B;">{{ section.title }}</h2>
+            {% set d = section.data %}
+            
+            {# Cognitive Level Box #}
+            {% if d.cognitive_level is defined and d.cognitive_level %}
+            <div class="box-teal">
+                <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                    <span style="font-size: 16px; margin-right: 8px;">🧠</span>
                     <div>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                            <span class="label">Strategic Depth</span>
-                             <span class="value" style="font-size: 12px; color: #00695C;">{{ cog.strateginen_syvyys }} ({{ cog.strategic_score|default(0)|round(1) }}/4.0)</span>
-                        </div>
-                        <div style="background: #B2DFDB; height: 8px; border-radius: 4px; overflow: hidden;">
-                             {# Strategy is 1-4, so fraction is score/4 #}
-                             <div style="background: #00796B; width: {{ (cog.strategic_score|default(0) / 4.0) * 100 }}%; height: 100%;"></div>
-                        </div>
+                        <div class="label" style="color: #00695C;">Cognitive Level (Bloom)</div>
+                        <div class="value" style="color: #004D40;">{{ d.cognitive_level.bloom_level }}</div>
+                    </div>
+                </div>
+                
+                {# Bloom Score Gauge #}
+                {% if d.cognitive_level.bloom_score is defined and d.cognitive_level.bloom_score is not none %}
+                <div class="gauge-container">
+                    <div class="gauge-header">
+                        <span class="label">Bloom Score</span>
+                        <span class="value" style="color: #00796B;">{{ d.cognitive_level.bloom_score }} / 6.0</span>
+                    </div>
+                    {% set b_pct = (d.cognitive_level.bloom_score / 6.0) * 100 %}
+                    <div class="gauge-track">
+                        <div class="gauge-bar" style="--v: {{ b_pct|round(1) }}; width: calc(var(--v) * 1%); background-color: #009688;"></div>
+                    </div>
+                    <div class="gauge-labels">
+                        <span>Remembering</span>
+                        <span>Creating</span>
+                    </div>
+                </div>
+                {% endif %}
+
+                {# Strategic Depth Gauge #}
+                {% if d.cognitive_level.strategic_score is defined and d.cognitive_level.strategic_score is not none %}
+                <div class="gauge-container">
+                    <div class="gauge-header">
+                        <span class="label">Strategic Depth</span>
+                        <span class="value" style="color: #00796B;">{{ d.cognitive_level.strategic_score }} / 4.0</span>
+                    </div>
+                    {% set s_pct = (d.cognitive_level.strategic_score / 4.0) * 100 %}
+                    <div class="gauge-track">
+                        <div class="gauge-bar" style="--v: {{ s_pct|round(1) }}; width: calc(var(--v) * 1%); background-color: #00796B;"></div>
+                    </div>
+                    <div class="gauge-labels">
+                        <span>Tactical</span>
+                        <span>Strategic</span>
                     </div>
                 </div>
                 {% endif %}
                 
-                {% set toulmin = section.data.get('toulmin_analyysi', []) %}
-                {% if toulmin %}
-                <h3>Arguments (Toulmin)</h3>
-                {% for t in toulmin %}
-                <div style="background: #E8EAF6; padding: 10px; margin-bottom: 8px; border-radius: 4px; border-left: 4px solid #3F51B5;">
-                    <div style="font-weight: bold; color: #303F9F;">Claim: {{ t.claim }}</div>
-                    <div style="font-size: 11px; color: #555; margin-top: 2px;">Warrant: {{ t.warrant }}</div>
-                    {% if t.backing %}
-                    <div style="font-size: 10px; color: #777; margin-top: 2px; font-style: italic;">Backing: {{ t.backing }}</div>
+                <div style="font-size: 11px; margin-top: 4px; color: #004D40;">
+                    <strong>Insight:</strong> {{ d.cognitive_level.strategic_depth }}
+                </div>
+            </div>
+            {% endif %}
+
+            {# Arguments List #}
+            {% if d.toulmin_analysis is defined and d.toulmin_analysis %}
+            <div style="margin-top: 15px;">
+                <div class="label" style="margin-bottom: 5px;">ARGUMENTS (TOULMIN)</div>
+                {% for arg in d.toulmin_analysis %}
+                <div style="margin-bottom: 8px; border: 1px solid #eee; border-radius: 4px;">
+                    <div style="background: #ECEFF1; padding: 6px; font-weight: 600; font-size: 10px; color: #546E7A;">
+                        CLAIM: {{ arg.claim }}
+                    </div>
+                    <div style="padding: 6px; font-size: 10px; color: #455A64;">
+                        <span style="font-weight: 600; color: #78909C;">WARRANT:</span> {{ arg.warrant }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            {# Toulmin Integrity Gauge (Index 3.0 equivalent) #}
+            {% if d.toulmin_score is defined and d.toulmin_score is not none %}
+            <div class="gauge-container" style="margin-top: 12px; padding: 10px; background: #E8EAF6; border-radius: 6px;">
+                <div class="gauge-header">
+                    <span class="label" style="color: #3949AB;">Argument Integrity</span>
+                    <span class="value" style="color: #283593;">{{ d.toulmin_score }} / 6.0</span>
+                </div>
+                {% set t_pct = (d.toulmin_score / 6.0) * 100 %}
+                <div class="gauge-track" style="background: #C5CAE9;">
+                    <div class="gauge-bar" style="--v: {{ t_pct|round(1) }}; width: calc(var(--v) * 1%); background-color: #3F51B5;"></div>
+                </div>
+            </div>
+            {% endif %}
+            {% endif %}
+
+            {# Logic Matrix Visualization #}
+            {% if d.cognitive_level.bloom_score is defined and d.cognitive_level.bloom_score is not none and d.toulmin_score is defined and d.toulmin_score is not none %}
+            <div style="margin-top: 20px; padding-bottom: 10px;">
+                <div class="label" style="text-align: center; margin-bottom: 5px; color: #3949AB;">LOGIC MATRIX (Bloom vs Toulmin)</div>
+                
+                <div style="position: relative;">
+                    <div class="matrix-axis-label-y" style="height: 200px; line-height: 200px; left: -15px; top: 0; transform: none; writing-mode: vertical-rl; text-align: center;">Argument Strength (Toulmin)</div>
+                    
+                    <div class="matrix-container">
+                        {# Grid Lines #}
+                        <div class="matrix-grid-line-x" style="top: 25%;"></div>
+                        <div class="matrix-grid-line-x" style="top: 50%; border-bottom-style: solid; border-color: #BDBDBD;"></div>
+                        <div class="matrix-grid-line-x" style="top: 75%;"></div>
+                        
+                        <div class="matrix-grid-line-y" style="left: 25%;"></div>
+                        <div class="matrix-grid-line-y" style="left: 50%; border-left-style: solid; border-color: #BDBDBD;"></div>
+                        <div class="matrix-grid-line-y" style="left: 75%;"></div>
+
+                        {# X Axis Label #}
+                        <div class="matrix-axis-label-x">Cognitive Depth (Bloom)</div>
+
+                        {# Corner Labels #}
+                        <div style="position: absolute; top: 5px; right: 5px; font-size: 8px; color: #9E9E9E;">Strong</div>
+                        <div style="position: absolute; bottom: 5px; left: 5px; font-size: 8px; color: #9E9E9E;">Weak</div>
+
+                        {# The Bubble #}
+                        {% set b_score = d.cognitive_level.bloom_score %}
+                        {% set t_score = d.toulmin_score %}
+                        {% set s_score = d.cognitive_level.strategic_score if d.cognitive_level.strategic_score is defined and d.cognitive_level.strategic_score is not none else 2.0 %}
+                        
+                        {# Clamping to ensure it stays in box (0-100) #}
+                        {% set x_pos = (b_score / 6.0) * 100 %}
+                        {% set y_pos = (t_score / 6.0) * 100 %}
+                        {% set bubble_size = 20 + (s_score * 5) %}
+
+                        <div class="matrix-bubble" style="--x: {{ x_pos|round(1) }}; --y: {{ y_pos|round(1) }}; --sz: {{ bubble_size|round(0) }}; left: calc(var(--x) * 1%); bottom: calc(var(--y) * 1%); width: calc(var(--sz) * 1px); height: calc(var(--sz) * 1px);"></div>
+                    </div>
+                </div>
+                
+                <div style="text-align: center; font-size: 10px; color: #5C6BC0; margin-top: 5px;">
+                    <strong>Position:</strong> Bloom {{ b_score }} / Toulmin {{ t_score }} (Strat: {{ s_score }})
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        {# --- 2. STRESS TEST (Orange) --- #}
+        {% elif section.type == 'STRESS_TEST' %}
+        <div class="card" style="border-left: 4px solid #FF9800;">
+            <h2 style="color: #E65100;">{{ section.title }}</h2>
+            {% set d = section.data %}
+
+            {# Fidelity Audit Box #}
+            {% if d.fidelity_audit is defined and d.fidelity_audit %}
+            <div class="box-orange">
+                <div class="label" style="color: #E65100;">Fidelity Audit</div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                    <span style="font-weight: 600; font-size: 11px;">Post-Hoc Rationalization?</span>
+                    {% if d.fidelity_audit.post_hoc_rationalization_suspected %}
+                        <span class="chip red">DETECTED</span>
+                    {% else %}
+                        <span class="chip green">CLEAN</span>
                     {% endif %}
                 </div>
-                {% endfor %}
-                {% endif %}
+                <div style="font-size: 10px; color: #BF360C;">{{ d.fidelity_audit.reasoning }}</div>
             </div>
+            {% endif %}
 
-        {% elif section.type == 'STRESS_TEST' %}
-            {# ... Stress Test remains ... #}
-            <div class="card">
-                <h2>{{ section.title }}</h2>
-                {% set findings = section.data.get('walton_stressitesti_loydokset', []) %}
-                {% for f in findings %}
-                <div class="timeline-item">
-                    <div style="margin-right: 10px;">
-                        {% if f.kestiko_todistusaineisto %}
-                        <span style="color: green;">✔</span>
-                        {% else %}
-                        <span style="color: red;">✘</span>
-                        {% endif %}
+            {# Stress Findings #}
+            {% if d.stress_test_findings is defined and d.stress_test_findings %}
+            <div class="label" style="margin-bottom: 5px;">STRESS TEST FINDINGS</div>
+            {% for f in d.stress_test_findings %}
+            {% set held = f.evidence_held if f.evidence_held is defined else (f.result == 'HELD') %}
+            <div style="margin-bottom: 8px; padding-left: 8px; border-left: 3px solid;" class="{{ 'finding-held' if held else 'finding-broken' }}">
+                <div style="font-weight: 600; font-size: 11px; color: #263238;">{{ f.question }}</div>
+                <div style="font-size: 10px; margin-top: 2px;">
+                    Result: <span style="font-weight: 700;" class="{{ 'text-held' if held else 'text-broken' }}">{% if held %}HELD{% else %}BROKEN{% endif %}</span>
+                </div>
+                <div style="font-size: 10px; color: #546E7A; font-style: italic;">{{ f.observation }}</div>
+            </div>
+            {% endfor %}
+            {% endif %}
+        </div>
+
+        {# --- 3. CAUSAL ANALYSIS (Teal/Cyan) --- #}
+        {% elif section.type == 'CAUSAL_ANALYSIS' %}
+        <div class="card" style="border-left: 4px solid #00BCD4;">
+            <h2 style="color: #00838F;">{{ section.title }}</h2>
+            {% set d = section.data %}
+
+            {# Abductive Reasoning Box #}
+            <div class="box-teal" style="border-color: #80DEEA; background: #E0F7FA;">
+                {% if d.abductive_score is defined and d.abductive_score is not none %}
+                <div class="gauge-container">
+                    <div class="gauge-header">
+                        <span class="label" style="color: #006064;">Abductive Reasoning Strength</span>
+                        <span class="value" style="color: #00838F;">{{ d.abductive_score }} / 3.0</span>
                     </div>
-                    <div>
-                        <div style="font-weight: bold;">{{ f.kysymys }}</div>
-                        <div style="font-size: 11px;">{{ f.havainto }}</div>
+                    {% set a_pct = (d.abductive_score / 3.0) * 100 %}
+                    <div class="gauge-track" style="background: #B2EBF2;">
+                        <div class="gauge-bar" style="--v: {{ a_pct|round(1) }}; width: calc(var(--v) * 1%); background-color: #00BCD4;"></div>
+                    </div>
+                    <div class="gauge-labels">
+                        <span>Weak</span>
+                        <span>Strong</span>
                     </div>
                 </div>
-                {% endfor %}
+                {% endif %}
+                <div style="font-size: 11px; margin-top: 5px; color: #006064;">
+                    <strong>Conclusion:</strong> {{ d.abductive_conclusion }}
+                </div>
             </div>
 
-        {% elif section.type == 'FACT_CHECK' %}
-            <div class="card">
-                <h2>Facts & Ethics</h2>
-                
-                {# 1. Fact Checks (using processed_facts) #}
-                {% if section.data.processed_facts %}
-                <h3>Fact Checks</h3>
-                {% for f in section.data.processed_facts %}
-                <div style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px dashed #eee;">
-                     {% if f.is_verified %}
-                        <span class="chip green">Verified</span>
-                     {% elif f.verification_result == 'Debunked' or f.verification_result == 'Kumottu' %}
-                        <span class="chip red">Debunked</span>
-                     {% else %}
-                        <span class="chip">Unverified</span>
-                     {% endif %}
-                     <span style="font-weight: bold;">{{ f.claim }}</span>
-                     <div style="font-size: 10px; color: #666; margin-left: 5px; margin-top: 2px;">
-                        Reasoning: {{ f.source_or_reasoning }}
+            {# Counterfactual Test (Comparison) #}
+            {% if d.counterfactual_test is defined and d.counterfactual_test %}
+            <div style="margin-top: 15px;">
+                <div class="label" style="margin-bottom: 5px;">COUNTERFACTUAL SIMULATION</div>
+                <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                     <div style="flex: 1; padding: 8px; background: #F5F5F5; border-radius: 4px;">
+                         <div style="font-size: 9px; font-weight: 700; text-align: center; color: #616161;">ACTUAL (A)</div>
+                         <div style="font-size: 10px; text-align: center; color: #212121;">{{ d.counterfactual_test.scenario_a_actual }}</div>
+                     </div>
+                     <div style="display: flex; align-items: center; color: #00BCD4; font-size: 14px;">➔</div>
+                     <div style="flex: 1; padding: 8px; background: #E0F7FA; border-radius: 4px; border: 1px solid #B2EBF2;">
+                         <div style="font-size: 9px; font-weight: 700; text-align: center; color: #006064;">SIMULATED (B)</div>
+                         <div style="font-size: 10px; text-align: center; color: #006064;">{{ d.counterfactual_test.scenario_b_simulated }}</div>
                      </div>
                 </div>
-                {% endfor %}
-                {% endif %}
-
-                {# 2. Ethical Issues (using processed_ethics) #}
-                {% if section.data.processed_ethics %}
-                <h3 style="margin-top: 15px;">Ethical Issues</h3>
-                {% for e in section.data.processed_ethics %}
-                <div style="margin-bottom: 8px; padding: 8px; background: #FFF3E0; border-radius: 4px; border-left: 4px solid #FF9800;">
-                    <div style="display: flex; justify-content: space-between;">
-                        <span style="font-weight: bold; color: #EF6C00;">{{ e.issue_type }}</span>
-                        {% if e.is_critical %}
-                            <span class="chip red">CRITICAL</span>
-                        {% else %}
-                            <span class="chip" style="background: #FFE0B2; color: #E65100;">{{ e.severity }}</span>
-                        {% endif %}
+                
+                {# Plausibility #}
+                {% if d.counterfactual_test.plausibility_numeric is defined and d.counterfactual_test.plausibility_numeric is not none %}
+                <div class="gauge-container">
+                    <div class="gauge-header">
+                        <span class="label">Effect Plausibility</span>
+                        <span class="value">{{ d.counterfactual_test.plausibility_numeric }} / 3.0</span>
                     </div>
-                    <div style="font-size: 11px; margin-top: 4px;">{{ e.description }}</div>
+                    {% set p_pct = (d.counterfactual_test.plausibility_numeric / 3.0) * 100 %}
+                    <div class="gauge-track">
+                         <div class="gauge-bar" style="--v: {{ p_pct|round(1) }}; width: calc(var(--v) * 1%); background-color: #00ACC1;"></div>
+                    </div>
                 </div>
-                {% endfor %}
                 {% endif %}
             </div>
+            {% endif %}
+        </div>
 
-        {% elif section.type == 'ARCHIVIST_CHECK' %}
-             <div class="card">
-                <h2>{{ section.title }}</h2>
-                <div style="display: flex; align-items: center; margin-bottom: 10px;">
-                    <div style="font-size: 24px; font-weight: bold; margin-right: 15px;">
-                        {{ section.data.compliance_score }} / 100
-                    </div>
-                    <div>
-                        <div class="label">Compliance Analysis</div>
-                        <div>{{ section.data.analysis }}</div>
-                    </div>
-                </div>
-                {% for rec in section.data.recommendations %}
-                <div style="display: flex; margin-bottom: 4px;">
-                    <span style="margin-right: 8px; color: #795548;">•</span>
-                    <div>{{ rec }}</div>
-                </div>
-                {% endfor %}
-             </div>
-
-        {% elif section.type == 'DRIVER_PROFILE' %}
-            <div class="card">
-                <h2>{{ section.title }}</h2>
-                <div class="grid-container">
-                    <div class="grid-item">
-                        <div class="label">Classification</div>
-                        <div class="value">{{ section.data.driver_classification }}</div>
-                    </div>
-                    <div class="grid-item">
-                        <div class="label">Imperative Ratio</div>
-                        <div class="value">{{ section.data.input_control_ratio|default('N/A') }}</div>
-                    </div>
-                    <div class="grid-item">
-                         <div class="label">Identified Strategies</div>
-                         {% for s in section.data.tunnistetut_strategiat %}
-                         <div style="font-size: 11px;">• {{ s }}</div>
-                         {% endfor %}
-                    </div>
-                </div>
-            </div>
-
-        {% elif section.type == 'PROFILER_ANALYSIS' %}
-            <div class="card">
-                <h2>{{ section.title }}</h2>
-                <div class="markdown-block">
-                    <div class="label">Psychological Profile</div>
-                    <p>{{ section.data.psykologinen_profiili }}</p>
-                    
-                    <div class="label" style="margin-top: 10px;">Intent & Tone</div>
-                    <p>{{ section.data.intentio_analyysi }}</p>
-                    
-                    <div class="label" style="margin-top: 10px;">Biases</div>
-                    {% for b in section.data.tunnistetut_vinoumat %}
-                    <div style="margin-bottom: 4px;">
-                        <strong>{{ b.nimi }}:</strong> {{ b.selitys }}
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-
-        {% elif section.type == 'CAUSAL_ANALYSIS' %}
-            <div class="card">
-                 <h2>{{ section.title }}</h2>
-                 <div class="timeline-item">
-                    <div>
-                        <div class="label">Causal Observation</div>
-                        <div>{{ section.data.causal_audit.observation }}</div>
-                    </div>
-                 </div>
-                 <div class="timeline-item">
-                    <div>
-                        <div class="label">Abductive Conclusion</div>
-                        <div class="value">{{ section.data.abductive_conclusion }}</div>
-                    </div>
-                 </div>
-                 
-                 {% if section.data.counterfactual_test.plausibility_numeric %}
-                 <div style="margin-top: 10px; padding: 10px; background: #e0f2f1; border-radius: 4px;">
-                    <div class="label">Plausibility Score</div>
-                    <div class="value" style="color: #00695c;">{{ section.data.counterfactual_test.plausibility_numeric }} / 3.0</div>
-                    <div style="font-size: 11px;">{{ section.data.counterfactual_test.description }}</div>
-                 </div>
-                 {% endif %}
-            </div>
-
+        {# --- 4. PERFORMATIVITY CHECK (Purple) --- #}
         {% elif section.type == 'PERFORMATIVITY_CHECK' %}
-            <div class="card">
-                <h2>{{ section.title }}</h2>
-                 <div style="font-size: 14px; font-weight: bold; margin-bottom: 10px;">
-                    Authenticity: {{ section.data.yleisarvio_aitoudesta }}
-                 </div>
-                 
-                 {% for h in section.data.performatiivisuus_heuristiikat %}
-                 <div style="margin-bottom: 6px; padding: 6px; background: #fafafa; border-radius: 4px;">
-                    <div style="display: flex; justify-content: space-between;">
-                        <span style="font-weight: 600;">{{ h.heuristiikka }}</span>
-                        {% if h.lippu_nostettu %}
-                             <span class="chip red">Flagged</span>
-                        {% else %}
-                             <span class="chip green">Pass</span>
-                        {% endif %}
+        <div class="card" style="border-left: 4px solid #9C27B0;">
+            <h2 style="color: #6A1B9A;">{{ section.title }}</h2>
+            {% set d = section.data %}
+
+            <div class="box-purple">
+                 {% if d.authenticity_score is defined and d.authenticity_score is not none %}
+                 <div class="gauge-container">
+                    <div class="gauge-header">
+                        <span class="label" style="color: #4A148C;">Authenticity Score</span>
+                        <span class="value" style="color: #7B1FA2;">{{ d.authenticity_score }} / 3.0</span>
                     </div>
-                    <div style="font-size: 11px; margin-top: 2px;">{{ h.kuvaus }}</div>
+                    {% set auth_pct = (d.authenticity_score / 3.0) * 100 %}
+                    <div class="gauge-track" style="background: #E1BEE7;">
+                        <div class="gauge-bar" style="--v: {{ auth_pct|round(1) }}; width: calc(var(--v) * 1%); background-color: #9C27B0;"></div>
+                    </div>
+                    <div class="gauge-labels">
+                        <span>Performative</span>
+                        <span>Authentic</span>
+                    </div>
+                </div>
+                {% endif %}
+                <div style="text-align: center; font-weight: 700; font-size: 12px; color: #4A148C; margin-top: 5px;">
+                    {{ d.authenticity_assessment }}
+                </div>
+            </div>
+
+            <div class="label" style="margin-bottom: 5px;">HEURISTICS</div>
+            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                {% for h in d.performativity_heuristics %}
+                    {% if h.flag_raised %}
+                        <span class="chip red">🚩 {{ h.heuristic_name }}</span>
+                    {% else %}
+                        <span class="chip green">✓ {{ h.heuristic_name }}</span>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+
+        {# --- 5. FACTS & ETHICS (Blue) --- #}
+        {% elif section.type == 'FACT_CHECK' %}
+        <div class="card" style="border-left: 4px solid #2196F3;">
+            <h2 style="color: #0D47A1;">{{ section.title }}</h2>
+            {% set d = section.data %}
+
+            {% if d.verified_facts is defined and d.verified_facts %}
+            <div class="label" style="margin-bottom: 5px;">VERIFIED FACTS</div>
+            {% for f in d.verified_facts %}
+            <div class="timeline-item">
+                <div style="margin-right: 8px;">
+                    {% if f.is_verified is defined and f.is_verified %}<span class="chip green">VERIFIED</span>
+                    {% elif f.verification_result == 'Debunked' %}<span class="chip red">DEBUNKED</span>
+                    {% else %}<span class="chip orange">UNCERTAIN</span>{% endif %}
+                </div>
+                <div>
+                     <div style="font-weight: 600;">{{ f.claim }}</div>
+                     <div style="color: #666; font-size: 9px;">Source: {{ f.source_or_reasoning }}</div>
+                </div>
+            </div>
+            {% endfor %}
+            {% endif %}
+
+            {% if d.ethical_issues is defined and d.ethical_issues %}
+            <div class="label" style="margin-top: 12px; margin-bottom: 5px;">ETHICAL ISSUES</div>
+            {% for e in d.ethical_issues %}
+            <div class="box-orange" style="margin-bottom: 4px; padding: 6px;">
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="font-weight: 700; color: #E65100;">{{ e.issue_type }}</span>
+                    {% if e.is_critical is defined and e.is_critical %}<span class="chip red">CRITICAL</span>{% else %}<span class="chip orange">WARNING</span>{% endif %}
+                </div>
+                <div style="font-size: 10px;">{{ e.description }}</div>
+            </div>
+            {% endfor %}
+            {% endif %}
+        </div>
+
+        {# --- 5b. KEY VALUE GRID (Security/Generic) --- #}
+        {% elif section.type == 'KEY_VALUE_GRID' %}
+        <div class="card" style="border-left: 4px solid #607D8B;">
+            <h2 style="color: #455A64;">{{ section.title }}</h2>
+            <div class="grid-container">
+                {% for item in section.data.get('items', []) %}
+                <div class="grid-item" {% if item.highlight %}style="background-color: #FFEBEE; border-color: #FFCDD2;"{% endif %}>
+                    <div class="label" {% if item.highlight %}style="color: #C62828;"{% endif %}>{{ item.label }}</div>
+                    <div class="value" {% if item.highlight %}style="color: #B71C1C;"{% endif %}>{{ item.value }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        {# --- 5c. DATA TABLE (Analyst/Generic) --- #}
+        {% elif section.type == 'DATA_TABLE' %}
+        <div class="card" style="border-left: 4px solid #3F51B5;">
+            <h2 style="color: #283593;">{{ section.title }}</h2>
+            <table>
+                <thead>
+                    <tr>
+                        {% for col in section.data.columns %}
+                        <th>{{ col.label }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in section.data.rows %}
+                    <tr>
+                        {% for col in section.data.columns %}
+                        <td>{{ row[col.key] }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {# --- 6. PROFILER ANALYSIS (Pink) --- #}
+        {% elif section.type == 'PROFILER_ANALYSIS' %}
+        <div class="card" style="border-left: 4px solid #E91E63;">
+            <h2 style="color: #880E4F;">{{ section.title }}</h2>
+            {% set d = section.data %}
+
+            {# Control Ratio Gauge #}
+            {# Support Multiple Key Paths for pass-through #}
+            {% set metrics = d.get('metrics') or d.get('text_metrics') or d.get('teksti_metriikka') or {} %}
+            {% set control = metrics.get('control_ratio') %}
+            
+            {% if control is not none %}
+                {# If dict, get driver, else use direct float #}
+                {% set driver_score = control.driver if control is mapping else control %}
+                {% if driver_score is not none %}
+                <div class="box-pink">
+                    <div class="gauge-container">
+                        <div class="gauge-header">
+                            <span class="label" style="color: #880E4F;">Control Ratio</span>
+                            <span class="value" style="color: #C2185B;">{{ (driver_score * 100)|round|int }}% Driver</span>
+                        </div>
+                        {% set c_pct = driver_score * 100 %}
+                        <div class="gauge-track" style="background: #F8BBD0;">
+                            <div class="gauge-bar" style="--v: {{ c_pct|round(1) }}; width: calc(var(--v) * 1%); background-color: #E91E63;"></div>
+                        </div>
+                        <div class="gauge-labels">
+                            <span>Passenger</span>
+                            <span>Driver</span>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            {% endif %}
+
+            <div class="grid-container" style="margin-bottom: 12px;">
+                 <div class="grid-item">
+                     <div class="label">Psychological Profile</div>
+                     <div class="value" style="font-size: 11px; font-weight: 400;">{{ d.get('psychological_profile') or d.get('psykologinen_profiili') }}</div>
                  </div>
+                 <div class="grid-item">
+                     <div class="label">Intent</div>
+                     <div class="value" style="font-size: 11px; font-weight: 400;">{{ d.get('intent_analysis') or d.get('intentio_analyysi') }}</div>
+                 </div>
+            </div>
+        </div>
+
+        {# --- 7. ARCHIVIST CHECK (Brown) --- #}
+        {% elif section.type == 'ARCHIVIST_CHECK' %}
+        <div class="card" style="border-left: 4px solid #795548;">
+            <h2 style="color: #3E2723;">{{ section.title }}</h2>
+            {% set d = section.data %}
+             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                 <div>
+                     <div class="label">Compliance Score</div>
+                     {# Domain model says 1.0 - 5.0 #}
+                     {% if d.compliance_score is defined and d.compliance_score is not none %}
+                     <div style="font-size: 24px; font-weight: 700; color: #5D4037;">{{ d.compliance_score }} / 5.0</div>
+                     {% else %}
+                     <div style="font-size: 24px; font-weight: 700; color: #5D4037;">N/A</div>
+                     {% endif %}
+                 </div>
+                 <div style="flex: 1; margin-left: 15px; font-size: 11px; color: #4E342E; font-style: italic;">
+                     {{ d.get('analysis') or d.get('compliance_analysis') }}
+                 </div>
+             </div>
+             
+             <div class="label">RECOMMENDATIONS</div>
+             <ul>
+                 {% if d.recommendations is defined and d.recommendations %}
+                 {% for rec in d.recommendations %}
+                 <li style="font-size: 10px; margin-bottom: 2px;">{{ rec }}</li>
                  {% endfor %}
+                 {% else %}
+                 <li style="font-size: 10px; margin-bottom: 2px; color: #999;">No recommendations available.</li>
+                 {% endif %}
+             </ul>
+        </div>
+
+        {# --- 8. DRIVER PROFILE (Interaction) --- #}
+        {% elif section.type == 'DRIVER_PROFILE' %}
+        <div class="card" style="border-left: 4px solid #2196F3;">
+            <h2 style="color: #1565C0;">{{ section.title }}</h2>
+            {% set d = section.data %}
+            
+            <div class="grid-container">
+                 <div class="grid-item">
+                     <div class="label">Driver Classification</div>
+                     <div class="value" style="font-size: 14px; color: #1565C0;">{{ d.get('role_classification') or d.get('driver_classification') }}</div>
+                 </div>
+                 <div class="grid-item">
+                     <div class="label">Input Quality</div>
+                     <div class="value">{{ d.input_quality_score if d.input_quality_score is defined else 'N/A' }}</div>
+                 </div>
             </div>
 
+            {% set suggestions = d.get('improvement_suggestions') or d.get('tunnistetut_strategiat') %}
+            {% if suggestions %}
+            <div class="label" style="margin-top: 10px;">Strategies</div>
+            {% for s in suggestions %}
+            <div class="chip blue" style="margin-bottom: 4px;">{{ s }}</div>
+            {% endfor %}
+            {% endif %}
+        </div>
+
+        {# --- OTHER: TIMELINE --- #}
+        {% elif section.type == 'TIMELINE_FEED' %}
+        <div class="card">
+            <h2>{{ section.title }}</h2>
+            {% for event in section.data.get('events', []) %}
+            <div class="timeline-item">
+                <div class="timestamp">{{ event.timestamp[11:19] if event.timestamp|length > 18 else event.timestamp }}</div>
+                <div class="content">
+                    <div class="actor">{{ event.actor }}</div>
+                    <div>{{ event.message }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {# --- SCORE CARD --- #}
+        {% elif section.type == 'SCORE_CARD' %}
+        <div class="card">
+            <h2>{{ section.title }}</h2>
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 8px;">
+                <div>
+                    <div class="label">Total Score</div>
+                    <div style="font-size: 28px; font-weight: 700; color: #1976D2; line-height: 1;">
+                        {{ section.data.get('total_score', '0') }}
+                        <span style="font-size: 12px; color: #999; font-weight: 400;">/ {{ section.data.get('max_score', '100') }}</span>
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <div class="label">Verdict</div>
+                    <div class="value" style="font-size: 14px;">{{ section.data.get('verdict', 'Pending') }}</div>
+                </div>
+            </div>
+            
+            <div class="grid-container">
+            {% for dim in section.data.get('dimensions', []) %}
+                <div class="grid-item">
+                    <div class="label">{{ dim.get('dimension_label') or dim.get('label') }}</div>
+                    <div class="value">{{ dim.get('score') }}</div>
+                    <div style="font-size: 9px; color: #666; margin-top: 3px;">{{ dim.get('reasoning') }}</div>
+                </div>
+            {% endfor %}
+            </div>
+        </div>
+
+        {# --- MARKDOWN BLOCK (XAI/Coach) --- #}
+        {% elif section.type == 'MARKDOWN_BLOCK' %}
+        <div class="card">
+            <h2>{{ section.title }}</h2>
+            <div style="font-family: inherit; font-size: 11px; white-space: pre-wrap;">{{ section.data.get('content', '') }}</div>
+        </div>
+
+        {# --- GENERIC FALLBACK --- #}
         {% else %}
-            <!-- Generic Fallback for simple structures -->
-            <div class="card">
-                <h2>{{ section.title }}</h2>
-                <pre>{{ section.data | tojson(indent=2) }}</pre>
-            </div>
-
+        <div class="card">
+            <h2>{{ section.title }}</h2>
+            <pre style="font-size: 9px; overflow: hidden;">{{ section.data | tojson(indent=2) }}</pre>
+        </div>
         {% endif %}
+        
     </div>
     {% endfor %}
 
