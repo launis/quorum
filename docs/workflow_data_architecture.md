@@ -84,6 +84,11 @@ graph TD
 ---
 
 ## 2. Step-by-Step Data Contracts
+ 
+ All steps operate on the **Hybrid State Architecture**:
+ *   **Inputs**: Read from the Blackboard (`WorkflowState.context_variables`).
+ *   **Outputs**: Written to the Event Log (`TraceEvent`) and projected back to the Blackboard.
+ *   **Validation**: Strict Pydantic V2 schemas are enforced at every step boundary.
 
 ### Step 1: Guard (`step_guard`)
 **Objective:** Input hygiene, PII redaction, and security scanning.

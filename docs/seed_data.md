@@ -1,6 +1,7 @@
 # System Seeding & Data Lifecycle (V2.9)
 
 In **Cognitive Quorum V2026**, the system follows a strict **Unidirectional Data Flow**. The `backend/seed/seed_data.json` file is the **Immutable Source of Truth** (SSOT) for all configuration, logic, and structure.
+> **Note**: Seeding requires **Python 3.14.2+** to ensure consistent hashing and Pydantic V2 validation behavior.
 
 We do *not* sync runtime database changes back to the codebase. Instead, we edit the "DNA" of the system (`seed_data.json`) and re-seed the "Organism" (Database).
 
@@ -74,8 +75,8 @@ In V2.9, we moved away from bi-directional syncing.
 The Seeder performs **Intelligent Extraction**. It does not just copy JSON; it transforms it.
 
 *   **Example**: The `dimensions` table in the database is NOT in `seed_data.json`.
-*   **Mechanism**: The Seeder scans all `evaluation_matrix` components in `seed_data.json`. It extracts every `criteria` item and instantiates it as a `Dimension` record in the database.
-*   **Benefit**: You only define criteria once (in the Matrix), and the system ensures the Ontology Registry is automatically synced.
+*   **Mechanism**: The Seeder scans all `evaluation_matrix` components in `seed_data.json`. It extracts every `criteria` and `scale` definition, ensuring that the **Ontology Store** (`dimensions` table) is populated with granular, queryable records.
+*   **Purpose**: This allows the `MatrixFormatter` to look up individual criteria by ID if needed, though primarily it serves the **Cognitive Studio** for UI-based editing.
 
 ---
 

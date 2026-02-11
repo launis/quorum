@@ -42,9 +42,13 @@ graph TD
 A native, multi-platform user interface found in `client_app/`. It provides tools for workflow execution, system monitoring, and deep configuration. It communicates exclusively with the Backend via REST API calls and manages local state via **Riverpod 2.0**. It uses **Server-Driven UI (SDUI)** principles to render configuration forms dynamically from backend schemas.
 
 ### Backend (FastAPI - Modular Core)
-The Control Plane. It handles incoming HTTP requests, validates configuration changes via **Pydantic V2** schemas, and serves as the gateway. It is organized into:
-*   **Execution API** (`routes/execution/`): Life-cycle management of jobs.
-*   **Config API** (`routes/config/`): CRUD for Components, Workflows, and Ontology.
+The Control Plane. It handles incoming HTTP requests, validates configuration changes via **Pydantic V2** schemas, and serves as the gateway. It is organized into a hybrid router structure:
+
+*   **Core Systems** (`backend/api/`): Top-level routers for Auth, Admin, and Organizations (`admin_router.py`, `organization_router.py`, `auth_router.py`).
+*   **Domain Logic** (`backend/api/routes/`): dedicated sub-routers for business logic.
+    *   `execution/`: Life-cycle management of jobs and runs.
+    *   `config/`: CRUD for Workflows, Steps, and Components.
+    *   `builder/`: Advanced workflow construction tools.
 
 ### Worker Service (Arq + Redis)
 The Execution Plane. A distributed background service that pulls jobs from Redis. This allows the system to scale horizontally and handle tasks that exceed standard HTTP timeout limits (e.g., 60s+ LLM reasoning chains). Monitoring and traces are exported to **Logfire**.
@@ -76,9 +80,11 @@ Configuration changes follow an API-driven, immediate consistency model, enforce
 The Client App uses a **Shell Route** architecture to separate concerns:
 
 ### 1. Studio (`/studio`)
-The workspace for "Cognitive Architects".
-*   **Workflow Studio**: Visual builder for chaining steps and defining logic.
-*   **Dynamic Forms**: Widgets that render inputs based on backend JSON Schemas.
+The workspace for "Cognitive Architects", accessed via the `StudioDashboardScreen`.
+*   **Workflows** (`/studio/workflows`): Visual management of workflow definitions.
+*   **Steps** (`/studio/steps`): Library of reusable cognitive steps.
+*   **Matrices** (`/studio/matrices`): Evaluation matrices and ontology definitions.
+*   **Components** (`/studio/components`): General component registry (Rules, Prompts).
 
 ### 2. Registry (`/registry`)
 The component library.

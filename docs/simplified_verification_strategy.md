@@ -11,7 +11,7 @@ We verify the backend primarily by ensuring the **Database** matches the **Seed 
 ### A. Sync Verification (`verify_sync.py`)
 This script performs a deep comparison between `seed_data.json` and all active databases (Local, Mock, Firestore).
 
-*   **Command**: `python backend/seed/verify_sync.py`
+*   **Command**: `python backend/seed/verify_sync.py` (Requires Python 3.14.2+)
 *   **Success Criteria**: Output must read **"ALL SYSTEMS SYNCED"**.
 *   **What it checks**:
     *   Entity Counts (Users, Orgs, Workflows).
@@ -24,6 +24,15 @@ A fast, high-level sanity check to compare record counts across environments.
 *   **Command**: `python backend/seed/check_counts.py`
 *   **Output**: A table showing counts for SEED, PROD, MOCK, and FIRE.
 *   **Use Case**: Quick check after running a migration or seeding operation.
+
+### C. Hybrid State Audit (Event Consistency)
+We verify the **Hybrid State Architecture** by ensuring the Event Log (`trace`) matches the Snapshot (`context`).
+
+*   **Mechanism**: `backend/seed/verifier.py`
+*   **Logic**:
+    1.  Replay all `TraceEvent`s from `execution_trace`.
+    2.  Compare the derived state against the stored `context_variables`.
+    3.  If they diverge, the state is corrupted.
 
 ---
 
@@ -85,6 +94,6 @@ Before pushing any code, run this manual checklist:
 ## 4. CI/CD Enforcement
 
 GitHub Actions (`.github/workflows/main.yml`) enforces these standards on every push:
-1.  **Backend**: Runs `ruff` and `pygame` (if applicable).
+1.  **Backend**: Runs `ruff` and `mypy` (Strict Typing).
 2.  **Frontend**: Runs `flutter analyze` and `flutter test`.
 3.  **Docs**: Builds MkDocs site.

@@ -64,7 +64,7 @@
     -   Break the task into small, isolated prompts (approx. 5-10 mins of AI work each).
     -   **Standard Sequence:**
         1.  Backend Dependencies (if any).
-        2.  Backend Core/Models (Pydantic + x-ui-label).
+        2.  Backend Core/Models (Pydantic V2 + `x-ui-label` + Hybrid State Compatibility).
         3.  Backend L10n Updates (JSON files + `LocalizationService` Context Logic).
         4.  Backend Repositories (TinyDB & Firestore - Dual Impl).
         5.  Backend API/Router.
@@ -118,7 +118,7 @@
     
 
 6.  **QUALITY LOOP (MANDATORY):**
-    -   **Python:** `ruff check <target_files> --fix` -> `mypy <target_files>` -> `pytest <test_file>`.
+    -   **Python:** `ruff check <target_files> --fix` -> `mypy <target_files>` (Strict) -> `pytest <test_file>`.
     -   **Flutter:** `dart format <target_files>` -> `dart analyze <target_files>` -> `flutter test <test_file>`.
     -   **Rule:** Fix ALL errors before marking the step as complete.
 

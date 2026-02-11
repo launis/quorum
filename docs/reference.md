@@ -23,7 +23,7 @@ quorum/
 │   ├── models/             # Pydantic V2 Schemas (SSOT)
 │   ├── services/           # Business Logic (Auth, PromptBuilder)
 │   ├── seed/               # Data Seeding Logic
-│   ├── config.py           # Environment Settings
+│   ├── settings.py         # Environment Settings (Pydantic BaseSettings)
 │   └── worker.py           # Arq Worker Entry Point
 ├── data/                   # Local Persistence
 │   ├── db.json             # Local Production DB (GitIgnored)
@@ -39,8 +39,10 @@ quorum/
 │   │   │   ├── studio/     # Workflow Editor & Designer
 │   │   │   └── shell/      # Navigation & Layout
 │   │   └── router/         # GoRouter Configuration
-├── scripts/                # CI/CD & Utility Scripts
+├── scripts/                # CI/CD & Utility Scripts (Python)
 ├── .env.example            # Environment Template
+├── run_full_docker.bat     # Windows Startup Script
+├── kill_services.bat       # Windows Cleanup Script
 └── pyproject.toml          # Python Dependencies (uv)
 ```
 
@@ -48,7 +50,7 @@ quorum/
 
 ## 2. CLI Command Reference
 
-### Operational Commands (Windows)
+### Operational Commands (Windows Root)
 
 | Command | Description |
 | :--- | :--- |
@@ -115,27 +117,51 @@ Manages the "Brains" of the system.
 
 ## 4. Environment Variables
 
-Defined in `.env`.
+Defined in `.env` and managed by `backend/settings.py`.
 
-| Variable | Description | Default |
-| :--- | :--- | :--- |
-| `ENV` | Environment Mode. | `development` / `production` |
-| `DATABASE_TYPE` | Storage engine. | `tinydb` / `firestore` |
-| `REDIS_URL` | Redis connection for Arq. | `redis://localhost:6379` |
-| `GCP_PROJECT_ID` | Google Cloud Project ID. | `quorum-prod` |
-| `LOGFIRE_TOKEN` | Observability Token. | `...` |
+| Variable | Description | Valid Values | Default |
+| :--- | :--- | :--- | :--- |
+| `ENVIRONMENT` | Environment Mode. | `development` / `production` | `development` |
+| `STORAGE_BACKEND` | Storage engine choice. | `LOCAL` / `MOCK` / `FIRESTORE` | `LOCAL` |
+| `USE_MOCK_LLM` | Force usage of Mock LLM service. | `true` / `false` | `false` |
+| `USE_VERTEX_LLM` | Use Vertex AI (Google) vs OpenAI. | `true` / `false` | `false` |
+| `VERTEX_LOCATION` | Google Cloud Region. | e.g., `europe-north1` | - |
+| `GOOGLE_API_KEY` | Key for Google AI Studio (Gemini). | String | - |
+| `REDIS_HOST` | Redis connection for Arq. | Hostname / IP | `localhost` |
+| `PROJECT_ID` | GCP Project ID (Optional). | String | - |
 
 ---
 
 ## 5. Error Codes
 
-The API returns standard HTTP codes plus a detailed `error_code` in the JSON body.
+The API returns standard HTTP codes plus a detailed `error_code` in the JSON body, defined in `backend/exceptions.py`.
 
-*   **400 Bad Request**: Invalid Schema or Missing Input.
-    *   `INVALID_JSON_PAYLOAD`: Input does not match Pydantic model.
-    *   `EMPTY_INPUT`: Required text field was empty.
-*   **404 Not Found**: Resource missing.
-    *   `WORKFLOW_NOT_FOUND`: ID incorrect.
-    *   `STEP_NOT_FOUND`: Step ID missing in definition.
-*   **500 Internal Error**: System failure.
-    *   `WORKFLOW_EXECUTION_FAILED`: Unhandled exception in Worker.
+### General & System
+*   **500**: `INTERNAL_SERVER_ERROR` - Unhandled system exception.
+*   **500**: `UNKNOWN_ERROR` - Fallback error code.
+*   **503**: `NETWORK_UNAVAILABLE` - Connectivity issues.
+
+### Validation (400)
+*   `INVALID_JSON_PAYLOAD`: Input does not match Pydantic model.
+*   `EMPTY_INPUT`: Required text field was empty.
+*   `UNSUPPORTED_CONTENT_TYPE`: Invalid upload format.
+*   `MISSING_WORKFLOW_ID`: Workflow ID not provided.
+
+### Resources (404)
+*   `EXECUTION_NOT_FOUND`: Job ID lookup failed.
+*   `WORKFLOW_NOT_FOUND`: Workflow definition missing.
+*   `STEP_NOT_FOUND`: Step reference invalid.
+
+### Execution & Logic
+*   `WORKFLOW_EXECUTION_FAILED`: Critical failure during workflow run.
+*   `AGENT_EXECUTION_CRITICAL`: Logic failure within a specific agent.
+*   `MODEL_OUTPUT_LIMIT_EXCEEDED`: LLM response too large.
+*   `UPSTREAM_TIMEOUT`: External API (LLM/Search) timed out.
+
+### Authentication & Auth (401/403)
+*   `AUTH_TOKEN_EXPIRED`: Firebase ID token valid but expired.
+*   `PERMISSION_DENIED`: Valid user but insufficient role scope.
+
+### Reports & PDF
+*   `PDF_GENERATION_FAILED`: Report rendering crashed.
+*   `CHART_GENERATION_FAILED`: Visualization error.

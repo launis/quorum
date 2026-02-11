@@ -90,10 +90,23 @@ class PromptBuilder:
         prompt_ids = exec_config.get("llm_prompts", [])
         parts = []
 
+        # Import MatrixFormatter (STRICT - No Fallback)
+        from backend.services.matrix_formatter import format_matrix_component
+
         for pid in prompt_ids:
             comp = await self.repository.get_component_by_id(pid)
             if comp:
+                c_type = comp.get("type", "prompt")
                 content = comp.get("content", "")
+
+                if c_type == "evaluation_matrix":
+                    # USE MATRIX FORMATTER (STRICT)
+                    # If this fails, we want the step to crash rather than sending bad instructions.
+                    formatted_matrix = format_matrix_component(comp)
+                    parts.append(formatted_matrix)
+                    continue
+
+                # Standard Text Processing
                 if content:
                     if isinstance(content, list):
                         content = "\n".join(str(x) for x in content)

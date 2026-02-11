@@ -3,7 +3,7 @@
 **Status:** V2.9 Production Standard (Feb 2026)
 **Core Philosophy:** "Zero-Magic" Modular Async Monolith
 
-Cognitive Quorum V2.9 is a deterministic, highly verifiable AI orchestration platform. It rejects the "black box" nature of standard agent frameworks in favor of a strictly typed, schema-driven architecture where every state transition is audited and persisted.
+Cognitive Quorum V2.9 is a deterministic, highly verifiable AI orchestration platform. It rejects the "black box" nature of standard agent frameworks in favor of a strictly typed, schema-driven architecture where every state transition is audited and persisted via **Event Sourcing**.
 
 ---
 
@@ -19,7 +19,8 @@ graph TD
     end
 
     subgraph "Orchestration Layer (FastAPI)"
-        API["Execution API"]
+        API["Core API (Admin, Auth)"]
+        DomainAPI["Domain API (Config, Execution)"]
         BFF["BFF Transformer"]
         Queue[(Redis / Arq)]
     end
@@ -27,7 +28,7 @@ graph TD
     subgraph "Cognitive Layer (Async Workers)"
         Worker["Arq Worker Pool"]
         Engine["GraphEngine (Core)"]
-        State[("WorkflowState Blackboard")]
+        State[("WorkflowState (Event Log)")]
         
         Engine -->|Invoke| Agent["Agent Wrapper"]
         Agent -->|1. Reason| LLM["Gemini 1.5 Pro (Thinking)"]
@@ -54,17 +55,30 @@ graph TD
 ### A. The "Spine" (Execution Engine)
 *   **Location**: `backend/core/engine.py` (Class: `GraphEngine`)
 *   **Role**: The deterministic runtime that loads definitions and executes steps.
+
+### E. API Structure (Modular Routers)
+*   **System Routers** (`backend/api/*.py`):
+    *   `auth_router`: Login & Session Management.
+    *   `admin_router`: System-wide configuration & User Management.
+    *   `organization_router`: Multi-tenancy isolation.
+*   **Domain Routes** (`backend/api/routes/`):
+    *   `config/`: CRUD for `workflows`, `steps`, `components` (The "Brains").
+    *   `execution/`: `lifecycle` (Run/Stop), `monitor` (Status), `views` (BFF).
+*   **Pattern**: This separation ensures that high-volume execution logic is isolated from low-volume administrative tasks.
+*   **Event Sourcing**:
+    *   The Engine does not mutate a "Blackboard".
+    *   Instead, it appends `TraceEvent` items to an immutable `execution_trace`.
+    *   State is derived by replaying these events (or checking the latest snapshot `context_variables`).
 *   **Key Feature: Strict Object Mode**:
     *   The Engine **never** passes raw dictionaries to Agents.
     *   It hydrates a `WorkflowState` Pydantic object before execution.
     *   If the DB data does not match the Schema, the Engine **crashes fast** rather than propagating corruption.
-*   **Centralized Hook Mapping**: All external logic (Math, Search, PII) is registered in `HOOK_MAPPING`, preventing "implicit" code execution.
 
 ### B. The "Mind" (Agent Graph)
 *   **Location**: `backend/agents/`
 *   **Pattern**: Functional Wrapper.
-*   **Behavior**: Agents are stateless. They receive `WorkflowState`, perform **one** specific cognitive task (e.g., "Generate Hypothesis"), and return a structured Pydantic object (e.g., `TodistusKartta`).
-*   **Reasoning Continuity**: To solve "Chain-of-Thought Amnesia", the engine extracts hidden "Thinking Tokens" from Gemini and passes them to the next agent via `state.reasoning_context`.
+*   **Behavior**: Agents are stateless logic units. They receive `WorkflowState`, perform **one** specific cognitive task, and return a structured Pydantic object (e.g., `AnalystOutput`).
+*   **Reasoning Continuity**: To solve "Chain-of-Thought Amnesia", the engine extracts hidden "Thinking Tokens" from Gemini and passes them to the next agent via `ReasoningTrace`.
 
 ### C. The "Hand" (Async Worker)
 *   **Location**: `backend/worker.py`
@@ -111,11 +125,11 @@ The system supports a **Dual-Database** strategy for development velocity vs. pr
 
 ### PII Protection
 *   **Agent**: `GuardAgent`.
-*   **Mechanism**: Microsoft **Presidio**.
+*   **Mechanism**: **Deterministic Cleaning Hooks** (`backend.hooks.security`).
 *   **Flow**:
     1.  User submits raw text.
-    2.  `GuardAgent` scans for Names, SSNs, Phones.
-    3.  If detected, it swaps them for placeholders (`<PERSON_1>`).
+    2.  `GuardAgent` executes `sanitize_input` pre-hook.
+    3.  Detected entities (Names, SSNs) are flagged/redacted via regex/heuristics.
     4.  Downstream agents **only** see the sanitized text.
 
 ---
@@ -124,7 +138,7 @@ The system supports a **Dual-Database** strategy for development velocity vs. pr
 
 | Component | Technology | Version | Purpose |
 | :--- | :--- | :--- | :--- |
-| **Backend** | Python | 3.13 | Core Logic (Async) |
+| **Backend** | Python | 3.14.2 | Core Logic (Async) |
 | **Web Framework** | FastAPI | 0.115+ | REST API |
 | **Worker** | Arq | 0.26+ | Job Queue |
 | **DB (Doc)** | TinyDB / Firestore | 4.7+ | State Persistence |

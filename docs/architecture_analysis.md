@@ -1,7 +1,7 @@
 # Technical Architecture Validation & Analysis (V2.9)
 
 **Status:** V2.9 / V2026 Production Standard
-**Architecture:** Modular Async Monolith (Python 3.13 + FastAPI + Arq)
+**Architecture:** Modular Async Monolith (Python 3.14.2 + FastAPI + Arq)
 
 This document validates the technical architecture of the Cognitive Quorum system against the **V2026 "Zero-Magic" Manifesto**, analyzing its core strengths, data flow, and safeguards.
 
@@ -13,8 +13,10 @@ The system rejects microservices complexity in favor of a strictly typed, distri
 
 ### The "Spine" (Execution Control)
 *   **Framework:** FastAPI (HTTP) + Arq (Redis-based Async Workers).
-*   **Concurrency:** Fully Async/Await (Python 3.13).
-*   **State Management:** `WorkflowState` (Pydantic V2) acts as the single source of truth ("Blackboard Pattern").
+*   **Concurrency:** Fully Async/Await (Python 3.14.2).
+*   **State Management (Hybrid):** The system implements a **Hybrid State Architecture**:
+    1.  **Event Sourcing (Truth):** `WorkflowState.execution_trace` is an append-only log of immutable `TraceEvent` objects. This provides a perfect audit trail and enables time-travel debugging.
+    2.  **Blackboard Snapshot (Performance):** `WorkflowState.context_variables` maintains a mutable projection of the current state for high-performance read access by agents.
 *   **Strict Object Mode:** The `GraphEngine` (`backend/core/engine.py`) enforces that all data passed between agents is a validated Pydantic Object, not a loose dictionary.
 
 ### The "Mind" (Cognitive Strategy)
@@ -46,13 +48,17 @@ Agents are specialized processors in a deterministic graph.
 | :--- | :--- | :--- |
 | **Guard** | Security & PII Redaction | `TaintedData` -> `SafeData` |
 | **Analyst** | Grounding & Evidence Extraction | `TodistusKartta` |
+| **Retrieval** | Organizational Grounding (RAG) | `ContextData` |
 | **Interaction** | User Agency Analysis | `InteractionAnalysis` |
 | **Profiler** | Bias & Intent Profiling | `ProfilerAnalysis` |
 | **Logician** | Argument Structure (Toulmin) | `ArgumentaatioAnalyysi` |
-| **Falsifier** | Stress Testing (Popperian) | `LogiikkaAuditointi` |
-| **Overseer** | Fact-Checking (Google) | `EtiikkaJaFakta` |
+| **Causal** | Impact Verification (Counterfactuals) | `CausalAnalysis` |
+| **Detector** | Illusion of Control (Goodhart) | `PerformativityAnalysis` |
+| **Panel** | Unified Critics (Falsifier, Overseer) | `PanelOutput` |
+| **Archivist** | Best Practices Audit | `ComplianceScore` |
 | **Judge** | **BARS Scoring** & Verdict | `EvaluationResult` |
-| **Reporter** | XAI Explanation | `XAIReport` |
+| **Coach** | Technical Remediation | `CoachingPlan` |
+| **Reporter** | XAI Explanation | `XAIOutput` |
 
 ---
 
@@ -67,11 +73,14 @@ Instead of dynamic imports or "plugin discovery", all hooks are explicitly regis
 ### B. Reasoning Token Continuity
 To solve LLM amnesia, we extract the "Hidden Thinking" tokens (Gemini 1.5 Thinking) and pass them explicitly to the next agent via `state.reasoning_context`.
 
-### C. Heuristic Pydantic Repair
-The system acknowledges that LLMs generate malformed JSON.
-*   **Layer 1:** Strict Pydantic Validation.
-*   **Layer 2:** Regex Repair (fixing missing quotes).
-*   **Layer 3:** Automatic Retry with Error Context (`tenacity`).
+### C. Instructor-Based Structured Output
+The system abandons regex-based repair in favor of native Structured Output (LLM-enforced Schemas).
+*   **Layer 1:** `instructor` library (wrapping LiteLLM) enforces Pydantic schemas at the API level.
+*   **Layer 2:** `tenacity` handles transient network failures and rate limits.
+*   **Layer 3:** Strict Validation (Agents fail fast if the output cannot be coerced to the schema).
+
+### D. High-Fidelity Matrix Formatting
+The `PromptBuilder` now enforces strict BARS formatting via `MatrixFormatter`. Evaluation Matrices are converted to detailed Markdown rubrics with explicit anchor-to-scale mapping logic, ensuring the LLM understands the grading criteria precisely.
 
 ---
 
@@ -79,7 +88,7 @@ The system acknowledges that LLMs generate malformed JSON.
 
 ### Timeout Decoupling
 Standard HTTP timeouts (60s) are incompatible with Deep Reasoning (10m+).
-*   **Solution:** The Async Worker model allows jobs to run for 20+ minutes (`job_timeout=1500s`) without the client connection dropping.
+*   **Solution:** The Async Worker model allows jobs to run for 15 minutes (`job_timeout=900s`) without the client connection dropping.
 
 ### Horizontal Scaling
 *   **Stateless Workers:** You can run 1 or 100 worker nodes. They simply pull from Redis.
@@ -91,4 +100,4 @@ Standard HTTP timeouts (60s) are incompatible with Deep Reasoning (10m+).
 
 *   **Backend:** `pytest` + `unittest.mock` (No network calls in tests).
 *   **Frontend:** `flutter_test` + `mocktail` (No code generation).
-*   **Philosophy:** "Fail Fast". If the DB schema doesn't match the Pydantic model, the system crashes immediately rather than corrupting data.
+*   **Philosophy:** "Fail Fast". If the DB schema doesn't match the Pydantic model, or if a Matrix cannot be formatted, the system crashes immediately rather than corrupting data.

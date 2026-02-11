@@ -35,6 +35,7 @@ HOOK_MAPPING = {
     "execute_google_search": ("backend.hooks.search", "execute_google_search"),
     "sanitize_text": ("backend.hooks.security", "sanitize_text_hook"),
     "check_banned_phrases": ("backend.hooks.security", "check_banned_phrases_hook"),
+    "generate_bibliography": ("backend.hooks.references", "generate_bibliography_hook"),
     # ...
 }
 ```
@@ -103,6 +104,7 @@ Hooks are activated per-step in the `config` field of `seed_data.json`.
 ### 5. Search Hooks (`backend/hooks/search.py`)
 
 #### `execute_google_search` (Pre-hook)
+*   **Implementation**: Delegates to `backend/hooks/search_client.py` (`GoogleSearchTool`) for robust API interaction and error handling.
 *   **Agent**: Overseer
 *   **Action**: Executes Google Custom Search queries based on hypotheses from the Analyst agent.
 *   **Output**: Writes search results JSON to `aux_data["google_search_results"]`.
@@ -130,6 +132,14 @@ Hooks are activated per-step in the `config` field of `seed_data.json`.
 *   **Agent**: XAI Reporter
 *   **Action**: Aggregates all results, generates comparison matrices (for Dual Execution), and renders the final Markdown report using `report_template.jinja2`.
 *   **Output**: Hoists result to `state.xai_report_formatted`.
+
+### 9. Reference Hooks (`backend/hooks/references.py`)
+
+#### `generate_bibliography_hook` (Pre/Post-hook)
+*   **Agent**: Coach (or any requiring citations)
+*   **Action**: Scans combined input text and Coach output for specific citations (e.g., "Kahneman 2011") using the `ReferenceManager`.
+*   **Behavior**: Matches citations against the `StepContext`'s knowledge base.
+*   **Output**: Writes a sorted list of full bibliographic strings to `aux_data["bibliography"]`.
 
 ---
 

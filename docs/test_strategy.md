@@ -17,6 +17,9 @@ We prioritize **speed** and **readability** over complex tooling.
 *   `backend/tests/unit/`: Service-level logic verification.
 *   `backend/tests/integration/`: Component interaction verifications (e.g. `test_config_integrity.py`).
 *   `backend/tests/api/`: FastAPI route verification (Response codes, Schemas).
+*   **Specialized Verification**:
+    *   **Matrix Logic**: Verify that `PromptBuilder` outputs Markdown BARS `(MatrixFormatter)`.
+    *   **Hybrid State**: Verify that `TraceEvent` logs replay correctly into `WorkflowState`.
 
 ### Implementation Pattern
 We use **Dependency Injection** with `AsyncMock`.
@@ -103,3 +106,4 @@ All PRs must pass:
 1.  `uv run pytest` (Backend)
 2.  `flutter test` (Frontend)
 3.  `ruff check` (Linting)
+4.  `mypy .` (Strict Typing)

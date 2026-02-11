@@ -29,11 +29,13 @@ The V2.9 iteration enforces a **Unidirectional Data Flow** where the "DNA" of th
 
 The system uses **Behaviorally Anchored Rating Scales (BARS)** to decouple the *definition* of quality from the *code* that measures it.
 
-### Dynamic Matrix Injection
-The `JudgeAgent` is not hardcoded. It is a polymorphic engine that:
-1.  **Reads** the `matrix_id` (e.g., `matrix_standard_v1`) from the workflow config.
-2.  **Fetches** the Matrix Component from the Database.
-3.  **Compiles** a custom system prompt on-the-fly, injecting the specific Criteria, Anchors, and Labels defined in the matrix.
+### Dynamic Matrix Injection (Strict BARS)
+ The `JudgeAgent` utilizes the **MatrixFormatter** service (`backend/services/matrix_formatter.py`) to convert abstract JSON criteria into high-fidelity Markdown BARS (Behaviorally Anchored Rating Scales).
+ 
+ 1.  **Reads** the `matrix_id` from the config.
+ 2.  **Fetches** the Matrix Component.
+ 3.  **Formats** the component into a detailed Markdown rubric with explicit Anchors (1-5) and specific Criteria.
+ 4.  **Injects** this immutable rubric into the System Prompt.
 
 > **Strict Scale Enforcement**: The Judge Agent enforces the specific min/max scale defined in the DB. If the LLM generates a score outside this range, the agent effectively crashes (fail-fast) rather than guessing.
 
@@ -45,9 +47,16 @@ The Judge does not need to know *who* produced the evidence. It uses a **Configu
 
 ---
 
-## 3. Workflow State & Blackboard Pattern
-
-The `WorkflowState` (`backend/models/state.py`) is the central blackboard.
+## 3. Hybrid State Architecture
+ 
+ The `WorkflowState` (`backend/models/state.py`) implements a **Hybrid State Model**:
+ 
+ ### A. Event Log (Truth)
+ *   **Execution Trace**: An append-only log of `TraceEvent` objects. This provides a perfect audit trail of every thought and decision.
+ 
+ ### B. Blackboard Snapshot (Performance)
+ *   **Context Variables**: A mutable projection of the current state.
+ *   **Benefit**: Agents can read `{{PREVIOUS_STEP_OUTPUTS}}` instantly without replaying the entire history.
 
 ### Reasoning Continuity (The "Hot Potato")
 To solve the statelessness of LLMs, we implement **Reasoning Trace Continuity**:
@@ -85,5 +94,5 @@ The standard `Courtroom 2.0` workflow consists of:
 
 The architecture is self-verifying via:
 1.  **Pydantic Validation**: Every step output is validated against a strict schema.
-2.  **Heuristic Repair**: The engine attempts to fix malformed JSON (e.g., missing quotes) before failing.
-3.  **Retry Loop**: If validation fails, the error is fed back to the LLM for self-correction.
+2.  **Fail Fast**: The system prefers to crash (raising a clear error) rather than guessing at malformed data.
+3.  **Retry Loop**: Infrastructure (Tenacity) handles transient failures, but logic errors are fatal.

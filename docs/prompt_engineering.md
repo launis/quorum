@@ -12,9 +12,9 @@ The prompt generation pipeline follows a strict **Builder Pattern**:
 
 1.  **Resolution**: The system fetches the Step Configuration from `seed_data.json` (or DB).
 2.  **Component Fetch**: It retrieves all referenced components listed in `execution_config.llm_prompts` (e.g., `["mandate_slow_thinking", "matrix_cognitive_v2"]`).
-3.  **Formatting**: 
-    *   Text components are appended directly.
-    *   Matrix components are transformed by `MatrixFormatter` into markdown rubrics.
+3.  **Formatting**:
+    *   **Text Components**: Appended directly.
+    *   **Matrix Components**: Transformed by `MatrixFormatter` into Markdown-formatted **Behaviorally Anchored Rating Scales (BARS)**. This ensures high-fidelity instruction for the LLM.
 4.  **Injection**: The `PromptBuilder` scans the assembled text for Handlebars-style placeholders (`{{VARIABLE}}`) and injects runtime data.
 
 ### The "Sandwich" Model
@@ -29,7 +29,7 @@ A typical prompt is constructed in layers:
     *   **Upstream Evidence**: `{{PREVIOUS_STEP_OUTPUTS}}` (The "Baton").
     *   **External Data**: `{{GOOGLE_SEARCH_RESULTS}}`, `{{PROFILER_METRICS}}`.
 3.  **Cognitive Layer (The Meat)**:
-    *   **Evaluation Matrix (BARS)**: Behaviorally Anchored Rating Scales dynamically formatted from JSON.
+    *   **Evaluation Matrix (BARS)**: Matrices are expanded into full rubrics (Criteria, Anchors, Scale Instructions).
     *   **Task Instructions**: Specific rules for the current step.
 4.  **Output Layer (The Plate)**:
     *   **Strict JSON Schema**: `{{SCHEMA_EXAMPLE}}` (Auto-generated from Pydantic V2 models).
@@ -57,12 +57,12 @@ The `PromptBuilder` supports a specific set of injection keys. These are **Case-
 | `{{PROFILER_METRICS}}` | Quantitative metrics (token counts, etc.). | `state.aux_data.profiler_metrics` |
 
 ### System & Environment
-| Placeholder | Description | Source |
-| :--- | :--- | :--- |
-| `{{CURRENT_DATE}}` | Server date (DD.MM.YYYY). | `datetime.now()` |
-| `{{DYNAMIC_TIME}}` | Server time (HH:MM). | `datetime.now()` |
-| `{{DYNAMIC_LOCATION}}` | Server location (City, Country) via IP. | `ipapi.co` (with timeout) |
-| `{{BANNED_PHRASES}}` | Comma-separated list of prohibited terms. | `db.json` (Banned Phrases) |
+| Placeholder | Description | Source | Implementation |
+| :--- | :--- | :--- | :--- |
+| `{{CURRENT_DATE}}` | Server date (DD.MM.YYYY). | `datetime.now()` | Standard |
+| `{{DYNAMIC_TIME}}` | Server time (HH:MM). | `datetime.now()` | Standard |
+| `{{DYNAMIC_LOCATION}}` | Server location (City, Country). | `ipapi.co` | Timeout-protected HTTP request |
+| `{{BANNED_PHRASES}}` | Comma-separated list of prohibited terms. | `db.json` | Repository Fetch |
 
 ### Structural Enforcement
 | Placeholder | Description | Source |
@@ -96,9 +96,9 @@ V2.9 rejects generic "Rate 1-5" instructions. We use **BARS** matrices defined a
 }
 ```
 
-**Formatted Prompt Output:**
+**Formatted Prompt Output (Markdown BARS):**
 ```markdown
-### EVALUATION MATRIX: matrix_agency
+### EVALUATION MATRIX: Kognitiivinen Quorum Unified Matrix
 Scale: 1-4
 
 ### CRITERIA FOR EVALUATION:

@@ -42,6 +42,15 @@ The system utilizes a 3-tier hierarchy to differentiate between development spee
 
 ## 3. Backend Data Layer (`backend/`)
 
+### Repository Pattern (`backend/database/`)
+The system abstracts data access via the `AbstractWorkflowRepository` interface.
+
+*   **Interface**: `AbstractWorkflowRepository` in `backend/database/repository.py`.
+*   **Local Implementation**: `TinyDBRepository` in `backend/database/repository.py`.
+    *   **Behavior**: Serializes datetime/UUIDs to JSON strings using `_serialize_for_tinydb`.
+*   **Cloud Implementation**: `FirestoreWorkflowRepository` in `backend/database/firestore_repo.py`.
+    *   **Behavior**: Uses native Firestore serialization where possible, but enforces ISO strings for dates to ensure parity with TinyDB.
+
 ### Strict Pydantic V2
 The system utilizes **Pydantic V2** for all internal state management.
 1.  **Strict Mode**: Models use `ConfigDict(extra="ignore")` to silently strip unknown fields during ingestion, but validation is rigid on required fields.

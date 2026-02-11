@@ -11,17 +11,15 @@ The dependencies listed below serve as the **MINIMUM BASELINE**.
 **ALWAYS** use the latest stable compatible versions available.
 **DO NOT** restrict upgrades unless a specific breaking change is identified.
 
-#### Backend (Python)
+#### Backend (Python 3.14.2+)
 | Package | Baseline Version | Purpose |
 | :--- | :--- | :--- |
 | `fastapi` | `0.128.0+` | Core Framework |
 | `uvicorn` | `0.40.0+` | ASGI Server |
 | `pydantic` | `2.12.5+` | Data Validation (V2) |
 | `firebase-admin` | `7.1.0+` | Auth & Firestore |
-| `openai` | `2.16.0+` | LLM Client |
+| `openai` | `1.60.0+` | LLM Client |
 | `litellm` | `1.81.3+` | LLM Proxy |
-| `sse-starlette` | `3.2.0+` | Real-time Events |
-| `arq` | `0.26.3+` | Async Task Queue |
 | `tenacity` | `9.1.2+` | Retry Logic |
 | `tiktoken` | `0.12.0+` | Token Counting |
 
@@ -229,13 +227,19 @@ The `seed_data.json` file MUST adhere to the **Single Source of Truth (SSOT)** p
         -   `backend/database/firestore_repo.py` (Firebase/Firestore)
     *   **Constraint**: Maintain strict parity between Local and Cloud implementations.
 
-2.  **Seeding Authority**:
+2.  **Hybrid State Architecture (Event Log vs Blackboard)**:
+    *   **Truth**: The `TraceEvent` log is the immutable history.
+    *   **Performance**: The `WorkflowState.context_variables` (Blackboard) is the mutable current state.
+    *   **Mandate**: All steps MUST write to the Blackboard and emit an Event. Verification replays Events to rebuild State.
+
+3.  **Seeding Authority**:
     *   **Master Seed**: `backend/seed/seed_data.json` is the authoritative baseline.
     *   **Logic**: `backend/seed/run_seed.py` creates the state. **DO NOT MODIFY** seed data structure without approval.
     *   **SSOT Structure (Contract vs. Wiring)**:
         *   **Registry (`steps`)**: DECLARES the capability (Task Key, Config). This is the CONTRACT.
         *   **Workflow (`workflows`)**: WIRES the capability. Must reference steps by `id` ONLY.
         *   **BANNED**: Inline `task_key` or `config` definitions within `workflows`.
+    *   **Derived Data (Ontology)**: The Seeder automatically extracts `Dimension` records from `evaluation_matrix` components. Do not manually seed the `dimensions` table.
 
 3.  **Root Cause Fix Mandate**:
     *   **Principle**: Fix the source, don't patch the symptom.

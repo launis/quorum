@@ -6,142 +6,158 @@ This document details the strict **Pydantic V2** data models used throughout the
 
 ## 🟢 Core State (`backend.models.state`)
 
-### `WorkflowState`
-The central "Blackboard" object passed between all agents.
+### `WorkflowState` (Event Sourcing)
+The system uses an **Event Sourcing** pattern. The state is an immutable log of events, not a mutable blackboard.
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
-| `execution_id` | `str` | Unique UUID for this execution instance. |
+| `execution_id` | `UUID` | Unique identifier for this execution instance. |
 | `workflow_id` | `str` | ID of the workflow definition. |
-| `current_step_name` | `str` | Identifier of the active step. |
-| `version` | `int` | Optimistic locking version. |
-| `inputs` | `InputData` | Immutable user inputs. |
-| `step_results` | `dict[str, Any]` | Dynamic container for agent outputs. |
-| `audit_results` | `dict[str, EvaluationResult]` | Container for matrix-based evaluations. |
-| `reasoning_context` | `dict` | "Thinking Tokens" (Gemini 1.5/DeepSeek) for continuity. |
+| `status` | `Literal` | `pending`, `running`, `completed`, `failed`. |
+| `execution_trace` | `list[TraceEvent]` | **Immutable log** of all steps, inputs, reasoning, and outputs. |
+| `context_variables` | `dict[str, Any]` | Current snapshots of context variables (the "Folded State"). |
 
-### `InputData`
-Raw inputs provided by the user.
+### `TraceEvent`
+An atomic unit of history.
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
-| `history_text` | `str` | Historical context (chat logs). |
-| `product_text` | `str` | Primary artifact to analyze. |
-| `reflection_text` | `str` | User self-reflection. |
-| `bibliography_context` | `list[str]` | Optional reference citations. |
+| `event_id` | `UUID` | Unique event ID. |
+| `timestamp` | `datetime` | UTC timestamp. |
+| `step_name` | `str` | Name of the step that generated this event. |
+| `event_type` | `Literal` | `input`, `reasoning`, `decision`, `error`, `output`. |
+| `content` | `dict` | Structured content payload (polymorphic). |
+| `reasoning` | `ReasoningTrace` | **Hidden Chain-of-Thought** (separate from content). |
 
-> **Note**: `InputData` is "Slot-Based" to prevent arbitrary file injection.
+### `ReasoningTrace`
+Captures the "Thinking Tokens" (e.g., Gemini 1.5 Thinking) that are NOT shown to the user but are crucial for the next agent.
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `thought_process` | `str` | Raw chain-of-thought. |
+| `conclusion` | `str` | Synthesized conclusion. |
+| `confidence_score` | `float` | Self-assessed confidence (0.0 - 1.0). |
 
 ---
 
 ## 🛡️ Agent Schemas (`backend.models.domain`)
 
-### 1. Guard Agent (`TaintedData` -> `SafeData`)
+### 1. Guard Agent (`GuardOutput`)
 Security and PII redaction.
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
-| `security_check` | `SecurityCheck` | Threat analysis (`uhka_havaittu`, `riski_taso`). |
-| `safe_data` | `SafeDataContent` | Sanitized text used by downstream agents. |
+| `security_check` | `SecurityCheck` | Threat analysis (`threat_detected`, `risk_score`). |
+| `tainted_data` | `TaintedDataContent` | Original input wrapper. |
 
-### 2. Analyst Agent (`TodistusKartta`)
-Evidence extraction.
-
-| Field | Type | Description |
-| :--- | :--- | :--- |
-| `hypoteesit` | `list[Hypoteesi]` | Formulated research hypotheses. |
-| `rag_todisteet` | `list[RagTodiste]` | Evidence collected via RAG. |
-
-### 3. Interaction Analyst (`InteractionAnalysis`)
-User agency analysis.
+### 2. Analyst Agent (`AnalystOutput`)
+Grounding & Evidence Extraction.
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
-| `driver_classification` | `Literal` | "Kuski", "Matkustaja", etc. |
-| `input_control_ratio` | `float` | Control ratio (Imperative / Total). |
-| `imperative_command_count`| `int` | Count of direct commands. |
-| `total_turn_count` | `int` | Total user turns analyzed. |
+| `hypotheses` | `list[Hypothesis]` | Formulated research claims. |
+| `rag_evidence` | `list[str]` | Evidence collected via RAG. |
 
-### 4. Profiler Agent (`ProfilerAnalysis`)
-Cognitive bias profiling.
+### 3. Retrieval Agent (`ContextData`)
+Organizational Knowledge Retrieval (RAG).
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
-| `tunnistetut_vinoumat` | `list[StructuredBias]` | Detected cognitive biases. |
-| `teksti_metriikka` | `TextMetrics` | Word count, sentence length, etc. |
+| `precedents` | `str` | Summary text of retrieved precedents. |
+| `precedent_list` | `list[Precedent]` | Structured list of past cases. |
 
-### 5. Logician Agent (`ArgumentaatioAnalyysi`)
-Logic mapping.
-
-| Field | Type | Description |
-| :--- | :--- | :--- |
-| `toulmin_analyysi` | `list[ToulminKomponentti]` | Assertions (Claim, Data, Warrant). |
-| `kognitiivinen_taso` | `KognitiivinenTaso` | Bloom's Taxonomy level. |
-
-### 6. Falsifier Agent (`LogiikkaAuditointi`)
-Stress testing.
+### 4. Interaction Agent (`InteractionAnalysis`)
+User Agency Analysis.
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
-| `walton_stressitesti_loydokset` | `list[WaltonStressitesti]` | Critical question results. |
+| `role_classification` | `Literal` | `Passenger`, `Navigator`, `Driver`, `Architect`. |
+| `input_quality_score` | `float` | Quality of user prompting. |
+| `improvement_suggestions` | `list[str]` | Tips for the user. |
 
-### 7. Causal Agent (`KausaalinenAuditointi`)
-Causal inference.
-
-| Field | Type | Description |
-| :--- | :--- | :--- |
-| `kontrafaktuaalinen_testi` | `KontrafaktuaalinenTesti` | "What if" simulation. |
-| `abduktiivinen_paatelma` | `Literal` | "Aito Oivallus" vs "Post-Hoc". |
-
-### 8. Performativity Detector (`PerformatiivisuusAuditointi`)
-Authenticity check.
+### 5. Profiler Agent (`ProfilerAnalysis`)
+Cognitive Bias & Tone Profiling.
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
-| `performatiivisuus_heuristiikat` | `list[PerformatiivisuusHeuristiikka]` | Heuristics flags. |
-| `yleisarvio_aitoudesta` | `Literal` | "Orgaaninen" vs "Performatiivinen". |
+| `author_intent` | `str` | Assessed intent. |
+| `cognitive_biases` | `list[str]` | Detected biases (e.g., "Confirmation Bias"). |
+| `emotional_tone` | `str` | Tone analysis. |
 
-### 9. Archivist Agent (`ArchivistOutput`)
-Precedent compliance.
+### 6. Logician Agent (`LogicianOutput`)
+Argumentation Structure Analysis.
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
-| `compliance_score` | `int` | Alignment score (0-100). |
-| `recommendations` | `list[str]` | Improvement suggestions. |
+| `logician_data` | `LogicianData` | Container for results. |
+| -> `toulmin_analysis` | `list[ToulminComponent]` | Claim, Data, Warrant structure. |
+| -> `walton_scheme` | `WaltonScheme` | Identified argumentation scheme. |
+| -> `toulmin_score` | `float` | Logic strength score (0-6). |
+
+### 7. Panel Agent (`PanelOutput`)
+**Consolidated Audit** (Runs Falsifier, Overseer, Causal, and Detector in parallel/sequence).
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `falsifier_data` | `FalsifierData` | Stress test findings (`stress_test_findings`). |
+| `overseer_data` | `OverseerData` | Fact checks & ethical audit. |
+| `causal_analysis` | `CausalAnalysis` | Counterfactuals & abductive reasoning. |
+| `performativity_analysis` | `PerformativityAnalysis` | Performative vs Organic assessment. |
+
+### 8. Archivist Agent (`ArchivistOutput`)
+Precedent & Compliance Audit.
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `compliance_score` | `float` | Alignment score (1-5). |
+| `compliance_analysis` | `Literal` | e.g., `Aligned`, `Misaligned`. |
+| `relevant_cases` | `list[ArchiveCase]` | Similar past cases. |
+
+### 9. Judge Agent (`JudgeOutput`)
+**BARS Scoring** & Final Verdict.
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `score_card` | `JudgeScoreCard` | The final score. |
+| -> `total_score` | `float` | Aggregated score. |
+| -> `verdict` | `str` | Final decision. |
+| -> `dimensions` | `list[DimensionResultItem]` | Score per dimension (Radar Chart). |
 
 ### 10. Coach Agent (`CoachingPlan`)
-Pedagogical feedback.
+Pedagogical Feedback.
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
-| `kehityskohteet_konkreettisesti` | `list[ActionGroup]` | Actionable steps. |
-| `kannustava_palaute` | `str` | Positive reinforcement. |
+| `actionable_steps` | `list[str]` | Concrete improvement steps. |
+| `focus_areas` | `list[str]` | Areas needing attention. |
+| `bibliography` | `list[dict]` | Recommended reading. |
 
----
-
-## 🧠 Dynamic Evaluation (`EvaluationResult`)
-Used by the **Judge Agent**.
-
-| Field | Type | Description |
-| :--- | :--- | :--- |
-| `matrix_id` | `str` | ID of the matrix used (e.g., `matrix_standard_v1`). |
-| `total_score` | `float` | Final calculated score. |
-| `scaling_min` / `max` | `int` | Scale bounds (Strictly enforced). |
-| `dimensions` | `list[DimensionResultItem]` | Score per dimension. |
-
-`DimensionResultItem`:
-*   `dimension_id` (`str`): ID from Ontology.
-*   `score` (`float`): Numerical score.
-*   `reasoning` (`str`): Justification.
-
----
-
-## 📊 Reporting (`XAIReport`)
-Final output schema.
+### 11. Reporter Agent (`XAIOutput`)
+Final Report Generation.
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
 | `executive_summary` | `str` | High-level summary. |
 | `final_verdict` | `str` | Conclusive judgment. |
-| `score_cards` | `list[ScoreCardItem]` | Aggregated scores. |
+| `confidence_score` | `float` | System confidence. |
 | `xai_report_formatted` | `str` | **Markdown** report for the UI. |
+
+---
+
+## 🔄 Dynamic Evaluation Models (`backend.models.workflow`)
+
+### `EvaluationMatrixConfig`
+Defines *how* things are scored.
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `str` | Matrix ID (e.g., `matrix_standard_v1`). |
+| `criteria` | `list[EvaluationCriterion]` | The rubric dimensions. |
+
+### `WorkflowDefinition`
+Defines the graph.
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `steps` | `list[WorkflowStep]` | Sequence of steps. |
+| `scoring_logic` | `list[ScoringLogic]` | How component scores are weighted. |

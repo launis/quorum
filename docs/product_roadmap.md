@@ -89,6 +89,8 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **Seed Synchronization**: Standardized `seed_data.json` as the Single Source of Truth.
 - [x] **UI Step Synchronization**: Fixed race conditions in `PipelineRunner`.
 - [x] **Linting & Hygiene**: Achieved 100% pass rate on `ruff` checks.
+- [x] **Platform Upgrade**: Enforced **Python 3.14.2** strictness.
+- [x] **Hybrid State Audit**: Verified Event Log (Truth) vs Blackboard (Performance) consistency.
 - [x] **Sitra Integration Test**: Validated real-world data processing with strict zero-fallback limits.
 
 ### 1.7 API Modernization (The Modular Core)
@@ -166,7 +168,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 
 ### 2.6.1 Dynamic Evaluation System (BARS)
 - [x] **Configuration-Driven Matrix**: `JudgeAgent` input schema accepts `matrix_id`.
-- [x] **Dynamic Component Loading**: Runtime fetching of Matrix definitions.
+- [x] **Strict BARS Injection**: `MatrixFormatter` generates high-fidelity Markdown rubrics (Fail-Fast).
 - [x] **Prompt Injection**: `matrix_formatter.py` for on-the-fly prompt generation.
 - [x] **Polymorphic Reporting**: Dynamic rendering of audit dimensions.
 
