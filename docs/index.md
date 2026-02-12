@@ -19,7 +19,7 @@ The system is built on a strictly typed, distributed execution model.
 *   **[Management Architecture](management_architecture.md)**
     Admin Panel, Tenant Isolation, and RBAC strategies.
 *   **[Data Management](data_management.md)**
-    Database schemas, Optimistic Locking, and Dual-Database persistence (TinyDB/Firestore).
+    Database schemas, Optimistic Locking, Storage Drivers (`Local`/`Firebase`), and Dual-Database persistence.
 
 ---
 
@@ -73,14 +73,16 @@ Strategies for ensuring the system works as expected without "Magic".
 
 ---
 
-## ⚡ Quick Start
-
-1.  **Sync Dependencies**: `uv sync`
-2.  **Start Infrastructure**: `docker-compose up -d redis`
-3.  **Run API**: `uv run uvicorn backend.main:app --reload`
-4.  **Run Worker**: `uv run backend/worker.py`
-5.  **Run Client**: `cd client_app && flutter run`
-6.  **Read the Docs**: `uv run mkdocs serve` (http://localhost:8001)
+## ⚡ Quick Start (Windows)
+ 
+ 1.  **Initialize**: `uv sync`
+ 2.  **Start Everything**: `.\run_local.bat`
+     *   Starts Backend (Uvicorn), Worker (Arq), and Flutter Client.
+     *   Access API at `http://localhost:8000`.
+ 3.  **Read the Docs**: `uv run mkdocs serve` (http://localhost:8001)
+ 
+ ### Alternative (Docker)
+ *   `.\run_full_docker.bat` - Full stack in containers (Redis, Firestore, App).
 
 ---
 

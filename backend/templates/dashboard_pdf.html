@@ -164,12 +164,31 @@
             
             {# Cognitive Level Box #}
             {% if d.cognitive_level is defined and d.cognitive_level %}
+            {# --- PRE-CALC LABELS --- #}
+            {% set bloom_raw = d.cognitive_level.bloom_level|string %}
+            {% set bloom_display = bloom_raw %}
+            {% if 'REMEMBERING' in bloom_raw %}{% set bloom_display = 'Remembering (Muistaminen)' %}
+            {% elif 'UNDERSTANDING' in bloom_raw %}{% set bloom_display = 'Understanding (Ymmärtäminen)' %}
+            {% elif 'APPLYING' in bloom_raw %}{% set bloom_display = 'Applying (Soveltaminen)' %}
+            {% elif 'ANALYZING' in bloom_raw %}{% set bloom_display = 'Analyzing (Analysointi)' %}
+            {% elif 'EVALUATING' in bloom_raw %}{% set bloom_display = 'Evaluating (Arviointi)' %}
+            {% elif 'CREATING' in bloom_raw %}{% set bloom_display = 'Creating (Luominen)' %}
+            {% endif %}
+
+            {% set strat_raw = d.cognitive_level.strategic_depth|string %}
+            {% set strat_display = strat_raw %}
+            {% if 'LOW' in strat_raw %}{% set strat_display = 'Tactical (Taktinen)' %}
+            {% elif 'MEDIUM' in strat_raw %}{% set strat_display = 'Operational (Operatiivinen)' %}
+            {% elif 'HIGH' in strat_raw %}{% set strat_display = 'Strategic (Strateginen)' %}
+            {% elif 'VISIONARY' in strat_raw %}{% set strat_display = 'Visionary (Visionäärinen)' %}
+            {% endif %}
+
             <div class="box-teal">
                 <div style="display: flex; align-items: center; margin-bottom: 5px;">
                     <span style="font-size: 16px; margin-right: 8px;">🧠</span>
                     <div>
                         <div class="label" style="color: #00695C;">Cognitive Level (Bloom)</div>
-                        <div class="value" style="color: #004D40;">{{ d.cognitive_level.bloom_level }}</div>
+                        <div class="value" style="color: #004D40;">{{ bloom_display }}</div>
                     </div>
                 </div>
                 
@@ -184,9 +203,13 @@
                     <div class="gauge-track">
                         <div class="gauge-bar" style="--v: {{ b_pct|round(1) }}; width: calc(var(--v) * 1%); background-color: #009688;"></div>
                     </div>
-                    <div class="gauge-labels">
-                        <span>Remembering</span>
-                        <span>Creating</span>
+                    <div class="gauge-labels" style="justify-content: space-between;">
+                        <span>Remember</span>
+                        <span>Understand</span>
+                        <span>Apply</span>
+                        <span>Analyze</span>
+                        <span>Evaluate</span>
+                        <span>Create</span>
                     </div>
                 </div>
                 {% endif %}
@@ -202,15 +225,17 @@
                     <div class="gauge-track">
                         <div class="gauge-bar" style="--v: {{ s_pct|round(1) }}; width: calc(var(--v) * 1%); background-color: #00796B;"></div>
                     </div>
-                    <div class="gauge-labels">
+                    <div class="gauge-labels" style="justify-content: space-between;">
                         <span>Tactical</span>
+                        <span>Operational</span>
                         <span>Strategic</span>
+                        <span>Visionary</span>
                     </div>
                 </div>
                 {% endif %}
                 
                 <div style="font-size: 11px; margin-top: 4px; color: #004D40;">
-                    <strong>Insight:</strong> {{ d.cognitive_level.strategic_depth }}
+                    <strong>Insight:</strong> {{ strat_display }}
                 </div>
             </div>
             {% endif %}
@@ -285,7 +310,25 @@
                     </div>
                 </div>
                 
-                <div style="text-align: center; font-size: 10px; color: #5C6BC0; margin-top: 5px;">
+                {# Quadrant Label Logic (Mirroring Frontend) #}
+                {% set q_label = "Unknown" %}
+                {% if b_score <= 0.1 %}
+                    {% set q_label = "Ei analysoitavissa" %}
+                {% elif b_score >= 3.0 and t_score >= 3.0 %}
+                    {% set q_label = "Visionääri (Korkea Bloom + Vahva Toulmin)" %}
+                {% elif b_score < 3.0 and t_score >= 3.0 %}
+                    {% set q_label = "Faktapohjainen (Matala Bloom + Vahva Toulmin)" %}
+                {% elif b_score >= 3.0 and t_score < 3.0 %}
+                    {% set q_label = "Abstrakti (Korkea Bloom + Heikko Toulmin)" %}
+                {% else %}
+                    {% set q_label = "Pinnallinen (Matala Bloom + Heikko Toulmin)" %}
+                {% endif %}
+
+                <div style="text-align: center; font-size: 11px; font-weight: 700; color: #455A64; margin-top: 5px;">
+                    {{ q_label }}
+                </div>
+                
+                <div style="text-align: center; font-size: 10px; color: #5C6BC0; margin-top: 2px;">
                     <strong>Position:</strong> Bloom {{ b_score }} / Toulmin {{ t_score }} (Strat: {{ s_score }})
                 </div>
             </div>
@@ -469,18 +512,64 @@
             {% endif %}
         </div>
 
-        {# --- 5b. KEY VALUE GRID (Security/Generic) --- #}
-        {% elif section.type == 'KEY_VALUE_GRID' %}
+        {# --- 5b. SECURITY CHECK (Key-Value Grid Replacement) --- #}
+        {% elif section.type == 'SECURITY_CHECK' or section.type == 'KEY_VALUE_GRID' %}
         <div class="card" style="border-left: 4px solid #607D8B;">
             <h2 style="color: #455A64;">{{ section.title }}</h2>
-            <div class="grid-container">
-                {% for item in section.data.get('items', []) %}
-                <div class="grid-item" {% if item.highlight %}style="background-color: #FFEBEE; border-color: #FFCDD2;"{% endif %}>
-                    <div class="label" {% if item.highlight %}style="color: #C62828;"{% endif %}>{{ item.label }}</div>
-                    <div class="value" {% if item.highlight %}style="color: #B71C1C;"{% endif %}>{{ item.value }}</div>
+            {% set d = section.data %}
+
+            {# Check if it's actually a Security Check payload #}
+            {% set is_sec = d.get('risk_level') or d.get('riskitaso') %}
+            
+            {% if is_sec %}
+                <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+                    {# Threat Chip #}
+                    {% set threat = d.get('threat_detected') == true or d.get('uhka_havaittu') == true %}
+                     <div class="chip {{ 'red' if threat else 'green' }}">
+                        {{ 'UHKA: KYLLÄ' if threat else 'UHKA: EI' }}
+                     </div>
+
+                     {# Risk Chip #}
+                     {% set risk = (d.get('risk_level') or d.get('riskitaso') or 'UNKNOWN')|upper %}
+                     {% set r_color = 'green' %}
+                     {% if 'HIGH' in risk or 'CRITICAL' in risk %}{% set r_color = 'red' %}
+                     {% elif 'MEDIUM' in risk or 'LOW' in risk %}{% set r_color = 'orange' %}
+                     {% endif %}
+                     <div class="chip {{ r_color }}">
+                        RISKI: {{ risk }}
+                     </div>
+
+                     {# Anonymized Chip #}
+                     {% set anon = d.get('anonymized') == true or d.get('anonymisoitu') == true %}
+                     <div class="chip {{ 'blue' if anon else 'orange' }}">
+                        {{ 'ANONYMISOITU' if anon else 'EI ANONYMISOITU' }}
+                     </div>
                 </div>
-                {% endfor %}
-            </div>
+
+                {# Findings #}
+                {% set findings = d.get('findings') or d.get('loydokset') or [] %}
+                {% if findings %}
+                    <div class="label">Löydökset</div>
+                    <ul style="margin-top: 4px; padding-left: 15px; margin-bottom: 0;">
+                        {% for f in findings %}
+                        <li style="font-size: 10px; color: #333;">{{ f }}</li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <div style="font-size: 10px; color: #777; font-style: italic;">Ei merkittäviä löydöksiä.</div>
+                {% endif %}
+
+            {% else %}
+                {# Fallback to old Key-Value Grid for non-security data #}
+                <div class="grid-container">
+                    {% for item in section.data.get('items', []) %}
+                    <div class="grid-item" {% if item.highlight %}style="background-color: #FFEBEE; border-color: #FFCDD2;"{% endif %}>
+                        <div class="label" {% if item.highlight %}style="color: #C62828;"{% endif %}>{{ item.label }}</div>
+                        <div class="value" {% if item.highlight %}style="color: #B71C1C;"{% endif %}>{{ item.value }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
         </div>
 
         {# --- 5c. DATA TABLE (Analyst/Generic) --- #}
@@ -539,6 +628,42 @@
                     </div>
                 </div>
                 {% endif %}
+            {% endif %}
+            {# --- TEXT METRICS GRID (New) --- #}
+            {% if metrics %}
+            <div class="grid-container" style="margin-bottom: 12px; grid-template-columns: repeat(4, 1fr);">
+                <div class="grid-item">
+                    <div class="label">Word Count</div>
+                    <div class="value">{{ metrics.get('word_count', 0) }}</div>
+                </div>
+                <div class="grid-item">
+                     <div class="label">Avg Sentence</div>
+                     <div class="value">{{ metrics.get('avg_sentence_length', 0) }} words</div>
+                </div>
+                <div class="grid-item">
+                     <div class="label">Lexical Diversity</div>
+                     <div class="value">{{ metrics.get('lexical_diversity', 0) }}</div>
+                </div>
+                <div class="grid-item">
+                     <div class="label">Capitals Ratio</div>
+                     <div class="value">{{ (metrics.get('capitalization_ratio', 0) * 100)|round|int }}%</div>
+                </div>
+            </div>
+            
+            <div class="grid-container" style="margin-bottom: 12px; grid-template-columns: repeat(2, 1fr);">
+                 <div class="grid-item">
+                     <div class="label">Automation Bias (Auto-Confirm)</div>
+                     <div class="value" {% if metrics.get('automation_bias', 0) > 0.5 %}style="color: red;"{% endif %}>
+                        {{ 'DETECTED' if metrics.get('automation_bias', 0) > 0.5 else 'None' }}
+                     </div>
+                 </div>
+                 <div class="grid-item">
+                     <div class="label">Say-Do Gap</div>
+                      <div class="value" {% if metrics.get('say_do_gap', 0) > 0.5 %}style="color: red;"{% endif %}>
+                        {{ 'DETECTED' if metrics.get('say_do_gap', 0) > 0.5 else 'None' }}
+                     </div>
+                 </div>
+            </div>
             {% endif %}
 
             <div class="grid-container" style="margin-bottom: 12px;">

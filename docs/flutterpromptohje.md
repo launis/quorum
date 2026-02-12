@@ -343,55 +343,47 @@ For detailed implementation logic, refer to these Knowledge Items:
 
 ## 🌍 PART 12: BACKEND LOCALIZATION PATTERNS (DOMAIN STANDARDIZATION)
 
-When defining Domain Models that accept free-text input from LLMs (which may be in Finnish or English) but require standardized numeric or boolean values for logic, follow this **Validation Pattern**:
+When defining Domain Models that accept free-text input from LLMs (which may be in Finnish or English) but require standardized numeric or boolean values for logic, follow this **Enum Code Pattern** (formerly Fuzzy Match):
 
-1.  **Dual Fields**: Define one field for the **Raw Input** (String) and one for the **Standardized Value** (Float/Bool).
-2.  **Validator**: Use a `@model_validator(mode="after")` to map the Raw Input to the Standardized Value using `_map_l10n_values`.
+1.  **Dual Fields**: Define one field for the **Enum Code** (String/Enum) and one for the **Standardized Value** (Float/Bool).
+2.  **Validator**: Use a `@model_validator(mode="after")` to map the Enum Code to the Standardized Value.
 
 ### Implementation Template
 
 ```python
-def _map_l10n_values(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
-    """Helper to create a mapping from (TranslatedKey -> Value) for all supported languages."""
-    mapping = {}
-    for key, val in pairs:
-        # Add English (Fallbacks)
-        mapping[LocalizationService.translate(key, "en")] = val
-        # Add Finnish (Primary)
-        mapping[LocalizationService.translate(key, "fi")] = val
-        # Add Raw Key (Failsafe)
-        mapping[key] = val
-    return mapping
+class RiskLevel(str, Enum):
+    LOW = "RISK_LOW"
+    MEDIUM = "RISK_MEDIUM"
+    HIGH = "RISK_HIGH"
 
 class RiskAssessment(BaseModel):
-    # 1. Raw Input (LLM generates this, potentially in Finnish)
-    risk_level: str = Field(..., description="Risk level (Low/Medium/High).")
+    # 1. Enum Code (LLM outputs this specific string)
+    risk_code: RiskLevel = Field(..., description="Risk level code (RISK_LOW, RISK_MEDIUM, RISK_HIGH).")
     
     # 2. Standardized Value (Logic uses this)
     risk_score: float = Field(default=0.0, description="Numeric score (1.0-3.0).")
 
     @model_validator(mode="after")
     def calculate_score(self, info: ValidationInfo) -> 'RiskAssessment':
-        # 3. Define Mapping (Key -> Standard Value)
-        mapping = _map_l10n_values([
-            ("Risk.Low", 1.0),
-            ("Risk.Medium", 2.0),
-            ("Risk.High", 3.0)
-        ])
+        # 3. Define Mapping (Code -> Value)
+        mapping = {
+            RiskLevel.LOW: 1.0,
+            RiskLevel.MEDIUM: 2.0,
+            RiskLevel.HIGH: 3.0
+        }
             
-        # 4. Fuzzy Match Logic
-        if self.risk_score == 0.0 and self.risk_level:
-            for k, v in mapping.items():
-                if k.lower() in self.risk_level.lower():
-                    self.risk_score = v
-                    break
+        # 4. Exact Match Logic
+        if self.risk_score == 0.0 and self.risk_code:
+            self.risk_score = mapping.get(self.risk_code, 0.0)
+            
         return self
 ```
 
 ### Key Principles
-*   **Resilience**: logic works regardless of whether the LLM outputs "High Risk" (EN) or "Korkea Riski" (FI).
-*   **SSOT**: The `l10n/*.json` files remain the single source of truth for the string values.
-*   **Failsafe**: If exact match fails, fuzzy matching (`in`) ensures robustness against minor LLM variations.
+*   **Determinism**: LLM is instructed to output exact codes (`RISK_HIGH`).
+*   **Simplicity**: No fuzzy matching or language detection.
+*   **SSOT**: The Enum definition is the single source of truth.
+*   **Fail Fast**: If LLM outputs an invalid code, Pydantic validation fails immediately.
 
 ## 🏗️ PART 13: STUDIO & BUILDER LOCALIZATION SAFETY
 

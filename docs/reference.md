@@ -8,7 +8,6 @@ This document serves as the technical reference for **Cognitive Quorum V2026**. 
 
 The project follows a **Modular Monolith** architecture.
 
-```text
 quorum/
 ├── backend/                # Async Python 3.14+ Core
 │   ├── agents/             # Specialized Agent Logic (Judge, Analyst)
@@ -21,14 +20,17 @@ quorum/
 │   ├── hooks/              # Deterministic Logic (Scoring, Searching)
 │   ├── llm/                # AI Provider Adapters (Vertex, OpenAI)
 │   ├── models/             # Pydantic V2 Schemas (SSOT)
-│   ├── services/           # Business Logic (Auth, PromptBuilder)
+│   ├── services/           # Business Logic (Auth, Storage, PromptBuilder)
+│   │   └── drivers/        # I/O Adapters (LocalFileDriver, GCSFileDriver)
 │   ├── seed/               # Data Seeding Logic
+│   │   └── seed_data.json  # THE BLUEPRINT (Source of Truth)
+│   ├── scripts/            # Backend Utility Scripts
 │   ├── settings.py         # Environment Settings (Pydantic BaseSettings)
 │   └── worker.py           # Arq Worker Entry Point
 ├── data/                   # Local Persistence
 │   ├── db.json             # Local Production DB (GitIgnored)
 │   ├── db_mock.json        # Test DB (Mock LLMs)
-│   └── seed_data.json      # THE BLUEPRINT (Source of Truth)
+│   └── files/              # Local File Storage (GitIgnored)
 ├── docs/                   # Documentation (MkDocs)
 ├── client_app/             # Flutter Client (Cognitive Studio)
 │   ├── lib/
@@ -41,8 +43,9 @@ quorum/
 │   │   └── router/         # GoRouter Configuration
 ├── scripts/                # CI/CD & Utility Scripts (Python)
 ├── .env.example            # Environment Template
-├── run_full_docker.bat     # Windows Startup Script
-├── kill_services.bat       # Windows Cleanup Script
+├── run_local.bat           # Local Development Startup (Recommended)
+├── run_full_docker.bat     # Docker Startup Script
+├── kill_services.bat       # Cleanup Script
 └── pyproject.toml          # Python Dependencies (uv)
 ```
 
@@ -54,8 +57,9 @@ quorum/
 
 | Command | Description |
 | :--- | :--- |
-| `run_full_docker.bat` | **Start System**. Rebuilds Backend/Worker, starts Redis/Firestore, and launches the stack. |
-| `kill_services.bat` | **Stop System**. Aggressively terminates Python, Docker processes, and frees ports. |
+| `run_local.bat` | **Start Dev**. Launches Backend (Uvicorn), Worker (Arq), and Frontend (Flutter) locally. |
+| `run_full_docker.bat` | **Start Docker**. Rebuilds and launches the full stack in containers. |
+| `kill_services.bat` | **Stop System**. Aggressively terminates Python, Dart, Docker processes, and frees ports. |
 
 ### Data Management (Seeding)
 
@@ -123,6 +127,7 @@ Defined in `.env` and managed by `backend/settings.py`.
 | :--- | :--- | :--- | :--- |
 | `ENVIRONMENT` | Environment Mode. | `development` / `production` | `development` |
 | `STORAGE_BACKEND` | Storage engine choice. | `LOCAL` / `MOCK` / `FIRESTORE` | `LOCAL` |
+| `STORAGE_BUCKET_NAME` | GCP Bucket for Files (Required if FIRESTORE). | String (e.g., `quorum-files`) | - |
 | `USE_MOCK_LLM` | Force usage of Mock LLM service. | `true` / `false` | `false` |
 | `USE_VERTEX_LLM` | Use Vertex AI (Google) vs OpenAI. | `true` / `false` | `false` |
 | `VERTEX_LOCATION` | Google Cloud Region. | e.g., `europe-north1` | - |

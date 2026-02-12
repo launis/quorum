@@ -356,5 +356,15 @@
   "lblHeuristics": "Heuristiikat",
   "helpLogicMatrix": "Logiikkamatriisi visualisoi argumentaation laadun ja kognitiivisen syvyyden suhdetta. UUSI: Pallon koko kuvaa strategista syvyyttä (Agentuuri). Suuri pallo tarkoittaa visionääristä otetta.",
   "helpStrategicDepth": "Strateginen syvyys mittaa käyttäjän kykyä suunnitella, ennakoida ja ohjata prosessia tavoitteellisesti.",
-  "plausibility_desc": "Uskottavuus mittaa skenaarion realismia ja johdonmukaisuutta."
+  "plausibility_desc": "Uskottavuus mittaa skenaarion realismia ja johdonmukaisuutta.",
+  "bloomRemembering": "Muistaminen",
+  "bloomUnderstanding": "Ymmärtäminen",
+  "bloomApplying": "Soveltaminen",
+  "bloomAnalyzing": "Analysointi",
+  "bloomEvaluating": "Arviointi",
+  "bloomCreating": "Luominen",
+  "stratLow": "Taktinen",
+  "stratMedium": "Operatiivinen",
+  "stratHigh": "Strateginen",
+  "stratVisionary": "Visionäärinen"
 }

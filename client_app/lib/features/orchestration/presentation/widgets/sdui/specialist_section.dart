@@ -168,14 +168,41 @@ class _SpecialistSectionState extends State<SpecialistSection> {
 
       case 'DRIVER_PROFILE':
         return _buildDriverProfile(context);
+      case 'SECURITY_CHECK':
+        return _buildSecurityCheck(context);
       default:
         // Fallback to generic map renderer if type is barely supported
         return _buildGenericMap(widget.data);
     }
   }
 
+  String _getLocalizedBloom(String key, BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    // Normalize key (handle case-insensitivity or prefixes if needed)
+    final k = key.toUpperCase();
+    if (k.contains('REMEMBERING')) return l10n.bloomRemembering;
+    if (k.contains('UNDERSTANDING')) return l10n.bloomUnderstanding;
+    if (k.contains('APPLYING')) return l10n.bloomApplying;
+    if (k.contains('ANALYZING')) return l10n.bloomAnalyzing;
+    if (k.contains('EVALUATING')) return l10n.bloomEvaluating;
+    if (k.contains('CREATING')) return l10n.bloomCreating;
+    return key; // Fallback
+  }
+
+  String _getLocalizedStrategicDepth(String key, BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final k = key.toUpperCase();
+    if (k.contains('LOW')) return l10n.stratLow;
+    if (k.contains('MEDIUM')) return l10n.stratMedium;
+    if (k.contains('HIGH')) return l10n.stratHigh;
+    if (k.contains('VISIONARY')) return l10n.stratVisionary;
+    return key;
+  }
+
   // --- 1. LOGIC ANALYSIS (Toulmin & Cognitive) ---
   Widget _buildLogicAnalysis(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
     // Keys match LogicianOutput (v2026 Canonical)
     // "cognitive_level" is the canonical key. "kognitiivinen_taso"/legacy are fallbacks.
     final cog = (widget.data['cognitive_level'] ??
@@ -195,7 +222,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
 
     if (methodology != null) {
       children.add(_buildInfoCard(
-        AppLocalizations.of(context)!.lblMethodologicalLog,
+        l10n.lblMethodologicalLog,
         methodology,
         Icons.history_edu,
         helpKey: "metodologia",
@@ -207,6 +234,9 @@ class _SpecialistSectionState extends State<SpecialistSection> {
       LayoutBuilder(
         builder: (context, constraints) {
           final isWide = constraints.maxWidth > 800;
+          
+          final bloomRaw = cog['bloom_level'] ?? cog['bloom_taso'] ?? 'N/A';
+          final stratRaw = cog['strategic_depth'] ?? cog['strateginen_syvyys'] ?? 'N/A';
 
           // Enhanced Bloom Widget (Report Style)
           final bloomWidget = cog.isNotEmpty
@@ -226,7 +256,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                "${AppLocalizations.of(context)!.lblCognitiveLevel}: ${cog['bloom_level'] ?? cog['bloom_taso'] ?? 'N/A'}",
+                                "${l10n.lblCognitiveLevel}: ${_getLocalizedBloom(bloomRaw, context)}",
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
@@ -239,7 +269,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          AppLocalizations.of(context)!.lblStrategicDepth,
+                          l10n.lblStrategicDepth,
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
@@ -248,10 +278,8 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                         ),
                         const SizedBox(height: 4),
                         SelectableText(
-                          cog['strategic_depth'] ??
-                              cog['strateginen_syvyys'] ??
-                              "Ei analyysiä.",
-                          style: const TextStyle(fontSize: 14, height: 1.5),
+                          _getLocalizedStrategicDepth(stratRaw, context),
+                          style: const TextStyle(fontSize: 14, height: 1.5, fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
@@ -264,7 +292,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
             Row(
               children: [
                 Text(
-                  AppLocalizations.of(context)!.lblArguments,
+                  l10n.lblArguments,
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                   ),
@@ -311,53 +339,65 @@ class _SpecialistSectionState extends State<SpecialistSection> {
           // Strategic Depth Gauge (New)
           final stratScore = (cog['strategic_score'] as num?)?.toDouble() ?? 2.0; // Default
           final stratGauge = UnifiedMetricGauge(
-             label: AppLocalizations.of(context)!.lblStrategicDepth,
+             label: l10n.lblStrategicDepth,
              value: stratScore,
              max: 4.0,
-             descriptionFi: AppLocalizations.of(context)!.helpStrategicDepth,
+             descriptionFi: l10n.helpStrategicDepth,
              descriptionEn: "Strategic Depth assesses foresight and planning.",
              displayValue: "$stratScore/4.0",
              color: Colors.teal[700],
-             axisLabels: const ['Taktinen', '', '', 'Strateginen'],
+             // FULL LABELS as requested
+             axisLabels: [
+                 l10n.stratLow, 
+                 l10n.stratMedium, 
+                 l10n.stratHigh, 
+                 l10n.stratVisionary
+             ],
           );
 
           // New Visualization Widget (3D Bubble Chart)
           final matrixChart = LogicMatrixChart(
-            bloomLevel:
-                (cog['bloom_level'] ?? cog['bloom_taso']) as String? ?? 'N/A',
-            toulminArguments: toulmin,
+            bloomScore: (cog['bloom_score'] as num?)?.toDouble() ?? 0.0,
+            toulminScore: (widget.data['toulmin_score'] as num?)?.toDouble() ?? 0.0,
             strategicScore: stratScore,
           );
-          // final matrixChart = const SizedBox.shrink();
 
           // Enhanced Bloom & Toulmin using UnifiedMetricGauge
 
           final bloomGauge = UnifiedMetricGauge(
-            label: AppLocalizations.of(context)!.lblBloomScore,
+            label: l10n.lblBloomScore,
             value: (cog['bloom_score'] as num?)?.toDouble() ?? 0.0,
             max: 6.0,
             descriptionFi: cog['description_fi'] ??
-                AppLocalizations.of(context)!.helpBloom,
+                l10n.helpBloom,
             descriptionEn: cog['description_en'] ??
                 "Bloom's Taxonomy measures the depth of cognitive processing from remembering to creating.",
             displayValue:
                 "${((cog['bloom_score'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(1)}/6.0",
             color: Colors.teal,
-            axisLabels: const ['Muistaminen', '', '', '', '', 'Luominen'],
+            // FULL LABELS as requested
+            axisLabels: [
+                l10n.bloomRemembering,
+                l10n.bloomUnderstanding,
+                l10n.bloomApplying,
+                l10n.bloomAnalyzing,
+                l10n.bloomEvaluating,
+                l10n.bloomCreating
+            ],
           );
 
           final toulminGauge = UnifiedMetricGauge(
-            label: AppLocalizations.of(context)!.lblToulminScore,
+            label: l10n.lblToulminScore,
             value: (widget.data['toulmin_score'] as num?)?.toDouble() ?? 0.0,
             max: 6.0,
             descriptionFi: widget.data['description_fi'] ??
-                AppLocalizations.of(context)!.helpToulmin,
+                l10n.helpToulmin,
             descriptionEn: widget.data['description_en'] ??
                 "The Toulmin model evaluates the structural integrity and strength of argumentation.",
             displayValue:
                 "${((widget.data['toulmin_score'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(1)}/6.0",
             color: Colors.indigo,
-            axisLabels: const ['Väite', 'Peruste', 'Tuki', 'Vahva'],
+            axisLabels: const ['Väite', '', 'Peruste', '', 'Tuki', 'Vahva'],
           );
 
           if (isWide) {
@@ -416,7 +456,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                         Row(
                           children: [
                             Text(
-                              AppLocalizations.of(context)!.lblLogicMatrix,
+                              l10n.lblLogicMatrix,
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
@@ -427,7 +467,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                           ],
                         ),
                         Text(
-                          AppLocalizations.of(context)!.lblMatrixSubtitle,
+                          l10n.lblMatrixSubtitle,
                           style: const TextStyle(
                             fontSize: 12,
                             color: Colors.grey,
@@ -469,6 +509,122 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: children,
+    );
+  }
+
+
+
+  // --- 1.5 SECURITY CHECK (New Compact Visuals) ---
+  Widget _buildSecurityCheck(BuildContext context) {
+    // Keys: threat_detected, risk_level, anonymized, findings
+    final threat = widget.data['threat_detected'] == true ||
+        widget.data['uhka_havaittu'] == true;
+    final riskRaw = (widget.data['risk_level'] ?? widget.data['riskitaso'])
+        .toString()
+        .toUpperCase();
+    final anonymized = widget.data['anonymized'] == true ||
+        widget.data['anonymisoitu'] == true;
+    final findings = (widget.data['findings'] ?? widget.data['loydokset'] as List?)
+            ?.cast<String>() ??
+        [];
+
+    // Map Risk to Color/Icon
+    Color riskColor = Colors.green;
+    IconData riskIcon = Icons.verified_user;
+    if (riskRaw.contains("HIGH") || riskRaw.contains("CRITICAL")) {
+      riskColor = Colors.red;
+      riskIcon = Icons.gpp_bad;
+    } else if (riskRaw.contains("MEDIUM") || riskRaw.contains("LOW")) {
+      riskColor = Colors.orange;
+      riskIcon = Icons.warning_amber;
+    } else if (riskRaw.contains("NONE") || riskRaw.contains("SAFE")) {
+      riskColor = Colors.green;
+      riskIcon = Icons.check_circle;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Status Row (Chips)
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _buildStatusChip(
+              context,
+              label: "Uhka: ${threat ? 'KYLLÄ' : 'EI'}",
+              color: threat ? Colors.red : Colors.green,
+              icon: threat ? Icons.warning : Icons.check,
+            ),
+            _buildStatusChip(
+              context,
+              label: "Riski: $riskRaw",
+              color: riskColor,
+              icon: riskIcon,
+            ),
+            _buildStatusChip(
+              context,
+              label: "Anonymisoitu: ${anonymized ? 'KYLLÄ' : 'EI'}",
+              color: anonymized ? Colors.blue : Colors.grey,
+              icon: anonymized ? Icons.visibility_off : Icons.visibility,
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // Findings List (Compact)
+        if (findings.isNotEmpty) ...[
+          const Text(
+            "Löydökset:",
+             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey),
+          ),
+          const SizedBox(height: 4),
+          ...findings.map((f) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(top: 2),
+                      child: Icon(Icons.arrow_right, size: 16, color: Colors.grey),
+                    ),
+                    Expanded(child: Text(f, style: const TextStyle(fontSize: 13))),
+                  ],
+                ),
+              )),
+        ] else
+           const Text(
+            "Ei merkittäviä löydöksiä.",
+            style: TextStyle(fontStyle: FontStyle.italic, fontSize: 13, color: Colors.grey),
+           ),
+      ],
+    );
+  }
+
+  Widget _buildStatusChip(BuildContext context,
+      {required String label, required Color color, required IconData icon}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+              color: color,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -726,10 +882,14 @@ class _SpecialistSectionState extends State<SpecialistSection> {
 
     final tone = widget.data['emotional_tone'] as String?;
 
-    final metrics = (widget.data['metrics'] ??
-            widget.data['text_metrics'] ??
-            widget.data['teksti_metriikka']) as Map<String, dynamic>? ??
-        {};
+    // Safe cast to Map<String, dynamic> handling potential nulls
+    final rawMetrics = widget.data['metrics'] ??
+        widget.data['text_metrics'] ??
+        widget.data['teksti_metriikka'];
+    
+    final Map<String, dynamic> metrics = rawMetrics is Map 
+        ? Map<String, dynamic>.from(rawMetrics) 
+        : {};
 
     final List<Widget> children = [];
 
@@ -745,84 +905,8 @@ class _SpecialistSectionState extends State<SpecialistSection> {
       ));
       children.add(const SizedBox(height: 8));
 
-      children.add(Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: metrics.entries.map<Widget>((e) {
-          // Special handling for known metrics to be visualized better
-          if (e.key == 'driver' || e.key == 'passenger' || e.key == 'control_ratio') {
-              // Drivers/Passengers are likely parts of a ratio, maybe show as pie or bar?
-              // But control_ratio is a single float.
-          }
-          
-          // Parse complex objects if stringified (as seen in screenshot: "{driver: 0.9...}")
-          String label = e.key;
-          String valueStr = e.value.toString();
-          Map<String, dynamic>? parsedDetails;
-          
-          if (valueStr.trim().startsWith('{') && valueStr.trim().endsWith('}')) {
-             try {
-                // It's a map-like string (not strict JSON usually in these raw prints)
-                // We'll just display it cleanly for now, or try to parse if standard JSON.
-             } catch (_) {}
-          }
-
-          // Render 'control_ratio' specifically if found (example based on screenshot)
-          if (e.key == 'control_ratio' && e.value is Map) {
-             final valMap = e.value as Map;
-             return Padding(
-               padding: const EdgeInsets.only(bottom: 8.0),
-               child: UnifiedMetricGauge(
-                 label: "Control Ratio (Driver vs Passenger)",
-                 value: (valMap['driver'] as num? ?? 0.0).toDouble(),
-                 max: 1.0, 
-                 displayValue: "${((valMap['driver'] as num? ?? 0.0) * 100).toInt()}% Driver",
-                 descriptionFi: "Ohjaussuhde kertoo, kuinka paljon käyttäjä ohjaa keskustelua suhteessa tekoälyyn.",
-                 descriptionEn: valMap['justification'] ?? "",
-                 color: Colors.pink,
-                 axisLabels: const ['Passenger', '', 'Driver'],
-               ),
-             );
-          }
-          
-           // General Fallback for other metrics
-           return Container(
-             margin: const EdgeInsets.only(bottom: 8),
-             padding: const EdgeInsets.all(8),
-             decoration: BoxDecoration(
-               color: Colors.grey[100],
-               borderRadius: BorderRadius.circular(4),
-               border: Border.all(color: Colors.grey[300]!)
-             ),
-             child: Column(
-               crossAxisAlignment: CrossAxisAlignment.start,
-               children: [
-                 Text(
-                   e.key.toUpperCase().replaceAll('_', ' '),
-                   style: const TextStyle(
-                       fontSize: 10, 
-                       fontWeight: FontWeight.bold,
-                       color: Colors.grey
-                   ),
-                 ),
-                 const SizedBox(height: 4),
-                 if (e.value is Map) 
-                    ...((e.value as Map).entries.map((sub) => Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                           Text("${sub.key}: ", style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
-                           Expanded(child: Text(sub.value.toString(), style: const TextStyle(fontSize: 12))),
-                        ],
-                      ),
-                    )))
-                 else
-                    Text(e.value.toString(), style: const TextStyle(fontSize: 13)),
-               ],
-             ),
-           );
-        }).toList(),
-      ));
+      // NEW: Dedicated Grid for Hook Metrics
+      children.add(_buildTextMetricsGrid(context, metrics));
       children.add(const SizedBox(height: 16));
     }
 
@@ -892,6 +976,98 @@ class _SpecialistSectionState extends State<SpecialistSection> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: children,
     );
+  }
+  
+  // NEW Helper for Text Metrics
+  Widget _buildTextMetricsGrid(BuildContext context, Map<String, dynamic> metrics) {
+     final l10n = AppLocalizations.of(context)!;
+     
+     // 1. Extract known values safely
+     final wordCount = metrics['word_count'] ?? 0;
+     final sentCount = metrics['sentence_count'] ?? 0;
+     final avgSent = (metrics['avg_sentence_length'] as num?)?.toDouble() ?? 0.0;
+     final lexDiv = (metrics['lexical_diversity'] as num?)?.toDouble() ?? 0.0;
+     final capRatio = (metrics['capitalization_ratio'] as num?)?.toDouble() ?? 0.0;
+     final autoBias = (metrics['automation_bias'] as num?)?.toDouble() ?? 0.0;
+     final sayDoGap = (metrics['say_do_gap'] as num?)?.toDouble() ?? 0.0;
+     
+     // Control ratio handled separately? Or here? 
+     // The gauge was specific, let's keep specific logic for it if we want the gauge.
+     // But let's check if 'control_ratio' is present.
+     final controlRatioVal = metrics['control_ratio'];
+     Widget? controlGauge;
+     
+     if (controlRatioVal is Map) {
+          controlGauge = UnifiedMetricGauge(
+             label: "Control Ratio",
+             value: (controlRatioVal['driver'] as num? ?? 0.0).toDouble(),
+             max: 1.0, 
+             displayValue: "${((controlRatioVal['driver'] as num? ?? 0.0) * 100).toInt()}% Driver",
+             descriptionFi: "Ohjaussuhde kertoo, kuinka paljon käyttäjä ohjaa keskustelua.",
+             descriptionEn: "Control Ratio measures how much the user drives the conversation.",
+             color: Colors.pink,
+             axisLabels: const ['Passenger', '', 'Driver'],
+           );
+     } else if (controlRatioVal is num) {
+          // Flattened format
+          controlGauge = UnifiedMetricGauge(
+             label: "Control Ratio",
+             value: controlRatioVal.toDouble(),
+             max: 1.0, 
+             displayValue: "${(controlRatioVal * 100).toInt()}% Driver",
+             descriptionFi: "Ohjaussuhde kertoo, kuinka paljon käyttäjä ohjaa keskustelua.",
+             descriptionEn: "Control Ratio measures how much the user drives the conversation.",
+             color: Colors.pink,
+             axisLabels: const ['Passenger', '', 'Driver'],
+           );
+     }
+
+     return Column(
+       children: [
+         if (controlGauge != null) 
+            Padding(padding: const EdgeInsets.only(bottom: 12), child: controlGauge),
+
+         GridView.count(
+           shrinkWrap: true,
+           physics: const NeverScrollableScrollPhysics(),
+           crossAxisCount: 2,
+           childAspectRatio: 2.5,
+           crossAxisSpacing: 8,
+           mainAxisSpacing: 8,
+           children: [
+             _buildMetricTile(l10n.lblWordCount, "$wordCount"),
+             _buildMetricTile(l10n.lblAvgSentence, "${avgSent.toStringAsFixed(1)} words"),
+             _buildMetricTile(l10n.lblLexicalDiversity, lexDiv.toStringAsFixed(2)),
+             _buildMetricTile(l10n.lblCapitalsRatio, "${(capRatio * 100).toInt()}%"),
+             
+             // Behavioral Flags
+             if (autoBias > 0.5)
+                _buildMetricTile(l10n.lblAutomationBias, "DETECTED", isAlarm: true),
+             if (sayDoGap > 0.5)
+                _buildMetricTile(l10n.lblSayDoGap, "DETECTED", isAlarm: true),
+           ],
+         ),
+       ],
+     );
+  }
+
+  Widget _buildMetricTile(String label, String value, {bool isAlarm = false}) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isAlarm ? Colors.red[50] : Colors.grey[100],
+          borderRadius: BorderRadius.circular(8),
+          border: isAlarm ? Border.all(color: Colors.red[200]!) : null,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(label, style: TextStyle(fontSize: 10, color: isAlarm ? Colors.red[900] : Colors.grey[700], fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
+            Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isAlarm ? Colors.red : Colors.black87)),
+          ],
+        ),
+      );
   }
 
   // --- 5. FACT CHECK ---

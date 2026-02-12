@@ -51,14 +51,20 @@ def execute_google_search(state: WorkflowState) -> WorkflowState:
         pass
 
     from backend.hooks.search_client import GoogleSearchTool
+    from backend.exceptions import AppException
+    from fastapi import status
 
     tool = GoogleSearchTool()
     if not tool._service:
-         logging.debug("DEBUG: [SearchHook] Search disabled (Missing API Keys)")
-         if isinstance(aux_data, dict):
-             aux_data["google_search_results"] = "Search disabled (Missing API Keys)"
-             set_attr(state, "aux_data", aux_data)
-         return state
+         logging.error("CRITICAL: Google Search API Credentials missing.")
+         raise AppException(
+             message="Google Search credentials (GOOGLE_SEARCH_API_KEY, GOOGLE_SEARCH_CX) are missing from configuration.",
+             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+             details={
+                 "error_code": "MISSING_SEARCH_CREDENTIALS",
+                 "hint": "Add GOOGLE_SEARCH_API_KEY and GOOGLE_SEARCH_CX to .env file."
+             }
+         )
 
     queries = []
 

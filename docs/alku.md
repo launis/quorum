@@ -26,5 +26,10 @@ Before answering, you MUST read and internalize the following documentation file
 *   **Code**: Standard English.
 *   **Explanations**: Finnish (Suomi).
 
+**4. DEBUGGING RESOURCES (Local Development)**
+*   **`backend_debug.log`** (Project Root): Contains full Backend logs (Uvicorn, FastAPI, Arq). Use this to debug startup crashes, 500 errors, and database queries.
+*   **`client_debug.log`** (Project Root): Contains Flutter Client logs (Riverpod state changes, Navigation, HTTP errors). Use this to debug UI freezes or "Something went wrong" errors.
+*   **Note**: `run_local.bat` clears these files on every fresh start to ensure clean traces.
+
 **CONFIRMATION:**
 State clearly that you have read the files and are ready to proceed under the Phase 2 Hardening standards.

@@ -108,10 +108,7 @@ class UnifiedMetricGauge extends StatelessWidget {
              Expanded(
                child: Row(
                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                 children: axisLabels!.map((l) => Text(
-                   l, 
-                   style: TextStyle(fontSize: 10, color: Colors.grey[600]),
-                 )).toList(),
+                 children: _buildAlignedLabels(axisLabels!, totalSegments),
                ),
              ),
              const SizedBox(width: 12),
@@ -170,6 +167,23 @@ class UnifiedMetricGauge extends StatelessWidget {
         ],
       ),
     );
+  }
+  List<Widget> _buildAlignedLabels(List<String> labels, int segmentCount) {
+    if (labels.length == segmentCount) {
+      return labels.map((l) => Expanded(
+        child: Text(
+          l,
+          textAlign: TextAlign.center,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(fontSize: 8, color: Colors.grey[600], fontWeight: FontWeight.w500),
+        ),
+      )).toList();
+    }
+    
+    return labels.map((l) => Text(
+      l, 
+      style: TextStyle(fontSize: 9, color: Colors.grey[600]),
+    )).toList();
   }
 }
 

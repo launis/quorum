@@ -15,7 +15,10 @@ services:
       - USE_VERTEX_LLM=true
       - VERTEX_LOCATION=europe-north1
       - GOOGLE_APPLICATION_CREDENTIALS=/app/service-account.json
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/service-account.json
       # Allow local override via .env if needed, but defaults above are safer for container logic
+    env_file:
+      - .env
     volumes:
       - ./backend:/app/backend
       - ./data:/app/data
@@ -36,7 +39,10 @@ services:
       - STORAGE_BUCKET_NAME=cognitive-quorum.appspot.com
       - USE_VERTEX_LLM=true
       - VERTEX_LOCATION=europe-north1
+      - VERTEX_LOCATION=europe-north1
       - GOOGLE_APPLICATION_CREDENTIALS=/app/service-account.json
+    env_file:
+      - .env
     volumes:
       - ./backend:/app/backend
       - ./data:/app/data

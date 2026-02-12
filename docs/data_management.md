@@ -123,7 +123,16 @@ The `FileDriver` protocol defines the ASYNC contract for file I/O:
     *   **Usage**: Production (`STORAGE_BACKEND=FIRESTORE` implies GCS for files).
 
 ### Dependency Injection
-The `get_storage_client()` factory (`backend/services/storage.py`) determines the active driver based on environment settings, ensuring code agnostic of the underlying storage mechanism.
+The `StorageService` factory (`backend/services/storage.py`) determines the active driver based on environment settings (`STORAGE_BACKEND`, `STORAGE_BUCKET_NAME`), ensuring code is agnostic of the underlying storage mechanism.
+
+#### Usage Example
+```python
+from backend.services.storage import get_storage_driver
+
+async def upload_report(content: str, filename: str):
+    driver = get_storage_driver()
+    await driver.save(f"reports/{filename}", content)
+```
 
 ---
 

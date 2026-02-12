@@ -7,26 +7,27 @@ import 'package:flutter/material.dart';
 class LogicMatrixChart extends StatelessWidget {
   const LogicMatrixChart({
     super.key,
-    required this.bloomLevel,
-    required this.toulminArguments,
+    required this.bloomScore,
+    required this.toulminScore,
     this.strategicScore = 2.0, // Default to middle if missing
   });
 
-  final String bloomLevel;
-  final List<dynamic> toulminArguments;
+  final double bloomScore;
+  final double toulminScore;
   final double strategicScore;
 
   @override
   Widget build(BuildContext context) {
-    final x = _calculateBloomScore(bloomLevel);
-    final y = _calculateToulminScore(toulminArguments);
+    // Use authoritative scores from Backend (SSOT)
+    final x = bloomScore;
+    final y = toulminScore;
 
-    // Quadrant label based on coordinates
+    // Quadrant label based on coordinates (Threshold 3.0)
     String quadrantLabel = "Tuntematon";
-    if (x == 0.0) quadrantLabel = "Ei analysoitavissa (Syöte puuttuu/riittämätön)";
-    else if (x >= 3 && y >= 3) quadrantLabel = "Visionääri (Korkea Bloom + Vahva Toulmin)";
-    else if (x < 3 && y >= 3) quadrantLabel = "Faktapohjainen (Matala Bloom + Vahva Toulmin)";
-    else if (x >= 3 && y < 3) quadrantLabel = "Abstrakti (Korkea Bloom + Heikko Toulmin)";
+    if (x <= 0.1) quadrantLabel = "Ei analysoitavissa (Syöte puuttuu/riittämätön)";
+    else if (x >= 3.0 && y >= 3.0) quadrantLabel = "Visionääri (Korkea Bloom + Vahva Toulmin)";
+    else if (x < 3.0 && y >= 3.0) quadrantLabel = "Faktapohjainen (Matala Bloom + Vahva Toulmin)";
+    else if (x >= 3.0 && y < 3.0) quadrantLabel = "Abstrakti (Korkea Bloom + Heikko Toulmin)";
     else quadrantLabel = "Pinnallinen (Matala Bloom + Heikko Toulmin)";
 
     // Bubble Size Calculation (Z-Axis)
@@ -52,9 +53,9 @@ class LogicMatrixChart extends StatelessWidget {
                 ),
               ],
               minX: 0,
-              maxX: 6,
+              maxX: 6.5, // Allow slightly more space for "Creating" (6.0)
               minY: 0,
-              maxY: 6,
+              maxY: 6.5,
               backgroundColor: Colors.white,
               gridData: FlGridData(
                 show: true,
@@ -121,51 +122,5 @@ class LogicMatrixChart extends StatelessWidget {
         )
       ],
     );
-  }
-
-  double _calculateBloomScore(String level) {
-    final lower = level.toLowerCase();
-    // English (Primary)
-    if (lower.contains("creating")) return 5.5;
-    if (lower.contains("evaluating")) return 4.5;
-    if (lower.contains("analyzing")) return 3.5;
-    if (lower.contains("applying")) return 2.5;
-    if (lower.contains("understanding")) return 1.5;
-    if (lower.contains("remembering")) return 0.5;
-
-    // Finnish (Legacy Backward Compatibility)
-    if (lower.contains("luominen")) return 5.5;
-    if (lower.contains("arviointi")) return 4.5;
-    if (lower.contains("analysointi")) return 3.5;
-    if (lower.contains("soveltaminen")) return 2.5;
-    if (lower.contains("ymmärtäminen")) return 1.5;
-    if (lower.contains("muistaminen")) return 0.5;
-
-    // Handle "Not Detected" / Missing Prompt cases
-    if (lower.contains("ei havaittu") ||
-        lower.contains("not detected") ||
-        lower.contains("puuttuu") ||
-        lower.contains("missing") ||
-        lower.contains("n/a")) {
-      return 0.0;
-    }
-
-    return 3.0; // Default middle for unknown valid levels
-  }
-
-  double _calculateToulminScore(List<dynamic> args) {
-    if (args.isEmpty) return 0.5;
-
-    double totalScore = 0;
-    for (final arg in args) {
-      double score = 1.0; // Base: Claim
-      if (arg['warrant'] != null && arg['warrant'].toString().length > 5) score += 2.0;
-      if (arg['backing'] != null && arg['backing'].toString().length > 5) score += 2.0;
-      totalScore += score;
-    }
-
-    final avg = totalScore / args.length;
-    // Cap at 5.5
-    return avg > 5.5 ? 5.5 : avg;
   }
 }

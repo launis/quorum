@@ -2,6 +2,9 @@ import io
 import sys
 
 import pytest
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 # Capture stdout/stderr

@@ -137,6 +137,22 @@ sequenceDiagram
     note over UI: Phase IV: Delivery
 ```
 
+## 6. Artifact Persistence (Storage Driver)
+
+Once a report is generated, it must be persisted reliably. The system uses the **Storage Driver Pattern** to ensure this happens regardless of the environment (Local vs. Cloud).
+
+### The Process
+1.  **Generation**: The `ReportingHook` produces the final Markdown/PDF content.
+2.  **Resolution**: The `StorageService` provides the active driver (`LocalFileDriver` or `GCSFileDriver`).
+3.  **Persistence**: The content is saved to the configured path (e.g., `reports/2026/02/audit_123.md`).
+4.  **Retrieval**: The API generates a URL (local file path or signed GCS link) for the frontend to download.
+
+### Why this matters?
+*   **Dev/Prod Parity**: Developers use local files; Production uses Firebase Storage. The code (`await driver.save()`) remains identical.
+*   **Immutable History**: Reports are stored permanently, allowing for historical audits even if the database state changes.
+
+---
+
 ## Conclusion
 
 The power of this architecture lies in **Consistency**.

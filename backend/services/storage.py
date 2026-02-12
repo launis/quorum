@@ -1,37 +1,49 @@
-"""Storage Service abstraction for local and cloud backends (Async).
+"""Storage Service Factory (V2026).
 
-Updated V2.9: Fits File Driver Pattern.
+This module provides a singleton factory for obtaining the active StorageDriver
+based on the application configuration.
 """
-
 import logging
-from typing import cast
+from functools import lru_cache
+
 from backend.services.file_driver import FileDriver
 from backend.services.drivers.local_file_driver import LocalFileDriver
 from backend.services.drivers.gcs_file_driver import GCSFileDriver
-from backend.settings import get_settings
+from backend.settings import get_settings, StorageBackend
 
 logger = logging.getLogger(__name__)
 
-# Re-export FileDriver as AbstractStorage for backward compatibility (typing only)
-# But users should migrate to FileDriver
-AbstractStorage = FileDriver
 
-
-def get_storage_client() -> FileDriver:
-    """Factory function to return the configured ASYNC storage client."""
-    settings = get_settings()
-
-    if settings.environment == "production" and settings.storage_bucket_name:
-        logger.info(f"Using GCS Storage Driver (Bucket: {settings.storage_bucket_name})")
-        return GCSFileDriver(bucket_name=settings.storage_bucket_name)
-
-    # Default to Local
-    base_url = str(settings.api_url) if settings.api_url else "http://localhost:8000"
-    # Construct base URL for files if needed, e.g. /files/
-    # For now, just pass base_url
+@lru_cache
+def get_storage_driver() -> FileDriver:
+    """Returns the singleton StorageDriver instance.
     
-    return LocalFileDriver(base_path=settings.files_dir, base_url=base_url)
+    The driver is selected based on settings.storage_backend:
+    - FIRESTORE -> GCSFileDriver (using settings.storage_bucket_name)
+    - LOCAL -> LocalFileDriver (using settings.files_dir)
+    - MOCK -> LocalFileDriver (using settings.files_dir)
+    
+    Returns:
+        FileDriver: The initialized driver.
+        
+    Raises:
+        ValueError: If FIRESTORE backend is selected but storage_bucket_name is missing.
+    """
+    settings = get_settings()
+    backend = settings.active_backend
 
+    if backend == StorageBackend.FIRESTORE:
+        bucket_name = settings.storage_bucket_name
+        if not bucket_name:
+            raise ValueError(
+                "CRITICAL: STORAGE_BACKEND=FIRESTORE requires STORAGE_BUCKET_NAME to be set."
+            )
+        logger.info(f"Initializing GCSFileDriver with bucket: {bucket_name}")
+        return GCSFileDriver(bucket_name=bucket_name)
 
-# Deprecated synchronous classes are removed.
-# Any outstanding usage will fail fast (AttributeError/TypeError), signaling required refactor.
+    # Default to Local for LOCAL and MOCK backends
+    base_path = settings.files_dir
+    base_url = f"{settings.api_url}/files" if settings.api_url else None
+    
+    logger.info(f"Initializing LocalFileDriver at: {base_path}")
+    return LocalFileDriver(base_path=base_path, base_url=base_url)

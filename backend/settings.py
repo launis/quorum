@@ -192,18 +192,26 @@ class Settings(BaseSettings):
     def model_post_init(self, __context: Any) -> None:
         """Validates settings after initialization."""
         # Check for EITHER Google AI Studio Key OR Vertex AI Credentials
-        has_vertex = (
-            os.getenv("VERTEX_PROJECT_ID")
-            or os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-            or os.getenv("GOOGLE_CLOUD_PROJECT")
-        )
-
-        # STRICT: If not in mock mode, require credentials.
         if not self.use_mock_llm:
+            # Auto-discovery for service-account.json (Resilience against launcher issues)
+            if not os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
+                root_dir = os.path.dirname(self.base_dir)
+                sa_path = os.path.join(root_dir, "service-account.json")
+                if os.path.exists(sa_path):
+                    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = sa_path
+                    # logger.info not available here easily, but we proceed silently or could print
+                    print(f"Settings: Auto-detected service-account.json at {sa_path}")
+
+            has_vertex = (
+                os.getenv("VERTEX_PROJECT_ID")
+                or os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+                or os.getenv("GOOGLE_CLOUD_PROJECT")
+            )
+
             if not self.google_api_key and not has_vertex:
                 raise ValueError(
                     "CRITICAL: No LLM Credentials found (GOOGLE_API_KEY or VERTEX_PROJECT_ID/Credentials). "
-                    "Cannot proceed in Production Mode."
+                    "Cannot proceed in Production Mode. Ensure 'service-account.json' exists in root or set env vars."
                 )
 
         if self.use_mock_db:

@@ -143,6 +143,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 ### 2.4 Workflow Data Layer (Foundation)
 - [x] **Models**: Dart models match Pydantic schemas.
 - [x] **Repository**: unified `ExecutionRepository`.
+- [ ] **Data Migration**: Establish `StorageDriver` pattern for standardized file system abstractions (Local/Cloud parity).
 
 ### 2.5 Workflow State Management (Controller)
 - [x] **Controller**: `executionControllerProvider` manages state and polling.
