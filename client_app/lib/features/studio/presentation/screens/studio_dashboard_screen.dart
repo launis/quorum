@@ -52,6 +52,13 @@ class StudioDashboardScreen extends StatelessWidget {
                 description: l10n.studioDashboardComponentsDesc,
                 onTap: () => context.go('/studio/components'),
               ),
+              _buildCard(
+                context,
+                title: l10n.studioDashboardKnowledgeTitle,
+                icon: Icons.auto_stories, // Knowledge/Book icon
+                description: l10n.studioDashboardKnowledgeDesc,
+                onTap: () => context.go('/studio/knowledge'),
+              ),
             ],
           ),
         ),

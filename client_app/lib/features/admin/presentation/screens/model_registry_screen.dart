@@ -16,6 +16,53 @@ class ModelRegistryScreen extends HookConsumerWidget {
     final asyncState = ref.watch(modelRegistryControllerProvider);
     final controller = ref.read(modelRegistryControllerProvider.notifier);
 
+    ref.listen<AsyncValue<ModelRegistryState>>(
+      modelRegistryControllerProvider,
+      (_, next) {
+        if (next.hasError && !next.isLoading) {
+          final errStub = next.error.toString();
+          String? title;
+          String? content;
+
+          if (errStub.contains('403') || errStub.contains('default strategy')) {
+            title = 'Cannot Delete Default';
+            content = 'The System Default strategy cannot be deleted. Change the default in Global Settings first.';
+          } else if (errStub.contains('409') || errStub.contains('in use')) {
+            title = 'Strategy In Use';
+            content = 'This strategy is currently used by one or more Workflow Steps. Remove the assignment before deleting.';
+          } else {
+             // Optional: Show generic error for other issues? 
+             // For now let the body error handler show it if it's not a specific actionable safety error
+             // OR show a snackbar for generic API errors
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Error: ${next.error}')),
+              );
+              return;
+          }
+
+          if (title != null) {
+             showDialog(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: Text(title!),
+                content: Text(content!),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                       Navigator.pop(ctx);
+                       // Optional: Clear error?
+                       // ref.refresh(modelRegistryControllerProvider);
+                    },
+                    child: const Text('OK'),
+                  ),
+                ],
+              ),
+            );
+          }
+        }
+      },
+    );
+
     return Scaffold(
       body: asyncState.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -35,12 +82,22 @@ class ModelRegistryScreen extends HookConsumerWidget {
                       l10n.modelRegistryTitle,
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.refresh),
-                      onPressed:
-                          () => ref.refresh(
-                            modelRegistryControllerProvider,
-                          ), // Clean refresh
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.add),
+                          tooltip: l10n.addStrategyTooltip ?? 'Add Strategy',
+                          onPressed: () => _showAddStrategyDialog(context, ref, controller),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.refresh),
+                          onPressed:
+                              () => ref.refresh(
+                                modelRegistryControllerProvider,
+                              ),
+                        ),
+                      ],
                     ),
                   ),
                   const Divider(),
@@ -143,9 +200,45 @@ class _DetailsPane extends HookConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  configOrNull.modelName,
-                  style: Theme.of(context).textTheme.headlineSmall,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      configOrNull.modelName,
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red),
+                      tooltip: 'Delete Strategy',
+                      onPressed: () async {
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Delete Strategy?'),
+                            content: Text(
+                                'Are you sure you want to delete "${configOrNull.id}"? This cannot be undone.'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: const Text('Cancel'),
+                              ),
+                              FilledButton(
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: Colors.red,
+                                ),
+                                onPressed: () => Navigator.pop(context, true),
+                                child: const Text('Delete'),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (confirm == true) {
+                          controller.deleteConfig(providerId);
+                        }
+                      },
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 TabBar(
@@ -203,4 +296,98 @@ class _DetailsPane extends HookConsumerWidget {
       ),
     );
   }
+}
+
+Future<void> _showAddStrategyDialog(BuildContext context, WidgetRef ref, ModelRegistryController controller) async {
+  // Step 1: Select Provider
+  final selectedProvider = await showDialog<String>(
+    context: context,
+    builder: (context) => SimpleDialog(
+      title: const Text('Select Provider'),
+      children: [
+        SimpleDialogOption(
+          onPressed: () => Navigator.pop(context, 'google'),
+          child: const ListTile(
+            leading: Icon(Icons.cloud_circle, color: Colors.blue),
+            title: Text('Google (Vertex AI)'),
+            subtitle: Text('Gemini Models'),
+          ),
+        ),
+        SimpleDialogOption(
+          onPressed: () => Navigator.pop(context, 'openai'),
+          child: const ListTile(
+            leading: Icon(Icons.auto_awesome, color: Colors.green),
+            title: Text('OpenAI'),
+            subtitle: Text('GPT Models'),
+          ),
+        ),
+      ],
+    ),
+  );
+
+  if (selectedProvider == null) return;
+
+  // Step 2: Name Strategy
+  if (!context.mounted) return;
+
+  final formKey = GlobalKey<FormState>();
+  String strategyName = '';
+  
+  await showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text('New ${selectedProvider == 'google' ? 'Google' : 'OpenAI'} Strategy'),
+      content: Form(
+        key: formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: 'Strategy Name',
+                hintText: 'e.g. creative, fast, analisys_v1',
+                prefixText: '$selectedProvider/',
+              ),
+              validator: (value) {
+                if (value == null || value.isEmpty) return 'Required';
+                if (!RegExp(r'^[a-z0-9_]+$').hasMatch(value)) return 'Lowercase, numbers, underscores only.';
+                return null;
+              },
+              onSaved: (value) => strategyName = value!,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Final ID will be: $selectedProvider/<name>',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        FilledButton(
+          onPressed: () {
+            if (formKey.currentState!.validate()) {
+              formKey.currentState!.save();
+              
+              // Construct ID: provider/strategy
+              final fullId = '$selectedProvider/$strategyName';
+              
+              // Create with default values based on provider
+              final newConfig = LLMProviderConfig(
+                id: fullId,
+                provider: selectedProvider, 
+                modelName: selectedProvider == 'google' ? 'gemini-1.5-pro' : 'gpt-4o', // Smart defaults
+              );
+              
+              controller.saveConfig(fullId, newConfig);
+              controller.selectProvider(fullId); // Auto-select
+              Navigator.pop(context);
+            }
+          },
+          child: const Text('Create'),
+        ),
+      ],
+    ),
+  );
 }

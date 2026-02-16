@@ -4,13 +4,11 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import TYPE_CHECKING, Any
+from typing import Any, Dict
 
-if TYPE_CHECKING:
-    from backend.models.state import WorkflowState
-
-
-from backend.models.domain import TextMetrics
+from backend.exceptions import AppException
+from backend.models.domain.profiler import BehavioralMetrics, TextMetrics
+from backend.models.state import WorkflowState
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +32,8 @@ def calculate_text_metrics(text: str) -> TextMetrics:
             sentence_count=0,
             avg_sentence_length=0.0,
             lexical_diversity=0.0,
-            capitalization_ratio=0.0
+            capitalization_ratio=0.0,
+            control_ratio=0.0
         )
 
     # 1. Word Count
@@ -64,6 +63,7 @@ def calculate_text_metrics(text: str) -> TextMetrics:
         avg_sentence_length=round(avg_sent_len, 2),
         lexical_diversity=round(lex_diversity, 2),
         capitalization_ratio=round(cap_ratio, 2),
+        control_ratio=0.0 # Default, calculated separately in hook or explicit call
     )
 
 
@@ -131,35 +131,28 @@ def calculate_control_ratio(text: str) -> float:
     return round(user_chars / total_chars, 4)
 
 
-
-# --- WORKFLOW STATE WRAPPERS (for HOOK_MAPPING compatibility) ---
-
-
-
-def calculate_behavioral_metrics(history_text: str, reflection_text: str) -> dict[str, float]:
+def calculate_behavioral_metrics(history_text: str, reflection_text: str) -> BehavioralMetrics:
     """Calculates heuristic behavioral metrics (Say-Do Gap, Automation Bias).
     
     NOTE: These are heuristic approximations to serve as a 'Single Source of Truth' 
     alongside the LLM's qualitative analysis.
     """
-    metrics = {
-        "say_do_gap": 0.0,
-        "automation_bias": 0.0,
-        "illusion_of_competence": 0.0
-    }
-    
+    say_do_gap = 0.0
+    automation_bias = 0.0
+    illusion_of_competence = 0.0
+
     if not history_text:
-        return metrics
+        return BehavioralMetrics()
 
     # 1. Automation Bias (Heuristic: Short, affirmative user messages)
     # If user messages are consistently short (< 5 words) and frequent.
-    user_lines = [line.lower().strip() for line in history_text.split('\n') 
+    user_lines = [line.lower().strip() for line in history_text.split('\n')
                   if line.lower().startswith(('user:', 'human:', 'k:', 'me:', 'minä:'))]
-    
+
     if user_lines:
         short_responses = sum(1 for line in user_lines if len(line.split()) < 5)
         if len(user_lines) > 2 and (short_responses / len(user_lines) > 0.7):
-            metrics["automation_bias"] = 1.0
+            automation_bias = 1.0
 
     # 2. Say-Do Gap / Illusion of Competence
     # If Reflection exists (Claims) but History is purely mechanical (Do).
@@ -170,20 +163,24 @@ def calculate_behavioral_metrics(history_text: str, reflection_text: str) -> dic
         mechanical_keywords = ["tilaa", "vahvista", "generoi", "ok", "kyllä", "jatka"]
         mechanical_count = 0
         total_words = 0
-        
+
         for line in user_lines:
             words = line.split()
             total_words += len(words)
             for w in words:
                 if any(mk in w for mk in mechanical_keywords):
                     mechanical_count += 1
-        
+
         # If > 50% of user words are mechanical commands, assume Gap.
         if total_words > 0 and (mechanical_count / total_words > 0.5):
-            metrics["say_do_gap"] = 1.0
-            metrics["illusion_of_competence"] = 1.0
+            say_do_gap = 1.0
+            illusion_of_competence = 1.0
 
-    return metrics
+    return BehavioralMetrics(
+        say_do_gap=say_do_gap,
+        automation_bias=automation_bias,
+        illusion_of_competence=illusion_of_competence
+    )
 
 
 def calculate_text_metrics_hook(state: WorkflowState) -> WorkflowState:
@@ -191,80 +188,82 @@ def calculate_text_metrics_hook(state: WorkflowState) -> WorkflowState:
 
     Extracts text from state.context_variables['inputs'], calculates metrics,
     and stores result in state.context_variables['audit_metrics'].
+    
+    Unified hook: Also calculates and sets 'input_control_ratio'.
     """
     logger.debug("[MetricsHook] Running calculate_text_metrics_hook...")
 
     if not state.context_variables:
-        return state
+        raise AppException(
+            message="No context_variables found.",
+            status_code=500,
+            details={"error_code": "METRICS_MISSING_CONTEXT"}
+        )
 
-    inputs = state.context_variables.get("inputs", {})
+    # Strict: Inputs MUST be a dict under 'inputs' key
+    inputs = state.context_variables.get("inputs")
     if not isinstance(inputs, dict):
-        return state
+         error_code = "METRICS_VALIDATION_ERROR"
+         msg = f"'inputs' key missing or not a dict in context_variables. Keys: {list(state.context_variables.keys())}"
+         logger.error(f"[MetricsHook] {error_code}: {msg}")
+         raise AppException(
+            message=msg,
+            status_code=500,
+            details={"error_code": error_code}
+         )
 
     # Combine history and product text
-    history = inputs.get("history_text", "") or ""
-    product = inputs.get("product_text", "") or ""
-    reflection = inputs.get("reflection_text", "") or ""
-    text = history + "\n" + product
+    history = str(inputs.get("history_text", "") or "")
+    product = str(inputs.get("product_text", "") or "")
+    reflection = str(inputs.get("reflection_text", "") or "")
+    text = f"{history}\n{product}"
 
-    # Helper to create default metrics
-    def create_defaults():
-        return TextMetrics(
-            word_count=0,
-            sentence_count=0,
-            avg_sentence_length=0.0,
-            lexical_diversity=0.0,
-            capitalization_ratio=0.0
-        ).model_dump()
+    if not text.strip():
+        logger.warning("[MetricsHook] Empty text for metrics calculation.")
 
-    final_metrics = create_defaults()
-    
-    if text.strip():
-        metrics = calculate_text_metrics(text)
-        final_metrics = metrics.model_dump()
+    try:
+        # 1. Text Metrics
+        metrics_model = calculate_text_metrics(text)
+        
+        # 2. Control Ratio
+        control_res = calculate_control_ratio(history)
+        
+        # Update control ratio in the model (create new instance since frozen)
+        metrics_model = metrics_model.model_copy(update={"control_ratio": control_res})
+        final_metrics = metrics_model.model_dump()
 
-    # Add Behavioral
-    behavioral = calculate_behavioral_metrics(history, reflection)
-    final_metrics.update(behavioral)
-    
-    # Add Control Ratio (Compute it here to ensure it's in the main dictionary for UI)
-    control_res = calculate_control_ratio(history)
-    final_metrics["control_ratio"] = control_res  # This enables the UI Gauge!
-    
-    logger.info(f"[MetricsHook] Final Merged Metrics: {final_metrics}")
+        # 3. Behavioral Metrics
+        behavioral_model = calculate_behavioral_metrics(history, reflection)
+        final_metrics.update(behavioral_model.model_dump())
 
-    # IMMUTABILITY FIX: Update context_variables via model_copy
-    new_context = state.context_variables.copy()
-    new_context["audit_metrics"] = final_metrics
-    new_context["profiler_metrics"] = final_metrics
-    
-    return state.model_copy(update={"context_variables": new_context})
+        # IMMUTABILITY FIX: Update context_variables via model_copy
+        new_context = state.context_variables.copy()
+        
+        # We store the merged dict for backwards compatibility with UI
+        new_context["audit_metrics"] = final_metrics
+        new_context["profiler_metrics"] = final_metrics 
+        
+        # Unified: Set standalone control ratio to deprecate separate hook requirement
+        new_context["input_control_ratio"] = control_res
+
+        logger.info(f"[MetricsHook] Final Merged Metrics: {final_metrics}")
+        
+        return state.model_copy(update={"context_variables": new_context})
+
+    except Exception as e:
+        error_code = "METRICS_CALCULATION_FAILED"
+        logger.error(f"[MetricsHook] {error_code}: {e}", exc_info=True)
+        raise AppException(
+            message=f"Failed to calculate metrics: {e}",
+            status_code=500,
+            details={"error_code": error_code}
+        ) from e
 
 
 def calculate_control_ratio_hook(state: WorkflowState) -> WorkflowState:
-    """WorkflowState wrapper for calculate_control_ratio.
-
-    Extracts history_text, calculates ratio, stores in state.context_variables['input_control_ratio'].
+    """DEPRECATED: Use calculate_text_metrics_hook instead.
+    
+    Kept for backward compatibility but delegates to logic or returns checks.
     """
-    logger.debug("[MetricsHook] Running calculate_control_ratio_hook...")
-
-    if not state.context_variables:
-        return state
-
-    inputs = state.context_variables.get("inputs", {})
-    if not isinstance(inputs, dict):
-        return state
-
-    history_text = inputs.get("history_text", "") or ""
-
-    # Return Dict now
-    ratio_data = calculate_control_ratio(history_text)
-    
-    # HEAVY DEBUGGING
-    logger.info(f"[MetricsHook] Control Ratio Data: {ratio_data}")
-    
-    # IMMUTABILITY FIX: Update context_variables via model_copy
-    new_context = state.context_variables.copy()
-    new_context["input_control_ratio"] = ratio_data
-    
-    return state.model_copy(update={"context_variables": new_context})
+    logger.warning("[MetricsHook] calculate_control_ratio_hook is deprecated. Use calculate_text_metrics_hook.")
+    return state

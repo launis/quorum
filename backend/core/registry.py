@@ -86,7 +86,13 @@ class TaskRegistry:
         try:
             cls.agents_map[agent_cls.__name__] = agent_cls()
         except Exception as e:
-            logger.warning(f"Could not instantiate {agent_cls.__name__} for metadata: {e}")
+            logger.error(f"Could not instantiate {agent_cls.__name__} for metadata: {e}")
+            from backend.exceptions import AppException, ErrorCodes, status
+            raise AppException(
+                message=f"Agent {agent_cls.__name__} instantiation failed: {e}",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR, "original_error": str(e)}
+            ) from e
 
         # Create Generic Input Schema if not strictly defined
         # We assume input is a Dict that can be mapped to State
@@ -124,7 +130,14 @@ class TaskRegistry:
             except Exception as e:
                 # Log critical setup failure
                 logger.error(f"Failed to configure agent {agent_cls.__name__}: {e}")
-                raise
+                from backend.exceptions import AppException, ErrorCodes, status
+                if isinstance(e, AppException):
+                    raise e
+                raise AppException(
+                    message=f"Agent configuration failed: {e}",
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    details={"error_code": ErrorCodes.AGENT_NOT_CONFIGURED, "agent": agent_cls.__name__, "original_error": str(e)}
+                ) from e
 
             # 3. Resolve System Instruction with Variable Substitution (Jan 2026)
             system_instruction = None
@@ -132,11 +145,12 @@ class TaskRegistry:
                 from backend.services.component_registry import ComponentRegistry
 
                 # Resolve list of keys into single text block
-                reg = ComponentRegistry()
+                # Resolve list of keys into single text block
+                # Refactored Feb 2026: Use static async method with repository
                 prompts = execution_config["llm_prompts"]
                 if prompts:
                     logger.info(f"[{agent_cls.__name__}] Found {len(prompts)} prompt keys in config: {prompts[:3]}...")
-                    system_instruction = reg.resolve_prompts(tuple(prompts))
+                    system_instruction = await ComponentRegistry.resolve_prompts(repo, tuple(prompts))
 
                     # --- VARIABLE SUBSTITUTION (Fix for Hallucinations) ---
                     # The prompt contains {{HISTORY_TEXT}} etc.
@@ -213,6 +227,22 @@ class TaskRegistry:
             # Apply Execution Config/Step Config on top (Overrides)
             exec_kwargs = registry_kwargs.copy()
             if execution_config:
+                # Resolve Model Strategy Override if present
+                if "model" in execution_config:
+                    override_model = execution_config["model"]
+                    try:
+                        resolved_override = await registry.resolve_model_name(override_model)
+                        execution_config["model"] = resolved_override
+                        logger.debug(f"[{agent_cls.__name__}] Resolved execution_config model '{override_model}' -> '{resolved_override}'")
+                    except Exception as e:
+                        logger.error(f"[{agent_cls.__name__}] Model override '{override_model}' failed resolution: {e}")
+                        from backend.exceptions import AppException, ErrorCodes, status
+                        raise AppException(
+                            message=f"Model override resolution failed: {e}",
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            details={"error_code": ErrorCodes.INVALID_JSON_PAYLOAD, "original_error": str(e)}
+                        ) from e
+
                 # Sanity: If execution_config has keys like 'temperature' that are None/Default,
                 # we might need to be careful? But strict mode says we cleaned them from steps.
                 exec_kwargs.update(execution_config)

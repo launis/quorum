@@ -1,12 +1,12 @@
 import asyncio
-import uuid
-from datetime import datetime, timezone
-from backend.core.engine import GraphEngine
-from backend.models.workflow import WorkflowDefinition, WorkflowStep
-from backend.models.domain import GuardOutput, SecurityCheck, TaintedDataContent, ReasoningTrace
-from backend.core.registry import TaskRegistry
 
 from pydantic import BaseModel, ConfigDict, Field
+
+from backend.core.engine import GraphEngine
+from backend.core.registry import TaskRegistry
+from backend.models.domain import GuardOutput, ReasoningTrace, SecurityCheck, TaintedDataContent
+from backend.models.workflow import WorkflowDefinition, WorkflowStep
+
 
 class MockInput(BaseModel):
     history_text: str | None = Field(default=None)
@@ -16,10 +16,10 @@ class MockInput(BaseModel):
 async def mock_guard_handler(inputs: MockInput, execution_config: dict = None):
     history = inputs.history_text or ""
     print(f"\n[MockGuard] Executing... Input used: {history}")
-    
+
     # Simulate a threat if history_text contains "THREAT"
     is_threat = "THREAT" in history
-    
+
     return GuardOutput(
         reasoning_trace="Mock reasoning.",
         security_check=SecurityCheck(
@@ -30,9 +30,9 @@ async def mock_guard_handler(inputs: MockInput, execution_config: dict = None):
             anonymized=False
         ),
         tainted_data=TaintedDataContent(
-            chat_history="data", 
-            product_text="data", 
-            reflection_text="data", 
+            chat_history="data",
+            product_text="data",
+            reflection_text="data",
             safe_data="DATA_CHECKED"
         )
     )
@@ -45,20 +45,20 @@ async def mock_next_step(inputs: dict):
 
 # Register Mocks manually using the decorator
 TaskRegistry.register_task(
-    name="mock_guard", 
-    input_schema=MockInput, 
+    name="mock_guard",
+    input_schema=MockInput,
     output_schema=GuardOutput
 )(mock_guard_handler)
 
 TaskRegistry.register_task(
-    name="mock_next", 
-    input_schema=MockInput, 
+    name="mock_next",
+    input_schema=MockInput,
     output_schema=ReasoningTrace
 )(mock_next_step)
 
 async def main():
     engine = GraphEngine()
-    
+
     # Define Workflow
     wf = WorkflowDefinition(
         id="test_early_exit",
@@ -77,7 +77,7 @@ async def main():
             )
         ]
     )
-    
+
 
     with open("verification.log", "w", encoding="utf-8") as f:
         f.write("--- TEST 1: NO THREAT ---\n")
@@ -85,20 +85,20 @@ async def main():
         f.write(f"Status: {result_safe['status']}\n")
         trace_safe = [e['step_name'] for e in result_safe['execution_trace']]
         f.write(f"Executed steps: {trace_safe}\n")
-        
+
         step_1 = next((e for e in result_safe['execution_trace'] if e['step_name'] == 'step_1_guard'), None)
         if step_1:
              f.write(f"Step 1 content: {step_1.get('content')}\n")
 
         if "step_2_next" not in trace_safe:
              f.write("FAIL: step_2_next missing in safe run!\n")
-        
+
         f.write("\n--- TEST 2: THREAT DETECTED ---\n")
         result_threat = await engine.execute_workflow(wf, {"inputs": {"history_text": "THREAT detected"}})
         f.write(f"Status: {result_threat['status']}\n")
         trace_threat = [e['step_name'] for e in result_threat['execution_trace']]
         f.write(f"Executed steps: {trace_threat}\n")
-        
+
         if result_threat['status'] == "stopped":
              f.write("PASS: Status is stopped.\n")
         else:

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:client_app/features/orchestration/presentation/widgets/execution_timeline.dart';
+import 'package:client_app/core/ui/error_view.dart';
 
 
 class ExecutionMonitorScreen extends ConsumerStatefulWidget {
@@ -99,19 +100,10 @@ class _ExecutionMonitorScreenState extends ConsumerState<ExecutionMonitorScreen>
               ),
             );
           }
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                 Text(l10n.failedToLoad(errorText)),
-                 const SizedBox(height: 16),
-                 FilledButton.icon(
-                   onPressed: _refresh, 
-                   icon: const Icon(Icons.refresh),
-                   label: Text(l10n.retry),
-                 ),
-              ],
-            ),
+          return ErrorView(
+            error: err,
+            onRetry: _refresh,
+            retryLabel: l10n.retry,
           );
         },
       ),

@@ -182,7 +182,7 @@ class ScoreCardRadar extends StatelessWidget {
                         subtitle: Padding(
                           padding: const EdgeInsets.only(top: 4.0),
                           child: Text(
-                            d.reasoning,
+                            d.reasoning.replaceAll(RegExp(r'^Havainto:\s*', caseSensitive: false), ''),
                             style: textTheme.bodyMedium,
                           ),
                         ),

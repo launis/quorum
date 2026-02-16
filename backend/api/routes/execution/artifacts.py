@@ -1,7 +1,6 @@
 """API Router for Execution Artifacts (PDFs, Downloads)."""
 
 import logging
-import os
 from typing import Any
 
 from fastapi import APIRouter, Depends, Request, status
@@ -13,9 +12,14 @@ from backend.dependencies import get_arq_pool, get_async_repository, get_storage
 from backend.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend.logging_config import log_error
 from backend.models.auth import TokenData, UserRole
+from backend.models.dtos.execution import (
+    PDFCancelResponse,
+    PDFDownloadCheckResponse,
+    PDFQueuedResponse,
+)
 from backend.services.auth import AuthService
-from backend.services.storage import AbstractStorage
 from backend.services.drivers.local_file_driver import LocalFileDriver
+from backend.services.file_driver import FileDriver
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +59,7 @@ def _enforce_pdf_access(user: TokenData, execution: dict[str, Any]) -> None:
     "/{execution_id}/pdf/download",
     summary="Download Execution PDF",
     description="Securely download the PDF report. Enqueues generation if missing.",
+    response_model=PDFDownloadCheckResponse | PDFQueuedResponse | None,
 )
 async def download_execution_pdf(
     execution_id: str,
@@ -62,7 +67,7 @@ async def download_execution_pdf(
     repository: AbstractWorkflowRepository = Depends(get_async_repository),
     current_user: TokenData = Depends(AuthService.get_current_user()),
     arq_pool: Any = Depends(get_arq_pool),
-    storage: AbstractStorage = Depends(get_storage_service_dep),
+    storage: FileDriver = Depends(get_storage_service_dep),
 ):
     """Download PDF, Queue Generation, or Check Local Existence."""
     try:
@@ -84,12 +89,12 @@ async def download_execution_pdf(
                 local_path = None
                 if isinstance(storage, LocalFileDriver):
                     local_path = str(storage.base_path / rel_path)
-                
-                return JSONResponse({
-                    "status": "ready",
-                    "exists": True,
-                    "local_path": local_path
-                })
+
+                return PDFDownloadCheckResponse(
+                    status="ready",
+                    exists=True,
+                    local_path=local_path
+                )
 
             if isinstance(storage, LocalFileDriver):
                 full_path = storage.base_path / rel_path
@@ -107,14 +112,14 @@ async def download_execution_pdf(
                     media_type="application/pdf",
                     headers={"Content-Disposition": f'attachment; filename="report_{execution_id}.pdf"'}
                 )
-        
+
         # If check_local is true but file missing
         if check_local:
-             return JSONResponse({
-                "status": "missing",
-                "exists": False,
-                "local_path": None
-            })
+             return PDFDownloadCheckResponse(
+                status="missing",
+                exists=False,
+                local_path=None
+            )
 
         # 3. Queue Job if missing
         if arq_pool:
@@ -122,7 +127,7 @@ async def download_execution_pdf(
 
             return JSONResponse(
                 status_code=status.HTTP_202_ACCEPTED,
-                content={"status": "accepted", "message": "PDF generation queued."}
+                content=PDFQueuedResponse(status="accepted", message="PDF generation queued.").model_dump() # JSONResponse expects dict/list
             )
         else:
             raise AppException(
@@ -213,12 +218,14 @@ async def get_pdf_progress(
     "/{execution_id}/pdf/cancel",
     summary="Cancel PDF Generation",
     description="Cancels the download process and cleans up files.",
+    response_model=PDFCancelResponse,
 )
 async def cancel_pdf_generation(
     execution_id: str,
     repository: AbstractWorkflowRepository = Depends(get_async_repository),
     current_user: TokenData = Depends(AuthService.get_current_user()),
-):
+    storage: FileDriver = Depends(get_storage_service_dep),
+) -> PDFCancelResponse:
     """Cancel endpoint (Clean up)."""
     try:
         execution = await repository.get_execution(execution_id)
@@ -228,19 +235,16 @@ async def cancel_pdf_generation(
         exec_data = execution.model_dump() if hasattr(execution, 'model_dump') else execution
         _enforce_pdf_access(current_user, exec_data)
 
-        from backend.services.drivers.local_file_driver import LocalFileDriver
-        from backend.services.storage import get_storage_client
-        
         # Depends on get_storage_client usually, but here we instantiate fresh if needed or reuse?
         # Actually it's cleaner to depend on get_storage_service_dep like the download endpoint
-        # But this function doesn't take it as dependency. Let's create it.
-        storage = get_storage_client()
+        # The storage dependency was added to args above.
+        
         rel_path = f"executions/{execution_id}/report.pdf"
 
         # Safe delete via driver
         await storage.delete(rel_path)
 
-        return {"status": "success", "message": "PDF cancelled and file removed."}
+        return PDFCancelResponse(status="success", message="PDF cancelled and file removed.")
 
     except Exception as e:
          log_error(logger, e)

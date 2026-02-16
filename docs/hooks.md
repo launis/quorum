@@ -88,8 +88,8 @@ Hooks do **not** fail silently.
 ### 5. Scoring Hooks (`backend/hooks/scoring.py`)
 
 #### `apply_scoring_logic` (Post-hook)
-*   **Action**: Aggregates scores from all judges.
-*   **Output**: `ScoringResult` (total score, average, summary).
+*   **Action**: Aggregates scores from all judges and applies deterministic penalties (Security/Logic).
+*   **Output**: `ScoringResult`. **Overwrites** `JudgeOutput` with authoritative scores.
 
 #### `enforce_passivity_penalty` (Post-hook)
 *   **Action**: Caps scores if `input_control_ratio` indicates passivity.
@@ -101,6 +101,17 @@ Hooks do **not** fail silently.
 *   **Action**: Renders the final PDF/Markdown report using Jinja2.
 *   **Input**: Aggregates `TextMetrics`, `ScoringResult`, and Agent outputs.
 *   **Output**: `ReportResult` (wraps the generated Markdown).
+
+### 7. Integrity Hooks (`backend/hooks/integrity.py`)
+
+#### `verify_citation_integrity` (Post-hook)
+*   **Action**: Verifies that quotes used by Analyst, Critics, and Judges exist in the source text.
+*   **Fail Fast**: Raises `AppException` if hallucination rate > 50% (Score < 0.5).
+*   **Output**: `CitationAudit` (logged in metadata).
+
+#### `enforce_hypothesis_linking` (Post-hook)
+*   **Action**: Ensures Analyst Hypotheses have sequential IDs (HYP-1, HYP-2...).
+*   **Fail Fast**: Raises `ValueError` on ID sequence gaps or format errors.
 
 ---
 

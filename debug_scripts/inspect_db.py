@@ -7,7 +7,7 @@ if not os.path.exists(db_path):
     print(f"Error: {db_path} not found.")
     exit(1)
 
-with open(db_path, "r", encoding="utf-8") as f:
+with open(db_path, encoding="utf-8") as f:
     try:
         data = json.load(f)
         executions = data.get("executions", {})
@@ -20,6 +20,6 @@ with open(db_path, "r", encoding="utf-8") as f:
             print(f"Results Keys: {list(results.keys())}")
             if 'step_results' in results:
                 print(f"Step Results: {list(results['step_results'].keys())}")
-            
+
     except Exception as e:
         print(f"Error reading DB: {e}")

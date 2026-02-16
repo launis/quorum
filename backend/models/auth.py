@@ -6,9 +6,9 @@ organization management, and cryptographic token structures.
 
 from datetime import datetime
 from enum import Enum
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 # --- Enums ---
 
@@ -74,6 +74,43 @@ class Organization(BaseModel):
     tpm_limit: Annotated[int, Field(ge=1000, description="Tokens Per Minute Limit")] = 100000
     rpm_limit: Annotated[int, Field(ge=1, description="Requests Per Minute Limit")] = 60
 
+    model_config = ConfigDict(frozen=True, strict=True)
+
+    @field_validator("id", "name")
+    @classmethod
+    def validate_non_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Field cannot be empty or whitespace only.")
+        return v.strip()
+
+    @field_validator("contact_email", "billing_id")
+    @classmethod
+    def validate_non_empty_optional(cls, v: str | None) -> str | None:
+        if v is not None and (not v or not v.strip()):
+            raise ValueError("Field cannot be empty or whitespace only.")
+        return v.strip() if v else v
+
+    @model_validator(mode="before")
+    @classmethod
+    def parse_db_fields(cls, data: Any) -> Any:
+        """Parses string fields from DB into proper types for Strict Mode."""
+        if isinstance(data, dict):
+            # 1. created_at (str -> datetime)
+            if "created_at" in data and isinstance(data["created_at"], str):
+                try:
+                    # Handle typical ISO strings
+                    data["created_at"] = datetime.fromisoformat(data["created_at"])
+                except ValueError:
+                    pass  # Let Pydantic fail strictly if format is wrong
+
+            # 2. subscription_status (str -> Enum)
+            if "subscription_status" in data and isinstance(data["subscription_status"], str):
+                try:
+                    data["subscription_status"] = SubscriptionStatus(data["subscription_status"])
+                except ValueError:
+                    pass
+        return data
+
 
 class UserBase(BaseModel):
     """Base Pydantic model for User data, distinguishing shared fields.
@@ -94,7 +131,14 @@ class UserBase(BaseModel):
     language: Annotated[Literal["fi", "en", "sv"], Field(description="Preferred UI language")] = "fi"
     theme_mode: Annotated[Literal["system", "light", "dark"], Field(description="Preferred Theme Mode")] = "system"
 
-    model_config = ConfigDict(extra="ignore")
+    model_config = ConfigDict(extra="ignore", strict=True)
+
+    @field_validator("display_name", "organization_id")
+    @classmethod
+    def validate_non_empty_optional(cls, v: str | None) -> str | None:
+        if v is not None and (not v or not v.strip()):
+            raise ValueError("Field cannot be empty or whitespace only.")
+        return v.strip() if v else v
 
 
 # --- Database / API Response Models ---
@@ -112,6 +156,42 @@ class User(UserBase):
     uid: Annotated[str, Field(description="Unique ID (matches Firebase UID if used)")]
     created_at: Annotated[datetime, Field(description="ISO 8601 Timestamp")]
     created_by: Annotated[str | None, Field(description="UID of the creator")] = None
+
+    model_config = ConfigDict(frozen=True, strict=True)
+
+    @field_validator("uid")
+    @classmethod
+    def validate_non_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Field cannot be empty or whitespace only.")
+        return v.strip()
+
+    @field_validator("created_by")
+    @classmethod
+    def validate_non_empty_optional(cls, v: str | None) -> str | None:
+        if v is not None and (not v or not v.strip()):
+            raise ValueError("Field cannot be empty or whitespace only.")
+        return v.strip() if v else v
+
+    @model_validator(mode="before")
+    @classmethod
+    def parse_db_fields(cls, data: Any) -> Any:
+        """Parses string fields from DB into proper types for Strict Mode."""
+        if isinstance(data, dict):
+            # 1. created_at (str -> datetime)
+            if "created_at" in data and isinstance(data["created_at"], str):
+                try:
+                    data["created_at"] = datetime.fromisoformat(data["created_at"])
+                except ValueError:
+                    pass
+
+            # 2. role (str -> Enum) - From UserBase
+            if "role" in data and isinstance(data["role"], str):
+                try:
+                    data["role"] = UserRole(data["role"])
+                except ValueError:
+                    pass
+        return data
 
 
 class UserAdminView(UserBase):
@@ -166,6 +246,15 @@ class OrganizationCreate(BaseModel):
     tpm_limit: int = 100000
     rpm_limit: int = 60
 
+    model_config = ConfigDict(frozen=True, strict=True)
+
+    @field_validator("name", "admin_password", "admin_name")
+    @classmethod
+    def validate_non_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Field cannot be empty or whitespace only.")
+        return v.strip()
+
 
 class UserUpdate(BaseModel):
     """Payload for updating an existing user.
@@ -203,3 +292,19 @@ class TokenData(BaseModel):
     role: UserRole
     organization_id: str | None = None
     email: str | None = None
+
+    model_config = ConfigDict(frozen=True, strict=True)
+
+    @field_validator("uid")
+    @classmethod
+    def validate_non_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Field cannot be empty or whitespace only.")
+        return v.strip()
+
+    @field_validator("organization_id", "email")
+    @classmethod
+    def validate_non_empty_optional(cls, v: str | None) -> str | None:
+        if v is not None and (not v or not v.strip()):
+            raise ValueError("Field cannot be empty or whitespace only.")
+        return v.strip() if v else v

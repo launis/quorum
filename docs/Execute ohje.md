@@ -9,6 +9,7 @@
 
 **REFERENCE MATERIAL:**
 - **Primary Source of Truth:** `@docs/flutterpromptohje.md` (Read this file first).
+- **Map:** `@docs/documentation_strategy.md` (Understand the hierarchy).
 
 **UX & ARCHITECTURE STANDARDS (MANDATORY):**
 
@@ -26,7 +27,7 @@
     -   **Frontend:** `ApiClient` automatically handles the header. Do NOT hardcode strings. Use labels provided by the API schema.
     -   **Backend (Pydantic):** Use `x-ui-label` in `json_schema_extra` for default English labels.
         ```python
-        # Example (domain.py):
+        # Example (backend/models/domain/*.py):
         class MyModel(BaseModel):
             id: str
             json_schema_extra={
@@ -100,13 +101,21 @@
     -   **Backend (Python):**
         -   NO `HTTPException` (Use `backend/exceptions.py` & RFC 7807).
         -   NO raw `dict` returns (Use Pydantic V2 models).
-        -   **L10N ENFORCEMENT (Context):** MUST use `json_schema_extra` with `x-ui-label` for Pydantic models. For logic/messages, MUST use `LocalizationService.translate("KEY")` (Auto-Context). MUST add keys to `backend/l10n/{lang}.json`.
+        -   **STRICT NESTING:** Specialist outputs MUST be nested (e.g., `LogicianOutput` -> `logician_data`). Flat data is BANNED.
+        -   **L10N ENFORCEMENT:** Backend MUST return Enum Keys (e.g., `AUTH_ORGANIC`). Raw strings are BANNED.
     -   **Frontend (Flutter):**
         -   NO `ChangeNotifier` or manual `Provider` (Use `@riverpod` Generator ONLY).
         -   NO `setState` for business logic (UI state only).
         -   NO mutable data classes (Use `@freezed` models ONLY).
-        -   NO hardcoded strings (Use API-provided labels or `.arb` for static system text).
-        -   **UX ENFORCEMENT:** Implement Optimistic UI for mutations. Implement Retry logic for failures.
+        -   **UX ENFORCEMENT:** Implement Optimistic UI + Retry Logic.
+    
+    -   **THE ZERO-COMPROMISE PLEDGE (Use @docs/flutterpromptohje.md Part 18):**
+        -   **NO FALLBACK CODE:** Banned `try-except pass` or silent `None` returns. Crash (500) if data is invalid.
+        -   **NO DEFAULT VALUES:** Domain models cannot have defaults like `score=0.0`. Caller must provide data.
+        -   **NO HARDCODING:** Banned magic numbers/strings. Use `seed_data.json` or `l10n`.
+        -   **NO HARDCODING:** Banned magic numbers/strings. Use `seed_data.json` or `l10n`.
+        -   **NO QUICK FIXES:** Banned bypassing services or ad-hoc patches. Fix the root cause.
+        -   **NO EMBEDDED STEPS:** Workflows must LINK to Steps (ID), never define them. Registry is SSOT.
 
 4.  **EDITING SAFETY (ANTI-DUPLICATION PROTOCOL):**
     -   **Strict Replacement:** When modifying an existing function/class, you MUST explicitly DELETE or OVERWRITE the old version. NEVER append the new version to the end of the file while leaving the old one.

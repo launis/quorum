@@ -14,7 +14,7 @@ from backend.dependencies import (
     get_prompt_builder_dep,
     get_storage_service_dep,
 )
-from backend.exceptions import FatalInterruption
+from backend.exceptions import FatalInterruption, AppException, ErrorCodes
 from backend.logging_config import setup_logging
 from backend.settings import get_settings
 
@@ -121,4 +121,8 @@ async def bootstrap_application():
 
     except Exception as e:
         logger.error(f"   [CRITICAL] Engine Warmup Failed: {e}", exc_info=True)
-        raise RuntimeError(f"Startup Failed: {e}") from e
+        raise AppException(
+            message=f"Startup Failed: {e}",
+            status_code=500,
+            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR, "original_error": str(e)}
+        ) from e

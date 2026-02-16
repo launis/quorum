@@ -4,12 +4,14 @@ class ReportView {
   final String title;
   final String statusTheme;
   final List<UiSection> sections;
+  final Map<String, dynamic>? metrics;
 
   ReportView({
     required this.viewId,
     required this.title,
     required this.statusTheme,
     required this.sections,
+    this.metrics,
   });
 
   factory ReportView.fromJson(Map<String, dynamic> json) {
@@ -20,6 +22,7 @@ class ReportView {
       sections: (json['sections'] as List<dynamic>? ?? [])
           .map((e) => UiSection.fromJson(e))
           .toList(),
+      metrics: json['metrics'] as Map<String, dynamic>?,
     );
   }
 }

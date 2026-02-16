@@ -1,3 +1,4 @@
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -6,7 +7,6 @@ from fastapi import status
 from backend.api.routes.execution.artifacts import _enforce_pdf_access
 from backend.exceptions import AppException
 from backend.models.auth import TokenData, UserRole
-from pathlib import Path
 
 # --- RBAC UNIT TESTS ---
 

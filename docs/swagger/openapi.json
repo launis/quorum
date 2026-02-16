@@ -1556,14 +1556,15 @@
         }
       }
     },
-    "/v1/config/components": {
+    "/v1/config/components/config/components": {
       "get": {
         "tags": [
+          "Components",
           "Configuration"
         ],
         "summary": "List Components",
-        "description": "Retrieves all defined configuration components (Prompts, Mandates, Rules, etc).\n\nArgs:\n    repo (RepositoryDep): Repository dependency.\n    type (str | None): Optional filter by component type.\n    exclude_type (list[str] | None): Optional types to exclude.\n\nReturns:\n    list[dict]: List of configuration components.",
-        "operationId": "get_components_v1_config_components_get",
+        "description": "Retrieves all defined configuration components (Prompts, Mandates, Rules, etc).\n\nArgs:\n    repo (RepositoryDep): Repository dependency.\n    type (str | None): Optional filter by component type.\n    exclude_type (list[str] | None): Optional types to exclude.\n\nReturns:\n    list[ComponentResponse]: List of configuration components.",
+        "operationId": "get_components_v1_config_components_config_components_get",
         "parameters": [
           {
             "name": "type",
@@ -1606,7 +1607,13 @@
             "description": "All configuration components.",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ComponentResponse"
+                  },
+                  "title": "Response Get Components V1 Config Components Config Components Get"
+                }
               }
             }
           },
@@ -1624,11 +1631,12 @@
       },
       "post": {
         "tags": [
+          "Components",
           "Configuration"
         ],
         "summary": "Create Component",
         "description": "Creates a new configuration component.",
-        "operationId": "create_component_v1_config_components_post",
+        "operationId": "create_component_v1_config_components_config_components_post",
         "requestBody": {
           "required": true,
           "content": {
@@ -1644,7 +1652,9 @@
             "description": "Status and ID.",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/ComponentResponse"
+                }
               }
             }
           },
@@ -1661,14 +1671,15 @@
         }
       }
     },
-    "/v1/config/components/{comp_id}": {
+    "/v1/config/components/config/components/{comp_id}": {
       "get": {
         "tags": [
+          "Components",
           "Configuration"
         ],
         "summary": "Get Component",
         "description": "Retrieves a single component by ID or Name.",
-        "operationId": "get_component_v1_config_components__comp_id__get",
+        "operationId": "get_component_v1_config_components_config_components__comp_id__get",
         "parameters": [
           {
             "name": "comp_id",
@@ -1687,7 +1698,9 @@
             "description": "The requested component.",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/ComponentResponse"
+                }
               }
             }
           },
@@ -1705,11 +1718,12 @@
       },
       "put": {
         "tags": [
+          "Components",
           "Configuration"
         ],
         "summary": "Update Component",
-        "description": "Updates an existing component's content and metadata.\n\nArgs:\n    comp_id (str): The ID of the component to update.\n    update (ComponentUpdate): The new data.\n    db (DatabaseDep): Database dependency.\n\nReturns:\n    dict: Status and ID.\n\nRaises:\n    HTTPException: If not found (404).",
-        "operationId": "update_component_v1_config_components__comp_id__put",
+        "description": "Updates an existing component's content and metadata.\n\nArgs:\n    comp_id (str): The ID of the component to update.\n    update (ComponentUpdate): The new data.\n    db (DatabaseDep): Database dependency.\n\nReturns:\n    ComponentResponse: The updated component.\n\nRaises:\n    HTTPException: If not found (404).",
+        "operationId": "update_component_v1_config_components_config_components__comp_id__put",
         "parameters": [
           {
             "name": "comp_id",
@@ -1736,7 +1750,9 @@
             "description": "Update status.",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/ComponentResponse"
+                }
               }
             }
           },
@@ -1754,11 +1770,12 @@
       },
       "delete": {
         "tags": [
+          "Components",
           "Configuration"
         ],
         "summary": "Delete Component",
         "description": "Deletes a component if it is not referenced by any existing steps OR executions.",
-        "operationId": "delete_component_v1_config_components__comp_id__delete",
+        "operationId": "delete_component_v1_config_components_config_components__comp_id__delete",
         "parameters": [
           {
             "name": "comp_id",
@@ -1775,7 +1792,9 @@
             "description": "Delete status.",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/ComponentDeleteResponse"
+                }
               }
             }
           },
@@ -1792,14 +1811,15 @@
         }
       }
     },
-    "/v1/config/registry_items": {
+    "/v1/config/components/config/registry_items": {
       "get": {
         "tags": [
+          "Components",
           "Configuration"
         ],
         "summary": "List Registry Components",
-        "description": "Retrieves all system components directly from the in-memory ComponentRegistry.",
-        "operationId": "list_registry_items_v1_config_registry_items_get",
+        "description": "Retrieves all system components directly from the Repository.",
+        "operationId": "list_registry_items_v1_config_components_config_registry_items_get",
         "responses": {
           "200": {
             "description": "All components loaded from seed.",
@@ -1810,7 +1830,7 @@
                     "$ref": "#/components/schemas/RegistryComponentItem"
                   },
                   "type": "array",
-                  "title": "Response List Registry Items V1 Config Registry Items Get"
+                  "title": "Response List Registry Items V1 Config Components Config Registry Items Get"
                 }
               }
             }
@@ -1818,124 +1838,15 @@
         }
       }
     },
-    "/v1/config/ontology/dimensions": {
+    "/v1/config/workflows/config/steps": {
       "get": {
         "tags": [
-          "Configuration"
-        ],
-        "summary": "Get Known Dimensions",
-        "description": "Returns specific allowed dimension IDs from the ontology table.\n\nAuto-seeds defaults if table is empty.\n\nArgs:\n    db (DatabaseDep): Database dependency.\n\nReturns:\n    list[dict]: Sorted list of dimensions.",
-        "operationId": "get_known_dimensions_v1_config_ontology_dimensions_get",
-        "responses": {
-          "200": {
-            "description": "List of unique evaluation dimension IDs.",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/config/ontology/dimensions/{dim_id}": {
-      "delete": {
-        "tags": [
-          "Configuration"
-        ],
-        "summary": "Delete Dimension",
-        "description": "Deletes a dimension if it is not used in any matrix.",
-        "operationId": "delete_dimension_v1_config_ontology_dimensions__dim_id__delete",
-        "parameters": [
-          {
-            "name": "dim_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Dim Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Delete status.",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "Configuration"
-        ],
-        "summary": "Update Dimension",
-        "description": "Updates an existing dimension.",
-        "operationId": "update_dimension_v1_config_ontology_dimensions__dim_id__put",
-        "parameters": [
-          {
-            "name": "dim_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Dim Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DimensionDefinition"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Updated dimension.",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/config/steps": {
-      "get": {
-        "tags": [
+          "Workflows",
           "Configuration"
         ],
         "summary": "List Steps",
-        "description": "Retrieves all defined steps. Pydantic model handles adaptation automatically.",
-        "operationId": "get_steps_v1_config_steps_get",
+        "description": "List all steps.",
+        "operationId": "get_steps_v1_config_workflows_config_steps_get",
         "responses": {
           "200": {
             "description": "All steps.",
@@ -1943,10 +1854,10 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/StepConfig"
+                    "$ref": "#/components/schemas/StepDefinition"
                   },
                   "type": "array",
-                  "title": "Response Get Steps V1 Config Steps Get"
+                  "title": "Response Get Steps V1 Config Workflows Config Steps Get"
                 }
               }
             }
@@ -1955,205 +1866,17 @@
       },
       "post": {
         "tags": [
+          "Workflows",
           "Configuration"
         ],
         "summary": "Create Step",
-        "description": "Creates a new step. Pydantic validator adapts legacy input to DB schema.",
-        "operationId": "create_step_v1_config_steps_post",
+        "description": "Create a new step configuration.",
+        "operationId": "create_step_v1_config_workflows_config_steps_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/StepConfig"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Status and ID.",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/config/steps/{step_id}": {
-      "put": {
-        "tags": [
-          "Configuration"
-        ],
-        "summary": "Update Step",
-        "description": "Updates an existing step.",
-        "operationId": "update_step_v1_config_steps__step_id__put",
-        "parameters": [
-          {
-            "name": "step_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Step Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/StepConfig"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "Configuration"
-        ],
-        "summary": "Delete Step",
-        "description": "Deletes a step.",
-        "operationId": "delete_step_v1_config_steps__step_id__delete",
-        "parameters": [
-          {
-            "name": "step_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Step Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "get": {
-        "tags": [
-          "Configuration"
-        ],
-        "summary": "Get Step",
-        "description": "Retrieves a single step by ID.",
-        "operationId": "get_step_v1_config_steps__step_id__get",
-        "parameters": [
-          {
-            "name": "step_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Step Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StepConfig"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/config/workflows": {
-      "get": {
-        "tags": [
-          "Configuration"
-        ],
-        "summary": "List Workflows",
-        "description": "List all workflows.",
-        "operationId": "get_workflows_v1_config_workflows_get",
-        "responses": {
-          "200": {
-            "description": "All workflows.",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "Configuration"
-        ],
-        "summary": "Create Workflow",
-        "description": "Create a new workflow.",
-        "operationId": "create_workflow_v1_config_workflows_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WorkflowCreate"
+                "$ref": "#/components/schemas/StepDefinition"
               }
             }
           },
@@ -2164,7 +1887,9 @@
             "description": "Created ID.",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/StepDefinition"
+                }
               }
             }
           },
@@ -2181,14 +1906,179 @@
         }
       }
     },
-    "/v1/config/workflows/{wf_id}": {
+    "/v1/config/workflows/config/steps/{step_id}": {
+      "put": {
+        "tags": [
+          "Workflows",
+          "Configuration"
+        ],
+        "summary": "Update Step",
+        "description": "Update a step configuration.",
+        "operationId": "update_step_v1_config_workflows_config_steps__step_id__put",
+        "parameters": [
+          {
+            "name": "step_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Step Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StepDefinition"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Update status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StepDefinition"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Workflows",
+          "Configuration"
+        ],
+        "summary": "Delete Step",
+        "description": "Delete a step.\n\nRefactored to enforce Integrity: Cannot delete step if used in Workflows.",
+        "operationId": "delete_step_v1_config_workflows_config_steps__step_id__delete",
+        "parameters": [
+          {
+            "name": "step_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Step Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Delete status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StepDeleteResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/config/workflows/config/workflows": {
       "get": {
         "tags": [
+          "Workflows",
+          "Configuration"
+        ],
+        "summary": "List Workflows",
+        "description": "List all workflows.",
+        "operationId": "get_workflows_v1_config_workflows_config_workflows_get",
+        "responses": {
+          "200": {
+            "description": "All workflows.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/WorkflowConfigDefinition"
+                  },
+                  "type": "array",
+                  "title": "Response Get Workflows V1 Config Workflows Config Workflows Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Workflows",
+          "Configuration"
+        ],
+        "summary": "Create Workflow",
+        "description": "Create a new workflow.",
+        "operationId": "create_workflow_v1_config_workflows_config_workflows_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkflowConfigCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Created ID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowConfigDefinition"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/config/workflows/config/workflows/{wf_id}": {
+      "get": {
+        "tags": [
+          "Workflows",
           "Configuration"
         ],
         "summary": "Get Workflow",
         "description": "Get a specific workflow.",
-        "operationId": "get_workflow_v1_config_workflows__wf_id__get",
+        "operationId": "get_workflow_v1_config_workflows_config_workflows__wf_id__get",
         "parameters": [
           {
             "name": "wf_id",
@@ -2205,7 +2095,9 @@
             "description": "Requested workflow.",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowConfigDefinition"
+                }
               }
             }
           },
@@ -2223,11 +2115,12 @@
       },
       "put": {
         "tags": [
+          "Workflows",
           "Configuration"
         ],
         "summary": "Update Workflow",
         "description": "Update a workflow definition.",
-        "operationId": "update_workflow_v1_config_workflows__wf_id__put",
+        "operationId": "update_workflow_v1_config_workflows_config_workflows__wf_id__put",
         "parameters": [
           {
             "name": "wf_id",
@@ -2244,7 +2137,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/WorkflowUpdate"
+                "$ref": "#/components/schemas/WorkflowConfigUpdate"
               }
             }
           }
@@ -2254,7 +2147,9 @@
             "description": "Update status.",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowConfigDefinition"
+                }
               }
             }
           },
@@ -2272,11 +2167,12 @@
       },
       "delete": {
         "tags": [
+          "Workflows",
           "Configuration"
         ],
         "summary": "Delete Workflow",
         "description": "Delete a workflow.",
-        "operationId": "delete_workflow_v1_config_workflows__wf_id__delete",
+        "operationId": "delete_workflow_v1_config_workflows_config_workflows__wf_id__delete",
         "parameters": [
           {
             "name": "wf_id",
@@ -2293,7 +2189,9 @@
             "description": "Delete status.",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/backend__models__dtos__config__WorkflowDeleteResponse"
+                }
               }
             }
           },
@@ -2310,19 +2208,20 @@
         }
       }
     },
-    "/v1/config/validate-flow": {
+    "/v1/config/workflows/config/validate-flow": {
       "post": {
         "tags": [
+          "Workflows",
           "Configuration"
         ],
         "summary": "Validate Flow",
         "description": "Dry run validation.",
-        "operationId": "validate_flow_v1_config_validate_flow_post",
+        "operationId": "validate_flow_v1_config_workflows_config_validate_flow_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/WorkflowCreate"
+                "$ref": "#/components/schemas/WorkflowConfigCreate"
               }
             }
           },
@@ -2333,7 +2232,9 @@
             "description": "Validation Report.",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationReportResponse"
+                }
               }
             }
           },
@@ -2350,27 +2251,28 @@
         }
       }
     },
-    "/v1/config/schemas/{model_name}": {
-      "get": {
+    "/v1/config/knowledge/ingest": {
+      "post": {
         "tags": [
-          "Configuration"
+          "Knowledge"
         ],
-        "summary": "Get Model JSON Schema",
-        "description": "Returns the JSON Schema for a registered Pydantic model. citations: dynamic",
-        "operationId": "get_model_schema_v1_config_schemas__model_name__get",
+        "summary": "Ingest Knowledge Base",
+        "description": "Starts an asynchronous knowledge base ingestion job.\n\nThis endpoint accepts a file upload (DOCX or MD), initiates an asynchronous\nprocessing task, and returns a job ID for polling status.\n\nArgs:\n    background_tasks (BackgroundTasks): FastAPI background task manager.\n    file (UploadFile): The file to ingest (docx, md).\n    service (KnowledgeBaseServiceDep): The knowledge base service dependency.\n    language (str): Language code of the document (e.g. 'en', 'fi', 'auto').\n                  Defaults to \"auto\".\n\nReturns:\n    KnowledgeIngestResponse: A generic response containing the 'job_id'.",
+        "operationId": "ingest_knowledge_base_v1_config_knowledge_ingest_post",
         "parameters": [
           {
-            "name": "model_name",
-            "in": "path",
-            "required": true,
+            "name": "language",
+            "in": "query",
+            "required": false,
             "schema": {
               "type": "string",
-              "title": "Model Name"
+              "default": "auto",
+              "title": "Language"
             }
           },
           {
-            "name": "accept-language",
-            "in": "header",
+            "name": "model_strategy",
+            "in": "query",
             "required": false,
             "schema": {
               "anyOf": [
@@ -2381,8 +2283,60 @@
                   "type": "null"
                 }
               ],
-              "default": "en",
-              "title": "Accept-Language"
+              "title": "Model Strategy"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_ingest_knowledge_base_v1_config_knowledge_ingest_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KnowledgeIngestResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/config/knowledge/ingest/{job_id}": {
+      "get": {
+        "tags": [
+          "Knowledge"
+        ],
+        "summary": "Get Ingestion Status",
+        "description": "Polls the status of an ingestion job.\n\nArgs:\n    job_id (str): The unique identifier of the ingestion job.\n\nReturns:\n    KnowledgeJobStatusResponse: The current state of the job (status, progress, stage, result, error).\n\nRaises:\n    AppException: If the job_id is not found (404 JOB_NOT_FOUND).",
+        "operationId": "get_ingestion_status_v1_config_knowledge_ingest__job_id__get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
             }
           }
         ],
@@ -2392,9 +2346,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Model Schema V1 Config Schemas  Model Name  Get"
+                  "$ref": "#/components/schemas/KnowledgeJobStatusResponse"
                 }
               }
             }
@@ -2412,48 +2364,21 @@
         }
       }
     },
-    "/v1/config/schemas": {
-      "get": {
+    "/v1/config/knowledge/reset": {
+      "delete": {
         "tags": [
-          "Configuration"
+          "Knowledge"
         ],
-        "summary": "List Schemas",
-        "description": "Get all available JSON Schemas (Global Registry).",
-        "operationId": "get_schemas_v1_config_schemas_get",
-        "parameters": [
-          {
-            "name": "accept-language",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "default": "en",
-              "title": "Accept-Language"
-            }
-          }
-        ],
+        "summary": "Reset Knowledge Base",
+        "description": "Resets the Knowledge Base by deleting all items.\n\nArgs:\n    service (KnowledgeBaseServiceDep): The knowledge base service dependency.\n\nReturns:\n    KnowledgeResetResponse: Success message.",
+        "operationId": "reset_knowledge_base_v1_config_knowledge_reset_delete",
         "responses": {
           "200": {
-            "description": "All Pydantic Schemas.",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/KnowledgeResetResponse"
                 }
               }
             }
@@ -2464,6 +2389,7 @@
     "/v1/config/models": {
       "get": {
         "tags": [
+          "Models",
           "Config: Models"
         ],
         "summary": "List Models",
@@ -2490,10 +2416,11 @@
     "/v1/config/models/{provider_id}": {
       "put": {
         "tags": [
+          "Models",
           "Config: Models"
         ],
         "summary": "Update Model Config",
-        "description": "Update configuration for a specific provider strategy.\n\n'provider_id' can be complex path 'provider/strategy'.",
+        "description": "Update configuration for a specific provider strategy.\n\n'provider_id' MUST be complex path 'provider/strategy'.\nLegacy flat IDs are strictly rejected.",
         "operationId": "update_model_config_v1_config_models__provider_id__put",
         "parameters": [
           {
@@ -2538,15 +2465,51 @@
             }
           }
         }
+      },
+      "delete": {
+        "tags": [
+          "Models",
+          "Config: Models"
+        ],
+        "summary": "Delete Model Config",
+        "description": "Delete a specific provider strategy configuration.\n\nEnforces Reference Integrity (Workflow Usage) and System Integrity (Default Strategy).\nStrictly requires 'provider/strategy' format.",
+        "operationId": "delete_model_config_v1_config_models__provider_id__delete",
+        "parameters": [
+          {
+            "name": "provider_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Provider Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/config/models/test": {
       "post": {
         "tags": [
+          "Models",
           "Config: Models"
         ],
         "summary": "Test Model Connection",
-        "description": "Execute an ephemeral LLM request to test credentials/latency.\n\nDoes NOT use the database configuration. Uses provided credentials.",
+        "description": "Execute an ephemeral LLM request to test credentials/latency.\n\nDoes NOT use the database configuration unless strategy_id is specifically requested.\nReturns status=\"error\" instead of 500 for expected connection failures (User Feedback).",
         "operationId": "test_model_connection_v1_config_models_test_post",
         "requestBody": {
           "content": {
@@ -2585,6 +2548,7 @@
     "/v1/config/models/options": {
       "get": {
         "tags": [
+          "Models",
           "Config: Models"
         ],
         "summary": "List Model Options",
@@ -2596,14 +2560,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": {
-                    "items": {
-                      "type": "string"
-                    },
-                    "type": "array"
-                  },
-                  "type": "object",
-                  "title": "Response List Model Options V1 Config Models Options Get"
+                  "$ref": "#/components/schemas/ModelOptionsResponse"
                 }
               }
             }
@@ -2643,9 +2600,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Create Execution V1 Execute  Post"
+                  "$ref": "#/components/schemas/ExecutionResponse"
                 }
               }
             }
@@ -2699,8 +2654,15 @@
           }
         ],
         "responses": {
-          "204": {
-            "description": "Successful Response"
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionDeleteResponse"
+                }
+              }
+            }
           },
           "422": {
             "description": "Validation Error",
@@ -2804,9 +2766,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Create Execution Executions  Post"
+                  "$ref": "#/components/schemas/ExecutionResponse"
                 }
               }
             }
@@ -2860,8 +2820,15 @@
           }
         ],
         "responses": {
-          "204": {
-            "description": "Successful Response"
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionDeleteResponse"
+                }
+              }
+            }
           },
           "422": {
             "description": "Validation Error",
@@ -2880,7 +2847,7 @@
           "Executions"
         ],
         "summary": "Get Execution Details",
-        "description": "Get execution details by ID.",
+        "description": "Get execution details by ID. Returns standardized ExecutionResponse.",
         "operationId": "get_execution_executions__execution_id__get",
         "parameters": [
           {
@@ -2915,9 +2882,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Execution Executions  Execution Id  Get"
+                  "$ref": "#/components/schemas/ExecutionResponse"
                 }
               }
             }
@@ -2976,9 +2941,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Cancel Execution Executions  Execution Id  Cancel Delete"
+                  "$ref": "#/components/schemas/ExecutionCancelResponse"
                 }
               }
             }
@@ -3040,8 +3003,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "type": "object",
-                    "additionalProperties": true
+                    "$ref": "#/components/schemas/ExecutionResponse"
                   },
                   "title": "Response Get Recent Executions Executions Recent Get"
                 }
@@ -3061,14 +3023,14 @@
         }
       }
     },
-    "/executions/{execution_id}/monitor": {
+    "/executions/{execution_id}/events": {
       "get": {
         "tags": [
           "Executions"
         ],
         "summary": "Monitor Execution (SSE)",
         "description": "Server-Sent Events alias for monitoring.",
-        "operationId": "monitor_execution_executions__execution_id__monitor_get",
+        "operationId": "monitor_execution_executions__execution_id__events_get",
         "parameters": [
           {
             "name": "execution_id",
@@ -3077,6 +3039,16 @@
             "schema": {
               "type": "string",
               "title": "Execution Id"
+            }
+          },
+          {
+            "name": "view",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "assessment",
+              "title": "View"
             }
           }
         ],
@@ -3121,6 +3093,16 @@
             }
           },
           {
+            "name": "check_local",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Check Local"
+            }
+          },
+          {
             "name": "authorization",
             "in": "header",
             "required": false,
@@ -3142,7 +3124,20 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/PDFDownloadCheckResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/PDFQueuedResponse"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Download Execution Pdf Executions  Execution Id  Pdf Download Get"
+                }
               }
             }
           },
@@ -3256,7 +3251,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PDFCancelResponse"
+                }
               }
             }
           },
@@ -3353,6 +3350,71 @@
         }
       }
     },
+    "/executions/{execution_id}/json": {
+      "get": {
+        "tags": [
+          "Executions"
+        ],
+        "summary": "Export Execution JSON",
+        "description": "Returns the execution report as a raw JSON dump (Common Intermediate Representation).",
+        "operationId": "get_execution_json_export_executions__execution_id__json_get",
+        "parameters": [
+          {
+            "name": "execution_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Execution Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Execution Json Export Executions  Execution Id  Json Get"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Execution not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Export failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/executions/{execution_id}/raw": {
       "get": {
         "tags": [
@@ -3394,9 +3456,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Execution Raw Executions  Execution Id  Raw Get"
+                  "$ref": "#/components/schemas/ExecutionRawResponse"
                 }
               }
             }
@@ -3420,7 +3480,7 @@
           "Agents"
         ],
         "summary": "Run Specific Agent",
-        "description": "Executes a specific agent in isolation with provided inputs.\n\nArgs:\n    agent_name (str): The class name of the agent to run.\n    inputs (Dict[str, Any]): Input data for the agent's context.\n    system_instruction (Optional[str]): optional prompt override.\n    model (Optional[str]): optional model override.\n    db (DatabaseDep): Database dependency.\n\nReturns:\n    dict: A dictionary containing the agent name and the execution result/state.\n\nRaises:\n    HTTPException: If the agent cannot be loaded or execution fails.",
+        "description": "Executes a specific agent in isolation with provided inputs.\n\nArgs:\n    agent_name (str): The class name of the agent to run.\n    inputs (Dict[str, Any]): Input data for the agent's context.\n    system_instruction (Optional[str]): optional prompt override.\n    model (Optional[str]): optional model override (strategy key or model name).\n    db (DatabaseDep): Database dependency.\n    registry (RegistryDep): Registry dependency for strategy resolution.\n\nReturns:\n    AgentRunResponse: A DTO containing the execution result.\n\nRaises:\n    ResourceNotFoundError: If the agent class cannot be loaded.\n    AppException: If execution fails (400 for validation, 500 for runtime).",
         "operationId": "run_agent_agents__agent_name__run_post",
         "parameters": [
           {
@@ -3448,7 +3508,9 @@
             "description": "The result of the agent execution.",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/AgentRunResponse"
+                }
               }
             }
           },
@@ -3471,7 +3533,7 @@
           "Agents"
         ],
         "summary": "List All Agents",
-        "description": "List all available agents with their metadata, models, and schemas.\n\nDynamically resolves model strategy based on the selected workflow configuration.\n\nArgs:\n    workflow_id (Optional[str]): Context for model resolution.\n    db (DatabaseDep): Database dependency.\n    registry (RegistryDep): Injected registry service.\n    accept_language (str): Locale for UI labels (default 'en').\n\nReturns:\n    List[Dict]: A list of agent definition objects.",
+        "description": "List all available agents with their metadata, models, and schemas.\n\nDynamically resolves model strategy based on the selected workflow configuration.\n\nArgs:\n    workflow_id (Optional[str]): Context for model resolution.\n    db (DatabaseDep): Database dependency.\n    registry (RegistryDep): Injected registry service.\n\nReturns:\n    List[AgentDefinition]: A list of agent definition objects.",
         "operationId": "list_agents_agents__get",
         "parameters": [
           {
@@ -3491,23 +3553,6 @@
               "title": "Workflow Id"
             },
             "description": "Optional Workflow ID to resolve model strategies contextually."
-          },
-          {
-            "name": "accept-language",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "default": "en",
-              "title": "Accept-Language"
-            }
           }
         ],
         "responses": {
@@ -3518,8 +3563,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "type": "object",
-                    "additionalProperties": true
+                    "$ref": "#/components/schemas/AgentDefinition"
                   },
                   "title": "Response List Agents Agents  Get"
                 }
@@ -3558,23 +3602,6 @@
             }
           },
           {
-            "name": "accept-language",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "default": "en",
-              "title": "Accept-Language"
-            }
-          },
-          {
             "name": "authorization",
             "in": "header",
             "required": false,
@@ -3596,7 +3623,9 @@
             "description": "JSON Schema for the requested component.",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/ComponentSchemaResponse"
+                }
               }
             }
           },
@@ -3626,7 +3655,13 @@
             "description": "A list of agent definitions including I/O contracts.",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AgentMetadataDTO"
+                  },
+                  "type": "array",
+                  "title": "Response Get Available Agents Builder Config Agents Get"
+                }
               }
             }
           }
@@ -3646,7 +3681,9 @@
             "description": "Empty workflow template.",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowTemplate"
+                }
               }
             }
           }
@@ -3666,7 +3703,13 @@
             "description": "List of fusion rules.",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/FusionRuleDTO"
+                  },
+                  "type": "array",
+                  "title": "Response Get Fusion Rules Builder Config Fusion Rules Get"
+                }
               }
             }
           }
@@ -3724,7 +3767,9 @@
             "description": "Returns the full components, steps, and workflows from the database.",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/SeedDataResponse"
+                }
               }
             }
           },
@@ -3772,7 +3817,13 @@
             "description": "All Workflows.",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkflowResponse"
+                  },
+                  "title": "Response List Workflows Builder Workflows Get"
+                }
               }
             }
           },
@@ -3828,7 +3879,9 @@
             "description": "Created workflow data.",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowResponse"
+                }
               }
             }
           },
@@ -3869,7 +3922,9 @@
             "description": "Workflow details.",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowResponse"
+                }
               }
             }
           },
@@ -3934,7 +3989,9 @@
             "description": "Updated workflow.",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowResponse"
+                }
               }
             }
           },
@@ -3989,7 +4046,9 @@
             "description": "Deletion status and cleaned up orphans.",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowDeleteResponse"
+                }
               }
             }
           },
@@ -4040,7 +4099,9 @@
             "description": "The new workflow object.",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowResponse"
+                }
               }
             }
           },
@@ -4113,7 +4174,13 @@
             "description": "All Steps.",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/StepDTO"
+                  },
+                  "type": "array",
+                  "title": "Response List Steps Builder Steps Get"
+                }
               }
             }
           }
@@ -4144,7 +4211,9 @@
             "description": "Step configuration.",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/StepDTO"
+                }
               }
             }
           },
@@ -4193,7 +4262,9 @@
             "description": "Updated step.",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/StepDTO"
+                }
               }
             }
           },
@@ -4233,7 +4304,9 @@
             "description": "The new custom step config.",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/StepDTO"
+                }
               }
             }
           },
@@ -4273,7 +4346,9 @@
             "description": "The newly created custom step.",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/StepDTO"
+                }
               }
             }
           },
@@ -4358,7 +4433,9 @@
             "description": "A unique ID string.",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/GeneratedIdResponse"
+                }
               }
             }
           },
@@ -4398,7 +4475,9 @@
             "description": "Validation result.",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationResponse"
+                }
               }
             }
           },
@@ -4438,7 +4517,9 @@
             "description": "Compilation result.",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/CompilationResponse"
+                }
               }
             }
           },
@@ -4480,8 +4561,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "string",
-                  "title": "Response Run Prompt Builder Playground Run Post"
+                  "$ref": "#/components/schemas/PlaygroundResponse"
                 }
               }
             }
@@ -4620,7 +4700,11 @@
             "description": "The generated text or structured object.",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Generate Completion Llm Completion Post"
+                }
               }
             }
           },
@@ -4643,7 +4727,7 @@
           "LLM"
         ],
         "summary": "Batch Completion",
-        "description": "Processes multiple completion requests in parallel.\n\nArgs:\n    batch (BatchCompletionRequest): List of requests.\n    registry (RegistryDep): Registry dependency.\n    user (CurrentUserDep): Authenticated user.\n    repo (RepositoryDep): Data repository.\n\nReturns:\n    dict: List of results (success or error) for each request.",
+        "description": "Processes multiple completion requests in parallel.\n\nArgs:\n    batch (BatchCompletionRequest): List of requests.\n    registry (RegistryDep): Registry dependency.\n    user (CurrentUserDep): Authenticated user.\n    repo (RepositoryDep): Data repository.\n\nReturns:\n    Dict[str, List[Dict[str, Any]]]: List of results (success or error) for each request.",
         "operationId": "batch_completion_llm_batch_completion_post",
         "parameters": [
           {
@@ -4678,7 +4762,17 @@
             "description": "List of results.",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  },
+                  "title": "Response Batch Completion Llm Batch Completion Post"
+                }
               }
             }
           },
@@ -4701,14 +4795,18 @@
           "LLM"
         ],
         "summary": "List Providers",
-        "description": "Returns information about active LLM providers and availability.\n\nArgs:\n    handler (LLMHandlerDep): LLM Handler.\n\nReturns:\n    dict: Strategies map and API key status.",
+        "description": "Returns information about active LLM providers and availability.\n\nArgs:\n    handler (LLMHandlerDep): LLM Handler.\n\nReturns:\n    Dict[str, Any]: Strategies map and API key status.",
         "operationId": "list_providers_llm_providers_get",
         "responses": {
           "200": {
             "description": "Active providers configuration.",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response List Providers Llm Providers Get"
+                }
               }
             }
           }
@@ -4721,14 +4819,18 @@
           "LLM"
         ],
         "summary": "Get Model Registry",
-        "description": "Retrieves the active model registry, which maps abstract strategies (e.g., 'fast') to concrete models.\n\nArgs:\n    handler: Dependency.\n\nReturns:\n    dict: The registry configuration object.",
+        "description": "Retrieves the active model registry, which maps abstract strategies (e.g., 'fast') to concrete models.\n\nArgs:\n    handler: Dependency.\n\nReturns:\n    Dict[str, Any]: The registry configuration object.",
         "operationId": "get_model_config_llm_config_get",
         "responses": {
           "200": {
             "description": "The current internal model mapping configuration.",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Get Model Config Llm Config Get"
+                }
               }
             }
           }
@@ -4739,7 +4841,7 @@
           "LLM"
         ],
         "summary": "Update Model Registry",
-        "description": "Updates the system's model registry configuration in the database.\n\nArgs:\n    update (ModelRegistryUpdate): The new configuration.\n    db_client (DatabaseDep): Database dependency.\n\nReturns:\n    dict: Status and the updated registry.\n\nRaises:\n    HTTPException: If database update fails (500).",
+        "description": "Updates the system's model registry configuration in the database.\n\nArgs:\n    update (ModelRegistryUpdate): The new configuration.\n    registry (RegistryDep): Registry dependency.\n\nReturns:\n    Dict[str, Any]: Status and the updated registry.\n\nRaises:\n    HTTPException: If database update fails (500).",
         "operationId": "update_model_config_llm_config_post",
         "requestBody": {
           "content": {
@@ -4756,7 +4858,11 @@
             "description": "Confirmation of the configuration update.",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Update Model Config Llm Config Post"
+                }
               }
             }
           },
@@ -4779,7 +4885,7 @@
           "Organizations"
         ],
         "summary": "Create Organization",
-        "description": "Create a new Tenant Organization.\n\nArgs:\n    org (OrganizationCreateRequest): Organization details.\n    user (TokenData): Requesting user (ROOT required).\n    auth (AuthServiceDep): Authentication service.\n    repo (RepositoryDep): Repository dependency.\n\nReturns:\n    OrganizationResponse: The created organization.\n\nRaises:\n    HTTPException: If ID conflict (409).",
+        "description": "Create a new Tenant Organization.\n\nArgs:\n    org (OrganizationCreateRequest): Organization details.\n    user (TokenData): Requesting user (ROOT required).\n    auth (AuthServiceDep): Authentication service.\n    repo (RepositoryDep): Repository dependency.\n    audit_service (AuditServiceDep): Audit logging service.\n\nReturns:\n    OrganizationResponse: The created organization.\n\nRaises:\n    HTTPException: If ID conflict (409).",
         "operationId": "create_organization_organizations__post",
         "parameters": [
           {
@@ -4837,7 +4943,7 @@
           "Organizations"
         ],
         "summary": "List Organizations",
-        "description": "List all organizations.\n\nArgs:\n    user (TokenData): Requesting user (must be ROOT).\n    repo (RepositoryDep): Repository dependency.\n\nReturns:\n    list[OrganizationResponse]: List of all organizations.",
+        "description": "List all organizations.\n\nArgs:\n    user (TokenData): Requesting user (must be ROOT).\n    repo (RepositoryDep): Repository dependency.\n\nReturns:\n    List[OrganizationResponse]: List of all organizations.",
         "operationId": "list_organizations_organizations__get",
         "parameters": [
           {
@@ -5065,7 +5171,7 @@
           "Organizations"
         ],
         "summary": "Delete Organization",
-        "description": "Delete an organization.\n\nArgs:\n    org_id (str): Organization ID.\n    user (CurrentUserDep): Requesting user.\n    repo (RepositoryDep): Repository dependency.\n    force (bool): If True, delete even if users exist.",
+        "description": "Delete an organization.\n\nArgs:\n    org_id (str): Organization ID.\n    user (CurrentUserDep): Requesting user.\n    repo (RepositoryDep): Repository dependency.\n    audit_service (AuditServiceDep): Audit service.\n    force (bool): If True, delete even if users exist.",
         "operationId": "delete_organization_organizations__org_id__delete",
         "parameters": [
           {
@@ -5127,7 +5233,7 @@
           "Organizations"
         ],
         "summary": "Get Organization Usage",
-        "description": "Get current usage statistics and limits for an organization.\n\nArgs:\n    org_id (str): Organization ID.\n    user (CurrentUserDep): Requesting user.\n    repo (RepositoryDep): Repository dependency.\n\nReturns:\n    dict: Usage stats (cost, limits, percentage).",
+        "description": "Get current usage statistics and limits for an organization.\n\nArgs:\n    org_id (str): Organization ID.\n    user (CurrentUserDep): Requesting user.\n    repo (RepositoryDep): Repository dependency.\n\nReturns:\n    Dict: Usage stats (cost, limits, percentage).",
         "operationId": "get_organization_usage_organizations__org_id__usage_get",
         "parameters": [
           {
@@ -5332,7 +5438,20 @@
             "description": "Extracted text.",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "additionalProperties": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "type": "object",
+                  "title": "Response Extract Text Tools Extract Text Post"
+                }
               }
             }
           },
@@ -5371,7 +5490,11 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Extract Concepts From File Or Text Tools Extract Concepts Post"
+                }
               }
             }
           },
@@ -5411,7 +5534,11 @@
             "description": "Scraped content.",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Web Scrape Tools Web Scrape Post"
+                }
               }
             }
           },
@@ -5434,7 +5561,7 @@
           "Tools"
         ],
         "summary": "Resolve Citations",
-        "description": "Uses the Knowledge Base Service to find context for citations.\n\nArgs:\n    db (DatabaseDep): Database dependency.\n    repo (RepositoryDep): Repository dependency.\n    registry (RegistryDep): Registry dependency.\n    queries (list[str]): List of citation keys or queries.\n\n    registry (RegistryDep): Registry dependency.\n    queries (list[str]): List of citation keys or queries.\n\nReturns:\n    dict: Map of query to resolved context.",
+        "description": "Uses the Knowledge Base Service to find context for citations.\n\nArgs:\n    db (DatabaseDep): Database dependency.\n    repo (RepositoryDep): Repository dependency.\n    registry (RegistryDep): Registry dependency.\n    queries (List[str]): List of citation keys or queries.\n\nReturns:\n    Dict[str, List[Dict[str, Any]]]: Map of query to resolved context.",
         "operationId": "citation_lookup_tools_citation_lookup_post",
         "requestBody": {
           "content": {
@@ -5451,7 +5578,137 @@
             "description": "Resolved context.",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "additionalProperties": {
+                    "items": {
+                      "additionalProperties": true,
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "type": "object",
+                  "title": "Response Citation Lookup Tools Citation Lookup Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/audit/logs": {
+      "get": {
+        "tags": [
+          "Audit"
+        ],
+        "summary": "Get Audit Logs",
+        "description": "Retrieve audit logs.\n\nRole Rules:\n- ROOT: Can see logs for ANY organization or system-wide (if org_id is None).\n- ADMIN: Can ONLY see logs for THEIR OWN organization.\n- MEMBER: Cannot see audit logs (403).",
+        "operationId": "get_audit_logs_audit_logs_get",
+        "parameters": [
+          {
+            "name": "organization_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by Organization ID",
+              "title": "Organization Id"
+            },
+            "description": "Filter by Organization ID"
+          },
+          {
+            "name": "actor_uid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by Actor UID",
+              "title": "Actor Uid"
+            },
+            "description": "Filter by Actor UID"
+          },
+          {
+            "name": "action",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by Action type",
+              "title": "Action"
+            },
+            "description": "Filter by Action type"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuditEvent"
+                  },
+                  "title": "Response Get Audit Logs Audit Logs Get"
+                }
               }
             }
           },
@@ -5583,6 +5840,172 @@
         "title": "AdminTaskResponse",
         "description": "Standard response for initiating background admin tasks."
       },
+      "AgentDefinition": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "class": {
+            "type": "string",
+            "title": "Class"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "input_schema": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Schema"
+          },
+          "output_schema": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Schema"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "class",
+          "description",
+          "model"
+        ],
+        "title": "AgentDefinition",
+        "description": "Schema for agent metadata exposed by discovery endpoint."
+      },
+      "AgentMetadataDTO": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Agent class name."
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Agent docstring/description."
+          },
+          "inputs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Inputs",
+            "description": "List of required input keys."
+          },
+          "outputs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Outputs",
+            "description": "List of produced output keys."
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "description",
+          "inputs"
+        ],
+        "title": "AgentMetadataDTO",
+        "description": "Metadata for an available agent."
+      },
+      "AgentRunResponse": {
+        "properties": {
+          "agent": {
+            "type": "string",
+            "title": "Agent"
+          },
+          "result": {
+            "title": "Result"
+          }
+        },
+        "type": "object",
+        "required": [
+          "agent",
+          "result"
+        ],
+        "title": "AgentRunResponse",
+        "description": "Schema for single agent execution result."
+      },
+      "AuditEvent": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp"
+          },
+          "actor_uid": {
+            "type": "string",
+            "title": "Actor Uid"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "organization_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organization Id"
+          },
+          "target_uid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Uid"
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Details"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "timestamp",
+          "actor_uid",
+          "action"
+        ],
+        "title": "AuditEvent",
+        "description": "Structured Audit Log Event."
+      },
       "BannedPhraseRequest": {
         "properties": {
           "phrase": {
@@ -5629,6 +6052,7 @@
             "description": "List of requests to process in parallel."
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "requests"
@@ -5668,7 +6092,14 @@
       "Body_extract_concepts_from_file_or_text_tools_extract_concepts_post": {
         "properties": {
           "text": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Text"
           },
           "file": {
@@ -5701,6 +6132,20 @@
         },
         "type": "object",
         "title": "Body_extract_text_tools_extract_text_post"
+      },
+      "Body_ingest_knowledge_base_v1_config_knowledge_ingest_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_ingest_knowledge_base_v1_config_knowledge_ingest_post"
       },
       "Body_run_agent_agents__agent_name__run_post": {
         "properties": {
@@ -5879,6 +6324,36 @@
         "title": "ChainPreviewResponse",
         "description": "Response model for workflow chain preview."
       },
+      "CompilationResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Compilation status (e.g. 'compiled')."
+          },
+          "composite_step_id": {
+            "type": "string",
+            "title": "Composite Step Id",
+            "description": "The ID of the resulting composite step."
+          },
+          "new_steps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "New Steps",
+            "description": "The updated list of step IDs in the workflow."
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "composite_step_id",
+          "new_steps"
+        ],
+        "title": "CompilationResponse",
+        "description": "Result of a fusion compilation."
+      },
       "CompileRequest": {
         "properties": {
           "workflow_id": {
@@ -5942,6 +6417,7 @@
             "description": "Optional JSON Schema for structured output."
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "prompt"
@@ -5989,6 +6465,124 @@
         "title": "ComponentCreate",
         "description": "Payload for creating a new component."
       },
+      "ComponentDeleteResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "id"
+        ],
+        "title": "ComponentDeleteResponse",
+        "description": "Response for component deletion."
+      },
+      "ComponentResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "content": {
+            "title": "Content"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "citation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Citation"
+          },
+          "citation_full": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Citation Full"
+          },
+          "module": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Module"
+          },
+          "component_class": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Component Class"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "type",
+          "content"
+        ],
+        "title": "ComponentResponse",
+        "description": "Response model for a component configuration."
+      },
+      "ComponentSchemaResponse": {
+        "properties": {
+          "schema": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Schema"
+          }
+        },
+        "type": "object",
+        "required": [
+          "schema"
+        ],
+        "title": "ComponentSchemaResponse",
+        "description": "JSON Schema wrapper."
+      },
       "ComponentUpdate": {
         "properties": {
           "content": {
@@ -6012,7 +6606,7 @@
           "content"
         ],
         "title": "ComponentUpdate",
-        "description": "Payload for updating a configuration component.\n\nAttributes:\n    content (str | dict | list): The template content.\n    description (str): Metadata description.\n    citation (str): Short citation anchor.\n    citation_full (str): Complete bibliographic reference.\n    type (str): Component categorization."
+        "description": "Payload for updating a configuration component."
       },
       "CopyWorkflowRequest": {
         "properties": {
@@ -6057,19 +6651,56 @@
         "title": "CustomStepCreateRequest",
         "description": "Payload for creating a custom step."
       },
-      "DimensionDefinition": {
+      "ExecutionCancelResponse": {
         "properties": {
+          "execution_id": {
+            "type": "string",
+            "title": "Execution Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "execution_id",
+          "status",
+          "message"
+        ],
+        "title": "ExecutionCancelResponse",
+        "description": "Response when cancelling an execution."
+      },
+      "ExecutionDeleteResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
           "id": {
             "type": "string",
-            "title": "Id",
-            "description": "Unique dimension ID (e.g. 'analyysi')."
-          },
-          "label": {
+            "title": "Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "id"
+        ],
+        "title": "ExecutionDeleteResponse",
+        "description": "Response when deleting an execution."
+      },
+      "ExecutionRawResponse": {
+        "properties": {
+          "execution_id": {
             "type": "string",
-            "title": "Label",
-            "description": "Human readable default label."
+            "title": "Execution Id"
           },
-          "description": {
+          "workflow_id": {
             "anyOf": [
               {
                 "type": "string"
@@ -6078,23 +6709,243 @@
                 "type": "null"
               }
             ],
-            "title": "Description",
-            "description": "Explanation of what this measures."
+            "title": "Workflow Id"
           },
-          "is_system": {
-            "type": "boolean",
-            "title": "Is System",
-            "description": "If true, is a core system dimension.",
-            "default": false
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "duration_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Seconds"
+          },
+          "inputs": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Inputs",
+            "default": {}
+          },
+          "results": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Results",
+            "default": {}
+          },
+          "state": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "State",
+            "default": {}
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          },
+          "agent_outputs": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Agent Outputs",
+            "default": {}
+          },
+          "hook_outputs": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Hook Outputs",
+            "default": {}
+          },
+          "xai_report": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Xai Report"
           }
         },
         "type": "object",
         "required": [
-          "id",
-          "label"
+          "execution_id",
+          "workflow_id",
+          "status",
+          "started_at",
+          "completed_at",
+          "user_id"
         ],
-        "title": "DimensionDefinition",
-        "description": "Model definition for an evaluation dimension."
+        "title": "ExecutionRawResponse",
+        "description": "Response for raw execution data dump."
+      },
+      "ExecutionResponse": {
+        "properties": {
+          "execution_id": {
+            "type": "string",
+            "title": "Execution Id"
+          },
+          "workflow_id": {
+            "type": "string",
+            "title": "Workflow Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "results": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Results",
+            "default": {}
+          },
+          "inputs": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Inputs",
+            "default": {}
+          },
+          "user_id": {
+            "type": "string",
+            "title": "User Id"
+          },
+          "organization_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organization Id"
+          },
+          "workflow_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workflow Name"
+          },
+          "start_time": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Time"
+          }
+        },
+        "type": "object",
+        "required": [
+          "execution_id",
+          "workflow_id",
+          "status",
+          "started_at",
+          "user_id"
+        ],
+        "title": "ExecutionResponse",
+        "description": "Response for execution creation/status."
+      },
+      "FusionRuleDTO": {
+        "properties": {
+          "composite_step_id": {
+            "type": "string",
+            "title": "Composite Step Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "replaces_components": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Replaces Components"
+          },
+          "min_steps": {
+            "type": "integer",
+            "title": "Min Steps"
+          }
+        },
+        "type": "object",
+        "required": [
+          "composite_step_id",
+          "name",
+          "replaces_components",
+          "min_steps"
+        ],
+        "title": "FusionRuleDTO",
+        "description": "Rule for prompt fusion."
       },
       "GeneratePhrasesRequest": {
         "properties": {
@@ -6108,6 +6959,20 @@
         "type": "object",
         "title": "GeneratePhrasesRequest",
         "description": "Request model for generating banned phrases using LLM."
+      },
+      "GeneratedIdResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "title": "GeneratedIdResponse",
+        "description": "Response for ID generation."
       },
       "GeneratedPhrasesResponse": {
         "properties": {
@@ -6229,6 +7094,94 @@
         "title": "IngestRequest",
         "description": "Request model for knowledge base ingestion."
       },
+      "KnowledgeIngestResponse": {
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "title": "Job Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "job_id"
+        ],
+        "title": "KnowledgeIngestResponse",
+        "description": "Response for starting an ingestion job."
+      },
+      "KnowledgeJobStatusResponse": {
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "title": "Job Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "progress": {
+            "type": "integer",
+            "title": "Progress"
+          },
+          "stage": {
+            "type": "string",
+            "title": "Stage"
+          },
+          "result": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "job_id",
+          "status",
+          "progress",
+          "stage"
+        ],
+        "title": "KnowledgeJobStatusResponse",
+        "description": "Status of an ingestion job."
+      },
+      "KnowledgeResetResponse": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "KnowledgeResetResponse",
+        "description": "Response for knowledge base reset."
+      },
       "LLMProviderConfig": {
         "properties": {
           "id": {
@@ -6329,6 +7282,26 @@
         "title": "LoginResponse",
         "description": "Response model for successful login.\n\nAttributes:\n    user (User): The full user profile.\n    token_valid (bool): Confirmation of token validity.\n    debug_msg (Optional[str]): Debug information (mock vs real)."
       },
+      "ModelOptionsResponse": {
+        "properties": {
+          "options": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": "object",
+            "title": "Options"
+          }
+        },
+        "type": "object",
+        "required": [
+          "options"
+        ],
+        "title": "ModelOptionsResponse",
+        "description": "Available model options per provider."
+      },
       "ModelRegistryUpdate": {
         "properties": {
           "registry": {
@@ -6343,6 +7316,7 @@
             "description": "The new configuration map for model strategies (e.g. {'fast': {'model_name': '...'}})."
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "registry"
@@ -6780,15 +7754,85 @@
         "title": "OrganizationUserCreate",
         "description": "Payload for creating a user within an organization.\n\nStrictly forbids default values for role and email."
       },
+      "PDFCancelResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "message"
+        ],
+        "title": "PDFCancelResponse",
+        "description": "Response when cancelling PDF generation."
+      },
+      "PDFDownloadCheckResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "exists": {
+            "type": "boolean",
+            "title": "Exists"
+          },
+          "local_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Local Path"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "exists"
+        ],
+        "title": "PDFDownloadCheckResponse",
+        "description": "Response when checking for local PDF existence."
+      },
+      "PDFQueuedResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "message"
+        ],
+        "title": "PDFQueuedResponse",
+        "description": "Response when PDF generation is queued."
+      },
       "PlaygroundRequest": {
         "properties": {
           "system_instruction": {
             "type": "string",
-            "title": "System Instruction"
+            "title": "System Instruction",
+            "description": "System prompt template."
           },
           "user_message": {
             "type": "string",
-            "title": "User Message"
+            "title": "User Message",
+            "description": "User message."
           },
           "variables": {
             "additionalProperties": {
@@ -6796,13 +7840,13 @@
             },
             "type": "object",
             "title": "Variables",
-            "default": {}
+            "description": "Variables to inject into system prompt."
           },
           "model_params": {
             "additionalProperties": true,
             "type": "object",
             "title": "Model Params",
-            "default": {}
+            "description": "Optional LLM parameters."
           }
         },
         "type": "object",
@@ -6810,7 +7854,36 @@
           "system_instruction",
           "user_message"
         ],
-        "title": "PlaygroundRequest"
+        "title": "PlaygroundRequest",
+        "description": "Payload for executing a prompt in the playground."
+      },
+      "PlaygroundResponse": {
+        "properties": {
+          "content": {
+            "type": "string",
+            "title": "Content",
+            "description": "The LLM response content."
+          },
+          "usage": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usage",
+            "description": "Token usage stats."
+          }
+        },
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "title": "PlaygroundResponse",
+        "description": "Response from the playground execution."
       },
       "ProblemDetail": {
         "properties": {
@@ -6989,6 +8062,30 @@
             "type": "array",
             "title": "Sections",
             "description": "Ordered list of UI sections"
+          },
+          "metrics": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metrics",
+            "description": "Global audit metrics (Word Count, etc.)"
+          },
+          "system_notification": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SystemNotification"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Global notification/warning"
           }
         },
         "type": "object",
@@ -7006,9 +8103,11 @@
           "TIMELINE_FEED",
           "HEADER",
           "KEY_METRICS",
+          "EVIDENCE_LIST",
           "KEY_VALUE_GRID",
           "DATA_TABLE",
           "ACCORDION",
+          "USAGE_STATS",
           "LOGIC_ANALYSIS",
           "STRESS_TEST",
           "CAUSAL_ANALYSIS",
@@ -7016,9 +8115,46 @@
           "FACT_CHECK",
           "PROFILER_ANALYSIS",
           "ARCHIVIST_CHECK",
-          "DRIVER_PROFILE"
+          "DRIVER_PROFILE",
+          "SECURITY_CHECK"
         ],
         "title": "SectionType"
+      },
+      "SeedDataResponse": {
+        "properties": {
+          "components": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Components"
+          },
+          "steps": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Steps"
+          },
+          "workflows": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Workflows"
+          }
+        },
+        "type": "object",
+        "required": [
+          "components",
+          "steps",
+          "workflows"
+        ],
+        "title": "SeedDataResponse",
+        "description": "Full seed data configuration."
       },
       "SelfTestResponse": {
         "properties": {
@@ -7045,7 +8181,66 @@
         "title": "SelfTestResponse",
         "description": "Response model for system self-test."
       },
-      "StepConfig": {
+      "StepDTO": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "component": {
+            "type": "string",
+            "title": "Component"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "execution_config": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Execution Config"
+          },
+          "is_custom": {
+            "type": "boolean",
+            "title": "Is Custom",
+            "default": false
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "component"
+        ],
+        "title": "StepDTO",
+        "description": "Generic Step Configuration."
+      },
+      "StepDefinition": {
         "properties": {
           "id": {
             "type": "string",
@@ -7069,6 +8264,7 @@
               }
             ],
             "title": "Description",
+            "description": "Description",
             "x-ui-label": "Kuvaus"
           },
           "task_key": {
@@ -7083,6 +8279,7 @@
             "type": "object",
             "title": "Config",
             "description": "Configuration (DB source)",
+            "default": {},
             "x-ui-label": "Asetukset"
           }
         },
@@ -7091,15 +8288,34 @@
           "id",
           "name"
         ],
-        "title": "StepConfig",
-        "description": "Step Configuration (Direct DB Mapping).\n    "
+        "title": "StepDefinition",
+        "description": "Step configuration definition."
+      },
+      "StepDeleteResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "id"
+        ],
+        "title": "StepDeleteResponse",
+        "description": "Response for step deletion."
       },
       "StepPreviewResponse": {
         "properties": {
           "system_instruction": {
             "type": "string",
             "title": "System Instruction",
-            "description": "The full system prompt constructed from components.",
+            "description": "The full system prompt.",
             "x-ui-label": "System Instruction"
           },
           "user_prompt": {
@@ -7165,6 +8381,30 @@
         ],
         "title": "SubscriptionStatus",
         "description": "SaaS Subscription Status."
+      },
+      "SystemNotification": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "level": {
+            "type": "string",
+            "title": "Level",
+            "default": "info"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "message"
+        ],
+        "title": "SystemNotification",
+        "description": "Server-Driven Notification for the Report Header."
       },
       "SystemSettings": {
         "properties": {
@@ -7293,10 +8533,8 @@
             "description": "User-facing title of the section"
           },
           "data": {
-            "additionalProperties": true,
-            "type": "object",
             "title": "Data",
-            "description": "Flexible payload specific to the section type"
+            "description": "Flexible payload specific to the section type (dict or Pydantic Model)"
           }
         },
         "type": "object",
@@ -7757,6 +8995,44 @@
         ],
         "title": "ValidationError"
       },
+      "ValidationReportResponse": {
+        "properties": {
+          "valid": {
+            "type": "boolean",
+            "title": "Valid"
+          },
+          "errors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "trace": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Trace"
+          },
+          "final_state_keys": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Final State Keys"
+          }
+        },
+        "type": "object",
+        "required": [
+          "valid",
+          "errors",
+          "trace",
+          "final_state_keys"
+        ],
+        "title": "ValidationReportResponse",
+        "description": "Workflow validation report."
+      },
       "ValidationRequest": {
         "properties": {
           "source_step": {
@@ -7778,17 +9054,44 @@
         "title": "ValidationRequest",
         "description": "Payload for validating connection compatibility between steps."
       },
-      "WorkflowCreate": {
+      "ValidationResponse": {
+        "properties": {
+          "valid": {
+            "type": "boolean",
+            "title": "Valid",
+            "description": "Whether the connection is valid."
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason",
+            "description": "Reason for validity or failure."
+          }
+        },
+        "type": "object",
+        "required": [
+          "valid"
+        ],
+        "title": "ValidationResponse",
+        "description": "Result of a connection validation check."
+      },
+      "WorkflowConfigCreate": {
         "properties": {
           "id": {
             "type": "string",
             "title": "Id",
-            "description": "New Workflow UUID/Slug."
+            "description": "New Workflow UUID/Slug"
           },
           "name": {
             "type": "string",
             "title": "Name",
-            "description": "Workflow Name."
+            "description": "Workflow Name"
           },
           "sequence": {
             "items": {
@@ -7796,7 +9099,7 @@
             },
             "type": "array",
             "title": "Sequence",
-            "description": "List of Step IDs.",
+            "description": "List of Step IDs",
             "default": []
           },
           "description": {
@@ -7809,7 +9112,7 @@
               }
             ],
             "title": "Description",
-            "description": "Description."
+            "description": "Description"
           },
           "default_model_mapping": {
             "anyOf": [
@@ -7824,7 +9127,7 @@
               }
             ],
             "title": "Default Model Mapping",
-            "description": "Step-Model map.",
+            "description": "Step-Model map",
             "default": {}
           }
         },
@@ -7833,10 +9136,101 @@
           "id",
           "name"
         ],
-        "title": "WorkflowCreate",
-        "description": "Payload for creating a new workflow."
+        "title": "WorkflowConfigCreate",
+        "description": "Payload for creating a workflow."
       },
-      "WorkflowUpdate": {
+      "WorkflowConfigDefinition": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Workflow UUID/Slug"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Workflow Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Description"
+          },
+          "sequence": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Sequence",
+            "description": "Ordered list of Step IDs",
+            "default": []
+          },
+          "steps": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "items": {
+                  "$ref": "#/components/schemas/StepDefinition"
+                },
+                "type": "array"
+              }
+            ],
+            "title": "Steps",
+            "description": "Hydrated steps or references",
+            "default": []
+          },
+          "ui_schema": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ui Schema",
+            "description": "Dynamic UI Schema"
+          },
+          "default_model_mapping": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Model Mapping",
+            "description": "Step-Model map",
+            "default": {}
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "WorkflowConfigDefinition",
+        "description": "Workflow configuration definition."
+      },
+      "WorkflowConfigUpdate": {
         "properties": {
           "steps": {
             "anyOf": [
@@ -7867,7 +9261,7 @@
               }
             ],
             "title": "Sequence",
-            "description": "Ordered list of step IDs."
+            "description": "Ordered list of Step IDs."
           },
           "description": {
             "anyOf": [
@@ -7898,8 +9292,178 @@
           }
         },
         "type": "object",
-        "title": "WorkflowUpdate",
+        "title": "WorkflowConfigUpdate",
         "description": "Payload for updating a workflow."
+      },
+      "WorkflowDeleteResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "deleted_steps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Deleted Steps"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "deleted_steps"
+        ],
+        "title": "WorkflowDeleteResponse",
+        "description": "Response for workflow deletion."
+      },
+      "WorkflowResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "steps": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Steps"
+          },
+          "default_model_mapping": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Default Model Mapping",
+            "default": {}
+          },
+          "ui_schema": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Ui Schema",
+            "default": {}
+          },
+          "is_public": {
+            "type": "boolean",
+            "title": "Is Public",
+            "default": false
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "draft"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version",
+            "default": 1
+          },
+          "scoring_logic": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Scoring Logic",
+            "default": []
+          },
+          "created_at": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "updated_at": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "organization_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organization Id"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "steps"
+        ],
+        "title": "WorkflowResponse",
+        "description": "Full workflow configuration."
+      },
+      "WorkflowTemplate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "steps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Steps"
+          },
+          "default_model_mapping": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Default Model Mapping"
+          },
+          "ui_schema": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Ui Schema"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "description",
+          "steps",
+          "default_model_mapping",
+          "ui_schema"
+        ],
+        "title": "WorkflowTemplate",
+        "description": "Model representing an empty workflow template."
       },
       "WorkflowUpdateRequest": {
         "properties": {
@@ -8034,6 +9598,25 @@
         "type": "object",
         "title": "WorkflowUpdateRequest",
         "description": "Payload for updating an existing workflow."
+      },
+      "backend__models__dtos__config__WorkflowDeleteResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "id"
+        ],
+        "title": "WorkflowDeleteResponse",
+        "description": "Response for workflow deletion."
       }
     }
   }

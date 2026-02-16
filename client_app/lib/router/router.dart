@@ -13,6 +13,7 @@ import 'package:client_app/features/orchestration/presentation/screens/execution
 // Duplicate removed inside router.dart
 import 'package:client_app/features/studio/presentation/screens/workflow_studio_screen.dart'; // Added for direct routing
 import 'package:client_app/router/routes/admin_routes.dart'; // Manual Shell Route
+import 'package:client_app/features/knowledge_base/view/ingestion_view.dart';
 import 'package:client_app/router/routes/studio_routes.dart'; // Studio Route
 
 import 'package:flutter/material.dart';
@@ -205,6 +206,10 @@ GoRouter router(Ref ref) {
             builder:
                 (context, state) =>
                     const WorkflowStudioScreen(initialTabIndex: 3),
+          ),
+          GoRoute(
+            path: 'knowledge',
+            builder: (context, state) => const IngestionView(),
           ),
         ],
       ),

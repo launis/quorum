@@ -1,10 +1,20 @@
 """Administration Service for backend management."""
 
+import asyncio
+import logging
 import os
+import sys
 
+from backend.database.exporter import export_db_to_files
 from backend.database.repository import AbstractWorkflowRepository
+from backend.exceptions import AppException, ErrorCodes
 from backend.schemas.admin import AdminOperationResponse
+from backend.seed.seeder import seed_database
+from backend.services.localization import LocalizationService
 from backend.services.progress import ProgressTracker
+from backend.settings import get_settings
+
+logger = logging.getLogger(__name__)
 
 
 class AdministrationService:
@@ -30,9 +40,9 @@ class AdministrationService:
         Returns:
             AdminOperationResponse: Status and result message.
 
+        Raises:
+            AppException: If export fails.
         """
-        from backend.database.exporter import export_db_to_files
-
         await tracker.start({"operation": "Export Seed Data"})
         try:
             # Use the exporter module
@@ -46,7 +56,12 @@ class AdministrationService:
             return final_res
         except Exception as e:
             await tracker.fail(str(e))
-            raise e from e
+            logger.error(f"Export failed: {e}", exc_info=True)
+            raise AppException(
+                message=f"Export failed: {str(e)}",
+                status_code=500,
+                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR}
+            ) from e
 
     async def rebuild_database(self, tracker: ProgressTracker) -> AdminOperationResponse:
         """Rebuilds the database using 'seed_data.json'.
@@ -59,9 +74,9 @@ class AdministrationService:
         Returns:
             AdminOperationResponse: Status and result message.
 
+        Raises:
+            AppException: If rebuild fails.
         """
-        from backend.seed.seeder import seed_database
-
         await tracker.start({"operation": "Rebuild Database"})
         try:
             # Use the seeder internally. It will use the configured DB path from backend.config.
@@ -70,13 +85,17 @@ class AdministrationService:
             seed_database()
             await tracker.update("Seeding Completed", 100)
 
-            from backend.services.localization import LocalizationService
             result = AdminOperationResponse(status="completed", message=LocalizationService.translate("DB_REBUILT"))
             await tracker.complete(result.model_dump())
             return result
         except Exception as e:
             await tracker.fail(str(e))
-            raise e from e
+            logger.error(f"Rebuild failed: {e}", exc_info=True)
+            raise AppException(
+                message=f"Rebuild failed: {str(e)}",
+                status_code=500,
+                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR}
+            ) from e
 
     async def reset_mock_db(self, tracker: ProgressTracker) -> AdminOperationResponse:
         """Resets the Mock database via external script.
@@ -114,10 +133,7 @@ class AdministrationService:
     async def _run_external_reset(
         self, tracker: ProgressTracker, script_name: str, op_name: str
     ) -> AdminOperationResponse:
-        import asyncio
-        import sys
-
-        from backend.settings import get_settings
+        """Runs an external python script to reset the database."""
 
         await tracker.start({"operation": op_name})
         try:
@@ -126,7 +142,16 @@ class AdministrationService:
 
             if not os.path.exists(script_path):
                 # Fallback: try relative path from root if scripts_dir not set correctly or script moved
-                script_path = os.path.join(os.getcwd(), "scripts", script_name)
+                # Fail Fast: If script is missing, we can't proceed.
+                possible_path = os.path.join(os.getcwd(), "scripts", script_name)
+                if os.path.exists(possible_path):
+                    script_path = possible_path
+                else:
+                    raise AppException(
+                        message=f"Reset script not found: {script_name}",
+                        status_code=500,
+                        details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR}
+                    )
 
             await tracker.update(f"Running {script_name}...", 20)
 
@@ -144,7 +169,12 @@ class AdministrationService:
 
             if process.returncode != 0:
                 error_msg = stderr.decode().strip()
-                raise Exception(f"Script failed (Exit {process.returncode}): {error_msg}")
+                logger.error(f"Script {script_name} failed: {error_msg}")
+                raise AppException(
+                    message=f"Script failed (Exit {process.returncode}): {error_msg}",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR}
+                )
 
             await tracker.update("Completed", 100)
             return AdminOperationResponse(
@@ -153,4 +183,11 @@ class AdministrationService:
 
         except Exception as e:
             await tracker.fail(str(e))
-            raise e from e
+            logger.error(f"External reset failed: {e}", exc_info=True)
+            if isinstance(e, AppException):
+                raise e
+            raise AppException(
+                message=f"External reset failed: {str(e)}",
+                status_code=500,
+                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR}
+            ) from e

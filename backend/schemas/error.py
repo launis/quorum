@@ -5,7 +5,7 @@ Enforces the 'API & Error Contract' defined in flutterpromptohje.md.
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ProblemDetail(BaseModel):
@@ -60,6 +60,15 @@ class ProblemDetail(BaseModel):
         default=None,
         description="Additional context (step_id, cause, agent, etc.)",
     )
+
+    model_config = ConfigDict(frozen=True, strict=True)
+
+    @field_validator("type", "title", "detail")
+    @classmethod
+    def validate_non_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Field cannot be empty or whitespace only.")
+        return v.strip()
 
     @property
     def error_code(self) -> str:

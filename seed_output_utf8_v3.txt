@@ -1,0 +1,17 @@
+﻿--- SEEDING TARGET: LOCAL ---
+[Seed] Loaded 6 workflows.
+[Seed] Removed existing C:\src\quorum\data\db.json
+[Seeder] CLEARED persistence. Dropped all tables from C:\src\quorum\data\db.json.
+[Seeder] Upserted 6 workflows.
+[Seeder] Upserted 78 components.
+[Seeder] Upserted 3 system_config items.
+[Seeder] Extracted & Upserted 3 ontology dimensions from matrices.
+[Seeder] Upserted 2 organizations.
+[Seeder] Validation Error for User root_master: 1 validation error for User
+role
+  Input should be an instance of UserRole [type=is_instance_of, input_value='ROOT', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/is_instance_of
+[ERROR] Failed to seed local: 1 validation error for User
+role
+  Input should be an instance of UserRole [type=is_instance_of, input_value='ROOT', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/is_instance_of

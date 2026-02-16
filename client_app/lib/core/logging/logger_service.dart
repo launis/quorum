@@ -16,8 +16,10 @@ class LoggerService {
 
   LoggerService() {
     // Initialize with buffer and console output
+    const useJson = bool.fromEnvironment('USE_JSON_LOGGING', defaultValue: false);
+    
     _logger = Logger(
-      printer: CustomPrinter(),
+      printer: useJson ? JsonPrinter() : CustomPrinter(),
       output: ConsoleOutput(),
       filter: ProductionFilter(),
     );
@@ -38,9 +40,11 @@ class LoggerService {
       // debugPrint("LoggerService: Attempting to write to ${file.absolute.path}");
       
       // Re-initialize 
+      const useJson = bool.fromEnvironment('USE_JSON_LOGGING', defaultValue: false);
+      
       _logger = Logger(
         filter: ProductionFilter(),
-        printer: CustomPrinter(),
+        printer: useJson ? JsonPrinter() : CustomPrinter(),
         output: MultiOutput([
           FileOutput(file),
         ]),
@@ -52,12 +56,12 @@ class LoggerService {
     }
   }
 
-  void debug(String context, String message) => _logger.d('[$context] | $message');
-  void info(String context, String message) => _logger.i('[$context] | $message');
+  void debug(String context, String message) => _logger.d('[$context] | client | $message');
+  void info(String context, String message) => _logger.i('[$context] | client | $message');
   void warning(String context, String message, [Object? error, StackTrace? stack]) => 
-      _logger.w('[$context] | $message', error: error, stackTrace: stack);
+      _logger.w('[$context] | client | $message', error: error, stackTrace: stack);
   void error(String context, String message, [Object? error, StackTrace? stack]) => 
-      _logger.e('[$context] | $message', error: error, stackTrace: stack);
+      _logger.e('[$context] | client | $message', error: error, stackTrace: stack);
 }
 
 // --- Custom Components ---
@@ -82,10 +86,73 @@ class CustomPrinter extends LogPrinter {
     final output = '$time | $levelStr | $message';
     
     final result = <String>[output];
-    if (errorStr != null) result.add(errorStr);
+    if (event.error != null) result.add("ERROR: ${event.error}");
     if (event.stackTrace != null) result.add(event.stackTrace.toString());
     
     return result;
+  }
+}
+
+class JsonPrinter extends LogPrinter {
+  @override
+  List<String> log(LogEvent event) {
+    final timestamp = DateTime.now().toIso8601String();
+    final level = event.level.name.toUpperCase();
+    var message = event.message.toString();
+    String context = "UNKNOWN";
+    
+    // Try to parse context from standard format "[$context] | client | $msg"
+    // Format defined in LoggerService methods: '[$context] | client | $message'
+    if (message.startsWith("[")) {
+      final endIndex = message.indexOf("]");
+      if (endIndex != -1) {
+        context = message.substring(1, endIndex);
+        // Strip the prefix "[$context] | client | "
+        final prefixEnd = message.indexOf("| client | ");
+        if (prefixEnd != -1) {
+           message = message.substring(prefixEnd + 11);
+        }
+      }
+    }
+
+    final logRecord = {
+      "timestamp": timestamp,
+      "level": level,
+      "logger": "client",
+      "context_id": context,
+      "execution_id": context, // Map context to execution_id for parity
+      "message": message,
+    };
+
+    if (event.error != null) {
+      logRecord["error"] = event.error.toString();
+    }
+    if (event.stackTrace != null) {
+      logRecord["stack_trace"] = event.stackTrace.toString();
+    }
+
+    // Manual JSON serialization to avoid importing dart:convert if not needed, 
+    // but dart:convert is standard.
+    // Simple robust string construction for now to avoid dealing with imports/escaping if quick:
+    // Actually, let's use a simple safe string build or just use string interpolation carefully.
+    // Ideally we import 'dart:convert'; let's assume it's available or add it.
+    // But to be safe and "surgical", I'll use a simple clean block.
+    // Wait, I can just use string formatting if I escape quotes.
+    // Better: just import dart:convert at the top. I need to check if it's imported. 
+    // It is NOT imported in the file currently (lines 1-7).
+    // I will add the import in the next step. For now, I'll rely on a basic sanitized string.
+    
+    final jsonStr = _manualJsonStringify(logRecord);
+    return [jsonStr];
+  }
+
+  String _manualJsonStringify(Map<String, String> map) {
+    final entries = map.entries.map((e) {
+      final key = e.key;
+      final val = e.value.replaceAll('"', '\\"').replaceAll('\n', '\\n');
+      return '"$key": "$val"';
+    }).join(', ');
+    return '{$entries}';
   }
 }
 

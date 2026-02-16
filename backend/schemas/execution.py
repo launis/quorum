@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ExecutionRequest(BaseModel):
@@ -14,3 +14,12 @@ class ExecutionRequest(BaseModel):
     project_id: str = Field(..., description="The ID of the workflow/project to execute (maps to workflow_id).")
     description: str | None = Field(None, description="Optional description for this execution run.")
     settings: dict[str, Any] = Field(default_factory=dict, description="Input parameters/settings for the execution.")
+
+    model_config = ConfigDict(frozen=True, strict=True)
+
+    @field_validator("project_id")
+    @classmethod
+    def validate_non_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Field cannot be empty or whitespace only.")
+        return v.strip()

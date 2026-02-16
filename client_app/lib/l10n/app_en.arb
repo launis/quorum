@@ -48,6 +48,12 @@
   "@fieldRequired": {
       "description": "Validation error message"
   },
+  "authOrganic": "Organic (Authentic)",
+  "authPerformative": "Performative (Staged)",
+  "authUnknown": "Unknown",
+  "verVerified": "Verified",
+  "verDebunked": "Debunked",
+  "verUncertain": "Uncertain",
   "fileRequired": "This file is required.",
   "@fileRequired": {
       "description": "Validation error message for files"
@@ -259,10 +265,10 @@
   "userDeletedSuccess": "User deleted successfully.",
   "organizationId": "Organization ID",
 
-  "helpBloom": "Cognitive Level (Bloom) measures the depth of thinking on six levels:\n\n1. Remembering (0.5)\n2. Understanding (1.5)\n3. Applying (2.5)\n4. Analyzing (3.5)\n5. Evaluating (4.5)\n6. Creating (5.5)\n\nStrategic Depth describes how complex mental models you use in problem solving.",
-  "helpToulmin": "The Toulmin model evaluates the structural integrity of an argument:\n\n• Claim: What is being asserted?\n• Warrant: Why is the claim true?\n• Backing: Evidence supporting the warrant.\n\nScoring (0-6) is based on the presence and quality of these elements.",
-  "helpWalton": "The Walton scheme identifies the reasoning pattern used (e.g. 'Inference to the Best Explanation') and challenges it with critical questions. It does not give points, but ensures logic quality by challenging its weaknesses.",
-  "helpControlRatio": "NOTE: Role and Control Ratio are distinct metrics.\n\n• **Role** is the AI's qualitative assessment of your interaction.\n• **Control Ratio** is a mathematical metric (commands / turns).\n\nDiscrepancies (e.g. Driver 0%) arise from different analysis methods. Trust the Role primarily.\n\nReference intervals:\n• < 50%: Passenger\n• 50-80%: Navigator\n• 80-150%: Driver\n• > 150%: Architect",
+  "helpBloom": "Based on the Revised Bloom's Taxonomy (Anderson & Krathwohl, 2001), this metric evaluates the cognitive complexity of the output. It distinguishes between lower-order thinking (Remembering, Understanding) and higher-order skills (Applying, Analyzing, Evaluating, Creating). High scores indicate the agent is not just retrieving facts but synthesizing new information.",
+  "helpToulmin": "Derived from Stephen Toulmin's 'The Uses of Argument' (1958), this model moves beyond formal logic to practical argumentation. It assesses whether the Claim is supported by Data and connected via a Warrant. This structure ensures that arguments are not just assertions but reasoned positions.",
+  "helpWalton": "Based on Douglas Walton's Argumentation Schemes, Fidelity measures dialectical consistency. It checks if the reasoning strictly adheres to the provided premises (Source Data) or if the agent engages in 'Post-Hoc Rationalization'—inventing justifications after the fact to support a hallucinated or biased conclusion.",
+  "helpControlRatio": "Based on Discourse Analysis and Interaction Dynamics, this ratio measures the balance of initiative. A 'Passenger' merely responds (reactive), while a 'Driver' or 'Architect' sets the frame and direction of the conversation (proactive). High control indicates the AI is leading the cognitive work.",
   "helpMethodology": "The Methodological Log tells what analysis methods the AI has applied in this phase (e.g. 'Logic Audit', 'Causality Testing').",
   "rolePassenger": "Passenger",
   "roleNavigator": "Navigator",
@@ -275,6 +281,10 @@
   "lblCriticalQuestions": "Critical Questions",
   "lblRoleAndPosition": "User Role & Position",
   "lblControlRatio": "Control Ratio",
+  "biasDetected": "Bias Detected",
+  "biasNone": "No Bias",
+  "gapDetected": "Action Gap",
+  "gapNone": "Consistent",
   "lblBloomScore": "Bloom Score",
   "lblToulminScore": "Toulmin Score",
   "lblMethodologicalLog": "Methodological Log",
@@ -298,12 +308,16 @@
   "lblHeuristics": "Heuristics",
   "lblComplianceAnalysis": "Compliance Analysis",
 
+  "helpComplianceAnalysis": "Compliance Analysis",
+  
+  "helpFidelity": "Fidelity measures the logical consistency of the argument. It checks if the conclusion follows strictly from the premises, without inventing new information (Hallucination) or justifying a pre-decided conclusion (Post-Hoc Rationalization).",
+  "helpAbductive": "Abductive Reasoning (Inference to Best Explanation) evaluates if the AI's conclusion is the most plausible explanation for the observations, rejecting less likely alternatives.",
   "helpStressTest": "Walton's stress test audits the fidelity of reasoning. It reveals 'Post-Hoc rationalization' if the AI has merely invented justifications afterwards and did not actually derive the result from them.",
-  "helpCausal": "Causal analysis compares the actual event to a simulated alternative scenario (counterfactual) to understand cause-and-effect relationships.",
+  "helpCausal": "Rooted in C.S. Peirce's logic of 'Inference to the Best Explanation', Abductive reasoning infers the most likely cause. Plausibility, grounded in Counterfactual theories (e.g. Judea Pearl), tests causal understanding by simulating 'What If?' scenarios to check logical consistency.",
   "helpProfiler": "Profiling analyzes text tone, vocabulary, and latent biases. It helps identify if the AI is attempting to manipulate or is biased.",
   "helpFactCheck": "Fact-checking compares claims to known sources and checks for ethical risks (e.g. hate speech, discrimination).",
-  "helpPerformativity": "Performativity check evaluates whether the AI is 'acting' a role or acting genuinely. It looks for signs of feigned empathy or excessive sycophancy.",
-  "helpArchivist": "The Archivist checks whether the response complies with organization rules (Compliance) and aligns with previous precedents.",
+  "helpPerformativity": "Inspired by Erving Goffman's dramaturgical analysis and J.L. Austin's performativity, this metric detects 'Acting'. It differentiates between 'Organic' interaction (consistent personae) and 'Performative' artifacts (e.g., exaggerated politeness, feigned empathy, or 'AI-splaining').",
+  "helpArchivist": "In the context of AI Alignment and Constitutional AI, Compliance measures the agent's adherence to defined behavioral constraints (The Constitution) and organizational norms, ensuring safety and goal alignment regardless of the user's prompt.",
   "studioStepsTitle": "Steps",
   "studioConfigurationTitle": "Configuration",
   "studioAddStepButton": "Add Step",
@@ -457,5 +471,91 @@
   "stratHigh": "Strategic",
   "stratVisionary": "Visionary",
   "helpLogicMatrix": "The Logic Matrix visualizes the relationship between argumentation quality and cognitive depth. NEW: Bubble size represents Strategic Depth (Agency). Large bubble implies visionary approach.",
-  "helpStrategicDepth": "Strategic Depth measures the user's ability to plan, anticipate, and guide the process purposefully."
+  "helpStrategicDepth": "Drawing on Systems Thinking and Foresight methodologies, Strategic Depth measures the temporal and systemic scope of the response. It contrasts 'Tactical' (immediate, reactive) thinking with 'Visionary' (long-term, systemic) thinking, evaluating the agent's ability to model second- and third-order consequences.",
+  "helpPerformativity": "Performativity analysis evaluates whether the response is authentic and organic or artificial and staged. It detects 'purple prose', excessive humility, and other inauthentic traits.",
+  "helpAuthenticity": "Authenticity measures the naturalness of the response on a scale of 1-3. 3 = Organic, 2 = Mixed, 1 = Performative.",
+  "helpFactCheck": "Fact Check compares claims against a known knowledge base and scans for ethical risks.",
+  "helpWordCount": "Total word count of the response.",
+  
+  "secThreatDetected": "THREAT DETECTED",
+  "secThreatNone": "No Threats",
+  "secAnonymized": "ANONYMIZED",
+  "secNotAnonymized": "NOT ANONYMIZED",
+  "riskHigh": "HIGH RISK",
+  "riskMedium": "Medium Risk",
+  "riskLow": "Low Risk",
+  "riskUnknown": "Unknown Risk",
+  
+  "biasDetected": "BIAS DETECTED",
+  "biasNone": "No Bias",
+  "gapDetected": "GAP DETECTED",
+  "gapNone": "Consistent",
+  
+  "lblDriver": "Driver",
+  "lblPassenger": "Passenger",
+  "lblRiskLevel": "Risk Level",
+  "lblEmotionalTone": "Emotional Tone",
+  "lblNoFindings": "No significant findings.",
+  "knowledgeBaseIngestionTitle": "Knowledge Base Ingestion",
+  "uploadDocxMd": "Upload DOCX / MD",
+  "ingestionComplete": "Ingestion Complete!",
+  "referencesCount": "References: {count}",
+  "@referencesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "claimsCount": "Claims: {count}",
+  "@claimsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "studioDashboardKnowledgeTitle": "Ingestion",
+  "studioDashboardKnowledgeDesc": "Upload documents to Knowledge Base.",
+  "addStrategyTooltip": "Add Strategy",
+  "resetKnowledgeBaseTitle": "Reset Knowledge Base?",
+  "resetKnowledgeBaseConfirmation": "This will adhere to the \"Clean Slate\" protocol and permanently delete all ingested documents. Continue?",
+  "resetButton": "Reset",
+  "analysisLevelLabel": "Analysis Level (Model Strategy)",
+  "analysisLevelHelper": "Select \"Deep\" for complex reasoning or \"Fast\" for speed.",
+  "analysisLevelNone": "None (Parsing Only)",
+  "strategiesLoadError": "Failed to load strategies: {error}",
+  "@strategiesLoadError": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "processingStatus": "Processing...",
+  "selectFile": "Select a file to upload",
+  "submissionFailed": "Submission failed: {error}",
+  "@submissionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "errorUnknown": "Unknown error",
+  "errorKnowledgeIngestionFailed": "Knowledge ingestion failed. Check file and try again.",
+  "errorKnowledgeResetFailed": "Knowledge base reset failed. Contact support.",
+  "errorKnowledgeRetrievalFailed": "Knowledge retrieval failed. Server unresponsive.",
+
+  "errValidationFailed": "Validation Failed",
+  "errInternalServerError": "Internal Server Error",
+  "errResourceNotFound": "Resource Not Found",
+  "errAuthenticationFailed": "Authentication Failed",
+  "errPermissionDenied": "Permission Denied",
+  "errServiceUnavailable": "Service Unavailable",
+  "errAgentExecutionCritical": "Agent Execution Critical",
+  "errWorkflowExecutionFailed": "Workflow Execution Failed",
+  "errKnowledgeNotIngestedTitle": "Knowledge Base Empty",
+  "errKnowledgeNotIngested": "Knowledge Base is empty. Please upload documents in the Ingestion view before running analysis.",
+  "actionGoToIngestion": "Go to Ingestion"
 }

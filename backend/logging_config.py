@@ -6,6 +6,7 @@ import sys
 from typing import Any
 
 from backend.context import get_execution_context
+from backend.exceptions import AppException, ErrorCodes
 
 try:
     import logfire
@@ -89,16 +90,20 @@ def setup_logging(log_level=logging.INFO):
         try:
             os.makedirs(log_dir, exist_ok=True)
         except Exception as e:
-            # Fallback to stdout only if we can't create the file,
-            # effectively disabling file logging to prevent crash.
-            print(f"FAILED TO CREATE LOG DIRECTORY {log_dir}: {e}")
-            # Reset to None so FileHandler is skipped?
-            # Actually easier to let it fail or wrap in try/except block below.
-            pass
+            # FAIL FAST: Cannot start without logging capabilities
+            raise AppException(
+                message=f"FAILED TO CREATE LOG DIRECTORY {log_dir}: {e}",
+                status_code=500,
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
+            ) from e
 
     # Create formatters
     formatter: logging.Formatter
-    if settings.environment.lower() == "production" or settings.use_json_logging:
+    # Create formatters
+    formatter: logging.Formatter
+    # MODIFIED: Only force JSON if explicitly requested. 
+    # This allows 'production' environment (now default) to still use readable logs locally.
+    if settings.use_json_logging:
         formatter = JSONFormatter(
             "%(asctime)s | %(levelname)s | [%(context_id)s] | %(name)s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
         )

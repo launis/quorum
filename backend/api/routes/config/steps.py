@@ -8,98 +8,241 @@ from pydantic import BaseModel, Field
 from tinydb import Query
 
 from backend.dependencies import DatabaseDep
-from backend.exceptions import ConflictError, ResourceNotFoundError
+from backend.exceptions import ConflictError, ResourceNotFoundError, AppException
+from backend.models.dtos.config import StepDefinition, StepDeleteResponse
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/config", tags=["Configuration"])
-
-
-# --- Models ---
-
-class StepConfig(BaseModel):
-    """Step Configuration (Direct DB Mapping).
-    """
-    id: str = Field(..., description="Unique step identifier", json_schema_extra={"x-ui-label": "Step ID"})
-    name: str = Field(..., description="Human-readable name", json_schema_extra={"x-ui-label": "Nimi"})
-    description: str | None = Field(None, json_schema_extra={"x-ui-label": "Kuvaus"})
-
-    # Primary DB Fields
-    task_key: str = Field("analyst", description="Task Key (DB source)", json_schema_extra={"x-ui-label": "Agentti"})
-    config: dict[str, Any] = Field(default_factory=dict, description="Configuration (DB source)", json_schema_extra={"x-ui-label": "Asetukset"})
+router = APIRouter(tags=["Configuration"])
 
 
 # --- Routes ---
 
-@router.get("/steps", summary="List Steps", response_description="All steps.", response_model=list[StepConfig])
-def get_steps(db: DatabaseDep):
+@router.get("", summary="List Steps", response_description="All steps.", response_model=list[StepDefinition])
+def get_steps(db: DatabaseDep) -> list[StepDefinition]:
     """Retrieves all defined steps. Pydantic model handles adaptation automatically."""
-    return db.table("steps").all()
+    try:
+        steps = db.table("steps").all()
+        return [StepDefinition(**s) for s in steps]
+    except Exception as e:
+        error_code = "STEP_LIST_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise AppException(
+            message=str(e), status_code=500, details={"error_code": error_code}
+        ) from e
 
 
-@router.get("/steps/{step_id}", summary="Get Step", response_model=StepConfig)
-def get_step(step_id: str, db: DatabaseDep):
+@router.get("/{step_id}", summary="Get Step", response_model=StepDefinition)
+def get_step(step_id: str, db: DatabaseDep) -> StepDefinition:
     """Retrieves a single step by ID."""
-    Step = Query()
-    doc = db.table("steps").get(Step.id == step_id)
-    if not doc:
-        raise ResourceNotFoundError(message=f"Step '{step_id}' not found.")
-    return doc
+    try:
+        Step = Query()
+        doc = db.table("steps").get(Step.id == step_id)
+        if not doc:
+            raise ResourceNotFoundError(message=f"Step '{step_id}' not found.")
+        return StepDefinition(**doc)
+    except Exception as e:
+        if isinstance(e, ResourceNotFoundError):
+             raise e
+        
+        error_code = "STEP_FETCH_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise AppException(
+            message=str(e), status_code=500, details={"error_code": error_code}
+        ) from e
 
 
-@router.post("/steps", summary="Create Step", response_description="Status and ID.")
-def create_step(step: StepConfig, db: DatabaseDep):
+@router.post("", summary="Create Step", response_description="Status and ID.", response_model=StepDefinition)
+def create_step(step: StepDefinition, db: DatabaseDep) -> StepDefinition:
     """Creates a new step. Pydantic validator adapts legacy input to DB schema."""
-    table = db.table("steps")
-    Step = Query()
+    try:
+        table = db.table("steps")
+        Step = Query()
 
-    if table.search(Step.id == step.id):
-        raise ConflictError(message="Step ID already exists", details={"id": step.id})
+        if table.search(Step.id == step.id):
+            raise ConflictError(message="Step ID already exists", details={"id": step.id})
 
-    # Dump passing 'exclude' for computed fields to store only raw DB types
-    # Actually, exclude={'component', 'execution_config'} is needed if we don't want them in DB.
-    # But computed_fields are usually read-only.
-    # We explicitly verify what we store.
-    doc = step.model_dump(exclude={'component', 'execution_config'})
-    table.insert(doc)
-    return {"status": "created", "id": step.id}
-
-
-@router.put("/steps/{step_id}", summary="Update Step")
-def update_step(step_id: str, step: StepConfig, db: DatabaseDep):
-    """Updates an existing step."""
-    table = db.table("steps")
-    Step = Query()
-
-    # Check existence
-    if not table.contains(Step.id == step_id):
-         raise ResourceNotFoundError(message=f"Step '{step_id}' not found.")
-
-    # Prevent ID change collision
-    if step.id != step_id and table.contains(Step.id == step.id):
-         raise ConflictError(message="New Step ID already exists", details={"id": step.id})
-
-    # Prepare Doc (Exclude computed legacy fields from DB)
-    doc = step.model_dump(exclude={'component', 'execution_config'})
-
-    # Update logic
-    if step.id == step_id:
-        table.update(doc, Step.id == step_id)
-    else:
-        table.remove(Step.id == step_id)
+        # Dump passing 'exclude' for computed fields to store only raw DB types
+        # Actually, exclude={'component', 'execution_config'} is needed if we don't want them in DB.
+        # But computed_fields are usually read-only.
+        # We explicitly verify what we store.
+        doc = step.model_dump(exclude={'component', 'execution_config'})
         table.insert(doc)
+        return step
+    except Exception as e:
+        if isinstance(e, ConflictError):
+             raise e
+        
+        error_code = "STEP_CREATE_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise AppException(
+            message=str(e), status_code=500, details={"error_code": error_code}
+        ) from e
 
-    return {"status": "updated", "id": step.id}
+
+@router.put("/{step_id}", summary="Update Step", response_model=StepDefinition)
+def update_step(step_id: str, step: StepDefinition, db: DatabaseDep) -> StepDefinition:
+    """Updates an existing step."""
+    try:
+        table = db.table("steps")
+        Step = Query()
+
+        # Check existence
+        if not table.contains(Step.id == step_id):
+             raise ResourceNotFoundError(message=f"Step '{step_id}' not found.")
+
+        # Prevent ID change collision
+        if step.id != step_id and table.contains(Step.id == step.id):
+             raise ConflictError(message="New Step ID already exists", details={"id": step.id})
+
+        # Prepare Doc (Exclude computed legacy fields from DB)
+        doc = step.model_dump(exclude={'component', 'execution_config'})
+
+        # Update logic
+        if step.id == step_id:
+            table.update(doc, Step.id == step_id)
+        else:
+            table.remove(Step.id == step_id)
+            table.insert(doc)
+
+        return step
+    except Exception as e:
+        if isinstance(e, (ResourceNotFoundError, ConflictError)):
+             raise e
+        
+        error_code = "STEP_UPDATE_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise AppException(
+            message=str(e), status_code=500, details={"error_code": error_code}
+        ) from e
 
 
-@router.delete("/steps/{step_id}", summary="Delete Step")
-def delete_step(step_id: str, db: DatabaseDep):
+@router.delete("/{step_id}", summary="Delete Step", response_model=StepDeleteResponse)
+def delete_step(step_id: str, db: DatabaseDep) -> StepDeleteResponse:
     """Deletes a step."""
-    table = db.table("steps")
-    Step = Query()
+    try:
+        table = db.table("steps")
+        Step = Query()
 
-    if not table.contains(Step.id == step_id):
-        raise ResourceNotFoundError(message=f"Step '{step_id}' not found.")
+        if not table.contains(Step.id == step_id):
+            raise ResourceNotFoundError(message=f"Step '{step_id}' not found.")
 
-    table.remove(Step.id == step_id)
-    return {"status": "deleted", "id": step_id}
+        table.remove(Step.id == step_id)
+        return StepDeleteResponse(status="deleted", id=step_id)
+    except Exception as e:
+        if isinstance(e, ResourceNotFoundError):
+             raise e
+        
+        error_code = "STEP_DELETE_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise AppException(
+            message=str(e), status_code=500, details={"error_code": error_code}
+        ) from e
+
+
+@router.get("/steps/{step_id}", summary="Get Step", response_model=StepDefinition)
+def get_step(step_id: str, db: DatabaseDep) -> StepDefinition:
+    """Retrieves a single step by ID."""
+    try:
+        Step = Query()
+        doc = db.table("steps").get(Step.id == step_id)
+        if not doc:
+            raise ResourceNotFoundError(message=f"Step '{step_id}' not found.")
+        return StepDefinition(**doc)
+    except Exception as e:
+        if isinstance(e, ResourceNotFoundError):
+             raise e
+        
+        error_code = "STEP_FETCH_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise AppException(
+            message=str(e), status_code=500, details={"error_code": error_code}
+        ) from e
+
+
+@router.post("/steps", summary="Create Step", response_description="Status and ID.", response_model=StepDefinition)
+def create_step(step: StepDefinition, db: DatabaseDep) -> StepDefinition:
+    """Creates a new step. Pydantic validator adapts legacy input to DB schema."""
+    try:
+        table = db.table("steps")
+        Step = Query()
+
+        if table.search(Step.id == step.id):
+            raise ConflictError(message="Step ID already exists", details={"id": step.id})
+
+        # Dump passing 'exclude' for computed fields to store only raw DB types
+        # Actually, exclude={'component', 'execution_config'} is needed if we don't want them in DB.
+        # But computed_fields are usually read-only.
+        # We explicitly verify what we store.
+        doc = step.model_dump(exclude={'component', 'execution_config'})
+        table.insert(doc)
+        return step
+    except Exception as e:
+        if isinstance(e, ConflictError):
+             raise e
+        
+        error_code = "STEP_CREATE_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise AppException(
+            message=str(e), status_code=500, details={"error_code": error_code}
+        ) from e
+
+
+@router.put("/steps/{step_id}", summary="Update Step", response_model=StepDefinition)
+def update_step(step_id: str, step: StepDefinition, db: DatabaseDep) -> StepDefinition:
+    """Updates an existing step."""
+    try:
+        table = db.table("steps")
+        Step = Query()
+
+        # Check existence
+        if not table.contains(Step.id == step_id):
+             raise ResourceNotFoundError(message=f"Step '{step_id}' not found.")
+
+        # Prevent ID change collision
+        if step.id != step_id and table.contains(Step.id == step.id):
+             raise ConflictError(message="New Step ID already exists", details={"id": step.id})
+
+        # Prepare Doc (Exclude computed legacy fields from DB)
+        doc = step.model_dump(exclude={'component', 'execution_config'})
+
+        # Update logic
+        if step.id == step_id:
+            table.update(doc, Step.id == step_id)
+        else:
+            table.remove(Step.id == step_id)
+            table.insert(doc)
+
+        return step
+    except Exception as e:
+        if isinstance(e, (ResourceNotFoundError, ConflictError)):
+             raise e
+        
+        error_code = "STEP_UPDATE_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise AppException(
+            message=str(e), status_code=500, details={"error_code": error_code}
+        ) from e
+
+
+@router.delete("/steps/{step_id}", summary="Delete Step", response_model=StepDeleteResponse)
+def delete_step(step_id: str, db: DatabaseDep) -> StepDeleteResponse:
+    """Deletes a step."""
+    try:
+        table = db.table("steps")
+        Step = Query()
+
+        if not table.contains(Step.id == step_id):
+            raise ResourceNotFoundError(message=f"Step '{step_id}' not found.")
+
+        table.remove(Step.id == step_id)
+        return StepDeleteResponse(status="deleted", id=step_id)
+    except Exception as e:
+        if isinstance(e, ResourceNotFoundError):
+             raise e
+        
+        error_code = "STEP_DELETE_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise AppException(
+            message=str(e), status_code=500, details={"error_code": error_code}
+        ) from e

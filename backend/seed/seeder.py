@@ -7,6 +7,7 @@ Includes MIGRATION LOGIC to transform Legacy Workflows -> V2.9 GraphEngine Workf
 import json
 import logging
 import os
+from datetime import datetime
 
 from tinydb import Query, TinyDB
 
@@ -130,7 +131,14 @@ def _seed_tinydb(db_path: str, seed_data: dict):
     count = 0
     for org in seed_data.get("organizations", []):
         try:
-            # STRICT VALIDATION: Validates datetime strings
+            # STRICT VALIDATION: Manual conversion for strict models
+            if isinstance(org.get("created_at"), str):
+                org["created_at"] = datetime.fromisoformat(org["created_at"])
+            
+            if isinstance(org.get("subscription_status"), str):
+                from backend.models.auth import SubscriptionStatus
+                org["subscription_status"] = SubscriptionStatus(org["subscription_status"])
+
             validated_org = Organization(**org)
             # Dump to JSON-safe dict (datetimes -> ISO strings) for TinyDB
             safe_org = validated_org.model_dump(mode="json")
@@ -147,7 +155,14 @@ def _seed_tinydb(db_path: str, seed_data: dict):
     count = 0
     for user in seed_data.get("users", []):
         try:
-            # STRICT VALIDATION
+            # STRICT VALIDATION: Manual conversion for strict models
+            if isinstance(user.get("created_at"), str):
+                user["created_at"] = datetime.fromisoformat(user["created_at"])
+            
+            if isinstance(user.get("role"), str):
+                from backend.models.auth import UserRole
+                user["role"] = UserRole(user["role"])
+
             validated_user = User(**user)
             # Dump to JSON-safe dict
             safe_user = validated_user.model_dump(mode="json")
@@ -289,11 +304,11 @@ def _delete_collection(coll_ref, batch_size=50):
 
 if __name__ == "__main__":
     import argparse
-    
+
     parser = argparse.ArgumentParser(description="Seed the database.")
     parser.add_argument("env", nargs="?", default="LOCAL", help="Target environment: LOCAL or STAGING/PROD (default: LOCAL)")
     parser.add_argument("--db-path", default=None, help="Optional path to target database JSON file.")
-    
+
     args = parser.parse_args()
-    
+
     seed_database(target_env=args.env, target_db_path=args.db_path)

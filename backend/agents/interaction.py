@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 # 2. Third Party
 from pydantic import BaseModel
@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from backend.agents.base import BaseAgent
 
 # 3. Local Imports
+from backend.exceptions import AgentExecutionError, ErrorCodes
 from backend.models.domain import InteractionAnalysis
 
 if TYPE_CHECKING:
@@ -42,11 +43,11 @@ class InteractionAnalystAgent(BaseAgent):
 
     async def execute(
         self,
-        input_data: dict,
-        execution_context: dict | None = None,
+        input_data: dict[str, Any],
+        execution_context: dict[str, Any] | None = None,
         system_instruction: str | None = None,
-        **kwargs,
-    ) -> dict:
+        **kwargs: Any,
+    ) -> InteractionAnalysis:
         """Executes interaction analysis (Driver/Passenger classification).
 
         Args:
@@ -56,7 +57,33 @@ class InteractionAnalystAgent(BaseAgent):
             **kwargs: Args.
 
         Returns:
-            dict: InteractionAnalysis.
+            InteractionAnalysis: InteractionAnalysis.
+        
+        Raises:
+            AgentExecutionError: If mandatory input is missing or validation fails.
         """
+        # FAIL FAST: Interaction Analysis requires conversation history.
+        if not input_data.get("history_text"):
+            # This prevents analyzing empty context "hallucinations".
+            error_msg = "InteractionAnalystAgent: Mandatory input 'history_text' missing."
+            logger.error(f"[InteractionAnalystAgent] {ErrorCodes.AGENT_EXECUTION_CRITICAL}: {error_msg}")
+            raise AgentExecutionError(
+                detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
+                original_error=ValueError(error_msg),
+                agent_name="InteractionAnalystAgent"
+            )
+
         # Note: Control ratio is now calculated via centralized HOOK_MAPPING (pre_hooks in seed_data.json)
-        return await super().execute(input_data, execution_context, system_instruction, **kwargs)
+        result_obj = await super().execute(input_data, execution_context, system_instruction, **kwargs)
+
+        if isinstance(result_obj, InteractionAnalysis):
+            return result_obj
+        elif isinstance(result_obj, dict):
+            # Should have been validated by base, but double check
+            return InteractionAnalysis(**result_obj)
+        else:
+             raise AgentExecutionError(
+                 detail=ErrorCodes.INVALID_JSON_PAYLOAD,
+                 original_error=TypeError(f"InteractionAnalystAgent returned {type(result_obj)} instead of InteractionAnalysis"),
+                 agent_name="InteractionAnalystAgent"
+             )

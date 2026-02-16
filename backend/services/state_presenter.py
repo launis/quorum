@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from backend.models.dtos.state_presentation import StatePresentation, SystemStatus
+from backend.exceptions import AppException, ErrorCodes
+
 if TYPE_CHECKING:
     from backend.models.state import WorkflowState
 
@@ -12,60 +15,61 @@ class StatePresenter:
     """Handles the presentation logic for WorkflowState.
 
     Separates the concern of data serialization/flattening from the state model itself.
+    Enforces strict typing and Fail Fast mechanics.
     """
 
     @staticmethod
-    def flatten_state(state: WorkflowState) -> dict[str, Any]:
-        """Projects the complex state into a simplified, flat dictionary.
-
-        This structured is optimized for frontend UI consumption (React/JSON).
-        Does NOT rely on specific UI code but organizes data logically.
+    def flatten_state(state: WorkflowState) -> StatePresentation:
+        """Projects the complex state into a simplified, strict DTO.
 
         Args:
             state: The WorkflowState instance to flatten.
 
         Returns:
-            Dict[str, Any]: The flattened result object.
-
+            StatePresentation: The strict DTO result.
+        
+        Raises:
+            AppException: If critical state data is missing (Fail Fast).
         """
         from backend.settings import get_settings
 
         settings = get_settings()
 
+        # Fail Fast: Critical Integrity Check
+        if not state.execution_id or not state.workflow_id:
+            raise AppException(
+                message="WorkflowState missing critical identity fields (execution_id/workflow_id).",
+                status_code=500,
+                details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR}
+            )
+
         # Determine DB Source Label
-        # Use the single source of truth from Settings (SSO)
-        # Returns: "FIRESTORE", "LOCAL", or "MOCK"
         db_source = settings.active_backend.value
 
-        # DEBUG TRACE
-        flat: dict[str, Any] = {}
-
         # 1. System Status & Safety
-        flat["System_Status"] = {
-            "execution_id": state.execution_id,
-            "workflow_id": state.workflow_id,
-            "workflow_name": state.workflow_name,
-            "timestamp": state.start_time.isoformat() if state.start_time else None,
-            "version": "2.0",
-            # New Audit Metadata
-            "reasoning_chain_active": bool(state.reasoning_context),
-            "database_source": db_source,
-            "environment": settings.environment,
-            "uhka_havaittu": state.step_guard.security_check.uhka_havaittu
+        system_status = SystemStatus(
+            execution_id=state.execution_id,
+            workflow_id=state.workflow_id,
+            workflow_name=state.workflow_name or "Unknown Workflow",
+            timestamp=state.start_time.isoformat() if state.start_time else None,
+            version="2.0",
+            reasoning_chain_active=bool(state.reasoning_context),
+            database_source=db_source,
+            environment=settings.environment,
+            uhka_havaittu=state.step_guard.security_check.uhka_havaittu
             if (state.step_guard and state.step_guard.security_check)
             else None,
-            "riski_taso": state.step_guard.security_check.riski_taso
+            riski_taso=state.step_guard.security_check.riski_taso
             if (state.step_guard and state.step_guard.security_check)
             else None,
-            "logiikka_validi": not (
+            logiikka_validi=not (
                 state.step_falsifier.paattelyketjun_uskollisuus_auditointi.onko_post_hoc_rationalisointia
             )
             if (state.step_falsifier and state.step_falsifier.paattelyketjun_uskollisuus_auditointi)
             else None,
-            # Identity Context
-            "organization_id": state.organization_id,
-            "user_id": state.user_id,
-        }
+            organization_id=state.organization_id,
+            user_id=state.user_id,
+        )
 
         # MERGED REPORT (Max Simplicity)
         report: dict[str, Any] = {}
@@ -101,9 +105,6 @@ class StatePresenter:
                 report["comparison_data"] = step_xai.comparison_data
 
         # Dynamic Score Flattening
-        # We iterate through all stored audit results (e.g., standard, cognitive, etc.)
-        # and merge them into the flat 'scores' dictionary.
-
         all_scores: dict[str, Any] = {}
         all_critique = []
 
@@ -122,23 +123,17 @@ class StatePresenter:
             if state.step_judge_cognitive:
                 sources_to_process.append(state.step_judge_cognitive)
 
-        # visited_keys = set() # unused
-
         for res_obj in sources_to_process:
             # Handle EvaluationResult (Dynamic)
             if hasattr(res_obj, "dimensions") and res_obj.dimensions:
                 for dim in res_obj.dimensions:
                     key = dim.dimension_id
-                    # Prevent overwriting if multiple matrices evaluate same thing (first wins? or merge?)
-                    # For now, let's allow overwrite or use unique keys if possible.
-                    # ideally keys are unique per matrix logic.
                     all_scores[key] = dim.score
                     all_scores[f"{key}_selitys"] = dim.reasoning
 
             # Handle TuomioJaPisteet (Legacy Adapter Object)
             elif hasattr(res_obj, "pisteet") and res_obj.pisteet:
                 p = res_obj.pisteet
-                # Map the legacy 3 fixed fields
                 if p.analyysi:
                     all_scores["analyysi"] = p.analyysi.arvosana
                     all_scores["analyysi_selitys"] = p.analyysi.perustelu
@@ -193,7 +188,6 @@ class StatePresenter:
                 state.step_panel.performatiivisuus_auditointi
                 and state.step_panel.performatiivisuus_auditointi.pre_mortem_analyysi
             ):
-                # Override or set if not present (Panel is newer info often)
                 report["pre_mortem_analyysi"] = (
                     state.step_panel.performatiivisuus_auditointi.pre_mortem_analyysi.model_dump()
                 )
@@ -246,9 +240,6 @@ class StatePresenter:
         if state.step_archivist:
             report["linjakkuus"] = state.step_archivist.compliance_analysis
 
-        # Assign to root
-        flat["Report"] = report
-
         # 6. Raw Data (Legacy/Debug Support)
         # Step 1 Cleanup: Excluding purely technical IDs and hashes.
         noise_fields = {
@@ -260,7 +251,6 @@ class StatePresenter:
         }
 
         # Build raw steps dict dynamically based on presence
-        # This mirrors the original logic but uses state.step_X
         raw_steps_dict = {
             "step_guard": state.step_guard.model_dump(exclude=noise_fields, exclude_none=True)
             if state.step_guard
@@ -310,6 +300,11 @@ class StatePresenter:
         }
 
         # Filter top-level Nones
-        flat["Raw_Steps"] = {k: v for k, v in raw_steps_dict.items() if v is not None}
+        raw_steps = {k: v for k, v in raw_steps_dict.items() if v is not None}
 
-        return flat
+        # Construct Final DTO
+        return StatePresentation(
+            System_Status=system_status,
+            Report=report,
+            Raw_Steps=raw_steps
+        )

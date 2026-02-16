@@ -1,0 +1,56 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.2, pytest-9.0.2, pluggy-1.6.0 -- C:\Python314\python.exe
+cachedir: .pytest_cache
+rootdir: C:\src\quorum
+configfile: pytest.ini
+plugins: anyio-4.12.1, asyncio-1.3.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collecting ... collected 4 items
+
+backend/tests/hooks/test_references.py::test_generate_bibliography_hook_success PASSED [ 25%]
+backend/tests/hooks/test_references.py::test_generate_bibliography_hook_empty_text PASSED [ 50%]
+backend/tests/hooks/test_references.py::test_generate_bibliography_hook_fail_fast_on_error FAILED [ 75%]
+backend/tests/hooks/test_references.py::test_generate_bibliography_legacy_string_handling PASSED [100%]
+
+================================== FAILURES ===================================
+_____________ test_generate_bibliography_hook_fail_fast_on_error ______________
+
+    def test_generate_bibliography_hook_fail_fast_on_error():
+        state = WorkflowState(workflow_id="wf-1")
+        state.context_variables["inputs"] = {"history_text": "Some text"}
+    
+        # Force error in ReferenceManager
+        with patch("backend.hooks.references.ReferenceManager") as MockRM:
+            MockRM.side_effect = Exception("DB Connection Failed")
+    
+            with pytest.raises(AppException) as exc:
+                generate_bibliography_hook(state)
+    
+>           assert "REFERENCES_HOOK_FAILED" in str(exc.value.details)
+E           assert 'REFERENCES_HOOK_FAILED' in "{'error_code': 'REFERENCES_GENERATION_FAILED'}"
+E            +  where "{'error_code': 'REFERENCES_GENERATION_FAILED'}" = str({'error_code': 'REFERENCES_GENERATION_FAILED'})
+E            +    where {'error_code': 'REFERENCES_GENERATION_FAILED'} = AppException('Bibliography generation failed: DB Connection Failed').details
+E            +      where AppException('Bibliography generation failed: DB Connection Failed') = <ExceptionInfo AppException('Bibliography generation failed: DB Connection Failed') tblen=3>.value
+
+backend\tests\hooks\test_references.py:65: AssertionError
+------------------------------ Captured log call ------------------------------
+ERROR    backend.hooks.references:references.py:55 [ReferenceHook] REFERENCES_GENERATION_FAILED: DB Connection Failed
+Traceback (most recent call last):
+  File "C:\src\quorum\backend\hooks\references.py", line 37, in generate_bibliography
+    rm = ReferenceManager(knowledge_base)
+  File "C:\Python314\Lib\unittest\mock.py", line 1175, in __call__
+    return self._mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\unittest\mock.py", line 1179, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\unittest\mock.py", line 1234, in _execute_mock_call
+    raise effect
+Exception: DB Connection Failed
+--------- generated xml file: C:\src\quorum\tests\output\results.xml ----------
+=========================== short test summary info ===========================
+FAILED backend/tests/hooks/test_references.py::test_generate_bibliography_hook_fail_fast_on_error - assert 'REFERENCES_HOOK_FAILED' in "{'error_code': 'REFERENCES_GENERATION_FAILED'}"
+ +  where "{'error_code': 'REFERENCES_GENERATION_FAILED'}" = str({'error_code': 'REFERENCES_GENERATION_FAILED'})
+ +    where {'error_code': 'REFERENCES_GENERATION_FAILED'} = AppException('Bibliography generation failed: DB Connection Failed').details
+ +      where AppException('Bibliography generation failed: DB Connection Failed') = <ExceptionInfo AppException('Bibliography generation failed: DB Connection Failed') tblen=3>.value
+========================= 1 failed, 3 passed in 0.39s =========================

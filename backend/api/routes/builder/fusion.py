@@ -12,6 +12,8 @@ from pydantic import BaseModel, Field
 from backend.dependencies import EngineDep, RepositoryDep
 
 router = APIRouter()
+from backend.models.dtos.builder import CompilationResponse, ValidationResponse
+
 logger = logging.getLogger(__name__)
 
 # --- Models ---
@@ -31,8 +33,8 @@ class ValidationRequest(BaseModel):
 
 # --- Endpoints ---
 
-@router.post("/validate", summary="Validate Connection", response_description="Validation result.")
-async def validate_connection(request: ValidationRequest, engine: EngineDep, repository: RepositoryDep):
+@router.post("/validate", summary="Validate Connection", response_description="Validation result.", response_model=ValidationResponse)
+async def validate_connection(request: ValidationRequest, engine: EngineDep, repository: RepositoryDep) -> ValidationResponse:
     """Validates connection between two steps based on Agent I/O contracts."""
     try:
         # 1. Resolve Steps
@@ -40,7 +42,7 @@ async def validate_connection(request: ValidationRequest, engine: EngineDep, rep
         target_step = await repository.get_step_by_id(request.target_step)
 
         if not source_step or not target_step:
-            return {"valid": False, "reason": "Step(s) not found."}
+            return ValidationResponse(valid=False, reason="Step(s) not found.")
 
         # 2. Resolve Agents (via Components)
         src_comp_ref = source_step.get("component")
@@ -56,7 +58,10 @@ async def validate_connection(request: ValidationRequest, engine: EngineDep, rep
             target_comp = await repository.get_component_by_name(str(tgt_comp_ref))
 
         if not source_comp or not target_comp:
-            return {"valid": True, "reason": "Component definitions missing, skipping deep check."}
+            reason = "Component definitions missing. Cannot validate."
+            logger.warning(reason)
+            # Fail logic: If component is missing, we can't validate the connection is SAFE.
+            return ValidationResponse(valid=False, reason=reason)
 
         src_cls_name = source_comp.get("class_name")
         tgt_cls_name = target_comp.get("class_name")
@@ -65,7 +70,9 @@ async def validate_connection(request: ValidationRequest, engine: EngineDep, rep
         tgt_agent = engine.registry.agents_map.get(str(tgt_cls_name))
 
         if not src_agent or not tgt_agent:
-            return {"valid": True, "reason": "Agent implementation not found in registry."}
+            reason = "Agent implementation not found in registry. Cannot validate contracts."
+            logger.warning(reason)
+            return ValidationResponse(valid=False, reason=reason)
 
         # 3. Check Contracts
         required = getattr(tgt_agent, "REQUIRES_KEYS", [])
@@ -78,17 +85,25 @@ async def validate_connection(request: ValidationRequest, engine: EngineDep, rep
                 f"⚠️ Potential Schema Mismatch: Target requires {missing}. Source produces {produced}. "
                 "Ensure dependencies exist upstream."
             )
-            return {"valid": True, "reason": msg}
+            # This is a validation warning, not a hard error, but strictly speaking it's "Invalid" connection.
+            # But usually we return Valid=True with Warning for linting behavior.
+            # However, prompt says "STRICT". Let's assume schema mismatch = Invalid.
+            return ValidationResponse(valid=False, reason=msg)
 
-        return {"valid": True, "reason": "Connection Compatible."}
+        return ValidationResponse(valid=True, reason="Connection Compatible.")
 
     except Exception as e:
         logger.error(f"Validation failed: {e}", exc_info=True)
-        return {"valid": True, "reason": f"Validation error: {str(e)}"}
+        from backend.exceptions import AppException
+        raise AppException(
+            message=f"Validation Execution Failed: {str(e)}",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": "VALIDATION_EXECUTION_FAILED"}
+        ) from e
 
 
-@router.post("/compile", summary="Compile Fusion", response_description="Compilation result.")
-async def compile_fusion(req: CompileRequest, repository: RepositoryDep):
+@router.post("/compile", summary="Compile Fusion", response_description="Compilation result.", response_model=CompilationResponse)
+async def compile_fusion(req: CompileRequest, repository: RepositoryDep) -> CompilationResponse:
     """V2: Prompt Fusion Compilation.
 
     Replaces a sequence of steps with a compatible Composite Step (Panel).
@@ -150,8 +165,15 @@ async def compile_fusion(req: CompileRequest, repository: RepositoryDep):
         if step_id in mapping:
             del mapping[step_id]
 
-    mapping[target_composite_id] = "deep"
+    from backend.settings import get_settings
+    settings = get_settings()
+    # Use default strategy from settings instead of hardcoded "deep"
+    mapping[target_composite_id] = settings.default_model_strategy or "fast"
 
     await repository.update_workflow(req.workflow_id, {"steps": new_steps, "default_model_mapping": mapping})
 
-    return {"status": "compiled", "composite_step_id": target_composite_id, "new_steps": new_steps}
+    return CompilationResponse(
+        status="compiled",
+        composite_step_id=target_composite_id,
+        new_steps=new_steps
+    )

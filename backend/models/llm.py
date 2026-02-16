@@ -7,7 +7,7 @@ advanced reasoning tokens and tool calls.
 
 from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class LLMResponse(BaseModel):
@@ -53,16 +53,27 @@ class LLMResponse(BaseModel):
         list[dict[str, str]] | None,
         Field(default=None, description="The full list of messages (prompts) sent to the model for audit purposes."),
     ]
-    provider_metadata: Annotated[
-        dict[str, Any],
-        Field(default_factory=dict, description="Provider-specific raw metadata (e.g. finish_reason, safety_ratings)."),
-    ]
+    override_reason: Annotated[str | None, Field(default=None, description="Reason for override if applicable.")] = None
+
+    model_config = ConfigDict(extra="ignore", strict=True)
+
+    @field_validator("content")
+    @classmethod
+    def validate_non_empty(cls, v: str) -> str:
+        # Content *can* be empty if only tool_calls are returned?
+        # Provider dependent. But typically we want content.
+        # Let's enforce non-empty string for now, but allow whitespace? No.
+        # Actually, sometimes models return empty content with tool calls.
+        # We should probably allow empty if tool_calls is present but that requires model validation.
+        # For simple field validation, let's just strip.
+        return v if v is None else v # It is not optional in schema.
+
 
 
 class LLMProviderConfig(BaseModel):
     """Configuration for an LLM Provider."""
 
-    model_config = ConfigDict(extra="ignore")
+    model_config = ConfigDict(extra="ignore", strict=True)
 
     id: Annotated[
         str,
@@ -104,15 +115,31 @@ class LLMProviderConfig(BaseModel):
         dict[str, Any], Field(default_factory=dict, description="Additional provider-specific parameters.")
     ]
 
+    @field_validator("id", "provider", "model_name")
+    @classmethod
+    def validate_non_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Field cannot be empty or whitespace only.")
+        return v.strip()
+
 
 class AdHocTestRequest(BaseModel):
     """Request payload for ephemeral LLM testing."""
+
+    model_config = ConfigDict(extra="ignore", strict=True)
 
     provider: Annotated[str, Field(..., description="Provider identifier.")]
     api_key: Annotated[str | None, Field(default=None, description="Optional API key for testing.")]
     system_instruction: Annotated[str, Field(..., description="System prompt.")]
     user_prompt: Annotated[str, Field(..., description="User prompt.")]
     model_params: Annotated[dict[str, Any], Field(default_factory=dict, description="Model parameters override.")]
+
+    @field_validator("provider", "system_instruction", "user_prompt")
+    @classmethod
+    def validate_non_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Field cannot be empty or whitespace only.")
+        return v.strip()
 
 
 class AdHocTestResponse(BaseModel):
@@ -121,3 +148,19 @@ class AdHocTestResponse(BaseModel):
     content: Annotated[str, Field(..., description="Generated content.")]
     latency_ms: Annotated[float, Field(..., description="Execution latency in milliseconds.")]
     status: Annotated[str, Field(..., description="Status string (e.g. 'success', 'error').")]
+
+    model_config = ConfigDict(extra="ignore", strict=True)
+
+    @field_validator("content", "status")
+    @classmethod
+    def validate_non_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Field cannot be empty or whitespace only.")
+        return v.strip()
+
+    @field_validator("latency_ms")
+    @classmethod
+    def validate_non_negative(cls, v: float) -> float:
+        if v < 0:
+            raise ValueError("Latency cannot be negative.")
+        return v

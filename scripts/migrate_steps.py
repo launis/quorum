@@ -1,8 +1,8 @@
 
 import json
-import uuid
 import logging
-from tinydb import TinyDB, Query
+
+from tinydb import Query, TinyDB
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
@@ -14,11 +14,11 @@ SEED_PATH = "backend/seed/seed_data.json"
 def migrate():
     """Extracts steps from workflows and saves them to the 'steps' table."""
     logger.info("Starting migration...")
-    
+
     # 1. Load Seed Data (Source of Truth for defaults) or DB
     # We'll read from SEED for safety to populate the Registry.
     try:
-        with open(SEED_PATH, "r", encoding="utf-8") as f:
+        with open(SEED_PATH, encoding="utf-8") as f:
             seed_data = json.load(f)
     except FileNotFoundError:
         logger.error(f"Seed file not found at {SEED_PATH}")
@@ -69,7 +69,7 @@ def migrate():
             logger.info(f"Imported step '{step_id}'.")
 
     logger.info("========================================")
-    logger.info(f"Migration Complete.")
+    logger.info("Migration Complete.")
     logger.info(f"Extracted: {extracted_count}")
     logger.info(f"Skipped:   {skipped_count}")
     logger.info(f"Total Steps in Registry: {len(steps_table.all())}")

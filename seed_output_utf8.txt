@@ -1,0 +1,22 @@
+﻿--- SEEDING TARGET: LOCAL ---
+[Seed] Loaded 6 workflows.
+[Seed] Removed existing C:\src\quorum\data\db.json
+[Seeder] CLEARED persistence. Dropped all tables from C:\src\quorum\data\db.json.
+[Seeder] Upserted 6 workflows.
+[Seeder] Upserted 78 components.
+[Seeder] Upserted 3 system_config items.
+[Seeder] Extracted & Upserted 3 ontology dimensions from matrices.
+[Seeder] Validation Error for Org system: 2 validation errors for Organization
+created_at
+  Input should be a valid datetime [type=datetime_type, input_value='2026-01-01T00:00:00', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/datetime_type
+subscription_status
+  Input should be an instance of SubscriptionStatus [type=is_instance_of, input_value='active', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/is_instance_of
+[ERROR] Failed to seed local: 2 validation errors for Organization
+created_at
+  Input should be a valid datetime [type=datetime_type, input_value='2026-01-01T00:00:00', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/datetime_type
+subscription_status
+  Input should be an instance of SubscriptionStatus [type=is_instance_of, input_value='active', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/is_instance_of

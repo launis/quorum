@@ -2,7 +2,10 @@
 
 import logging
 
+from backend.exceptions import AppException, ErrorCodes
+from backend.models.domain import ValidationResult
 from backend.models.state import WorkflowState
+
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +25,8 @@ def verify_structure(state: WorkflowState) -> WorkflowState:
     Returns:
         WorkflowState: Updated state with warnings if applicable.
 
+    Raises:
+        AppException: If structure check fails (Fail Fast).
     """
     logger.debug("[ValidationHook] Running structural inputs check...")
 
@@ -30,51 +35,66 @@ def verify_structure(state: WorkflowState) -> WorkflowState:
 
     warnings = []
 
+    if not state.context_variables:
+        # Should be caught by earlier checks, but fail fast here if empty
+        msg = "Context variables missing in validation hook."
+        logger.error(f"[ValidationHook] {ErrorCodes.EMPTY_INPUT}: {msg}")
+        raise AppException(
+            message=msg,
+            status_code=400,
+            details={"error_code": ErrorCodes.EMPTY_INPUT}
+        )
+
     inputs = state.context_variables.get("inputs", {})
     if not isinstance(inputs, dict):
+        logger.warning(f"[ValidationHook] Inputs not a dict: {type(inputs)}. Defaulting to empty.")
         inputs = {}
 
     for key in ["history_text", "product_text", "reflection_text"]:
-        text = inputs.get(key, "")
-        if not text or len(text) < MIN_CHARS:
+        text = str(inputs.get(key, "") or "")
+        # Check actual content length (strip whitespace)
+        if not text or len(text.strip()) < MIN_CHARS:
             warnings.append(
-                f"Input '{key}' is too short ({len(text) if text else 0} chars). Analysis quality may suffer."
+                f"Input '{key}' is too short ({len(text)} chars). Min required: {MIN_CHARS}."
             )
 
-    
     try:
-        from backend.models.domain import ValidationResult
+        # Create strict result object
         result = ValidationResult(
             is_valid=len(warnings) == 0,
             errors=warnings
         )
-    except ImportError:
-        logger.error("[ValidationHook] Could not import ValidationResult")
-        return state
+    except Exception as e:
+        # Pydantic validation failure -> System Error
+        error_code = ErrorCodes.INTERNAL_SERVER_ERROR
+        logger.error(f"[ValidationHook] Failed to create ValidationResult: {e}")
+        raise AppException(
+            message=f"System Error: {e}",
+            status_code=500,
+            details={"error_code": error_code}
+        ) from e
 
+    # IMMUTABILITY FIX
     new_context = state.context_variables.copy()
     new_context["validation_result"] = result
     
-    # Legacy support
-    if warnings:
-        msg = f"[ValidationHook] Structural Checks Failed: {warnings}"
-        logger.error(msg)
-        # Note: Validation failures used to raise ValueError.
-        # Strict Mode often prefers returning error state over crashing if possible,
-        # but for pre-validation, stopping execution is correct.
-        # We will still raise ValueError if invalid, BUT we store the result first.
-        # However, if we raise, we can't return state. 
-        # Strategy: Store result, THEN raise. 
-        # But raising stops flow, so state isn't saved unless engine handles it.
-        # The engine generally catches exceptions.
-        # Let's attach the result to the exception details if possible, or just raise.
+    # REMOVED LEGACY "warnings" key in aux_data/context. Use validation_result.errors instead.
+
+    if not result.is_valid:
+        msg = f"Structural Validation Failed: {warnings}"
+        logger.error(f"[ValidationHook] {msg}")
         
-        # To persist the validation failure in state for history, we'd need to NOT raise
-        # and let the engine/next step handle "is_valid=False".
-        # But 'verify_structure' is a Pre-Hook. If it fails, step shouldn't run.
-        # So raising is correct for control flow.
-        raise ValueError(msg)
+        # FAIL FAST: Pre-validation failure is a client error (Bad Request)
+        raise AppException(
+            message=msg,
+            status_code=400,
+            details={
+                "error_code": ErrorCodes.VALIDATION_FAILED,
+                "warnings": warnings
+            }
+        )
     else:
-        logger.debug("[ValidationHook] checks passed.")
+        logger.debug("[ValidationHook] Checks passed.")
 
     return state.model_copy(update={"context_variables": new_context})
+

@@ -124,7 +124,8 @@ class AuthRepository {
         User.fromJson(response.data!['user'] as Map<String, dynamic>),
       );
     } catch (e) {
-      return const Left(AppError.unknown());
+      // DEBUG: Return raw error to UI
+      return Left(AppError.server("Debug Login Failed: $e"));
     }
   }
 

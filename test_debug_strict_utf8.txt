@@ -1,0 +1,181 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.14.2, pytest-9.0.2, pluggy-1.6.0 -- C:\Python314\python.exe
+cachedir: .pytest_cache
+rootdir: C:\src\quorum
+configfile: pytest.ini
+plugins: anyio-4.12.1, asyncio-1.3.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collecting ... collected 5 items
+
+backend/tests/api/test_agents_router.py::test_run_agent_not_found ERROR  [ 20%]
+backend/tests/api/test_agents_router.py::test_run_agent_success ERROR    [ 40%]
+backend/tests/api/test_agents_router.py::test_run_agent_validation_error ERROR [ 60%]
+backend/tests/api/test_agents_router.py::test_run_agent_runtime_error ERROR [ 80%]
+backend/tests/api/test_agents_router.py::test_run_agent_invalid_strategy ERROR [100%]
+
+=================================== ERRORS ====================================
+_________________ ERROR at setup of test_run_agent_not_found __________________
+file C:\src\quorum\backend\tests\api\test_agents_router.py, line 21
+  @pytest.mark.asyncio
+  async def test_run_agent_not_found(async_client: AsyncClient, mock_user_root, mocker):
+      """Verify that requesting an unknown agent returns 404."""
+      # Mock Registry resolution to succeed so we reach the Agent Loading step
+      mocker.patch("backend.services.agent_registry.AgentRegistry.resolve_model_name", new_callable=AsyncMock, return_value="mock-resolved-model")
+
+      # We mock _load_agent_class to raise ValueError as it would in production
+      # (Implicit via the actual router call)
+
+      # Actually, let's use the client to hit the endpoint. The router's logic is what we test.
+      # We need to mock the dependency mainly if we want to isolate.
+      # But integration tests are better.
+      # However, 'UnknownAgent' won't be in the DB.
+
+      response = await async_client.post(
+          "/api/v1/agents/UnknownAgent/run",
+          json={"inputs": {"text": "hello"}},
+          headers=mock_user_root
+      )
+
+      # The router catches ValueError from _load_agent_class and raises ResourceNotFoundError (404)
+      assert response.status_code == 404
+      data = response.json()
+      assert data["detail"]["error_code"] == "AGENT_NOT_FOUND"
+E       fixture 'mocker' not found
+>       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, async_client, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, mock_user_root, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+C:\src\quorum\backend\tests\api\test_agents_router.py:21
+__________________ ERROR at setup of test_run_agent_success ___________________
+file C:\src\quorum\backend\tests\api\test_agents_router.py, line 46
+  @pytest.mark.asyncio
+  async def test_run_agent_success(async_client: AsyncClient, mock_user_root, mocker):
+      """Verify that agent execution returns strict DTO."""
+      mock_agent_instance = MagicMock()
+      mock_agent_instance.execute = AsyncMock(return_value={"output": "success"})
+      mock_agent_class = MagicMock(return_value=mock_agent_instance)
+
+      mocker.patch("backend.api.agents_router._load_agent_class", return_value=mock_agent_class)
+
+      # Mock Registry resolution to succeed for default "fast"
+      mocker.patch("backend.services.agent_registry.AgentRegistry.resolve_model_name", new_callable=AsyncMock, return_value="mock-resolved-model")
+
+      response = await async_client.post(
+          "/api/v1/agents/TestAgent/run",
+          json={"inputs": {"text": "hello"}}, # No model provided -> defaults to "fast" pattern
+          headers=mock_user_root
+      )
+
+      assert response.status_code == 200
+      data = response.json()
+      assert "agent" in data
+      assert "result" in data
+      assert data["agent"] == "TestAgent"
+      assert data["result"] == {"output": "success"}
+E       fixture 'mocker' not found
+>       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, async_client, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, mock_user_root, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+C:\src\quorum\backend\tests\api\test_agents_router.py:46
+______________ ERROR at setup of test_run_agent_validation_error ______________
+file C:\src\quorum\backend\tests\api\test_agents_router.py, line 71
+  @pytest.mark.asyncio
+  async def test_run_agent_validation_error(async_client: AsyncClient, mock_user_root, mocker):
+      """Verify that validation errors return 400 (Fail Fast)."""
+      mock_agent_instance = MagicMock()
+      # ValueError during execution -> 400
+      mock_agent_instance.execute = AsyncMock(side_effect=ValueError("Invalid Input"))
+      mock_agent_class = MagicMock(return_value=mock_agent_instance)
+
+      mocker.patch("backend.api.agents_router._load_agent_class", return_value=mock_agent_class)
+      mocker.patch("backend.services.agent_registry.AgentRegistry.resolve_model_name", new_callable=AsyncMock, return_value="mock-resolved-model")
+
+      response = await async_client.post(
+          "/api/v1/agents/TestAgent/run",
+          json={"inputs": {"text": "bad"}},
+          headers=mock_user_root
+      )
+
+      assert response.status_code == 400
+      data = response.json()
+      assert data["detail"]["error_code"] == "AGENT_INPUT_INVALID"
+E       fixture 'mocker' not found
+>       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, async_client, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, mock_user_root, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+C:\src\quorum\backend\tests\api\test_agents_router.py:71
+_______________ ERROR at setup of test_run_agent_runtime_error ________________
+file C:\src\quorum\backend\tests\api\test_agents_router.py, line 92
+  @pytest.mark.asyncio
+  async def test_run_agent_runtime_error(async_client: AsyncClient, mock_user_root, mocker):
+      """Verify that runtime errors return 500."""
+      mock_agent_instance = MagicMock()
+      # Generic Exception during execution -> 500
+      mock_agent_instance.execute = AsyncMock(side_effect=RuntimeError("Crash"))
+      mock_agent_class = MagicMock(return_value=mock_agent_instance)
+
+      mocker.patch("backend.api.agents_router._load_agent_class", return_value=mock_agent_class)
+      mocker.patch("backend.services.agent_registry.AgentRegistry.resolve_model_name", new_callable=AsyncMock, return_value="mock-resolved-model")
+
+      response = await async_client.post(
+          "/api/v1/agents/TestAgent/run",
+          json={"inputs": {"text": "hello"}},
+          headers=mock_user_root
+      )
+
+      assert response.status_code == 500
+      data = response.json()
+      assert data["detail"]["error_code"] == "AGENT_EXECUTION_FAILED"
+E       fixture 'mocker' not found
+>       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, async_client, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, mock_user_root, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+C:\src\quorum\backend\tests\api\test_agents_router.py:92
+______________ ERROR at setup of test_run_agent_invalid_strategy ______________
+file C:\src\quorum\backend\tests\api\test_agents_router.py, line 113
+  @pytest.mark.asyncio
+  async def test_run_agent_invalid_strategy(async_client: AsyncClient, mock_user_root, mocker):
+      """Verify that invalid model strategy returns 400 (Fail Fast)."""
+      # Mock Registry resolution to raise ValueError (simulating DB lookup failure)
+      mocker.patch("backend.services.agent_registry.AgentRegistry.resolve_model_name", side_effect=ValueError("Strategy not found"))
+
+      response = await async_client.post(
+          "/api/v1/agents/TestAgent/run",
+          json={"inputs": {"text": "hello"}, "model": "nonexistent_strategy"},
+          headers=mock_user_root
+      )
+
+      assert response.status_code == 400
+      data = response.json()
+      assert data["detail"]["error_code"] == "INVALID_MODEL_STRATEGY"
+E       fixture 'mocker' not found
+>       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, async_client, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, mock_user_root, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+C:\src\quorum\backend\tests\api\test_agents_router.py:113
+============================== warnings summary ===============================
+..\..\Python314\Lib\site-packages\google\genai\types.py:43
+  C:\Python314\Lib\site-packages\google\genai\types.py:43: DeprecationWarning: '_UnionGenericAlias' is deprecated and slated for removal in Python 3.17
+    VersionedUnionType = Union[builtin_types.UnionType, _UnionGenericAlias]
+
+..\..\Python314\Lib\site-packages\litellm\litellm_core_utils\logging_utils.py:273: 15 warnings
+  C:\Python314\Lib\site-packages\litellm\litellm_core_utils\logging_utils.py:273: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+backend\models\dtos\execution.py:28
+  C:\src\quorum\backend\models\dtos\execution.py:28: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class ExecutionResponse(BaseModel):
+
+..\..\Python314\Lib\site-packages\slowapi\extension.py:717
+..\..\Python314\Lib\site-packages\slowapi\extension.py:717
+  C:\Python314\Lib\site-packages\slowapi\extension.py:717: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+--------- generated xml file: C:\src\quorum\tests\output\results.xml ----------
+=========================== short test summary info ===========================
+ERROR backend/tests/api/test_agents_router.py::test_run_agent_not_found
+ERROR backend/tests/api/test_agents_router.py::test_run_agent_success
+ERROR backend/tests/api/test_agents_router.py::test_run_agent_validation_error
+ERROR backend/tests/api/test_agents_router.py::test_run_agent_runtime_error
+ERROR backend/tests/api/test_agents_router.py::test_run_agent_invalid_strategy
+======================= 19 warnings, 5 errors in 5.27s ========================

@@ -84,6 +84,9 @@ class AuthController extends _$AuthController {
         // 3. Set Token for Interceptor
         final token = 'mock-token:$uid';
         ref.read(mockTokenProvider.notifier).setToken(token);
+
+        // 4. Force State Update (Ensure Router sees it immediately)
+        state = AsyncData(user);
       },
     );
   }

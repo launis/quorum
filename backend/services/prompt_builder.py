@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from backend.database.repository import AbstractWorkflowRepository
-from backend.exceptions import StepNotFoundError, WorkflowNotFoundError
+from backend.exceptions import StepNotFoundError, WorkflowNotFoundError, AppException, ErrorCodes
 from backend.services.agent_registry import AgentRegistry
 
 if TYPE_CHECKING:
@@ -39,11 +39,15 @@ class PromptBuilder:
 
         Fetches the step configuration and concatenates all referenced prompt components.
         Injects dynamic variables (e.g., {{HISTORY_TEXT}}) if state is provided.
+
+        Raises:
+            StepNotFoundError: If step_id does not exist.
+            AppException: For any construction failures (Fail Fast).
         """
         try:
             step_data = await self.repository.get_step_by_id(step_id)
             if not step_data:
-                return ""
+                raise StepNotFoundError(step_id)
 
             # 1. Resolve Components
             prompt_parts = await self._resolve_prompt_components(step_data)
@@ -71,9 +75,16 @@ class PromptBuilder:
             logger.debug(f"[PromptBuilder] Constructed PROMPT for {step_id} (Length: {len(processed_parts)} parts)")
 
             return "\n\n".join(processed_parts)
+
+        except StepNotFoundError:
+            raise
         except Exception as e:
-            logger.error(f"[PromptBuilder] Error constructing prompt for step {step_id}: {e}")
-            return ""
+            logger.error(f"[PromptBuilder] Critical error constructing prompt for step {step_id}: {e}")
+            raise AppException(
+                message=f"Failed to construct prompt for step {step_id}.",
+                status_code=500,
+                details={"error_code": ErrorCodes.PROMPT_CONSTRUCTION_FAILED, "original_error": str(e)}
+            ) from e
 
     # --- HELPER METHODS ---
 

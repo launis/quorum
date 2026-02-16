@@ -1,0 +1,127 @@
+import logging
+from datetime import datetime
+from typing import Any
+
+from backend.exceptions import AppException
+from backend.models.enums import LabelKey, TitleKey
+from backend.services.localization import LocalizationService
+
+logger = logging.getLogger(__name__)
+
+
+class BaseTransformer:
+    def __init__(self, language: str = "en"):
+        self.language = language
+        self.loc = LocalizationService()
+
+    def _t(self, key: str, default: str) -> str:
+        return self.loc.get(key, self.language, default)
+
+    def _get_title(self, key: TitleKey) -> str:
+        """Fetches translated title using TitleKey Enum. Fallback to Title Case of Enum name."""
+        return self._t(key.value, default=key.name.replace("_", " ").title())
+
+    def _get_label(self, key: LabelKey) -> str:
+        """Fetches translated label using LabelKey Enum."""
+        return self._t(key.value, default=key.name.replace("_", " ").title())
+
+    def _format_date(self, timestamp_str: str | None) -> str:
+        """Formats ISO timestamp to locale-specific string."""
+        if not timestamp_str:
+            return ""
+
+        try:
+            # Parse ISO string (e.g. "2026-02-12T10:00:00")
+            dt = datetime.fromisoformat(str(timestamp_str).replace("Z", "+00:00"))
+
+            if self.language == "fi":
+                return dt.strftime("%d.%m.%Y %H:%M")
+            else:
+                return dt.strftime("%Y-%m-%d %H:%M")
+        except Exception as e:
+            logger.warning(f"Date formatting failed for '{timestamp_str}': {e}")
+            return str(timestamp_str)
+
+    def _format_number(self, value: float | int | None, decimals: int = 0, percent: bool = False) -> str:
+        """Formats a number based on locale (fi-FI vs en-US)."""
+        if value is None:
+            return "-"
+
+        # Basic Locale Logic (Expand if using Babel later)
+        is_fi = self.language == 'fi'
+
+        # 2. Formatting
+        try:
+            # Python f-string doesn't support locale unaware custom separators easily without locale module.
+            # Manual implementation for safety/strictness.
+
+            # Rounding
+            rounded = round(value, decimals)
+            if decimals == 0:
+                rounded = int(rounded)
+
+            s = f"{rounded}"
+
+            # Decimal separator
+            if is_fi:
+                s = s.replace(".", ",")
+
+            # Thousand separator (Space for FI, Comma for EN)
+
+            # Default (EN-ish)
+            s_en = f"{rounded:,}" # 1,200.5
+
+            if is_fi:
+                # 1 200,5
+                s_fi = s_en.replace(",", " ").replace(".", ",")
+                return f"{s_fi} %" if percent else s_fi
+            else:
+                return f"{s_en}%" if percent else s_en
+
+        except Exception as e:
+            logger.warning(f"Number formatting failed for '{value}': {e}")
+            return str(value)
+
+    def _reconstruct_state_from_trace(self, trace: list[dict[str, Any]]) -> dict[str, Any]:
+        """Reconstructs the 'step_results' map from an append-only linear trace."""
+        reconstructed = {}
+
+        try:
+            for event in trace:
+                # We are interested in OUTPUT events
+                if event.get("event_type") == "output":
+                    step_name = event.get("step_name")
+                    if not step_name or not isinstance(step_name, str):
+                        continue
+
+                    content = event.get("content", {})
+                    # Safety: content might be None if key exists but value is null
+                    if content is None:
+                        content = {} 
+                    
+                    # Check for reasoning trace availability (optional optimization)
+                    # If the event has 'reasoning', we could inject it into content for UI visibility
+                    reasoning = event.get("reasoning")
+                    if reasoning:
+                        if isinstance(reasoning, dict):
+                            # Flatten relevant reasoning fields into content/metadata for UI
+                            # e.g. "reasoning_trace" key used by timeline builder
+                            content["reasoning_trace"] = reasoning.get("thought_process")
+
+                    # Timestamp to metadata
+                    timestamp = event.get("timestamp") or event.get("metadata", {}).get("timestamp")
+                    if timestamp:
+                        if content.get("metadata") is None:
+                            content["metadata"] = {}
+                        # Date formatting applied here -> Moved to extra field to preserve Schema Validity
+                        # content["metadata"]["luontiaika"] = self._format_date(timestamp)
+                        # KEEP ORIGINAL for Pydantic Validation:
+                        content["metadata"]["luontiaika"] = timestamp
+                        # Add formatted for UI:
+                        content["metadata"]["luontiaika_formatted"] = self._format_date(timestamp)
+
+                    reconstructed[step_name] = content
+        except Exception as e:
+             raise AppException(f"Failed to reconstruct state from trace: {e}", 500) from e
+
+        return reconstructed

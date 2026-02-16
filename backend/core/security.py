@@ -72,3 +72,30 @@ def check_banned_phrases(text: str, phrases: list[str]) -> list[str]:
             detected.append(phrase)
 
     return list(set(detected))
+
+
+def validate_no_banned_phrases(text: str, phrases: list[str]) -> None:
+    """Validates that the input text does not contain any banned phrases.
+
+    Fail Fast: Raises AppException if banned phrases are found.
+
+    Args:
+        text (str): The text to scan.
+        phrases (List[str]): List of banned phrases.
+
+    Raises:
+        AppException: If banned phrases are detected (SECURITY_VIOLATION).
+    """
+    detected = check_banned_phrases(text, phrases)
+    if detected:
+        from backend.exceptions import AppException, ErrorCodes
+        from fastapi import status
+
+        raise AppException(
+            message=f"Security Violation: Input contains banned phrases: {detected}",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={
+                "error_code": ErrorCodes.SECURITY_VIOLATION,
+                "banned_phrases": detected
+            }
+        )

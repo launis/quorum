@@ -68,7 +68,7 @@ class FirestoreDriver(StorageDriver):
         # Ensure ID is in data for parity
         if "id" not in safe_data:
             safe_data["id"] = doc_id
-        
+
         await self.db.collection(collection).document(doc_id).set(safe_data)
         return doc_id
 
@@ -99,29 +99,29 @@ class FirestoreDriver(StorageDriver):
         descending: bool = False
     ) -> list[dict[str, Any]]:
         query = self.db.collection(collection)
-        
+
         if filters:
             for f in filters:
                 # Firestore `where`
                 query = query.where(f.field, f.operator, f.value)
-        
+
         if order_by:
             direction = firestore.Query.DESCENDING if descending else firestore.Query.ASCENDING
             query = query.order_by(order_by, direction=direction)
-            
+
         if limit:
             query = query.limit(limit)
-            
+
         docs = await query.stream()
         return [doc.to_dict() async for doc in docs]
 
     async def count(self, collection: str, filters: list[Filter] | None = None) -> int:
         query = self.db.collection(collection)
-        
+
         if filters:
             for f in filters:
                 query = query.where(f.field, f.operator, f.value)
-                
+
         try:
             aggregate_query = query.count()
             snapshots = await aggregate_query.get()

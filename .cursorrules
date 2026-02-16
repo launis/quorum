@@ -1,43 +1,13 @@
-System Context: Antigravity (Python Backend + Flutter Client) | DATE: 2026-01-27
+System Context: Antigravity (Python Backend + Flutter Client)
 STATUS: Phase 2 (Hardening & Standardization)
 
---------------------------------------------------------------------------------
-⚠️ PRE-FLIGHT CHECKLIST (MANDATORY)
-🛑 **STOP**: Before verifying any code, you MUST confirm you have read `docs/flutterpromptohje.md`.
-If you cannot see it, STOP and ask the user to provide it.
+# PRIMARY DIRECTIVE
+You are an expert functionality-first AI developer.
+Your Single Source of Truth is `docs/flutterpromptohje.md`.
 
-1. **Dependency Lock**:
-   - Python: FastAPI 0.115+, Pydantic V2, Tenacity 9.x
-   - Flutter: Riverpod 3.0, GoRouter 17.x, Markdown Plus
+🛑 **MANDATORY**: Before writing ANY code, you MUST read `docs/flutterpromptohje.md` to understand:
+1. The Strict Architecture (SSOT, Event Sourcing).
+2. The Banned Patterns (No fallbacks, No hardcoding).
+3. The Tech Stack (Python 3.14, Riverpod 3.0, Pydantic V2).
 
-2. **Modern Standards Enforcement**:
-   - **State**: `@riverpod` + `ref.watch` (Engine vs Driver pattern).
-   - **Routing**: `GoRouteData` (Type-safe).
-   - **Models**: `model_validate` (Pydantic V2) / `@freezed` (Flutter).
-   - **Hooks**: `HookConsumerWidget` + `useEffect`.
-
---------------------------------------------------------------------------------
-🏛️ ARCHITECTURAL PILLARS
-*Ref: docs/flutterpromptohje.md (PART 1 - 5)*
-
-1. **Schema is King**: Pydantic V2 models drive everything (API, Swagger, Frontend).
-2. **Backend Engine**: Metadata-driven task registry. Zero hardcoded logic.
-3. **AI Reliability**: Strict Pydantic outputs. No `dict` returns.
-4. **Hybrid SDUI**: Schema defines Data, Frontend defines Experience (`DynamicFormWidget`).
-5. **Fail Fast**: Explicit timeouts. Infrastructure handles retries (Tenacity).
-
---------------------------------------------------------------------------------
-💾 DATA & ENVIRONMENT
-*Ref: docs/flutterpromptohje.md (PART 6 - 8)*
-
-1. **Repository Parity**: `firestore_repo.py` (Truth) == `repository.py` (Dev).
-2. **Seeding**: `backend/seed/seed_data.json` is Authority.
-3. **Root Cause**: Fix the source, don't patch the symptom.
-4. **Environment**: Windows 11 / PowerShell. No `grep`. UTF-8 required.
-
---------------------------------------------------------------------------------
-🗺️ KNOWLEDGE BASE MAP
-*Ref: docs/flutterpromptohje.md (PART 9)*
-- Backend: `knowledge/backend_system_architecture`
-- Frontend: `knowledge/client_application_development`
-- Environment: `knowledge/development_environment_modernization`
+If you act contrary to `docs/flutterpromptohje.md`, you are failing the task.

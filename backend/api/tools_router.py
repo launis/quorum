@@ -8,11 +8,18 @@ import logging
 import os
 import shutil
 import uuid
-from typing import Annotated
+from typing import Annotated, Any, Dict, List
 
 from fastapi import APIRouter, Body, Depends, File, Form, UploadFile, status
 
-from backend.dependencies import DatabaseDep, RegistryDep, RepositoryDep, get_document_service_dep
+from backend.dependencies import DatabaseDep, RegistryDep, RepositoryDep, get_document_service_dep, get_knowledge_base_service_dep
+from backend.services.knowledge_base_service import KnowledgeBaseService
+from backend.models.dtos.tools import (
+    CitationLookupResponse,
+    ConceptExtractionResponse,
+    TextExtractionResponse,
+    WebScrapeResponse,
+)
 
 # --- Local Imports ---
 # Rule 6: APIError must be the FIRST local import
@@ -25,12 +32,12 @@ router = APIRouter(prefix="/tools", tags=["Tools"])
 # --- Endpoints ---
 
 
-@router.post("/extract-text", summary="Extract Text from File", response_description="Extracted text.")
+@router.post("/extract-text", summary="Extract Text from File", response_description="Extracted text.", response_model=TextExtractionResponse)
 async def extract_text(
     doc_service: Annotated[DocumentService, Depends(get_document_service_dep)],
     text: str | None = Form(None),
     file: UploadFile = File(None),  # noqa: B008
-):
+) -> TextExtractionResponse:
     """Deep-parse a PDF/DOCX file and return raw text.
 
     Args:
@@ -39,7 +46,7 @@ async def extract_text(
         text (str | None): Optional text fallback.
 
     Returns:
-        dict: Filename and extracted text.
+        TextExtractionResponse: Filename and extracted text.
 
     Raises:
         HTTPException: If extraction fails (500).
@@ -85,28 +92,26 @@ async def extract_text(
             details={"error_code": error_code},
         )
 
-    return {"filename": filename, "text": content}
+    return TextExtractionResponse(filename=filename, text=content)
 
 
-@router.post("/extract-concepts", summary="Extract Concepts from Content")
+@router.post("/extract-concepts", summary="Extract Concepts from Content", response_model=ConceptExtractionResponse)
 async def extract_concepts_from_file_or_text(
-    registry: RegistryDep,
-    repo: RepositoryDep,
+    kb_service: Annotated[KnowledgeBaseService, Depends(get_knowledge_base_service_dep)],
     doc_service: Annotated[DocumentService, Depends(get_document_service_dep)],
-    text: str = Form(None),
+    text: str | None = Form(None),
     file: UploadFile = File(None),  # noqa: B008
-):
+) -> ConceptExtractionResponse:
     """Extracts domain concepts from either raw text or an uploaded file.
 
     Args:
-        registry (RegistryDep): Registry for LLM config.
+        kb_service (KnowledgeBaseService): Injected KB service.
         doc_service (DocumentService): Injected document service.
         text (str): Raw text input.
         file (UploadFile): File input.
-        llm_provider (str): Preferred provider (deprecated, uses registry).
 
     Returns:
-        dict: Extracted concepts.
+        ConceptExtractionResponse: Extracted concepts.
 
     Raises:
         HTTPException: If no input provided (400) or extraction errors (500).
@@ -141,21 +146,11 @@ async def extract_concepts_from_file_or_text(
         )
 
     try:
-        # Resolve config logic (Dynamic)
-        config = await registry.resolve_model_config("AnalystAgent")  # Strategy: 'deep' analysis
+        # Execute Extraction (Delegates strategy resolution to Service)
+        # We use 'deep' strategy (AnalystAgent equivalent)
+        concepts = await kb_service.extract_concepts_with_llm(content, strategy="deep")
 
-        from backend.llm.provider import LLMFactory
-        from backend.services.knowledge_base_service import KnowledgeBaseService
-
-        provider = LLMFactory.create_provider(config["provider"], config["model_name"])
-
-        # Initialize Service
-        service = KnowledgeBaseService(repo, llm_provider=provider)
-
-        # Execute Extraction
-        concepts = await service.extract_concepts_with_llm(content)
-
-        return {"source_length": len(content), "concepts": concepts}
+        return ConceptExtractionResponse(source_length=len(content), concepts=concepts)
 
     except Exception as e:
         from backend.exceptions import AppException
@@ -169,10 +164,10 @@ async def extract_concepts_from_file_or_text(
         ) from e
 
 
-@router.post("/web-scrape", summary="Scrape Web Page", response_description="Scraped content.")
+@router.post("/web-scrape", summary="Scrape Web Page", response_description="Scraped content.", response_model=WebScrapeResponse)
 async def web_scrape(
     url: Annotated[str, Body(embed=True)],
-):
+) -> WebScrapeResponse:
     """Scrapes a public web page.
 
     Protected against SSRF (Server-Side Request Forgery).
@@ -187,7 +182,13 @@ async def web_scrape(
         parsed = urlparse(url)
         hostname = parsed.hostname
         if not hostname:
-            raise ValueError("Invalid URL")
+            from backend.exceptions import AppException
+
+            raise AppException(
+                message=f"Invalid URL: {url}",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": "INVALID_URL"},
+            )
 
         # Resolve IP
         ip = socket.gethostbyname(hostname)
@@ -242,45 +243,31 @@ async def web_scrape(
 
     # 2. Mock Implementation for now (or real if needed, but test only checks hardening)
     # Return dummy content
-    return {"url": url, "content": "Scraped content placeholder."}
+    return WebScrapeResponse(url=url, content="Scraped content placeholder.")
 
 
-@router.post("/citation-lookup", summary="Resolve Citations", response_description="Resolved context.")
+@router.post("/citation-lookup", summary="Resolve Citations", response_description="Resolved context.", response_model=CitationLookupResponse)
 async def citation_lookup(
-    db: DatabaseDep, repo: RepositoryDep, registry: RegistryDep, queries: Annotated[list[str], Body(..., embed=True)]
-):
+    kb_service: Annotated[KnowledgeBaseService, Depends(get_knowledge_base_service_dep)],
+    queries: Annotated[List[str], Body(..., embed=True)],
+) -> CitationLookupResponse:
     """Uses the Knowledge Base Service to find context for citations.
 
     Args:
-        db (DatabaseDep): Database dependency.
-        repo (RepositoryDep): Repository dependency.
-        registry (RegistryDep): Registry dependency.
-        queries (list[str]): List of citation keys or queries.
-
-        registry (RegistryDep): Registry dependency.
-        queries (list[str]): List of citation keys or queries.
+        kb_service (KnowledgeBaseService): Injected KB service.
+        queries (List[str]): List of citation keys or queries.
 
     Returns:
-        dict: Map of query to resolved context.
+        CitationLookupResponse: Map of query to resolved context.
     """
     try:
-        from backend.llm.provider import LLMFactory
-        from backend.services.knowledge_base_service import KnowledgeBaseService
-
-        # Strict Resolution: Use 'smart' strategy for citation analysis
-        config = await registry.resolve_model_config("smart")
-
-        # repo is injected via Dependency
-        provider = LLMFactory.create_provider("google", config["model_name"])
-
-        kb_service = KnowledgeBaseService(repo, llm_provider=provider)
-
         results = {}
         for q in queries:
-            context = await kb_service.retrieve_context(q)
-            results[q] = context
+            # retrieve_context handles lookup
+            context_items = await kb_service.retrieve_context(q)
+            results[q] = [item.model_dump() for item in context_items]
 
-        return results
+        return CitationLookupResponse(results=results)
 
     except Exception as e:
         from backend.exceptions import AppException

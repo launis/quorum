@@ -17,14 +17,15 @@ from backend.core.engine import GraphEngine
 from backend.database.factory import get_repository
 from backend.database.repository import AbstractWorkflowRepository
 from backend.database.wrapper import AbstractDatabase, get_db_client
-from backend.exceptions import AuthenticationError
+from backend.exceptions import AuthenticationError, AppException, ErrorCodes
 from backend.llm.provider import LLMProvider
 from backend.models.auth import TokenData
 from backend.services.agent_registry import AgentRegistry
 from backend.services.audit_service import AuditService
 from backend.services.auth import AuthService
+from backend.services.file_driver import FileDriver
+from backend.services.knowledge_base_service import KnowledgeBaseService
 from backend.services.prompt_builder import PromptBuilder
-from backend.services.storage import AbstractStorage
 from backend.services.usage_service import UsageService
 from backend.settings import Settings, get_settings
 
@@ -38,11 +39,12 @@ _db_client_instance: AbstractDatabase | None = None
 _repository_instance: AbstractWorkflowRepository | None = None
 _registry_instance: AgentRegistry | None = None
 _prompt_builder_instance: PromptBuilder | None = None
-_storage_service_instance: AbstractStorage | None = None
+_storage_service_instance: FileDriver | None = None
 _document_service_instance: Any | None = None
 _audit_service_instance: AuditService | None = None
 _auth_service_instance: AuthService | None = None
 _usage_service_instance: UsageService | None = None
+_knowledge_base_service_instance: KnowledgeBaseService | None = None
 _engine_instance: GraphEngine | None = None
 
 
@@ -100,27 +102,47 @@ async def get_prompt_builder_dep(
     return _prompt_builder_instance
 
 
-def get_storage_service_dep() -> AbstractStorage:
+def get_storage_service_dep() -> FileDriver:
     """Dependency to provide a Singleton Storage Service."""
     global _storage_service_instance
 
     if _storage_service_instance is not None:
         return _storage_service_instance
 
-    from backend.services.storage import get_storage_client
+    from backend.services.storage import get_storage_driver
 
-    _storage_service_instance = get_storage_client()
+    _storage_service_instance = get_storage_driver()
     logger.info(f"[Dependencies] Initialized Storage Service: {_storage_service_instance.__class__.__name__}")
     return _storage_service_instance
 
 
 def get_document_service_dep(
-    storage_client: Annotated[AbstractStorage, Depends(get_storage_service_dep)],
+    storage_client: Annotated[FileDriver, Depends(get_storage_service_dep)],
 ) -> Any:
     """Dependency to provide Singleton Document Service."""
     from backend.services.document_service import DocumentService
 
     return DocumentService(storage_client)
+
+
+async def get_knowledge_base_service_dep(
+    repo: Annotated[AbstractWorkflowRepository, Depends(get_async_repository)],
+    storage_client: Annotated[FileDriver, Depends(get_storage_service_dep)],
+    document_service: Annotated[Any, Depends(get_document_service_dep)],
+    registry: Annotated[AgentRegistry, Depends(get_agent_registry_dep)],
+    usage_service: Annotated[UsageService, Depends(get_usage_service)],
+) -> KnowledgeBaseService:
+    """Dependency to provide Singleton Knowledge Base Service."""
+    global _knowledge_base_service_instance
+    if _knowledge_base_service_instance is None:
+        _knowledge_base_service_instance = KnowledgeBaseService(
+            repository=repo,
+            storage_client=storage_client,
+            document_service=document_service,
+            registry=registry,
+            usage_service=usage_service,
+        )
+    return _knowledge_base_service_instance
 
 
 def get_audit_service(
@@ -190,7 +212,11 @@ async def get_llm_provider(
     provider_type = config.get("provider")
 
     if not provider_type:
-        raise ValueError(f"[get_llm_provider] 'provider' missing for strategy '{model_strategy}'.")
+        raise AppException(
+            message=f"[get_llm_provider] 'provider' missing for strategy '{model_strategy}'.",
+            status_code=500,
+            details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
+        )
 
     return LLMFactory.create_provider(provider_type=provider_type, model_name=model_name, usage_service=usage_service)
 
@@ -267,10 +293,13 @@ AuditServiceDep = Annotated[AuditService, Depends(get_audit_service)]
 PromptBuilderDep = Annotated[PromptBuilder, Depends(get_prompt_builder_dep)]
 
 # Provides the Storage Service (Local File System or Firebase Cloud Storage).
-StorageDep = Annotated[AbstractStorage, Depends(get_storage_service_dep)]
+StorageDep = Annotated[FileDriver, Depends(get_storage_service_dep)]
 
 # Provides the Document Service (handles text extraction and ingestion).
 DocumentServiceDep = Annotated[Any, Depends(get_document_service_dep)]
+
+# Provides the Knowledge Base Service.
+KnowledgeBaseServiceDep = Annotated[KnowledgeBaseService, Depends(get_knowledge_base_service_dep)]
 
 # Provides the central Graph Engine.
 EngineDep = Annotated[GraphEngine, Depends(get_engine)]

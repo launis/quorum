@@ -3,7 +3,6 @@
 This module defines the abstract interface for data storage, enforcing the
 'Write Logic Once, Swap the Driver' pattern.
 """
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Literal, Protocol
 
@@ -29,7 +28,7 @@ class StorageDriver(Protocol):
     async def upsert(self, collection: str, data: dict[str, Any], doc_id: str) -> str:
         """Create or Update a document. Returns the doc_id."""
         ...
-    
+
     async def update(self, collection: str, doc_id: str, updates: dict[str, Any]) -> bool:
         """Partial update of a document. Returns True if successful."""
         ...
@@ -48,7 +47,7 @@ class StorageDriver(Protocol):
     ) -> list[dict[str, Any]]:
         """Query a collection with filters, sorting, and limits."""
         ...
-    
+
     async def count(self, collection: str, filters: list[Filter] | None = None) -> int:
         """Count documents matching the filters."""
         ...

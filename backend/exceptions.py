@@ -100,16 +100,23 @@ class ErrorCodes(str, Enum):
     # General
     INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR"
     UNKNOWN_ERROR = "UNKNOWN_ERROR"
+    CONFIGURATION_ERROR = "CONFIGURATION_ERROR"
+    RESOURCE_NOT_FOUND = "RESOURCE_NOT_FOUND"
+    CONFLICT_ERROR = "CONFLICT_ERROR"
+    SERVICE_UNAVAILABLE = "SERVICE_UNAVAILABLE"
+    AUTHENTICATION_FAILED = "AUTHENTICATION_FAILED"
 
     # Validation
     EMPTY_INPUT = "EMPTY_INPUT"
     INVALID_JSON_PAYLOAD = "INVALID_JSON_PAYLOAD"
+    VALIDATION_FAILED = "VALIDATION_FAILED"
     MISSING_WORKFLOW_ID = "MISSING_WORKFLOW_ID"
     UNSUPPORTED_CONTENT_TYPE = "UNSUPPORTED_CONTENT_TYPE"
 
     # Resources
     EXECUTION_NOT_FOUND = "EXECUTION_NOT_FOUND"
     WORKFLOW_NOT_FOUND = "WORKFLOW_NOT_FOUND"
+    JOB_NOT_FOUND = "JOB_NOT_FOUND"
 
     # Visualization
     CHART_GENERATION_FAILED = "CHART_GENERATION_FAILED"
@@ -126,6 +133,53 @@ class ErrorCodes(str, Enum):
     MODEL_OUTPUT_LIMIT_EXCEEDED = "MODEL_OUTPUT_LIMIT_EXCEEDED"
     UPSTREAM_TIMEOUT = "UPSTREAM_TIMEOUT"
 
+    # Model Config
+    INVALID_REGISTRY_STRUCTURE = "INVALID_REGISTRY_STRUCTURE"
+    MODEL_LIST_FAILED = "MODEL_LIST_FAILED"
+    INVALID_MODEL_ID = "INVALID_MODEL_ID"
+    MODEL_UPDATE_FAILED = "MODEL_UPDATE_FAILED"
+    DELETE_BLOCKED_SYSTEM_DEFAULT = "DELETE_BLOCKED_SYSTEM_DEFAULT"
+    DELETE_BLOCKED_BY_USAGE = "DELETE_BLOCKED_BY_USAGE"
+    MODEL_DELETE_FAILED = "MODEL_DELETE_FAILED"
+
+    # Ontology / Dimensions
+    DIMENSION_LIST_FAILED = "DIMENSION_LIST_FAILED"
+    DIMENSION_NOT_FOUND = "DIMENSION_NOT_FOUND"
+    DIMENSION_DELETE_FAILED = "DIMENSION_DELETE_FAILED"
+    DIMENSION_UPDATE_FAILED = "DIMENSION_UPDATE_FAILED"
+    DIMENSION_ID_MISMATCH = "DIMENSION_ID_MISMATCH"
+
+    # State Presenter
+    STATE_INTEGRITY_ERROR = "STATE_INTEGRITY_ERROR"
+
+    # Reference Manager
+    KNOWLEDGE_BASE_INVALID = "KNOWLEDGE_BASE_INVALID"
+    CITATION_PARSING_FAILED = "CITATION_PARSING_FAILED"
+
+    # Prompt Builder
+    PROMPT_CONSTRUCTION_FAILED = "PROMPT_CONSTRUCTION_FAILED"
+
+    # Storage
+    STORAGE_CONFIG_ERROR = "STORAGE_CONFIG_ERROR"
+    STORAGE_ACCESS_FAILED = "STORAGE_ACCESS_FAILED"
+    FILESYSTEM_VIOLATION = "FILESYSTEM_VIOLATION"
+    FILE_NOT_FOUND = "FILE_NOT_FOUND"
+    STORAGE_BUCKET_NOT_FOUND = "STORAGE_BUCKET_NOT_FOUND"
+
+    # Progress
+    PROGRESS_UPDATE_FAILED = "PROGRESS_UPDATE_FAILED"
+
+    # Web Fetcher
+    FETCH_FAILED = "FETCH_FAILED"
+    URL_INVALID = "URL_INVALID"
+
+    # Usage Service
+    USAGE_TRACKING_FAILED = "USAGE_TRACKING_FAILED"
+    QUOTA_CHECK_FAILED = "QUOTA_CHECK_FAILED"
+
+    # Validation Service
+    REGISTRY_CORRUPTION = "REGISTRY_CORRUPTION"
+
     # PDF / Reports
     PDF_DOWNLOAD_FAILED = "PDF_DOWNLOAD_FAILED"
     PDF_GENERATION_FAILED = "PDF_GENERATION_FAILED"
@@ -133,6 +187,46 @@ class ErrorCodes(str, Enum):
 
     # Network / Infra
     NETWORK_UNAVAILABLE = "NETWORK_UNAVAILABLE"
+    SERVICE_DEPENDENCY_MISSING = "SERVICE_DEPENDENCY_MISSING"
+    # Documents
+    DOCUMENT_PROCESSING_FAILED = "DOCUMENT_PROCESSING_FAILED"
+
+    INVALID_FILE_FORMAT = "INVALID_FILE_FORMAT"
+
+    # Engine / Workflow
+    HOOK_EXECUTION_FAILED = "HOOK_EXECUTION_FAILED"
+    INPUT_RESOLUTION_FAILED = "INPUT_RESOLUTION_FAILED"
+    TASK_NOT_FOUND = "TASK_NOT_FOUND"
+    COMPONENT_NOT_FOUND = "COMPONENT_NOT_FOUND"
+    RATE_LIMIT_EXCEEDED = "RATE_LIMIT_EXCEEDED"
+
+    # Knowledge Base
+    KNOWLEDGE_INGESTION_FAILED = "KNOWLEDGE_INGESTION_FAILED"
+    KNOWLEDGE_ARCHIVAL_FAILED = "KNOWLEDGE_ARCHIVAL_FAILED"
+    KNOWLEDGE_RESET_FAILED = "KNOWLEDGE_RESET_FAILED"
+    KNOWLEDGE_RETRIEVAL_FAILED = "KNOWLEDGE_RETRIEVAL_FAILED"
+    KNOWLEDGE_NOT_INGESTED = "KNOWLEDGE_NOT_INGESTED"
+    PARSING_FAILED = "PARSING_FAILED"
+
+    # Search / External Tools
+    SEARCH_CONFIG_ERROR = "SEARCH_CONFIG_ERROR"
+    SEARCH_EXECUTION_FAILED = "SEARCH_EXECUTION_FAILED"
+    SEARCH_MISSING_INPUT = "SEARCH_MISSING_INPUT"
+
+    # Security
+    SECURITY_CONFIG_ERROR = "SECURITY_CONFIG_ERROR"
+    SECURITY_DB_ERROR = "SECURITY_DB_ERROR"
+    SECURITY_SCAN_FAILED = "SECURITY_SCAN_FAILED"
+    SECURITY_VIOLATION = "SECURITY_VIOLATION"
+
+    # Agent Specific
+    AGENT_MISSING_INSTRUCTION = "AGENT_MISSING_INSTRUCTION"
+    AGENT_NOT_CONFIGURED = "AGENT_NOT_CONFIGURED"
+    AGENT_RESPONSE_MALFORMED = "AGENT_RESPONSE_MALFORMED"
+    AGENT_RESPONSE_PARSING_FAILED = "AGENT_RESPONSE_PARSING_FAILED"
+    AGENT_SCHEMA_VALIDATION_FAILED = "AGENT_SCHEMA_VALIDATION_FAILED"
+
+
 
 
 class AppException(Exception):
@@ -232,8 +326,13 @@ class AppException(Exception):
         if instance:
             problem["instance"] = instance
 
-        # Include any extra details (excluding error_code which is in 'type')
-        extra = {k: v for k, v in self.details.items() if k != "error_code"}
+        # Include any extra details, ensuring error_code is always present for L10n
+        extra = self.details.copy() if self.details else {}
+        
+        # Ensure error_code is in extensions even if redundant with type URI
+        if "error_code" not in extra:
+            extra["error_code"] = self.error_code
+
         if extra:
             problem["extensions"] = extra
 
@@ -245,7 +344,7 @@ class ResourceNotFoundError(AppException):
 
     def __init__(self, resource_type: str, resource_id: str = "", details: dict | None = None):
         """Initialize the exception."""
-        error_details = {"resource_type": resource_type, "resource_id": resource_id}
+        error_details = {"resource_type": resource_type, "resource_id": resource_id, "error_code": ErrorCodes.RESOURCE_NOT_FOUND}
         if details:
             error_details.update(details)
 
@@ -261,7 +360,7 @@ class WorkflowNotFoundError(ResourceNotFoundError):
 
     def __init__(self, workflow_id: str):
         """Initialize the exception."""
-        super().__init__("Workflow", workflow_id)
+        super().__init__("Workflow", workflow_id, details={"error_code": ErrorCodes.WORKFLOW_NOT_FOUND})
 
 
 class StepNotFoundError(ResourceNotFoundError):
@@ -269,7 +368,7 @@ class StepNotFoundError(ResourceNotFoundError):
 
     def __init__(self, step_id: str):
         """Initialize the exception."""
-        super().__init__("Step", step_id)
+        super().__init__("Step", step_id, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND})
 
 
 class ExecutionNotFoundError(ResourceNotFoundError):
@@ -277,7 +376,7 @@ class ExecutionNotFoundError(ResourceNotFoundError):
 
     def __init__(self, execution_id: str):
         """Initialize the exception."""
-        super().__init__("Execution", execution_id)
+        super().__init__("Execution", execution_id, details={"error_code": ErrorCodes.EXECUTION_NOT_FOUND})
 
 
 class AgentExecutionError(AppException):
@@ -304,7 +403,8 @@ class AgentExecutionError(AppException):
         """
         msg = f"{detail}"
         if original_error:
-            msg += f" - Cause: {str(original_error)}"
+            formatted_cause = format_validation_error(original_error)
+            msg += f" - Cause: {formatted_cause}"
 
         error_details = {"error_code": detail}
         if original_error:
@@ -319,6 +419,48 @@ class AgentExecutionError(AppException):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             details=error_details,
         )
+
+    def _format_cause(self, exc: Exception) -> str:
+        """Legacy wrapper for format_validation_error."""
+        return format_validation_error(exc)
+
+
+def format_validation_error(exc: Exception) -> str:
+    """Formats the exception into a human-readable string, specifically handling Pydantic ValidationErrors."""
+    try:
+        from pydantic import ValidationError
+        if isinstance(exc, ValidationError):
+            errors = exc.errors()
+            missing_fields = []
+            other_errors = []
+
+            for err in errors:
+                # Parse location (e.g. ['body', 'field'] -> body.field)
+                loc = ".".join(str(l) for l in err.get("loc", []))
+                msg = err.get("msg", "Unknown error")
+                err_type = err.get("type", "")
+
+                if err_type == "missing":
+                    missing_fields.append(loc)
+                else:
+                    other_errors.append(f"{loc}: {msg}")
+
+            parts = []
+            if missing_fields:
+                parts.append(f"Missing required fields: {', '.join(missing_fields)}")
+            if other_errors:
+                parts.append("; ".join(other_errors))
+            
+            # Use title if available (e.g. "ContextData")
+            title = getattr(exc, "title", "Schema")
+            return f"{title} validation failed. " + "; ".join(parts)
+    except ImportError:
+        pass
+    except Exception:
+        # Fallback to string representation if formatting fails
+        pass
+    
+    return str(exc)
 
 
 class FatalInterruption(AppException):
@@ -346,9 +488,12 @@ class FatalInterruption(AppException):
 class ConfigurationError(AppException):
     """Raised when there is a misconfiguration (e.g. missing API key)."""
 
-    def __init__(self, message: str):
+    def __init__(self, message: str, details: dict | None = None):
         """Initialize the exception."""
-        super().__init__(message, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        d = {"error_code": ErrorCodes.CONFIGURATION_ERROR}
+        if details:
+            d.update(details)
+        super().__init__(message, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details=d)
 
 
 class ConflictError(AppException):
@@ -356,7 +501,10 @@ class ConflictError(AppException):
 
     def __init__(self, message: str, details: dict | None = None):
         """Initialize the exception."""
-        super().__init__(message, status_code=status.HTTP_409_CONFLICT, details=details)
+        d = {"error_code": ErrorCodes.CONFLICT_ERROR}
+        if details:
+            d.update(details)
+        super().__init__(message, status_code=status.HTTP_409_CONFLICT, details=d)
 
 
 class PermissionDeniedError(AppException):
@@ -364,7 +512,10 @@ class PermissionDeniedError(AppException):
 
     def __init__(self, message: str = "Permission denied", details: dict | None = None):
         """Initialize the exception."""
-        super().__init__(message, status_code=status.HTTP_403_FORBIDDEN, details=details)
+        d = {"error_code": ErrorCodes.PERMISSION_DENIED}
+        if details:
+            d.update(details)
+        super().__init__(message, status_code=status.HTTP_403_FORBIDDEN, details=d)
 
 
 class ServiceUnavailableError(AppException):
@@ -372,7 +523,10 @@ class ServiceUnavailableError(AppException):
 
     def __init__(self, message: str = "Service unavailable", details: dict | None = None):
         """Initialize the exception."""
-        super().__init__(message, status_code=status.HTTP_503_SERVICE_UNAVAILABLE, details=details)
+        d = {"error_code": ErrorCodes.SERVICE_UNAVAILABLE}
+        if details:
+            d.update(details)
+        super().__init__(message, status_code=status.HTTP_503_SERVICE_UNAVAILABLE, details=d)
 
 
 class AuthenticationError(AppException):
@@ -380,7 +534,10 @@ class AuthenticationError(AppException):
 
     def __init__(self, message: str = "Authentication failed", details: dict | None = None):
         """Initialize the exception."""
-        super().__init__(message, status_code=status.HTTP_401_UNAUTHORIZED, details=details)
+        d = {"error_code": ErrorCodes.AUTHENTICATION_FAILED}
+        if details:
+            d.update(details)
+        super().__init__(message, status_code=status.HTTP_401_UNAUTHORIZED, details=d)
 
 
 class SecurityViolationError(AppException):
@@ -389,7 +546,10 @@ class SecurityViolationError(AppException):
     def __init__(self, message: str, details: dict | None = None):
         """Initialize the exception."""
         # 400 Bad Request matches "Client sent invalid content"
-        super().__init__(message, status_code=status.HTTP_400_BAD_REQUEST, details=details)
+        d = {"error_code": ErrorCodes.SECURITY_VIOLATION}
+        if details:
+            d.update(details)
+        super().__init__(message, status_code=status.HTTP_400_BAD_REQUEST, details=d)
 
 
 class WorkflowExecutionError(AppException):
@@ -407,6 +567,8 @@ class WorkflowExecutionError(AppException):
 
         error_details = details or {}
         error_details.update({"step_id": step_id, "task_key": task_key, "cause": str(original_error)})
+        if "error_code" not in error_details:
+             error_details["error_code"] = ErrorCodes.WORKFLOW_EXECUTION_FAILED
 
         super().__init__(
             message=msg,

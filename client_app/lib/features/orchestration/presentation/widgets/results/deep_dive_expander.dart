@@ -29,8 +29,6 @@ class DeepDiveExpander extends StatelessWidget {
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
         ),
       ),
-        ),
-      ),
       child: Semantics(
         excludeSemantics: Platform.isWindows,
         child: ExpansionTile(

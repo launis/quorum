@@ -79,9 +79,10 @@ class LogicMatrixChart extends StatelessWidget {
                 show: true,
                 leftTitles: AxisTitles(
                   axisNameWidget: const Text("Argumentaation Vahvuus (Toulmin)", style: TextStyle(fontSize: 10)),
+                  axisNameSize: 20, // Reserve space for name
                   sideTitles: SideTitles(
                     showTitles: true,
-                    reservedSize: 30,
+                    reservedSize: 40, // Increased for labels
                     getTitlesWidget: (value, meta) {
                        if (value == 1) return const Text("Väite", style: TextStyle(fontSize: 9));
                        if (value == 5) return const Text("Vahva", style: TextStyle(fontSize: 9));

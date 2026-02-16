@@ -9,8 +9,10 @@ sys.modules["matplotlib.pyplot"] = MagicMock()
 sys.modules["weasyprint"] = MagicMock()
 
 import asyncio
-from backend.services.pdf_generator import PdfReportService
+
 from backend.models.view import SectionType
+from backend.services.pdf_generator import PdfReportService
+
 
 # Mock Repository
 class MockRepository:
@@ -47,33 +49,33 @@ class MockRepository:
                 }
             }
         }
-    
+
     async def get_component_by_id(self, _id):
         return None
 
 async def test_pdf_generation_structure():
     print("Dependencies mocked aggressively.")
-    
+
     repo = MockRepository()
     service = PdfReportService(repository=repo)
-    
+
     try:
         # Check logic via Transformer directly
         execution = await repo.get_execution("id")
         view = service.transformer.transform(execution)
-        
+
         print(f"BFF Transformer generated {len(view.sections)} sections.")
         score_cards = [s for s in view.sections if s.type == SectionType.SCORE_CARD]
         print(f"Found {len(score_cards)} Score Cards.")
-        
+
         for sc in score_cards:
             print(f" - {sc.title}: Score {sc.data['total_score']} (Max {sc.data['max_score']})")
-        
+
         if len(score_cards) == 2:
             print("SUCCESS: Dual scores detected.")
         else:
             print("FAILURE: Dual scores NOT detected.")
-            
+
     except Exception as e:
         print(f"Error: {e}")
         import traceback

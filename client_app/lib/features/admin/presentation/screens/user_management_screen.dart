@@ -9,6 +9,7 @@ import 'package:client_app/features/auth/presentation/auth_controller.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:client_app/core/ui/error_view.dart';
 
 /// **User Management Screen**
 ///
@@ -103,8 +104,14 @@ class UserManagementScreen extends ConsumerWidget {
           constraints: const BoxConstraints(maxWidth: 1000),
           child: authState.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, stack) => Center(child: Text('Error: $err')),
-            data: (currentUser) {
+                error:
+                    (err, stack) => ErrorView(
+                      error: err,
+                      onRetry:
+                          () => ref.invalidate(authControllerProvider),
+                      retryLabel: l10n.retry,
+                    ),
+                data: (currentUser) {
               if (currentUser == null) {
                 return Center(child: Text(l10n.loginRequired));
               }
@@ -155,30 +162,12 @@ class UserManagementScreen extends ConsumerWidget {
                           ),
                       error:
                           (err, stack) => SliverFillRemaining(
-                            child: Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.error_outline,
-                                    size: 48,
-                                    color: colorScheme.error,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    err.toString(),
-                                    style: TextStyle(color: colorScheme.error),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  FilledButton.tonal(
-                                    onPressed: () {
-                                      ref.invalidate(orgUsersProvider(orgId));
-                                    },
-                                    child: Text(l10n.retry),
-                                  ),
-                                ],
-                              ),
+                            child: ErrorView(
+                              error: err,
+                              onRetry: () {
+                                ref.invalidate(orgUsersProvider(orgId));
+                              },
+                              retryLabel: l10n.retry,
                             ),
                           ),
                       data: (users) {

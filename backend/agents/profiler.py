@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from backend.agents.base import BaseAgent
 
 # 3. Local Imports
+from backend.exceptions import AgentExecutionError, ErrorCodes
 from backend.models.domain import ProfilerAnalysis
 
 if TYPE_CHECKING:
@@ -41,69 +42,125 @@ class ProfilerAgent(BaseAgent):
 
     async def execute(
         self,
-        input_data: dict,
-        execution_context: dict | None = None,
+        input_data: dict[str, Any],
+        execution_context: dict[str, Any] | None = None,
         system_instruction: str | None = None,
-        **kwargs,
-    ) -> dict:
+        **kwargs: Any,
+    ) -> ProfilerAnalysis:
         """Executes the psychological profiling analysis.
 
         Args:
-            input_data (dict): Inputs.
-            execution_context (dict): Context.
-            system_instruction (str): Prompt.
+            input_data (dict[str, Any]): Inputs.
+            execution_context (dict[str, Any] | None, optional): Context.
+            system_instruction (str | None, optional): Prompt.
             **kwargs: Args.
 
         Returns:
-            dict: ProfilerAnalysis.
+            ProfilerAnalysis: The psychological profile.
+
+        Raises:
+            AgentExecutionError: If mandatory inputs are missing or validation fails.
         """
-        # Inject metrics if available in pre-calculation
-        try:
+        # FAIL FAST: Output Control relies on valid input text.
+        if not input_data.get("history_text"):
+             error_msg = "Mandatory input 'history_text' missing. Assessment aborted."
+             logger.error(f"[ProfilerAgent] {error_msg}")
+             raise AgentExecutionError(
+                 detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
+                 original_error=ValueError(error_msg),
+                 agent_name="ProfilerAgent"
+             )
+
+        # 1. VALIDATION (Fail Fast)
+        hook_metrics = None
+        if "profiler_metrics" in input_data:
              logger.info(f"[ProfilerAgent] Input Context Keys: {list(input_data.keys())}")
-             if "profiler_metrics" in input_data:
-                 logger.info(f"[ProfilerAgent] Metrics found: {input_data['profiler_metrics']}")
-             
-             result = await super().execute(input_data, execution_context, system_instruction, **kwargs)
-             
-             # MERGE HOOK METRICS (Linguistic) with LLM METRICS (Psychometric)
-             if "profiler_metrics" in input_data and hasattr(result, "metrics"):
-                 hook_metrics = input_data["profiler_metrics"]
-                 # Ensure result.metrics is a dict (it might be None or already populated)
-                 if result.metrics is None:
-                     result.metrics = {}
-                 
-                 # Merge: Hook metrics take precedence or append? 
-                 # Usually hooking metrics (word_count) are unrelated to LLM metrics (say_do_gap).
-                 logger.info(f"[ProfilerAgent] Merging hook metrics: {hook_metrics.keys()}")
-                 
-                 # We need to copy to avoid mutating frozen pydantic models if frozen=True
-                 # But ProfilerAnalysis is frozen=True.
-                 # WE need to copy to avoid mutating frozen pydantic models if frozen=True
-                 # But ProfilerAnalysis is frozen=True.
-                 if hasattr(result, "model_copy"):
-                     updated_metrics = result.metrics.copy()
-                     # Force clamp if present from manual entry or hook error
-                     if "control_ratio" in hook_metrics:
-                         val = hook_metrics["control_ratio"]
-                         if val > 1.0:
-                             logger.warning(f"[ProfilerAgent] Anomaly detected: control_ratio {val} > 1.0. Clamping to 1.0.")
-                             hook_metrics["control_ratio"] = 1.0
-                     
-                     updated_metrics.update(hook_metrics)
-                     result = result.model_copy(update={"metrics": updated_metrics})
-                 else:
-                     # Fallback for dict
-                     result.metrics.update(hook_metrics)
-                     
-             return result
+             logger.info(f"[ProfilerAgent] Metrics found: {input_data['profiler_metrics']}")
+
+             hook_metrics = input_data["profiler_metrics"]
+             if not isinstance(hook_metrics, dict):
+                 logger.error(f"[ProfilerAgent] Invalid profiler_metrics type: {type(hook_metrics)}")
+                 # Fail Fast on Integration Type Error
+                 raise AgentExecutionError(
+                     detail=ErrorCodes.INVALID_JSON_PAYLOAD,
+                     original_error=TypeError(f"ProfilerAgent received invalid metrics type: {type(hook_metrics)}"),
+                     agent_name="ProfilerAgent"
+                 )
+
+             # FAIL FAST: Output Control relies on 'control_ratio'
+             if "control_ratio" not in hook_metrics:
+                  logger.warning("[ProfilerAgent] 'control_ratio' missing in hook_metrics. Output Control may default to unsafe.")
+
+             # Force clamp logic for dict
+             if "control_ratio" in hook_metrics:
+                 val = hook_metrics["control_ratio"]
+                 if isinstance(val, (int, float)) and val > 1.0:
+                     logger.warning(f"[ProfilerAgent] Anomaly detected: control_ratio {val} > 1.0. Clamping to 1.0.")
+                     hook_metrics["control_ratio"] = 1.0
+
+        # 2. EXECUTION (LLM)
+        try:
+            result = await super().execute(
+                input_data=input_data,
+                execution_context=execution_context,
+                system_instruction=system_instruction,
+                **kwargs
+            )
         except Exception as e:
-            logger.critical(f"[ProfilerAgent] CRASHED: {e}", exc_info=True)
-            raise e
+            # Re-raise AppExceptions/AgentExecutionErrors as is
+            from backend.exceptions import AppException
+            if isinstance(e, AppException):
+                raise e
+
+            # Re-raise unexpected execution errors with context
+            raise AgentExecutionError(
+                detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
+                original_error=e,
+                agent_name="ProfilerAgent"
+            ) from e
+
+        # 3. MERGING
+        try:
+             # MERGE HOOK METRICS (Linguistic) with LLM METRICS (Psychometric)
+             if hook_metrics:
+                 if isinstance(result, BaseModel):
+                     # Handle Pydantic Model (Frozen or not)
+                     # We use model_copy to safely update even if frozen
+                     current_metrics = getattr(result, "metrics", {}) or {}
+                     merged_metrics = {**current_metrics, **hook_metrics}
+                     result = result.model_copy(update={"metrics": merged_metrics})
+                 else:
+                     # FAIL FAST: Strict Mode - Agent MUST return BaseModel
+                     raise AgentExecutionError(
+                         detail=ErrorCodes.INVALID_JSON_PAYLOAD,
+                         original_error=TypeError(f"ProfilerAgent returned {type(result)} instead of ProfilerAnalysis."),
+                         agent_name="ProfilerAgent"
+                     )
+
+             return result
+
+        except Exception as e:
+            if isinstance(e, AgentExecutionError):
+                raise e
+            logger.critical(f"[ProfilerAgent] CRASHED during merging: {e}", exc_info=True)
+            raise AgentExecutionError(
+                detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
+                original_error=e,
+                agent_name="ProfilerAgent"
+            ) from e
 
     # _update_state removed. Logic for metrics injection should be in a hook or pre-processing.
     # The 'profiler_metrics' are passed in input_data from the Engine if calculated.
 
     def post_process(self, response_data: Any) -> Any:
+        """Post-process the response data.
+
+        Args:
+            response_data (Any): Raw response.
+
+        Returns:
+            Any: Processed response.
+        """
         # If we need to inject metrics into the response structure before returning:
         # Check execution_context or input_data?
         # Typically the LLM response is returned as is.

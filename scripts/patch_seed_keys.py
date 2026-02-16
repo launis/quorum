@@ -28,19 +28,19 @@ def patch_seed_data():
         print(f"Error: {SEED_FILE} not found.")
         return
 
-    with open(SEED_FILE, "r", encoding="utf-8") as f:
+    with open(SEED_FILE, encoding="utf-8") as f:
         data = json.load(f)
 
     updated_count = 0
-    
+
     # Traverse the JSON. Structure is usually list of objects.
     # We look for "steps" list in workflow definitions.
-    
+
     # Strategy: Recursive search for "steps" list or check if items in a list look like steps.
     # From previous views, seed_data.json seems to be a list of workflows/components?
     # Or a dict with keys? Let's assume it's a list based on "steps.0.task_key" error which implies validation on a model.
     # Actually the error "10 validation errors for WorkflowDefinition" suggests we are validating Workflow definitions.
-    
+
     def process_node(node):
         nonlocal updated_count
         if isinstance(node, dict):
@@ -55,7 +55,7 @@ def patch_seed_data():
                                 step["task_key"] = KEY_MAPPING[step_id]
                                 updated_count += 1
                                 print(f"Patching step {step_id} -> {KEY_MAPPING[step_id]}")
-            
+
             # Recurse
             for key, value in node.items():
                 process_node(value)
@@ -64,7 +64,7 @@ def patch_seed_data():
                 process_node(item)
 
     process_node(data)
-    
+
     if updated_count > 0:
         with open(SEED_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=4)

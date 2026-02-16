@@ -14,14 +14,13 @@ os.environ["USE_MOCK_DB"] = "false"
 os.environ["STORAGE_BACKEND"] = "LOCAL"
 os.environ["USE_FIREBASE_AUTH"] = "true"
 # Minimal required for settings validtion
-os.environ["GOOGLE_API_KEY"] = "dummy" 
-os.environ["VERTEX_PROJECT_ID"] = "dummy" 
+os.environ["GOOGLE_API_KEY"] = "dummy"
+os.environ["VERTEX_PROJECT_ID"] = "dummy"
 
-from backend.settings import get_settings
-from backend.database.factory import get_repository
 from backend.database.wrapper import get_db_client
 from backend.services.auth import AuthService
-from backend.models.auth import UserRole
+from backend.settings import get_settings
+
 
 async def main():
     print("--- DEBUG AUTH ---")
@@ -42,7 +41,7 @@ async def main():
         users_table = db_client.table("users")
         all_users = users_table.all()
         print(f"Found {len(all_users)} users in DB.")
-        
+
         target_uid = "admin_1"
         found = False
         for u in all_users:
@@ -50,7 +49,7 @@ async def main():
                 print(f"✅ User '{target_uid}' FOUND in DB. Role: {u.get('role')}")
                 found = True
                 break
-        
+
         if not found:
             print(f"❌ User '{target_uid}' NOT FOUND in DB!")
     except Exception as e:

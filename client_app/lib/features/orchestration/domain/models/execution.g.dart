@@ -8,8 +8,8 @@ part of 'execution.dart';
 
 ExecutionPending _$ExecutionPendingFromJson(Map<String, dynamic> json) =>
     ExecutionPending(
-      id: json['execution_id'] as String,
-      createdAt: DateTime.parse(json['start_time'] as String),
+      id: json['id'] as String,
+      createdAt: DateTime.parse(json['started_at'] as String),
       workflowName: json['workflow_name'] as String?,
       organizationId: json['organization_id'] as String?,
       userId: json['user_id'] as String?,
@@ -28,8 +28,8 @@ ExecutionPending _$ExecutionPendingFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$ExecutionPendingToJson(ExecutionPending instance) =>
     <String, dynamic>{
-      'execution_id': instance.id,
-      'start_time': instance.createdAt.toIso8601String(),
+      'id': instance.id,
+      'started_at': instance.createdAt.toIso8601String(),
       'workflow_name': instance.workflowName,
       'organization_id': instance.organizationId,
       'user_id': instance.userId,
@@ -55,8 +55,8 @@ const _$ExecutionStatusEnumMap = {
 
 ExecutionStarted _$ExecutionStartedFromJson(Map<String, dynamic> json) =>
     ExecutionStarted(
-      id: json['execution_id'] as String,
-      createdAt: DateTime.parse(json['start_time'] as String),
+      id: json['id'] as String,
+      createdAt: DateTime.parse(json['started_at'] as String),
       workflowName: json['workflow_name'] as String?,
       organizationId: json['organization_id'] as String?,
       userId: json['user_id'] as String?,
@@ -75,8 +75,8 @@ ExecutionStarted _$ExecutionStartedFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$ExecutionStartedToJson(ExecutionStarted instance) =>
     <String, dynamic>{
-      'execution_id': instance.id,
-      'start_time': instance.createdAt.toIso8601String(),
+      'id': instance.id,
+      'started_at': instance.createdAt.toIso8601String(),
       'workflow_name': instance.workflowName,
       'organization_id': instance.organizationId,
       'user_id': instance.userId,
@@ -90,8 +90,8 @@ Map<String, dynamic> _$ExecutionStartedToJson(ExecutionStarted instance) =>
 
 ExecutionRunning _$ExecutionRunningFromJson(Map<String, dynamic> json) =>
     ExecutionRunning(
-      id: json['execution_id'] as String,
-      createdAt: DateTime.parse(json['start_time'] as String),
+      id: json['id'] as String,
+      createdAt: DateTime.parse(json['started_at'] as String),
       workflowName: json['workflow_name'] as String?,
       organizationId: json['organization_id'] as String?,
       userId: json['user_id'] as String?,
@@ -110,8 +110,8 @@ ExecutionRunning _$ExecutionRunningFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$ExecutionRunningToJson(ExecutionRunning instance) =>
     <String, dynamic>{
-      'execution_id': instance.id,
-      'start_time': instance.createdAt.toIso8601String(),
+      'id': instance.id,
+      'started_at': instance.createdAt.toIso8601String(),
       'workflow_name': instance.workflowName,
       'organization_id': instance.organizationId,
       'user_id': instance.userId,
@@ -125,8 +125,8 @@ Map<String, dynamic> _$ExecutionRunningToJson(ExecutionRunning instance) =>
 
 ExecutionCompleted _$ExecutionCompletedFromJson(Map<String, dynamic> json) =>
     ExecutionCompleted(
-      id: json['execution_id'] as String,
-      createdAt: DateTime.parse(json['start_time'] as String),
+      id: json['id'] as String,
+      createdAt: DateTime.parse(json['started_at'] as String),
       workflowName: json['workflow_name'] as String?,
       organizationId: json['organization_id'] as String?,
       userId: json['user_id'] as String?,
@@ -170,8 +170,8 @@ ExecutionCompleted _$ExecutionCompletedFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$ExecutionCompletedToJson(ExecutionCompleted instance) =>
     <String, dynamic>{
-      'execution_id': instance.id,
-      'start_time': instance.createdAt.toIso8601String(),
+      'id': instance.id,
+      'started_at': instance.createdAt.toIso8601String(),
       'workflow_name': instance.workflowName,
       'organization_id': instance.organizationId,
       'user_id': instance.userId,
@@ -203,8 +203,8 @@ Map<String, dynamic> _$ExecutionCompletedToJson(ExecutionCompleted instance) =>
 
 ExecutionRejected _$ExecutionRejectedFromJson(Map<String, dynamic> json) =>
     ExecutionRejected(
-      id: json['execution_id'] as String,
-      createdAt: DateTime.parse(json['start_time'] as String),
+      id: json['id'] as String,
+      createdAt: DateTime.parse(json['started_at'] as String),
       workflowName: json['workflow_name'] as String?,
       organizationId: json['organization_id'] as String?,
       userId: json['user_id'] as String?,
@@ -224,8 +224,8 @@ ExecutionRejected _$ExecutionRejectedFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$ExecutionRejectedToJson(ExecutionRejected instance) =>
     <String, dynamic>{
-      'execution_id': instance.id,
-      'start_time': instance.createdAt.toIso8601String(),
+      'id': instance.id,
+      'started_at': instance.createdAt.toIso8601String(),
       'workflow_name': instance.workflowName,
       'organization_id': instance.organizationId,
       'user_id': instance.userId,
@@ -240,8 +240,8 @@ Map<String, dynamic> _$ExecutionRejectedToJson(ExecutionRejected instance) =>
 
 ExecutionFailed _$ExecutionFailedFromJson(Map<String, dynamic> json) =>
     ExecutionFailed(
-      id: json['execution_id'] as String,
-      createdAt: DateTime.parse(json['start_time'] as String),
+      id: json['id'] as String,
+      createdAt: DateTime.parse(json['started_at'] as String),
       workflowName: json['workflow_name'] as String?,
       organizationId: json['organization_id'] as String?,
       userId: json['user_id'] as String?,
@@ -261,8 +261,8 @@ ExecutionFailed _$ExecutionFailedFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$ExecutionFailedToJson(ExecutionFailed instance) =>
     <String, dynamic>{
-      'execution_id': instance.id,
-      'start_time': instance.createdAt.toIso8601String(),
+      'id': instance.id,
+      'started_at': instance.createdAt.toIso8601String(),
       'workflow_name': instance.workflowName,
       'organization_id': instance.organizationId,
       'user_id': instance.userId,
@@ -278,8 +278,8 @@ Map<String, dynamic> _$ExecutionFailedToJson(ExecutionFailed instance) =>
 ExecutionInterrupted _$ExecutionInterruptedFromJson(
   Map<String, dynamic> json,
 ) => ExecutionInterrupted(
-  id: json['execution_id'] as String,
-  createdAt: DateTime.parse(json['start_time'] as String),
+  id: json['id'] as String,
+  createdAt: DateTime.parse(json['started_at'] as String),
   workflowName: json['workflow_name'] as String?,
   organizationId: json['organization_id'] as String?,
   userId: json['user_id'] as String?,
@@ -300,8 +300,8 @@ ExecutionInterrupted _$ExecutionInterruptedFromJson(
 Map<String, dynamic> _$ExecutionInterruptedToJson(
   ExecutionInterrupted instance,
 ) => <String, dynamic>{
-  'execution_id': instance.id,
-  'start_time': instance.createdAt.toIso8601String(),
+  'id': instance.id,
+  'started_at': instance.createdAt.toIso8601String(),
   'workflow_name': instance.workflowName,
   'organization_id': instance.organizationId,
   'user_id': instance.userId,
@@ -316,8 +316,8 @@ Map<String, dynamic> _$ExecutionInterruptedToJson(
 
 ExecutionCancelling _$ExecutionCancellingFromJson(Map<String, dynamic> json) =>
     ExecutionCancelling(
-      id: json['execution_id'] as String,
-      createdAt: DateTime.parse(json['start_time'] as String),
+      id: json['id'] as String,
+      createdAt: DateTime.parse(json['started_at'] as String),
       workflowName: json['workflow_name'] as String?,
       organizationId: json['organization_id'] as String?,
       userId: json['user_id'] as String?,
@@ -337,8 +337,8 @@ ExecutionCancelling _$ExecutionCancellingFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$ExecutionCancellingToJson(
   ExecutionCancelling instance,
 ) => <String, dynamic>{
-  'execution_id': instance.id,
-  'start_time': instance.createdAt.toIso8601String(),
+  'id': instance.id,
+  'started_at': instance.createdAt.toIso8601String(),
   'workflow_name': instance.workflowName,
   'organization_id': instance.organizationId,
   'user_id': instance.userId,
@@ -352,8 +352,8 @@ Map<String, dynamic> _$ExecutionCancellingToJson(
 
 ExecutionUnknown _$ExecutionUnknownFromJson(Map<String, dynamic> json) =>
     ExecutionUnknown(
-      id: json['execution_id'] as String,
-      createdAt: DateTime.parse(json['start_time'] as String),
+      id: json['id'] as String,
+      createdAt: DateTime.parse(json['started_at'] as String),
       workflowName: json['workflow_name'] as String?,
       inputs: json['inputs'] as Map<String, dynamic>? ?? const {},
       currentStepName: json['current_step_name'] as String?,
@@ -372,8 +372,8 @@ ExecutionUnknown _$ExecutionUnknownFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$ExecutionUnknownToJson(ExecutionUnknown instance) =>
     <String, dynamic>{
-      'execution_id': instance.id,
-      'start_time': instance.createdAt.toIso8601String(),
+      'id': instance.id,
+      'started_at': instance.createdAt.toIso8601String(),
       'workflow_name': instance.workflowName,
       'inputs': instance.inputs,
       'current_step_name': instance.currentStepName,

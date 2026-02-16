@@ -1,43 +1,46 @@
 """Mock Data Store for AI Layer Testing (Zero-Token Cost)."""
 
-from typing import Any
 from datetime import datetime
+from typing import Any
 
 from backend.models.domain import (
+    AnalystOutput,
+    ArchiveCase,
     ArchivistOutput,
     CausalAnalysis,
-    CausalAnalysisData,
+    CausalOutput,
     CoachingPlan,
+    CognitiveLevel,
     CounterfactualTest,
     DimensionResultItem,
     EthicalObservation,
     EvaluationResult,
     FactCheckRFI,
     FalsifierData,
+    FalsifierOutput,
+    GuardOutput,
     Hypothesis,
     InteractionAnalysis,
-    CognitiveLevel,
+    JudgeScoreCard,
     LogicianData,
+    # Output Models
+    LogicianOutput,
     Metadata,
     OverseerData,
+    OverseerOutput,
     PanelOutput,
     PerformativityAnalysis,
     PerformativityHeuristic,
+    PerformativityOutput,
     PreMortemAnalysis,
     ProfilerAnalysis,
     ReasoningFidelity,
-
-    JudgeScoreCard,
     SecurityCheck,
     TaintedDataContent,
-    AnalystOutput,
     ToulminComponent,
     WaltonScheme,
     WaltonStressTest,
-    GuardOutput,
     XAIOutput,
-    XAIScoreItem,
-    ArchiveCase
 )
 
 # 0. Shared Metadata
@@ -77,8 +80,8 @@ MOCK_LOGICIAN_DATA = LogicianData(
         )
     ],
     cognitive_level=CognitiveLevel(
-        bloom_level="Bloom.Analyzing",
-        strategic_depth="Strategic.High",
+        bloom_level="BLOOM_ANALYZING",
+        strategic_depth="STRAT_HIGH",
         bloom_score=4.0,
         strategic_score=3.0,
         description="Analyzing High"
@@ -89,6 +92,11 @@ MOCK_LOGICIAN_DATA = LogicianData(
     ),
     toulmin_score=4.0,
     description="Logician Analysis"
+)
+
+MOCK_LOGICIAN_OUTPUT = LogicianOutput(
+    reasoning_trace="Mock Logician Trace",
+    logician_data=MOCK_LOGICIAN_DATA
 )
 
 MOCK_FALSIFIER_DATA = FalsifierData(
@@ -102,24 +110,32 @@ MOCK_FALSIFIER_DATA = FalsifierData(
     fidelity_audit=ReasoningFidelity(
         is_post_hoc=False,
         justification="Sound reasoning",
-        fidelity_score="High",
+        fidelity_score="FIDELITY_HIGH",
         fidelity_numeric=3.0
     )
 )
 
+MOCK_FALSIFIER_OUTPUT = FalsifierOutput(
+    reasoning_trace="Mock Falsifier Trace",
+    falsifier_data=MOCK_FALSIFIER_DATA
+)
+
 MOCK_CAUSAL_ANALYSIS = CausalAnalysis(
-    causal_audit=CausalAnalysisData(
-        timeline_valid=True,
-        observation="Valid timeline"
-    ),
+    observation="Valid timeline",
+    hypothesis="Test Hypothesis",
     counterfactual_test=CounterfactualTest(
-        scenario_a_actual="A",
-        scenario_b_simulated="B",
-        plausibility_score="Plausible",
+        actual_scenario="A",
+        simulation_result="B",
+        plausibility_score="PLAUS_PLAUSIBLE",
         plausibility_numeric=2.0
     ),
-    abductive_conclusion="Genuine Insight",
+    abductive_conclusion="ABDUCT_GENUINE",
     abductive_score=3.0
+)
+
+MOCK_CAUSAL_OUTPUT = CausalOutput(
+    reasoning_trace="Mock Causal Trace",
+    causal_analysis=MOCK_CAUSAL_ANALYSIS
 )
 
 MOCK_PERFORMATIVITY_ANALYSIS = PerformativityAnalysis(
@@ -134,8 +150,13 @@ MOCK_PERFORMATIVITY_ANALYSIS = PerformativityAnalysis(
         performed=True,
         weak_signals=["Signal 1"]
     ),
-    authenticity_assessment="Organic",
+    authenticity_assessment="AUTH_ORGANIC",
     authenticity_score=3.0
+)
+
+MOCK_PERFORMATIVITY_OUTPUT = PerformativityOutput(
+    reasoning_trace="Mock Performativity Trace",
+    performativity_analysis=MOCK_PERFORMATIVITY_ANALYSIS
 )
 
 MOCK_OVERSEER_DATA = OverseerData(
@@ -153,6 +174,11 @@ MOCK_OVERSEER_DATA = OverseerData(
             description="No issues"
         )
     ]
+)
+
+MOCK_OVERSEER_OUTPUT = OverseerOutput(
+    reasoning_trace="Mock Overseer Trace",
+    overseer_data=MOCK_OVERSEER_DATA
 )
 
 # 2. Panel Agent
@@ -271,9 +297,9 @@ MOCK_GUARD_OUTPUT = GuardOutput(
     reasoning_trace="Mock Guard Trace",
     security_check=SecurityCheck(
         threat_detected=False,
-        risk_level="Low",
+        risk_level="RISK_LOW",
         risk_score=1.0,
-        simulation_score=1.0, 
+        simulation_score=1.0,
         anonymized=True
     ),
     tainted_data=TaintedDataContent(
@@ -295,13 +321,19 @@ MOCK_REGISTRY: dict[type[Any], Any] = {
     EvaluationResult: MOCK_JUDGE_OUTPUT,
     CoachingPlan: MOCK_COACH_OUTPUT,
     XAIOutput: MOCK_XAI_OUTPUT,
-    
+
     # Components
     LogicianData: MOCK_LOGICIAN_DATA,
     FalsifierData: MOCK_FALSIFIER_DATA,
     CausalAnalysis: MOCK_CAUSAL_ANALYSIS,
     PerformativityAnalysis: MOCK_PERFORMATIVITY_ANALYSIS,
     OverseerData: MOCK_OVERSEER_DATA,
+    # Outputs
+    LogicianOutput: MOCK_LOGICIAN_OUTPUT,
+    FalsifierOutput: MOCK_FALSIFIER_OUTPUT,
+    CausalOutput: MOCK_CAUSAL_OUTPUT,
+    PerformativityOutput: MOCK_PERFORMATIVITY_OUTPUT,
+    OverseerOutput: MOCK_OVERSEER_OUTPUT,
 }
 
 AGENT_CLASS_TO_MOCK_KEY = {
@@ -329,15 +361,15 @@ def get_fallback_data(key: str) -> dict[str, Any]:
     elif key == "interaction_agent":
         return MOCK_INTERACTION_OUTPUT.model_dump()
     elif key == "logician_agent":
-        return MOCK_LOGICIAN_DATA.model_dump()
+        return MOCK_LOGICIAN_OUTPUT.model_dump()
     elif key == "falsifier_agent":
-        return MOCK_FALSIFIER_DATA.model_dump()
+        return MOCK_FALSIFIER_OUTPUT.model_dump()
     elif key == "causal_agent":
-        return MOCK_CAUSAL_ANALYSIS.model_dump()
+        return MOCK_CAUSAL_OUTPUT.model_dump()
     elif key == "performativity_agent":
-        return MOCK_PERFORMATIVITY_ANALYSIS.model_dump()
+        return MOCK_PERFORMATIVITY_OUTPUT.model_dump()
     elif key == "fact_checker_agent":
-        return MOCK_OVERSEER_DATA.model_dump()
+        return MOCK_OVERSEER_OUTPUT.model_dump()
     elif key == "profiler_agent":
         return MOCK_PROFILER_OUTPUT.model_dump()
     elif key == "archivist_agent":

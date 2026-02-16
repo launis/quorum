@@ -96,6 +96,37 @@ class ModelRegistryController extends _$ModelRegistryController {
     }
   }
 
+  Future<void> deleteConfig(String id) async {
+    final previousState = state.value;
+    if (previousState == null) return;
+
+    // 1. Optimistic Update (Remove from list)
+    final currentList = previousState.providers;
+    final newList = currentList.where((p) => p.id != id).toList();
+
+    state = AsyncData(previousState.copyWith(
+      providers: newList,
+      selectedProviderId: previousState.selectedProviderId == id ? null : previousState.selectedProviderId,
+      isSaving: true,
+    ));
+
+    // 2. API Call
+    final result = await ref.read(modelRegistryRepositoryProvider).deleteProvider(id);
+
+    result.fold(
+      (l) {
+        // 3. Rollback
+        state = AsyncData(previousState);
+        // set error while keeping data
+        state = AsyncError<ModelRegistryState>(l, StackTrace.current).copyWithPrevious(AsyncData(previousState));
+      },
+      (r) {
+        // 4. Silent Sync
+        ref.invalidateSelf();
+      },
+    );
+  }
+
   Future<void> runTest(AdHocTestRequest request) async {
     final currentState = state.value;
     if (currentState == null) return;

@@ -172,4 +172,21 @@ Ei avoimia kysymyksiä.
 ---
 
 {% endif %}
+
+{% if report_content.bibliography %}
+## 10. Lähdeluettelo
+
+📚 **Järjestelmän tunnistamat lähteet (Authoritative Bibliography):**
+
+{% for ref in report_content.bibliography %}
+- **[{{ ref.source_id }}]** {{ ref.title }}
+  {% if ref.url %} - [Linkki]({{ ref.url }}){% endif %}
+  {% if ref.snippet %}
+  > *"{{ ref.snippet | truncate(150) }}"*
+  {% endif %}
+{% endfor %}
+
+---
+{% endif %}
+
 *{{ disclaimer }}*

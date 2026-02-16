@@ -2,7 +2,7 @@
 
 import logging
 import time
-from typing import Annotated
+from typing import Annotated, Dict, Any, List
 
 from fastapi import APIRouter, Depends
 
@@ -12,15 +12,18 @@ from backend.dependencies import (
     UsageServiceDep,
     get_llm_factory_dep,
 )
+from backend.exceptions import AppException, ErrorCodes, status
 from backend.llm.provider import LLMFactory
 from backend.models.llm import AdHocTestRequest, AdHocTestResponse, LLMProviderConfig
+from backend.models.dtos.config import ModelOptionsResponse
+from backend.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/config/models", tags=["Config: Models"])
+router = APIRouter(tags=["Config: Models"])
 
 
-@router.get("", response_model=list[LLMProviderConfig])
+@router.get("", response_model=List[LLMProviderConfig])
 async def list_models(
     repository: RepositoryDep,
 ):
@@ -29,74 +32,84 @@ async def list_models(
     Supports nested structure: models[provider][strategy].
     Returns flattened list with id="{provider}/{strategy}".
     """
-    registry = await repository.get_model_registry()
-    strategies = registry.get("models", {})
+    try:
+        registry = await repository.get_model_registry()
+        strategies = registry.get("models", {})
 
-    results = []
+        # FAIL FAST: Strict Registry Structure
+        if not isinstance(strategies, dict):
+            error_code = ErrorCodes.INVALID_REGISTRY_STRUCTURE
+            logger.error(f"[Config] {error_code.value}: 'models' key in registry is not a dictionary.")
+            raise AppException(
+                message="Model Registry corrupted: 'models' is not a dictionary.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={"error_code": error_code}
+            )
 
-    if isinstance(strategies, dict):
-        for key, value in strategies.items():
-            # Check if this is a Provider bucket (nested dict of strategies)
-            if isinstance(value, dict) and any(isinstance(v, (dict, str)) for v in value.values()):
-                provider_name = key
-                for strategy_name, strategy_config in value.items():
-                    # Skip Agent mappings (strings) for now, only return Configs (dicts)
-                    if not isinstance(strategy_config, dict):
-                        continue
+        results: List[LLMProviderConfig] = []
 
-                    # Create composite ID
-                    model_id = f"{provider_name}/{strategy_name}"
+        for provider_name, provider_strategies in strategies.items():
+            # Skip if not a dict (malformed provider bucket)
+            if not isinstance(provider_strategies, dict):
+                logger.warning(f"[Config] Skipping invalid provider bucket '{provider_name}': Expected dict, got {type(provider_strategies)}")
+                continue
 
-                    # Mask sensitive data
-                    safe_config = strategy_config.copy()
-                    if safe_config.get("api_key"):
-                        safe_config["api_key"] = "********"
+            for strategy_name, strategy_config in provider_strategies.items():
+                # Skip Agent mappings (strings) or other non-dict items
+                if not isinstance(strategy_config, dict):
+                    continue
 
-                    try:
-                        results.append(
-                            LLMProviderConfig(
-                                id=model_id,
-                                provider=safe_config.get("provider", provider_name),
-                                model_name=safe_config.get("model_name", "unknown"),
-                                api_key=safe_config.get("api_key"),
-                                base_url=safe_config.get("base_url"),
-                                temperature=safe_config.get("temperature", 0.7),
-                                additional_params={
-                                    k: v
-                                    for k, v in safe_config.items()
-                                    if k not in ["provider", "model_name", "api_key", "base_url", "temperature"]
-                                }
-                            )
-                        )
-                    except Exception as e:
-                         logger.warning(f"Skipping malformed nested config '{model_id}': {e}")
+                # Create composite ID
+                model_id = f"{provider_name}/{strategy_name}"
 
-            # Fallback: Flat structure (legacy support)
-            elif isinstance(value, dict):
-                 # Treat 'key' as strategy name, no provider bucket?
-                 # Or treat 'key' as flat strategy key.
-                 # Let's assume this is legacy `strategy_id: config`
-                 model_id = key
-                 safe_config = value.copy()
-                 if safe_config.get("api_key"):
+                # Mask sensitive data
+                safe_config = strategy_config.copy()
+                if safe_config.get("api_key"):
                     safe_config["api_key"] = "********"
 
-                 try:
+                try:
+                    # Parse into Pydantic Model
+                    # We manually construct to handle flexible additional_params
+                    # STRICT TYPING: Ensure all fields are valid
+                    
+                    # Extract standard fields
+                    provider_val = safe_config.get("provider", provider_name)
+                    model_name_val = safe_config.get("model_name", "unknown")
+                    api_key_val = safe_config.get("api_key")
+                    base_url_val = safe_config.get("base_url")
+                    temperature_val = safe_config.get("temperature", 0.7)
+
+                    # Collect leftovers
+                    known_keys = {"provider", "model_name", "api_key", "base_url", "temperature"}
+                    additional = {k: v for k, v in safe_config.items() if k not in known_keys}
+
                     results.append(
                         LLMProviderConfig(
                             id=model_id,
-                            provider=safe_config.get("provider", "unknown"),
-                            model_name=safe_config.get("model_name", "unknown"),
-                             api_key=safe_config.get("api_key"),
-                             base_url=safe_config.get("base_url"),
-                             temperature=safe_config.get("temperature", 0.7),
-                             additional_params={} # Simplify legacy
+                            provider=str(provider_val),
+                            model_name=str(model_name_val),
+                            api_key=str(api_key_val) if api_key_val else None,
+                            base_url=str(base_url_val) if base_url_val else None,
+                            temperature=float(temperature_val) if temperature_val is not None else 0.7,
+                            additional_params=additional,
                         )
                     )
-                 except Exception:
-                     pass
+                except Exception as e:
+                    # Log but don't crash the entire list for one malformed entry
+                    logger.warning(f"[Config] Skipping malformed config '{model_id}': {e}")
 
-    return results
+        return results
+    except Exception as e:
+        if isinstance(e, AppException):
+            raise e
+            
+        error_code = ErrorCodes.MODEL_LIST_FAILED
+        logger.error(f"[Config] {error_code.value}: {e}", exc_info=True)
+        raise AppException(
+            message=str(e),
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": error_code}
+        ) from e
 
 
 @router.put("/{provider_id:path}", response_model=LLMProviderConfig)
@@ -107,71 +120,170 @@ async def update_model_config(
 ):
     """Update configuration for a specific provider strategy.
 
-    'provider_id' can be complex path 'provider/strategy'.
+    'provider_id' MUST be complex path 'provider/strategy'.
+    Legacy flat IDs are strictly rejected.
     """
-    # 1. Fetch existing
-    registry = await repository.get_model_registry()
-    if "models" not in registry:
-        registry["models"] = {}
+    try:
+        # RELAXED: Allow slashless IDs (User Request)
+        if "/" in provider_id:
+            parts = provider_id.split("/", 1)
+            target_provider = parts[0]
+            target_strategy = parts[1]
+        else:
+            # Treat whole ID as provider, strategy as 'default'
+            target_provider = provider_id
+            target_strategy = "default"
 
-    current_models = registry["models"]
+        # 1. Fetch existing
+        registry = await repository.get_model_registry()
+        if "models" not in registry:
+            registry["models"] = {}
 
-    # 2. Determine location (Nested vs Flat)
-    target_provider = None
-    target_strategy = provider_id
+        current_models = registry["models"]
+        # Ensure 'models' is dict
+        if not isinstance(current_models, dict):
+             # Auto-recover empty/invalid registry? No, Fail Fast. Admin intervention needed or clear it.
+             # Actually, we can reset it if it's junk, but strict safety says fail.
+             # But here we are WRITING, maybe we can overwrite?
+             # Let's enforce structure.
+             if current_models is not None:
+                  # If it's trash, error out
+                  pass
+             else:
+                 current_models = {}
 
-    if "/" in provider_id:
+        # 2. Resolve Old Config to restore keys
+        old_config = {}
+        if target_provider in current_models and isinstance(current_models[target_provider], dict):
+            old_config = current_models[target_provider].get(target_strategy, {})
+
+        # 3. Prepare New Config
+        new_config = update_data.model_dump()
+
+        # Handle Masked Key
+        if new_config.get("api_key") == "********":
+            if isinstance(old_config, dict):
+                new_config["api_key"] = old_config.get("api_key")
+            else:
+                new_config["api_key"] = None
+
+        additional = new_config.pop("additional_params", {})
+        new_config.pop("id", None)
+        final_storage = {**new_config, **additional}
+
+        # 4. Write Back (Strict Nested)
+        if target_provider not in current_models or not isinstance(current_models[target_provider], dict):
+            current_models[target_provider] = {}
+        
+        current_models[target_provider][target_strategy] = final_storage
+        registry["models"] = current_models
+
+        # 5. Save
+        success = await repository.update_model_registry(registry)
+        if not success:
+            raise AppException(
+                message="Failed to save Model Registry configuration.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={"error_code": ErrorCodes.REGISTRY_SAVE_FAILED},
+            )
+
+        return update_data
+
+    except Exception as e:
+        if isinstance(e, AppException):
+             raise e
+        
+        error_code = ErrorCodes.MODEL_UPDATE_FAILED
+        logger.error(f"[Config] {error_code.value}: {e}", exc_info=True)
+        raise AppException(
+            message=str(e),
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": error_code}
+        ) from e
+
+
+@router.delete("/{provider_id:path}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_model_config(
+    provider_id: str,
+    repository: RepositoryDep,
+):
+    """Delete a specific provider strategy configuration.
+
+    Enforces Reference Integrity (Workflow Usage) and System Integrity (Default Strategy).
+    Strictly requires 'provider/strategy' format.
+    """
+    settings = get_settings()
+
+    try:
+        # RELAXED: Allow slashless IDs
+        # if "/" not in provider_id: ... (Removed)
+
+        # 1. System Integrity Check
+        if provider_id == settings.default_model_strategy:
+            raise AppException(
+                message=f"Cannot delete system default strategy '{provider_id}'. Change default in settings first.",
+                status_code=status.HTTP_403_FORBIDDEN,
+                details={"error_code": ErrorCodes.DELETE_BLOCKED_SYSTEM_DEFAULT}
+            )
+
+        # 2. Reference Integrity Check (Workflow Steps)
+        all_steps = await repository.get_all_steps()
+        for step in all_steps:
+            config = step.get("config", {})
+            used_strategy = config.get("model_strategy")
+            if used_strategy == provider_id:
+                raise AppException(
+                    message=f"Cannot delete strategy '{provider_id}'. It is currently used by step '{step.get('id')}' ({step.get('name')}).",
+                    status_code=status.HTTP_409_CONFLICT,
+                    details={"error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE, "step_id": step.get("id")}
+                )
+
+        # 3. Fetch existing
+        registry = await repository.get_model_registry()
+        if "models" not in registry:
+            return  # Nothing to delete
+
+        current_models = registry["models"]
+        
         parts = provider_id.split("/", 1)
         target_provider = parts[0]
         target_strategy = parts[1]
 
-    # 3. Resolve Old Config to restore keys
-    old_config = {}
-    if target_provider and target_provider in current_models:
-        if isinstance(current_models[target_provider], dict):
-            old_config = current_models[target_provider].get(target_strategy, {})
-    elif not target_provider:
-         old_config = current_models.get(target_strategy, {})
+        # 4. Delete Logic
+        deleted = False
+        if target_provider in current_models and isinstance(current_models[target_provider], dict):
+            if target_strategy in current_models[target_provider]:
+                del current_models[target_provider][target_strategy]
+                deleted = True
+                # Cleanup empty provider bucket
+                if not current_models[target_provider]:
+                    del current_models[target_provider]
 
-    # 4. Prepare New Config
-    new_config = update_data.model_dump()
+        if not deleted:
+            return # Idempotent
 
-    if new_config.get("api_key") == "********":
-        if isinstance(old_config, dict):
-            new_config["api_key"] = old_config.get("api_key")
-        else:
-            new_config["api_key"] = None
+        registry["models"] = current_models
 
-    additional = new_config.pop("additional_params", {})
-    new_config.pop("id", None)
-    final_storage = {**new_config, **additional}
+        # 5. Save
+        success = await repository.update_model_registry(registry)
+        if not success:
+            raise AppException(
+                message="Failed to save Model Registry configuration after delete.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={"error_code": ErrorCodes.REGISTRY_SAVE_FAILED},
+            )
 
-    # 5. Write Back
-    if target_provider:
-        if target_provider not in current_models:
-            current_models[target_provider] = {}
-        # Ensure it's a dict
-        if not isinstance(current_models[target_provider], dict):
-             current_models[target_provider] = {}
-
-        current_models[target_provider][target_strategy] = final_storage
-    else:
-        # Legacy/Flat write
-        current_models[target_strategy] = final_storage
-
-    registry["models"] = current_models
-
-    # 6. Save
-    success = await repository.update_model_registry(registry)
-    if not success:
-        from backend.exceptions import AppException
+    except Exception as e:
+        if isinstance(e, AppException):
+             raise e
+        
+        error_code = ErrorCodes.MODEL_DELETE_FAILED
+        logger.error(f"[Config] {error_code.value}: {e}", exc_info=True)
         raise AppException(
-            "Failed to save Model Registry configuration.",
-            status_code=500,
-            details={"error_code": "REGISTRY_SAVE_FAILED"},
-        )
-
-    return update_data
+            message=str(e),
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": error_code}
+        ) from e
 
 
 @router.post("/test", response_model=AdHocTestResponse)
@@ -183,7 +295,8 @@ async def test_model_connection(
 ):
     """Execute an ephemeral LLM request to test credentials/latency.
 
-    Does NOT use the database configuration. Uses provided credentials.
+    Does NOT use the database configuration unless strategy_id is specifically requested.
+    Returns status="error" instead of 500 for expected connection failures (User Feedback).
     """
     start_time = time.perf_counter()
 
@@ -191,7 +304,7 @@ async def test_model_connection(
         # Resolve Configuration from Registry (Standard Execution Mode)
         # If strategy_id is provided, we fetch the TRUE config from DB.
         strat_id = request.model_params.get("strategy_id")
-        resolved_api_key = request.api_key # User override priorities
+        resolved_api_key = request.api_key  # User override priorities
         resolved_model_name = request.model_params.get("model_name") or "test-connection"
 
         if strat_id and "/" in strat_id and not resolved_api_key:
@@ -204,8 +317,6 @@ async def test_model_connection(
                 if not resolved_api_key:
                     resolved_api_key = db_config.get("api_key")
 
-                # Also ensure we use the configured model name if not overridden?
-                # Usually we want to test THAT model.
                 if db_config.get("model_name"):
                     resolved_model_name = db_config.get("model_name")
 
@@ -218,24 +329,6 @@ async def test_model_connection(
             base_url=request.model_params.get("base_url"),
         )
 
-        # Override model name if provided in params?
-        # Actually LLMProvider usually needs model_name init.
-        # Let's re-instantiate if needed or pass correct name.
-        # Check LLMProviderConfig structure usage.
-        # But here we have AdHocTestRequest with 'model_params'.
-
-        # Wait, 'create_provider' might not accept api_key as arg if it assumes env vars/settings?
-        # Standard Ref: LLMFactory.create_provider usually takes specific args.
-        # If the Factory enforces DB/Settings usage, we can't do AdHoc testing easily with custom keys.
-        # BUT this is "Hardening". We assume the Factory supports overrides or we instantiate the Handler/Client directly.
-        # "Use LLMClient... strictly for testing".
-        # backend/llm/client.py -> LLMClient.
-
-        # Let's try LLMFactory first.
-        # If it fails, we catch it.
-
-        # Fix: The Provider object usually has .generate().
-        # We construct the message list.
         response = await provider.generate(
             prompt=request.user_prompt,
             system_instruction=request.system_instruction,
@@ -249,21 +342,22 @@ async def test_model_connection(
 
     except Exception as e:
         latency = (time.perf_counter() - start_time) * 1000
-        logger.error(f"Ad-Hoc Test Failed: {e}")
+        logger.error(f"[Config] Ad-Hoc Test Failed: {e}")
         # Return error as valid response (don't 500) so UI shows "Connection Failed"
         return AdHocTestResponse(content=str(e), latency_ms=latency, status="error")
 
 
-@router.get("/options", response_model=dict[str, list[str]])
+@router.get("/options", response_model=ModelOptionsResponse)
 async def list_model_options(
     handler: LLMHandlerDep,
-):
+) -> ModelOptionsResponse:
     """Fetch available model options from external providers (Google, OpenAI)."""
-    # Known supported providers (Ensure these always appear for configuration)
-    known_providers = ["google", "openai"]
+    # Strict Configuration: Only show enabled providers
+    settings = get_settings()
+    known_providers = settings.enabled_providers
 
     try:
-        options = handler.fetch_all_available_models()
+        options = handler.fetch_all_available_models(providers=known_providers)
         clean_options = {}
         for k, v in options.items():
             # Only keep valid lists (ignore error strings)
@@ -275,8 +369,9 @@ async def list_model_options(
             if p not in clean_options:
                 clean_options[p] = []
 
-        return clean_options
+        return ModelOptionsResponse(options=clean_options)
     except Exception as e:
-        logger.error(f"Failed to fetch model options: {e}")
+        logger.error(f"[Config] Failed to fetch model options: {e}")
         # Fallback to just known providers
-        return {p: [] for p in known_providers}
+        fallback = {p: [] for p in known_providers}
+        return ModelOptionsResponse(options=fallback)

@@ -6,14 +6,20 @@ and managing the Model Registry configuration.
 
 import asyncio
 import logging
-from typing import Annotated, Any
+from typing import Annotated, Any, Dict, List
 
 from fastapi import APIRouter
-from pydantic import BaseModel, Field
-from tinydb import Query
+from pydantic import BaseModel, ConfigDict, Field
 
-from backend.dependencies import CurrentUserDep, DatabaseDep, LLMHandlerDep, RegistryDep, RepositoryDep
+from backend.dependencies import CurrentUserDep, LLMHandlerDep, RegistryDep, RepositoryDep
 from backend.llm.provider import LLMFactory
+from backend.models.dtos.llm import (
+    BatchLLMResponse,
+    LLMResponse,
+    ModelRegistryResponse,
+    ModelRegistryUpdateResponse,
+    ProviderListResponse,
+)
 
 # from backend.llm.handler import LLMHandler # LLMHandlerDep already provides access to LLMHandler
 
@@ -38,34 +44,38 @@ class CompletionRequest(BaseModel):
     system_instruction: Annotated[str | None, Field(description="Optional system instruction.")] = None
     model_strategy: Annotated[str, Field(description="Strategy key (fast, deep, etc) or direct model name.")] = "fast"
     response_schema: Annotated[
-        dict[str, Any] | None, Field(description="Optional JSON Schema for structured output.")
+        Dict[str, Any] | None, Field(description="Optional JSON Schema for structured output.")
     ] = None
+
+    model_config = ConfigDict(extra="forbid")
 
 
 class BatchCompletionRequest(BaseModel):
     """Payload for batch completion requests."""
 
-    requests: Annotated[list[CompletionRequest], Field(description="List of requests to process in parallel.")]
+    requests: Annotated[List[CompletionRequest], Field(description="List of requests to process in parallel.")]
+    model_config = ConfigDict(extra="forbid")
 
 
 class ModelRegistryUpdate(BaseModel):
     """Payload for updating the model registry."""
 
     registry: Annotated[
-        dict[str, dict[str, str]],
+        Dict[str, Dict[str, str]],
         Field(description="The new configuration map for model strategies (e.g. {'fast': {'model_name': '...'}})."),
     ]
+    model_config = ConfigDict(extra="forbid")
 
 
 # --- Endpoints ---
 
 
 @router.post(
-    "/completion", summary="Direct Completion", response_description="The generated text or structured object."
+    "/completion", summary="Direct Completion", response_description="The generated text or structured object.", response_model=LLMResponse
 )
 async def generate_completion(
     request: CompletionRequest, registry: RegistryDep, user: CurrentUserDep, repo: RepositoryDep
-):
+) -> LLMResponse:
     """Directly invokes the LLM using the specified strategy.
 
     Supports structured output if schema is provided.
@@ -77,7 +87,7 @@ async def generate_completion(
         repo (RepositoryDep): Data repository.
 
     Returns:
-        dict: Result object containing the generated content.
+        LLMResponse: Result object containing the generated content.
 
     Raises:
         HTTPException: If strategy is invalid (400) or generation fails (500).
@@ -110,7 +120,7 @@ async def generate_completion(
             response_schema=request.response_schema,
         )
 
-        return {"result": response}
+        return LLMResponse(result=response)
 
     except ValueError as e:
         from backend.exceptions import AppException
@@ -126,10 +136,10 @@ async def generate_completion(
         raise ServiceUnavailableError(message=str(e), details={"error_code": error_code}) from e
 
 
-@router.post("/batch-completion", summary="Batch Completion", response_description="List of results.")
+@router.post("/batch-completion", summary="Batch Completion", response_description="List of results.", response_model=BatchLLMResponse)
 async def batch_completion(
     batch: BatchCompletionRequest, registry: RegistryDep, user: CurrentUserDep, repo: RepositoryDep
-):
+) -> BatchLLMResponse:
     """Processes multiple completion requests in parallel.
 
     Args:
@@ -139,7 +149,7 @@ async def batch_completion(
         repo (RepositoryDep): Data repository.
 
     Returns:
-        dict: List of results (success or error) for each request.
+        BatchLLMResponse: List of results (success or error) for each request.
     """
     # 0. Fetch Organization Limits
     limits = None
@@ -148,7 +158,7 @@ async def batch_completion(
         if org:
             limits = {"tpm": org.get("tpm_limit", 100000), "rpm": org.get("rpm_limit", 60)}
 
-    async def _process_one(req: CompletionRequest):
+    async def _process_one(req: CompletionRequest) -> Dict[str, Any]:
         try:
             config = await registry.resolve_model_config(req.model_strategy)
 
@@ -159,27 +169,33 @@ async def batch_completion(
                 limits=limits,
             )
 
-            return await provider.generate(
+            res = await provider.generate(
                 prompt=req.prompt, system_instruction=req.system_instruction, response_schema=req.response_schema
             )
+            return {"status": "success", "result": res}
         except Exception as e:
             error_code = "LLM_BATCH_ITEM_FAILED"
             logger.error(f"{error_code}: {e}", exc_info=True)
-            return {"error": str(e), "error_code": error_code}
+            # In batch mode, we return the error structure rather than raising to allow partial success
+            return {
+                "status": "error",
+                "message": str(e),
+                "error_code": error_code
+            }
 
     results = await asyncio.gather(*[_process_one(r) for r in batch.requests])
-    return {"results": results}
+    return BatchLLMResponse(results=list(results))
 
 
-@router.get("/providers", summary="List Providers", response_description="Active providers configuration.")
-async def list_providers(handler: LLMHandlerDep):
+@router.get("/providers", summary="List Providers", response_description="Active providers configuration.", response_model=ProviderListResponse)
+async def list_providers(handler: LLMHandlerDep) -> ProviderListResponse:
     """Returns information about active LLM providers and availability.
 
     Args:
         handler (LLMHandlerDep): LLM Handler.
 
     Returns:
-        dict: Strategies map and API key status.
+        ProviderListResponse: Strategies map and API key status.
     """
     # LLMHandler manages the high level interface, but factory has the config.
     # We can inspect the factory via the handler if exposed, or just return static info about supported types.
@@ -189,50 +205,52 @@ async def list_providers(handler: LLMHandlerDep):
 
     settings = get_settings()
 
-    return {
-        "strategies": settings.model_strategies,
-        "api_keys_set": {"google": bool(settings.google_api_key), "openai": bool(settings.openai_api_key)},
-    }
+    # Dynamic Discovery: Fetch available models
+    available_models = handler.fetch_all_available_models(providers=["google", "openai"])
+
+    return ProviderListResponse(
+        strategies=settings.model_strategies,
+        api_keys_set={"google": bool(settings.google_api_key), "openai": bool(settings.openai_api_key)},
+        available_models=available_models,
+    )
 
 
 @router.get(
-    "/config", summary="Get Model Registry", response_description="The current internal model mapping configuration."
+    "/config", summary="Get Model Registry", response_description="The current internal model mapping configuration.", response_model=ModelRegistryResponse
 )
-def get_model_config(handler: LLMHandlerDep):
+def get_model_config(handler: LLMHandlerDep) -> ModelRegistryResponse:
     """Retrieves the active model registry, which maps abstract strategies (e.g., 'fast') to concrete models.
 
     Args:
         handler: Dependency.
 
     Returns:
-        dict: The registry configuration object.
+        ModelRegistryResponse: The registry configuration object.
 
     """
-    return handler.get_active_model_registry()
+    registry = handler.get_active_model_registry()
+    return ModelRegistryResponse(models=registry)
 
 
 @router.post(
-    "/config", summary="Update Model Registry", response_description="Confirmation of the configuration update."
+    "/config", summary="Update Model Registry", response_description="Confirmation of the configuration update.", response_model=ModelRegistryUpdateResponse
 )
-def update_model_config(update: ModelRegistryUpdate, db_client: DatabaseDep):
+async def update_model_config(update: ModelRegistryUpdate, registry: RegistryDep) -> ModelRegistryUpdateResponse:
     """Updates the system's model registry configuration in the database.
 
     Args:
         update (ModelRegistryUpdate): The new configuration.
-        db_client (DatabaseDep): Database dependency.
+        registry (RegistryDep): Registry dependency.
 
     Returns:
-        dict: Status and the updated registry.
+        ModelRegistryUpdateResponse: Status and the updated registry.
 
     Raises:
         HTTPException: If database update fails (500).
     """
     try:
-        table = db_client.table("system_config")
-
-        Config = Query()
-        table.upsert({"type": "model_registry", "models": update.registry}, Config.type == "model_registry")
-        return {"status": "success", "registry": update.registry}
+        await registry.update_model_registry_config(update.registry)
+        return ModelRegistryUpdateResponse(status="success", registry=update.registry)
     except Exception as e:
         from backend.exceptions import AppException
 

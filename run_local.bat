@@ -12,6 +12,11 @@ echo [Logs Cleared]
 
 echo [1/3] Starting Infrastructure (Redis)...
 
+:: SURGICAL FIX (Smart Root Repair)
+echo [0] Verifying Root Identity...
+python backend/scripts/ensure_root_identity.py
+echo [Fix] Root identity verified.
+
 call scripts\get_docker_path.bat
 
 :: Check if Docker is running
@@ -28,6 +33,9 @@ IF %ERRORLEVEL% NEQ 0 (
 )
 
 docker-compose up -d redis
+echo [Debug] Docker command finished.
+echo [Debug] Waiting 2 seconds...
+timeout /t 2 /nobreak >nul
 
 echo [2/3] Launching Backend ^& Worker (Uvicorn + Arq)...
 echo       Mode: LOCAL (POOR MAN'S PROD)
@@ -43,7 +51,8 @@ start "CQ Backend (LOCAL)" cmd /k "chcp 65001 > nul && set USE_MOCK_DB=false&& s
 start "CQ Worker (LOCAL)" cmd /k "chcp 65001 > nul && set USE_MOCK_DB=false&& set USE_MOCK_LLM=false&& set STORAGE_BACKEND=LOCAL&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& uv run python -m backend.run_worker"
 
 echo [3/3] Launching Client (Flutter)...
-start "CQ Client (LOCAL)" cmd /k "cd client_app && flutter run -d windows"
+if "%USE_JSON_LOGGING%"=="" set USE_JSON_LOGGING=false
+start "CQ Client (LOCAL)" cmd /k "cd client_app && flutter run -d windows --dart-define=USE_JSON_LOGGING=%USE_JSON_LOGGING%"
 
 echo.
 echo ---------------------------------------------------

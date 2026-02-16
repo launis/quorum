@@ -1,6 +1,5 @@
 
 import json
-import os
 
 SEED_PATH = r"c:\src\quorum\backend\seed\seed_data.json"
 
@@ -9,22 +8,22 @@ def verify():
     try:
         with open(SEED_PATH, encoding="utf-8") as f:
             data = json.load(f)
-        
+
         steps = data.get("steps", [])
         print(f"Found {len(steps)} steps in root 'steps' array.")
-        
+
         missing = []
         for step in steps:
             sid = step.get("id")
             config = step.get("config", {})
             schema = config.get("output_schema")
-            
+
             if schema:
                 print(f"[OK] {sid}: {schema}")
             else:
                 print(f"[FAIL] {sid}: Missing output_schema")
                 missing.append(sid)
-        
+
         if missing:
              print(f"\nFAILED: {len(missing)} steps missing output_schema: {missing}")
              exit(1)

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 # 2. Third Party
 from pydantic import BaseModel
@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from backend.agents.base import BaseAgent
 
 # 3. Local Imports
+from backend.exceptions import AgentExecutionError, ErrorCodes
 from backend.models.domain import AnalystOutput
 from backend.models.state import WorkflowState
 
@@ -46,23 +47,54 @@ class AnalystAgent(BaseAgent):
 
     async def execute(
         self,
-        input_data: dict,
-        execution_context: dict | None = None,
+        input_data: dict[str, Any],
+        execution_context: dict[str, Any] | None = None,
         system_instruction: str | None = None,
-        **kwargs,
-    ) -> dict:
-        """Executes the analysis logic.
+        **kwargs: Any,
+    ) -> AnalystOutput:
+        """Executes the analysis logic for Evidence Anchoring.
 
         Args:
-            input_data (dict): Inputs.
-            execution_context (dict): Context.
-            system_instruction (str): Prompt.
-            **kwargs: Args.
+            input_data (dict[str, Any]): Input texts (history, product, reflection).
+            execution_context (dict[str, Any] | None, optional): Access to global state.
+            system_instruction (str | None, optional): Prompt override.
+            **kwargs: Additional parameters.
 
         Returns:
-            dict: The generated evidence map.
+            AnalystOutput: The generated evidence map (AnalystOutput).
+
+        Raises:
+            ValueError: If input texts are too short (Fail Fast enforcement).
         """
-        return await super().execute(input_data, execution_context, system_instruction, **kwargs)
+        # FAIL FAST: Structural Validation
+        # Since pre-hooks might not be configured, we enforce it here.
+        inputs = input_data
+        min_chars = 100
+        for key in ["history_text", "product_text", "reflection_text"]:
+            text = inputs.get(key, "")
+            if not text or len(text) < min_chars:
+                error_msg = (
+                    f"[AnalystAgent] Input '{key}' is too short "
+                    f"({len(text) if text else 0} chars). Analysis aborted."
+                )
+                logger.error(f"{ErrorCodes.EMPTY_INPUT}: {error_msg}")
+                raise AgentExecutionError(
+                    detail=ErrorCodes.EMPTY_INPUT,
+                    original_error=ValueError(error_msg),
+                )
+
+        result_obj = await super().execute(input_data, execution_context, system_instruction, **kwargs)
+
+        if isinstance(result_obj, AnalystOutput):
+            return result_obj
+        elif isinstance(result_obj, dict):
+            return AnalystOutput(**result_obj)
+        else:
+             raise AgentExecutionError(
+                 detail=ErrorCodes.INVALID_JSON_PAYLOAD,
+                 original_error=TypeError(f"AnalystAgent returned {type(result_obj)} instead of AnalystOutput"),
+                 agent_name="AnalystAgent"
+             )
 
     def verify_structure(self, state: WorkflowState) -> WorkflowState:
         """HOOK: verify_structure.
@@ -82,23 +114,58 @@ class AnalystAgent(BaseAgent):
 
         return verify_structure(state)
 
-    def post_process(self, state: WorkflowState) -> WorkflowState:
+    def post_process(self, response_data: Any) -> Any:
         """Lifecycle Hook: Post-Execution.
-        
+
         Enforces sequential IDs for Hypotheses (PYTHON AUTHORITY).
         """
-        # Ensure we have the step output
-        if not hasattr(state, self.state_field) or not state.step_analyst:
-            return state
+        # 1. Access hypotheses
+        hypotheses = []
 
-        result = state.step_analyst
+        # Helper to get hypotheses list
+        if isinstance(response_data, BaseModel):
+            hypotheses = getattr(response_data, "hypotheses", [])
+        elif isinstance(response_data, dict):
+            hypotheses = response_data.get("hypotheses", [])
 
-        if result.hypoteesit:
-            logger.info(f"[AnalystAgent] Enforcing Hypothesis IDs (Count: {len(result.hypoteesit)})")
-            for idx, hyp in enumerate(result.hypoteesit, 1):
-                new_id = f"HYP-{idx}"
-                if hyp.id != new_id:
-                    # logger.debug(f"Renaming Hypothesis: {hyp.id} -> {new_id}")
-                    hyp.id = new_id
+        if not hypotheses:
+            return response_data
 
-        return state
+        logger.info(f"[AnalystAgent] Enforcing Hypothesis IDs (Count: {len(hypotheses)})")
+
+        updated_hypotheses: list[Any] = []
+        changes_made = False
+
+        for idx, hyp in enumerate(hypotheses, 1):
+            new_id = f"HYP-{idx}"
+
+            # Get current ID
+            current_id = None
+            if isinstance(hyp, BaseModel):
+                current_id = getattr(hyp, "id", None)
+            elif isinstance(hyp, dict):
+                current_id = hyp.get("id")
+
+            if current_id != new_id:
+                # Create new hypothesis with updated ID
+                if isinstance(hyp, BaseModel):
+                    new_hyp = hyp.model_copy(update={"id": new_id})
+                else:
+                    # Fallback for dict/mapping
+                    new_hyp = dict(hyp)
+                    new_hyp["id"] = new_id
+
+                updated_hypotheses.append(new_hyp)
+                changes_made = True
+            else:
+                updated_hypotheses.append(hyp)
+
+        if changes_made:
+            # Update Response (Frozen or Dict)
+            if isinstance(response_data, BaseModel):
+                    return response_data.model_copy(update={"hypotheses": updated_hypotheses})
+            else:
+                    response_data["hypotheses"] = updated_hypotheses
+                    return response_data
+
+        return response_data

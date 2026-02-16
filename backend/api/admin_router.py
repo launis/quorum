@@ -32,13 +32,15 @@ from backend.dependencies import (
     LLMProviderFast,
     RepositoryDep,
     get_async_repository,
+    get_knowledge_base_service_dep,
 )
 from backend.exceptions import (
     PermissionDeniedError,
     ResourceNotFoundError,
 )
 from backend.models.auth import UserAdminView, UserCreate, UserRole, UserUpdate
-from backend.schemas.admin import QueueStats
+from backend.services.knowledge_base_service import KnowledgeBaseService
+from backend.schemas.admin import AsyncJobResponse, QueueStats
 
 # --- Local Imports ---
 # Rule 6: APIError must be the FIRST local import to avoid circular dependencies.
@@ -77,6 +79,7 @@ class IngestRequest(BaseModel):
         "data/Holistinen Mestaruus.docx"
     )
     reset_db: Annotated[bool, Field(description="Clear DB before ingestion.")] = False
+    model_strategy: Annotated[str | None, Field(description="LLM Strategy (fast, deep). Default: None.")] = None
 
 
 class BannedPhraseRequest(BaseModel):
@@ -288,8 +291,16 @@ async def update_user(
             error_code = "LAST_ADMIN_PROTECTION"
             logger.error(f"{error_code}: {e}", exc_info=True)
             raise ConflictError(message=str(e), details={"error_code": error_code}) from e
-        # Unknown Runtime Error -> Bubble
-        raise
+        # Unknown Runtime Error -> Fail Fast with RFC 7807
+        from backend.exceptions import AppException
+
+        error_code = "USER_UPDATE_FAILED"
+        logger.error(f"{error_code}: Unexpected error updating user {user_id}: {e}", exc_info=True)
+        raise AppException(
+            message="User update failed due to an internal error.",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": error_code, "original_error": str(e)},
+        ) from e
 
 
 @router.delete(
@@ -329,7 +340,17 @@ async def delete_user(
             error_code = "LAST_ADMIN_PROTECTION"
             logger.error(f"{error_code}: {e}", exc_info=True)
             raise ConflictError(message=str(e), details={"error_code": error_code}) from e
-        raise
+        
+        # Unknown Runtime Error -> Fail Fast with RFC 7807
+        from backend.exceptions import AppException
+
+        error_code = "USER_DELETE_FAILED"
+        logger.error(f"{error_code}: Unexpected error deleting user {user_id}: {e}", exc_info=True)
+        raise AppException(
+            message="User deletion failed due to an internal error.",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": error_code, "original_error": str(e)},
+        ) from e
 
 
 @router.post(
@@ -449,16 +470,14 @@ def get_ingestion_status(job_id: Annotated[str, Path(description="UUID of the ba
 
 
 @router.post(
-    "/knowledge-base/ingest",
-    summary="Ingest from File (Path)",
-    response_model=AdminTaskResponse,
+    "/ingest",
+    summary="Trigger Ingestion",
+    response_model=AsyncJobResponse,
     dependencies=[Depends(require_root)],
 )
-async def ingest_knowledge_base(
+async def trigger_ingest(
     request: IngestRequest,
-    background_tasks: BackgroundTasks,
-    repo: RepositoryDep,
-    llm_provider: LLMProviderFast,
+    kb_service: Annotated[KnowledgeBaseService, Depends(get_knowledge_base_service_dep)],
 ):
     """Triggers ingestion from a local file path."""
     if not os.path.exists(request.file_path):
@@ -467,10 +486,9 @@ async def ingest_knowledge_base(
     job_id = str(uuid.uuid4())
     admin_task_status[job_id] = {"status": "starting", "stage": "Initializing", "percent": 0}
 
-    from backend.services.knowledge_base_service import KnowledgeBaseService
     from backend.services.progress import InMemoryProgressTracker
 
-    service = KnowledgeBaseService(repo, llm_provider=llm_provider)
+    # service is injected via Dependency (kb_service)
 
     async def _run_ingest():
         try:
@@ -479,8 +497,13 @@ async def ingest_knowledge_base(
             filename = os.path.basename(request.file_path)
 
             tracker = InMemoryProgressTracker(callback=lambda p: admin_task_status.update({job_id: p}))
-            await service.ingest_from_bytes(
-                content, filename, tracker=tracker, job_id=job_id, reset_db=request.reset_db
+            await kb_service.ingest_from_bytes(
+                content, 
+                filename, 
+                tracker=tracker, 
+                job_id=job_id, 
+                reset_db=request.reset_db,
+                model_strategy=request.model_strategy
             )
 
             # Ensure status is marked completed if service doesn't implicitly do it
@@ -495,8 +518,7 @@ async def ingest_knowledge_base(
             admin_task_status[job_id] = {"status": "failed", "error": error_model.model_dump()}
 
     background_tasks.add_task(_run_ingest)
-    return AdminTaskResponse(
-        status="started",
+    return AsyncJobResponse(
         job_id=job_id,
         task="ingest_from_file",
         message=f"Ingesting {request.file_path}",
@@ -511,10 +533,10 @@ async def ingest_knowledge_base(
 )
 async def upload_knowledge_base(
     file: Annotated[UploadFile, File(description="File to ingest.")],
-    repo: RepositoryDep,
-    llm_provider: LLMProviderFast,
+    kb_service: Annotated[KnowledgeBaseService, Depends(get_knowledge_base_service_dep)],
     background_tasks: BackgroundTasks,
     reset_db: Annotated[bool, Query(description="Clear KB first.")] = False,
+    model_strategy: Annotated[str | None, Query(description="LLM Strategy (fast, deep). Default: None (Basic Parsing).")] = None,
 ):
     """Uploads and ingests a file into the knowledge base."""
     job_id = str(uuid.uuid4())
@@ -532,18 +554,19 @@ async def upload_knowledge_base(
             message=str(e), status_code=status.HTTP_400_BAD_REQUEST, details={"error_code": error_code}
         ) from e
 
-    if repo is None:
-        repo = await get_async_repository()
-
-    from backend.services.knowledge_base_service import KnowledgeBaseService
     from backend.services.progress import InMemoryProgressTracker
-
-    service = KnowledgeBaseService(repo, llm_provider=llm_provider)
 
     async def _run_ingest():
         try:
             tracker = InMemoryProgressTracker(callback=lambda p: admin_task_status.update({job_id: p}))
-            await service.ingest_from_bytes(content, filename, tracker=tracker, job_id=job_id, reset_db=reset_db)
+            await kb_service.ingest_from_bytes(
+                content, 
+                filename, 
+                tracker=tracker, 
+                job_id=job_id, 
+                reset_db=reset_db,
+                model_strategy=model_strategy 
+            )
             if admin_task_status[job_id].get("status") != "failed":
                 admin_task_status[job_id]["status"] = "completed"
         except Exception as e:
@@ -721,7 +744,17 @@ async def update_user_role(
             error_code = "PERMISSION_DENIED"
             logger.error(f"{error_code}: {e}", exc_info=True)
             raise PermissionDeniedError(message=str(e), details={"error_code": error_code}) from e
-        raise
+        
+        # Unknown Runtime Error -> Fail Fast with RFC 7807
+        from backend.exceptions import AppException
+
+        error_code = "ROLE_UPDATE_FAILED"
+        logger.error(f"{error_code}: Unexpected error updating role for user {user_id}: {e}", exc_info=True)
+        raise AppException(
+            message="Role update failed due to an internal error.",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": error_code, "original_error": str(e)},
+        ) from e
 
 
 @router.get(

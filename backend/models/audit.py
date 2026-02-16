@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class AuditEvent(BaseModel):
@@ -16,3 +16,19 @@ class AuditEvent(BaseModel):
     organization_id: str | None = None
     target_uid: str | None = None
     details: dict[str, Any] = Field(default_factory=dict)
+
+    model_config = ConfigDict(frozen=True, strict=True)
+
+    @field_validator("id", "actor_uid", "action")
+    @classmethod
+    def validate_non_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Field cannot be empty or whitespace only.")
+        return v.strip()
+
+    @field_validator("organization_id", "target_uid")
+    @classmethod
+    def validate_non_empty_optional(cls, v: str | None) -> str | None:
+        if v is not None and (not v or not v.strip()):
+            raise ValueError("Field cannot be empty or whitespace only.")
+        return v.strip() if v else v

@@ -8,7 +8,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ReasoningTrace(BaseModel):
@@ -20,7 +20,16 @@ class ReasoningTrace(BaseModel):
     model_name: str | None = Field(default=None, description="The model used for reasoning.")
     token_usage: dict[str, int] = Field(default_factory=dict, description="Token usage statistics.")
 
-    model_config = ConfigDict(frozen=True)
+
+
+    model_config = ConfigDict(frozen=True, strict=True)
+
+    @field_validator("thought_process", "conclusion")
+    @classmethod
+    def validate_non_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Field cannot be empty or whitespace only.")
+        return v.strip()
 
 
 class TraceEvent(BaseModel):
@@ -53,7 +62,16 @@ class TraceEvent(BaseModel):
         default_factory=dict, description="Additional metadata."
     )
 
-    model_config = ConfigDict(frozen=True)
+
+
+    model_config = ConfigDict(frozen=True, strict=True)
+
+    @field_validator("step_name")
+    @classmethod
+    def validate_non_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Field cannot be empty or whitespace only.")
+        return v.strip()
 
 
 class WorkflowState(BaseModel):
@@ -77,7 +95,16 @@ class WorkflowState(BaseModel):
         default_factory=dict, description="Current snapshots of context variables."
     )
 
-    model_config = ConfigDict(frozen=True)
+
+
+    model_config = ConfigDict(frozen=True, strict=True)
+
+    @field_validator("workflow_id")
+    @classmethod
+    def validate_non_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Field cannot be empty or whitespace only.")
+        return v.strip()
 
     def add_event(self, event: TraceEvent) -> WorkflowState:
         """Returns a new WorkflowState with the added event (Functional style)."""

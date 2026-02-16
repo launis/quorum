@@ -1,25 +1,22 @@
-"""Security Tasks.
-
-Functional tasks for security operations, registered for workflow execution.
-"""
-
 import logging
 
+from backend.agents.guard import GuardAgent
 from backend.core.registry import TaskRegistry
+from backend.models.domain import GuardOutput
 
 logger = logging.getLogger(__name__)
 
 
-# --- Class-Based Agent Registration ---
+def register_security_tasks():
+    """Registers security-related agents with the TaskRegistry."""
+    logger.info("Registering security tasks...")
 
-from backend.agents.guard import GuardAgent
-from backend.models.domain import GuardOutput
+    TaskRegistry.register_agent(
+        task_keys=["guard"],
+        agent_cls=GuardAgent,
+        output_model=GuardOutput
+    )
 
-# Register the GuardAgent class for the "guard" task key.
-# This ensures it runs as a BaseAgent subclass, inheriting metadata injection logic.
-TaskRegistry.register_agent(
-    task_keys=["guard"],
-    agent_cls=GuardAgent,
-    output_model=GuardOutput
-)
+# Execute registration on import
+register_security_tasks()
 

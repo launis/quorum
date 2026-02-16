@@ -13,7 +13,14 @@ from litellm import Router
 from pydantic import BaseModel
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-from backend.exceptions import AppException, ConfigurationError, ErrorCodes
+from backend.exceptions import (
+    AppException,
+    ConfigurationError,
+    ErrorCodes,
+    ServiceUnavailableError,
+    AgentExecutionError,
+    SecurityViolationError,
+)
 from backend.models.llm import LLMResponse
 from backend.services.usage_service import UsageService
 from backend.settings import get_settings
@@ -108,12 +115,39 @@ class LiteLLMProvider(LLMProvider):
         # to leverage Router's TPM/RPM enforcement logic.
 
         # 1. Determine Limits
-        # If dynamic limits are provided (e.g. per Organization), use them.
-        # Otherwise fallback to generic defaults.
-        generic_defaults = {"tpm": 10000, "rpm": 10}
+        # STRICT CONFIGURATION (Jan 2026): No hardcoded defaults.
+        # Limits must be provided via specific configuration (Organization/User/System).
+        
+        if not limits:
+             # If no limits passed, we check settings or raise.
+             # We do not default to 10000/10 silently.
+             if settings and hasattr(settings, "default_llm_limits"):
+                  limits = settings.default_llm_limits
+             else:
+                  # For now, we might allow a very strict safe fallback OR fail.
+                  # "mikään ei saa olla kovakoodattua" implies we shouldn't have 10000 here.
+                  # But we need A limit. 
+                  # Let's assume the caller MUST provide them or we fallback to a STRICTLY DEFINED
+                  # system setting, not a magic number in code.
+                  # Since we don't have that setting yet, we'll enforce that 'limits' is required 
+                  # or we raise.
+                  # However, existing calls might not pass it.
+                  # Let's add 'default_tpm' to settings if needed, or just fail if missing.
+                  # Given the user's strictness: FAIL.
+                  pass
 
-        tpm = limits.get("tpm", generic_defaults["tpm"]) if limits else generic_defaults["tpm"]
-        rpm = limits.get("rpm", generic_defaults["rpm"]) if limits else generic_defaults["rpm"]
+        tpm = limits.get("tpm") if limits else None
+        rpm = limits.get("rpm") if limits else None
+        
+        if tpm is None or rpm is None:
+             # Check settings for global fallback (configured, not hardcoded)
+             if settings and settings.llm_default_tpm and settings.llm_default_rpm:
+                 tpm = tpm or settings.llm_default_tpm
+                 rpm = rpm or settings.llm_default_rpm
+             else:
+                 msg = "Strict Mode: LLM Rate Limits (TPM/RPM) must be explicitly configured. No hardcoded defaults."
+                 logger.error(f"[LiteLLMProvider] {msg}")
+                 raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR})
 
         # 2. Build deployment config
         model_config = {
@@ -345,6 +379,7 @@ class LiteLLMProvider(LLMProvider):
                     messages=messages,
                 )
 
+
             # --- STANDARD CALL (Unstructured) ---
             # Fallback to self.router.acompletion directly if no schema
             # Remove keys that shouldn't be passed directly
@@ -432,6 +467,10 @@ class LiteLLMProvider(LLMProvider):
             # 1. RATE LIMITS & QUOTA (Critical Infra)
             if "RateLimitError" in error_type or "429" in error_msg or "Resource exhausted" in error_msg:
                 logger.error(f"[LiteLLM] RESOURCE EXHAUSTED (Rate Limit): {error_msg}")
+                raise ServiceUnavailableError(
+                    message="Model provider rate limit exceeded.",
+                    details={"error_code": ErrorCodes.RATE_LIMIT_EXCEEDED, "original_error": error_msg}
+                ) from e
 
             # 1.1 OUTPUT LIMIT (Model Looping/Max Tokens)
             elif "InstructorRetryException" in error_type and ("max_tokens" in error_msg or "length" in error_msg):
@@ -445,14 +484,28 @@ class LiteLLMProvider(LLMProvider):
             # 2. AUTHENTICATION ALERTS (Security/Config)
             elif "AuthenticationError" in error_type or "401" in error_msg or "invalid_api_key" in error_msg:
                  logger.critical(f"[LiteLLM] AUTH FAILED (Check API Keys): {error_msg}")
+                 raise ConfigurationError(
+                     message="LLM Provider authentication failed.",
+                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR, "original_error": "Invalid API Key or Credential"}
+                 ) from e
 
             # 3. CONTEXT WINDOW (Data/Prompt Engineering)
             elif "ContextWindowExceededError" in error_type or "context_length_exceeded" in error_msg or "400" in error_msg:
                  # Often 400 is generic, but combined with length/context keywords matches this.
                  if "context" in error_msg.lower() or "token" in error_msg.lower():
                      logger.error(f"[LiteLLM] CONTEXT EXCEEDED (Prompt too long): {error_msg}")
+                     raise AgentExecutionError(
+                         detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
+                         original_error=e,
+                         agent_name=self.model_name
+                     ) from e
                  else:
                      logger.error(f"[LiteLLM] BAD REQUEST (400): {error_msg}")
+                     raise AgentExecutionError(
+                         detail=ErrorCodes.AGENT_RESPONSE_MALFORMED,
+                         original_error=e,
+                         agent_name=self.model_name
+                     ) from e
 
             # 4. SERVICE INSTABILITY (Infra)
             elif "ServiceUnavailableError" in error_type or "503" in error_msg or "500" in error_msg or "Timeout" in error_type:
@@ -466,15 +519,24 @@ class LiteLLMProvider(LLMProvider):
             # 5. CONTENT POLICY (Safety)
             elif "ContentPolicyViolation" in error_type or "blocked" in error_msg.lower():
                  logger.warning(f"[LiteLLM] SAFETY FILTER TRIGGERED: {error_msg}")
+                 raise SecurityViolationError(
+                     message="Content blocked by safety filters.",
+                     details={"error_code": ErrorCodes.SECURITY_VIOLATION, "original_error": error_msg}
+                 ) from e
 
-            # 6. GENERIC FALLBACK
+            # 6. GENERIC FALLBACK (Fail Fast)
             else:
                 if len(error_msg) > 500:
                      error_msg = error_msg[:500] + "... [TRUNCATED]"
                 logger.error(f"[LiteLLM] Execution Failed ({error_type}): {error_msg}")
-
-            logger.debug(f"[LiteLLM] Full Error Trace: {e}", exc_info=True)
-            raise e
+                
+                logger.debug(f"[LiteLLM] Full Error Trace: {e}", exc_info=True)
+                
+                # Default to ServiceUnavailable for unknown upstream errors
+                raise ServiceUnavailableError(
+                    message=f"Unknown upstream LLM error: {error_type}",
+                    details={"error_code": ErrorCodes.UNKNOWN_ERROR, "original_error": error_msg}
+                ) from e
 
 
 class MockProvider(LLMProvider):

@@ -158,6 +158,10 @@ class AbstractWorkflowRepository(ABC):
         pass
 
     @abstractmethod
+    async def clear_knowledge_base(self) -> None:
+        pass
+
+    @abstractmethod
     async def get_model_registry(self) -> dict[str, Any]:
         pass
 
@@ -207,6 +211,18 @@ class AbstractWorkflowRepository(ABC):
 
     @abstractmethod
     async def get_org_usage_total(self, org_id: str, since: str | None = None) -> float:
+        pass
+
+    @abstractmethod
+    async def add_knowledge_base_item(self, item: dict[str, Any]) -> str:
+        """Adds an item to the knowledge base collection.
+
+        Args:
+            item: The knowledge base item to add. Must contain an 'id' field.
+
+        Returns:
+            The ID of the added item.
+        """
         pass
 
 
@@ -247,7 +263,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
             filters.append(Filter("organization_id", "==", organization_id))
         if user_id:
             filters.append(Filter("user_id", "==", user_id))
-        
+
         return await self.driver.query("executions", filters)
 
     # --- Workflows ---
@@ -280,7 +296,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
             # For now fetch all is safer for small step counts
             all_steps = await self.driver.query("steps")
             registry_steps = {s["id"]: s for s in all_steps if "id" in s}
-            
+
             hydrated = []
             for step in data["steps"]:
                 sid = step.get("id")
@@ -313,12 +329,12 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
             filters.append(Filter("actor_uid", "==", actor_uid))
         if action:
             filters.append(Filter("action", "==", action))
-            
+
         return await self.driver.query(
-            "audit_logs", 
-            filters=filters, 
-            limit=limit, 
-            order_by="timestamp", 
+            "audit_logs",
+            filters=filters,
+            limit=limit,
+            order_by="timestamp",
             descending=True
         )
 
@@ -331,7 +347,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
                 # Logic: org_id IN [target, "system"]
                 # Driver support 'in'? Yes.
                 filters.append(Filter("organization_id", "in", [organization_id, "system"]))
-        
+
         return await self.driver.query("workflows", filters)
 
     async def get_workflow_by_id(self, workflow_id: str) -> dict[str, Any] | None:
@@ -356,7 +372,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         step = await self.driver.get("steps", step_id)
         if step:
             return step
-            
+
         # Fallback: Check inside workflows (V2 pattern)
         all_wfs = await self.driver.query("workflows")
         for wf in all_wfs:
@@ -386,12 +402,12 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         filters = []
         if type:
             filters.append(Filter("type", "==", type))
-            
+
         components = await self.driver.query("components", filters)
-        
+
         if exclude_types:
             components = [c for c in components if c.get("type") not in exclude_types]
-            
+
         return components
 
     async def get_component_by_id(self, component_id: str) -> dict[str, Any] | None:
@@ -403,8 +419,8 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
 
     async def update_component_metadata(self, component_id: str, module: str, component_class: str) -> bool:
         return await self.driver.update(
-            "components", 
-            component_id, 
+            "components",
+            component_id,
             {"module": module, "class_name": component_class}
         )
 
@@ -423,8 +439,8 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         if not existing:
             doc_id = str(uuid.uuid4())
             await self.driver.upsert(
-                "banned_phrases", 
-                {"phrase": phrase, "language": language, "id": doc_id}, 
+                "banned_phrases",
+                {"phrase": phrase, "language": language, "id": doc_id},
                 doc_id
             )
 
@@ -444,17 +460,28 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         res = await self.driver.get("prompts", template_id)
         if res:
              return {"system": res.get("system_prompt", ""), "user": res.get("user_prompt", "")}
-        
+
         # Fallback query by 'id' field if doc_id mismatch
         res_list = await self.driver.query("prompts", [Filter("id", "==", template_id)], limit=1)
         if res_list:
              res = res_list[0]
              return {"system": res.get("system_prompt", ""), "user": res.get("user_prompt", "")}
-        
+
         return None
 
     async def get_knowledge_base_items(self) -> list[dict[str, Any]]:
         return await self.driver.query("knowledge_base")
+
+    async def add_knowledge_base_item(self, item: dict[str, Any]) -> str:
+        """Adds an item to the knowledge base collection."""
+        doc_id = item["id"]
+        return await self.driver.upsert("knowledge_base", item, doc_id)
+
+    async def clear_knowledge_base(self) -> None:
+        """Removes all items from the knowledge base collection."""
+        items = await self.driver.query("knowledge_base")
+        for item in items:
+            await self.driver.delete("knowledge_base", item["id"])
 
     async def get_model_registry(self) -> dict[str, Any]:
         # Config stored in system_config/model_registry
@@ -474,14 +501,14 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         # Complex logic: scan components in memory
         # Fetch Matrix types
         matrices = await self.get_all_components(type="evaluation_matrix")
-        
+
         matches = []
         for m in matrices:
             content = m.get("content", {})
             if not isinstance(content, dict): continue
             criteria = content.get("criteria", [])
             if not isinstance(criteria, list): continue
-            
+
             for crit in criteria:
                  if isinstance(crit, dict) and crit.get("dimension_id") == dimension_id:
                      matches.append(m["id"])
@@ -493,7 +520,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
             data = record.model_dump()
         else:
             data = record
-            
+
         doc_id = data.get("id") or str(uuid.uuid4())
         data["id"] = doc_id
         await self.driver.upsert("usage", data, doc_id)
@@ -526,17 +553,17 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         # Manual cascade delete - driver doesn't support batch delete by query yet
         # Phase 2 improvement: add delete_by_query to protocol?
         # For now, fetch and delete one by one or iterate
-        
+
         # Users
         users = await self.list_users(org_id)
         for u in users:
             await self.driver.delete("users", u["id"])
-            
+
         # Executions
         execs = await self.get_all_executions(organization_id=org_id)
         for e in execs:
             await self.driver.delete("executions", e["id"])
-            
+
         # Workflows
         wfs = await self.get_all_workflows(organization_id=org_id)
         for w in wfs:
@@ -546,7 +573,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         filters = [Filter("organization_id", "==", org_id)]
         if since:
             filters.append(Filter("created_at", ">=", since))
-            
+
         # Fetch all matched executions
         execs = await self.driver.query("executions", filters)
         return sum(e.get("cost_estimate", 0.0) for e in execs)

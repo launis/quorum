@@ -69,7 +69,8 @@ The system utilizes **Pydantic V2** for all internal state management.
 1.  **Strict Mode**: Models use `ConfigDict(extra="ignore")` to silently strip unknown fields during ingestion, but validation is rigid on required fields.
 2.  **Validation Trap**: If `seed_data.json` contains a field (e.g., `ui_schema`) but the Pydantic model does not define it, the data will be lost during seeding. Both must be kept in sync.
 3.  **Strict Enums Only**: Data must match Enum values exactly (e.g., "RISK_HIGH", not "High Risk"). Fuzzy logic is deprecated.
-3.  **Storage Abstraction**: The `get_db_client()` factory (`backend/database/wrapper.py`) dynamically returns a `TinyDBClient` or `FirestoreClient` based on the `STORAGE_BACKEND` env var.
+4.  **Modular Domain**: Models are organized in `backend/models/domain/` to enforce strict separation of concerns (e.g., `guard.py`, `analyst.py`).
+5.  **Storage Abstraction**: The `get_db_client()` factory (`backend/database/wrapper.py`) dynamically returns a `TinyDBClient` or `FirestoreClient` based on the `STORAGE_BACKEND` env var.
 
 ---
 

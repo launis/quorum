@@ -6,33 +6,39 @@ Generates Hypotheses and RAG evidence needs.
 
 import logging
 
+from backend.agents.analyst import AnalystAgent
+from backend.agents.logician import LogicianAgent
+from backend.agents.profiler import ProfilerAgent
 from backend.core.registry import TaskRegistry
-from backend.models.domain import AnalystOutput
+from backend.models.domain import AnalystOutput, LogicianOutput, ProfilerAnalysis
 
 logger = logging.getLogger(__name__)
 
 
-# --- Class-Based Agent Registration ---
+def register_analysis_tasks():
+    """Registers analysis-related agents with the TaskRegistry."""
+    logger.info("Registering analysis tasks...")
 
-from backend.agents.analyst import AnalystAgent
+    # 1. Analyst
+    TaskRegistry.register_agent(
+        task_keys=["analyst"],
+        agent_cls=AnalystAgent,
+        output_model=AnalystOutput
+    )
 
-# Register the AnalystAgent class for the "analyst" task key.
-# This ensures it runs as a BaseAgent subclass, inheriting metadata injection logic.
-TaskRegistry.register_agent(
-    task_keys=["analyst"],
-    agent_cls=AnalystAgent,
-    output_model=AnalystOutput
-)
+    # 2. Logician
+    TaskRegistry.register_agent(
+        task_keys=["logician"],
+        agent_cls=LogicianAgent,
+        output_model=LogicianOutput
+    )
 
+    # 3. Profiler
+    TaskRegistry.register_agent(
+        task_keys=["profiler"],
+        agent_cls=ProfilerAgent,
+        output_model=ProfilerAnalysis
+    )
 
-# --- Class-Based Agent Registration ---
-
-from backend.agents.logician import LogicianAgent
-from backend.models.domain import LogicianOutput
-
-TaskRegistry.register_agent(task_keys=["logician"], agent_cls=LogicianAgent, output_model=LogicianOutput)
-
-from backend.agents.profiler import ProfilerAgent
-from backend.models.domain import ProfilerAnalysis
-
-TaskRegistry.register_agent(task_keys=["profiler"], agent_cls=ProfilerAgent, output_model=ProfilerAnalysis)
+# Execute registration on import
+register_analysis_tasks()

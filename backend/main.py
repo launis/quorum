@@ -29,6 +29,7 @@ from backend.api import (
     organization_router,
     settings_router,
     tools_router,
+    audit_router,
 )
 from backend.context import set_request_context
 from backend.core.registry import TaskRegistry
@@ -81,9 +82,6 @@ async def lifespan(app: FastAPI):
         # B. Load Workflows (Mock/File-based seeding for now)
         # In a real app, this might sync to DB.
         # Here we just verify the file exists.
-        workflow_dir = "data/workflows"
-        if os.path.exists(workflow_dir):
-            files = [f for f in os.listdir(workflow_dir) if f.endswith(".json")]
         workflow_dir = "data/workflows"
         if os.path.exists(workflow_dir):
             files = [f for f in os.listdir(workflow_dir) if f.endswith(".json")]
@@ -156,14 +154,14 @@ class LocalizationMiddleware(BaseHTTPMiddleware):
         # Extract Accept-Language header (e.g., "fi,en;q=0.9")
         # For simplicity, we take the first preferred language.
         accept_language = request.headers.get("Accept-Language", "en")
-        
+
         # Parse logic could be more robust (q-factor), but splitting by comma/semi-colon is a good start
         # "fi,en;q=0.9" -> "fi"
         preferred_lang = accept_language.split(",")[0].split(";")[0].strip()
-        
+
         # Set Context
         set_language(preferred_lang)
-        
+
         response = await call_next(request)
         return response
 
@@ -172,7 +170,7 @@ app.add_middleware(LocalizationMiddleware)
 
 # --- 4. Global Error Handlers (RFC 7807 Problem Details) ---
 
-from backend.exceptions import AppException
+from backend.exceptions import AppException, format_validation_error, ErrorCodes
 
 
 @app.exception_handler(AppException)
@@ -193,31 +191,75 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     """Catches Pydantic validation errors and returns RFC 7807 Problem Details."""
     logger = logging.getLogger("backend.main")
 
-    # 1. Log the detailed validation error to FILE
-    # (Truncate body to avoid huge logs, but keep enough context)
-    body = exc.body
-    if isinstance(body, (dict, list, str)):
-        body_str = str(body)
-        if len(body_str) > 1000:
-            body_str = body_str[:1000] + "...(truncated)"
-    else:
-        body_str = "Body not serializable"
+    # 1. Format readable detail first
+    readable_detail = format_validation_error(exc)
 
-    logger.error(f"VALIDATION_ERROR: {exc.errors()}")
-    logger.error(f"Request Body context: {body_str}")
+    # 2. Log: Summary first (easy to read), then details
+    logger.error(f"VALIDATION ERROR: {readable_detail}") 
+    logger.debug(f"Raw Schema Errors: {exc.errors()}")
 
-    # 2. Return RFC 7807
+    # 3. Return RFC 7807 with Error Code for Client Localization
+    error_code = ErrorCodes.VALIDATION_FAILED
+    
     return JSONResponse(
         status_code=422,
         content=jsonable_encoder({
-            "type": "about:blank",
-            "title": "Request Validation Error",
+            "type": f"https://api.quorum.fi/errors/validation-failed", # Machine readable URI
+            "title": "Validation Failed", # Fallback title
             "status": 422,
-            "detail": exc.errors(),
+            "detail": readable_detail,
             "instance": str(request.url.path),
+            "extensions": {
+                "error_code": error_code.value, # Client uses this for L10n key
+                "errors": exc.errors()
+            }
         }),
         media_type="application/problem+json",
     )
+
+
+from slowapi.errors import RateLimitExceeded
+from backend.core.rate_limit import rate_limit_exceeded_handler
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_exception_handler(request: Request, exc: RateLimitExceeded):
+    """Catches RateLimitExceeded and delegates to the strict handler."""
+    return rate_limit_exceeded_handler(request, exc)
+
+
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    """Catches standard HTTP errors (404, 405) and returns RFC 7807."""
+    logger = logging.getLogger("backend.main")
+    logger.warning(f"HTTP_ERROR: {exc.detail} (Status: {exc.status_code})")
+
+    # Map HTTP status to approximate error code for L10n
+    if exc.status_code == 404:
+        error_code = ErrorCodes.RESOURCE_NOT_FOUND
+    elif exc.status_code == 401:
+        error_code = ErrorCodes.AUTHENTICATION_FAILED
+    elif exc.status_code == 403:
+        error_code = ErrorCodes.PERMISSION_DENIED
+    else:
+        error_code = "HTTP_ERROR"
+
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=jsonable_encoder({
+            "type": "about:blank",
+            "title": "HTTP Error",
+            "status": exc.status_code,
+            "detail": exc.detail,
+            "instance": str(request.url.path),
+            "extensions": {
+                "error_code": error_code.value if hasattr(error_code, "value") else error_code
+            }
+        }),
+        media_type="application/problem+json",
+    )
+
 
 
 @app.exception_handler(Exception)
@@ -240,6 +282,9 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 
+
+
+
 # --- 5. Routers ---
 
 # ...
@@ -253,5 +298,8 @@ app.include_router(settings_router.router)
 app.include_router(llm_router.router)
 app.include_router(organization_router.router)
 app.include_router(tools_router.router)
+app.include_router(tools_router.router)
+app.include_router(audit_router.router)
+
 
 print("Updated backend/main.py with Lifespan and V2 Router.")

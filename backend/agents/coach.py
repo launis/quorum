@@ -1,9 +1,7 @@
-"""Coach Agent implementation."""
-
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 # 2. Third Party
 from pydantic import BaseModel
@@ -11,6 +9,7 @@ from pydantic import BaseModel
 from backend.agents.base import BaseAgent
 
 # 3. Local Imports
+from backend.exceptions import AgentExecutionError, ErrorCodes
 from backend.models.domain import CoachingPlan
 
 if TYPE_CHECKING:
@@ -33,69 +32,170 @@ class CoachAgent(BaseAgent):
         """Returns the Pydantic model for the agent's expected output.
 
         Returns:
-            Optional[Type[BaseModel]]: The CoachingPlan schema.
-
+            type[BaseModel] | None: The CoachingPlan schema.
         """
         return CoachingPlan
 
     async def execute(
         self,
-        input_data: dict,
-        execution_context: dict | None = None,
+        input_data: dict[str, Any],
+        execution_context: dict[str, Any] | None = None,
         system_instruction: str | None = None,
-        **kwargs,
-    ) -> dict:
-        """Executes the coaching plan generation.
+        **kwargs: Any,
+    ) -> CoachingPlan:
+        """Executes the coaching plan generation and enriches it with bibliography.
 
         Args:
-            input_data (dict): Inputs.
-            execution_context (dict): Context.
-            system_instruction (str): Prompt.
+            input_data (dict[str, Any]): Inputs.
+            execution_context (dict[str, Any] | None, optional): Context.
+            system_instruction (str | None, optional): Prompt.
             **kwargs: Args.
 
         Returns:
-            dict: The generated actionable plan.
+            CoachingPlan: The generated actionable plan with bibliography.
         """
-        return await super().execute(input_data, execution_context, system_instruction, **kwargs)
+        # 1. Run Standard Execution (LLM Generation)
+        # This triggers prepare_context (loading KB)
+        result = await super().execute(input_data, execution_context, system_instruction, **kwargs)
 
-    async def prepare_context(self, input_data: dict, execution_context: dict | None, **kwargs) -> str:
+        # 2. Enrichment (Bibliography)
+        if not hasattr(self, "knowledge_base") or self.knowledge_base is None:
+             # If prepare_context failed or didn't run? (Should be caught in super)
+             logger.warning("[CoachAgent] Knowledge Base missing during enrichment. Bibliography will be empty.")
+             
+             # Early return with casting
+             if isinstance(result, CoachingPlan):
+                 return result
+             elif isinstance(result, dict):
+                 return CoachingPlan(**result)
+             else:
+                 raise AgentExecutionError(
+                     detail=ErrorCodes.INVALID_JSON_PAYLOAD,
+                     original_error=TypeError(f"CoachAgent returned {type(result)} instead of CoachingPlan"),
+                     agent_name="CoachAgent"
+                 )
+
+        logger.info("[CoachAgent] Running post-execution enrichment (Bibliography)...")
+
+        # Prepare Scan Data
+        try:
+            # Combine relevant inputs and result for scanning
+            scan_target = {
+                "inputs": input_data,
+                "result": result.model_dump() if hasattr(result, "model_dump") else result
+            }
+            text_dump = str(scan_target)
+        except Exception as e:
+            logger.warning(f"[CoachAgent] Failed to serialize state for bibliography scan: {e}")
+            text_dump = str(input_data) + str(result)
+
+        # Delegate to Hook
+        from backend.hooks.references import generate_bibliography
+
+        formatted_list = generate_bibliography(text_dump, self.knowledge_base)
+
+        # SCHEMA ADAPTER: CoachingPlan expects list[dict], but hook returns list[str].
+        final_bib = []
+        for ref_str in formatted_list:
+            final_bib.append({
+                "source_id": "ref_generated", # Placeholder or hash?
+                "title": ref_str,
+                "url": None,
+                "snippet": None
+            })
+
+        # 3. Update Result
+        # Handle Pydantic Model vs Dict
+        if isinstance(result, BaseModel):
+             # Create a copy with updated bibliography
+             if hasattr(result, "bibliography"):
+                 # If mutable (unlikely for frozen model)
+                 try:
+                    result_dict = result.model_dump()
+                    result_dict["bibliography"] = final_bib
+                    final_result = type(result)(**result_dict)
+                 except Exception:
+                    final_result = result
+             else:
+                 final_result = result
+        else:
+             final_result = result.copy()
+             final_result["bibliography"] = final_bib
+
+        logger.info(f"[CoachAgent] Populated bibliography with {len(final_bib)} references.")
+        
+        # FINAL CAST & VALIDATION
+        if isinstance(final_result, CoachingPlan):
+            return final_result
+        elif isinstance(final_result, dict):
+            return CoachingPlan(**final_result)
+        else:
+             raise AgentExecutionError(
+                 detail=ErrorCodes.INVALID_JSON_PAYLOAD,
+                 original_error=TypeError(f"CoachAgent returned {type(final_result)} instead of CoachingPlan"),
+                 agent_name="CoachAgent"
+             )
+
+    async def prepare_context(
+        self,
+        input_data: dict[str, Any],
+        execution_context: dict[str, Any] | None,
+        **kwargs: Any
+    ) -> str | None:
         """Lifecycle Hook: Pre-Execution with INTELLIGENT FILTERING.
 
         Loads Knowledge Base but filters it dynamically based on the Judge's Verdict (Tuomio).
         This prevents context window bloat (TimeoutError) by only including relevant references.
 
         Args:
-            input_data (dict): Inputs.
-            execution_context (dict): Context.
+            input_data (dict[str, Any]): Inputs.
+            execution_context (dict[str, Any] | None): Context.
             **kwargs: Additional arguments.
 
         Returns:
-            str: The formatted context string.
+            str | None: The formatted context string.
+
+        Raises:
+            ValueError: If mandatory 'step_judge' is missing.
+            AgentExecutionError: If verdict parsing or repo access fails.
         """
         parts = []
 
         # 1. Inject Verdict (Tuomio) FIRST to determine filtering needs
-        # Aggregate multiple judges if present
         weak_areas = []
         focus_keywords = set()
 
         judge_inputs = []
         for key, value in input_data.items():
-             if (key.startswith("step_judge") or key == "tuomio") and value:
+             if key.startswith("step_judge") and value:
                  judge_inputs.append((key, value))
-        
-        # Add explicit 'tuomio' kwarg if passed separately (rare/legacy)
-        if kwargs.get("tuomio"):
-             judge_inputs.append(("kwargs_tuomio", kwargs.get("tuomio")))
+
+        if kwargs.get("verdict"):
+             judge_inputs.append(("kwargs_verdict", kwargs.get("verdict")))
+
+        if not judge_inputs:
+            # STRICT FAIL FAST: Coach requires a Verdict (step_judge) to function.
+            error_code = ErrorCodes.SERVICE_DEPENDENCY_MISSING
+            error_msg = (
+                "[CoachAgent] Missing mandatory input 'step_judge' (Judge Verdict). "
+                "Cannot generate coaching plan without legal basis."
+            )
+            logger.error(f"{error_code}: {error_msg}")
+            raise AgentExecutionError(
+                detail=error_code,
+                original_error=ValueError(error_msg),
+                agent_name="CoachAgent"
+            )
 
         if judge_inputs:
             for key, tuomio in judge_inputs:
                 try:
                     # Header
                     content = tuomio.model_dump_json(indent=2) if hasattr(tuomio, "model_dump_json") else str(tuomio)
-                    parts.append(f"### TUOMIO (VERDICT from {key}):\n{content}")
+                    parts.append(f"### VERDICT (from {key}):\n{content}")
 
                     data = tuomio.model_dump() if hasattr(tuomio, "model_dump") else tuomio
+
                     if isinstance(data, dict):
                         # Check dimensions field (Standard)
                         dimensions = data.get("dimensions", [])
@@ -116,158 +216,88 @@ class CoachAgent(BaseAgent):
                                      elif "falsi" in dim_id:
                                          focus_keywords.update(["falsif", "popp", "scien", "test"])
 
-                                         focus_keywords.update(["falsif", "popp", "scien", "test"])
-
-                        # STRICT MODE: Legacy 'pisteet' support is REMOVED.
-                        # If the schema is old, we simply won't find weak areas here,
-                        # potentially resulting in Generic coaching (which is safe),
-                        # OR we could log a warning.
-
                 except Exception as e:
-                    logger.warning(f"[CoachAgent] Failed to analyze weak areas for {key}: {e}")
+                    # FAIL FAST
+                    error_code = ErrorCodes.AGENT_EXECUTION_CRITICAL
+                    logger.error(
+                        f"[CoachAgent] {error_code}: Failed to analyze weak areas for {key}: {e}",
+                        exc_info=True
+                    )
+                    raise AgentExecutionError(
+                        detail=error_code,
+                        original_error=e,
+                        agent_name="CoachAgent"
+                    ) from e
 
             if weak_areas:
                 parts.append("### IDENTIFIED WEAK AREAS (FOCUS FOR COACHING):")
                 parts.append("\n".join(weak_areas))
-                logger.info(f"[CoachAgent] Identified {len(weak_areas)} weak areas across judges. Filtering KB for keywords: {focus_keywords}")
+                parts.append(
+                    "\nNOTE: Use the provided Knowledge Base to suggest specific improvements for these weak areas."
+                )
+                logger.info(
+                    f"[CoachAgent] Identified {len(weak_areas)} weak areas across judges. "
+                    f"Filtering KB for keywords: {focus_keywords}"
+                )
 
         # 2. Intelligent Knowledge Base Loading
         repository = kwargs.get("repository")
-        if repository:
-            # Load items from DB
+
+        # If no repository in kwargs, check execution_context?
+        if not repository and execution_context:
+             # Some engines pass repository in execution_context
+             repository = execution_context.get("repository")
+
+        if not repository:
+             # FAIL FAST: Repository is critical for Coach functionality (Knowledge Base)
+             error_code = ErrorCodes.SERVICE_DEPENDENCY_MISSING
+             msg = "Repository not injected. Coach Agent cannot load Knowledge Base."
+             logger.error(f"[CoachAgent] {error_code}: {msg}")
+             raise AgentExecutionError(
+                 detail=error_code,
+                 original_error=ValueError(msg),
+                 agent_name="CoachAgent"
+             )
+
+        # Load items from DB
+        try:
             items = await repository.get_knowledge_base_items()
 
-            concepts = {}
-            references = []
+            # STRICT: ReferenceManager expects a Dict with 'references' and 'concepts' lists.
+            references = [i for i in items if i.get("type") == "reference" or "citation" in i]
+            concepts = [i for i in items if i.get("type") == "concept" or "term" in i]
 
-            # --- FILTERING LOGIC ---
-            # If we have focus keywords, score items by relevance.
-            # If no weak areas (perfect score), include general "Advancement" references.
-
-            MAX_REFS = 15  # Strict limit to prevent bloat
-            filtered_refs = []
-
-            for item in items:
-                i_type = item.get("type")
-                term = item.get("term", "").lower()
-                definition = item.get("definition", "").lower()
-                combined_text = f"{term} {definition}"
-
-                # Concept Handling (Always include Core Concepts if small enough, or filter)
-                if i_type == "concept":
-                     # For now, include all concepts as they are usually small definitions? SCM says "Context Bloat".
-                     # Let's filter concepts too if list is huge.
-                     if not focus_keywords or any(k in combined_text for k in focus_keywords):
-                        if item.get("term") and item.get("definition"):
-                             concepts[item.get("term")] = item.get("definition")
-
-                # Reference Handling (The main bloat source)
-                elif i_type == "reference":
-                    relevance = 0
-                    if focus_keywords:
-                        # Higher score for matches
-                        for k in focus_keywords:
-                            if k in combined_text:
-                                relevance += 1
-                    else:
-                        # No weak areas? "General/Advanced" mode.
-                        relevance = 1 # Keep some generic ones
-
-                    if relevance > 0:
-                        ref_obj = {
-                            "citation": item.get("definition"), # Definition often holds the citation text
-                            "short_citation": item.get("term"),
-                            "doi": item.get("doi_link"),
-                            "_score": relevance
-                        }
-                        filtered_refs.append(ref_obj)
-
-            # Sort by relevance and take top N
-            filtered_refs.sort(key=lambda x: x["_score"], reverse=True)
-            selected_refs = filtered_refs[:MAX_REFS]
-
-            # Populate self.knowledge_base (for post_process bibliography)
-            # We store ALL loaded concepts but only SELECTED references to keep bibliography consistent with prompt?
-            # Actually, bibliography should reflect what *could* be used.
-            # But prompt should be small.
-
+            # Store structured KB for ReferenceManager compatibility
             self.knowledge_base = {
-                "concepts": concepts,
-                "references": selected_refs,
+                "references": references,
+                "concepts": concepts
             }
 
-            logger.info(
-                f"[CoachAgent] Intelligent Filtering: Selected {len(selected_refs)} references (from {len(items)}) based on keywords: {list(focus_keywords)[:5]}..."
-            )
+            if not references and not concepts:
+                 logger.warning(
+                     "[CoachAgent] Knowledge Base is empty (no refs/concepts). Bibliography will be empty."
+                 )
 
-            # Formulate the Context String
-            kb_str = "EXTERNAL SOURCES (KNOWLEDGE BASE - RELEVANT ONLY):\n"
-            if not selected_refs:
-                 kb_str += "(No specific references found for these weak areas. Rely on general pedagogical principles.)"
-            else:
-                for ref in selected_refs:
-                    citation = ref.get("citation", "")
-                    if citation:
-                        kb_str += f"- {citation}\n"
-            parts.append(kb_str)
+            # Simple format for Promopt Context using the structured data
+            parts.append("### KNOWLEDGE BASE (TIETOPANKKI):")
 
-        else:
-            logger.warning("COACH_KNOWLEDGE_BASE_UNAVAILABLE: No Repository provided.")
-            self.knowledge_base = {}
+            if references:
+                parts.append("\n**LÄHTEET (REFERENCES):**")
+                for ref in references[:20]: # Limit for context window
+                     parts.append(f"- {ref.get('short_citation', 'Ref')}: {ref.get('citation', '')[:200]}...")
+
+            if concepts:
+                parts.append("\n**KÄSITTEET (CONCEPTS):**")
+                for con in concepts[:20]:
+                     parts.append(f"- {con.get('term', 'Term')}: {con.get('definition', '')[:200]}...")
+
+        except Exception as e:
+             error_code = ErrorCodes.KNOWLEDGE_RETRIEVAL_FAILED
+             logger.error(f"[CoachAgent] {error_code}: {e}", exc_info=True)
+             raise AgentExecutionError(
+                 detail=error_code,
+                 original_error=e,
+                 agent_name="CoachAgent"
+             ) from e
 
         return "\n\n".join(parts)
-
-    def post_process(self, state: WorkflowState) -> WorkflowState:
-        """Lifecycle Hook: Post-Execution.
-
-        Triggers bibliography validation and enrichment by calling enrich_learning_plan.
-
-        Args:
-            state (WorkflowState): The current workflow state.
-
-        Returns:
-            WorkflowState: The updated state.
-
-        """
-        return self.enrich_learning_plan(state)
-
-    def enrich_learning_plan(self, state: WorkflowState) -> WorkflowState:
-        """POST-HOOK: enrich_learning_plan.
-
-        Scans the ENTIRE Workflow State and populates bibliography using
-        backend.hooks.references.generate_bibliography.
-
-        Args:
-            state (WorkflowState): The current workflow state.
-
-        Returns:
-            WorkflowState: The updated state with populated bibliography.
-
-        """
-        logger.info("[CoachAgent] Running enrich_learning_plan hook...")
-
-        if not hasattr(self, "knowledge_base") or not self.knowledge_base:
-            return state
-
-        coach_plan_data = getattr(state, self.state_field, None)
-        if not coach_plan_data:
-            return state
-
-        # Prepare Scan Data (Global)
-        try:
-            full_state_dict = state.model_dump()
-            text_dump = str(full_state_dict)
-        except Exception:
-            text_dump = str(state.__dict__)
-
-        # Delegate to Hook
-        from backend.hooks.references import generate_bibliography
-
-        formatted_list = generate_bibliography(text_dump, self.knowledge_base)
-
-        if hasattr(coach_plan_data, "lahdeluettelo"):
-            coach_plan_data.lahdeluettelo = formatted_list
-
-        logger.info(f"[CoachAgent] Populated bibliography with {len(formatted_list)} references found in global state.")
-
-        return state

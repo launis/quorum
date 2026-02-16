@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="9" time="5.630" timestamp="2026-02-14T19:56:04.243415+02:00" hostname="Laptop-Risto"><testcase classname="backend.tests.api.transformers.test_domain_transformers" name="test_logic_transformer_extracts_display_model" time="0.003" /><testcase classname="backend.tests.api.transformers.test_domain_transformers" name="test_logic_transformer_handles_missing_step" time="0.000" /><testcase classname="backend.tests.api.transformers.test_domain_transformers" name="test_stress_transformer_extracts_display_model" time="0.001" /><testcase classname="backend.tests.api.transformers.test_domain_transformers" name="test_causal_transformer_extracts_display_model" time="0.000" /><testcase classname="backend.tests.api.transformers.test_domain_transformers" name="test_profiler_transformer_extracts_display_model" time="0.000" /><testcase classname="backend.tests.api.transformers.test_domain_transformers" name="test_detector_transformer_extracts_display_model" time="0.003"><failure message="backend.exceptions.AppException: 4 validation errors for PerformativityOutput&#10;reasoning_trace&#10;  Field required [type=missing, input_value={'performativity_analysis...': 'authenticity_desc'}}, input_type=dict]&#10;    For further information visit https://errors.pydantic.dev/2.12/v/missing&#10;performativity_analysis.performativity_heuristics.0.description&#10;  Field required [type=missing, input_value={'heuristic_name': 'H1', 'flag_raised': True}, input_type=dict]&#10;    For further information visit https://errors.pydantic.dev/2.12/v/missing&#10;performativity_analysis.pre_mortem_analysis&#10;  Field required [type=missing, input_value={'authenticity_score': 2....n': 'authenticity_desc'}, input_type=dict]&#10;    For further information visit https://errors.pydantic.dev/2.12/v/missing&#10;performativity_analysis.authenticity_assessment&#10;  Input should be 'AUTH_ORGANIC', 'AUTH_PERFORMATIVE' or 'AUTH_UNKNOWN' [type=enum, input_value='High', input_type=str]&#10;    For further information visit https://errors.pydantic.dev/2.12/v/enum">self = &lt;backend.api.transformers.domain.profiling.ProfilingDomainTransformer object at 0x000001F29B2F9810&gt;
+steps = {'step_detector': {'performativity_analysis': {'authenticity_assessment': 'High', 'authenticity_score': 2.5, 'description': 'authenticity_desc', 'performativity_heuristics': [{'flag_raised': True, 'heuristic_name': 'H1'}], ...}}}
+
+    def _extract_detector_section(self, steps: dict) -&gt; UiSection | None:
+        step = steps.get("step_detector")
+        # Fallback to Panel if not in root steps (though usually root)
+        if not step:
+             panel = steps.get("step_panel", {})
+             step = panel.get("performativity_analysis") or panel.get("performatiivisuus_auditointi")
+    
+        if not step:
+            return None
+    
+        try:
+             # PerformativityOutput
+             # Strict Validation
+&gt;           model = PerformativityOutput(**step)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           pydantic_core._pydantic_core.ValidationError: 4 validation errors for PerformativityOutput
+E           reasoning_trace
+E             Field required [type=missing, input_value={'performativity_analysis...': 'authenticity_desc'}}, input_type=dict]
+E               For further information visit https://errors.pydantic.dev/2.12/v/missing
+E           performativity_analysis.performativity_heuristics.0.description
+E             Field required [type=missing, input_value={'heuristic_name': 'H1', 'flag_raised': True}, input_type=dict]
+E               For further information visit https://errors.pydantic.dev/2.12/v/missing
+E           performativity_analysis.pre_mortem_analysis
+E             Field required [type=missing, input_value={'authenticity_score': 2....n': 'authenticity_desc'}, input_type=dict]
+E               For further information visit https://errors.pydantic.dev/2.12/v/missing
+E           performativity_analysis.authenticity_assessment
+E             Input should be 'AUTH_ORGANIC', 'AUTH_PERFORMATIVE' or 'AUTH_UNKNOWN' [type=enum, input_value='High', input_type=str]
+E               For further information visit https://errors.pydantic.dev/2.12/v/enum
+
+api\transformers\domain\profiling.py:168: ValidationError
+
+The above exception was the direct cause of the following exception:
+
+    def test_detector_transformer_extracts_display_model():
+        transformer = ProfilingDomainTransformer()
+        mock_step = {
+            "step_detector": {
+                "performativity_analysis": {
+                    "authenticity_score": 2.5,
+                    "authenticity_assessment": "High",
+                    "performativity_heuristics": [
+                        {"heuristic_name": "H1", "flag_raised": True}
+                    ],
+                    "reasoning_trace": "Trace"
+                }
+            }
+        }
+    
+&gt;       section = transformer._extract_detector_section(mock_step)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\api\transformers\test_domain_transformers.py:168: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = &lt;backend.api.transformers.domain.profiling.ProfilingDomainTransformer object at 0x000001F29B2F9810&gt;
+steps = {'step_detector': {'performativity_analysis': {'authenticity_assessment': 'High', 'authenticity_score': 2.5, 'description': 'authenticity_desc', 'performativity_heuristics': [{'flag_raised': True, 'heuristic_name': 'H1'}], ...}}}
+
+    def _extract_detector_section(self, steps: dict) -&gt; UiSection | None:
+        step = steps.get("step_detector")
+        # Fallback to Panel if not in root steps (though usually root)
+        if not step:
+             panel = steps.get("step_panel", {})
+             step = panel.get("performativity_analysis") or panel.get("performatiivisuus_auditointi")
+    
+        if not step:
+            return None
+    
+        try:
+             # PerformativityOutput
+             # Strict Validation
+            model = PerformativityOutput(**step)
+        except Exception as e:
+            error_code = "PERFORMATIVITY_VALIDATION_FAILED"
+            logger.error(f"{error_code}: {e}", exc_info=True)
+&gt;           raise AppException(
+                message=str(e),
+                status_code=500,
+                details={"error_code": error_code}
+            ) from e
+E           backend.exceptions.AppException: 4 validation errors for PerformativityOutput
+E           reasoning_trace
+E             Field required [type=missing, input_value={'performativity_analysis...': 'authenticity_desc'}}, input_type=dict]
+E               For further information visit https://errors.pydantic.dev/2.12/v/missing
+E           performativity_analysis.performativity_heuristics.0.description
+E             Field required [type=missing, input_value={'heuristic_name': 'H1', 'flag_raised': True}, input_type=dict]
+E               For further information visit https://errors.pydantic.dev/2.12/v/missing
+E           performativity_analysis.pre_mortem_analysis
+E             Field required [type=missing, input_value={'authenticity_score': 2....n': 'authenticity_desc'}, input_type=dict]
+E               For further information visit https://errors.pydantic.dev/2.12/v/missing
+E           performativity_analysis.authenticity_assessment
+E             Input should be 'AUTH_ORGANIC', 'AUTH_PERFORMATIVE' or 'AUTH_UNKNOWN' [type=enum, input_value='High', input_type=str]
+E               For further information visit https://errors.pydantic.dev/2.12/v/enum
+
+api\transformers\domain\profiling.py:172: AppException</failure></testcase><testcase classname="backend.tests.api.transformers.test_domain_transformers" name="test_driver_transformer_extracts_display_model" time="0.000" /><testcase classname="backend.tests.api.transformers.test_domain_transformers" name="test_archivist_transformer_extracts_display_model" time="0.000" /><testcase classname="backend.tests.api.transformers.test_report_transformer" name="test_report_transformer_process_all_stages" time="0.001" /></testsuite></testsuites>

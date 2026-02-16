@@ -21,7 +21,7 @@ class Env {
   /// Examples:
   /// - Local: `http://localhost:8000`
   /// - Prod: `https://api.cognitivequorum.com`
-  static String get apiUrl => dotenv.env['API_URL'] ?? 'http://localhost:8000';
+  static String get apiUrl => dotenv.env['API_URL'] ?? 'http://127.0.0.1:8000';
 }
 
 /// **Environment Provider**

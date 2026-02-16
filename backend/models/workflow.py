@@ -1,6 +1,6 @@
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class WorkflowStep(BaseModel):
@@ -36,7 +36,14 @@ class WorkflowStep(BaseModel):
         json_schema_extra={"x-ui-label": "Hoist Keys"},
     )
 
-    model_config = ConfigDict(extra="ignore")
+    model_config = ConfigDict(frozen=True, strict=True)
+
+    @field_validator("id", "task_key")
+    @classmethod
+    def validate_non_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Field cannot be empty or whitespace only.")
+        return v.strip()
 
 
 
@@ -59,7 +66,14 @@ class ComponentScoringRule(BaseModel):
         json_schema_extra={"x-ui-label": "Metric Key"},
     )
 
-    model_config = ConfigDict(extra="ignore")
+    model_config = ConfigDict(frozen=True, strict=True)
+
+    @field_validator("component_id", "metric_key")
+    @classmethod
+    def validate_non_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Field cannot be empty or whitespace only.")
+        return v.strip()
 
 
 class ScoringLogic(BaseModel):
@@ -76,7 +90,14 @@ class ScoringLogic(BaseModel):
         json_schema_extra={"x-ui-label": "Rules"},
     )
 
-    model_config = ConfigDict(extra="ignore")
+    model_config = ConfigDict(frozen=True, strict=True)
+
+    @field_validator("label")
+    @classmethod
+    def validate_non_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Field cannot be empty or whitespace only.")
+        return v.strip()
 
 
 class WorkflowDefinition(BaseModel):
@@ -141,4 +162,14 @@ class WorkflowDefinition(BaseModel):
         json_schema_extra={"x-ui-label": "UI Schema"},
     )
 
-    model_config = ConfigDict(extra="ignore")
+    model_config = ConfigDict(frozen=True, strict=True)
+
+    @field_validator("id", "name", "description")
+    @classmethod
+    def validate_non_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Field cannot be empty or whitespace only.")
+        return v.strip()
+
+
+# --- EVALUATION MODELS (Imported from domain.evaluation) ---

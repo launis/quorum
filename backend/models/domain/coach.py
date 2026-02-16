@@ -1,0 +1,70 @@
+"""Coach Agent Domain Models.
+
+This module contains the schemas for the Coach Agent,
+including coaching plans and bibliography.
+"""
+
+from typing import Any
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from backend.models.domain.base import ReasoningTrace
+
+
+class BibliographyItem(BaseModel):
+    """A single bibliographic reference."""
+    source_id: str = Field(..., description="Unique source ID.", json_schema_extra={"x-ui-label": "Source ID"})
+    title: str = Field(..., description="Title of the source.", json_schema_extra={"x-ui-label": "Title"})
+    url: str | None = Field(default=None, description="URL if available.", json_schema_extra={"x-ui-label": "URL"})
+    snippet: str | None = Field(default=None, description="Relevant snippet.", json_schema_extra={"x-ui-label": "Snippet"})
+
+    model_config = ConfigDict(frozen=True)
+
+    @field_validator("source_id", "title")
+    @classmethod
+    def validate_non_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Field cannot be empty or whitespace only.")
+        return v.strip()
+
+
+class BibliographyResult(BaseModel):
+    """Result of the bibliography generation (Hook)."""
+    references: list[BibliographyItem] = Field(
+        default_factory=list,
+        description="List of references.",
+        json_schema_extra={"x-ui-label": "References"}
+    )
+
+    model_config = ConfigDict(frozen=True)
+
+
+class CoachingPlan(ReasoningTrace):
+    """Output schema for the Coach Agent."""
+    actionable_steps: list[str] = Field(
+        ...,
+        description="Concrete steps for improvement.",
+        json_schema_extra={"x-ui-label": "Actionable Steps"},
+    )
+    bibliography: list[BibliographyItem] = Field(
+        ...,
+        description="Recommended reading.",
+        json_schema_extra={"x-ui-label": "References"},
+    )
+    focus_areas: list[str] = Field(
+        ...,
+        description="Key areas to focus on.",
+        json_schema_extra={"x-ui-label": "Focus Areas"},
+    )
+    model_config = ConfigDict(frozen=True)
+
+    @field_validator("actionable_steps", "focus_areas")
+    @classmethod
+    def validate_list_not_empty(cls, v: list[str]) -> list[str]:
+        if not v:
+            raise ValueError("List cannot be empty.")
+        # Validate individual items
+        cleaned = [item.strip() for item in v if item and item.strip()]
+        if not cleaned:
+            raise ValueError("List cannot contain only empty strings.")
+        return cleaned

@@ -13,6 +13,8 @@ sys.path.append(os.getcwd())
 # Mock Environment
 os.environ["OPENAI_API_KEY"] = "mock-key"
 os.environ["GOOGLE_API_KEY"] = "mock-key"
+os.environ["GOOGLE_SEARCH_API_KEY"] = "mock-key"
+os.environ["GOOGLE_SEARCH_CX"] = "mock-cx"
 os.environ["USE_MOCK_LLM"] = "true"
 os.environ["USE_MOCK_DB"] = "false"
 os.environ["STORAGE_BACKEND"] = "LOCAL"
@@ -52,9 +54,9 @@ def verify_report_generation():
             json={
                 "workflowId": workflow_id,
                 "inputs": {
-                    "history_text": "Test History",
-                    "product_text": "Test Product",
-                    "reflection_text": "Test Reflection"
+                    "history_text": "Test History " * 20,
+                    "product_text": "Test Product " * 20,
+                    "reflection_text": "Test Reflection " * 20
                 }
             },
             headers={"Authorization": "Bearer mock-token:root_master"}
@@ -100,10 +102,12 @@ def verify_report_generation():
         results = state.get("result", {})
 
         # Check Top-Level Field (The Fix)
-        report_top = results.get("xai_report_formatted")
+        # Result is WorkflowState dump, so we check context_variables
+        context_vars = results.get("context_variables", {})
+        report_top = context_vars.get("xai_report_formatted")
 
         # Check Nested Field (The Original)
-        step_reporter = results.get("step_reporter", {})
+        step_reporter = context_vars.get("step_reporter", {})
         report_nested = step_reporter.get("xai_report_formatted") if step_reporter else None
 
         logger.info(f"Top-Level Report: {'FOUND' if report_top else 'MISSING'}")

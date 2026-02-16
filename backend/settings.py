@@ -5,6 +5,8 @@ from enum import Enum
 from functools import lru_cache
 from typing import Annotated, Any
 
+from backend.exceptions import AppException, ErrorCodes
+
 from dotenv import load_dotenv
 from pydantic import BeforeValidator, Field, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -55,12 +57,18 @@ class Settings(BaseSettings):
     openai_api_key: Annotated[str | None, Field(description="OpenAI API Key (Optional)")] = None
     anthropic_api_key: Annotated[str | None, Field(description="Anthropic API Key (Optional)")] = None
     vertex_location: Annotated[str | None, Field(description="Google Cloud Region (e.g. europe-north1)")] = None
+    discovery_location: Annotated[str | None, Field(description="Source Region for Model Discovery (e.g. us-west1)")] = None
 
     # --- LLM Configuration ---
     # initial_model REMOVED per Zero-Fallback Policy
+    default_model_strategy: Annotated[str | None, Field(description="Default LLM strategy key (Optional). If None, explicit strategy is required.")] = None
     llm_default_timeout: Annotated[float, Field(description="LLM Timeout in seconds")] = 120.0
     llm_max_retries: Annotated[int, Field(description="Max retries for LLM calls")] = 2
     llm_retry_delay: Annotated[float, Field(description="Delay between retries in seconds")] = 5.0
+    
+    # --- Rate Limits (Strict Mode) ---
+    llm_default_tpm: Annotated[int, Field(description="Default Tokens Per Minute if not specified by caller")] = 10000
+    llm_default_rpm: Annotated[int, Field(description="Default Requests Per Minute if not specified by caller")] = 10
 
     # --- Redis & Arq ---
     redis_host: Annotated[str, Field(description="Redis Host")] = "localhost"
@@ -72,10 +80,10 @@ class Settings(BaseSettings):
     # --- Storage ---
     storage_backend: Annotated[
         str, BeforeValidator(strip_whitespace), Field(description="LOCAL, NONE, or FIRESTORE")
-    ] = "LOCAL"
-    environment: Annotated[str, Field(description="development, staging, or production")] = "development"
+    ] # REMOVED DEFAULT = "LOCAL". Must be explicit.
+    environment: Annotated[str, Field(description="development, staging, or production")] = "production" # Default to production for safety? No, make explicit.
     storage_bucket_name: Annotated[str | None, Field(description="Firebase Storage Bucket Name")] = None
-    
+
     # URL for generating public links in Local mode
     api_url: Annotated[str | None, Field(description="Public API Base URL")] = "http://localhost:8000"
 
@@ -169,8 +177,12 @@ class Settings(BaseSettings):
             return StorageBackend.FIRESTORE
         if value == "LOCAL":
             return StorageBackend.LOCAL
-            
-        raise ValueError(f"CRITICAL: Invalid STORAGE_BACKEND '{self.storage_backend}'. Must be LOCAL or FIRESTORE (or set USE_MOCK_DB=True).")
+
+        raise AppException(
+            message=f"CRITICAL: Invalid STORAGE_BACKEND '{self.storage_backend}'. Must be LOCAL or FIRESTORE (or set USE_MOCK_DB=True).",
+            status_code=500,
+            details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
+        )
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -209,9 +221,11 @@ class Settings(BaseSettings):
             )
 
             if not self.google_api_key and not has_vertex:
-                raise ValueError(
-                    "CRITICAL: No LLM Credentials found (GOOGLE_API_KEY or VERTEX_PROJECT_ID/Credentials). "
-                    "Cannot proceed in Production Mode. Ensure 'service-account.json' exists in root or set env vars."
+                raise AppException(
+                    message="CRITICAL: No LLM Credentials found (GOOGLE_API_KEY or VERTEX_PROJECT_ID/Credentials). "
+                    "Cannot proceed in Production Mode. Ensure 'service-account.json' exists in root or set env vars.",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
                 )
 
         if self.use_mock_db:
@@ -221,6 +235,28 @@ class Settings(BaseSettings):
         else:
             pass
 
+    @computed_field
+    def enabled_providers(self) -> list[str]:
+        """Returns list of enabled LLM providers based on configuration.
+        
+        Hardcoded source of truth for UI and Discovery.
+        """
+        providers = []
+        # Google / Vertex
+        if self.google_api_key or (not self.use_mock_llm and (os.getenv("VERTEX_PROJECT_ID") or os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))):
+             providers.append("google")
+        
+        # OpenAI
+        if self.openai_api_key:
+            providers.append("openai")
+
+        # Mock override (if enabled, ensuring it appears for dev)
+        if self.use_mock_llm and "mock" not in providers:
+             providers.append("mock")
+
+        # Fallback/Safety: If empty but not mock, maybe we should warn? 
+        # But for now, returning what is explicitly configured is strict.
+        return providers
 
 @lru_cache
 def get_settings() -> Settings:

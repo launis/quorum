@@ -1,5 +1,6 @@
 """Service for generating detailed PDF reports using WeasyPrint and Jinja2."""
 
+import json
 import logging
 from pathlib import Path
 from typing import Protocol, runtime_checkable
@@ -8,7 +9,7 @@ from typing import Protocol, runtime_checkable
 import weasyprint  # type: ignore
 from jinja2 import Environment, FileSystemLoader
 
-from backend.api.bff_transformer import ReportTransformer
+from backend.api.transformers import ReportTransformer
 from backend.database.repository import AbstractWorkflowRepository
 from backend.exceptions import AppException, ErrorCodes
 from backend.models.view import SectionType
@@ -57,6 +58,26 @@ class PdfReportService:
         template_dir = Path(__file__).parent.parent / "templates"
         self.env = Environment(loader=FileSystemLoader(str(template_dir)))
 
+        # Load translations
+        try:
+            l10n_path = Path(__file__).parent.parent / "l10n" / "fi.json"
+            with open(l10n_path, encoding="utf-8") as f:
+                self.translations = json.load(f)
+        except Exception as e:
+            logger.warning(f"Failed to load translations from {l10n_path}: {e}")
+            self.translations = {}
+
+        # Register translate filter
+        def translate_filter(key):
+            if not key:
+                return ""
+            # Try exact match first, then string match
+            return self.translations.get(str(key), key)
+
+        self.env.filters["translate"] = translate_filter
+
+
+
     def _noop_progress(self) -> ProgressServiceProtocol:
         class NoOpProgress:
             async def emit_progress(self, *args, **kwargs): pass
@@ -80,13 +101,18 @@ class PdfReportService:
             # 2. Fetch Data
             execution = await self.repository.get_execution(execution_id)
             if not execution:
-                raise ValueError(f"Execution {execution_id} not found")
+                raise AppException(
+                    message=f"Execution {execution_id} not found",
+                    status_code=404,
+                    details={"error_code": ErrorCodes.EXECUTION_NOT_FOUND}
+                )
 
             # 3. Transform
             await self.progress.emit_progress(execution_id, task_key, "Analyzing results...", 0.10)
             # Use dump() compatibility if it's a Pydantic object, or dict if it's already dict
             # BFF Transformer generally expects a dict representation of the execution
-            ex_data = execution.model_dump() if hasattr(execution, 'model_dump') else execution
+            # FIX: Use mode='json' to ensure UUIDs are strings, avoiding pydantic validation errors in ReportView
+            ex_data = execution.model_dump(mode='json') if hasattr(execution, 'model_dump') else execution
             # Or if execution is Execution object, we might need model_dump.
             # Assuming Repository returns Pydantic V2 model.
 
@@ -154,14 +180,23 @@ class PdfReportService:
 
                             # 3. Strict Mode: No fallback to ID.
                             if not display_label:
-                                raise ValueError(f"Strict Label Resolution Failed in PDF: Dimension '{tech_id}' has no label.")
+                                raise AppException(
+                                    message=f"Strict Label Resolution Failed in PDF: Dimension '{tech_id}' has no label.",
+                                    status_code=500,
+                                    details={"error_code": ErrorCodes.CHART_GENERATION_FAILED}
+                                )
 
                             if display_label:
                                 try:
                                     val = float(d.get("score", 0))
                                     scores[display_label] = val
-                                except (ValueError, TypeError):
-                                    pass
+                                except (ValueError, TypeError) as e:
+                                    # Fail Fast: corrupted score data should not be ignored
+                                    raise AppException(
+                                        message=f"Invalid score value for dimension '{display_label}'",
+                                        status_code=500,
+                                        details={"error_code": ErrorCodes.CHART_GENERATION_FAILED, "original_error": str(e)}
+                                    ) from e
                             else:
                                 logger.warning(f"Skipping dimension with missing ID/Label in report {execution_id}")
 
@@ -180,13 +215,13 @@ class PdfReportService:
                     cog = section.data.get("cognitive_level") or section.data.get("kognitiivinen_taso", {})
                     # Handle both Pydantic models (dict) and raw dicts
                     if hasattr(cog, "dict"): cog = cog.dict()
-                    
+
                     bloom = float(cog.get("bloom_score", 0))
                     strat = float(cog.get("strategic_score", 0))
-                    
+
                     # Toulmin score might be flat in data or calculated
                     toulmin_score = float(section.data.get("toulmin_score", 0))
-                    
+
                     if bloom > 0 and strat > 0:
                         chart_b64 = ChartService.generate_bubble_chart(
                             x_val=bloom,
@@ -198,20 +233,20 @@ class PdfReportService:
 
                 elif section.type == SectionType.FACT_CHECK and section.data:
                     # Preprocess for Template (English Standardization)
-                    
+
                     # 1. Facts
                     raw_facts = section.data.get("fact_checks") or section.data.get("faktantarkistus_rfi", [])
                     processed_facts = []
                     for f in raw_facts:
                         # Normalize to dict
                         item = f.dict() if hasattr(f, "dict") else f
-                        
+
                         # Map Legacy to English if needed
                         claim = item.get("claim") or item.get("vaite")
                         result = item.get("verification_result") or item.get("verifiointi_tulos")
                         source = item.get("source_or_reasoning") or item.get("lahde_tai_paattely")
-                        is_ver = item.get("is_verified") 
-                        
+                        is_ver = item.get("is_verified")
+
                         # Fallback calculation if boolean missing
                         if is_ver is None and result:
                             # Check common strings for verified status
@@ -247,10 +282,10 @@ class PdfReportService:
             # 6. Generate PDF
             # WeasyPrint is CPU intensive and blocking.
             await self.progress.emit_progress(execution_id, task_key, "Consulting Print Engine (WeasyPrint)...", 0.30)
-            
+
             import asyncio
             loop = asyncio.get_running_loop()
-            
+
             # Run blocking PDF generation in a thread pool
             def _render_pdf():
                 return weasyprint.HTML(string=html_content).write_pdf()
@@ -261,6 +296,10 @@ class PdfReportService:
             await self.progress.emit_progress(execution_id, task_key, "Done", 1.0)
 
             return pdf_bytes
+
+        except AppException:
+            # Re-raise known AppExceptions (e.g. 404, Validation Error) as-is
+            raise
 
         except Exception as e:
             error_code = ErrorCodes.PDF_GENERATION_FAILED

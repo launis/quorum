@@ -49,7 +49,7 @@ class TinyDBDriver(StorageDriver):
     def _apply_filter(self, data: dict[str, Any], f: Filter) -> bool:
         """Apply a single filter in memory (for operators not supported by TinyDB Query)."""
         val = data.get(f.field)
-        
+
         # Determine strict or loose equality? TinyDB is pythonic.
         if f.operator == "==":
             return val == f.value
@@ -79,18 +79,18 @@ class TinyDBDriver(StorageDriver):
     async def upsert(self, collection: str, data: dict[str, Any], doc_id: str) -> str:
         table = self._get_table(collection)
         safe_data = self._serialize(data)
-        
+
         # Ensure ID is in data
         if "id" not in safe_data:
             safe_data["id"] = doc_id
-            
+
         table.upsert(safe_data, Query().id == doc_id)
         return doc_id
 
     async def update(self, collection: str, doc_id: str, updates: dict[str, Any]) -> bool:
         table = self._get_table(collection)
         safe_updates = self._serialize(updates)
-        
+
         # TinyDB update returns list of doc_ids
         res = table.update(safe_updates, Query().id == doc_id)
         return len(res) > 0
@@ -110,7 +110,7 @@ class TinyDBDriver(StorageDriver):
     ) -> list[dict[str, Any]]:
         table = self._get_table(collection)
         docs = table.all()
-        
+
         # 1. Filter
         filtered_docs = []
         if filters:
@@ -124,25 +124,25 @@ class TinyDBDriver(StorageDriver):
                     filtered_docs.append(doc)
         else:
             filtered_docs = docs
-            
+
         # 2. Sort
         if order_by:
             filtered_docs.sort(
                 key=lambda x: x.get(order_by) or "", # Safe get
                 reverse=descending
             )
-            
+
         # 3. Limit
         if limit:
             return filtered_docs[:limit]
-            
+
         return filtered_docs
-    
+
     async def count(self, collection: str, filters: list[Filter] | None = None) -> int:
         # Re-use query logic for simplicity since TinyDB loads all in memory anyway
         # Optimization: AbstractTable.count() exists but only takes simple query
         if not filters:
             return self._get_table(collection).count()
-            
+
         results = await self.query(collection, filters)
         return len(results)

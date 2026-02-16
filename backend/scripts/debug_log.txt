@@ -1,0 +1,104 @@
+﻿python : [92m18:36:02 - 
+LiteLLM Router:INFO[0m: 
+router.py:740 - Routing s
+trategy: simple-shuffle
+At line:1 char:1
++ python backend/scripts/
+test_fail_fast_agents.py 
+> backend/scripts/tes ...
++ ~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo       
+       : NotSpecified:   
+  ([92m18:36:02 -...    
+ simple-shuffle:Strin    
+g) [], RemoteExcepti    o
+n
+    + FullyQualifiedErro 
+   rId : NativeCommandE  
+  rror
+ 
+Settings: Auto-detected service-account.json at c:\src\quorum\service-account.json
+
+--- Testing Coach Agent Fail Fast (Missing Repo) ---
+INFO:LiteLLM Router:Routing strategy: simple-shuffle
+INFO:backend.agents.coach:[CoachAgent] Identified 1 weak areas across judges. Filtering KB for keywords: {'test'}
+ERROR:backend.agents.coach:[CoachAgent] COACH_REPO_MISSING: Repository not injected. Coach Agent cannot load Knowledge Base.
+[92m18:36:02 - LiteLLM R
+outer:INFO[0m: router.py
+:740 - Routing strategy: 
+simple-shuffle
+: Caught COACH_REPO_MISSING
+
+--- Testing Judge Agent Fail Fast (Missing Matrix ID) ---
+INFO:LiteLLM Router:Routing strategy: simple-shuffle
+ERROR:backend.agents.judge:JUDGE_CONFIGURATION_MISSING: No matrix_id configured.
+[92m18:36:02 - LiteLLM R
+outer:INFO[0m: router.py
+:740 - Routing strategy: 
+simple-shuffle
+: Caught JUDGE_CONFIGURATION_MISSING
+
+--- Testing Logician Agent Fail Fast (Missing Evidence Map) ---
+INFO:LiteLLM Router:Routing strategy: simple-shuffle
+ERROR:backend.agents.logician:[LogicianAgent] LOGICIAN_MISSING_EVIDENCE_MAP: Missing 'step_analyst' input.
+[92m18:36:02 - LiteLLM R
+outer:INFO[0m: router.py
+:740 - Routing strategy: 
+simple-shuffle
+: Caught LOGICIAN_MISSING_EVIDENCE_MAP
+
+--- Testing Panel Agent Fail Fast (Missing Dependencies) ---
+INFO:LiteLLM Router:Routing strategy: simple-shuffle
+[92m18:36:02 - LiteLLM R
+outer:INFO[0m: router.py
+:740 - Routing strategy: 
+simple-shuffle
+: Caught ValueError: PanelAgent: Mandatory input 'history_text' missing.
+
+--- Testing Profiler Agent Fail Fast (Invalid Metrics Type) ---
+INFO:LiteLLM Router:Routing strategy: simple-shuffle
+INFO:backend.agents.profiler:[ProfilerAgent] Input Context Keys: ['profiler_metrics', 'history_text', 'product_text', 'reflection_text']
+INFO:backend.agents.profiler:[ProfilerAgent] Metrics found: ['not', 'a', 'dict']
+INFO:backend.agents.base:[ProfilerAgent] Starting execution...
+INFO:backend.agents.base:[ProfilerAgent] Lifecycle Hook: prepare_context
+INFO:backend.agents.base:[ProfilerAgent] >>> EXECUTION START <<<
+INFO:backend.agents.base:[ProfilerAgent] MODEL: gpt-4o-mini | TEMP: Default | TOKENS: Default | EXTRAS: {}
+ERROR:backend.agents.base:AGENT_EXECUTION_CRITICAL: Unexpected failure in ProfilerAgent - 'MockResponse' object has no attribute 'token_usage'
+Traceback (most recent call last):
+  File "c:\src\quorum\backend\agents\base.py", line 354, in execute
+    logger.info(f"BaseAgent processing usage. Response token_usage: {response_obj.token_usage}")
+                                                                     ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MockResponse' object has no attribute 'token_usage'
+CRITICAL:backend.agents.profiler:[ProfilerAgent] CRASHED: AGENT_EXECUTION_CRITICAL - Cause: 'MockResponse' object has no attribute 'token_usage'
+Traceback (most recent call last):
+  File "c:\src\quorum\backend\agents\base.py", line 354, in execute
+    logger.info(f"BaseAgent processing usage. Response token_usage: {response_obj.token_usage}")
+                                                                     ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MockResponse' object has no attribute 'token_usage'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\src\quorum\backend\agents\profiler.py", line 66, in execute
+    result = await super().execute(input_data, execution_context, system_instruction, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\src\quorum\backend\agents\base.py", line 511, in execute
+    raise AgentExecutionError(
+    ...<3 lines>...
+    ) from e
+backend.exceptions.AgentExecutionError: AGENT_EXECUTION_CRITICAL - Cause: 'MockResponse' object has no attribute 'token_usage'
+[92m18:36:02 - LiteLLM R
+outer:INFO[0m: router.py
+:740 - Routing strategy: 
+simple-shuffle
+FAILED: Wrong exception type: <class 'backend.exceptions.AgentExecutionError'> - AGENT_EXECUTION_CRITICAL - Cause: 'MockResponse' object has no attribute 'token_usage'
+
+--- Testing Guard Agent (Frozen Model Mutation) ---
+INFO:LiteLLM Router:Routing strategy: simple-shuffle
+INFO:backend.agents.guard:[GuardAgent] Running ensure_tainted_data...
+INFO:backend.agents.guard:[GuardAgent] Reporting sanitization actions: ['Test Threat']
+: Guard successfully updated frozen model.
+
+AGENT TESTS FAILED

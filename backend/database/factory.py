@@ -6,15 +6,14 @@ via the UnifiedWorkflowRepository and StorageDriver pattern.
 """
 
 import logging
-import os
 
+from backend.database.firestore_driver import FirestoreDriver
 from backend.database.repository import AbstractWorkflowRepository, UnifiedWorkflowRepository
-from backend.database.wrapper import AbstractDatabase, TinyDBClient
-from backend.settings import Settings, StorageBackend
 
 # Drivers
 from backend.database.tinydb_driver import TinyDBDriver
-from backend.database.firestore_driver import FirestoreDriver
+from backend.database.wrapper import AbstractDatabase, TinyDBClient
+from backend.settings import Settings, StorageBackend
 
 logger = logging.getLogger(__name__)
 
@@ -49,9 +48,9 @@ async def get_repository(settings: Settings, db_client: AbstractDatabase | None 
 
         case StorageBackend.MOCK | StorageBackend.LOCAL:
             # Both Mock and Local use TinyDB, just different paths or injected clients
-            
+
             client: TinyDBClient
-            
+
             if db_client and isinstance(db_client, TinyDBClient):
                 client = db_client
             else:
@@ -62,9 +61,9 @@ async def get_repository(settings: Settings, db_client: AbstractDatabase | None 
                 else:
                      db_path = settings.prod_db_path
                      logger.info(f"[Factory] Using LOCAL configuration. Path: {db_path}")
-                
+
                 client = TinyDBClient(db_path)
-            
+
             driver = TinyDBDriver(client)
             return UnifiedWorkflowRepository(driver)
 

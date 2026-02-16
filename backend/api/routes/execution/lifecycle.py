@@ -6,25 +6,29 @@ from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, Request, status
-from starlette.datastructures import UploadFile
 
 from backend.core.engine import GraphEngine
 from backend.database.repository import AbstractWorkflowRepository
 from backend.dependencies import (
+    DocumentServiceDep,
     EngineDep,
     RepositoryDep,
-    SettingsDep,
-    get_db_client_dep,
-    DocumentServiceDep,
     get_arq_pool,
     get_async_repository,
     get_engine,
 )
-from backend.exceptions import AppException, ResourceNotFoundError
+from backend.exceptions import AppException, ResourceNotFoundError, ErrorCodes
 from backend.logging_config import log_error
+from backend.models.auth import UserRole
+from backend.models.dtos.execution import (
+    ExecutionRequest,
+    ExecutionResponse,
+    ExecutionCancelResponse,
+    ExecutionDeleteResponse,
+    DirectExecutionResponse,
+)
 from backend.models.workflow import WorkflowDefinition
 from backend.services.auth import AuthService
-from backend.models.auth import UserRole
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +40,7 @@ executions_router = APIRouter(prefix="/executions", tags=["Executions"])
 @executions_router.post(
     "",
     summary="Create Execution (Alias)",
-    response_model=dict[str, Any],
+    response_model=ExecutionResponse,
     status_code=status.HTTP_201_CREATED,
     include_in_schema=False,
 )
@@ -44,14 +48,14 @@ executions_router = APIRouter(prefix="/executions", tags=["Executions"])
     "/",
     summary="Create Execution",
     description="Creates a new execution for a given workflow.",
-    response_model=dict[str, Any],
+    response_model=ExecutionResponse,
     status_code=status.HTTP_201_CREATED,
 )
 @executions_router.post(
     "/",
     summary="Create Execution",
     description="Creates a new execution for a given workflow.",
-    response_model=dict[str, Any],
+    response_model=ExecutionResponse,
     status_code=status.HTTP_201_CREATED,
 )
 async def create_execution(
@@ -132,7 +136,7 @@ async def create_execution(
                     # 2. Extracting text (PDF/DOCX/Text)
                     # 3. Parsing Chat Logs (ChatLogParser)
                     extracted_texts = await document_service.process_evidence_files(execution_id, files_to_process)
-                    
+
                     for key, text_content in extracted_texts.items():
                         inputs[key] = text_content
                 except Exception as e:
@@ -169,24 +173,8 @@ async def create_execution(
                 details={"error_code": "INVALID_WORKFLOW_ID"}
              )
 
-        # 1. Load Definition
-        import json
-        import os
-        definition = None
-
-        if organization_id:
-            inputs["organization_id"] = organization_id
-
-        # File Fallback Pattern
-        file_path = f"data/workflows/{workflow_id}.json"
-        if os.path.exists(file_path):
-            with open(file_path, encoding="utf-8") as f:
-                data = json.load(f)
-                if "description" not in data:
-                    data["description"] = "Loaded from file"
-                definition = WorkflowDefinition(**data)
-        else:
-            definition = await repository.get_workflow(workflow_id)
+        # 1. Load Definition via Repository (SSOT)
+        definition = await repository.get_workflow(workflow_id)
 
         if not definition:
              if isinstance(workflow_id, str):
@@ -240,18 +228,27 @@ async def create_execution(
                  inputs["user_id"] = current_user.uid
             if organization_id:
                  inputs["organization_id"] = organization_id
-            
+
             result = await engine.execute_workflow(definition, inputs, repository=repository, execution_id=execution_id)
             execution_data["results"] = sanitize_for_json(result)
             execution_data["status"] = "completed"
             execution_data["completed_at"] = datetime.now(UTC)
             await repository.update_execution(execution_id, execution_data)
 
-        response_data = execution_data.copy()
-        response_data["start_time"] = timestamp
-        response_data["execution_id"] = execution_id
-
-        return response_data
+        # Mapping for Response DTO
+        return ExecutionResponse(
+            id=execution_id,
+            workflow_id=workflow_id if isinstance(workflow_id, str) else str(workflow_id),
+            status=execution_data["status"],
+            started_at=execution_data["started_at"],
+            completed_at=execution_data["completed_at"],
+            results=execution_data["results"],
+            inputs=execution_data["inputs"],
+            user_id=str(execution_data.get("user_id", "")),
+            organization_id=execution_data.get("organization_id"),
+            workflow_name=execution_data.get("workflow_name"),
+            start_time=execution_data["started_at"]
+        )
 
     except AppException:
         raise
@@ -285,8 +282,8 @@ async def create_execution(
         raise wrapped from e
 
 
-@router.delete("/{execution_id}", summary="Delete Execution", status_code=status.HTTP_204_NO_CONTENT)
-@executions_router.delete("/{execution_id}", summary="Delete Execution", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{execution_id}", summary="Delete Execution", status_code=status.HTTP_200_OK, response_model=ExecutionDeleteResponse)
+@executions_router.delete("/{execution_id}", summary="Delete Execution", status_code=status.HTTP_200_OK, response_model=ExecutionDeleteResponse)
 async def delete_execution(
     execution_id: str,
     repository: AbstractWorkflowRepository = Depends(get_async_repository),
@@ -300,7 +297,7 @@ async def delete_execution(
              raise ResourceNotFoundError(f"Execution {execution_id} not found")
 
         await repository.delete_execution(execution_id)
-        return None
+        return ExecutionDeleteResponse(status="deleted", id=execution_id)
     except AppException:
         raise
     except Exception as e:
@@ -317,7 +314,7 @@ async def delete_execution(
 # Direct Execute Router (Legacy /v1/execute/{id})
 @router.post(
     "/{workflow_id}",
-    response_model=dict[str, Any],
+    response_model=DirectExecutionResponse,
     status_code=status.HTTP_200_OK,
     summary="Execute a Workflow (Direct)",
     description="Direct execution endpoint.",
@@ -352,7 +349,7 @@ async def execute_workflow_route(
         raise ResourceNotFoundError(f"Workflow '{workflow_id}' not found.")
 
     result = await engine.execute_workflow(definition, payload)
-    return result
+    return DirectExecutionResponse.model_validate(result)
 
 
 @executions_router.delete(
@@ -360,7 +357,7 @@ async def execute_workflow_route(
     summary="Cancel Execution",
     description="Signals the workflow engine to cancel the running execution.",
     status_code=status.HTTP_200_OK,
-    response_model=dict[str, Any],
+    response_model=ExecutionCancelResponse,
 )
 async def cancel_execution(
     execution_id: str,
@@ -406,13 +403,22 @@ async def cancel_execution(
         current_status = execution.get("status")
         if current_status in ["completed", "failed", "cancelled"]:
             # Already done, no-op but return 200 ok with message
-            return {"execution_id": execution_id, "status": current_status, "message": "Execution already finished."}
+            # Already done, no-op but return 200 ok with message
+            return ExecutionCancelResponse(
+                id=execution_id,
+                status=str(current_status),
+                message="Execution already finished."
+            )
 
         await repository.update_execution(execution_id, {"status": "cancelling"})
 
         logger.info(f"Execution {execution_id} marked as cancelling by user {current_user.uid}")
 
-        return {"execution_id": execution_id, "status": "cancelling", "message": "Cancellation signal sent."}
+        return ExecutionCancelResponse(
+            id=execution_id,
+            status="cancelling",
+            message="Cancellation signal sent."
+        )
 
     except ResourceNotFoundError as e:
         raise AppException(

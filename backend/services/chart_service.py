@@ -1,20 +1,22 @@
 import base64
 import io
 import logging
+from typing import Dict, List, Any
 
 import numpy as np  # type: ignore
 from fastapi import status
 from matplotlib.figure import Figure  # type: ignore
 
-from backend.exceptions import AppException, ErrorCodes
+from backend.exceptions import AppException, ErrorCodes, ConfigurationError
 
 logger = logging.getLogger(__name__)
+
 
 class ChartService:
     """Service for generating static visualization assets."""
 
     @staticmethod
-    def generate_radar_chart(scores: dict[str, float], max_val: int = 4) -> str:
+    def generate_radar_chart(scores: Dict[str, float], max_val: int = 4) -> str:
         """Generates a radar (spider) chart from the provided scores.
 
         Args:
@@ -22,15 +24,23 @@ class ChartService:
             max_val: The maximum value for the chart scale (outermost ring).
 
         Returns:
-            A base64 encoded PNG string of the chart.
+            str: A base64 encoded PNG string of the chart.
+
+        Raises:
+            AppException: If generation fails or input is invalid.
         """
+        # Fail Fast: Strict Input Validation
         if not scores:
-            return ""
+            raise AppException(
+                message="Radar chart requires at least one score.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.EMPTY_INPUT}
+            )
 
         try:
             # Data preparation
-            categories = list(scores.keys())
-            values = list(scores.values())
+            categories: List[str] = list(scores.keys())
+            values: List[float] = list(scores.values())
 
             # Close the loop
             values += values[:1]
@@ -51,32 +61,27 @@ class ChartService:
             ax.yaxis.grid(False)
 
             # Dynamic Grid Calculation
-            # Determine steps based on magnitude
+            grid_levels: List[float] = []
             if max_val <= 5:
-                grid_levels = list(range(1, max_val + 1)) # 1, 2, 3, 4, 5
+                grid_levels = list(range(1, max_val + 1))
             elif max_val <= 10:
-                grid_levels = list(range(2, max_val + 1, 2)) # 2, 4, 6, 8, 10
+                grid_levels = list(range(2, max_val + 1, 2))
             elif max_val == 50:
-                # Special case for 10-50 scale: 10, 20, 30, 40, 50
                 grid_levels = [10, 20, 30, 40, 50]
             elif max_val == 100:
-                # Special case for 0-100 scale: 20, 40, 60, 80, 100
                 grid_levels = [20, 40, 60, 80, 100]
             else:
-                # Generic fallback: 4 quartiles
                 step = max_val / 4
-                # Use round numbers if possible
-                grid_levels = [step, step*2, step*3, max_val]
-                # Cast to int if whole numbers
-                grid_levels = [int(l) if l.is_integer() else l for l in grid_levels]
+                levels = [step, step * 2, step * 3, float(max_val)]
+                grid_levels = [int(l) if l.is_integer() else l for l in levels]
 
             for level in grid_levels:
                 ax.plot(angles, [level] * len(angles), color='grey', linewidth=0.5, linestyle=':')
 
             # Draw labels
-            label_angle = 0
+            label_angle = 0.0
             if len(categories) > 0:
-                label_angle = angles[0] + (angles[1] - angles[0])/2
+                label_angle = angles[0] + (angles[1] - angles[0]) / 2
 
             ax.set_rlabel_position(np.degrees(label_angle))
             ax.set_yticks(grid_levels)
@@ -91,8 +96,6 @@ class ChartService:
 
             # Annotate values
             for angle, val, label in zip(angles[:-1], values[:-1], categories):
-                # Add text annotation
-                # Adjust radial position slightly outward for visibility; use simple alignment
                 ax.text(angle, val + 0.3, f"{val:.1f}", ha='center', va='center', size=8, color='#1A73E8', weight='bold')
 
             # Output to base64
@@ -107,10 +110,7 @@ class ChartService:
             error_code = ErrorCodes.CHART_GENERATION_FAILED
             error_message = "Failed to generate radar chart."
 
-            logger.error(
-                f"{error_code}: {error_message}: {e}",
-                exc_info=True
-            )
+            logger.error(f"{error_code}: {error_message}: {e}", exc_info=True)
             raise AppException(
                 message=error_message,
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -127,7 +127,7 @@ class ChartService:
         title: str = "Logic Matrix Position"
     ) -> str:
         """Generates a 2D bubble chart representing the 3D Logic Matrix position.
-        
+
         Args:
             x_val: Bloom Score (1-6)
             y_val: Strategic Score (1-4)
@@ -135,9 +135,12 @@ class ChartService:
             x_label: Label for X-axis
             y_label: Label for Y-axis
             title: Chart title
-            
+
         Returns:
-            Base64 encoded PNG
+            str: Base64 encoded PNG
+
+        Raises:
+            AppException: If generation fails.
         """
         try:
             # Figure setup
@@ -154,36 +157,28 @@ class ChartService:
             ax.set_xlabel(x_label)
             ax.set_ylabel(y_label)
             ax.set_title(title)
-            
-            # Quadrant/Zone background (Optional stylistic touch)
-            # We keep it simple for now to match "Standard Style"
 
-            # Normalize size for display (Toulmin score 0-6 usually)
-            # Matplotlib scatter s is area in points^2. 
-            # We want it visible. Base size 100, factor 50?
-            # If size_val is 0, we still want a small dot.
-            display_size = max(50, (size_val + 1) * 100)
+            # Display size calculation
+            display_size = max(50.0, (size_val + 1.0) * 100.0)
 
             # Plot the single point
-            # Color: Use primary brand color or variant based on score?
-            # Let's use a distinct color.
-            scatter = ax.scatter(
-                [x_val], 
-                [y_val], 
-                s=[display_size], 
-                c=['#1976D2'], 
-                alpha=0.6, 
+            ax.scatter(
+                [x_val],
+                [y_val],
+                s=[display_size],
+                c=['#1976D2'],
+                alpha=0.6,
                 edgecolors='black',
                 linewidth=1
             )
 
             # Annotation
             ax.text(
-                x_val, 
-                y_val + 0.3, # Offset slightly up
-                f"Bloom: {x_val:.1f}\nStrat: {y_val:.1f}", 
-                ha='center', 
-                va='bottom', 
+                x_val,
+                y_val + 0.3,  # Offset slightly up
+                f"Bloom: {x_val:.1f}\nStrat: {y_val:.1f}",
+                ha='center',
+                va='bottom',
                 fontsize=8,
                 bbox=dict(facecolor='white', alpha=0.7, edgecolor='none', boxstyle='round,pad=0.2')
             )
@@ -197,5 +192,10 @@ class ChartService:
             return f"data:image/png;base64,{img_str}"
 
         except Exception as e:
-            logger.error(f"Failed to generate bubble chart: {e}", exc_info=True)
-            return ""  # Return empty string on failure instead of crashing report
+            error_code = ErrorCodes.CHART_GENERATION_FAILED
+            logger.error(f"{error_code}: Failed to generate bubble chart: {e}", exc_info=True)
+            raise AppException(
+                message="Failed to generate bubble chart.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={"error_code": error_code, "original_error": str(e)}
+            ) from e

@@ -2,8 +2,16 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
+import socket
+from datetime import datetime, timezone
 from typing import Any
+
+import litellm
+import requests
+import urllib3
 
 # 2. Third Party
 from pydantic import BaseModel, ValidationError
@@ -12,15 +20,12 @@ from backend.core.component import BaseComponent
 
 # 3. Local Imports
 from backend.exceptions import AgentExecutionError, ErrorCodes
-from backend.services.localization import LocalizationService
-import socket
-import litellm
-import urllib3
-import requests
 
 # Use string forward reference to avoid circular import if needed, or if Provider is defined there.
 # But LLMFactory is imported.
 from backend.llm.provider import LLMFactory, LLMProvider
+from backend.models.domain.base import AuditLogEntry, Metadata
+from backend.services.localization import LocalizationService
 
 # 4. Logger
 logger = logging.getLogger(__name__)
@@ -43,7 +48,8 @@ class BaseAgent(BaseComponent):
 
     # Optional Pydantic Models for Schema Validation
     INPUT_SCHEMA: type[BaseModel] | None = None
-    OUTPUT_SCHEMA: type[BaseModel] | None = None
+    OUTPUT_SCHEMA: type[BaseModel] | None = None # Domain Model (With Metadata)
+    DTO_SCHEMA: type[BaseModel] | None = None    # LLM Interface (Content Only)
 
     def __init__(self, model: str | None = None, provider: str | None = None):
         """Initializes the agent with an optional specific model strategy.
@@ -86,7 +92,11 @@ class BaseAgent(BaseComponent):
 
         current_provider_type = self.provider_type
         if not current_provider_type:
-             raise ValueError("Provider type not set and no default allowed.")
+             raise AgentExecutionError(
+                 detail=ErrorCodes.AGENT_NOT_CONFIGURED,
+                 original_error=ValueError("Provider type not set and no default allowed."),
+                 agent_name=self.__class__.__name__
+             )
 
         # Logic: If provider exists and matches usage, AND organization matches, keep it.
         # But organization_id changes per execution, so we almost always need to update/recreate if context changes.
@@ -123,54 +133,112 @@ class BaseAgent(BaseComponent):
                 f"[BaseAgent] Provider initialized with {model_name} (Type: {provider_type}, Org: {organization_id})"
             )
         except Exception as e:
-            logger.error(f"[BaseAgent] Failed to create provider in set_model: {e}")
+            error_code = ErrorCodes.AGENT_NOT_CONFIGURED
+            logger.error(f"[BaseAgent] Failed to create provider in set_model: {e}", exc_info=True)
+            raise AgentExecutionError(
+                detail=error_code,
+                original_error=e,
+                agent_name=self.__class__.__name__
+            ) from e
 
-    def _apply_python_authority(self, data: Any) -> None:
-        """Injects system-authoritative data (Time, Identity, Checksums) into the response.
+    def _apply_python_authority(self, data: Any) -> Any:
+        """Injects system-authoritative data (Time, Identity, Checksums).
 
-        Overrides any LLM-hallucinated values for these fields.
-        Handles both raw dicts and Pydantic models.
+        Promotes DTOs to Domain Models if DTO_SCHEMA is defined.
+        Overrides any LLM-hallucinated values for metadata fields.
+        Handles both raw dicts and immutable Pydantic models.
+        Returns the modified (or new) object.
         """
-        import hashlib
-        import json
-        from datetime import datetime, timezone
-
         # 1. TIME & IDENTITY AUTHORITY
         utc_now = datetime.now(timezone.utc)
         agent_name = self.__class__.__name__
         env_context = "Internal"
 
-        # --- CASE A: Pydantic Model ---
+        # --- CASE A: Pydantic Model (DTO or Domain) ---
         if isinstance(data, BaseModel):
-            if hasattr(data, "metadata") and data.metadata:
-                data.metadata.luontiaika = utc_now
-                data.metadata.agentti = agent_name
-                if not data.metadata.suoritus_ymparisto:
-                    data.metadata.suoritus_ymparisto = env_context
-                # Ensure fields exist
-                if not getattr(data.metadata, "vaihe", None):
-                    data.metadata.vaihe = 1
-                if not getattr(data.metadata, "versio", None):
-                    data.metadata.versio = "2.0"
+            # 1. Construct Updated Metadata (Immutable)
+            current_meta = getattr(data, "metadata", None)
 
-                # Checksum for Model
-                try:
-                    # Dump to dict, exclude checksum, hash
-                    as_dict = data.model_dump()
-                    if "semanttinen_tarkistussumma" in as_dict:
-                        del as_dict["semanttinen_tarkistussumma"]
-                    # Hash
-                    dump = json.dumps(as_dict, sort_keys=True, default=str)
-                    checksum = hashlib.sha256(dump.encode("utf-8")).hexdigest()
+            # Prepare metadata fields
+            meta_updates = {
+                "luontiaika": utc_now,
+                "agentti": agent_name,
+                "suoritus_ymparisto": env_context,
+            }
 
-                    if hasattr(data, "semanttinen_tarkistussumma"):
-                        data.semanttinen_tarkistussumma = checksum
-                        logger.debug(f"[{self.__class__.__name__}] Calc Checksum (Model): {checksum[:8]}...")
-                except Exception as e:
-                    # STRICT MODE: Data integrity is critical.
-                    error_msg = f"[{self.__class__.__name__}] Critical: Failed to calculate authoritative checksum (Model). Data integrity compromised."
-                    logger.critical(f"{error_msg} Error: {e}")
-                    raise ValueError(error_msg) from e
+            # Default optional fields if missing
+            # We check if they exist in current_meta (if it's a model)
+            if current_meta:
+                 if not getattr(current_meta, "vaihe", None):
+                     meta_updates["vaihe"] = 1
+                 if not getattr(current_meta, "versio", None):
+                     meta_updates["versio"] = "2.0"
+            else:
+                 meta_updates["vaihe"] = 1
+                 meta_updates["versio"] = "2.0"
+
+            if current_meta:
+                # Use model_copy(update=...) to create new Metadata instance
+                new_metadata = current_meta.model_copy(update=meta_updates)
+            else:
+                # Create fresh Metadata
+                new_metadata = Metadata(
+                    luontiaika=utc_now,
+                    agentti=agent_name,
+                    suoritus_ymparisto=env_context,
+                    vaihe=meta_updates["vaihe"],
+                    versio=meta_updates["versio"]
+                )
+
+            # 2. Calculate Checksum (using new metadata)
+            try:
+                content_dict = data.model_dump()
+                # Inject metadata into dict for hashing (ensure reproducibility)
+                content_dict["metadata"] = new_metadata.model_dump(mode='json')
+
+                if "semanttinen_tarkistussumma" in content_dict:
+                    del content_dict["semanttinen_tarkistussumma"]
+
+                dump = json.dumps(content_dict, sort_keys=True, default=str)
+                checksum = hashlib.sha256(dump.encode("utf-8")).hexdigest()
+
+                logger.debug(f"[{self.__class__.__name__}] Calc Checksum (Model): {checksum[:8]}...")
+
+                # 3. Promotion or Update
+                # CHECK FOR PROMOTION: If data is DTO and we have an OUTPUT_SCHEMA
+                if (
+                    self.DTO_SCHEMA 
+                    and isinstance(data, self.DTO_SCHEMA) 
+                    and self.OUTPUT_SCHEMA 
+                    and not isinstance(data, self.OUTPUT_SCHEMA)
+                ):
+                    # Promote DTO -> Domain
+                    promoted_data = self.OUTPUT_SCHEMA(
+                        **data.model_dump(),
+                        metadata=new_metadata,
+                        semanttinen_tarkistussumma=checksum
+                    )
+                    return promoted_data
+                
+                else:
+                    # Regular Update (Domain -> Domain)
+                    updates = {
+                        "metadata": new_metadata,
+                        "semanttinen_tarkistussumma": checksum
+                    }
+                    return data.model_copy(update=updates)
+
+            except Exception as e:
+                error_msg = (
+                    f"[{self.__class__.__name__}] Critical: Failed to calculate authoritative checksum/promote model. "
+                    "Data integrity compromised."
+                )
+                logger.critical(f"{error_msg} Error: {e}")
+                raise AgentExecutionError(
+                    detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
+                    original_error=ValueError(error_msg),
+                    agent_name=self.__class__.__name__
+                ) from e
 
         # --- CASE B: Dictionary ---
         elif isinstance(data, dict):
@@ -206,47 +274,51 @@ class BaseAgent(BaseComponent):
 
                 data["semanttinen_tarkistussumma"] = checksum
                 logger.debug(f"[{self.__class__.__name__}] Calc Checksum (Dict): {checksum[:8]}...")
+                return data
+
             except Exception as e:
                 # STRICT MODE: Data integrity is critical.
-                error_msg = f"[{self.__class__.__name__}] Critical: Failed to calculate authoritative checksum. Data integrity compromised."
+                error_msg = (
+                    f"[{self.__class__.__name__}] Critical: Failed to calculate authoritative checksum. "
+                    "Data integrity compromised."
+                )
                 logger.critical(f"{error_msg} Error: {e}")
-                raise ValueError(error_msg) from e
+                raise AgentExecutionError(
+                    detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
+                    original_error=ValueError(error_msg),
+                    agent_name=self.__class__.__name__
+                ) from e
+
+        return data
 
     async def execute(
         self,
-        input_data: dict,
-        execution_context: dict | None = None,
+        input_data: dict[str, Any],
+        execution_context: dict[str, Any] | None = None,
         system_instruction: str | None = None,
-        **kwargs,
-    ) -> dict:  # type: ignore[override]
+        **kwargs: Any,
+    ) -> dict[str, Any] | BaseModel:
         """Standard execution entry point.
 
-        Takes input dict, processes it, and returns the result dict.
+        Takes input dict, processes it via the LLM Provider, and returns the result.
+        Enforces RFC 7807 Error Handling and Pydantic Schema Validation.
 
         Args:
-            input_data (dict): The resolved input variables.
-            execution_context (Optional[dict]): Access to repo/config.
-            system_instruction (Optional[str]): Prompt override.
-            **kwargs: Additional parameters for LLM.
+            input_data (dict[str, Any]): The resolved input variables from the Workflow Engine.
+            execution_context (dict[str, Any] | None): Access to repository, config, or global state.
+            system_instruction (str | None): Optional prompt override (rarely used).
+            **kwargs: Additional parameters for LLM (temperature, max_tokens, etc).
 
         Returns:
-            dict: The execution result (response data).
+            Any: The execution result (response data), usually a dict or Pydantic model.
 
         Raises:
-            Exception: If execution fails.
-
+            AgentExecutionError: If execution fails (wraps all internal exceptions).
         """
         logger.info(f"[{self.__class__.__name__}] Starting execution...")
         try:
             # 1. Use Generic User Prompt (The System Instruction carries the context)
             user_prompt = "Proceed with your task according to the system instructions."
-
-            # 2. Get System Instruction
-            if not system_instruction:
-                raise AgentExecutionError(
-                    detail="MISSING_SYSTEM_INSTRUCTION",
-                    original_error=ValueError(f"Agent {self.__class__.__name__} executed without system_instruction. Strict mode requires DB-sourced prompts."),
-                )
 
             # 3. Determine Output Schema (Subclasses must define this!)
             response_schema = self.get_response_schema()
@@ -258,20 +330,33 @@ class BaseAgent(BaseComponent):
                 system_instruction = (system_instruction or "") + "\n\n" + additional_context
                 logger.debug(f"[{self.__class__.__name__}] Appended dynamic context.")
 
+            # 2. Get System Instruction (Check AFTER dynamic context injection)
+            if not system_instruction:
+                raise AgentExecutionError(
+                    detail=ErrorCodes.AGENT_MISSING_INSTRUCTION,
+                    original_error=ValueError(
+                        f"Agent {self.__class__.__name__} executed without system_instruction. "
+                        "Strict mode requires DB-sourced prompts."
+                    ),
+                )
+
             # 3.5.5 Schema Injection (Modern Polish)
             if system_instruction and "{{SCHEMA_EXAMPLE}}" in system_instruction:
                 if response_schema:
-                    import json
                     try:
                         # Pydantic v2: model_json_schema()
                         schema_dict = response_schema.model_json_schema()
                         schema_text = json.dumps(schema_dict, indent=2, ensure_ascii=False)
                         system_instruction = system_instruction.replace("{{SCHEMA_EXAMPLE}}", schema_text)
-                        logger.info(f"[{self.__class__.__name__}] Injected JSON Schema into {{SCHEMA_EXAMPLE}} placeholder.")
+                        logger.info(
+                            f"[{self.__class__.__name__}] Injected JSON Schema into {{SCHEMA_EXAMPLE}} placeholder."
+                        )
                     except Exception as e:
                          logger.warning(f"[{self.__class__.__name__}] Failed to inject schema example: {e}")
                 else:
-                    logger.warning(f"[{self.__class__.__name__}] Prompt has {{SCHEMA_EXAMPLE}} but no response_schema defined.")
+                    logger.warning(
+                        f"[{self.__class__.__name__}] Prompt has {{SCHEMA_EXAMPLE}} but no response_schema defined."
+                    )
 
 
             # 3.6 Context Continuity Check (Transient Reasoning Trace)
@@ -295,10 +380,25 @@ class BaseAgent(BaseComponent):
             logger.info(f"[{self.__class__.__name__}] >>> EXECUTION START <<<")
 
             # Identify extras
-            std_keys = {"temperature", "max_tokens", "pass_reasoning_token", "mock_identity", "system_instruction", "repository", "output_key", "usage_key", "execution_config", "step_id"}
+            # Identify extras
+            std_keys = {
+                "temperature",
+                "max_tokens",
+                "pass_reasoning_token",
+                "mock_identity",
+                "system_instruction",
+                "repository",
+                "output_key",
+                "usage_key",
+                "execution_config",
+                "step_id",
+            }
             extras = {k: v for k, v in kwargs.items() if k not in std_keys}
 
-            logger.info(f"[{self.__class__.__name__}] MODEL: {conf_model} | TEMP: {conf_temp} | TOKENS: {conf_tokens} | EXTRAS: {extras}")
+            logger.info(
+                f"[{self.__class__.__name__}] MODEL: {conf_model} | TEMP: {conf_temp} | "
+                f"TOKENS: {conf_tokens} | EXTRAS: {extras}"
+            )
             # --------------------------------
 
             if not self.llm_provider:
@@ -306,7 +406,7 @@ class BaseAgent(BaseComponent):
                     f"[{self.__class__.__name__}] LLM Provider not configured. Call set_model() before execute()."
                 )
                 logger.error(error_msg)
-                raise AgentExecutionError(detail="AGENT_NOT_CONFIGURED", original_error=ValueError(error_msg))
+                raise AgentExecutionError(detail=ErrorCodes.AGENT_NOT_CONFIGURED, original_error=ValueError(error_msg))
 
             # 4. Call LLM (The "Mask" handles the details) — ASYNC WAIT
             kwargs["mock_identity"] = self.__class__.__name__
@@ -326,18 +426,17 @@ class BaseAgent(BaseComponent):
                     response_data = response_obj.parsed_content
                 else:
                     # Provider ensures content is valid JSON string if schema was used
-                    import json
 
                     try:
                         response_data = json.loads(response_obj.content)
                     except json.JSONDecodeError as e:
                         # STRICT MODE: If json keys are malformed after provider, we fail.
-                        error_code = "AGENT_RESPONSE_MALFORMED"
+                        error_code = ErrorCodes.AGENT_RESPONSE_MALFORMED
                         logger.error(f"{error_code}: Failed to parse JSON content from provider - {e}", exc_info=True)
                         raise AgentExecutionError(detail=error_code, original_error=e) from e
                     except Exception as e:
                         # General fallback for other errors during parsing
-                        error_code = "AGENT_RESPONSE_PARSING_FAILED"
+                        error_code = ErrorCodes.AGENT_RESPONSE_PARSING_FAILED
                         logger.error(f"{error_code}: Unexpected error during JSON parsing - {e}", exc_info=True)
                         raise AgentExecutionError(detail=error_code, original_error=e) from e
             else:
@@ -383,49 +482,96 @@ class BaseAgent(BaseComponent):
                      logger.warning(f"Audit log sanitization failed: {e}. Saving raw logs.")
                      sanitized_messages = response_obj.messages
 
-                 if isinstance(response_data, dict):
-                     if "metadata" not in response_data:
-                         response_data["metadata"] = {}
-                     if isinstance(response_data["metadata"], dict):
-                         response_data["metadata"]["audit_logs"] = sanitized_messages
-                 elif isinstance(response_data, BaseModel):
-                     if hasattr(response_data, "metadata"):
-                         if isinstance(response_data.metadata, dict):
-                             response_data.metadata["audit_logs"] = sanitized_messages
-                         elif isinstance(response_data.metadata, BaseModel):
-                             # We enabled extra="allow" in Metadata
-                             try:
-                                response_data.metadata.audit_logs = sanitized_messages
-                             except Exception as e:
-                                logger.warning(f"Could not attach audit logs to metadata model: {e}")
+                     # Convert to AuditLogEntry (Strict Schema)
+                     audit_entries = []
+                     timestamp_now = datetime.now(timezone.utc)
+
+                     for msg in sanitized_messages:
+                         try:
+                             role = msg.get("role", "unknown")
+                             content = msg.get("content", "")
+                             if not isinstance(content, str):
+                                 content = str(content)
+
+                             entry = AuditLogEntry(
+                                 timestamp=timestamp_now,
+                                 level="INFO", # Default for chat logs
+                                 message=content[:5000], # Truncate massive logs
+                                 context={"original_role": role}
+                             )
+                             audit_entries.append(entry)
+                         except Exception as e:
+                             logger.warning(f"Failed to convert message to AuditLogEntry: {e}")
+
+                     if isinstance(response_data, dict):
+                         if "metadata" not in response_data:
+                             response_data["metadata"] = {}
+                         if isinstance(response_data["metadata"], dict):
+                             response_data["metadata"]["audit_logs"] = audit_entries
+                     elif isinstance(response_data, BaseModel):
+                         if hasattr(response_data, "metadata"):
+                             if isinstance(response_data.metadata, dict):
+                                 response_data.metadata["audit_logs"] = audit_entries
+                             elif hasattr(response_data.metadata, "audit_logs"): # Check field existence first
+                                 # We enabled extra="allow" in Metadata but strict validation means type must match
+                                 try:
+                                    # If metadata is a model (Metadata), set the field
+                                    if hasattr(response_data.metadata, "model_dump"):
+                                         # Pydantic model
+                                         # We can't set directly if it's frozen, but BaseAgent constructs it?
+                                         # Metadata is frozen=False.
+                                         response_data.metadata.audit_logs = audit_entries
+                                    else:
+                                         # Unknown type
+                                         pass
+                                 except Exception as e:
+                                    logger.warning(f"Could not attach audit logs to metadata model: {e}")
 
              # FORCE SYSTEM AUTHORITY (Metadata & Checksums)
-            if response_data:
-                self._apply_python_authority(response_data)
+            if response_data is not None:
+                response_data = self._apply_python_authority(response_data)
 
 
 
-            # 6. Lifecycle Hook: Post Process
+            # 6. Lifecycle Hook: Post Process (HEALING)
             logger.info(f"[{self.__class__.__name__}] Lifecycle Hook: post_process")
-            
+
             # SCRUBBER (Jan 2026): Remove 'instructor' library prompt leakage
-            # Weak models sometimes repeat "Return the correct JSON response..." in string fields.
-            if response_data:
+            if response_data is not None:
                 response_data = self._scrub_prompt_leakage(response_data)
 
+            # HEALING STEP: Fix structure before validation
             response_data = self.post_process(response_data)
+
+            # 7. LATE VALIDATION (Schema Enforcement)
+            # Since Provider no longer enforces schema (to allow healing), we must do it here.
+            # FIX (Jan 2026): Use explicit None check to catch empty dicts {} which are Falsy.
+            if response_schema and response_data is not None:
+                try:
+                    # If it's already a model, we are good (provider might have done it distinctively)
+                    if isinstance(response_data, BaseModel):
+                        pass
+                    else:
+                        # Convert dict to Model (Validation happens here)
+                        response_data = response_schema.model_validate(response_data)
+                        logger.info(f"[{self.__class__.__name__}] Late Validation Successful: {response_schema.__name__}")
+                except ValidationError as e:
+                    # If healing failed to fix it, we crash now.
+                    error_code = ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED
+                    logger.error(f"{error_code}: Post-Healing Validation Failed - {e}", exc_info=True)
+                    raise AgentExecutionError(detail=error_code, original_error=e) from e
 
             logger.info(f"[{self.__class__.__name__}] Execution completed.")
 
             # Return Pydantic model as dict or strict return?
-            # "The agent should no longer modify state objects; it should purely return its result as a dictionary (or Pydantic model)."
-            # "Update the execute method logic: ... return the validated response_data directly."
-            # "signature... -> dict"
-
-            if isinstance(response_data, BaseModel):
-                return response_data.model_dump()
-
+            # We allow returning BaseModel directly (Pydantic-First Flow).
+            # The Registry/GraphEngine will handle serialization if needed.
             return response_data
+
+
+        except AgentExecutionError:
+            # Pass through already wrapped errors
+            raise
 
         except (
             socket.gaierror,
@@ -435,7 +581,7 @@ class BaseAgent(BaseComponent):
         ) as e:
             # Network / Offline Handling
             error_code = ErrorCodes.NETWORK_UNAVAILABLE
-            
+
             # Use LocalizationService to build bilingual error
             msg_fi = LocalizationService.get("network_error_msg", "fi")
             msg_en = LocalizationService.get("network_error_msg", "en")
@@ -443,7 +589,7 @@ class BaseAgent(BaseComponent):
 
             # Log full stack trace for debugging
             logger.error(f"{error_code}: {friendly_msg} - Cause: {e}", exc_info=True)
-            
+
             # Raise with clean message for UI but original error preserved
             raise AgentExecutionError(
                 detail=error_code,
@@ -453,14 +599,14 @@ class BaseAgent(BaseComponent):
 
         except ValidationError as e:
             # ECHO PROTOCOL: Log First, Then Raise
-            error_code = "AGENT_SCHEMA_VALIDATION_FAILED"
+            error_code = ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED
             logger.error(f"{error_code}: Output validation failed - {e}", exc_info=True)
             raise AgentExecutionError(detail=error_code, original_error=e) from e
 
         except Exception as e:
             # ECHO PROTOCOL: Safety Net
             # Use standard error code for Frontend, specific details for Backend logs
-            error_code = "AGENT_EXECUTION_CRITICAL"
+            error_code = ErrorCodes.AGENT_EXECUTION_CRITICAL
             logger.error(f"{error_code}: Unexpected failure in {self.__class__.__name__} - {e}", exc_info=True)
             raise AgentExecutionError(
                 detail=error_code,
@@ -512,13 +658,12 @@ class BaseAgent(BaseComponent):
         return ""
 
     def get_response_schema(self) -> type[BaseModel] | None:
-        """Returns the Pydantic model that this agent expects as output.
-
-        Returns:
-            Optional[Type[BaseModel]]: The Pydantic output schema class.
-
+        """Returns the Pydantic model that this agent expects as output from LLM.
+        
+        If DTO_SCHEMA is defined, returns that (Content Only).
+        Otherwise falls back to OUTPUT_SCHEMA (Legacy).
         """
-        return None
+        return self.DTO_SCHEMA or self.OUTPUT_SCHEMA
 
     def get_system_instruction(self) -> str:
         """Retrieves the default system instruction.
@@ -559,16 +704,36 @@ class BaseAgent(BaseComponent):
 
         if isinstance(data, list):
             return [self._scrub_prompt_leakage(item) for item in data]
-        
+
         if isinstance(data, BaseModel):
             try:
-                # Iterate over fields
-                 for name in data.model_fields.keys():
-                     val = getattr(data, name)
-                     new_val = self._scrub_prompt_leakage(val)
-                     setattr(data, name, new_val)
-                 return data
-            except Exception:
+                updates = {}
+                has_changes = False
+
+                # Iterate over fields to check for changes
+                for name, field_info in data.model_fields.items():
+                    val = getattr(data, name)
+                    # Recursively scrub
+                    new_val = self._scrub_prompt_leakage(val)
+
+                    # Check for change (simple equality check might be expensive deeply, but necessary)
+                    # We can rely on reference or value equality
+                    if new_val != val:
+                        updates[name] = new_val
+                        has_changes = True
+
+                if has_changes:
+                     # Check if frozen
+                     if data.model_config.get("frozen"):
+                         return data.model_copy(update=updates)
+                     else:
+                         for k, v in updates.items():
+                             setattr(data, k, v)
+                         return data
+
+                return data
+            except Exception as e:
+                logger.warning(f"[{self.__class__.__name__}] Scrubbing failed on model: {e}")
                 return data
 
         return data

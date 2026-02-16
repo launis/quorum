@@ -9,6 +9,10 @@ import 'package:client_app/features/orchestration/presentation/widgets/results/r
 import 'package:client_app/features/orchestration/presentation/widgets/execution_timeline.dart';
 import 'package:client_app/features/orchestration/domain/models/assessment_view.dart'; // For StepProgressItem
 import 'package:intl/intl.dart';
+import 'package:client_app/core/ui/error_view.dart';
+import 'package:go_router/go_router.dart';
+import 'package:client_app/features/auth/presentation/auth_controller.dart';
+import 'package:client_app/features/auth/domain/models/user.dart';
 
 class ExecutionDetailsScreen extends ConsumerWidget {
   final String executionId;
@@ -57,25 +61,23 @@ class ExecutionDetailsScreen extends ConsumerWidget {
                 ],
               ),
           loading: () => const Center(child: CircularProgressIndicator()),
-          error:
-              (err, stack) => Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.error, color: Colors.red, size: 48),
-                    const SizedBox(height: 16),
-                    Text(l10n.failedToLoad('$err')),
-                    const SizedBox(height: 16),
-                    FilledButton(
-                      onPressed:
-                          () => ref.invalidate(
-                            executionStreamProvider(executionId),
-                          ),
-                      child: Text(l10n.retry),
-                    ),
-                  ],
-                ),
-              ),
+          error: (err, stack) {
+            final user = ref.read(authControllerProvider).value;
+            final isAdmin = user?.role == UserRole.admin || user?.role == UserRole.root;
+            final isIngestionError = err.toString().contains('KNOWLEDGE_NOT_INGESTED');
+            
+            return ErrorView(
+              error: err,
+              onRetry: () => ref.invalidate(executionStreamProvider(executionId)),
+              retryLabel: l10n.retry,
+              onAction: (isIngestionError && isAdmin) 
+                  ? () => context.go('/ingestion') 
+                  : null,
+              actionLabel: (isIngestionError && isAdmin) 
+                  ? l10n.actionGoToIngestion 
+                  : null,
+            );
+          },
         ),
       ),
     );

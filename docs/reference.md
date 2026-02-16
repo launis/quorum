@@ -15,11 +15,16 @@ quorum/
 │   │   ├── routes/
 │   │   │   ├── config/     # CRUD for Rules, Matrices, Workflows
 │   │   │   └── execution/  # Job Submission & Status
+│   │   ├── transformers/   # Modular View Transformers (Assessment & Report)
 │   ├── core/               # GraphEngine & WorkflowRunner
 │   ├── database/           # AbstractRepository (TinyDB / Firestore)
+│   │   └── db_mock.json    # Test DB (Mock LLMs)
 │   ├── hooks/              # Deterministic Logic (Scoring, Searching)
 │   ├── llm/                # AI Provider Adapters (Vertex, OpenAI)
 │   ├── models/             # Pydantic V2 Schemas (SSOT)
+│   │   ├── domain/         # Modular Domain Models (Guard, Analyst, etc.)
+│   │   ├── enums.py        # Shared Enumerations
+│   │   └── state.py        # Workflow State Defs
 │   ├── services/           # Business Logic (Auth, Storage, PromptBuilder)
 │   │   └── drivers/        # I/O Adapters (LocalFileDriver, GCSFileDriver)
 │   ├── seed/               # Data Seeding Logic
@@ -28,9 +33,8 @@ quorum/
 │   ├── settings.py         # Environment Settings (Pydantic BaseSettings)
 │   └── worker.py           # Arq Worker Entry Point
 ├── data/                   # Local Persistence
-│   ├── db.json             # Local Production DB (GitIgnored)
-│   ├── db_mock.json        # Test DB (Mock LLMs)
-│   └── files/              # Local File Storage (GitIgnored)
+│   ├── db.json             # Local Production DB
+│   └── files/              # Local File Storage
 ├── docs/                   # Documentation (MkDocs)
 ├── client_app/             # Flutter Client (Cognitive Studio)
 │   ├── lib/
@@ -68,7 +72,7 @@ Managed via `backend/seed/run_seed.py`.
 | Target | Command | Purpose |
 | :--- | :--- | :--- |
 | **Local** | `python backend/seed/run_seed.py local` | Resets `data/db.json` from `seed_data.json`. Use for local dev. |
-| **Mock** | `python backend/seed/run_seed.py mock` | Resets `data/db_mock.json`. Use for offline testing. |
+| **Mock** | `python backend/seed/run_seed.py mock` | Resets `backend/database/db_mock.json`. Use for offline testing. |
 | **Cloud** | `python backend/seed/run_seed.py firestore` | **DANGER**. Overwrites Production Firestore with Seed Data. |
 
 ### Backend Development (uv)

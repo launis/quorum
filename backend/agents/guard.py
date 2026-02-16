@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from backend.agents.base import BaseAgent
 
 # 3. Local Imports
+from backend.exceptions import AgentExecutionError, ErrorCodes, FatalInterruption
 from backend.models.domain import GuardOutput
 
 if TYPE_CHECKING:
@@ -48,42 +49,77 @@ class GuardAgent(BaseAgent):
 
     async def execute(
         self,
-        input_data: dict,
-        execution_context: dict | None = None,
+        input_data: dict[str, Any],
+        execution_context: dict[str, Any] | None = None,
         system_instruction: str | None = None,
-        **kwargs,
-    ) -> dict:
+        **kwargs: Any,
+    ) -> GuardOutput:
         """Executes the security analysis and sanitization logic.
 
         Args:
-            input_data (dict): Inputs including history_text, product_text, etc.
-            execution_context (Optional[dict]): Context/Config.
-            system_instruction (Optional[str]): Prompt override.
+            input_data (dict[str, Any]): Inputs including history_text, product_text, etc.
+            execution_context (dict[str, Any] | None, optional): Context/Config.
+            system_instruction (str | None, optional): Prompt override.
             **kwargs: Additional args.
 
         Returns:
-            dict: The security report (TaintedData).
+            GuardOutput: The security report (TaintedData).
+
+        Raises:
+            ValueError: If mandatory inputs are missing.
         """
+
+        # FAIL FAST: Guard requires content to sanitize.
+        for field in ["history_text", "product_text", "reflection_text"]:
+             if not input_data.get(field):
+                 # Fail Fast on ANY missing input as per strict requirements for Guard
+                 error_msg = f"[GuardAgent] Mandatory input '{field}' missing. Sanitization aborted."
+                 logger.error(f"{ErrorCodes.AGENT_EXECUTION_CRITICAL}: {error_msg}")
+                 raise AgentExecutionError(
+                     detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
+                     original_error=ValueError(error_msg),
+                     agent_name="GuardAgent"
+                 )
+
         # Pass through to BaseAgent
-        return await super().execute(
+        result_obj = await super().execute(
             input_data=input_data,
             execution_context=execution_context,
             system_instruction=system_instruction,
             **kwargs
         )
 
-    async def prepare_context(self, input_data: dict, execution_context: dict | None, **kwargs) -> str | None:
+        if isinstance(result_obj, GuardOutput):
+            return result_obj
+        elif isinstance(result_obj, dict):
+            return GuardOutput(**result_obj)
+        else:
+             raise AgentExecutionError(
+                 detail=ErrorCodes.INVALID_JSON_PAYLOAD,
+                 original_error=TypeError(f"GuardAgent returned {type(result_obj)} instead of GuardOutput"),
+                 agent_name="GuardAgent"
+             )
+
+    async def prepare_context(
+        self,
+        input_data: dict[str, Any],
+        execution_context: dict[str, Any] | None,
+        **kwargs: Any
+    ) -> str | None:
         """Lifecycle Hook: Pre-Execution.
 
         Performs Python-based banned phrase checks and sanitization.
 
         Args:
-            input_data (dict): Inputs.
-            execution_context (dict): Context.
+            input_data (dict[str, Any]): Inputs.
+            execution_context (dict[str, Any] | None): Context.
             **kwargs: ignored.
 
         Returns:
-            Optional[str]: None. Only side-effects (logging/validation).
+            str | None: None. Only side-effects (logging/validation).
+
+        Raises:
+            FatalInterruption: If banned phrases are detected.
         """
         # 1. Banned Phrase Check (Via Schema Validation)
         try:
@@ -112,15 +148,22 @@ class GuardAgent(BaseAgent):
         except ValueError as e:
             # Convert Pydantic/Validator error to FatalInterruption for the Engine
             if "SECURITY_BANNED_PHRASE_DETECTED" in str(e):
-                logger.error(f"[GuardAgent] Banned Phrase Detected via Schema: {e}")
-                from backend.exceptions import FatalInterruption
-
+                logger.error(f"{ErrorCodes.SECURITY_BANNED_PHRASE_DETECTED}: [GuardAgent] Banned Phrase Detected via Schema: {e}")
+                
+                # FatalInterruption is correctly imported now
                 raise FatalInterruption(
                     step_name="GuardSecurityCheck",
                     reason="Banned Phrase Detected (Schema Validation)",
                     details={"error": str(e)},
                 ) from e
-            raise e
+            else:
+                # For any other ValueError from Pydantic, raise AgentExecutionError
+                logger.error(f"{ErrorCodes.AGENT_EXECUTION_CRITICAL}: [GuardAgent] Unexpected validation error during GuardInput processing: {e}")
+                raise AgentExecutionError(
+                    detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
+                    original_error=e,
+                    agent_name="GuardAgent"
+                ) from e
 
         # 2. Input Sanitization (Local Effect Only)
         # We sanitize locally to log threats.
@@ -162,12 +205,12 @@ class GuardAgent(BaseAgent):
         is_dict = isinstance(data, dict)
 
         # Access helpers
-        def get_field(obj, key):
+        def get_field(obj: Any, key: str) -> Any:
             if isinstance(obj, dict):
                 return obj.get(key)
             return getattr(obj, key, None)
 
-        def set_field(obj, key, val):
+        def set_field(obj: Any, key: str, val: Any) -> None:
             if isinstance(obj, dict):
                 obj[key] = val
             else:
@@ -181,38 +224,56 @@ class GuardAgent(BaseAgent):
 
         # --- 1. PII Sanitization Reporting ---
         # Issue: We don't have easy access to 'sanitization_log' from aux_data here
-        # unless we store it on self during prepare_context (which is risky if instance shared, but Registry instantiates fresh per task)
-        # Registry: "agent = agent_cls()" -> Fresh instance.
-        # So we can store state on self!
+        # unless we store it on self during prepare_context (checked: we do).
 
         if hasattr(self, "_sanitization_threats") and self._sanitization_threats:
             threats = self._sanitization_threats
             logger.info(f"[GuardAgent] Reporting sanitization actions: {threats}")
 
             # Update security_check
-            # If security_check is a dict (if data is dict) or object
+            msg = "Järjestelmä poisti automaattisesti PII-tietoja"
+            report_append = f"\n{msg}: {', '.join(threats)}."
 
-            # Helper for nested update
             if isinstance(security_check, dict):
+                # Mutable Dict
                 security_check["anonymisointi_tehty"] = True
                 current = security_check.get("tietosuoja_raportti") or ""
-                msg = "Järjestelmä poisti automaattisesti PII-tietoja"
                 if msg not in current:
-                    security_check["tietosuoja_raportti"] = (current + f"\n{msg}: {', '.join(threats)}.").strip()
+                    security_check["tietosuoja_raportti"] = (current + report_append).strip()
+
+                # If root data is dict, we modified it in place (ref)
+                # If root data is Model, we need to update it
+                if not is_dict:
+                     # This case: Data is Model, but field is Dict? Unlikely with strict typing.
+                     pass
+
             else:
-                security_check.anonymisointi_tehty = True
-                current = security_check.tietosuoja_raportti or ""
-                msg = "Järjestelmä poisti automaattisesti PII-tietoja"
+                # Pydantic Model (Frozen)
+                # 1. Update SecurityCheck
+                updates = {"anonymisointi_tehty": True}
+                current = getattr(security_check, "tietosuoja_raportti", "") or ""
+
                 if msg not in current:
-                    security_check.tietosuoja_raportti = (current + f"\n{msg}: {', '.join(threats)}.").strip()
+                    updates["tietosuoja_raportti"] = (current + report_append).strip()
+
+                # Create allowed copy
+                new_security_check = security_check.model_copy(update=updates)
+
+                # 2. Update Root Object (GuardOutput)
+                if not is_dict:
+                    # Data is frozen GuardOutput
+                    data = data.model_copy(update={"security_check": new_security_check})
+                else:
+                    # Data is dict, but security_check was object?
+                    data["security_check"] = new_security_check
 
         return data
 
-    def sanitize_input(self, input_data: dict) -> None:
+    def sanitize_input(self, input_data: dict[str, Any]) -> None:
         """Pre-hook: Sanitizes and anonymizes input data (PII Redaction).
 
         Args:
-            input_data (dict): Inputs to scan.
+            input_data (dict[str, Any]): Inputs to scan.
         """
         logger.info("[GuardAgent] Running sanitize_input (Pre-Hook)...")
         from backend.hooks.security import sanitize_text

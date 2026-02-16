@@ -47,7 +47,9 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **RBAC Implementation**: Defined Roles (`ROOT`, `ADMIN`, `MANAGER`, `MEMBER`, `VIEWER`).
 - [x] **Organization Entity**: Implemented `Organization` model to support Multi-tenancy.
 - [x] **User Management API**: Endpoints to create and list users within scope.
-- [x] **System Admin UI**: Dashboard for ROOT to list/create organizations.
+- [ ] **Dynamic Rules Engine UI**: Admin interface for `step_logic` customization (Reasoning Rules).
+- [ ] **Banned Phrases Management UI**: Admin interface to add/edit Banned Phrases in the database (replace hardcoded defaults).
+- [ ] **Linguistics Pattern UI**: Admin interface to manage Performative Patterns.
 - [x] **Org Admin UI**: Dashboard for ADMIN to manage organization settings.
 - [x] **Organization Deletion**: Implemented in API with safety checks for active jobs.
 - [x] **Last Admin Protection**: Prevent deletion of the last ADMIN in an organization.
@@ -162,6 +164,14 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **Organization Governance**: CRUD for Organizations, RBAC enforcement.
 - [ ] **Live Operations Dashboard**: Concurrent execution monitoring.
 
+### 2.8 Knowledge & Retrieval (The Second Brain) (✅ Completed)
+- [x] **Knowledge Base Service**: Async ingestion pipeline (`text-embedding-3-small` ready).
+- [x] **Dynamic Model Strategy**: Runtime resolution of LLM models per-request (Fast/Deep strategies).
+- [x] **Google Search Integration**: "Sidebar Pattern" implementation (`OverseerAgent`) for external fact-checking.
+- [x] **Fail-Fast Architecture**: Strict SSOT error handling (`SERVICE_DEPENDENCY_MISSING`) for critical dependencies.
+- [x] **Ingestion UI**: Flutter-based drag-and-drop upload with real-time progress tracking.
+- [x] **Bibliography Awareness**: Intelligent parsing of reference lists to prevent context loss.
+
 ---
 
 ## 🧠 Phase 2.6: Cognitive Layer Upgrade (✅ Completed)
@@ -192,6 +202,10 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 ### 3.2 BYOK (Bring Your Own Key)
 - [ ] **Secret Management**: Encrypted storage for Tenant API Keys.
 - [ ] **LLM Provider Update**: logic for Tenant Key fallback.
+
+### 3.3 Localization & Culture Awareness
+- [ ] **Culturally Aware Security**: Refactor `backend/core/security.py` to support locale-specific PII detection (e.g. Finnish HETU vs US SSN).
+- [ ] **Localized Banned Phrases**: Admin interface to manage banned phrases per language.
 
 ### 3.3 Audit Logs (✅ Completed)
 - [x] **Audit Service**: Standardized logging.
@@ -228,6 +242,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 
 ### 7.1 Legacy Removal
 - [x] **Refactored**: `backend/agents/base.py` (Modernized to Pydantic V2 & LLMFactory).
+- [x] **Domain Refactor**: Modularized `domain.py` into `backend/models/domain/` package.
 - [x] **Delete**: `backend/components/` (Removed).
 
 ---
@@ -238,10 +253,8 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] Created `backend/api/routes/config/`.
 - [x] Split `config_router.py` into `components.py`, `workflows.py`, `ontology.py`.
 
-### Step 2: SDUI Schemas (Backend) (🚧 Pending)
-- [ ] Create `backend/api/routes/meta.py`.
-- [ ] Implement `GET /api/v1/meta/schema/{model_type}` endpoint.
-- [ ] Ensure Enum field dynamic updates.
+### Step 2: SDUI Schemas (Backend) (Moved to Future Roadmap)
+- [~] **Deferred**: Moved to Phase 2.6 (Advanced SDUI & Meta-Programming).
 
 ### Step 3: Flutter Router Refactor (Client) (✅ Done)
 - [x] Created `client_app/lib/router/`.
@@ -253,9 +266,55 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 
 ---
 
-## 🔮 Future Findings (Q1 2026)
-**New requirements identified:**
+---
 
-1.  **Recovery UI**: "Factory Reset" button in Admin Dashboard.
-2.  **SaaS Billing Integration**: Stripe/Paddle integration.
-3.  **Hyper-Dynamic Artifact Architecture**: Shift to "Tag-Based Artifact Collection".
+## �️ Phase 2.9: Advanced SDUI & Meta-Programming (Q2 2026)
+**Objective:** Enable the frontend to dynamically construct interfaces from Backend Pydantic Schemas.
+
+- [ ] **Schema Registry API**: Implement `GET /api/v1/meta/schema/{model_type}` to expose Pydantic JSON Schemas.
+- [ ] **Tenant Repository**: Enable saving modified JSON configurations linked to `organization_id` (Git-like versioning).
+- [ ] **Live Operations Dashboard**: Real-time visualization of concurrent workflow executions.
+- [ ] **Recovery UI**: "Factory Reset" button in Admin Dashboard for catastrophic state recovery.
+
+---
+
+## 🔮 Phase 3: The Business Layer (Future)
+**Objective:** Turn usage into revenue and ensure enterprise compliance.
+
+- [ ] **Billing & Token Quotas**: Implementation of per-organization budget limits and Stripe/billing integration.
+- [ ] **Multi-Team Organizations**: Hierarchical structure for large organizations (Departments, Groups).
+- [ ] **Compliance Export Suite**: Automated generation of ISO/Audit compliance reports from execution traces.
+- [ ] **Advanced IAM**: SAML/SSO integration for enterprise tenants.
+- [ ] **Organization Onboarding Wizard**: Self-service flow for creating and configuring new tenants.
+- [ ] **BYOK (Bring Your Own Key)**: Encrypted storage for Tenant API Keys and fallback logic.
+
+---
+
+## 🚀 Phase 4: Power Users (Manager Configuration)
+**Objective:** Deep customization for Enterprise clients. Empowers Managers to own their reasoning strategy.
+
+### 4.1 Component Management
+- [ ] **Component CRUD API**: Create/Read/Update/Delete reusable text components.
+- [ ] **Prompt Library UI**: Flutter view for Manager-controlled system prompts.
+- [ ] **Dynamic Injection**: Fetch Prompts from DB at runtime.
+
+### 4.2 Step Configuration
+- [ ] **Custom Step Builder**: UI for creating new Steps from base Agents.
+- [ ] **Step Testing**: Isolation testing for individual steps.
+- [ ] **High-Fidelity Embeddings**: Integration of `text-embedding-3-small` or Vertex `gecko` for semantic search.
+
+### 4.3 Governance & Collaboration
+- [ ] **Scope Isolation**: Ensure Org-level isolation for components.
+- [ ] **Approval Gates**: Admin locking for critical System Prompts.
+- [ ] **Shared Workspaces**: Collaborative execution tracing.
+- [ ] **Panel Step Parity Verification**: Ensure `PanelAgent` configuration matches replaced steps to prevent drift.
+
+---
+
+## 📉 Technical Debt & Optimization (Backlog)
+- [ ] **DAG Workflow Engine (NetworkX)**: Refactor linear engine to support complex dependencies.
+- [ ] **Banned Phrases Seed Restoration**: Re-merge `banned_phrases` into `seed_data.json`.
+- [ ] **Rate Limiting**: Implement `slowapi` on key endpoints.
+- [ ] **Data Migration**: Establish `StorageDriver` pattern for standardized file system abstractions (Local/Cloud parity).
+- [ ] **Database Identifier Migration**: Update all existing database rows to use strict `backend/utils/identifiers.py` compliance (Fail Fast validation).
+

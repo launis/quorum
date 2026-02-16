@@ -1,12 +1,12 @@
 
-import pytest
 from unittest.mock import MagicMock, patch
-from datetime import datetime
-import uuid
 
-from backend.models.state import WorkflowState, TraceEvent
+import pytest
+
 # Import the hook function
 from backend.hooks.reporting import generate_report
+from backend.models.state import WorkflowState
+
 
 # Mock LocalizationService avoid DB calls
 @pytest.fixture(autouse=True)
@@ -26,7 +26,7 @@ def mock_jinja():
 def test_generate_report_no_data():
     state = WorkflowState(
         workflow_id="test-wf",
-        context_variables={} 
+        context_variables={}
     )
     # Should return same state, no warning if log mocked?
     # Actually it returns state unmodified.
@@ -39,41 +39,41 @@ def test_generate_report_with_data(mock_jinja):
     xai_data = {
         "executive_summary": "Test Summary"
     }
-    
+
     judge_data = {
         "pisteet": {
             "Dimension1": {"arvosana": 4.0, "perustelu": "Good"}
         },
         "kriittiset_havainnot_yhteenveto": ["Critical Issue 1"]
     }
-    
+
     context_vars = {
         "step_xai": xai_data,
         "step_judge": judge_data,
         "step_overseer": {"eettiset_havainnot": []},
         "step_coach": {"coaching_plan": {}}
     }
-    
+
     state = WorkflowState(
         workflow_id="test-wf",
         context_variables=context_vars
     )
-    
+
     # Execute Hook
     with patch("backend.hooks.reporting.logger") as mock_logger:
         new_state = generate_report(state)
-    
+
     # Verify New State
     assert new_state.execution_id == state.execution_id
     assert new_state.workflow_id == state.workflow_id
-    
+
     # Check context_variables updated
     assert "xai_report_formatted" in new_state.context_variables
     assert new_state.context_variables["xai_report_formatted"] == "# Report\nMock Content"
-    
+
     # Verify Jinja Template called
     mock_jinja.return_value.get_template.assert_called_with("report_template.jinja2")
-    
+
     # Verify render arguments
     # We can inspect the calls to render if we want deep verification
     # But checking output is enough for "Availability" test.

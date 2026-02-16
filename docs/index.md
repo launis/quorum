@@ -67,7 +67,7 @@ Strategies for ensuring the system works as expected without "Magic".
 ## 🚀 Development Guides
 
 *   **[Product Roadmap](product_roadmap.md)**
-    Current status (V2.9), active tasks, and future milestones.
+    Current status (V2.9.1 - Hardening), active tasks, and future milestones.
 *   **[Flutter Development Guide](flutterpromptohje.md)**
     Standards for the Frontend "Thick Client" (Riverpod, Localization, Widgets).
 

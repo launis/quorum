@@ -7,14 +7,21 @@ import logging
 import time
 import uuid
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Callable, Dict, List, Optional
 
 import jwt
+from fastapi import Depends
 from tinydb import Query
 
-from backend.exceptions import ConflictError
-from backend.models.auth import Organization, OrganizationCreate, TokenData, User, UserCreate, UserRole, UserUpdate
 from backend.database.wrapper import AbstractDatabase, AbstractTable
+from backend.exceptions import (
+    AppException,
+    AuthenticationError,
+    ConflictError,
+    ErrorCodes,
+    PermissionDeniedError,
+)
+from backend.models.auth import Organization, OrganizationCreate, TokenData, User, UserCreate, UserRole, UserUpdate
 
 # Secure Secret for Local Tokens (Impersonation)
 # In production, this MUST be set via environment variable.
@@ -34,7 +41,7 @@ class OrganizationRepository:
         """Initialize OrganizationRepository."""
         self.table: AbstractTable = db_client.table("organizations")
 
-    def get_by_id(self, org_id: str) -> Organization | None:
+    def get_by_id(self, org_id: str) -> Optional[Organization]:
         """Retrieves an organization by ID.
 
         Args:
@@ -64,7 +71,7 @@ class OrganizationRepository:
         self.table.insert(org.model_dump())
         return org
 
-    def list_all(self) -> list[Organization]:
+    def list_all(self) -> List[Organization]:
         """List all organizations."""
         results = []
         for o in self.table.all():
@@ -87,7 +94,7 @@ class UserRepository:
         """Initialize UserRepository."""
         self.table: AbstractTable = db_client.table("users")
 
-    def get_by_uid(self, uid: str) -> User | None:
+    def get_by_uid(self, uid: str) -> Optional[User]:
         """Retrieves user by UID.
 
         Args:
@@ -104,7 +111,7 @@ class UserRepository:
             return User(**result)
         return None
 
-    def get_by_email(self, email: str) -> User | None:
+    def get_by_email(self, email: str) -> Optional[User]:
         """Retrieve user by email."""
         # FIX: Use explicit Query object for robustness
         UserQuery = Query()
@@ -119,7 +126,7 @@ class UserRepository:
         self.table.insert(data)
         return user
 
-    def update(self, uid: str, updates: UserUpdate) -> User | None:
+    def update(self, uid: str, updates: UserUpdate) -> Optional[User]:
         """Update a user."""
         user = self.get_by_uid(uid)
         if not user:
@@ -135,7 +142,7 @@ class UserRepository:
         # Return updated
         return self.get_by_uid(uid)
 
-    def list_all(self) -> list[User]:
+    def list_all(self) -> List[User]:
         """List all users."""
         raw_users = self.table.all()
         return [User(**u) for u in raw_users]
@@ -146,7 +153,7 @@ class UserRepository:
         ids = self.table.remove(Query().uid == uid)
         return len(ids) > 0
 
-    def get_by_organization(self, org_id: str) -> list[User]:
+    def get_by_organization(self, org_id: str) -> List[User]:
         """Retrieve all users associated with an organization ID."""
         results = self.table.search(Query().organization_id == org_id)
         return [User(**u) for u in results]
@@ -169,7 +176,7 @@ class AuthService:
         if self.use_firebase:
             self._init_firebase()
 
-    def _init_firebase(self):
+    def _init_firebase(self) -> None:
         try:
             from firebase_admin import auth
 
@@ -202,7 +209,11 @@ class AuthService:
     def verify_token(self, token: str) -> TokenData:
         """Verifies a Bearer token.
 
-        Returns TokenData (uid, role, organization_id).
+        Returns:
+            TokenData: (uid, role, organization_id).
+
+        Raises:
+            AuthenticationError: If token is invalid or expired.
         """
         # 1. Local Signed Token (Impersonation / Internal)
         try:
@@ -212,10 +223,16 @@ class AuthService:
             if uid:
                 user = self.repo.get_by_uid(uid)
                 if not user:
-                    raise ValueError(f"Impersonated User not found: {uid}")
+                    raise AuthenticationError(
+                        message=f"Impersonated User not found: {uid}",
+                        details={"error_code": ErrorCodes.AUTH_TOKEN_EXPIRED} # Reusing token code or general
+                    )
                 return TokenData(uid=user.uid, role=user.role, email=user.email, organization_id=user.organization_id)
         except jwt.ExpiredSignatureError:
-            raise ValueError("Token expired") from None
+            raise AuthenticationError(
+                message="Token expired",
+                details={"error_code": ErrorCodes.AUTH_TOKEN_EXPIRED}
+            ) from None
         except jwt.PyJWTError:
             pass
 
@@ -230,7 +247,10 @@ class AuthService:
             # Check if user exists in our DB
             user = self.repo.get_by_uid(uid)
             if not user:
-                raise ValueError(f"Mock User not found for UID: {uid}")
+                raise AuthenticationError(
+                    message=f"Mock User not found for UID: {uid}",
+                    details={"error_code": ErrorCodes.PERMISSION_DENIED} # Or similar
+                )
 
             return TokenData(uid=user.uid, role=user.role, email=user.email, organization_id=user.organization_id)
 
@@ -252,7 +272,8 @@ class AuthService:
                     email=email if email else "unknown@example.com",
                     role=UserRole.MEMBER,
                     organization_id=None,  # Orphan user
-                created_at=datetime.now(timezone.utc),
+                    created_at=datetime.now(timezone.utc),
+                    # Created by System/Self
                 )
                 self.repo.create(new_user)
                 return TokenData(uid=uid, role=UserRole.MEMBER, email=email, organization_id=None)
@@ -262,7 +283,10 @@ class AuthService:
         except Exception as e:
             error_code = "AUTH_TOKEN_VERIFICATION_FAILED"
             logger.error(f"{error_code}: {e}", exc_info=True)
-            raise ValueError("Invalid credentials") from e
+            raise AuthenticationError(
+                message="Invalid credentials",
+                details={"error_code": error_code}
+            ) from e
 
     async def create_organization(self, creator_uid: str, org_create: OrganizationCreate) -> Organization:
         """Creates a new Tenant Organization and an initial Admin user for it.
@@ -271,7 +295,7 @@ class AuthService:
         """
         creator = self.repo.get_by_uid(creator_uid)
         if not creator or creator.role != UserRole.ROOT:
-            raise PermissionError("Only ROOT can create organizations.")
+            raise PermissionDeniedError("Only ROOT can create organizations.")
 
         # 1. Create Organization (Sync DB call in thread? Or just sync for now)
         # We'll run it sync as TinyDB is fast, but logically the method is async.
@@ -312,7 +336,7 @@ class AuthService:
     ) -> User:
         creator = self.repo.get_by_uid(creator_uid)
         if not creator:
-            raise ValueError("Creator not found")
+            raise AppException(message="Creator not found", status_code=404)
 
         target_org_id: str | None = None
         # Resolve Org ID
@@ -322,26 +346,27 @@ class AuthService:
             target_org_id = user_data.organization_id or creator.organization_id
         else:
             if user_data.organization_id and user_data.organization_id != creator.organization_id:
-                raise PermissionError("Cannot create users in other organizations.")
+                raise PermissionDeniedError("Cannot create users in other organizations.")
             target_org_id = creator.organization_id
 
         if user_data.role == UserRole.ROOT:
             if target_org_id != "system":
-                raise ValueError("Root users can only be created within the System Organization.")
+                raise PermissionDeniedError("Root users can only be created within the System Organization.")
             target_org_id = "system"  # Redundant safety, but ensures it matches
 
         # RULE: Organization MUST exist
         if target_org_id:
             if target_org_id == "system":
                 # System org acts as a special bootstrap case, but usually should exist.
-                # We'll allow it specifically if we are bootstrapping, otherwise check valid.
-                # Given ensure_root_user creates it, we can enforce check or just pass for resilience.
-                # Let's check it strictly.
                 pass
-
+            
             org_exists = self.org_repo.get_by_id(target_org_id)
-            if not org_exists:
-                raise ValueError(f"Target Organization '{target_org_id}' does not exist.")
+            if not org_exists and target_org_id != "system":
+                 raise AppException(
+                     message=f"Target Organization '{target_org_id}' does not exist.",
+                     status_code=404,
+                     details={"error_code": ErrorCodes.VALIDATION_FAILED}
+                 )
 
         # Enforce Role Hierarchy
         self._enforce_hierarchy(creator, user_data.role)
@@ -355,13 +380,19 @@ class AuthService:
                     email=user_data.email, password=user_data.password, display_name=user_data.display_name
                 )
                 new_uid = fb_user.uid
-            except Exception:
+            except Exception as e:
+                # Check for existing
                 try:
+                    # Logic to reuse existing...
                     existing = self.firebase_auth.get_user_by_email(user_data.email)
                     new_uid = existing.uid
                     logger.info(f"User {user_data.email} already in Firebase. Using existing UID.")
-                except Exception as e:
-                    raise ValueError(f"Failed to create Firebase user: {e}") from e
+                except Exception:
+                     raise AppException(
+                         message=f"Failed to create Firebase user: {e}",
+                         status_code=500,
+                         details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR}
+                     ) from e
         else:
             # Generate a mock UID
             new_uid = f"local_{uuid.uuid4().hex[:8]}"
@@ -391,19 +422,19 @@ class AuthService:
 
         return saved_user
 
-    def _enforce_hierarchy(self, creator: User, target_role: UserRole):
+    def _enforce_hierarchy(self, creator: User, target_role: UserRole) -> None:
         if creator.role == UserRole.ROOT:
             return
         if creator.role == UserRole.ADMIN:
             if target_role == UserRole.ROOT:
-                raise PermissionError("Admins cannot create Roots.")
+                raise PermissionDeniedError("Admins cannot create Roots.")
             return
         if creator.role == UserRole.MANAGER:
-            raise PermissionError("Managers are Technical Leads and cannot manage users. Ask an Admin.")
+            raise PermissionDeniedError("Managers are Technical Leads and cannot manage users. Ask an Admin.")
         if creator.role == UserRole.MEMBER:
-            raise PermissionError("This user role cannot create users")
+            raise PermissionDeniedError("This user role cannot create users")
 
-        raise PermissionError("This user role cannot create users")
+        raise PermissionDeniedError("This user role cannot create users")
 
     def _count_org_admins(self, org_id: str) -> int:
         if not org_id:
@@ -411,7 +442,7 @@ class AuthService:
         all_users = self.repo.list_all()
         return sum(1 for u in all_users if u.organization_id == org_id and u.role == UserRole.ADMIN)
 
-    async def get_users_by_organization(self, organization_id: str) -> list[User]:
+    async def get_users_by_organization(self, organization_id: str) -> List[User]:
         """Async retrieval of all users for a given organization."""
         return await asyncio.to_thread(self.repo.get_by_organization, organization_id)
 
@@ -424,19 +455,19 @@ class AuthService:
         target = await asyncio.to_thread(self.repo.get_by_uid, target_uid)
 
         if not initiator or not target:
-            raise ValueError("User not found")
+            raise AppException(message="User not found", status_code=404)
 
         # Permission Check
         if initiator.role != UserRole.ROOT:
             if initiator.role == UserRole.ADMIN:
                 if target.organization_id != initiator.organization_id:
-                    raise PermissionError("Cannot delete users from other organizations")
+                    raise PermissionDeniedError("Cannot delete users from other organizations")
             else:
-                raise PermissionError("Insufficient permissions to delete users")
+                raise PermissionDeniedError("Insufficient permissions to delete users")
 
         # ROOT PROTECTION
         if target_uid == "root_master":
-            raise PermissionError("The primary Root account cannot be deleted.")
+            raise PermissionDeniedError("The primary Root account cannot be deleted.")
 
         # LAST ADMIN PROTECTION
         if target.role == UserRole.ADMIN and target.organization_id:
@@ -490,10 +521,10 @@ class AuthService:
         initiator = await asyncio.to_thread(self.repo.get_by_uid, initiator_uid)
 
         if not initiator or initiator.role != UserRole.ROOT:
-            raise PermissionError("Only ROOT can delete organizations.")
+            raise PermissionDeniedError("Only ROOT can delete organizations.")
 
         if target_org_id == "system":
-            raise PermissionError("CRITICAL: The 'system' organization is protected and CANNOT be deleted.")
+            raise PermissionDeniedError("CRITICAL: The 'system' organization is protected and CANNOT be deleted.")
 
         # 2. Check Users
         logger.info("[AuthService] Fetching users to check for safety...")
@@ -504,12 +535,6 @@ class AuthService:
         logger.info(f"[AuthService] Organization {target_org_id} has {user_count} users.")
 
         if user_count > 0 and not force:
-            # Revert to standard ValueError (which FastAPI can allow routing exceptions for,
-            # 2. Check strict non-empty rule (unless force=False/True?)
-            # Usually we block unless force provided.
-            # or we map it to 409 Conflict in router).
-            # The client needs a specific code. We'll rely on the exception message or type.
-            # Best practice: Custom exception, but ValueError is standard for logic.
             raise ConflictError(
                 message=f"Organization is not empty ({user_count} users). Use force=True to delete.",
                 details={"error_code": "ORG_NOT_EMPTY", "count": user_count},
@@ -530,7 +555,7 @@ class AuthService:
         # 4. Delete Org Entity
         logger.info(f"[AuthService] Removing Organization {target_org_id} from DB...")
 
-        def _delete_org():
+        def _delete_org() -> None:
             self.org_repo.table.remove(Query().id == target_org_id)
 
         await asyncio.to_thread(_delete_org)
@@ -554,7 +579,7 @@ class AuthService:
         target = self.repo.get_by_uid(target_uid)
 
         if not initiator or not target:
-            raise ValueError("User not found")
+            raise AppException(message="User not found", status_code=404)
 
         # Permission Check
         if initiator.role != UserRole.ROOT:
@@ -562,18 +587,18 @@ class AuthService:
             if initiator_uid == target_uid:
                 # Allowed to update self, but check for Restricted fields (Role)
                 if updates.role is not None and updates.role != initiator.role:
-                    raise PermissionError("Users cannot change their own role.")
+                    raise PermissionDeniedError("Users cannot change their own role.")
             # Org Admin Check
             elif initiator.role == UserRole.ADMIN:
                 if target.organization_id != initiator.organization_id:
-                    raise PermissionError("Cannot update users from other organizations")
+                    raise PermissionDeniedError("Cannot update users from other organizations")
             else:
-                raise PermissionError("Insufficient permissions to update users")
+                raise PermissionDeniedError("Insufficient permissions to update users")
 
         # Organization Change Protection (Only ROOT can move users)
         if updates.organization_id is not None and updates.organization_id != target.organization_id:
             if initiator.role != UserRole.ROOT:
-                raise PermissionError("Only ROOT can transfer users between organizations.")
+                raise PermissionDeniedError("Only ROOT can transfer users between organizations.")
 
         # LAST ADMIN PROTECTION (Role Change)
         if updates.role is not None and target.role == UserRole.ADMIN:
@@ -590,7 +615,7 @@ class AuthService:
         updated_user = self.repo.update(target_uid, updates)
 
         if not updated_user:
-            raise ValueError("User update failed (not found despite check).")
+            raise AppException("User update failed (not found despite check).", status_code=500)
 
         # Audit
         if self.audit_service:
@@ -610,15 +635,15 @@ class AuthService:
         """Updates a user's role with strict Last Admin Protection.
 
         Raises:
-            PermissionError: If hierarchy is violated.
-            ValueError: If user not found.
+            PermissionDeniedError: If hierarchy is violated.
+            AppException: If user not found.
             ConflictError: If Last Admin Protection is triggered.
         """
         initiator = self.repo.get_by_uid(initiator_uid)
         target = self.repo.get_by_uid(target_uid)
 
         if not initiator or not target:
-            raise ValueError("User not found")
+            raise AppException(message="User not found", status_code=404)
 
         # 1. Access Control (Hierarchy)
         if initiator.role != UserRole.ROOT:
@@ -639,14 +664,14 @@ class AuthService:
             new_val = role_values.get(new_role, 0)
 
             if init_val < target_val:
-                raise PermissionError("Cannot modify users with higher or equal privileges.")
+                raise PermissionDeniedError("Cannot modify users with higher or equal privileges.")
             if init_val < new_val:
-                raise PermissionError("Cannot promote user to a role higher than your own.")
+                raise PermissionDeniedError("Cannot promote user to a role higher than your own.")
 
             # Org Constraint
             if initiator.role == UserRole.ADMIN:
                 if target.organization_id != initiator.organization_id:
-                    raise PermissionError("Cannot manage users in other organizations.")
+                    raise PermissionDeniedError("Cannot manage users in other organizations.")
 
         # 2. Last Admin Protection
         if target.role == UserRole.ADMIN and new_role != UserRole.ADMIN:
@@ -654,12 +679,15 @@ class AuthService:
                 count = await asyncio.to_thread(self._count_org_admins, target.organization_id)
                 if count <= 1:
                     # Specific error string to be caught by router
-                    raise RuntimeError("LAST_ADMIN_PROTECTION: Cannot demote the last Administrator.")
+                    raise ConflictError(
+                        message="LAST_ADMIN_PROTECTION: Cannot demote the last Administrator.",
+                        details={"error_code": "LAST_ADMIN_PROTECTION"}
+                    )
 
         # 3. Apply Update
         updated = self.repo.update(target_uid, UserUpdate(role=new_role))
         if not updated:
-            raise ValueError("User update failed (user reference lost).")
+             raise AppException("User update failed (user reference lost).", status_code=500)
 
         # 4. Audit
         if self.audit_service:
@@ -685,13 +713,17 @@ class AuthService:
         # 1. ROOT
         root = self.repo.get_by_uid("root_master")
         if not root:
-            # STRICT DB AUTHORITY: No fallback creation.
-            # User must run 'backend.seed.run_seed' to populate db.json.
-            logger.critical("No Root user found in database! Strict Authority Enforced. Please run seed script.")
-            # We return None or raise? If we raise, app startup crashes.
-            # If we log critical, app starts but Auth might fail.
-            # Let's log CRITICAL and return None/Raise.
-            raise RuntimeError("Root user 'root_master' missing from DB. Run 'python -m backend.seed.run_seed local'.")
+             # STRICT DB AUTHORITY: No fallback creation.
+             # User must run 'backend.seed.run_seed' to populate db.json.
+             logger.critical("No Root user found in database! Strict Authority Enforced. Please run seed script.")
+             # We return None or raise? If we raise, app startup crashes.
+             # If we log critical, app starts but Auth might fail.
+             # Let's log CRITICAL and return None/Raise.
+             raise AppException(
+                 message="Root user 'root_master' missing from DB. Run 'python -m backend.seed.run_seed local'.",
+                 status_code=500,
+                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
+             )
 
         if root.organization_id != "system":
             # Fix casing or drift if it was "SYSTEM" or None
@@ -699,32 +731,29 @@ class AuthService:
             self.repo.update("root_master", UserUpdate(organization_id="system"))
             root = self.repo.get_by_uid("root_master")  # Refresh
 
-            self.repo.update("root_master", UserUpdate(organization_id="system"))
-            root = self.repo.get_by_uid("root_master")  # Refresh
-
         if not root:
-            raise ValueError("Failed to obtain Root user.")
+             raise AppException(
+                 message="Failed to obtain Root user.",
+                 status_code=500,
+                 details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR}
+             )
 
         return root
 
     # --- Dependency Injection Helpers (Static) ---
     @staticmethod
-    def require_role(required_role: UserRole):
+    def require_role(required_role: UserRole) -> Callable:
         """Returns a dependency that validates the user has the required role.
 
         Implicitly allows ROOT for everything.
         """
-        from fastapi import Depends
+        from backend.dependencies import get_current_user_from_header
 
-        from backend.dependencies import get_current_user_from_header  # Lazy import
-
-        async def _role_checker(user: TokenData = Depends(get_current_user_from_header)):  # noqa: B008
+        async def _role_checker(user: TokenData = Depends(get_current_user_from_header)) -> TokenData:  # noqa: B008
             if user.role == UserRole.ROOT:
                 return user
 
             if user.role != required_role:
-                from backend.exceptions import PermissionDeniedError
-
                 raise PermissionDeniedError(
                     message=f"Insufficient privileges. Required: {required_role.value}",
                     details={"required_role": required_role.value, "current_role": user.role.value},
@@ -736,7 +765,7 @@ class AuthService:
     @staticmethod
     def get_current_user(
         from_header=None,  # Placeholder to match Depends signature if needed, but we delegate
-    ):
+    ) -> Callable:
         """Dependency alias for getting current user via header.
 
         Intended usage: user: TokenData = Depends(AuthService.get_current_user).

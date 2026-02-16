@@ -1,17 +1,21 @@
 """Reference management hooks for bibliography generation."""
 
+import json
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Dict, List
 
+from backend.exceptions import AppException
+from backend.models.domain import BibliographyItem, BibliographyResult
 from backend.services.reference_manager import ReferenceManager
 
+# TYPE_CHECKING block for circular dependencies if needed
 if TYPE_CHECKING:
     from backend.models.state import WorkflowState
 
 logger = logging.getLogger(__name__)
 
 
-def generate_bibliography(text_dump: str, knowledge_base: dict[str, Any]) -> list[str]:
+def generate_bibliography(text_dump: str, knowledge_base: Dict[str, Any]) -> List[Dict[str, Any]]:
     """HOOK: generate_bibliography.
 
     Scans the provided text dump for references using the ReferenceManager.
@@ -23,96 +27,102 @@ def generate_bibliography(text_dump: str, knowledge_base: dict[str, Any]) -> lis
         knowledge_base (Dict[str, Any]): The knowledge base structure containing references and concepts.
 
     Returns:
-        List[str]: A sorted list of unique, full bibliographic reference strings found in the text.
-
+        List[Dict[str, Any]]: A list of unique reference data objects found in the text.
     """
     if not knowledge_base:
         return []
 
     try:
         # Initialize ReferenceManager with the provided KB
-        # Note: ReferenceManager expects {"references": [...], "concepts": {...}}
-        # CoachAgent.knowledge_base follows this structure.
         rm = ReferenceManager(knowledge_base)
 
         # Use advanced scan to find both direct citations and concept-linked citations
+        # keys=citations, values=reference_data
         references_map = rm.advanced_scan(text_dump)
 
-        # We return just the keys (Full References) sorted
-        formatted_list = sorted(list(references_map.keys()))
+        # Return the reference data objects (values), sorted by title for consistency
+        # We assume reference data has a 'title' field, or we use the key
+        unique_refs = list(references_map.values())
+        
+        # Sort by title if available, else by source_id
+        unique_refs.sort(key=lambda x: str(x.get("title", "") or x.get("source_id", "")))
 
-        logger.debug(f"[ReferenceHook] Scan complete. Found {len(formatted_list)} unique references.")
-        return formatted_list
+        logger.debug(f"[ReferenceHook] Scan complete. Found {len(unique_refs)} unique references.")
+        return unique_refs
 
     except Exception as e:
-        logger.error(f"[ReferenceHook] Bibliography generation failed: {e}")
-        return []
+        error_code = "REFERENCES_GENERATION_FAILED"
+        logger.error(f"[ReferenceHook] {error_code}: {e}", exc_info=True)
+        raise AppException(
+            message=f"Bibliography generation failed: {e}",
+            status_code=500,
+            details={"error_code": error_code}
+        ) from e
 
 
-# --- WORKFLOW STATE WRAPPERS (for HOOK_MAPPING compatibility) ---
-
-
-def generate_bibliography_hook(state) -> WorkflowState:
-    """WorkflowState wrapper for generate_bibliography.
-
-    Extracts text from state, generates bibliography, and stores in aux_data.
-    """
+def generate_bibliography_hook(state) -> "WorkflowState":
+    """WorkflowState wrapper for generate_bibliography."""
     logger.debug("[ReferenceHook] Running generate_bibliography_hook...")
-
-    # Try to get text content from various sources
-    text_dump = ""
-
-    inputs = state.context_variables.get("inputs", {})
-    if isinstance(inputs, dict):
-        for field in ["history_text", "product_text", "reflection_text"]:
-            text = inputs.get(field, "") or ""
-            text_dump += text + "\n"
-
-    # Also include coach findings if available
-    if hasattr(state, "step_coach") and state.step_coach:
-        if hasattr(state.step_coach, "model_dump"):
-            import json
-
-            text_dump += json.dumps(state.step_coach.model_dump(), ensure_ascii=False)
-
-    if not text_dump.strip():
-        logger.warning("[ReferenceHook] No text to scan for references.")
-        return state
-
-    # Default knowledge base structure
-    # Use config from context if available, else default
-    # Note: aux_data is gone, so we check context_variables or default
-    knowledge_base = state.context_variables.get("knowledge_base", {"references": [], "concepts": {}})
-
-    references = generate_bibliography(text_dump, knowledge_base)
     
-    # Create strictly typed result
     try:
-        from backend.models.domain import BibliographyResult, BibliographyItem
+        # 1. Extract Text
+        text_dump = ""
+        inputs = state.context_variables.get("inputs", {})
+        if isinstance(inputs, dict):
+            for field in ["history_text", "product_text", "reflection_text"]:
+                text = inputs.get(field, "") or ""
+                text_dump += str(text) + "\n"
+
+        step_coach = getattr(state, "step_coach", None)
+        if step_coach and hasattr(step_coach, "model_dump"):
+            text_dump += json.dumps(step_coach.model_dump(), ensure_ascii=False)
+
+        if not text_dump.strip():
+            logger.warning("[ReferenceHook] No text to scan.")
+            return state
+
+        # 2. Get Knowledge Base
+        knowledge_base = state.context_variables.get("knowledge_base")
+        if knowledge_base is None:
+            knowledge_base = {"references": [], "concepts": {}}
+
+        # 3. Generate References
+        # This might raise REFERENCES_GENERATION_FAILED (AppException)
+        references = generate_bibliography(text_dump, knowledge_base)
+
+        # 4. Map to Domain Models
+        from backend.models.domain import BibliographyItem, BibliographyResult
         
-        items = []
-        if references:
-            for ref in references:
-                if isinstance(ref, dict):
-                     items.append(BibliographyItem(
-                        source_id=str(ref.get("source_id", "unknown")),
-                        title=str(ref.get("title", "Untitled")),
-                        url=ref.get("url"),
-                        snippet=ref.get("snippet")
-                    ))
-        
+        items: List[BibliographyItem] = []
+        for ref in references:
+            # We enforce strict typing here. 'ref' is a dict from generate_bibliography
+            if isinstance(ref, dict):
+                items.append(BibliographyItem(
+                    source_id=str(ref.get("source_id", "unknown")),
+                    title=str(ref.get("title", "Untitled")),
+                    url=ref.get("url"),
+                    snippet=ref.get("snippet")
+                ))
+
         result = BibliographyResult(references=items)
-    except ImportError:
-        logger.error("[ReferenceHook] Could not import BibliographyResult")
-        return state
 
-    # IMMUTABILITY FIX
-    new_context = state.context_variables.copy()
-    new_context["bibliography_result"] = result
-    
-    # Legacy support
-    new_context["bibliography"] = references
+        # 5. Update State
+        new_context = state.context_variables.copy()
+        new_context["bibliography_result"] = result
+        new_context["bibliography"] = [r.get("title", "Unknown") for r in references] # Legacy list of strings
 
-    logger.debug(f"[ReferenceHook] Generated {len(references)} references.")
+        logger.debug(f"[ReferenceHook] Generated {len(items)} references.")
+        return state.model_copy(update={"context_variables": new_context})
 
-    return state.model_copy(update={"context_variables": new_context})
+    except AppException:
+        # Re-raise AppExceptions directly (Fail Fast)
+        raise
+    except Exception as e:
+        # Catch unexpected errors in the hook wrapper
+        error_code = "REFERENCES_HOOK_FAILED"
+        logger.error(f"[ReferenceHook] {error_code}: {e}", exc_info=True)
+        raise AppException(
+            message=f"Bibliography hook failed: {e}",
+            status_code=500,
+            details={"error_code": error_code}
+        ) from e

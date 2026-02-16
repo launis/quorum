@@ -1,13 +1,25 @@
-import pytest
 import json
+
+import pytest
 from pydantic import ValidationError
-from backend.models.enums import (
-    RiskLevel, SimulationType, BloomLevel, StrategicDepth,
-    FidelityLevel, PlausibilityLevel, AbductiveConclusion, AuthenticityLevel
-)
+
 from backend.models.domain import (
-    SecurityCheck, CognitiveLevel, ReasoningFidelity,
-    CounterfactualTest, CausalAnalysis, PerformativityAnalysis
+    CausalAnalysis,
+    CognitiveLevel,
+    CounterfactualTest,
+    PerformativityAnalysis,
+    ReasoningFidelity,
+    SecurityCheck,
+)
+from backend.models.enums import (
+    AbductiveConclusion,
+    AuthenticityLevel,
+    BloomLevel,
+    FidelityLevel,
+    PlausibilityLevel,
+    RiskLevel,
+    SimulationType,
+    StrategicDepth,
 )
 
 # --- 1. SecurityCheck Tests ---
@@ -133,18 +145,18 @@ def test_performativity_analysis():
 
 def test_l10n_keys_exist():
     """Verify all Enum values exist in en.json."""
-    with open("backend/l10n/en.json", "r", encoding="utf-8") as f:
+    with open("backend/l10n/en.json", encoding="utf-8") as f:
         en_data = json.load(f)
-    
+
     enums_to_check = [
         RiskLevel, SimulationType, BloomLevel, StrategicDepth,
         FidelityLevel, PlausibilityLevel, AbductiveConclusion, AuthenticityLevel
     ]
-    
+
     missing_keys = []
     for enum_cls in enums_to_check:
         for member in enum_cls:
             if member.value not in en_data:
                 missing_keys.append(member.value)
-    
+
     assert not missing_keys, f"Missing L10n keys: {missing_keys}"

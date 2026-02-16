@@ -18,7 +18,7 @@ api_router = APIRouter()
 # Checking config/__init__.py: router = APIRouter() -> include_router(ontology_router prefix="/config")
 # So if we mount at /v1, it becomes /v1/config/ontology. Correct.
 
-api_router.include_router(config_router, prefix="/v1")
+api_router.include_router(config_router, prefix="/v1/config")
 
 # Execution router handles /execute, /executions internally.
 # Checking execution/__init__.py: router = APIRouter() -> includes lifecycle (prefix="/v1/execute")

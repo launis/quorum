@@ -5,15 +5,14 @@ retrieving organization details.
 """
 
 import logging
-from typing import Annotated, Any
+from typing import Annotated, Any, Dict, List
 
 from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel
 
-from backend.dependencies import AuthServiceDep, CurrentUserDep, RepositoryDep
+from backend.dependencies import AuditServiceDep, AuthServiceDep, CurrentUserDep, RepositoryDep
 from backend.models.auth import Organization, SubscriptionStatus, TokenData, UserRole
 from backend.services.auth import AuthService
-from backend.exceptions import ResourceNotFoundError
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +28,7 @@ class OrganizationCreateRequest(BaseModel):
     billing_id: str | None = None
     subscription_status: SubscriptionStatus = SubscriptionStatus.TRIAL
     quota_limit: float = 10.0
-    settings_override: dict[str, Any] | None = None
+    settings_override: Dict[str, Any] | None = None
 
 
 class OrganizationUpdate(BaseModel):
@@ -43,7 +42,7 @@ class OrganizationUpdate(BaseModel):
     quota_limit: float | None = None
     tpm_limit: int | None = None
     rpm_limit: int | None = None
-    settings_override: dict[str, Any] | None = None
+    settings_override: Dict[str, Any] | None = None
 
 
 class OrganizationResponse(BaseModel):
@@ -96,6 +95,7 @@ async def create_organization(
     user: Annotated[TokenData, Depends(AuthService.require_role(UserRole.ROOT))],
     repo: RepositoryDep,  # Injected
     auth: AuthServiceDep,
+    audit_service: AuditServiceDep,
 ):
     """Create a new Tenant Organization.
 
@@ -104,6 +104,7 @@ async def create_organization(
         user (TokenData): Requesting user (ROOT required).
         auth (AuthServiceDep): Authentication service.
         repo (RepositoryDep): Repository dependency.
+        audit_service (AuditServiceDep): Audit logging service.
 
     Returns:
         OrganizationResponse: The created organization.
@@ -143,10 +144,7 @@ async def create_organization(
 
     # AUDIT LOG (Phase 3)
     try:
-        from backend.services.audit_service import AuditService
-
-        audit = AuditService(repo)
-        await audit.log_event(
+        await audit_service.log_event(
             actor_uid=user.uid,
             action="ORG_CREATED",
             organization_id=item["id"],
@@ -199,7 +197,7 @@ async def get_my_organization(
     return OrganizationResponse(**Organization(**org).model_dump())
 
 
-@router.get("/", response_model=list[OrganizationResponse])
+@router.get("/", response_model=List[OrganizationResponse])
 async def list_organizations(
     user: Annotated[TokenData, Depends(AuthService.require_role(UserRole.ROOT))],
     repo: RepositoryDep,
@@ -211,7 +209,7 @@ async def list_organizations(
         repo (RepositoryDep): Repository dependency.
 
     Returns:
-        list[OrganizationResponse]: List of all organizations.
+        List[OrganizationResponse]: List of all organizations.
     """
     items = await repo.list_organizations()
     # Items are raw dicts (Documents). Wrap in Organization to apply defaults, then dump.
@@ -255,7 +253,9 @@ async def get_organization(
     return OrganizationResponse(**Organization(**org).model_dump())
 
 
-@router.get("/{org_id}/usage", response_model=dict[str, Any])
+from backend.models.dtos.organization import OrganizationUsageResponse
+
+@router.get("/{org_id}/usage", response_model=OrganizationUsageResponse)
 async def get_organization_usage(
     org_id: str,
     user: CurrentUserDep,
@@ -269,7 +269,7 @@ async def get_organization_usage(
         repo (RepositoryDep): Repository dependency.
 
     Returns:
-        dict: Usage stats (cost, limits, percentage).
+        OrganizationUsageResponse: Usage stats (cost, limits, percentage).
     """
     # 1. Access Control
     if user.role != UserRole.ROOT:
@@ -305,14 +305,14 @@ async def get_organization_usage(
         if org_model.quota_limit > 0:
             percentage = (total_cost / org_model.quota_limit) * 100
 
-        return {
-            "total_cost_usd": round(total_cost, 4),
-            "quota_limit_usd": org_model.quota_limit,
-            "tpm_limit": org_model.tpm_limit,
-            "rpm_limit": org_model.rpm_limit,
-            "percentage_used": round(percentage, 2),
-            "period": f"{now.year}-{now.month:02d}",
-        }
+        return OrganizationUsageResponse(
+            total_cost_usd=round(total_cost, 4),
+            quota_limit_usd=org_model.quota_limit,
+            tpm_limit=org_model.tpm_limit,
+            rpm_limit=org_model.rpm_limit,
+            percentage_used=round(percentage, 2),
+            period=f"{now.year}-{now.month:02d}",
+        )
 
     except Exception as e:
         from backend.exceptions import AppException
@@ -391,6 +391,7 @@ async def delete_organization(
     org_id: str,
     user: CurrentUserDep,
     repo: RepositoryDep,
+    audit_service: AuditServiceDep,
     force: bool = False,
 ):
     """Delete an organization.
@@ -399,6 +400,7 @@ async def delete_organization(
         org_id (str): Organization ID.
         user (CurrentUserDep): Requesting user.
         repo (RepositoryDep): Repository dependency.
+        audit_service (AuditServiceDep): Audit service.
         force (bool): If True, delete even if users exist.
     """
     # 1. Access Control
@@ -437,10 +439,7 @@ async def delete_organization(
 
         # AUDIT LOG (Phase 3)
         try:
-            from backend.services.audit_service import AuditService
-
-            audit = AuditService(repo)
-            await audit.log_event(
+            await audit_service.log_event(
                 actor_uid=user.uid,
                 action="ORG_DELETED",
                 organization_id=org_id,
@@ -465,6 +464,7 @@ async def create_organization_user(
     user: CurrentUserDep,
     auth_service: AuthServiceDep,
     repo: RepositoryDep,
+    audit_service: AuditServiceDep,
 ):
     """Create a user within an organization.
 
@@ -505,12 +505,7 @@ async def create_organization_user(
 
         # AUDIT LOG (Phase 3)
         try:
-            from backend.services.audit_service import AuditService
-
-            # We need Repo for Audit, but AuthServiceDep might opaque it.
-            # Usually AuthService has .repo.
-            audit = AuditService(repo)
-            await audit.log_event(
+            await audit_service.log_event(
                 actor_uid=user.uid,
                 action="USER_CREATED",
                 organization_id=org_id,
@@ -542,6 +537,7 @@ async def delete_organization_user(
     user: CurrentUserDep,
     repo: RepositoryDep,
     auth_service: AuthServiceDep,
+    audit_service: AuditServiceDep,
 ):
     """Delete a user from an organization."""
     # 1. Access Control
@@ -580,10 +576,7 @@ async def delete_organization_user(
 
         # AUDIT LOG (Phase 3)
         try:
-            from backend.services.audit_service import AuditService
-
-            audit = AuditService(repo)
-            await audit.log_event(
+            await audit_service.log_event(
                 actor_uid=user.uid, action="USER_DELETED", organization_id=org_id, target_uid=target_uid, details={}
             )
         except Exception as audit_err:

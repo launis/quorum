@@ -11,7 +11,6 @@ from typing import Annotated, Any
 from fastapi import (
     APIRouter,
     Body,
-    Header,
     status,
 )
 from fastapi import (
@@ -23,8 +22,12 @@ from backend.database.wrapper import AbstractDatabase
 from backend.dependencies import DatabaseDep, RegistryDep
 from backend.services.localization import localize_schema
 
+from backend.schemas.agent import AgentDefinition, AgentRunResponse
+
 # --- Local Imports ---
 # Rule 6: APIError must be the FIRST local import
+from backend.exceptions import AppException, ResourceNotFoundError
+
 
 logger = logging.getLogger(__name__)
 
@@ -67,12 +70,16 @@ def _load_agent_class(agent_name: str, db: AbstractDatabase):
 
 
 @router.post(
-    "/{agent_name}/run", summary="Run Specific Agent", response_description="The result of the agent execution."
+    "/{agent_name}/run",
+    summary="Run Specific Agent",
+    response_model=AgentRunResponse,
+    response_description="The result of the agent execution."
 )
 async def run_agent(
     agent_name: str,
     inputs: Annotated[dict[str, Any], Body(description="Key-value pairs representing the input state for the agent.")],
     db: DatabaseDep,
+    registry: RegistryDep,
     system_instruction: Annotated[str | None, Body(description="Optional system instruction override.")] = None,
     model: Annotated[str | None, Body(description="Optional model strategy override.")] = None,
 ):
@@ -82,42 +89,83 @@ async def run_agent(
         agent_name (str): The class name of the agent to run.
         inputs (Dict[str, Any]): Input data for the agent's context.
         system_instruction (Optional[str]): optional prompt override.
-        model (Optional[str]): optional model override.
+        model (Optional[str]): optional model override (strategy key or model name).
         db (DatabaseDep): Database dependency.
+        registry (RegistryDep): Registry dependency for strategy resolution.
 
     Returns:
-        dict: A dictionary containing the agent name and the execution result/state.
+        AgentRunResponse: A DTO containing the execution result.
 
     Raises:
-        HTTPException: If the agent cannot be loaded or execution fails.
+        ResourceNotFoundError: If the agent class cannot be loaded.
+        AppException: If execution fails (400 for validation, 500 for runtime).
 
     """
+    # 1. Resolve Strategy (Strict Mode: Database Only)
+    # Mandate: "Ensure that default doesn't come from anywhere [code]... give error if not from database"
+    if not model:
+        error_code = "AGENT_MISSING_MODEL"
+        raise AppException(
+            message="Model strategy is required. No default strategy is applied.",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": error_code},
+        )
+    
+    target_strategy = model
+
+    try:
+        resolved_model = await registry.resolve_model_name(target_strategy)
+    except ValueError as e:
+        # Strategy not found in DB -> Fail Fast (400)
+        error_code = "INVALID_MODEL_STRATEGY"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise AppException(
+            message=f"Model strategy '{target_strategy}' not configured in database.",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": error_code, "strategy": target_strategy},
+        ) from e
+    except Exception as e:
+         # Configuration Error -> 500
+         error_code = "MODEL_RESOLUTION_FAILED"
+         logger.error(f"{error_code}: {e}", exc_info=True)
+         raise AppException(
+             message="Failed to resolve model strategy.",
+             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+             details={"error_code": error_code},
+         ) from e
+
+    # 2. Load Agent Class (Strict)
     try:
         AgentClass = _load_agent_class(agent_name, db)
-        agent = AgentClass(model=model)
-
-        logger.info(f"Executing agent {agent_name} via API...")
-
-        # Manually construct a minimal state or pass kwargs?
-        # BaseAgent.execute expects (state, **kwargs).
-        # If the agent uses state attributes, we might need to wrap inputs in WorkflowState.
-        # But for simple testing, `execute` arguments vary.
-        # Let's assume standard **inputs passing for now as per original code.
-
-        result = await agent.execute(system_instruction=system_instruction, **inputs)
-        return {"agent": agent_name, "result": result}
-
     except ValueError as e:
-        from backend.exceptions import ResourceNotFoundError
-
+        # Load Error -> 404
         error_code = "AGENT_NOT_FOUND"
         logger.error(f"{error_code}: {e}", exc_info=True)
         raise ResourceNotFoundError(
             "Agent", agent_name, details={"error_code": error_code, "original_error": str(e)}
         ) from e
-    except Exception as e:
-        from backend.exceptions import AppException
 
+    # 3. Instantiate and Execute (Isolated Try-Catch)
+    try:
+        agent = AgentClass(model=resolved_model)
+        logger.info(f"Executing agent {agent_name} via API... Model: {resolved_model}")
+
+        result = await agent.execute(system_instruction=system_instruction, **inputs)
+        return AgentRunResponse(agent=agent_name, result=result)
+
+    except ValueError as e:
+        # Execution Validation Error -> 400 Bad Request
+        # Mandate: Fail Fast on invalid inputs
+        error_code = "AGENT_INPUT_INVALID"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise AppException(
+            message=str(e),
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": error_code},
+        ) from e
+
+    except Exception as e:
+        # Unexpected Runtime Error -> 500 Internal Server Error
         error_code = "AGENT_EXECUTION_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
         raise AppException(
@@ -129,7 +177,7 @@ async def run_agent(
 
 @router.get(
     "/",
-    response_model=list[dict],
+    response_model=list[AgentDefinition],
     summary="List All Agents",
     response_description="A list of available agents containing metadata and schemas.",
 )
@@ -150,26 +198,20 @@ async def list_agents(
         registry (RegistryDep): Injected registry service.
 
     Returns:
-        List[Dict]: A list of agent definition objects.
+        List[AgentDefinition]: A list of agent definition objects.
     """
-    # Debug wrapper removed, proper DI used.
-    # traceback moved to top level imports
-
     try:
-        agents_list = []
+        agents_list: list[AgentDefinition] = []
 
         # Force discovery if empty
         if not registry.agents_map:
             await registry.discover_and_register_agents()
 
         # 1. Resolve Global Strategies (for display suffixes)
-        try:
-            fast_model = await registry.resolve_model_name("fast")
-            deep_model = await registry.resolve_model_name("deep")
-        except Exception as e:
-            logger.debug(f"Failed to resolve global models: {e}")
-            fast_model = "unknown"
-            deep_model = "unknown"
+        # Fetch all strategies to support dynamic suffixes (Fast, Deep, Pro, Strict, etc.)
+        all_strategies = await registry.get_all_strategies()
+        # Filter for display: use only lowercase keys (strategies) to avoid Component Names (CamelCase)
+        display_strategies = {k: v for k, v in all_strategies.items() if k.islower()}
 
         # 2. Fetch Workflow Context to override defaults
         workflow_mapping = {}
@@ -202,27 +244,9 @@ async def list_agents(
 
         # 3. Build List
         for name, agent_instance in registry.agents_map.items():
-            # Schema Extraction
-            input_schema = None
-            if hasattr(agent_instance, "get_input_schema"):
-                try:
-                    schema_cls = agent_instance.get_input_schema()
-                    if schema_cls and hasattr(schema_cls, "model_json_schema"):
-                        input_schema = schema_cls.model_json_schema()
-                except Exception as e:
-                    logger.debug(f"Failed to get input_schema for {name}: {e}")
-
-            response_schema = None
-            if hasattr(agent_instance, "get_response_schema"):
-                try:
-                    schema_cls = agent_instance.get_response_schema()
-                    if schema_cls:
-                        if hasattr(schema_cls, "model_json_schema"):
-                            response_schema = schema_cls.model_json_schema()
-                        elif hasattr(schema_cls, "schema"):
-                            response_schema = schema_cls.schema()
-                except Exception as e:
-                    logger.debug(f"Failed to get response_schema for {name}: {e}")
+            # Schema Extraction (Simplified with helpers)
+            input_schema = _extract_schema(agent_instance, "get_input_schema")
+            output_schema = _extract_schema(agent_instance, "get_response_schema")
 
             # Determine Model Name (Workflow > Global Default)
             current_model = agent_instance.model
@@ -233,83 +257,40 @@ async def list_agents(
                 if step_id in workflow_mapping:
                     strategy_key = workflow_mapping[step_id]
 
-                    # Direct DB Fetch
+                    # Use Registry for Resolution (SSOT)
                     try:
-                        table = db.table("system_config")
-                        ConfigQuery = Query()
-                        res = table.search(ConfigQuery.type == "model_registry")
-
-                        db_strategies = {}
-                        if res and "models" in res[0]:
-                            db_strategies = res[0]["models"].get("google", {})
-
-                        if strategy_key in db_strategies:
-                            val = db_strategies[strategy_key]
-                            if isinstance(val, dict):
-                                current_model = val.get("model_name", current_model)
-                            else:
-                                current_model = str(val)
-                        else:
-                            current_model = f"ERROR: Strategy '{strategy_key}' not found in DB"
-
+                        current_model = await registry.resolve_model_name(strategy_key)
                     except Exception as e:
-                        current_model = f"ERROR: DB Query Failed: {str(e)}"
+                        current_model = f"ERROR: Strategy '{strategy_key}' Failed: {str(e)}"
                         logger.error(f"DIAGNOSTIC FAULT: {e}")
 
-            # Formatting Suffix
+            # Formatting Suffix - Dynamic
             model_display = current_model
-            if model_display == fast_model:
-                model_display = f"{model_display} (Fast)"
-            elif model_display == deep_model:
-                model_display = f"{model_display} (Deep)"
 
-            # DEBUG DIAGNOSTICS for UI
-            d_dbg = "[-]"
-            if name in agent_to_step_id:
-                d_sid = agent_to_step_id[name]
-                d_dbg = f"[SID:{d_sid}]"
-                if d_sid in workflow_mapping:
-                    d_sk = workflow_mapping[d_sid]
-                    d_dbg += f"[STR:{d_sk}]"
+            # Find matching strategy key
+            for s_key in sorted(display_strategies.keys()):
+                s_resolved = display_strategies[s_key]
+                if model_display == s_resolved:
+                    model_display = f"{model_display} ({s_key.capitalize()})"
+                    break
 
-                    if current_model == agent_instance.model and "deep" in d_sk:
-                        d_dbg += "[FAIL:NoUpd]"
-                    else:
-                        if "deep" in d_sk:
-                            d_dbg += "[UPDATED]"
-                        else:
-                            d_dbg += "[OK]"
-                else:
-                    d_dbg += "[NoMap]"
-            else:
-                d_dbg += "[NoStep]"
-
+            # Simplified Description
             desc_base = agent_instance.__doc__.strip() if agent_instance.__doc__ else "No description."
 
             agents_list.append(
-                {
-                    "name": name,
-                    "class": name,
-                    "description": f"{d_dbg} {desc_base}",
-                    "model": model_display,
-                    "input_schema": (
-                        localize_schema(input_schema)
-                        if input_schema
-                        else None
-                    ),
-                    "output_schema": (
-                        localize_schema(response_schema)
-                        if response_schema
-                        else None
-                    ),
-                }
+                AgentDefinition(
+                    name=name,
+                    class_name=name,
+                    description=desc_base,
+                    model=model_display,
+                    input_schema=localize_schema(input_schema) if input_schema else None,
+                    output_schema=localize_schema(output_schema) if output_schema else None,
+                )
             )
 
         return agents_list
 
     except Exception as e:
-        from backend.exceptions import AppException
-
         error_code = "AGENT_DISCOVERY_FAILED"
         logger.error(f"{error_code}: {e}", exc_info=True)
         raise AppException(
@@ -317,3 +298,18 @@ async def list_agents(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             details={"error_code": error_code},
         ) from e
+
+
+def _extract_schema(instance: Any, method_name: str) -> dict[str, Any] | None:
+    """Helper to extract Pydantic schema safely."""
+    if hasattr(instance, method_name):
+        try:
+            schema_cls = getattr(instance, method_name)()
+            if schema_cls:
+                if hasattr(schema_cls, "model_json_schema"):
+                    return schema_cls.model_json_schema()
+                elif hasattr(schema_cls, "schema"):
+                    return schema_cls.schema()
+        except Exception as e:
+            logger.debug(f"Failed to extract schema {method_name} for instance: {e}")
+    return None

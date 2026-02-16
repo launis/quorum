@@ -35,7 +35,7 @@ final class ModelRegistryControllerProvider
 }
 
 String _$modelRegistryControllerHash() =>
-    r'e6b2b516deca074aa2f248f822fbb341d9d3137c';
+    r'e95a969a8fa3f0e1a32d2579e69901ad23257342';
 
 abstract class _$ModelRegistryController
     extends $AsyncNotifier<ModelRegistryState> {

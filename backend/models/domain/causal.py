@@ -1,0 +1,149 @@
+"""Causal Agent Domain Models.
+
+This module contains the schemas for the Causal Agent,
+including counterfactual testing and abductive reasoning.
+"""
+
+from typing import Any
+
+from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator
+
+from backend.models.domain.base import ReasoningTrace
+from backend.models.enums import AbductiveConclusion, PlausibilityLevel
+
+
+class CausalAnalysisData(BaseModel):
+    """Data from Causal Audit."""
+
+    timeline_valid: bool = Field(
+        ...,
+        description="Is the timeline valid?",
+        json_schema_extra={"x-ui-label": "Timeline Valid"},
+    )
+    observation: str = Field(
+        ...,
+        description="General observations.",
+        json_schema_extra={"x-ui-label": "Observations"},
+    )
+    model_config = ConfigDict(frozen=True, strict=True)
+
+    @field_validator("observation")
+    @classmethod
+    def validate_non_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Field cannot be empty or whitespace only.")
+        return v.strip()
+
+
+class CounterfactualTest(BaseModel):
+    """Counterfactual test result."""
+
+    plausibility_score: PlausibilityLevel = Field(
+        ...,
+        description="Plausibility score.",
+        json_schema_extra={"x-ui-label": "Plausibility Score"},
+    )
+    plausibility_numeric: float = Field(
+        ...,
+        description="Numeric plausibility (1-3).",
+        json_schema_extra={"x-ui-label": "Plausibility Numeric"},
+    )
+    actual_scenario: str = Field(..., description="Actual outcome.", json_schema_extra={"x-ui-label": "Actual Scenario"})
+    simulation_result: str = Field(..., description="Simulation outcome.", json_schema_extra={"x-ui-label": "Simulation Result"})
+
+    @field_validator("actual_scenario", "simulation_result")
+    @classmethod
+    def validate_non_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Field cannot be empty or whitespace only.")
+        return v.strip()
+
+    @model_validator(mode="before")
+    @classmethod
+    def calc_plausibility(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            mapping = {
+                PlausibilityLevel.IMPOSSIBLE: 1.0,
+                PlausibilityLevel.PLAUSIBLE: 2.0,
+                PlausibilityLevel.HIGH: 3.0
+            }
+            val = data.get("plausibility_score")
+            # If numeric is missing, try to derive from score
+            if data.get("plausibility_numeric") is None and val:
+                 try:
+                    # Pydantic will validate the Enum type later, but here we try to map.
+                    # If val is a valid string/enum, we map it.
+                    # We don't need to over-validate type here, just map if known.
+                    enum_val = val if isinstance(val, PlausibilityLevel) else PlausibilityLevel(val)
+                    if enum_val in mapping:
+                        data["plausibility_numeric"] = mapping[enum_val]
+                 except ValueError:
+                    # Fail Fast: If we have a score but can't map it, it might be invalid.
+                    # However, Pydantic's main validation happens *after* this pre-validator (for the field itself).
+                    # But if we need the numeric value, we should ensure we can get it.
+                    # Let's let Pydantic handle the Enum validation failure for 'plausibility_score'.
+                    pass
+        return data
+
+    model_config = ConfigDict(frozen=True, strict=True)
+
+
+class CausalAnalysis(BaseModel):
+    """Causal analysis result."""
+
+    abductive_conclusion: AbductiveConclusion = Field(
+        ...,
+        description="Abductive conclusion type.",
+        json_schema_extra={"x-ui-label": "Abductive Conclusion"},
+    )
+    abductive_score: float = Field(
+        ...,
+        description="Numeric abductive score (1-3).",
+        json_schema_extra={"x-ui-label": "Abductive Score"},
+    )
+    counterfactual_test: CounterfactualTest = Field(
+        ...,
+        description="Counterfactual analysis.",
+        json_schema_extra={"x-ui-label": "Counterfactual Test"},
+    )
+    observation: str = Field(..., description="Observation.", json_schema_extra={"x-ui-label": "Observation"})
+    hypothesis: str = Field(..., description="Hypothesis.", json_schema_extra={"x-ui-label": "Hypothesis"})
+
+    @field_validator("observation", "hypothesis")
+    @classmethod
+    def validate_non_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Field cannot be empty or whitespace only.")
+        return v.strip()
+
+    @model_validator(mode="before")
+    @classmethod
+    def calc_abductive(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            mapping = {
+                AbductiveConclusion.POST_HOC: 1.0,
+                AbductiveConclusion.UNCERTAIN: 2.0,
+                AbductiveConclusion.GENUINE: 3.0
+            }
+            val = data.get("abductive_conclusion")
+            if data.get("abductive_score") is None and val:
+                try:
+                    enum_val = val if isinstance(val, AbductiveConclusion) else AbductiveConclusion(val)
+                    if enum_val in mapping:
+                        data["abductive_score"] = mapping[enum_val]
+                except ValueError:
+                    pass
+        return data
+
+    model_config = ConfigDict(frozen=True, strict=True)
+
+
+class CausalOutput(ReasoningTrace):
+    """Output schema for the Causal Agent."""
+
+    causal_analysis: CausalAnalysis = Field(
+        ...,
+        description="Causal audit result.",
+        json_schema_extra={"x-ui-label": "Causal Audit"},
+    )
+    model_config = ConfigDict(frozen=True, strict=True)

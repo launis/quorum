@@ -6,10 +6,11 @@ based on the application configuration.
 import logging
 from functools import lru_cache
 
-from backend.services.file_driver import FileDriver
-from backend.services.drivers.local_file_driver import LocalFileDriver
 from backend.services.drivers.gcs_file_driver import GCSFileDriver
-from backend.settings import get_settings, StorageBackend
+from backend.services.drivers.local_file_driver import LocalFileDriver
+from backend.services.file_driver import FileDriver
+from backend.settings import StorageBackend, get_settings
+from backend.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
 
@@ -35,8 +36,10 @@ def get_storage_driver() -> FileDriver:
     if backend == StorageBackend.FIRESTORE:
         bucket_name = settings.storage_bucket_name
         if not bucket_name:
-            raise ValueError(
-                "CRITICAL: STORAGE_BACKEND=FIRESTORE requires STORAGE_BUCKET_NAME to be set."
+            raise AppException(
+                message="CRITICAL: STORAGE_BACKEND=FIRESTORE requires STORAGE_BUCKET_NAME to be set.",
+                status_code=500,
+                details={"error_code": ErrorCodes.STORAGE_CONFIG_ERROR}
             )
         logger.info(f"Initializing GCSFileDriver with bucket: {bucket_name}")
         return GCSFileDriver(bucket_name=bucket_name)
@@ -44,6 +47,6 @@ def get_storage_driver() -> FileDriver:
     # Default to Local for LOCAL and MOCK backends
     base_path = settings.files_dir
     base_url = f"{settings.api_url}/files" if settings.api_url else None
-    
+
     logger.info(f"Initializing LocalFileDriver at: {base_path}")
     return LocalFileDriver(base_path=base_path, base_url=base_url)

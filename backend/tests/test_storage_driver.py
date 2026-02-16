@@ -1,14 +1,14 @@
 """Tests for Storage Driver Pattern."""
 
-import pytest
-import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 from backend.database.driver import Filter, StorageDriver
-from backend.database.tinydb_driver import TinyDBDriver
 from backend.database.firestore_driver import FirestoreDriver
-from backend.database.wrapper import TinyDBClient, AbstractDatabase, AbstractTable
+from backend.database.tinydb_driver import TinyDBDriver
+from backend.database.wrapper import TinyDBClient
 
 # --- TinyDB Tests ---
 
@@ -28,28 +28,28 @@ async def test_tinydb_crud(tinydb_driver):
     collection = "test_col"
     doc_id = "doc1"
     data = {"name": "Test Item", "value": 42}
-    
+
     # Create (Upsert)
     res_id = await tinydb_driver.upsert(collection, data, doc_id)
     assert res_id == doc_id
-    
+
     # Read
     doc = await tinydb_driver.get(collection, doc_id)
     assert doc is not None
     assert doc["name"] == "Test Item"
     assert doc["id"] == doc_id
-    
+
     # Update
     success = await tinydb_driver.update(collection, doc_id, {"value": 100})
     assert success is True
-    
+
     doc = await tinydb_driver.get(collection, doc_id)
     assert doc["value"] == 100
-    
+
     # Delete
     success = await tinydb_driver.delete(collection, doc_id)
     assert success is True
-    
+
     doc = await tinydb_driver.get(collection, doc_id)
     assert doc is None
 
@@ -64,16 +64,16 @@ async def test_tinydb_query(tinydb_driver):
     ]
     for item in items:
         await tinydb_driver.upsert(collection, item, item["id"])
-        
+
     # Filter: type == "A"
     results = await tinydb_driver.query(collection, [Filter("type", "==", "A")])
     assert len(results) == 2
     assert all(r["type"] == "A" for r in results)
-    
+
     # Filter: score > 15
     results = await tinydb_driver.query(collection, [Filter("score", ">", 15)])
     assert len(results) == 2
-    
+
     # Sort
     results = await tinydb_driver.query(collection, order_by="score", descending=True)
     assert results[0]["id"] == "3"
@@ -88,17 +88,17 @@ def mock_firestore_client():
     # Mock collection().document().set() chain
     # collection() is SYNC returning a CollectionReference
     client.collection = MagicMock()
-    
+
     # document() is SYNC returning a DocumentReference
     doc_ref_mock = MagicMock()
     client.collection.return_value.document.return_value = doc_ref_mock
-    
+
     # set(), get(), update(), delete() are ASYNC methods on DocumentReference
     doc_ref_mock.set = AsyncMock()
     doc_ref_mock.get = AsyncMock()
     doc_ref_mock.update = AsyncMock()
     doc_ref_mock.delete = AsyncMock()
-    
+
     return client
 
 @pytest.mark.asyncio
@@ -107,9 +107,9 @@ async def test_firestore_upsert(mock_firestore_client):
     collection = "test_col"
     doc_id = "doc1"
     data = {"name": "Firestore Item"}
-    
+
     await driver.upsert(collection, data, doc_id)
-    
+
     # Verify calls
     mock_firestore_client.collection.assert_called_with(collection)
     mock_firestore_client.collection.return_value.document.assert_called_with(doc_id)
@@ -124,15 +124,15 @@ async def test_firestore_upsert(mock_firestore_client):
 @pytest.mark.asyncio
 async def test_firestore_get(mock_firestore_client):
     driver = FirestoreDriver(mock_firestore_client)
-    
+
     # Mock return value
     mock_doc = MagicMock()
     mock_doc.exists = True
     mock_doc.to_dict.return_value = {"id": "doc1", "val": "test"}
-    
+
     mock_get = mock_firestore_client.collection.return_value.document.return_value.get
     mock_get.return_value = mock_doc
-    
+
     res = await driver.get("col", "doc1")
     assert res["val"] == "test"
 
@@ -160,19 +160,20 @@ def test_firestore_serialization(mock_firestore_client):
 
 from backend.database.repository import UnifiedWorkflowRepository
 
+
 @pytest.mark.asyncio
 async def test_repo_delegation():
     """Test that Repository properly delegates to Driver."""
     mock_driver = AsyncMock(spec=StorageDriver)
     repo = UnifiedWorkflowRepository(mock_driver)
-    
+
     # Test get_execution
     mock_driver.get.return_value = {"id": "ex1", "status": "running"}
     res = await repo.get_execution("ex1")
-    
+
     assert res["id"] == "ex1"
     mock_driver.get.assert_called_with("executions", "ex1")
-    
+
     # Test create_execution
     await repo.create_execution({"user_id": "u1"})
     mock_driver.upsert.assert_called_once()

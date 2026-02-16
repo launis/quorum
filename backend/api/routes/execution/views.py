@@ -10,6 +10,7 @@ from backend.database.repository import AbstractWorkflowRepository
 from backend.dependencies import get_async_repository
 from backend.exceptions import AppException, ResourceNotFoundError
 from backend.logging_config import log_error
+from backend.models.dtos.execution import ExecutionRawResponse
 from backend.models.view import ReportView
 from backend.schemas.error import APIError
 from backend.services.auth import AuthService
@@ -56,58 +57,120 @@ async def get_execution_view(
         # ReportTransformer might not use steps list yet, but let's be consistent if we merge logic later.
         # Currently ReportView is different from AssessmentView.
         # If we use AssessmentTransformer here (for some reason?), we should pass steps.
-        
+
         # Wait, views.py uses ReportTransformer for the "Report View" (Final Output).
-        # Does ReportView need the step list? Not strictly. 
+        # Does ReportView need the step list? Not strictly.
         # But if we were using AssessmentTransformer here...
-        
+
         # Let's check imports. views.py imports ReportTransformer.
         # bff_transformer.py defines AssessmentTransformer AND ReportTransformer.
-        # Does ReportTransformer need steps? 
+        # Does ReportTransformer need steps?
         # Usually it just renders the report content.
-        
+
         # However, for 'get_execution_view', if it returns ReportView, that's the "Result" screen.
         # It DOES contain 'steps' logic if we want to show the timeline there too?
         # ReportView in models/view.py might not have 'steps'.
-        
-        # Let's assume ReportTransformer doesn't need it yet, 
+
+        # Let's assume ReportTransformer doesn't need it yet,
         # BUT if I ever switch this to return AssessmentView (Monitoring), I'll need it.
         # For now, I'll leave views.py alone UNLESS I see it using AssessmentTransformer.
-        
+
         # Actually... let's check monitor.py again. monitor.py uses AssessmentTransformer.
         # views.py uses ReportTransformer.
-        
-        # The user request was "list only from database". 
+
+        # The user request was "list only from database".
         # This primarily affects the Monitoring Screen (AssessmentTransformer).
         # So monitor.py change is the critical one.
-        
+
+        if accept_language:
+            transformer.language = accept_language
+
         # Resolve Scale (Simplified for now)
         valid_range = None
+        # if execution... (logic to extract scale)
 
         view = transformer.transform(raw_data, valid_range=valid_range)
         return view
 
-
     except ResourceNotFoundError as e:
         raise AppException(
-            message=str(e), status_code=status.HTTP_404_NOT_FOUND, details={"error_code": "EXECUTION_NOT_FOUND"}
+            message=str(e),
+            status_code=status.HTTP_404_NOT_FOUND,
+            details={"error_code": "EXECUTION_NOT_FOUND"}
         ) from e
+    except AppException:
+        raise
     except Exception as e:
         error_code = "VIEW_TRANSFORMATION_FAILED"
-        wrapped = AppException(
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise AppException(
             message=str(e),
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             details={"error_code": error_code}
-        )
-        log_error(logger, wrapped)
-        raise wrapped from e
+        ) from e
+
+
+@router.get(
+    "/{execution_id}/json",
+    summary="Export Execution JSON",
+    description="Returns the execution report as a raw JSON dump (Common Intermediate Representation).",
+    response_model=ReportView,
+    responses={
+        404: {"model": APIError, "description": "Execution not found"},
+        500: {"model": APIError, "description": "Export failed"},
+    },
+)
+async def get_execution_json_export(
+    execution_id: str,
+    repository: AbstractWorkflowRepository = Depends(get_async_repository),
+):
+    """Exports the ReportView as a JSON dictionary (CIR)."""
+    try:
+        # 1. Fetch Execution (Fail Fast)
+        execution = await repository.get_execution(execution_id)
+        if not execution:
+            raise ResourceNotFoundError(f"Execution '{execution_id}' not found.")
+
+        # 2. Transform to View Model
+        # Use default language (en) or assume neutrality for machine export
+        transformer = ReportTransformer(language="en")
+        
+        if hasattr(execution, "model_dump"):
+            raw_data = execution.model_dump()
+        elif hasattr(execution, "dict"):
+             raw_data = execution.dict()
+        else:
+            raw_data = execution
+
+        view = transformer.transform(raw_data)
+
+        # 3. Return View Model
+        # FastAPI handles serialization (including dates/enum values) based on response_model
+        return view
+
+    except ResourceNotFoundError as e:
+        raise AppException(
+            message=str(e),
+            status_code=status.HTTP_404_NOT_FOUND,
+            details={"error_code": "EXECUTION_NOT_FOUND"}
+        ) from e
+    except AppException:
+        raise
+    except Exception as e:
+        error_code = "EXPORT_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise AppException(
+            message=str(e),
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": error_code}
+        ) from e
 
 
 @router.get(
     "/{execution_id}/raw",
     summary="Get Raw Execution Data",
     description="Returns complete raw execution data including agent and hook outputs.",
-    response_model=dict[str, Any],
+    response_model=ExecutionRawResponse,
 )
 async def get_execution_raw(
     execution_id: str,
@@ -171,7 +234,7 @@ async def get_execution_raw(
         raw_data["hook_outputs"] = results.get("aux_data", {})
         raw_data["xai_report"] = results.get("xai_report_formatted", "")
 
-        return raw_data
+        return ExecutionRawResponse(**raw_data)
 
     except ResourceNotFoundError as e:
         raise AppException(
@@ -179,8 +242,7 @@ async def get_execution_raw(
         ) from e
     except Exception as e:
         error_code = "RAW_DATA_FETCH_FAILED"
-        wrapped = AppException(
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise AppException(
             message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"error_code": error_code}
-        )
-        log_error(logger, wrapped)
-        raise wrapped from e
+        ) from e

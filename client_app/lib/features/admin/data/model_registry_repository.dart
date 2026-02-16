@@ -45,6 +45,15 @@ class ModelRegistryRepository {
     }
   }
 
+  Future<Either<AppError, Unit>> deleteProvider(String providerId) async {
+    try {
+      await _client.delete<void>('/v1/config/models/$providerId');
+      return const Right(unit);
+    } catch (e, st) {
+      return Left(_handleError(e, st));
+    }
+  }
+
   Future<Either<AppError, AdHocTestResult>> runAdHocTest(
     AdHocTestRequest request,
   ) async {
@@ -76,10 +85,17 @@ class ModelRegistryRepository {
       final data = response.data;
       if (data == null) return const Right({});
 
+      // STRICT SSOT: Backend sends ModelOptionsResponse(options=...)
+      final optionsMap = data['options'];
+      if (optionsMap is! Map) {
+          // Fallback or returned empty?
+          return const Right({});
+      }
+
       final map = <String, List<String>>{};
-      data.forEach((key, value) {
+      optionsMap.forEach((key, value) {
         if (value is List) {
-          map[key] = value.map((e) => e.toString()).toList();
+          map[key.toString()] = (value as List).map((e) => e.toString()).toList();
         }
       });
       return Right(map);

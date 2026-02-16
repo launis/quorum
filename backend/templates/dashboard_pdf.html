@@ -33,7 +33,12 @@
             margin-bottom: 12px;
             background-color: #fff;
             break-inside: avoid;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            background-color: #fff;
+            break-inside: avoid;
         }
         
         .header-card {
@@ -137,6 +142,18 @@
             border: 1px solid #3F51B5;
             transform: translate(-50%, 50%); /* Correct origin for bottom-left coords */
         }
+        
+        .strategy-box {
+            display: block;
+            background-color: #E3F2FD;
+            border: 1px solid #90CAF9;
+            color: #1565C0;
+            padding: 6px 8px;
+            border-radius: 4px;
+            margin-bottom: 4px;
+            font-size: 10px;
+            line-height: 1.3;
+        }
     </style>
 </head>
 <body>
@@ -153,6 +170,18 @@
         <div style="font-size: 10px; color: #666;">ID: {{ view.view_id }}</div>
     </div>
 
+    {# --- SYSTEM NOTIFICATION BANNER --- #}
+    {% if view.system_notification %}
+    <div class="card" style="border-left: 4px solid {{ '#F44336' if view.system_notification.level == 'danger' else '#FF9800' }}; background-color: {{ '#FFEBEE' if view.system_notification.level == 'danger' else '#FFF3E0' }};">
+        <h2 style="color: {{ '#C62828' if view.system_notification.level == 'danger' else '#E65100' }}; margin-bottom: 5px; border-bottom: none;">
+            ⚠️ {{ view.system_notification.title }}
+        </h2>
+        <div style="font-size: 11px; color: {{ '#B71C1C' if view.system_notification.level == 'danger' else '#BF360C' }};">
+            {{ view.system_notification.message }}
+        </div>
+    </div>
+    {% endif %}
+
     {% for section in view.sections %}
     <div class="section-wrapper">
         
@@ -163,121 +192,126 @@
             {% set d = section.data %}
             
             {# Cognitive Level Box #}
-            {% if d.cognitive_level is defined and d.cognitive_level %}
-            {# --- PRE-CALC LABELS --- #}
-            {% set bloom_raw = d.cognitive_level.bloom_level|string %}
-            {% set bloom_display = bloom_raw %}
-            {% if 'REMEMBERING' in bloom_raw %}{% set bloom_display = 'Remembering (Muistaminen)' %}
-            {% elif 'UNDERSTANDING' in bloom_raw %}{% set bloom_display = 'Understanding (Ymmärtäminen)' %}
-            {% elif 'APPLYING' in bloom_raw %}{% set bloom_display = 'Applying (Soveltaminen)' %}
-            {% elif 'ANALYZING' in bloom_raw %}{% set bloom_display = 'Analyzing (Analysointi)' %}
-            {% elif 'EVALUATING' in bloom_raw %}{% set bloom_display = 'Evaluating (Arviointi)' %}
-            {% elif 'CREATING' in bloom_raw %}{% set bloom_display = 'Creating (Luominen)' %}
+            {% if view.metrics %}
+            <div class="box-teal" style="margin-bottom: 15px;">
+                <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                    <span style="font-size: 16px; margin-right: 8px;">📊</span>
+                    <div class="label" style="color: #00695C;">{{ 'TEXT_METRICS_LABEL' | translate }}</div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+                    <div style="text-align: center; background: rgba(0, 150, 136, 0.1); padding: 5px; border-radius: 4px;">
+                        <div style="font-size: 10px; color: #00796B;">{{ 'WORDS_LABEL' | translate }}</div>
+                        <div style="font-weight: bold; color: #004D40;">{{ view.metrics.word_count_display | default(view.metrics.word_count) }}</div>
+                    </div>
+                    <div style="text-align: center; background: rgba(0, 150, 136, 0.1); padding: 5px; border-radius: 4px;">
+                        <div style="font-size: 10px; color: #00796B;">{{ 'SENTENCES_LABEL' | translate }}</div>
+                        <div style="font-weight: bold; color: #004D40;">{{ view.metrics.sentence_count }}</div>
+                    </div>
+                     <div style="text-align: center; background: rgba(0, 150, 136, 0.1); padding: 5px; border-radius: 4px;">
+                        <div style="font-size: 10px; color: #00796B;">{{ 'DIVERSITY_LABEL' | translate }}</div>
+                        <div style="font-weight: bold; color: #004D40;">{{ view.metrics.lexical_diversity_display | default(view.metrics.lexical_diversity) }}</div>
+                    </div>
+                </div>
+            </div>
             {% endif %}
 
-            {% set strat_raw = d.cognitive_level.strategic_depth|string %}
-            {% set strat_display = strat_raw %}
-            {% if 'LOW' in strat_raw %}{% set strat_display = 'Tactical (Taktinen)' %}
-            {% elif 'MEDIUM' in strat_raw %}{% set strat_display = 'Operational (Operatiivinen)' %}
-            {% elif 'HIGH' in strat_raw %}{% set strat_display = 'Strategic (Strateginen)' %}
-            {% elif 'VISIONARY' in strat_raw %}{% set strat_display = 'Visionary (Visionäärinen)' %}
-            {% endif %}
-
+            {% if d.logic_display %}
             <div class="box-teal">
                 <div style="display: flex; align-items: center; margin-bottom: 5px;">
                     <span style="font-size: 16px; margin-right: 8px;">🧠</span>
                     <div>
-                        <div class="label" style="color: #00695C;">Cognitive Level (Bloom)</div>
-                        <div class="value" style="color: #004D40;">{{ bloom_display }}</div>
+                        <div class="label" style="color: #00695C;">{{ 'COGNITIVE_LEVEL_LABEL' | translate }}</div>
+                        <div class="value" style="color: #004D40;">{{ d.logic_display.bloom_label }}</div>
                     </div>
                 </div>
                 
                 {# Bloom Score Gauge #}
-                {% if d.cognitive_level.bloom_score is defined and d.cognitive_level.bloom_score is not none %}
+                {% if d.logic_display.bloom_percent is not none %}
                 <div class="gauge-container">
                     <div class="gauge-header">
                         <span class="label">Bloom Score</span>
-                        <span class="value" style="color: #00796B;">{{ d.cognitive_level.bloom_score }} / 6.0</span>
+                        <span class="value" style="color: #00796B;">{{ d.logic_display.bloom_score_display }} / 6.0</span>
                     </div>
-                    {% set b_pct = (d.cognitive_level.bloom_score / 6.0) * 100 %}
                     <div class="gauge-track">
-                        <div class="gauge-bar" style="--v: {{ b_pct|round(1) }}; width: calc(var(--v) * 1%); background-color: #009688;"></div>
+                        <div class="gauge-bar" style="--v: {{ d.logic_display.bloom_percent | round(1) }}; width: calc(var(--v) * 1%); background-color: #009688;"></div>
                     </div>
                     <div class="gauge-labels" style="justify-content: space-between;">
-                        <span>Remember</span>
-                        <span>Understand</span>
-                        <span>Apply</span>
-                        <span>Analyze</span>
-                        <span>Evaluate</span>
-                        <span>Create</span>
+                        <span>{{ 'BLOOM_REMEMBERING' | translate }}</span>
+                        <span>{{ 'BLOOM_UNDERSTANDING' | translate }}</span>
+                        <span>{{ 'BLOOM_APPLYING' | translate }}</span>
+                        <span>{{ 'BLOOM_ANALYZING' | translate }}</span>
+                        <span>{{ 'BLOOM_EVALUATING' | translate }}</span>
+                        <span>{{ 'BLOOM_CREATING' | translate }}</span>
                     </div>
                 </div>
                 {% endif %}
 
                 {# Strategic Depth Gauge #}
-                {% if d.cognitive_level.strategic_score is defined and d.cognitive_level.strategic_score is not none %}
+                {% if d.logic_display.strategic_percent is not none %}
                 <div class="gauge-container">
                     <div class="gauge-header">
-                        <span class="label">Strategic Depth</span>
-                        <span class="value" style="color: #00796B;">{{ d.cognitive_level.strategic_score }} / 4.0</span>
+                        <span class="label">{{ 'STRATEGIC_DEPTH_LABEL' | translate }}</span>
+                        <span class="value" style="color: #00796B;">{{ d.logic_display.strategic_score_display }} / 4.0</span>
                     </div>
-                    {% set s_pct = (d.cognitive_level.strategic_score / 4.0) * 100 %}
                     <div class="gauge-track">
-                        <div class="gauge-bar" style="--v: {{ s_pct|round(1) }}; width: calc(var(--v) * 1%); background-color: #00796B;"></div>
+                        <div class="gauge-bar" style="--v: {{ d.logic_display.strategic_percent | round(1) }}; width: calc(var(--v) * 1%); background-color: #00796B;"></div>
                     </div>
                     <div class="gauge-labels" style="justify-content: space-between;">
-                        <span>Tactical</span>
-                        <span>Operational</span>
-                        <span>Strategic</span>
-                        <span>Visionary</span>
+                        <span>{{ 'STRAT_LOW' | translate }}</span>
+                        <span>{{ 'STRAT_MEDIUM' | translate }}</span>
+                        <span>{{ 'STRAT_HIGH' | translate }}</span>
+                        <span>{{ 'STRAT_VISIONARY' | translate }}</span>
                     </div>
                 </div>
                 {% endif %}
                 
+                {% if d.logic_display.strategic_label %}
                 <div style="font-size: 11px; margin-top: 4px; color: #004D40;">
-                    <strong>Insight:</strong> {{ strat_display }}
+                    <strong>{{ 'INSIGHT_LABEL' | translate }}:</strong> {{ d.logic_display.strategic_label }}
                 </div>
+                {% endif %}
             </div>
             {% endif %}
 
             {# Arguments List #}
-            {% if d.toulmin_analysis is defined and d.toulmin_analysis %}
+            {% if d.logic_display.arguments %}
             <div style="margin-top: 15px;">
-                <div class="label" style="margin-bottom: 5px;">ARGUMENTS (TOULMIN)</div>
-                {% for arg in d.toulmin_analysis %}
+                <div class="label" style="margin-bottom: 5px;">{{ 'ARGUMENTS_TOULMIN_LABEL' | translate }}</div>
+                {% for arg in d.logic_display.arguments %}
                 <div style="margin-bottom: 8px; border: 1px solid #eee; border-radius: 4px;">
                     <div style="background: #ECEFF1; padding: 6px; font-weight: 600; font-size: 10px; color: #546E7A;">
-                        CLAIM: {{ arg.claim }}
+                        {{ 'CLAIM_LABEL' | translate }}: {{ arg.claim }}
                     </div>
                     <div style="padding: 6px; font-size: 10px; color: #455A64;">
-                        <span style="font-weight: 600; color: #78909C;">WARRANT:</span> {{ arg.warrant }}
+                        <span style="font-weight: 600; color: #78909C;">{{ 'WARRANT_LABEL' | translate }}:</span> {{ arg.warrant }}
                     </div>
                 </div>
                 {% endfor %}
             </div>
             
             {# Toulmin Integrity Gauge (Index 3.0 equivalent) #}
-            {% if d.toulmin_score is defined and d.toulmin_score is not none %}
+            {% if d.logic_display %}
+            {% if d.logic_display.toulmin_percent is not none %}
             <div class="gauge-container" style="margin-top: 12px; padding: 10px; background: #E8EAF6; border-radius: 6px;">
                 <div class="gauge-header">
-                    <span class="label" style="color: #3949AB;">Argument Integrity</span>
-                    <span class="value" style="color: #283593;">{{ d.toulmin_score }} / 6.0</span>
+                    <span class="label" style="color: #3949AB;">{{ 'ARGUMENT_INTEGRITY_LABEL' | translate }}</span>
+                    <span class="value" style="color: #283593;">{{ d.logic_display.toulmin_score_display }} / 6.0</span>
                 </div>
-                {% set t_pct = (d.toulmin_score / 6.0) * 100 %}
                 <div class="gauge-track" style="background: #C5CAE9;">
-                    <div class="gauge-bar" style="--v: {{ t_pct|round(1) }}; width: calc(var(--v) * 1%); background-color: #3F51B5;"></div>
+                    <div class="gauge-bar" style="--v: {{ d.logic_display.toulmin_percent | round(1) }}; width: calc(var(--v) * 1%); background-color: #3F51B5;"></div>
                 </div>
             </div>
             {% endif %}
             {% endif %}
+            {% endif %}
 
             {# Logic Matrix Visualization #}
-            {% if d.cognitive_level.bloom_score is defined and d.cognitive_level.bloom_score is not none and d.toulmin_score is defined and d.toulmin_score is not none %}
+            {% if d.logic_display %}
             <div style="margin-top: 20px; padding-bottom: 10px;">
-                <div class="label" style="text-align: center; margin-bottom: 5px; color: #3949AB;">LOGIC MATRIX (Bloom vs Toulmin)</div>
+                <div class="label" style="text-align: center; margin-bottom: 5px; color: #3949AB;">{{ 'LOGIC_MATRIX_LABEL' | translate }}</div>
                 
                 <div style="position: relative;">
-                    <div class="matrix-axis-label-y" style="height: 200px; line-height: 200px; left: -15px; top: 0; transform: none; writing-mode: vertical-rl; text-align: center;">Argument Strength (Toulmin)</div>
+                    <div class="matrix-axis-label-y" style="height: 200px; line-height: 200px; left: -15px; top: 0; text-align: center;">{{ 'ARGUMENT_STRENGTH_LABEL' | translate }}</div>
                     
                     <div class="matrix-container">
                         {# Grid Lines #}
@@ -290,46 +324,32 @@
                         <div class="matrix-grid-line-y" style="left: 75%;"></div>
 
                         {# X Axis Label #}
-                        <div class="matrix-axis-label-x">Cognitive Depth (Bloom)</div>
+                        <div class="matrix-axis-label-x">{{ 'COGNITIVE_DEPTH_LABEL' | translate }}</div>
 
                         {# Corner Labels #}
-                        <div style="position: absolute; top: 5px; right: 5px; font-size: 8px; color: #9E9E9E;">Strong</div>
-                        <div style="position: absolute; bottom: 5px; left: 5px; font-size: 8px; color: #9E9E9E;">Weak</div>
+                        <div style="position: absolute; top: 5px; right: 5px; font-size: 8px; color: #9E9E9E;">{{ 'STRONG_LABEL' | translate }}</div>
+                        <div style="position: absolute; bottom: 5px; left: 5px; font-size: 8px; color: #9E9E9E;">{{ 'WEAK_LABEL' | translate }}</div>
 
-                        {# The Bubble #}
-                        {% set b_score = d.cognitive_level.bloom_score %}
-                        {% set t_score = d.toulmin_score %}
-                        {% set s_score = d.cognitive_level.strategic_score if d.cognitive_level.strategic_score is defined and d.cognitive_level.strategic_score is not none else 2.0 %}
-                        
-                        {# Clamping to ensure it stays in box (0-100) #}
-                        {% set x_pos = (b_score / 6.0) * 100 %}
-                        {% set y_pos = (t_score / 6.0) * 100 %}
-                        {% set bubble_size = 20 + (s_score * 5) %}
+                        {# The Bubble - Only render if we have coordinates #}
+                        {% if d.logic_display.bloom_percent is not none and d.logic_display.toulmin_percent is not none %}
+                            {% set x_pos = d.logic_display.bloom_percent %}
+                            {% set y_pos = d.logic_display.toulmin_percent %}
+                            {# Use strategic score for size, default to 0 if missing for safe math, though strict mode implies we have it #}
+                            {% set strat = d.logic_display.strategic_score if d.logic_display.strategic_score is not none else 2.0 %}
+                            {% set bubble_size = 20 + (strat * 5) %}
 
-                        <div class="matrix-bubble" style="--x: {{ x_pos|round(1) }}; --y: {{ y_pos|round(1) }}; --sz: {{ bubble_size|round(0) }}; left: calc(var(--x) * 1%); bottom: calc(var(--y) * 1%); width: calc(var(--sz) * 1px); height: calc(var(--sz) * 1px);"></div>
+                            <div class="matrix-bubble" style="--x: {{ x_pos|round(1) }}; --y: {{ y_pos|round(1) }}; --sz: {{ bubble_size|round(0) }}; left: calc(var(--x) * 1%); bottom: calc(var(--y) * 1%); width: calc(var(--sz) * 1px); height: calc(var(--sz) * 1px);"></div>
+                        {% endif %}
                     </div>
                 </div>
                 
-                {# Quadrant Label Logic (Mirroring Frontend) #}
-                {% set q_label = "Unknown" %}
-                {% if b_score <= 0.1 %}
-                    {% set q_label = "Ei analysoitavissa" %}
-                {% elif b_score >= 3.0 and t_score >= 3.0 %}
-                    {% set q_label = "Visionääri (Korkea Bloom + Vahva Toulmin)" %}
-                {% elif b_score < 3.0 and t_score >= 3.0 %}
-                    {% set q_label = "Faktapohjainen (Matala Bloom + Vahva Toulmin)" %}
-                {% elif b_score >= 3.0 and t_score < 3.0 %}
-                    {% set q_label = "Abstrakti (Korkea Bloom + Heikko Toulmin)" %}
-                {% else %}
-                    {% set q_label = "Pinnallinen (Matala Bloom + Heikko Toulmin)" %}
-                {% endif %}
-
+                {# Quadrant Label Logic (Hoisted) #}
                 <div style="text-align: center; font-size: 11px; font-weight: 700; color: #455A64; margin-top: 5px;">
-                    {{ q_label }}
+                    {{ d.logic_display.quadrant_label_key | translate }}
                 </div>
                 
                 <div style="text-align: center; font-size: 10px; color: #5C6BC0; margin-top: 2px;">
-                    <strong>Position:</strong> Bloom {{ b_score }} / Toulmin {{ t_score }} (Strat: {{ s_score }})
+                    <strong>{{ 'POSITION_LABEL' | translate }}:</strong> {{ d.logic_display.position_label }}
                 </div>
             </div>
             {% endif %}
@@ -342,30 +362,53 @@
             {% set d = section.data %}
 
             {# Fidelity Audit Box #}
-            {% if d.fidelity_audit is defined and d.fidelity_audit %}
+            {% if d.stress_display.fidelity_audit %}
             <div class="box-orange">
-                <div class="label" style="color: #E65100;">Fidelity Audit</div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                    <span style="font-weight: 600; font-size: 11px;">Post-Hoc Rationalization?</span>
-                    {% if d.fidelity_audit.post_hoc_rationalization_suspected %}
-                        <span class="chip red">DETECTED</span>
-                    {% else %}
-                        <span class="chip green">CLEAN</span>
-                    {% endif %}
+                <div class="label" style="color: #E65100;">{{ 'FIDELITY_AUDIT_LABEL' | translate }}</div>
+                
+                {# Fidelity Score Gauge #}
+                {% if d.stress_display.fidelity_audit.fidelity_percent is not none %}
+                <div class="gauge-container" style="margin-bottom: 8px;">
+                    <div class="gauge-header">
+                        <span class="label" style="color: #E65100;">{{ 'FIDELITY_SCORE_LABEL' | translate }}</span>
+                        <span class="value" style="color: #EF6C00;">{{ d.stress_display.fidelity_audit.fidelity_score_display }} / 3.0</span>
+                    </div>
+                    <div class="gauge-track" style="background: #FFE0B2;">
+                        <div class="gauge-bar" style="--v: {{ d.stress_display.fidelity_audit.fidelity_percent | round(1) }}; width: calc(var(--v) * 1%); background-color: #FF9800;"></div>
+                    </div>
+                    <div class="gauge-labels">
+                         <span>{{ 'WEAK_LABEL' | translate }}</span>
+                         <span>{{ 'STRONG_LABEL' | translate }}</span>
+                    </div>
                 </div>
-                <div style="font-size: 10px; color: #BF360C;">{{ d.fidelity_audit.reasoning }}</div>
+                {% endif %}
+
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px; align-items: center;">
+                    <span style="font-weight: 700; font-size: 11px; color: #E65100;">
+                         {{ d.stress_display.fidelity_audit.fidelity_label }}
+                    </span>
+                    <div>
+                        <span style="font-size: 10px; margin-right: 4px;">{{ 'POST_HOC_LABEL' | translate }}?</span>
+                        {% if d.stress_display.fidelity_audit.post_hoc_rationalization_suspected %}
+                            <span class="chip red">{{ 'DETECTED_LABEL' | translate }}</span>
+                        {% else %}
+                            <span class="chip green">{{ 'CLEAN_LABEL' | translate }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div style="font-size: 10px; color: #BF360C; margin-top: 4px;">{{ d.stress_display.fidelity_audit.reasoning }}</div>
             </div>
             {% endif %}
 
             {# Stress Findings #}
-            {% if d.stress_test_findings is defined and d.stress_test_findings %}
-            <div class="label" style="margin-bottom: 5px;">STRESS TEST FINDINGS</div>
-            {% for f in d.stress_test_findings %}
-            {% set held = f.evidence_held if f.evidence_held is defined else (f.result == 'HELD') %}
-            <div style="margin-bottom: 8px; padding-left: 8px; border-left: 3px solid;" class="{{ 'finding-held' if held else 'finding-broken' }}">
+            {% if d.stress_display.findings %}
+            <div class="label" style="margin-bottom: 5px;">{{ 'STRESS_FINDINGS_LABEL' | translate }}</div>
+            {% for f in d.stress_display.findings %}
+            {# Hoisted Logic: Color class and Text class are pre-calculated #}
+            <div style="margin-bottom: 8px; padding-left: 8px; border-left: 3px solid;" class="{{ f.color_class }}">
                 <div style="font-weight: 600; font-size: 11px; color: #263238;">{{ f.question }}</div>
                 <div style="font-size: 10px; margin-top: 2px;">
-                    Result: <span style="font-weight: 700;" class="{{ 'text-held' if held else 'text-broken' }}">{% if held %}HELD{% else %}BROKEN{% endif %}</span>
+                    Result: <span style="font-weight: 700;" class="{{ f.text_class }}">{{ f.result_label | translate }}</span>
                 </div>
                 <div style="font-size: 10px; color: #546E7A; font-style: italic;">{{ f.observation }}</div>
             </div>
@@ -380,54 +423,57 @@
             {% set d = section.data %}
 
             {# Abductive Reasoning Box #}
+            {# Falsifier / Stress Test SDUI #}
+            {% if d.causal_display %}
             <div class="box-teal" style="border-color: #80DEEA; background: #E0F7FA;">
-                {% if d.abductive_score is defined and d.abductive_score is not none %}
+                {# Abductive Logic Gauge #}
+                {% if d.causal_display.abductive_percent is not none %}
                 <div class="gauge-container">
                     <div class="gauge-header">
-                        <span class="label" style="color: #006064;">Abductive Reasoning Strength</span>
-                        <span class="value" style="color: #00838F;">{{ d.abductive_score }} / 3.0</span>
+                        <span class="label" style="color: #006064;">{{ 'ABDUCTIVE_STRENGTH_LABEL' | translate }}</span>
+                        <span class="value" style="color: #00838F;">{{ d.causal_display.abductive_score_display }} / 3.0</span>
                     </div>
-                    {% set a_pct = (d.abductive_score / 3.0) * 100 %}
                     <div class="gauge-track" style="background: #B2EBF2;">
-                        <div class="gauge-bar" style="--v: {{ a_pct|round(1) }}; width: calc(var(--v) * 1%); background-color: #00BCD4;"></div>
+                        <div class="gauge-bar" style="--v: {{ d.causal_display.abductive_percent | round(1) }}; width: calc(var(--v) * 1%); background-color: #00BCD4;"></div>
                     </div>
                     <div class="gauge-labels">
-                        <span>Weak</span>
-                        <span>Strong</span>
+                        <span>{{ 'WEAK_LABEL' | translate }}</span>
+                        <span>{{ 'STRONG_LABEL' | translate }}</span>
                     </div>
                 </div>
                 {% endif %}
+                
+                {% if d.causal_display.abductive_conclusion %}
                 <div style="font-size: 11px; margin-top: 5px; color: #006064;">
-                    <strong>Conclusion:</strong> {{ d.abductive_conclusion }}
+                    <strong>{{ 'CONCLUSION_LABEL' | translate }}:</strong> {{ d.causal_display.abductive_conclusion | translate }}
                 </div>
+                {% endif %}
             </div>
 
             {# Counterfactual Test (Comparison) #}
-            {% if d.counterfactual_test is defined and d.counterfactual_test %}
             <div style="margin-top: 15px;">
-                <div class="label" style="margin-bottom: 5px;">COUNTERFACTUAL SIMULATION</div>
+                <div class="label" style="margin-bottom: 5px;">{{ 'COUNTERFACTUAL_LABEL' | translate }}</div>
                 <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-                     <div style="flex: 1; padding: 8px; background: #F5F5F5; border-radius: 4px;">
-                         <div style="font-size: 9px; font-weight: 700; text-align: center; color: #616161;">ACTUAL (A)</div>
-                         <div style="font-size: 10px; text-align: center; color: #212121;">{{ d.counterfactual_test.scenario_a_actual }}</div>
-                     </div>
-                     <div style="display: flex; align-items: center; color: #00BCD4; font-size: 14px;">➔</div>
-                     <div style="flex: 1; padding: 8px; background: #E0F7FA; border-radius: 4px; border: 1px solid #B2EBF2;">
-                         <div style="font-size: 9px; font-weight: 700; text-align: center; color: #006064;">SIMULATED (B)</div>
-                         <div style="font-size: 10px; text-align: center; color: #006064;">{{ d.counterfactual_test.scenario_b_simulated }}</div>
-                     </div>
+                        <div style="flex: 1; padding: 8px; background: #F5F5F5; border-radius: 4px;">
+                            <div style="font-size: 9px; font-weight: 700; text-align: center; color: #616161;">{{ 'ACTUAL_LABEL' | translate }}</div>
+                            <div style="font-size: 10px; text-align: center; color: #212121;">{{ d.causal_display.counterfactual_actual }}</div>
+                        </div>
+                        <div style="display: flex; align-items: center; color: #00BCD4; font-size: 14px;">➔</div>
+                        <div style="flex: 1; padding: 8px; background: #E0F7FA; border-radius: 4px; border: 1px solid #B2EBF2;">
+                            <div style="font-size: 9px; font-weight: 700; text-align: center; color: #006064;">{{ 'SIMULATED_LABEL' | translate }}</div>
+                            <div style="font-size: 10px; text-align: center; color: #006064;">{{ d.causal_display.counterfactual_simulated }}</div>
+                        </div>
                 </div>
                 
                 {# Plausibility #}
-                {% if d.counterfactual_test.plausibility_numeric is defined and d.counterfactual_test.plausibility_numeric is not none %}
+                {% if d.causal_display.plausibility_percent is not none %}
                 <div class="gauge-container">
                     <div class="gauge-header">
-                        <span class="label">Effect Plausibility</span>
-                        <span class="value">{{ d.counterfactual_test.plausibility_numeric }} / 3.0</span>
+                        <span class="label">{{ 'PLAUSIBILITY_LABEL' | translate }}</span>
+                        <span class="value">{{ d.causal_display.plausibility_score_display }} / 3.0</span>
                     </div>
-                    {% set p_pct = (d.counterfactual_test.plausibility_numeric / 3.0) * 100 %}
                     <div class="gauge-track">
-                         <div class="gauge-bar" style="--v: {{ p_pct|round(1) }}; width: calc(var(--v) * 1%); background-color: #00ACC1;"></div>
+                            <div class="gauge-bar" style="--v: {{ d.causal_display.plausibility_percent | round(1) }}; width: calc(var(--v) * 1%); background-color: #00ACC1;"></div>
                     </div>
                 </div>
                 {% endif %}
@@ -441,38 +487,37 @@
             <h2 style="color: #6A1B9A;">{{ section.title }}</h2>
             {% set d = section.data %}
 
+            {% if d.performativity_display %}
             <div class="box-purple">
-                 {% if d.authenticity_score is defined and d.authenticity_score is not none %}
+                 {% if d.performativity_display.authenticity_percent is not none %}
                  <div class="gauge-container">
                     <div class="gauge-header">
-                        <span class="label" style="color: #4A148C;">Authenticity Score</span>
-                        <span class="value" style="color: #7B1FA2;">{{ d.authenticity_score }} / 3.0</span>
+                        <span class="label" style="color: #4A148C;">{{ 'AUTHENTICITY_SCORE_LABEL' | translate }}</span>
+                        <span class="value" style="color: #7B1FA2;">{{ d.performativity_display.authenticity_score | round(1) }} / 3.0</span>
                     </div>
-                    {% set auth_pct = (d.authenticity_score / 3.0) * 100 %}
                     <div class="gauge-track" style="background: #E1BEE7;">
-                        <div class="gauge-bar" style="--v: {{ auth_pct|round(1) }}; width: calc(var(--v) * 1%); background-color: #9C27B0;"></div>
+                        <div class="gauge-bar" style="--v: {{ d.performativity_display.authenticity_percent | round(1) }}; width: calc(var(--v) * 1%); background-color: #9C27B0;"></div>
                     </div>
                     <div class="gauge-labels">
-                        <span>Performative</span>
-                        <span>Authentic</span>
+                        <span>{{ 'PERFORMATIVE_LABEL' | translate }}</span>
+                        <span>{{ 'AUTHENTIC_LABEL' | translate }}</span>
                     </div>
                 </div>
                 {% endif %}
                 <div style="text-align: center; font-weight: 700; font-size: 12px; color: #4A148C; margin-top: 5px;">
-                    {{ d.authenticity_assessment }}
+                    {{ d.performativity_display.authenticity_assessment }}
                 </div>
             </div>
-
-            <div class="label" style="margin-bottom: 5px;">HEURISTICS</div>
+            
+            {% if d.performativity_display.heuristics %}
+            <div class="label" style="margin-bottom: 5px;">{{ 'HEURISTICS_LABEL' | translate }}</div>
             <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-                {% for h in d.performativity_heuristics %}
-                    {% if h.flag_raised %}
-                        <span class="chip red">🚩 {{ h.heuristic_name }}</span>
-                    {% else %}
-                        <span class="chip green">✓ {{ h.heuristic_name }}</span>
-                    {% endif %}
+                {% for h in d.performativity_display.heuristics %}
+                    <span class="chip {{ h.color }}">{{ h.icon }} {{ h.name }}</span>
                 {% endfor %}
             </div>
+            {% endif %}
+            {% endif %}
         </div>
 
         {# --- 5. FACTS & ETHICS (Blue) --- #}
@@ -481,30 +526,26 @@
             <h2 style="color: #0D47A1;">{{ section.title }}</h2>
             {% set d = section.data %}
 
-            {% if d.verified_facts is defined and d.verified_facts %}
-            <div class="label" style="margin-bottom: 5px;">VERIFIED FACTS</div>
-            {% for f in d.verified_facts %}
+            {% if d.fact_check_display %}
+            <div class="label" style="margin-bottom: 5px;">{{ 'VERIFIED_FACTS_LABEL' | translate }}</div>
+            {% for f in d.fact_check_display.verified_facts %}
             <div class="timeline-item">
                 <div style="margin-right: 8px;">
-                    {% if f.is_verified is defined and f.is_verified %}<span class="chip green">VERIFIED</span>
-                    {% elif f.verification_result == 'Debunked' %}<span class="chip red">DEBUNKED</span>
-                    {% else %}<span class="chip orange">UNCERTAIN</span>{% endif %}
+                    <span class="chip {{ f.color }}">{{ f.label }}</span>
                 </div>
                 <div>
                      <div style="font-weight: 600;">{{ f.claim }}</div>
-                     <div style="color: #666; font-size: 9px;">Source: {{ f.source_or_reasoning }}</div>
+                     <div style="color: #666; font-size: 9px;">{{ 'SOURCE_LABEL' | translate }}: {{ f.source }}</div>
                 </div>
             </div>
             {% endfor %}
-            {% endif %}
 
-            {% if d.ethical_issues is defined and d.ethical_issues %}
-            <div class="label" style="margin-top: 12px; margin-bottom: 5px;">ETHICAL ISSUES</div>
-            {% for e in d.ethical_issues %}
+            <div class="label" style="margin-top: 12px; margin-bottom: 5px;">{{ 'ETHICAL_ISSUES_LABEL' | translate }}</div>
+            {% for e in d.fact_check_display.ethical_issues %}
             <div class="box-orange" style="margin-bottom: 4px; padding: 6px;">
                 <div style="display: flex; justify-content: space-between;">
-                    <span style="font-weight: 700; color: #E65100;">{{ e.issue_type }}</span>
-                    {% if e.is_critical is defined and e.is_critical %}<span class="chip red">CRITICAL</span>{% else %}<span class="chip orange">WARNING</span>{% endif %}
+                    <span style="font-weight: 700; color: #E65100;">{{ e.issue }}</span>
+                    <span class="chip {{ e.color }}">{{ e.label }}</span>
                 </div>
                 <div style="font-size: 10px;">{{ e.description }}</div>
             </div>
@@ -512,65 +553,54 @@
             {% endif %}
         </div>
 
-        {# --- 5b. SECURITY CHECK (Key-Value Grid Replacement) --- #}
-        {% elif section.type == 'SECURITY_CHECK' or section.type == 'KEY_VALUE_GRID' %}
-        <div class="card" style="border-left: 4px solid #607D8B;">
-            <h2 style="color: #455A64;">{{ section.title }}</h2>
-            {% set d = section.data %}
+            {# --- 5b. SECURITY CHECK (Key-Value Grid Replacement) --- #}
+            {% elif section.type == 'SECURITY_CHECK' or section.type == 'KEY_VALUE_GRID' %}
+            <div class="card" style="border-left: 4px solid #607D8B;">
+                <h2 style="color: #455A64;">{{ section.title }}</h2>
+                {% set d = section.data %}
 
-            {# Check if it's actually a Security Check payload #}
-            {% set is_sec = d.get('risk_level') or d.get('riskitaso') %}
-            
-            {% if is_sec %}
-                <div style="display: flex; gap: 10px; margin-bottom: 12px;">
-                    {# Threat Chip #}
-                    {% set threat = d.get('threat_detected') == true or d.get('uhka_havaittu') == true %}
-                     <div class="chip {{ 'red' if threat else 'green' }}">
-                        {{ 'UHKA: KYLLÄ' if threat else 'UHKA: EI' }}
-                     </div>
-
-                     {# Risk Chip #}
-                     {% set risk = (d.get('risk_level') or d.get('riskitaso') or 'UNKNOWN')|upper %}
-                     {% set r_color = 'green' %}
-                     {% if 'HIGH' in risk or 'CRITICAL' in risk %}{% set r_color = 'red' %}
-                     {% elif 'MEDIUM' in risk or 'LOW' in risk %}{% set r_color = 'orange' %}
-                     {% endif %}
-                     <div class="chip {{ r_color }}">
-                        RISKI: {{ risk }}
-                     </div>
-
-                     {# Anonymized Chip #}
-                     {% set anon = d.get('anonymized') == true or d.get('anonymisoitu') == true %}
-                     <div class="chip {{ 'blue' if anon else 'orange' }}">
-                        {{ 'ANONYMISOITU' if anon else 'EI ANONYMISOITU' }}
-                     </div>
-                </div>
-
-                {# Findings #}
-                {% set findings = d.get('findings') or d.get('loydokset') or [] %}
-                {% if findings %}
-                    <div class="label">Löydökset</div>
-                    <ul style="margin-top: 4px; padding-left: 15px; margin-bottom: 0;">
-                        {% for f in findings %}
-                        <li style="font-size: 10px; color: #333;">{{ f }}</li>
-                        {% endfor %}
-                    </ul>
-                {% else %}
-                    <div style="font-size: 10px; color: #777; font-style: italic;">Ei merkittäviä löydöksiä.</div>
-                {% endif %}
-
-            {% else %}
-                {# Fallback to old Key-Value Grid for non-security data #}
-                <div class="grid-container">
-                    {% for item in section.data.get('items', []) %}
-                    <div class="grid-item" {% if item.highlight %}style="background-color: #FFEBEE; border-color: #FFCDD2;"{% endif %}>
-                        <div class="label" {% if item.highlight %}style="color: #C62828;"{% endif %}>{{ item.label }}</div>
-                        <div class="value" {% if item.highlight %}style="color: #B71C1C;"{% endif %}>{{ item.value }}</div>
+                {% if d.security_display %}
+                    {# Hoisted SDUI Display #}
+                    <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+                        {# Threat Chip #}
+                         <div class="chip {{ d.security_display.threat_color }}">
+                            {{ d.security_display.threat_label }}
+                         </div>
+    
+                         {# Risk Chip #}
+                         <div class="chip {{ d.security_display.risk_color }}">
+                            RISKI: {{ d.security_display.risk_label }}
+                         </div>
+    
+                         {# Anonymized Chip #}
+                         <div class="chip {{ d.security_display.anonymized_color }}">
+                            {{ d.security_display.anonymized_label }}
+                         </div>
                     </div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        </div>
+    
+                    {# Findings #}
+                    {% if d.security_display.findings %}
+                        <div class="label">Löydökset</div>
+                        <ul style="margin-top: 4px; padding-left: 15px; margin-bottom: 0;">
+                            {% for f in d.security_display.findings %}
+                            <li style="font-size: 10px; color: #333;">{{ f }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <div style="font-size: 10px; color: #777; font-style: italic;">Ei merkittäviä löydöksiä.</div>
+                    {% endif %}
+                {% else %}
+                    {# Fallback to old Key-Value Grid for non-security data #}
+                    <div class="grid-container">
+                        {% for item in section.data.get('items', []) %}
+                        <div class="grid-item" {% if item.highlight %}style="background-color: #FFEBEE; border-color: #FFCDD2;"{% endif %}>
+                            <div class="label" {% if item.highlight %}style="color: #C62828;"{% endif %}>{{ item.label }}</div>
+                            <div class="value" {% if item.highlight %}style="color: #B71C1C;"{% endif %}>{{ item.value }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
 
         {# --- 5c. DATA TABLE (Analyst/Generic) --- #}
         {% elif section.type == 'DATA_TABLE' %}
@@ -604,63 +634,57 @@
 
             {# Control Ratio Gauge #}
             {# Support Multiple Key Paths for pass-through #}
-            {% set metrics = d.get('metrics') or d.get('text_metrics') or d.get('teksti_metriikka') or {} %}
-            {% set control = metrics.get('control_ratio') %}
-            
-            {% if control is not none %}
-                {# If dict, get driver, else use direct float #}
-                {% set driver_score = control.driver if control is mapping else control %}
-                {% if driver_score is not none %}
+            {# --- TEXT METRICS GRID (Strict SDUI) --- #}
+            {% if d.profiler_display %}
+                {# Control Ratio #}
+                {% if d.profiler_display.control_ratio_percent is not none %}
                 <div class="box-pink">
                     <div class="gauge-container">
                         <div class="gauge-header">
-                            <span class="label" style="color: #880E4F;">Control Ratio</span>
-                            <span class="value" style="color: #C2185B;">{{ (driver_score * 100)|round|int }}% Driver</span>
+                            <span class="label" style="color: #880E4F;">{{ 'CONTROL_RATIO_LABEL' | translate }}</span>
+                            <span class="value" style="color: #C2185B;">{{ d.profiler_display.control_ratio_display }} {{ d.profiler_display.control_label }}</span>
                         </div>
-                        {% set c_pct = driver_score * 100 %}
                         <div class="gauge-track" style="background: #F8BBD0;">
-                            <div class="gauge-bar" style="--v: {{ c_pct|round(1) }}; width: calc(var(--v) * 1%); background-color: #E91E63;"></div>
+                            <div class="gauge-bar" style="--v: {{ d.profiler_display.control_ratio_percent | round(1) }}; width: calc(var(--v) * 1%); background-color: #E91E63;"></div>
                         </div>
                         <div class="gauge-labels">
-                            <span>Passenger</span>
-                            <span>Driver</span>
+                            <span>{{ 'PASSENGER_LABEL' | translate }}</span>
+                            <span>{{ 'DRIVER_LABEL' | translate }}</span>
                         </div>
                     </div>
                 </div>
                 {% endif %}
-            {% endif %}
-            {# --- TEXT METRICS GRID (New) --- #}
-            {% if metrics %}
+
             <div class="grid-container" style="margin-bottom: 12px; grid-template-columns: repeat(4, 1fr);">
                 <div class="grid-item">
-                    <div class="label">Word Count</div>
-                    <div class="value">{{ metrics.get('word_count', 0) }}</div>
+                    <div class="label">{{ 'WORD_COUNT_LABEL' | translate }}</div>
+                    <div class="value">{{ d.profiler_display.word_count_display }}</div>
                 </div>
                 <div class="grid-item">
-                     <div class="label">Avg Sentence</div>
-                     <div class="value">{{ metrics.get('avg_sentence_length', 0) }} words</div>
+                     <div class="label">{{ 'AVG_SENTENCE_LABEL' | translate }}</div>
+                     <div class="value">{{ d.profiler_display.avg_sentence_length_display }}</div>
                 </div>
                 <div class="grid-item">
-                     <div class="label">Lexical Diversity</div>
-                     <div class="value">{{ metrics.get('lexical_diversity', 0) }}</div>
+                     <div class="label">{{ 'LEXICAL_DIVERSITY_LABEL' | translate }}</div>
+                     <div class="value">{{ d.profiler_display.lexical_diversity_display }}</div>
                 </div>
                 <div class="grid-item">
-                     <div class="label">Capitals Ratio</div>
-                     <div class="value">{{ (metrics.get('capitalization_ratio', 0) * 100)|round|int }}%</div>
+                     <div class="label">{{ 'CAPITALS_RATIO_LABEL' | translate }}</div>
+                     <div class="value">{{ d.profiler_display.capitalization_ratio_display }}</div>
                 </div>
             </div>
             
             <div class="grid-container" style="margin-bottom: 12px; grid-template-columns: repeat(2, 1fr);">
                  <div class="grid-item">
-                     <div class="label">Automation Bias (Auto-Confirm)</div>
-                     <div class="value" {% if metrics.get('automation_bias', 0) > 0.5 %}style="color: red;"{% endif %}>
-                        {{ 'DETECTED' if metrics.get('automation_bias', 0) > 0.5 else 'None' }}
+                     <div class="label">{{ 'AUTOMATION_BIAS_LABEL' | translate }}</div>
+                     <div class="value" style="color: {{ d.profiler_display.automation_bias_color }};">
+                        {{ d.profiler_display.automation_bias_label }}
                      </div>
                  </div>
                  <div class="grid-item">
-                     <div class="label">Say-Do Gap</div>
-                      <div class="value" {% if metrics.get('say_do_gap', 0) > 0.5 %}style="color: red;"{% endif %}>
-                        {{ 'DETECTED' if metrics.get('say_do_gap', 0) > 0.5 else 'None' }}
+                     <div class="label">{{ 'SAY_DO_GAP_LABEL' | translate }}</div>
+                      <div class="value" style="color: {{ d.profiler_display.say_do_gap_color }};">
+                        {{ d.profiler_display.say_do_gap_label }}
                      </div>
                  </div>
             </div>
@@ -668,12 +692,12 @@
 
             <div class="grid-container" style="margin-bottom: 12px;">
                  <div class="grid-item">
-                     <div class="label">Psychological Profile</div>
-                     <div class="value" style="font-size: 11px; font-weight: 400;">{{ d.get('psychological_profile') or d.get('psykologinen_profiili') }}</div>
+                     <div class="label">{{ 'PSYCHOLOGICAL_PROFILE_LABEL' | translate }}</div>
+                     <div class="value" style="font-size: 11px; font-weight: 400;">{{ d.profiler_display.psychological_profile }}</div>
                  </div>
                  <div class="grid-item">
-                     <div class="label">Intent</div>
-                     <div class="value" style="font-size: 11px; font-weight: 400;">{{ d.get('intent_analysis') or d.get('intentio_analyysi') }}</div>
+                     <div class="label">{{ 'INTENT_LABEL' | translate }}</div>
+                     <div class="value" style="font-size: 11px; font-weight: 400;">{{ d.profiler_display.intent_analysis }}</div>
                  </div>
             </div>
         </div>
@@ -685,27 +709,27 @@
             {% set d = section.data %}
              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
                  <div>
-                     <div class="label">Compliance Score</div>
+                     <div class="label">{{ 'COMPLIANCE_SCORE_LABEL' | translate }}</div>
                      {# Domain model says 1.0 - 5.0 #}
-                     {% if d.compliance_score is defined and d.compliance_score is not none %}
-                     <div style="font-size: 24px; font-weight: 700; color: #5D4037;">{{ d.compliance_score }} / 5.0</div>
+                     {% if d.archivist_display.compliance_score is not none %}
+                     <div style="font-size: 24px; font-weight: 700; color: #5D4037;">{{ d.archivist_display.compliance_score }} / 5.0</div>
                      {% else %}
-                     <div style="font-size: 24px; font-weight: 700; color: #5D4037;">N/A</div>
+                     <div style="font-size: 24px; font-weight: 700; color: #5D4037;">{{ 'N/A' | translate }}</div>
                      {% endif %}
                  </div>
                  <div style="flex: 1; margin-left: 15px; font-size: 11px; color: #4E342E; font-style: italic;">
-                     {{ d.get('analysis') or d.get('compliance_analysis') }}
+                     {{ d.archivist_display.compliance_analysis | translate }}
                  </div>
              </div>
              
-             <div class="label">RECOMMENDATIONS</div>
+             <div class="label">{{ 'RECOMMENDATIONS_LABEL' | translate }}</div>
              <ul>
-                 {% if d.recommendations is defined and d.recommendations %}
-                 {% for rec in d.recommendations %}
+                 {% if d.archivist_display.recommendations %}
+                 {% for rec in d.archivist_display.recommendations %}
                  <li style="font-size: 10px; margin-bottom: 2px;">{{ rec }}</li>
                  {% endfor %}
                  {% else %}
-                 <li style="font-size: 10px; margin-bottom: 2px; color: #999;">No recommendations available.</li>
+                 <li style="font-size: 10px; margin-bottom: 2px; color: #999;">{{ 'NO_RECOMMENDATIONS_LABEL' | translate }}</li>
                  {% endif %}
              </ul>
         </div>
@@ -718,20 +742,19 @@
             
             <div class="grid-container">
                  <div class="grid-item">
-                     <div class="label">Driver Classification</div>
-                     <div class="value" style="font-size: 14px; color: #1565C0;">{{ d.get('role_classification') or d.get('driver_classification') }}</div>
+                     <div class="label">{{ 'DRIVER_CLASSIFICATION_LABEL' | translate }}</div>
+                     <div class="value" style="font-size: 14px; color: #1565C0;">{{ d.driver_display.classification | translate }}</div>
                  </div>
                  <div class="grid-item">
-                     <div class="label">Input Quality</div>
-                     <div class="value">{{ d.input_quality_score if d.input_quality_score is defined else 'N/A' }}</div>
+                     <div class="label">{{ 'INPUT_QUALITY_LABEL' | translate }}</div>
+                     <div class="value">{{ d.driver_display.input_quality_label | translate }}</div>
                  </div>
             </div>
 
-            {% set suggestions = d.get('improvement_suggestions') or d.get('tunnistetut_strategiat') %}
-            {% if suggestions %}
-            <div class="label" style="margin-top: 10px;">Strategies</div>
-            {% for s in suggestions %}
-            <div class="chip blue" style="margin-bottom: 4px;">{{ s }}</div>
+            {% if d.driver_display.strategies %}
+            <div class="label" style="margin-top: 10px;">{{ 'STRATEGIES_LABEL' | translate }}</div>
+            {% for s in d.driver_display.strategies %}
+            <div class="strategy-box">{{ s }}</div>
             {% endfor %}
             {% endif %}
         </div>

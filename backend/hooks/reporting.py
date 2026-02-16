@@ -3,12 +3,58 @@
 import logging
 import os
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Union
 
 from jinja2 import Environment, FileSystemLoader
 
+from backend.exceptions import AppException
+from backend.models.domain import (
+    ReportContext,
+    ReportResult,
+)
+from backend.services.localization import LocalizationService
 from backend.models.state import WorkflowState
 
 logger = logging.getLogger(__name__)
+
+
+def _safe_get(obj: Any, attr: str, default: Any = None) -> Any:
+    """Helper for safe access to Pydantic models or Dicts.
+    
+    Args:
+        obj: The object or dictionary to access.
+        attr: The attribute or key name.
+        default: The value to return if not found.
+        
+    Returns:
+        The value of the attribute/key or the default.
+    """
+    if isinstance(obj, dict):
+        return obj.get(attr, default)
+    return getattr(obj, attr, default)
+
+
+def _normalize_scores(data: Any, scores_dict: Dict[str, Any]) -> None:
+    """Normalizes scores from various agent outputs into a unified dictionary."""
+    # V2 EvaluationResult (List[DimensionResultItem])
+    if hasattr(data, "dimensions") and isinstance(data.dimensions, list):
+        for d in data.dimensions:
+            # Map to Finnish keys for Frontend/Template compatibility
+            # We enforce Pydantic access
+            scores_dict[d.dimension_id] = {"arvosana": d.score, "perustelu": d.reasoning}
+        return
+    
+    # If data is a dict (from context_variables), check for dimensions key
+    if isinstance(data, dict):
+        dimensions = data.get("dimensions")
+        if isinstance(dimensions, list):
+             for d in dimensions:
+                 # Handle dict items in list
+                 d_id = d.get("dimension_id")
+                 score = d.get("score")
+                 reasoning = d.get("reasoning")
+                 if d_id and score is not None:
+                      scores_dict[d_id] = {"arvosana": score, "perustelu": reasoning}
 
 
 def generate_report(state: WorkflowState) -> WorkflowState:
@@ -26,107 +72,98 @@ def generate_report(state: WorkflowState) -> WorkflowState:
     Returns:
         WorkflowState: Updated state with the final report.
 
+    Raises:
+        AppException: If report generation fails (Fail Fast).
     """
-    logger.debug("[ReportingHook] Generating report...")
-
-    # Helper for safe access (Pydantic or Dict)
-    def safe_get(obj, attr, default=None):
-        if isinstance(obj, dict):
-            return obj.get(attr, default)
-        return getattr(obj, attr, default)
+    logger.debug("[ReportingHook] Generating report (Strict V2 Common Output).")
 
     try:
         # 1. Setup Jinja2 Environment
-        # Resolve path relative to THIS file (backend/hooks/reporting.py)
-        # Hooks dir: .../backend/hooks
-        # Base dir (backend/): .../backend
-
         hooks_dir = os.path.dirname(os.path.abspath(__file__))
         backend_dir = os.path.dirname(hooks_dir)
         template_dir = os.path.join(backend_dir, "templates")
 
         if not os.path.exists(template_dir):
-            logger.error(f"[ReportingHook] Template directory not found: {template_dir}")
-            return state
+            error_code = "REPORT_TEMPLATE_DIR_MISSING"
+            logger.error(f"[ReportingHook] {error_code}: {template_dir}")
+            raise AppException(
+                message=f"Template directory not found: {template_dir}",
+                status_code=500,
+                details={"error_code": error_code}
+            )
 
         env = Environment(loader=FileSystemLoader(template_dir))
-        template = env.get_template("report_template.jinja2")
+        try:
+            template = env.get_template("report_template.jinja2")
+        except Exception as e:
+            error_code = "REPORT_TEMPLATE_LOAD_FAILED"
+            raise AppException(
+                 message=f"Failed to load report template: {e}",
+                 status_code=500,
+                 details={"error_code": error_code}
+            ) from e
 
-        # 2. Gather Data from State (Event Sourcing Support)
-        # Check context_variables first (GraphEngine standard)
+        # 2. Gather Data from State (Event Sourcing / Context Variables ONLY)
         xai_data = state.context_variables.get("step_xai")
-        
-        # Fallback to attributes (Legacy Blackboard)
-        if not xai_data:
-            xai_data = getattr(state, "step_xai", None)
 
         if not xai_data:
-            logger.warning("[ReportingHook] No XAI Report data available (checked context_variables and attributes).")
+            logger.warning("[ReportingHook] No XAI Report data available in context_variables. Skipping.")
             return state
 
         # --- DYNAMIC EVALUATION DISCOVERY ---
         eval_steps = []
 
-        # 1. Discovery from context_variables (V2)
+        # 1. Discovery from strict context_variables
         if state.context_variables:
             for key, val in state.context_variables.items():
                 if key.startswith("step_") and val:
-                    # Check if it looks like an evaluation
-                    # Typically we check for 'pisteet' or 'total_score'
-                    pisteet = safe_get(val, "pisteet")
-                    total_score = safe_get(val, "total_score")
-                    
-                    if pisteet or total_score is not None:
+                    # Check if it looks like an evaluation (V2 Structure)
+                    # We look for 'dimensions' list primarily, or 'total_score'
+                    dimensions = _safe_get(val, "dimensions")
+                    total_score = _safe_get(val, "total_score")
+
+                    if (dimensions and isinstance(dimensions, list)) or total_score is not None:
                          # De-duplicate if in audit_results
                          if hasattr(state, "audit_results") and key in state.audit_results:
                              continue
                          eval_steps.append((key, val))
 
-        # 2. V1 Legacy Discovery (Attributes on State)
-        for attr_name in dir(state):
-            if attr_name.startswith("step_"):
-                val = getattr(state, attr_name)
-                pisteet = safe_get(val, "pisteet")
-                if val and pisteet:
-                    if attr_name not in eval_steps: # Avoid duplicates
-                         # Also check audit_results if present
-                         if not (hasattr(state, "audit_results") and state.audit_results and attr_name in state.audit_results):
-                             eval_steps.append((attr_name, val))
-
-        # 3. V2 Dynamic Discovery (audit_results dict) - Prioritized
+        # 2. Discovery from audit_results (Prioritized)
         if hasattr(state, "audit_results") and state.audit_results:
             for step_id, res in state.audit_results.items():
                 eval_steps.append((step_id, res))
 
-        # Sort by step ID to ensure deterministic comparison
+        # Sort by step ID
         eval_steps.sort(key=lambda x: x[0])
 
         comparison_data = None
-        scores = {}
+        scores: Dict[str, Any] = {}
 
         # --- COMPARISON MATRIX LOGIC ---
-        # If we have multiple judges, we build the comparison matrix
         if len(eval_steps) >= 2:
             left_id, left_data = eval_steps[0]
             right_id, right_data = eval_steps[1]
 
             # Helper to normalize data to Dict[dimension_key, {arvosana, perustelu}]
             def normalize_to_dict(data):
-                # V2 EvaluationResult
-                if hasattr(data, "dimensions") and isinstance(data.dimensions, list):
-                    return {d.dimension_id: {"arvosana": d.score, "perustelu": d.reasoning} for d in data.dimensions}
-                # V1 TuomioJaPisteet
-                p = safe_get(data, "pisteet")
-                if p:
-                    p_dict = p.model_dump() if hasattr(p, "model_dump") else (p if isinstance(p, dict) else p.__dict__)
-                    # Filter out None keys
-                    return {k: v for k, v in p_dict.items() if v}
+                # V2 EvaluationResult Only
+                dims = _safe_get(data, "dimensions")
+                if dims and isinstance(dims, list):
+                    result = {}
+                    for d in dims:
+                         # Handle Pydantic or Dict
+                         d_id = _safe_get(d, "dimension_id")
+                         score = _safe_get(d, "score")
+                         reason = _safe_get(d, "reasoning")
+                         if d_id:
+                             result[d_id] = {"arvosana": score, "perustelu": reason}
+                    return result
                 return {}
 
             l_dict = normalize_to_dict(left_data)
             r_dict = normalize_to_dict(right_data)
 
-            common_keys = sorted(list(set(l_dict.keys()) | set(r_dict.keys())))  # Union of keys
+            common_keys = sorted(list(set(l_dict.keys()) | set(r_dict.keys())))
 
             rows = []
             for k in common_keys:
@@ -134,11 +171,8 @@ def generate_report(state: WorkflowState) -> WorkflowState:
                 def get_details(d, key):
                     item = d.get(key)
                     if not item:
-                        return None  # Distinct from 0
-                    # Handle Pydantic object or dict
-                    score = safe_get(item, "arvosana", 0)
-                    reasoning = safe_get(item, "perustelu", "")
-                    return {"score": score, "reasoning": reasoning}
+                        return None
+                    return {"score": item["arvosana"], "reasoning": item["perustelu"]}
 
                 l_det = get_details(l_dict, k)
                 r_det = get_details(r_dict, k)
@@ -150,65 +184,42 @@ def generate_report(state: WorkflowState) -> WorkflowState:
                     except (ValueError, TypeError):
                         pass
                 elif l_det:
-                    # Only Left exists
                     delta = None
                 elif r_det:
-                    # Only Right exists
                     delta = None
 
                 rows.append(
                     {
                         "dimension": k,
-                        "left": l_det,  # Can be None
-                        "right": r_det,  # Can be None
+                        "left": l_det,
+                        "right": r_det,
                         "delta": delta,
                     }
                 )
 
             comparison_data = {
                 "mode": "dual",
-                "left_label": left_id,  # Frontend can override with Metadata label if available
+                "left_label": left_id,
                 "right_label": right_id,
                 "rows": rows,
             }
+            
             # Save to XAI Report Model
-            # Handle assignment carefully if xai_data is dict
             if isinstance(xai_data, dict):
                 xai_data["comparison_data"] = comparison_data
             else:
-                # Use setattr for Pydantic model with extra='allow'
                 try:
-                    xai_data.comparison_data = comparison_data
+                    setattr(xai_data, "comparison_data", comparison_data)
                 except Exception:
                     pass
 
         # Populate Standard Score Summary
-        # We take the primary (latest) evaluation for the high-level summary.
         primary_eval = eval_steps[-1][1] if eval_steps else None
-        judge_step = primary_eval  # Reference for critical findings logic
+        judge_step = primary_eval
 
         if primary_eval:
-            # Normalize again for scores dict
-            def normalize_scores(data):
-                # V2
-                if hasattr(data, "dimensions") and isinstance(data.dimensions, list):
-                    for d in data.dimensions:
-                        # Map to Finnish keys for Frontend/Template compatibility
-                        scores[d.dimension_id] = {"arvosana": d.score, "perustelu": d.reasoning}
-                    return
-                # V1
-                p = safe_get(data, "pisteet")
-                if p:
-                    p_dict = p.model_dump() if hasattr(p, "model_dump") else (p if isinstance(p, dict) else p.__dict__)
-                    for k, v in p_dict.items():
-                        if v:
-                            val = safe_get(v, "arvosana")
-                            reason = safe_get(v, "perustelu")
-                            if val is not None:
-                                scores[k] = {"arvosana": val, "perustelu": reason or ""}
-
             try:
-                normalize_scores(primary_eval)
+                _normalize_scores(primary_eval, scores)
             except Exception as e:
                 logger.warning(f"[ReportingHook] Failed to normalize scores: {e}")
 
@@ -221,40 +232,25 @@ def generate_report(state: WorkflowState) -> WorkflowState:
         average_score = round(sum(valid_scores) / len(valid_scores), 2) if valid_scores else 0.0
 
         # Helper to safely get list or empty list
-        def get_list(val):
+        def _get_list(val: Any) -> List[Any]:
             return val if isinstance(val, list) else []
 
-        # Extract critical findings from Judge Step
+        # Extract critical findings (V2 Only)
         critical_findings = []
-        findings = safe_get(judge_step, "kriittiset_havainnot_yhteenveto")
-        if judge_step and findings:
-            critical_findings = get_list(findings)
-        elif judge_step and hasattr(judge_step, "critical_findings"):  # V2
-            critical_findings = getattr(judge_step, "critical_findings", [])
+        if judge_step:
+            crit = _safe_get(judge_step, "critical_findings")
+            # If strictly V2, we expect a list of strings or objects
+            if crit:
+                critical_findings = _get_list(crit)
 
-        # Import ReportContext (Local import to avoid circular deps if any, though top-level is better)
-        from backend.models.domain import ReportContext
-
-        exec_summary = safe_get(xai_data, "executive_summary") or "Yhteenveto puuttuu."
-
-        # Construct ReportContext
-        # Note: 'scores' needs to be converted to ReportScore objects
-        # Update ReportScore to accept Finnish keys if needed, OR we map back to english for the Typed Model
-        # BUT wait: Domain model likely expects English keys if I didn't change it.
-        # Let's check domain.py next. For now, I will pass the dicts as-is if ReportScore allows it,
-        # OR I must update ReportScore definition.
-        # Assuming ReportScore is strictly typed, I need to check it.
-        # However, for the Template (Jinja), we are passing 'report_context' which is a Pydantic model.
-        # So I *MUST* update domain.py to support 'arvosana'/'perustelu' in ReportScore.
+        exec_summary = _safe_get(xai_data, "executive_summary")
 
         typed_scores = {}
         for k, v in scores.items():
-            # Pass as raw dict if model allows, or update model
             typed_scores[k] = v
 
         # Prepare arguments for ReportContext
-        # Helper for aux_data access (Attribute or Dict)
-        def get_aux(key, default=None):
+        def _get_aux(key: str, default: Any = None) -> Any:
              aux = getattr(state, "aux_data", {})
              if isinstance(aux, dict):
                  return aux.get(key, default)
@@ -263,33 +259,48 @@ def generate_report(state: WorkflowState) -> WorkflowState:
         ctx_args = {
             "summary": exec_summary,
             "critical_findings": critical_findings,
-            "pre_mortem_signals": get_aux("performative_patterns_detected", []),
+            "pre_mortem_signals": _get_aux("performative_patterns_detected", []),
             "hitl_required": False,
             "ethical_issues": [],
             "audit_questions": [],
             "uncertainty": {},
             "scores": typed_scores,
-            "average_score": average_score,  # New Field
+            "average_score": average_score,
             "timestamp": datetime.now().strftime("%d.%m.%Y %H:%M"),
             "coaching_plan": None,
-            # Hook-injected data (Jan 2026)
-            "penalties_applied": get_aux("penalties_applied", []),
-            "score_summary": get_aux("score_summary"),
-            "input_control_ratio": get_aux("input_control_ratio"),
-            # Hook outputs (Jan 2026 - Expanded)
-            "structural_warnings": get_aux("structural_warnings", []),
-            "archivist_precedents": get_aux("archivist_precedents"),
-            "google_search_results": get_aux("google_search_results", []),
-            "word_count": get_aux("word_count"),  # New Field
+            # Hook-injected data
+            "penalties_applied": _get_aux("penalties_applied", []),
+            "score_summary": _get_aux("score_summary"),
+            "input_control_ratio": _get_aux("input_control_ratio"),
+            "structural_warnings": _get_aux("structural_warnings", []),
+            "archivist_precedents": _get_aux("archivist_precedents"),
+            "google_search_results": _get_aux("google_search_results", []),
+            "word_count": _get_aux("word_count"),
+            "knowledge_items": [],
+            "bibliography": [],
         }
 
-        # Add Overseer Data if available
-        step_overseer = state.context_variables.get("step_overseer") or getattr(state, "step_overseer", None)
+        # Add Bibliography
+        bib_result = state.context_variables.get("bibliography_result")
+        if bib_result:
+            if hasattr(bib_result, "references"):
+                ctx_args["bibliography"] = bib_result.references
+            elif isinstance(bib_result, dict):
+                 ctx_args["bibliography"] = bib_result.get("references", [])
+
+        # Add Retrieval Data
+        step_retrieval = state.context_variables.get("step_retrieval")
+        if step_retrieval:
+             k_items = _safe_get(step_retrieval, "knowledge_items")
+             if k_items:
+                 ctx_args["knowledge_items"] = _get_list(k_items)
+
+        # Add Overseer Data
+        step_overseer = state.context_variables.get("step_overseer")
         if step_overseer:
-            # Helper to serialize list of models
-            def serialize_list(items):
+            def _serialize_list(items):
                 serialized = []
-                for item in get_list(items):
+                for item in _get_list(items):
                     if hasattr(item, "model_dump"):
                         serialized.append(item.model_dump())
                     elif isinstance(item, dict):
@@ -298,103 +309,93 @@ def generate_report(state: WorkflowState) -> WorkflowState:
                         serialized.append(item.__dict__)
                 return serialized
 
-            ctx_args["ethical_issues"] = serialize_list(safe_get(step_overseer, "eettiset_havainnot"))
-            ctx_args["audit_questions"] = serialize_list(safe_get(step_overseer, "faktantarkistus_rfi"))
+            ctx_args["ethical_issues"] = _serialize_list(_safe_get(step_overseer, "eettiset_havainnot"))
+            ctx_args["audit_questions"] = _serialize_list(_safe_get(step_overseer, "faktantarkistus_rfi"))
 
         # Add Coaching Plan
-        step_coach = state.context_variables.get("step_coach") or getattr(state, "step_coach", None)
+        step_coach = state.context_variables.get("step_coach")
         if step_coach:
-            # V1 vs V2 check
-            cp = safe_get(step_coach, "coaching_plan") or step_coach
+            cp = _safe_get(step_coach, "coaching_plan") or step_coach
             if hasattr(cp, "model_dump"):
                 ctx_args["coaching_plan"] = cp.model_dump()
             else:
                 ctx_args["coaching_plan"] = cp
 
-        # Add Specialist Agents (Deep Analysis)
-        def extract_specialist_data(step_name, data_attr):
+        # Add Specialist Agents
+        def _extract_specialist_data(step_name, data_attr):
              step_data = state.context_variables.get(step_name)
-             if not step_data:
-                 step_data = getattr(state, step_name, None)
-             
              if not step_data:
                  return None
 
-             # access inner data wrapper
-             val = getattr(step_data, data_attr, None)
-             if val:
-                 return val
-             if isinstance(step_data, dict):
-                 return step_data.get(data_attr)
-             return None
+             val = _safe_get(step_data, data_attr)
+             return val
 
-        ctx_args["logician_data"] = extract_specialist_data("step_logician", "logician_data")
-        ctx_args["falsifier_data"] = extract_specialist_data("step_falsifier", "falsifier_data")
-        ctx_args["causal_analysis"] = extract_specialist_data("step_causal", "causal_analysis")
-        ctx_args["performativity_analysis"] = extract_specialist_data("step_detector", "performativity_analysis")
-        ctx_args["overseer_data"] = extract_specialist_data("step_overseer", "overseer_data")
+        ctx_args["logician_data"] = _extract_specialist_data("step_logician", "logician_data")
+        ctx_args["falsifier_data"] = _extract_specialist_data("step_falsifier", "falsifier_data")
+        ctx_args["causal_analysis"] = _extract_specialist_data("step_causal", "causal_analysis")
+        ctx_args["performativity_analysis"] = _extract_specialist_data("step_detector", "performativity_analysis")
+        ctx_args["overseer_data"] = _extract_specialist_data("step_overseer", "overseer_data")
 
-        # Instantiate Model to validate
-        report_context = ReportContext(**ctx_args)
+        # Instantiate Model
+        try:
+            report_context = ReportContext(**ctx_args)
+        except Exception as e:
+             error_code = "REPORT_CONTEXT_VALIDATION_FAILED"
+             logger.error(f"[ReportingHook] {error_code}: {e}")
+             raise AppException(
+                 message=f"Report Context validation failed: {e}",
+                 status_code=500,
+                 details={"error_code": error_code, "original_error": str(e)}
+             ) from e
 
         # 3. Render
-        disclaimer = "Tämä on automaattisesti generoitu raportti."
+        loc = LocalizationService()
+        disclaimer = loc.get("Report.Disclaimer")
+        final_verdict = _safe_get(xai_data, "final_verdict")
+        confidence_score = _safe_get(xai_data, "confidence_score")
 
-        final_verdict = safe_get(xai_data, "final_verdict") or "KATSO PISTEYTYS"
-        confidence_score = safe_get(xai_data, "confidence_score")
+        try:
+            output_text = template.render(
+                report_content=report_context,
+                final_verdict=final_verdict,
+                reliability_score=str(confidence_score) if confidence_score else None,
+                disclaimer=disclaimer,
+            )
+        except Exception as e:
+            error_code = "REPORT_TEMPLATE_RENDER_FAILED"
+            raise AppException(
+                message=f"Template rendering failed: {e}",
+                status_code=500,
+                details={"error_code": error_code}
+            ) from e
 
-        output_text = template.render(
-            report_content=report_context,  # Pass Pydantic object directly
-            final_verdict=final_verdict,
-            reliability_score=str(confidence_score) if confidence_score else "KORKEA",
-            disclaimer=disclaimer,
+        # 4. Save to State
+        report_result = ReportResult(
+            report_content=output_text,
+            format="markdown",
+            data=report_context
         )
 
-        # 4. Save to State (Event Sourcing / Context Variables)
-        # We cannot mutate 'state' directly because it is frozen.
-        # We must create a copy with updated context_variables.
-        
-        try:
-            from backend.models.domain import ReportResult
-            report_result = ReportResult(report_content=output_text, format="markdown")
-        except ImportError:
-            logger.error("[ReportingHook] Could not import ReportResult")
-            # Fallback to avoid complete failure if model missing (should not happen in strict mode)
-            # In strict mode we might want to raise, but reporting is end of chain.
-            return state
-
         new_context = state.context_variables.copy()
-        
-        # 1. Store strict result
         new_context["report_result"] = report_result
-
-        # 2. Legacy / Frontend support
         new_context["xai_report_formatted"] = output_text
-        new_context["final_report_markdown"] = output_text 
-        
-        # 3. Update Step XAI if present (Best Effort)
+        new_context["final_report_markdown"] = output_text
+
         if xai_data and isinstance(xai_data, dict):
              xai_data["xai_report_formatted"] = output_text
              new_context["step_xai"] = xai_data
 
-        logger.debug("[ReportingHook] Report generated and saved to context_variables['report_result']")
-        
-        # Return new state
+        logger.debug("[ReportingHook] Report generated (strict mode).")
+
         return state.model_copy(update={"context_variables": new_context})
 
+    except AppException:
+        raise
     except Exception as e:
-        err_msg = f"⚠️ [ReportingHook] Report generation failed: {str(e)}"
-        logger.error(err_msg, exc_info=True)
-        
-        # Attempt to write error report
-        try:
-            error_report = (
-                f"# Virhe Raportoinnissa\n\nJärjestelmä ei voinut generoida raporttia.\n\n**Tekninen syy:** `{str(e)}`"
-            )
-            new_context = state.context_variables.copy()
-            new_context["xai_report_formatted"] = error_report
-            return state.model_copy(update={"context_variables": new_context})
-        except Exception:
-             return state
-
-    return state
+        error_code = "REPORT_GENERATION_FAILED"
+        logger.error(f"⚠️ [ReportingHook] {error_code}: {str(e)}", exc_info=True)
+        raise AppException(
+            message=f"Report generation failed: {str(e)}",
+            status_code=500,
+            details={"error_code": error_code, "cause": str(e)}
+        ) from e

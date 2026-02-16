@@ -2,9 +2,12 @@
 
 import logging
 import re
-from typing import Any
+from typing import Any, Dict, List, Optional, Union
 
 import docx
+from fastapi import status
+
+from backend.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
 
@@ -13,98 +16,142 @@ class KnowledgeBaseParser:
     """Parses unstructured documents (DOCX, Markdown) into structured Knowledge Base entries.
 
     Extracts Concepts, References, and Claims using heuristic detection and ReGex patterns.
+    Supports Multilingual Headers (Fi, En).
     """
 
+    # Multilingual Configuration
+    BIBLIOGRAPHY_HEADERS = {
+        "lähdeluettelo", "lähteet",  # FI
+        "bibliography", "references", "works cited",  # EN
+    }
+
+    STRUCTURAL_KEYWORDS = {
+        "lähdeluettelo", "lähteet", "abstrakti", "tiivistelmä", "analyysi", "johdanto",  # FI
+        "bibliography", "references", "abstract", "summary", "analysis", "introduction",  # EN
+    }
+
+    COMPARE_MARKERS = [
+        "vrt.", "cf."
+    ]
+
+    AND_MARKERS = [
+        " and ", " ja ", " & "
+    ]
+
     @staticmethod
-    def extract_claims_from_text(text: str) -> list[dict[str, Any]]:
+    def extract_claims_from_text(text: str) -> List[Dict[str, Any]]:
         """Extracts sentences containing citations (claims) from text using ReGex.
 
-        Detection Rules:
-        - Markdown Links: [Context](#anchor)
-        - Academic Citations: (Author 2020) or (Author et al. 2020)
-
-        Args:
-            text (str): The raw text to scan.
-
-        Returns:
-            List[Dict[str, Any]]: List of claim objects with keys:
-                - claim_text (str): Cleaned sentence without citation markers.
-                - citation_keys (List[str]): Extracted anchor IDs.
-                - citation_text (str): Extracted text markers.
-                - original_markdown (str): Initially empty, filled during resolve phase.
-
+        Uses a Mask & Split strategy to handle internal punctuation in citations (e.g., 'vrt.', 'M.').
         """
-        claims: list[dict[str, Any]] = []
+        claims: List[Dict[str, Any]] = []
         if not text:
             return claims
 
-        sentences = re.split(r"(?<=[.!?])\s+", text)
-
-        # Regex for Markdown Link: [Text](#anchor)
+        # Regex definitions
         link_pattern = re.compile(r"\[([^\]]+)\]\(#([a-zA-Z0-9_-]+)\)")
-        # Regex for Text Citation: (Author 2020)
+        # Robust multilingual citation regex with \w+
         text_cit_pattern = re.compile(
-            r"(\((?:vrt\.\s*)?(?:[A-Za-zÅÄÖåäö&,-]+\s+)+(?:et\s+al\.|ym\.)?\s*,?\s*\d{4}[a-z]?\))"
+            r"(\((?:(?:vrt\.|cf\.)\s*)?(?:[\w&,-]+\s+)+(?:et\s+al\.|ym\.)?\s*,?\s*\d{4}[a-z]?\))",
+            re.IGNORECASE
         )
+
+        # 1. Mask Citations
+        # Store replacements to restore later
+        replacements = {}
+        
+        def mask_match(match):
+            key = f"__CIT_MASK_{len(replacements)}__"
+            replacements[key] = match.group(0)
+            return key
+
+        # Mask Markdown Links first
+        masked_text = link_pattern.sub(mask_match, text)
+        # Mask Text Citations
+        masked_text = text_cit_pattern.sub(mask_match, masked_text)
+
+        # 2. Split Sentences
+        # Now safe to split on [.!?] because citations (containing dots) are masked
+        sentences = re.split(r"(?<=[.!?])\s+", masked_text)
 
         for sent in sentences:
             sent = sent.strip()
             if len(sent) < 10:
                 continue
 
-            matches_link = link_pattern.findall(sent)  # List of (text, anchor)
-            matches_text = text_cit_pattern.findall(sent)  # List of full strings "(Author 2020)"
+            # Check if sentence has masks
+            # Find all mask keys in this sentence
+            found_masks = re.findall(r"__CIT_MASK_\d+__", sent)
+            
+            if found_masks:
+                # This sentence has citations
+                
+                # 3. Restore Citations for Analysis
+                # We need to extract the content from the masks
+                
+                citation_labels = []
+                citation_keys = []
+                matches_text_citation = False
 
-            if matches_link or matches_text:
-                # 1. Clean Claim Text
+                # Clean claim text (remove the masks/citations)
                 clean_claim = sent
-                clean_claim = link_pattern.sub("", clean_claim)
-                clean_claim = text_cit_pattern.sub("", clean_claim)
+                
+                for mask in found_masks:
+                    original = replacements[mask]
+                    
+                    # Analyze the original citation
+                    # Determine if it's Link or Text
+                    # Simple heuristic: starts with '[' is link, '(' is text
+                    if original.startswith("["):
+                        # Link
+                        m = link_pattern.match(original)
+                        if m:
+                            citation_labels.append(m.group(1))
+                            citation_keys.append(m.group(2))
+                    elif original.startswith("("):
+                        # Text Citation
+                        matches_text_citation = True
+                        # Parse internals
+                        # Remove parens
+                        inner = original.strip("()")
+                        # Remove markers
+                        for marker in KnowledgeBaseParser.COMPARE_MARKERS:
+                            if inner.lower().startswith(marker):
+                                inner = inner[len(marker):].strip()
+                        
+                        # Deduplicate labels
+                        if inner not in citation_labels:
+                            citation_labels.append(inner)
+                    
+                    # Remove mask from Clean Claim
+                    clean_claim = clean_claim.replace(mask, "")
 
-                # Cleanup
+                # Cleanup Clean Claim
                 clean_claim = re.sub(r"\s+", " ", clean_claim)
                 clean_claim = re.sub(r"\s+\.", ".", clean_claim)
                 clean_claim = re.sub(r"\s+,", ",", clean_claim)
-                clean_claim = re.sub(r"\(\)", "", clean_claim)
+                clean_claim = re.sub(r"\(\)", "", clean_claim) # Should be handled by mask removal but good safety
                 clean_claim = clean_claim.strip()
 
-                # Filter out empty or punctuation-only claims
-                # Must have at least 3 alphanumeric chars
+                # Filter junk
                 if len(re.findall(r"[a-zA-ZäöåÄÖÅ0-9]", clean_claim)) < 3:
                     continue
-
                 if len(clean_claim) < 5:
                     continue
-
-                # 2. Extract Labels
-                citation_labels = []
-                citation_keys = []
-
-                for text_p, anchor_p in matches_link:
-                    citation_labels.append(text_p)
-                    citation_keys.append(anchor_p)
-
-                for match_txt in matches_text:
-                    lbl = match_txt.strip("()")
-                    if lbl.startswith("vrt. "):
-                        lbl = lbl.replace("vrt. ", "")
-                    # Deduplicate
-                    if lbl not in citation_labels:
-                        citation_labels.append(lbl)
 
                 claims.append(
                     {
                         "claim_text": clean_claim,
                         "citation_keys": citation_keys,
-                        "citation_text": "; ".join(citation_labels),  # Short citation label
-                        "original_markdown": "",  # To be filled with full reference
-                        "matches_text_citation": bool(matches_text),
+                        "citation_text": "; ".join(citation_labels),
+                        "original_markdown": "",
+                        "matches_text_citation": matches_text_citation,
                     }
                 )
         return claims
 
     @staticmethod
-    def parse_docx(file_input: Any) -> dict[str, Any]:
+    def parse_docx(file_input: Any) -> Dict[str, Any]:
         """Parses DOCX document into structured knowledge.
 
         Iterates through paragraphs to distinguish between Concepts (Headers + Text) and Bibliography.
@@ -116,7 +163,7 @@ class KnowledgeBaseParser:
             Dict[str, Any]: KB structure with 'concepts', 'references', 'claims'.
 
         Raises:
-            Exception: If document cannot be opened.
+            AppException: If document cannot be opened (PARSING_FAILED).
 
         """
         logger.info(f"[KBParser] Parsing input (Type: {type(file_input)})")
@@ -124,23 +171,27 @@ class KnowledgeBaseParser:
             doc = docx.Document(file_input)
         except Exception as e:
             logger.error(f"[KBParser] Failed to open document: {e}")
-            raise e from e
+            raise AppException(
+                message=f"Failed to open DOCX document: {str(e)}",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.INVALID_FILE_FORMAT, "original_error": str(e)}
+            ) from e
 
         # Data structure
-        knowledge_base: dict[str, list[dict[str, Any]]] = {
+        knowledge_base: Dict[str, List[Dict[str, Any]]] = {
             "concepts": [],  # List of {term, definition}
             "references": [],  # List of {citation, doi_link}
             "claims": [],  # List of {claim_text, citation_keys...}
         }
         # Add metadata separately or include in type. TypedDict would be better but dict[str, Any] works.
-        knowledge_base_any: dict[str, Any] = knowledge_base  # cast for mixed types like metadata
+        knowledge_base_any: Dict[str, Any] = knowledge_base  # cast for mixed types like metadata
         knowledge_base_any["metadata"] = {"source": str(file_input)[:100]}
 
         # Regex for DOI
         doi_pattern = re.compile(r"\b(10.\d{4,9}/[-._;()/:A-Z0-9]+)\b", re.IGNORECASE)
 
         current_concept = None
-        current_definition: list[str] = []
+        current_definition: List[str] = []
 
         in_bibliography = False
 
@@ -150,17 +201,15 @@ class KnowledgeBaseParser:
                 continue
 
             # Heuristics
-            if not para.style or not hasattr(para.style, "name"):
-                continue
-            style_name = para.style.name.lower()
+            style_name = ""
+            if para.style and hasattr(para.style, "name"):
+                style_name = para.style.name.lower()
 
-            # Detect Bibliography Section
-            # More robust detection: Allow "Lähteet", handle longer headers (e.g. "Chapter 7: References")
-            triggers = ["lähdeluettelo", "bibliography", "lähteet", "references"]
-            if any(t in text.lower() for t in triggers):
+            # Detect Bibliography Section (Multilingual)
+            if any(t in text.lower() for t in KnowledgeBaseParser.BIBLIOGRAPHY_HEADERS):
                 # Loose check: Heading style OR bold OR distinct short text
                 is_header = "heading" in style_name or len(text) < 60
-                # Could assume explicit "Lähdeluettelo" on its own line is a header
+                
                 if is_header:
                     in_bibliography = True
                     # Close previous concept if open
@@ -209,9 +258,7 @@ class KnowledgeBaseParser:
                     current_definition = []
                 elif "heading" in style_name or (len(text) < 50 and text.isupper()):
                     # GENERALIZED LOGIC: Use Heading Levels
-                    # Heading 1 detected via style name?
-                    # Note: python-docx style names are usually "Heading 1", "Heading 2" etc.
-
+                    
                     is_structural = False
 
                     # 1. Check Style Level
@@ -219,34 +266,17 @@ class KnowledgeBaseParser:
                         is_structural = True
 
                     # 2. Numbering Heuristic (Universal)
-                    # Detects "1. Header" vs "1.1. Subheader"
-                    # If it starts with a number and has 0 or 1 dots (e.g. "1" or "1."), it's Level 1 -> Structural.
-                    # If it has more dots (e.g. "1.1" or "1.2."), it's Level 2+ -> Concept.
                     match_num = re.match(r"^(\d+(\.\d+)*)\.?\s+", text)
                     if match_num:
                         numbering = match_num.group(1)  # "1" or "1.2"
                         dot_count = numbering.count(".")
-                        # "1" (0 dots) or "10" -> Structural
-                        # "1.1" (1 dot if formatting is X.Y) -> Concept?
-                        # Usually: Top level is just "1" or "1."
                         if dot_count == 0:
                             is_structural = True
 
-                    # 3. Fallback: Structural Keywords
-                    structural_keywords = {
-                        "lähdeluettelo",
-                        "lähteet",
-                        "references",
-                        "bibliography",
-                        "abstrakti",
-                        "tiivistelmä",
-                        "abstract",
-                        "analyysi",
-                        "analysis",
-                    }
+                    # 3. Fallback: Structural Keywords (Multilingual)
                     if any(
                         k == text.lower().strip() or (text.lower().startswith(k) and len(text) < 30)
-                        for k in structural_keywords
+                        for k in KnowledgeBaseParser.STRUCTURAL_KEYWORDS
                     ):
                         is_structural = True
 
@@ -291,15 +321,7 @@ class KnowledgeBaseParser:
 
     @staticmethod
     def clean_text(text: str) -> str:
-        """Normalizes text by removing invisible Word artifacts (non-breaking spaces, dashes).
-
-        Args:
-            text (str): Raw text.
-
-        Returns:
-            str: Normalized text.
-
-        """
+        """Normalizes text by removing invisible Word artifacts (non-breaking spaces, dashes)."""
         if not text:
             return ""
         text = text.replace("\xa0", " ").replace("–", "-").replace("—", "-")
@@ -307,7 +329,7 @@ class KnowledgeBaseParser:
         return text
 
     @staticmethod
-    def extract_short_citation(full_entry: str) -> str | None:
+    def extract_short_citation(full_entry: str) -> Optional[str]:
         """Extracts concise 'Author Year' or 'Author & Author Year' label from a full bibliographic entry.
 
         Supported formats:
@@ -353,8 +375,10 @@ class KnowledgeBaseParser:
 
             # Extract surnames
             authors = []
-            # Normalize separators to &
-            authors_part = authors_part.replace(" and ", " & ").replace(" ja ", " & ")
+            
+            # Normalize separators to & (Multilingual)
+            for sep in KnowledgeBaseParser.AND_MARKERS:
+                authors_part = authors_part.replace(sep, " & ")
 
             parts = authors_part.split("&")
             for part in parts:
@@ -373,13 +397,17 @@ class KnowledgeBaseParser:
 
             short_authors = " & ".join(authors)
             if len(authors) > 2:
-                short_authors = f"{authors[0]} ym."
+                # Multilingual "et al" - defaulting to "ym." if mostly Finnish context, or "et al."
+                # Ideally detection? Defaulting to "et al." as strict academic standard, or "ym." for consistency with regex.
+                # Let's use "et al." as international standard unless detected otherwise. 
+                # Actually, previous code used "ym." hardcoded!
+                short_authors = f"{authors[0]} et al." 
 
             return f"{short_authors} {year}"
         return None
 
     @staticmethod
-    def parse_md(file_input: Any) -> dict[str, Any]:
+    def parse_md(file_input: Any) -> Dict[str, Any]:
         """Parses Markdown content into structured knowledge.
 
         Support for:
@@ -393,42 +421,58 @@ class KnowledgeBaseParser:
         Returns:
              Dict[str, Any]: Structured KB dict.
 
+        Raises:
+            AppException: If parsing fails (PARSING_FAILED).
         """
         logger.info(f"[KBParser] Parsing MD input (Type: {type(file_input)})")
 
         content_str = ""
-        if isinstance(file_input, str):
-            with open(file_input, encoding="utf-8") as f:
-                content_str = f.read()
-        else:
-            # Assume stream/bytes
-            if hasattr(file_input, "read"):
-                content = file_input.read()
-                if isinstance(content, bytes):
-                    content_str = content.decode("utf-8")
-                else:
-                    content_str = content
-            elif isinstance(file_input, bytes):
-                content_str = file_input.decode("utf-8")
+        try:
+            if isinstance(file_input, str):
+                with open(file_input, encoding="utf-8") as f:
+                    content_str = f.read()
+            else:
+                # Assume stream/bytes
+                if hasattr(file_input, "read"):
+                    content = file_input.read()
+                    if isinstance(content, bytes):
+                        content_str = content.decode("utf-8")
+                    else:
+                        content_str = content
+                elif isinstance(file_input, bytes):
+                    content_str = file_input.decode("utf-8")
+        except Exception as e:
+            logger.error(f"[KBParser] Failed to read MD content: {e}")
+            raise AppException(
+                message=f"Failed to read Markdown content: {str(e)}",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.INVALID_FILE_FORMAT, "original_error": str(e)}
+            ) from e
 
         lines = content_str.splitlines()
 
         # Data structure
-        knowledge_base: dict[str, list[dict[str, Any]]] = {
+        knowledge_base: Dict[str, List[Dict[str, Any]]] = {
             "concepts": [],  # List of {term, definition}
             "references": [],  # List of {citation, doi_link}
             "claims": [],  # List of {claim_text, citation_keys...}
         }
-        knowledge_base_any: dict[str, Any] = knowledge_base
+        knowledge_base_any: Dict[str, Any] = knowledge_base
         knowledge_base_any["metadata"] = {"source": "markdown_upload"}
 
         # Regex for DOI
         doi_pattern = re.compile(r"\b(10.\d{4,9}/[-._;()/:A-Z0-9]+)\b", re.IGNORECASE)
-        # Regex for Bibliography Header
+        
+        # Regex for Bibliography Header (Multilingual)
+        # Construct pattern from BIBLIOGRAPHY_HEADERS
+        headers_pattern_str = "|".join(re.escape(h) for h in KnowledgeBaseParser.BIBLIOGRAPHY_HEADERS)
+        
         # Allow HTML tags (like <a id="...">) between #'s and the text
         bib_header_pattern = re.compile(
-            r"^#+\s*(?:<[^>]+>\s*)*(Lähdeluettelo|Bibliography|Lähteet|References)", re.IGNORECASE
+            r"^#+\s*(?:<[^>]+>\s*)*(" + headers_pattern_str + r")", 
+            re.IGNORECASE
         )
+        
         # Regex for Concept Header
         concept_header_pattern = re.compile(r"^(#+)\s*(.+)")
 
@@ -436,7 +480,7 @@ class KnowledgeBaseParser:
         anchor_pattern = re.compile(r'(?:\{\#([a-zA-Z0-9_-]+)\}|<a\s+id="([a-zA-Z0-9_-]+)">)')
 
         current_concept = None
-        current_definition: list[str] = []
+        current_definition: List[str] = []
 
         in_bibliography = False
 
@@ -549,7 +593,7 @@ class KnowledgeBaseParser:
         return knowledge_base
 
     @staticmethod
-    def _resolve_claims(knowledge_base: dict[str, Any]):
+    def _resolve_claims(knowledge_base: Dict[str, Any]):
         """Internal Helper: Resolves textual claims to their full bibliographic references.
 
         Populates 'original_markdown' field in claims.
@@ -585,6 +629,8 @@ class KnowledgeBaseParser:
 
             # 2. Try Text Match
             if not full_ref and c.get("citation_text"):
+                # Use split explicit sep or just use whole?
+                # Code uses split by semi-colon
                 lbl = c["citation_text"].split(";")[0].strip().lower()
                 # Try direct match
                 if lbl in short_map:

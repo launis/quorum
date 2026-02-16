@@ -11,6 +11,10 @@ import 'package:client_app/features/orchestration/presentation/widgets/wizard/dy
 import 'package:client_app/features/orchestration/presentation/providers/workflow_controller.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:collection/collection.dart';
+import 'package:client_app/features/knowledge/presentation/providers/knowledge_status_provider.dart';
+import 'package:client_app/features/auth/presentation/auth_controller.dart';
+import 'package:client_app/features/auth/domain/models/user.dart';
+import 'package:client_app/core/ui/error_view.dart';
 
 class AnalysisWizardScreen extends ConsumerWidget {
   const AnalysisWizardScreen({super.key});
@@ -18,65 +22,99 @@ class AnalysisWizardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    // 1. Passive View Listener
-    // Watch executionControllerProvider for side-effects (Success/Error)
-    ref.listen(executionControllerProvider, (previous, next) {
-      if (next is AsyncError) {
-        final error = next.error;
-        // Strictly localize
-        String message = l10n.errorUnknown;
+    
+    // 0. Pre-flight Check: Knowledge Base Status
+    final knowledgeStatusAsync = ref.watch(knowledgeStatusProvider);
 
-        if (error is AppError) {
-          error.when(
-            unknown: (_, _) => message = l10n.errorUnknown,
-            network: (_) => message = l10n.errorNetwork,
-            server:
-                (msg, _) =>
-                    message = msg ?? l10n.errorServer, // Fallback if msg null
-            unauthorized: () => message = l10n.errorUnauthorized,
-            notFound: (_) => message = l10n.errorNotFound,
-            cancelled: () {}, // No-op
-            validation: (reason) {
-              switch (reason) {
-                case ValidationErrorReason.emptyInput:
-                  message = l10n.errorValidationEmpty;
-                  break;
-                default:
-                  message = l10n.errorValidation;
-              }
-            },
-            validationMissing:
-                (fields) =>
-                    message = l10n.errorValidationMissing(fields.join(', ')),
-            api: (errorCode, detail, status, instance) {
-              // RFC 7807 error - use detail as message
-              message = detail;
-            },
-          );
+    return knowledgeStatusAsync.when(
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (err, stack) => Scaffold(
+        appBar: AppBar(title: Text(l10n.newAnalysis)),
+        body: ErrorView(
+          error: err,
+          stackTrace: stack,
+          onRetry: () => ref.invalidate(knowledgeStatusProvider),
+        ),
+      ),
+      data: (status) {
+        // BLOCKING STATE: No Knowledge Data
+        if (!status.hasDocuments) {
+           final userWrapper = ref.watch(authControllerProvider);
+           final userRole = userWrapper.value?.role;
+           final isAdmin = userRole == UserRole.admin || userRole == UserRole.root;
+
+           return Scaffold(
+             appBar: AppBar(title: Text(l10n.newAnalysis)),
+             body: ErrorView(
+               title: l10n.errKnowledgeNotIngestedTitle,
+               error: l10n.errKnowledgeNotIngested,
+               onAction: isAdmin ? () => context.go('/studio/knowledge') : null,
+               actionLabel: isAdmin ? l10n.actionGoToIngestion : null,
+             ),
+           );
         }
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(message),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
-      } else if (previous?.isLoading == true && next is AsyncData) {
-        // Success Transition: Loading -> Data
-        // Success handled in _submit via returned ID to prevent race condition.
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.analysisStarted)));
-      }
-    });
+        // 1. Passive View Listener
+        // Watch executionControllerProvider for side-effects (Success/Error)
+        ref.listen(executionControllerProvider, (previous, next) {
+          if (next is AsyncError) {
+            final error = next.error;
+            // Strictly localize
+            String message = l10n.errorUnknown;
 
-    // Check loading state from controller, not wizardState (which mixes concerns)
-    final executionState = ref.watch(executionControllerProvider);
-    final isSubmitting = executionState.isLoading;
+            if (error is AppError) {
+              error.when(
+                unknown: (_, _) => message = l10n.errorUnknown,
+                network: (_) => message = l10n.errorNetwork,
+                server:
+                    (msg, _) =>
+                        message = msg ?? l10n.errorServer, // Fallback if msg null
+                unauthorized: () => message = l10n.errorUnauthorized,
+                notFound: (_) => message = l10n.errorNotFound,
+                cancelled: () {}, // No-op
+                validation: (reason) {
+                  switch (reason) {
+                    case ValidationErrorReason.emptyInput:
+                      message = l10n.errorValidationEmpty;
+                      break;
+                    default:
+                      message = l10n.errorValidation;
+                  }
+                },
+                validationMissing:
+                    (fields) =>
+                        message = l10n.errorValidationMissing(fields.join(', ')),
+                api: (errorCode, detail, status, instance) {
+                  // RFC 7807 error - use detail as message
+                  message = detail;
+                },
+              );
+            }
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.newAnalysis)),
-      body: Center(
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(message),
+                backgroundColor: Theme.of(context).colorScheme.error,
+              ),
+            );
+          } else if (previous?.isLoading == true && next is AsyncData) {
+            // Success Transition: Loading -> Data
+            // Success handled in _submit via returned ID to prevent race condition.
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(l10n.analysisStarted)));
+          }
+        });
+
+        // Check loading state from controller, not wizardState (which mixes concerns)
+        final executionState = ref.watch(executionControllerProvider);
+        final isSubmitting = executionState.isLoading;
+
+        return Scaffold(
+          appBar: AppBar(title: Text(l10n.newAnalysis)),
+          body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1000),
           child: SingleChildScrollView(
@@ -124,6 +162,8 @@ class AnalysisWizardScreen extends ConsumerWidget {
         ),
       ),
     );
+  },
+);
   }
 
   Future<void> _submit(BuildContext context, WidgetRef ref) async {

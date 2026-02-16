@@ -4,8 +4,8 @@ class UnifiedMetricGauge extends StatelessWidget {
   final String label;
   final double value;
   final double max;
-  final String descriptionFi;
-  final String descriptionEn;
+  final String description; // Primary localized description
+  final String? descriptionSecondary; // Optional secondary (e.g. English fallback)
   final String displayValue; // e.g. "4/6" or "High"
   final Color? color;
   final List<String>? axisLabels;
@@ -15,8 +15,8 @@ class UnifiedMetricGauge extends StatelessWidget {
     required this.label,
     required this.value,
     required this.max,
-    required this.descriptionFi,
-    required this.descriptionEn,
+    required this.description,
+    this.descriptionSecondary,
     required this.displayValue,
     this.color,
     this.axisLabels,
@@ -149,14 +149,16 @@ class UnifiedMetricGauge extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(descriptionFi, style: const TextStyle(fontSize: 14)),
-            const SizedBox(height: 12),
-            const Divider(),
-            const SizedBox(height: 8),
-            Text(
-              descriptionEn, 
-              style: TextStyle(fontSize: 13, color: Colors.grey[700], fontStyle: FontStyle.italic)
-            ),
+            Text(description, style: const TextStyle(fontSize: 14)),
+            if (descriptionSecondary != null) ...[
+              const SizedBox(height: 12),
+              const Divider(),
+              const SizedBox(height: 8),
+              Text(
+                descriptionSecondary!, 
+                style: TextStyle(fontSize: 13, color: Colors.grey[700], fontStyle: FontStyle.italic)
+              ),
+            ],
           ],
         ),
         actions: [

@@ -17,7 +17,7 @@ from backend.llm.client import LLMClient
 from backend.logging_config import configure_logfire, setup_logging
 from backend.services.pdf_generator import PdfReportService
 from backend.services.progress import ProgressService
-from backend.services.storage import get_storage_client
+from backend.services.storage import get_storage_driver
 from backend.settings import get_settings
 
 # Initialize settings
@@ -60,7 +60,7 @@ async def execute_workflow_job(
         # This ensures that valid WorkflowState objects created from this dict will have organization_id populated.
         if organization_id and "organization_id" not in inputs:
             inputs["organization_id"] = organization_id
-        
+
         # Inject User ID into inputs (Blackboard State) if provided
         if user_id and "user_id" not in inputs:
             inputs["user_id"] = user_id
@@ -166,7 +166,7 @@ async def generate_pdf_job(ctx: Any, *, execution_id: str) -> str:
         pdf_bytes = await service.generate_execution_pdf(execution_id)
 
         # 5. Save Result via StorageService
-        storage = get_storage_client()
+        storage = get_storage_driver()
         # Relative path: executions/{id}/report.pdf
         output_path_rel = f"executions/{execution_id}/report.pdf"
 

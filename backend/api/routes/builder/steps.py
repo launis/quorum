@@ -6,41 +6,31 @@ Handles step listing, details, and customization endpoints.
 import copy
 import logging
 import uuid
-from typing import Annotated, Any
-
 from fastapi import APIRouter, Body, status
-from pydantic import BaseModel, Field
 
 from backend.dependencies import PromptBuilderDep, RepositoryDep
 
 router = APIRouter()
+from backend.models.dtos.builder import (
+    CustomStepCreateRequest,
+    GeneratedIdResponse,
+    StepDTO,
+    StepPreviewResponse,
+    StepUpdateRequest,
+)
+
 logger = logging.getLogger(__name__)
-
-# --- Models ---
-
-class StepUpdateRequest(BaseModel):
-    """Payload for updating a step configuration."""
-
-    name: Annotated[str | None, Field(description="New step name.")] = None
-    execution_config: Annotated[dict[str, Any] | None, Field(description="Updated execution config.")] = None
-
-
-class CustomStepCreateRequest(BaseModel):
-    """Payload for creating a custom step."""
-
-    component_type: Annotated[str, Field(description="Base component type (e.g. 'Judge', 'Analyst').")]
-    name_hint: Annotated[str | None, Field(description="Optional name override.")] = None
 
 # --- Endpoints ---
 
-@router.get("/steps", summary="List Steps", response_description="All Steps.")
-async def list_steps(repository: RepositoryDep):
+@router.get("/steps", summary="List Steps", response_description="All Steps.", response_model=list[StepDTO])
+async def list_steps(repository: RepositoryDep) -> list[StepDTO]:
     """List all available steps."""
     return await repository.get_all_steps()
 
 
-@router.get("/steps/{step_id}", summary="Get Step Details", response_description="Step configuration.")
-async def get_step_details(step_id: str, repository: RepositoryDep):
+@router.get("/steps/{step_id}", summary="Get Step Details", response_description="Step configuration.", response_model=StepDTO)
+async def get_step_details(step_id: str, repository: RepositoryDep) -> StepDTO:
     """V2: Get full configuration of a step."""
     step = await repository.get_step_by_id(step_id)
     if not step:
@@ -49,11 +39,11 @@ async def get_step_details(step_id: str, repository: RepositoryDep):
         error_code = "STEP_NOT_FOUND"
         logger.error(f"{error_code}: ID {step_id}", exc_info=True)
         raise ResourceNotFoundError("Step", step_id, details={"error_code": error_code})
-    return step
+    return StepDTO(**step)
 
 
-@router.put("/steps/{step_id}", summary="Update Step", response_description="Updated step.")
-async def update_step(step_id: str, request: StepUpdateRequest, repository: RepositoryDep):
+@router.put("/steps/{step_id}", summary="Update Step", response_description="Updated step.", response_model=StepDTO)
+async def update_step(step_id: str, request: StepUpdateRequest, repository: RepositoryDep) -> StepDTO:
     """V2: Update a step configuration.
 
     WARNING: This modifies the global step definition.
@@ -74,11 +64,11 @@ async def update_step(step_id: str, request: StepUpdateRequest, repository: Repo
 
     await repository.update_step(step_id, update_data)
 
-    return {**step, **update_data}
+    return StepDTO(**{**step, **update_data})
 
 
-@router.post("/steps/clone", summary="Clone Step", response_description="The new custom step config.")
-async def clone_step(repository: RepositoryDep, source_step_id: str = Body(..., embed=True)):
+@router.post("/steps/clone", summary="Clone Step", response_description="The new custom step config.", response_model=StepDTO)
+async def clone_step(repository: RepositoryDep, source_step_id: str = Body(..., embed=True)) -> StepDTO:
     """V2: Clone a step to a new Custom Step (Copy-on-Write)."""
     step = await repository.get_step_by_id(source_step_id)
     if not step:
@@ -97,15 +87,16 @@ async def clone_step(repository: RepositoryDep, source_step_id: str = Body(..., 
 
     await repository.create_step(clean_step)
 
-    return clean_step
+    return StepDTO(**clean_step)
 
 
 @router.post(
     "/steps/create-custom",
     summary="Create Custom Step",
     response_description="The newly created custom step.",
+    response_model=StepDTO,
 )
-async def create_custom_step(req: CustomStepCreateRequest, repository: RepositoryDep):
+async def create_custom_step(req: CustomStepCreateRequest, repository: RepositoryDep) -> StepDTO:
     """Creates a new custom step definition server-side with proper defaults."""
     # 1. Generate ID
     prefix = f"custom_{req.component_type.lower()}"
@@ -138,7 +129,7 @@ async def create_custom_step(req: CustomStepCreateRequest, repository: Repositor
     # 4. Save
     try:
         await repository.create_step(new_step)
-        return new_step
+        return StepDTO(**new_step)
     except Exception as e:
         from backend.exceptions import AppException
 
@@ -150,20 +141,7 @@ async def create_custom_step(req: CustomStepCreateRequest, repository: Repositor
         ) from e
 
 
-class StepPreviewResponse(BaseModel):
-    """Response model for step prompt preview."""
 
-    system_instruction: str = Field(
-        ...,
-        description="The full system prompt constructed from components.",
-        json_schema_extra={"x-ui-label": "System Instruction"}
-    )
-    user_prompt: str = Field(
-        ...,
-        description="The user prompt template logic.",
-        json_schema_extra={"x-ui-label": "User Prompt"}
-    )
-    agent_class: str = Field(..., description="The agent component class.")
 
 
 @router.post(
@@ -176,7 +154,7 @@ async def preview_step(
     step_id: str,
     repository: RepositoryDep,
     prompt_builder: PromptBuilderDep
-):
+) -> StepPreviewResponse:
     """Previews the LLM prompt for a step.
 
     Uses PromptBuilder to construct the full system prompt and fetch user prompt template.
@@ -206,7 +184,7 @@ async def preview_step(
         ) from e
 
 
-@router.get("/utils/generate-id", summary="Generate ID", response_description="A unique ID string.")
-async def generate_id(prefix: str = "custom_step"):
+@router.get("/utils/generate-id", summary="Generate ID", response_description="A unique ID string.", response_model=GeneratedIdResponse)
+async def generate_id(prefix: str = "custom_step") -> GeneratedIdResponse:
     """Generates a unique ID with optional prefix."""
-    return {"id": f"{prefix}_{uuid.uuid4().hex[:6]}"}
+    return GeneratedIdResponse(id=f"{prefix}_{uuid.uuid4().hex[:6]}")

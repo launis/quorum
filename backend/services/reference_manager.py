@@ -4,6 +4,10 @@ import logging
 import re
 from typing import Any
 
+from backend.models.dtos.knowledge_base import KnowledgeBaseSchema, CitationReport
+from backend.exceptions import AppException, ErrorCodes
+from pydantic import ValidationError
+
 logger = logging.getLogger(__name__)
 
 
@@ -12,16 +16,32 @@ class ReferenceManager:
 
     Scans text for short citations (e.g. "Acemoglu 2023") and resolves them against the Knowledge Base
     to produce accurate lists of references used in generated output.
+    Enforces strict typing and Fail Fast validation on KB content.
     """
 
-    def __init__(self, knowledge_base: dict[str, Any]):
+    def __init__(self, knowledge_base: dict[str, Any] | KnowledgeBaseSchema):
         """Initializes the manager with knowledge base content.
 
         Args:
-            knowledge_base (Dict[str, Any]): The full KB content (concepts, references).
+            knowledge_base: The full KB content (dict or typed schema).
 
+        Raises:
+            AppException: If KB content is invalid (Fail Fast).
         """
-        self.knowledge_base = knowledge_base
+        # Fail Fast: Strict Schema Validation
+        if isinstance(knowledge_base, KnowledgeBaseSchema):
+            self.kb = knowledge_base
+        else:
+            try:
+                self.kb = KnowledgeBaseSchema(**knowledge_base)
+            except ValidationError as e:
+                logger.error(f"Invalid Knowledge Base schema: {e}")
+                raise AppException(
+                    message="Refusing to initialize ReferenceManager with invalid Knowledge Base.",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.KNOWLEDGE_BASE_INVALID, "validation_errors": str(e)}
+                ) from e
+
         self.references_map = self._build_reference_map()
 
         # Regex to find parenthetical citations: (Author 2020) or (Author et al. 2020)
@@ -40,30 +60,14 @@ class ReferenceManager:
 
         """
         ref_map = {}
-        refs = self.knowledge_base.get("references", [])
+        
+        # Safe strict usage of typed KB
+        for r in self.kb.references:
+            full = r.full_text
+            short = r.short_citation
 
-        # Handle list of dicts or list of strings logic
-        if isinstance(refs, list):
-            for r in refs:
-                if isinstance(r, dict):
-                    full = r.get("citation") or r.get("definition")
-                    short = r.get("short_citation")
-
-                    if short and full:
-                        ref_map[short.lower()] = full
-                        # Also map just "Author 2020" from "Author & Co 2020"?
-                        # For now, rely on strict short citation from DB.
-
-                elif isinstance(r, str):
-                    # Legacy string reference
-                    # Try to extract short citation on the fly?
-                    # "Smith, J. 2020: Title..." -> "Smith 2020"
-                    match = re.match(r"^([A-Za-zÅÄÖåäö&]+(?:, [A-Za-zÅÄÖåäö&]+)*)\.?\s*(\d{4}[a-z]?)", r)
-                    if match:
-                        authors = match.group(1).split(",")[0].strip()  # First author surname
-                        year = match.group(2)
-                        short = f"{authors} {year}"
-                        ref_map[short.lower()] = r
+            if short and full:
+                ref_map[short.lower()] = full
 
         return ref_map
 
@@ -105,7 +109,17 @@ class ReferenceManager:
         if not text or len(text) < 10:
             return
 
-        matches = self.citation_pattern.findall(text)
+        try:
+            matches = self.citation_pattern.findall(text)
+        except Exception as e:
+            # Should technically never happen on standard string, but adhering to Fail Fast for robust parsers
+            logger.warning(f"Regex failure in reference scan: {e}")
+            raise AppException(
+                message="Critical Regex failure in citation parsing.",
+                status_code=500,
+                details={"error_code": ErrorCodes.CITATION_PARSING_FAILED, "original_error": str(e)}
+            ) from e
+
         for match in matches:
             # Clean: "(vrt. Smith 2020)" -> "smith 2020"
             clean = match.strip("()")
@@ -125,7 +139,7 @@ class ReferenceManager:
                         used_refs.add(full_ref)
                         break
 
-    def advanced_scan(self, text_dump: str) -> dict[str, list[str]]:
+    def advanced_scan(self, text_dump: str) -> CitationReport:
         """Performs a deep (2-hop) scan for citation relevance.
 
         1. Checks for direct citation in text.
@@ -135,7 +149,7 @@ class ReferenceManager:
             text_dump (str): The combined text to analyze.
 
         Returns:
-            Dict[str, List[str]]: Map of {Full Reference -> [List of Reasons/Contexts]}.
+            CitationReport: Typed map of {Full Reference -> [List of Reasons/Contexts]}.
 
         """
         found: dict[str, list[str]] = {}
@@ -157,7 +171,6 @@ class ReferenceManager:
                     found[full].append("Suora viittaus (ilman sulkeita)")
 
         # B. Scan Concepts (Semantic Linking)
-        concepts = self.knowledge_base.get("concepts", [])
         cit_pattern = re.compile(r"\((?:[A-Za-zÅÄÖåäö&,.-]+\s+)+\d{4}[a-z]?\)")
 
         ignored_concepts = {
@@ -173,21 +186,9 @@ class ReferenceManager:
             "introduction",
         }
 
-        # Handle list of dicts (standard KB) or dict (legacy/mock)
-        iterator = []
-        if isinstance(concepts, list):
-            iterator = concepts
-        elif isinstance(concepts, dict):
-            # Convert dict to list format for uniform handling
-            iterator = [{"term": k, "definition": v} for k, v in concepts.items()]
-
-        for item in iterator:
-            # Ensure it's a dict
-            if not isinstance(item, dict):
-                continue
-
-            term = item.get("term")
-            defn = item.get("definition")
+        for item in self.kb.concepts:
+            term = item.term
+            defn = item.definition
 
             if not term:
                 continue
@@ -197,38 +198,37 @@ class ReferenceManager:
             # If Concept TERM is mentioned in the text...
             if len(term) > 3 and term.lower() in text_lower:
                 # ... check if the Concept DEFINITION has citations
-                if isinstance(defn, str):
-                    matches = cit_pattern.findall(defn)
-                    for m in matches:
-                        raw_key = m.strip("()")
+                matches = cit_pattern.findall(defn)
+                for m in matches:
+                    raw_key = m.strip("()")
 
-                        # Resolve raw_key to full reference
-                        resolved_ref = None
+                    # Resolve raw_key to full reference
+                    resolved_ref = None
 
-                        # Try map first
-                        if raw_key.lower() in self.references_map:
-                            resolved_ref = self.references_map[raw_key.lower()]
-                        else:
-                            # Try fuzzy match
-                            for short, full in self.references_map.items():
-                                if raw_key.lower() in short or short in raw_key.lower():
-                                    resolved_ref = full
-                                    break
+                    # Try map first
+                    if raw_key.lower() in self.references_map:
+                        resolved_ref = self.references_map[raw_key.lower()]
+                    else:
+                        # Try fuzzy match
+                        for short, full in self.references_map.items():
+                            if raw_key.lower() in short or short in raw_key.lower():
+                                resolved_ref = full
+                                break
 
-                        # If not resolved, use raw key (fallback) but try to clean prefixes
-                        if not resolved_ref:
-                            prefixes = ["vrt.", "cf.", "e.g.", "esim.", "ks.", "see"]
-                            clean_raw = raw_key
-                            for p in prefixes:
-                                if clean_raw.lower().startswith(p + " "):
-                                    clean_raw = clean_raw[len(p) + 1 :].strip()
-                            resolved_ref = clean_raw
+                    # If not resolved, use raw key (fallback) but try to clean prefixes
+                    if not resolved_ref:
+                        prefixes = ["vrt.", "cf.", "e.g.", "esim.", "ks.", "see"]
+                        clean_raw = raw_key
+                        for p in prefixes:
+                            if clean_raw.lower().startswith(p + " "):
+                                clean_raw = clean_raw[len(p) + 1 :].strip()
+                        resolved_ref = clean_raw
 
-                        if resolved_ref and len(resolved_ref) > 4:
-                            if resolved_ref not in found:
-                                found[resolved_ref] = []
-                            msg = f"Käsite: '{term}'"
-                            if msg not in found[resolved_ref]:
-                                found[resolved_ref].append(msg)
+                    if resolved_ref and len(resolved_ref) > 4:
+                        if resolved_ref not in found:
+                            found[resolved_ref] = []
+                        msg = f"Käsite: '{term}'"
+                        if msg not in found[resolved_ref]:
+                            found[resolved_ref].append(msg)
 
-        return found
+        return CitationReport(relevance_map=found)

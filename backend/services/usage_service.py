@@ -10,6 +10,7 @@ from datetime import UTC, datetime
 
 from backend.database.repository import AbstractWorkflowRepository
 from backend.models.domain import UsageRecord
+from backend.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ class UsageService:
         input_tokens: int,
         output_tokens: int,
         cost_usd: float,
-    ) -> UsageRecord | None:
+    ) -> UsageRecord:
         """Track and persist a usage record.
 
         This method accepts the cost calculated by the LLM Provider (LiteLLM)
@@ -48,7 +49,10 @@ class UsageService:
             cost_usd (float): The cost calculated by LiteLLM.
 
         Returns:
-            Optional[UsageRecord]: The created record if successful, else None.
+            UsageRecord: The created record.
+
+        Raises:
+            AppException: If logging usage fails.
         """
         try:
             record = UsageRecord(
@@ -66,13 +70,21 @@ class UsageService:
             return record
 
         except Exception as e:
-            logger.error(f"Failed to log usage for {user_id} (Org: {org_id}): {e}")
-            return None
+            error_code = ErrorCodes.USAGE_TRACKING_FAILED
+            logger.error(f"[Usage] {error_code.value} for {user_id} (Org: {org_id}): {e}", exc_info=True)
+            raise AppException(
+                message=f"Failed to track usage: {e}",
+                status_code=500,
+                details={"error_code": error_code}
+            ) from e
 
     async def check_quota(self, org_id: str) -> bool:
         """Checks if organization is within quota limits (Current Month).
 
         Returns True if SAFE (under limit), False if EXCEEDED.
+        
+        Raises:
+            AppException: If checking quota fails (infrastructure error).
         """
         try:
             # 1. Get Org Limits
@@ -105,6 +117,11 @@ class UsageService:
             return True
 
         except Exception as e:
-            logger.error(f"Quota check failed for {org_id}: {e}")
-            # Fail Open during Pilot/Debugging
-            return True
+            error_code = ErrorCodes.QUOTA_CHECK_FAILED
+            logger.error(f"[Usage] {error_code.value} check failed for {org_id}: {e}", exc_info=True)
+            # Fail FAST. Do not swallow errors.
+            raise AppException(
+                message=f"Quota check failed: {e}",
+                status_code=500,
+                details={"error_code": error_code}
+            ) from e

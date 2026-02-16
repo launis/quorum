@@ -1,6 +1,7 @@
 
 import json
 import logging
+
 from tinydb import TinyDB
 
 # Setup logging
@@ -13,7 +14,7 @@ SEED_PATH = "backend/seed/seed_data.json"
 def dump_steps_to_seed():
     """Reads steps from DB and injects them into seed_data.json."""
     logger.info(f"Reading Steps from DB: {DB_PATH}")
-    
+
     try:
         with TinyDB(DB_PATH, encoding="utf-8") as db:
             steps_table = db.table("steps")
@@ -26,7 +27,7 @@ def dump_steps_to_seed():
 
     # Read Seed
     try:
-        with open(SEED_PATH, "r", encoding="utf-8") as f:
+        with open(SEED_PATH, encoding="utf-8") as f:
             seed_data = json.load(f)
     except FileNotFoundError:
         logger.error(f"Seed file not found at {SEED_PATH}")
@@ -39,8 +40,8 @@ def dump_steps_to_seed():
         # Shallow copy to avoid mutating cache if any
         s_clean = s.copy()
         if "doc_id" in s_clean: # TinyDB usually doesn't put doc_id in dict unless explicitly there
-             pass 
-        # But TinyDB .all() returns dicts. 
+             pass
+        # But TinyDB .all() returns dicts.
         # Check if internal id leaked? Usually no.
         cleaned_steps.append(s_clean)
 
@@ -48,7 +49,7 @@ def dump_steps_to_seed():
     cleaned_steps.sort(key=lambda x: x.get("id", ""))
 
     seed_data["steps"] = cleaned_steps
-    
+
     logger.info(f"Injecting {len(cleaned_steps)} steps into seed_data.json...")
 
     # Save

@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from backend.core.registry import TaskRegistry
-from backend.exceptions import WorkflowExecutionError
+from backend.exceptions import AppException, ErrorCodes, WorkflowExecutionError, status
 from backend.models.state import ReasoningTrace, TraceEvent, WorkflowState
 from backend.models.workflow import WorkflowDefinition
 
@@ -25,7 +25,7 @@ HOOK_MAPPING = {
     "check_banned_phrases": ("backend.hooks.security", "check_banned_phrases_hook"),
     # Metrics & Analysis (use wrapper functions)
     "calculate_text_metrics": ("backend.hooks.metrics", "calculate_text_metrics_hook"),
-    "calculate_control_ratio": ("backend.hooks.metrics", "calculate_control_ratio_hook"),
+    "calculate_control_ratio": ("backend.hooks.metrics", "calculate_text_metrics_hook"),
     # Linguistics
     "detect_performative_patterns": ("backend.hooks.linguistics", "detect_performative_patterns"),
     # Scoring
@@ -36,6 +36,9 @@ HOOK_MAPPING = {
     "generate_bibliography": ("backend.hooks.references", "generate_bibliography_hook"),
     # Passiveness Cutter (Strict Penalty)
     "enforce_passivity_penalty": ("backend.hooks.scoring", "enforce_passivity_penalty"),
+    # Integrity & Linking
+    "verify_citation_integrity": ("backend.hooks.integrity", "verify_citation_integrity"),
+    "enforce_hypothesis_linking": ("backend.hooks.integrity", "enforce_hypothesis_linking"),
 }
 
 
@@ -95,8 +98,6 @@ class GraphEngine:
         try:
             execution_state = WorkflowState(**state_payload)
         except Exception as e:
-            from backend.exceptions import AppException, ErrorCodes, status
-
             logger.error(f"[GraphEngine] Invalid initial state: {e}")
             raise AppException(
                 message=f"Invalid initial state structure: {e}",
@@ -127,6 +128,7 @@ class GraphEngine:
             for field in ["history_text", "product_text", "reflection_text"]:
                 val = inputs.get(field)
                 if val and isinstance(val, str) and ("chat" in field or "history" in field):
+                    # Strict: No Fallback for invalid chat logs.
                     try:
                         original_len = len(val)
                         parsed_value = ChatLogParser.parse(val)
@@ -139,7 +141,13 @@ class GraphEngine:
                                 f"{original_len} -> {len(parsed_value)} chars"
                             )
                     except Exception as e:
-                        logger.warning(f"[GraphEngine] ChatLogParser failed for '{field}': {e}")
+                        # Fail Fast: Invalid Chat Log is a data integrity error.
+                        logger.error(f"[GraphEngine] ChatLogParser failed for '{field}': {e}")
+                        raise AppException(
+                             message=f"Chat Log Parsing failed for field '{field}': {e}",
+                             status_code=status.HTTP_400_BAD_REQUEST,
+                             details={"error_code": ErrorCodes.INVALID_JSON_PAYLOAD, "field": field, "original_error": str(e)}
+                         ) from e
             execution_state.context_variables["inputs"] = inputs  # Update back
 
         logger.info(f"Starting workflow '{definition.id}' with {len(definition.steps)} steps.")
@@ -171,15 +179,20 @@ class GraphEngine:
                     try:
                         library_step_data = await repository.get_step_by_id(step.id)
                         if library_step_data:
+                            updates = {}
                             if "task_key" in library_step_data:
-                                step.task_key = library_step_data["task_key"]
+                                updates["task_key"] = library_step_data["task_key"]
+
                             lib_config = library_step_data.get("config", {})
                             if not step.config:
-                                step.config = lib_config
+                                updates["config"] = lib_config
                             else:
                                 merged = lib_config.copy()
                                 merged.update(step.config)
-                                step.config = merged
+                                updates["config"] = merged
+                            
+                            if updates:
+                                step = step.model_copy(update=updates)
                     except Exception as e:
                         logger.warning(f"[GraphEngine] Step hydration failed for '{step.id}': {e}")
 
@@ -197,7 +210,11 @@ class GraphEngine:
                 # 2. Get Task Handler
                 task_def = TaskRegistry.get(step.task_key)
                 if not task_def:
-                    raise ValueError(f"Task '{step.task_key}' not found in registry.")
+                     raise AppException(
+                         message=f"Task '{step.task_key}' not found in registry.",
+                         status_code=status.HTTP_404_NOT_FOUND,
+                         details={"error_code": ErrorCodes.TASK_NOT_FOUND, "task_key": step.task_key}
+                     )
 
                 # 3. Validate Inputs against Schema
                 try:
@@ -205,7 +222,11 @@ class GraphEngine:
                     # For now, just standard validation.
                     validated_input = task_def.input_schema.model_validate(task_inputs)
                 except Exception as e:
-                    raise ValueError(f"Input validation failed for key '{step.task_key}': {e}") from e
+                     raise AppException(
+                         message=f"Input validation failed for key '{step.task_key}': {e}",
+                         status_code=status.HTTP_400_BAD_REQUEST,
+                         details={"error_code": ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED, "original_error": str(e)}
+                     ) from e
 
                 # 4. Execute Task
                 logger.debug(f"Executing step '{step.id}' ({step.task_key})...")
@@ -292,7 +313,7 @@ class GraphEngine:
                 if isinstance(sec_check, dict) and sec_check.get("threat_detected") is True:
                     stop_signal = True
                     stop_reason = f"Security Threat Detected by '{step.id}'"
-                
+
                 if stop_signal:
                     logger.warning(f"[GraphEngine] 🛑 HALTING EXECUTION: {stop_reason}")
                     execution_state = execution_state.model_copy(update={"status": "stopped"})
@@ -330,6 +351,26 @@ class GraphEngine:
                     except Exception as e:
                         logger.warning(f"Failed to persist state for {execution_id}: {e}")
 
+            except AppException as ae:
+                 # Specific Application Error (Fail Fast)
+                 logger.error(f"{ae.error_code}: Workflow failed at step '{step.id}': {ae.message}", exc_info=True)
+                 
+                 # Create Error Event
+                 error_event = TraceEvent(
+                     step_name=step.id,
+                     event_type="error",
+                     content={"error": ae.message, "code": ae.error_code},
+                     metadata={"timestamp": datetime.now(timezone.utc).isoformat()},
+                 )
+                 try:
+                     execution_state = execution_state.add_event(error_event)
+                 except Exception:
+                     pass # Fallback if adding event fails
+
+                 # Check if we should re-raise or wrap?
+                 # If it's already an AppException, re-raising preserves the code.
+                 raise ae
+
             except Exception as e:
                 error_code = "WORKFLOW_STEP_FAILED"
                 logger.error(f"{error_code}: Workflow failed at step '{step.id}': {e}", exc_info=True)
@@ -341,7 +382,10 @@ class GraphEngine:
                     content={"error": str(e), "code": error_code},
                     metadata={"timestamp": datetime.now(timezone.utc).isoformat()},
                 )
-                execution_state = execution_state.add_event(error_event)
+                try:
+                    execution_state = execution_state.add_event(error_event)
+                except Exception:
+                    pass
 
                 failed_state_dump = execution_state.model_dump(mode='json')
                 raise WorkflowExecutionError(
@@ -379,7 +423,11 @@ class GraphEngine:
             if not hasattr(module, func_name):
                 msg = f"Hook Function '{func_name}' not found in module '{module_path}'"
                 logger.error(f"[GraphEngine] {msg}")
-                raise ValueError(msg)
+                raise AppException(
+                    message=msg,
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED}
+                )
 
             hook_func = getattr(module, func_name)
             sig = inspect.signature(hook_func)
@@ -393,15 +441,23 @@ class GraphEngine:
                 result_state = hook_func(state, **kwargs)
 
             if result_state is None:
-                raise ValueError(f"Hook '{hook_name}' returned None. Must return WorkflowState.")
+                 raise AppException(
+                    message=f"Hook '{hook_name}' returned None. Must return WorkflowState.",
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED}
+                )
 
             return result_state
 
         except Exception as e:
             logger.error(f"[GraphEngine] Hook '{hook_name}' failed: {e}", exc_info=True)
-            if isinstance(e, ValueError):
+            if isinstance(e, AppException):
                 raise e
-            raise ValueError(f"Hook execution failed: {e}") from e
+            raise AppException(
+                message=f"Hook execution failed: {e}",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED, "original_error": str(e)}
+            ) from e
 
     def _resolve_inputs(self, input_mapping: dict[str, str], state: WorkflowState) -> dict[str, Any]:
         """Resolve inputs from WorkflowState object (using context_variables)."""
@@ -435,13 +491,15 @@ class GraphEngine:
                         if isinstance(value, dict):
                             value = value.get(part)
                         else:
-                            value = getattr(value, part, None)
-
-                        if value is None:
-                            break
+                            # Strict: Raise AttributeError if missing
+                            value = getattr(value, part)
                     resolved[target_field] = value
                 except Exception as e:
-                    raise ValueError(f"Resolution failed for path '{source_path}': {e}")
+                     raise AppException(
+                         message=f"Resolution failed for path '{source_path}': {e}",
+                         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                         details={"error_code": ErrorCodes.INPUT_RESOLUTION_FAILED, "original_error": str(e)}
+                     )
             else:
                 # Static value
                 resolved[target_field] = source_path

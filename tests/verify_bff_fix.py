@@ -1,15 +1,16 @@
 
-import sys
 import os
+import sys
 
 # Add project root to path
 sys.path.append(os.getcwd())
 
 from backend.api.bff_transformer import AssessmentTransformer
 
+
 def test_reconstruct_fix():
     transformer = AssessmentTransformer()
-    
+
     # Test case 1: Event with None metadata in content
     # This was causing the error: content["metadata"] is None
     trace = [
@@ -20,7 +21,7 @@ def test_reconstruct_fix():
             "timestamp": "2024-01-01T12:00:00Z"
         }
     ]
-    
+
     try:
         result = transformer._reconstruct_state_from_trace(trace)
         print("Success: _reconstruct_state_from_trace handled None metadata.")

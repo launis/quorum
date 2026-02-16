@@ -1,12 +1,11 @@
 
 import json
-import sys
 
 DB_PATH = "c:/src/quorum/data/db.json"
 
 def verify():
     try:
-        with open(DB_PATH, "r", encoding="utf-8") as f:
+        with open(DB_PATH, encoding="utf-8") as f:
             data = json.load(f)
     except FileNotFoundError:
         print(f"FAIL: Database file not found at {DB_PATH}")
@@ -16,13 +15,13 @@ def verify():
     # We need to find "step_context" and "step_xai" in "system_models" table or "steps" table?
     # The seeder upsets into "steps" table?
     # In seed_data.json they are under "steps".
-    # Let's check "steps" table. Or "system_models"? 
+    # Let's check "steps" table. Or "system_models"?
     # Usually "steps" in seed_data -> "steps" table (or "system_config"?)
     # Let's look for them in all tables.
-    
+
     found_context = False
     context_passed = False
-    
+
     found_xai = False
     xai_passed = False
 
@@ -37,19 +36,19 @@ def verify():
                     print(f"PASS: step_context found with {len(prompts)} prompts.")
                 else:
                     print(f"FAIL: step_context found but llm_prompts is empty: {prompts}")
-            
+
             if record.get("id") == "step_xai":
                 found_xai = True
                 config = record.get("config", {})
                 post_hooks = config.get("post_hooks", [])
                 pre_hooks = config.get("pre_hooks", [])
-                
+
                 if "generate_report" in post_hooks:
                     if "generate_report" not in pre_hooks:
                         xai_passed = True
-                        print(f"PASS: step_xai found with generate_report in post_hooks.")
+                        print("PASS: step_xai found with generate_report in post_hooks.")
                     else:
-                         print(f"FAIL: step_xai has generate_report in BOTH pre and post hooks.")
+                         print("FAIL: step_xai has generate_report in BOTH pre and post hooks.")
                 else:
                     print(f"FAIL: step_xai does not have generate_report in post_hooks. Hooks: {post_hooks}")
 

@@ -6,13 +6,14 @@ profile management, and organization administration.
 
 import logging
 
+from typing import List, Annotated
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
 from backend.core.rate_limit import limiter
 from backend.dependencies import AuthServiceDep, CurrentUserDep
 from backend.models.auth import Organization, OrganizationCreate, User, UserCreate, UserRole, UserUpdate
-from backend.exceptions import ResourceNotFoundError
+from backend.models.dtos.auth import UserDeleteResponse
 
 # --- Local Imports ---
 # Rule 6: APIError must be the FIRST local import
@@ -151,7 +152,7 @@ async def impersonate_user(request: ImpersonationRequest, current_user: CurrentU
     return ImpersonationResponse(access_token=token)
 
 
-@router.get("/roles", response_model=list[str])
+@router.get("/roles", response_model=List[str])
 async def list_available_roles():
     """List all valid User Roles.
 
@@ -249,7 +250,7 @@ async def create_organization(org_data: OrganizationCreate, current_user: Curren
         raise AppException(message=str(e), status_code=400, details={"error_code": error_code}) from e
 
 
-@router.get("/users", response_model=list[User])
+@router.get("/users", response_model=List[User])
 async def list_users(current_user: CurrentUserDep, auth_service: AuthServiceDep):
     """List users visible to the current user (scoped by Organization).
 
@@ -291,7 +292,7 @@ async def list_users(current_user: CurrentUserDep, auth_service: AuthServiceDep)
     return [requester]
 
 
-@router.delete("/users/{uid}")
+@router.delete("/users/{uid}", response_model=UserDeleteResponse)
 async def delete_user(uid: str, current_user: CurrentUserDep, auth_service: AuthServiceDep):
     """Delete a user.
 
@@ -303,14 +304,14 @@ async def delete_user(uid: str, current_user: CurrentUserDep, auth_service: Auth
         auth_service (AuthServiceDep): Authorization service.
 
     Returns:
-        dict: Status confirmation.
+        UserDeleteResponse: Status confirmation.
 
     Raises:
         HTTPException: Permission denied (403) or business logic error (400).
     """
     try:
         await auth_service.delete_user(current_user.uid, uid)
-        return {"status": "deleted", "uid": uid}
+        return UserDeleteResponse(status="deleted", uid=uid)
     except PermissionError as e:
         from backend.exceptions import PermissionDeniedError
 

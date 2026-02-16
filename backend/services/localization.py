@@ -2,7 +2,9 @@ import json
 import logging
 from contextvars import ContextVar
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
+
+from backend.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
 
@@ -37,25 +39,50 @@ class LocalizationService:
 
         try:
             if not cls.L10N_DIR.exists():
-                logger.warning(f"Localization directory not found: {cls.L10N_DIR}")
-                return
+                 # Fail Fast: Missing localization directory is a critical deployment error.
+                raise AppException(
+                    message=f"Localization directory not found: {cls.L10N_DIR}",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
+                )
 
-            for file_path in cls.L10N_DIR.glob("*.json"):
+            json_files = list(cls.L10N_DIR.glob("*.json"))
+            if not json_files:
+                 # Fail Fast: No translation files found.
+                 raise AppException(
+                    message=f"No translation files found in {cls.L10N_DIR}",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
+                )
+
+            for file_path in json_files:
                 lang_code = file_path.stem  # e.g., 'en', 'fi'
                 try:
                     with open(file_path, encoding="utf-8") as f:
                         data = json.load(f)
                         cls._translations[lang_code] = data
                 except Exception as e:
-                    logger.error(f"Failed to load translation file {file_path}: {e}")
+                     # Fail Fast: Corrupt translation file.
+                    raise AppException(
+                        message=f"Failed to load translation file {file_path}",
+                        status_code=500,
+                        details={"error_code": ErrorCodes.CONFIGURATION_ERROR, "original_error": str(e)}
+                    ) from e
 
             cls._loaded = True
             logger.info(f"Loaded translations for languages: {list(cls._translations.keys())}")
+        except AppException:
+            raise
         except Exception as e:
-            logger.error(f"Critical error loading translations: {e}", exc_info=True)
+            # Catch-all for unexpected filesystem errors
+            raise AppException(
+                message=f"Critical error loading translations: {e}",
+                status_code=500,
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR, "original_error": str(e)}
+            ) from e
 
     @classmethod
-    def translate(cls, key: str, lang: Optional[str] = None, **kwargs) -> str:
+    def translate(cls, key: str, lang: str | None = None, **kwargs) -> str:
         """Translates a key into the target language with optional interpolation.
         
         Args:
@@ -75,14 +102,14 @@ class LocalizationService:
         # Fallback logic: "fi-FI" -> "fi"
         lang_simple = lang.split("-")[0].lower()
         target_dict = cls._translations.get(lang_simple, {})
-        
+
         # 1. Try exact match in target language
         val = target_dict.get(key)
 
         # 2. Try Fallback to English
         if val is None and lang_simple != "en":
              val = cls._translations.get("en", {}).get(key)
-        
+
         # 3. Fallback to Key
         if val is None:
             val = key
@@ -92,26 +119,35 @@ class LocalizationService:
             try:
                 return val.format(**kwargs)
             except KeyError as e:
-                logger.warning(f"Localization missing argument '{e.args[0]}' for key '{key}' in lang '{lang}'")
-                return val # Return unformatted string rather than crashing
+                # Fail Fast: Missing interpolation argument is a developer error.
+                raise AppException(
+                    message=f"Localization missing argument '{e.args[0]}' for key '{key}' in lang '{lang}'",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR, "missing_arg": str(e.args[0])}
+                ) from e
             except Exception as e:
-                logger.error(f"Localization format error for key '{key}': {e}")
-                return val
-        
+                # Fail Fast: Invalid format string
+                raise AppException(
+                    message=f"Localization format error for key '{key}': {e}",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR, "original_error": str(e)}
+                ) from e
+
         return val
 
-    def get(self, key: str, lang: Optional[str] = None, default: str = None, **kwargs) -> str:
-        """Instance method alias for translate with custom default fallback."""
-        val = self.translate(key, lang, **kwargs)
+    @classmethod
+    def get(cls, key: str, lang: str | None = None, default: str | None = None, **kwargs) -> str:
+        """Class method alias for translate with custom default fallback."""
+        val = cls.translate(key, lang, **kwargs)
         if val == key and default:
             return default
         return val
 
 
-def localize_schema(schema: dict[str, Any], lang: Optional[str] = None) -> dict[str, Any]:
+def localize_schema(schema: dict[str, Any], lang: str | None = None) -> dict[str, Any]:
     """Recursively traverses a JSON Schema and translates SDUI hints."""
     # If lang is provided explicitly (legacy), use it. Otherwise translate() picks up Context.
-    
+
     if isinstance(schema, dict):
         # 1. Translate UI Hints (Pydantic / JSON Schema proper)
         if "x-ui-label" in schema and isinstance(schema["x-ui-label"], str):
@@ -119,11 +155,11 @@ def localize_schema(schema: dict[str, Any], lang: Optional[str] = None) -> dict[
 
         if "x-ui-group" in schema and isinstance(schema["x-ui-group"], str):
             schema["x-ui-group"] = LocalizationService.translate(schema["x-ui-group"], lang)
-            
+
         # 2. Translate Generic UI Schema (Workflow Config)
         # Seed data uses "label" for input fields
         if "label" in schema and isinstance(schema["label"], str):
-             # heuristic: only translate if it looks like a key (uppercase start?) 
+             # heuristic: only translate if it looks like a key (uppercase start?)
              # or just always try. If key missing, it falls back to value.
              # But if value is long English text "1. Chat History...", we don't want to use that as key.
              # We rely on seed_data being updated to simple keys first.

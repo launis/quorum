@@ -1,5 +1,5 @@
-from unittest.mock import AsyncMock, MagicMock, patch
 import sys
+from unittest.mock import AsyncMock, MagicMock, patch
 
 # Mock weasyprint and numpy BEFORE importing the service to avoid dependency issues
 mock_wp_module = MagicMock()
@@ -10,12 +10,11 @@ sys.modules["matplotlib.pyplot"] = MagicMock()
 sys.modules["matplotlib.figure"] = MagicMock()
 
 import pytest
+
+from backend.api.bff_transformer import ReportView, SectionType, UiSection
+from backend.exceptions import AppException
 from backend.services.pdf_generator import PdfReportService, ProgressServiceProtocol
 
-
-from backend.exceptions import AppException
-
-from backend.api.bff_transformer import ReportView, UiSection, SectionType
 
 @pytest.fixture
 def mock_repo():
@@ -77,11 +76,11 @@ async def test_generate_execution_pdf_success(mock_repo, mock_progress, mock_wea
 
     # Verify Progress Calls
     assert mock_progress.emit_progress.call_count == 6
-    
+
     # Verify Chart generation triggered
     # The service iterates sections, finds SCORE_CARD, generates chart.
     mock_chart_service.generate_radar_chart.assert_called_once()
-    
+
     # Verify HTML generation
     mock_weasyprint.HTML.assert_called_once()
 
@@ -94,7 +93,7 @@ async def test_generate_execution_pdf_not_found(mock_repo, mock_progress):
     # Service wraps ValueError in AppException
     with pytest.raises(AppException) as excinfo:
         await service.generate_execution_pdf("missing-id")
-    
+
     assert "not found" in str(excinfo.value) or "not found" in str(excinfo.value.details)
     assert mock_progress.emit_progress.called
 
@@ -126,7 +125,7 @@ async def test_generate_execution_pdf_error_handling(mock_repo, mock_progress):
     with patch("backend.services.pdf_generator.ChartService.generate_radar_chart", side_effect=ValueError("Chart Error")):
         with pytest.raises(AppException) as excinfo:
             await service.generate_execution_pdf("exec-123")
-        
+
         assert "Chart Error" in str(excinfo.value) or "Chart Error" in str(excinfo.value.details)
 
     # Check that it tried to emit progress even on failure
@@ -171,7 +170,7 @@ async def test_generate_pdf_with_logic_and_ethics(mock_repo, mock_progress, mock
             }
         }
     ]
-    
+
     # Return dict for model_dump
     mock_execution.model_dump.return_value = {
         "id": execution_id,
@@ -184,7 +183,7 @@ async def test_generate_pdf_with_logic_and_ethics(mock_repo, mock_progress, mock
     # Mock Chart Service to return a bubble chart
     with patch("backend.services.pdf_generator.ChartService") as mock_cs:
         mock_cs.generate_bubble_chart.return_value = "data:image/png;base64,bubble_mock"
-        
+
         # Execute
         await service.generate_execution_pdf(execution_id)
 
@@ -194,6 +193,6 @@ async def test_generate_pdf_with_logic_and_ethics(mock_repo, mock_progress, mock
         call_args = mock_cs.generate_bubble_chart.call_args
         assert call_args.kwargs['x_val'] == 4.0
         assert call_args.kwargs['y_val'] == 3.0
-        
+
         # Verify WeasyPrint called (implies successful template rendering of new data)
         mock_weasyprint.HTML.assert_called_once()

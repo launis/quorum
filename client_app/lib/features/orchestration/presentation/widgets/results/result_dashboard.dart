@@ -13,6 +13,7 @@ import 'package:client_app/features/orchestration/data/repositories/execution_re
 
 import 'package:client_app/features/orchestration/presentation/widgets/output_renderer.dart';
 import 'package:client_app/features/orchestration/presentation/widgets/sdui/specialist_section.dart';
+import 'package:client_app/core/ui/error_view.dart';
 
 
 class ResultDashboard extends ConsumerStatefulWidget {
@@ -114,7 +115,7 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
           ...view.sections.map((section) {
             return Padding(
               padding: const EdgeInsets.only(bottom: 24.0),
-              child: _renderSection(context, section),
+              child: _renderSection(context, section, view),
             );
           }),
         ],
@@ -153,7 +154,7 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
     );
   }
 
-  Widget _renderSection(BuildContext context, UiSection section) {
+  Widget _renderSection(BuildContext context, UiSection section, ReportView view) {
     switch (section.type) {
       case 'SCORE_CARD':
         // Fallback or specific renderer? 
@@ -162,10 +163,11 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
            final card = ScoreCardItem.fromJson(section.data); // Use ScoreCardItem from xai_report.dart
            return ScoreCardRadar(card: card); 
         } catch (e) {
-           return Text("Error rendering ScoreCard: $e");
+           return ErrorView(error: "Error rendering ScoreCard: $e", compact: true);
         }
 
       case 'KEY_VALUE_GRID':
+
         return GenericGrid(title: section.title, data: section.data);
 
       case 'DATA_TABLE':
@@ -237,15 +239,13 @@ class _ResultDashboardState extends ConsumerState<ResultDashboard> {
           title: section.title,
           type: section.type, 
           data: section.data,
+          metrics: view.metrics, // Pass global metrics
         );
 
       default:
-        return Card(
-          color: Colors.red[50],
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text("Unknown Section Type: ${section.type}"),
-          ),
+        return ErrorView(
+          error: "Unknown Section Type: ${section.type}",
+          compact: true,
         );
     }
   }

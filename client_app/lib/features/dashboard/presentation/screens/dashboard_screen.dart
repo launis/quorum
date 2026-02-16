@@ -10,6 +10,7 @@ import 'package:client_app/features/dashboard/presentation/widgets/execution_sta
 import 'package:client_app/features/settings/theme_provider.dart';
 import 'package:client_app/features/settings/locale_provider.dart';
 import 'package:client_app/features/auth/presentation/auth_controller.dart';
+import 'package:client_app/core/ui/error_view.dart';
 
 /// The main dashboard screen displaying a list of recent executions.
 ///
@@ -115,34 +116,14 @@ class DashboardScreen extends ConsumerWidget {
       body: asyncExecutions.when(
         data: (executions) => _DashboardContent(executions: executions),
         error:
-            (error, stack) => Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.error_outline,
-                      size: 48,
-                      color: Colors.red,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(l10n.failedToLoad('$error')),
-                    const SizedBox(height: 16),
-                    FilledButton.icon(
-                      onPressed:
-                          () =>
-                              ref
-                                  .read(
-                                    executionListControllerProvider.notifier,
-                                  )
-                                  .refreshList(),
-                      icon: const Icon(Icons.refresh),
-                      label: Text(l10n.retry),
-                    ),
-                  ],
-                ),
-              ),
+            (error, stack) => ErrorView(
+              error: error,
+              onRetry:
+                  () =>
+                      ref
+                          .read(executionListControllerProvider.notifier)
+                          .refreshList(),
+              retryLabel: l10n.retry,
             ),
         loading: () => const Center(child: CircularProgressIndicator()),
       ),

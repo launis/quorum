@@ -5,6 +5,7 @@ import 'package:client_app/features/studio/domain/models/json_schema.dart';
 import 'package:client_app/features/studio/domain/models/workflow_def.dart';
 import 'package:client_app/features/studio/presentation/providers/studio_controller.dart';
 import 'package:client_app/features/studio/presentation/widgets/dynamic_step_form.dart';
+import 'package:client_app/features/studio/presentation/widgets/strategy_selection_field.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -85,6 +86,11 @@ class StepConfigPanel extends ConsumerWidget {
                   children: [
                     // 1. Base Step Config
                      _buildSectionHeader(context, "Base Configuration"),
+                     StrategySelectionField(
+                       currentStrategy: step!.config['model_strategy'] as String?,
+                       onChanged: (val) => updateConfig('model_strategy', val),
+                     ),
+                     const SizedBox(height: 16),
                      DynamicStepForm(
                        config: step!.config, // Filters out _internal inside widget
                        onChanged: updateConfig,

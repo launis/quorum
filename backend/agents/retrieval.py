@@ -1,6 +1,7 @@
 """Retrieval Agent implementation."""
 
 import logging
+from typing import Any
 
 # 2. Third Party
 from pydantic import BaseModel
@@ -8,8 +9,9 @@ from pydantic import BaseModel
 from backend.agents.base import BaseAgent
 from backend.database.factory import get_repository
 from backend.database.wrapper import get_db_client
-from backend.exceptions import AgentExecutionError
+from backend.exceptions import AgentExecutionError, ErrorCodes
 from backend.models.domain import ContextData, Precedent
+from backend.services.localization import LocalizationService
 
 # 3. Local Imports
 from backend.settings import get_settings
@@ -32,21 +34,24 @@ class RetrievalAgent(BaseAgent):
 
     async def execute(
         self,
-        input_data: dict,
-        execution_context: dict | None = None,
+        input_data: dict[str, Any],
+        execution_context: dict[str, Any] | None = None,
         system_instruction: str | None = None,
-        **kwargs,
-    ) -> dict:
-        """Executes the retrieval logic.
+        **kwargs: Any,
+    ) -> ContextData:
+        """Executes the retrieval logic (DB Precedents + Knowledge Base).
 
         Args:
-            input_data (dict): Inputs containing organization_id.
-            execution_context (dict): Context.
-            system_instruction (str): Prompt.
-            **kwargs: Args.
+            input_data (dict[str, Any]): Inputs containing 'organization_id' and optional 'query'.
+            execution_context (dict[str, Any] | None, optional): Access to global state.
+            system_instruction (str | None, optional): Legacy prompt (unused).
+            **kwargs: Additional parameters.
 
         Returns:
-             dict: ContextData with precedents.
+            ContextData: ContextData model with precedents and knowledge items.
+
+        Raises:
+            AgentExecutionError: If 'organization_id' is missing or retrieval fails.
         """
         # --- STANDARD LOGGING & HOOKS (Manual Implementation) ---
         logger.info(f"[{self.__class__.__name__}] Starting execution...")
@@ -67,11 +72,17 @@ class RetrievalAgent(BaseAgent):
         if not org_id and execution_context:
              org_id = execution_context.get("organization_id")
 
-        # Stateless Execution: No warning if missing.
-        if org_id:
-             logger.info(f"[{self.__class__.__name__}] Running for Org: {org_id}...")
-        else:
-             logger.debug(f"[{self.__class__.__name__}] No Organization ID provided (Stateless/Global Mode).")
+        # FAIL FAST: Valid context requires Organization ID
+        if not org_id:
+             error_msg = "Mandatory input 'organization_id' missing. Retrieval aborted."
+             logger.error(f"[{self.__class__.__name__}] {error_msg}")
+             raise AgentExecutionError(
+                 detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
+                 original_error=ValueError(error_msg),
+                 agent_name="RetrievalAgent"
+             )
+
+        logger.info(f"[{self.__class__.__name__}] Running for Org: {org_id}...")
 
         # 2. Dependency Resolution
         settings = get_settings()
@@ -100,16 +111,34 @@ class RetrievalAgent(BaseAgent):
                     pisteet = judge_data.get("pisteet", {})
                     score_summary = "N/A"
                     if pisteet:
+                        # Fail Fast / Transparency: Don't swallow errors blindly.
+                        # If structure matches, calculate. If not, log specific warning.
                         try:
-                            scores = [
-                                pisteet.get("analyysi", {}).get("arvosana", 0),
-                                pisteet.get("arviointi", {}).get("arvosana", 0),
-                                pisteet.get("synteesi", {}).get("arvosana", 0),
-                            ]
-                            avg = sum(scores) / 3
-                            score_summary = f"Avg: {avg:.2f}"
-                        except Exception:
-                            score_summary = "Error calc scores"
+                            # Strict Dictionary Access (Fail if keys changed)
+                            scores: list[float] = []
+                            for dim in ["analyysi", "arviointi", "synteesi"]:
+                                dim_data = pisteet.get(dim)
+                                if not dim_data:
+                                     # Partial score is valid? Or should we skip?
+                                     # Let's assume 0 if missing, but log it.
+                                     continue
+
+                                val = dim_data.get("arvosana")
+                                if isinstance(val, (int, float)):
+                                    scores.append(val)
+
+                            if len(scores) == 3:
+                                avg = sum(scores) / 3
+                                score_summary = f"Avg: {avg:.2f}"
+                            else:
+                                score_summary = "Incomplete Scores"
+                                logger.warning(f"[RetrievalAgent] Case {res.get('execution_id')} has incomplete scores: {scores}")
+
+                        except Exception as e:
+                            logger.error(f"[RetrievalAgent] Failed to calc scores for {res.get('execution_id')}: {e}")
+                            score_summary = "Calc Error"
+                            # We don't crash the whole retrieval for one bad historical record,
+                            # but we log it loudly. This adheres to "Robustness" for historical data.
 
                     precedents.append(
                         Precedent(
@@ -123,16 +152,71 @@ class RetrievalAgent(BaseAgent):
             # Keep last 3 (most recent)
             selected_precedents = precedents[:3]
 
-            # Format Text
-            summary_text = "=== ENNAKKOTAPAUKSET (PRECEDENTS) ===\n"
+            # Format Text (Precedents)
+            precedent_text = "=== ENNAKKOTAPAUKSET (PRECEDENTS) ===\n"
             if not selected_precedents:
-                summary_text += "Ei aiempi tapauksia tiedostossa."
+                precedent_text += "Ei aiempia tapauksia tiedostossa.\n"
             else:
                 for p in selected_precedents:
-                    summary_text += f"- Case {p.id} ({p.date}): {p.scores}. Verdict: {p.verdict}\n"
-            summary_text += "====================================="
+                    precedent_text += f"- Case {p.id} ({p.date}): {p.scores}. Verdict: {p.verdict}\n"
 
-            logger.info(f"[{self.__class__.__name__}] Complete. Found {len(selected_precedents)} precedents.")
+            # 6. Retrieve Knowledge Base Context (Hybrid)
+            kb_items = []
+            kb_text_summary = ""
+
+            try:
+                # Lazy import to avoid circular dep issues at module level if any
+                from backend.services.knowledge_base_service import KnowledgeBaseService
+
+                # We don't have an LLM config for Retrieval yet, but Service works without it for retrieval-only
+                kb_service = KnowledgeBaseService(repo)
+
+                # Check for query in input
+                query = input_data.get("query") or input_data.get("inputs", {}).get("query")
+
+                # NOW RETURNS List[KnowledgeItem]
+                kb_items = await kb_service.retrieve_context(query)
+
+                # Format for textual context (Legacy Compatibility)
+                if kb_items:
+                    summary_lines = [f"=== TIETOPANKKI (KNOWLEDGE BASE) - {len(kb_items)} matches ==="]
+                    for item in kb_items:
+                        summary_lines.append(f"[{item.type.upper()}] {item.term}: {item.definition} (Source: {item.source})")
+                    kb_text_summary = "\n".join(summary_lines)
+                else:
+                     kb_text_summary = "Knowledge Base search returned no results."
+
+            except Exception as e:
+                # STRICT AUDIT: If KB Service fails, we should log critical.
+                # But is it specific?
+                # Check for specific KB Error Codes if raised by Service.
+                from backend.exceptions import AppException
+                if isinstance(e, AppException) and e.error_code == ErrorCodes.KNOWLEDGE_RETRIEVAL_FAILED:
+                     logger.warning(f"[RetrievalAgent] KB Retrieval failed (Expected): {e}")
+                else:
+                     logger.error(f"[RetrievalAgent] KB Retrieval Unexpected Failure: {e}", exc_info=True)
+
+                kb_text_summary = "Knowledge Base retrieval error."
+                # We do NOT re-raise here for Hybrid resilience (as per instructions: "Rarely... only if partial failure strictly better")
+                # RetrievalAgent provides *context*. Missing context is better than crash?
+                # Actually, "Fail Fast" says "Don't patch with empty lists".
+                # BUT, Precedents might be enough.
+                # Decision: Log Error, return empty KB items (Partial Success).
+                # This aligns with "Composite Dashboard" rule 3.6.3.
+
+            # 7. Combine Contexts
+            final_summary_text = f"{precedent_text}\n\n{kb_text_summary}"
+
+            logger.info(f"[{self.__class__.__name__}] Complete. Found {len(selected_precedents)} precedents and {len(kb_items)} KB items.")
+
+            # FAIL FAST: If NO context is available at all (fresh install), block execution.
+            # This aligns with the "Explicit Ingestion" requirement.
+            if not selected_precedents and not kb_items:
+                 raise AgentExecutionError(
+                     detail=ErrorCodes.KNOWLEDGE_NOT_INGESTED,
+                     agent_name="RetrievalAgent",
+                     original_error=ValueError("No precedents or knowledge base items found.")
+                 )
 
             # 6. Construct Output
             from datetime import datetime, timezone
@@ -144,22 +228,36 @@ class RetrievalAgent(BaseAgent):
                 luontiaika=datetime.now(timezone.utc),
                 agentti="RetrievalAgent",
                 vaihe=0,
-                versio="2.0"
+                versio="2.0",
+                suoritus_ymparisto=LocalizationService().get("Environment.Unknown", default="Unknown")
             )
 
             result_data = ContextData(
-                precedents=summary_text,
+                precedents=final_summary_text,
                 precedent_list=selected_precedents,
+                knowledge_items=kb_items,
                 metadata=dummy_meta,
-                metodologinen_loki="Database Query: Fetched top 3 completed executions.",
+                metodologinen_loki="Database Query: Fetched top 3 completed executions + Knowledge Base.",
                 edellisen_vaiheen_validointi="System Logic: Deterministic fetch.",
                 semanttinen_tarkistussumma="calc_pending", # Will be updated by authority
-                reasoning_trace="Deterministic retrieval of organizational precedents."
+                reasoning_trace="Deterministic retrieval of organizational precedents and KB context."
             )
 
-            # IMPORTANT: Return dict (or model). Engine handles storage.
-            return result_data.model_dump()
+            # IMPORTANT: Return ContextData model. Engine handles storage.
+            return result_data
 
         except Exception as e:
             logger.error(f"[RetrievalAgent] Execution failed: {e}", exc_info=True)
-            raise AgentExecutionError(detail="RETRIEVAL_FAILED", original_error=e) from e
+            
+            # Don't wrap specific AppExceptions (like KNOWLEDGE_NOT_INGESTED)
+            # This allows the specific error code to reach the client.
+            from backend.exceptions import AppException
+            if isinstance(e, AppException):
+                raise e
+
+            # Use SSOT ErrorCode for generic/unexpected errors
+            raise AgentExecutionError(
+                detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
+                original_error=e,
+                agent_name="RetrievalAgent"
+            ) from e

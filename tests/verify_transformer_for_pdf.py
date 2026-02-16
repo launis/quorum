@@ -1,7 +1,7 @@
 
-import asyncio
 from backend.api.bff_transformer import ReportTransformer
 from backend.models.view import SectionType
+
 
 def test_transformer_dual_score_generation():
     # Mock Data (Dual Run)
@@ -36,14 +36,14 @@ def test_transformer_dual_score_generation():
 
     transformer = ReportTransformer()
     view = transformer.transform(raw_data)
-    
+
     print(f"Transformers generated {len(view.sections)} sections.")
     score_cards = [s for s in view.sections if s.type == SectionType.SCORE_CARD]
     print(f"Found {len(score_cards)} Score Cards.")
-    
+
     for sc in score_cards:
         print(f" - {sc.title}: Score {sc.data['total_score']} (Max {sc.data['max_score']})")
-    
+
     if len(score_cards) == 2:
         print("SUCCESS: Dual scores detected.")
     else:

@@ -2,10 +2,19 @@
 
 import logging
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from backend.agents.base import BaseAgent
+from backend.core.registry import TaskRegistry
 from backend.database.repository import AbstractWorkflowRepository
+from backend.exceptions import (
+    AppException,
+    ConfigurationError,
+    ErrorCodes,
+    FatalInterruption,
+)
+
+if TYPE_CHECKING:
+    from backend.agents.base import BaseAgent
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +33,7 @@ class AgentRegistry:
 
         """
         self.repository = repository
-        self.agents_map: dict[str, BaseAgent] = {}
+        self.agents_map: Dict[str, "BaseAgent"] = {}
 
     async def resolve_model_name(self, model_identifier: str) -> str:
         """Resolves a high-level model key (e.g. 'fast', 'smart') to a concrete model name.
@@ -37,6 +46,8 @@ class AgentRegistry:
         Returns:
             str: The concrete model identifier (e.g. 'gemini-1.5-flash').
 
+        Raises:
+            AppException: If model name is missing in config.
         """
         config = await self.resolve_model_config(model_identifier)
         # ZERO-FALLBACK ENFORCEMENT:
@@ -47,14 +58,19 @@ class AgentRegistry:
             # This should overlap with validation in resolve_model_config, but safety net:
             err = f"[AgentRegistry] Model Strategy '{model_identifier}' resolved but is missing 'model_name'."
             logger.error(err)
-            raise ValueError(err)
+            raise AppException(
+                message=err,
+                status_code=500,
+                details={"error_code": ErrorCodes.AGENT_NOT_CONFIGURED}
+            )
 
         return model_name
 
-    async def resolve_model_config(self, model_identifier: str) -> dict[str, Any]:
+    async def resolve_model_config(self, model_identifier: str) -> Dict[str, Any]:
         """Resolves a model identifier to a full configuration dictionary (name, tokens, temp, provider).
 
         STRICT MODE: Fetches ONLY from Database. No fallbacks.
+        NO FALLBACKS: If the strategy is not found, we RAISE an error. We do NOT use defaults.
 
         Args:
             model_identifier (str): The strategy key.
@@ -63,7 +79,7 @@ class AgentRegistry:
             Dict[str, Any]: Configuration object (e.g. {'model_name': '...', 'provider': '...'}).
 
         Raises:
-            ValueError: If strategy not found in DB.
+            AppException: If strategy not found in DB.
 
         """
         # 1. Fetch Dynamic Strategies from Repository
@@ -125,8 +141,6 @@ class AgentRegistry:
         for _p, s in dynamic_strategies_map.items():
             available.extend(s.keys())
 
-        from backend.exceptions import ConfigurationError
-
         err_msg = (
             f"[AgentRegistry] Model Strategy '{model_identifier}' NOT FOUND in Database. "
             f"Available: {sorted(list(set(available)))}. Fallbacks are disabled."
@@ -134,7 +148,7 @@ class AgentRegistry:
         logger.error(err_msg)
         raise ConfigurationError(err_msg)
 
-    async def register_component(self, name: str, type: str, class_name: str):
+    async def register_component(self, name: str, type: str, class_name: str) -> None:
         """Registers a new component definition in the database.
 
         Args:
@@ -154,7 +168,7 @@ class AgentRegistry:
                 }
             )
 
-    async def _update_component_metadata(self, name, module, component_class):
+    async def _update_component_metadata(self, name: str, module: str, component_class: str) -> None:
         """Helper to add module/class info for dynamic router loading.
 
         Updates existing component records with runtime metadata.
@@ -166,7 +180,7 @@ class AgentRegistry:
         """
         await self.repository.update_component_metadata(name, module, component_class)
 
-    async def discover_and_register_agents(self, package_path: str = "backend.agents"):
+    async def discover_and_register_agents(self, package_path: str = "backend.agents") -> None:
         """Registers agents found in TaskRegistry into the Database.
 
         Replaces legacy AgentFactory. Scans TaskRegistry for tasks with agent metadata.
@@ -175,8 +189,6 @@ class AgentRegistry:
             package_path (str): Unused (legacy signature).
 
         """
-        from backend.core.registry import TaskRegistry
-
         logger.info("[AgentRegistry] Discovering agents via TaskRegistry...")
 
         try:
@@ -220,7 +232,6 @@ class AgentRegistry:
             logger.info(f"[AgentRegistry] Successfully registered {count} agents from TaskMetadata.")
 
         except Exception as e:
-            from backend.exceptions import FatalInterruption
             logger.critical(f"[AgentRegistry] FATAL: Discovery failed: {e}")
             raise FatalInterruption(
                 step_name="AgentDiscovery",
@@ -228,7 +239,7 @@ class AgentRegistry:
                 details={"error": str(e)},
             ) from e
 
-    def get_agent(self, agent_name: str) -> BaseAgent | None:
+    def get_agent(self, agent_name: str) -> Optional["BaseAgent"]:
         """Retrieves an instantiated agent by name.
 
         Args:
@@ -240,7 +251,7 @@ class AgentRegistry:
         """
         return self.agents_map.get(agent_name)
 
-    def get_all_agents(self) -> dict[str, BaseAgent]:
+    def get_all_agents(self) -> Dict[str, "BaseAgent"]:
         """Returns all registered agent instances.
 
         Returns:
@@ -249,11 +260,11 @@ class AgentRegistry:
         """
         return self.agents_map.copy()
 
-    def get_agent_config(self, agent_name: str) -> BaseAgent | None:
+    def get_agent_config(self, agent_name: str) -> Optional["BaseAgent"]:
         """Retrieves agent configuration (the Agent Instance itself).
 
         Used by functional tasks to resolve model strategies.
-
+        
         Args:
             agent_name (str): Agent name.
 
@@ -261,3 +272,47 @@ class AgentRegistry:
             Optional[BaseAgent]: The agent instance if found.
         """
         return self.get_agent(agent_name)
+
+    async def get_all_strategies(self) -> Dict[str, str]:
+        """Retrieves all available model strategies and their resolved model names.
+
+        Returns:
+            Dict[str, str]: Map of strategy name (e.g. 'fast') -> resolved model name (e.g. 'vertex_ai/gemini-2.5-flash').
+        """
+        reg_entry = await self.repository.get_model_registry()
+        if not reg_entry or "models" not in reg_entry:
+            return {}
+
+        # 1. Collect all raw keys
+        all_keys = set()
+        for provider_strategies in reg_entry["models"].values():
+            all_keys.update(provider_strategies.keys())
+
+        # 2. Resolve each strategy safely
+        strategies = {}
+        for key in all_keys:
+            try:
+                # We reuse resolve_model_name because it handles alias chaining
+                model_name = await self.resolve_model_name(key)
+                strategies[key] = model_name
+            except Exception as e:
+                # Skip invalid strategies (e.g. missing recursive definitions)
+                logger.warning(f"[AgentRegistry] Skipping unresolvable strategy '{key}': {e}")
+        
+        return strategies
+
+    async def update_model_registry_config(self, registry_data: Dict[str, Dict[str, str]]) -> None:
+        """Updates the system's model registry configuration.
+
+        Args:
+            registry_data (dict): The new configuration map.
+        """
+        # Wrap in expected structure if needed, or just pass 'models' key?
+        # Repository expects 'registry_data' which it saves.
+        # implementation details: repo.update_model_registry saves the dict passed to it.
+        # But list_strategies expects 'models' key in the saved record.
+        # So we should save {"models": registry_data}
+        
+        payload = {"models": registry_data}
+        await self.repository.update_model_registry(payload)
+        logger.info(f"[AgentRegistry] Updated model registry with {len(registry_data)} strategies.")

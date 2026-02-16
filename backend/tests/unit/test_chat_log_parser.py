@@ -1,7 +1,9 @@
 
 import pytest
-from backend.services.chat_log_parser import ChatLogParser
+
 from backend.exceptions import AppException
+from backend.services.chat_log_parser import ChatLogParser
+
 
 class TestChatLogParser:
 
@@ -59,7 +61,7 @@ class TestChatLogParser:
         # This matches the raw extraction from the Sitra PDF
         text = "kehistyksen periaatteita. → mikä on sitran näkemys suunnasta eteenpäin ei siis toivetila 5. Ihmiset ja Hyvinvointi"
         parsed = ChatLogParser.parse(text)
-        
+
         # We expect the parser to identify the arrow as User and the numbered list '5.' as the resume of AI
         assert "User: mikä on sitran näkemys" in parsed
         assert "toivetila" in parsed
@@ -71,10 +73,10 @@ class TestChatLogParser:
         """Test Arrow format where AI response starts with a Header (not a numbered list)."""
         text = "some context \u2192 koosta raportti Analyysi Megatrendeistä (2023)"
         parsed = ChatLogParser.parse(text)
-        
+
         assert "User: koosta raportti" in parsed
         assert "AI: Analyysi Megatrendeistä" in parsed
-    
+
     def test_empty_input_raises_error(self):
         """Test strict error handling for empty input."""
         with pytest.raises(AppException):

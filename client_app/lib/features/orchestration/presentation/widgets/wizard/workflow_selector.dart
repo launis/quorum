@@ -4,6 +4,7 @@ import 'package:client_app/features/orchestration/presentation/providers/wizard_
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:client_app/core/ui/error_view.dart';
 
 class WorkflowSelector extends ConsumerWidget {
   const WorkflowSelector({super.key});
@@ -60,9 +61,12 @@ class WorkflowSelector extends ConsumerWidget {
           },
           loading: () => const LinearProgressIndicator(),
           error:
-              (err, stack) => Text(
-                l10n.errorLoadingData,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
+
+              (err, stack) => ErrorView(
+                error: err,
+                compact: true,
+                onRetry: () => ref.invalidate(workflowListProvider),
+                retryLabel: l10n.retry,
               ),
         ),
 

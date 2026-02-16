@@ -21,9 +21,10 @@ Schema:
 import logging
 import uuid
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 from backend.database.repository import AbstractWorkflowRepository
+from backend.exceptions import AppException, ErrorCodes
 from backend.models.audit import AuditEvent
 
 logger = logging.getLogger(__name__)
@@ -33,44 +34,89 @@ class AuditService:
     """Service for handling audit log persistence."""
 
     def __init__(self, repo: AbstractWorkflowRepository):
-        """Initialize AuditService."""
+        """Initialize AuditService.
+
+        Args:
+            repo (AbstractWorkflowRepository): The repository for audit log storage.
+        """
         self.repo = repo
 
     async def log_event(
         self,
         actor_uid: str,
         action: str,
-        organization_id: str | None = None,
-        target_uid: str | None = None,
-        details: dict[str, Any] | None = None,
-    ):
-        """Records an audit event."""
-        event = AuditEvent(
-            id=uuid.uuid4().hex,
-            timestamp=datetime.now(UTC),
-            actor_uid=actor_uid,
-            organization_id=organization_id,
-            action=action.upper(),
-            target_uid=target_uid,
-            details=details or {},
-        )
+        organization_id: Optional[str] = None,
+        target_uid: Optional[str] = None,
+        details: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Records an audit event.
 
-        entry = event.model_dump()
+        Args:
+            actor_uid: ID of the user performing the action.
+            action: Action identifier (e.g. 'USER_CREATED').
+            organization_id: Optional context ID.
+            target_uid: Optional target ID.
+            details: Optional metadata.
 
+        Raises:
+            AppException: If logging fails (Security/Compliance requirement: Audits must succeed).
+        """
         try:
+            # Fail Fast: Ensure core data is present
+            if not actor_uid or not action:
+                raise ValueError("Audit log requires 'actor_uid' and 'action'.")
+
+            event = AuditEvent(
+                id=uuid.uuid4().hex,
+                timestamp=datetime.now(UTC),
+                actor_uid=actor_uid,
+                organization_id=organization_id,
+                action=action.upper(),
+                target_uid=target_uid,
+                details=details or {},
+            )
+
+            entry = event.model_dump()
+
             await self.repo.log_audit_event(entry)
             logger.info(f"[AUDIT] {action} by {actor_uid} in {organization_id}")
+
         except Exception as e:
-            logger.error(f"[AUDIT_FAIL] Failed to persist log: {e}")
+            logger.error(f"[AUDIT_FAIL] Failed to persist log: {e}", exc_info=True)
+            # CRITICAL: If audit logging fails, we must raise an exception to prevent un-audited actions
+            # in high-security contexts.
+            raise AppException(
+                message=f"Audit logging failed: {str(e)}",
+                status_code=500,
+                details={"error_code": ErrorCodes.SECURITY_DB_ERROR}
+            ) from e
 
     async def get_logs(
         self,
-        organization_id: str | None = None,
-        actor_uid: str | None = None,
-        action: str | None = None,
+        organization_id: Optional[str] = None,
+        actor_uid: Optional[str] = None,
+        action: Optional[str] = None,
         limit: int = 100,
-    ) -> list[dict[str, Any]]:
-        """Retrieves audit logs."""
-        return await self.repo.get_audit_logs(
-            organization_id=organization_id, actor_uid=actor_uid, action=action, limit=limit
-        )
+    ) -> List[Dict[str, Any]]:
+        """Retrieves audit logs.
+
+        Args:
+            organization_id: Filter by Org ID.
+            actor_uid: Filter by User ID.
+            action: Filter by Action.
+            limit: Max records to return.
+
+        Returns:
+            List[Dict[str, Any]]: List of audit log entries.
+        """
+        try:
+            return await self.repo.get_audit_logs(
+                organization_id=organization_id, actor_uid=actor_uid, action=action, limit=limit
+            )
+        except Exception as e:
+            logger.error(f"Failed to retrieve audit logs: {e}", exc_info=True)
+            raise AppException(
+                message=f"Failed to retrieve audit logs: {str(e)}",
+                status_code=500,
+                details={"error_code": ErrorCodes.SECURITY_DB_ERROR}
+            ) from e

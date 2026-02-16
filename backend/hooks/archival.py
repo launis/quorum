@@ -1,14 +1,18 @@
 """Archival hooks for retrieving system precedents."""
 
 import logging
-from typing import Any
+from typing import Any, List, Optional
 
+from backend.database.repository import AbstractWorkflowRepository
+from backend.exceptions import AppException
 from backend.models.state import WorkflowState
 
 logger = logging.getLogger(__name__)
 
 
-async def retrieve_precedent(state: WorkflowState, repository: Any = None) -> WorkflowState:
+async def retrieve_precedent(
+    state: WorkflowState, repository: AbstractWorkflowRepository | None = None
+) -> WorkflowState:
     """HOOK: retrieve_precedent.
 
     Retrieves the last N completed executions with a valid Judge score (Case Law).
@@ -17,23 +21,29 @@ async def retrieve_precedent(state: WorkflowState, repository: Any = None) -> Wo
 
     Args:
         state (WorkflowState): Current workflow state.
-        repository (Any, optional): Data access layer. Defaults to None.
+        repository (AbstractWorkflowRepository, optional): Data access layer. Defaults to None.
 
     Returns:
         WorkflowState: Updated state with injected precedents.
 
+    Raises:
+        AppException: If repository is missing or retrieval fails.
     """
     logger.debug("[ArchivalHook] Running retrieve_precedent hook...")
 
     if not repository:
-        logger.warning("[ArchivalHook] Repository not injected. Cannot retrieve precedents.")
-        return state
+        # STRICT CONFIG CHECK
+        error_code = "ARCHIVAL_CONFIG_ERROR"
+        msg = "Repository not injected. Cannot retrieve precedents."
+        logger.error(f"[ArchivalHook] {error_code}: {msg}")
+        raise AppException(message=msg, status_code=500, details={"error_code": error_code})
 
     try:
         # 1. Use Repository to get executions
         all_executions = await repository.get_all_executions()
 
         # 2. Query Completed Executions (Memory Filter)
+        # Optimization: In a real DB, this should be a filtered query
         results = [x for x in all_executions if x.get("status") == "completed"]
 
         # 3. Filter and Format
@@ -59,7 +69,8 @@ async def retrieve_precedent(state: WorkflowState, repository: Any = None) -> Wo
                         pisteet.get("arviointi", {}).get("arvosana", 0),
                         pisteet.get("synteesi", {}).get("arvosana", 0),
                     ]
-                    avg = sum(scores) / 3
+                    # Safe division
+                    avg = sum(scores) / 3 if len(scores) > 0 else 0
                     score_summary = f"Avg: {avg:.2f} | Arvosanat: {scores}"
 
                 precedents.append(
@@ -79,16 +90,22 @@ async def retrieve_precedent(state: WorkflowState, repository: Any = None) -> Wo
             summary_text += "Ei aiempi tapauksia tiedostossa."
         else:
             for p in precedents:
-                summary_text += f"- Case {p['id']} ({p['date']}): {p['scores']}. Verdict: {p['verdict'][:100]}...\n"
+                summary_text += (
+                    f"- Case {p['id']} ({p['date']}): {p['scores']}. Verdict: {p['verdict'][:100]}...\n"
+                )
         summary_text += "====================================="
 
         logger.debug(f"[ArchivalHook] Found {len(precedents)} precedents.")
 
         # 4. Inject
-        state.aux_data["archivist_precedents"] = summary_text
+        new_context = state.context_variables.copy()
+        new_context["archivist_precedents"] = summary_text
+        return state.model_copy(update={"context_variables": new_context})
 
     except Exception as e:
-        logger.error(f"[ArchivalHook] Failed to retrieve precedents: {e}")
-        state.aux_data["archivist_precedents"] = "Error retrieving precedents."
-
-    return state
+        # FAIL FAST - RFC 7807
+        error_code = "ARCHIVAL_RETRIEVAL_FAILED"
+        logger.error(f"[ArchivalHook] {error_code}: {e}", exc_info=True)
+        raise AppException(
+            message=f"Failed to retrieve precedents: {e}", status_code=500, details={"error_code": error_code}
+        ) from e

@@ -5,6 +5,9 @@ import re
 import urllib.error
 import urllib.request
 
+from backend.exceptions import AppException, ErrorCodes
+from typing import Optional
+
 logger = logging.getLogger(__name__)
 
 
@@ -15,7 +18,7 @@ class WebFetcher:
     """
 
     @staticmethod
-    def fetch_text(url: str, timeout: int = 5) -> str | None:
+    def fetch_text(url: str, timeout: int = 5) -> str:
         """Fetches the content of a URL and extracts visible text using naive parsing.
 
         Useful for quick checkups or reference validation.
@@ -26,10 +29,15 @@ class WebFetcher:
             timeout (int): Connection timeout in seconds.
 
         Returns:
-            Optional[str]: Cleaned plain text content or None if failed.
+            str: Cleaned plain text content.
 
+        Raises:
+            AppException: If fetching fails or URL is invalid.
         """
         try:
+            if not url.startswith(("http://", "https://")):
+                raise ValueError("URL must start with http:// or https://")
+
             headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) CognitiveQuorum/1.0"}
             req = urllib.request.Request(url, headers=headers)
 
@@ -47,6 +55,33 @@ class WebFetcher:
 
                 return text[:5000]  # Limit context size
 
-        except Exception as e:
+        except ValueError as e:
+            # Invalid URL format
+            raise AppException(
+                message=str(e),
+                status_code=400,
+                details={"error_code": ErrorCodes.URL_INVALID}
+            ) from e
+
+        except (urllib.error.URLError, TimeoutError) as e:
+            # Network or Protocol error
+            error_code = ErrorCodes.FETCH_FAILED
             logger.error(f"[WebFetcher] Failed to fetch {url}: {e}")
-            return None
+            raise AppException(
+                message=f"Failed to fetch content from {url}",
+                status_code=502, # Bad Gateway / Upstream Error
+                details={"error_code": error_code, "original_error": str(e)}
+            ) from e
+
+        except Exception as e:
+            # Unknown error
+            if isinstance(e, AppException):
+                raise e
+                
+            error_code = ErrorCodes.INTERNAL_SERVER_ERROR
+            logger.error(f"[WebFetcher] Unexpected error for {url}: {e}", exc_info=True)
+            raise AppException(
+                message="Unexpected error during web fetch.",
+                status_code=500,
+                details={"error_code": error_code}
+            ) from e

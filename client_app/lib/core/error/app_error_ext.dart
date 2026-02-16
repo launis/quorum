@@ -56,7 +56,22 @@ extension AppErrorExt on AppError {
       'INVALID_JSON_PAYLOAD' => l10n.errorValidation,
       'UNSUPPORTED_CONTENT_TYPE' => l10n.errorValidation,
 
-      // Default fallback
+      // Knowledge Base
+      'KNOWLEDGE_INGESTION_FAILED' => l10n.errorKnowledgeIngestionFailed,
+      'KNOWLEDGE_RESET_FAILED' => l10n.errorKnowledgeResetFailed,
+      'KNOWLEDGE_RETRIEVAL_FAILED' => l10n.errorKnowledgeRetrievalFailed,
+
+      // New Standardized Error Codes (Feb 16)
+      'VALIDATION_FAILED' => l10n.errValidationFailed,
+      'INTERNAL_SERVER_ERROR' => l10n.errInternalServerError,
+      'RESOURCE_NOT_FOUND' => l10n.errResourceNotFound,
+      'AUTHENTICATION_FAILED' => l10n.errAuthenticationFailed,
+      'PERMISSION_DENIED' => l10n.errPermissionDenied,
+      'SERVICE_UNAVAILABLE' => l10n.errServiceUnavailable,
+      'AGENT_EXECUTION_CRITICAL' => l10n.errAgentExecutionCritical,
+      'WORKFLOW_EXECUTION_FAILED' => l10n.errWorkflowExecutionFailed,
+      'KNOWLEDGE_NOT_INGESTED' => l10n.errKnowledgeNotIngested,
+
       _ => l10n.errorUnknown,
     };
   }

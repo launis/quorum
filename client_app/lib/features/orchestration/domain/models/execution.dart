@@ -39,8 +39,8 @@ enum ExecutionStatus {
 sealed class Execution with _$Execution {
   /// State: Execution is queued or initialized.
   const factory Execution.pending({
-    @JsonKey(name: 'execution_id') required String id,
-    @JsonKey(name: 'start_time') required DateTime createdAt,
+    @JsonKey(name: 'id') required String id,
+    @JsonKey(name: 'started_at') required DateTime createdAt,
     @JsonKey(name: 'workflow_name') String? workflowName,
     @JsonKey(name: 'organization_id') String? organizationId,
     @JsonKey(name: 'user_id') String? userId,
@@ -54,8 +54,8 @@ sealed class Execution with _$Execution {
 
   /// State: Execution has started but is not yet processing steps (or early initialization).
   const factory Execution.started({
-    @JsonKey(name: 'execution_id') required String id,
-    @JsonKey(name: 'start_time') required DateTime createdAt,
+    @JsonKey(name: 'id') required String id,
+    @JsonKey(name: 'started_at') required DateTime createdAt,
     @JsonKey(name: 'workflow_name') String? workflowName,
     @JsonKey(name: 'organization_id') String? organizationId,
     @JsonKey(name: 'user_id') String? userId,
@@ -76,8 +76,8 @@ sealed class Execution with _$Execution {
 
   /// State: Execution is actively processing steps.
   const factory Execution.running({
-    @JsonKey(name: 'execution_id') required String id,
-    @JsonKey(name: 'start_time') required DateTime createdAt,
+    @JsonKey(name: 'id') required String id,
+    @JsonKey(name: 'started_at') required DateTime createdAt,
     @JsonKey(name: 'workflow_name') String? workflowName,
     @JsonKey(name: 'organization_id') String? organizationId,
     @JsonKey(name: 'user_id') String? userId,
@@ -93,8 +93,8 @@ sealed class Execution with _$Execution {
   ///
   /// Contains the [result] payload.
   const factory Execution.completed({
-    @JsonKey(name: 'execution_id') required String id,
-    @JsonKey(name: 'start_time') required DateTime createdAt,
+    @JsonKey(name: 'id') required String id,
+    @JsonKey(name: 'started_at') required DateTime createdAt,
     @JsonKey(name: 'workflow_name') String? workflowName,
     @JsonKey(name: 'organization_id') String? organizationId,
     @JsonKey(name: 'user_id') String? userId,
@@ -142,8 +142,8 @@ sealed class Execution with _$Execution {
 
   /// State: Execution was rejected.
   const factory Execution.rejected({
-    @JsonKey(name: 'execution_id') required String id,
-    @JsonKey(name: 'start_time') required DateTime createdAt,
+    @JsonKey(name: 'id') required String id,
+    @JsonKey(name: 'started_at') required DateTime createdAt,
     @JsonKey(name: 'workflow_name') String? workflowName,
     @JsonKey(name: 'organization_id') String? organizationId,
     @JsonKey(name: 'user_id') String? userId,
@@ -158,8 +158,8 @@ sealed class Execution with _$Execution {
 
   /// State: Execution failed or was rejected.
   const factory Execution.failed({
-    @JsonKey(name: 'execution_id') required String id,
-    @JsonKey(name: 'start_time') required DateTime createdAt,
+    @JsonKey(name: 'id') required String id,
+    @JsonKey(name: 'started_at') required DateTime createdAt,
     @JsonKey(name: 'workflow_name') String? workflowName,
     @JsonKey(name: 'organization_id') String? organizationId,
     @JsonKey(name: 'user_id') String? userId,
@@ -176,8 +176,8 @@ sealed class Execution with _$Execution {
 
   /// State: Execution was interrupted.
   const factory Execution.interrupted({
-    @JsonKey(name: 'execution_id') required String id,
-    @JsonKey(name: 'start_time') required DateTime createdAt,
+    @JsonKey(name: 'id') required String id,
+    @JsonKey(name: 'started_at') required DateTime createdAt,
     @JsonKey(name: 'workflow_name') String? workflowName,
     @JsonKey(name: 'organization_id') String? organizationId,
     @JsonKey(name: 'user_id') String? userId,
@@ -192,8 +192,8 @@ sealed class Execution with _$Execution {
 
   /// State: Execution is being cancelled.
   const factory Execution.cancelling({
-    @JsonKey(name: 'execution_id') required String id,
-    @JsonKey(name: 'start_time') required DateTime createdAt,
+    @JsonKey(name: 'id') required String id,
+    @JsonKey(name: 'started_at') required DateTime createdAt,
     @JsonKey(name: 'workflow_name') String? workflowName,
     @JsonKey(name: 'organization_id') String? organizationId,
     @JsonKey(name: 'user_id') String? userId,
@@ -207,8 +207,8 @@ sealed class Execution with _$Execution {
 
   /// Fallback for unknown states or future backend updates.
   const factory Execution.unknown({
-    @JsonKey(name: 'execution_id') required String id,
-    @JsonKey(name: 'start_time') required DateTime createdAt,
+    @JsonKey(name: 'id') required String id,
+    @JsonKey(name: 'started_at') required DateTime createdAt,
     @JsonKey(name: 'workflow_name') String? workflowName,
     @Default({}) Map<String, dynamic> inputs,
     @JsonKey(name: 'current_step_name') String? currentStepName,

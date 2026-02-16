@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Any
 
 from backend.database.repository import AbstractWorkflowRepository
+from backend.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
 
@@ -86,41 +87,70 @@ class DatabaseProgressTracker(ProgressTracker):
 
     async def start(self, details: dict[str, Any] | None = None):
         """Sets status to 'started'."""
-        payload = {"status": STATUS_STARTED, "start_time": datetime.now()}
-        if details:
-            payload.update(details)
-        await self.repository.update_execution(self.execution_id, payload)
+        try:
+            payload = {"status": STATUS_STARTED, "start_time": datetime.now()}
+            if details:
+                payload.update(details)
+            await self.repository.update_execution(self.execution_id, payload)
+        except Exception as e:
+            raise AppException(
+                message=f"Failed to start progress tracking for {self.execution_id}",
+                status_code=500,
+                details={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED, "original_error": str(e)}
+            ) from e
 
     async def update(self, stage: str, percent: int, details: dict[str, Any] | None = None):
         """Updates 'current_step' and 'progress' fields in DB."""
-        # We map 'stage' to 'current_step' or just stick it in a visible field?
-        # The UI likely looks at 'current_step' and 'logs'.
-        # For compatibility, we set 'current_step' = stage.
-        # compatibility with Frontend 'Execution' model which expects 'current_step_name'
-        payload = {
-            "status": STATUS_RUNNING,
-            "current_step": stage,
-            "current_step_name": stage,  # Frontend expects this key
-            "progress": percent,
-            "last_updated": datetime.now(),
-        }
-        if details:
-            payload.update(details)
-        await self.repository.update_execution(self.execution_id, payload)
+        try:
+            payload = {
+                "status": STATUS_RUNNING,
+                "current_step": stage,
+                "current_step_name": stage,
+                "progress": percent,
+                "last_updated": datetime.now(),
+            }
+            if details:
+                payload.update(details)
+            await self.repository.update_execution(self.execution_id, payload)
+        except Exception as e:
+            logger.error(f"Progress Update Failed: {e}")
+            # We might strictly Fail Fast here, or log and continue depending on criticality.
+            # Mandate says Fail Fast.
+            raise AppException(
+                message=f"Failed to update progress for {self.execution_id}",
+                status_code=500,
+                details={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED, "original_error": str(e)}
+            ) from e
 
     async def complete(self, result: dict[str, Any] | None = None):
         """Sets status to 'completed' and saves final result."""
-        payload: dict[str, Any] = {"status": STATUS_COMPLETED, "end_time": datetime.now()}
-        if result:
-            payload["result"] = result
-        await self.repository.update_execution(self.execution_id, payload)
+        try:
+            payload: dict[str, Any] = {"status": STATUS_COMPLETED, "end_time": datetime.now()}
+            if result:
+                payload["result"] = result
+            await self.repository.update_execution(self.execution_id, payload)
+        except Exception as e:
+            raise AppException(
+                message=f"Failed to complete progress tracking for {self.execution_id}",
+                status_code=500,
+                details={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED, "original_error": str(e)}
+            ) from e
 
     async def fail(self, error: str, details: dict[str, Any] | None = None):
         """Sets status to 'failed' and saves error message."""
-        payload: dict[str, Any] = {"status": STATUS_FAILED, "error": error, "end_time": datetime.now()}
-        if details:
-            payload["result"] = details  # Halt details often go to result
-        await self.repository.update_execution(self.execution_id, payload)
+        try:
+            payload: dict[str, Any] = {"status": STATUS_FAILED, "error": error, "end_time": datetime.now()}
+            if details:
+                payload["result"] = details
+            await self.repository.update_execution(self.execution_id, payload)
+        except Exception as e:
+            # If we fail to report failure, log critically.
+            logger.critical(f"Failed to report failure for {self.execution_id}: {e}")
+            raise AppException(
+                message=f"Failed to report failure for {self.execution_id}",
+                status_code=500,
+                details={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED, "original_error": str(e)}
+            ) from e
 
 
 class InMemoryProgressTracker(ProgressTracker):
@@ -199,6 +229,9 @@ class ProgressService:
             task_key: Identifier for the task (e.g., 'pdf_gen').
             message: Human-readable status message.
             progress: Float between 0.0 and 1.0.
+
+        Raises:
+            AppException: If Redis connection fails.
         """
         import json
         key = f"progress:{execution_id}:{task_key}"
@@ -209,8 +242,17 @@ class ProgressService:
             "progress": progress,
             "timestamp": datetime.now().isoformat()
         }
-        # Set with 1-hour expiry
-        await self.redis.set(key, json.dumps(payload), ex=3600)
+        
+        try:
+            # Set with 1-hour expiry
+            await self.redis.set(key, json.dumps(payload), ex=3600)
 
-        # Optionally publish for real-time websockets if needed
-        # await self.redis.publish(f"progress_updates:{execution_id}", json.dumps(payload))
+            # Optionally publish for real-time websockets if needed
+            # await self.redis.publish(f"progress_updates:{execution_id}", json.dumps(payload))
+        except Exception as e:
+            logger.error(f"Redis Progress Emit Failed: {e}")
+            raise AppException(
+                message="Failed to emit progress update.",
+                status_code=500,
+                details={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED, "original_error": str(e)}
+            ) from e

@@ -5,7 +5,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Path
 from fastapi import Query as APIQuery
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, TypeAdapter
 from tinydb import Query
 
 from backend.dependencies import DatabaseDep, RepositoryDep
@@ -13,81 +13,26 @@ from backend.services.component_registry import ComponentRegistry
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/config", tags=["Configuration"])
+from backend.models.dtos.config import (
+    ComponentCreate,
+    ComponentDeleteResponse,
+    ComponentResponse,
+    ComponentUpdate,
+    RegistryComponentItem,
+)
+
+# Adapter for Polymorphic Union
+_component_adapter = TypeAdapter(ComponentResponse)
+
+router = APIRouter(tags=["Configuration"])
 
 
-class ComponentUpdate(BaseModel):
-    """Payload for updating a configuration component.
-
-    Attributes:
-        content (str | dict | list): The template content.
-        description (str): Metadata description.
-        citation (str): Short citation anchor.
-        citation_full (str): Complete bibliographic reference.
-        type (str): Component categorization.
-    """
-
-    content: Annotated[
-        str | dict[str, Any] | list[Any],
-        Field(description="The template content (prompt text, rule text, or config object)."),
-    ]
-    description: Annotated[str | None, Field(description="Metadata description.")] = None
-    citation: Annotated[str | None, Field(description="Short citation anchor.")] = None
-    citation_full: Annotated[str | None, Field(description="Complete bibliographic reference.")] = None
-    type: Annotated[
-        str | None,
-        Field(description="Component categorization (e.g. 'mandate', 'prompt', 'evaluation_matrix')."),
-    ] = None
-
-    model_config = {
-        "json_schema_extra": {
-            "properties": {
-                "content": {"x-ui-label": "Content"},
-                "description": {"x-ui-label": "Description"},
-                "citation": {"x-ui-label": "Citation"},
-                "citation_full": {"x-ui-label": "Citation (Full)"},
-                "type": {"x-ui-label": "Type"}
-            }
-        }
-    }
-
-
-class ComponentCreate(BaseModel):
-    """Payload for creating a new component."""
-
-    id: Annotated[str, Field(description="Unique Identifier for the component.")]
-    name: Annotated[str, Field(description="Human readable name.")]
-    type: Annotated[str, Field(description="Component Type (header, prompt, evaluation_matrix, etc).")]
-    content: Annotated[str | dict[str, Any] | list[Any], Field(description="The content (text or JSON object).")]
-    description: Annotated[str | None, Field(description="Description of purpose.")] = None
-    citation: Annotated[str | None, Field(description="Short citation.")] = None
-    citation_full: Annotated[str | None, Field(description="Full citation.")] = None
-    module: Annotated[str | None, Field(description="Source module (legacy).")] = "config"
-    component_class: Annotated[str | None, Field(description="Class name.")] = "ConfigComponent"
-
-    model_config = {
-        "json_schema_extra": {
-            "properties": {
-                "id": {"x-ui-label": "ID"},
-                "name": {"x-ui-label": "Name"},
-                "type": {"x-ui-label": "Type"},
-                "content": {"x-ui-label": "Content"},
-                "description": {"x-ui-label": "Description"},
-                "citation": {"x-ui-label": "Citation"},
-                "citation_full": {"x-ui-label": "Citation (Full)"},
-                "module": {"x-ui-label": "Module"},
-                "component_class": {"x-ui-label": "Component Class"}
-            }
-        }
-    }
-
-
-@router.get("/components", summary="List Components", response_description="All configuration components.")
+@router.get("", summary="List Components", response_description="All configuration components.", response_model=list[ComponentResponse])
 async def get_components(
     repo: RepositoryDep,
     type: str | None = None,
     exclude_type: Annotated[list[str] | None, APIQuery()] = None
-):
+) -> list[ComponentResponse]:
     """Retrieves all defined configuration components (Prompts, Mandates, Rules, etc).
 
     Args:
@@ -96,13 +41,24 @@ async def get_components(
         exclude_type (list[str] | None): Optional types to exclude.
 
     Returns:
-        list[dict]: List of configuration components.
+        list[ComponentResponse]: List of configuration components.
     """
-    return await repo.get_all_components(type=type, exclude_types=exclude_type)
+    try:
+        raw_components = await repo.get_all_components(type=type, exclude_types=exclude_type)
+        # Use Adapter for Union
+        return [_component_adapter.validate_python(c) for c in raw_components]
+    except Exception as e:
+        from backend.exceptions import AppException
+        
+        error_code = "COMPONENTS_LIST_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise AppException(
+            message=str(e), status_code=500, details={"error_code": error_code}
+        ) from e
 
 
-@router.get("/components/{comp_id}", summary="Get Component", response_description="The requested component.")
-def get_component(db: DatabaseDep, comp_id: str = Path(..., description="Component ID or Name")):
+@router.get("/{comp_id}", summary="Get Component", response_description="The requested component.", response_model=ComponentResponse)
+def get_component(db: DatabaseDep, comp_id: str = Path(..., description="Component ID or Name")) -> ComponentResponse:
     """Retrieves a single component by ID or Name."""
     Component = Query()
     res = db.table("components").search(Component.id == comp_id)
@@ -115,50 +71,24 @@ def get_component(db: DatabaseDep, comp_id: str = Path(..., description="Compone
         error_code = "COMPONENT_NOT_FOUND"
         logger.error(f"{error_code}: ID {comp_id}", exc_info=True)
         raise ResourceNotFoundError("Component", comp_id, details={"error_code": error_code})
-    return res[0]
+    
+    return _component_adapter.validate_python(res[0])
 
 
-class RegistryComponentItem(BaseModel):
-    """Schema for a component item in the registry list."""
 
-    id: Annotated[
-        str,
-        Field(description="Component ID", json_schema_extra={"x-ui-label": "ID"}),
-    ]
-    name: Annotated[
-        str,
-        Field(description="Meaningful Label", json_schema_extra={"x-ui-label": "Label"}),
-    ]
-    type: Annotated[
-        str,
-        Field(description="Type category", json_schema_extra={"x-ui-label": "Type"}),
-    ]
-    description: Annotated[
-        str | None,
-        Field(
-            description="Short description",
-            json_schema_extra={"x-ui-label": "Description"},
-        ),
-    ] = None
-    content: Annotated[
-        Any,
-        Field(description="The actual content", json_schema_extra={"x-ui-label": "Content"}),
-    ] = None
-    citation: Annotated[
-        str | None,
-        Field(description="Short reference", json_schema_extra={"x-ui-label": "Citation"}),
-    ] = None
 
 
 @router.get("/registry_items", summary="List Registry Components", response_description="All components loaded from seed.")
-def list_registry_items() -> list[RegistryComponentItem]:
-    """Retrieves all system components directly from the in-memory ComponentRegistry."""
-    registry = ComponentRegistry()
+async def list_registry_items(repo: RepositoryDep) -> list[RegistryComponentItem]:
+    """Retrieves all system components directly from the Repository."""
+    # Refactored Feb 2026: Use Repository instead of in-memory singleton
+    raw_components = await repo.get_all_components()
     items = []
-    # Registry _components is dict[id, dict]
-    for comp_id, comp_data in registry._components.items():
-        # Ensure 'id' exists in data, fallback to key
-        c_id = comp_data.get("id", comp_id)
+    
+    for comp_data in raw_components:
+        c_id = comp_data.get("id")
+        if not c_id: continue
+        
         # Handle 'name' or 'label'
         c_name = comp_data.get("name") or comp_data.get("label") or c_id
 
@@ -173,27 +103,45 @@ def list_registry_items() -> list[RegistryComponentItem]:
     return items
 
 
-@router.post("/components", summary="Create Component", response_description="Status and ID.")
-def create_component(comp: ComponentCreate, db: DatabaseDep):
+@router.post("", summary="Create Component", response_description="Status and ID.", response_model=ComponentResponse)
+def create_component(comp: ComponentCreate, db: DatabaseDep) -> ComponentResponse:
     """Creates a new configuration component."""
-    table = db.table("components")
-    if table.search(Query().id == comp.id):
-        from backend.exceptions import ConflictError
+    try:
+        table = db.table("components")
+        if table.search(Query().id == comp.id):
+            from backend.exceptions import ConflictError
 
-        error_code = "COMPONENT_ID_EXISTS"
-        logger.error(f"{error_code}: ID {comp.id}", exc_info=True)
-        raise ConflictError(message="Resource conflict", details={"error_code": error_code})
+            error_code = "COMPONENT_ID_EXISTS"
+            logger.error(f"{error_code}: ID {comp.id}", exc_info=True)
+            raise ConflictError(message="Resource conflict", details={"error_code": error_code})
 
-    new_comp = comp.model_dump()
-    if "component_class" in new_comp:
-        new_comp["class"] = new_comp.pop("component_class")
+        new_comp = comp.model_dump()
+        if "component_class" in new_comp:
+            new_comp["class"] = new_comp.pop("component_class")
 
-    table.insert(new_comp)
-    return {"status": "created", "id": comp.id}
+        table.insert(new_comp)
+        # Re-map class back to component_class for DTO if needed, or DTO allows extra
+        # But ComponentResponse uses component_class.
+        # We should normalize data for response.
+        response_data = new_comp.copy()
+        if "class" in response_data:
+             response_data["component_class"] = response_data.pop("class")
+        
+        return _component_adapter.validate_python(response_data)
+    except Exception as e:
+        from backend.exceptions import AppException
+        if isinstance(e, AppException):
+            raise e
+
+        error_code = "COMPONENT_CREATION_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise AppException(
+            message=str(e), status_code=500, details={"error_code": error_code}
+        ) from e
 
 
-@router.put("/components/{comp_id}", summary="Update Component", response_description="Update status.")
-def update_component(comp_id: str, update: ComponentUpdate, db: DatabaseDep):
+@router.put("/{comp_id}", summary="Update Component", response_description="Update status.", response_model=ComponentResponse)
+def update_component(comp_id: str, update: ComponentUpdate, db: DatabaseDep) -> ComponentResponse:
     """Updates an existing component's content and metadata.
 
     Args:
@@ -202,42 +150,65 @@ def update_component(comp_id: str, update: ComponentUpdate, db: DatabaseDep):
         db (DatabaseDep): Database dependency.
 
     Returns:
-        dict: Status and ID.
+        ComponentResponse: The updated component.
 
     Raises:
         HTTPException: If not found (404).
     """
-    Component = Query()
-    table = db.table("components")
+    try:
+        Component = Query()
+        table = db.table("components")
 
-    exists = table.search((Component.id == comp_id) | (Component.name == comp_id))
-    if not exists:
-        from backend.exceptions import ResourceNotFoundError
+        # Find component (by ID or Name)
+        query = (Component.id == comp_id) | (Component.name == comp_id)
+        exists = table.search(query)
+        if not exists:
+            from backend.exceptions import ResourceNotFoundError
 
-        error_code = "COMPONENT_NOT_FOUND"
-        logger.error(f"{error_code}: ID {comp_id}", exc_info=True)
-        raise ResourceNotFoundError("Component", comp_id, details={"error_code": error_code})
+            error_code = "COMPONENT_NOT_FOUND"
+            logger.error(f"{error_code}: ID {comp_id}", exc_info=True)
+            raise ResourceNotFoundError("Component", comp_id, details={"error_code": error_code})
+        
+        current_data = exists[0]
 
-    update_data = {"content": update.content}
-    if update.description:
-        update_data["description"] = update.description
-    if update.citation:
-        update_data["citation"] = update.citation
-    if update.citation_full:
-        update_data["citation_full"] = update.citation_full
-    if update.type:
-        update_data["type"] = update.type
+        update_data = {"content": update.content}
+        if update.description:
+            update_data["description"] = update.description
+        if update.citation:
+            update_data["citation"] = update.citation
+        if update.citation_full:
+            update_data["citation_full"] = update.citation_full
+        if update.type:
+            update_data["type"] = update.type
 
-    table.update(update_data, (Component.id == comp_id) | (Component.name == comp_id))
-    return {"status": "updated", "id": comp_id}
+        table.update(update_data, query)
+        
+        # Merge for response
+        updated_comp = {**current_data, **update_data}
+        
+        # Normalize 'class' key for DTO if present
+        if "class" in updated_comp:
+            updated_comp["component_class"] = updated_comp["class"]
+
+        return _component_adapter.validate_python(updated_comp)
+    except Exception as e:
+        from backend.exceptions import AppException
+        if isinstance(e, AppException):
+            raise e
+        
+        error_code = "COMPONENT_UPDATE_FAILED"
+        logger.error(f"{error_code}: {e}", exc_info=True)
+        raise AppException(
+            message=str(e), status_code=500, details={"error_code": error_code}
+        ) from e
 
 
-@router.delete("/components/{comp_id}", summary="Delete Component", response_description="Delete status.")
+@router.delete("/{comp_id}", summary="Delete Component", response_description="Delete status.", response_model=ComponentDeleteResponse)
 async def delete_component(
     comp_id: str,
     db: DatabaseDep,
     repo: RepositoryDep
-):
+) -> ComponentDeleteResponse:
     """Deletes a component if it is not referenced by any existing steps OR executions."""
     # 1. Existence Check (via TinyDB/Generic Table - maintaining local consistency)
     table = db.table("components")
@@ -247,13 +218,17 @@ async def delete_component(
     # but strictly speaking we should use repo.get_component_by_id.
     # For now, keeping legacy check to avoid breaking TinyDB specifics if any,
     # but ideally we migrate fully to repo.
-    exists = table.search((Component.id == comp_id) | (Component.name == comp_id))
+    query = (Component.id == comp_id) | (Component.name == comp_id)
+    exists = table.search(query)
     if not exists:
         from backend.exceptions import ResourceNotFoundError
 
         error_code = "COMPONENT_NOT_FOUND"
         logger.error(f"{error_code}: ID {comp_id}", exc_info=True)
         raise ResourceNotFoundError("Component", comp_id, details={"error_code": error_code})
+    
+    # Store ID before deletion for response
+    target_id = exists[0].get("id", comp_id)
 
     # 2. Referential Integrity Check 1: Steps (Legacy TinyDB method)
     # TODO: Migrate to repo.get_steps_using_component(comp_id)
@@ -294,5 +269,5 @@ async def delete_component(
         logger.error(f"{error_code}: ID {comp_id} used in {used_in}", exc_info=True)
         raise ConflictError(message="Resource conflict", details={"error_code": error_code, **{"used_in": used_in}})
 
-    table.remove((Component.id == comp_id) | (Component.name == comp_id))
-    return {"status": "deleted", "id": comp_id}
+    table.remove(query)
+    return ComponentDeleteResponse(status="deleted", id=target_id)

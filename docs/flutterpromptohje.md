@@ -59,6 +59,9 @@ Using these versions with "Legacy Patterns" is a **STRICT VIOLATION**.
 ### 3. Routine Quality Gates (Definition of Done)
 **ALWAYS** run these checks before marking a task as complete.
 
+#### Process & Mindset
+*   **Root Cause Analysis**: Did I find *why* the error happened upstream, or did I just patch the symptom? (Review Section 18.4)
+
 #### Backend (Python)
 *   **Lint**: `ruff check . --fix` (Enforce style & fix imports)
 *   **Type Check**: `mypy .` (Strict typing, no `Any` leaks)
@@ -148,18 +151,203 @@ The `seed_data.json` file MUST adhere to the **Single Source of Truth (SSOT)** p
     *   **Format**: `%(asctime)s | %(levelname)s | [%(execution_id)s] | ...`
     *   **Context**: `execution_id` must be present for traceability.
 
+4.  **Data Passing Mandate (No Dictionaries)**:
+    *   **The Rule**: All internal data exchange between Services, Hooks, and Agents MUST use Pydantic Models.
+    *   **BANNED**: Passing `dict` or `dict[str, Any]` as a return value or argument for structured data.
+    *   **EXCEPTION**:
+        *   Raw JSON payloads at the **API Boundary** (e.g., `request.json()`).
+        *   Low-level **Database Drivers** (serialization/deserialization).
+    *   **Philosophy**: "If it has a shape, it must be a Model. Dictionaries are for unordered maps only."
+
+5.  **Strict Pydantic Validation (Fail Fast)**:
+    *   **The Rule**: ALL Domain Models MUST use `ConfigDict(strict=True)`.
+    *   **Implication**: No implicit type coercion (e.g., string "1" -> int 1 is forbidden).
+    *   **Why**: Data integrity is paramount. If the type is wrong, the upstream data source is broken and must be fixed.
+
+6.  **API Boundary & Data Contracts (Schema-First)**:
+    *   **Requests**: `body` MUST be a Pydantic Model. Using `dict` or `Request` to bypass validation is BANNED.
+    *   **Responses**: MUST define `response_model` in the route decorator (e.g., `@router.post(..., response_model=MyResponse)`).
+    *   **Return Values**: Return the Pydantic Model instance directly. Do NOT manually call `.model_dump()` or return a `dict`. Let FastAPI handle the serialization.
+    *   **Null Safety**: API Responses should NOT contain `null` for list fields (use `[]`) or boolean fields (use `false`).
+
 ---
 
-## ⚠️ PART 3: ERROR HANDLING CONTRACT (RFC 7807)
+## ⚠️ PART 3: ERROR HANDLING CONTRACT (RFC 7807 & FAIL FAST)
 
 **SINGLE SOURCE OF TRUTH**: `backend/exceptions.py`
 
-1.  **Protocol**: All errors MUST follow RFC 7807 Problem Details.
-2.  **Implementation**:
-    *   Log: `logger.error(..., exc_info=True)`
-    *   Raise: `AppException` (Never `HTTPException` directly).
+### 3.1. The Protocol (RFC 7807)
+All errors MUST follow the RFC 7807 Problem Details standard. The `AppException` class is the canonical implementation. 
 
----
+### 3.2. Mandatory Fields
+When raising an exception, you must provide:
+1.  **message**: A technical English description for logs (NEVER shown to user).
+2.  **status_code**: The appropriate HTTP status code (e.g., 400, 404, 500).
+3.  **details**: A dictionary containing at least:
+    *   `error_code`: A machine-readable Enum value from `backend.exceptions.ErrorCodes` (e.g., `VALIDATION_FAILED`).
+    *   **NOTE**: This `error_code` is automatically promoted to `extensions.error_code` in the final JSON response.
+
+### 3.3. Implementation Pattern (Fail Fast)
+If an invalid state is detected, **CRASH IMMEDIATELY**. Do not pass `None` or return empty objects.
+
+```python
+    except Exception as e:
+        from backend.exceptions import AppException, ErrorCodes, status
+
+        # 1. Define Error Code (SSOT)
+        error_code = ErrorCodes.INVALID_JSON_PAYLOAD
+
+        # 2. Log the raw error with STRUCTURED FORMAT (Component + Error Code)
+        logger.error(f"[GraphEngine] {error_code.value}: Invalid initial state: {e}", exc_info=True)
+
+        # 3. Raise explicit AppException wrapping the original error
+        raise AppException(
+            message=f"Invalid initial state structure: {e}",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={
+                "error_code": error_code, 
+                "original_error": str(e) # Context for debugging
+            },
+        ) from e
+```
+
+### 3.4. Localizing Error Codes (Frontend Responsibility)
+**THE CONTRACT (Split Responsibility):**
+*   **Backend**: Sends the machine-readable code (e.g., `VALIDATION_FAILED`) and technical details (English).
+*   **Frontend**: Maps the **Code** to a human-readable Title in `app_*.arb`.
+*   **Result**: User sees "Validointivirhe" (FI) or "Validation Failed" (EN), followed by the technical detail.
+
+#### Step 1: Define Key in ARB Config
+```json
+// client_app/lib/l10n/app_fi.arb
+{
+  "errValidationFailed": "Validointivirhe",
+  "errInternalServerError": "Palvelinvirhe",
+  "errorValidationMissing": "Puuttuvat kentät: {fields}"
+}
+```
+
+#### Step 2: Map Code to Key (Dart)
+Use the `AppErrorExt` extension in `client_app/lib/core/error/app_error_ext.dart`.
+
+```dart
+// client_app/lib/core/error/app_error_ext.dart
+  static String _localizeErrorCode(String errorCode, AppLocalizations l10n) {
+    return switch (errorCode) {
+      'VALIDATION_FAILED' => l10n.errValidationFailed,
+      'INTERNAL_SERVER_ERROR' => l10n.errInternalServerError,
+      'RESOURCE_NOT_FOUND' => l10n.errResourceNotFound,
+      _ => l10n.errorUnknown,
+    };
+  }
+```
+
+### 3.5. Specialized Exceptions (Domain Semantic)
+Do not use raw `AppException` if a more specific semantic wrapper exists.
+
+| Exception Class | Usage Scenario | Required Arguments |
+| :--- | :--- | :--- |
+| **`ResourceNotFoundError`** | When a DB item is missing (404) | `resource_type` (str), `resource_id` (str) |
+| **`ConfigurationError`** | Missing API keys or bad config (500) | `message` (str) |
+| **`PermissionDeniedError`** | RBAC failures (403) | `message` (str) |
+| **`AuthenticationError`** | Invalid/Missing Token (401) | `message` (str) |
+| **`SecurityViolationError`** | Guardrails/WAF block (400) | `message` (str) |
+| **`ConflictError`** | State conflict/race condition (409) | `message` (str) |
+| **`ServiceUnavailableError`** | External API/DB down (503) | `message` (str) |
+| **`AgentExecutionError`** | Agent logic failure (500) | `detail` (code), `original_error` (Exception), `agent_name` (str) |
+| **`WorkflowExecutionError`** | Step Engine failure (500) | `step_id` (str), `task_key` (str), `original_error` (Exception) |
+| **`FatalInterruption`** | Stop workflow immediately (500) | `step_name` (str), `reason` (str) |
+
+
+#### Example: Resource Not Found
+```python
+    # BAD: Generic 404
+    raise AppException("Workflow missing", status_code=404)
+
+    # GOOD: Semantic Wrapper
+    from backend.exceptions import WorkflowNotFoundError
+    raise WorkflowNotFoundError(workflow_id="wf-123") 
+    # Auto-generates message: "Workflow with ID 'wf-123' not found"
+```
+
+#### Example: Agent Failure
+```python
+    try:
+        result = await agent.run(...)
+    except Exception as e:
+        # Wraps error, preserves cause, auto-sets status 500
+        raise AgentExecutionError(
+            detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
+            original_error=e,
+            agent_name="Logician",
+            step_id=step.id
+        ) from e
+```
+
+### 3.6. Managed Fallbacks (Soft Failures) - USE RARELY
+**DEFAULT RULE**: Raise an Exception (Fail Fast).
+
+**USAGE FREQUENCY: RARE (< 5% of cases)**
+Only use this pattern in the **View/BFF Layer** when a partial failure is strictly better than a total crash.
+
+*   **Scenario by Preference**:
+    1.  **Core Logic/Data Integrity**: ❌ NEVER (Must Fail Fast).
+    2.  **Critical UI**: ❌ NEVER (User must know it failed).
+    3.  **Composite Dashboard Widgets**: ✅ YES (One widget failing shouldn't blank the screen).
+    4.  **Optional Decorations (LLM Hints)**: ✅ YES (Core data is valid, hints are optional).
+
+#### Example: BFF Transformer (Resilience)
+```python
+    try:
+        # Complex transformation that might fail on bad data
+        chart_data = self._build_radar_chart(data)
+    except Exception as e:
+        # Only swallow error if chart is NON-CRITICAL
+        logger.warning(f"Radar Chart generation failed (Returning empty): {e}")
+        chart_data = {} 
+```
+
+### 3.7. Unified Client Error Presentation
+**THE MANDATE:** All client-side errors, including `AsyncValue.error` states and screen-level failures, MUST be displayed using the standardized `ErrorView` widget.
+
+*   **BANNED**: Ad-hoc implementations like `Center(child: Text('Error'))` or `Icon(Icons.error)`.
+*   **REQUIRED**:
+    ```dart
+    // client_app/lib/core/ui/error_view.dart
+    
+    // Usage in AsyncValue.when
+    error: (err, stack) => ErrorView(
+      error: err,
+      onRetry: () => ref.refresh(provider),
+      retryLabel: l10n.retry,
+      compact: false, // Use true for widgets/sections
+    ),
+    ```
+*   **Localization**: `ErrorView` automatically handles `AppError` localization via `AppErrorExt`. This ensures backend error codes (e.g., `AGENT_EXECUTION_CRITICAL`) are displayed as localized, user-friendly messages.
+
+### 3.8. Upstream Error Mapping (Vendor Failures)
+**THE MANDATE:** Never expose raw Vendor/Upstream errors (e.g., `googleapiclient.errors.HttpError`) to the user.
+
+*   **The Problem:** A generic "HttpError 403" tells the user *what* happened, but not *how to fix it*.
+*   **The Rule:** You MUST catch known upstream errors and map them to semantic `AppException` types with **Actionable Instructions**.
+
+#### Example: Google Search 403 (Configuration Error)
+```python
+    try:
+        service.cse().list(...).execute()
+    except HttpError as e:
+        # 1. Analyze Root Cause (Don't just log 403)
+        if e.resp.status == 403 and "Custom Search JSON API" in str(e):
+            # 2. Map to Semantic Error (ConfigurationError)
+            raise ConfigurationError(
+                message="Google Custom Search API is not enabled in Cloud Console.",
+                details={"action": "Enable 'Custom Search JSON API' in Google Cloud Console."}
+            ) from e
+        
+        # 3. Default Fallback
+        raise ServiceUnavailableError("Google Search failed upstream.") from e
+```
+
 
 ## 💙 PART 4: FLUTTER CLIENT MANDATES
 
@@ -274,8 +462,6 @@ The `seed_data.json` file MUST adhere to the **Single Source of Truth (SSOT)** p
     *   **No Grep**: Use `python scripts/analyze_json.py` for data inspection.
 
 2.  **Repository Method Protection**:
-    *   **History**: On 2026-01-16, critical methods were deleted.
-
     *   **History**: On 2026-01-16, critical methods were deleted.
 
 3.  **Debugging Protocols ("Silent Console, Verbose Log")**:
@@ -452,33 +638,161 @@ When implementing AI steps that must output specific numeric values (e.g., Score
     return UiSection(..., data=data)
     ```
 
-### 15.2. Specialist Data Interchange Protocols (Wrapped vs. Unwrapped)
-The system supports two distinct data formats for Specialist Agents, and the BFF Layer **MUST** support both.
+### 15.2. Specialist Data Interchange Protocols (Strict Nesting Mandate)
+The system enforces a **STRICT NESTED FORMAT** for all Specialist Agents.
 
-1.  **Wrapped Format (Standard Agents)**:
-    *   **Source**: Standalone Agents (e.g., `step_logician`, `step_falsifier`).
-    *   **Structure**: `{ "logician_data": { "compliance_score": ... } }`
-    *   **Reason**: Matches the `LogicianOutput` Pydantic model structure.
+1.  **Mandatory Wrapped Format**:
+    *   **Requirement**: All Agents MUST return data nested under their specific model key.
+    *   **Structure**: `{ "logician_data": { "toulmin_score": ... } }`
+    *   **Reason**: Matches the `LogicianOutput` Pydantic model structure defined in `domain.py`.
+    *   **Forbidden**: Returning flattened data (e.g., `{ "toulmin_score": ... }`) at the root level.
+    *   **Enforcement**: The Backend `bff_transformer.py` will **FAIL FAST** (raise 500) if the nested key (`logician_data`, `falsifier_data`, etc.) is missing. Legacy "flat" data is **NOT SUPPORTED**.
 
-2.  **Unwrapped Format (Panel Agent)**:
+2.  **Panel Agent Exception (Explicit Mapping)**:
     *   **Source**: The Consolidated Panel Agent (`step_panel`).
-    *   **Structure**: `{ "compliance_score": ... }` (The inner data directly).
-    *   **Reason**: The Panel Agent aggregates multiple outputs, and inside its own structure, the fields are already named (e.g., `panel.logician_data`). When extracted, it looks like raw data.
+    *   **Structure**: The Panel Agent aggregates multiple outputs, but *internally* it must still map them to the correct nested fields (e.g., `panel.logician_data`).
+    *   **Transformer Logic**: The BFF Transformer extracts these nested fields directly. It does NOT flatten them on input.
 
 ### 15.3. Transformer Implementation Pattern
 When implementing `_transform_*` methods in `bff_transformer.py`, follow this **Robustness Pattern**:
 
 ```python
-def _transform_specialist_data(self, data: dict) -> dict:
-    # 1. Try Wrapped (Standard)
-    if "specialist_data" in data:
-        return data["specialist_data"].copy()
-
-    # 2. Try Unwrapped (Panel/Direct)
-    if data and isinstance(data, dict):
-        return data.copy()
-
     # 3. Fail Safe (UI robustness)
     logger.warning("Specialist Data missing/invalid. Returning empty dict.")
     return {}
+
+## 🗣️ PART 16: STRICT LOCALIZATION & HELP TEXTS (ENUM/KEY MANDATE)
+
+### 16.1. The "No-String" Backend Policy
+*   **Philosophy**: The Backend supplies **DATA** (Scores, Result Codes). The Frontend supplies **PRESENTATION** (Labels, Help Texts, Explanations).
+*   **BANNED**: Sending localized strings or help text payloads from Python.
+    *   ❌ `{"status": "Orgaaninen", "help": "Tämä tarkoittaa..."}`
+*   **REQUIRED**: Sending Immutable Keys or Enums.
+    *   ✅ `{"status": "AUTH_ORGANIC"}`
+
+### 16.2. Implementation Pattern (Enum-Driven)
+
+#### Backend (Python)
+Define standard Enums in `view.py` or domain models.
+```python
+class Authenticity(str, Enum):
+    ORGANIC = "AUTH_ORGANIC"
+    PERFORMATIVE = "AUTH_PERFORMATIVE"
+    UNKNOWN = "AUTH_UNKNOWN"
+
+# usage in bff_transformer.py
+raw["authenticity_assessment"] = Authenticity.ORGANIC.value 
 ```
+
+#### Frontend (Flutter)
+Map these keys immediately to `AppLocalizations` in the Widget.
+```dart
+// client_app/lib/l10n/app_fi.arb
+"authOrganic": "Orgaaninen (Aito)",
+"helpAuthenticity": "Aitous mittaa vastauksen luonnollisuutta..."
+
+// components/specialist_section.dart
+Widget _buildAuth(String key, BuildContext context) {
+  final l10n = AppLocalizations.of(context)!;
+  
+  // 1. Lookup Label
+  String label = l10n.authUnknown;
+  if (key == 'AUTH_ORGANIC') label = l10n.authOrganic;
+  
+  // 2. Lookup Help Text (Static Key)
+  return UnifiedMetricGauge(
+    descriptionFi: l10n.helpAuthenticity, // ✅ Correct
+    descriptionEn: l10n.helpAuthenticity, // ✅ Riverpod handles Locale
+    ...
+  );
+}
+```
+
+### 16.3. Help Text & Tooltips
+*   **Storage**: All detailed help texts (paragraphs) MUST live in `.arb` files.
+*   **Keys**: Use semantic keys like `helpStrategicDepth`, `helpPerformativity`.
+*   **Usage**: Pass the *Result* of the lookup (`l10n.helpStrategicDepth`) to widgets, never the raw string.
+
+## 📝 PART 17: DOCUMENTATION & HYGIENE (STRICT MANDATE)
+
+### 17.1. Language Policy
+*   **English ONLY**: All code, variable names, comments, commit messages, and docstrings MUST be in English.
+*   **Exceptions**:
+    *   Content in `backend/l10n/fi.json` or `app_fi.arb`.
+    *   Hardcoded configuration values (e.g., specific Finnish search terms in `seed_data.json`).
+
+### 17.2. Python Documentation (Backend)
+*   **Docstrings**: EVERY public module, class, and method MUST have a docstring.
+*   **Style**: Use **Google Style** formatting.
+    ```python
+    def calculate_score(self, value: float) -> float:
+        """Calculates the normalized score.
+
+        Args:
+            value: Raw input value (0-100).
+
+        Returns:
+            Normalized score (0.0-1.0).
+            
+        Raises:
+            ValueError: If input is out of bounds.
+        """
+    ```
+*   **Type Hits**: STRICTLY REQUIRED for all arguments and return values. `state: Any` is a smell; use specific types or `dict[str, Any]` if absolutely necessary.
+
+### 17.3. Dart Documentation (Frontend)
+*   **Public API**: Use `///` (triple slash) for all public Classes, Widgets, and Methods.
+    ```dart
+    /// Displays the detailed analysis for a specific agent.
+    /// 
+    /// Requires [data] to be populated with valid localization keys.
+    class SpecialistSection extends ConsumerWidget { ... }
+    ```
+*   **Intention**: Explain *WHY* logic exists, not just *WHAT* it does.
+
+### 17.4. Code Hygiene
+*   **No Dead Code**: Do NOT leave commented-out code blocks ("zombie code"). Delete them. Version control is your history.
+*   **No "TODO" without Ticket**: `TODO` comments must include a clear owner or objective.
+*   **Clean Imports**: unused imports must be removed (use `ruff` / `dart fix`).
+
+## 🛡️ PART 18: THE ZERO-COMPROMISE PLEDGE (QUALITY STANDARD)
+
+**"Production Quality, Day One."**
+
+### 18.1. NO Fallback Code (Fail Fast)
+*   **The Rule**: If an error occurs (e.g., missing data, invalid state), the system MUST raise an exception immediately.
+*   **Banned**: `try-except pass`, returning `None` silently, or patching with empty lists `[]` to keep the UI running.
+*   **Why**: Silent failures hide bugs. A crash (500) is better than a lie.
+
+### 18.2. NO Default Values (Strict Typing)
+*   **The Rule**: Domain models MUST NOT have default values for required fields.
+*   **Banned**: `score: float = 0.0` or `name: str = "Unknown"`.
+*   **Exemption**: Optional fields (`score: float | None = None`) where `None` has a specific semantic meaning (e.g., "Not Run Yet").
+
+### 18.3. NO Hardcoding (Configuration Sovereignty)
+*   **The Rule**: Value that can change MUST exist in `seed_data.json` or `l10n`.
+*   **Exception**: Standard Enums (e.g., `RiskLevel.HIGH`) are the **preferred** way to handle fixed sets of values in code.
+*   **Banned**: Hardcoded prompts, thresholds (`if score > 0.5`), or UI strings in code.
+*   **Validation**: If you see a "Magic Number" or "Magic String", extract it to a Constant or Enum.
+
+### 18.4. NO Surface-Level Patches (Root Cause Mandate)
+*   **The Rule**: **ALWAYS** search for and fix the root cause. **NEVER** patch just the surface symptom.
+*   **Philosophy**: If a crash (e.g., `KeyError`, `NullPointerException`) occurs, the bug is **NOT** where the crash happened—it is upstream where the invalid data was created.
+*   **Banned**: 
+    - Adding "safety checks" that just hide the error (e.g., `if x is None: return ""`) without understanding *why* `x` is None.
+    - Casting types blindly (`as String`) to silence the compiler.
+    - Bypassing Services or duplication logic to "get it working".
+*   **Protocol**: You must explain the *Root Cause* in your analysis before proposing a fix.
+### 18.5. NO Backward Compatibility (Clean Break)
+*   **The Rule**: Do not keep "Legacy Adapters" or "shims" for old data structures.
+*   **Action**: If the schema changes, the old data is invalid. Wipe it or migrate it strictly.
+*   **Why**: Supporting two versions doubles the testing surface and hides technical debt. We are in a "Hardening Phase", not a "Long-Term Support" phase.
+
+### 18.6. NO Embedded Steps (Relational Mandate)
+*   **The Rule**: Workflows must **NEVER** contain full Step definitions.
+*   **Structure**:
+    - **Registry (`steps`)**: The ONLY place where a Step is defined (ID, Task Key, Prompts, Models).
+    - **Workflow (`workflows`)**: A list of **Links** only (`id`, `inputs`, `config` overrides).
+*   **Banned**: Defining `task_key`, `description`, or `ui_schema` inside a Workflow's step list.
+*   **Reason**: "System Level Error". Embedding creates duplicate sources of truth and desynchronizes the Registry.
+*   **Enforcement**: Use `backend/scripts/analyze_seed_data.py` to audit for embedded steps. The Seeder will strip them, but the Source File must be clean.

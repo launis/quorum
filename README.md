@@ -84,7 +84,7 @@ For a deep dive, see **[System Architecture](docs/architecture.md)**.
 
 ## 🛠️ Technology Stack
 
-*   **Language**: Python 3.13 (Async) & Dart 3.5+
+*   **Language**: Python 3.14 (Async) & Dart 3.5+
 *   **Frameworks**: FastAPI, Arq, Riverpod 2.6+, GoRouter
 *   **Database**: TinyDB (Local) / Firestore (Cloud)
 *   **LLM**: Google Vertex AI (Gemini 1.5 Pro)
@@ -95,7 +95,7 @@ For a deep dive, see **[System Architecture](docs/architecture.md)**.
 ## 📦 Getting Started
 
 ### Prerequisites
-*   Python 3.13+ (Recommended: Use `uv`)
+*   Python 3.14 (Recommended: Use `uv`)
 *   Docker & Docker Compose
 *   Flutter SDK (3.27+)
 

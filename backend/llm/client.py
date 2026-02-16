@@ -34,7 +34,7 @@ class LLMClient:
         self,
         messages: list[dict[str, Any]],
         response_model: type[T],
-        model: str,  # STRICT: Model must be provided (No defaults)
+        model: str,  # STRICT: Model must be provided (Zero-Fallback)
         **kwargs: Any,
     ) -> T:
         """Execute a structured LLM task enforcing a Pydantic schema using LLMProvider.
@@ -102,19 +102,28 @@ class LLMClient:
     async def run_chat(
         self,
         messages: list[dict[str, Any]],
-        model: str = "gemini-2.0-flash-exp",
+        model: str | None = None,
         **kwargs: Any,
     ) -> str:
         """Execute a free-form chat task returning a string.
 
         Args:
             messages: List of chat messages.
-            model: Model identifier.
+            model: Model identifier. MUST be provided (Zero-Fallback).
             **kwargs: Additional args (temperature, max_tokens).
 
         Returns:
             The generated text content.
         """
+        # ZERO-FALLBACK ENFORCEMENT
+        if not model:
+            from backend.exceptions import AppException, ErrorCodes, status
+            raise AppException(
+                message="Model Configuration Missing: 'model' argument is required for run_chat.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
+            )
+
         # 1. Parse Prompt (Flattening)
         # Similar logic to run_structured_task
         system_instruction = None

@@ -5,7 +5,6 @@ import os
 from typing import Any
 
 import openai
-from google.cloud import aiplatform_v1beta1
 from tinydb import Query
 
 from backend.llm.provider import LLMFactory
@@ -26,13 +25,17 @@ class LLMHandler:
         Attempts to fetch its metadata in the target location.
         """
         try:
+            # Dynamic import to avoid top-level crash if library missing
+            from google.cloud import aiplatform_v1
+            from google.api_core import client_options as g_client_options
+
             api_endpoint = f"{location}-aiplatform.googleapis.com"
-            client_options = {"api_endpoint": api_endpoint}
-            client = aiplatform_v1beta1.ModelGardenServiceClient(client_options=client_options)
+            client = aiplatform_v1.ModelGardenServiceClient(
+                client_options=g_client_options.ClientOptions(api_endpoint=api_endpoint)
+            )
 
             # The name format for retrieving is "publishers/google/models/{model_name}"
             # model_id input is usually "vertex_ai/{model_name}" or just "{model_name}" logic
-            # My current logic stores "vertex_ai/gemini-..."
             clean_name = model_id.split("/")[-1]
             resource_name = f"publishers/google/models/{clean_name}"
 
@@ -111,53 +114,119 @@ class LLMHandler:
         # --- GOOGLE (Vertex AI) ---
         if "google" in providers:
             try:
-                # Check cache for the *Target Location* (validated list)
-                if self._cached_google_models:
-                    # Simple cache assumption: Environment doesn't change runtime
-                    models["google"] = self._cached_google_models
-                else:
-                    # 1. Master List (us-central1) - Always works for listing Catalog
-                    # We inline the list call here for simplicity or could use helper if reused.
-                    # Using us-central1 explicitly.
-                    discovery_ep = "us-central1-aiplatform.googleapis.com"
-                    client = aiplatform_v1beta1.ModelGardenServiceClient(client_options={"api_endpoint": discovery_ep})
+                # 1. Discovery (Source of Truth: LiteLLM / "West" equivalent)
+                # We log the source region for auditability.
+                source_region = settings.discovery_location or "us-west1"
+                logger.debug(f"[LLMHandler] Initiating Model Discovery (Source: {source_region})...")
 
-                    # Listing
-                    # logger.info("Fetching Master Catalog from us-central1...")
-                    response = client.list_publisher_models(parent="publishers/google")
+                try:
+                    import litellm
+                    import requests
+                    import google.auth
+                    from google.auth.transport.requests import Request as GRequest
+                    from concurrent.futures import ThreadPoolExecutor, as_completed
+                except ImportError as ie:
+                    from backend.exceptions import ConfigurationError, ErrorCodes
+                    raise ConfigurationError(
+                        message="Missing required dependencies for Google discovery.",
+                        details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING, "original_error": str(ie)}
+                    ) from ie
 
-                    master_list = []
-                    for m in response.publisher_models:
-                        mid = m.name.split("/")[-1]
-                        if "gemini" in mid.lower():
-                            master_list.append(f"vertex_ai/{mid}")
-                    master_list = sorted(list(set(master_list)))
+                # Get all candidates
+                all_models = litellm.model_list
+                candidates = []
+                for m in all_models:
+                    if not isinstance(m, str): continue
+                    m_lower = m.lower()
+                    if "gemini" in m_lower:
+                         # We prefer vertex_ai prefix, but keep raw 'gemini' if valid
+                        if m_lower.startswith("vertex_ai/") or m_lower.startswith("gemini"):
+                            candidates.append(m)
+                
+                candidates = sorted(list(set(candidates)))
+                
+                # 2. Validation (Target Region: Finland / europe-north1)
+                final_list = []
+                
+                # Setup Auth (once)
+                try:
+                    credentials, project = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
+                    credentials.refresh(GRequest())
+                    token = credentials.token
+                except Exception as auth_err:
+                     from backend.exceptions import ConfigurationError, ErrorCodes
+                     # Fail Fast: If we can't authenticate, we can't discover or use models.
+                     raise ConfigurationError(
+                         message="Google Authentication failed during discovery.",
+                         details={"error_code": ErrorCodes.AUTHENTICATION_FAILED, "original_error": str(auth_err)}
+                     ) from auth_err
 
+                headers = {
+                    "Authorization": f"Bearer {token}",
+                    "Content-Type": "application/json"
+                }
+
+                def check_model(model_id: str) -> str | None:
+                    # Clean model ID for API call (strip prefixes)
+                    # We want the distinct model ID, e.g. "gemini-1.5-pro"
+                    # Input could be "vertex_ai/gemini-1.5-pro", "gemini/gemini-1.5-pro", or just "gemini-1.5-pro"
+                    
+                    clean_id = model_id
+                    for prefix in ["vertex_ai/", "gemini/", "models/"]:
+                        if clean_id.startswith(prefix):
+                            clean_id = clean_id[len(prefix):]
+                    
+                    # Endpoint: https://{location}-aiplatform.googleapis.com/v1/publishers/google/models/{model}
+                    url = f"https://{target_location}-aiplatform.googleapis.com/v1/publishers/google/models/{clean_id}"
+                    
+                    try:
+                        resp = requests.get(url, headers=headers, timeout=5)
+                        if resp.status_code == 200:
+                            # Normalize return value to "vertex_ai/" prefix which is what our "google" provider implies
+                            return f"vertex_ai/{clean_id}"
+                        return None
+                    except Exception:
+                        return None
+
+                # Parallel Validation
+                logger.info(f"[LLMHandler] discovering {len(candidates)} models; validating in {target_location}...")
+                
+                with ThreadPoolExecutor(max_workers=20) as executor:
+                    future_to_model = {executor.submit(check_model, m): m for m in candidates}
+                    for future in as_completed(future_to_model):
+                        result = future.result()
+                        if result:
+                            final_list.append(result)
+                
+                final_list = sorted(final_list)
+                
+                # Fallback if validation fails hard (empty list)
+                if not final_list:
+                    # STRICT: We do not fallback. We return empty.
+                    # Caller (frontend) decides if empty is an error (it probably is).
+                    # But if we genuinely found nothing, we shouldn't lie.
+                    logger.error(f"[LLMHandler] Regional validation in {target_location} returned 0 models.")
                     final_list = []
 
-                    # 2. Validation
-                    if target_location == "us-central1":
-                        final_list = master_list
-                    else:
-                        # VALIDATING REGIONALLY
-                        logger.info(f"[LLMHandler] Validating {len(master_list)} models in '{target_location}'...")
-                        for m in master_list:
-                            if self._check_model_availability(m, target_location):
-                                final_list.append(m)
-                            else:
-                                # logger.debug(f"Model {m} not available in {target_location}")
-                                pass
-                        logger.info(f"[LLMHandler] Validation complete. Found {len(final_list)} valid models.")
+                models["google"] = final_list
+                self._cached_google_models = final_list
+                
+                logger.info(f"[LLMHandler] Discovered & Validated {len(final_list)} Gemini models in {target_location}.")
 
-                    models["google"] = final_list
-                    self._cached_google_models = final_list
-
-            except ImportError:
-                logger.error("google-cloud-aiplatform not installed.")
-                models["google_error"] = "Missing google-cloud-aiplatform library"
             except Exception as e:
-                logger.error(f"Error fetching Google models: {e}")
-                models["google_error"] = str(e)
+                # If it's already an AppException, re-raise
+                from backend.exceptions import AppException, ServiceUnavailableError, ErrorCodes
+                if isinstance(e, AppException):
+                    raise e
+                
+                # Otherwise wrap in ServiceUnavailable (upstream failure)
+                logger.error(f"Error fetching/validating Google models: {e}")
+                
+                # STRICT: Do not return error strings. Raise.
+                raise ServiceUnavailableError(
+                    message=f"Google Model Discovery Failed: {e}",
+                    details={"error_code": ErrorCodes.MODEL_LIST_FAILED, "original_error": str(e)}
+                ) from e
 
         # --- OPENAI ---
         if "openai" in providers:
@@ -173,9 +242,19 @@ class LLMHandler:
                                 self._cached_openai_models.append(m.id)
                         models["openai"] = self._cached_openai_models
                     else:
-                        models["openai_warning"] = "OPENAI_API_KEY not found"
+                        raise ConfigurationError(
+                            message="OPENAI_API_KEY not found in environment or settings.",
+                            details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING}
+                        )
             except Exception as e:
-                models["openai_error"] = str(e)
+                # STRICT TYPE SAFETY: Do not assign string error messages to a Dict[str, List[str]]
+                logger.error(f"Error fetching OpenAI models: {e}")
+                # We return empty list for OpenAI if it fails, or we could raise.
+                # Given 'Fail Fast' for keys, if we are here it might be a network error or other.
+                # But we must satisfy the return type.
+                models["openai"] = []
+                # If we want to communicate error, we can't do it via this typed dict field.
+                # The caller should handle emptiness or we relies on logs.
 
         return models
 
@@ -261,10 +340,19 @@ class LLMHandler:
         if not model_name:
             raise ValueError(f"STRICT CONFIG ERROR: Strategy '{provider}/{mode}' exists but describes no 'model_name'.")
 
-        temperature = cd.get(
-            "temperature", 0.7
-        )  # Parameter defaults are acceptable/necessary? Assuming yes for float/int, but MODEL must be explicit.
-        max_tokens = cd.get("max_tokens", None)
+        temperature = cd.get("temperature")
+        if temperature is None:
+             raise ConfigurationError(
+                 message=f"STRICT CONFIG ERROR: Strategy '{provider}/{mode}' is missing required 'temperature'.",
+                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
+             )
+        
+        max_tokens = cd.get("max_tokens")
+        if max_tokens is None:
+             raise ConfigurationError(
+                 message=f"STRICT CONFIG ERROR: Strategy '{provider}/{mode}' is missing required 'max_tokens'.",
+                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
+             )
 
         # Extract API Key from DB Config
         api_key = cd.get("api_key")

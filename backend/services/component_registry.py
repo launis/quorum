@@ -1,97 +1,84 @@
-"""Component Registry Service.
-
-Responsible for loading system components (prompts, rules, mandates) from seed data
-and resolving them into full text instructions for Agents.
-"""
-import json
 import logging
-import os
 from functools import lru_cache
-from typing import Any
+from typing import Any, Dict, List, Optional, Tuple
+
+from fastapi import status
+
+from backend.database.repository import AbstractWorkflowRepository
+from backend.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
 
 
 class ComponentRegistry:
-    """Registry for looking up and resolving system components."""
+    """Registry for looking up and resolving system components.
+    
+    Refactored to be stateless and use AbstractWorkflowRepository (Feb 2026).
+    """
 
-    _instance = None
-    _components: dict[str, dict[str, Any]] = {}
+    @staticmethod
+    async def get_component(repository: AbstractWorkflowRepository, component_id: str) -> Dict[str, Any]:
+        """Retrieves a single component by ID using the repository.
 
-    def __new__(cls):
-        """Singleton pattern."""
-        if cls._instance is None:
-            cls._instance = super(ComponentRegistry, cls).__new__(cls)
-            cls._instance._load_components()
-        return cls._instance
+        Args:
+            repository: The repository instance.
+            component_id: The ID of the component to retrieve.
 
-    def _load_components(self):
-        """Loads components from data/db.json."""
-        try:
-            # Path relative to backend root or absolute
-            # We assume running from root, so data/db.json
-            db_path = "data/db.json"
-            if not os.path.exists(db_path):
-                # Fallback for different CWD
-                db_path = os.path.join(os.getcwd(), "data", "db.json")
+        Returns:
+            Dict[str, Any]: The component configuration.
 
-            if os.path.exists(db_path):
-                with open(db_path, encoding="utf-8") as f:
-                    data = json.load(f)
-                    self._components = data.get("components", {})
-                logger.info(f"[ComponentRegistry] Loaded {len(self._components)} components from {db_path}")
-            else:
-                logger.warning(f"[ComponentRegistry] db.json not found at {db_path}. Components empty.")
+        Raises:
+            AppException: If component is not found (COMPONENT_NOT_FOUND).
+        """
+        comp = await repository.get_component_by_id(component_id)
+        if comp:
+            return comp
+        
+        # Fallback: Try by name as some IDs might be names in older configs
+        comp = await repository.get_component_by_name(component_id)
+        if comp:
+            return comp
 
-        except Exception as e:
-            logger.error(f"[ComponentRegistry] Failed to load components: {e}")
+        # FAIL FAST
+        error_code = ErrorCodes.COMPONENT_NOT_FOUND
+        logger.error(f"[ComponentRegistry] Component '{component_id}' NOT FOUND.")
+        raise AppException(
+            message=f"Component '{component_id}' not found in registry.",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": error_code, "component_id": component_id}
+        )
 
-    def get_component(self, component_id: str) -> dict[str, Any] | None:
-        """Retrieves a single component by ID."""
-        # The components dict in db.json is keyed by a numeric string ID usually,
-        # but the meaningful ID is inside the object as "id".
-        # OR, in some versions of db.json, it might be keyed by "id".
-        # Let's check the structure based on previous view_file of db.json.
-        # Structure seen: "components": {"1": {"id": "HEADER_MANDATES", ...}, ...}
-
-        # Slow lookup (O(N)) because keyed by numeric ID.
-        # Optimization: Build an index on load.
-        for key, comp in self._components.items():
-            if comp.get("id") == component_id:
-                return comp
-        return None
-
-    @lru_cache(maxsize=128)
-    def resolve_prompts(self, prompt_ids: tuple[str]) -> str:
+    @staticmethod
+    async def resolve_prompts(repository: AbstractWorkflowRepository, prompt_ids: Tuple[str, ...]) -> str:
         """Resolves a list of prompt IDs into a single system instruction string.
 
         Args:
-            prompt_ids: Tuple of strings (tuple for lru_cache).
+            repository: The repository instance.
+            prompt_ids: Tuple of strings.
 
         Returns:
-            Concatenated text content.
-        """
-        resolved_text = []
-        missing = []
+            str: Concatenated text content.
 
+        Raises:
+            AppException: If any component is missing (Fail Fast).
+        """
+        resolved_text: List[str] = []
+        
         logger.info(f"[ComponentRegistry] Resolving prompts: {prompt_ids}")
 
         for pid in prompt_ids:
-            comp = self.get_component(pid)
-            if comp and "content" in comp:
+            # This will raise AppException immediately if not found
+            comp = await ComponentRegistry.get_component(repository, pid)
+            
+            if "content" in comp:
                 content = comp["content"]
-                # If content is list (e.g. output config), join it?
-                # Usually prompts are strings.
                 if isinstance(content, str):
                     resolved_text.append(content)
                 elif isinstance(content, list):
                     # For headers or configs that might be lists
                     resolved_text.append("\n".join(str(x) for x in content))
             else:
-                missing.append(pid)
-
-        if missing:
-            logger.warning(f"[ComponentRegistry] Missing components for prompt resolution: {missing}")
+                logger.warning(f"[ComponentRegistry] Component '{pid}' has no 'content' field.")
 
         result = "\n\n".join(resolved_text)
         logger.info(f"[ComponentRegistry] Resolved text length: {len(result)}")

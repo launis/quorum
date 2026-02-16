@@ -4,6 +4,8 @@ import logging
 from typing import Any
 
 from backend.dependencies import RegistryDep
+from backend.models.dtos.config import ValidationReportResponse
+from backend.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +16,7 @@ class WorkflowValidator:
     @staticmethod
     async def validate_flow_configuration(
         sequence: list[str], steps_db_map: dict[str, Any], registry: RegistryDep
-    ) -> dict[str, Any]:
+    ) -> ValidationReportResponse:
         """Dry run validation logic extracted from router.
 
         Args:
@@ -23,7 +25,10 @@ class WorkflowValidator:
             registry: The model registry dependency.
 
         Returns:
-            Validation report dict.
+            ValidationReportResponse: Validation report.
+        
+        Raises:
+            AppException: If critical system integrity issues (Registry corruption) are detected.
         """
         known_keys = ["history_text", "product_text", "reflection_text", "bibliography_context"]
         errors = []
@@ -62,8 +67,12 @@ class WorkflowValidator:
                 class_name = comp.get("class_name")
 
                 if not module_name or not class_name:
-                    errors.append(f"Corrupt Registry: {agent_ref} missing module/class info")
-                    continue
+                    # Critical Failure: Registry is corrupt. Fail Fast.
+                    raise AppException(
+                        message=f"Corrupt Registry: {agent_ref} missing module/class info",
+                        status_code=500,
+                        details={"error_code": ErrorCodes.REGISTRY_CORRUPTION, "agent_ref": agent_ref}
+                    )
 
                 try:
                     import importlib
@@ -71,8 +80,13 @@ class WorkflowValidator:
                     agent_class = getattr(mod, class_name)
                     loaded_classes[agent_ref] = agent_class
                 except Exception as e:
-                    errors.append(f"Failed to load code for {agent_ref}: {e}")
-                    continue
+                    # Critical Failure: Code cannot be loaded. Fail Fast.
+                    # This indicates deployment/build error, not user config error.
+                    raise AppException(
+                        message=f"Failed to load code for {agent_ref}: {e}",
+                        status_code=500,
+                        details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR, "agent_ref": agent_ref}
+                    ) from e
 
             # Static Inspection of Class Attributes
             reqs = getattr(agent_class, "REQUIRES_KEYS", [])
@@ -85,4 +99,9 @@ class WorkflowValidator:
                 if k not in pseudo_state:
                     pseudo_state.append(k)
 
-        return {"valid": len(errors) == 0, "errors": errors, "trace": trace_log, "final_state_keys": pseudo_state}
+        return ValidationReportResponse(
+            valid=len(errors) == 0,
+            errors=errors,
+            trace=trace_log,
+            final_state_keys=pseudo_state
+        )

@@ -4,7 +4,7 @@ import logging
 
 from fastapi import APIRouter
 
-from backend.dependencies import AuditServiceDep, AuthService, CurrentUserDep, EngineDep
+from backend.dependencies import AuditServiceDep, AuthService, CurrentUserDep, RepositoryDep
 from backend.models.auth import UserRole
 from backend.models.settings import SystemSettings
 
@@ -14,21 +14,22 @@ router = APIRouter(prefix="/settings", tags=["Global Settings"])
 
 
 @router.get("", response_model=SystemSettings)
-async def get_settings(engine: EngineDep):
+async def get_settings(repo: RepositoryDep):
     """Retrieves the current global system connection settings."""
-    try:
-        raw_settings = await engine.repository.get_system_settings()
-        return SystemSettings(**raw_settings)
-    except Exception as e:
-        logger.warning(f"Failed to fetch system settings, using defaults: {e}")
-        # If empty or error, return default
+    # Fail Fast: If DB is down, strictly raise 500 (handled by global handler or let bubble).
+    # Do NOT return defaults if the source of truth is unreachable.
+    raw_settings = await repo.get_system_settings()
+    if raw_settings is None:
+        # If DB returns None (first run), return default model.
+        # But if DB fails, it raises Exception.
         return SystemSettings()
+    return SystemSettings(**raw_settings)
 
 
 @router.patch("", response_model=SystemSettings)
 async def update_settings(
     updates: SystemSettings,
-    engine: EngineDep,
+    repo: RepositoryDep,
     current_user: CurrentUserDep,
     audit_service: AuditServiceDep,  # Injected
 ):
@@ -48,17 +49,17 @@ async def update_settings(
     try:
         # 2. Persist
         data = updates.model_dump()
-        await engine.repository.update_system_settings(data)
+        await repo.update_system_settings(data)
 
         # Audit
-        if audit_service:
-            await audit_service.log_event(
-                actor_uid=current_user.uid,
-                action="SETTINGS_UPDATED",
-                organization_id="system",
-                target_uid="global_settings",
-                details=data,
-            )
+        # AuditServiceDep is strict, so no None check needed.
+        await audit_service.log_event(
+            actor_uid=current_user.uid,
+            action="SETTINGS_UPDATED",
+            organization_id="system",
+            target_uid="global_settings",
+            details=data,
+        )
 
         # 3. Return Updated
         return updates

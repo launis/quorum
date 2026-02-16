@@ -1,7 +1,9 @@
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import MagicMock, patch, AsyncMock
+
 from backend.agents.judge import JudgeAgent
-from backend.exceptions import AgentExecutionError
+
 
 @pytest.fixture
 def mock_llm_factory():
@@ -13,7 +15,7 @@ def mock_llm_factory():
 async def test_judge_no_passiveness_cutter(mock_llm_factory):
     """Verify strictly high scores are preserved if no Level 1."""
     judge = JudgeAgent(model="mock-model", provider="openai")
-    
+
     # Mock LLM Output: All 4.0
     mock_llm_result = {
         "matrix_id": "test_matrix",
@@ -24,7 +26,7 @@ async def test_judge_no_passiveness_cutter(mock_llm_factory):
         ],
         "critical_findings": []
     }
-    
+
     mock_repo = MagicMock()
     mock_repo.get_component_by_id = AsyncMock(return_value={
         "content": {
@@ -53,7 +55,7 @@ async def test_judge_no_passiveness_cutter(mock_llm_factory):
 async def test_judge_passiveness_cutter_activated(mock_llm_factory):
     """Verify score is capped at 2.0 if ANY dimension is 1.0."""
     judge = JudgeAgent(model="mock-model", provider="openai")
-    
+
     # Mock LLM Output: 4.0 total (hallucinated or average) but mixed dimensions
     mock_llm_result = {
         "matrix_id": "test_matrix",
@@ -64,7 +66,7 @@ async def test_judge_passiveness_cutter_activated(mock_llm_factory):
         ],
         "critical_findings": []
     }
-    
+
     mock_repo = MagicMock()
     mock_repo.get_component_by_id = AsyncMock(return_value={
         "content": {
@@ -95,7 +97,7 @@ async def test_judge_passiveness_cutter_activated(mock_llm_factory):
 async def test_judge_passiveness_cutter_nested_cards(mock_llm_factory):
     """Verify Passiveness Cutter works on nested score_cards."""
     judge = JudgeAgent(model="mock-model", provider="openai")
-    
+
     mock_llm_result = {
         "matrix_id": "test_matrix",
         "total_score": 4.0,
@@ -111,7 +113,7 @@ async def test_judge_passiveness_cutter_nested_cards(mock_llm_factory):
             }
         ]
     }
-    
+
     mock_repo = MagicMock()
     mock_repo.get_component_by_id = AsyncMock(return_value={
         "content": {
@@ -141,7 +143,6 @@ async def test_judge_passiveness_cutter_nested_cards(mock_llm_factory):
 @pytest.mark.asyncio
 async def test_judge_passiveness_cutter_dynamic_scale(mock_llm_factory):
     """Test PASSIVENESS_CUTTER with a 1-100 scale matrix."""
-    
     # Setup Mock Repo with 1-100 Scale
     mock_repo = MagicMock()
     mock_repo.get_component_by_id = AsyncMock(return_value={
@@ -176,14 +177,14 @@ async def test_judge_passiveness_cutter_dynamic_scale(mock_llm_factory):
 
     with patch("backend.agents.base.BaseAgent.execute", new_callable=AsyncMock) as mock_super:
         mock_super.return_value = mock_llm_result
-        
+
         # Test Case: Passenger in one dimension -> Cap at 34.0
         result = await judge.execute(
-            input_data={}, 
+            input_data={},
             execution_context={"matrix_id": "matrix_dynamic_100", "monitored_steps": {"step": "test"}},
             repository=mock_repo
         )
-        
+
         assert result["scale_min"] == 1
         assert result["scale_max"] == 100
         assert result["total_score"] == EXPECTED_CAP, f"Total Score must be capped at {EXPECTED_CAP} for 1-100 scale. Got {result['total_score']}"
