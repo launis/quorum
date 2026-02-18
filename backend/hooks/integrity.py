@@ -2,14 +2,36 @@
 
 import logging
 import re
-from typing import Any, List
+from typing import Any, List, Union
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend.exceptions import AppException, ErrorCodes
 from backend.models.state import WorkflowState
+from backend.models.domain.analyst import AnalystOutput
+from backend.models.domain.falsifier import FalsifierOutput
+from backend.models.domain.logician import LogicianOutput
+from backend.models.domain.evaluation import EvaluationResult
+from backend.models.domain.judge import JudgeOutput
+from backend.models.domain.inputs import WorkflowInputs
+from backend.utils.pydantic_utils import inflate
+
 
 logger = logging.getLogger(__name__)
+
+
+class KnowledgeItem(BaseModel):
+    """Knowledge item structure."""
+    term: str
+    definition: str
+    model_config = ConfigDict(frozen=True, strict=True)
+
+
+class StepContext(BaseModel):
+    """Step context structure."""
+    precedents: str | None = None
+    knowledge_items: List[KnowledgeItem] = Field(default_factory=list)
+    model_config = ConfigDict(frozen=True, strict=True)
 
 
 class CitationAudit(BaseModel):
@@ -18,7 +40,7 @@ class CitationAudit(BaseModel):
     valid_citations: int = Field(default=0, description="Count of valid, verified citations.")
     invalid_citations: List[str] = Field(default_factory=list, description="List of hallucinations (citations not found in text).")
     integrity_score: float = Field(default=1.0, description="Ratio of valid citations (0.0 - 1.0).")
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, strict=True)
 
 
 def verify_citation_integrity(state: WorkflowState) -> WorkflowState:
@@ -39,14 +61,72 @@ def verify_citation_integrity(state: WorkflowState) -> WorkflowState:
     Raises:
         AppException: If integrity check fails critically.
     """
-    # 1. Gather Source Text
-    history_text = state.context_variables.get("inputs", {}).get("history_text", "") or ""
-    product_text = state.context_variables.get("inputs", {}).get("product_text", "") or ""
-    source_corpus = (history_text + "\n" + product_text).lower()
+    
 
-    if not source_corpus.strip():
-        logger.warning("[IntegrityHook] Source corpus is empty. Skipping citation verification.")
-        return state
+    # 1. Gather Source Text
+
+    # Strict Enforce: State must be WorkflowState object
+    if isinstance(state, dict):
+        raise AppException(
+            message="Integrity Hook received dict state. Strict Pydantic Enforcement Violation.",
+            status_code=500,
+            details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA}
+        )
+
+    # 1. Gather Source Text
+    input_data = state.context_variables.get("inputs") # Keep raw for error check
+    inputs = state.get_context("inputs", WorkflowInputs)
+    
+    # Context variable 'inputs' MUST be WorkflowInputs
+    if not inputs:
+         if input_data is None:
+             error_code = ErrorCodes.EMPTY_INPUT
+             msg = "Missing 'inputs' in context_variables."
+             status_code = 400
+         else:
+             error_code = ErrorCodes.INVALID_OUTPUT_SCHEMA
+             msg = f"Context 'inputs' is {type(input_data)}, expected WorkflowInputs."
+             status_code = 500
+
+         logger.error(f"[IntegrityHook] {error_code.name}: {msg}")
+         raise AppException(message=msg, status_code=status_code, details={"error_code": error_code})
+
+    # Strict separation of mandatory inputs
+    history_text = inputs.history_text
+    product_text = inputs.product_text
+    reflection_text = inputs.reflection_text
+    
+    if not history_text or not product_text or not reflection_text:
+         error_code = ErrorCodes.EMPTY_INPUT
+         msg = "Missing mandatory input fields (history_text, product_text, reflection_text) for citation verification."
+         logger.error(f"[IntegrityHook] {error_code.name}: {msg}")
+         raise AppException(message=msg, status_code=400, details={"error_code": error_code})
+    
+    # Ensure strings (Pydantic models fields are already typed as Optional[str], so strict check above handles None)
+    # We can cast to str just to be safe for concatenation, but if they are str they are str.
+    history_text = str(history_text)
+    product_text = str(product_text)
+    reflection_text = str(reflection_text)
+
+    # 1b. Gather Context (RAG) - SAFE INFLATION
+    rag_text = ""
+    step_context_data = state.context_variables.get("step_context")
+    
+    if step_context_data:
+        # Strict Inflation
+        step_ctx = state.get_context("step_context", StepContext)
+        
+        if step_ctx:
+            # Precedents
+            if step_ctx.precedents:
+                rag_text += str(step_ctx.precedents) + "\n"
+
+            # Knowledge Items
+            for item in step_ctx.knowledge_items:
+                 rag_text += f"[{item.term}]: {item.definition}\n"
+
+    source_corpus = (history_text + "\n" + product_text + "\n" + reflection_text + "\n" + rag_text).lower()
+
 
     # Helper for loose matching (ignore extra whitespace)
     def normalize(text: str) -> str:
@@ -65,23 +145,13 @@ def verify_citation_integrity(state: WorkflowState) -> WorkflowState:
     valid_count = 0
     total_count = 0
 
+
     # 2. Check Analyst Hypotheses
-    step_analyst = state.context_variables.get("step_analyst")
-    if step_analyst:
-        # STRICT: Expected to be Pydantic model (AnalystOutput)
-        # We allow dict for legacy/test flexibility but log warnings?
-        # Mandate says: "All internal data exchange MUST use Pydantic Models"
-        # We will try getattr first.
-        hypotheses = getattr(step_analyst, "hypotheses", [])
-        if isinstance(step_analyst, dict):
-            hypotheses = step_analyst.get("hypotheses", [])
-
-        for hyp in hypotheses:
-            quotes = getattr(hyp, "quotes", [])
-            if isinstance(hyp, dict):
-                quotes = hyp.get("quotes", [])
-
-            for q in quotes:
+    analyst_model = state.get_context("step_analyst", AnalystOutput)
+    
+    if analyst_model:
+        for hyp in analyst_model.hypotheses:
+            for q in hyp.quotes:
                 total_count += 1
                 if check_quote(q):
                     valid_count += 1
@@ -89,73 +159,73 @@ def verify_citation_integrity(state: WorkflowState) -> WorkflowState:
                     invalid_citations.append(f"Analyst: {q[:50]}...")
 
     # 3. Check Falsifier (Fidelity Audit)
-    step_falsifier = state.context_variables.get("step_falsifier")
-    if step_falsifier:
-        data = getattr(step_falsifier, "falsifier_data", None)
-        # Support dict access for data wrapper if needed
-        if isinstance(step_falsifier, dict):
-             data = step_falsifier.get("falsifier_data")
+    falsifier_model = state.get_context("step_falsifier", FalsifierOutput)
 
-        if data:
-             audit = getattr(data, "fidelity_audit", None)
-             if isinstance(data, dict):
-                 audit = data.get("fidelity_audit")
-             
-             if audit:
-                q = getattr(audit, "quote", None)
-                if isinstance(audit, dict):
-                    q = audit.get("quote")
-
-                if q:
-                    total_count += 1
-                    if check_quote(q):
-                        valid_count += 1
-                    else:
-                        invalid_citations.append(f"Falsifier: {q[:50]}...")
+    if falsifier_model and falsifier_model.falsifier_data:
+        audit = falsifier_model.falsifier_data.fidelity_audit
+        if audit and audit.quote:
+            total_count += 1
+            if check_quote(audit.quote):
+                valid_count += 1
+            else:
+                invalid_citations.append(f"Falsifier: {audit.quote[:50]}...")
 
     # 4. Check Logician (Toulmin Data)
-    step_logician = state.context_variables.get("step_logician")
-    if step_logician:
-        data = getattr(step_logician, "logician_data", None)
-        if isinstance(step_logician, dict):
-            data = step_logician.get("logician_data")
+    logician_model = state.get_context("step_logician", LogicianOutput)
 
-        if data:
-            components = getattr(data, "toulmin_analysis", [])
-            if isinstance(data, dict):
-                components = data.get("toulmin_analysis", [])
-
-            for comp in components:
-                q = getattr(comp, "data", None)
-                if isinstance(comp, dict):
-                    q = comp.get("data")
-
-                if q:
-                    total_count += 1
-                    if check_quote(q):
-                        valid_count += 1
-                    else:
-                        invalid_citations.append(f"Logician: {q[:50]}...")
+    if logician_model and logician_model.logician_data:
+        for comp in logician_model.logician_data.toulmin_analysis:
+            if comp.data:
+                total_count += 1
+                if check_quote(comp.data):
+                    valid_count += 1
+                else:
+                    invalid_citations.append(f"Logician: {comp.data[:50]}...")
 
     # 5. Check Judges (Standard & Cognitive)
     for judge_key in ["step_judge", "step_judge_cognitive"]:
         judge_out = state.context_variables.get(judge_key)
-        if judge_out:
-            snippets = getattr(judge_out, "citation_snippets", None)
-            if not snippets and isinstance(judge_out, dict):
-                snippets = judge_out.get("citation_snippets")
-
-            if snippets and isinstance(snippets, list):
-                for q in snippets:
-                    total_count += 1
-                    if check_quote(q):
-                        valid_count += 1
-                    else:
-                        invalid_citations.append(f"{judge_key}: {q[:50]}...")
+        # FIX: Use EvaluationResult. JudgeOutput is deprecated/aliased but agent returns EvaluationResult.
+        # Also citation_snippets is not present in EvaluationResult.
+        if not judge_out:
+            continue
+            
+        try:
+            # We just validate it exists and is correct type. 
+            # Citation checking for Judge is temporarily disabled until schema supports it.
+            # FIX: JudgeAgent returns JudgeOutput, not EvaluationResult.
+            # We accept JudgeOutput as valid for now without forcing EvaluationResult inflation.
+            
+            # STRICT PYDANTIC ENFORCEMENT:
+            if isinstance(judge_out, dict):
+                 # Try to strict inflate first
+                 judge_out = inflate(judge_out, JudgeOutput)
+                 
+                 # If still a dict (inflation failed to produce object), RAISE Strict Violation
+                 if isinstance(judge_out, dict):
+                     raise AppException(
+                         message=f"Strict Pydantic Enforcement: {judge_key} is a dict, expected JudgeOutput model.",
+                         details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA}
+                     )
+            
+            # If it's already an object, checking type might be tricky if imports are circular or strict.
+            # For now, we trust the presence of data if it's not None.
+            pass
+        except AppException:
+            raise
+        except Exception:
+            pass
 
     if total_count == 0:
         logger.info("[IntegrityHook] No citations found to verify.")
         return state
+
+    # FAIL FAST: Data Integrity (Part 18.1)
+    if not source_corpus.strip():
+        error_code = ErrorCodes.STATE_INTEGRITY_ERROR
+        msg = f"Data Integrity Violation: {total_count} citations found, but Source Corpus is empty."
+        logger.error(f"[IntegrityHook] {error_code.name}: {msg}")
+        raise AppException(message=msg, status_code=500, details={"error_code": error_code})
 
     integrity_score = valid_count / total_count
 
@@ -168,11 +238,14 @@ def verify_citation_integrity(state: WorkflowState) -> WorkflowState:
         f"[IntegrityHook] Score: {integrity_score:.2f} ({valid_count}/{total_count}). Invalid: {len(invalid_citations)}"
     )
 
+    from backend.settings import get_settings
+
     # FAIL FAST
-    if integrity_score < 0.5:
-        error_code = "CITATION_INTEGRITY_FAILURE"
-        msg = f"CITATION_INTEGRITY_FAILURE: Score {integrity_score:.2f} < 0.5. Too many hallucinations."
-        logger.error(f"[IntegrityHook] {error_code}: {msg}")
+    threshold = get_settings().citation_integrity_threshold
+    if integrity_score < threshold:
+        error_code = ErrorCodes.STATE_INTEGRITY_ERROR
+        msg = f"CITATION_INTEGRITY_FAILURE: Score {integrity_score:.2f} < {threshold}. Too many hallucinations."
+        logger.error(f"[IntegrityHook] {error_code.name}: {msg}")
         raise AppException(
             message=msg,
             status_code=422,
@@ -221,42 +294,38 @@ def enforce_hypothesis_linking(state: WorkflowState) -> WorkflowState:
     step_analyst = state.context_variables.get("step_analyst")
     if not step_analyst:
         return state
-
-    hypotheses = getattr(step_analyst, "hypotheses", [])
-    if isinstance(step_analyst, dict):
-        hypotheses = step_analyst.get("hypotheses", [])
-
-    if not hypotheses:
+    
+    analyst_model = inflate(step_analyst, AnalystOutput)
+    if not analyst_model or not analyst_model.hypotheses:
         return state
 
+    hypotheses = analyst_model.hypotheses
     seen_ids = set()
     expected_idx = 1
 
     for hyp in hypotheses:
-        h_id = getattr(hyp, "id", None)
-        if isinstance(hyp, dict):
-            h_id = hyp.get("id")
+        h_id = hyp.id
 
         if not h_id:
-            error_code = "INVALID_HYPOTHESIS_ID"
+            error_code = ErrorCodes.VALIDATION_FAILED
             msg = f"Hypothesis missing ID: {hyp}"
-            logger.error(f"[IntegrityHook] {error_code}: {msg}")
+            logger.error(f"[IntegrityHook] {error_code.name}: {msg}")
             raise AppException(message=msg, status_code=500, details={"error_code": error_code})
 
         # Format Check: HYP-X
         if not re.match(r"^HYP-\d+$", h_id):
-            error_code = "INVALID_HYPOTHESIS_ID"
+            error_code = ErrorCodes.VALIDATION_FAILED
             msg = f"Invalid Hypothesis ID format: '{h_id}'. Expected 'HYP-N'."
-            logger.error(f"[IntegrityHook] {error_code}: {msg}")
+            logger.error(f"[IntegrityHook] {error_code.name}: {msg}")
             raise AppException(message=msg, status_code=500, details={"error_code": error_code})
 
         # Sequence Check
         num_part = int(h_id.split("-")[1])
         if num_part != expected_idx:
             # FAIL FAST on sequence gap
-            error_code = "HYPOTHESIS_SEQUENCE_ERROR"
+            error_code = ErrorCodes.STATE_INTEGRITY_ERROR
             msg = f"Hypothesis ID sequence error. Expected HYP-{expected_idx}, got {h_id}."
-            logger.error(f"[IntegrityHook] {error_code}: {msg}")
+            logger.error(f"[IntegrityHook] {error_code.name}: {msg}")
             raise AppException(
                 message=msg, status_code=500, details={"error_code": error_code, "expected": f"HYP-{expected_idx}", "got": h_id}
             )

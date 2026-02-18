@@ -106,6 +106,27 @@ async def execute_workflow_job(
                     execution_id, {"status": "completed", "results": result, "completed_at": datetime.now(UTC)}
                 )
 
+            # --- TEMPORARY DEBUG DUMP (User Request) ---
+            try:
+                debug_path = f"C:\\Users\\risto\\Downloads\\debug_output_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                with open(debug_path, "w", encoding="utf-8") as f:
+                    if hasattr(result, "model_dump_json"):
+                        f.write(result.model_dump_json(indent=2))
+                    else:
+                        import json
+                        # Ensure we handle datetime by using a default str converter if needed
+                        # But standard json.dump might fail on datetime.
+                        # Safe approach: use pydantic's adapter or just str() fallback?
+                        # Actually, Engine returns a dict with datetime objects usually.
+                        # Let's use a custom encoder or pydantic's TypeAdapter.
+                        from pydantic import TypeAdapter
+                        # We assume it matches WorkflowState structure generally
+                        f.write(TypeAdapter(Any).dump_json(result, indent=2).decode("utf-8"))
+                logger.info(f"[Job] Temporary Debug Dump saved to: {debug_path}")
+            except Exception as dump_err:
+                logger.error(f"[Job] Failed to save debug dump: {dump_err}")
+            # -------------------------------------------
+
             return result
 
         except Exception as e:

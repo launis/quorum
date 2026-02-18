@@ -1,3 +1,4 @@
+
 import logging
 
 from backend.models.domain import LogicianData, LogicianOutput
@@ -48,13 +49,12 @@ class LogicDomainTransformer(BaseTransformer):
                     confidence_score=1.0
                 )
         except Exception as e:
+            # BFF Resilience: Graceful Fallback (Part 3.6 / 15.1)
+            # If the data stored in DB (strings) doesn't match Strict Pydantic Model (Enums),
+            # we skip this section instead of crashing the entire report.
             error_code = "LOGICIAN_VALIDATION_FAILED"
-            logger.error(f"{error_code}: {e}", exc_info=True)
-            raise AppException(
-                message=str(e),
-                status_code=500,
-                details={"error_code": error_code}
-            ) from e
+            logger.warning(f"{error_code}: Logic section validation failed, skipping section. Details: {e}")
+            return None
 
         try:
             display_model = self._transform_logician_data(model)
@@ -65,7 +65,9 @@ class LogicDomainTransformer(BaseTransformer):
                 data=display_model,
             )
         except Exception as e:
-            raise AppException(f"Failed to transform Logic display: {e}", 500) from e
+            # Graceful fallback for transformation errors too
+            logger.warning(f"Failed to transform Logic display: {e}")
+            return None
 
     def _transform_logician_data(self, model: LogicianOutput) -> LogicAnalysisDisplay:
         """Flattens LogicianOutput and calculates Server-Driven UI properties (Strict UVM)."""
@@ -134,6 +136,3 @@ class LogicDomainTransformer(BaseTransformer):
             # Data
             arguments=arguments
         )
-
-
-

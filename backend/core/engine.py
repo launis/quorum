@@ -9,6 +9,9 @@ from backend.core.registry import TaskRegistry
 from backend.exceptions import AppException, ErrorCodes, WorkflowExecutionError, status
 from backend.models.state import ReasoningTrace, TraceEvent, WorkflowState
 from backend.models.workflow import WorkflowDefinition
+from backend.models.domain.inputs import WorkflowInputs
+from backend.utils.pydantic_utils import inflate
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
@@ -109,8 +112,13 @@ class GraphEngine:
             try:
                 # Attempt to hydrate from persistence
                 record = await repository.get_execution(execution_id)
-                if record and record.get("results"):
-                    persisted_dict = record["results"]
+                if record and record.results:
+                    # Handle results (model or dict)
+                    if hasattr(record.results, "model_dump"):
+                        persisted_dict = record.results.model_dump()
+                    else:
+                        persisted_dict = record.results
+
                     if persisted_dict:
                         logger.info(f"[GraphEngine] Resuming execution {execution_id} from persisted state.")
 
@@ -122,24 +130,40 @@ class GraphEngine:
             except Exception as e:
                 logger.warning(f"[GraphEngine] Failed to hydrate state for {execution_id}: {e}")
 
-        # Jan 2026 Mandate: Chat Parsing / Sanitization (on context_variables)
-        inputs = execution_state.context_variables.get("inputs")
-        if inputs and isinstance(inputs, dict):  # Check if inputs is a dict
+        # Jan 2026 Mandate: Strict Input Inflation & Sanitization
+        inputs_data = execution_state.context_variables.get("inputs")
+        
+        # 1. Inflate to Model (Fail Fast)
+        if inputs_data:
+            inputs_model = inflate(inputs_data, WorkflowInputs)
+            if not inputs_model:
+                # If raw data exists but fails validation -> CRITICAL INTEGRITY ERROR
+                error_code = ErrorCodes.INVALID_JSON_PAYLOAD
+                msg = f"Invalid WorkflowInputs data. Failed to inflate {type(inputs_data)}."
+                logger.error(f"[GraphEngine] {error_code}: {msg}")
+                raise AppException(
+                    message=msg,
+                    status_code=400,
+                    details={"error_code": error_code}
+                )
+            
+            # 2. Chat Parsing / Sanitization (on Model Fields)
+            updates = {}
             for field in ["history_text", "product_text", "reflection_text"]:
-                val = inputs.get(field)
+                val = getattr(inputs_model, field, None)
                 if val and isinstance(val, str) and ("chat" in field or "history" in field):
                     # Strict: No Fallback for invalid chat logs.
                     try:
                         original_len = len(val)
                         parsed_value = ChatLogParser.parse(val)
-                        # Set back to dict
-                        inputs[field] = parsed_value
-
-                        if len(parsed_value) != original_len:
-                            logger.info(
-                                f"[GraphEngine] ChatLogParser optimized '{field}': "
-                                f"{original_len} -> {len(parsed_value)} chars"
-                            )
+                        
+                        if parsed_value != val:
+                            updates[field] = parsed_value
+                            if len(parsed_value) != original_len:
+                                logger.info(
+                                    f"[GraphEngine] ChatLogParser optimized '{field}': "
+                                    f"{original_len} -> {len(parsed_value)} chars"
+                                )
                     except Exception as e:
                         # Fail Fast: Invalid Chat Log is a data integrity error.
                         logger.error(f"[GraphEngine] ChatLogParser failed for '{field}': {e}")
@@ -148,7 +172,12 @@ class GraphEngine:
                              status_code=status.HTTP_400_BAD_REQUEST,
                              details={"error_code": ErrorCodes.INVALID_JSON_PAYLOAD, "field": field, "original_error": str(e)}
                          ) from e
-            execution_state.context_variables["inputs"] = inputs  # Update back
+            
+            # 3. Apply Updates & Store Model
+            if updates:
+                inputs_model = inputs_model.model_copy(update=updates)
+            
+            execution_state.context_variables["inputs"] = inputs_model
 
         logger.info(f"Starting workflow '{definition.id}' with {len(definition.steps)} steps.")
 
@@ -204,10 +233,7 @@ class GraphEngine:
                         for hook in pre_hooks:
                             execution_state = await self._execute_hook(hook, execution_state, repository)
 
-                # 1. Resolve Inputs
-                task_inputs = self._resolve_inputs(step.inputs, execution_state)
-
-                # 2. Get Task Handler
+                # 1. Get Task Handler First (to access schema)
                 task_def = TaskRegistry.get(step.task_key)
                 if not task_def:
                      raise AppException(
@@ -215,6 +241,9 @@ class GraphEngine:
                          status_code=status.HTTP_404_NOT_FOUND,
                          details={"error_code": ErrorCodes.TASK_NOT_FOUND, "task_key": step.task_key}
                      )
+
+                # 2. Resolve Inputs (with Strict Schema Awareness)
+                task_inputs = self._resolve_inputs(step.inputs, execution_state, input_schema=task_def.input_schema)
 
                 # 3. Validate Inputs against Schema
                 try:
@@ -228,6 +257,18 @@ class GraphEngine:
                          details={"error_code": ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED, "original_error": str(e)}
                      ) from e
 
+                # 3.5 Inject Runtime Context (Identity & Governance)
+                # Ensure agents have access to Organization ID even if not explicitly mapped in inputs.
+                runtime_config = step.config.copy() if step.config else {}
+                
+                # Extract identity from inputs (SSOT from Lifecycle)
+                current_inputs = execution_state.context_variables.get("inputs", {})
+                if isinstance(current_inputs, dict):
+                    if "organization_id" in current_inputs:
+                        runtime_config["organization_id"] = current_inputs["organization_id"]
+                    if "user_id" in current_inputs:
+                         runtime_config["user_id"] = current_inputs["user_id"]
+                         
                 # 4. Execute Task
                 logger.debug(f"Executing step '{step.id}' ({step.task_key})...")
 
@@ -235,7 +276,7 @@ class GraphEngine:
                 if "execution_config" in sig.parameters or any(
                     p.kind == p.VAR_KEYWORD for p in sig.parameters.values()
                 ):
-                    result = await task_def.handler(validated_input, execution_config=step.config)
+                    result = await task_def.handler(validated_input, execution_config=runtime_config)
                 else:
                     result = await task_def.handler(validated_input)
 
@@ -459,9 +500,52 @@ class GraphEngine:
                 details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED, "original_error": str(e)}
             ) from e
 
-    def _resolve_inputs(self, input_mapping: dict[str, str], state: WorkflowState) -> dict[str, Any]:
-        """Resolve inputs from WorkflowState object (using context_variables)."""
+    def _resolve_inputs(
+        self, 
+        input_mapping: dict[str, str], 
+        state: WorkflowState,
+        input_schema: type[BaseModel] | None = None
+    ) -> dict[str, Any]:
+        """Resolve inputs from WorkflowState object (using context_variables).
+        
+        Refactored Feb 2026: Supports 'Strict Typed Retrieval' via state.get_context(Model).
+        If input_schema is provided, we attempt to inflate the context variable 
+        into the expected Pydantic model *before* returning it.
+        """
         resolved: dict[str, Any] = {}
+        
+        # Helper to resolve type from schema
+        def _get_field_type(field_name: str) -> type[BaseModel] | None:
+            if not input_schema:
+                return None
+            field_info = input_schema.model_fields.get(field_name)
+            if not field_info:
+                return None
+                
+            # Inspect annotation
+            annotation = field_info.annotation
+            if not annotation:
+                return None
+                
+            # Handle Optional[model], Union[model, None], etc.
+            # Simple heuristic: if it's a subclass of BaseModel, use it.
+            # Iterate args if generic.
+            from typing import get_args, get_origin
+            import inspect
+            
+            # Direct match
+            if inspect.isclass(annotation) and issubclass(annotation, BaseModel):
+                return annotation
+                
+            # Optional/Union match
+            origin = get_origin(annotation)
+            if origin:
+                for arg in get_args(annotation):
+                    if inspect.isclass(arg) and issubclass(arg, BaseModel):
+                        return arg
+            
+            return None
+
         for target_field, source_path in input_mapping.items():
             if isinstance(source_path, str) and source_path.startswith("$"):
                 # Remove '$' and split by dot
@@ -469,15 +553,25 @@ class GraphEngine:
 
                 head = path_parts[0]
                 tail = path_parts[1:]
+                
+                # Determine expected type for this root object?
+                # Usually we map root-to-root (e.g. step_analyst -> $analyst_step)
+                # If we map root-to-prop (e.g. text -> $analyst.summary), we can't easily infer the type of $analyst 
+                # unless we know the schema of the SOURCE, which we don't here. 
+                # We only know the schema of the TARGET.
+                
+                # However, if target_field strictly expects a Model, we should try to get it as such.
+                expected_model = _get_field_type(target_field) if not tail else None
 
-                # Check context_variables first (The Snapshot)
-                value = state.context_variables.get(head)
+                # Fetch from State (Typed if possible and no tail traversal needed)
+                if expected_model and not tail:
+                    # Strict Retrieval: logic to inflate Pydantic models from context dicts
+                    value = state.get_context(head, model_class=expected_model)
+                else:
+                    # Generic Retrieval
+                    value = state.get_context(head)
 
-                # Fallback: inputs is often in context_variables["inputs"]
-                if value is None and head == "inputs":
-                    value = state.context_variables.get("inputs")
-
-                # Fallback: Check if head is a property of state (e.g. execution_id)
+                # Fallback: Check if head is a property of state
                 if value is None and hasattr(state, head):
                     value = getattr(state, head)
 
@@ -491,7 +585,7 @@ class GraphEngine:
                         if isinstance(value, dict):
                             value = value.get(part)
                         else:
-                            # Strict: Raise AttributeError if missing
+                            # If it's a Pydantic model, use getattr
                             value = getattr(value, part)
                     resolved[target_field] = value
                 except Exception as e:

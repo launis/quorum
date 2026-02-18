@@ -6,9 +6,12 @@ import logging
 import re
 from typing import Any, Dict
 
-from backend.exceptions import AppException
+from backend.exceptions import AppException, ErrorCodes
 from backend.models.domain.profiler import BehavioralMetrics, TextMetrics
 from backend.models.state import WorkflowState
+from backend.models.domain.inputs import WorkflowInputs
+from backend.utils.pydantic_utils import inflate
+from backend.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -150,14 +153,14 @@ def calculate_behavioral_metrics(history_text: str, reflection_text: str) -> Beh
                   if line.lower().startswith(('user:', 'human:', 'k:', 'me:', 'minä:'))]
 
     if user_lines:
-        short_responses = sum(1 for line in user_lines if len(line.split()) < 5)
-        if len(user_lines) > 2 and (short_responses / len(user_lines) > 0.7):
+        short_responses = sum(1 for line in user_lines if len(line.split()) < get_settings().metrics_short_response_word_count)
+        if len(user_lines) > 2 and (short_responses / len(user_lines) > get_settings().metrics_automation_bias_ratio):
             automation_bias = 1.0
 
     # 2. Say-Do Gap / Illusion of Competence
     # If Reflection exists (Claims) but History is purely mechanical (Do).
     # Heuristic: Reflection has content, but History is dominated by "Execute" commands or short confirmations.
-    if reflection_text and len(reflection_text) > 50:
+    if reflection_text and len(reflection_text) > get_settings().metrics_reflection_min_length:
         # Check if history is "rich" or "mechanical"
         # Mechanical keywords
         mechanical_keywords = ["tilaa", "vahvista", "generoi", "ok", "kyllä", "jatka"]
@@ -172,7 +175,7 @@ def calculate_behavioral_metrics(history_text: str, reflection_text: str) -> Beh
                     mechanical_count += 1
 
         # If > 50% of user words are mechanical commands, assume Gap.
-        if total_words > 0 and (mechanical_count / total_words > 0.5):
+        if total_words > 0 and (mechanical_count / total_words > get_settings().metrics_mechanical_ratio):
             say_do_gap = 1.0
             illusion_of_competence = 1.0
 
@@ -193,33 +196,67 @@ def calculate_text_metrics_hook(state: WorkflowState) -> WorkflowState:
     """
     logger.debug("[MetricsHook] Running calculate_text_metrics_hook...")
 
-    if not state.context_variables:
+    # Strict Enforce: State must be WorkflowState object
+    if isinstance(state, dict):
         raise AppException(
-            message="No context_variables found.",
+            message="Metrics Hook received dict state. Strict Pydantic Enforcement Violation.",
             status_code=500,
-            details={"error_code": "METRICS_MISSING_CONTEXT"}
+            details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA}
         )
 
-    # Strict: Inputs MUST be a dict under 'inputs' key
-    inputs = state.context_variables.get("inputs")
-    if not isinstance(inputs, dict):
-         error_code = "METRICS_VALIDATION_ERROR"
-         msg = f"'inputs' key missing or not a dict in context_variables. Keys: {list(state.context_variables.keys())}"
-         logger.error(f"[MetricsHook] {error_code}: {msg}")
-         raise AppException(
+    if not state.context_variables:
+        error_code = ErrorCodes.INTERNAL_SERVER_ERROR 
+        msg = "No context_variables found."
+        raise AppException(
             message=msg,
             status_code=500,
+            details={"error_code": error_code}
+        )
+
+    # Strict: Inputs MUST be WorkflowInputs (or inflatable to it)
+    inputs_data = state.context_variables.get("inputs") # Keep for null check
+    inputs = state.get_context("inputs", WorkflowInputs)
+
+    if not inputs:
+         # Fail Fast: Inputs are mandatory for metrics
+         # Distinguish between Missing and Invalid
+         if inputs_data is None:
+             error_code = ErrorCodes.EMPTY_INPUT
+             msg = "Missing 'inputs' in context_variables."
+             # Logic fix for 500 error: If inputs are missing, it's a BAD REQUEST (400) not Internal Error
+             status_code = 400
+         else:
+             error_code = ErrorCodes.INVALID_JSON_PAYLOAD
+             msg = f"Invalid 'inputs' data: {type(inputs_data)}. Expected WorkflowInputs."
+             status_code = 500
+
+         logger.error(f"[MetricsHook] {error_code.name}: {msg}")
+         raise AppException(
+            message=msg,
+            status_code=status_code,
             details={"error_code": error_code}
          )
 
     # Combine history and product text
-    history = str(inputs.get("history_text", "") or "")
-    product = str(inputs.get("product_text", "") or "")
-    reflection = str(inputs.get("reflection_text", "") or "")
+    history = inputs.history_text or ""
+    product = inputs.product_text or ""
+    reflection = inputs.reflection_text or ""
     text = f"{history}\n{product}"
 
     if not text.strip():
-        logger.warning("[MetricsHook] Empty text for metrics calculation.")
+        # Fail Fast (Part 18.1): If no text to analyze, this is likely an error in a text processing pipeline.
+        pass
+
+    # STRICT INPUT CHECK
+    if not inputs.history_text and not inputs.product_text:
+         error_code = ErrorCodes.EMPTY_INPUT
+         msg = "Missing 'history_text' or 'product_text' in inputs."
+         logger.error(f"[MetricsHook] {error_code.name}: {msg}")
+         raise AppException(
+             message=msg,
+             status_code=400,
+             details={"error_code": error_code}
+         )
 
     try:
         # 1. Text Metrics
@@ -251,8 +288,8 @@ def calculate_text_metrics_hook(state: WorkflowState) -> WorkflowState:
         return state.model_copy(update={"context_variables": new_context})
 
     except Exception as e:
-        error_code = "METRICS_CALCULATION_FAILED"
-        logger.error(f"[MetricsHook] {error_code}: {e}", exc_info=True)
+        error_code = ErrorCodes.INTERNAL_SERVER_ERROR
+        logger.error(f"[MetricsHook] {error_code.name}: {e}", exc_info=True)
         raise AppException(
             message=f"Failed to calculate metrics: {e}",
             status_code=500,
@@ -260,10 +297,4 @@ def calculate_text_metrics_hook(state: WorkflowState) -> WorkflowState:
         ) from e
 
 
-def calculate_control_ratio_hook(state: WorkflowState) -> WorkflowState:
-    """DEPRECATED: Use calculate_text_metrics_hook instead.
-    
-    Kept for backward compatibility but delegates to logic or returns checks.
-    """
-    logger.warning("[MetricsHook] calculate_control_ratio_hook is deprecated. Use calculate_text_metrics_hook.")
-    return state
+

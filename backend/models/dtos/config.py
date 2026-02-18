@@ -99,8 +99,9 @@ class AgentBaseResponse(BaseModel):
     citation: str | None = None
     citation_full: str | None = None
     module: str | None = None
-    # 'class' is a reserved keyword, so we use component_class and map it from 'class' in DB
-    component_class: str | None = Field(default=None, validation_alias="class")
+    # 'class' is a reserved keyword, so we use component_class.
+    # Backward compatibility alias removed. Data must be migrated.
+    component_class: str | None = Field(default=None)
     class_name: str | None = None # Explicitly allow class_name found in seed data
     registered_at: str | None = None
 
@@ -207,6 +208,9 @@ class StepDefinition(BaseModel):
     description: Annotated[str | None, Field(description="Description", json_schema_extra={"x-ui-label": "Kuvaus"})] = None
     task_key: Annotated[str, Field(description="Task Key (DB source)", json_schema_extra={"x-ui-label": "Agentti"})] = "analyst"
     config: Annotated[dict[str, Any], Field(description="Configuration (DB source)", json_schema_extra={"x-ui-label": "Asetukset"})] = {}
+    inputs: Annotated[dict[str, str], Field(description="Default Input Mapping", json_schema_extra={"x-ui-label": "Oletussyötteet"})] = {}
+    hoist_keys: Annotated[list[str], Field(description="Keys to hoist to global state", json_schema_extra={"x-ui-label": "Hoist Keys"})] = []
+    metadata: Annotated[dict[str, Any], Field(description="Extra Metadata", json_schema_extra={"x-ui-label": "Metadata"})] = {}
 
 class StepDeleteResponse(BaseModel):
     """Response for step deletion."""

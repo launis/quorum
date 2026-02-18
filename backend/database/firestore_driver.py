@@ -134,3 +134,11 @@ class FirestoreDriver(StorageDriver):
             async for _ in docs:
                 count += 1
             return count
+
+    async def clear(self, collection: str) -> None:
+        """Removes all documents from a collection."""
+        collection_ref = self.db.collection(collection)
+        # Iterate and delete (No native truncate in Firestore)
+        docs = await collection_ref.stream()
+        async for doc in docs:
+            await doc.reference.delete()

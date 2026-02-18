@@ -4,13 +4,24 @@ This module contains the schemas for the Archivist Agent,
 including precedent analysis and compliance checks.
 """
 
-from typing import Any, Literal
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator
 
 
 from backend.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 from backend.services.localization import LocalizationService
+
+
+class ArchivistInput(BaseModel):
+    """Strict input schema for ArchivistAgent."""
+    history_text: str = Field(..., description="Chat history to analyze.")
+    product_text: Optional[str] = Field(None, description="Product context (optional).")
+    archivist_precedents: Optional[list[dict[str, Any]]] = Field(None, description="Retrieved precedents.")
+    last_reasoning_trace: Optional[str] = Field(default=None, description="Previous reasoning trace.")
+
+    model_config = ConfigDict(frozen=True, extra="ignore")
+
 
 
 class ArchiveCase(BaseModel):
@@ -20,7 +31,7 @@ class ArchiveCase(BaseModel):
     verdict: str = Field(..., description="Verdict of the past case.")
     summary: str = Field(..., description="Summary of the past case.")
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True)
 
     @field_validator("case_id", "verdict", "summary")
     @classmethod
@@ -54,7 +65,7 @@ class ArchivistOutputDTO(ReasoningTraceDTO):
         json_schema_extra={"x-ui-label": "Compliance Analysis"},
     )
     compliance_score: float = Field(
-        default=0.0,
+        ...,
         description="Numeric Compliance score (1-5).",
         json_schema_extra={"x-ui-label": "Compliance Score"},
     )
@@ -75,12 +86,7 @@ class ArchivistOutputDTO(ReasoningTraceDTO):
     @classmethod
     def calc_compliance(cls, data: Any) -> Any:
         if isinstance(data, dict):
-            # 1. Localization
-            key = data.get("description_key", "compliance_desc")
-            if not data.get("description"):
-                data["description"] = LocalizationService.translate(key)
-
-            # 2. Map Literal to Score
+            # Map Literal to Score
             mapping = {
                 "Critically Misaligned": 1.0,
                 "Misaligned": 2.0,
@@ -91,15 +97,17 @@ class ArchivistOutputDTO(ReasoningTraceDTO):
 
             # Access the raw string value
             val = data.get("compliance_analysis")
-            if val not in mapping:
-                # STRICT VALIDATION: No fallback allowed.
-                raise ValueError(f"Invalid compliance_analysis: {val}. Must be one of {list(mapping.keys())}")
-            data["compliance_score"] = mapping[val]
+            if val and val not in mapping:
+                 # STRICT VALIDATION: No fallback allowed.
+                 raise ValueError(f"Invalid compliance_analysis: {val}. Must be one of {list(mapping.keys())}")
+            
+            if val and "compliance_score" not in data:
+                 data["compliance_score"] = mapping[val]
 
         return data
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True)
 
 
 class ArchivistOutput(ArchivistOutputDTO, ReasoningTrace):
     """Domain model for Archivist Agent (Content + Metadata)."""
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True)

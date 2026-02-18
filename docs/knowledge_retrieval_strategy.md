@@ -1,4 +1,4 @@
-# Knowledge Base, Search & Retrieval Strategy (V2.9)
+# Knowledge Base, Search & Retrieval Strategy (V3.2)
 
 ## 1. Core Concepts
 
@@ -36,20 +36,33 @@ The Knowledge Base uses the **Agent Registry** to resolve models at runtime.
 To prevent hallucinations, we strictly enforce the **Sidebar Pattern** for Information Retrieval.
 
 *   **Rule**: The `AnalystAgent` (who structures the argument) does **NOT** perform searches itself.
-*   **Mechanism**: The `RetrievalAgent` (Knowledge) and `OverseerAgent` (Google Search) run **parallel** to the Analyst or as pre-computation steps.
+*   **Mechanism**: The `RetrievalAgent` (Knowledge) and `Overseer` (Role/Hook) run **parallel** to the Analyst or as pre-computation steps.
 *   **Rationale**: If the Analyst searches for "Why is X true?", it will find confirmation bias. By keeping the Analyst "blind" to the "Correct Answer", we force it to rely on the user's input, which the **Falsifier** and **Overseer** then attack with independent evidence.
+
+### D. Architectural Resilience (Lazy Inflation)
+To handle evolving schemas while maintaining seamless access to historical data, the `RetrievalAgent` implements the **Lazy Inflation Pattern**.
+*   **Storage**: Historical data (`db.json`) may contain older schema versions or raw dictionaries.
+*   **Mechanism**: When the agent reads `results` (union type), it actively checks type. If raw `dict` is found, it attempts Just-In-Time inflation to `WorkflowState`.
+*   **Benefit**: This prevents "Brittle Model" crashes on legacy data while enforcing strict typing for new execution.
 
 ---
 
-## 3. Google Search Integration
+## 3. Google Search Integration (V3.2)
 
-The `OverseerAgent` (`step_overseer`) acts as the external fact-checker.
+The `Overseer` functionality is now implemented as a **Role** (in `PanelAgent`) and a **Hook** (`execute_google_search`).
+
+### Configuration Gating (`enable_vertex_search`)
+To support diverse deployment environments (e.g., Local Dev vs. Cloud Prod), access to external Google Search is strictly gated via `backend.settings`.
+*   **Flag**: `enable_vertex_search` (Boolean).
+*   **Disabled (Default)**: If `False`, the search hook gracefully returns an empty `SearchResult` list.
+*   **Enabled (True)**: If `True`, the hook *must* have valid credentials (Project ID, Model ID).
+    *   **Fail Fast**: If enabled but misconfigured, the hook raises `ConfigurationError`.
 
 ### Workflow Integration
-1.  **Trigger**: The Overseer receives the *User's Claims* and the *Analyst's Evidence Map*.
+1.  **Trigger**: The Analyst or Panel requests external verification.
 2.  **Query Generation**: The LLM generates targeted search queries (e.g., "Finland GDP 2024 official interpretation").
-3.  **Execution**: Calls `GoogleSearchTool` via the `serper` or `google-custom-search` API.
-4.  **JSON Safety**: Results are sanitized into a strict JSON structure (`{"title": "...", "snippet": "...", "link": "..."}`) to prevent injection attacks where search results confuse the LLM.
+3.  **Execution (Hook)**: Calls `VertexAISearchTool` via `backend/hooks/search.py`.
+4.  **JSON Safety**: Results are sanitized into a strict `SearchResultItem` Pydantic model (`{"title": "...", "snippet": "...", "link": "..."}`) to prevent prompt injection.
 5.  **Injection**: The results are injected into the context via the `{{SEARCH_RESULT}}` variable.
 
 ### Grounding Rules

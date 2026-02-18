@@ -4,13 +4,29 @@ This module contains the schemas for the Performativity/Detector Agent,
 including linguistics analysis and heuristics.
 """
 
-from typing import Any
+
+from __future__ import annotations
+
+from typing import Any, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator
 
 from backend.models.domain.base import ReasoningTrace
 from backend.models.enums import AuthenticityLevel
 from backend.services.localization import LocalizationService
+
+
+from typing import TYPE_CHECKING
+from backend.models.domain.analyst import AnalystOutput
+
+
+class PerformativityInput(BaseModel):
+    """Strict input schema for PerformativityDetectorAgent."""
+    history_text: str = Field(..., description="Chat history to analyze.")
+    step_analyst: Optional[AnalystOutput] = Field(None, description="Analyst hypotheses/timeline.")
+    last_reasoning_trace: Optional[str] = Field(default=None, description="Previous reasoning trace.")
+    
+    model_config = ConfigDict(frozen=True, extra="ignore")
 
 
 class PerformativityHeuristic(BaseModel):

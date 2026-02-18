@@ -51,7 +51,7 @@ class AdministrationService:
             result = export_db_to_files()
             await tracker.update("Export Completed", 100)
 
-            final_res = AdminOperationResponse(status="completed", message=result.get("message", "Export done"))
+            final_res = AdminOperationResponse(status="completed", message=result.get("message", "Export done"), output=None, details={})
             await tracker.complete(final_res.model_dump())
             return final_res
         except Exception as e:
@@ -85,7 +85,7 @@ class AdministrationService:
             seed_database()
             await tracker.update("Seeding Completed", 100)
 
-            result = AdminOperationResponse(status="completed", message=LocalizationService.translate("DB_REBUILT"))
+            result = AdminOperationResponse(status="completed", message=LocalizationService.translate("DB_REBUILT"), output=None, details={})
             await tracker.complete(result.model_dump())
             return result
         except Exception as e:
@@ -178,7 +178,7 @@ class AdministrationService:
 
             await tracker.update("Completed", 100)
             return AdminOperationResponse(
-                status="completed", message=f"{op_name} Successful", output=stdout.decode()[:500]
+                status="completed", message=f"{op_name} Successful", output=stdout.decode()[:500], details={}
             )
 
         except Exception as e:

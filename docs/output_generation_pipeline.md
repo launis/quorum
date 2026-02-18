@@ -1,4 +1,4 @@
-# End-to-End Output Generation Pipeline (V5.0 - Architecture Hardened)
+# End-to-End Output Generation Pipeline (V3.2 - Phase 8 Standards)
 
 ## Overview
 
@@ -6,7 +6,7 @@ This document details the complete lifecycle of an output artifact (PDF Report o
 
 **Core Philosophy**: The system separates **Cognition** (Thinking) from **Presentation** (Rendering). The "Brain" produces strict data models; the "Renderer" translates them into human-readable formats.
 
-**Architecture Hardening Mandate (2026)**: All data exchange between layers (Service -> Agent -> Hook -> Presentation) **MUST** use strict Pydantic models. Raw dictionaries or unstructured strings are strictly forbidden in internal APIs.
+**Architecture Hardening Mandate (Phase 8)**: All data exchange between layers (Service -> Agent -> Hook -> Presentation) **MUST** use strict Pydantic models. Raw dictionaries or unstructured strings are strictly forbidden in internal APIs.
 
 ---
 
@@ -32,39 +32,26 @@ This document details the complete lifecycle of an output artifact (PDF Report o
 ### Step 1: Input & Metrics (Hook-Based)
 *   **Action**: User submits text.
 *   **Software**: `backend/hooks/metrics.py` (via `calculate_text_metrics` Hook).
+*   **Strict Typing**: Uses `WorkflowInputs` object.
 *   **Result**: `TextMetrics` model is created.
-*   **Constraint**: Fail Fast on invalid input.
-*   **Pydantic Enforcement**: The input to the hook must be a valid Pydantic model or a strictly typed dictionary that matches the expected schema. No loose types allowed.
+*   **Constraint**: Fail Fast on invalid input (AppException).
 
-### Step 2: Cognitive Processing (Fail Fast)
-*   **Action**: Agents (Analyst, Judge, Logician, Falsifier, Causal) analyze the input.
-*   **Validation**: Every agent enforces strict input requirements (e.g., `Logician` requires `step_analyst`).
-*   **Result**: High-level models like `AnalystOutput`.
+### Step 2: Cognitive Processing (The Panel Fusion)
+*   **Action**: Agents analyze the input.
+*   **Evolution (V3.2)**: We use the **Panel Pattern**.
+    *   **Fused Execution**: The `PanelAgent` runs *once* but acts as multiple critics (Logician, Falsifier, Causal, Overseer).
+    *   **Fan-Out**: The Agent produces a single `PanelOutput` (Domain Model) which the Engine then *fans out* to individual state keys (`step_logician`, `step_falsifier`).
+    *   **Strict DTOs**: The LLM produces a `PanelOutputDTO` (Content Only). The Python Backend injects Authority (`metadata`, `timestamps`) to create the final Domain Object.
 
-### Step 2b: Retrieval & Grounding (Hybrid Strategy)
+### Step 3: Retrieval & Grounding (Hybrid Strategy)
 *   **Action**: `RetrievalAgent` fetches context.
 *   **Software**: `backend/agents/retrieval.py` + `KnowledgeBaseService`.
-*   **Strict Typing Flow**:
-    1.  **Service Layer**: `KnowledgeBaseService` returns `list[KnowledgeItem]`.
-        ```python
-        class KnowledgeItem(BaseModel):
-            id: str
-            type: str  # "concept", "reference"
-            term: str
-            definition: str
-            source: str
-        ```
-    2.  **Agent Layer**: `RetrievalAgent` consumes the list and aggregates it into `ContextData`.
-        ```python
-        class ContextData(ReasoningTrace):
-            precedents: str  # Legacy string summary for LLM prompt context
-            precedent_list: list[Precedent]
-            knowledge_items: list[KnowledgeItem]  # Structured data for UI/Reports
-        ```
-    3.  **No raw strings**: The Service does NOT return formatted text. Formatting is the Agent's responsibility (Separation of Concerns).
+*   **Lazy Inflation**: The Agent implementation safely handles legislative legacy data (dicts) while enforcing strict `KnowledgeItem` models for new executions.
 
-### Step 3: Aggregation & Scoring
-*   **Action**: Consolidating multiple inputs into a final score.
+### Step 4: Aggregation & Scoring (Safety Clamp)
+*   **Action**: Consolidating multiple inputs into a final score (`backend/hooks/scoring.py`).
+*   **Logic**: Aggregates scores from all judges and applies deterministic penalties.
+*   **Safety Clamp**: Ensures `new_score = max(calculated_score, scale_min)`. This prevents scores from dropping below the schema minimum (e.g., 0.1), avoiding Pydantic validation crashes.
 *   **Result**: `ScoringResult` (Total Score, Average, Penalties).
 
 ---
@@ -75,10 +62,10 @@ This document details the complete lifecycle of an output artifact (PDF Report o
 
 The `generate_report` hook acts as the **Director**.
 
-1.  **Data Gathering**: Reads from `context_variables`.
+1.  **Data Gathering**: Reads from `context_variables` (strictly typed).
 2.  **Context Construction**: Instantiates the **`ReportContext`** Pydantic model.
-    *   *New (V5.0)*: Extracts `knowledge_items` (List[KnowledgeItem]) from `step_retrieval` and passes them strictly to the report context.
-3.  **Strict Validation**: The `ReportContext` constructor performs strict type checking. If any required field (e.g., `average_score`, `scores`, `knowledge_items`) is missing or invalid, the process **Fails Fast** (ValidationError).
+    *   *New (V3.2)*: Extracts `knowledge_items` (List[KnowledgeItem]) from `step_retrieval` and passes them strictly to the report context.
+3.  **Strict Validation**: The `ReportContext` constructor performs strict type checking. If any required field (e.g., `average_score`, `scores`, `knowledge_items`) is missing or invalid, the process **Fails Fast** (AppException).
 4.  **Normalization**: Converts various data shapes into a unified structure.
 
 ---
@@ -137,26 +124,27 @@ sequenceDiagram
     participant DB as Database
     participant E as GraphEngine
     participant S as KBService
-    participant A as RetrievalAgent
+    participant A as PanelAgent
+    participant R as ReportingHook
     participant UI as Flutter
 
     U->>E: Submit Input
-    E->>E: Execute Agents
+    E->>E: Metrics Hook (TextMetrics)
     
     rect rgb(240, 248, 255)
     note right of E: Strict Typing Zone
-    E->>A: Execute RetrievalAgent
-    A->>S: retrieve_context(query)
-    S-->>A: List[KnowledgeItem] (Pydantic objects)
-    A->>A: Create ContextData(knowledge_items=...)
-    A-->>E: Return ContextData
+    E->>A: Execute PanelAgent (Fused)
+    A->>E: Returns PanelOutput (Domain)
+    E->>E: Fan-Out -> Step States
     end
-
-    E->>DB: Persist State (ContextData)
+    
+    E->>R: Execute ReportingHook
+    R->>R: Create ReportContext (Fail Fast)
+    R->>DB: Persist ReportResult
     
     loop Polling (BFF)
         UI->>E: GET /monitor
-        E->>E: Transformer(ContextData) -> ViewModel
+        E->>E: Transformer(ReportResult) -> ViewModel
         E->>UI: JSON (ViewModel)
         UI->>UI: Render Widgets
     end

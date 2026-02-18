@@ -19,6 +19,7 @@ router = APIRouter(prefix="/executions", tags=["Executions"])
 
 
 from backend.models.dtos.execution import ExecutionResponse
+from backend.models.domain.execution import ExecutionRecord
 
 
 @router.get("/recent", summary="Get Recent Executions", response_model=list[ExecutionResponse])
@@ -32,8 +33,8 @@ async def get_recent_executions(
         user_id = current_user.uid if current_user else None
         executions = await repository.get_all_executions(user_id=user_id)
 
-        def get_time(e):
-            return e.get("started_at") or e.get("timestamp") or ""
+        def get_time(e: ExecutionRecord):
+            return e.created_at or e.started_at or ""
 
         executions.sort(key=get_time, reverse=True)
 
@@ -41,6 +42,7 @@ async def get_recent_executions(
         for e in executions[:limit]:
             # Use DTO to normalize
             try:
+                # e is ExecutionRecord
                 dto = ExecutionResponse.model_validate(e)
                 results.append(dto)
             except Exception as validation_err:
@@ -110,7 +112,11 @@ async def monitor_execution(
              raise ResourceNotFoundError(f"Execution '{execution_id}' not found.", details={"error_code": "EXECUTION_NOT_FOUND"})
 
         # Fetch Workflow Definition (Strict SSOT)
-        workflow_id = exists.get("workflow_id")
+        workflow_id = exists.workflow_id
+        if not workflow_id and exists.results and isinstance(exists.results, dict):
+             # Fallback if not in top-level but in results
+             workflow_id = exists.results.get("workflow_id")
+             
         workflow_definition = None
         if workflow_id:
             workflow_definition = await repository.get_workflow_definition(workflow_id)
@@ -127,8 +133,11 @@ async def monitor_execution(
                           yield {"event": "error", "data": "Execution not found"}
                           break
 
-                      current_status = exec_data.get("status")
+                      current_status = exec_data.status
                       payload = ""
+                      
+                      # Dump to dict for Transformers compatibility
+                      exec_dict = exec_data.model_dump()
 
                       if view == "raw":
                            # Option B: Explicit DTO Layer
@@ -146,7 +155,7 @@ async def monitor_execution(
                           # Default: AssessmentTransformer for BFF (Frontend Compatibility)
                           try:
                               transformer = AssessmentTransformer(language="fi") # Default to Finnish for Monitoring
-                              assessment_view = transformer.transform(exec_data, workflow_definition)
+                              assessment_view = transformer.transform(exec_dict, workflow_definition)
                               payload = assessment_view.model_dump_json()
                           except Exception as trans_err:
                                 logger.error(f"[Monitor] Transformation Failed: {trans_err}")

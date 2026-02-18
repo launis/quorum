@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING, Dict, List, Tuple
 from backend.exceptions import AppException, ErrorCodes, SecurityViolationError
 from backend.models.domain.guard import SanitizationResult
 from backend.models.state import WorkflowState
+from backend.models.domain.inputs import WorkflowInputs
+from backend.utils.pydantic_utils import inflate
 
 
 if TYPE_CHECKING:
@@ -29,6 +31,14 @@ def sanitize_text_hook(state: WorkflowState) -> WorkflowState:
     """
     logger.debug("[SecurityHook] Running sanitize_text_hook...")
 
+    # Strict Enforce: State must be WorkflowState object
+    if isinstance(state, dict):
+        raise AppException(
+            message="Security Hook (sanitize) received dict state. Strict Pydantic Enforcement Violation.",
+            status_code=500,
+            details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA}
+        )
+
     # Strict check: context_variables must exist (though State model usually guarantees it)
     if not state.context_variables:
         logger.warning("[SecurityHook] Empty context_variables. Skipping.")
@@ -37,14 +47,44 @@ def sanitize_text_hook(state: WorkflowState) -> WorkflowState:
     sanitized_inputs: dict[str, str] = {}
     threats_summary: List[str] = []
 
-    inputs = state.context_variables.get("inputs", {})
-    if not isinstance(inputs, dict):
-        # Fail Fast or Warn? Inputs should be dict.
-        logger.warning(f"[SecurityHook] Invalid inputs type: {type(inputs)}. defaulting to empty.")
-        inputs = {}
+    inputs = state.get_context("inputs", WorkflowInputs)
+    
+    # Check for raw input data existence for better error reporting
+    input_data = state.context_variables.get("inputs")
+    
+    if not inputs:
+        # Distinguish Missing vs Invalid
+        if input_data is None:
+             error_code = ErrorCodes.EMPTY_INPUT
+             msg = "Missing 'inputs' in context_variables."
+             status_code = 400
+        else:
+             error_code = ErrorCodes.INVALID_OUTPUT_SCHEMA
+             msg = f"Context 'inputs' is {type(input_data)}, expected WorkflowInputs."
+             status_code = 500
+        
+        logger.error(f"[SecurityHook] {error_code.name}: {msg}")
+        raise AppException(
+            message=msg,
+            status_code=status_code,
+            details={"error_code": error_code}
+        )
 
     for field in ["history_text", "product_text", "reflection_text"]:
-        original = str(inputs.get(field, "") or "")
+        # Strict Access: Field MUST exist on WorkflowInputs schema
+        val = getattr(inputs, field)
+        if not val:
+             # Fail Fast: Mandatory inputs
+             error_code = ErrorCodes.EMPTY_INPUT
+             msg = f"Missing mandatory input field: '{field}'."
+             logger.error(f"[SecurityHook] {error_code.name}: {msg}")
+             raise AppException(
+                 message=msg,
+                 status_code=400,
+                 details={"error_code": error_code}
+             )
+             
+        original = str(val)
         if original.strip():
             try:
                 sanitized, threats = sanitize_text(original)
@@ -73,7 +113,7 @@ def sanitize_text_hook(state: WorkflowState) -> WorkflowState:
     except Exception as e:
         # Pydantic validation error -> Configuration/System Error
         error_code = ErrorCodes.SECURITY_CONFIG_ERROR
-        logger.error(f"[SecurityHook] {error_code}: {e}")
+        logger.error(f"[SecurityHook] {error_code.name}: {e}")
         raise AppException(
             message=f"Failed to create SanitizationResult: {e}",
             status_code=500,
@@ -137,6 +177,14 @@ async def check_banned_phrases_hook(state: WorkflowState, repository=None) -> Wo
     """
     logger.debug("[SecurityHook] Running check_banned_phrases_hook...")
 
+    # Strict Enforce: State must be WorkflowState object
+    if isinstance(state, dict):
+        raise AppException(
+            message="Security Hook (banned_phrases) received dict state. Strict Pydantic Enforcement Violation.",
+            status_code=500,
+            details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA}
+        )
+
     if not state.context_variables:
         return state
 
@@ -152,7 +200,7 @@ async def check_banned_phrases_hook(state: WorkflowState, repository=None) -> Wo
         except Exception as e:
             # FAIL FAST on DB Error
             error_code = ErrorCodes.SECURITY_DB_ERROR
-            logger.error(f"[SecurityHook] {error_code}: {e}", exc_info=True)
+            logger.error(f"[SecurityHook] {error_code.name}: {e}", exc_info=True)
             raise AppException(
                 message=f"Failed to fetch banned phrases: {e}",
                 status_code=500,
@@ -169,14 +217,33 @@ async def check_banned_phrases_hook(state: WorkflowState, repository=None) -> Wo
         # Merge EN and FI defaults
         banned_phrases = DEFAULT_BANNED_PHRASES["en"] + DEFAULT_BANNED_PHRASES["fi"]
 
-    inputs = state.context_variables.get("inputs", {})
-    if not isinstance(inputs, dict):
-        inputs = {}
+    input_data = state.context_variables.get("inputs")
+    inputs = inflate(input_data, WorkflowInputs)
+    
+    if not inputs:
+        # Distinguish Missing vs Invalid
+        if input_data is None:
+             error_code = ErrorCodes.EMPTY_INPUT
+             msg = "Missing 'inputs' in context_variables."
+             status_code = 400
+        else:
+             error_code = ErrorCodes.INVALID_OUTPUT_SCHEMA
+             msg = f"Context 'inputs' is {type(input_data)}, expected WorkflowInputs."
+             status_code = 500
+        
+        logger.error(f"[SecurityHook] {error_code.name}: {msg}")
+        raise AppException(
+            message=msg,
+            status_code=status_code,
+            details={"error_code": error_code}
+        )
 
     all_text = ""
     for field in ["history_text", "product_text", "reflection_text"]:
-        text = str(inputs.get(field, "") or "")
-        all_text += text + "\n"
+        val = getattr(inputs, field)
+        if val:
+             text = str(val)
+             all_text += text + "\n"
 
     detected: List[str] = check_banned_phrases(all_text, banned_phrases)
 

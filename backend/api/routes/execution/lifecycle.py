@@ -128,52 +128,38 @@ async def create_execution(
                     if key not in inputs:
                         inputs[key] = str(value)
 
-            # 3. Process Evidence Files via DocumentService
-            if files_to_process:
-                try:
-                    # DocumentService handles:
-                    # 1. Archiving to Storage (Forensic Capture)
-                    # 2. Extracting text (PDF/DOCX/Text)
-                    # 3. Parsing Chat Logs (ChatLogParser)
-                    extracted_texts = await document_service.process_evidence_files(execution_id, files_to_process)
+        if organization_id and "organization_id" not in inputs:
+            inputs["organization_id"] = organization_id
 
-                    for key, text_content in extracted_texts.items():
-                        inputs[key] = text_content
-                except Exception as e:
-                     logger.error(f"DocumentService failed: {e}")
-                     raise AppException(
-                         message=f"File processing failed: {e}",
-                         status_code=status.HTTP_400_BAD_REQUEST,
-                         details={"error_code": "FILE_PROCESSING_FAILED"}
-                     ) from e
-        else:
-            error_code = "UNSUPPORTED_CONTENT_TYPE"
-            logger.error(f"{error_code}: {content_type}")
-            raise AppException(
-                message=f"Unsupported Content-Type: {content_type}",
-                status_code=status.HTTP_400_BAD_REQUEST,
-                details={"error_code": error_code}
-            )
+        # 0. NORMALIZE INPUTS (SSOT Pattern)
+        # Ensure organization_id is ALWAYS in inputs, just like file contents.
+        # Fallback: If payload is missing it, try current_user (Context Injection)
+        if not inputs.get("organization_id"):
+            if organization_id:
+                inputs["organization_id"] = organization_id
+            elif current_user and getattr(current_user, "organization_id", None):
+                inputs["organization_id"] = current_user.organization_id
+                organization_id = current_user.organization_id  # Sync var for later use
 
-        logger.info(f"[EXECUTION CREATION] workflow: {workflow_id}")
+        # 3. Process Evidence Files via DocumentService
+        if files_to_process:
+            try:
+                # DocumentService handles:
+                # 1. Archiving to Storage (Forensic Capture)
+                # 2. Extracting text (PDF/DOCX/Text)
+                # 3. Parsing Chat Logs (ChatLogParser)
+                extracted_texts = await document_service.process_evidence_files(execution_id, files_to_process)
 
-        if not workflow_id:
-            error_code = "MISSING_WORKFLOW_ID"
-            logger.error(f"{error_code}: workflowId not provided")
-            raise AppException(
-                message="Missing 'workflowId' in payload.",
-                status_code=status.HTTP_400_BAD_REQUEST,
-                details={"error_code": error_code}
-            )
-
-        if not isinstance(workflow_id, str):
-             raise AppException(
-                message="Invalid 'workflowId' type.",
-                status_code=status.HTTP_400_BAD_REQUEST,
-                details={"error_code": "INVALID_WORKFLOW_ID"}
-             )
+                for key, text_content in extracted_texts.items():
+                    inputs[key] = text_content
+            except Exception as e:
+                 logger.error(f"DocumentService failed: {e}")
+                 raise AppException(
+                     details={"error_code": "FILE_PROCESSING_FAILED"}
+                 ) from e
 
         # 1. Load Definition via Repository (SSOT)
+        # (This block was missing in previous refactor)
         definition = await repository.get_workflow(workflow_id)
 
         if not definition:
@@ -181,7 +167,7 @@ async def create_execution(
                  raise ResourceNotFoundError(f"Workflow '{workflow_id}' not found.")
              raise ResourceNotFoundError("Workflow not found (invalid ID).")
 
-        # 2. Prepare Execution Record
+        # 2. Prepare Execution Record (Restored)
         def sanitize_for_json(obj: Any) -> Any:
             if isinstance(obj, bytes):
                 return f"<bytes: {len(obj)}>"
@@ -210,8 +196,8 @@ async def create_execution(
 
         await repository.create_execution(execution_data)
         logger.info(f"Created pending execution {execution_id} for workflow {workflow_id}")
-
-        # 3. Enqueue Async Job
+        
+        # 4. Enqueue Async Job
         if arq_pool:
             await arq_pool.enqueue_job(
                 "execute_workflow_job",
@@ -226,9 +212,7 @@ async def create_execution(
             # Inject identity context for synchronous execution
             if current_user:
                  inputs["user_id"] = current_user.uid
-            if organization_id:
-                 inputs["organization_id"] = organization_id
-
+            
             result = await engine.execute_workflow(definition, inputs, repository=repository, execution_id=execution_id)
             execution_data["results"] = sanitize_for_json(result)
             execution_data["status"] = "completed"
@@ -239,10 +223,10 @@ async def create_execution(
         return ExecutionResponse(
             id=execution_id,
             workflow_id=workflow_id if isinstance(workflow_id, str) else str(workflow_id),
-            status=execution_data["status"],
+            status=execution_data.get("status", "pending"),
             started_at=execution_data["started_at"],
-            completed_at=execution_data["completed_at"],
-            results=execution_data["results"],
+            completed_at=execution_data.get("completed_at"),
+            results=execution_data.get("results"),
             inputs=execution_data["inputs"],
             user_id=str(execution_data.get("user_id", "")),
             organization_id=execution_data.get("organization_id"),
@@ -374,8 +358,10 @@ async def cancel_execution(
         # 2. RBAC Check
         user_role = current_user.role
         user_org = current_user.organization_id
-        record_org = execution.get("organization_id")
-        record_user = execution.get("user_id")
+        
+        # execution is Pydantic model
+        record_org = getattr(execution, "organization_id", None)
+        record_user = getattr(execution, "user_id", None)
 
         has_access = False
 
@@ -400,7 +386,7 @@ async def cancel_execution(
 
         # 3. Update Status
         # We set it to 'cancelling'. The engine will pick this up in the next step iteration.
-        current_status = execution.get("status")
+        current_status = getattr(execution, "status", None)
         if current_status in ["completed", "failed", "cancelled"]:
             # Already done, no-op but return 200 ok with message
             # Already done, no-op but return 200 ok with message

@@ -83,3 +83,31 @@ class ComponentRegistry:
         result = "\n\n".join(resolved_text)
         logger.info(f"[ComponentRegistry] Resolved text length: {len(result)}")
         return result
+
+    @staticmethod
+    async def resolve_prompts_map(repository: AbstractWorkflowRepository, prompt_ids: Tuple[str, ...]) -> Dict[str, str]:
+        """Resolves a list of prompt IDs into a map of {id: content}.
+
+        Args:
+            repository: The repository instance.
+            prompt_ids: Tuple of strings.
+
+        Returns:
+            Dict[str, str]: Map of component ID to content string.
+        """
+        resolved_map: Dict[str, str] = {}
+        
+        for pid in prompt_ids:
+            comp = await ComponentRegistry.get_component(repository, pid)
+            
+            if "content" in comp:
+                content = comp["content"]
+                if isinstance(content, str):
+                    resolved_map[pid] = content
+                elif isinstance(content, list):
+                    resolved_map[pid] = "\n".join(str(x) for x in content)
+            else:
+                logger.warning(f"[ComponentRegistry] Component '{pid}' has no 'content' field.")
+                resolved_map[pid] = ""
+
+        return resolved_map

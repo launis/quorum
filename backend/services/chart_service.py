@@ -52,8 +52,8 @@ class ChartService:
             ax = fig.add_subplot(111, polar=True)
 
             # Draw axes
-            ax.set_theta_offset(np.pi / 2)
-            ax.set_theta_direction(-1)
+            ax.set_theta_offset(np.pi / 2)  # type: ignore
+            ax.set_theta_direction(-1)  # type: ignore
             ax.set_xticks(angles[:-1])
             ax.set_xticklabels(categories)
 
@@ -83,7 +83,7 @@ class ChartService:
             if len(categories) > 0:
                 label_angle = angles[0] + (angles[1] - angles[0]) / 2
 
-            ax.set_rlabel_position(np.degrees(label_angle))
+            ax.set_rlabel_position(np.degrees(label_angle))  # type: ignore
             ax.set_yticks(grid_levels)
             ax.set_yticklabels([str(l) for l in grid_levels], color="grey", size=7)
 

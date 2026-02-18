@@ -7,8 +7,10 @@ from typing import Any
 import openai
 from tinydb import Query
 
+from backend.models.llm import LLMProviderConfig
 from backend.llm.provider import LLMFactory
 from backend.settings import get_settings
+from backend.exceptions import ServiceUnavailableError, ConfigurationError, ErrorCodes
 
 logger = logging.getLogger(__name__)
 
@@ -385,8 +387,40 @@ class LLMHandler:
                 f"[LLM Execution] Strategy: {provider}/{mode} -> Model: {model_name} "
                 f"(Temp: {temperature}, MaxTokens: {max_tokens})"
             )
-            # Pass api_key explicitly to ensure DB credentials are used
-            llm_provider = LLMFactory.create_provider(provider, model_name, api_key=api_key)
+            
+            # Construct strict config object
+            # We map dict fields to LLMProviderConfig
+            # Note: 'cd' is the raw dict from DB
+            provider_config = LLMProviderConfig(
+                id=f"{provider}/{mode}",
+                provider=provider,
+                model_name=model_name,
+                api_key=api_key,
+                base_url=cd.get("base_url"),
+                temperature=temperature,
+                tpm_limit=cd.get("tpm_limit", 0),
+                rpm_limit=cd.get("rpm_limit", 0),
+                default_max_tokens=max_tokens,
+                vertex_location=cd.get("vertex_location"),
+                supports_grounding=cd.get("supports_grounding", False),
+                is_active=cd.get("is_active", True),
+                additional_params=cd.get("additional_params", {}),
+            )
+
+            # FAIL FAST: Check Active Status
+            if not provider_config.is_active:
+                 raise ServiceUnavailableError(
+                     message=f"Model Strategy '{provider}/{mode}' is deactivated.",
+                     details={"error_code": ErrorCodes.SERVICE_DISABLED}
+                 )
+
+            # Pass config object to factory
+            llm_provider = LLMFactory.create_provider(
+                provider_type=provider, # Redundant but kept for signature
+                model_name=model_name,  # Redundant but kept for signature
+                config=provider_config,
+                api_key=api_key # Pass explicit key if needed, but config has it
+            )
 
             response = await llm_provider.generate(
                 prompt=prompt,
@@ -405,5 +439,7 @@ class LLMHandler:
         except ValueError as ve:
             raise ve  # Re-raise strict validation errors
         except Exception as e:
+            if isinstance(e, (ServiceUnavailableError, ConfigurationError)):
+                raise e
             logger.error(f"[LLMHandler] Unified Call Failed: {e}", exc_info=True)
-            return f"Error calling LLM: {str(e)}"
+            raise e # Strict raising instead of returning string error

@@ -1,9 +1,11 @@
+
 import logging
 from datetime import datetime
 from typing import Any
 
 from backend.exceptions import AppException
 from backend.models.enums import LabelKey, TitleKey
+from backend.models.state import TraceEvent
 from backend.services.localization import LocalizationService
 
 logger = logging.getLogger(__name__)
@@ -82,43 +84,53 @@ class BaseTransformer:
             logger.warning(f"Number formatting failed for '{value}': {e}")
             return str(value)
 
-    def _reconstruct_state_from_trace(self, trace: list[dict[str, Any]]) -> dict[str, Any]:
+    def _reconstruct_state_from_trace(self, trace: list[TraceEvent | dict[str, Any]]) -> dict[str, Any]:
         """Reconstructs the 'step_results' map from an append-only linear trace."""
         reconstructed = {}
 
         try:
             for event in trace:
+                # Handle both Pydantic TraceEvent and legacy dict
+                evt_type = event.event_type if isinstance(event, TraceEvent) else event.get("event_type")
+                
                 # We are interested in OUTPUT events
-                if event.get("event_type") == "output":
-                    step_name = event.get("step_name")
+                if evt_type == "output":
+                    step_name = event.step_name if isinstance(event, TraceEvent) else event.get("step_name")
+                    
                     if not step_name or not isinstance(step_name, str):
                         continue
 
-                    content = event.get("content", {})
-                    # Safety: content might be None if key exists but value is null
-                    if content is None:
-                        content = {} 
-                    
+                    # Content handling
+                    if isinstance(event, TraceEvent):
+                        content = event.content.copy() if event.content else {}
+                        reasoning = event.reasoning
+                        timestamp = event.timestamp
+                    else:
+                        content = event.get("content", {}) or {}
+                        # Copy to avoid mutation if shared ref (though strict dict usually new)
+                        if isinstance(content, dict):
+                            content = content.copy()
+                        reasoning = event.get("reasoning")
+                        timestamp = event.get("timestamp") or event.get("metadata", {}).get("timestamp")
+
                     # Check for reasoning trace availability (optional optimization)
-                    # If the event has 'reasoning', we could inject it into content for UI visibility
-                    reasoning = event.get("reasoning")
                     if reasoning:
                         if isinstance(reasoning, dict):
-                            # Flatten relevant reasoning fields into content/metadata for UI
-                            # e.g. "reasoning_trace" key used by timeline builder
-                            content["reasoning_trace"] = reasoning.get("thought_process")
+                             content["reasoning_trace"] = reasoning.get("thought_process")
+                        elif hasattr(reasoning, "thought_process"): # Pydantic ReasoningTrace
+                             content["reasoning_trace"] = reasoning.thought_process
 
                     # Timestamp to metadata
-                    timestamp = event.get("timestamp") or event.get("metadata", {}).get("timestamp")
                     if timestamp:
                         if content.get("metadata") is None:
                             content["metadata"] = {}
-                        # Date formatting applied here -> Moved to extra field to preserve Schema Validity
-                        # content["metadata"]["luontiaika"] = self._format_date(timestamp)
+                        
+                        # Normalize Pydantic datetime to string for Dict compatibility (or keep object?)
+                        
                         # KEEP ORIGINAL for Pydantic Validation:
                         content["metadata"]["luontiaika"] = timestamp
                         # Add formatted for UI:
-                        content["metadata"]["luontiaika_formatted"] = self._format_date(timestamp)
+                        content["metadata"]["luontiaika_formatted"] = self._format_date(str(timestamp))
 
                     reconstructed[step_name] = content
         except Exception as e:

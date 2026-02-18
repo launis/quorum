@@ -4,12 +4,27 @@ This module contains the schemas for the Causal Agent,
 including counterfactual testing and abductive reasoning.
 """
 
-from typing import Any
+
+from __future__ import annotations
+
+from typing import Any, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator
 
 from backend.models.domain.base import ReasoningTrace
 from backend.models.enums import AbductiveConclusion, PlausibilityLevel
+from typing import TYPE_CHECKING
+from backend.models.domain.analyst import AnalystOutput
+
+
+class CausalInput(BaseModel):
+    """Strict input schema for CausalAgent."""
+    history_text: str = Field(..., description="Chat history to analyze.")
+    step_analyst: Optional[AnalystOutput] = Field(None, description="Analyst hypotheses/timeline.")
+    last_reasoning_trace: Optional[str] = Field(default=None, description="Previous reasoning trace.")
+
+    model_config = ConfigDict(frozen=True, extra="ignore")
+
 
 
 class CausalAnalysisData(BaseModel):
@@ -85,7 +100,7 @@ class CounterfactualTest(BaseModel):
                     pass
         return data
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True)
 
 
 class CausalAnalysis(BaseModel):
@@ -135,7 +150,7 @@ class CausalAnalysis(BaseModel):
                     pass
         return data
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True)
 
 
 class CausalOutput(ReasoningTrace):
@@ -146,4 +161,4 @@ class CausalOutput(ReasoningTrace):
         description="Causal audit result.",
         json_schema_extra={"x-ui-label": "Causal Audit"},
     )
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True)

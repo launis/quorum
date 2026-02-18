@@ -13,6 +13,20 @@ from backend.models.enums import BloomLevel, StrategicDepth
 from backend.services.localization import LocalizationService
 
 
+from typing import TYPE_CHECKING, Optional
+from backend.models.domain.analyst import AnalystOutput
+
+
+class LogicianInput(BaseModel):
+    """Strict input schema for LogicianAgent."""
+    history_text: str = Field(..., description="Chat history to analyze.")
+    step_analyst: Optional[AnalystOutput] = Field(None, description="Analyst hypotheses/timeline.")
+    last_reasoning_trace: Optional[str] = Field(default=None, description="Previous reasoning trace.")
+    
+    model_config = ConfigDict(frozen=True, extra="ignore")
+
+
+
 class ToulminComponent(BaseModel):
     """Component of the Toulmin Argumentation Model."""
 
@@ -124,36 +138,49 @@ class CognitiveLevel(BaseModel):
                 BloomLevel.CREATING: 6.0
             }
 
-            bloom_level = data.get("bloom_level")
-            current_bloom_score = data.get("bloom_score")
-
-            if current_bloom_score is None and bloom_level:
+        # Bloom Conversion (String -> Enum)
+            # This is critical for strict=True models consuming JSON/DB data.
+            bloom_val = data.get("bloom_level")
+            if bloom_val and isinstance(bloom_val, str):
+                # 1. Try direct lookup (e.g. "BLOOM_CREATING")
                 try:
-                    # Robustly handle both Enum and String input
-                    enum_val = bloom_level if isinstance(bloom_level, BloomLevel) else BloomLevel(bloom_level)
-                    if enum_val in bloom_map:
-                         data["bloom_score"] = bloom_map[enum_val]
+                    data["bloom_level"] = BloomLevel(bloom_val)
                 except ValueError:
-                    pass
+                    # 2. Try prefix matching (e.g. "creating" -> BloomLevel.CREATING)
+                    val_upper = bloom_val.upper()
+                    if not val_upper.startswith("BLOOM_"):
+                        for member in BloomLevel:
+                            if member.value.replace("BLOOM_", "") == val_upper:
+                                data["bloom_level"] = member
+                                break
 
-            # Strategic Mapping (Enum-Based)
-            strat_map = {
-                StrategicDepth.LOW: 1.0,
-                StrategicDepth.MEDIUM: 2.0,
-                StrategicDepth.HIGH: 3.0,
-                StrategicDepth.VISIONARY: 4.0
-            }
+            # Score Calculation (Bloom)
+            current_bloom_score = data.get("bloom_score")
+            if current_bloom_score is None and data.get("bloom_level"):
+                 # Calculate score from the now-resolved Enum
+                 b_enum = data["bloom_level"]
+                 if isinstance(b_enum, BloomLevel) and b_enum in bloom_map:
+                     data["bloom_score"] = bloom_map[b_enum]
 
-            strategic_depth = data.get("strategic_depth")
+            # Strategic Conversion (String -> Enum)
+            strat_val = data.get("strategic_depth")
+            if strat_val and isinstance(strat_val, str):
+                try:
+                    data["strategic_depth"] = StrategicDepth(strat_val)
+                except ValueError:
+                    val_upper = strat_val.upper()
+                    if not val_upper.startswith("STRAT_"):
+                         for strat_member in StrategicDepth:
+                            if strat_member.value.replace("STRAT_", "") == val_upper:
+                                 data["strategic_depth"] = strat_member
+                                 break
+                                 
+            # Score Calculation (Strategic)
             current_strat_score = data.get("strategic_score")
-
-            if current_strat_score is None and strategic_depth:
-                 try:
-                     enum_val = strategic_depth if isinstance(strategic_depth, StrategicDepth) else StrategicDepth(strategic_depth)
-                     if enum_val in strat_map:
-                         data["strategic_score"] = strat_map[enum_val]
-                 except ValueError:
-                     pass
+            if current_strat_score is None and data.get("strategic_depth"):
+                 s_enum = data["strategic_depth"]
+                 if isinstance(s_enum, StrategicDepth) and s_enum in strat_map:
+                     data["strategic_score"] = strat_map[s_enum]
 
         return data
 

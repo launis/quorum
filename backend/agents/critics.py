@@ -14,18 +14,22 @@ from backend.agents.base import BaseAgent
 from backend.exceptions import AgentExecutionError, ErrorCodes
 from backend.models.domain import (
     CausalOutput,
+    CausalInput,
     FalsifierOutput,
+    FalsifierInput,
     OverseerOutput,
+    OverseerInput,
     PerformativityOutput,
+    PerformativityInput,
 )
 
 if TYPE_CHECKING:
-    from backend.models.workflow import WorkflowState
+    from backend.models.state import WorkflowState
 
 logger = logging.getLogger(__name__)
 
 
-class LogicalFalsifierAgent(BaseAgent):
+class LogicalFalsifierAgent(BaseAgent[FalsifierInput, FalsifierOutput]):
     """Looginen Falsifioija-agentti (Logical Falsifier).
 
     Responsible for identifying logical fallacies and structural weaknesses.
@@ -33,6 +37,8 @@ class LogicalFalsifierAgent(BaseAgent):
 
     state_field = "step_falsifier"
     PRODUCES_KEYS = ["step_falsifier"]
+    INPUT_SCHEMA = FalsifierInput
+    OUTPUT_SCHEMA = FalsifierOutput
 
     def get_response_schema(self) -> type[BaseModel] | None:
         """Returns the expected output schema.
@@ -44,21 +50,21 @@ class LogicalFalsifierAgent(BaseAgent):
 
     async def prepare_context(
         self,
-        input_data: dict[str, Any],
+        input_data: FalsifierInput,
         execution_context: dict[str, Any] | None,
         **kwargs: Any
     ) -> str | None:
         """Lifecycle Hook: Pre-Execution.
 
         Args:
-            input_data (dict[str, Any]): Inputs.
+            input_data (FalsifierInput): Inputs.
             execution_context (dict[str, Any] | None): Context.
             **kwargs: execution arguments.
 
         Returns:
             str | None: Formatted context string.
         """
-        analyst_output = input_data.get("step_analyst")
+        analyst_output = input_data.step_analyst
 
         if analyst_output:
             content = (
@@ -72,7 +78,7 @@ class LogicalFalsifierAgent(BaseAgent):
 
     async def execute(
         self,
-        input_data: dict[str, Any],
+        input_data: FalsifierInput,
         execution_context: dict[str, Any] | None = None,
         system_instruction: str | None = None,
         **kwargs: Any,
@@ -80,19 +86,23 @@ class LogicalFalsifierAgent(BaseAgent):
         """Executes logical fallacies analysis.
 
         Args:
-            input_data (dict[str, Any]): Inputs.
+            input_data (FalsifierInput): Inputs.
             execution_context (dict[str, Any] | None, optional): Context.
             system_instruction (str | None, optional): Prompt.
             **kwargs: Args.
 
         Returns:
-            dict[str, Any] | BaseModel: Logical consistency report.
+            FalsifierOutput: Logical consistency report.
 
         Raises:
             AgentExecutionError: If mandatory 'step_analyst' input is missing.
         """
         # FAIL FAST: Falsifier requires Evidence Map
-        if not input_data.get("step_analyst"):
+        # Checked via Pydantic model (step_analyst can be None in model, but here required?)
+        # BaseAgent guarantees input_data matches input schema.
+        # But step_analyst is optional in Input schema (None) for flexibility?
+        # Let's check logic:
+        if not input_data.step_analyst:
                 error_msg = "[LogicalFalsifierAgent] Mandatory input 'step_analyst' missing. Analysis aborted."
                 logger.error(f"{ErrorCodes.AGENT_EXECUTION_CRITICAL}: {error_msg}")
                 raise AgentExecutionError(
@@ -103,21 +113,12 @@ class LogicalFalsifierAgent(BaseAgent):
 
         result_obj = await super().execute(input_data, execution_context, system_instruction, **kwargs)
 
-        if isinstance(result_obj, FalsifierOutput):
-            return result_obj
-        elif isinstance(result_obj, dict):
-            return FalsifierOutput(**result_obj)
-        else:
-             raise AgentExecutionError(
-                 detail=ErrorCodes.INVALID_JSON_PAYLOAD,
-                 original_error=TypeError(f"LogicalFalsifierAgent returned {type(result_obj)} instead of FalsifierOutput"),
-                 agent_name="LogicalFalsifierAgent"
-             )
+        return result_obj
 
 
 
 
-class FactualOverseerAgent(BaseAgent):
+class FactualOverseerAgent(BaseAgent[OverseerInput, OverseerOutput]):
     """Faktuaalinen ja Eettinen Valvoja-agentti (Factual & Ethical Overseer).
 
     Responsible for fact-checking and ethical oversight.
@@ -125,6 +126,8 @@ class FactualOverseerAgent(BaseAgent):
 
     state_field = "step_overseer"
     PRODUCES_KEYS = ["step_overseer"]
+    INPUT_SCHEMA = OverseerInput
+    OUTPUT_SCHEMA = OverseerOutput
 
     def get_response_schema(self) -> type[BaseModel] | None:
         """Returns the expected output schema.
@@ -136,21 +139,21 @@ class FactualOverseerAgent(BaseAgent):
 
     async def prepare_context(
         self,
-        input_data: dict[str, Any],
+        input_data: OverseerInput,
         execution_context: dict[str, Any] | None,
         **kwargs: Any
     ) -> str | None:
         """Lifecycle Hook: Pre-Execution.
 
         Args:
-            input_data (dict[str, Any]): Inputs.
+            input_data (OverseerInput): Inputs.
             execution_context (dict[str, Any] | None): Context.
             **kwargs: execution arguments.
 
         Returns:
             str | None: Formatted context string.
         """
-        analyst_output = input_data.get("step_analyst")
+        analyst_output = input_data.step_analyst
         context_parts = []
 
         if analyst_output:
@@ -161,20 +164,43 @@ class FactualOverseerAgent(BaseAgent):
             )
             context_parts.append(f"### TODISTUSKARTTA (EVIDENCE MAP):\n{content}")
 
-        # Inject Knowledge Base Context (step_context)
-        context_data = input_data.get("step_context")
+        # Inject Knowledge Base Context
+        # OverseerInput doesn't have step_context (as it's generic context).
+        # We access via execution_context or perhaps we should have added it to Inputs.
+        # But 'knowledge_items' are usually in step_context.
+        
+        context_data = None
+        if execution_context:
+             context_data = execution_context.get("step_context")
+
         if context_data:
-             if isinstance(context_data, dict) and "precedents" in context_data:
-                  context_parts.append(f"### JÄRJESTELMÄN KONTEKSTI (TIETOPANKKI & ENNAKKOTAPAUKSET):\n{context_data['precedents']}")
-             else:
-                  context_parts.append(f"### JÄRJESTELMÄN KONTEKSTI:\n{str(context_data)}")
+             # Precedents
+             precedents = getattr(context_data, "precedents", "")
+             if isinstance(context_data, dict):
+                  precedents = context_data.get("precedents", "")
+             
+             if precedents:
+                  context_parts.append(f"### JÄRJESTELMÄN KONTEKSTI (TIETOPANKKI & ENNAKKOTAPAUKSET):\n{precedents}")
 
-        # Inject Google Search Results if available in input_data
-        if "google_search_results" in input_data:
-            search_results = input_data["google_search_results"]
-            context_parts.append(f"### HAKUTULOKSET (GOOGLE SEARCH RESULTS):\n{search_results}")
-        # STRICT MODE: No fallback to execution_context for data inputs.
+             # Search Results (Knowledge Items)
+             items = getattr(context_data, "knowledge_items", [])
+             if isinstance(context_data, dict):
+                  items = context_data.get("knowledge_items", [])
+             
+             if items:
+                  search_section = "### HAKUTULOKSET (GOOGLE SEARCH / ULKOINEN TOTUUS):\n"
+                  for item in items:
+                       term = getattr(item, "term", "")
+                       defn = getattr(item, "definition", "")
+                       source = getattr(item, "source", "Unknown")
+                       if isinstance(item, dict):
+                            term = item.get("term", "")
+                            defn = item.get("definition", "")
+                            source = item.get("source", "Unknown")
+                       search_section += f"- [{source}] {term}: {defn}\n"
+                  context_parts.append(search_section)
 
+        # STRICT MODE: No fallback to dict access if not modeled.
 
         if context_parts:
             return "\n\n".join(context_parts)
@@ -183,7 +209,7 @@ class FactualOverseerAgent(BaseAgent):
 
     async def execute(
         self,
-        input_data: dict[str, Any],
+        input_data: OverseerInput,
         execution_context: dict[str, Any] | None = None,
         system_instruction: str | None = None,
         **kwargs: Any,
@@ -191,19 +217,19 @@ class FactualOverseerAgent(BaseAgent):
         """Executes factual and ethical oversight.
 
         Args:
-            input_data (dict[str, Any]): Inputs.
+            input_data (OverseerInput): Inputs.
             execution_context (dict[str, Any] | None, optional): Context.
             system_instruction (str | None, optional): Prompt.
             **kwargs: Args.
 
         Returns:
-            dict[str, Any] | BaseModel: Factuality report.
+            OverseerOutput: Factuality report.
 
         Raises:
             AgentExecutionError: If mandatory 'step_analyst' input is missing.
         """
         # FAIL FAST: Overseer requires Evidence Map
-        if not input_data.get("step_analyst"):
+        if not input_data.step_analyst:
                 error_msg = "[FactualOverseerAgent] Mandatory input 'step_analyst' missing. Oversight aborted."
                 logger.error(f"{ErrorCodes.AGENT_EXECUTION_CRITICAL}: {error_msg}")
                 raise AgentExecutionError(
@@ -214,23 +240,14 @@ class FactualOverseerAgent(BaseAgent):
 
         result_obj = await super().execute(input_data, execution_context, system_instruction, **kwargs)
 
-        if isinstance(result_obj, OverseerOutput):
-            return result_obj
-        elif isinstance(result_obj, dict):
-            return OverseerOutput(**result_obj)
-        else:
-             raise AgentExecutionError(
-                 detail=ErrorCodes.INVALID_JSON_PAYLOAD,
-                 original_error=TypeError(f"FactualOverseerAgent returned {type(result_obj)} instead of OverseerOutput"),
-                 agent_name="FactualOverseerAgent"
-             )
+        return result_obj
 
 
 
 
 
 
-class CausalAnalystAgent(BaseAgent):
+class CausalAnalystAgent(BaseAgent[CausalInput, CausalOutput]):
     """Kausaalinen Analyytikko-agentti (Causal Analyst).
 
     Responsible for analyzing causal relationships and correlations.
@@ -238,6 +255,8 @@ class CausalAnalystAgent(BaseAgent):
 
     state_field = "step_causal"
     PRODUCES_KEYS = ["step_causal"]
+    INPUT_SCHEMA = CausalInput
+    OUTPUT_SCHEMA = CausalOutput
 
     def get_response_schema(self) -> type[BaseModel] | None:
         """Returns the expected output schema.
@@ -249,21 +268,21 @@ class CausalAnalystAgent(BaseAgent):
 
     async def prepare_context(
         self,
-        input_data: dict[str, Any],
+        input_data: CausalInput,
         execution_context: dict[str, Any] | None,
         **kwargs: Any
     ) -> str | None:
         """Lifecycle Hook: Pre-Execution.
 
         Args:
-            input_data (dict[str, Any]): Inputs.
+            input_data (CausalInput): Inputs.
             execution_context (dict[str, Any] | None): Context.
             **kwargs: execution arguments.
 
         Returns:
             str | None: Formatted context string.
         """
-        analyst_output = input_data.get("step_analyst")
+        analyst_output = input_data.step_analyst
 
         if analyst_output:
             content = (
@@ -277,7 +296,7 @@ class CausalAnalystAgent(BaseAgent):
 
     async def execute(
         self,
-        input_data: dict[str, Any],
+        input_data: CausalInput,
         execution_context: dict[str, Any] | None = None,
         system_instruction: str | None = None,
         **kwargs: Any,
@@ -285,19 +304,19 @@ class CausalAnalystAgent(BaseAgent):
         """Executes causal analysis.
 
         Args:
-            input_data (dict[str, Any]): Inputs.
+            input_data (CausalInput): Inputs.
             execution_context (dict[str, Any] | None, optional): Context.
             system_instruction (str | None, optional): Prompt.
             **kwargs: Args.
 
         Returns:
-            dict[str, Any] | BaseModel: Correlation/Causation report.
+            CausalOutput: Correlation/Causation report.
 
         Raises:
             AgentExecutionError: If mandatory 'step_analyst' input is missing.
         """
         # FAIL FAST: Causal Analyst requires Evidence Map
-        if not input_data.get("step_analyst"):
+        if not input_data.step_analyst:
                 error_msg = "[CausalAnalystAgent] Mandatory input 'step_analyst' missing. Analysis aborted."
                 logger.error(f"{ErrorCodes.AGENT_EXECUTION_CRITICAL}: {error_msg}")
                 raise AgentExecutionError(
@@ -308,21 +327,12 @@ class CausalAnalystAgent(BaseAgent):
 
         result_obj = await super().execute(input_data, execution_context, system_instruction, **kwargs)
 
-        if isinstance(result_obj, CausalOutput):
-            return result_obj
-        elif isinstance(result_obj, dict):
-            return CausalOutput(**result_obj)
-        else:
-             raise AgentExecutionError(
-                 detail=ErrorCodes.INVALID_JSON_PAYLOAD,
-                 original_error=TypeError(f"CausalAnalystAgent returned {type(result_obj)} instead of CausalOutput"),
-                 agent_name="CausalAnalystAgent"
-             )
+        return result_obj
 
 
 
 
-class PerformativityDetectorAgent(BaseAgent):
+class PerformativityDetectorAgent(BaseAgent[PerformativityInput, PerformativityOutput]):
     """Performatiivisuuden Tunnistaja-agentti (Performativity Detector).
 
     Responsible for detecting performative language and rhetorical devices.
@@ -330,6 +340,8 @@ class PerformativityDetectorAgent(BaseAgent):
 
     state_field = "step_detector"
     PRODUCES_KEYS = ["step_detector"]
+    INPUT_SCHEMA = PerformativityInput
+    OUTPUT_SCHEMA = PerformativityOutput
 
     def get_response_schema(self) -> type[BaseModel] | None:
         """Returns the expected output schema.
@@ -341,21 +353,21 @@ class PerformativityDetectorAgent(BaseAgent):
 
     async def prepare_context(
         self,
-        input_data: dict[str, Any],
+        input_data: PerformativityInput,
         execution_context: dict[str, Any] | None,
         **kwargs: Any
     ) -> str | None:
         """Lifecycle Hook: Pre-Execution.
 
         Args:
-            input_data (dict[str, Any]): Inputs.
+            input_data (PerformativityInput): Inputs.
             execution_context (dict[str, Any] | None): Context.
             **kwargs: execution arguments.
 
         Returns:
             str | None: Formatted context string.
         """
-        analyst_output = input_data.get("step_analyst")
+        analyst_output = input_data.step_analyst
 
         if analyst_output:
             content = (
@@ -369,7 +381,7 @@ class PerformativityDetectorAgent(BaseAgent):
 
     async def execute(
         self,
-        input_data: dict[str, Any],
+        input_data: PerformativityInput,
         execution_context: dict[str, Any] | None = None,
         system_instruction: str | None = None,
         **kwargs: Any,
@@ -377,19 +389,19 @@ class PerformativityDetectorAgent(BaseAgent):
         """Executes performativity detection.
 
         Args:
-            input_data (dict[str, Any]): Inputs.
+            input_data (PerformativityInput): Inputs.
             execution_context (dict[str, Any] | None, optional): Context.
             system_instruction (str | None, optional): Prompt.
             **kwargs: Args.
 
         Returns:
-            dict[str, Any] | BaseModel: Rhetorical analysis.
+            PerformativityOutput: Rhetorical analysis.
 
         Raises:
             AgentExecutionError: If mandatory 'step_analyst' input is missing.
         """
         # FAIL FAST: Detector requires Evidence Map
-        if not input_data.get("step_analyst"):
+        if not input_data.step_analyst:
                 error_msg = "[PerformativityDetectorAgent] Mandatory input 'step_analyst' missing. Detection aborted."
                 logger.error(f"{ErrorCodes.AGENT_EXECUTION_CRITICAL}: {error_msg}")
                 raise AgentExecutionError(
@@ -400,16 +412,7 @@ class PerformativityDetectorAgent(BaseAgent):
 
         result_obj = await super().execute(input_data, execution_context, system_instruction, **kwargs)
 
-        if isinstance(result_obj, PerformativityOutput):
-            return result_obj
-        elif isinstance(result_obj, dict):
-            return PerformativityOutput(**result_obj)
-        else:
-             raise AgentExecutionError(
-                 detail=ErrorCodes.INVALID_JSON_PAYLOAD,
-                 original_error=TypeError(f"PerformativityDetectorAgent returned {type(result_obj)} instead of PerformativityOutput"),
-                 agent_name="PerformativityDetectorAgent"
-             )
+        return result_obj
 
     def detect_performative_patterns(self, state: WorkflowState) -> WorkflowState:
         """HOOK: detect_performative_patterns.

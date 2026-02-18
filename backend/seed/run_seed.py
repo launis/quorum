@@ -1,5 +1,6 @@
 import argparse
 import json
+import logging
 import os
 import sys
 from pathlib import Path
@@ -14,6 +15,18 @@ from backend.seed.seeder import _seed_firestore, _seed_tinydb
 SEED_PATH = os.path.join(project_root, 'backend', 'seed', 'seed_data.json')
 LOCAL_DB_PATH = os.path.join(project_root, 'data', 'db.json')
 MOCK_DB_PATH = os.path.join(project_root, 'backend', 'database', 'db_mock.json')
+
+# Configure Logging to File
+logging.basicConfig(
+    filename='seed.log',
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    filemode='w',
+    encoding='utf-8'
+)
+console = logging.StreamHandler()
+console.setLevel(logging.INFO)
+logging.getLogger('').addHandler(console)
 
 def seed(target):
     print(f"--- SEEDING TARGET: {target.upper()} ---")

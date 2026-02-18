@@ -4,11 +4,27 @@ This module contains the schemas for the Overseer Agent,
 including fact checks and ethical observations.
 """
 
-from typing import Any, Literal
+
+from __future__ import annotations
+
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator
 
 from backend.models.domain.base import ReasoningTrace
+
+
+from typing import TYPE_CHECKING
+from backend.models.domain.analyst import AnalystOutput
+
+
+class OverseerInput(BaseModel):
+    """Strict input schema for FactualOverseerAgent."""
+    history_text: str = Field(..., description="Chat history to analyze.")
+    step_analyst: Optional[AnalystOutput] = Field(None, description="Analyst hypotheses/timeline.")
+    last_reasoning_trace: Optional[str] = Field(default=None, description="Previous reasoning trace.")
+    
+    model_config = ConfigDict(frozen=True, extra="ignore")
 
 
 class FactCheckRFI(BaseModel):

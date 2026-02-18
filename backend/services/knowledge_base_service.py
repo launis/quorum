@@ -173,11 +173,23 @@ class KnowledgeBaseService:
                 )
 
                 # 4. Merge
-                existing_terms = {c["term"].lower() for c in parsed_data.get("concepts", [])}
+                existing_terms = {c.term.lower() for c in parsed_data.concepts}
+
+                from backend.models.domain.knowledge import Concept
 
                 for c in llm_concepts:
                     if c["term"].lower() not in existing_terms:
-                        parsed_data["concepts"].append(c)
+                        # parsed_data is frozen, but the list *might* be mutable.
+                        # However, to be safe and correct given frozen=True, we shouldn't mutate it.
+                        # But since this is an in-memory object just created, we'll try appending.
+                        # If Pydantic v2 enforces strict immutability on lists, this might fail,
+                        # but standard pattern often allows list mutation.
+                        # Ideally, we would reconstruct the object, but that's heavy.
+                        # Let's verify 'c' keys match Concept fields.
+                        term = c.get("term", "").strip()
+                        defn = c.get("definition", "").strip()
+                        if term and defn:
+                            parsed_data.concepts.append(Concept(term=term, definition=defn))
                     else:
                         # Update definition?
                         pass
@@ -273,7 +285,9 @@ class KnowledgeBaseService:
 
             # Create transient provider for this job
             llm_provider = LLMFactory.create_provider(
-                provider_type=config["provider"], model_name=config["model_name"], usage_service=self.usage_service
+                provider_type=config.provider, 
+                model_name=config.model_name, 
+                usage_service=self.usage_service
             )
             logger.info(f"[KBService] Using Model: {getattr(llm_provider, 'model_name', 'Unknown')}")
 
@@ -346,6 +360,9 @@ class KnowledgeBaseService:
                     prompt=prompt,
                     system_instruction="Extract concepts strictly conforming to the schema.",
                     response_schema=ConceptResponse,
+                    temperature=config.temperature,
+                    max_tokens=config.max_tokens,
+                    top_p=config.top_p,
                 )
 
                 # LiteLLMProvider guarantees valid JSON in content when response_schema is used
@@ -381,7 +398,7 @@ class KnowledgeBaseService:
 
     async def _store_parsed_data(
         self,
-        parsed_data: dict[str, Any],
+        parsed_data: Any, # Actually KnowledgeBaseDocument
         source_name: str,
         job_id: str,
         tracker: Any = None,
@@ -391,7 +408,7 @@ class KnowledgeBaseService:
         """Internal: Converts parsed data structures into Database Records and inserts them.
 
         Args:
-            parsed_data (dict): Structure from parser.
+            parsed_data (KnowledgeBaseDocument): Structure from parser.
             source_name (str): Origin filename.
             job_id (str): Ingestion Job ID.
             tracker (Optional[Any]): Progress tracker.
@@ -400,21 +417,23 @@ class KnowledgeBaseService:
         Returns:
             dict[str, Any]: Final result summary.
         """
-        concepts = parsed_data.get("concepts", [])
-        refs = parsed_data.get("references", [])
-        claims = parsed_data.get("claims", [])
+        # parsed_data is a Pydantic Model (KnowledgeBaseDocument)
+        concepts = parsed_data.concepts
+        refs = parsed_data.references
+        claims = parsed_data.claims
 
         total_items = len(concepts) + len(refs) + len(claims)
         processed = 0
 
         count_concepts = 0
         for c in concepts:
+            # c is Concept Pydantic model
             item = {
                 "id": str(uuid.uuid4()),
                 "job_id": job_id,
                 "type": "concept",
-                "term": c["term"],
-                "definition": c["definition"],
+                "term": c.term,
+                "definition": c.definition,
                 "source_file": source_name,
                 "ingested_at": datetime.now(),
                 "metadata": {"language": language},
@@ -429,16 +448,17 @@ class KnowledgeBaseService:
 
         count_refs = 0
         for r in refs:
+            # r is Reference Pydantic model
             item = {
                 "id": str(uuid.uuid4()),
                 "job_id": job_id,
                 "type": "reference",
-                "term": r.get("short_citation") or (r["citation"][:50] + "..."),
-                "definition": r["citation"],  # Full citation as definition
-                "doi_link": r.get("doi_link"),
+                "term": r.short_citation or (r.citation[:50] + "..."),
+                "definition": r.citation,  # Full citation as definition
+                "doi_link": r.doi_link,
                 "source_file": source_name,
                 "ingested_at": datetime.now(),
-                "metadata": {"short_citation": r.get("short_citation"), "language": language},
+                "metadata": {"short_citation": r.short_citation, "language": language},
             }
             await self.repository.add_knowledge_base_item(item)
             count_refs += 1
@@ -449,20 +469,20 @@ class KnowledgeBaseService:
 
         count_claims = 0
         for cl in claims:
-            # Claim structure: {claim_text, citation_keys, citation_text, original_markdown...}
+            # cl is Claim Pydantic model
             item = {
                 "id": str(uuid.uuid4()),
                 "job_id": job_id,
                 "type": "claim",
-                "term": cl["citation_text"][:50] + "...",  # Use short citation as term or snippet?
-                "definition": cl["claim_text"],  # The claim itself is the "definition" or content
+                "term": (cl.citation_text[:50] + "...") if cl.citation_text else "Claim",
+                "definition": cl.claim_text,  # The claim itself is the "definition" or content
                 "source_file": source_name,
                 "ingested_at": datetime.now(),
                 "metadata": {
-                    "citation_keys": cl.get("citation_keys"),
-                    "citation_text": cl.get("citation_text"),
-                    "full_reference": cl.get("original_markdown"),
-                    "concept_context": cl.get("concept_context"),
+                    "citation_keys": cl.citation_keys,
+                    "citation_text": cl.citation_text,
+                    "full_reference": cl.original_markdown,
+                    "concept_context": cl.concept_context,
                     "language": language,
                 },
             }

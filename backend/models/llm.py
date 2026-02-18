@@ -5,7 +5,7 @@ various LLM providers (Google Gemini, OpenAI, etc.), including support for
 advanced reasoning tokens and tool calls.
 """
 
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -48,6 +48,10 @@ class LLMResponse(BaseModel):
     token_usage: Annotated[
         dict[str, float | int],
         Field(default_factory=dict, description="Token usage statistics (prompt, completion, total, cost)."),
+    ]
+    provider_metadata: Annotated[
+        dict[str, Any],
+        Field(default_factory=dict, description="Provider-specific raw metadata (e.g. finish_reason)."),
     ]
     messages: Annotated[
         list[dict[str, str]] | None,
@@ -111,6 +115,57 @@ class LLMProviderConfig(BaseModel):
             json_schema_extra={"x-ui-label": "Temperature"},
         ),
     ]
+    tpm_limit: Annotated[
+        int,
+        Field(
+            default=0,
+            ge=0,
+            description="Tokens per minute limit. 0=unlimited.",
+            json_schema_extra={"x-ui-label": "TPM Limit"},
+        ),
+    ]
+    rpm_limit: Annotated[
+        int,
+        Field(
+            default=0,
+            ge=0,
+            description="Requests per minute limit. 0=unlimited.",
+            json_schema_extra={"x-ui-label": "RPM Limit"},
+        ),
+    ]
+    default_max_tokens: Annotated[
+        int | None,
+        Field(
+            default=None,
+            ge=1,
+            description="Default max output tokens.",
+            json_schema_extra={"x-ui-label": "Max Tokens"},
+        ),
+    ]
+    vertex_location: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description="Google Cloud Region (Vertex AI only).",
+            json_schema_extra={"x-ui-label": "Vertex Location"},
+        ),
+    ]
+    supports_grounding: Annotated[
+        bool,
+        Field(
+            default=False,
+            description="Whether this model supports Google Search Grounding.",
+            json_schema_extra={"x-ui-label": "Supports Grounding"},
+        ),
+    ]
+    is_active: Annotated[
+        bool,
+        Field(
+            default=True,
+            description="Whether this provider is active.",
+            json_schema_extra={"x-ui-label": "Is Active"},
+        ),
+    ]
     additional_params: Annotated[
         dict[str, Any], Field(default_factory=dict, description="Additional provider-specific parameters.")
     ]
@@ -164,3 +219,45 @@ class AdHocTestResponse(BaseModel):
         if v < 0:
             raise ValueError("Latency cannot be negative.")
         return v
+
+
+class AgentSystemConfig(BaseModel):
+    """Configuration for an Agent (Prompts & Settings)."""
+
+    model_config = ConfigDict(extra="ignore", strict=True)
+
+    id: Annotated[str, Field(..., description="Agent ID (e.g. 'PanelAgent').")]
+    llm_prompts: Annotated[
+        dict[str, str] | list[str] | None,
+        Field(default=None, description="Prompt templates or keys."),
+    ]
+    model_strategy: Annotated[
+        str | None,
+        Field(default="deep", description="Model strategy (e.g. 'deep', 'fast', 'strict')."),
+    ]
+    type: Annotated[
+        str | None,
+        Field(default="agent", description="Component type discriminator."),
+    ]
+    pre_hooks: Annotated[
+        list[str] | None,
+        Field(default=None, description="List of pre-execution hooks."),
+    ]
+    settings: Annotated[
+        dict[str, Any] | None,
+        Field(default=None, description="Additional agent settings."),
+    ]
+    # Allow 'type' discriminator if needed in future, but distinct structure is enough here.
+
+
+class ModelRegistryConfig(BaseModel):
+    """Configuration for the Model Registry."""
+
+    model_config = ConfigDict(extra="ignore", strict=True)
+    
+    id: Literal["model_registry"] = Field(default="model_registry", description="Fixed ID.")
+    type: Literal["model_registry"] = Field(default="model_registry", description="Fixed Type.")
+    models: Annotated[
+        dict[str, dict[str, Any]], 
+        Field(..., description="Map of Provider -> Strategy Map."),
+    ]

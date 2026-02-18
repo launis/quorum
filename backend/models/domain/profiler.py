@@ -4,11 +4,22 @@ This module contains the schemas for the Profiler Agent,
 including intent analysis and text metrics.
 """
 
-from typing import Any
+from typing import Any, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from backend.models.domain.base import ReasoningTrace
+
+
+class ProfilerInput(BaseModel):
+    """Strict input schema for ProfilerAgent."""
+    history_text: str = Field(..., description="Chat history to profile.")
+    product_text: Optional[str] = Field(None, description="Product context (optional).")
+    profiler_metrics: Optional[dict[str, Any]] = Field(None, description="Injected text metrics.")
+    last_reasoning_trace: Optional[str] = Field(default=None, description="Previous reasoning trace.")
+    
+    model_config = ConfigDict(frozen=True, extra="ignore")
+
 
 
 class TextMetrics(BaseModel):
@@ -21,7 +32,7 @@ class TextMetrics(BaseModel):
     # Added for Metric Hook consolidation
     control_ratio: float = Field(default=0.0, description="User/AI token ratio.", json_schema_extra={"x-ui-label": "Control Ratio"})
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=False)
 
     @field_validator("word_count", "sentence_count")
     @classmethod
@@ -44,7 +55,7 @@ class BehavioralMetrics(BaseModel):
     automation_bias: float = Field(default=0.0, description="Over-reliance on AI.", json_schema_extra={"x-ui-label": "Automation Bias"})
     illusion_of_competence: float = Field(default=0.0, description="False sense of mastery.", json_schema_extra={"x-ui-label": "Illusion of Competence"})
     
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=False)
 
 
 class ProfilerAnalysis(ReasoningTrace):
@@ -69,7 +80,7 @@ class ProfilerAnalysis(ReasoningTrace):
         description="Quantitative text metrics.",
         json_schema_extra={"x-ui-label": "Metrics"},
     )
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=False)
 
     @field_validator("author_intent", "emotional_tone")
     @classmethod

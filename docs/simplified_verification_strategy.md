@@ -1,12 +1,13 @@
-# Simplified Verification Strategy (V2.9)
+# Simplified Verification Strategy (V3.2 - Phase 8 Standards)
 
 **Philosophy**: "Zero-Magic". We avoid complex test runners and implicit states in favor of clear, readable, single-file verification scripts.
+**Principle**: "Fail Fast". Verification should halt immediately upon detecting invalid configuration or state.
 
 ---
 
 ## 1. Backend Verification (Data Integrity)
 
-We verify the backend primarily by ensuring the **Database** matches the **Seed Data** (SSOT).
+We verify the backend primarily by ensuring the **Database** matches the **Seed Data** (SSOT) and that strict schemas are enforced.
 
 ### A. Sync Verification (`verify_sync.py`)
 This script performs a deep comparison between `seed_data.json` and all active databases (Local, Mock, Firestore).
@@ -14,9 +15,10 @@ This script performs a deep comparison between `seed_data.json` and all active d
 *   **Command**: `python backend/seed/verify_sync.py` (Requires Python 3.14.2+)
 *   **Success Criteria**: Output must read **"ALL SYSTEMS SYNCED"**.
 *   **What it checks**:
-    *   Entity Counts (Users, Orgs, Workflows).
-    *   Content Hashing (Checks if prompt content has drifted).
-    *   Schema Validation (Ensures DB records match Pydantic models).
+    *   **Entity Counts**: Users, Orgs, Workflows, *Components*.
+    *   **Content Hashing**: Checks if prompt content has drifted.
+    *   **Schema Validation**: Ensures DB records match **Strict Pydantic V2** models.
+    *   **System Config**: Verifies `model_registry` and Agent Strategies (e.g., `PanelAgent` -> `deep`).
 
 ### B. Count Verification (`check_counts.py`)
 A fast, high-level sanity check to compare record counts across environments.
@@ -39,22 +41,27 @@ We verify the **Hybrid State Architecture** by ensuring the Event Log (`trace`) 
 ## 2. Logic Verification (Unit Tests)
 
 ### Backend (Python)
-We use `pytest` with a "Service-First" approach. We instantiate Services directly with Mock Repositories, avoiding the need to spin up the full FastAPI app or Docker container.
+We use `pytest` with a "Service-First" approach. We instantiate Services directly with Mock Repositories, avoiding the need to spin up the full FastAPI app.
 
 *   **Pattern**: Dependency Injection with `MagicMock`.
+*   **Fail-Fast Validation**: Tests must assert that `AppException` (RFC 7807) is raised for invalid inputs.
+*   **DTO Verification**: Tests must verify that Agents return strict DTOs (e.g., `PanelOutputDTO`) which are then promoted to Domain Models (e.g., `PanelOutput`) by the Engine.
 *   **Location**: `backend/tests/`
 *   **Command**: `uv run pytest`
 
 ```python
-def test_rbac_rules():
-    # 1. Setup Mock Repo
-    auth_service = AuthService(db=MagicMock(), ...)
+def test_security_hook_fail_fast():
+    # 1. Setup Mock Repo returning empty rules
+    repo = MagicMock()
+    repo.get_banned_phrases.return_value = []
     
-    # 2. Action
-    user = auth_service.create_user(...)
+    # 2. Action & Assert
+    with pytest.raises(AppException) as exc:
+        # Zero-Fallback: Must crash if DB is empty
+        run_security_hook(..., repository=repo)
     
-    # 3. Assert
-    assert user.role == "MEMBER"
+    assert exc.value.status_code == 500
+    assert exc.value.details["error_code"] == ErrorCodes.SECURITY_DB_ERROR
 ```
 
 ### Frontend (Flutter)
@@ -63,20 +70,6 @@ We use `flutter_test` with **Mocktail**. We strictly avoid code generation (`bui
 *   **Pattern**: Repository Pattern Verification.
 *   **Location**: `client_app/test/`
 *   **Command**: `flutter test`
-
-```dart
-class MockAuthRepository extends Mock implements AuthRepository {}
-
-test('User can login', () async {
-  final repo = MockAuthRepository();
-  when(() => repo.signIn(...)).thenAnswer((_) async => User(...));
-  
-  final controller = AuthController(repo);
-  await controller.login();
-  
-  verify(() => repo.signIn(any())).called(1);
-});
-```
 
 ---
 

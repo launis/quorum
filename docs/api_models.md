@@ -38,7 +38,28 @@ Captures the "Thinking Tokens" (e.g., Gemini 1.5 Thinking) that are NOT shown to
 | `conclusion` | `str` | Synthesized conclusion. |
 | `confidence_score` | `float` | Self-assessed confidence (0.0 - 1.0). |
 
+| `confidence_score` | `float` | Self-assessed confidence (0.0 - 1.0). |
+
 ---
+
+## 🔒 Agent Input Schemas (`backend.models.domain`)
+
+Strict input contracts enforced by `BaseAgent`.
+
+| Agent | Input Model | Description |
+| :--- | :--- | :--- |
+| **Retrieval** | `RetrievalInput` | Query & Org ID. |
+| **Interaction** | `InteractionInput` | History Text. |
+| **Coach** | `CoachInput` | Judge Verdict (`step_judge`). |
+| **XAI** | `XAIReporterInput` | Judge Verdict(s) (`step_judge*`). |
+| **Guard** | `GuardInput` | Raw Text (History, Product, Reflection). |
+| **Analyst** | `AnalystInput` | Research Claims. |
+| **Logician** | `LogicianInput` | Argument Analysis. |
+| **Protector** | `OverseerInput` | Fact Checking. |
+| **Profiler** | `ProfilerInput` | Text Analysis. |
+
+---
+
 
 ## 🛡️ Agent Schemas (`backend.models.domain`)
 

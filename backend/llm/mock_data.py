@@ -42,6 +42,16 @@ from backend.models.domain import (
     WaltonStressTest,
     XAIOutput,
 )
+from backend.models.enums import (
+    AbductiveConclusion,
+    AuthenticityLevel,
+    BloomLevel,
+    FidelityLevel,
+    PlausibilityLevel,
+    RiskLevel,
+    SimulationType,
+    StrategicDepth,
+)
 
 # 0. Shared Metadata
 MOCK_METADATA = Metadata(
@@ -54,7 +64,10 @@ MOCK_METADATA = Metadata(
 
 # 1. Analyst Agent
 MOCK_ANALYST_OUTPUT = AnalystOutput(
-    reasoning_trace="Mock reasoning trace for Analyst.",
+    # reasoning_trace removed
+    thought_process="Analyst Thinking Process: Reviewing claims against known patterns.",
+    conclusion="Analyst Conclusion: The text contains verifiable claims.",
+    confidence_score=0.9,
     metadata=MOCK_METADATA.model_copy(update={"agentti": "AnalystAgent", "vaihe": 2}),
     hypotheses=[
         Hypothesis(
@@ -80,8 +93,8 @@ MOCK_LOGICIAN_DATA = LogicianData(
         )
     ],
     cognitive_level=CognitiveLevel(
-        bloom_level="BLOOM_ANALYZING",
-        strategic_depth="STRAT_HIGH",
+        bloom_level=BloomLevel.ANALYZING,
+        strategic_depth=StrategicDepth.HIGH,
         bloom_score=4.0,
         strategic_score=3.0,
         description="Analyzing High"
@@ -95,7 +108,9 @@ MOCK_LOGICIAN_DATA = LogicianData(
 )
 
 MOCK_LOGICIAN_OUTPUT = LogicianOutput(
-    reasoning_trace="Mock Logician Trace",
+    thought_process="Mock Logician Trace: Analyzed logic.",
+    conclusion="Logically sound.",
+    confidence_score=0.9,
     logician_data=MOCK_LOGICIAN_DATA
 )
 
@@ -110,13 +125,15 @@ MOCK_FALSIFIER_DATA = FalsifierData(
     fidelity_audit=ReasoningFidelity(
         is_post_hoc=False,
         justification="Sound reasoning",
-        fidelity_score="FIDELITY_HIGH",
+        fidelity_score=FidelityLevel.HIGH,
         fidelity_numeric=3.0
     )
 )
 
 MOCK_FALSIFIER_OUTPUT = FalsifierOutput(
-    reasoning_trace="Mock Falsifier Trace",
+    thought_process="Mock Falsifier Trace: Checked for hidden variables.",
+    conclusion="No major falsifiers found.",
+    confidence_score=0.9,
     falsifier_data=MOCK_FALSIFIER_DATA
 )
 
@@ -126,15 +143,17 @@ MOCK_CAUSAL_ANALYSIS = CausalAnalysis(
     counterfactual_test=CounterfactualTest(
         actual_scenario="A",
         simulation_result="B",
-        plausibility_score="PLAUS_PLAUSIBLE",
+        plausibility_score=PlausibilityLevel.PLAUSIBLE,
         plausibility_numeric=2.0
     ),
-    abductive_conclusion="ABDUCT_GENUINE",
+    abductive_conclusion=AbductiveConclusion.GENUINE,
     abductive_score=3.0
 )
 
 MOCK_CAUSAL_OUTPUT = CausalOutput(
-    reasoning_trace="Mock Causal Trace",
+    thought_process="Mock Causal Trace: Verified causality.",
+    conclusion="Causal link established.",
+    confidence_score=0.85,
     causal_analysis=MOCK_CAUSAL_ANALYSIS
 )
 
@@ -150,12 +169,14 @@ MOCK_PERFORMATIVITY_ANALYSIS = PerformativityAnalysis(
         performed=True,
         weak_signals=["Signal 1"]
     ),
-    authenticity_assessment="AUTH_ORGANIC",
+    authenticity_assessment=AuthenticityLevel.ORGANIC,
     authenticity_score=3.0
 )
 
 MOCK_PERFORMATIVITY_OUTPUT = PerformativityOutput(
-    reasoning_trace="Mock Performativity Trace",
+    thought_process="Mock Performativity Trace: Analyzed linguistics.",
+    conclusion="Organic content detected.",
+    confidence_score=0.9,
     performativity_analysis=MOCK_PERFORMATIVITY_ANALYSIS
 )
 
@@ -177,13 +198,17 @@ MOCK_OVERSEER_DATA = OverseerData(
 )
 
 MOCK_OVERSEER_OUTPUT = OverseerOutput(
-    reasoning_trace="Mock Overseer Trace",
+    thought_process="Mock Overseer Trace: Verified facts.",
+    conclusion="Fact check passed.",
+    confidence_score=0.95,
     overseer_data=MOCK_OVERSEER_DATA
 )
 
 # 2. Panel Agent
 MOCK_PANEL_OUTPUT = PanelOutput(
-    reasoning_trace="Mock Panel Trace",
+    thought_process="Mock Panel Trace: Synthesized views.",
+    conclusion="Consensus reached.",
+    confidence_score=0.9,
     metadata=MOCK_METADATA.model_copy(update={"agentti": "PanelAgent", "vaihe": 3}),
     logician_data=MOCK_LOGICIAN_DATA,
     falsifier_data=MOCK_FALSIFIER_DATA,
@@ -194,6 +219,9 @@ MOCK_PANEL_OUTPUT = PanelOutput(
 
 # 3. Judge Agent
 MOCK_JUDGE_OUTPUT = EvaluationResult(
+    thought_process="Mock Judge Trace: Evaluated all dimensions.",
+    conclusion="High quality output.",
+    confidence_score=0.9,
     matrix_id="matrix_standard_v1",
     timestamp=datetime.now(),
     total_score=4.5,
@@ -213,6 +241,8 @@ MOCK_JUDGE_OUTPUT = EvaluationResult(
             agent_name="MockJudge",
             total_score=4.5,
             max_score=5,
+            scale_min=1.0,
+            scale_max=5.0,
             verdict="Excellent",
             dimensions=[
                 DimensionResultItem(
@@ -228,7 +258,9 @@ MOCK_JUDGE_OUTPUT = EvaluationResult(
 
 # 4. Other Agents
 MOCK_INTERACTION_OUTPUT = InteractionAnalysis(
-    reasoning_trace="Mock Interaction Trace",
+    thought_process="Mock Interaction Trace: Analyzed roles.",
+    conclusion="Clear roles defined.",
+    confidence_score=0.9,
     metadata=MOCK_METADATA.model_copy(update={"agentti": "InteractionAgent"}),
     role_classification="Architect",
     input_quality_score=0.9,
@@ -236,7 +268,9 @@ MOCK_INTERACTION_OUTPUT = InteractionAnalysis(
 )
 
 MOCK_PROFILER_OUTPUT = ProfilerAnalysis(
-    reasoning_trace="Mock Profiler Trace",
+    thought_process="Mock Profiler Trace: Analyzed style.",
+    conclusion="Consistent tone.",
+    confidence_score=0.9,
     metadata=MOCK_METADATA.model_copy(update={"agentti": "ProfilerAgent"}),
     author_intent="Inform",
     cognitive_biases=["Bias 1"],
@@ -245,7 +279,9 @@ MOCK_PROFILER_OUTPUT = ProfilerAnalysis(
 )
 
 MOCK_ARCHIVIST_OUTPUT = ArchivistOutput(
-    reasoning_trace="Mock Archivist Trace",
+    thought_process="Mock Archivist Trace: Searched cases.",
+    conclusion="Precedents found.",
+    confidence_score=0.95,
     metadata=MOCK_METADATA.model_copy(update={"agentti": "ArchivistAgent"}),
     relevant_cases=[
         ArchiveCase(
@@ -262,7 +298,9 @@ MOCK_ARCHIVIST_OUTPUT = ArchivistOutput(
 )
 
 MOCK_COACH_OUTPUT = CoachingPlan(
-    reasoning_trace="Mock Coach Trace",
+    thought_process="Mock Coach Trace: Formulated plan.",
+    conclusion="Actionable steps ready.",
+    confidence_score=0.9,
     metadata=MOCK_METADATA.model_copy(update={"agentti": "CoachAgent"}),
     actionable_steps=["Step 1"],
     bibliography=[],
@@ -270,7 +308,8 @@ MOCK_COACH_OUTPUT = CoachingPlan(
 )
 
 MOCK_XAI_OUTPUT = XAIOutput(
-    reasoning_trace="Mock XAI Trace",
+    thought_process="Mock XAI Trace: Generated report.",
+    conclusion="Report complete.",
     metadata=MOCK_METADATA.model_copy(update={"agentti": "XAIReporterAgent"}),
     executive_summary="Summary",
     analysis_strengths="Strengths",
@@ -284,6 +323,8 @@ MOCK_XAI_OUTPUT = XAIOutput(
             agent_name="Standard Judge",
             total_score=4.5,
             max_score=5,
+            scale_min=1.0,
+            scale_max=5.0,
             verdict="High Fidelity",
             dimensions=[
                 DimensionResultItem(dimension_id="logic", score=4.5, reasoning="Clear logic"),
@@ -294,10 +335,12 @@ MOCK_XAI_OUTPUT = XAIOutput(
 )
 
 MOCK_GUARD_OUTPUT = GuardOutput(
-    reasoning_trace="Mock Guard Trace",
+    thought_process="Mock Guard Trace: Checked security.",
+    conclusion="Safe to proceed.",
+    confidence_score=1.0,
     security_check=SecurityCheck(
         threat_detected=False,
-        risk_level="RISK_LOW",
+        risk_level=RiskLevel.LOW,
         risk_score=1.0,
         simulation_score=1.0,
         anonymized=True

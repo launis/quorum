@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$LLMProviderConfig {
 
- String get id; String get provider;@JsonKey(name: 'model_name') String get modelName;@JsonKey(name: 'api_key') String? get apiKey;@JsonKey(name: 'base_url') String? get baseUrl; double get temperature;@JsonKey(name: 'additional_params') Map<String, dynamic> get additionalParams;
+ String get id; String get provider;@JsonKey(name: 'model_name') String get modelName;@JsonKey(name: 'api_key') String? get apiKey;@JsonKey(name: 'base_url') String? get baseUrl; double get temperature;@JsonKey(name: 'tpm_limit') int get tpmLimit;@JsonKey(name: 'rpm_limit') int get rpmLimit;@JsonKey(name: 'default_max_tokens') int? get defaultMaxTokens;@JsonKey(name: 'vertex_location') String? get vertexLocation;@JsonKey(name: 'supports_grounding') bool get supportsGrounding;@JsonKey(name: 'is_active') bool get isActive;@JsonKey(name: 'additional_params') Map<String, dynamic> get additionalParams;
 /// Create a copy of LLMProviderConfig
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $LLMProviderConfigCopyWith<LLMProviderConfig> get copyWith => _$LLMProviderConfi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is LLMProviderConfig&&(identical(other.id, id) || other.id == id)&&(identical(other.provider, provider) || other.provider == provider)&&(identical(other.modelName, modelName) || other.modelName == modelName)&&(identical(other.apiKey, apiKey) || other.apiKey == apiKey)&&(identical(other.baseUrl, baseUrl) || other.baseUrl == baseUrl)&&(identical(other.temperature, temperature) || other.temperature == temperature)&&const DeepCollectionEquality().equals(other.additionalParams, additionalParams));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is LLMProviderConfig&&(identical(other.id, id) || other.id == id)&&(identical(other.provider, provider) || other.provider == provider)&&(identical(other.modelName, modelName) || other.modelName == modelName)&&(identical(other.apiKey, apiKey) || other.apiKey == apiKey)&&(identical(other.baseUrl, baseUrl) || other.baseUrl == baseUrl)&&(identical(other.temperature, temperature) || other.temperature == temperature)&&(identical(other.tpmLimit, tpmLimit) || other.tpmLimit == tpmLimit)&&(identical(other.rpmLimit, rpmLimit) || other.rpmLimit == rpmLimit)&&(identical(other.defaultMaxTokens, defaultMaxTokens) || other.defaultMaxTokens == defaultMaxTokens)&&(identical(other.vertexLocation, vertexLocation) || other.vertexLocation == vertexLocation)&&(identical(other.supportsGrounding, supportsGrounding) || other.supportsGrounding == supportsGrounding)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&const DeepCollectionEquality().equals(other.additionalParams, additionalParams));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,provider,modelName,apiKey,baseUrl,temperature,const DeepCollectionEquality().hash(additionalParams));
+int get hashCode => Object.hash(runtimeType,id,provider,modelName,apiKey,baseUrl,temperature,tpmLimit,rpmLimit,defaultMaxTokens,vertexLocation,supportsGrounding,isActive,const DeepCollectionEquality().hash(additionalParams));
 
 @override
 String toString() {
-  return 'LLMProviderConfig(id: $id, provider: $provider, modelName: $modelName, apiKey: $apiKey, baseUrl: $baseUrl, temperature: $temperature, additionalParams: $additionalParams)';
+  return 'LLMProviderConfig(id: $id, provider: $provider, modelName: $modelName, apiKey: $apiKey, baseUrl: $baseUrl, temperature: $temperature, tpmLimit: $tpmLimit, rpmLimit: $rpmLimit, defaultMaxTokens: $defaultMaxTokens, vertexLocation: $vertexLocation, supportsGrounding: $supportsGrounding, isActive: $isActive, additionalParams: $additionalParams)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $LLMProviderConfigCopyWith<$Res>  {
   factory $LLMProviderConfigCopyWith(LLMProviderConfig value, $Res Function(LLMProviderConfig) _then) = _$LLMProviderConfigCopyWithImpl;
 @useResult
 $Res call({
- String id, String provider,@JsonKey(name: 'model_name') String modelName,@JsonKey(name: 'api_key') String? apiKey,@JsonKey(name: 'base_url') String? baseUrl, double temperature,@JsonKey(name: 'additional_params') Map<String, dynamic> additionalParams
+ String id, String provider,@JsonKey(name: 'model_name') String modelName,@JsonKey(name: 'api_key') String? apiKey,@JsonKey(name: 'base_url') String? baseUrl, double temperature,@JsonKey(name: 'tpm_limit') int tpmLimit,@JsonKey(name: 'rpm_limit') int rpmLimit,@JsonKey(name: 'default_max_tokens') int? defaultMaxTokens,@JsonKey(name: 'vertex_location') String? vertexLocation,@JsonKey(name: 'supports_grounding') bool supportsGrounding,@JsonKey(name: 'is_active') bool isActive,@JsonKey(name: 'additional_params') Map<String, dynamic> additionalParams
 });
 
 
@@ -65,7 +65,7 @@ class _$LLMProviderConfigCopyWithImpl<$Res>
 
 /// Create a copy of LLMProviderConfig
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? provider = null,Object? modelName = null,Object? apiKey = freezed,Object? baseUrl = freezed,Object? temperature = null,Object? additionalParams = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? provider = null,Object? modelName = null,Object? apiKey = freezed,Object? baseUrl = freezed,Object? temperature = null,Object? tpmLimit = null,Object? rpmLimit = null,Object? defaultMaxTokens = freezed,Object? vertexLocation = freezed,Object? supportsGrounding = null,Object? isActive = null,Object? additionalParams = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,provider: null == provider ? _self.provider : provider // ignore: cast_nullable_to_non_nullable
@@ -73,7 +73,13 @@ as String,modelName: null == modelName ? _self.modelName : modelName // ignore: 
 as String,apiKey: freezed == apiKey ? _self.apiKey : apiKey // ignore: cast_nullable_to_non_nullable
 as String?,baseUrl: freezed == baseUrl ? _self.baseUrl : baseUrl // ignore: cast_nullable_to_non_nullable
 as String?,temperature: null == temperature ? _self.temperature : temperature // ignore: cast_nullable_to_non_nullable
-as double,additionalParams: null == additionalParams ? _self.additionalParams : additionalParams // ignore: cast_nullable_to_non_nullable
+as double,tpmLimit: null == tpmLimit ? _self.tpmLimit : tpmLimit // ignore: cast_nullable_to_non_nullable
+as int,rpmLimit: null == rpmLimit ? _self.rpmLimit : rpmLimit // ignore: cast_nullable_to_non_nullable
+as int,defaultMaxTokens: freezed == defaultMaxTokens ? _self.defaultMaxTokens : defaultMaxTokens // ignore: cast_nullable_to_non_nullable
+as int?,vertexLocation: freezed == vertexLocation ? _self.vertexLocation : vertexLocation // ignore: cast_nullable_to_non_nullable
+as String?,supportsGrounding: null == supportsGrounding ? _self.supportsGrounding : supportsGrounding // ignore: cast_nullable_to_non_nullable
+as bool,isActive: null == isActive ? _self.isActive : isActive // ignore: cast_nullable_to_non_nullable
+as bool,additionalParams: null == additionalParams ? _self.additionalParams : additionalParams // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>,
   ));
 }
@@ -159,10 +165,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String provider, @JsonKey(name: 'model_name')  String modelName, @JsonKey(name: 'api_key')  String? apiKey, @JsonKey(name: 'base_url')  String? baseUrl,  double temperature, @JsonKey(name: 'additional_params')  Map<String, dynamic> additionalParams)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String provider, @JsonKey(name: 'model_name')  String modelName, @JsonKey(name: 'api_key')  String? apiKey, @JsonKey(name: 'base_url')  String? baseUrl,  double temperature, @JsonKey(name: 'tpm_limit')  int tpmLimit, @JsonKey(name: 'rpm_limit')  int rpmLimit, @JsonKey(name: 'default_max_tokens')  int? defaultMaxTokens, @JsonKey(name: 'vertex_location')  String? vertexLocation, @JsonKey(name: 'supports_grounding')  bool supportsGrounding, @JsonKey(name: 'is_active')  bool isActive, @JsonKey(name: 'additional_params')  Map<String, dynamic> additionalParams)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _LLMProviderConfig() when $default != null:
-return $default(_that.id,_that.provider,_that.modelName,_that.apiKey,_that.baseUrl,_that.temperature,_that.additionalParams);case _:
+return $default(_that.id,_that.provider,_that.modelName,_that.apiKey,_that.baseUrl,_that.temperature,_that.tpmLimit,_that.rpmLimit,_that.defaultMaxTokens,_that.vertexLocation,_that.supportsGrounding,_that.isActive,_that.additionalParams);case _:
   return orElse();
 
 }
@@ -180,10 +186,10 @@ return $default(_that.id,_that.provider,_that.modelName,_that.apiKey,_that.baseU
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String provider, @JsonKey(name: 'model_name')  String modelName, @JsonKey(name: 'api_key')  String? apiKey, @JsonKey(name: 'base_url')  String? baseUrl,  double temperature, @JsonKey(name: 'additional_params')  Map<String, dynamic> additionalParams)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String provider, @JsonKey(name: 'model_name')  String modelName, @JsonKey(name: 'api_key')  String? apiKey, @JsonKey(name: 'base_url')  String? baseUrl,  double temperature, @JsonKey(name: 'tpm_limit')  int tpmLimit, @JsonKey(name: 'rpm_limit')  int rpmLimit, @JsonKey(name: 'default_max_tokens')  int? defaultMaxTokens, @JsonKey(name: 'vertex_location')  String? vertexLocation, @JsonKey(name: 'supports_grounding')  bool supportsGrounding, @JsonKey(name: 'is_active')  bool isActive, @JsonKey(name: 'additional_params')  Map<String, dynamic> additionalParams)  $default,) {final _that = this;
 switch (_that) {
 case _LLMProviderConfig():
-return $default(_that.id,_that.provider,_that.modelName,_that.apiKey,_that.baseUrl,_that.temperature,_that.additionalParams);case _:
+return $default(_that.id,_that.provider,_that.modelName,_that.apiKey,_that.baseUrl,_that.temperature,_that.tpmLimit,_that.rpmLimit,_that.defaultMaxTokens,_that.vertexLocation,_that.supportsGrounding,_that.isActive,_that.additionalParams);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -200,10 +206,10 @@ return $default(_that.id,_that.provider,_that.modelName,_that.apiKey,_that.baseU
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String provider, @JsonKey(name: 'model_name')  String modelName, @JsonKey(name: 'api_key')  String? apiKey, @JsonKey(name: 'base_url')  String? baseUrl,  double temperature, @JsonKey(name: 'additional_params')  Map<String, dynamic> additionalParams)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String provider, @JsonKey(name: 'model_name')  String modelName, @JsonKey(name: 'api_key')  String? apiKey, @JsonKey(name: 'base_url')  String? baseUrl,  double temperature, @JsonKey(name: 'tpm_limit')  int tpmLimit, @JsonKey(name: 'rpm_limit')  int rpmLimit, @JsonKey(name: 'default_max_tokens')  int? defaultMaxTokens, @JsonKey(name: 'vertex_location')  String? vertexLocation, @JsonKey(name: 'supports_grounding')  bool supportsGrounding, @JsonKey(name: 'is_active')  bool isActive, @JsonKey(name: 'additional_params')  Map<String, dynamic> additionalParams)?  $default,) {final _that = this;
 switch (_that) {
 case _LLMProviderConfig() when $default != null:
-return $default(_that.id,_that.provider,_that.modelName,_that.apiKey,_that.baseUrl,_that.temperature,_that.additionalParams);case _:
+return $default(_that.id,_that.provider,_that.modelName,_that.apiKey,_that.baseUrl,_that.temperature,_that.tpmLimit,_that.rpmLimit,_that.defaultMaxTokens,_that.vertexLocation,_that.supportsGrounding,_that.isActive,_that.additionalParams);case _:
   return null;
 
 }
@@ -215,7 +221,7 @@ return $default(_that.id,_that.provider,_that.modelName,_that.apiKey,_that.baseU
 @JsonSerializable()
 
 class _LLMProviderConfig implements LLMProviderConfig {
-  const _LLMProviderConfig({required this.id, required this.provider, @JsonKey(name: 'model_name') required this.modelName, @JsonKey(name: 'api_key') this.apiKey, @JsonKey(name: 'base_url') this.baseUrl, this.temperature = 0.7, @JsonKey(name: 'additional_params') final  Map<String, dynamic> additionalParams = const {}}): _additionalParams = additionalParams;
+  const _LLMProviderConfig({required this.id, required this.provider, @JsonKey(name: 'model_name') required this.modelName, @JsonKey(name: 'api_key') this.apiKey, @JsonKey(name: 'base_url') this.baseUrl, this.temperature = 0.7, @JsonKey(name: 'tpm_limit') this.tpmLimit = 0, @JsonKey(name: 'rpm_limit') this.rpmLimit = 0, @JsonKey(name: 'default_max_tokens') this.defaultMaxTokens, @JsonKey(name: 'vertex_location') this.vertexLocation, @JsonKey(name: 'supports_grounding') this.supportsGrounding = false, @JsonKey(name: 'is_active') this.isActive = true, @JsonKey(name: 'additional_params') final  Map<String, dynamic> additionalParams = const {}}): _additionalParams = additionalParams;
   factory _LLMProviderConfig.fromJson(Map<String, dynamic> json) => _$LLMProviderConfigFromJson(json);
 
 @override final  String id;
@@ -224,6 +230,12 @@ class _LLMProviderConfig implements LLMProviderConfig {
 @override@JsonKey(name: 'api_key') final  String? apiKey;
 @override@JsonKey(name: 'base_url') final  String? baseUrl;
 @override@JsonKey() final  double temperature;
+@override@JsonKey(name: 'tpm_limit') final  int tpmLimit;
+@override@JsonKey(name: 'rpm_limit') final  int rpmLimit;
+@override@JsonKey(name: 'default_max_tokens') final  int? defaultMaxTokens;
+@override@JsonKey(name: 'vertex_location') final  String? vertexLocation;
+@override@JsonKey(name: 'supports_grounding') final  bool supportsGrounding;
+@override@JsonKey(name: 'is_active') final  bool isActive;
  final  Map<String, dynamic> _additionalParams;
 @override@JsonKey(name: 'additional_params') Map<String, dynamic> get additionalParams {
   if (_additionalParams is EqualUnmodifiableMapView) return _additionalParams;
@@ -245,16 +257,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LLMProviderConfig&&(identical(other.id, id) || other.id == id)&&(identical(other.provider, provider) || other.provider == provider)&&(identical(other.modelName, modelName) || other.modelName == modelName)&&(identical(other.apiKey, apiKey) || other.apiKey == apiKey)&&(identical(other.baseUrl, baseUrl) || other.baseUrl == baseUrl)&&(identical(other.temperature, temperature) || other.temperature == temperature)&&const DeepCollectionEquality().equals(other._additionalParams, _additionalParams));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LLMProviderConfig&&(identical(other.id, id) || other.id == id)&&(identical(other.provider, provider) || other.provider == provider)&&(identical(other.modelName, modelName) || other.modelName == modelName)&&(identical(other.apiKey, apiKey) || other.apiKey == apiKey)&&(identical(other.baseUrl, baseUrl) || other.baseUrl == baseUrl)&&(identical(other.temperature, temperature) || other.temperature == temperature)&&(identical(other.tpmLimit, tpmLimit) || other.tpmLimit == tpmLimit)&&(identical(other.rpmLimit, rpmLimit) || other.rpmLimit == rpmLimit)&&(identical(other.defaultMaxTokens, defaultMaxTokens) || other.defaultMaxTokens == defaultMaxTokens)&&(identical(other.vertexLocation, vertexLocation) || other.vertexLocation == vertexLocation)&&(identical(other.supportsGrounding, supportsGrounding) || other.supportsGrounding == supportsGrounding)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&const DeepCollectionEquality().equals(other._additionalParams, _additionalParams));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,provider,modelName,apiKey,baseUrl,temperature,const DeepCollectionEquality().hash(_additionalParams));
+int get hashCode => Object.hash(runtimeType,id,provider,modelName,apiKey,baseUrl,temperature,tpmLimit,rpmLimit,defaultMaxTokens,vertexLocation,supportsGrounding,isActive,const DeepCollectionEquality().hash(_additionalParams));
 
 @override
 String toString() {
-  return 'LLMProviderConfig(id: $id, provider: $provider, modelName: $modelName, apiKey: $apiKey, baseUrl: $baseUrl, temperature: $temperature, additionalParams: $additionalParams)';
+  return 'LLMProviderConfig(id: $id, provider: $provider, modelName: $modelName, apiKey: $apiKey, baseUrl: $baseUrl, temperature: $temperature, tpmLimit: $tpmLimit, rpmLimit: $rpmLimit, defaultMaxTokens: $defaultMaxTokens, vertexLocation: $vertexLocation, supportsGrounding: $supportsGrounding, isActive: $isActive, additionalParams: $additionalParams)';
 }
 
 
@@ -265,7 +277,7 @@ abstract mixin class _$LLMProviderConfigCopyWith<$Res> implements $LLMProviderCo
   factory _$LLMProviderConfigCopyWith(_LLMProviderConfig value, $Res Function(_LLMProviderConfig) _then) = __$LLMProviderConfigCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String provider,@JsonKey(name: 'model_name') String modelName,@JsonKey(name: 'api_key') String? apiKey,@JsonKey(name: 'base_url') String? baseUrl, double temperature,@JsonKey(name: 'additional_params') Map<String, dynamic> additionalParams
+ String id, String provider,@JsonKey(name: 'model_name') String modelName,@JsonKey(name: 'api_key') String? apiKey,@JsonKey(name: 'base_url') String? baseUrl, double temperature,@JsonKey(name: 'tpm_limit') int tpmLimit,@JsonKey(name: 'rpm_limit') int rpmLimit,@JsonKey(name: 'default_max_tokens') int? defaultMaxTokens,@JsonKey(name: 'vertex_location') String? vertexLocation,@JsonKey(name: 'supports_grounding') bool supportsGrounding,@JsonKey(name: 'is_active') bool isActive,@JsonKey(name: 'additional_params') Map<String, dynamic> additionalParams
 });
 
 
@@ -282,7 +294,7 @@ class __$LLMProviderConfigCopyWithImpl<$Res>
 
 /// Create a copy of LLMProviderConfig
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? provider = null,Object? modelName = null,Object? apiKey = freezed,Object? baseUrl = freezed,Object? temperature = null,Object? additionalParams = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? provider = null,Object? modelName = null,Object? apiKey = freezed,Object? baseUrl = freezed,Object? temperature = null,Object? tpmLimit = null,Object? rpmLimit = null,Object? defaultMaxTokens = freezed,Object? vertexLocation = freezed,Object? supportsGrounding = null,Object? isActive = null,Object? additionalParams = null,}) {
   return _then(_LLMProviderConfig(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,provider: null == provider ? _self.provider : provider // ignore: cast_nullable_to_non_nullable
@@ -290,7 +302,13 @@ as String,modelName: null == modelName ? _self.modelName : modelName // ignore: 
 as String,apiKey: freezed == apiKey ? _self.apiKey : apiKey // ignore: cast_nullable_to_non_nullable
 as String?,baseUrl: freezed == baseUrl ? _self.baseUrl : baseUrl // ignore: cast_nullable_to_non_nullable
 as String?,temperature: null == temperature ? _self.temperature : temperature // ignore: cast_nullable_to_non_nullable
-as double,additionalParams: null == additionalParams ? _self._additionalParams : additionalParams // ignore: cast_nullable_to_non_nullable
+as double,tpmLimit: null == tpmLimit ? _self.tpmLimit : tpmLimit // ignore: cast_nullable_to_non_nullable
+as int,rpmLimit: null == rpmLimit ? _self.rpmLimit : rpmLimit // ignore: cast_nullable_to_non_nullable
+as int,defaultMaxTokens: freezed == defaultMaxTokens ? _self.defaultMaxTokens : defaultMaxTokens // ignore: cast_nullable_to_non_nullable
+as int?,vertexLocation: freezed == vertexLocation ? _self.vertexLocation : vertexLocation // ignore: cast_nullable_to_non_nullable
+as String?,supportsGrounding: null == supportsGrounding ? _self.supportsGrounding : supportsGrounding // ignore: cast_nullable_to_non_nullable
+as bool,isActive: null == isActive ? _self.isActive : isActive // ignore: cast_nullable_to_non_nullable
+as bool,additionalParams: null == additionalParams ? _self._additionalParams : additionalParams // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>,
   ));
 }

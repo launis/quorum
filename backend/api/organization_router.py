@@ -13,6 +13,7 @@ from pydantic import BaseModel
 from backend.dependencies import AuditServiceDep, AuthServiceDep, CurrentUserDep, RepositoryDep
 from backend.models.auth import Organization, SubscriptionStatus, TokenData, UserRole
 from backend.services.auth import AuthService
+from datetime import datetime, UTC
 
 logger = logging.getLogger(__name__)
 
@@ -135,8 +136,7 @@ async def create_organization(
     # Add metadata
 
     if "created_at" not in item:
-        from datetime import datetime, timezone
-        item["created_at"] = datetime.now(timezone.utc)
+        item["created_at"] = datetime.now(UTC)
     if "is_active" not in item:
         item["is_active"] = True
 
@@ -293,7 +293,6 @@ async def get_organization_usage(
         org_model = Organization(**org)
 
         # 3. Calculate Usage
-        from datetime import UTC, datetime
 
         # Current Month
         now = datetime.now(UTC)

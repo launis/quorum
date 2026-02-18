@@ -4,7 +4,9 @@ import logging
 
 from backend.exceptions import AppException, ErrorCodes
 from backend.models.domain import ValidationResult
+from backend.models.domain.inputs import WorkflowInputs
 from backend.models.state import WorkflowState
+from backend.utils.pydantic_utils import inflate
 
 
 logger = logging.getLogger(__name__)
@@ -38,25 +40,49 @@ def verify_structure(state: WorkflowState) -> WorkflowState:
     if not state.context_variables:
         # Should be caught by earlier checks, but fail fast here if empty
         msg = "Context variables missing in validation hook."
-        logger.error(f"[ValidationHook] {ErrorCodes.EMPTY_INPUT}: {msg}")
+        logger.error(f"[ValidationHook] {ErrorCodes.EMPTY_INPUT.name}: {msg}")
         raise AppException(
             message=msg,
             status_code=400,
             details={"error_code": ErrorCodes.EMPTY_INPUT}
         )
 
-    inputs = state.context_variables.get("inputs", {})
-    if not isinstance(inputs, dict):
-        logger.warning(f"[ValidationHook] Inputs not a dict: {type(inputs)}. Defaulting to empty.")
-        inputs = {}
+    inputs = state.get_context("inputs", WorkflowInputs)
+    
+    if not inputs:
+        error_code = ErrorCodes.EMPTY_INPUT
+        if inputs_data is None:
+             msg = "Missing 'inputs' in context_variables."
+             status_code = 400
+        else:
+             msg = f"Inputs key missing or invalid type: {type(inputs_data)}. Expected WorkflowInputs."
+             status_code = 500
+             
+        logger.error(f"[ValidationHook] {error_code.name}: {msg}")
+        raise AppException(
+            message=msg,
+            status_code=status_code,
+            details={"error_code": error_code}
+        )
 
+    # Mandatory Fields
     for key in ["history_text", "product_text", "reflection_text"]:
-        text = str(inputs.get(key, "") or "")
-        # Check actual content length (strip whitespace)
-        if not text or len(text.strip()) < MIN_CHARS:
-            warnings.append(
-                f"Input '{key}' is too short ({len(text)} chars). Min required: {MIN_CHARS}."
-            )
+         # Strict: Field must exist on schema
+         val = getattr(inputs, key)
+         if not val or not str(val).strip():
+              warnings.append(f"Missing mandatory input '{key}'.")
+              continue
+         
+         text = str(val).strip()
+         if len(text) < MIN_CHARS:
+             warnings.append(f"Input '{key}' is too short ({len(text)} chars). Min required: {MIN_CHARS}.")
+
+    # Optional Fields
+    reflection = inputs.reflection_text
+    if reflection and str(reflection).strip():
+         text = str(reflection).strip()
+         if len(text) < MIN_CHARS:
+             warnings.append(f"Input 'reflection_text' is too short ({len(text)} chars). Min required: {MIN_CHARS}.")
 
     try:
         # Create strict result object
@@ -78,8 +104,6 @@ def verify_structure(state: WorkflowState) -> WorkflowState:
     new_context = state.context_variables.copy()
     new_context["validation_result"] = result
     
-    # REMOVED LEGACY "warnings" key in aux_data/context. Use validation_result.errors instead.
-
     if not result.is_valid:
         msg = f"Structural Validation Failed: {warnings}"
         logger.error(f"[ValidationHook] {msg}")
@@ -97,4 +121,3 @@ def verify_structure(state: WorkflowState) -> WorkflowState:
         logger.debug("[ValidationHook] Checks passed.")
 
     return state.model_copy(update={"context_variables": new_context})
-

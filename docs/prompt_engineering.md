@@ -1,6 +1,6 @@
-# Dynamic Prompt Engineering (V2.9)
+# Dynamic Prompt Engineering (V3.2 - Phase 8 Standards)
 
-In Cognitive Quorum V2026, prompt engineering is an **architectural discipline**, not just text editing. The system uses a **Polymorphic Injection** strategy to dynamically assemble prompts from database components, strict Pydantic schemas, and runtime state.
+In Cognitive Quorum V3.2, prompt engineering is an **architectural discipline**, not just text editing. The system uses a **Polymorphic Injection** strategy to dynamically assemble prompts from database components, strict Pydantic schemas, and runtime state.
 
 Instead of static text files, prompts are constructed at runtime by the `PromptBuilder` service (`backend/services/prompt_builder.py`), ensuring that every agent receives exactly the context it needs—and nothing else.
 
@@ -23,17 +23,17 @@ A typical prompt is constructed in layers:
 
 1.  **Directives Layer (The Bun)**:
     *   **System Mandates**: Irrevocable constraints (e.g., "Mandaatti 1: Hidas ajattelu").
-    *   **Agent Identity**: "You are the Judge."
+    *   **Agent Identity**: "You are the Panel."
 2.  **Context Layer (The Lettuce)**:
     *   **Injected State**: `{{HISTORY_TEXT}}`, `{{PRODUCT_TEXT}}`.
     *   **Upstream Evidence**: `{{PREVIOUS_STEP_OUTPUTS}}` (The "Baton").
-    *   **External Data**: `{{GOOGLE_SEARCH_RESULTS}}`, `{{PROFILER_METRICS}}`.
+    *   **External Data**: `{{GOOGLE_SEARCH_RESULTS}}` (Gated), `{{PROFILER_METRICS}}`.
 3.  **Cognitive Layer (The Meat)**:
     *   **Evaluation Matrix (BARS)**: Matrices are expanded into full rubrics (Criteria, Anchors, Scale Instructions).
     *   **Task Instructions**: Specific rules for the current step.
 4.  **Output Layer (The Plate)**:
-    *   **Strict JSON Schema**: `{{SCHEMA_EXAMPLE}}` (Auto-generated from Pydantic V2 models).
-    *   **Formatting Rules**: "You MUST output valid JSON..."
+    *   **Strict JSON Schema**: `{{SCHEMA_EXAMPLE}}` (Auto-generated from **DTO** models).
+    *   **Formatting Rules**: "You MUST output valid JSON matching this schema..."
 
 ---
 
@@ -53,7 +53,7 @@ The `PromptBuilder` supports a specific set of injection keys. These are **Case-
 | Placeholder | Description | Source |
 | :--- | :--- | :--- |
 | `{{PREVIOUS_STEP_OUTPUTS}}` | A summary of findings from all previous agents. | `state.step_results` (Filtered) |
-| `{{GOOGLE_SEARCH_RESULTS}}` | Results from the *Analyst* agent's web searches. | `state.aux_data.google_search_results` |
+| `{{GOOGLE_SEARCH_RESULTS}}` | Results from search (if enabled). Empty if disabled. | `state.aux_data.google_search_results` |
 | `{{PROFILER_METRICS}}` | Quantitative metrics (token counts, etc.). | `state.aux_data.profiler_metrics` |
 
 ### System & Environment
@@ -61,40 +61,19 @@ The `PromptBuilder` supports a specific set of injection keys. These are **Case-
 | :--- | :--- | :--- | :--- |
 | `{{CURRENT_DATE}}` | Server date (DD.MM.YYYY). | `datetime.now()` | Standard |
 | `{{DYNAMIC_TIME}}` | Server time (HH:MM). | `datetime.now()` | Standard |
-| `{{DYNAMIC_LOCATION}}` | Server location (City, Country). | `ipapi.co` | Timeout-protected HTTP request |
+| `{{DYNAMIC_LOCATION}}` | Server location. | `ipapi.co` | Timeout-protected |
 | `{{BANNED_PHRASES}}` | Comma-separated list of prohibited terms. | `db.json` | Repository Fetch |
 
 ### Structural Enforcement
 | Placeholder | Description | Source |
 | :--- | :--- | :--- |
-| `{{SCHEMA_EXAMPLE}}` | **CRITICAL**. The JSON structure the agent *must* output. | `model.model_json_schema()` |
+| `{{SCHEMA_EXAMPLE}}` | **CRITICAL**. The JSON structure the agent *must* output. | `agent.DTO_SCHEMA.model_json_schema()` |
 
 ---
 
 ## 3. Behaviorally Anchored Rating Scales (BARS)
 
-V2.9 rejects generic "Rate 1-5" instructions. We use **BARS** matrices defined as JSON components. The `MatrixFormatter` transforms these into human-readable instructions.
-
-**JSON Source (`db.json`):**
-```json
-{
-  "id": "matrix_agency",
-  "type": "evaluation_matrix",
-  "content": {
-    "scale": {"min": 1, "max": 4},
-    "criteria": [
-      {
-        "id": "agency",
-        "label": "Strateginen Ohjaus",
-        "anchors": {
-          "1": "Matkustaja: Ulkoistaa ajattelun.",
-          "4": "Arkkitehti: Purkaa ongelman osiin."
-        }
-      }
-    ]
-  }
-}
-```
+V3.2 rejects generic "Rate 1-5" instructions. We use **BARS** matrices defined as JSON components. The `MatrixFormatter` transforms these into human-readable instructions.
 
 **Formatted Prompt Output (Markdown BARS):**
 ```markdown
@@ -112,13 +91,15 @@ Proficiency Levels (Anchors):
 
 ---
 
-## 4. Strict Type-Driven Prompting
+## 4. Strict Type-Driven Prompting (Phase 8/9)
 
-To ensure system stability, we allow **no hallucinations** in the output structure.
+To ensure zero hallucinations, we separate **Content** from **Authority**.
 
-1.  **Schema Definition**: Every Agent (e.g., `JudgeAgent`) defines a Pydantic V2 `OUTPUT_SCHEMA` (e.g., `EvaluationResult`).
-2.  **Auto-Generation**: `PromptBuilder` calls `_generate_schema_json()` on the agent instance.
-3.  **Validation**: The `GraphEngine` validates the LLM's response against this schema. If it fails, the step fails (Fail-Fast).
+1.  **DTO Definition**: Every Agent defines a `DTO_SCHEMA` (e.g., `PanelOutputDTO`). This model contains *only* the reasoning fields.
+2.  **Schema Injection**: The `PromptBuilder` injects the JSON Schema of this **DTO** (not the full Domain Object).
+3.  **No Metadata**: The LLM is strictly instructed *not* to invent timestamps or versions.
+4.  **Validation**: The `GraphEngine` validates the response against the DTO.
+5.  **Authority Injection**: The Backend *promotes* the DTO to a Domain Object (adding authoritative metadata) after validation.
 
 **Example Instruction:**
 > "Return the result purely as size-optimized JSON. Use this schema:

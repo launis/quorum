@@ -96,10 +96,18 @@ class AssessmentTransformer(BaseTransformer):
                 steps_list = [s for s in steps_list if s.status != "pending"]
 
             if status == "failed":
-                error_details = raw_data.get("error") or raw_data.get("result", {}).get("error")
-                status_message = (
-                    str(error_details) if error_details else self._t("Unknown error", "Tuntematon virhe")
-                )
+                error_details = str(raw_data.get("error") or raw_data.get("result", {}).get("error") or "")
+                
+                # Localize common error codes
+                if "AGENT_EXECUTION_CRITICAL" in error_details:
+                    if "InstructorRetryException" in error_details:
+                        status_message = self._t("error.llm_retry", "Kielimallin vastaus epäonnistui (Yhteys- tai muotoiluvirhe).")
+                    else:
+                        status_message = self._t("error.agent_critical", "Agentin suoritus keskeytyi kriittiseen virheeseen.")
+                elif "Validation Error" in error_details:
+                    status_message = self._t("error.validation", "Validointivirhe syötteessä tai tulosteessa.")
+                else:
+                    status_message = error_details if error_details else self._t("Unknown error", "Tuntematon virhe")
             elif status == "running":
                 status_message = self._t("Processing...", "Käsitellään...")
                 if steps_data:
@@ -109,7 +117,8 @@ class AssessmentTransformer(BaseTransformer):
                         # Safe last step extraction
                         last_key = list(steps_data.keys())[-1]
                         last_step = last_key.replace("step_", "").capitalize()
-                        status_message = f"{self._t('Processing', 'Käsitellään')}: {last_step} ({count})"
+                        # FIX: Last step is COMPLETED, so label it 'Valmis'
+                        status_message = f"{self._t('status.completed', 'Valmis')}: {last_step} ({count})"
 
                     completed_ids = set(steps_data.keys())
                     for i, item in enumerate(steps_list):
@@ -120,6 +129,9 @@ class AssessmentTransformer(BaseTransformer):
                                 label=item.label,
                                 status="running"
                             )
+                            # UPDATE: If we know the next step, show THAT as processing
+                            running_step = item.id.replace("step_", "").capitalize()
+                            status_message = f"{self._t('status.running', 'Käsitellään')}: {running_step}"
                             break
 
             elif status == "completed":

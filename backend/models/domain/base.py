@@ -33,6 +33,8 @@ class Metadata(BaseModel):
     vaihe: int = Field(default=0, description="Step number.", json_schema_extra={"x-ui-label": "Step Number"})
     versio: str = Field(default="1.0", description="Schema version.", json_schema_extra={"x-ui-label": "Version"})
     suoritus_ymparisto: str = Field(..., description="Environment.", json_schema_extra={"x-ui-label": "Environment"})
+    organization_id: str | None = Field(default=None, description="Organization ID.", json_schema_extra={"x-ui-label": "Organization ID"})
+    workflow: str | None = Field(default=None, description="Workflow name.", json_schema_extra={"x-ui-label": "Workflow"})
     audit_logs: list[AuditLogEntry] | None = Field(default=None, description="Audit logs.", json_schema_extra={"x-ui-label": "Audit Logs"})
 
     @field_validator("agentti", "suoritus_ymparisto")
@@ -49,7 +51,7 @@ class Metadata(BaseModel):
             return datetime.fromisoformat(v.replace("Z", "+00:00"))
         return v
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True)
 
 
 class ReasoningTraceDTO(BaseModel):
@@ -74,7 +76,7 @@ class ReasoningTraceDTO(BaseModel):
         json_schema_extra={"x-ui-label": "Confidence Score"},
     )
     
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True)
 
     @field_validator("thought_process", "conclusion")
     @classmethod

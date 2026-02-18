@@ -5,6 +5,13 @@
 
 This document validates the technical architecture of the Cognitive Quorum system against the **V2026 "Zero-Magic" Manifesto**, analyzing its core strengths, data flow, and safeguards.
 
+## 0. Key Architectural Upgrades (Q1 2026)
+Significant hardening has occurred in Phase 2.5 and Phase 8 (Bulletproof Agencies):
+*   **Strict Type Safety**: Transited from Dictionary-based inputs to **Strict Pydantic Models** (`JudgeInput`, `ProfilerInput`, etc.).
+*   **Fail Fast Protocol**: Adopted **RFC 7807** error handling. Agents and Hooks verify inputs *before* execution, raising `AppException` (400) instead of failing silently or hallucinating.
+*   **Relative Scoring**: Scoring logic now uses configurable percentage-based penalties (from `settings.py`) with safety clamps.
+*   **XAI Hardening**: `XAIReporter` strictly enforces `JudgeScoreCard` schema, rejecting legacy flat structures.
+
 ---
 
 ## 1. Core Pattern: Modular Async Monolith
@@ -17,7 +24,9 @@ The system rejects microservices complexity in favor of a strictly typed, distri
 *   **State Management (Hybrid):** The system implements a **Hybrid State Architecture**:
     1.  **Event Sourcing (Truth):** `WorkflowState.execution_trace` is an append-only log of immutable `TraceEvent` objects. This provides a perfect audit trail and enables time-travel debugging.
     2.  **Blackboard Snapshot (Performance):** `WorkflowState.context_variables` maintains a mutable projection of the current state for high-performance read access by agents.
-*   **Strict Object Mode:** The `GraphEngine` (`backend/core/engine.py`) enforces that all data passed between agents is a validated Pydantic Object, not a loose dictionary.
+    2.  **Blackboard Snapshot (Performance):** `WorkflowState.context_variables` maintains a mutable projection of the current state for high-performance read access by agents.
+*   **Strict Object Mode**: The `GraphEngine` (`backend/core/engine.py`) enforces that all data passed between agents is a validated Pydantic Object, not a loose dictionary.
+    *   *Upgrade (Phase 8)*: `state.get_context(model=Model)` is now mandatory. Dict access `state.context_variables["key"]` is deprecated for complex types.
 
 ### The "Mind" (Cognitive Strategy)
 *   **Separation of Concerns:** Logic is defined in JSON (`seed_data.json`), not Python code.
@@ -100,4 +109,27 @@ Standard HTTP timeouts (60s) are incompatible with Deep Reasoning (10m+).
 
 *   **Backend:** `pytest` + `unittest.mock` (No network calls in tests).
 *   **Frontend:** `flutter_test` + `mocktail` (No code generation).
+*   **Frontend:** `flutter_test` + `mocktail` (No code generation).
 *   **Philosophy:** "Fail Fast". If the DB schema doesn't match the Pydantic model, or if a Matrix cannot be formatted, the system crashes immediately rather than corrupting data.
+
+---
+
+## 7. Validated Architectural Integrity (Phase 8)
+
+### A. Bulletproof Agencies
+Agents now define explicit `InputModels` (e.g., `JudgeInput`). The Engine validates these inputs *before* invoking the agent.
+*   **Benefit**: Eliminates `AttributeError` at runtime inside agents.
+*   **Benefit**: IDE Autocomplete for agent developers.
+
+### B. Hook Hardening (Phase 2.5)
+Hooks (`scoring.py`, `validation.py`, `integrity.py`) have been refactored to reject invalid state:
+*   **Scoring**: Uses **Relative Penalties** (e.g., -10%) configured in `settings.py`. Includes a **Safety Clamp** (`max(score, scale_min)`) to prevent negative or zero scores from breaking downstream validation.
+*   **Integrity**: Verifies citation keys against the actual bibliography.
+
+## 8. Diagnostics & Observability
+
+### A. Temporary Debug Dump
+For critical debugging, the worker can dump the full `WorkflowState` to a local file (`debug_output_*.json`) immediately upon completion. This serves as a "Black Box" recording independent of the database or reporting service.
+
+### B. Dynamic Settings (Roadmap)
+Future architecture will support adjusting sensitivity (Penalties, Thresholds) via the Admin UI, moving these values from `settings.py` to the Database.

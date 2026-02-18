@@ -44,44 +44,7 @@ async def get_execution_view(
 
         # Transform logic
         transformer = ReportTransformer(language=accept_language or "en")
-        if hasattr(execution, "model_dump"):
-            raw_data = execution.model_dump()
-        elif hasattr(execution, "dict"):
-             raw_data = execution.dict()
-        else:
-            raw_data = execution
-
-        # ---------------------------------------------------------
-        # DYNAMIC STEP RESOLUTION (SSOT from Database)
-        # ---------------------------------------------------------
-        # ReportTransformer might not use steps list yet, but let's be consistent if we merge logic later.
-        # Currently ReportView is different from AssessmentView.
-        # If we use AssessmentTransformer here (for some reason?), we should pass steps.
-
-        # Wait, views.py uses ReportTransformer for the "Report View" (Final Output).
-        # Does ReportView need the step list? Not strictly.
-        # But if we were using AssessmentTransformer here...
-
-        # Let's check imports. views.py imports ReportTransformer.
-        # bff_transformer.py defines AssessmentTransformer AND ReportTransformer.
-        # Does ReportTransformer need steps?
-        # Usually it just renders the report content.
-
-        # However, for 'get_execution_view', if it returns ReportView, that's the "Result" screen.
-        # It DOES contain 'steps' logic if we want to show the timeline there too?
-        # ReportView in models/view.py might not have 'steps'.
-
-        # Let's assume ReportTransformer doesn't need it yet,
-        # BUT if I ever switch this to return AssessmentView (Monitoring), I'll need it.
-        # For now, I'll leave views.py alone UNLESS I see it using AssessmentTransformer.
-
-        # Actually... let's check monitor.py again. monitor.py uses AssessmentTransformer.
-        # views.py uses ReportTransformer.
-
-        # The user request was "list only from database".
-        # This primarily affects the Monitoring Screen (AssessmentTransformer).
-        # So monitor.py change is the critical one.
-
+        
         if accept_language:
             transformer.language = accept_language
 
@@ -89,7 +52,9 @@ async def get_execution_view(
         valid_range = None
         # if execution... (logic to extract scale)
 
-        view = transformer.transform(raw_data, valid_range=valid_range)
+        # STRICT TYPING MANDATE (Part 2.4): Pass Pydantic Model, NOT dict.
+        # ReportTransformer now enforces isinstance(ExecutionRecord).
+        view = transformer.transform(execution, valid_range=valid_range)
         return view
 
     except ResourceNotFoundError as e:
@@ -135,14 +100,8 @@ async def get_execution_json_export(
         # Use default language (en) or assume neutrality for machine export
         transformer = ReportTransformer(language="en")
         
-        if hasattr(execution, "model_dump"):
-            raw_data = execution.model_dump()
-        elif hasattr(execution, "dict"):
-             raw_data = execution.dict()
-        else:
-            raw_data = execution
-
-        view = transformer.transform(raw_data)
+        # STRICT TYPING MANDATE (Part 2.4): Pass Pydantic Model, NOT dict.
+        view = transformer.transform(execution)
 
         # 3. Return View Model
         # FastAPI handles serialization (including dates/enum values) based on response_model
@@ -184,17 +143,23 @@ async def get_execution_raw(
         if not execution:
             raise ResourceNotFoundError(f"Execution '{execution_id}' not found.")
 
+        # Normalize record to dict
+        if hasattr(execution, "model_dump"):
+             execution_dict = execution.model_dump()
+        else:
+             execution_dict = execution
+
         raw_data = {
-            "execution_id": execution.get("id"),
-            "workflow_id": execution.get("workflow_id"),
-            "status": execution.get("status"),
-            "started_at": execution.get("started_at"),
-            "completed_at": execution.get("completed_at"),
+            "execution_id": execution_dict.get("id"),
+            "workflow_id": execution_dict.get("workflow_id"),
+            "status": execution_dict.get("status"),
+            "started_at": execution_dict.get("started_at"),
+            "completed_at": execution_dict.get("completed_at"),
             "duration_seconds": None,
-            "inputs": execution.get("inputs", {}),
-            "results": execution.get("results", {}),
-            "state": execution.get("state", {}),
-            "user_id": execution.get("user_id"),
+            "inputs": execution_dict.get("inputs", {}),
+            "results": execution_dict.get("results", {}),
+            "state": execution_dict.get("state", {}),
+            "user_id": execution_dict.get("user_id"),
         }
 
         if raw_data["started_at"] and raw_data["completed_at"]:

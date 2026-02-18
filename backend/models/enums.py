@@ -45,6 +45,11 @@ class AuthenticityLevel(str, Enum):
     PERFORMATIVE = "AUTH_PERFORMATIVE"
     UNKNOWN = "AUTH_UNKNOWN"
 
+class ScoringPenalty(str, Enum):
+    """Enumerated Penalty Keys for Multilingual Support (Zero-String API)."""
+    SECURITY_THREAT = "PENALTY_SECURITY_THREAT"
+    POST_HOC = "PENALTY_POST_HOC"
+
 class HelpTextKey(str, Enum):
     BLOOM = "helpBloom"
     TOULMIN = "helpToulmin"
@@ -62,6 +67,7 @@ class HelpTextKey(str, Enum):
 
 class TitleKey(str, Enum):
     SECURITY = "TITLE_SECURITY"
+    USAGE = "TITLE_USAGE"
     PROFILER = "TITLE_PROFILER"
     INTERACTION = "TITLE_INTERACTION"
     COACH = "TITLE_COACH"

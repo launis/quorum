@@ -17,6 +17,7 @@ class GuardInput(BaseModel):
     history_text: str = Field(..., json_schema_extra={"x-ui-label": "INPUT_HISTORY_TEXT"})
     product_text: str = Field(..., json_schema_extra={"x-ui-label": "INPUT_PRODUCT_TEXT"})
     reflection_text: str | None = Field(default=None, json_schema_extra={"x-ui-label": "INPUT_REFLECTION_TEXT"})
+    last_reasoning_trace: str | None = Field(default=None, json_schema_extra={"x-ui-label": "Last Reasoning Trace"})
 
     @field_validator("history_text", "product_text")
     @classmethod
@@ -124,8 +125,8 @@ class SecurityCheck(BaseModel):
                 elif isinstance(risk_level, str):
                      try:
                          # Try to convert string to Enum
-                         enum_val = RiskLevel(risk_level)
-                         data["risk_score"] = risk_map[enum_val]
+                         risk_enum = RiskLevel(risk_level)
+                         data["risk_score"] = risk_map[risk_enum]
                      except ValueError:
                          pass
 
@@ -141,11 +142,11 @@ class SecurityCheck(BaseModel):
 
             # Only calculate if not present
             if sim_score is None and sim_res:
-                 try:
-                     enum_val = SimulationType(sim_res)
-                     data["simulation_score"] = sim_map[enum_val]
-                 except ValueError:
-                     pass
+                try:
+                    sim_enum = SimulationType(sim_res)
+                    data["simulation_score"] = sim_map[sim_enum]
+                except ValueError:
+                    pass
 
         return data
 
@@ -164,7 +165,7 @@ class SecurityCheck(BaseModel):
         description="PII findings.",
         json_schema_extra={"x-ui-label": "PII Findings"},
     )
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True)
 
 
 class GuardOutput(ReasoningTrace):

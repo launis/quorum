@@ -1,6 +1,8 @@
 
 import logging
 
+from pydantic import ValidationError
+
 from backend.exceptions import AppException
 from backend.models.domain import OverseerData, OverseerOutput
 from backend.models.enums import HelpTextKey, TitleKey
@@ -13,6 +15,15 @@ from ..base import BaseTransformer
 logger = logging.getLogger(__name__)
 
 class OverseerDomainTransformer(BaseTransformer):
+    def _adapt_legacy_trace(self, data: dict) -> dict:
+        """Helper to adapt legacy reasoning_trace string to strict ReasoningTraceDTO."""
+        if "reasoning_trace" in data and "thought_process" not in data:
+            data = data.copy()
+            data["thought_process"] = data.pop("reasoning_trace")
+            data["conclusion"] = "Implicit in Analysis"
+            data["confidence_score"] = 1.0
+        return data
+
     def _extract_overseer_section(self, steps: dict) -> UiSection | None:
         step = steps.get("step_overseer")
 
@@ -27,15 +38,9 @@ class OverseerDomainTransformer(BaseTransformer):
             # STRICT VALIDATION: Schema First
         try:
             if "overseer_data" in step:
-                # Adapt legacy reasoning_trace
-                if "reasoning_trace" in step and "thought_process" not in step:
-                    step = step.copy()
-                    step["thought_process"] = step.pop("reasoning_trace")
-                    step["conclusion"] = "Implicit in Analysis"
-                    step["confidence_score"] = 1.0
-
-                model = OverseerOutput(**step)
-            else:
+                 model = OverseerOutput(**self._adapt_legacy_trace(step))
+            # Check if it's the inner data (list of facts) - heuristic
+            elif "fact_checks" in step and "overseer_data" not in step:
                 inner = OverseerData(**step)
                 model = OverseerOutput(
                     overseer_data=inner,
@@ -43,6 +48,17 @@ class OverseerDomainTransformer(BaseTransformer):
                     conclusion="N/A",
                     confidence_score=1.0
                 )
+            else:
+                 model = OverseerOutput(**self._adapt_legacy_trace(step))
+                 
+        except ValidationError as e:
+            error_code = "OVERSEER_VALIDATION_FAILED"
+            logger.error(f"{error_code}: {e}", exc_info=True)
+            raise AppException(
+                message=f"Overseer validation failed: {e}",
+                status_code=500,
+                details={"error_code": error_code, "errors": e.errors()}
+            ) from e
         except Exception as e:
             error_code = "OVERSEER_VALIDATION_FAILED"
             logger.error(f"{error_code}: {e}", exc_info=True)
@@ -87,7 +103,7 @@ class OverseerDomainTransformer(BaseTransformer):
                 label=verdict.upper(),
                 label_key=f"VERIFICATION_{verdict.upper()}",
                 claim=check.claim,
-                source=check.source_or_reasoning or "Unknown",
+                source=check.source_or_reasoning,
                 color=color,
                 verification_result=verdict,
                 is_verified=check.is_verified

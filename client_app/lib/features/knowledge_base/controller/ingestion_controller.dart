@@ -6,6 +6,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../models/knowledge_base.dart';
 import '../../../repositories/knowledge_repository.dart';
+import 'package:client_app/features/knowledge/presentation/providers/knowledge_status_provider.dart';
 
 part 'ingestion_controller.g.dart';
 
@@ -71,7 +72,10 @@ class IngestionController extends _$IngestionController {
         
         state = AsyncValue.data(status);
         
-        if (status.status == 'completed' || status.status == 'failed') {
+        if (status.status == 'completed') {
+           ref.invalidate(knowledgeStatusProvider); // Refresh the status banner
+           timer.cancel();
+        } else if (status.status == 'failed') {
           timer.cancel();
         }
       } catch (e) {
@@ -80,6 +84,11 @@ class IngestionController extends _$IngestionController {
         timer.cancel();
       }
     });
+  }
+  /// Resets the state to initial (null), clearing any errors or progress.
+  void resetState() {
+    _timer?.cancel();
+    state = const AsyncValue.data(null);
   }
 }
 

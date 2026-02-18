@@ -70,7 +70,21 @@ class EvaluationResult(ReasoningTrace):
     # Container for aggregated results (if applicable)
     score_cards: list[JudgeScoreCard] | None = Field(
         default=None,
-        description="List of score cards if this result aggregates multiple."
+        description="List of score cards if this results aggregates multiple."
+    )
+
+    # Citation Support (Restored per User Request)
+    citation_snippets: list[str] = Field(
+        default_factory=list,
+        description="Direct quotes from the source text supporting the verdict.",
+        json_schema_extra={"x-ui-label": "Citations"}
+    )
+    
+    # Penalties (Added for Scoring Hook / Multilingual Support)
+    penalties: list[str] = Field(
+        default_factory=list,
+        description="List of penalty keys applied.",
+        json_schema_extra={"x-ui-label": "Penalties"}
     )
 
     @field_validator('timestamp', mode='before')

@@ -14,6 +14,7 @@ from backend.exceptions import AppException, ErrorCodes, FatalInterruption
 from backend.services.chat_log_parser import ChatLogParser
 from backend.services.file_driver import FileDriver
 from backend.services.knowledge_base_parser import KnowledgeBaseParser
+from backend.models.domain.knowledge import KnowledgeBaseDocument
 
 logger = logging.getLogger(__name__)
 
@@ -114,7 +115,7 @@ class DocumentService:
 
         return extracted_data
 
-    async def process_knowledge_base_file(self, content: bytes, filename: str, job_id: str) -> Dict[str, Any]:
+    async def process_knowledge_base_file(self, content: bytes, filename: str, job_id: str) -> KnowledgeBaseDocument:
         """Archives Knowledge Base file and parses it into concepts/references.
 
         Supports both DOCX and Markdown formats.
@@ -125,7 +126,7 @@ class DocumentService:
             job_id (str): Background task ID for storage organization.
 
         Returns:
-            Dict[str, Any]: Structured data (concepts, references) for ingestion.
+            KnowledgeBaseDocument: Structured data for ingestion.
 
         Raises:
             AppException: If file type is unsupported or parsing fails.
@@ -154,20 +155,23 @@ class DocumentService:
             await self.storage_client.save(relative_path, content)
 
             # 2. Parse (CPU-bound)
-            parsed_data = {}
+            parsed_doc = None
             if is_docx:
                 # Wrap bytes in stream for parser
                 file_stream = io.BytesIO(content)
-                parsed_data = await run_in_threadpool(KnowledgeBaseParser.parse_docx, file_stream)
-            elif is_md:
+                # Pass filename as kwarg or arg? run_in_threadpool takes *args.
+                # Signature: parse_docx(file_input: Any, filename: str = ...)
+                parsed_doc = await run_in_threadpool(KnowledgeBaseParser.parse_docx, file_stream, filename)
+            else:
+                # Must be MD due to validation above
                 # Wrap bytes in stream for parser (parse_md handles extraction)
                 file_stream = io.BytesIO(content)
-                parsed_data = await run_in_threadpool(KnowledgeBaseParser.parse_md, file_stream)
+                parsed_doc = await run_in_threadpool(KnowledgeBaseParser.parse_md, file_stream, filename)
 
             logger.info(
-                f"[DocumentService] KB {filename} processed. Found {len(parsed_data.get('concepts', []))} concepts."
+                f"[DocumentService] KB {filename} processed. Found {len(parsed_doc.concepts)} concepts."
             )
-            return parsed_data
+            return parsed_doc
 
         except Exception as e:
             logger.error(f"[DocumentService] KB processing failed for {filename}: {e}")

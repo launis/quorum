@@ -40,20 +40,33 @@ class AnalysisWizardScreen extends ConsumerWidget {
       ),
       data: (status) {
         // BLOCKING STATE: No Knowledge Data
+        // BLOCKING STATE: No Knowledge Data
         if (!status.hasDocuments) {
            final userWrapper = ref.watch(authControllerProvider);
            final userRole = userWrapper.value?.role;
            final isAdmin = userRole == UserRole.admin || userRole == UserRole.root;
 
-           return Scaffold(
-             appBar: AppBar(title: Text(l10n.newAnalysis)),
-             body: ErrorView(
-               title: l10n.errKnowledgeNotIngestedTitle,
-               error: l10n.errKnowledgeNotIngested,
-               onAction: isAdmin ? () => context.go('/studio/knowledge') : null,
-               actionLabel: isAdmin ? l10n.actionGoToIngestion : null,
-             ),
-           );
+           if (isAdmin) {
+              // RESTORED: Automatic Redirection for empty knowledge base (Admins Only)
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (context.mounted) {
+                  context.go('/studio/knowledge');
+                }
+              });
+              // Show a loader while redirecting
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+           } else {
+              // Non-Admins get the blocking ErrorView (No redirection)
+              return Scaffold(
+                appBar: AppBar(title: Text(l10n.newAnalysis)),
+                body: ErrorView(
+                  title: l10n.errKnowledgeNotIngestedTitle,
+                  error: l10n.errKnowledgeNotIngested,
+                ),
+              );
+           }
         }
 
         // 1. Passive View Listener

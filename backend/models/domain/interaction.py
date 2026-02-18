@@ -6,9 +6,28 @@ including user role classification and input quality assessment.
 
 from typing import Literal
 
-from pydantic import ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from backend.models.domain.base import ReasoningTrace
+
+
+class InteractionInput(BaseModel):
+    """Strict input schema for InteractionAnalystAgent."""
+    history_text: str = Field(
+        ...,
+        description="The full conversation history to analyze.",
+        json_schema_extra={"x-ui-label": "Chat History"}
+    )
+    last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
+    
+    model_config = ConfigDict(frozen=True, extra="ignore")
+
+    @field_validator("history_text")
+    @classmethod
+    def validate_non_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("History text cannot be empty.")
+        return v.strip()
 
 
 class InteractionAnalysis(ReasoningTrace):

@@ -14,6 +14,12 @@ abstract class LLMProviderConfig with _$LLMProviderConfig {
     @JsonKey(name: 'api_key') String? apiKey,
     @JsonKey(name: 'base_url') String? baseUrl,
     @Default(0.7) double temperature,
+    @JsonKey(name: 'tpm_limit') @Default(0) int tpmLimit,
+    @JsonKey(name: 'rpm_limit') @Default(0) int rpmLimit,
+    @JsonKey(name: 'default_max_tokens') int? defaultMaxTokens,
+    @JsonKey(name: 'vertex_location') String? vertexLocation,
+    @JsonKey(name: 'supports_grounding') @Default(false) bool supportsGrounding,
+    @JsonKey(name: 'is_active') @Default(true) bool isActive,
     @JsonKey(name: 'additional_params')
     @Default({})
     Map<String, dynamic> additionalParams,

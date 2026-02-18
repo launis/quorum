@@ -12,7 +12,7 @@ from backend.agents.base import BaseAgent
 
 # 3. Local Imports
 from backend.exceptions import AgentExecutionError, ErrorCodes, FatalInterruption
-from backend.models.domain import GuardOutput
+from backend.models.domain import GuardOutput, GuardInput
 
 if TYPE_CHECKING:
     pass
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class GuardAgent(BaseAgent):
+class GuardAgent(BaseAgent[GuardInput, GuardOutput]):
     """Vartija-agentti (Guard Agent).
 
     Responsible for:
@@ -34,8 +34,8 @@ class GuardAgent(BaseAgent):
     # Contracts
     REQUIRES_KEYS = ["history_text", "product_text", "reflection_text"]  # Reflection is optional
     PRODUCES_KEYS = ["step_guard"]
-    # OUTPUT_SCHEMA is already handled by get_response_schema() logic generally,
-    # but we can explicit it here if needed for static analysis.
+    
+    INPUT_SCHEMA = GuardInput
     OUTPUT_SCHEMA = GuardOutput
 
     def get_response_schema(self) -> type[BaseModel] | None:
@@ -49,7 +49,7 @@ class GuardAgent(BaseAgent):
 
     async def execute(
         self,
-        input_data: dict[str, Any],
+        input_data: GuardInput,
         execution_context: dict[str, Any] | None = None,
         system_instruction: str | None = None,
         **kwargs: Any,
@@ -57,7 +57,7 @@ class GuardAgent(BaseAgent):
         """Executes the security analysis and sanitization logic.
 
         Args:
-            input_data (dict[str, Any]): Inputs including history_text, product_text, etc.
+            input_data (GuardInput): Inputs including history_text, product_text, etc.
             execution_context (dict[str, Any] | None, optional): Context/Config.
             system_instruction (str | None, optional): Prompt override.
             **kwargs: Additional args.
@@ -69,17 +69,19 @@ class GuardAgent(BaseAgent):
             ValueError: If mandatory inputs are missing.
         """
 
-        # FAIL FAST: Guard requires content to sanitize.
-        for field in ["history_text", "product_text", "reflection_text"]:
-             if not input_data.get(field):
-                 # Fail Fast on ANY missing input as per strict requirements for Guard
-                 error_msg = f"[GuardAgent] Mandatory input '{field}' missing. Sanitization aborted."
-                 logger.error(f"{ErrorCodes.AGENT_EXECUTION_CRITICAL}: {error_msg}")
-                 raise AgentExecutionError(
-                     detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
-                     original_error=ValueError(error_msg),
-                     agent_name="GuardAgent"
-                 )
+        # Store context for hooks
+        self.execution_context = execution_context or {}
+
+        # 0. RESOLVE CONTEXT (User Knowledge)
+        # In Strict Model mode, input_data is immutable. We can't set organization_id on it easily.
+        # But GuardInput doesn't strictly require organization_id (it's not in the model definition above, unlike other inputs).
+        # Checking backend/models/domain/guard.py: GuardInput only has history, product, reflection.
+        # So we don't need to inject organization_id into input_data for validation.
+        # We just need it for execution context.
+
+        # FAIL FAST: Mandatory fields are already validated by Pydantic during BaseAgent.execute -> INPUT_SCHEMA validation.
+        # So we don't need manual checks for history/product_text unless we want custom error messages.
+        # Pydantic raises ValidationError which BaseAgent catches or propagates.
 
         # Pass through to BaseAgent
         result_obj = await super().execute(
@@ -91,9 +93,8 @@ class GuardAgent(BaseAgent):
 
         if isinstance(result_obj, GuardOutput):
             return result_obj
-        elif isinstance(result_obj, dict):
-            return GuardOutput(**result_obj)
         else:
+            # Should be unreachable due to BaseAgent strictness
              raise AgentExecutionError(
                  detail=ErrorCodes.INVALID_JSON_PAYLOAD,
                  original_error=TypeError(f"GuardAgent returned {type(result_obj)} instead of GuardOutput"),
@@ -102,7 +103,7 @@ class GuardAgent(BaseAgent):
 
     async def prepare_context(
         self,
-        input_data: dict[str, Any],
+        input_data: GuardInput,
         execution_context: dict[str, Any] | None,
         **kwargs: Any
     ) -> str | None:
@@ -111,7 +112,7 @@ class GuardAgent(BaseAgent):
         Performs Python-based banned phrase checks and sanitization.
 
         Args:
-            input_data (dict[str, Any]): Inputs.
+            input_data (GuardInput): Inputs.
             execution_context (dict[str, Any] | None): Context.
             **kwargs: ignored.
 
@@ -121,53 +122,39 @@ class GuardAgent(BaseAgent):
         Raises:
             FatalInterruption: If banned phrases are detected.
         """
-        # 1. Banned Phrase Check (Via Schema Validation)
+        # 1. Banned Phrase Check
+        # Already handled by GuardInput validator if context was passed during creation?
+        # Expect BaseAgent to have validated it?
+        # Actually, BaseAgent validates INPUT_SCHEMA globally.
+        # But banned phrases require context. BaseAgent might not pass context during initial validation if it constructs model early.
+        # Let's re-run validation logic manually or trust the model if it was built with context.
+        
+        # We can manually enforce it here using the model instance
         try:
-            # Load banned phrases from context/config or inputs
-            # Assuming Engine injects them into execution_config or inputs
-            banned_phrases = []
-            if execution_context and "banned_phrases" in execution_context:
-                banned_phrases = execution_context["banned_phrases"]
-            elif "banned_phrases" in input_data:
-                banned_phrases = input_data["banned_phrases"]
-
-            banned_ctx = {"banned_phrases": banned_phrases}
-
-            from backend.models.domain import GuardInput
-
-            # This triggers @AfterValidator(validate_guard_input)
-            GuardInput.model_validate(
-                {
-                    "history_text": input_data.get("history_text") or "",
-                    "product_text": input_data.get("product_text") or "",
-                    "reflection_text": input_data.get("reflection_text"),
-                },
-                context=banned_ctx,
-            )
-
+             banned_phrases = []
+             if execution_context and "banned_phrases" in execution_context:
+                 banned_phrases = execution_context["banned_phrases"]
+             
+             # Check explicitly
+             if banned_phrases:
+                 for field, value in input_data.model_dump().items():
+                     if isinstance(value, str):
+                         for phrase in banned_phrases:
+                             if phrase.lower() in value.lower():
+                                  raise ValueError(f"SECURITY_BANNED_PHRASE_DETECTED: Found '{phrase}' in field '{field}'")
+        
         except ValueError as e:
-            # Convert Pydantic/Validator error to FatalInterruption for the Engine
             if "SECURITY_BANNED_PHRASE_DETECTED" in str(e):
-                logger.error(f"{ErrorCodes.SECURITY_BANNED_PHRASE_DETECTED}: [GuardAgent] Banned Phrase Detected via Schema: {e}")
-                
-                # FatalInterruption is correctly imported now
+                logger.error(f"{ErrorCodes.SECURITY_BANNED_PHRASE_DETECTED}: [GuardAgent] Banned Phrase Detected: {e}")
                 raise FatalInterruption(
                     step_name="GuardSecurityCheck",
-                    reason="Banned Phrase Detected (Schema Validation)",
+                    reason="Banned Phrase Detected",
                     details={"error": str(e)},
                 ) from e
-            else:
-                # For any other ValueError from Pydantic, raise AgentExecutionError
-                logger.error(f"{ErrorCodes.AGENT_EXECUTION_CRITICAL}: [GuardAgent] Unexpected validation error during GuardInput processing: {e}")
-                raise AgentExecutionError(
-                    detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
-                    original_error=e,
-                    agent_name="GuardAgent"
-                ) from e
+            raise
 
         # 2. Input Sanitization (Local Effect Only)
         # We sanitize locally to log threats.
-        # Note: In strict stateless mode, we don't modify the upstream inputs.
         self.sanitize_input(input_data)
 
         return None
@@ -196,92 +183,68 @@ class GuardAgent(BaseAgent):
         """
         logger.info("[GuardAgent] Running ensure_tainted_data...")
 
-        # If it's a dict, wrap or check access
-        # If it's a Model, access fields
+        # Strict Pydantic Enforcement
+        if isinstance(data, GuardOutput):
+            # Handle Model (Post-Validation or Re-Entry)
+            logger.info("[GuardAgent] Running ensure_tainted_data (Model Mode)...")
+            security_check = data.security_check
 
-        # We need to modify 'data' in place or return new data.
-        # Since we might have Pydantic model or dict.
+            # 1. PII Sanitization Reporting
+            if hasattr(self, "_sanitization_threats") and self._sanitization_threats:
+                threats = self._sanitization_threats
+                logger.info(f"[GuardAgent] Reporting sanitization actions: {threats}")
 
-        is_dict = isinstance(data, dict)
-
-        # Access helpers
-        def get_field(obj: Any, key: str) -> Any:
-            if isinstance(obj, dict):
-                return obj.get(key)
-            return getattr(obj, key, None)
-
-        def set_field(obj: Any, key: str, val: Any) -> None:
-            if isinstance(obj, dict):
-                obj[key] = val
-            else:
-                setattr(obj, key, val)
-
-        security_check = get_field(data, "security_check")
-
-        if not security_check:
-            # Should not happen if schema is enforced, but safe fallback
-            return data
-
-        # --- 1. PII Sanitization Reporting ---
-        # Issue: We don't have easy access to 'sanitization_log' from aux_data here
-        # unless we store it on self during prepare_context (checked: we do).
-
-        if hasattr(self, "_sanitization_threats") and self._sanitization_threats:
-            threats = self._sanitization_threats
-            logger.info(f"[GuardAgent] Reporting sanitization actions: {threats}")
-
-            # Update security_check
-            msg = "Järjestelmä poisti automaattisesti PII-tietoja"
-            report_append = f"\n{msg}: {', '.join(threats)}."
-
-            if isinstance(security_check, dict):
-                # Mutable Dict
-                security_check["anonymisointi_tehty"] = True
-                current = security_check.get("tietosuoja_raportti") or ""
-                if msg not in current:
-                    security_check["tietosuoja_raportti"] = (current + report_append).strip()
-
-                # If root data is dict, we modified it in place (ref)
-                # If root data is Model, we need to update it
-                if not is_dict:
-                     # This case: Data is Model, but field is Dict? Unlikely with strict typing.
-                     pass
-
-            else:
+                # Update security_check
                 # Pydantic Model (Frozen)
-                # 1. Update SecurityCheck
-                updates = {"anonymisointi_tehty": True}
-                current = getattr(security_check, "tietosuoja_raportti", "") or ""
+                metrics_update = {"anonymized": True}
+                
+                current_findings = security_check.pii_findings or []
+                # Create new list
+                new_findings = list(current_findings) + [t for t in threats if t not in current_findings]
+                metrics_update["pii_findings"] = new_findings
 
-                if msg not in current:
-                    updates["tietosuoja_raportti"] = (current + report_append).strip()
+                # Create updated SecurityCheck
+                new_security_check = security_check.model_copy(update=metrics_update)
+                
+                # Update Root Object
+                data = data.model_copy(update={"security_check": new_security_check})
+            
+            # 2. Enhanced Metadata (Context Injection)
+            current_meta = data.metadata
+            meta_updates = {}
+            
+            org_id = self.execution_context.get("organization_id")
+            workflow_name = self.execution_context.get("workflow_name", "standard_workflow")
+            
+            if org_id: meta_updates["organization_id"] = org_id
+            if workflow_name: meta_updates["workflow"] = workflow_name
+            
+            if current_meta and meta_updates:
+                 new_meta = current_meta.model_copy(update=meta_updates)
+                 data = data.model_copy(update={"metadata": new_meta})
 
-                # Create allowed copy
-                new_security_check = security_check.model_copy(update=updates)
-
-                # 2. Update Root Object (GuardOutput)
-                if not is_dict:
-                    # Data is frozen GuardOutput
-                    data = data.model_copy(update={"security_check": new_security_check})
-                else:
-                    # Data is dict, but security_check was object?
-                    data["security_check"] = new_security_check
+            return data
+        
+        elif isinstance(data, dict):
+            # Fallback for dict (should be rare in strict mode but possible during partial inflation)
+             return super().ensure_tainted_data(data) if hasattr(super(), "ensure_tainted_data") else data
 
         return data
 
-    def sanitize_input(self, input_data: dict[str, Any]) -> None:
+    def sanitize_input(self, input_data: GuardInput) -> None:
         """Pre-hook: Sanitizes and anonymizes input data (PII Redaction).
 
         Args:
-            input_data (dict[str, Any]): Inputs to scan.
+            input_data (GuardInput): Inputs to scan.
         """
         logger.info("[GuardAgent] Running sanitize_input (Pre-Hook)...")
         from backend.hooks.security import sanitize_text
 
+        # Using dot notation for Pydantic model
         inputs_to_scan = {
-            "history_text": input_data.get("history_text"),
-            "product_text": input_data.get("product_text"),
-            "reflection_text": input_data.get("reflection_text"),
+            "history_text": input_data.history_text,
+            "product_text": input_data.product_text,
+            "reflection_text": input_data.reflection_text,
         }
 
         all_threats = []
@@ -296,11 +259,19 @@ class GuardAgent(BaseAgent):
                 formatted_threats = [f"{t} ({key})" for t in threats]
                 all_threats.extend(formatted_threats)
 
+            # NOTE: In Pydantic V2 models are immutable by default implies frozen=True?
+            # GuardInput doesn't strictly say frozen=True but likely preferred.
+            # Even if mutable, modifying input_data here might not be reflected upstream if passed by value (unlikely for objects).
+            # But BaseAgent holds the reference.
+            # However, if we want to actually *use* the sanitized text in the LLM prompt, we need to ensure
+            # BaseAgent uses this modified model.
+            
+            # If GuardInput is a standard BaseModel, it's mutable unless ConfigDict(frozen=True).
+            # Checking guard.py: GuardInput class definition doesn't show frozen=True.
+            
             if clean_text != value:
-                # We modify the local input dict.
-                # This affects the prompt construction in BaseAgent if it uses input_data.
-                input_data[key] = clean_text
-
+                 setattr(input_data, key, clean_text)
+                 
         if all_threats:
             logger.warning(f"[GuardAgent] PII Sanitization: {all_threats}")
             # Store for post_process

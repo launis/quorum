@@ -178,6 +178,7 @@ async def reset_knowledge_base(
     """
     try:
         await service.repository.clear_knowledge_base()
+        return KnowledgeResetResponse(message="Knowledge Base reset successfully.")
     except Exception as e:
         error_code = ErrorCodes.KNOWLEDGE_RESET_FAILED
         logger.error(f"[KnowledgeConfig] {error_code.value}: Failed to reset Knowledge Base: {e}", exc_info=True)
@@ -206,7 +207,7 @@ async def get_knowledge_status(
         # In V3 (SQL/Vector), use count() query. 
         # For TinyDB, we just check length of all/search.
         all_execs = await repo.get_all_executions()
-        precedent_count = len([x for x in all_execs if x.get("status") == "completed"])
+        precedent_count = len([x for x in all_execs if x.status == "completed"])
 
         # 2. Check Knowledge Base Documents
         # MVP: Fetch all items and count. 

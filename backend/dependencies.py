@@ -168,7 +168,9 @@ def get_auth_service(
     if _auth_service_instance is None:
         import os
 
-        use_firebase = (settings.storage_backend.upper() == "FIRESTORE" and not settings.use_mock_db) or os.getenv(
+        # Use active_backend to safely determine if we are in FIRESTORE mode
+        backend = settings.active_backend
+        use_firebase = (backend == "FIRESTORE" and not settings.use_mock_db) or os.getenv(
             "USE_FIREBASE_AUTH", "false"
         ).lower() == "true"
         logger.info(f"[Dependencies] Initializing AuthService (Firebase={use_firebase})...")

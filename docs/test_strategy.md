@@ -1,9 +1,9 @@
-# Cognitive Quorum Testing Strategy (V2.9)
+# Cognitive Quorum Testing Strategy (V3.2 - Phase 8 Standards)
 
 ## Core Philosophy: "Zero-Magic"
 We prioritize **speed** and **readability** over complex tooling.
-1.  **Backend**: Use standard `unittest.mock` over complex pytest plugins.
-2.  **Frontend**: Use `mocktail` over `mockito` to avoid code generation (`build_runner`).
+1.  **Fail Fast**: Tests must assert that the system crashes (raises `AppException`) on invalid input or configuration.
+2.  **Strict Typing**: We verify Pydantic V2 schemas at every boundary (DTO -> Domain Model).
 3.  **Isolation**: Unit tests must never hit the database or external APIs.
 
 ---
@@ -15,35 +15,32 @@ We prioritize **speed** and **readability** over complex tooling.
 
 ### Structure
 *   `backend/tests/unit/`: Service-level logic verification.
-*   `backend/tests/integration/`: Component interaction verifications (e.g. `test_config_integrity.py`).
-*   `backend/tests/api/`: FastAPI route verification (Response codes, Schemas).
-*   **Specialized Verification**:
-    *   **Matrix Logic**: Verify that `PromptBuilder` outputs Markdown BARS `(MatrixFormatter)`.
-    *   **Hybrid State**: Verify that `TraceEvent` logs replay correctly into `WorkflowState`.
+*   `backend/tests/integration/`: Component interaction (e.g., `seed_data.json` integrity).
+*   **Specialized Verification (Phase 8)**:
+    *   **DTO Promotion**: Verify that `BaseAgent` correctly promotes `*OutputDTO` (LLM Content) to `*Output` (Domain Model with Metadata).
+    *   **System Config**: Verify that Agents respect `model_strategy` (e.g., `deep` vs `fast`) from DB configuration.
+    *   **Fail Fast**: Verify `AppException` (RFC 7807) is raised for missing config or invalid schemas.
 
 ### Implementation Pattern
 We use **Dependency Injection** with `AsyncMock`.
 
 ```python
-# backend/tests/unit/test_pdf_generator.py
+# backend/tests/unit/test_panel_agent.py
 from unittest.mock import AsyncMock, MagicMock
 import pytest
-
-@pytest.fixture
-def mock_repo():
-    return AsyncMock()
+from backend.exceptions import AppException, ErrorCodes
 
 @pytest.mark.asyncio
-async def test_generate_pdf(mock_repo):
-    # Arrange
-    service = PdfService(mock_repo)
-    mock_repo.get_execution.return_value = MagicMock()
+async def test_panel_agent_fail_fast_no_config(mock_repo):
+    # Arrange: Mock DB returning NO system_config
+    mock_repo.get_system_config.return_value = None
+    agent = PanelAgent(repository=mock_repo)
     
-    # Act
-    await service.generate(123)
+    # Act & Assert: Must raise SECURITY_CONFIG_ERROR or internal equivalent
+    with pytest.raises(AppException) as exc:
+         await agent.run(...)
     
-    # Assert
-    assert mock_repo.get_execution.called
+    assert exc.value.details["error_code"] == ErrorCodes.SECURITY_CONFIG_ERROR
 ```
 
 ### Run Scripts
@@ -57,32 +54,14 @@ async def test_generate_pdf(mock_repo):
 *   **Location**: `client_app/test/`
 *   **Command**: `flutter test`
 
-### Structure
-*   `client_app/test/features/`: Feature-sliced tests (Unit & Widget).
-    *   e.g. `features/studio/presentation/providers/studio_controller_test.dart`
-*   `client_app/integration_test/`: End-to-End flows.
-
 ### Implementation Pattern (No Code Gen)
 We explicitly use **Mocktail** to avoid the slow `build_runner` cycle.
 
 ```dart
-// client_app/test/features/studio/providers/studio_controller_test.dart
-import 'package:mocktail/mocktail.dart';
-
-class MockRepo extends Mock implements StudioRepository {}
-
 test('loads workflow', () async {
-  // Arrange
   final repo = MockRepo();
   when(() => repo.getWorkflow('1')).thenAnswer((_) async => WorkflowDef(id: '1'));
-  
-  // Act
-  final container = ProviderContainer(overrides: [
-    studioRepositoryProvider.overrideWithValue(repo)
-  ]);
-  await container.read(controller.notifier).loadWorkflow('1');
-  
-  // Assert
+  // ...
   verify(() => repo.getWorkflow('1')).called(1);
 });
 ```

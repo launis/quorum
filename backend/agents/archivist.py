@@ -11,13 +11,13 @@ from backend.exceptions import AgentExecutionError, ErrorCodes
 
 # 3. Local Imports
 # 3. Local Imports
-from backend.models.domain import ArchivistOutput, ArchivistOutputDTO
+from backend.models.domain import ArchivistInput, ArchivistOutput, ArchivistOutputDTO
 from backend.models.state import WorkflowState
 
 logger = logging.getLogger(__name__)
 
 
-class ArchivistAgent(BaseAgent):
+class ArchivistAgent(BaseAgent[ArchivistInput, ArchivistOutput]):
     """Arkistonhoitaja (Archivist) Agent.
 
     Retrieves past cases to ensure consistency (Stare Decisis).
@@ -25,11 +25,12 @@ class ArchivistAgent(BaseAgent):
 
     state_field = "step_archivist"
     DTO_SCHEMA = ArchivistOutputDTO
+    INPUT_SCHEMA = ArchivistInput
     OUTPUT_SCHEMA = ArchivistOutput
 
     async def execute(
         self,
-        input_data: dict[str, Any],
+        input_data: ArchivistInput,
         execution_context: dict[str, Any] | None = None,
         system_instruction: str | None = None,
         **kwargs: Any,
@@ -37,7 +38,7 @@ class ArchivistAgent(BaseAgent):
         """Executes the archival retrieval and analysis.
 
         Args:
-            input_data (dict[str, Any]): Inputs.
+            input_data (ArchivistInput): Inputs.
             execution_context (dict[str, Any] | None, optional): Context.
             system_instruction (str | None, optional): Prompt.
             **kwargs: Args.
@@ -49,40 +50,23 @@ class ArchivistAgent(BaseAgent):
             ValueError: If precedents are missing (Fail Fast).
         """
         # FAIL FAST: Precedents must be injected via Hooks.
-        # Check input_data for 'archivist_precedents' OR 'aux_data.archivist_precedents' if merged.
-        # usually aux_data is separate.
-        # But BaseAgent.execute takes input_data.
+        # Check validity of injected precedents.
+        precedents = input_data.archivist_precedents
 
-        # NOTE: If we enforce this, we MUST ensure the hook is running.
-        # Since we found it's likely NOT running, this will break execution until config is fixed.
-        # BUT this is "Fail Fast". Better to crash than hallucinate.
-
-        # IMPORTANT: If the input isn't mapped, the Agent CANNOT see it unless it's in 'execution_context'.
-        # BaseAgent.execute signature has execution_context.
-        # Let's check execution_context['aux_data'] if available.
-
-        precedents = None
-        if input_data.get("archivist_precedents"):
-            precedents = input_data["archivist_precedents"]
-        elif execution_context and execution_context.get("aux_data", {}).get("archivist_precedents"):
-            precedents = execution_context["aux_data"]["archivist_precedents"]
-
-        if not precedents:
-             # If completely missing, we have a problem.
-             # Warn effectively, or Fail Fast if it's critical.
-             # For now, let's Fail Fast to signal the misconfiguration found in audit.
+        if precedents is None:
+             # If strictly None, dependency injection failed
              error_code = ErrorCodes.SERVICE_DEPENDENCY_MISSING
              error_msg = "[ArchivistAgent] Missing 'archivist_precedents'. Archival Hook not configured or failed."
              logger.error(f"{error_code}: {error_msg}")
 
-             # Raising ValueError might block the user from using the app if config is bad.
-             # Given this is "Auditing", failing fast is the goal.
-             # Given this is "Auditing", failing fast is the goal.
              raise AgentExecutionError(
                  detail=error_code,
                  original_error=ValueError(error_msg),
                  agent_name="ArchivistAgent"
              )
+        
+        if not precedents:
+             logger.info("[ArchivistAgent] No precedents found (List is empty). Proceeding without historical context.")
 
         result_obj = await super().execute(input_data, execution_context, system_instruction, **kwargs)
 
@@ -96,6 +80,44 @@ class ArchivistAgent(BaseAgent):
                  original_error=TypeError(f"ArchivistAgent returned {type(result_obj)} instead of ArchivistOutput"),
                  agent_name="ArchivistAgent"
              )
+
+    async def prepare_context(
+        self,
+        input_data: ArchivistInput,
+        execution_context: dict[str, Any] | None,
+        **kwargs: Any
+    ) -> str | None:
+        """Lifecycle Hook: Pre-Execution.
+
+        Formats the structured precedents into a text block for the LLM.
+
+        Args:
+            input_data (ArchivistInput): Inputs.
+            execution_context (dict[str, Any] | None): Config.
+            **kwargs: Args.
+
+        Returns:
+            str | None: Context string.
+        """
+        precedents = input_data.archivist_precedents
+        
+        summary_text = "=== ENNAKKOTAPAUKSET (PRECEDENTS) ===\n"
+        if not precedents:
+            summary_text += "Ei aiempia tapauksia tiedostossa."
+        else:
+            for p in precedents:
+                # p is dict[str, Any]
+                p_id = p.get("id", "Unknown")
+                p_date = p.get("date", "Unknown")
+                p_scores = p.get("scores", "N/A")
+                p_verdict = p.get("verdict", "N/A")
+                
+                summary_text += (
+                    f"- Case {p_id} ({p_date}): {p_scores}. Verdict: {p_verdict}\n"
+                )
+        summary_text += "====================================="
+        
+        return summary_text
 
     # --- PYTHON HOOKS ---
 

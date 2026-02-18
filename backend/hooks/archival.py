@@ -2,10 +2,13 @@
 
 import logging
 from typing import Any, List, Optional
+from datetime import datetime, timezone
 
 from backend.database.repository import AbstractWorkflowRepository
-from backend.exceptions import AppException
+from backend.exceptions import AppException, ErrorCodes
 from backend.models.state import WorkflowState
+from backend.utils.pydantic_utils import inflate
+from backend.models.domain.judge import JudgeOutput
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +19,7 @@ async def retrieve_precedent(
     """HOOK: retrieve_precedent.
 
     Retrieves the last N completed executions with a valid Judge score (Case Law).
-    Injects a textual summary of these precedents into 'aux_data.archivist_precedents'.
+    Injects a textual summary of these precedents into 'context_variables["archivist_precedents"]'.
     Designed to allow agents to learn from past performance.
 
     Args:
@@ -31,81 +34,137 @@ async def retrieve_precedent(
     """
     logger.debug("[ArchivalHook] Running retrieve_precedent hook...")
 
+    # Strict Enforce: State must be WorkflowState object
+    if isinstance(state, dict):
+        raise AppException(
+            message="Archival Hook received dict state. Strict Pydantic Enforcement Violation.",
+            status_code=500,
+            details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA}
+        )
+
     if not repository:
         # STRICT CONFIG CHECK
-        error_code = "ARCHIVAL_CONFIG_ERROR"
+        error_code = ErrorCodes.CONFIGURATION_ERROR
         msg = "Repository not injected. Cannot retrieve precedents."
-        logger.error(f"[ArchivalHook] {error_code}: {msg}")
+        logger.error(f"[ArchivalHook] {error_code.name}: {msg}")
         raise AppException(message=msg, status_code=500, details={"error_code": error_code})
 
     try:
         # 1. Use Repository to get executions
         all_executions = await repository.get_all_executions()
 
+        # STRICT Enforce: Repository must return List[ExecutionRecord] objects, NOT dicts.
+        if all_executions and isinstance(all_executions[0], dict):
+             error_code = ErrorCodes.INVALID_OUTPUT_SCHEMA
+             msg = "Repository returned dicts instead of Pydantic Models. Strict Pydantic Enforcement Violation."
+             logger.error(f"[ArchivalHook] {error_code.name}: {msg}")
+             raise AppException(
+                 message=msg,
+                 status_code=500,
+                 details={"error_code": error_code}
+             )
+
         # 2. Query Completed Executions (Memory Filter)
         # Optimization: In a real DB, this should be a filtered query
-        results = [x for x in all_executions if x.get("status") == "completed"]
+        # Fix: ExecutionRecord is an object, not a dict. Use attribute access.
+        results = [x for x in all_executions if x.status == "completed"]
 
         # 3. Filter and Format
         precedents = []
-        # Sort by end_time desc
-        results.sort(key=lambda x: x.get("end_time", ""), reverse=True)
+        
+        # FAIL FAST: Strict Sort (All completed executions must have a completed_at timestamp)
+        for res in results:
+             if not res.completed_at:
+                 # Should we fail execution if archived data is bad? 
+                 # Maybe logs warning but skip. Mandate says Fail Fast.
+                 # But past data shouldn't crash current run unless critical.
+                 # Let's skip with warning to preserve robustness against legacy data.
+                 logger.warning(f"Execution {res.id} is 'completed' but missing 'completed_at'. Skipping.")
+                 continue
+        
+        # Sort by completed_at desc (renamed from end_time in V2 domain)
+        # Filter out None completed_at safely (though loop above caught most)
+        results = [r for r in results if r.completed_at]
+        results.sort(key=lambda x: x.completed_at or datetime.min.replace(tzinfo=timezone.utc), reverse=True)
         recent_results = results[:5]
 
         for res in recent_results:
             # Check if it has judge output
-            trace = res.get("trace", {})
-            # Try step_judge (new) or step_8_judge (legacy)
-            judge_data = trace.get("step_judge") or trace.get("step_8_judge")
+            # ExecutionRecord -> results (WorkflowState) -> execution_trace (List[TraceEvent])
+            
+            # FAIL FAST: Strict Type Enforcement
+            wf_state = res.results
+            if isinstance(wf_state, dict):
+                 # Attempt to strict inflate if it's a dict (e.g. from JSON serialization in DB)
+                 wf_state = inflate(wf_state, WorkflowState)
+            
+            if not isinstance(wf_state, WorkflowState):
+                # If it's still not a WorkflowState, we have invalid data structure for a completed execution
+                logger.warning(f"Execution {res.id} results is not a valid WorkflowState. Skipping.")
+                continue
+            
+            # Find ALL Judge outputs in trace (Generic Detection)
+            judge_outputs = {}
+            
+            # TraceEvents are needing access. Check if WorkflowState has trace?
+            # WorkflowState definition: trace_events: List[TraceEvent] = ...
+            trace_events = wf_state.execution_trace or []
 
-            if judge_data:
-                # Extract score
-                pisteet = judge_data.get("pisteet", {})
-                # Calc primitive summary if not present
-                score_summary = "N/A"
-                if pisteet:
-                    scores = [
-                        pisteet.get("analyysi", {}).get("arvosana", 0),
-                        pisteet.get("arviointi", {}).get("arvosana", 0),
-                        pisteet.get("synteesi", {}).get("arvosana", 0),
-                    ]
-                    # Safe division
-                    avg = sum(scores) / 3 if len(scores) > 0 else 0
-                    score_summary = f"Avg: {avg:.2f} | Arvosanat: {scores}"
+            for event in trace_events:
+                 if event.event_type == "output" and "judge" in event.step_name:
+                     # Attempt strict inflation to see if it's a JudgeOutput
+                     # We don't care about the step name, only the data schema.
+                     try:
+                         judge_candidate = inflate(event.content, JudgeOutput)
+                         if judge_candidate:
+                             # Use step_name as label (e.g. "step_judge" -> "Standard", "step_judge_cognitive" -> "Cognitive")
+                             # Clean up label for UI
+                             label = event.step_name.replace("step_judge_", "").replace("step_judge", "Standard").replace("_", " ").title()
+                             if label == "Standard": label = "Standard" # Keep simple
+                             
+                             judge_outputs[label] = judge_candidate
+                     except:
+                         # Not a JudgeOutput, ignore
+                         continue
+
+            if judge_outputs:
+                score_parts = []
+                verdict_parts = []
+                
+                for label, judge_model in judge_outputs.items():
+                    avg = judge_model.score_card.total_score
+                    score_parts.append(f"{label}: {avg:.2f}")
+                    verdict_parts.append(f"{label}: {judge_model.score_card.verdict[:50]}...")
+                
+                score_summary = " | ".join(score_parts)
+                verdict_text = " || ".join(verdict_parts)
 
                 precedents.append(
                     {
-                        "id": res.get("execution_id"),
-                        "date": res.get("end_time"),
+                        "id": res.id,
+                        "date": res.completed_at.isoformat(),
                         "scores": score_summary,
-                        "verdict": judge_data.get("kriittiset_havainnot_yhteenveto", "No summary"),
+                        "verdict": verdict_text[:150], # Truncate
                     }
                 )
 
         # Keep only last 3
         precedents = precedents[-3:]
 
-        summary_text = "=== ENNAKKOTAPAUKSET (PRECEDENTS) ===\n"
-        if not precedents:
-            summary_text += "Ei aiempi tapauksia tiedostossa."
-        else:
-            for p in precedents:
-                summary_text += (
-                    f"- Case {p['id']} ({p['date']}): {p['scores']}. Verdict: {p['verdict'][:100]}...\n"
-                )
-        summary_text += "====================================="
-
         logger.debug(f"[ArchivalHook] Found {len(precedents)} precedents.")
 
         # 4. Inject
         new_context = state.context_variables.copy()
-        new_context["archivist_precedents"] = summary_text
+        # Return STRUCTURED data (List[dict]) matching ArchivistInput schema
+        new_context["archivist_precedents"] = precedents
         return state.model_copy(update={"context_variables": new_context})
 
+    except AppException:
+        raise
     except Exception as e:
         # FAIL FAST - RFC 7807
-        error_code = "ARCHIVAL_RETRIEVAL_FAILED"
-        logger.error(f"[ArchivalHook] {error_code}: {e}", exc_info=True)
+        error_code = ErrorCodes.KNOWLEDGE_RETRIEVAL_FAILED
+        logger.error(f"[ArchivalHook] {error_code.name}: {e}", exc_info=True)
         raise AppException(
             message=f"Failed to retrieve precedents: {e}", status_code=500, details={"error_code": error_code}
         ) from e

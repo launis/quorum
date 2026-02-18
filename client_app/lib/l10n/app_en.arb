@@ -557,5 +557,17 @@
   "errWorkflowExecutionFailed": "Workflow Execution Failed",
   "errKnowledgeNotIngestedTitle": "Knowledge Base Empty",
   "errKnowledgeNotIngested": "Knowledge Base is empty. Please upload documents in the Ingestion view before running analysis.",
-  "actionGoToIngestion": "Go to Ingestion"
+  "actionGoToIngestion": "Go to Ingestion",
+  "knowledgeActive": "Knowledge Base Active",
+  "knowledgeStats": "Documents: {docCount} | Precedents: {precCount}",
+  "@knowledgeStats": {
+    "placeholders": {
+      "docCount": {
+        "type": "int"
+      },
+      "precCount": {
+        "type": "int"
+      }
+    }
+  }
 }

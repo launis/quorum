@@ -5,9 +5,12 @@ import re
 from typing import Any, Dict, List, Optional, Union
 
 import docx
+import uuid
+from datetime import datetime, timezone
 from fastapi import status
 
 from backend.exceptions import AppException, ErrorCodes
+from backend.models.domain.knowledge import KnowledgeBaseDocument, Concept, Reference, Claim, DocumentChunk
 
 logger = logging.getLogger(__name__)
 
@@ -39,12 +42,12 @@ class KnowledgeBaseParser:
     ]
 
     @staticmethod
-    def extract_claims_from_text(text: str) -> List[Dict[str, Any]]:
+    def extract_claims_from_text(text: str) -> List[Claim]:
         """Extracts sentences containing citations (claims) from text using ReGex.
-
-        Uses a Mask & Split strategy to handle internal punctuation in citations (e.g., 'vrt.', 'M.').
+        
+        Returns strictly typed Claim objects.
         """
-        claims: List[Dict[str, Any]] = []
+        claims: List[Claim] = []
         if not text:
             return claims
 
@@ -58,7 +61,7 @@ class KnowledgeBaseParser:
 
         # 1. Mask Citations
         # Store replacements to restore later
-        replacements = {}
+        replacements: Dict[str, str] = {}
         
         def mask_match(match):
             key = f"__CIT_MASK_{len(replacements)}__"
@@ -140,27 +143,28 @@ class KnowledgeBaseParser:
                     continue
 
                 claims.append(
-                    {
-                        "claim_text": clean_claim,
-                        "citation_keys": citation_keys,
-                        "citation_text": "; ".join(citation_labels),
-                        "original_markdown": "",
-                        "matches_text_citation": matches_text_citation,
-                    }
+                    Claim(
+                        claim_text=clean_claim,
+                        citation_keys=citation_keys,
+                        citation_text="; ".join(citation_labels),
+                        original_markdown=None,  # Resolved later
+                        matches_text_citation=matches_text_citation,
+                    )
                 )
         return claims
 
     @staticmethod
-    def parse_docx(file_input: Any) -> Dict[str, Any]:
+    def parse_docx(file_input: Any, filename: str = "unknown.docx") -> KnowledgeBaseDocument:
         """Parses DOCX document into structured knowledge.
 
         Iterates through paragraphs to distinguish between Concepts (Headers + Text) and Bibliography.
 
         Args:
             file_input (Any): File path (str) or file-like object (stream).
+            filename (str): Original filename for metadata.
 
         Returns:
-            Dict[str, Any]: KB structure with 'concepts', 'references', 'claims'.
+            KnowledgeBaseDocument: Strict Pydantic model.
 
         Raises:
             AppException: If document cannot be opened (PARSING_FAILED).
@@ -177,15 +181,14 @@ class KnowledgeBaseParser:
                 details={"error_code": ErrorCodes.INVALID_FILE_FORMAT, "original_error": str(e)}
             ) from e
 
-        # Data structure
-        knowledge_base: Dict[str, List[Dict[str, Any]]] = {
-            "concepts": [],  # List of {term, definition}
-            "references": [],  # List of {citation, doi_link}
-            "claims": [],  # List of {claim_text, citation_keys...}
-        }
-        # Add metadata separately or include in type. TypedDict would be better but dict[str, Any] works.
-        knowledge_base_any: Dict[str, Any] = knowledge_base  # cast for mixed types like metadata
-        knowledge_base_any["metadata"] = {"source": str(file_input)[:100]}
+        # Data containers
+        concepts: List[Concept] = []
+        references: List[Reference] = []
+        claims: List[Claim] = []
+        
+        # We also collect raw chunks for the document model
+        chunks: List[DocumentChunk] = []
+        total_tokens = 0 # Estimate
 
         # Regex for DOI
         doi_pattern = re.compile(r"\b(10.\d{4,9}/[-._;()/:A-Z0-9]+)\b", re.IGNORECASE)
@@ -215,12 +218,25 @@ class KnowledgeBaseParser:
                     # Close previous concept if open
                     if current_concept:
                         def_text = "\n".join(current_definition)
-                        knowledge_base["concepts"].append({"term": current_concept, "definition": def_text})
+                        concepts.append(Concept(term=current_concept, definition=def_text))
                         # Extract Claims
                         section_claims = KnowledgeBaseParser.extract_claims_from_text(def_text)
                         for c in section_claims:
-                            c["concept_context"] = current_concept
-                            knowledge_base["claims"].append(c)
+                            # Update context (since Claim is frozen, we might need to recreate or use dict first? 
+                            # Claim is Pydantic. We can use model_copy if needed, but easier to construct directly.
+                            # extract_claims now returns Claim objects.
+                            # We need to set concept_context. Models are frozen=True.
+                            # So we must reconstitute.
+                            claims.append(
+                                Claim(
+                                    claim_text=c.claim_text, 
+                                    citation_keys=c.citation_keys,
+                                    citation_text=c.citation_text,
+                                    original_markdown=c.original_markdown,
+                                    matches_text_citation=c.matches_text_citation,
+                                    concept_context=current_concept
+                                )
+                            )
 
                         current_concept = None
                         current_definition = []
@@ -236,23 +252,34 @@ class KnowledgeBaseParser:
                     doi_raw = doi_match.group(1)
                     doi_link = f"https://doi.org/{doi_raw}"
 
-                knowledge_base["references"].append(
-                    {
-                        "citation": citation,
-                        "short_citation": KnowledgeBaseParser.extract_short_citation(citation),
-                        "doi_link": doi_link,
-                    }
+                references.append(
+                    Reference(
+                        citation=citation,
+                        short_citation=KnowledgeBaseParser.extract_short_citation(citation),
+                        doi_link=doi_link
+                    )
                 )
             else:
                 if "heading" in style_name and "1" not in style_name:
                     if current_concept:
                         def_text = "\n".join(current_definition)
-                        knowledge_base["concepts"].append({"term": current_concept, "definition": def_text})
-                        # Extract Claims
-                        section_claims = KnowledgeBaseParser.extract_claims_from_text(def_text)
+                        if def_text.strip():
+                            concepts.append(Concept(term=current_concept, definition=def_text))
+                            # Extract Claims
+                            section_claims = KnowledgeBaseParser.extract_claims_from_text(def_text)
+                        else:
+                            section_claims = [] # No text, no claims
                         for c in section_claims:
-                            c["concept_context"] = current_concept
-                            knowledge_base["claims"].append(c)
+                            claims.append(
+                                Claim(
+                                    claim_text=c.claim_text, 
+                                    citation_keys=c.citation_keys,
+                                    citation_text=c.citation_text,
+                                    original_markdown=c.original_markdown,
+                                    matches_text_citation=c.matches_text_citation,
+                                    concept_context=current_concept
+                                )
+                            )
 
                     current_concept = text
                     current_definition = []
@@ -282,12 +309,24 @@ class KnowledgeBaseParser:
 
                     if current_concept:
                         def_text = "\n".join(current_definition)
-                        knowledge_base["concepts"].append({"term": current_concept, "definition": def_text})
-                        # Extract Claims
-                        section_claims = KnowledgeBaseParser.extract_claims_from_text(def_text)
+                        if def_text.strip():
+                            concepts.append(Concept(term=current_concept, definition=def_text))
+                            # Extract Claims
+                            section_claims = KnowledgeBaseParser.extract_claims_from_text(def_text)
+                        else:
+                             section_claims = []
+
                         for c in section_claims:
-                            c["concept_context"] = current_concept
-                            knowledge_base["claims"].append(c)
+                             claims.append(
+                                Claim(
+                                    claim_text=c.claim_text, 
+                                    citation_keys=c.citation_keys,
+                                    citation_text=c.citation_text,
+                                    original_markdown=c.original_markdown,
+                                    matches_text_citation=c.matches_text_citation,
+                                    concept_context=current_concept
+                                )
+                            )
 
                     if is_structural:
                         logger.info(f"[KBParser] Skipping structural/H1 header: '{text}'")
@@ -303,21 +342,56 @@ class KnowledgeBaseParser:
         # Flush last
         if current_concept:
             def_text = "\n".join(current_definition)
-            knowledge_base["concepts"].append({"term": current_concept, "definition": def_text})
-            # Extract Claims
-            section_claims = KnowledgeBaseParser.extract_claims_from_text(def_text)
+            if def_text.strip():
+                concepts.append(Concept(term=current_concept, definition=def_text))
+                # Extract Claims
+                section_claims = KnowledgeBaseParser.extract_claims_from_text(def_text)
+            else:
+                section_claims = []
             for c in section_claims:
-                c["concept_context"] = current_concept
-                knowledge_base["claims"].append(c)
+                  claims.append(
+                        Claim(
+                            claim_text=c.claim_text, 
+                            citation_keys=c.citation_keys,
+                            citation_text=c.citation_text,
+                            original_markdown=c.original_markdown,
+                            matches_text_citation=c.matches_text_citation,
+                            concept_context=current_concept
+                        )
+                    )
 
         # Resolve Claims to Full References
-        KnowledgeBaseParser._resolve_claims(knowledge_base)
+        KnowledgeBaseParser._resolve_claims(claims, references)
+
+        # Build chunks from concepts for now (one chunk per concept)
+        for i, concept in enumerate(concepts):
+            chunks.append(
+                DocumentChunk(
+                    chunk_id=f"chunk-{i}",
+                    content=f"{concept.term}\n\n{concept.definition}",
+                    page_number=None,
+                    metadata={"term": concept.term}
+                )
+            )
+            total_tokens += len(concept.definition.split()) # Rough estimate
 
         logger.info(
-            f"[KBParser] Extracted {len(knowledge_base['concepts'])} concepts, "
-            f"{len(knowledge_base['references'])} references, and {len(knowledge_base['claims'])} claims from DOCX."
+            f"[KBParser] Extracted {len(concepts)} concepts, "
+            f"{len(references)} references, and {len(claims)} claims from DOCX."
         )
-        return knowledge_base
+        
+        return KnowledgeBaseDocument(
+            document_id=str(uuid.uuid4()),
+            filename=filename,
+            content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            total_tokens=total_tokens,
+            chunks=chunks,
+            concepts=concepts,
+            references=references,
+            claims=claims,
+            parsed_at=datetime.now(timezone.utc),
+            metadata={"source": "docx_upload"}
+        )
 
     @staticmethod
     def clean_text(text: str) -> str:
@@ -407,7 +481,7 @@ class KnowledgeBaseParser:
         return None
 
     @staticmethod
-    def parse_md(file_input: Any) -> Dict[str, Any]:
+    def parse_md(file_input: Any, filename: str = "unknown.md") -> KnowledgeBaseDocument:
         """Parses Markdown content into structured knowledge.
 
         Support for:
@@ -417,9 +491,10 @@ class KnowledgeBaseParser:
 
         Args:
             file_input (Any): File path (str) or file-like object (stream).
+            filename (str): Original filename.
 
         Returns:
-             Dict[str, Any]: Structured KB dict.
+             KnowledgeBaseDocument: Structured KB model.
 
         Raises:
             AppException: If parsing fails (PARSING_FAILED).
@@ -451,14 +526,12 @@ class KnowledgeBaseParser:
 
         lines = content_str.splitlines()
 
-        # Data structure
-        knowledge_base: Dict[str, List[Dict[str, Any]]] = {
-            "concepts": [],  # List of {term, definition}
-            "references": [],  # List of {citation, doi_link}
-            "claims": [],  # List of {claim_text, citation_keys...}
-        }
-        knowledge_base_any: Dict[str, Any] = knowledge_base
-        knowledge_base_any["metadata"] = {"source": "markdown_upload"}
+        # Data containers
+        concepts: List[Concept] = []
+        references: List[Reference] = []
+        claims: List[Claim] = []
+        chunks: List[DocumentChunk] = []
+        total_tokens = 0
 
         # Regex for DOI
         doi_pattern = re.compile(r"\b(10.\d{4,9}/[-._;()/:A-Z0-9]+)\b", re.IGNORECASE)
@@ -495,12 +568,20 @@ class KnowledgeBaseParser:
                 # Close previous concept
                 if current_concept:
                     def_text = "\n".join(current_definition)
-                    knowledge_base["concepts"].append({"term": current_concept, "definition": def_text})
+                    concepts.append(Concept(term=current_concept, definition=def_text))
                     # Extract Claims from this section
                     section_claims = KnowledgeBaseParser.extract_claims_from_text(def_text)
                     for c in section_claims:
-                        c["concept_context"] = current_concept
-                        knowledge_base["claims"].append(c)
+                        claims.append(
+                            Claim(
+                                claim_text=c.claim_text, 
+                                citation_keys=c.citation_keys,
+                                citation_text=c.citation_text,
+                                original_markdown=c.original_markdown,
+                                matches_text_citation=c.matches_text_citation,
+                                concept_context=current_concept
+                            )
+                        )
 
                     current_concept = None
                     current_definition = []
@@ -534,13 +615,13 @@ class KnowledgeBaseParser:
                     # 3. Clean
                     clean_citation = re.sub(r"<[^>]+>", "", citation)
 
-                    knowledge_base["references"].append(
-                        {
-                            "citation": clean_citation,
-                            "short_citation": KnowledgeBaseParser.extract_short_citation(clean_citation),
-                            "doi_link": doi_link,
-                            "anchor_id": anchor_id,
-                        }
+                    references.append(
+                        Reference(
+                            citation=clean_citation,
+                            short_citation=KnowledgeBaseParser.extract_short_citation(clean_citation),
+                            doi_link=doi_link,
+                            anchor_id=anchor_id
+                        )
                     )
                 else:
                     # Continuation of previous reference? Or just ignore?
@@ -557,12 +638,20 @@ class KnowledgeBaseParser:
                     # Close previous
                     if current_concept:
                         def_text = "\n".join(current_definition)
-                        knowledge_base["concepts"].append({"term": current_concept, "definition": def_text})
+                        concepts.append(Concept(term=current_concept, definition=def_text))
                         # Extract Claims from this section
                         section_claims = KnowledgeBaseParser.extract_claims_from_text(def_text)
                         for c in section_claims:
-                            c["concept_context"] = current_concept
-                            knowledge_base["claims"].append(c)
+                            claims.append(
+                                Claim(
+                                    claim_text=c.claim_text, 
+                                    citation_keys=c.citation_keys,
+                                    citation_text=c.citation_text,
+                                    original_markdown=c.original_markdown,
+                                    matches_text_citation=c.matches_text_citation,
+                                    concept_context=current_concept
+                                )
+                            )
 
                     # Remove anchor tags from term if present (e.g. <a id="foo"></a>Term)
                     term_clean = re.sub(r"<[^>]+>", "", term).strip()
@@ -576,24 +665,56 @@ class KnowledgeBaseParser:
         # Flush last
         if current_concept:
             def_text = "\n".join(current_definition)
-            knowledge_base["concepts"].append({"term": current_concept, "definition": def_text})
+            concepts.append(Concept(term=current_concept, definition=def_text))
             # Extract Claims from this section
             section_claims = KnowledgeBaseParser.extract_claims_from_text(def_text)
             for c in section_claims:
-                c["concept_context"] = current_concept
-                knowledge_base["claims"].append(c)
+                claims.append(
+                    Claim(
+                        claim_text=c.claim_text, 
+                        citation_keys=c.citation_keys,
+                        citation_text=c.citation_text,
+                        original_markdown=c.original_markdown,
+                        matches_text_citation=c.matches_text_citation,
+                        concept_context=current_concept
+                    )
+                )
 
         # Resolve Claims to Full References
-        KnowledgeBaseParser._resolve_claims(knowledge_base)
+        KnowledgeBaseParser._resolve_claims(claims, references)
+        
+        # Build chunks
+        for i, concept in enumerate(concepts):
+            chunks.append(
+                DocumentChunk(
+                    chunk_id=f"chunk-{i}",
+                    content=f"{concept.term}\n\n{concept.definition}",
+                    page_number=None,
+                    metadata={"term": concept.term}
+                )
+            )
+            total_tokens += len(concept.definition.split())
 
         logger.info(
-            f"[KBParser] Extracted {len(knowledge_base['concepts'])} concepts, "
-            f"{len(knowledge_base['references'])} references, and {len(knowledge_base['claims'])} claims from MD."
+            f"[KBParser] Extracted {len(concepts)} concepts, "
+            f"{len(references)} references, and {len(claims)} claims from MD."
         )
-        return knowledge_base
+        
+        return KnowledgeBaseDocument(
+            document_id=str(uuid.uuid4()),
+            filename=filename,
+            content_type="text/markdown",
+            total_tokens=total_tokens,
+            chunks=chunks,
+            concepts=concepts,
+            references=references,
+            claims=claims,
+            parsed_at=datetime.now(timezone.utc),
+            metadata={"source": "markdown_upload"}
+        )
 
     @staticmethod
-    def _resolve_claims(knowledge_base: Dict[str, Any]):
+    def _resolve_claims(claims: List[Claim], references: List[Reference]):
         """Internal Helper: Resolves textual claims to their full bibliographic references.
 
         Populates 'original_markdown' field in claims.
@@ -602,46 +723,61 @@ class KnowledgeBaseParser:
         1. Explicit ID match (claim.citation_keys -> ref.anchor_id)
         2. Short Citation match (claim.citation_text -> ref.short_citation)
         """
-        refs = knowledge_base.get("references", [])
-        claims = knowledge_base.get("claims", [])
-
         # Build lookup maps
         id_map = {}
         short_map = {}
 
-        for r in refs:
-            if r.get("anchor_id"):
-                id_map[r["anchor_id"]] = r["citation"]
+        for r in references:
+            if r.anchor_id:
+                id_map[r.anchor_id] = r.citation
 
-            sc = r.get("short_citation")
+            sc = r.short_citation
             if sc:
-                short_map[sc.lower()] = r["citation"]
+                short_map[sc.lower()] = r.citation
 
         for c in claims:
+            # Skip if already resolved (though frozen model means we're creating new ones if we had to)
+            # Actually, we can't modify 'c' because it's pydantic frozen!
+            # BUT: We are appending to a List[Claim] in the parser loop.
+            # Wait, valid point. Class is frozen.
+            # We must use model_copy(update=...) to update it.
+            # However, this method is called AFTER the list is populated.
+            # This is a problem with frozen models and post-processing.
+            # SOLUTION:
+            # 1. We need to iterate the list and REPLACE items with updated versions.
+            pass
+            
+            # REFACTOR: _resolve_claims should take the list and return a NEW list, or we assume caller knows we need to replace.
+            # ACTUALLY: Since we are in strict mode, let's just do it in place by replacing the list elements.
+            # BUT frozen objects can't be modified.
+            # So: c.original_markdown = ... WILL FAIL.
+            
+            # We must reconstruct the claim.
+            pass
+        # Since we cannot modify frozen objects in place easily, we will do a second pass in the main method?
+        # No, let's fix the logic here.
+        # We need to iterate and replace.
+        for i, c in enumerate(claims):
             full_ref = None
 
             # 1. Try Key Match
-            if c.get("citation_keys"):
-                for key in c["citation_keys"]:
+            if c.citation_keys:
+                for key in c.citation_keys:
                     if key in id_map:
                         full_ref = id_map[key]
                         break
 
             # 2. Try Text Match
-            if not full_ref and c.get("citation_text"):
-                # Use split explicit sep or just use whole?
-                # Code uses split by semi-colon
-                lbl = c["citation_text"].split(";")[0].strip().lower()
-                # Try direct match
+            if not full_ref and c.citation_text:
+                lbl = c.citation_text.split(";")[0].strip().lower()
                 if lbl in short_map:
                     full_ref = short_map[lbl]
                 else:
-                    # Fuzzy / Contains match?
-                    # "Acemoglu & Restrepo 2018"
                     for s_key, s_val in short_map.items():
                         if lbl in s_key or s_key in lbl:
                             full_ref = s_val
                             break
 
             if full_ref:
-                c["original_markdown"] = full_ref
+                # Replace with updated copy
+                claims[i] = c.model_copy(update={"original_markdown": full_ref})

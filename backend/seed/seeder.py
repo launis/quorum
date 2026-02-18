@@ -8,6 +8,15 @@ import json
 import logging
 import os
 from datetime import datetime
+from pathlib import Path
+import sys
+
+# Add project root to path
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+print(f"DEBUG: Added {PROJECT_ROOT} to sys.path")
 
 from tinydb import Query, TinyDB
 
@@ -16,40 +25,21 @@ from backend.models.auth import Organization, User
 logger = logging.getLogger(__name__)
 
 
-def seed_database(target_env: str = "LOCAL", target_db_path: str | None = None):
-    from backend.settings import get_settings
+from typing import Any, Literal
+from pydantic import BaseModel, TypeAdapter, ValidationError
 
-    settings = get_settings()
+from backend.models.workflow import WorkflowDefinition
+from backend.models.llm import LLMProviderConfig, AgentSystemConfig, ModelRegistryConfig
+# ComponentResponse is a union of specific types
+from backend.models.dtos.config import ComponentResponse, StepDefinition, DimensionDefinition, ConfigComponentResponse
 
-    print(f"[Seeder] Loading seed data from: {settings.seed_data_path}")
-    if not os.path.exists(settings.seed_data_path):
-        print(f"[Seeder] Error: File not found {settings.seed_data_path}")
-        return
-
-    try:
-        with open(settings.seed_data_path, encoding="utf-8") as f:
-            seed_data = json.load(f)
-    except Exception as e:
-        print(f"[Seeder] Error loading JSON: {e}")
-        return
-
-    # --- MIGRATION LOGIC (REMOVED - STRICT OBJECT MODE) ---
-    # The seed_data.json must now adhere to the V2.9 Schema (Object Steps).
-    # Legacy string-list steps are no longer supported.
-
-    # Determine backend
-    is_firestore = settings.storage_backend.upper() == "FIRESTORE" and not settings.use_mock_db
-
-    if is_firestore:
-        print("[Seeder] Target: FIRESTORE")
-        _seed_firestore(seed_data)
-    else:
-        path = target_db_path or settings.start_db_path
-        print(f"[Seeder] Target: TinyDB at {path}")
-        _seed_tinydb(path, seed_data)
-
+# --- Shared Models (Strict) ---
+from backend.models.domain.knowledge_items import KBItem
 
 def _seed_tinydb(db_path: str, seed_data: dict):
+    # Imports are now at module level
+
+
     try:
         db = TinyDB(db_path, encoding="utf-8")
         db.drop_tables()  # CLEAN SLATE (Drops all tables including executions)
@@ -58,141 +48,212 @@ def _seed_tinydb(db_path: str, seed_data: dict):
         print(f"[Seeder] Error initializing TinyDB: {e}")
         return
 
-    # Seed Workflows (New Format)
+    # Seed Workflows (Strict)
     workflows_table = db.table("workflows")
     count = 0
-    for wf in seed_data.get("workflows", []):
+    for item in seed_data.get("workflows", []):
         try:
-            workflows_table.upsert(wf, Query().id == wf["id"])
+            # Validate
+            wf = WorkflowDefinition.model_validate(item)
+            # Dump to JSON-safe dict
+            dumped = wf.model_dump(mode='json')
+            workflows_table.upsert(dumped, Query().id == dumped["id"])
             count += 1
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[Seeder] Error upserting workflow {item.get('id')}: {e}")
     print(f"[Seeder] Upserted {count} workflows.")
 
-    # Seed Components (For prompts - required for task mandates)
-    components_table = db.table("components")
+    # Seed Knowledge Base (Strict)
+    kb_table = db.table("knowledge_base")
     count = 0
-    for c in seed_data.get("components", []):
+    kb_adapter: TypeAdapter[KBItem] = TypeAdapter(KBItem)
+    for item in seed_data.get("knowledge_base", []):
         try:
-            # Use ID or Name as ID
-            cid = c.get("id") or c.get("name")
-            if cid:
-                c["id"] = cid
-                components_table.upsert(c, Query().id == cid)
+            # Validate
+            kb_obj = kb_adapter.validate_python(item)
+            dumped = kb_obj.model_dump(mode='json')
+            # TinyDB doesn't enforce schema, but we validated it.
+            # Use 'id' as key if provided, though KB items might not always have unique IDs in source except internal UUIDs.
+            # Assuming migrate script ensured IDs.
+            if "id" in dumped:
+                kb_table.upsert(dumped, Query().id == dumped["id"])
                 count += 1
         except Exception as e:
-            print(f"[Seeder] Error upserting component {c.get('id')}: {e}")
-            pass
+            print(f"[Seeder] Error upserting knowledge item {item.get('id')}: {e}")
+    print(f"[Seeder] Upserted {count} knowledge base items.")
+
+    # Seed Components (Strict Polymorphic)
+    components_table = db.table("components")
+    count = 0
+    comp_adapter = TypeAdapter(ComponentResponse)
+    for item in seed_data.get("components", []):
+        try:
+            # Validate
+            # Handle 'class' vs 'component_class' mapping if raw data still has 'class'
+            # Pydantic alias="class" handles input 'class'.
+            comp = comp_adapter.validate_python(item)
+            
+            # Dump back. If using model_dump(by_alias=True), we get 'class'.
+            # If False (default), we get 'component_class'.
+            # Dump back. If using model_dump(by_alias=True), we get 'class'.
+            # If False (default), we get 'component_class'.
+            # MIGRATION DECISION: We are moving to 'component_class' in DB to avoid reserved keyword collision.
+            # Codebase audit showed 'class' key is NOT used manually.
+            dumped = comp.model_dump(mode='json')
+            
+            cid = dumped.get("id")
+            if cid:
+                components_table.upsert(dumped, Query().id == cid)
+                count += 1
+        except Exception as e:
+            print(f"[Seeder] Error upserting component {item.get('id')}: {e}")
     print(f"[Seeder] Upserted {count} components.")
 
-    # Seed System Config (includes model_registry)
-    # Repository.get_model_registry() now reads from system_config table directly.
+    # Seed System Config (Strict Polymorphic)
     system_config_table = db.table("system_config")
     count = 0
-    for cfg in seed_data.get("system_config", []):
+    # Define Strict Union
+    # Rebuild models to ensure definitions are complete (Pydantic V2 fix)
+    # SystemConfigItem = LLMProviderConfig | AgentSystemConfig | ModelRegistryConfig
+    # sys_config_adapter = TypeAdapter(SystemConfigItem)
+    
+    sys_conf_list = seed_data.get("system_config", [])
+    logger.info(f"[DEBUG] Found {len(sys_conf_list)} items in system_config list.")
+
+    for idx, item in enumerate(sys_conf_list):
         try:
-            cfg_id = cfg.get("id") or cfg.get("type")
-            if cfg_id:
-                cfg["id"] = cfg_id
-                system_config_table.upsert(cfg, Query().id == cfg_id)
+            if isinstance(item, str):
+                logger.error(f"[Seeder] ERROR: system_config item {idx} is a string. Skipping.")
+                continue
+            
+            # STRICT VALIDATION: Manual Dispatch
+            validated_item = None
+            item_type = item.get("type", "unknown")
+            item_id = item.get("id", "unknown")
+            
+            if item_id == "model_registry":
+                validated_item = ModelRegistryConfig.model_validate(item)
+            elif item_type == "agent" or "llm_prompts" in item:
+                # AgentSystemConfig handles agents
+                validated_item = AgentSystemConfig.model_validate(item)
+            elif item_type == "knowledge_base":
+                # Handle knowledge_base config using ConfigComponentResponse
+                validated_item = ConfigComponentResponse.model_validate(item)
+            else:
+                 # Fallback to LLMProviderConfig (or check specific fields?)
+                 # Assume LLMProviderConfig for others if they match schema
+                 try:
+                     validated_item = LLMProviderConfig.model_validate(item)
+                 except ValidationError:
+                     # If it fails LLMProviderConfig, maybe it WAS an agent but malformed?
+                     # Printing detailed error might be confusing if it wasn't meant to be LLMProviderConfig.
+                     # But since we have specific branches, this is the "default" case.
+                     raise
+            
+            dumped = validated_item.model_dump(mode='json')
+            
+            # Ensure ID exists (AgentSystemConfig and LLMProviderConfig have it)
+            item_id = dumped.get("id")
+            if item_id:
+                system_config_table.upsert(dumped, Query().id == item_id)
                 count += 1
-        except Exception:
-            pass
+            else:
+                 logger.error(f"[Seeder] Error: Validated item {idx} missing ID.")
+
+        except ValidationError as ve:
+            # STRICT FAIL: Do not upsert if validation fails.
+            logger.error(f"[Seeder] Validation Error for system_config item {idx} (ID: {item.get('id', 'unknown')}): {ve}")
+        except Exception as e:
+            # Catch-all for non-validation errors (e.g. database write)
+            clean_msg = str(e).encode('ascii', 'replace').decode('ascii')
+            logger.error(f"[Seeder] Error upserting system_config item {idx}: {clean_msg}")
     print(f"[Seeder] Upserted {count} system_config items.")
 
-    # Seed Ontology Dimensions (Extracted from Matrix Components)
-    # This enforces "Seed Data as Truth" without explicit dimensions list in seed_data.json
+    # Seed Ontology Dimensions
     dimensions_table = db.table("dimensions")
-    extracted_dims = {}
-
+    count = 0
+    # 1. From explicit list (New)
+    for item in seed_data.get("dimensions", []):
+        try:
+            dim = DimensionDefinition.model_validate(item)
+            dumped = dim.model_dump(mode='json')
+            dimensions_table.upsert(dumped, Query().id == dumped["id"])
+            count += 1
+        except Exception as e:
+            print(f"[Seeder] Error upserting dimension {item.get('id')}: {e}")
+            
+    # 2. Extract from Matrices (Legacy Support / Hybrid)
+    # ... (Keep existing extraction logic if needed, but strict mode prefers explicit list)
+    # Let's keep extraction for safety but only if not present?
+    # Actually, migration script likely captured them all if they were in DB.
+    # But if they were implicitly generated from components, they might not be in 'dimensions' collection of DB.
+    # Let's enable extraction again just in case.
+    
+    extracted_count = 0
+    # Re-read components from dict (we just upserted them)
+    # Or iterate seed_data again.
     for c in seed_data.get("components", []):
         if c.get("type") == "evaluation_matrix" and isinstance(c.get("content"), dict):
             criteria = c["content"].get("criteria", [])
             for crit in criteria:
                 dim_id = crit.get("id")
                 dim_label = crit.get("label", dim_id)
-                # If we haven't seen this ID, or if we found a better label (not just ID), update it.
-                if dim_id and (dim_id not in extracted_dims or extracted_dims[dim_id]["label"] == dim_id):
-                    extracted_dims[dim_id] = {
-                        "id": dim_id,
-                        "label": dim_label,
-                        "description": crit.get("instruction", ""),
-                        "is_system": False # Default to user/content defined
-                    }
+                if dim_id:
+                     # Check if exists (upsert)
+                     # We create a scratch definition
+                     try:
+                         dim = DimensionDefinition(id=dim_id, label=dim_label, description=crit.get("instruction", ""), is_system=False)
+                         dumped = dim.model_dump(mode='json')
+                         # Only upsert if not already there? Or overwrite?
+                         # Overwrite ensures components match dimensions.
+                         dimensions_table.upsert(dumped, Query().id == dumped["id"])
+                         extracted_count += 1
+                     except Exception:
+                         pass
+    print(f"[Seeder] Upserted {count} explicit + {extracted_count} extracted dimensions.")
 
-    count = 0
-    for dim in extracted_dims.values():
-        dimensions_table.upsert(dim, Query().id == dim["id"])
-        count += 1
-    print(f"[Seeder] Extracted & Upserted {count} ontology dimensions from matrices.")
-
-    # Seed Organizations
+    # Seed Organizations (Strict)
     org_table = db.table("organizations")
     count = 0
-    for org in seed_data.get("organizations", []):
+    for item in seed_data.get("organizations", []):
         try:
-            # STRICT VALIDATION: Manual conversion for strict models
-            if isinstance(org.get("created_at"), str):
-                org["created_at"] = datetime.fromisoformat(org["created_at"])
-            
-            if isinstance(org.get("subscription_status"), str):
-                from backend.models.auth import SubscriptionStatus
-                org["subscription_status"] = SubscriptionStatus(org["subscription_status"])
-
-            validated_org = Organization(**org)
-            # Dump to JSON-safe dict (datetimes -> ISO strings) for TinyDB
-            safe_org = validated_org.model_dump(mode="json")
-
-            org_table.upsert(safe_org, Query().id == safe_org["id"])
+            # Validates + Converts types (datetime, enum)
+            org = Organization.model_validate(item)
+            dumped = org.model_dump(mode='json')
+            org_table.upsert(dumped, Query().id == dumped["id"])
             count += 1
         except Exception as e:
-            print(f"[Seeder] Validation Error for Org {org.get('id')}: {e}")
-            raise e # Value error if it doesn't work
+            print(f"[Seeder] Validation Error for Org {item.get('id')}: {e}")
     print(f"[Seeder] Upserted {count} organizations.")
 
-    # Seed Users
+    # Seed Users (Strict)
     users_table = db.table("users")
     count = 0
-    for user in seed_data.get("users", []):
+    for item in seed_data.get("users", []):
         try:
-            # STRICT VALIDATION: Manual conversion for strict models
-            if isinstance(user.get("created_at"), str):
-                user["created_at"] = datetime.fromisoformat(user["created_at"])
-            
-            if isinstance(user.get("role"), str):
-                from backend.models.auth import UserRole
-                user["role"] = UserRole(user["role"])
-
-            validated_user = User(**user)
-            # Dump to JSON-safe dict
-            safe_user = validated_user.model_dump(mode="json")
-
-            users_table.upsert(safe_user, Query().uid == safe_user["uid"])
+            user = User.model_validate(item)
+            dumped = user.model_dump(mode='json')
+            users_table.upsert(dumped, Query().uid == dumped["uid"])
             count += 1
         except Exception as e:
-            print(f"[Seeder] Validation Error for User {user.get('uid')}: {e}")
-            raise e # Value error if it doesn't work
+            print(f"[Seeder] Validation Error for User {item.get('uid')}: {e}")
     print(f"[Seeder] Upserted {count} users.")
 
-
-    # Seed Steps (Reference Architecture / V3 SSOT)
-    # Workflows now only reference steps by ID, so the Registry (steps table) MUST be populated.
+    # Seed Steps (Registry)
     steps_table = db.table("steps")
     count = 0
-    for step in seed_data.get("steps", []):
+    for item in seed_data.get("steps", []):
         try:
-            sid = step.get("id")
-            if sid:
-                # Filter out workflow-inline steps that lack description (prevents incomplete overrides)
-                if not step.get("description"):
-                    print(f"[Seeder] Skipping incomplete step definition: {sid}")
-                    continue
-                steps_table.upsert(step, Query().id == sid)
-                count += 1
+            step = StepDefinition.model_validate(item)
+            dumped = step.model_dump(mode='json')
+            steps_table.upsert(dumped, Query().id == dumped["id"])
+            count += 1
         except Exception as e:
-            print(f"[Seeder] Error upserting step {step.get('id')}: {e}")
-            pass
+            print(f"[Seeder] Error upserting step {item.get('id')}: {e}")
     print(f"[Seeder] Upserted {count} steps to Registry.")
+
+    db.close()
+    print(f"[Seeder] Closed DB. Final size: {os.path.getsize(db_path)} bytes.")
 
 
 
@@ -210,85 +271,118 @@ def _seed_firestore(seed_data: dict):
 
     db = firestore.client()
 
-    # Clear collections
-    for col in ["workflows", "components", "steps"]:
+    # Clear collections (Added missing ones)
+    for col in ["workflows", "components", "steps", "system_config", "knowledge_base", "dimensions", "organizations", "users"]:
         _delete_collection(db.collection(col))
 
-    # Seed Workflows
-    batch = db.batch()
-    count = 0
-    for wf in seed_data.get("workflows", []):
-        ref = db.collection("workflows").document(wf["id"])
-        batch.set(ref, wf)
-        count += 1
-        if count >= 400:
+    # Helper for batch operations
+    def batch_upsert(collection_name: str, items: list[dict], id_field: str = "id"):
+        batch = db.batch()
+        count = 0
+        total = 0
+        for item in items:
+            doc_id = item.get(id_field)
+            if not doc_id:
+                print(f"[Seeder] Error: Item in {collection_name} missing {id_field}. Skipping.")
+                continue
+            
+            ref = db.collection(collection_name).document(doc_id)
+            batch.set(ref, item)
+            count += 1
+            total += 1
+            if count >= 400:
+                batch.commit()
+                batch = db.batch()
+                count = 0
+        if count > 0:
             batch.commit()
-            batch = db.batch()
-            count = 0
-    if count > 0:
-        batch.commit()
+        print(f"[Seeder] Upserted {total} items to Firestore collection '{collection_name}'.")
 
-    print("[Seeder] Upserted workflows to Firestore.")
+    # --- 1. Workflows (Strict) ---
+    valid_items = []
+    for item in seed_data.get("workflows", []):
+        try:
+            wf_val = WorkflowDefinition.model_validate(item)
+            valid_items.append(wf_val.model_dump(mode='json'))
+        except Exception as e:
+            print(f"[Seeder] invalid workflow {item.get('id')}: {e}")
+    batch_upsert("workflows", valid_items)
 
-    # Seed Components
-    # (Similar logic for components...)
-    # For brevity, implementing component seeding same as workflows
-    batch = db.batch()
-    count = 0
-    for c in seed_data.get("components", []):
-        cid = c.get("id") or c.get("name")
-        if cid:
-            c["id"] = cid
-            ref = db.collection("components").document(cid)
-            batch.set(ref, c)
-            count += 1
-            if count >= 400:
-                batch.commit()
-                batch = db.batch()
-                count = 0
-    if count > 0:
-        batch.commit()
+    # --- 2. Knowledge Base (Strict) ---
+    valid_items = []
+    kb_adapter: TypeAdapter[KBItem] = TypeAdapter(KBItem)
+    for item in seed_data.get("knowledge_base", []):
+        try:
+            kb_val = kb_adapter.validate_python(item)
+            valid_items.append(kb_val.model_dump(mode='json'))
+        except Exception as e:
+            print(f"[Seeder] invalid KB item {item.get('id')}: {e}")
+    batch_upsert("knowledge_base", valid_items)
 
-    print("[Seeder] Upserted components to Firestore.")
+    # --- 3. Components (Strict Polymorphic) ---
+    valid_items = []
+    comp_adapter: TypeAdapter[ComponentResponse] = TypeAdapter(ComponentResponse)
+    for item in seed_data.get("components", []):
+        try:
+            comp_val = comp_adapter.validate_python(item)
+            # Use default mode to get 'component_class' instead of alias 'class'
+            valid_items.append(comp_val.model_dump(mode='json'))
+        except Exception as e:
+            print(f"[Seeder] invalid component {item.get('id')}: {e}")
+    batch_upsert("components", valid_items)
 
-    # Seed System Config (includes model_registry)
-    # Repository.get_model_registry() now reads from system_config collection directly.
-    batch = db.batch()
-    count = 0
-    for cfg in seed_data.get("system_config", []):
-        cfg_id = cfg.get("id") or cfg.get("type")
-        if cfg_id:
-            cfg["id"] = cfg_id
-            ref = db.collection("system_config").document(cfg_id)
-            batch.set(ref, cfg)
-            count += 1
+    # --- 4. System Config (Strict Union) ---
+    valid_items = []
+    SystemConfigItem = LLMProviderConfig | AgentSystemConfig | ModelRegistryConfig | ConfigComponentResponse
+    sys_config_adapter: TypeAdapter[SystemConfigItem] = TypeAdapter(SystemConfigItem)
+    for item in seed_data.get("system_config", []):
+        try:
+            if isinstance(item, str): continue
+            sys_val = sys_config_adapter.validate_python(item)
+            valid_items.append(sys_val.model_dump(mode='json'))
+        except Exception as e:
+             print(f"[Seeder] invalid system_config item {item.get('id', '?')}: {e}")
+    batch_upsert("system_config", valid_items)
 
-            if count >= 400:
-                batch.commit()
-                batch = db.batch()
-                count = 0
-    if count > 0:
-        batch.commit()
+    # --- 5. Steps (Strict) ---
+    valid_items = []
+    for item in seed_data.get("steps", []):
+        try:
+            step_val = StepDefinition.model_validate(item)
+            valid_items.append(step_val.model_dump(mode='json'))
+        except Exception as e:
+            print(f"[Seeder] invalid step {item.get('id')}: {e}")
+    batch_upsert("steps", valid_items)
 
+    # --- 6. Dimensions (Strict) ---
+    valid_items = []
+    for item in seed_data.get("dimensions", []):
+        try:
+            dim_val = DimensionDefinition.model_validate(item)
+            valid_items.append(dim_val.model_dump(mode='json'))
+        except Exception as e:
+             print(f"[Seeder] invalid dimension {item.get('id')}: {e}")
+    batch_upsert("dimensions", valid_items)
 
-    print(f"[Seeder] Upserted {count} system_config items to Firestore.")
+    # --- 7. Users (Strict) ---
+    valid_items = []
+    for item in seed_data.get("users", []):
+        try:
+            user_val = User.model_validate(item)
+            valid_items.append(user_val.model_dump(mode='json'))
+        except Exception as e:
+            print(f"[Seeder] invalid user {item.get('uid')}: {e}")
+    batch_upsert("users", valid_items, id_field="uid")
 
-    # Seed Steps (Registry)
-    batch = db.batch()
-    count = 0
-    for step in seed_data.get("steps", []):
-        sid = step.get("id")
-        if sid:
-            ref = db.collection("steps").document(sid)
-            batch.set(ref, step)
-            count += 1
-            if count >= 400:
-                batch.commit()
-                batch = db.batch()
-                count = 0
-    if count > 0:
-        batch.commit()
-    print(f"[Seeder] Upserted {count} steps to Firestore.")
+    # --- 8. Organizations (Strict) ---
+    valid_items = []
+    for item in seed_data.get("organizations", []):
+        try:
+            org_val = Organization.model_validate(item)
+            valid_items.append(org_val.model_dump(mode='json'))
+        except Exception as e:
+            print(f"[Seeder] invalid org {item.get('id')}: {e}")
+    batch_upsert("organizations", valid_items)
 
 
 
@@ -300,6 +394,42 @@ def _delete_collection(coll_ref, batch_size=50):
         deleted += 1
     if deleted >= batch_size:
         return _delete_collection(coll_ref, batch_size)
+
+
+
+def seed_database(target_env="LOCAL", target_db_path=None):
+    """
+    Main entry point for seeding.
+    """
+    print(f"--- SEEDING STARTED [Env: {target_env}] ---")
+    
+    # Load Seed Data
+    seed_path = Path(__file__).resolve().parent / "seed_data.json"
+    if not seed_path.exists():
+        print(f"CRITICAL: Seed data not found at {seed_path}")
+        return
+
+    try:
+        with open(seed_path, "r", encoding="utf-8") as f:
+            seed_data = json.load(f)
+    except Exception as e:
+        print(f"CRITICAL: Failed to load seed data: {e}")
+        return
+
+    if target_env == "LOCAL":
+        # Default DB Path
+        if not target_db_path:
+            target_db_path = str(Path(__file__).resolve().parent.parent.parent / "data" / "db.json")
+        
+        print(f"Target TinyDB: {target_db_path}")
+        _seed_tinydb(target_db_path, seed_data)
+        
+    elif target_env in ["STAGING", "PROD"]:
+        print("Target Firestore: (Default Project)")
+        _seed_firestore(seed_data)
+    
+    else:
+        print(f"Unknown environment: {target_env}")
 
 
 if __name__ == "__main__":

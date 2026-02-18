@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 class QueueStats(BaseModel):
     """Statistics for the Async Job Queue (ArQ)."""
 
-    model_config = ConfigDict(from_attributes=True, strict=True)
+    model_config = ConfigDict(from_attributes=True)
 
     queued_jobs: int = Field(..., description="Number of jobs currently waiting in the queue.")
     active_jobs: int = Field(..., description="Number of jobs currently being processed.")
@@ -21,7 +21,7 @@ class AdminOperationResponse(BaseModel):
     output: str | None = Field(None, description="Optional command output or details.")
     details: Any | None = Field(None, description="Additional structured details.")
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True)
 
     @field_validator("status", "message")
     @classmethod
@@ -38,4 +38,4 @@ class AsyncJobResponse(BaseModel):
     status: str = Field(..., description="Initial status (e.g. 'queued', 'starting').")
     message: str | None = Field(None, description="Optional detail message.")
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True)

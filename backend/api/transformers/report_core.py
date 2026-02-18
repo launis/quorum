@@ -1,13 +1,18 @@
 import logging
 
+from typing import Any
+
+from backend.models.domain.execution import ExecutionRecord
 from backend.models.enums import HelpTextKey, LabelKey, RiskLevel, TitleKey
+from backend.models.state import TraceEvent, WorkflowState
 from backend.models.view import (
     ReportView, SectionType, SystemNotification, UiSection,
     EvidenceList, EvidenceItem,
     LogicAnalysisDisplay, ToulminDisplay,
     StressTestDisplay, StressFindingDisplay,
     CausalDisplay,
-    PerformativityDisplay, HeuristicDisplay
+    PerformativityDisplay, HeuristicDisplay,
+    ScoreCardDisplay, DimensionDisplay
 )
 from backend.exceptions import AppException, status
 
@@ -36,35 +41,57 @@ class ReportTransformer(
     RetrievalDomainTransformer,
     BaseTransformer
 ):
-    def transform(self, raw_data: dict, valid_range: tuple[float, float] | None = None) -> ReportView:
-        """Transforms raw execution data (dict) into a clean ReportView model.
+    def transform(self, raw_data: ExecutionRecord, valid_range: tuple[float, float] | None = None) -> ReportView:
+        """Transforms execution data (Pydantic Model) into a clean ReportView model.
 
         Args:
-            raw_data: The execution results (WorkflowState dump).
+            raw_data: The execution results (ExecutionRecord or WorkflowState).
             valid_range: (min, max) tuple for strict score validation. Defaults to Standard Matrix (1-4).
         """
-        # STRICT: We prefer WorkflowState but support dict for legacy compatibility
-        if not isinstance(raw_data, dict):
-             # Future: Raise error if not Pydantic model
-             pass
-        execution_id = raw_data.get("id")
+        # 1. Normalize Input to Dict (Internal Processing) OR handle Object attributes directly?
+        # Mandate says: "Pass Pydantic Models". So we should use attribute access.
+        # However, for transition, we might support both or normalize first.
+        # "If it has a shape, it must be a Model."
+
+        execution_id = ""
+        results = {}
+        context = {}
+        trace = []
+
+        if isinstance(raw_data, ExecutionRecord):
+            execution_id = raw_data.id
+            # Results might be WorkflowState or dict
+            if isinstance(raw_data.results, WorkflowState):
+                results = raw_data.results.model_dump() # TODO: Use attributes?
+                trace = raw_data.results.execution_trace
+                context = raw_data.results.context_variables
+            elif isinstance(raw_data.results, dict):
+                results = raw_data.results
+                # Trace might be in results or missing if raw legacy
+                trace = results.get("execution_trace", [])
+                context = results.get("context_variables", {})
+            else:
+                 # Fallback/Empty
+                 pass
+        else:
+             # FAIL FAST: Strict Schema Requirement (Feb 2026 Mandate)
+             raise TypeError(f"ReportTransformer requires ExecutionRecord. Got: {type(raw_data)}")
+
         if not execution_id:
              # Fail Fast: Strict Schema Requirement
              raise ValueError("Execution data missing mandatory 'id' field.")
 
         # --- Event Sourcing Adaptation ---
-        results = raw_data.get("results", {})
-
-        # Standard: ExecutionResponse.results or WorkflowState (no top-level results)
+        
+        # Standard: ExecutionResponse.results often contains the snapshot "step_results" dict
         # We prioritize the explicit 'results' dict if populated (snapshot).
         steps = {}
         if isinstance(results, dict) and "step_results" in results:
              steps = results["step_results"]
         
         # Fallback: Reconstruct from strict Event Trace (Source of Truth)
-        # This covers cases where 'results' is empty/partial (e.g. in-flight execution).
-        if not steps and "execution_trace" in raw_data:
-             steps = self._reconstruct_state_from_trace(raw_data["execution_trace"])
+        if not steps and trace:
+             steps = self._reconstruct_state_from_trace(trace)
 
         sections = []
 
@@ -118,7 +145,7 @@ class ReportTransformer(
                             section_id += f"-{idx}"
 
                         sections.append(
-                            UiSection(id=section_id, type=SectionType.SCORE_CARD, title=card_title, data=score_data or {})
+                            UiSection(id=section_id, type=SectionType.SCORE_CARD, title=card_title, data=score_data)
                         )
                     except ValueError as e:
                         logger.error(f"Score validation failed for {key} (card {idx}): {e}")
@@ -141,6 +168,13 @@ class ReportTransformer(
         guard_grid = self._extract_guard_grid(steps)
         if guard_grid:
             sections.append(guard_grid)
+
+        # --- Truth Protocol Findings (Critical Findings) ---
+        # User Request: "Näytetään löydökset kirjallisena lopputulosteessa"
+        # We extract 'critical_findings' from Judge step and show them prominently.
+        truth_section = self._extract_critical_findings(steps)
+        if truth_section:
+            sections.append(truth_section)
 
         analyst_table = self._extract_analyst_table(steps)
         if analyst_table:
@@ -216,9 +250,7 @@ class ReportTransformer(
 
         # Extract Metrics from context_variables (if available)
         metrics = None
-        context = raw_data.get("context_variables", {})
-        if not context and "results" in raw_data:
-             context = raw_data["results"].get("context_variables", {})
+        # context is already extracted strictly above
 
         if context:
             metrics = context.get("audit_metrics")
@@ -274,29 +306,30 @@ class ReportTransformer(
 
         return theme, notification
 
-    def _extract_score_data(self, judge_step: dict, agent_name: str, valid_range: tuple[float, float] | None) -> dict:
+    def _extract_score_data(self, judge_step: dict, agent_name: str, valid_range: tuple[float, float] | None) -> ScoreCardDisplay:
         """Extracts score and verdict from V3 Schema."""
         score = None
         raw_score = None
         verdict = None
-        dimensions = []
+        dimensions_list = []
 
         # 1. Primary Source: 'score_cards' (V3 Standard)
-        if "score_card" in judge_step:
-            card = judge_step["score_card"]
-            raw_score = card.get("total_score")
-            verdict = card.get("final_verdict")
-            dimensions = card.get("dimensions", [])
-        elif "score_cards" in judge_step and isinstance(judge_step["score_cards"], list) and judge_step["score_cards"]:
+        if "score_cards" in judge_step and isinstance(judge_step["score_cards"], list) and judge_step["score_cards"]:
             card = judge_step["score_cards"][0]
             raw_score = card.get("total_score")
             verdict = card.get("verdict")
-            dimensions = card.get("dimensions", [])
+            dimensions_list = card.get("dimensions", [])
+        elif "score_card" in judge_step:
+             # Legacy/Fallback if card inside 'score_card' key
+            card = judge_step["score_card"]
+            raw_score = card.get("total_score")
+            verdict = card.get("final_verdict")
+            dimensions_list = card.get("dimensions", [])
         else:
             # V3 Fallback
             raw_score = judge_step.get("total_score")
             verdict = judge_step.get("final_verdict")
-            dimensions = judge_step.get("dimensions", [])
+            dimensions_list = judge_step.get("dimensions", [])
 
         # 2. Validation
         if raw_score is None:
@@ -315,7 +348,10 @@ class ReportTransformer(
             if s_min is not None and s_max is not None:
                 valid_range = (float(s_min), float(s_max))
             else:
-                raise ValueError(f"Score validation failed for {agent_name}: No scale definition found.")
+                # If no scale found, default to 1-4 (Legacy Standard) but WARN or FAIL?
+                # For migration safety, we should stick to Fail Fast if unknown.
+                # However, let's look for known scales in dimensions if absent.
+                 raise ValueError(f"Score validation failed for {agent_name}: No scale definition found.")
 
         scale_min, scale_max = valid_range
         if not (scale_min <= score <= scale_max):
@@ -324,14 +360,30 @@ class ReportTransformer(
         if not verdict:
             verdict = ""
 
-        return {
-            "agent_name": agent_name,
-            "total_score": score,
-            "min_score": int(scale_min),
-            "max_score": int(scale_max),
-            "verdict": verdict,
-            "dimensions": dimensions,
-        }
+        # Map dimensions to proper model
+        mapped_dimensions = []
+        for d in dimensions_list:
+            # Handle potential dict vs object
+            d_data = d if isinstance(d, dict) else d.dict()
+            mapped_dimensions.append(
+                DimensionDisplay(
+                    id=d_data.get("id", "dim_unknown"),
+                    name_key=d_data.get("name_key") or d_data.get("id", "dim_unknown"),
+                    score=float(d_data.get("score", 0.0)),
+                    max_score=float(d_data.get("max_score", scale_max)),
+                    weight=float(d_data.get("weight", 1.0)),
+                    reasoning=d_data.get("reasoning")
+                )
+            )
+
+        return ScoreCardDisplay(
+            agent_name=agent_name,
+            total_score=score,
+            min_score=int(scale_min),
+            max_score=int(scale_max),
+            verdict=verdict,
+            dimensions=mapped_dimensions,
+        )
 
     def _build_xai_section(self, steps: dict) -> UiSection | None:
         if "step_xai" not in steps:
@@ -492,19 +544,42 @@ class ReportTransformer(
             data=EvidenceList(items=items, total_count=len(items)),
         )
 
-    def _extract_usage_section(self, raw_data: dict) -> UiSection | None:
-        """Extracts usage and cost metrics from raw execution data."""
-        # 1. Check for usage in top-level or result
-        usage = raw_data.get("usage") or raw_data.get("result", {}).get("usage")
+    def _extract_usage_section(self, record: ExecutionRecord) -> UiSection | None:
+        """Extracts usage and cost metrics from strictly typed ExecutionRecord."""
+        # Cost is top-level in ExecutionRecord
+        cost = record.cost_estimate or 0.0
 
-        if not usage:
-            return None
+        # Token usage is usually inside 'results' -> 'usage' or 'metadata' -> 'usage'
+        # Since ExecutionRecord doesn't strictly define usage breakdown, we look in results.
+        total_tokens = 0
+        prompt_tokens = 0
+        completion_tokens = 0
+
+        # Access results safely
+        res_data = {}
+        if isinstance(record.results, WorkflowState):
+             # No standard 'usage' field in WorkflowState yet? Check context?
+             # Or maybe it's in context_variables.audit_metrics?
+             pass 
+        elif isinstance(record.results, dict):
+             res_data = record.results
+
+        # Try to find usage dict
+        usage = res_data.get("usage")
+        if not usage and "result" in res_data:
+             usage = res_data["result"].get("usage")
+
+        if usage:
+            total_tokens = usage.get("total_tokens", 0)
+            prompt_tokens = usage.get("prompt_tokens", 0)
+            completion_tokens = usage.get("completion_tokens", 0)
+            # Prefer top-level cost, but fallback if needed? No, top level is authoritive.
 
         data = {
-            "total_tokens": usage.get("total_tokens", 0),
-            "prompt_tokens": usage.get("prompt_tokens", 0),
-            "completion_tokens": usage.get("completion_tokens", 0),
-            "cost_estimate": usage.get("cost", 0.0)
+            "total_tokens": total_tokens,
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "cost_estimate": cost
         }
 
         return UiSection(
@@ -512,4 +587,49 @@ class ReportTransformer(
             type=SectionType.USAGE_STATS,
             title=self._get_title(TitleKey.USAGE),
             data=data
+        )
+
+    def _extract_critical_findings(self, steps: dict) -> UiSection | None:
+        """Extracts Truth Protocol findings (Critical Findings) from Judge step."""
+        findings = []
+        
+        # Check both judges
+        for key in ["step_judge", "step_judge_cognitive"]:
+            step = steps.get(key)
+            if not step:
+                continue
+                
+            # Direct list from dict or Pydantic model dump
+            f_list = step.get("critical_findings", [])
+            
+            # Legacy/Fallback: Check inside score_card if not at top level (unlikely with current hook, but safe)
+            if not f_list and "score_card" in step:
+                 f_list = step["score_card"].get("critical_findings", [])
+
+            if f_list:
+                findings.extend(f_list)
+
+        if not findings:
+            return None
+
+        # Remove duplicates preserving order
+        unique_findings = []
+        seen = set()
+        for f in findings:
+            if f not in seen:
+                unique_findings.append(f)
+                seen.add(f)
+
+        # Format as Markdown List for high visibility
+        content = "### ⚠️ TOTUUSPROTOKOLLAN LÖYDÖKSET\n\n"
+        for item in unique_findings:
+            content += f"- {item}\n"
+            
+        content += "\n*Nämä löydökset perustuvat Tietopankin (Laki), Hakutulosten (Faktat) ja Lokien (Teot) vertailuun.*"
+
+        return UiSection(
+            id="critical-findings",
+            type=SectionType.MARKDOWN_BLOCK,
+            title="TOTUUSPROTOKOLLA", # Hardcoded or use TitleKey if exists
+            data={"content": content}
         )

@@ -1,14 +1,15 @@
 import logging
 
+from pydantic import ValidationError
+
 from backend.exceptions import AppException
 from backend.models.domain import ArchivistOutput, CoachingPlan, GuardOutput
 from backend.models.enums import LabelKey, RiskLevel, TitleKey
 from backend.models.view import SectionType, UiSection
 
 # UVM: Use strict extensions
-# UVM: Use strict extensions
-from backend.models.view_extensions import ArchivistDisplay as LegacyArchivistDisplay, SecurityDisplay as LegacySecurityDisplay # Deprecated
 from backend.models.view import ArchivistDisplay, SecurityDisplay
+# Deprecated: Legacy imports removed
 
 from ..base import BaseTransformer
 
@@ -25,19 +26,26 @@ class ComplianceDomainTransformer(BaseTransformer):
         return data
 
     def _extract_guard_grid(self, steps: dict) -> UiSection | None:
-        step = steps.get("step_guard") or {}
-        sec = step.get("security_check", {})
-        if not sec:
-            return None
-
         step = steps.get("step_guard")
         if not step:
             return None
+            
+        # Optional: Check if empty before validating (some steps might be skipped)
+        if not step.get("security_check"):
+             return None
 
         # STRICT VALIDATION: Fail Fast if data is invalid
         try:
             # If step is already a dict, validation happens here
             model = GuardOutput(**self._adapt_legacy_trace(step))
+        except ValidationError as e:
+            error_code = "GUARD_VALIDATION_FAILED"
+            logger.error(f"{error_code}: {e}", exc_info=True)
+            raise AppException(
+                message=f"Guard validation failed: {e}",
+                status_code=500,
+                details={"error_code": error_code, "errors": e.errors()}
+            ) from e
         except Exception as e:
             error_code = "GUARD_VALIDATION_FAILED"
             logger.error(f"{error_code}: {e}", exc_info=True)
@@ -68,7 +76,6 @@ class ComplianceDomainTransformer(BaseTransformer):
         findings = sec.pii_findings
 
         # UVM SecurityDisplay (Strict)
-        # UVM SecurityDisplay (Strict)
         try:
             s_display = SecurityDisplay(
                 threat_detected=threat,
@@ -95,14 +102,6 @@ class ComplianceDomainTransformer(BaseTransformer):
             data={"security_display": s_display.model_dump()},
         )
 
-    def _extract_coach_section(self, steps: dict) -> UiSection | None:
-        # ... (Coach implementation unchanged for now aside from imports)
-        return super()._extract_coach_section(steps) if hasattr(super(), "_extract_coach_section") else None
-        # Wait, I shouldn't replace methods I don't intend to change unless I need to fix imports affecting them.
-        # Coach uses UiSection which is fine.
-
-    # ... (Coach methods here ideally, but I am targeting specific methods)
-
     def _extract_archivist_section(self, steps: dict) -> UiSection | None:
         step = steps.get("step_archivist")
         if not step:
@@ -113,6 +112,14 @@ class ComplianceDomainTransformer(BaseTransformer):
                 model = ArchivistOutput(**self._adapt_legacy_trace(step["archivist_data"]))
             else:
                 model = ArchivistOutput(**self._adapt_legacy_trace(step))
+        except ValidationError as e:
+            error_code = "ARCHIVIST_VALIDATION_FAILED"
+            logger.error(f"{error_code}: {e}", exc_info=True)
+            raise AppException(
+                message=f"Archivist validation failed: {e}",
+                status_code=500,
+                details={"error_code": error_code, "errors": e.errors()}
+            ) from e
         except Exception as e:
             error_code = "ARCHIVIST_VALIDATION_FAILED"
             logger.error(f"{error_code}: {e}", exc_info=True)
@@ -162,6 +169,14 @@ class ComplianceDomainTransformer(BaseTransformer):
                  model = CoachingPlan(**self._adapt_legacy_trace(step["coaching_plan"]))
             else:
                  model = CoachingPlan(**self._adapt_legacy_trace(step))
+        except ValidationError as e:
+            error_code = "COACHING_PLAN_VALIDATION_FAILED"
+            logger.error(f"{error_code}: {e}", exc_info=True)
+            raise AppException(
+                message=f"Coach validation failed: {e}",
+                status_code=500,
+                details={"error_code": error_code, "errors": e.errors()}
+            ) from e
         except Exception as e:
             error_code = "COACHING_PLAN_VALIDATION_FAILED"
             logger.error(f"{error_code}: {e}", exc_info=True)
@@ -194,6 +209,3 @@ class ComplianceDomainTransformer(BaseTransformer):
             title=self._get_title(TitleKey.COACH),
             data={"content": content},
         )
-
-
-

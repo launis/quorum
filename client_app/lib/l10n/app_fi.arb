@@ -438,5 +438,7 @@
   "errWorkflowExecutionFailed": "Työnkulun virhe",
   "errKnowledgeNotIngestedTitle": "Tietokanta Tyhjä",
   "errKnowledgeNotIngested": "Tietokanta on tyhjä. Lataa dokumentteja Ingestointi-näkymässä ennen analyysia.",
-  "actionGoToIngestion": "Siirry Ingestointiin"
+  "actionGoToIngestion": "Siirry Ingestointiin",
+  "knowledgeActive": "Tietokanta Aktiivinen",
+  "knowledgeStats": "Dokumentit: {docCount} | Ennakkotapaukset: {precCount}"
 }

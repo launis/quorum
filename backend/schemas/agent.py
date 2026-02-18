@@ -10,7 +10,7 @@ class AgentDefinition(BaseModel):
     input_schema: dict[str, Any] | None = None
     output_schema: dict[str, Any] | None = None
 
-    model_config = ConfigDict(populate_by_name=True, strict=True)
+    model_config = ConfigDict(populate_by_name=True)
 
     @field_validator("name", "class_name", "description", "model")
     @classmethod
@@ -24,7 +24,7 @@ class AgentRunResponse(BaseModel):
     agent: str
     result: Any  # The result might be a complex object or dict, but we wrap it.
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True)
 
     @field_validator("agent")
     @classmethod

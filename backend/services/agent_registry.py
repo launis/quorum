@@ -12,6 +12,7 @@ from backend.exceptions import (
     ErrorCodes,
     FatalInterruption,
 )
+from backend.models.domain.agent import ModelConfig
 
 if TYPE_CHECKING:
     from backend.agents.base import BaseAgent
@@ -53,21 +54,11 @@ class AgentRegistry:
         # ZERO-FALLBACK ENFORCEMENT:
         # We expect 'resolve_model_config' to fully hydrate the dictionary or raise an error.
         # We do NOT fallback to settings.initial_model anymore.
-        model_name = config.get("model_name")
-        if not model_name:
-            # This should overlap with validation in resolve_model_config, but safety net:
-            err = f"[AgentRegistry] Model Strategy '{model_identifier}' resolved but is missing 'model_name'."
-            logger.error(err)
-            raise AppException(
-                message=err,
-                status_code=500,
-                details={"error_code": ErrorCodes.AGENT_NOT_CONFIGURED}
-            )
+        # model_name is required in ModelConfig, so access directly
+        return config.model_name
 
-        return model_name
-
-    async def resolve_model_config(self, model_identifier: str) -> Dict[str, Any]:
-        """Resolves a model identifier to a full configuration dictionary (name, tokens, temp, provider).
+    async def resolve_model_config(self, model_identifier: str) -> ModelConfig:
+        """Resolves a model identifier to a full configuration object.
 
         STRICT MODE: Fetches ONLY from Database. No fallbacks.
         NO FALLBACKS: If the strategy is not found, we RAISE an error. We do NOT use defaults.
@@ -76,7 +67,7 @@ class AgentRegistry:
             model_identifier (str): The strategy key.
 
         Returns:
-            Dict[str, Any]: Configuration object (e.g. {'model_name': '...', 'provider': '...'}).
+            ModelConfig: Strict configuration object.
 
         Raises:
             AppException: If strategy not found in DB.
@@ -97,17 +88,29 @@ class AgentRegistry:
         # 2. Search for Strategy across all Providers
         # This makes the code vendor-agnostic.
         for provider_key, strategies in dynamic_strategies_map.items():
+            found_strategy = None
+            
+            # Case A: Direct Match (e.g. "fast")
             if model_identifier in strategies:
                 logger.info(f"[AgentRegistry] Found identifier '{model_identifier}' in provider '{provider_key}'")
-                strategy = strategies[model_identifier]
-                logger.debug(f"[AgentRegistry] Raw Strategy Data: {strategy}")
+                found_strategy = strategies[model_identifier]
+            
+            # Case B: Scoped Match (e.g. "google/deep")
+            elif "/" in model_identifier:
+                parts = model_identifier.split("/", 1)
+                if parts[0] == provider_key and parts[1] in strategies:
+                     logger.info(f"[AgentRegistry] Found scoped identifier '{model_identifier}' in provider '{provider_key}'")
+                     found_strategy = strategies[parts[1]]
+
+            if found_strategy:
+                logger.debug(f"[AgentRegistry] Raw Strategy Data: {found_strategy}")
 
                 # Normalize result
                 config = {}
-                if isinstance(strategy, dict):
-                    config = strategy.copy()
-                elif isinstance(strategy, str):
-                    config = {"model_name": strategy}
+                if isinstance(found_strategy, dict):
+                    config = found_strategy.copy()
+                elif isinstance(found_strategy, str):
+                    config = {"model_name": found_strategy}
 
                 # Inject provider if missing (derived from registry structure)
                 if "provider" not in config:
@@ -121,19 +124,35 @@ class AgentRegistry:
                     # This is a reference to another alias - resolve recursively
                     logger.debug(f"[AgentRegistry] Chained resolution: '{model_identifier}' -> '{model_name}'")
                     referenced_config = await self.resolve_model_config(model_name)
-                    # Merge: Use referenced_config as base to inherit properties (temp, tokens)
-                    # Loop through current config to apply any explicit overrides (e.g. specific temp on top of alias)
-                    # But ignore 'model_name' as it refers to the alias itself.
-                    merged_config = referenced_config.copy()
+                    
+                    # Convert referenced_config (ModelConfig) to dict to serve as base
+                    base_dict = referenced_config.model_dump()
+                    
+                    # Apply overrides from current alias definition
                     for k, v in config.items():
                         if k != "model_name":
-                            merged_config[k] = v
-                    config = merged_config
-                    logger.debug(f"[AgentRegistry] Merged Config after Chain: {config}")
+                            if k in base_dict or hasattr(ModelConfig, k):
+                                base_dict[k] = v
+                            else:
+                                if "extra_params" not in base_dict:
+                                    base_dict["extra_params"] = {}
+                                base_dict["extra_params"][k] = v
+
+                    # Re-instantiate
+                    merged_config = ModelConfig(**base_dict)
+                    return merged_config
                 else:
                     logger.debug(f"[AgentRegistry] Direct resolution (No Chain). Final Config: {config}")
 
-                return config
+                    return ModelConfig(
+                        model_name=config.get("model_name", "unknown"),
+                        provider=config.get("provider", "unknown"),
+                        max_tokens=config.get("max_tokens"),
+                        temperature=config.get("temperature"),
+                        top_p=config.get("top_p"),
+                        supports_grounding=config.get("supports_grounding", False),
+                        extra_params={k: v for k, v in config.items() if k not in ["model_name", "provider", "max_tokens", "temperature", "top_p", "supports_grounding"]}
+                    )
 
         # 3. Fail if not found
         # Collect available strategies for error message

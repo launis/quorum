@@ -59,16 +59,44 @@ class Settings(BaseSettings):
     vertex_location: Annotated[str | None, Field(description="Google Cloud Region (e.g. europe-north1)")] = None
     discovery_location: Annotated[str | None, Field(description="Source Region for Model Discovery (e.g. us-west1)")] = None
 
+    # --- Vertex Search Configuration (Fail Fast: Must be in .env) ---
+    vertex_search_model: Annotated[str | None, Field(default=None, description="Model used for Vertex AI Grounding")]
+    enable_vertex_search: Annotated[bool| None, Field(default=False, description="Feature flag to enable/disable actual Vertex AI search calls.")] = False
     # --- LLM Configuration ---
     # initial_model REMOVED per Zero-Fallback Policy
     default_model_strategy: Annotated[str | None, Field(description="Default LLM strategy key (Optional). If None, explicit strategy is required.")] = None
     llm_default_timeout: Annotated[float, Field(description="LLM Timeout in seconds")] = 120.0
-    llm_max_retries: Annotated[int, Field(description="Max retries for LLM calls")] = 2
-    llm_retry_delay: Annotated[float, Field(description="Delay between retries in seconds")] = 5.0
+    llm_max_retries: Annotated[int, Field(description="Max retries for LLM calls")] = 5
+    llm_retry_delay: Annotated[float, Field(description="Delay between retries in seconds")] = 10.0
     
     # --- Rate Limits (Strict Mode) ---
     llm_default_tpm: Annotated[int, Field(description="Default Tokens Per Minute if not specified by caller")] = 10000
     llm_default_rpm: Annotated[int, Field(description="Default Requests Per Minute if not specified by caller")] = 10
+
+    # --- Integrity Thresholds (Integrity, Scoring, Linguistics) ---
+    citation_integrity_threshold: Annotated[float, Field(description="Minimum integrity score (0.0-1.0)")] = 0.0
+    
+    # Scoring Hooks
+    scoring_security_cap: Annotated[float, Field(description="Max score if Security Threat detected")] = 1.0
+    scoring_logical_cap: Annotated[float, Field(description="Max score if Logical Fallacy detected")] = 2.0
+    scoring_performative_threshold: Annotated[float, Field(description="Max authenticity score to be considered performative")] = 2.0
+    
+    # --- Scoring Penalties (Zero-Compromise: Configurable) ---
+    scoring_security_penalty: Annotated[float, Field(description="Penalty multiplier for Security Threats (0.0 to 1.0)")] = 0.0 # Log only for now
+    scoring_post_hoc_penalty: Annotated[float, Field(description="Penalty multiplier for Post-Hoc Rationalization (0.0 to 1.0)")] = 0.0 # Log only for now
+    
+    # Passivity (Penalty Factor: 1.0 = No Penalty, 0.5 = Halve Score)
+    scoring_passivity_multiplier: Annotated[float, Field(description="Penalty multiplier for Passivity/Low Quality")] = 1.0
+
+    # Behavioral Metrics (Heuristics)
+    metrics_short_response_word_count: Annotated[int, Field(description="Max words to consider a response 'short'")] = 5
+    metrics_automation_bias_ratio: Annotated[float, Field(description="Ratio of short responses to trigger Automation Bias")] = 0.7
+    metrics_reflection_min_length: Annotated[int, Field(description="Min chars in reflection to enable Say-Do analysis")] = 50
+    metrics_mechanical_ratio: Annotated[float, Field(description="Ratio of mechanical words to trigger Say-Do Gap")] = 0.5
+    
+    # --- Retrieval / Precedents ---
+    max_precedent_scan_depth: Annotated[int, Field(description="Max executions to scan for precedents")] = 5
+    max_precedent_return_count: Annotated[int, Field(description="Max precedents to return")] = 3
 
     # --- Redis & Arq ---
     redis_host: Annotated[str, Field(description="Redis Host")] = "localhost"
@@ -79,7 +107,7 @@ class Settings(BaseSettings):
 
     # --- Storage ---
     storage_backend: Annotated[
-        str, BeforeValidator(strip_whitespace), Field(description="LOCAL, NONE, or FIRESTORE")
+        str | None, BeforeValidator(strip_whitespace), Field(default=None, description="LOCAL, NONE, or FIRESTORE")
     ] # REMOVED DEFAULT = "LOCAL". Must be explicit.
     environment: Annotated[str, Field(description="development, staging, or production")] = "production" # Default to production for safety? No, make explicit.
     storage_bucket_name: Annotated[str | None, Field(description="Firebase Storage Bucket Name")] = None
@@ -172,6 +200,13 @@ class Settings(BaseSettings):
             return StorageBackend.MOCK
 
         # Strict matching
+        if not self.storage_backend:
+             # Default if None? Or Error? 
+             # Previously it seemed to default to LOCAL in logic if not explicit.
+             # But let's fail fast if not MOCK and not set? 
+             # Actually line 33 says LOCAL is Legacy/Dev.
+             return StorageBackend.LOCAL
+
         value = self.storage_backend.upper()
         if value == "FIRESTORE":
             return StorageBackend.FIRESTORE
@@ -183,6 +218,7 @@ class Settings(BaseSettings):
             status_code=500,
             details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
         )
+
 
     @computed_field  # type: ignore[prop-decorator]
     @property

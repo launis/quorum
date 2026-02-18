@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -7,6 +8,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
+import 'package:client_app/features/knowledge/presentation/providers/knowledge_status_provider.dart';
+import 'package:client_app/core/ui/error_view.dart';
 import '../controller/ingestion_controller.dart';
 import '../../../models/knowledge_base.dart';
 
@@ -17,6 +20,7 @@ class IngestionView extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ingestionState = ref.watch(ingestionControllerProvider);
     final strategiesAsync = ref.watch(knowledgeStrategiesProvider);
+    final knowledgeStatusAsync = ref.watch(knowledgeStatusProvider);
     final l10n = AppLocalizations.of(context)!;
     
     // State for selected strategy ID
@@ -66,6 +70,54 @@ body: Padding(
   child: Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
+      // Knowledge Base Status Banner
+      knowledgeStatusAsync.when(
+        data: (status) => Card(
+          color: status.hasDocuments
+              ? Colors.green.shade50
+              : Colors.orange.shade50,
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Row(
+              children: [
+                Icon(
+                  status.hasDocuments
+                      ? Icons.check_circle
+                      : Icons.warning_amber_rounded,
+                  color: status.hasDocuments
+                      ? Colors.green
+                      : Colors.orange.shade800,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        status.hasDocuments
+                            ? l10n.knowledgeActive
+                            : l10n.errKnowledgeNotIngestedTitle,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        status.hasDocuments
+                            ? l10n.knowledgeStats(status.documentCount, status.precedentCount)
+                            : l10n.errKnowledgeNotIngested,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        loading: () => const LinearProgressIndicator(),
+        error: (err, _) => const SizedBox.shrink(),
+      ),
+      const SizedBox(height: 20),
+
       // Strategy Dropdown
       strategiesAsync.when(
         data: (strategies) => DropdownButtonFormField<String>(
@@ -123,6 +175,16 @@ body: Padding(
       // Status Display
       ingestionState.when(
         data: (status) {
+          if (status?.status == 'failed') {
+            return ErrorView(
+              error: _getErrorMessage(status?.error ?? l10n.errorUnknown),
+              onAction: () => ref
+                  .read(ingestionControllerProvider.notifier)
+                  .resetState(),
+              actionLabel: l10n.retry,
+            );
+          }
+
           if (status == null) {
             return Center(child: Text(l10n.selectFile));
           }
@@ -137,17 +199,14 @@ body: Padding(
               ),
               if (status.status == 'completed' && status.result != null)
                 _buildResultCard(context, status.result!),
-              if (status.status == 'failed')
-                Text(
-                  l10n.submissionFailed(status.error ?? l10n.errorUnknown),
-                  style: const TextStyle(color: Colors.red),
-                ),
             ],
           );
         },
-        error: (err, st) => Text(
-          l10n.submissionFailed(err),
-          style: const TextStyle(color: Colors.red),
+        error: (err, st) => ErrorView(
+          error: _getErrorMessage(err),
+          onAction: () =>
+              ref.read(ingestionControllerProvider.notifier).resetState(),
+          actionLabel: l10n.retry,
         ),
         loading: () => Column(
           children: [
@@ -161,6 +220,29 @@ body: Padding(
         ),
       ),
     );
+  }
+
+  String _getErrorMessage(dynamic error) {
+    if (error is DioException) {
+      final data = error.response?.data;
+      if (data is Map<String, dynamic>) {
+        if (data.containsKey('message')) {
+          return data['message'].toString();
+        }
+        if (data.containsKey('detail')) {
+            if (data['detail'] is String) return data['detail'];
+            // Handle if detail is a Map (standard FastAPI validation error often is array, but here exception handler uses dict)
+             if (data['detail'] is Map && data['detail']['message'] != null) return data['detail']['message'];
+        }
+      }
+    }
+    // Cleanup "AppError.server(...)" noise if present in string
+    final s = error.toString();
+    if (s.contains("AppError")) {
+       final match = RegExp(r'message: (.*?),').firstMatch(s);
+       if (match != null) return match.group(1) ?? s;
+    }
+    return s;
   }
 
   Widget _buildResultCard(BuildContext context, dynamic result) {

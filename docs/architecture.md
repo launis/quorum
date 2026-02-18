@@ -5,6 +5,13 @@
 
 Cognitive Quorum V2.9 is a deterministic, highly verifiable AI orchestration platform. It rejects the "black box" nature of standard agent frameworks in favor of a strictly typed, schema-driven architecture where every state transition is audited and persisted via **Event Sourcing**.
 
+## 0. Key Architectural Upgrades (Q1 2026)
+Significant hardening has occurred in Phase 2.5 and Phase 8 (Bulletproof Agencies):
+*   **Strict Type Safety**: Transited from Dictionary-based inputs to **Strict Pydantic Models** (`JudgeInput`, `ProfilerInput`, etc.).
+*   **Fail Fast Protocol**: Adopted **RFC 7807** error handling. Agents and Hooks verify inputs *before* execution, raising `AppException` (400) instead of failing silently or hallucinating.
+*   **Relative Scoring**: Scoring logic now uses configurable percentage-based penalties (from `settings.py`) with safety clamps.
+*   **XAI Hardening**: `XAIReporter` strictly enforces `JudgeScoreCard` schema, rejecting legacy flat structures.
+
 ---
 
 ## 1. High-Level Architecture
@@ -165,3 +172,25 @@ The system is deployed as a consolidated **Docker Compose** stack.
 *   `client`: Nginx serving the Flutter Web build (Port 8080).
 
 > **Note**: In Development, the `backend` and `worker` bind-mount the local source code for hot-reloading. In Production, they use immutable builds.
+
+---
+
+## 7. Validated Architectural Integrity (Phase 8)
+
+### A. Bulletproof Agencies
+Agents now define explicit `InputModels` (e.g., `JudgeInput`). The Engine validates these inputs *before* invoking the agent.
+*   **Benefit**: Eliminates `AttributeError` at runtime inside agents.
+*   **Benefit**: IDE Autocomplete for agent developers.
+
+### B. Hook Hardening (Phase 2.5)
+Hooks (`scoring.py`, `validation.py`, `integrity.py`) have been refactored to reject invalid state:
+*   **Scoring**: Uses **Relative Penalties** (e.g., -10%) configured in `settings.py`. Includes a **Safety Clamp** (`max(score, scale_min)`) to prevent negative or zero scores from breaking downstream validation.
+*   **Integrity**: Verifies citation keys against the actual bibliography.
+
+## 8. Diagnostics & Observability
+
+### A. Temporary Debug Dump
+For critical debugging, the worker can dump the full `WorkflowState` to a local file (`debug_output_*.json`) immediately upon completion. This serves as a "Black Box" recording independent of the database or reporting service.
+
+### B. Dynamic Settings (Roadmap)
+Future architecture will support adjusting sensitivity (Penalties, Thresholds) via the Admin UI, moving these values from `settings.py` to the Database.

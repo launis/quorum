@@ -72,6 +72,7 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **Containerization**: Full Docker support (Virtual Environment Parity, Strict `.dockerignore`).
 - [x] **Config SSOT**: Refactor `docker-compose.yml` to use `.env` interpolation.
 - [x] **Worker Environment Parity**: Worker successfully verified in Local (TinyDB), Local (Firestore), and Docker (Firestore) environments.
+- [x] **LiteLLM Usage Extraction**: Refactored `LiteLLMProvider` to correctly extract token usage from Instructor's structured responses (Fixes "0 tokens" visibility issue).
 
 ### 1.4 Cognitive Configuration Studio (Server-Driven UI)
 **Objective:** Build a Flutter UI that adapts to backend changes without app updates.
@@ -221,6 +222,8 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 - [x] **Component CRUD API**: Endpoints in `backend/api/routes/config/components.py`.
 - [ ] **Prompt Library UI**: Flutter view for Prompt management.
 - [ ] **Dynamic Injection**: Runtime fetching of Prompts from DB.
+- [ ] **Dynamic Settings (Penalty & Thresholds)**: Migrate hardcoded `settings.py` values (e.g., scoring penalties, passivity thresholds) to Database.
+    - *Goal*: Allow Admins/Managers to tune algorithm sensitivity via UI without redeployment.
 
 ### 4.2 Step Configuration (The Workbench)
 - [ ] **Custom Step Builder**: UI for creating new Steps.
@@ -268,7 +271,21 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 
 ---
 
-## �️ Phase 2.9: Advanced SDUI & Meta-Programming (Q2 2026)
+## 🪝 Phase 2.5: Refactoring Hooks (Incremental) (✅ Completed)
+**Objective:** Transition backend hooks to Strict Pydantic and RFC 7807 Fail Fast standards.
+
+- [x] **Scoring Hook Refactor**: 
+    - Converted `scoring.py` to use `state.get_context(model=JudgeOutput)`.
+    - Enforced **Relative Penalties** (Settings-driven) instead of hardcoded logic.
+    - Added **Safety Clamp** (`max(new_score, scale_min)`) to prevent score collapse.
+- [x] **Critical Hooks Hardening**:
+    - **Validation & Integrity**: Enforced Strict Inflation and explicit `AppException`.
+    - **XAI Reporter**: Fixed `JudgeScoreCard` schema mismatch (0.0 -> 1.0 validation error).
+    - **Security & Linguistics**: Standardized error codes and Fail Fast logic.
+
+---
+
+## ️ Phase 2.9: Advanced SDUI & Meta-Programming (Q2 2026)
 **Objective:** Enable the frontend to dynamically construct interfaces from Backend Pydantic Schemas.
 
 - [ ] **Schema Registry API**: Implement `GET /api/v1/meta/schema/{model_type}` to expose Pydantic JSON Schemas.
@@ -314,7 +331,47 @@ This document outlines the strategic roadmap for evolving Cognitive Quorum from 
 ## 📉 Technical Debt & Optimization (Backlog)
 - [ ] **DAG Workflow Engine (NetworkX)**: Refactor linear engine to support complex dependencies.
 - [ ] **Banned Phrases Seed Restoration**: Re-merge `banned_phrases` into `seed_data.json`.
+- [ ] **Dynamic Hook Orchestration**: Refactor architecture to allow runtime selection of Hook Implementations via UI (e.g., swapping `SearchHook` vs `VertexSearchHook`).
 - [ ] **Rate Limiting**: Implement `slowapi` on key endpoints.
 - [ ] **Data Migration**: Establish `StorageDriver` pattern for standardized file system abstractions (Local/Cloud parity).
 - [ ] **Database Identifier Migration**: Update all existing database rows to use strict `backend/utils/identifiers.py` compliance (Fail Fast validation).
+- [ ] **Panel Agent Component Architecture**: Refactor `search_section` and `context_section` to be injected components (Data-Driven) instead of hardcoded f-strings in `panel.py`.
+- [ ] **RetrievalAgent Limits**: Implement stricter limits (top-k=5) or Vector Search (V3) to prevent context overflow from broad queries (e.g. "tekoäly").
+
+---
+
+## 🛡️ Phase 8: Bulletproof Agencies (Agent Type Safety)
+**Objective:** Replace loose dictionary inputs with Strict Pydantic Models for Agent Execution (`BaseAgent`).
+
+- [x] **Strict Input Models**: Define `JudgeInput`, `ProfilerInput`, etc.
+- [x] **Engine Validation**: Update `GraphEngine` to validate agent inputs using `state.get_context(..., InputModel)` **before** execution.
+- [x] **Fail Fast (Pre-Flight)**: Prevent LLM calls if required inputs (e.g., `history_text`) are missing or invalid type.
+- [x] **Benefit**: Reduces cost (no wasted API calls) and improves developer experience (IDE Autocomplete).
+
+
+## 🧬 Phase 9: Agent DTO/Domain Separation (The Panel Pattern)
+**Objective:** Eliminate LLM-hallucinated system metadata by strictly separating "LLM Content" from "System Authority".
+**Owner:** @antigravity
+**Status:** [~] In Progress (Panel Agent Paved the Way)
+
+### 9.1 Strict DTO Architecture
+- [ ] **DTO Definition**: All Agents MUST define a `*DTO` Pydantic model containing *only* the fields the LLM is responsible for (e.g., `reasoning`, `score`, `analysis`).
+- [ ] **Domain Model Inheritance**: The full Domain Model (e.g., `LogicianOutput`) MUST inherit from the DTO and add system-managed fields (`metadata`, `luontiaika`, `versio`).
+- [ ] **BaseAgent Enforcement**: Update `BaseAgent` to enforce `DTO_SCHEMA` property.
+- [ ] **Authority Injection**: Python code (not LLM) is the sole authority for timestamps, versions, and agent identity.
+
+### 9.2 Migration Plan
+- [ ] **Logician**: Split `LogicianOutput` -> `LogicianOutputDTO`.
+- [ ] **Falsifier**: Split `FalsifierData` -> `FalsifierDTO`.
+- [ ] **Causal**: Split `CausalAnalysis` -> `CausalDTO`.
+- [ ] **Profiler**: Split `ProfilerAnalysis` -> `ProfilerDTO`.
+- [ ] **Analyst**: Split `AnalystOutput` -> `AnalystDTO`.
+- [ ] **Judge**: Split `JudgeOutput` -> `JudgeDTO`.
+- [ ] **Critics**: Split `CritiqueResult` -> `CritiqueDTO`.
+
+**Benefit:**
+1.  **Zero Hallucination**: LLMs strictly cannot overwrite system timestamps or versions.
+2.  **Schema Evolution**: We can change internal metadata structures without retraining/prompting LLMs.
+3.  **Type Safety**: `BaseAgent` guarantees that `execute()` returns a fully hydrated Domain Object.
+
 

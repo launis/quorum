@@ -426,6 +426,30 @@ class ArchivistDisplay(BaseModel):
     model_config = ConfigDict(frozen=True, strict=True)
 
 
+class DimensionDisplay(BaseModel):
+    """Strict View Model for a single Scoring Dimension."""
+    id: str
+    name_key: str  # Localization key
+    score: float
+    max_score: float
+    weight: float
+    reasoning: str | None
+    
+    model_config = ConfigDict(frozen=True, strict=True)
+
+
+class ScoreCardDisplay(BaseModel):
+    """Server-Driven UI Data for Judge Score Card."""
+    agent_name: str
+    total_score: float
+    min_score: int
+    max_score: int
+    verdict: str
+    dimensions: list[DimensionDisplay] = Field(default_factory=list)
+
+    model_config = ConfigDict(frozen=True, strict=True)
+
+
 class DriverProfileDisplay(BaseModel):
     """Server-Driven UI for Driver Profile."""
     classification: str | None

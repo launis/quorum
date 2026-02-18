@@ -8,6 +8,16 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from backend.models.domain.base import ReasoningTrace
 
 
+
+class AnalystInput(BaseModel):
+    """Strict input schema for AnalystAgent."""
+    history_text: str = Field(..., description="Chat history to analyze.")
+    product_text: str | None = Field(None, description="Product context (optional).")
+    last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
+    
+    model_config = ConfigDict(frozen=True, extra="ignore")
+
+
 class Hypothesis(BaseModel):
     """A single hypothesis formed by the Analyst."""
 
@@ -32,7 +42,7 @@ class Hypothesis(BaseModel):
         description="Direct quotes found.",
         json_schema_extra={"x-ui-label": "Quotes"},
     )
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=False)
 
     @field_validator("id", "claim_text", "search_query")
     @classmethod
@@ -63,7 +73,12 @@ class AnalystOutput(ReasoningTrace):
         description="RAG evidence snippets.",
         json_schema_extra={"x-ui-label": "RAG Evidence"},
     )
-    model_config = ConfigDict(frozen=True, strict=True)
+    critical_violation: bool = Field(
+        default=False,
+        description="Critical violation of Knowledge Base?",
+        json_schema_extra={"x-ui-label": "Critical Violation"},
+    )
+    model_config = ConfigDict(frozen=True, strict=False)
 
     @field_validator("hypotheses")
     @classmethod
@@ -79,7 +94,7 @@ class SearchResultItem(BaseModel):
     link: str = Field(..., description="Link to the result.", json_schema_extra={"x-ui-label": "Link"})
     snippet: str = Field(..., description="Snippet of the result.", json_schema_extra={"x-ui-label": "Snippet"})
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=False)
 
     @field_validator("title", "link", "snippet")
     @classmethod
@@ -98,4 +113,4 @@ class SearchResult(BaseModel):
     )
     error: str | None = Field(default=None, description="Error message if search failed.", json_schema_extra={"x-ui-label": "Error"})
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=False)

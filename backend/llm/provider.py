@@ -21,7 +21,7 @@ from backend.exceptions import (
     AgentExecutionError,
     SecurityViolationError,
 )
-from backend.models.llm import LLMResponse
+from backend.models.llm import LLMProviderConfig, LLMResponse
 from backend.services.usage_service import UsageService
 from backend.settings import get_settings
 
@@ -220,7 +220,10 @@ class LiteLLMProvider(LLMProvider):
         response_format = None
         if response_schema:
             try:
-                schema_name = getattr(response_schema, "__name__", "dict")
+                schema_name = "dict"
+                if isinstance(response_schema, type):
+                     schema_name = getattr(response_schema, "__name__", "dict")
+                
                 logger.info(f"[LiteLLM] Enabling Structured Output for schema: {schema_name}")
                 response_format = response_schema
             except Exception:
@@ -354,27 +357,46 @@ class LiteLLMProvider(LLMProvider):
                 # Let's try basic implementation and see.
                 # I will wrap the Pydantic result into our LLMResponse.
 
-                logger.info(f"[Instructor] Calling {self.model_name} with schema {response_schema.__name__}")
+                logger.info(f"[Instructor] Calling {self.model_name} with schema {schema_name}")
 
-                structured_response = await self.client.chat.completions.create(**call_kwargs)
+                # Use create_with_completion to get both the Pydantic model and the raw completion
+                # This allows us to extract usage stats that are otherwise lost in the wrapper.
+                structured_response, raw_completion = await self.client.chat.completions.create_with_completion(**call_kwargs)
 
                 # Check what we got. If standard usage, it's the Pydantic object.
                 parsed_obj = structured_response
                 final_content = parsed_obj.model_dump_json()
 
-                # Mock usage for now or try to extract from 'structured_response._raw_response'?
-                # (Implementation detail dependent).
-                # For now, we'll use placeholder usage and reasoning_token for structured calls
-                # as Instructor's direct return doesn't easily expose them without deeper integration.
-                usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+                # Extract Usage from raw_completion if available
+                usage: dict[str, Any] = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+                if hasattr(raw_completion, "usage") and raw_completion.usage:
+                     usage = {
+                        "prompt_tokens": raw_completion.usage.prompt_tokens,
+                        "completion_tokens": raw_completion.usage.completion_tokens,
+                        "total_tokens": raw_completion.usage.total_tokens,
+                     }
+
+                # Extract reasoning token if possible (from provider_specific_fields or model_extra)
+                # Note: raw_completion is a generic Completion object (or ChatCompletion)
                 reasoning_token = None
+                
+                # Try locating thought signature in extras
+                if hasattr(raw_completion, "model_extra") and raw_completion.model_extra:
+                     reasoning_token = raw_completion.model_extra.get("thought_signature")
+
+                # If missing, check message provider specific fields (if accessible)
+                # Usually located in choices[0].message
+                if not reasoning_token and hasattr(raw_completion, "choices") and raw_completion.choices:
+                     msg = raw_completion.choices[0].message
+                     if hasattr(msg, "provider_specific_fields") and msg.provider_specific_fields:
+                          reasoning_token = msg.provider_specific_fields.get("thought_signature")
 
                 return LLMResponse(
                     content=final_content,
                     parsed_content=parsed_obj.model_dump(),
                     reasoning_token=reasoning_token,
                     token_usage=usage,
-                    provider_metadata={},
+                    provider_metadata=raw_completion.model_dump() if hasattr(raw_completion, "model_dump") else {},
                     tool_calls=[],
                     messages=messages,
                 )
@@ -449,11 +471,12 @@ class LiteLLMProvider(LLMProvider):
             # Inject cost into usage dict so BaseAgent can pick it up
             usage["total_cost"] = cost
 
+            from typing import cast
             return LLMResponse(
                 content=final_content,
                 parsed_content=parsed_obj if response_schema else None,
                 reasoning_token=reasoning_token,
-                token_usage=usage,
+                token_usage=cast(dict[str, float | int], usage),
                 provider_metadata=response.model_dump() if hasattr(response, "model_dump") else {},
                 tool_calls=[],
                 messages=messages,
@@ -678,6 +701,7 @@ class LLMFactory:
         usage_service: UsageService | None = None,
         limits: dict[str, int] | None = None,
         api_key: str | None = None,
+        config: LLMProviderConfig | None = None,
         **kwargs,
     ) -> LLMProvider:
         """Factory method to create an LLM Provider instance.
@@ -690,6 +714,7 @@ class LLMFactory:
             usage_service (Optional[UsageService]): Usage service instance.
             limits (Optional[dict]): Usage limits (tpm, rpm).
             api_key (Optional[str]): Explicit API Key override (e.g. for ad-hoc testing).
+            config (Optional[LLMProviderConfig]): Strict configuration object (Database-Driven).
             **kwargs: Additional arguments.
 
         Returns:
@@ -697,6 +722,52 @@ class LLMFactory:
         """
         settings = get_settings()
 
+        # Resolve Configuration Source
+        # If 'config' is passed, it is the Authority.
+        if config:
+            provider_type = config.provider
+            model_name = config.model_name
+            # If Config says "is_active=False", we should have caught this upstream,
+            # but we can enforce it here too as a fail-safe.
+            if not config.is_active:
+                 raise ServiceUnavailableError(
+                     message=f"Provider '{model_name}' is disabled in configuration.",
+                     details={"error_code": ErrorCodes.SERVICE_DISABLED}
+                 )
+
+            # Resolve Limits from Config
+            if not limits:
+                limits = {}
+            if config.tpm_limit > 0:
+                limits["tpm"] = config.tpm_limit
+            if config.rpm_limit > 0:
+                limits["rpm"] = config.rpm_limit
+            
+            # Resolve API Key
+            if config.api_key:
+                api_key = config.api_key
+            
+            # Check Grounding Capability (Strict Mode: Fail Fast)
+            # If caller requests grounding, but config says NO, we RAISE ERROR.
+            # We do NOT fallback to non-grounded generation.
+            tools = kwargs.get("tools", [])
+            enable_grounding = kwargs.get("enable_grounding", False)
+            
+            # Check for Google Search tool or explicit flag
+            has_search_intent = enable_grounding or (tools and any("google_search" in str(t) for t in tools))
+            
+            if has_search_intent:
+                if not config.supports_grounding:
+                    raise ConfigurationError(
+                        message=f"Grounding/Search requested for '{model_name}' but provider config 'supports_grounding' is False.",
+                        details={"error_code": ErrorCodes.CAPABILITY_NOT_SUPPORTED}
+                    )
+
+            # Strict Limits: If limits are missing in config, we do NOT default to empty.
+            # However, logic above extracts them from config if present.
+            # If they are 0 in config, that's explicit "unlimited".
+            # If config was None (legacy path?), we fall through.
+             
         # Placeholder for BYOK (Bring Your Own Key) Logic
         tenant_api_key = api_key
 

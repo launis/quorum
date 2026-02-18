@@ -4,9 +4,35 @@ This module contains the schemas for the Retrieval Agent (RAG),
 including Precedent and ContextData.
 """
 
+from typing import Optional
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from backend.models.domain.base import ReasoningTrace
+
+
+class RetrievalInput(BaseModel):
+    """Strict input schema for RetrievalAgent."""
+    organization_id: str = Field(
+        ...,
+        description="The organization ID to retrieve precedents for.",
+        json_schema_extra={"x-ui-label": "Organization ID"}
+    )
+    query: Optional[str] = Field(
+        default=None,
+        description="Optional query to filter knowledge base items.",
+        json_schema_extra={"x-ui-label": "Search Query"}
+    )
+    last_reasoning_trace: Optional[str] = Field(default=None, description="Previous reasoning trace.")
+
+    model_config = ConfigDict(frozen=True, extra="ignore")
+
+    @field_validator("organization_id")
+    @classmethod
+    def validate_non_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Organization ID cannot be empty.")
+        return v.strip()
 
 
 class Precedent(BaseModel):

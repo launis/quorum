@@ -9,6 +9,7 @@ from google.cloud import firestore  # type: ignore
 
 from backend.database.repository import AbstractWorkflowRepository
 from backend.models.workflow import WorkflowDefinition
+from backend.models.domain.execution import ExecutionRecord
 
 logger = logging.getLogger(__name__)
 
@@ -48,11 +49,12 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
 
         return data
 
-    async def get_execution(self, execution_id: str) -> dict[str, Any] | None:
+    async def get_execution(self, execution_id: str) -> ExecutionRecord | None:
         doc_ref = self.db.collection("executions").document(execution_id)
         doc = await doc_ref.get()
         if doc.exists:
-            return doc.to_dict()
+            data = doc.to_dict()
+            return ExecutionRecord(**data)
         return None
 
     async def get_execution_status(self, execution_id: str) -> str | None:
@@ -102,7 +104,7 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
 
     async def get_all_executions(
         self, organization_id: str | None = None, user_id: str | None = None
-    ) -> list[dict[str, Any]]:
+    ) -> list[ExecutionRecord]:
         query = self.db.collection("executions")
         if organization_id:
             query = query.where("organization_id", "==", organization_id)
@@ -110,7 +112,11 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
             query = query.where("user_id", "==", user_id)
 
         docs = await query.stream()
-        return [doc.to_dict() async for doc in docs]  # Ensure async iteration for firestore AsyncClient
+        results = []
+        async for doc in docs:
+            data = doc.to_dict()
+            results.append(ExecutionRecord(**data))
+        return results
 
     async def log_audit_event(self, event_data: dict[str, Any]) -> None:
         """Log an audit event to Firestore."""
@@ -304,6 +310,28 @@ class FirestoreWorkflowRepository(AbstractWorkflowRepository):
         doc_id = safe_data["id"]
         await self.db.collection("components").document(doc_id).set(safe_data)
         return doc_id
+
+    async def create_component(self, component_data: dict[str, Any]) -> str:
+        return await self.register_component(component_data)
+
+    async def update_component(self, component_id: str, updates: dict[str, Any]) -> bool:
+        """Update a component."""
+        safe_updates = self._serialize_for_firestore(updates)
+        try:
+            await self.db.collection("components").document(component_id).update(safe_updates)
+            return True
+        except Exception as e:
+            logger.error(f"Failed to update component {component_id}: {e}")
+            return False
+
+    async def delete_component(self, component_id: str) -> bool:
+        """Delete a component."""
+        try:
+            await self.db.collection("components").document(component_id).delete()
+            return True
+        except Exception as e:
+            logger.error(f"Failed to delete component {component_id}: {e}")
+            return False
 
     async def get_banned_phrases(self) -> list[dict[str, Any]]:
         """Retrieve all banned phrases."""

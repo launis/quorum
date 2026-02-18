@@ -1,6 +1,10 @@
-# Data Management & Databases (V2.9/V2026)
+# Data Management & Databases (V3.2)
 
 The engine is **data-driven**: logic definitions are stored in JSON (the "Mind"), but strict data contracts are enforced via Python/Dart code (the "Body").
+
+> [!IMPORTANT]
+> **V3.2 Standard (Strict Pydantic & Zero-Compromise)**
+> All internal state management MUST use **Pydantic V2 Models**. Dictionary passing (`dict[str, Any]`) is strictly forbidden for inter-component communication. If a field is missing, the system **Fail Fasts** with `AppException`.
 
 ---
 
@@ -8,11 +12,11 @@ The engine is **data-driven**: logic definitions are stored in JSON (the "Mind")
 
 The system treats `backend/seed/seed_data.json` as the absolute **Single Source of Truth** for all configuration, organizations, users, and cognitive templates.
 
-*   **Zero-Fallback Mandate**: Hardcoded defaults in code are strictly forbidden. If data is missing from the database, the system must **fail fast** rather than guessing.
+*   **Zero-Fallback Mandate**: Hardcoded defaults in code are strictly forbidden. If data is missing from the database, the system must **raise an error** rather than guessing.
 *   **Directionality**:
     *   **Source**: `seed_data.json`
     *   **Target**: Runtime Databases (Mock, Local, Cloud).
-    *   **Reverse Sync**: Use `sync_db_to_seed.py` to promote high-fidelity runtime data back to the blueprint.
+    *   **Reverse Sync**: Use `scripts/migrate_to_seed.py` to promote high-fidelity runtime data (`db.json`) back to the blueprint structure properly. This script handles the complex transformation from flat lists to the seeded `components` structure.
 
 ---
 
@@ -53,24 +57,27 @@ The `StorageDriver` protocol defines the contract for all CRUD and Query operati
 #### 2. The Repository (`backend/database/repository.py`)
 *   **Class**: `UnifiedWorkflowRepository`
 *   **Role**: Contains all business logic (e.g., aggregating metrics, complex filtering, schema hydration).
-*   **Behavior**: It delegates raw I/O to the injected `StorageDriver`. This ensures that logic like "fetch all steps for a workflow" is written once and works everywhere.
+*   **Behavior**: Distinctly separates I/O (Driver) from Logic (Repository).
 
 #### 3. Driver Implementations
 *   **TinyDBDriver** (`backend/database/tinydb_driver.py`):
     *   **Backend**: Local JSON file (`TinyDB`).
-    *   **Behavior**: Serializes datetime/UUIDs to JSON strings. Implements in-memory filtering for complex queries.
+    *   **Behavior**: Serializes datetime/UUIDs to JSON strings.
 *   **FirestoreDriver** (`backend/database/firestore_driver.py`):
     *   **Backend**: Google Cloud Firestore (Native).
-    *   **Behavior**: Uses `google-cloud-firestore` AsyncClient. Maps abstract filters to native `where()` clauses.
-    *   **Parity**: Enforces strict serialization parity with TinyDB (e.g., storing Datetime as ISO strings if needed for consistency).
+    *   **Behavior**: Uses `google-cloud-firestore` AsyncClient.
 
-### Strict Pydantic V2
+### Strict Pydantic V2 & Agent Typing (Phase 8)
 The system utilizes **Pydantic V2** for all internal state management.
-1.  **Strict Mode**: Models use `ConfigDict(extra="ignore")` to silently strip unknown fields during ingestion, but validation is rigid on required fields.
-2.  **Validation Trap**: If `seed_data.json` contains a field (e.g., `ui_schema`) but the Pydantic model does not define it, the data will be lost during seeding. Both must be kept in sync.
-3.  **Strict Enums Only**: Data must match Enum values exactly (e.g., "RISK_HIGH", not "High Risk"). Fuzzy logic is deprecated.
-4.  **Modular Domain**: Models are organized in `backend/models/domain/` to enforce strict separation of concerns (e.g., `guard.py`, `analyst.py`).
-5.  **Storage Abstraction**: The `get_db_client()` factory (`backend/database/wrapper.py`) dynamically returns a `TinyDBClient` or `FirestoreClient` based on the `STORAGE_BACKEND` env var.
+
+1.  **Strict Models**: All Agents and Hooks must accept and return Pydantic models (e.g., `JudgeInput`, `JudgeOutput`).
+2.  **Generic Typing**: Agents inherit from `BaseAgent[InputT, OutputT]`. This enforces compile-time type checking for the `execute` method signature.
+    *   *Violation*: Passing a `dict` to an agent expecting `PanelInput` raises a static type error and a runtime validation error.
+3.  **Inflation / Deflation**:
+    *   **Inflate**: `backend.utils.pydantic_utils.inflate(data, Model)` converts DB/Dict data to strict Models. Raises `AppException(500)` on failure.
+    *   **Deflate**: `model.model_dump()` converts Models to Dicts for storage/serialization.
+4.  **Strict Enums Only**: Data must match Enum values exactly.
+5.  **Modular Domain**: Models are organized in `backend/models/domain/` to enforce strict separation of concerns.
 
 ---
 
@@ -79,61 +86,39 @@ The system utilizes **Pydantic V2** for all internal state management.
 The Flutter client mirrors the backend's strictness but uses a distinct architectural pattern tailored for mobile/web resilience.
 
 ### Feature-Scoped Repositories
-Repositories are no longer monolithic. They are distributed by feature (e.g., `client_app/lib/features/studio/data/studio_repository.dart`).
+Repositories are distributed by feature (e.g., `client_app/lib/features/studio/data/studio_repository.dart`).
 
 ### Error Handling Standard
 *   **Pattern**: Repositories **throw** exceptions (`AppError`), they do NOT return `Either<L, R>`.
-*   **Rationale**: This simplifies the `Provider`/`Riverpod` wiring, allowing the UI to catch errors via `AsyncValue.guard`.
+*   **Rationale**: Simplifies `Riverpod` wiring (`AsyncValue.guard`).
 *   **Mapping**:
     *   `DioException` (400/500) -> `AppError.server` or `AppError.validation`.
     *   `Code 422` -> `AppError.validation` with broken constraints.
-    *   Network Failure -> `AppError.network`.
 
 ### DTOs and Serialization
 *   **Strict Typing**: All API responses are mapped to rigid Dart classes using `json_serializable`.
-*   **Parity**: Dart models must exactly match the Pydantic schemas. A mismatch in a required field (e.g., `name` vs `title`) causes a crash, enforcing the **Fail-Fast** principle.
+*   **Parity**: Dart models must exactly match the Pydantic schemas. A mismatch causes a crash (Fail-Fast).
 
 ---
 
 ## 5. Schema Hygiene
 
-*   **Run-at-Boot**: All core workflows (e.g., `sequential_audit_chain`) must be fully defined and runnable immediately after seeding.
-*   **UI Schema**: The Frontend renders inputs based on the `ui_schema` field in `WorkflowDefinition`. If this component is missing or empty in the seed, the UI will render an empty form (Zero-Fallback).
+*   **Run-at-Boot**: All core workflows must be fully defined and runnable immediately after seeding.
+*   **WorkflowInputs**: The `inputs` field in `WorkflowState` is a strict `WorkflowInputs` object.
 *   **Ontology Registry**: Evaluation matrices (`evaluation_matrix`) are stored in the `components` table but reference dimensions from the `ontology` configuration.
 
 ---
 
 ## 6. File Storage Strategy
 
-The system abstracts file operations via the **File Driver Pattern** (`backend/services/file_driver.py`), ensuring parity between local development and cloud production.
-
-### The Protocol (`FileDriver`)
-The `FileDriver` protocol defines the ASYNC contract for file I/O:
-*   **Methods**: `save`, `read`, `delete`, `exists`, `get_url`.
-*   **Async-First**: All operations are non-blocking (`await driver.save(...)`), critical for high-throughput API endpoints.
+The system abstracts file operations via the **File Driver Pattern** (`backend/services/file_driver.py`).
 
 ### Driver Implementations
-1.  **LocalFileDriver** (`backend/services/drivers/local_file_driver.py`):
-    *   **Backend**: Local file system (`data/files/`).
-    *   **Implementation**: Uses `aiofiles` for asynchronous I/O.
-    *   **Usage**: Default for development and testing.
-
-2.  **GCSFileDriver** (`backend/services/drivers/gcs_file_driver.py`):
-    *   **Backend**: Google Cloud Storage.
-    *   **Implementation**: Wraps `google-cloud-storage` sync client in `asyncio.to_thread` (or uses AsyncClient if available).
-    *   **Usage**: Production (`STORAGE_BACKEND=FIRESTORE` implies GCS for files).
+1.  **LocalFileDriver**: Local file system (`data/files/`).
+2.  **GCSFileDriver**: Google Cloud Storage (`europe-north1`).
 
 ### Dependency Injection
-The `StorageService` factory (`backend/services/storage.py`) determines the active driver based on environment settings (`STORAGE_BACKEND`, `STORAGE_BUCKET_NAME`), ensuring code is agnostic of the underlying storage mechanism.
-
-#### Usage Example
-```python
-from backend.services.storage import get_storage_driver
-
-async def upload_report(content: str, filename: str):
-    driver = get_storage_driver()
-    await driver.save(f"reports/{filename}", content)
-```
+The `StorageService` factory (`backend/services/storage.py`) determines the active driver based on environment settings.
 
 ---
 
@@ -141,15 +126,66 @@ async def upload_report(content: str, filename: str):
 
 To ensure robust UI rendering across different backend configurations (Standalone Agents vs. Consolidated Panel), the system mandates a strict data interchange protocol.
 
-### 7.1. The "Wrapped vs. Unwrapped" Dual Standard
-The BFF Layer (`bff_transformer.py`) must support two formats for specialist data (Logician, Falsifier, Causal, Detector, Overseer):
+### 7.1. Fused Data Hydration (Panel Agent)
+The Panel Agent represents a "Fusion" of multiple critical roles (`Logician`, `Falsifier`, `Causal`, `Detector`, `Overseer`).
+
+1.  **Strict Inputs**: The `PanelInput` model strictly defines fields for `step_analyst` (AnalystOutput) and `step_profiler` (ProfilerAnalysis).
+2.  **Fail Fast**: If these dependencies are missing, the Panel Agent raises `AgentExecutionError`.
+3.  **Template Injection**: These models are serialized and injected into the `PANEL_PROMPT_TEMPLATE`.
+
+### 7.2. The "Wrapped vs. Unwrapped" Dual Standard
+The BFF Layer (`bff_transformer.py`) supports two formats:
 
 1.  **Wrapped (Standard)**: Output from standalone agents matches the Pydantic definition exactly.
-    *   Example: `LogicianOutput(logician_data={...})` -> JSON `{ "logician_data": {...} }`.
 2.  **Unwrapped (Panel)**: Output from the Panel Agent is "flattened" when extracted.
-    *   Example: `PanelOutput(logician_data={...})` -> extracted as `{...}` directly.
 
-### 7.2. UI Safety Mandate (UiSection)
+### 7.3. UI Safety Mandate (UiSection)
 *   The `UiSection.data` field is strictly typed as `dict[str, Any]`.
 *   **Prohibition**: Never pass `None`.
-*   **Requirement**: Data Transformers must return an empty dictionary `{}` if the input data is missing or invalid, ensuring the UI component renders (as empty/hidden) rather than crashing the report generation with a 500 error.
+*   **Requirement**: Data Transformers must return an empty dictionary `{}` if the input data is missing or invalid.
+
+---
+
+## 9. Component & Configuration Architecture (V3.2)
+
+### 9.1. Component Registry & Prompt Resolution
+The system decouples "Instructions" (Prompts) from "Logic" (Agents).
+*   **Storage**: Prompts are stored as `Component` records in the database (`seed_data.json` -> `db.json`).
+*   **Resolution**: The `TaskRegistry` automatically fetches prompts defined in a Task's `llm_prompts` configuration list.
+*   **Injection**: Resolved prompts are injected into the Agent's `execution_context`. The Agent uses these keys (e.g., `PANEL_PROMPT_TEMPLATE`) to structure its LLM call.
+
+### 9.2. External Integrations (Search & Gating)
+External tools (like `VertexAISearchTool`) are gated via strict configuration toggles to ensure environment portability.
+*   **Flag**: `enable_vertex_search` (Settings).
+*   **Behavior**: If disabled (`False`), the tool gracefully degrades (returns empty results) rather than crashing.
+*   **ConfigurationError**: If enabled but missing credentials (e.g., Model ID), the system raises a specific `ConfigurationError` to prevent silent failures during startup.
+
+---
+
+## 8. Case Studies and Patterns
+
+### 8.1. Lazy Dictionary Inflation Pattern (Resilience vs. Strictness)
+
+**The Problem:**
+Strict Schema Enforcement (e.g., `results: WorkflowState`) in storage models creates a brittle system. If the `WorkflowState` schema evolves (e.g., a field is renamed), older records in the database immediately fail validation during bulk read operations (e.g., listing history), causing the entire application to crash.
+
+**The Solution:**
+We employ a **Lazy Dictionary Inflation** pattern for historical data.
+*   **Storage Model**: `results: WorkflowState | Dict[str, Any] | None`. This allows Pydantic to load old/mismatched records as raw Dictionaries without crashing.
+*   **Logic Layer**: Agents accessing this data MUST implement **Just-In-Time Inflation**.
+
+**Case Study: The RetrievalAgent Incident (Feb 2026)**
+The `RetrievalAgent` crashed because it attempted to access `wf_state.execution_trace` (dot notation) on a historical record that had been loaded as a `dict` (due to the safe storage union). It was the only agent proactively fetching raw history from the DB.
+
+**The Fix:**
+The agent was patched to detect `dict` types and force inflation *before* usage:
+```python
+# RECOVERY: If Pydantic loaded results as strict Dict, inflate it here.
+if isinstance(wf_state, dict):
+     try:
+         wf_state = WorkflowState.model_validate(wf_state)
+     except Exception as e:
+         logger.warning(f"Failed to auto-inflate execution: {e}")
+         # Fallthrough to Fail-Fast
+```
+This ensures resilience (DB doesn't crash on load) and integrity (Logic layer verifies schema before use).

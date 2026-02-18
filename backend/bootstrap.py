@@ -36,7 +36,8 @@ async def bootstrap_application():
     logger.info("=" * 50)
 
     # 2. Log Configuration
-    if settings.storage_backend.upper() == "FIRESTORE" and not settings.use_mock_db:
+    # Safe check using computed property
+    if settings.active_backend == "FIRESTORE" and not settings.use_mock_db:
         logger.info("   [CONFIG] Database Mode: FIRESTORE (Cloud Defaults)")
     else:
         logger.info(f"   [CONFIG] Database Path: {os.path.abspath(settings.start_db_path)}")

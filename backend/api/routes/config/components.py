@@ -6,9 +6,8 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Path
 from fastapi import Query as APIQuery
 from pydantic import BaseModel, Field, TypeAdapter
-from tinydb import Query
 
-from backend.dependencies import DatabaseDep, RepositoryDep
+from backend.dependencies import RepositoryDep
 from backend.services.component_registry import ComponentRegistry
 
 logger = logging.getLogger(__name__)
@@ -58,12 +57,11 @@ async def get_components(
 
 
 @router.get("/{comp_id}", summary="Get Component", response_description="The requested component.", response_model=ComponentResponse)
-def get_component(db: DatabaseDep, comp_id: str = Path(..., description="Component ID or Name")) -> ComponentResponse:
+async def get_component(repo: RepositoryDep, comp_id: str = Path(..., description="Component ID or Name")) -> ComponentResponse:
     """Retrieves a single component by ID or Name."""
-    Component = Query()
-    res = db.table("components").search(Component.id == comp_id)
+    res = await repo.get_component_by_id(comp_id)
     if not res:
-        res = db.table("components").search(Component.name == comp_id)
+        res = await repo.get_component_by_name(comp_id)
 
     if not res:
         from backend.exceptions import ResourceNotFoundError
@@ -72,7 +70,11 @@ def get_component(db: DatabaseDep, comp_id: str = Path(..., description="Compone
         logger.error(f"{error_code}: ID {comp_id}", exc_info=True)
         raise ResourceNotFoundError("Component", comp_id, details={"error_code": error_code})
     
-    return _component_adapter.validate_python(res[0])
+    # Normalize 'class' key for DTO if needed
+    if "class" in res:
+        res["component_class"] = res["class"]
+    
+    return _component_adapter.validate_python(res)
 
 
 
@@ -104,11 +106,12 @@ async def list_registry_items(repo: RepositoryDep) -> list[RegistryComponentItem
 
 
 @router.post("", summary="Create Component", response_description="Status and ID.", response_model=ComponentResponse)
-def create_component(comp: ComponentCreate, db: DatabaseDep) -> ComponentResponse:
+async def create_component(comp: ComponentCreate, repo: RepositoryDep) -> ComponentResponse:
     """Creates a new configuration component."""
     try:
-        table = db.table("components")
-        if table.search(Query().id == comp.id):
+        # Check existence
+        existing = await repo.get_component_by_id(comp.id)
+        if existing:
             from backend.exceptions import ConflictError
 
             error_code = "COMPONENT_ID_EXISTS"
@@ -119,10 +122,9 @@ def create_component(comp: ComponentCreate, db: DatabaseDep) -> ComponentRespons
         if "component_class" in new_comp:
             new_comp["class"] = new_comp.pop("component_class")
 
-        table.insert(new_comp)
-        # Re-map class back to component_class for DTO if needed, or DTO allows extra
-        # But ComponentResponse uses component_class.
-        # We should normalize data for response.
+        await repo.create_component(new_comp)
+        
+        # Normalize data for response
         response_data = new_comp.copy()
         if "class" in response_data:
              response_data["component_class"] = response_data.pop("class")
@@ -141,13 +143,13 @@ def create_component(comp: ComponentCreate, db: DatabaseDep) -> ComponentRespons
 
 
 @router.put("/{comp_id}", summary="Update Component", response_description="Update status.", response_model=ComponentResponse)
-def update_component(comp_id: str, update: ComponentUpdate, db: DatabaseDep) -> ComponentResponse:
+async def update_component(comp_id: str, update: ComponentUpdate, repo: RepositoryDep) -> ComponentResponse:
     """Updates an existing component's content and metadata.
 
     Args:
         comp_id (str): The ID of the component to update.
         update (ComponentUpdate): The new data.
-        db (DatabaseDep): Database dependency.
+        repo (RepositoryDep): Repository dependency.
 
     Returns:
         ComponentResponse: The updated component.
@@ -156,22 +158,24 @@ def update_component(comp_id: str, update: ComponentUpdate, db: DatabaseDep) -> 
         HTTPException: If not found (404).
     """
     try:
-        Component = Query()
-        table = db.table("components")
-
         # Find component (by ID or Name)
-        query = (Component.id == comp_id) | (Component.name == comp_id)
-        exists = table.search(query)
-        if not exists:
+        current_data = await repo.get_component_by_id(comp_id)
+        if not current_data:
+            current_data = await repo.get_component_by_name(comp_id)
+
+        if not current_data:
             from backend.exceptions import ResourceNotFoundError
 
             error_code = "COMPONENT_NOT_FOUND"
             logger.error(f"{error_code}: ID {comp_id}", exc_info=True)
             raise ResourceNotFoundError("Component", comp_id, details={"error_code": error_code})
         
-        current_data = exists[0]
+        # Real ID in case searched by name
+        real_id = current_data.get("id")
 
-        update_data = {"content": update.content}
+        update_data = {}
+        if update.content is not None:
+             update_data["content"] = update.content
         if update.description:
             update_data["description"] = update.description
         if update.citation:
@@ -181,7 +185,7 @@ def update_component(comp_id: str, update: ComponentUpdate, db: DatabaseDep) -> 
         if update.type:
             update_data["type"] = update.type
 
-        table.update(update_data, query)
+        await repo.update_component(real_id, update_data)
         
         # Merge for response
         updated_comp = {**current_data, **update_data}
@@ -206,21 +210,15 @@ def update_component(comp_id: str, update: ComponentUpdate, db: DatabaseDep) -> 
 @router.delete("/{comp_id}", summary="Delete Component", response_description="Delete status.", response_model=ComponentDeleteResponse)
 async def delete_component(
     comp_id: str,
-    db: DatabaseDep,
     repo: RepositoryDep
 ) -> ComponentDeleteResponse:
     """Deletes a component if it is not referenced by any existing steps OR executions."""
-    # 1. Existence Check (via TinyDB/Generic Table - maintaining local consistency)
-    table = db.table("components")
-    Component = Query()
+    # 1. Existence Check
+    existing = await repo.get_component_by_id(comp_id)
+    if not existing:
+        existing = await repo.get_component_by_name(comp_id)
 
-    # We still use direct DB access for component existence as 'repo' might be specialized for Workflow/Execution
-    # but strictly speaking we should use repo.get_component_by_id.
-    # For now, keeping legacy check to avoid breaking TinyDB specifics if any,
-    # but ideally we migrate fully to repo.
-    query = (Component.id == comp_id) | (Component.name == comp_id)
-    exists = table.search(query)
-    if not exists:
+    if not existing:
         from backend.exceptions import ResourceNotFoundError
 
         error_code = "COMPONENT_NOT_FOUND"
@@ -228,23 +226,23 @@ async def delete_component(
         raise ResourceNotFoundError("Component", comp_id, details={"error_code": error_code})
     
     # Store ID before deletion for response
-    target_id = exists[0].get("id", comp_id)
+    target_id = existing.get("id", comp_id)
 
-    # 2. Referential Integrity Check 1: Steps (Legacy TinyDB method)
-    # TODO: Migrate to repo.get_steps_using_component(comp_id)
-    steps = db.table("steps").all()
+    # 2. Referential Integrity Check 1: Steps
+    steps = await repo.get_all_steps()
     used_in = []
+    
+    # Scan steps for usage
     for s in steps:
-        if s.get("component") == comp_id:
+        if s.get("component") == target_id:
             used_in.append(s["id"])
             continue
         prompts = s.get("execution_config", {}).get("llm_prompts", [])
-        if comp_id in prompts:
+        if target_id in prompts:
             used_in.append(s["id"])
 
-    # 3. Referential Integrity Check 2: Executions (Abstract Repository)
-    # This enables Firestore support without leaking implementation details
-    exec_count = await repo.count_executions_by_matrix(comp_id)
+    # 3. Referential Integrity Check 2: Executions
+    exec_count = await repo.count_executions_by_matrix(target_id)
     if exec_count > 0:
          # Use specific error for UI handling
         from backend.exceptions import ConflictError
@@ -266,8 +264,8 @@ async def delete_component(
         from backend.exceptions import ConflictError
 
         error_code = "COMPONENT_IN_USE"
-        logger.error(f"{error_code}: ID {comp_id} used in {used_in}", exc_info=True)
+        logger.error(f"{error_code}: ID {target_id} used in {used_in}", exc_info=True)
         raise ConflictError(message="Resource conflict", details={"error_code": error_code, **{"used_in": used_in}})
 
-    table.remove(query)
+    await repo.delete_component(target_id)
     return ComponentDeleteResponse(status="deleted", id=target_id)

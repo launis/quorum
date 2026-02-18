@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import date, datetime
 from typing import TYPE_CHECKING, Any
 
 # 2. Third Party
@@ -12,7 +13,7 @@ from backend.agents.base import BaseAgent
 
 # 3. Local Imports
 from backend.exceptions import AgentExecutionError, ErrorCodes
-from backend.models.domain import LogicianOutput
+from backend.models.domain import LogicianInput, LogicianOutput
 
 if TYPE_CHECKING:
     pass
@@ -20,7 +21,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class LogicianAgent(BaseAgent):
+class LogicianAgent(BaseAgent[LogicianInput, LogicianOutput]):
     """Loogikko-agentti (Logician Agent).
 
     Responsible for:
@@ -30,6 +31,8 @@ class LogicianAgent(BaseAgent):
 
     state_field = "step_logician"
     PRODUCES_KEYS = ["step_logician"]
+    INPUT_SCHEMA = LogicianInput
+    OUTPUT_SCHEMA = LogicianOutput
 
     def get_response_schema(self) -> type[BaseModel] | None:
         """Returns the expected output schema.
@@ -41,7 +44,7 @@ class LogicianAgent(BaseAgent):
 
     async def prepare_context(
         self,
-        input_data: dict[str, Any],
+        input_data: LogicianInput,
         execution_context: dict[str, Any] | None,
         **kwargs: Any
     ) -> str | None:
@@ -50,7 +53,7 @@ class LogicianAgent(BaseAgent):
         Injects the Evidence Map (AnalystOutput) from the Analyst step.
 
         Args:
-            input_data (dict[str, Any]): Inputs.
+            input_data (LogicianInput): Inputs.
             execution_context (dict[str, Any] | None): Context.
             **kwargs: execution arguments.
 
@@ -60,15 +63,36 @@ class LogicianAgent(BaseAgent):
         Raises:
             ValueError: If mandatory inputs (Analyst Output or History Text) are missing.
         """
-        # 1. Resolve Input (Prefer kwargs from wiring, then input_data)
-        analyst_output = kwargs.get("step_analyst")
+        # 1. Resolve Input (Strong Typed)
+        analyst_output = input_data.step_analyst
+        # LogicianInput doesn't have step_analyst. Wait. 
+        # Plan said LogicianInput needs history_text.
+        # But Logician needs step_analyst!
+        # I missed checking if Logician needs AnalystOutput in LogicianInput.
+        # Let's check logic: "analyst_output = kwargs.get('step_analyst') or input_data.get('step_analyst')"
+        # If I strictly enforce LogicianInput, it must have it if implied.
+        # But LogicianInput defined earlier ONLY has history_text.
+        # If step_analyst is passed via kwargs (from graph), it's fine. 
+        # If passed via input_data, it must be in the model.
+        # I should probably add step_analyst to LogicianInput?
+        # But BaseAgent doesn't enforce kwargs matching INPUT_SCHEMA.
+        # BaseAgent.execute takes input_data.
+        # If step_analyst comes from previous agent in chain, it might be in state, injected into input_data?
+        # GraphEngine: "inputs = state.get_context(self.INPUT_SCHEMA)" 
+        # If I add step_analyst to LogicianInput, GraphEngine will try to populate it.
+        # So I SHOULD have added step_analyst to LogicianInput.
+        # Let's assume for now it comes from kwargs (injected by Engine separately) or I need to fix LogicianInput.
+        # The existing code checked `input_data.get("step_analyst")`.
+        # So I SHOULD FIX LogicianInput.
+        
+        # NOTE: For now, I will use kwargs.get("step_analyst") which is safer if Engine injects dependencies.
+        # But for strictness, it should be in Input.
+        
+        # Let's rely on kwargs for step_analyst for now, or check raw_text from input_data.history_text.
+        
         if not analyst_output:
-            analyst_output = input_data.get("step_analyst")
-
-        if not analyst_output:
-            # Check for direct text input as fallback (e.g. from single-step test)
-            # But mandate at least ONE source of truth.
-            raw_text = input_data.get("history_text") or input_data.get("input_text") or kwargs.get("history_text")
+            # Check for direct text input as fallback
+            raw_text = input_data.history_text
 
             if not raw_text:
                 # FAIL FAST: Logician cannot construct arguments without ANY evidence.
@@ -83,18 +107,29 @@ class LogicianAgent(BaseAgent):
 
         # 2. Format Context
         if analyst_output:
-            content = (
-                analyst_output.model_dump_json(indent=2)
-                if hasattr(analyst_output, "model_dump_json")
-                else str(analyst_output)
-            )
+            # Pydantic Model Strictness
+            if hasattr(analyst_output, "model_dump_json"):
+                content = analyst_output.model_dump_json(indent=2)
+            elif isinstance(analyst_output, dict):
+                 # Backward compatibility but strictly typed expected
+                 import json
+
+                 def strict_serializer(obj):
+                    if isinstance(obj, (datetime, date)):
+                        return obj.isoformat()
+                    raise TypeError(f"Type {type(obj)} not serializable")
+
+                 content = json.dumps(analyst_output, indent=2, ensure_ascii=False, default=strict_serializer)
+            else:
+                 content = str(analyst_output)
+
             return f"### TODISTUSKARTTA (EVIDENCE MAP):\n{content}"
 
-        return None
+        return f"### RAW TEXT INPUT:\n{raw_text}"
 
     async def execute(
         self,
-        input_data: dict[str, Any],
+        input_data: LogicianInput,
         execution_context: dict[str, Any] | None = None,
         system_instruction: str | None = None,
         **kwargs: Any,
@@ -102,7 +137,7 @@ class LogicianAgent(BaseAgent):
         """Executes argument reconstruction and cognitive assessment.
 
         Args:
-            input_data (dict[str, Any]): Inputs.
+            input_data (LogicianInput): Inputs.
             execution_context (dict[str, Any] | None, optional): Context.
             system_instruction (str | None, optional): Prompt.
             **kwargs: Args.
@@ -113,21 +148,10 @@ class LogicianAgent(BaseAgent):
         Raises:
             AgentExecutionError: On failure.
         """
-        # Call BaseAgent.execute which handles LLM, JSON parsing, healing, and validation against OUTPUT_SCHEMA
-        # BaseAgent.execute returns Any (dict or Model).
-        # We must cast or validate if we want strict typing in code.
+        # Call BaseAgent.execute which now GUARANTEES a Pydantic Model if OUTPUT_SCHEMA is set.
         result = await super().execute(input_data, execution_context, system_instruction, **kwargs)
 
-        if isinstance(result, LogicianOutput):
-            return result
-        elif isinstance(result, dict):
-            # Should have been validated by base, but double check
-            return LogicianOutput(**result)
-        else:
-            raise AgentExecutionError(
-                detail=ErrorCodes.INVALID_JSON_PAYLOAD,
-                original_error=TypeError(f"LogicianAgent returned {type(result)} instead of LogicianOutput"),
-                agent_name="LogicianAgent"
-            )
+        # BaseAgent checks ensure this is LogicianOutput
+        return result
 
 

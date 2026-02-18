@@ -146,3 +146,6 @@ class TinyDBDriver(StorageDriver):
 
         results = await self.query(collection, filters)
         return len(results)
+
+    async def clear(self, collection: str) -> None:
+        self._get_table(collection).truncate()

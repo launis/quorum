@@ -1,12 +1,12 @@
-# Management Architecture
+# Management Architecture (V3.2 - Phase 8 Standards)
 
-The Management Architecture for **Cognitive Quorum V2026** is a decoupled system designed for dynamic, real-time configuration of the AI engine. It enables administrators to manage the system's core logic—workflows, prompts, and agent configurations—through a web interface, without deploying new code.
+The Management Architecture for **Cognitive Quorum V3.2** is a decoupled system designed for dynamic, real-time configuration of the AI engine. It enables administrators to manage the system's core logic—strategies, prompts, and agent configurations—through a web interface, without deploying new code.
 
 This architecture separates the system into four execution components: a user-facing **Frontend (Cognitive Studio)**, an Async **API Backend**, a distributed **Worker Service** (Arq), and a data-driven **Generic Engine**.
 
 ---
 
-## System Components (V2.9)
+## System Components (V3.2)
 
 The architecture uses asynchronous processing and a "Modular Core" API to handle long-running cognitive tasks (Deep Research, Causal Analysis) without blocking the management UI.
 
@@ -21,7 +21,7 @@ graph TD
     end
     subgraph "Core Logic"
         C["Generic Engine"]
-        D["Agents"]
+        D["Panel Agent (Fused)"]
     end
     subgraph "Data Layer"
         R[(Redis - Job Queue)]
@@ -39,26 +39,21 @@ graph TD
 ```
 
 ### Client App (Flutter / Cognitive Studio)
-A native, multi-platform user interface found in `client_app/`. It provides tools for workflow execution, system monitoring, and deep configuration. It communicates exclusively with the Backend via REST API calls and manages local state via **Riverpod 2.0**. It uses **Server-Driven UI (SDUI)** principles to render configuration forms dynamically from backend schemas.
+A native, multi-platform user interface found in `client_app/`. It provides tools for workflow execution, system monitoring, and deep configuration. It communicates exclusively with the Backend via REST API calls and manages local state via **Riverpod 2.0**.
 
 ### Backend (FastAPI - Modular Core)
-The Control Plane. It handles incoming HTTP requests, validates configuration changes via **Pydantic V2** schemas, and serves as the gateway. It is organized into a hybrid router structure:
-
-*   **Core Systems** (`backend/api/`): Top-level routers for Auth, Admin, and Organizations (`admin_router.py`, `organization_router.py`, `auth_router.py`).
-*   **Domain Logic** (`backend/api/routes/`): dedicated sub-routers for business logic.
-    *   `execution/`: Life-cycle management of jobs and runs.
-    *   `config/`: CRUD for Workflows, Steps, and Components.
-    *   `builder/`: Advanced workflow construction tools.
+The Control Plane. It handles incoming HTTP requests, validates configuration changes via **Strict Pydantic V2** schemas, and serves as the gateway.
 
 ### Worker Service (Arq + Redis)
-The Execution Plane. A distributed background service that pulls jobs from Redis. This allows the system to scale horizontally and handle tasks that exceed standard HTTP timeout limits (e.g., 60s+ LLM reasoning chains). Monitoring and traces are exported to **Logfire**.
+The Execution Plane. A distributed background service that pulls jobs from Redis.
 
 ### Generic Engine
-The core processing unit running inside the Worker. It reads the `WorkflowState` and `WorkflowDefinition` from the database, initializes the required Agents using Strict Dependency Injection, and executes the pipeline.
+The core processing unit running inside the Worker. It reads the `WorkflowState` and **System Config** from the database, initializes the required Agents using Strict Dependency Injection, and executes the pipeline.
 
 ### Database (JSON / Firestore)
 The **Single Source of Truth** (SSOT). It stores:
 *   **Definitions**: Prompts, Rules, Agent Configs (Managed via Registry).
+*   **System Config**: Model strategies and global settings.
 *   **State**: Live execution data (`WorkflowState`).
 
 ---
@@ -67,10 +62,10 @@ The **Single Source of Truth** (SSOT). It stores:
 
 Configuration changes follow an API-driven, immediate consistency model, enforced by the **Zero-Fallback Mandate**.
 
-1.  **Action**: An administrator modifies a Prompt or Workflow in the **Studio**.
+1.  **Action**: An administrator modifies a Prompt or Agent Strategy in the **Studio**.
 2.  **API Request**: The Client App sends a `PATCH` request to `api/v1/config/`.
 3.  **Strict Validation**: The backend validates the data against Pydantic V2 schemas. Invalid data is rejected immediately (Fail-Fast).
-4.  **Persistence**: The record is updated in the active database (TinyDB or Firestore).
+4.  **Persistence**: The record is updated in the active database.
 5.  **Live Update**: The next job picked up by a Worker will immediately use the new configuration.
 
 ---
@@ -88,15 +83,14 @@ The workspace for "Cognitive Architects", accessed via the `StudioDashboardScree
 
 ### 2. Registry (`/registry`)
 The component library.
+*   **System Config**: Management of Agent Strategies (e.g., `PanelAgent` -> `deep`).
 *   **Model Registry**: Management of AI Models (LLMs) and Providers.
 *   **Component Manager**: CRUD for Prompts, Matrices, and Reusable Rules.
 
 ### 3. Administration (`/admin`)
 A protected environment for Governance, utilizing strict **RBAC**:
-*   **Overview**: High-level system stats.
 *   **Organization Management**: Root-level creation and suspension of tenants.
 *   **User Governance**: Role assignment with "Last Admin Protection".
-*   **System Inspector**: Health checks for Redis, Database, and Workers.
 
 ---
 
@@ -112,11 +106,6 @@ The system enforces a strict hierarchy via `AuthService` (`backend/services/auth
 | **MEMBER** | Organization | Run Workflows and View Reports. |
 | **VIEWER** | Organization | Read-Only access to specific Reports. |
 
-### Key Protections
-*   **Last Admin Protection**: The system prevents deleting or demoting the last Administrator of an Organization to avoid orphan tenants.
-*   **Root Protection**: The `root_master` account cannot be deleted.
-*   **Organization Isolation**: Users cannot access data outside their `organization_id`. `AbstractWorkflowRepository` enforces this at the query level.
-
 ---
 
 ## Environments & Data Synchronization
@@ -128,21 +117,3 @@ The system maintains a **3-Tier Environment** model, governed by the **Blueprint
 | **Local Mock** | `data/db_mock.json` | Sandbox for offline testing (Fake LLMs). | `python backend/seed/run_seed.py mock` |
 | **Local Prod** | `data/db.json` | Local testing with Live LLMs (Vertex/OpenAI). | `python backend/seed/run_seed.py local` |
 | **Cloud Prod** | Firestore (GCP) | Production traffic in `europe-north1`. | `python backend/seed/run_seed.py firestore` |
-
-**Sync Protocol**: Changes made in Local Prod can be exported to `seed_data.json` and then promoted to Cloud Prod via the Seeder. Use `backend/services/administration_service.py` for exports.
-
----
-
-## Operational Management (Process Hygiene)
-
-Managing the distributed components (API, Worker, Redis) requires strict process hygiene, especially in Windows development environments.
-
-### Docker-Based Orchestration
-The primary deployment interface is Docker Compose.
-*   **Startup**: `run_full_docker.bat` performs a "Clean Build & Start". It forcefully rebuilds images to ensure `worker.py` code changes are propagated.
-*   **Shutdown**: `docker-compose down`.
-
-### Process Hygiene & "Zombie Kill"
-Due to the multi-process nature of the Worker and Python's behavior on Windows:
-*   **The Problem**: Terminating a terminal often leaves orphan `python.exe` or `uv` processes running in the background, holding onto file locks (TinyDB) or ports (8000).
-*   **The Protocol**: The **Nuclear Kill Mandate** is enforced via `kill_services.bat`, which aggressively terminates all related processes by name/port before restarting. This is standard operating procedure when switching environments or recovering from "Split-Brain" database states.

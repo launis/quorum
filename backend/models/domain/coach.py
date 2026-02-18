@@ -9,6 +9,36 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from backend.models.domain.base import ReasoningTrace
+# Import JudgeOutput for strict type checking if possible, otherwise use Dict
+# To avoid potential circular imports (though judge doesn't import coach), we can use forward refs or just imports
+# But let's check if we can import JudgeOutput from backend.models.domain.judge
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from backend.models.domain.judge import JudgeOutput
+
+
+class CoachInput(BaseModel):
+    """Strict input schema for CoachAgent."""
+    history_text: str = Field(..., description="Chat history.")
+    product_text: str | None = Field(default=None, description="Product context.")
+    reflection_text: str | None = Field(default=None, description="User reflection.")
+    step_judge: dict[str, Any] | Any = Field(
+        ...,
+        description="The Verdict from Judge Agent (Required).",
+        json_schema_extra={"x-ui-label": "Judge Verdict"}
+    )
+    last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
+    
+    # Allow extra fields because Coach might receive step_judge, step_judge_cognitive etc.
+    # Logic in agent iterates keys.
+    model_config = ConfigDict(frozen=True, extra="allow")
+    
+    @field_validator("history_text")
+    @classmethod
+    def validate_non_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("History text cannot be empty.")
+        return v.strip()
 
 
 class BibliographyItem(BaseModel):

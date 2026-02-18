@@ -1,6 +1,6 @@
 from typing import Any, Dict
 from datetime import datetime
-from pydantic import BaseModel, Field, RootModel
+from pydantic import BaseModel, Field, RootModel, ConfigDict
 
 class PDFDownloadCheckResponse(BaseModel):
     """Response when checking for local PDF existence."""
@@ -40,8 +40,7 @@ class ExecutionResponse(BaseModel):
     # Extra fields for response convenience
     start_time: datetime | None = None
 
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(populate_by_name=True, from_attributes=True)
 
 class ExecutionRawResponse(BaseModel):
     """Response for raw execution data dump."""

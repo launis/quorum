@@ -1,6 +1,8 @@
 
 import logging
 
+from pydantic import ValidationError
+
 from backend.exceptions import AppException
 from backend.models.domain import ContextData
 from backend.models.enums import TitleKey
@@ -26,6 +28,14 @@ class RetrievalDomainTransformer(BaseTransformer):
                  model = ContextData(**step["context_data"])
             else:
                  model = ContextData(**step)
+        except ValidationError as e:
+            error_code = "CONTEXT_VALIDATION_FAILED"
+            logger.error(f"{error_code}: {e}", exc_info=True)
+            raise AppException(
+                message=f"Context validation failed: {e}",
+                status_code=500,
+                details={"error_code": error_code, "errors": e.errors()}
+            ) from e
         except Exception as e:
             error_code = "CONTEXT_VALIDATION_FAILED"
             logger.error(f"{error_code}: {e}", exc_info=True)
@@ -56,7 +66,7 @@ class RetrievalDomainTransformer(BaseTransformer):
                 items.append(
                     EvidenceItem(
                         id=item.id,
-                        source=item.source or "Unknown",
+                        source=item.source,
                         content=f"**{item.term}** - {item.definition}",
                         score=item.score,
                         type="regulation" if "regulation" in item.type else "concept"

@@ -12,7 +12,7 @@ from backend.agents.base import BaseAgent
 
 # 3. Local Imports
 from backend.exceptions import AgentExecutionError, ErrorCodes
-from backend.models.domain import ProfilerAnalysis
+from backend.models.domain import ProfilerAnalysis, ProfilerInput
 
 if TYPE_CHECKING:
     pass
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class ProfilerAgent(BaseAgent):
+class ProfilerAgent(BaseAgent[ProfilerInput, ProfilerAnalysis]):
     """Profiloija (Psychologist) Agent.
 
     Step 2.5: Analyzes the 'human' side of the input: intent, biases, tone.
@@ -29,6 +29,8 @@ class ProfilerAgent(BaseAgent):
     state_field = "step_profiler"
     REQUIRES_KEYS = ["history_text", "product_text", "reflection_text"]
     PRODUCES_KEYS = ["step_profiler"]
+    INPUT_SCHEMA = ProfilerInput
+    OUTPUT_SCHEMA = ProfilerAnalysis
 
     def get_response_schema(self) -> type[BaseModel] | None:
         """Returns the expected output schema.
@@ -42,7 +44,7 @@ class ProfilerAgent(BaseAgent):
 
     async def execute(
         self,
-        input_data: dict[str, Any],
+        input_data: ProfilerInput,
         execution_context: dict[str, Any] | None = None,
         system_instruction: str | None = None,
         **kwargs: Any,
@@ -50,7 +52,7 @@ class ProfilerAgent(BaseAgent):
         """Executes the psychological profiling analysis.
 
         Args:
-            input_data (dict[str, Any]): Inputs.
+            input_data (ProfilerInput): Inputs.
             execution_context (dict[str, Any] | None, optional): Context.
             system_instruction (str | None, optional): Prompt.
             **kwargs: Args.
@@ -62,8 +64,10 @@ class ProfilerAgent(BaseAgent):
             AgentExecutionError: If mandatory inputs are missing or validation fails.
         """
         # FAIL FAST: Output Control relies on valid input text.
-        if not input_data.get("history_text"):
-             error_msg = "Mandatory input 'history_text' missing. Assessment aborted."
+        # Strict Input Validation already handled by BaseAgent (INPUT_SCHEMA).
+        # Double check mandatory string content.
+        if not input_data.history_text or not input_data.history_text.strip():
+             error_msg = "Mandatory input 'history_text' is empty. Assessment aborted."
              logger.error(f"[ProfilerAgent] {error_msg}")
              raise AgentExecutionError(
                  detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
@@ -73,19 +77,9 @@ class ProfilerAgent(BaseAgent):
 
         # 1. VALIDATION (Fail Fast)
         hook_metrics = None
-        if "profiler_metrics" in input_data:
-             logger.info(f"[ProfilerAgent] Input Context Keys: {list(input_data.keys())}")
-             logger.info(f"[ProfilerAgent] Metrics found: {input_data['profiler_metrics']}")
-
-             hook_metrics = input_data["profiler_metrics"]
-             if not isinstance(hook_metrics, dict):
-                 logger.error(f"[ProfilerAgent] Invalid profiler_metrics type: {type(hook_metrics)}")
-                 # Fail Fast on Integration Type Error
-                 raise AgentExecutionError(
-                     detail=ErrorCodes.INVALID_JSON_PAYLOAD,
-                     original_error=TypeError(f"ProfilerAgent received invalid metrics type: {type(hook_metrics)}"),
-                     agent_name="ProfilerAgent"
-                 )
+        if input_data.profiler_metrics:
+             hook_metrics = input_data.profiler_metrics
+             logger.info(f"[ProfilerAgent] Metrics found in input model.")
 
              # FAIL FAST: Output Control relies on 'control_ratio'
              if "control_ratio" not in hook_metrics:
@@ -123,19 +117,11 @@ class ProfilerAgent(BaseAgent):
         try:
              # MERGE HOOK METRICS (Linguistic) with LLM METRICS (Psychometric)
              if hook_metrics:
-                 if isinstance(result, BaseModel):
-                     # Handle Pydantic Model (Frozen or not)
-                     # We use model_copy to safely update even if frozen
-                     current_metrics = getattr(result, "metrics", {}) or {}
-                     merged_metrics = {**current_metrics, **hook_metrics}
-                     result = result.model_copy(update={"metrics": merged_metrics})
-                 else:
-                     # FAIL FAST: Strict Mode - Agent MUST return BaseModel
-                     raise AgentExecutionError(
-                         detail=ErrorCodes.INVALID_JSON_PAYLOAD,
-                         original_error=TypeError(f"ProfilerAgent returned {type(result)} instead of ProfilerAnalysis."),
-                         agent_name="ProfilerAgent"
-                     )
+                 # Handle Pydantic Model (Frozen or not)
+                 # We use model_copy to safely update even if frozen
+                 current_metrics = result.metrics or {}
+                 merged_metrics = {**current_metrics, **hook_metrics}
+                 result = result.model_copy(update={"metrics": merged_metrics})
 
              return result
 

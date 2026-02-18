@@ -250,53 +250,29 @@ class StatePresenter:
             "system_prompt_version",
         }
 
-        # Build raw steps dict dynamically based on presence
+        # Helper for safe dumping
+        def _safe_dump(obj: Any | None) -> dict[str, Any] | None:
+            if obj and hasattr(obj, "model_dump"):
+                return obj.model_dump(exclude=noise_fields, exclude_none=True)
+            return None
+
+        # Build raw steps dict dynamically
         raw_steps_dict = {
-            "step_guard": state.step_guard.model_dump(exclude=noise_fields, exclude_none=True)
-            if state.step_guard
-            else None,
-            "step_analyst": state.step_analyst.model_dump(exclude=noise_fields, exclude_none=True)
-            if state.step_analyst
-            else None,
-            "step_interaction": state.step_interaction.model_dump(exclude=noise_fields, exclude_none=True)
-            if state.step_interaction
-            else None,
-            "step_profiler": state.step_profiler.model_dump(exclude=noise_fields, exclude_none=True)
-            if state.step_profiler
-            else None,
-            "step_logician": state.step_logician.model_dump(exclude=noise_fields, exclude_none=True)
-            if state.step_logician
-            else None,
-            "step_falsifier": state.step_falsifier.model_dump(exclude=noise_fields, exclude_none=True)
-            if state.step_falsifier
-            else None,
-            "step_causal": state.step_causal.model_dump(exclude=noise_fields, exclude_none=True)
-            if state.step_causal
-            else None,
-            "step_detector": state.step_detector.model_dump(exclude=noise_fields, exclude_none=True)
-            if state.step_detector
-            else None,
-            "step_overseer": state.step_overseer.model_dump(exclude=noise_fields, exclude_none=True)
-            if state.step_overseer
-            else None,
-            "step_archivist": state.step_archivist.model_dump(exclude=noise_fields, exclude_none=True)
-            if state.step_archivist
-            else None,
-            "step_judge": state.step_judge.model_dump(exclude=noise_fields, exclude_none=True)
-            if state.step_judge
-            else None,
-            "step_judge_cognitive": state.step_judge_cognitive.model_dump(exclude=noise_fields, exclude_none=True)
-            if state.step_judge_cognitive
-            else None,
-            "step_coach": state.step_coach.model_dump(exclude=noise_fields, exclude_none=True)
-            if state.step_coach
-            else None,
-            "step_panel": state.step_panel.model_dump(exclude=noise_fields, exclude_none=True)
-            if state.step_panel
-            else None,
-            "step_xai": state.step_xai.model_dump(exclude=noise_fields, exclude_none=True)
-            if getattr(state, "step_xai", None)
-            else None,
+            "step_guard": _safe_dump(state.step_guard),
+            "step_analyst": _safe_dump(state.step_analyst),
+            "step_interaction": _safe_dump(state.step_interaction),
+            "step_profiler": _safe_dump(state.step_profiler),
+            "step_logician": _safe_dump(state.step_logician),
+            "step_falsifier": _safe_dump(state.step_falsifier),
+            "step_causal": _safe_dump(state.step_causal),
+            "step_detector": _safe_dump(state.step_detector),
+            "step_overseer": _safe_dump(state.step_overseer),
+            "step_archivist": _safe_dump(state.step_archivist),
+            "step_judge": _safe_dump(state.step_judge),
+            "step_judge_cognitive": _safe_dump(state.step_judge_cognitive),
+            "step_coach": _safe_dump(state.step_coach),
+            "step_panel": _safe_dump(state.step_panel),
+            "step_xai": _safe_dump(state.step_xai),
         }
 
         # Filter top-level Nones

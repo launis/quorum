@@ -14,6 +14,12 @@ _LLMProviderConfig _$LLMProviderConfigFromJson(Map<String, dynamic> json) =>
       apiKey: json['api_key'] as String?,
       baseUrl: json['base_url'] as String?,
       temperature: (json['temperature'] as num?)?.toDouble() ?? 0.7,
+      tpmLimit: (json['tpm_limit'] as num?)?.toInt() ?? 0,
+      rpmLimit: (json['rpm_limit'] as num?)?.toInt() ?? 0,
+      defaultMaxTokens: (json['default_max_tokens'] as num?)?.toInt(),
+      vertexLocation: json['vertex_location'] as String?,
+      supportsGrounding: json['supports_grounding'] as bool? ?? false,
+      isActive: json['is_active'] as bool? ?? true,
       additionalParams:
           json['additional_params'] as Map<String, dynamic>? ?? const {},
     );
@@ -26,6 +32,12 @@ Map<String, dynamic> _$LLMProviderConfigToJson(_LLMProviderConfig instance) =>
       'api_key': instance.apiKey,
       'base_url': instance.baseUrl,
       'temperature': instance.temperature,
+      'tpm_limit': instance.tpmLimit,
+      'rpm_limit': instance.rpmLimit,
+      'default_max_tokens': instance.defaultMaxTokens,
+      'vertex_location': instance.vertexLocation,
+      'supports_grounding': instance.supportsGrounding,
+      'is_active': instance.isActive,
       'additional_params': instance.additionalParams,
     };
 

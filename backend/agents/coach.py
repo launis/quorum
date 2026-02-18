@@ -10,7 +10,7 @@ from backend.agents.base import BaseAgent
 
 # 3. Local Imports
 from backend.exceptions import AgentExecutionError, ErrorCodes
-from backend.models.domain import CoachingPlan
+from backend.models.domain import CoachingPlan, CoachInput
 
 if TYPE_CHECKING:
     pass
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class CoachAgent(BaseAgent):
+class CoachAgent(BaseAgent[CoachInput, CoachingPlan]):
     """Coach Agent (Valmentaja).
 
     Responsible for generating coaching plans and managing the bibliography.
@@ -27,6 +27,9 @@ class CoachAgent(BaseAgent):
 
     state_field = "step_coach"
     REQUIRES_KEYS = ["step_judge"]
+    
+    INPUT_SCHEMA = CoachInput
+    OUTPUT_SCHEMA = CoachingPlan
 
     def get_response_schema(self) -> type[BaseModel] | None:
         """Returns the Pydantic model for the agent's expected output.
@@ -38,7 +41,7 @@ class CoachAgent(BaseAgent):
 
     async def execute(
         self,
-        input_data: dict[str, Any],
+        input_data: CoachInput,
         execution_context: dict[str, Any] | None = None,
         system_instruction: str | None = None,
         **kwargs: Any,
@@ -46,7 +49,7 @@ class CoachAgent(BaseAgent):
         """Executes the coaching plan generation and enriches it with bibliography.
 
         Args:
-            input_data (dict[str, Any]): Inputs.
+            input_data (CoachInput): Inputs.
             execution_context (dict[str, Any] | None, optional): Context.
             system_instruction (str | None, optional): Prompt.
             **kwargs: Args.
@@ -63,26 +66,18 @@ class CoachAgent(BaseAgent):
              # If prepare_context failed or didn't run? (Should be caught in super)
              logger.warning("[CoachAgent] Knowledge Base missing during enrichment. Bibliography will be empty.")
              
-             # Early return with casting
-             if isinstance(result, CoachingPlan):
-                 return result
-             elif isinstance(result, dict):
-                 return CoachingPlan(**result)
-             else:
-                 raise AgentExecutionError(
-                     detail=ErrorCodes.INVALID_JSON_PAYLOAD,
-                     original_error=TypeError(f"CoachAgent returned {type(result)} instead of CoachingPlan"),
-                     agent_name="CoachAgent"
-                 )
+             # Early return (BaseAgent ensures it's CoachingPlan)
+             return result
 
         logger.info("[CoachAgent] Running post-execution enrichment (Bibliography)...")
 
         # Prepare Scan Data
         try:
             # Combine relevant inputs and result for scanning
+            # We know result is a BaseModel
             scan_target = {
-                "inputs": input_data,
-                "result": result.model_dump() if hasattr(result, "model_dump") else result
+                "inputs": input_data.model_dump(), # Convert to dict
+                "result": result.model_dump()
             }
             text_dump = str(scan_target)
         except Exception as e:
@@ -105,40 +100,26 @@ class CoachAgent(BaseAgent):
             })
 
         # 3. Update Result
-        # Handle Pydantic Model vs Dict
-        if isinstance(result, BaseModel):
-             # Create a copy with updated bibliography
-             if hasattr(result, "bibliography"):
-                 # If mutable (unlikely for frozen model)
-                 try:
-                    result_dict = result.model_dump()
-                    result_dict["bibliography"] = final_bib
-                    final_result = type(result)(**result_dict)
-                 except Exception:
-                    final_result = result
-             else:
-                 final_result = result
+        # Handle strict Pydantic Model return
+        # Create a copy with updated bibliography
+        if hasattr(result, "bibliography"):
+             # If mutable (unlikely for frozen model)
+             try:
+                result_dict = result.model_dump()
+                result_dict["bibliography"] = final_bib
+                final_result = type(result)(**result_dict)
+             except Exception:
+                final_result = result
         else:
-             final_result = result.copy()
-             final_result["bibliography"] = final_bib
+             final_result = result
 
         logger.info(f"[CoachAgent] Populated bibliography with {len(final_bib)} references.")
         
-        # FINAL CAST & VALIDATION
-        if isinstance(final_result, CoachingPlan):
-            return final_result
-        elif isinstance(final_result, dict):
-            return CoachingPlan(**final_result)
-        else:
-             raise AgentExecutionError(
-                 detail=ErrorCodes.INVALID_JSON_PAYLOAD,
-                 original_error=TypeError(f"CoachAgent returned {type(final_result)} instead of CoachingPlan"),
-                 agent_name="CoachAgent"
-             )
+        return final_result
 
     async def prepare_context(
         self,
-        input_data: dict[str, Any],
+        input_data: CoachInput,
         execution_context: dict[str, Any] | None,
         **kwargs: Any
     ) -> str | None:
@@ -148,7 +129,7 @@ class CoachAgent(BaseAgent):
         This prevents context window bloat (TimeoutError) by only including relevant references.
 
         Args:
-            input_data (dict[str, Any]): Inputs.
+            input_data (CoachInput): Inputs.
             execution_context (dict[str, Any] | None): Context.
             **kwargs: Additional arguments.
 
@@ -166,7 +147,10 @@ class CoachAgent(BaseAgent):
         focus_keywords = set()
 
         judge_inputs = []
-        for key, value in input_data.items():
+        # Convert Pydantic model to dict to iterate over all fields (including extras)
+        input_dict = input_data.model_dump()
+        
+        for key, value in input_dict.items():
              if key.startswith("step_judge") and value:
                  judge_inputs.append((key, value))
 
@@ -190,12 +174,21 @@ class CoachAgent(BaseAgent):
         if judge_inputs:
             for key, tuomio in judge_inputs:
                 try:
-                    # Header
-                    content = tuomio.model_dump_json(indent=2) if hasattr(tuomio, "model_dump_json") else str(tuomio)
+                    # tuomio could be a dict or a Model (if Pydantic validated it as Any)
+                    # If it came from input_data (CoachInput), it's either dict or Any.
+                    content = str(tuomio)
+                    if hasattr(tuomio, "model_dump_json"):
+                         content = tuomio.model_dump_json(indent=2)
+                    elif isinstance(tuomio, dict):
+                         import json
+                         content = json.dumps(tuomio, indent=2, default=str)
+                         
                     parts.append(f"### VERDICT (from {key}):\n{content}")
 
-                    data = tuomio.model_dump() if hasattr(tuomio, "model_dump") else tuomio
-
+                    data = tuomio
+                    if hasattr(tuomio, "model_dump"):
+                        data = tuomio.model_dump()
+                    
                     if isinstance(data, dict):
                         # Check dimensions field (Standard)
                         dimensions = data.get("dimensions", [])
@@ -272,6 +265,10 @@ class CoachAgent(BaseAgent):
                 "references": references,
                 "concepts": concepts
             }
+            
+            # ROOT CAUSE FIX: Inject into execution_context so global ReferenceHook can see it
+            if execution_context is not None:
+                 execution_context["knowledge_base"] = self.knowledge_base
 
             if not references and not concepts:
                  logger.warning(

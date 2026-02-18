@@ -80,7 +80,27 @@ async def list_models(
                     temperature_val = safe_config.get("temperature", 0.7)
 
                     # Collect leftovers
-                    known_keys = {"provider", "model_name", "api_key", "base_url", "temperature"}
+                    tpm_val = safe_config.get("tpm_limit", 0)
+                    rpm_val = safe_config.get("rpm_limit", 0)
+                    default_max_tokens_val = safe_config.get("default_max_tokens")
+                    vertex_location_val = safe_config.get("vertex_location")
+                    supports_grounding_val = safe_config.get("supports_grounding", False)
+                    is_active_val = safe_config.get("is_active", True)
+                    
+                    # Collect leftovers
+                    known_keys = {
+                        "provider",
+                        "model_name",
+                        "api_key",
+                        "base_url",
+                        "temperature",
+                        "tpm_limit",
+                        "rpm_limit",
+                        "default_max_tokens",
+                        "vertex_location",
+                        "supports_grounding",
+                        "is_active",
+                    }
                     additional = {k: v for k, v in safe_config.items() if k not in known_keys}
 
                     results.append(
@@ -91,6 +111,12 @@ async def list_models(
                             api_key=str(api_key_val) if api_key_val else None,
                             base_url=str(base_url_val) if base_url_val else None,
                             temperature=float(temperature_val) if temperature_val is not None else 0.7,
+                            tpm_limit=int(tpm_val),
+                            rpm_limit=int(rpm_val),
+                            default_max_tokens=int(default_max_tokens_val) if default_max_tokens_val is not None else None,
+                            vertex_location=str(vertex_location_val) if vertex_location_val else None,
+                            supports_grounding=bool(supports_grounding_val),
+                            is_active=bool(is_active_val),
                             additional_params=additional,
                         )
                     )

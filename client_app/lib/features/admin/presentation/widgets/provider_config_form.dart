@@ -33,8 +33,19 @@ class ProviderConfigForm extends HookConsumerWidget {
     final maxTokensCtrl = useTextEditingController(
       text: config.additionalParams['max_tokens']?.toString() ?? '',
     );
+    final tpmCtrl = useTextEditingController(text: config.tpmLimit.toString());
+    final rpmCtrl = useTextEditingController(text: config.rpmLimit.toString());
+    final defMaxCtrl = useTextEditingController(
+      text: config.defaultMaxTokens?.toString() ?? '',
+    );
+    final locationCtrl = useTextEditingController(
+      text: config.vertexLocation ?? '',
+    );
+    final supportsGrounding = useState(config.supportsGrounding);
+    final isActive = useState(config.isActive);
 
-    // Watch options
+    // Watch options specific to provider for capabilities? 
+    // For now, simple conditional checks based on string.
     final availableOptions = ref.watch(modelRegistryControllerProvider.select((s) => s.whenData((data) => data.availableOptions)));
 
     final formKey = useMemoized(() => GlobalKey<FormState>());
@@ -195,6 +206,74 @@ class ProviderConfigForm extends HookConsumerWidget {
               ),
             ],
           ),
+          const SizedBox(height: 16),
+
+          // Rate Limits (TPM / RPM)
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: tpmCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'TPM Limit', 
+                    border: OutlineInputBorder(),
+                    helperText: '0 = Unlimited',
+                  ),
+                  keyboardType: TextInputType.number,
+                  validator: (value) {
+                     if (value == null || value.isEmpty) return null;
+                     if (int.tryParse(value) == null) return l10n.errorMustBeInteger;
+                     return null;
+                  },
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: TextFormField(
+                  controller: rpmCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'RPM Limit', 
+                    border: OutlineInputBorder(),
+                    helperText: '0 = Unlimited',
+                  ),
+                  keyboardType: TextInputType.number,
+                  validator: (value) {
+                     if (value == null || value.isEmpty) return null;
+                     if (int.tryParse(value) == null) return l10n.errorMustBeInteger;
+                     return null;
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Advanced / Provider Specific
+          if (providerCtrl.text.toLowerCase().contains('vertex') || providerCtrl.text.toLowerCase().contains('google')) ...[
+            TextFormField(
+              controller: locationCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Vertex Location',
+                border: OutlineInputBorder(),
+                helperText: 'e.g. europe-north1',
+              ),
+            ),
+            const SizedBox(height: 16),
+            SwitchListTile(
+               title: const Text('Supports Grounding'),
+               subtitle: const Text('Enable Google Search integration'),
+               value: supportsGrounding.value,
+               onChanged: (v) => supportsGrounding.value = v,
+            ),
+          ],
+          
+          SwitchListTile(
+            title: const Text('Is Active'),
+            subtitle: const Text('Disable to prevent usage'),
+            value: isActive.value,
+            onChanged: (v) => isActive.value = v,
+          ),
+          
           const SizedBox(height: 24),
 
           ElevatedButton.icon(
@@ -211,16 +290,19 @@ class ProviderConfigForm extends HookConsumerWidget {
                           newParams.remove('max_tokens');
                         }
 
+                          
                         final newConfig = config.copyWith(
                           provider: providerCtrl.text,
                           modelName: modelNameCtrl.text,
-                          apiKey:
-                              apiKeyCtrl.text.isEmpty ? null : apiKeyCtrl.text,
-                          baseUrl:
-                              baseUrlCtrl.text.isEmpty
-                                  ? null
-                                  : baseUrlCtrl.text,
+                          apiKey: apiKeyCtrl.text.isEmpty ? null : apiKeyCtrl.text,
+                          baseUrl: baseUrlCtrl.text.isEmpty ? null : baseUrlCtrl.text,
                           temperature: double.tryParse(tempCtrl.text) ?? 0.7,
+                          tpmLimit: int.tryParse(tpmCtrl.text) ?? 0,
+                          rpmLimit: int.tryParse(rpmCtrl.text) ?? 0,
+                          defaultMaxTokens: int.tryParse(defMaxCtrl.text), // Correctly map to field, not params
+                          vertexLocation: locationCtrl.text.isEmpty ? null : locationCtrl.text,
+                          supportsGrounding: supportsGrounding.value,
+                          isActive: isActive.value,
                           additionalParams: newParams,
                         );
                         onSave(newConfig);

@@ -51,3 +51,7 @@ class StorageDriver(Protocol):
     async def count(self, collection: str, filters: list[Filter] | None = None) -> int:
         """Count documents matching the filters."""
         ...
+
+    async def clear(self, collection: str) -> None:
+        """Remove all documents from a collection (Truncate)."""
+        ...

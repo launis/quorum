@@ -21,7 +21,8 @@ from backend.database.repository import AbstractWorkflowRepository
 from backend.models.domain.analyst import AnalystOutput, Hypothesis
 from backend.models.domain.causal import CausalAnalysis, CausalOutput, CounterfactualTest
 from backend.models.domain.coach import CoachingPlan
-from backend.models.domain.evaluation import DimensionResultItem, EvaluationResult
+from backend.models.domain.evaluation import DimensionResultItem
+from backend.models.domain.judge import JudgeOutput, JudgeScoreCard
 from backend.models.domain.falsifier import FalsifierData, FalsifierOutput, WaltonStressTest
 from backend.models.domain.logician import CognitiveLevel, LogicianData, LogicianOutput, ToulminComponent, WaltonScheme
 from backend.models.domain.overseer import OverseerData, OverseerOutput
@@ -127,7 +128,8 @@ async def main():
                 confidence=0.9,
                 claim_text="help me",
                 evidence_found=True,
-                search_query="prompting skills"
+                search_query="prompting skills",
+                quotes=["user: help me"]
             ),
             Hypothesis(
                 id="HYP-2",
@@ -135,11 +137,15 @@ async def main():
                 confidence=0.8,
                 claim_text="I am lost",
                 evidence_found=True,
-                search_query="passenger psychology"
+                search_query="passenger psychology",
+                quotes=["user: I am lost"]
             )
         ],
         rag_evidence=["Found mention of 'help me' in input."],
-        evidence_found=True
+        evidence_found=True,
+        thought_process="User input indicates a need for guidance.",
+        conclusion="User requires coaching.",
+        confidence_score=0.9
     )
 
     # ... (omitted for brevity, will be in the file)
@@ -147,6 +153,9 @@ async def main():
     # Logician
     step_logician = LogicianOutput(
         reasoning_trace="Evaluating logical structure...",
+        thought_process="Logical structure is weak.",
+        conclusion="Argument is fallacious.",
+        confidence_score=0.8,
         logician_data=LogicianData(
             toulmin_analysis=[
                 ToulminComponent(id="T-1", claim="I want to code better.", data="Input text.", warrant="Coding requires strict logic.")
@@ -168,6 +177,9 @@ async def main():
     # Falsifier
     step_falsifier = FalsifierOutput(
         reasoning_trace="Checking for critical loops...",
+        thought_process="No critical loops found.",
+        conclusion="Stable.",
+        confidence_score=0.9,
         falsifier_data=FalsifierData(
             stress_test_findings=[
                 WaltonStressTest(question="Why did you say that?", observation="User corrected output.", evidence_held=True)
@@ -184,6 +196,9 @@ async def main():
     # Causal
     step_causal = CausalOutput(
         reasoning_trace="Analyzing causality...",
+        thought_process="Causal links are tenuous.",
+        conclusion="Mere correlation.",
+        confidence_score=0.7,
         causal_analysis=CausalAnalysis(
             abductive_conclusion=AbductiveConclusion.GENUINE,
             abductive_score=0.9,
@@ -206,6 +221,9 @@ async def main():
     # Overseer
     step_overseer = OverseerOutput(
         reasoning_trace="Checking facts...",
+        thought_process="Fact check complete.",
+        conclusion="Facts verified.",
+        confidence_score=0.95,
         overseer_data=OverseerData(
             fact_checks=[
                  {"claim": "Sky is blue.", "verification_result": "Verified", "source_or_reasoning": "Nature"},
@@ -217,24 +235,40 @@ async def main():
     )
 
     # Judge
-    step_judge = EvaluationResult(
-        reasoning_trace="Based on the lack of imperative commands, the user is a Passenger.",
-        matrix_id="matrix_standard_v1",
-        timestamp=datetime.now(),
+    # Judge
+    from backend.models.domain.judge import JudgeOutput, JudgeScoreCard
+    
+    score_card = JudgeScoreCard(
+        agent_name="Standard Judge",
         total_score=1.5,
-        final_verdict="PASSENGER (Matkustaja)",
+        max_score=4,
+        verdict="PASSENGER (Matkustaja)",
         dimensions=[
             DimensionResultItem(dimension_id="analysis", dimension_label="Analysis", score=1.0, reasoning="Weak."),
             DimensionResultItem(dimension_id="evaluation", dimension_label="Evaluation", score=2.0, reasoning="Okay."),
             DimensionResultItem(dimension_id="synthesis", dimension_label="Synthesis", score=1.5, reasoning="Poor.")
         ],
-        scale_min=1.0, # Update to match matrix standard
+        scale_min=1.0,
         scale_max=4.0
+    )
+
+    step_judge = JudgeOutput(
+        reasoning_trace="Based on the lack of imperative commands, the user is a Passenger.",
+        matrix_id="matrix_standard_v1",
+        score_card=score_card,
+        scale_min=1.0,
+        scale_max=4.0,
+        confidence_score=0.9,
+        thought_process="Scoring based on criteria.",
+        conclusion="Low score assigned."
     )
 
     # Coach
     step_coach = CoachingPlan(
         reasoning_trace="User needs to be more active.",
+        thought_process="User is passive.",
+        conclusion="Action required.",
+        confidence_score=0.9,
         actionable_steps=["Use more imperative verbs.", "Define context clearly."],
         bibliography=[{"source_id": "Kahneman2011", "title": "Thinking, Fast and Slow"}],
         focus_areas=["Agency", "Clarity"]
@@ -243,9 +277,11 @@ async def main():
     # XAI
     step_xai = XAIOutput(
          reasoning_trace="Summarizing the verdict.",
+         thought_process="Synthesizing report.",
+         conclusion="Report generated.",
+         confidence_score=0.95,
          executive_summary="User failed the driver's license test.",
          final_verdict="PASSENGER",
-         confidence_score=0.95,
          analysis_strengths="Honesty",
          analysis_weaknesses="Passivity",
          analysis_opportunities="Learn prompting strategies.",

@@ -13,13 +13,12 @@ from backend.agents.base import BaseAgent
 
 # 3. Local Imports
 from backend.exceptions import AgentExecutionError, ErrorCodes
-from backend.models.domain import (
-    AnalystOutput,
-    ContextData,
-    PanelOutput,
-    PanelOutputDTO,
-    ProfilerAnalysis,
-)
+from backend.exceptions import AgentExecutionError, ErrorCodes
+from backend.models.domain.analyst import AnalystOutput
+from backend.models.domain.retrieval import ContextData
+from backend.models.domain.panel import PanelInput, PanelOutput, PanelOutputDTO
+from backend.models.domain.profiler import ProfilerAnalysis
+from backend.models.state import WorkflowState  # Ensure WorkflowState is available provided it's used or needed
 
 if TYPE_CHECKING:
     pass
@@ -27,7 +26,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class PanelAgent(BaseAgent):
+class PanelAgent(BaseAgent[PanelInput, PanelOutput]):
     """Paneeli-agentti (Panel Agent).
 
     Executes multiple critical roles in a single LLM call to save tokens and time.
@@ -38,6 +37,7 @@ class PanelAgent(BaseAgent):
     REQUIRES_KEYS = ["step_analyst", "step_profiler"]
     PRODUCES_KEYS = ["step_panel", "step_logician", "step_falsifier", "step_causal", "step_detector", "step_overseer"]
     DTO_SCHEMA = PanelOutputDTO
+    INPUT_SCHEMA = PanelInput
     OUTPUT_SCHEMA = PanelOutput
 
     def __init__(self, model: str | None = None, provider: str | None = None, **kwargs: Any):
@@ -51,157 +51,126 @@ class PanelAgent(BaseAgent):
 
         super().__init__(model=model, provider=provider)
 
-    def _hydrate_inputs(self, input_data: dict[str, Any]) -> tuple[AnalystOutput, ProfilerAnalysis, ContextData | None]:
-        """Hydrates raw dictionary inputs into strict Pydantic models.
+    def construct_user_prompt(self, input_data: PanelInput, execution_context: dict[str, Any] | None = None) -> str:
+        """Constructs the user prompt using strict PanelInput.
 
         Args:
-            input_data (dict[str, Any]): Raw input dictionary.
+            input_data (PanelInput): Input data.
+            execution_context (dict[str, Any] | None): Config/Context.
 
         Returns:
-            tuple[AnalystOutput, ProfilerAnalysis, ContextData | None]: Hydrated models.
-        
-        Raises:
-            AgentExecutionError: If mandatory inputs are missing or invalid.
+            str: Constructed prompt.
         """
-        # 1. Analyst Output (Mandatory)
-        analyst_raw = input_data.get("step_analyst")
-        if not analyst_raw:
+        # Dependencies enforced by Input Schema, but let's double check content
+        if not input_data.step_analyst:
              raise AgentExecutionError(
                  detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
                  original_error=ValueError("PanelAgent: Missing dependency 'step_analyst'."),
                  agent_name="PanelAgent"
              )
-
-        try:
-            if isinstance(analyst_raw, dict):
-                analyst_data = AnalystOutput(**analyst_raw)
-            elif isinstance(analyst_raw, AnalystOutput):
-                analyst_data = analyst_raw
-            else:
-                 raise ValueError(f"Invalid type for step_analyst: {type(analyst_raw)}")
-        except Exception as e:
-            raise AgentExecutionError(
-                detail=ErrorCodes.INVALID_JSON_PAYLOAD,
-                original_error=e,
-                agent_name="PanelAgent"
-            ) from e
-
-        # 2. Profiler Analysis (Mandatory)
-        profiler_raw = input_data.get("step_profiler")
-        if not profiler_raw:
+        if not input_data.step_profiler:
              raise AgentExecutionError(
                  detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
                  original_error=ValueError("PanelAgent: Missing dependency 'step_profiler'."),
                  agent_name="PanelAgent"
              )
-
-        try:
-            if isinstance(profiler_raw, dict):
-                profiler_data = ProfilerAnalysis(**profiler_raw)
-            elif isinstance(profiler_raw, ProfilerAnalysis):
-                profiler_data = profiler_raw
-            else:
-                 raise ValueError(f"Invalid type for step_profiler: {type(profiler_raw)}")
-        except Exception as e:
-            raise AgentExecutionError(
-                detail=ErrorCodes.INVALID_JSON_PAYLOAD,
-                original_error=e,
-                agent_name="PanelAgent"
-            ) from e
-
-        # 3. Context Data (Optional)
-        context_data = None
-        context_raw = input_data.get("step_context")
-        if context_raw:
-            try:
-                if isinstance(context_raw, dict):
-                    context_data = ContextData(**context_raw)
-                elif isinstance(context_raw, ContextData):
-                    context_data = context_raw
-                # If it's a string (legacy/error), we might skip or fail.
-            except Exception as e:
-                logger.warning(f"PanelAgent: Context hydration failed ignored: {e}")
-
-        return analyst_data, profiler_data, context_data
-
-    def construct_user_prompt(self, input_data: dict[str, Any], auxiliary_data: dict[str, Any] | None = None) -> str:
-        """Constructs the user prompt for the Panel Agent by aggregating input data and prior step results.
-
-        Args:
-            input_data (dict[str, Any]): Flattended input data with prior steps.
-            auxiliary_data (dict[str, Any] | None, optional): Aux data (searches etc).
-
-        Returns:
-            str: The constructed user prompt string.
-        """
-        # HYDRATION STEP: Convert inputs to Pydantic models
-        analyst_data, profiler_data, context_data = self._hydrate_inputs(input_data)
-
-        # Collect all relevant data for all potential critics from inputs
-        # Maps keys if they exist in input_data
-
-        # Strict Validation Helper (Fail-Safe)
-        def strict_get(key: str) -> Any:
-             val = input_data.get(key)
-             if not val:
-                 raise AgentExecutionError(
-                     detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
-                     original_error=ValueError(f"PanelAgent: Mandatory input '{key}' missing."),
-                     agent_name="PanelAgent"
-                 )
-             return val
-
+        
+        # Hydrate for prompt - use Objects directly, flexible_json_dump handles serialization
         prompt_input_data = {
             "inputs": {
-                "history_text": strict_get("history_text"),
-                "product_text": strict_get("product_text"),
-                "reflection_text": input_data.get("reflection_text"), # Optional, no default text
-            }
+                "history_text": input_data.history_text,
+                "product_text": input_data.product_text,
+                "reflection_text": input_data.reflection_text,
+            },
+            "step_analyst": input_data.step_analyst,
+            "step_profiler": input_data.step_profiler
         }
 
-        # 3. Context Data (Knowledge Base & Precedents)
-        if context_data:
-             # Use model_dump to serialize back to dict for generic prompting
-             prompt_input_data["step_context"] = context_data.model_dump()
-
-        prompt_input_data["step_analyst"] = analyst_data.model_dump()
-        prompt_input_data["step_profiler"] = profiler_data.model_dump()
-
-        # Add aux data if relevant (like search results)
-        # REMOVED default value "Ei hakutuloksia" per strict requirements.
-        google_search_results = None
-        if auxiliary_data and "google_search_results" in auxiliary_data:
-             google_search_results = auxiliary_data["google_search_results"]
-        # Also check input_data just in case
-        elif "google_search_results" in input_data:
-             google_search_results = input_data["google_search_results"]
-
-        search_section = ""
-        if google_search_results:
-             search_section = f"\nULKOISEN FAKTANTARKISTUKSEN TULOKSET:\n{google_search_results}\n---"
-
-        # Context Section (Knowledge Base)
+        # Context (Knowledge Base)
         context_section = ""
-        if context_data:
-             # Use typed access! Only `precedents` (which is a string summary) is guaranteed by ContextData model.
-             # But ContextData also has knowledge_items.
-             # We use the text summary field `precedents` which usually contains everything in the current RetrievalAgent impl.
-             context_section = f"\nJÄRJESTELMÄN KONTEKSTI (TIETOPANKKI & ENNAKKOTAPAUKSET):\n{context_data.precedents}\n---"
+        context_data = None
+        if execution_context:
+             context_raw = execution_context.get("step_context")
+             if context_raw:
+                 # Try to hydrate or use as is
+                 # For template context_section, we need 'precedents' string.
+                 if hasattr(context_raw, "precedents"):
+                      context_section = f"\nJÄRJESTELMÄN KONTEKSTI (TIETOPANKKI & ENNAKKOTAPAUKSET):\n{context_raw.precedents}\n---"
+                 elif isinstance(context_raw, dict):
+                      precedents = context_raw.get("precedents", "")
+                      if precedents:
+                           context_section = f"\nJÄRJESTELMÄN KONTEKSTI (TIETOPANKKI & ENNAKKOTAPAUKSET):\n{precedents}\n---"
+                 
+                 # Also update prompt_input_data for JSON dump
+                 # strict: we prefer the object itself if available
+                 prompt_input_data["step_context"] = context_raw
+
+        # External Search Results
+        search_section = ""
+        # Access from execution_context "aux_data" or similar?
+        # Only if injected.
+        
+        # Linguistics
+        linguistics_section = ""
+        linguistics_result = execution_context.get("linguistics_result") if execution_context else None
+        if linguistics_result:
+             # Logic to format linguistics
+             patterns = []
+             if isinstance(linguistics_result, dict):
+                  patterns = linguistics_result.get("performative_patterns", [])
+             elif hasattr(linguistics_result, "performative_patterns"):
+                  patterns = linguistics_result.performative_patterns
+             
+             if patterns:
+                  def get_phrase(p: Any) -> str:
+                       return p.detected_phrase if hasattr(p, "detected_phrase") else p.get("detected_phrase", "")
+                  def get_category(p: Any) -> str:
+                       return p.category if hasattr(p, "category") else p.get("category", "")
+                  pattern_list = "\n".join([f"- \"{get_phrase(p)}\" ({get_category(p)})" for p in patterns])
+                  linguistics_section = f"\nKIELIOPILLINEN ANALYYSI (PERFORMATIIVISUUS):\nHavaittu seuraavat performatiiviset ilmaisut:\n{pattern_list}\n---"
+
+        # Template
+        template_str = execution_context.get("PANEL_PROMPT_TEMPLATE") if execution_context else None
+        if not template_str:
+             # Search in llm_prompts
+             config_prompts = execution_context.get("llm_prompts", []) if execution_context else []
+             if isinstance(config_prompts, list):
+                 for p in config_prompts:
+                     if p == "PANEL_PROMPT_TEMPLATE":
+                         template_str = execution_context.get(p)
+                         break
+        
+        if not template_str:
+             raise AgentExecutionError(
+                  detail=ErrorCodes.AGENT_NOT_CONFIGURED,
+                  original_error=ValueError("PANEL_PROMPT_TEMPLATE not found."),
+                  agent_name="PanelAgent"
+             )
+
+        # Task Instructions
+        task_prompts = []
+        config_prompts = execution_context.get("llm_prompts", []) if execution_context else []
+        if isinstance(config_prompts, list):
+             for p in config_prompts:
+                  if p != "PANEL_PROMPT_TEMPLATE":
+                       content = execution_context.get(p)
+                       if content:
+                            task_prompts.append(content)
+        task_section = "\n\n".join(task_prompts)
 
         from backend.utils.json_utils import flexible_json_dump
 
-        return f"""
-        INPUT DATA FOR THE PANEL:
-        ---
-        {flexible_json_dump(prompt_input_data)}
-        ---
-        {context_section}
-        {search_section}
-        """
+        return template_str.format(
+            input_json=flexible_json_dump(prompt_input_data),
+            context_section=context_section,
+            search_section=search_section,
+            linguistics_section=linguistics_section,
+            task_section=task_section
+        )
 
     async def execute(
         self,
-        input_data: dict[str, Any],
+        input_data: PanelInput,
         execution_context: dict[str, Any] | None = None,
         system_instruction: str | None = None,
         **kwargs: Any,
@@ -209,7 +178,7 @@ class PanelAgent(BaseAgent):
         """Executes the Panel Agent logic.
 
         Args:
-            input_data (dict[str, Any]): Inputs.
+            input_data (PanelInput): Inputs.
             execution_context (dict[str, Any] | None, optional): Config.
             system_instruction (str | None, optional): Prompt.
             **kwargs: Args.
@@ -219,7 +188,22 @@ class PanelAgent(BaseAgent):
         """
         # 1. Construct User Prompt
         try:
-            user_content = self.construct_user_prompt(input_data, auxiliary_data=input_data) # Assuming input_data contains merged aux
+            # Construct the prompt using inputs and the injected template from execution_context.
+            
+            # Let's see construct_user_prompt. It calls _hydrate_inputs(input_data).
+            # If we pass PanelInput, it might fail if it expects dict.
+            # _hydrate_inputs expects dict.
+            
+            # Refactoring strategy:
+            # PanelInput ALREADY HAS the hydrated models (step_analyst, step_profiler).
+            # So _hydrate_inputs is redundant if we trust PanelInput!
+            
+            # But wait, PanelInput fields are Optional? 
+            # construct_user_prompt checks for them.
+            
+            # Let's strictly use PanelInput in execute using attributes.
+            
+            user_content = self.construct_user_prompt(input_data, execution_context=execution_context)
 
             # 2. Call LLM with strict PanelOutputDTO schema (Content Only)
             if not self.llm_provider:
@@ -252,30 +236,19 @@ class PanelAgent(BaseAgent):
             if response.parsed_content is not None:
                 if isinstance(response.parsed_content, PanelOutputDTO):
                     panel_dto = response.parsed_content
-                elif isinstance(response.parsed_content, PanelOutput): # Should not happen if schema requested is DTO
-                    # But if provider does weird things or fallback
+                elif isinstance(response.parsed_content, PanelOutput): 
                     panel_dto = response.parsed_content
                 elif isinstance(response.parsed_content, dict):
                     panel_dto = PanelOutputDTO(**response.parsed_content)
                 else:
                     logger.warning(
                         f"[PanelAgent] parsed_content was {type(response.parsed_content)}, "
-                        "expected Dict or PanelOutputDTO. Trying legacy parsing."
+                        "expected Dict or PanelOutputDTO."
                     )
-
-            # Fallback (Legacy) - Only used if Provider didn't parse
-            if not panel_dto:
-                raw_content = response.content if hasattr(response, "content") else response
-                if isinstance(raw_content, str):
-                    try:
-                        clean_content = raw_content.replace("```json", "").replace("```", "").strip()
-                        raw_dict = json.loads(clean_content)
-                        panel_dto = PanelOutputDTO(**raw_dict)
-                    except json.JSONDecodeError as e:
-                        error_code = ErrorCodes.AGENT_EXECUTION_CRITICAL
-                        logger.error(f"{error_code}: Could not parse JSON string - {e}")
-                        raise AgentExecutionError(detail=error_code, original_error=e) from e
-
+            
+            # STRICTNESS: No Fallback Parsing (Removed `if not panel_dto` block)
+            # If provider failed to return structured data, we FAIL.
+            
             if panel_dto:
                 # 4. Promotion to Domain Model (Inject Metadata)
                 panel_domain = self._apply_python_authority(panel_dto)
@@ -284,10 +257,20 @@ class PanelAgent(BaseAgent):
                 return panel_domain
 
             else:
-                raise AgentExecutionError(detail=ErrorCodes.AGENT_EXECUTION_CRITICAL, original_error=ValueError("No data returned"))
+                 # Detailed error for debugging
+                raw_content = response.content if hasattr(response, "content") else "No content"
+                raise AgentExecutionError(
+                    detail=ErrorCodes.AGENT_RESPONSE_PARSING_FAILED, 
+                    original_error=ValueError(f"LLM Provider returned no structured data. Raw: {str(raw_content)[:200]}..."),
+                    agent_name="PanelAgent"
+                )
+
+        except AgentExecutionError:
+            # Re-raise known agent errors (e.g. Configuration errors) to preserve error codes
+            raise
 
         except Exception as e:
-            # ECHO PROTOCOL: Safety Net
+            # ECHO PROTOCOL: Safety Net for unexpected crashes
             error_code = ErrorCodes.AGENT_EXECUTION_CRITICAL
             logger.error(f"{error_code}: Unexpected failure - {e}", exc_info=True)
             raise AgentExecutionError(detail=error_code, original_error=e) from e

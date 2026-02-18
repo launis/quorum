@@ -22,7 +22,7 @@ class ReasoningTrace(BaseModel):
 
 
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True)
 
     @field_validator("thought_process", "conclusion")
     @classmethod
@@ -64,7 +64,7 @@ class TraceEvent(BaseModel):
 
 
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True)
 
     @field_validator("step_name")
     @classmethod
@@ -94,10 +94,25 @@ class WorkflowState(BaseModel):
     context_variables: dict[str, Any] = Field(
         default_factory=dict, description="Current snapshots of context variables."
     )
+    workflow_name: str | None = Field(
+        default=None, description="Human-readable name of the workflow."
+    )
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc), description="Creation timestamp."
+    )
+
+    @property
+    def start_time(self) -> datetime:
+        return self.created_at
+
+    @property
+    def reasoning_context(self) -> Any | None:
+        """Legacy accessor for reasoning context (now largely superseded by step_analyst)."""
+        return self.context_variables.get("reasoning_context")
 
 
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True)
 
     @field_validator("workflow_id")
     @classmethod
@@ -106,7 +121,106 @@ class WorkflowState(BaseModel):
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()
 
-    def add_event(self, event: TraceEvent) -> WorkflowState:
+    def add_event(self, event: TraceEvent) -> "WorkflowState":
         """Returns a new WorkflowState with the added event (Functional style)."""
         new_trace = self.execution_trace + [event]
         return self.model_copy(update={"execution_trace": new_trace})
+
+    def get_context(self, key: str, model_class: type[BaseModel] | None = None) -> Any | None:
+        """Best Practice: Typed Accessor for Context Variables.
+        
+        Retrieves a variable from context. If `model_class` is provided, 
+        attempts to inflate the value (dict) into the Pydantic model.
+        
+        Args:
+            key: The context variable key.
+            model_class: The expected Pydantic model class.
+            
+        Returns:
+            The value (Model or Any) or None if missing/invalid.
+        """
+        val = self.context_variables.get(key)
+        if val is None:
+            return None
+            
+        if model_class:
+            # Avoid circular import at module level
+            from backend.utils.pydantic_utils import inflate
+            return inflate(val, model_class)
+            
+        return val
+
+    # --- Type-Safe Accessors for Common Steps (Bridge for State Presenter) ---
+
+    @property
+    def step_analyst(self) -> Any | None:
+        return self.context_variables.get("step_analyst")
+
+    @property
+    def step_profiler(self) -> Any | None:
+        return self.context_variables.get("step_profiler")
+
+    @property
+    def step_archivist(self) -> Any | None:
+        return self.context_variables.get("step_archivist")
+
+    @property
+    def step_logician(self) -> Any | None:
+        return self.context_variables.get("step_logician")
+
+    @property
+    def step_falsifier(self) -> Any | None:
+        return self.context_variables.get("step_falsifier")
+
+    @property
+    def step_causal(self) -> Any | None:
+        return self.context_variables.get("step_causal")
+
+    @property
+    def step_detector(self) -> Any | None:
+        return self.context_variables.get("step_detector")
+
+    @property
+    def step_overseer(self) -> Any | None:
+        return self.context_variables.get("step_overseer")
+
+    @property
+    def step_panel(self) -> Any | None:
+        return self.context_variables.get("step_panel")
+
+    @property
+    def step_judge(self) -> Any | None:
+        return self.context_variables.get("step_judge")
+
+    @property
+    def step_judge_cognitive(self) -> Any | None:
+        return self.context_variables.get("step_judge_cognitive")
+
+    @property
+    def step_coach(self) -> Any | None:
+        return self.context_variables.get("step_coach")
+
+    @property
+    def step_interaction(self) -> Any | None:
+        return self.context_variables.get("step_interaction")
+        
+    @property
+    def audit_results(self) -> Any | None:
+        return self.context_variables.get("audit_results")
+
+    @property
+    def step_guard(self) -> Any | None:
+        return self.context_variables.get("step_guard")
+    
+    @property
+    def step_xai(self) -> Any | None:
+        return self.context_variables.get("step_xai")
+
+    @property
+    def organization_id(self) -> str | None:
+        return self.context_variables.get("organization_id")
+    
+    @property
+    def user_id(self) -> str | None:
+        return self.context_variables.get("user_id")
+

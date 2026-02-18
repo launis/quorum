@@ -1,5 +1,7 @@
 import logging
 
+from pydantic import ValidationError
+
 from backend.exceptions import AppException
 from backend.models.domain import InteractionAnalysis, PerformativityOutput, ProfilerAnalysis
 from backend.models.enums import LabelKey, TitleKey
@@ -40,6 +42,14 @@ class ProfilingDomainTransformer(BaseTransformer):
                  model = ProfilerAnalysis(**self._adapt_legacy_trace(step["profiler_data"])) # If wrapped
             else:
                  model = ProfilerAnalysis(**self._adapt_legacy_trace(step)) # If flat
+        except ValidationError as e:
+            error_code = "PROFILER_VALIDATION_FAILED"
+            logger.error(f"{error_code}: {e}", exc_info=True)
+            raise AppException(
+                message=f"Profiler validation failed: {e}",
+                status_code=500,
+                details={"error_code": error_code, "errors": e.errors()}
+            ) from e
         except Exception as e:
             error_code = "PROFILER_VALIDATION_FAILED"
             logger.error(f"{error_code}: {e}", exc_info=True)
@@ -78,26 +88,22 @@ class ProfilingDomainTransformer(BaseTransformer):
                 cr_label = "DRIVER_LABEL" # Placeholder logic
 
         # 2. Bias / Gap
-        auto_bias = metrics.get("automation_bias", 0.0)
-        say_do = metrics.get("say_do_gap", 0.0)
+        auto_bias = metrics["automation_bias"]
+        say_do = metrics["say_do_gap"]
 
         ab_detected = auto_bias > 0.5
         sd_detected = say_do > 0.5
-
-
-
 
         # DISPLAY LABELS (Simulated localization or raw)
         ab_label_str = "Detected" if ab_detected else "None"
         sd_label_str = "Detected" if sd_detected else "None"
 
         # Raw Metrics
-        word_count = int(metrics.get("word_count", 0))
-        avg_sent = float(metrics.get("avg_sentence_length", 0.0))
-        lex_div = float(metrics.get("lexical_diversity", 0.0))
-        cap_ratio = float(metrics.get("capitalization_ratio", 0.0))
+        word_count = int(metrics["word_count"])
+        avg_sent = float(metrics["avg_sentence_length"])
+        lex_div = float(metrics["lexical_diversity"])
+        cap_ratio = float(metrics["capitalization_ratio"])
 
-        # Mapping to UVM Strings
         # Mapping to UVM Strings
         return ProfilerDisplay(
             control_ratio_percent=cr_percent,
@@ -141,6 +147,14 @@ class ProfilingDomainTransformer(BaseTransformer):
                  model = InteractionAnalysis(**self._adapt_legacy_trace(step["driver_profile"]))
             else:
                  model = InteractionAnalysis(**self._adapt_legacy_trace(step))
+        except ValidationError as e:
+            error_code = "INTERACTION_VALIDATION_FAILED"
+            logger.error(f"{error_code}: {e}", exc_info=True)
+            raise AppException(
+                message=f"Interaction validation failed: {e}",
+                status_code=500,
+                details={"error_code": error_code, "errors": e.errors()}
+            ) from e
         except Exception as e:
             error_code = "INTERACTION_VALIDATION_FAILED"
             logger.error(f"{error_code}: {e}", exc_info=True)
@@ -191,9 +205,17 @@ class ProfilingDomainTransformer(BaseTransformer):
             return None
 
         try:
-              # PerformativityOutput
-              # Strict Validation
+               # PerformativityOutput
+               # Strict Validation
              model = PerformativityOutput(**self._adapt_legacy_trace(step))
+        except ValidationError as e:
+            error_code = "PERFORMATIVITY_VALIDATION_FAILED"
+            logger.error(f"{error_code}: {e}", exc_info=True)
+            raise AppException(
+                message=f"Performativity validation failed: {e}",
+                status_code=500,
+                details={"error_code": error_code, "errors": e.errors()}
+            ) from e
         except Exception as e:
             error_code = "PERFORMATIVITY_VALIDATION_FAILED"
             logger.error(f"{error_code}: {e}", exc_info=True)

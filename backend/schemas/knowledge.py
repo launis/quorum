@@ -9,7 +9,7 @@ class ConceptItem(BaseModel):
         ..., description="A precise definition or explanation found in the text, preferably with citations."
     )
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True)
 
     @field_validator("term", "definition")
     @classmethod
@@ -24,7 +24,7 @@ class ConceptResponse(BaseModel):
 
     concepts: list[ConceptItem] = Field(default_factory=list, description="List of extracted concepts.")
     
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True)
 
 
 class IngestionSummary(BaseModel):
@@ -38,7 +38,7 @@ class IngestionSummary(BaseModel):
     file_size: int = Field(0, description="Size of the processed file in bytes.")
     filename: str | None = Field(None, description="Name of the processed file.")
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True)
 
     @field_validator("job_id", "status")
     @classmethod

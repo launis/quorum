@@ -15,7 +15,7 @@ class ExecutionRequest(BaseModel):
     description: str | None = Field(None, description="Optional description for this execution run.")
     settings: dict[str, Any] = Field(default_factory=dict, description="Input parameters/settings for the execution.")
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True)
 
     @field_validator("project_id")
     @classmethod

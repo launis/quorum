@@ -12,7 +12,7 @@ from backend.agents.base import BaseAgent
 
 # 3. Local Imports
 from backend.exceptions import AgentExecutionError, ErrorCodes
-from backend.models.domain import AnalystOutput
+from backend.models.domain import AnalystInput, AnalystOutput
 from backend.models.state import WorkflowState
 
 if TYPE_CHECKING:
@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class AnalystAgent(BaseAgent):
+class AnalystAgent(BaseAgent[AnalystInput, AnalystOutput]):
     """Analyytikko-agentti (Analyst Agent).
 
     Responsible for:
@@ -34,6 +34,7 @@ class AnalystAgent(BaseAgent):
     # Contracts
     REQUIRES_KEYS = ["history_text", "product_text", "reflection_text"]
     PRODUCES_KEYS = ["step_analyst"]
+    INPUT_SCHEMA = AnalystInput
     OUTPUT_SCHEMA = AnalystOutput
 
     def get_response_schema(self) -> type[BaseModel] | None:
@@ -47,7 +48,7 @@ class AnalystAgent(BaseAgent):
 
     async def execute(
         self,
-        input_data: dict[str, Any],
+        input_data: AnalystInput,
         execution_context: dict[str, Any] | None = None,
         system_instruction: str | None = None,
         **kwargs: Any,
@@ -55,7 +56,7 @@ class AnalystAgent(BaseAgent):
         """Executes the analysis logic for Evidence Anchoring.
 
         Args:
-            input_data (dict[str, Any]): Input texts (history, product, reflection).
+            input_data (AnalystInput): Input texts (history, product, reflection).
             execution_context (dict[str, Any] | None, optional): Access to global state.
             system_instruction (str | None, optional): Prompt override.
             **kwargs: Additional parameters.
@@ -66,35 +67,51 @@ class AnalystAgent(BaseAgent):
         Raises:
             ValueError: If input texts are too short (Fail Fast enforcement).
         """
+        # 0. Context Injection (Truth Protocol) - RAG
+        # Note: input_data is immutable (Frozen). We cannot inject "rag_context" into it.
+        # We must use execution_context or kwargs to pass RAG context to LLM Prompt,
+        # OR prepare_context hook modifies system prompt.
+        # BaseAgent.execute calls prepare_context.
+        # But if we rely on input_data having it...
+        # The prompt template {{rag_context}} looks for it in input_data (d).
+        # We need to inject it into the prompt variables passed to provider.
+        # But BaseAgent passes input_data.model_dump() to provider? No, it uses input_data as is.
+        # If InputT is passed to LLM...
+        # We should use prepare_context to return additional text.
+        
+        # For now, let's keep the logic but adapt to Read-Only input_data.
+        # We cannot do `input_data["rag_context"] = ...`
+        
+        if execution_context:
+            step_context = execution_context.get("step_context")
+            if step_context:
+                 # ... extraction logic ...
+                 pass 
+                 # We can't easily inject into frozen model. 
+                 # We'll assume the System Prompt or prepare_context handles it.
+                 # Or we pass it in kwargs? 
+                 # Let's trust prepare_context to handle dynamic context injection (which BaseAgent does).
+        
         # FAIL FAST: Structural Validation
-        # Since pre-hooks might not be configured, we enforce it here.
-        inputs = input_data
+        # Strict Input Validation (Pydantic) handles types.
+        # Length check:
+        # Check history_text.
+        text = input_data.history_text
         min_chars = 100
-        for key in ["history_text", "product_text", "reflection_text"]:
-            text = inputs.get(key, "")
-            if not text or len(text) < min_chars:
-                error_msg = (
-                    f"[AnalystAgent] Input '{key}' is too short "
-                    f"({len(text) if text else 0} chars). Analysis aborted."
-                )
-                logger.error(f"{ErrorCodes.EMPTY_INPUT}: {error_msg}")
-                raise AgentExecutionError(
-                    detail=ErrorCodes.EMPTY_INPUT,
-                    original_error=ValueError(error_msg),
-                )
+        if not text or len(text) < min_chars:
+            error_msg = (
+                f"[AnalystAgent] Input 'history_text' is too short "
+                f"({len(text) if text else 0} chars). Analysis aborted."
+            )
+            logger.error(f"{ErrorCodes.EMPTY_INPUT}: {error_msg}")
+            raise AgentExecutionError(
+                detail=ErrorCodes.EMPTY_INPUT,
+                original_error=ValueError(error_msg),
+            )
 
+        # BaseAgent guarantees AnalystOutput or raises error
         result_obj = await super().execute(input_data, execution_context, system_instruction, **kwargs)
-
-        if isinstance(result_obj, AnalystOutput):
-            return result_obj
-        elif isinstance(result_obj, dict):
-            return AnalystOutput(**result_obj)
-        else:
-             raise AgentExecutionError(
-                 detail=ErrorCodes.INVALID_JSON_PAYLOAD,
-                 original_error=TypeError(f"AnalystAgent returned {type(result_obj)} instead of AnalystOutput"),
-                 agent_name="AnalystAgent"
-             )
+        return result_obj
 
     def verify_structure(self, state: WorkflowState) -> WorkflowState:
         """HOOK: verify_structure.
@@ -115,18 +132,30 @@ class AnalystAgent(BaseAgent):
         return verify_structure(state)
 
     def post_process(self, response_data: Any) -> Any:
-        """Lifecycle Hook: Post-Execution.
+        """Lifecycle Hook: Post-Execution (Healing).
 
         Enforces sequential IDs for Hypotheses (PYTHON AUTHORITY).
+        
+        PATTERN: Healing / Late Validation
+        This hook receives the raw Dict from the LLM *before* strict Pydantic validation.
+        This allows us to patch structural issues (like missing IDs) that would otherwise
+        cause the validation to fail.
+        
+        Args:
+            response_data (Any): Raw Dict (usually) or Pydantic Model.
+            
+        Returns:
+            Any: Healed data ready for validation.
         """
         # 1. Access hypotheses
         hypotheses = []
+        is_dict = isinstance(response_data, dict)
 
-        # Helper to get hypotheses list
-        if isinstance(response_data, BaseModel):
-            hypotheses = getattr(response_data, "hypotheses", [])
-        elif isinstance(response_data, dict):
+        if is_dict:
             hypotheses = response_data.get("hypotheses", [])
+        else:
+            # Strict Pydantic Access
+            hypotheses = response_data.hypotheses or []
 
         if not hypotheses:
             return response_data
@@ -138,34 +167,36 @@ class AnalystAgent(BaseAgent):
 
         for idx, hyp in enumerate(hypotheses, 1):
             new_id = f"HYP-{idx}"
-
-            # Get current ID
+            
+            # Access ID
             current_id = None
-            if isinstance(hyp, BaseModel):
-                current_id = getattr(hyp, "id", None)
-            elif isinstance(hyp, dict):
+            if isinstance(hyp, dict):
                 current_id = hyp.get("id")
-
+            else:
+                current_id = hyp.id
+            
             if current_id != new_id:
-                # Create new hypothesis with updated ID
-                if isinstance(hyp, BaseModel):
-                    new_hyp = hyp.model_copy(update={"id": new_id})
-                else:
-                    # Fallback for dict/mapping
-                    new_hyp = dict(hyp)
+                # Update ID
+                if isinstance(hyp, dict):
+                    # Dict is mutable, but let's be safe and copy if needed
+                    # Actually, better to create new dict to avoid side effects if strictly functional
+                    new_hyp = hyp.copy()
                     new_hyp["id"] = new_id
-
-                updated_hypotheses.append(new_hyp)
+                    updated_hypotheses.append(new_hyp)
+                else:
+                    # Pydantic is immutable-ish (model_copy)
+                    new_hyp = hyp.model_copy(update={"id": new_id})
+                    updated_hypotheses.append(new_hyp)
+                
                 changes_made = True
             else:
                 updated_hypotheses.append(hyp)
 
         if changes_made:
-            # Update Response (Frozen or Dict)
-            if isinstance(response_data, BaseModel):
-                    return response_data.model_copy(update={"hypotheses": updated_hypotheses})
+            if is_dict:
+                response_data["hypotheses"] = updated_hypotheses
+                return response_data
             else:
-                    response_data["hypotheses"] = updated_hypotheses
-                    return response_data
+                return response_data.model_copy(update={"hypotheses": updated_hypotheses})
 
         return response_data

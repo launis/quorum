@@ -395,18 +395,20 @@ def get_db_client() -> AbstractDatabase:
         return TinyDBClient(settings.mock_db_path)
 
     # 2. Production Modes
-    backend = settings.storage_backend.strip().upper()
+    # Use computed property which handles None and Defaults safely
+    backend = settings.active_backend
 
-    match backend:
-        case "FIRESTORE":
-            if not FIRESTORE_AVAILABLE:
-                raise ImportError("CRITICAL: STORAGE_BACKEND=FIRESTORE but firebase_admin is not installed.")
-            return FirestoreClient()
-        case "LOCAL":
-            return TinyDBClient(settings.prod_db_path)
-        case _:
-            # FAIL FAST - No Defaults
-            raise ValueError(f"CRITICAL: Unknown/Unsupported STORAGE_BACKEND '{backend}'. Must be LOCAL or FIRESTORE.")
+    if backend == "FIRESTORE":
+        if not FIRESTORE_AVAILABLE:
+            raise ImportError("CRITICAL: STORAGE_BACKEND=FIRESTORE but firebase_admin is not installed.")
+        return FirestoreClient()
+    elif backend == "LOCAL":
+        return TinyDBClient(settings.prod_db_path)
+    elif backend == "MOCK":
+        return TinyDBClient(settings.mock_db_path)
+    else:
+        # Should be unreachable if active_backend is strict
+        raise ValueError(f"CRITICAL: Unknown/Unsupported BACKEND '{backend}'.")
 
 
 

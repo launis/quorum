@@ -15,8 +15,10 @@ import urllib3
 
 # 2. Third Party
 from pydantic import BaseModel, ValidationError
+from typing import Generic, TypeVar
 
 from backend.core.component import BaseComponent
+from backend.models.domain.base import ReasoningTrace
 
 # 3. Local Imports
 from backend.exceptions import AgentExecutionError, ErrorCodes
@@ -30,11 +32,15 @@ from backend.services.localization import LocalizationService
 # 4. Logger
 logger = logging.getLogger(__name__)
 
+InputT = TypeVar("InputT")
+# Output must implicitly support ReasoningTrace behavior (metadata, checksums)
+OutputT = TypeVar("OutputT", bound=ReasoningTrace)
 
-class BaseAgent(BaseComponent):
+class BaseAgent(BaseComponent, Generic[InputT, OutputT]):
     """Abstract base class for all Cognitive Quorum agents.
 
     Handles LLM interaction via the Provider Pattern.
+    Enforces Strict Type Safety via Generics [InputT, OutputT].
     """
 
     state_field: str | None = None
@@ -47,11 +53,12 @@ class BaseAgent(BaseComponent):
     PRODUCES_KEYS: list[str] = []
 
     # Optional Pydantic Models for Schema Validation
-    INPUT_SCHEMA: type[BaseModel] | None = None
-    OUTPUT_SCHEMA: type[BaseModel] | None = None # Domain Model (With Metadata)
+    INPUT_SCHEMA: type[InputT] | None = None
+    OUTPUT_SCHEMA: type[OutputT] | None = None # Domain Model (With Metadata)
     DTO_SCHEMA: type[BaseModel] | None = None    # LLM Interface (Content Only)
 
     def __init__(self, model: str | None = None, provider: str | None = None):
+
         """Initializes the agent with an optional specific model strategy.
 
         Args:
@@ -67,6 +74,8 @@ class BaseAgent(BaseComponent):
         # We allow this, but execution will fail if model is not set via set_model().
 
         if model:
+            if not self.provider_type:
+                 raise ValueError("Provider type required if model is set.")
             self.llm_provider = LLMFactory.create_provider(self.provider_type, model)
         else:
             self.llm_provider = None
@@ -141,7 +150,7 @@ class BaseAgent(BaseComponent):
                 agent_name=self.__class__.__name__
             ) from e
 
-    def _apply_python_authority(self, data: Any) -> Any:
+    def _apply_python_authority(self, data: Any) -> OutputT:
         """Injects system-authoritative data (Time, Identity, Checksums).
 
         Promotes DTOs to Domain Models if DTO_SCHEMA is defined.
@@ -157,6 +166,7 @@ class BaseAgent(BaseComponent):
         # --- CASE A: Pydantic Model (DTO or Domain) ---
         if isinstance(data, BaseModel):
             # 1. Construct Updated Metadata (Immutable)
+            # Use getattr to support DTOs that lack 'metadata' field (e.g. PanelOutputDTO)
             current_meta = getattr(data, "metadata", None)
 
             # Prepare metadata fields
@@ -169,9 +179,9 @@ class BaseAgent(BaseComponent):
             # Default optional fields if missing
             # We check if they exist in current_meta (if it's a model)
             if current_meta:
-                 if not getattr(current_meta, "vaihe", None):
+                 if not current_meta.vaihe:
                      meta_updates["vaihe"] = 1
-                 if not getattr(current_meta, "versio", None):
+                 if not current_meta.versio:
                      meta_updates["versio"] = "2.0"
             else:
                  meta_updates["vaihe"] = 1
@@ -186,8 +196,8 @@ class BaseAgent(BaseComponent):
                     luontiaika=utc_now,
                     agentti=agent_name,
                     suoritus_ymparisto=env_context,
-                    vaihe=meta_updates["vaihe"],
-                    versio=meta_updates["versio"]
+                    vaihe=int(meta_updates["vaihe"]),
+                    versio=str(meta_updates["versio"])
                 )
 
             # 2. Calculate Checksum (using new metadata)
@@ -218,7 +228,9 @@ class BaseAgent(BaseComponent):
                         metadata=new_metadata,
                         semanttinen_tarkistussumma=checksum
                     )
-                    return promoted_data
+                    # strict: cast
+                    from typing import cast
+                    return cast(OutputT, promoted_data)
                 
                 else:
                     # Regular Update (Domain -> Domain)
@@ -226,7 +238,8 @@ class BaseAgent(BaseComponent):
                         "metadata": new_metadata,
                         "semanttinen_tarkistussumma": checksum
                     }
-                    return data.model_copy(update=updates)
+                    from typing import cast
+                    return cast(OutputT, data.model_copy(update=updates))
 
             except Exception as e:
                 error_msg = (
@@ -274,6 +287,17 @@ class BaseAgent(BaseComponent):
 
                 data["semanttinen_tarkistussumma"] = checksum
                 logger.debug(f"[{self.__class__.__name__}] Calc Checksum (Dict): {checksum[:8]}...")
+                # 3. Promotion (Dict -> Domain)
+                if self.DTO_SCHEMA and self.OUTPUT_SCHEMA:
+                    try:
+                        promoted_data = self.OUTPUT_SCHEMA(**data)
+                        logger.debug(f"[{self.__class__.__name__}] Promoted Dict -> {self.OUTPUT_SCHEMA.__name__}")
+                        return promoted_data
+                    except Exception as e:
+                        logger.warning(f"[{self.__class__.__name__}] Failed to promote dict to Domain Model: {e}")
+                        from typing import cast
+                        return cast(OutputT, data)
+
                 return data
 
             except Exception as e:
@@ -293,30 +317,65 @@ class BaseAgent(BaseComponent):
 
     async def execute(
         self,
-        input_data: dict[str, Any],
+        input_data: InputT,
         execution_context: dict[str, Any] | None = None,
         system_instruction: str | None = None,
         **kwargs: Any,
-    ) -> dict[str, Any] | BaseModel:
+    ) -> OutputT:
         """Standard execution entry point.
 
-        Takes input dict, processes it via the LLM Provider, and returns the result.
+        Takes typed input model, processes it via the LLM Provider, and returns the typed result.
         Enforces RFC 7807 Error Handling and Pydantic Schema Validation.
 
         Args:
-            input_data (dict[str, Any]): The resolved input variables from the Workflow Engine.
+            input_data (InputT): The resolved input model (or dict) from the Workflow Engine.
             execution_context (dict[str, Any] | None): Access to repository, config, or global state.
             system_instruction (str | None): Optional prompt override (rarely used).
             **kwargs: Additional parameters for LLM (temperature, max_tokens, etc).
 
         Returns:
-            Any: The execution result (response data), usually a dict or Pydantic model.
+            OutputT: The execution result (response domain model).
 
         Raises:
             AgentExecutionError: If execution fails (wraps all internal exceptions).
         """
         logger.info(f"[{self.__class__.__name__}] Starting execution...")
         try:
+            # 0. STRICT INPUT VALIDATION (Phase 8: Type Safety)
+            # The Engine is responsible for inflating dict -> Model.
+            # Here we enforce that we actually received a Model.
+            if self.INPUT_SCHEMA:
+                if not isinstance(input_data, self.INPUT_SCHEMA):
+                     # FAIL FAST: This is a system integrity failure.
+                     # The Engine should have converted it.
+                     msg = f"Agent '{self.__class__.__name__}' expected model '{self.INPUT_SCHEMA.__name__}' but received '{type(input_data)}'."
+                     error_code = ErrorCodes.AGENT_INVALID_INPUT
+                     logger.critical(f"{error_code}: {msg}")
+                     raise AgentExecutionError(
+                         detail=error_code,
+                         original_error=TypeError(msg),
+                         agent_name=self.__class__.__name__
+                     )
+
+                try:
+                    # Double-check validation (redundant if strict, but safe)
+                    # strict: cast to type[BaseModel]
+                    from typing import cast
+                    if issubclass(self.INPUT_SCHEMA, BaseModel):
+                         cast(type[BaseModel], self.INPUT_SCHEMA).model_validate(input_data)
+                    logger.debug(f"[{self.__class__.__name__}] Input Validation Successful: {self.INPUT_SCHEMA.__name__}")
+                except ValidationError as e:
+                     error_code = ErrorCodes.AGENT_INVALID_INPUT
+                     logger.error(f"{error_code}: Input validation failed for {self.__class__.__name__} - {e}", exc_info=True)
+                     raise AgentExecutionError(
+                         detail=error_code,
+                         original_error=e,
+                         agent_name=self.__class__.__name__
+                     ) from e
+            elif isinstance(input_data, dict):
+                 # Legacy Fallback? NO. Zero-Compromise means we MUST have a schema eventually.
+                 # But for incremental migration, we allow dict if INPUT_SCHEMA is None.
+                 pass
             # 1. Use Generic User Prompt (The System Instruction carries the context)
             user_prompt = "Proceed with your task according to the system instructions."
 
@@ -368,9 +427,17 @@ class BaseAgent(BaseComponent):
             # So we check input_data or kwargs.
             if kwargs.get("pass_reasoning_token"):
                  pass # Already in kwargs
-            elif input_data.get("last_reasoning_trace"):
-                logger.info(f"[{self.__class__.__name__}] Chain of Thought: Injecting previous reasoning trace.")
-                kwargs["pass_reasoning_token"] = input_data["last_reasoning_trace"]
+            else:
+                 # Safe Access for InputT (Dict or Model)
+                 trace = None
+                 if isinstance(input_data, dict):
+                     trace = input_data.get("last_reasoning_trace")
+                 else:
+                     trace = input_data.last_reasoning_trace
+                 
+                 if trace:
+                    logger.info(f"[{self.__class__.__name__}] Chain of Thought: Injecting previous reasoning trace.")
+                    kwargs["pass_reasoning_token"] = trace
 
             # --- LOGGING EXECUTION CONFIG ---
             conf_model = self.model
@@ -459,14 +526,14 @@ class BaseAgent(BaseComponent):
                  sanitized_messages = []
                  try:
                      import copy
-                     sanitized_messages = copy.deepcopy(response_obj.messages)
+                     sanitized_messages: list[dict[str, Any]] = copy.deepcopy(response_obj.messages)
 
                      for msg in sanitized_messages:
                          if "content" in msg and isinstance(msg["content"], str):
                              content_str = msg["content"]
 
                              # Handle Pydantic Models or Dicts
-                             start_inputs = input_data
+                             start_inputs: Any = input_data
                              if isinstance(start_inputs, BaseModel):
                                  start_inputs = start_inputs.model_dump()
 
@@ -533,7 +600,12 @@ class BaseAgent(BaseComponent):
 
 
 
-            # 6. Lifecycle Hook: Post Process (HEALING)
+            # 6. Lifecycle Hook: Post Process (HEALING PATTERN)
+            # STRATEGY: "Late Validation"
+            # We intentionally keep response_data as a Dict (if possible) during this phase.
+            # This allows the 'post_process' hook to "heal" structural errors (like missing IDs or 
+            # malformed keys) that would otherwise cause Pydantic validation to crash immediately.
+            # The Agent is responsible for ensuring the data is valid BEFORE the strict check below.
             logger.info(f"[{self.__class__.__name__}] Lifecycle Hook: post_process")
 
             # SCRUBBER (Jan 2026): Remove 'instructor' library prompt leakage
@@ -545,6 +617,7 @@ class BaseAgent(BaseComponent):
 
             # 7. LATE VALIDATION (Schema Enforcement)
             # Since Provider no longer enforces schema (to allow healing), we must do it here.
+            # This is the "Fail Fast" gate: If data is still invalid after healing, we crash.
             # FIX (Jan 2026): Use explicit None check to catch empty dicts {} which are Falsy.
             if response_schema and response_data is not None:
                 try:
@@ -561,11 +634,20 @@ class BaseAgent(BaseComponent):
                     logger.error(f"{error_code}: Post-Healing Validation Failed - {e}", exc_info=True)
                     raise AgentExecutionError(detail=error_code, original_error=e) from e
 
-            logger.info(f"[{self.__class__.__name__}] Execution completed.")
+            # 8. STRICT TYPE SAFEGUARD (Zero-Compromise)
+            # Child agents rely on us to return the correct Pydantic Model.
+            # If we somehow reached here with a dict when a schema is required, we must crash.
+            if response_schema and not isinstance(response_data, BaseModel):
+                 # This theoretically shouldn't happen due to Late Validation above, 
+                 # but this protects against logic regressions or loose typing.
+                 error_msg = f"CRITICAL: {self.__class__.__name__} violated strict return contract. Expected {response_schema.__name__}, got {type(response_data)}."
+                 logger.critical(error_msg)
+                 raise AgentExecutionError(
+                     detail=ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED,
+                     original_error=TypeError(error_msg),
+                     agent_name=self.__class__.__name__
+                 )
 
-            # Return Pydantic model as dict or strict return?
-            # We allow returning BaseModel directly (Pydantic-First Flow).
-            # The Registry/GraphEngine will handle serialization if needed.
             return response_data
 
 
@@ -614,14 +696,14 @@ class BaseAgent(BaseComponent):
                 agent_name=self.__class__.__name__
             ) from e
 
-    async def prepare_context(self, input_data: dict, execution_context: dict | None, **kwargs) -> str | None:
+    async def prepare_context(self, input_data: InputT, execution_context: dict[str, Any] | None, **kwargs: Any) -> str | None:
         """Lifecycle Hook: Pre-Execution.
 
         Override to inject dynamic context.
 
         Args:
-            input_data (dict): Inputs.
-            execution_context (dict): Context.
+            input_data (InputT): Inputs.
+            execution_context (dict[str, Any] | None): Context.
             **kwargs: execution arguments.
 
         Returns:
@@ -712,6 +794,7 @@ class BaseAgent(BaseComponent):
 
                 # Iterate over fields to check for changes
                 for name, field_info in data.model_fields.items():
+                    # Strict: Accessing fields by name for recursive scrubbing
                     val = getattr(data, name)
                     # Recursively scrub
                     new_val = self._scrub_prompt_leakage(val)

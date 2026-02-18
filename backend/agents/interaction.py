@@ -12,7 +12,7 @@ from backend.agents.base import BaseAgent
 
 # 3. Local Imports
 from backend.exceptions import AgentExecutionError, ErrorCodes
-from backend.models.domain import InteractionAnalysis
+from backend.models.domain import InteractionAnalysis, InteractionInput
 
 if TYPE_CHECKING:
     pass
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class InteractionAnalystAgent(BaseAgent):
+class InteractionAnalystAgent(BaseAgent[InteractionInput, InteractionAnalysis]):
     """InteractionAnalystAgent (Vuorovaikutusanalysaattori).
 
     Analyses the 'history_text' to evaluate Prompt Engineering competence.
@@ -31,6 +31,9 @@ class InteractionAnalystAgent(BaseAgent):
 
     state_field = "step_interaction"
     REQUIRES_KEYS = ["history_text"]
+    
+    INPUT_SCHEMA = InteractionInput
+    OUTPUT_SCHEMA = InteractionAnalysis
 
     def get_response_schema(self) -> type[BaseModel] | None:
         """Returns the expected output schema.
@@ -43,7 +46,7 @@ class InteractionAnalystAgent(BaseAgent):
 
     async def execute(
         self,
-        input_data: dict[str, Any],
+        input_data: InteractionInput,
         execution_context: dict[str, Any] | None = None,
         system_instruction: str | None = None,
         **kwargs: Any,
@@ -51,7 +54,7 @@ class InteractionAnalystAgent(BaseAgent):
         """Executes interaction analysis (Driver/Passenger classification).
 
         Args:
-            input_data (dict): Inputs including history_text.
+            input_data (InteractionInput): Inputs including history_text.
             execution_context (dict): Context.
             system_instruction (str): Prompt.
             **kwargs: Args.
@@ -63,7 +66,7 @@ class InteractionAnalystAgent(BaseAgent):
             AgentExecutionError: If mandatory input is missing or validation fails.
         """
         # FAIL FAST: Interaction Analysis requires conversation history.
-        if not input_data.get("history_text"):
+        if not input_data.history_text:
             # This prevents analyzing empty context "hallucinations".
             error_msg = "InteractionAnalystAgent: Mandatory input 'history_text' missing."
             logger.error(f"[InteractionAnalystAgent] {ErrorCodes.AGENT_EXECUTION_CRITICAL}: {error_msg}")
@@ -78,9 +81,6 @@ class InteractionAnalystAgent(BaseAgent):
 
         if isinstance(result_obj, InteractionAnalysis):
             return result_obj
-        elif isinstance(result_obj, dict):
-            # Should have been validated by base, but double check
-            return InteractionAnalysis(**result_obj)
         else:
              raise AgentExecutionError(
                  detail=ErrorCodes.INVALID_JSON_PAYLOAD,

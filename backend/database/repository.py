@@ -11,7 +11,9 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from backend.database.driver import Filter, StorageDriver
+from backend.database.driver import Filter, StorageDriver
 from backend.models.workflow import WorkflowDefinition
+from backend.models.domain.execution import ExecutionRecord
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +25,7 @@ class AbstractWorkflowRepository(ABC):
     """
 
     @abstractmethod
-    async def get_execution(self, execution_id: str) -> dict[str, Any] | None:
+    async def get_execution(self, execution_id: str) -> ExecutionRecord | None:
         pass
 
     @abstractmethod
@@ -45,7 +47,7 @@ class AbstractWorkflowRepository(ABC):
     @abstractmethod
     async def get_all_executions(
         self, organization_id: str | None = None, user_id: str | None = None
-    ) -> list[dict[str, Any]]:
+    ) -> list[ExecutionRecord]:
         pass
 
     @abstractmethod
@@ -131,6 +133,18 @@ class AbstractWorkflowRepository(ABC):
 
     @abstractmethod
     async def register_component(self, component_data: dict[str, Any]) -> str:
+        pass
+
+    @abstractmethod
+    async def create_component(self, component_data: dict[str, Any]) -> str:
+        pass
+
+    @abstractmethod
+    async def update_component(self, component_id: str, updates: dict[str, Any]) -> bool:
+        pass
+
+    @abstractmethod
+    async def delete_component(self, component_id: str) -> bool:
         pass
 
     @abstractmethod
@@ -237,12 +251,13 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
 
     # --- Executions ---
 
-    async def get_execution(self, execution_id: str) -> dict[str, Any] | None:
-        return await self.driver.get("executions", execution_id)
+    async def get_execution(self, execution_id: str) -> ExecutionRecord | None:
+        data = await self.driver.get("executions", execution_id)
+        return ExecutionRecord(**data) if data else None
 
     async def get_execution_status(self, execution_id: str) -> str | None:
-        exec_data = await self.get_execution(execution_id)
-        return exec_data.get("status") if exec_data else None
+        exec_record = await self.get_execution(execution_id)
+        return exec_record.status if exec_record else None
 
     async def create_execution(self, execution_data: dict[str, Any]) -> str:
         doc_id = execution_data.get("id") or str(uuid.uuid4())
@@ -257,14 +272,15 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
 
     async def get_all_executions(
         self, organization_id: str | None = None, user_id: str | None = None
-    ) -> list[dict[str, Any]]:
+    ) -> list[ExecutionRecord]:
         filters = []
         if organization_id:
             filters.append(Filter("organization_id", "==", organization_id))
         if user_id:
             filters.append(Filter("user_id", "==", user_id))
 
-        return await self.driver.query("executions", filters)
+        results = await self.driver.query("executions", filters)
+        return [ExecutionRecord(**r) for r in results]
 
     # --- Workflows ---
 
@@ -428,6 +444,15 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         doc_id = component_data["id"]
         return await self.driver.upsert("components", component_data, doc_id)
 
+    async def create_component(self, component_data: dict[str, Any]) -> str:
+        return await self.register_component(component_data)
+
+    async def update_component(self, component_id: str, updates: dict[str, Any]) -> bool:
+        return await self.driver.update("components", component_id, updates)
+
+    async def delete_component(self, component_id: str) -> bool:
+        return await self.driver.delete("components", component_id)
+
     # --- Banned Phrases ---
 
     async def get_banned_phrases(self) -> list[dict[str, Any]]:
@@ -479,9 +504,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
 
     async def clear_knowledge_base(self) -> None:
         """Removes all items from the knowledge base collection."""
-        items = await self.driver.query("knowledge_base")
-        for item in items:
-            await self.driver.delete("knowledge_base", item["id"])
+        await self.driver.clear("knowledge_base")
 
     async def get_model_registry(self) -> dict[str, Any]:
         # Config stored in system_config/model_registry
@@ -562,7 +585,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         # Executions
         execs = await self.get_all_executions(organization_id=org_id)
         for e in execs:
-            await self.driver.delete("executions", e["id"])
+            await self.driver.delete("executions", e.id)
 
         # Workflows
         wfs = await self.get_all_workflows(organization_id=org_id)

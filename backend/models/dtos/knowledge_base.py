@@ -5,22 +5,23 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 class ReferenceItem(BaseModel):
     """A bibliography reference entry from the Knowledge Base."""
     citation: str | None = None
-    short_citation: str
+    short_citation: str | None = None
     definition: str | None = None # Legacy support
 
     model_config = ConfigDict(frozen=True, strict=True)
 
     @field_validator("short_citation")
     @classmethod
-    def validate_short_citation(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("Short citation cannot be empty.")
-        return v.strip()
+    def validate_short_citation(cls, v: str | None) -> str | None:
+        if v is not None and (not v or not v.strip()):
+            raise ValueError("Short citation cannot be empty if provided.")
+        return v.strip() if v else None
 
     @property
     def full_text(self) -> str:
         """Return the best available full text representation."""
-        return self.citation or self.definition or self.short_citation
+        """Return the best available full text representation."""
+        return self.citation or self.definition or self.short_citation or ""
 
 class ConceptItem(BaseModel):
     """A defined concept from the Knowledge Base."""

@@ -5,9 +5,44 @@ including scorecards and dimension results.
 """
 
 
+from typing import Any, Optional, TYPE_CHECKING
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from backend.models.domain.analyst import AnalystOutput
+from backend.models.domain.archivist import ArchivistOutput
+from backend.models.domain.causal import CausalOutput
+from backend.models.domain.falsifier import FalsifierOutput
+from backend.models.domain.logician import LogicianOutput
+from backend.models.domain.overseer import OverseerOutput
+from backend.models.domain.panel import PanelOutput
+from backend.models.domain.performativity import PerformativityOutput
+from backend.models.domain.profiler import ProfilerAnalysis
+
 from backend.models.domain.base import ReasoningTrace
+
+class JudgeInput(BaseModel):
+    """Strict Input Schema for Judge Agent (Phase 8)."""
+    
+    # Context / inputs
+    history_text: Optional[str] = Field(None, description="Chat history.")
+    product_text: Optional[str] = Field(None, description="Product content.")
+    reflection_text: Optional[str] = Field(None, description="Reflection content.")
+    
+    # Preceding Agents (Critics) - Strictly Typed via Forward Refs
+    step_analyst: Optional["AnalystOutput"] = Field(None, description="Analyst Output.")
+    step_profiler: Optional["ProfilerAnalysis"] = Field(None, description="Profiler Output.")
+    step_archivist: Optional["ArchivistOutput"] = Field(None, description="Archivist Output.")
+    step_logician: Optional["LogicianOutput"] = Field(None, description="Logician Output.")
+    step_falsifier: Optional["FalsifierOutput"] = Field(None, description="Falsifier Output.")
+    step_causal: Optional["CausalOutput"] = Field(None, description="Causal Output.")
+    step_detector: Optional["PerformativityOutput"] = Field(None, description="Detector Output.")
+    step_overseer: Optional["OverseerOutput"] = Field(None, description="Overseer Output.")
+    step_panel: Optional["PanelOutput"] = Field(None, description="Panel Output (Fused Mode).")
+    
+    # Legacy/Flexible inputs (for now, until all are strictly mapped)
+    step_guard: Optional[dict[str, Any]] = Field(None, description="Guard Output.")
+    last_reasoning_trace: Optional[str] = Field(None, description="Previous reasoning trace.")
 
 
 class DimensionResultItem(BaseModel):
@@ -34,7 +69,7 @@ class DimensionResultItem(BaseModel):
         json_schema_extra={"x-ui-label": "Reasoning"},
     )
 
-    model_config = ConfigDict(extra="forbid", strict=True)
+    model_config = ConfigDict(extra="forbid")
 
     @field_validator("dimension_id", "dimension_label", "reasoning")
     @classmethod
@@ -106,11 +141,17 @@ class JudgeScoreCard(BaseModel):
              # Allow small floating point epsilon if needed, but strict is better for now.
              raise ValueError(f"total_score {self.total_score} is out of range [{self.scale_min}, {self.scale_max}].")
         return self
-
+        
+    model_config = ConfigDict(frozen=True)
 
 class JudgeOutput(ReasoningTrace):
     """Output schema for the Judge Agent."""
 
+    matrix_id: str = Field(
+        ...,
+        description="ID of the evaluation matrix used.",
+        json_schema_extra={"x-ui-label": "Matrix ID"},
+    )
     score_card: JudgeScoreCard = Field(
         ...,
         description="Final scorecard.",
@@ -126,8 +167,13 @@ class JudgeOutput(ReasoningTrace):
         description="Maximum possible score (usually 5).",
         json_schema_extra={"x-ui-label": "Scale Max"},
     )
+    critical_findings: list[str] = Field(
+        default_factory=list,
+        description="Critical issues identified.",
+        json_schema_extra={"x-ui-label": "Critical Findings"},
+    )
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True)
 
 
 class ScoringResult(BaseModel):
@@ -141,7 +187,7 @@ class ScoringResult(BaseModel):
         json_schema_extra={"x-ui-label": "Penalties"}
     )
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True)
 
     @field_validator("score_summary")
     @classmethod
@@ -149,3 +195,7 @@ class ScoringResult(BaseModel):
         if not v or not v.strip():
              raise ValueError("Score summary cannot be empty.")
         return v.strip()
+
+
+
+

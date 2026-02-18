@@ -109,14 +109,10 @@ class PdfReportService:
 
             # 3. Transform
             await self.progress.emit_progress(execution_id, task_key, "Analyzing results...", 0.10)
-            # Use dump() compatibility if it's a Pydantic object, or dict if it's already dict
-            # BFF Transformer generally expects a dict representation of the execution
-            # FIX: Use mode='json' to ensure UUIDs are strings, avoiding pydantic validation errors in ReportView
+            
+            # Helper for explicit typing if needed, but transformer expects ExecutionRecord
+            report_view = self.transformer.transform(execution)
             ex_data = execution.model_dump(mode='json') if hasattr(execution, 'model_dump') else execution
-            # Or if execution is Execution object, we might need model_dump.
-            # Assuming Repository returns Pydantic V2 model.
-
-            report_view = self.transformer.transform(ex_data)
 
             # 4. Generate Visualizations (Radar Charts)
             await self.progress.emit_progress(execution_id, task_key, "Generating visualization...", 0.15)

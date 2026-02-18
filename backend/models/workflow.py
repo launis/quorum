@@ -15,6 +15,16 @@ class WorkflowStep(BaseModel):
         description="Unique step identifier, e.g., 'safety_check'",
         json_schema_extra={"x-ui-label": "ID"},
     )
+    name: str = Field(
+        ...,
+        description="Human-readable name of the step",
+        json_schema_extra={"x-ui-label": "Step Name"},
+    )
+    description: str | None = Field(
+        None,
+        description="Optional description of the step's purpose",
+        json_schema_extra={"x-ui-label": "Description"},
+    )
     task_key: str = Field(
         ...,
         description="Registry Task Name (matches @register_task name)",
@@ -34,6 +44,11 @@ class WorkflowStep(BaseModel):
         default_factory=list,
         description="Defines which keys from the task's result should be promoted to the top-level execution state",
         json_schema_extra={"x-ui-label": "Hoist Keys"},
+    )
+    metadata: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Arbitrary metadata for the step (e.g., 'agent_class')",
+        json_schema_extra={"x-ui-label": "Metadata"},
     )
 
     model_config = ConfigDict(frozen=True, strict=True)
@@ -147,6 +162,11 @@ class WorkflowDefinition(BaseModel):
         False,
         description="If checked, visible to all tenants (System Only)",
         json_schema_extra={"x-ui-label": "Publicly Available"}
+    )
+    organization_id: str | None = Field(
+        None,
+        description="Organization ID this workflow belongs to (or 'system')",
+        json_schema_extra={"x-ui-label": "Organization ID"}
     )
     scoring_logic: list[ScoringLogic] = Field(
         default_factory=list,
