@@ -151,70 +151,83 @@ class WorkflowState(BaseModel):
         return val
 
     # --- Type-Safe Accessors for Common Steps (Bridge for State Presenter) ---
-
-    @property
-    def step_analyst(self) -> Any | None:
-        return self.context_variables.get("step_analyst")
-
-    @property
-    def step_profiler(self) -> Any | None:
-        return self.context_variables.get("step_profiler")
-
-    @property
-    def step_archivist(self) -> Any | None:
-        return self.context_variables.get("step_archivist")
-
-    @property
-    def step_logician(self) -> Any | None:
-        return self.context_variables.get("step_logician")
-
-    @property
-    def step_falsifier(self) -> Any | None:
-        return self.context_variables.get("step_falsifier")
-
-    @property
-    def step_causal(self) -> Any | None:
-        return self.context_variables.get("step_causal")
-
-    @property
-    def step_detector(self) -> Any | None:
-        return self.context_variables.get("step_detector")
-
-    @property
-    def step_overseer(self) -> Any | None:
-        return self.context_variables.get("step_overseer")
-
-    @property
-    def step_panel(self) -> Any | None:
-        return self.context_variables.get("step_panel")
-
-    @property
-    def step_judge(self) -> Any | None:
-        return self.context_variables.get("step_judge")
-
-    @property
-    def step_judge_cognitive(self) -> Any | None:
-        return self.context_variables.get("step_judge_cognitive")
-
-    @property
-    def step_coach(self) -> Any | None:
-        return self.context_variables.get("step_coach")
-
-    @property
-    def step_interaction(self) -> Any | None:
-        return self.context_variables.get("step_interaction")
-        
-    @property
-    def audit_results(self) -> Any | None:
-        return self.context_variables.get("audit_results")
+    # These properties perform Lazy Inflation: they convert the raw dict from context_variables
+    # into a strict Pydantic model on access. This ensures that the backend logic always
+    # works with validated objects, while the database remains a simple JSON store.
 
     @property
     def step_guard(self) -> Any | None:
-        return self.context_variables.get("step_guard")
-    
+        """Type-Safe Accessor for Guard Output."""
+        from backend.models.domain.guard import GuardOutput
+        return self.get_context("step_guard", GuardOutput)
+
+    @property
+    def step_interaction(self) -> Any | None:
+        """Type-Safe Accessor for Interaction Analysis."""
+        from backend.models.domain.interaction import InteractionOutput
+        return self.get_context("step_interaction", InteractionOutput)
+
+    @property
+    def step_analyst(self) -> Any | None:
+        """Type-Safe Accessor for Analyst Output."""
+        from backend.models.domain.analyst import AnalystOutput
+        return self.get_context("step_analyst", AnalystOutput)
+
+    @property
+    def step_panel(self) -> Any | None:
+        """Type-Safe Accessor for Panel Output (Fused)."""
+        from backend.models.domain.panel import PanelOutput
+        return self.get_context("step_panel", PanelOutput)
+
+    @property
+    def step_judge(self) -> Any | None:
+        """Type-Safe Accessor for Judge Output."""
+        from backend.models.domain.judge import JudgeOutput
+        return self.get_context("step_judge", JudgeOutput)
+
+    @property
+    def step_coach(self) -> Any | None:
+        """Type-Safe Accessor for Coach Output."""
+        from backend.models.domain.coach import CoachOutput
+        return self.get_context("step_coach", CoachOutput)
+
     @property
     def step_xai(self) -> Any | None:
-        return self.context_variables.get("step_xai")
+        """Type-Safe Accessor for XAI Reporter Output."""
+        from backend.models.domain.xai import XAIOutput
+        return self.get_context("step_xai", XAIOutput)
+
+    # --- Legacy / Sub-Step Accessors (Still useful for direct access if needed) ---
+
+    @property
+    def step_logician(self) -> Any | None:
+        from backend.models.domain.logician import LogicianOutput
+        return self.get_context("step_logician", LogicianOutput)
+
+    @property
+    def step_falsifier(self) -> Any | None:
+        from backend.models.domain.falsifier import FalsifierOutput
+        return self.get_context("step_falsifier", FalsifierOutput)
+
+    @property
+    def step_profiler(self) -> Any | None:
+        from backend.models.domain.profiler import ProfilerOutput
+        return self.get_context("step_profiler", ProfilerOutput)
+    
+    @property
+    def step_archivist(self) -> Any | None:
+        from backend.models.domain.archivist import ArchivistOutput
+        return self.get_context("step_archivist", ArchivistOutput)
+
+    @property
+    def step_overseer(self) -> Any | None:
+        from backend.models.domain.overseer import OverseerOutput
+        return self.get_context("step_overseer", OverseerOutput)
+    
+    @property
+    def step_causal(self) -> Any | None:
+        from backend.models.domain.causal import CausalOutput
+        return self.get_context("step_causal", CausalOutput)
 
     @property
     def organization_id(self) -> str | None:

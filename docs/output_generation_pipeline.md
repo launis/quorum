@@ -22,173 +22,191 @@ This document details the complete lifecycle of an output artifact (PDF Report o
 *   **Function**:
     1.  **Hydration (Relational Model)**: Loads workflow *skeletons* and hydrates Step Definitions from the **Step Registry** (`UnifiedWorkflowRepository`). **No embedded steps allowed.**
     2.  **Execution**: Runs Agents (LLM) and Hooks (Python).
-    3.  **Standardization**: Converts fuzzy LLM text into strict **Pydantic Models** (e.g., `ScoringResult`, `TextMetrics`, `KnowledgeItem`).
+    3.  **Standardization**: Converts fuzzy LLM text into strict **Pydantic V2 Domain Models**.
 *   **Significance**: The software ensures that the "raw material" for the report is strictly typed and validated before rendering begins.
 
 ---
 
 ## 2. Phase I: Data Production (The "Backstage")
 
-### Step 1: Input & Metrics (Hook-Based)
-*   **Action**: User submits text.
-*   **Software**: `backend/hooks/metrics.py` (via `calculate_text_metrics` Hook).
-*   **Strict Typing**: Uses `WorkflowInputs` object.
-*   **Result**: `TextMetrics` model is created.
-*   **Constraint**: Fail Fast on invalid input (AppException).
+### 2.1 The Atomic Strikes (Strict Execution Steps)
+The pipeline is composed of 7 discrete, strictly typed execution steps ("Atomic Strikes"). Each step produces a specific **Domain Model** that is persisted in the `WorkflowState`.
 
-### Step 2: Cognitive Processing (The Panel Fusion)
-*   **Action**: Agents analyze the input.
-*   **Evolution (V3.2)**: We use the **Panel Pattern**.
-    *   **Fused Execution**: The `PanelAgent` runs *once* but acts as multiple critics (Logician, Falsifier, Causal, Overseer).
-    *   **Fan-Out**: The Agent produces a single `PanelOutput` (Domain Model) which the Engine then *fans out* to individual state keys (`step_logician`, `step_falsifier`).
-    *   **Strict DTOs**: The LLM produces a `PanelOutputDTO` (Content Only). The Python Backend injects Authority (`metadata`, `timestamps`) to create the final Domain Object.
+| Step ID | Agent | Input Model | Output Model (Domain) | Persistence Key |
+| :--- | :--- | :--- | :--- | :--- |
+| **01** | `GuardAgent` | `GuardInput` | `GuardOutput` | `step_guard` |
+| **02** | `AnalystAgent` | `AnalystInput` | `AnalystOutput` | `step_analyst` |
+| **03** | `InteractionAgent` | `InteractionInput` | `InteractionOutput` | `step_interaction` |
+| **04** | `PanelAgent` | `PanelInput` | `PanelOutput` | `step_panel` |
+| **05** | `JudgeAgent` | `JudgeInput` | `JudgeOutput` | `step_judge` |
+| **06** | `CoachAgent` | `CoachInput` | `CoachOutput` | `step_coach` |
+| **07** | `XAIReporterAgent` | `XAIReporterInput` | `XAIOutput` | `step_xai` |
 
-### Step 3: Retrieval & Grounding (Hybrid Strategy)
-*   **Action**: `RetrievalAgent` fetches context.
-*   **Software**: `backend/agents/retrieval.py` + `KnowledgeBaseService`.
-*   **Lazy Inflation**: The Agent implementation safely handles legislative legacy data (dicts) while enforcing strict `KnowledgeItem` models for new executions.
+### 2.2 Detailed Model Schemas
 
-### Step 4: Aggregation & Scoring (Safety Clamp)
-*   **Action**: Consolidating multiple inputs into a final score (`backend/hooks/scoring.py`).
-*   **Logic**: Aggregates scores from all judges and applies deterministic penalties.
-*   **Safety Clamp**: Ensures `new_score = max(calculated_score, scale_min)`. This prevents scores from dropping below the schema minimum (e.g., 0.1), avoiding Pydantic validation crashes.
-*   **Result**: `ScoringResult` (Total Score, Average, Penalties).
+#### Step 1: Guard (`GuardOutput`)
+Ensures data safety and PII redaction *before* cognitive load.
+*   **`is_safe`** (bool): If False, pipeline halts (Fail Fast).
+*   **`tainted_data`** (TaintedData | None): Details on what was redacted (PII, toxicity).
+*   **`reasoning_trace`** (ReasoningTrace): Hidden thinking process.
+
+#### Step 2: Analyst (`AnalystOutput`)
+Provides grounded context via RAG.
+*   **`search_results`** (list[dict]): Raw search metadata.
+*   **`document_analysis`** (str): Synthesis of retrieved documents.
+*   **`knowledge_items`** (list[KnowledgeItem]): Strict references to KB artifacts.
+
+#### Step 3: Interaction (`InteractionOutput`)
+Analyzes user intent and agency.
+*   **`user_agency`** (Enum): `Driver` (Active) vs `Passenger` (Passive).
+*   **`parameters`** (dict): Extracted intent parameters.
+
+#### Step 4: Panel (`PanelOutput`) - **FUSED**
+The "Fused Courtroom" concept. One Agent, Multiple Personas.
+*   **`logician_output`** (LogicianData): Logical consistency checks.
+*   **`falsifier_output`** (FalsifierData): Counter-arguments and stress tests.
+*   **`profiler_output`** (ProfilerData): Psychological/Behavioral profiling.
+*   **`overseer_output`** (OverseerData): Meta-cognitive supervision (Process Adherence).
+
+#### Step 5: Judge (`JudgeOutput`)
+The Scoring Authority.
+*   **`score_card`** (JudgeScoreCard): Strict, auditable scoring object.
+    *   **`total_score`** (float): 0.0 - 5.0.
+    *   **`verdict`** (str): "Approved", "Rejected", "Conditional".
+    *   **`dimensions`** (list[DimensionResultInt]): Granular criteria scores (e.g., "Clarity: 4/5").
+*   **`matrix_id`** (str): Reference to the Evaluation Matrix used (e.g., `matrix_standard_v2`).
+
+#### Step 6: Coach (`CoachOutput`)
+Pedagogical feedback loop.
+*   **`actionable_steps`** (list[str]): Concrete advice for improvement.
+*   **`bibliography`** (list[BibliographyItem]): Formatted references.
+
+#### Step 7: XAI Reporter (`XAIOutput`)
+The Final Verdict and Data Export.
+*   **`executive_summary`** (str): High-level overview.
+*   **`final_verdict`** (str): Concluding statement.
+*   **`confidence_score`** (float): 0.0 - 1.0.
+*   **`flat_report`** (XAIFlatReportDTO): **[NEW]** Flattened, formatting-free data for external tools.
 
 ---
 
-## 3. Phase II: The Bridge (Logic to Presentation)
+## 3. Phase II: The Reporting Architecture
 
-### Software: `ReportingHook` (`backend/hooks/reporting.py`)
+### 3.1 The "Two-Report" Strategy (Fat vs. Flat)
+To satisfy both high-fidelity rendering (PDF) and data integration (BI Tools), the `XAIReporterAgent` produces **two** distinct artifacts in its output.
 
-The `generate_report` hook acts as the **Director**.
+#### A. The "Fat Report" (`ReportContext`) via ReportingHook
+*   **Purpose**: Human Consumption (PDF, UI).
+*   **Format**: Deeply nested, rich JSON.
+*   **Content**: Full reasoning traces, markdown text, complex objects, bibliography.
+*   **Persistence**: Stored in `audit_results` (or computed on-the-fly from `step_xai` + `step_judge`).
+*   **Consumer**: Jinja2 Templates, Flutter "Read Mode".
 
-1.  **Data Gathering**: Reads from `context_variables` (strictly typed).
-2.  **Context Construction**: Instantiates the **`ReportContext`** Pydantic model.
-    *   *New (V3.2)*: Extracts `knowledge_items` (List[KnowledgeItem]) from `step_retrieval` and passes them strictly to the report context.
-3.  **Strict Validation**: The `ReportContext` constructor performs strict type checking. If any required field (e.g., `average_score`, `scores`, `knowledge_items`) is missing or invalid, the process **Fails Fast** (AppException).
-4.  **Normalization**: Converts various data shapes into a unified structure.
+#### B. The "Flat Report" (`XAIFlatReportDTO`) via XAIReporterAgent
+*   **Purpose**: Machine Consumption (Data Warehouse, Excel, BI).
+*   **Format**: Flat JSON (Key-Value pairs). **No Markdown.**
+*   **Content**:
+    *   `execution_id` (UUID)
+    *   `timestamp` (ISO8601)
+    *   `verdict` (String)
+    *   `score_total` (Float)
+    *   `top_strength_id` (String)
+    *   `top_weakness_id` (String)
+    *   `flattened_scores` (Dict[str, float]): e.g., `{"clarity": 4.5, "logic": 3.0}`.
+*   **Persistence**: Stored in `state.step_xai.flat_report`.
+*   **Consumer**: External API consumers, Dashboard Analytics widgets.
+
+> [!IMPORTANT]
+> **Persistence Mandate**
+> Both artifacts are persisted. The database must contain the *exact* data used to generate the PDF (Fat) and the *exact* data exported to the BI tool (Flat) to ensure forensic auditability.
 
 ---
 
 ## 4. Phase III: Rendering (The "Artist")
 
-### The Golden Rule: JSON First (Single Source of Truth)
-**Mandate**: The system MUST generate a complete, validated `ReportContext` (JSON/Pydantic) **BEFORE** any rendering takes place.
+### 4.1 PDF Generation
+*   **Source**: `ReportResult.data` (The Fat Report).
+*   **Engine**: Jinja2.
+*   **Logic**: No logic in templates. Pure rendering of the `ReportContext` object.
 
-1.  **Creation**: The `ReportingHook` first aggregates all data into a `ReportContext` object.
-2.  **Validation**: This object is strictly validated by Pydantic (fail fast if data is missing).
-3.  **Persistence**: This JSON object is saved in `ReportResult.data` in the workflow state.
-4.  **Rendering**:
-    *   **PDF**: Jinja2 uses this EXACT JSON object to render Markdown/PDF.
-    *   **Screen**: The Frontend uses this EXACT JSON object (`ReportResult.data`) to render the UI.
+### 4.2 Flutter UI (BFF Pattern)
+*   **Source**: `WorkflowState` (Domain Models).
+*   **Transformation**: Pydantic-to-Pydantic (P2P).
+*   **Mechanism**:
+    1.  Frontend requests `/monitor`.
+    2.  Backend `ReportTransformer` reads `step_xai` (Domain).
+    3.  Transformer converts it to `ReportView` (ViewModel).
+    4.  Frontend renders the ViewModel.
 
-This guarantees that the PDF and the Dashboard **ALWAYS** show identical numbers, texts, and references.
+### 4.3 External Integration (The New Standard)
+*   **Source**: `step_xai.flat_report` (`XAIFlatReportDTO`).
+*   **Mechanism**:
+    1.  External Tool requests `/api/v1/reports/{id}/flat`.
+    2.  Backend simply returns `state.step_xai.flat_report`.
+    3.  **Zero-Transformation**: The data is already in the correct format in the DB.
 
-> [!IMPORTANT]
-> **Design Decision: Why we Persist Domain (ReportContext) and NOT View (ReportView)**
-> We strictly persist the **Domain Model** (`ReportContext`) in the database, never the **View Model**.
-> *   **Decoupling**: The UI changes frequently (widgets, colors, layout). The Data changes rarely. If we stored `ReportView`, every UI redesign would require a database migration or re-execution of historical records.
-> *   **Multi-Channel**: The PDF engine needs raw data (fidelity), while the Mobile App needs simplified data (views). Storing the raw Domain Model allows us to derive multiple different views on-the-fly without data loss.
-> *   **Historical Integrity**: `ReportContext` is the forensic record of *what the AI thought*. `ReportView` is just *how we chose to show it today*.
+---
 
-### Target A: PDF / Markdown Report
-*   **Source**: `ReportContext` (The JSON).
-*   **Engine**: **Jinja2**.
-*   **Process**: `ReportingHook` -> `ReportContext` -> `Jinja2` -> Markdown -> PDF.
-*   **Bibliography**: The `ReportContext.bibliography` field is the authoritative list. The Template iterates this list; it does NOT generate references itself.
+---
 
-### Target B: The Screen (Flutter UI / BFF)
-*   **Pattern**: **BFF (Backend-for-Frontend)** via **Transformers**.
-*   **Software**: `backend/api/transformers/`.
-*   **Role**: Converts Domain Models (Python Pydantic) into UI ViewModels (JSON for Flutter).
-*   **Example**: `AssessmentTransformer` converts `ContextData` into a `StepContext` view model.
+## 5. API Access Layer
 
-#### Transformer Example (Retrieval)
-When the Frontend polls `/monitor`, the `RetrievalTransformer` does this:
-1.  Receives `ContextData` (Pydantic Domain Model) from the workflow state.
-2.  Maps `knowledge_items` (List[KnowledgeItem]) to `KnowledgeCardViewModel` (Pydantic View Model).
-    ```python
-    # STRICT: Input must be a Pydantic Model (ExecutionRecord or ReportContext)
-    def transform(self, execution: ExecutionRecord) -> ReportView:
-        # 1. Extract Domain Data
-        domain_data = execution.results # WorkflowState
-        
-        # 2. Transform to View Components (strictly typed UiSection)
-        sections = []
-        
-        # ... logic ...
+To support both high-fidelity rendering and raw data integration, the system exposes distinct endpoints for retrieving the "Fat" and "Flat" artifacts for any single execution.
 
-        # 3. Return View Model
-        return ReportView(
-            view_id=execution.id,
-            sections=sections,
-            # ...
-        )
-    ```
-3.  The Frontend receives this strictly typed JSON structure.
+### 5.1 Fetching the "Fat Report" (Context)
+*   **Endpoint**: `GET /api/v1/workflows/{execution_id}/report`
+*   **Response Model**: `ReportContext` (JSON)
+*   **Use Case**:
+    *   **Frontend**: Rendering the "Read Mode" UI.
+    *   **PDF Service**: Generating the final PDF document.
+    *   **Forensics**: Auditing the full chain-of-thought and deep reasoning.
 
-### 4. Phase III: Rendering (BFF & P2P Pattern)
-**Goal:** Transform the raw Domain Model into a strictly typed View Model for the Frontend.
+### 5.2 Fetching the "Flat Report" (Integration)
+*   **Endpoint**: `GET /api/v1/workflows/{execution_id}/flat`
+*   **Response Model**: `XAIFlatReportDTO` (JSON)
+*   **Use Case**:
+    *   **BI Tools**: PowerBI / Tableau integration.
+    *   **External Dashboards**: Aggregating stats across thousands of runs.
+    *   **Excel/CSV Export**: Simple data dumps.
 
-The system uses a **Pydantic-to-Pydantic (P2P)** transformation pattern. We do **NOT** pass raw dictionaries or JSON objects to the Frontend.
+## 6. Summary Diagram
 
-#### The P2P Flow
-1.  **Source (Domain)**: `ReportContext` (The validated "What Happened" data).
-2.  **Transformation**: `ReportTransformer` (Backend Logic).
-3.  **Destination (View)**: `ReportView` (The "How to Show It" UI contract).
-
-#### Why P2P? (Zero-Magic)
--   **Build-Time Safety**: Renaming a field in the Domain Model immediately breaks the Transformer code, alerting developers at compile/lint time rather than causing runtime crashes.
--   **Valet Key Pattern**: `ReportView` exposes only what the UI needs, preventing accidental leakage of sensitive backend state.
--   **Autocomplete**: Developers get full IDE support (`.total_score`) instead of guessing magic strings (`['total_score']`).
-
-
-### Implementation Strategy: Fail Fast & Strict Typing
-To ensure zero-hallucination and architectural integrity, the pipeline adheres to the following strict implementation rules (Phase 8):
-
-1.  **Removal of Graceful Fallbacks**:
-    *   **Old Way**: If a field was missing, the system would silently skip it or use a default.
-    *   **New Way (Fail Fast)**: Missing data raises `AppException` immediately. A broken report is better than a misleading one. Data corruption must be fixed at the source (Seeding/GraphEngine), not hidden in the view layer.
-
-2.  **Domain-to-View Transformation**:
-    *   Transformers (`backend/api/transformers/`) accept *only* **Domain Models** (`ExecutionRecord`). Passing raw `dicts` is prohibited.
-    *   Transformers return *strictly typed* **View Models** (`UiSection`).
-    *   **LogicDomainTransformer**, **CausalDomainTransformer**, etc., are "Mixins" that enforce specific schema requirements for their respective sections.
-
-3.  **Template Fidelity**:
-    *   The Jinja2 template (`report_template.jinja2`) operates *exclusively* on the `ReportView` object structure.
-    *   No logic (loops, filters, checks) is allowed in the template that isn't directly supporting the View Model. "Smart Templates" are forbidden; logic belongs in the Transformer.
-
-## 5. Summary Diagram
 
 ```mermaid
 sequenceDiagram
     participant U as User
     participant DB as Database
     participant E as GraphEngine
-    participant S as KBService
-    participant A as PanelAgent
+    participant A as XAIReporterAgent
     participant R as ReportingHook
-    participant UI as Flutter
+    participant EXT as ExternalTool
 
-    U->>E: Submit Input
-    E->>E: Metrics Hook (TextMetrics)
-    
-    rect rgb(240, 248, 255)
-    note right of E: Strict Typing Zone
-    E->>A: Execute PanelAgent (Fused)
-    A->>E: Returns PanelOutput (Domain)
-    E->>E: Fan-Out -> Step States
+    note right of E: ... Previous Steps (Guard, Panel, Judge) ...
+
+    rect rgb(240, 255, 240)
+    note right of E: Step 7: XAI Reporting
+    E->>A: Execute Agent
+    A->>A: Generate "Fat" Content (Markdown)
+    A->>A: Generate "Flat" DTO (JSON)
+    A->>E: Return XAIOutput (containing both)
+    E->>DB: Persist to step_xai
     end
     
+    rect rgb(255, 250, 240)
+    note right of E: Hook: PDF Generation
     E->>R: Execute ReportingHook
-    R->>R: Create ReportContext (Fail Fast)
+    R->>DB: Read step_xai & step_judge
+    R->>R: Build ReportContext
     R->>DB: Persist ReportResult
-    
-    loop Polling (BFF)
-        UI->>E: GET /monitor
-        E->>E: Transformer(ReportResult) -> ViewModel
-        E->>UI: JSON (ViewModel)
-        UI->>UI: Render Widgets
     end
+    
+    note right of U: Consumption
+    
+    U->>E: Get PDF
+    E->>DB: Read ReportResult
+    E->>U: Download PDF
+    
+    EXT->>E: Get Flat Data
+    E->>DB: Read step_xai.flat_report
+    E->>EXT: Return JSON (XAIFlatReportDTO)
 ```
