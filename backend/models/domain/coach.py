@@ -8,7 +8,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from backend.models.domain.base import ReasoningTrace
+from backend.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 # Import JudgeOutput for strict type checking if possible, otherwise use Dict
 # To avoid potential circular imports (though judge doesn't import coach), we can use forward refs or just imports
 # But let's check if we can import JudgeOutput from backend.models.domain.judge
@@ -69,8 +69,8 @@ class BibliographyResult(BaseModel):
     model_config = ConfigDict(frozen=True)
 
 
-class CoachingPlan(ReasoningTrace):
-    """Output schema for the Coach Agent."""
+class CoachingPlanDTO(ReasoningTraceDTO):
+    """DTO for Coaching Plan (Content Only)."""
     actionable_steps: list[str] = Field(
         ...,
         description="Concrete steps for improvement.",
@@ -98,3 +98,8 @@ class CoachingPlan(ReasoningTrace):
         if not cleaned:
             raise ValueError("List cannot contain only empty strings.")
         return cleaned
+
+
+class CoachingPlan(CoachingPlanDTO, ReasoningTrace):
+    """Output schema for the Coach Agent (Domain Model)."""
+    model_config = ConfigDict(frozen=True)

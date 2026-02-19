@@ -6,6 +6,7 @@ It replaces the monolithic `domain.py`.
 
 # 0. Base
 from backend.models.domain.analyst import (
+    AnalystDTO,
     AnalystInput,
     AnalystOutput,
     Hypothesis,
@@ -17,6 +18,7 @@ from backend.models.domain.base import Metadata, ReasoningTrace, UsageRecord
 from backend.models.domain.causal import (
     CausalAnalysis,
     CausalAnalysisData,
+    CausalDTO,
     CausalInput,
     CausalOutput,
     CounterfactualTest,
@@ -25,6 +27,7 @@ from backend.models.domain.coach import (
     BibliographyItem,
     BibliographyResult,
     CoachingPlan,
+    CoachingPlanDTO,
     CoachInput,
 )
 
@@ -37,6 +40,7 @@ from backend.models.domain.evaluation import (
 )
 from backend.models.domain.falsifier import (
     FalsifierData,
+    FalsifierDTO,
     FalsifierInput,
     FalsifierOutput,
     ReasoningFidelity,
@@ -54,6 +58,7 @@ from backend.models.domain.guard import (
 from backend.models.domain.interaction import InteractionAnalysis, InteractionInput
 from backend.models.domain.judge import (
     DimensionResultItem,
+    JudgeDTO,
     JudgeInput,
     JudgeOutput,
     JudgeScoreCard,
@@ -64,6 +69,7 @@ from backend.models.domain.logician import (
     LogicianData,
     LogicianInput,
     LogicianOutput,
+    LogicianOutputDTO,
     ToulminComponent,
     WaltonScheme,
 )
@@ -71,6 +77,7 @@ from backend.models.domain.overseer import (
     EthicalObservation,
     FactCheckRFI,
     OverseerData,
+    OverseerDTO,
     OverseerInput,
     OverseerOutput,
 )
@@ -79,12 +86,13 @@ from backend.models.domain.performativity import (
     LinguisticsResult,
     PerformativePattern,
     PerformativityAnalysis,
+    PerformativityDTO,
     PerformativityHeuristic,
     PerformativityInput,
     PerformativityOutput,
     PreMortemAnalysis,
 )
-from backend.models.domain.profiler import ProfilerAnalysis, ProfilerInput, TextMetrics
+from backend.models.domain.profiler import ProfilerDTO, ProfilerInput, ProfilerOutput, TextMetrics
 from backend.models.domain.retrieval import ContextData, Precedent, RetrievalInput
 from backend.models.domain.xai import (
     ReportContext,
@@ -105,7 +113,8 @@ DOMAIN_REGISTRY = {
     "XAIOutput": XAIOutput,
     "ArchivistOutput": ArchivistOutput,
     "CoachingPlan": CoachingPlan,
-    "ProfilerAnalysis": ProfilerAnalysis,
+    "ProfilerDTO": ProfilerDTO,
+    "ProfilerOutput": ProfilerOutput,
     "InteractionAnalysis": InteractionAnalysis,
     "ContextData": ContextData,
     # Hook Results
@@ -140,32 +149,38 @@ __all__ = [
     "SanitizationResult",
     "AnalystInput",
     "AnalystOutput",
+    "AnalystDTO",
     "Hypothesis",
     "SearchResult",
     "SearchResultItem",
     "ContextData",
     "Precedent",
     "ProfilerInput",
-    "ProfilerAnalysis",
+    "ProfilerDTO",
+    "ProfilerOutput",
     "TextMetrics",
     "LogicianInput",
     "LogicianOutput",
+    "LogicianOutputDTO",
     "LogicianData",
     "ToulminComponent",
     "WaltonScheme",
     "CognitiveLevel",
     "FalsifierInput",
     "FalsifierOutput",
+    "FalsifierDTO",
     "FalsifierData",
     "WaltonStressTest",
     "ReasoningFidelity",
     "CausalInput",
     "CausalOutput",
+    "CausalDTO",
     "CausalAnalysis",
     "CausalAnalysisData",
     "CounterfactualTest",
     "PerformativityInput",
     "PerformativityOutput",
+    "PerformativityDTO",
     "PerformativityAnalysis",
     "PerformativityHeuristic",
     "PreMortemAnalysis",
@@ -173,6 +188,7 @@ __all__ = [
     "PerformativePattern",
     "OverseerInput",
     "OverseerOutput",
+    "OverseerDTO",
     "OverseerData",
     "FactCheckRFI",
     "EthicalObservation",
@@ -183,10 +199,13 @@ __all__ = [
     "ArchiveCase",
     "JudgeInput",
     "JudgeOutput",
+    "JudgeDTO",
     "JudgeScoreCard",
     "DimensionResultItem",
     "ScoringResult",
     "CoachingPlan",
+    "CoachingPlanDTO",
+    "CoachInput",
     "BibliographyResult",
     "BibliographyItem",
     "XAIOutput",

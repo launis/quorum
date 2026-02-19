@@ -12,7 +12,7 @@ from backend.agents.base import BaseAgent
 
 # 3. Local Imports
 from backend.exceptions import AgentExecutionError, ErrorCodes
-from backend.models.domain import JudgeInput, JudgeOutput, JudgeScoreCard
+from backend.models.domain import JudgeDTO, JudgeInput, JudgeOutput, JudgeScoreCard
 
 # 4. Domain Imports for Forward Ref Resolution
 from backend.models.domain.analyst import AnalystOutput, SearchResult, SearchResultItem
@@ -24,7 +24,7 @@ from backend.models.domain.logician import LogicianOutput, LogicianData, Toulmin
 from backend.models.domain.overseer import OverseerOutput, OverseerData
 from backend.models.domain.panel import PanelOutput, PanelOutputDTO
 from backend.models.domain.performativity import PerformativityOutput, PerformativityAnalysis, LinguisticsResult, PreMortemAnalysis
-from backend.models.domain.profiler import ProfilerAnalysis
+from backend.models.domain.profiler import ProfilerOutput
 
 # Resolve refs
 try:
@@ -57,7 +57,7 @@ try:
         "PerformativityAnalysis": PerformativityAnalysis,
         "LinguisticsResult": LinguisticsResult,
         "PreMortemAnalysis": PreMortemAnalysis,
-        "ProfilerAnalysis": ProfilerAnalysis,
+        "ProfilerOutput": ProfilerOutput,
     }
     JudgeInput.model_rebuild(_types_namespace=types_ns)
 except Exception as e:
@@ -81,6 +81,7 @@ class JudgeAgent(BaseAgent[JudgeInput, JudgeOutput]):
     REQUIRES_KEYS = ["step_guard", "step_falsifier", "step_logician"]
     PRODUCES_KEYS = ["step_judge", "audit_results"]
     INPUT_SCHEMA = JudgeInput
+    DTO_SCHEMA = JudgeDTO
     OUTPUT_SCHEMA = JudgeOutput
 
     def get_response_schema(self) -> type[BaseModel] | None:
@@ -89,7 +90,7 @@ class JudgeAgent(BaseAgent[JudgeInput, JudgeOutput]):
         Returns:
             type[BaseModel] | None: JudgeOutput schema.
         """
-        return JudgeOutput
+        return JudgeDTO
 
     async def execute(
         self,
@@ -364,5 +365,109 @@ class JudgeAgent(BaseAgent[JudgeInput, JudgeOutput]):
     # _update_state removed (BaseAgent handles it now, returning dict)
 
     def post_process(self, response_data: Any) -> Any:
-        # Scoring logic is in HOOKS
-        return response_data
+        """Lifecycle Hook: Post-Execution (Healing & Python Authority).
+        
+        Enforces:
+        1. DETERMINISTIC MATH: Re-calculates total_score from dimensions.
+        2. FAIL FAST: Raises error on empty dimensions or out-of-bounds scores.
+        3. INTEGRITY: Ensures critical fields are present.
+        """
+        # 1. Access ScoreCard
+        # response_data is JudgeDTO (Pydantic) or dict
+        score_card = None
+        if isinstance(response_data, dict):
+            score_card = response_data.get("score_card")
+        else:
+            score_card = getattr(response_data, "score_card", None)
+            
+        if not score_card:
+            # Let strict pydantic validation catch this later if missing,
+            # or raise here if we want to fail fast on logic.
+            # DTO schema says score_card is required, so we can skip strict check here
+            # and let strict mode handle it, OR enforce it for "Healing".
+            return response_data
+
+        # 2. Access Dimensions
+        dimensions = None
+        if isinstance(score_card, dict):
+            dimensions = score_card.get("dimensions", [])
+        else:
+            dimensions = getattr(score_card, "dimensions", [])
+
+        # FAIL FAST: Empty Dimensions
+        if not dimensions:
+            raise AgentExecutionError(
+                detail=ErrorCodes.INVALID_OUTPUT_SCHEMA,
+                original_error=ValueError("Judge returned empty dimensions list. Assessment impossible."),
+                agent_name="JudgeAgent"
+            )
+
+        # 3. Deterministic Math & Validation
+        total_sum = 0.0
+        count = 0
+        
+        # 3. Deterministic Math & Validation
+        total_sum = 0.0
+        count = 0
+        
+        # We need scale info for validation. 
+        # CAUTION: scale_min/max might be in response_data or score_card.
+        # If response_data is DTO, it has scale_min/max.
+        scale_min = None
+        scale_max = None
+        
+        if isinstance(response_data, dict):
+             scale_min = response_data.get("scale_min")
+             scale_max = response_data.get("scale_max")
+        else:
+             scale_min = getattr(response_data, "scale_min", None)
+             scale_max = getattr(response_data, "scale_max", None)
+
+        # FAIL FAST: Missing Scale (Part 18.2 No Default Values)
+        if scale_min is None or scale_max is None:
+             raise AgentExecutionError(
+                 detail=ErrorCodes.INVALID_OUTPUT_SCHEMA,
+                 original_error=ValueError("Judge output missing mandatory 'scale_min' or 'scale_max'. Cannot validate."),
+                 agent_name="JudgeAgent"
+             )
+
+        # Validate Iterator
+        for dim in dimensions:
+            score = 0.0
+            if isinstance(dim, dict):
+                score = dim.get("score")
+                if score is None:
+                     raise AgentExecutionError(
+                         detail=ErrorCodes.INVALID_OUTPUT_SCHEMA,
+                         original_error=ValueError(f"Dimension {dim.get('dimension_id')} missing 'score'."),
+                         agent_name="JudgeAgent"
+                     )
+            else:
+                score = dim.score
+            
+            # STRICT BOUNDS CHECK
+            # Part 14.1/14.2: If value is out of bounds, CRASH.
+            if score < scale_min or score > scale_max:
+                raise AgentExecutionError(
+                    detail=ErrorCodes.VALIDATION_FAILED,
+                    original_error=ValueError(f"Dimension score {score} is out of bounds [{scale_min}, {scale_max}]."),
+                    agent_name="JudgeAgent"
+                )
+                
+            total_sum += score
+            count += 1
+            
+        # 4. Calculate Average
+        calculated_average = total_sum / count if count > 0 else 0.0
+        
+        # 5. Overwrite (Healing)
+        # We trust Python math over LLM hallucination.
+        logger.info(f"[JudgeAgent] Recalculating Score: LLM says {getattr(score_card, "total_score", "N/A")} -> Python says {calculated_average}")
+        
+        if isinstance(score_card, dict):
+            score_card["total_score"] = calculated_average
+            return response_data
+        else:
+            # Pydantic is immutable-ish
+            new_card = score_card.model_copy(update={"total_score": calculated_average})
+            return response_data.model_copy(update={"score_card": new_card})

@@ -78,6 +78,10 @@ The system utilizes **Pydantic V2** for all internal state management.
     *   **Deflate**: `model.model_dump()` converts Models to Dicts for storage/serialization.
 4.  **Strict Enums Only**: Data must match Enum values exactly.
 5.  **Modular Domain**: Models are organized in `backend/models/domain/` to enforce strict separation of concerns.
+6.  **The Hybrid Dict/Model Pattern (Internal Resilience)**:
+    *   **Concept**: While agents *must* return Pydantic models to the Engine, they accept `dict` inputs internally during the `post_process` phase.
+    *   **Reasoning (The Healing Pattern)**: LLMs often return JSON with minor structural defects (e.g., missing IDs). By keeping data as a `dict` until the late validation phase, the agent's `post_process` hook can sanitize and fix the data before strict Pydantic enforcement kicks in.
+    *   **Testing**: This simplifies testing by allowing developers to pass simple dicts instead of constructing complex nested objects.
 
 ---
 

@@ -12,7 +12,7 @@ from backend.agents.base import BaseAgent
 
 # 3. Local Imports
 from backend.exceptions import AgentExecutionError, ErrorCodes
-from backend.models.domain import ProfilerAnalysis, ProfilerInput
+from backend.models.domain import ProfilerDTO, ProfilerInput, ProfilerOutput
 
 if TYPE_CHECKING:
     pass
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class ProfilerAgent(BaseAgent[ProfilerInput, ProfilerAnalysis]):
+class ProfilerAgent(BaseAgent[ProfilerInput, ProfilerOutput]):
     """Profiloija (Psychologist) Agent.
 
     Step 2.5: Analyzes the 'human' side of the input: intent, biases, tone.
@@ -30,7 +30,8 @@ class ProfilerAgent(BaseAgent[ProfilerInput, ProfilerAnalysis]):
     REQUIRES_KEYS = ["history_text", "product_text", "reflection_text"]
     PRODUCES_KEYS = ["step_profiler"]
     INPUT_SCHEMA = ProfilerInput
-    OUTPUT_SCHEMA = ProfilerAnalysis
+    DTO_SCHEMA = ProfilerDTO
+    OUTPUT_SCHEMA = ProfilerOutput
 
     def get_response_schema(self) -> type[BaseModel] | None:
         """Returns the expected output schema.
@@ -39,7 +40,7 @@ class ProfilerAgent(BaseAgent[ProfilerInput, ProfilerAnalysis]):
             Optional[Type[BaseModel]]: ProfilerAnalysis schema.
 
         """
-        return ProfilerAnalysis
+        return ProfilerDTO
 
 
     async def execute(
@@ -48,7 +49,7 @@ class ProfilerAgent(BaseAgent[ProfilerInput, ProfilerAnalysis]):
         execution_context: dict[str, Any] | None = None,
         system_instruction: str | None = None,
         **kwargs: Any,
-    ) -> ProfilerAnalysis:
+    ) -> ProfilerOutput:
         """Executes the psychological profiling analysis.
 
         Args:
@@ -58,7 +59,7 @@ class ProfilerAgent(BaseAgent[ProfilerInput, ProfilerAnalysis]):
             **kwargs: Args.
 
         Returns:
-            ProfilerAnalysis: The psychological profile.
+            ProfilerOutput: The psychological profile.
 
         Raises:
             AgentExecutionError: If mandatory inputs are missing or validation fails.

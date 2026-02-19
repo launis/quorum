@@ -1,0 +1,297 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="2" time="0.468" timestamp="2026-02-19T02:38:35.332871+02:00" hostname="Laptop-Risto"><testcase classname="tests.test_coach_strict" name="test_coach_strict_dto_usage" time="0.006"><failure message="backend.exceptions.AgentExecutionError: ErrorCodes.AGENT_EXECUTION_CRITICAL - Cause: [CoachAgent] Critical: Failed to calculate authoritative checksum/promote model. Data integrity compromised.">self = &lt;backend.agents.coach.CoachAgent object at 0x00000217ADB49550&gt;
+data = CoachingPlanDTO(actionable_steps=['Step 1'], bibliography=[], focus_areas=['Area 1'])
+
+    def _apply_python_authority(self, data: Any) -&gt; OutputT:
+        """Injects system-authoritative data (Time, Identity, Checksums).
+    
+        Promotes DTOs to Domain Models if DTO_SCHEMA is defined.
+        Overrides any LLM-hallucinated values for metadata fields.
+        Handles both raw dicts and immutable Pydantic models.
+        Returns the modified (or new) object.
+        """
+        # 1. TIME &amp; IDENTITY AUTHORITY
+        utc_now = datetime.now(timezone.utc)
+        agent_name = self.__class__.__name__
+        env_context = "Internal"
+    
+        # --- CASE A: Pydantic Model (DTO or Domain) ---
+        if isinstance(data, BaseModel):
+            # 1. Construct Updated Metadata (Immutable)
+            # Use getattr to support DTOs that lack 'metadata' field (e.g. PanelOutputDTO)
+            current_meta = getattr(data, "metadata", None)
+    
+            # Prepare metadata fields
+            meta_updates = {
+                "luontiaika": utc_now,
+                "agentti": agent_name,
+                "suoritus_ymparisto": env_context,
+            }
+    
+            # Default optional fields if missing
+            # We check if they exist in current_meta (if it's a model)
+            if current_meta:
+                 if not current_meta.vaihe:
+                     meta_updates["vaihe"] = 1
+                 if not current_meta.versio:
+                     meta_updates["versio"] = "2.0"
+            else:
+                 meta_updates["vaihe"] = 1
+                 meta_updates["versio"] = "2.0"
+    
+            if current_meta:
+                # Use model_copy(update=...) to create new Metadata instance
+                new_metadata = current_meta.model_copy(update=meta_updates)
+            else:
+                # Create fresh Metadata
+                new_metadata = Metadata(
+                    luontiaika=utc_now,
+                    agentti=agent_name,
+                    suoritus_ymparisto=env_context,
+                    vaihe=int(meta_updates["vaihe"]),
+                    versio=str(meta_updates["versio"])
+                )
+    
+            # 2. Calculate Checksum (using new metadata)
+            try:
+                content_dict = data.model_dump()
+                # Inject metadata into dict for hashing (ensure reproducibility)
+                content_dict["metadata"] = new_metadata.model_dump(mode='json')
+    
+                if "semanttinen_tarkistussumma" in content_dict:
+                    del content_dict["semanttinen_tarkistussumma"]
+    
+                dump = json.dumps(content_dict, sort_keys=True, default=str)
+                checksum = hashlib.sha256(dump.encode("utf-8")).hexdigest()
+    
+                logger.debug(f"[{self.__class__.__name__}] Calc Checksum (Model): {checksum[:8]}...")
+    
+                # 3. Promotion or Update
+                # CHECK FOR PROMOTION: If data is DTO and we have an OUTPUT_SCHEMA
+                if (
+                    self.DTO_SCHEMA
+                    and isinstance(data, self.DTO_SCHEMA)
+                    and self.OUTPUT_SCHEMA
+                    and not isinstance(data, self.OUTPUT_SCHEMA)
+                ):
+                    # Promote DTO -&gt; Domain
+&gt;                   promoted_data = self.OUTPUT_SCHEMA(
+                        **data.model_dump(),
+                        metadata=new_metadata,
+                        semanttinen_tarkistussumma=checksum
+                    )
+E                   pydantic_core._pydantic_core.ValidationError: 3 validation errors for CoachingPlan
+E                   thought_process
+E                     Field required [type=missing, input_value={'actionable_steps': ['St...457a39107c88e801699b2f'}, input_type=dict]
+E                       For further information visit https://errors.pydantic.dev/2.12/v/missing
+E                   conclusion
+E                     Field required [type=missing, input_value={'actionable_steps': ['St...457a39107c88e801699b2f'}, input_type=dict]
+E                       For further information visit https://errors.pydantic.dev/2.12/v/missing
+E                   confidence_score
+E                     Field required [type=missing, input_value={'actionable_steps': ['St...457a39107c88e801699b2f'}, input_type=dict]
+E                       For further information visit https://errors.pydantic.dev/2.12/v/missing
+
+backend\agents\base.py:226: ValidationError
+
+The above exception was the direct cause of the following exception:
+
+mock_llm_factory = &lt;MagicMock id='2300721792400'&gt;
+
+    @pytest.mark.asyncio
+    async def test_coach_strict_dto_usage(mock_llm_factory):
+        """Verify CoachAgent uses DTO and promotes to Domain Model with Metadata."""
+        agent = CoachAgent(model="test-model", provider="google")
+    
+        # Mock LLM returning DTO content
+        mock_dto = CoachingPlanDTO(
+            actionable_steps=["Step 1"],
+            bibliography=[],
+            focus_areas=["Area 1"]
+        )
+        mock_llm_factory.generate.return_value.parsed_content = mock_dto
+    
+        input_data = CoachInput(
+            history_text="History",
+            step_judge={"verdict": "Guilty"}, # Minimal mock
+            last_reasoning_trace=None
+        )
+    
+        # Mock Repository for enrichment (Coach needs it)
+        mock_repo = MagicMock()
+        mock_repo.get_knowledge_base_items = AsyncMock(return_value=[])
+    
+&gt;       result = await agent.execute(
+            input_data,
+            execution_context={"repository": mock_repo},
+            system_instruction="Coach me."
+        )
+
+tests\test_coach_strict.py:39: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+backend\agents\coach.py:63: in execute
+    result = await super().execute(input_data, execution_context, system_instruction, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\agents\base.py:599: in execute
+    response_data = self._apply_python_authority(response_data)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = &lt;backend.agents.coach.CoachAgent object at 0x00000217ADB49550&gt;
+data = CoachingPlanDTO(actionable_steps=['Step 1'], bibliography=[], focus_areas=['Area 1'])
+
+    def _apply_python_authority(self, data: Any) -&gt; OutputT:
+        """Injects system-authoritative data (Time, Identity, Checksums).
+    
+        Promotes DTOs to Domain Models if DTO_SCHEMA is defined.
+        Overrides any LLM-hallucinated values for metadata fields.
+        Handles both raw dicts and immutable Pydantic models.
+        Returns the modified (or new) object.
+        """
+        # 1. TIME &amp; IDENTITY AUTHORITY
+        utc_now = datetime.now(timezone.utc)
+        agent_name = self.__class__.__name__
+        env_context = "Internal"
+    
+        # --- CASE A: Pydantic Model (DTO or Domain) ---
+        if isinstance(data, BaseModel):
+            # 1. Construct Updated Metadata (Immutable)
+            # Use getattr to support DTOs that lack 'metadata' field (e.g. PanelOutputDTO)
+            current_meta = getattr(data, "metadata", None)
+    
+            # Prepare metadata fields
+            meta_updates = {
+                "luontiaika": utc_now,
+                "agentti": agent_name,
+                "suoritus_ymparisto": env_context,
+            }
+    
+            # Default optional fields if missing
+            # We check if they exist in current_meta (if it's a model)
+            if current_meta:
+                 if not current_meta.vaihe:
+                     meta_updates["vaihe"] = 1
+                 if not current_meta.versio:
+                     meta_updates["versio"] = "2.0"
+            else:
+                 meta_updates["vaihe"] = 1
+                 meta_updates["versio"] = "2.0"
+    
+            if current_meta:
+                # Use model_copy(update=...) to create new Metadata instance
+                new_metadata = current_meta.model_copy(update=meta_updates)
+            else:
+                # Create fresh Metadata
+                new_metadata = Metadata(
+                    luontiaika=utc_now,
+                    agentti=agent_name,
+                    suoritus_ymparisto=env_context,
+                    vaihe=int(meta_updates["vaihe"]),
+                    versio=str(meta_updates["versio"])
+                )
+    
+            # 2. Calculate Checksum (using new metadata)
+            try:
+                content_dict = data.model_dump()
+                # Inject metadata into dict for hashing (ensure reproducibility)
+                content_dict["metadata"] = new_metadata.model_dump(mode='json')
+    
+                if "semanttinen_tarkistussumma" in content_dict:
+                    del content_dict["semanttinen_tarkistussumma"]
+    
+                dump = json.dumps(content_dict, sort_keys=True, default=str)
+                checksum = hashlib.sha256(dump.encode("utf-8")).hexdigest()
+    
+                logger.debug(f"[{self.__class__.__name__}] Calc Checksum (Model): {checksum[:8]}...")
+    
+                # 3. Promotion or Update
+                # CHECK FOR PROMOTION: If data is DTO and we have an OUTPUT_SCHEMA
+                if (
+                    self.DTO_SCHEMA
+                    and isinstance(data, self.DTO_SCHEMA)
+                    and self.OUTPUT_SCHEMA
+                    and not isinstance(data, self.OUTPUT_SCHEMA)
+                ):
+                    # Promote DTO -&gt; Domain
+                    promoted_data = self.OUTPUT_SCHEMA(
+                        **data.model_dump(),
+                        metadata=new_metadata,
+                        semanttinen_tarkistussumma=checksum
+                    )
+                    # strict: cast
+                    from typing import cast
+                    return cast(OutputT, promoted_data)
+    
+                else:
+                    # Regular Update (Domain -&gt; Domain)
+                    updates = {
+                        "metadata": new_metadata,
+                        "semanttinen_tarkistussumma": checksum
+                    }
+                    from typing import cast
+                    return cast(OutputT, data.model_copy(update=updates))
+    
+            except Exception as e:
+                error_msg = (
+                    f"[{self.__class__.__name__}] Critical: Failed to calculate authoritative checksum/promote model. "
+                    "Data integrity compromised."
+                )
+                logger.critical(f"{error_msg} Error: {e}")
+&gt;               raise AgentExecutionError(
+                    detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
+                    original_error=ValueError(error_msg),
+                    agent_name=self.__class__.__name__
+                ) from e
+E               backend.exceptions.AgentExecutionError: ErrorCodes.AGENT_EXECUTION_CRITICAL - Cause: [CoachAgent] Critical: Failed to calculate authoritative checksum/promote model. Data integrity compromised.
+
+backend\agents\base.py:250: AgentExecutionError</failure></testcase><testcase classname="tests.test_coach_strict" name="test_coach_fail_fast_missing_dependency" time="0.003"><failure message="assert 'Repository not injected' in &quot;ErrorCodes.SERVICE_DEPENDENCY_MISSING - Cause: [CoachAgent] Missing mandatory input 'step_judge' (Judge Verdict). Cannot generate coaching plan without legal basis.&quot;&#10; +  where &quot;ErrorCodes.SERVICE_DEPENDENCY_MISSING - Cause: [CoachAgent] Missing mandatory input 'step_judge' (Judge Verdict). Cannot generate coaching plan without legal basis.&quot; = str(AgentExecutionError(&quot;ErrorCodes.SERVICE_DEPENDENCY_MISSING - Cause: [CoachAgent] Missing mandatory input 'step_judge' (Judge Verdict). Cannot generate coaching plan without legal basis.&quot;))&#10; +    where AgentExecutionError(&quot;ErrorCodes.SERVICE_DEPENDENCY_MISSING - Cause: [CoachAgent] Missing mandatory input 'step_judge' (Judge Verdict). Cannot generate coaching plan without legal basis.&quot;) = &lt;ExceptionInfo AgentExecutionError(&quot;ErrorCodes.SERVICE_DEPENDENCY_MISSING - Cause: [CoachAgent] Missing mandatory input 'step_judge' (Judge Verdict). Cannot generate coaching plan without legal basis.&quot;) tblen=4&gt;.value">mock_llm_factory = &lt;MagicMock id='2300721796096'&gt;
+
+    @pytest.mark.asyncio
+    async def test_coach_fail_fast_missing_dependency(mock_llm_factory):
+        """Test Fail Fast when step_judge is missing."""
+        agent = CoachAgent(model="test-model", provider="google")
+    
+        # Missing step_judge implies empty dict or None in input if allowed,
+        # but CoachInput defines it as ... (Required).
+        # so we test providing Empty Dict if Pydantic allows?
+        # Actually CoachInput requires step_judge field.
+        # But inside execute -&gt; prepare_context, it checks if it's "truthy"?
+    
+        # CoachInput(step_judge={}) is valid Pydantic, but logic inside might check content.
+        input_data = CoachInput(
+            history_text="History",
+            step_judge={}, # Empty
+            last_reasoning_trace=None
+        )
+    
+        # Logic in prepare_context:
+        # for key, value in input_dict.items():
+        #      if key.startswith("step_judge") and value:
+        #          judge_inputs.append((key, value))
+        # if not judge_inputs: raise...
+    
+        # So empty dict should trigger fail fast if it relies on value being truthy?
+        # Let's see. step_judge={} is truthy? Yes.
+        # But judge_inputs.append...
+        # Wait, loop iterates input_dict items.
+        # key="step_judge", value={} -&gt; Truthy? Yes.
+    
+        # Actually, let's look at the code again.
+        # It loops over startsWith("step_judge").
+    
+        # Let's try passing None if we can bypass Pydantic... we can't easily.
+        # But if we pass a dict that is empty?
+    
+        # Let's test missing repository instead, easier to trigger.
+    
+        with pytest.raises(AgentExecutionError) as exc:
+            await agent.execute(
+                input_data,
+                execution_context={}, # Missing repository
+                system_instruction="Run"
+            )
+    
+&gt;       assert "Repository not injected" in str(exc.value)
+E       assert 'Repository not injected' in "ErrorCodes.SERVICE_DEPENDENCY_MISSING - Cause: [CoachAgent] Missing mandatory input 'step_judge' (Judge Verdict). Cannot generate coaching plan without legal basis."
+E        +  where "ErrorCodes.SERVICE_DEPENDENCY_MISSING - Cause: [CoachAgent] Missing mandatory input 'step_judge' (Judge Verdict). Cannot generate coaching plan without legal basis." = str(AgentExecutionError("ErrorCodes.SERVICE_DEPENDENCY_MISSING - Cause: [CoachAgent] Missing mandatory input 'step_judge' (Judge Verdict). Cannot generate coaching plan without legal basis."))
+E        +    where AgentExecutionError("ErrorCodes.SERVICE_DEPENDENCY_MISSING - Cause: [CoachAgent] Missing mandatory input 'step_judge' (Judge Verdict). Cannot generate coaching plan without legal basis.") = &lt;ExceptionInfo AgentExecutionError("ErrorCodes.SERVICE_DEPENDENCY_MISSING - Cause: [CoachAgent] Missing mandatory input 'step_judge' (Judge Verdict). Cannot generate coaching plan without legal basis.") tblen=4&gt;.value
+
+tests\test_coach_strict.py:106: AssertionError</failure></testcase></testsuite></testsuites>

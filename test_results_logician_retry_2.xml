@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="3" time="0.385" timestamp="2026-02-19T02:24:52.706120+02:00" hostname="Laptop-Risto"><testcase classname="tests.test_logician_strict" name="test_logician_input_strictness" time="0.006" /><testcase classname="tests.test_logician_strict" name="test_logician_agent_fail_fast_missing_dependency" time="0.002"><failure message="TypeError: BaseAgent.__init__() got an unexpected keyword argument 'agent_id'">@pytest.mark.asyncio
+    async def test_logician_agent_fail_fast_missing_dependency():
+        """Verify LogicianAgent raises AgentExecutionError if step_analyst is missing."""
+    
+        # Setup
+&gt;       agent = LogicianAgent(
+            agent_id="Logician",
+            model_name="test-model",
+            system_prompt="You are logic."
+        )
+E       TypeError: BaseAgent.__init__() got an unexpected keyword argument 'agent_id'
+
+tests\test_logician_strict.py:47: TypeError</failure></testcase><testcase classname="tests.test_logician_strict" name="test_logician_agent_success_with_dependency" time="0.001"><failure message="TypeError: BaseAgent.__init__() got an unexpected keyword argument 'agent_id'">@pytest.mark.asyncio
+    async def test_logician_agent_success_with_dependency():
+        """Verify LogicianAgent succeeds when dependency is provided."""
+    
+&gt;       agent = LogicianAgent(
+            agent_id="Logician",
+            model_name="test-model",
+            system_prompt="You are logic."
+        )
+E       TypeError: BaseAgent.__init__() got an unexpected keyword argument 'agent_id'
+
+tests\test_logician_strict.py:71: TypeError</failure></testcase></testsuite></testsuites>

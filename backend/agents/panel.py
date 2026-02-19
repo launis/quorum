@@ -17,7 +17,7 @@ from backend.exceptions import AgentExecutionError, ErrorCodes
 from backend.models.domain.analyst import AnalystOutput
 from backend.models.domain.retrieval import ContextData
 from backend.models.domain.panel import PanelInput, PanelOutput, PanelOutputDTO
-from backend.models.domain.profiler import ProfilerAnalysis
+from backend.models.domain.profiler import ProfilerOutput
 from backend.models.state import WorkflowState  # Ensure WorkflowState is available provided it's used or needed
 
 if TYPE_CHECKING:

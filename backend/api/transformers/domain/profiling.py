@@ -3,7 +3,7 @@ import logging
 from pydantic import ValidationError
 
 from backend.exceptions import AppException
-from backend.models.domain import InteractionAnalysis, PerformativityOutput, ProfilerAnalysis
+from backend.models.domain import InteractionAnalysis, PerformativityOutput, ProfilerOutput
 from backend.models.enums import LabelKey, TitleKey
 # UVM Refactor: Use strict extensions
 from backend.models.view import (
@@ -39,9 +39,9 @@ class ProfilingDomainTransformer(BaseTransformer):
         try:
              # If step has "profiler_data" key, use that.
             if "profiler_data" in step:
-                 model = ProfilerAnalysis(**self._adapt_legacy_trace(step["profiler_data"])) # If wrapped
+                 model = ProfilerOutput(**self._adapt_legacy_trace(step["profiler_data"])) # If wrapped
             else:
-                 model = ProfilerAnalysis(**self._adapt_legacy_trace(step)) # If flat
+                 model = ProfilerOutput(**self._adapt_legacy_trace(step)) # If flat
         except ValidationError as e:
             error_code = "PROFILER_VALIDATION_FAILED"
             logger.error(f"{error_code}: {e}", exc_info=True)
@@ -72,7 +72,7 @@ class ProfilingDomainTransformer(BaseTransformer):
         except Exception as e:
              raise AppException(f"Failed to transform Profiler display: {e}", 500) from e
 
-    def _transform_profiler_data(self, model: ProfilerAnalysis) -> ProfilerDisplay:
+    def _transform_profiler_data(self, model: ProfilerOutput) -> ProfilerDisplay:
         """Flattens ProfilerOutput and calculates SDUI properties (Strict UVM)."""
         metrics = model.metrics # dict[str, Any]
 

@@ -10,7 +10,7 @@ from backend.agents.analyst import AnalystAgent
 from backend.agents.logician import LogicianAgent
 from backend.agents.profiler import ProfilerAgent
 from backend.core.registry import TaskRegistry
-from backend.models.domain import AnalystOutput, LogicianOutput, ProfilerAnalysis
+from backend.models.domain import AnalystOutput, LogicianOutput, ProfilerOutput
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ def register_analysis_tasks():
     TaskRegistry.register_agent(
         task_keys=["profiler"],
         agent_cls=ProfilerAgent,
-        output_model=ProfilerAnalysis
+        output_model=ProfilerOutput
     )
 
 # Execute registration on import

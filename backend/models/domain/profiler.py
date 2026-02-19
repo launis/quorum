@@ -8,7 +8,7 @@ from typing import Any, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from backend.models.domain.base import ReasoningTrace
+from backend.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 
 
 class ProfilerInput(BaseModel):
@@ -58,8 +58,8 @@ class BehavioralMetrics(BaseModel):
     model_config = ConfigDict(frozen=True, strict=False)
 
 
-class ProfilerAnalysis(ReasoningTrace):
-    """Output schema for the Profiler Agent."""
+class ProfilerDTO(ReasoningTraceDTO):
+    """Profiler DTO (Content Only)."""
     author_intent: str = Field(
         ...,
         description="Assessed intent of the author.",
@@ -93,3 +93,7 @@ class ProfilerAnalysis(ReasoningTrace):
     @classmethod
     def validate_list_items(cls, v: list[str]) -> list[str]:
          return [item.strip() for item in v if item and item.strip()]
+
+class ProfilerOutput(ProfilerDTO, ReasoningTrace):
+    """Output schema for the Profiler Agent."""
+    model_config = ConfigDict(frozen=True, strict=False)

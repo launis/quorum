@@ -17,9 +17,9 @@ from backend.models.domain.logician import LogicianOutput
 from backend.models.domain.overseer import OverseerOutput
 from backend.models.domain.panel import PanelOutput
 from backend.models.domain.performativity import PerformativityOutput
-from backend.models.domain.profiler import ProfilerAnalysis
+from backend.models.domain.profiler import ProfilerOutput
 
-from backend.models.domain.base import ReasoningTrace
+from backend.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 
 class JudgeInput(BaseModel):
     """Strict Input Schema for Judge Agent (Phase 8)."""
@@ -31,7 +31,7 @@ class JudgeInput(BaseModel):
     
     # Preceding Agents (Critics) - Strictly Typed via Forward Refs
     step_analyst: Optional["AnalystOutput"] = Field(None, description="Analyst Output.")
-    step_profiler: Optional["ProfilerAnalysis"] = Field(None, description="Profiler Output.")
+    step_profiler: Optional["ProfilerOutput"] = Field(None, description="Profiler Output.")
     step_archivist: Optional["ArchivistOutput"] = Field(None, description="Archivist Output.")
     step_logician: Optional["LogicianOutput"] = Field(None, description="Logician Output.")
     step_falsifier: Optional["FalsifierOutput"] = Field(None, description="Falsifier Output.")
@@ -144,9 +144,9 @@ class JudgeScoreCard(BaseModel):
         
     model_config = ConfigDict(frozen=True)
 
-class JudgeOutput(ReasoningTrace):
-    """Output schema for the Judge Agent."""
 
+class JudgeDTO(ReasoningTraceDTO):
+    """Judge DTO (Content Only)."""
     matrix_id: str = Field(
         ...,
         description="ID of the evaluation matrix used.",
@@ -172,8 +172,12 @@ class JudgeOutput(ReasoningTrace):
         description="Critical issues identified.",
         json_schema_extra={"x-ui-label": "Critical Findings"},
     )
+    model_config = ConfigDict(frozen=True, strict=False)
 
-    model_config = ConfigDict(frozen=True)
+
+class JudgeOutput(JudgeDTO, ReasoningTrace):
+    """Output schema for the Judge Agent."""
+    model_config = ConfigDict(frozen=True, strict=False)
 
 
 class ScoringResult(BaseModel):

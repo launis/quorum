@@ -11,7 +11,7 @@ from typing import Any, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator
 
-from backend.models.domain.base import ReasoningTrace
+from backend.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 from backend.models.enums import AuthenticityLevel
 from backend.services.localization import LocalizationService
 
@@ -148,15 +148,19 @@ class PerformativityAnalysis(BaseModel):
         return v
 
 
-class PerformativityOutput(ReasoningTrace):
-    """Output schema for the Performativity/Detector Agent."""
-
+class PerformativityDTO(ReasoningTraceDTO):
+    """Performativity DTO (Content Only)."""
     performativity_analysis: PerformativityAnalysis = Field(
         ...,
         description="Performativity audit result.",
         json_schema_extra={"x-ui-label": "Performativity Audit"},
     )
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=False)
+
+
+class PerformativityOutput(PerformativityDTO, ReasoningTrace):
+    """Output schema for the Performativity/Detector Agent."""
+    model_config = ConfigDict(frozen=True, strict=False)
 
 
 class PerformativePattern(BaseModel):

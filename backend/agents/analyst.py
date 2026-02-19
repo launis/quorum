@@ -12,7 +12,7 @@ from backend.agents.base import BaseAgent
 
 # 3. Local Imports
 from backend.exceptions import AgentExecutionError, ErrorCodes
-from backend.models.domain import AnalystInput, AnalystOutput
+from backend.models.domain import AnalystDTO, AnalystInput, AnalystOutput
 from backend.models.state import WorkflowState
 
 if TYPE_CHECKING:
@@ -35,6 +35,7 @@ class AnalystAgent(BaseAgent[AnalystInput, AnalystOutput]):
     REQUIRES_KEYS = ["history_text", "product_text", "reflection_text"]
     PRODUCES_KEYS = ["step_analyst"]
     INPUT_SCHEMA = AnalystInput
+    DTO_SCHEMA = AnalystDTO
     OUTPUT_SCHEMA = AnalystOutput
 
     def get_response_schema(self) -> type[BaseModel] | None:
@@ -44,7 +45,7 @@ class AnalystAgent(BaseAgent[AnalystInput, AnalystOutput]):
             Optional[Type[BaseModel]]: The AnalystOutput schema.
 
         """
-        return AnalystOutput
+        return AnalystDTO
 
     async def execute(
         self,
@@ -160,13 +161,36 @@ class AnalystAgent(BaseAgent[AnalystInput, AnalystOutput]):
         if not hypotheses:
             return response_data
 
-        logger.info(f"[AnalystAgent] Enforcing Hypothesis IDs (Count: {len(hypotheses)})")
+        logger.info(f"[AnalystAgent] Enforcing Hypothesis Order & IDs (Count: {len(hypotheses)})")
+
+        # --- SORTING AUTHORITY (Deterministic) ---
+        # 1. Sort by Evidence Found (True first)
+        # 2. Sort by Original ID (Stable tie-breaker)
+        def sort_key(h):
+            # Access fields safely whether dict or object
+            evidence = False
+            orig_id = ""
+            if isinstance(h, dict):
+                evidence = h.get("evidence_found", False)
+                orig_id = h.get("id", "")
+            else:
+                evidence = getattr(h, "evidence_found", False)
+                orig_id = getattr(h, "id", "")
+            
+            # Tuple: (Has Evidence DESC, Original ID ASC)
+            # False < True, so reverse boolean? Or use -1 for True?
+            # evidence is boolean. True=1, False=0. 
+            # We want True first. So sort by (not evidence, orig_id)
+            return (not evidence, orig_id)
+
+        # Sort the list
+        hypotheses.sort(key=sort_key)
 
         updated_hypotheses: list[Any] = []
-        changes_made = False
+        changes_made = True # Force update since we sorted in-place (or need to reflect order)
 
         for idx, hyp in enumerate(hypotheses, 1):
-            new_id = f"HYP-{idx}"
+            new_id = f"HYP-{idx:03d}" # Zero-padded for clean sorting (HYP-001)
             
             # Access ID
             current_id = None
@@ -178,17 +202,12 @@ class AnalystAgent(BaseAgent[AnalystInput, AnalystOutput]):
             if current_id != new_id:
                 # Update ID
                 if isinstance(hyp, dict):
-                    # Dict is mutable, but let's be safe and copy if needed
-                    # Actually, better to create new dict to avoid side effects if strictly functional
                     new_hyp = hyp.copy()
                     new_hyp["id"] = new_id
                     updated_hypotheses.append(new_hyp)
                 else:
-                    # Pydantic is immutable-ish (model_copy)
                     new_hyp = hyp.model_copy(update={"id": new_id})
                     updated_hypotheses.append(new_hyp)
-                
-                changes_made = True
             else:
                 updated_hypotheses.append(hyp)
 

@@ -1,0 +1,31 @@
+Verification Report
+SEED: backend\seed\seed_data.json
+DB: data\db.json
+
+
+🔍 Verifying Collection: system_config
+✅ OK (7 items matched, 0 soft mismatches ignored)
+
+🔍 Verifying Collection: steps
+✅ OK (16 items matched, 0 soft mismatches ignored)
+
+🔍 Verifying Collection: workflows
+✅ OK (6 items matched, 0 soft mismatches ignored)
+
+🔍 Verifying Collection: components
+✅ OK (93 items matched, 0 soft mismatches ignored)
+ℹ️ Skipping prompts (not in seed data)
+
+🔍 Verifying Collection: organizations
+✅ OK (2 items matched, 0 soft mismatches ignored)
+
+🔍 Verifying Collection: users
+✅ OK (5 items matched, 0 soft mismatches ignored)
+
+🔍 Verifying Collection: dimensions
+✅ OK (3 items matched, 0 soft mismatches ignored)
+
+🔍 Verifying Collection: knowledge_base
+✅ OK (466 items matched, 0 soft mismatches ignored)
+
+🎉 VERIFICATION SUCCESS: All collections match (ignoring soft limits).

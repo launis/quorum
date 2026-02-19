@@ -8,13 +8,14 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator
 
-from backend.models.domain.base import ReasoningTrace
+from backend.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 from backend.models.enums import BloomLevel, StrategicDepth
 from backend.services.localization import LocalizationService
 
 
 from typing import TYPE_CHECKING, Optional
 from backend.models.domain.analyst import AnalystOutput
+
 
 
 class LogicianInput(BaseModel):
@@ -24,7 +25,6 @@ class LogicianInput(BaseModel):
     last_reasoning_trace: Optional[str] = Field(default=None, description="Previous reasoning trace.")
     
     model_config = ConfigDict(frozen=True, extra="ignore")
-
 
 
 class ToulminComponent(BaseModel):
@@ -178,6 +178,12 @@ class CognitiveLevel(BaseModel):
             # Score Calculation (Strategic)
             current_strat_score = data.get("strategic_score")
             if current_strat_score is None and data.get("strategic_depth"):
+                 strat_map = {
+                     StrategicDepth.LOW: 1.0,
+                     StrategicDepth.MEDIUM: 2.0,
+                     StrategicDepth.HIGH: 3.0,
+                     StrategicDepth.VISIONARY: 4.0
+                 }
                  s_enum = data["strategic_depth"]
                  if isinstance(s_enum, StrategicDepth) and s_enum in strat_map:
                      data["strategic_score"] = strat_map[s_enum]
@@ -269,12 +275,17 @@ class LogicianData(BaseModel):
     model_config = ConfigDict(frozen=True, strict=True)
 
 
-class LogicianOutput(ReasoningTrace):
-    """Output schema for the Logician Agent."""
-
+class LogicianOutputDTO(ReasoningTraceDTO):
+    """Logician Output DTO (Content Only)."""
     logician_data: LogicianData = Field(
         ...,
         description="Logic analysis results.",
         json_schema_extra={"x-ui-label": "Logic Analysis"},
     )
+    model_config = ConfigDict(frozen=True)
+
+
+class LogicianOutput(LogicianOutputDTO, ReasoningTrace):
+    """Output schema for the Logician Agent (Domain Authority)."""
     model_config = ConfigDict(frozen=True, strict=True)
+

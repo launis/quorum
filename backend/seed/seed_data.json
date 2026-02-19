@@ -751,7 +751,7 @@
             "description": "Imported from sequential_audit_chain",
             "task_key": "profiler",
             "config": {
-                "output_schema": "ProfilerAnalysis",
+                "output_schema": "ProfilerOutput",
                 "llm_prompts": [
                     "GLOBAL_CONTEXT",
                     "HEADER_MANDATES",

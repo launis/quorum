@@ -5,7 +5,7 @@ This module contains the schemas for the Analyst Agent, including hypotheses and
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from backend.models.domain.base import ReasoningTrace
+from backend.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 
 
 
@@ -60,9 +60,8 @@ class Hypothesis(BaseModel):
         return self
 
 
-class AnalystOutput(ReasoningTrace):
-    """Output schema for the Analyst Agent."""
-
+class AnalystDTO(ReasoningTraceDTO):
+    """Analyst DTO (Content Only)."""
     hypotheses: list[Hypothesis] = Field(
         ...,
         description="List of hypotheses.",
@@ -86,6 +85,11 @@ class AnalystOutput(ReasoningTrace):
         if not v:
             raise ValueError("Analyst output must contain at least one hypothesis.")
         return v
+
+
+class AnalystOutput(AnalystDTO, ReasoningTrace):
+    """Output schema for the Analyst Agent."""
+    model_config = ConfigDict(frozen=True, strict=False)
 
 
 class SearchResultItem(BaseModel):

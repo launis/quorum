@@ -11,7 +11,7 @@ from typing import Any, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator
 
-from backend.models.domain.base import ReasoningTrace
+from backend.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 from backend.models.enums import AbductiveConclusion, PlausibilityLevel
 from typing import TYPE_CHECKING
 from backend.models.domain.analyst import AnalystOutput
@@ -153,12 +153,16 @@ class CausalAnalysis(BaseModel):
     model_config = ConfigDict(frozen=True)
 
 
-class CausalOutput(ReasoningTrace):
-    """Output schema for the Causal Agent."""
-
+class CausalDTO(ReasoningTraceDTO):
+    """Causal DTO (Content Only)."""
     causal_analysis: CausalAnalysis = Field(
         ...,
         description="Causal audit result.",
         json_schema_extra={"x-ui-label": "Causal Audit"},
     )
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, strict=False)
+
+
+class CausalOutput(CausalDTO, ReasoningTrace):
+    """Output schema for the Causal Agent."""
+    model_config = ConfigDict(frozen=True, strict=False)

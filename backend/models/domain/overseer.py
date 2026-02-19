@@ -11,7 +11,7 @@ from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator
 
-from backend.models.domain.base import ReasoningTrace
+from backend.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 
 
 from typing import TYPE_CHECKING
@@ -127,12 +127,16 @@ class OverseerData(BaseModel):
     model_config = ConfigDict(frozen=True, strict=True)
 
 
-class OverseerOutput(ReasoningTrace):
-    """Output schema for the Overseer Agent."""
-
+class OverseerDTO(ReasoningTraceDTO):
+    """Overseer DTO (Content Only)."""
     overseer_data: OverseerData = Field(
         ...,
         description="Ethics audit result.",
         json_schema_extra={"x-ui-label": "Ethics Audit"},
     )
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=False)
+
+
+class OverseerOutput(OverseerDTO, ReasoningTrace):
+    """Output schema for the Overseer Agent."""
+    model_config = ConfigDict(frozen=True, strict=False)

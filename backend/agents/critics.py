@@ -13,12 +13,16 @@ from backend.agents.base import BaseAgent
 # 3. Local Imports
 from backend.exceptions import AgentExecutionError, ErrorCodes
 from backend.models.domain import (
+    CausalDTO,
     CausalOutput,
     CausalInput,
+    FalsifierDTO,
     FalsifierOutput,
     FalsifierInput,
+    OverseerDTO,
     OverseerOutput,
     OverseerInput,
+    PerformativityDTO,
     PerformativityOutput,
     PerformativityInput,
 )
@@ -38,6 +42,7 @@ class LogicalFalsifierAgent(BaseAgent[FalsifierInput, FalsifierOutput]):
     state_field = "step_falsifier"
     PRODUCES_KEYS = ["step_falsifier"]
     INPUT_SCHEMA = FalsifierInput
+    DTO_SCHEMA = FalsifierDTO
     OUTPUT_SCHEMA = FalsifierOutput
 
     def get_response_schema(self) -> type[BaseModel] | None:
@@ -46,7 +51,7 @@ class LogicalFalsifierAgent(BaseAgent[FalsifierInput, FalsifierOutput]):
         Returns:
             type[BaseModel] | None: FalsifierOutput schema.
         """
-        return FalsifierOutput
+        return FalsifierDTO
 
     async def prepare_context(
         self,
@@ -127,6 +132,7 @@ class FactualOverseerAgent(BaseAgent[OverseerInput, OverseerOutput]):
     state_field = "step_overseer"
     PRODUCES_KEYS = ["step_overseer"]
     INPUT_SCHEMA = OverseerInput
+    DTO_SCHEMA = OverseerDTO
     OUTPUT_SCHEMA = OverseerOutput
 
     def get_response_schema(self) -> type[BaseModel] | None:
@@ -135,7 +141,7 @@ class FactualOverseerAgent(BaseAgent[OverseerInput, OverseerOutput]):
         Returns:
             type[BaseModel] | None: OverseerOutput schema.
         """
-        return OverseerOutput
+        return OverseerDTO
 
     async def prepare_context(
         self,
@@ -256,6 +262,7 @@ class CausalAnalystAgent(BaseAgent[CausalInput, CausalOutput]):
     state_field = "step_causal"
     PRODUCES_KEYS = ["step_causal"]
     INPUT_SCHEMA = CausalInput
+    DTO_SCHEMA = CausalDTO
     OUTPUT_SCHEMA = CausalOutput
 
     def get_response_schema(self) -> type[BaseModel] | None:
@@ -264,7 +271,7 @@ class CausalAnalystAgent(BaseAgent[CausalInput, CausalOutput]):
         Returns:
             type[BaseModel] | None: CausalOutput schema.
         """
-        return CausalOutput
+        return CausalDTO
 
     async def prepare_context(
         self,
@@ -341,6 +348,7 @@ class PerformativityDetectorAgent(BaseAgent[PerformativityInput, PerformativityO
     state_field = "step_detector"
     PRODUCES_KEYS = ["step_detector"]
     INPUT_SCHEMA = PerformativityInput
+    DTO_SCHEMA = PerformativityDTO
     OUTPUT_SCHEMA = PerformativityOutput
 
     def get_response_schema(self) -> type[BaseModel] | None:
@@ -349,7 +357,7 @@ class PerformativityDetectorAgent(BaseAgent[PerformativityInput, PerformativityO
         Returns:
             type[BaseModel] | None: PerformativityOutput schema.
         """
-        return PerformativityOutput
+        return PerformativityDTO
 
     async def prepare_context(
         self,

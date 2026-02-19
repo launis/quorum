@@ -13,7 +13,7 @@ from pydantic import ConfigDict, Field, field_validator, BaseModel
 
 from backend.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 from backend.models.domain.analyst import AnalystOutput
-from backend.models.domain.profiler import ProfilerAnalysis
+from backend.models.domain.profiler import ProfilerOutput
 from backend.models.domain.causal import CausalAnalysis
 from backend.models.domain.falsifier import FalsifierData
 from backend.models.domain.logician import LogicianData
@@ -35,7 +35,7 @@ class PanelInput(BaseModel):
     # Dependencies (Mandatory in Agent Logic, Optional in Schema for flexibility?)
     # No, strict typing means we should define what we expect.
     step_analyst: Optional["AnalystOutput"] = Field(None, description="Analyst Evidence Map.")
-    step_profiler: Optional["ProfilerAnalysis"] = Field(None, description="Profiler Analysis.")
+    step_profiler: Optional["ProfilerOutput"] = Field(None, description="Profiler Analysis.")
     last_reasoning_trace: Optional[str] = Field(default=None, description="Previous reasoning trace.")
 
     # Upstream Agent Outputs (Strict Forward References)

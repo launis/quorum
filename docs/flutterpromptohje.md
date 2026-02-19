@@ -172,6 +172,16 @@ JSON
 * **Responses**: MUST define response\_model in the route decorator. Return the Pydantic Model instance directly (let FastAPI handle serialization).  
 * **Null Safety**: API Responses should NOT contain null for list fields (use \[\]) or boolean fields (use false).
 
+### **2.7. Agent Output Authority (Python-Side Healing)**
+
+* **The Problem**: LLMs are non-deterministic (Math errors, random sorting, hallucinations).
+* **The Solution**: The `BaseAgent.post_process()` method is the **Python Authority Layer**.
+* **Mandate**:
+    *   **Math**: NEVER trust LLM calculations. Recalculate scores in `post_process`.
+    *   **Sorting**: NEVER trust LLM ordering. Sort lists deterministically in `post_process`.
+    *   **Deduplication**: NEVER trust LLM uniqueness. Deduplicate lists in `post_process`.
+    *   **Structure**: Enforce IDs and strict types in `post_process`.
+
 ## ---
 
 **⚠️ PART 3: ERROR HANDLING CONTRACT (RFC 7807 & FAIL FAST)**
@@ -225,6 +235,8 @@ When correctly identified (per Section 18.1), raises must be structured as follo
         ) from e
 ```
 
+        ) from e
+
 ### **3.4. Localizing Error Codes (Frontend Responsibility)**
 
 **THE CONTRACT (Split Responsibility):**
@@ -268,20 +280,18 @@ Do not use raw AppException if a more specific semantic wrapper exists. These wr
 | **AgentExecutionError** | Agent logic failure (500) | error\_code, original\_error, agent\_name |
 | **WorkflowExecutionError** | Step Engine failure (500) | step\_id, task\_key, original\_error |
 
-#### **Example: Semantic Agent Failure (Continuing the story from 3.3)**
+#### **Example: Semantic Agent Failure**
 
 Python
 
-    try:  
-        result \= await agent.run(...)  
-    except pydantic.ValidationError as e:  
-        \# Wraps error, preserves cause, auto-sets status 500  
-        raise AgentExecutionError(  
-            error\_code=ErrorCodes.VALIDATION\_FAILED, \# Unified Story  
-            original\_error=e,  
-            agent\_name="Logician",  
-            step\_id=step.id  
-        ) from e
+    if not input_data.target_text:
+        # FAIL FAST: Do not attempt to process empty input
+        raise AgentExecutionError(
+            detail=ErrorCodes.EMPTY_INPUT,
+            original_error=ValueError("Target text is missing."),
+            agent_name="Logician"
+        )
+
 
 ### **3.6. Managed Fallbacks (BFF Boundary Exception)**
 
@@ -705,7 +715,11 @@ Widget \_buildAuth(String key, BuildContext context) {
 
 * **The Rule**: Do not keep "Legacy Adapters" or shims. If the schema changes, migrate or wipe the data. We are in a Hardening Phase, not Long-Term Support.
 
-### **18.6. NO Embedded Steps (Relational Mandate)**
-
-* **The Rule**: Workflows must **NEVER** contain full Step definitions inline.  
 * **Structure**: The Registry (steps) defines the Step. The Workflow (workflows) contains **Links** only (id, inputs). Defining task\_key or config inside a workflow is a System Level Error.
+
+### **18.7. Deterministic Execution Mandate (Python Authority)**
+
+* **The Rule**: If a logic operation can be done deterministically in Python, it MUST NOT be delegated to the LLM.
+* **Scope**: Math, Sorting, Deduplication, ID generation, Date formatting.
+* **Why**: LLMs are probabilistic engines (Creative). Python is a deterministic engine (Logical). Use the right tool.
+* **Compliance**: Verify all Agent `post_process` methods enforce this mandate.

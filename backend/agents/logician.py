@@ -13,12 +13,13 @@ from backend.agents.base import BaseAgent
 
 # 3. Local Imports
 from backend.exceptions import AgentExecutionError, ErrorCodes
-from backend.models.domain import LogicianInput, LogicianOutput
+from backend.models.domain import LogicianInput, LogicianOutput, LogicianOutputDTO
 
 if TYPE_CHECKING:
     pass
 
 logger = logging.getLogger(__name__)
+
 
 
 class LogicianAgent(BaseAgent[LogicianInput, LogicianOutput]):
@@ -32,7 +33,9 @@ class LogicianAgent(BaseAgent[LogicianInput, LogicianOutput]):
     state_field = "step_logician"
     PRODUCES_KEYS = ["step_logician"]
     INPUT_SCHEMA = LogicianInput
+    DTO_SCHEMA = LogicianOutputDTO
     OUTPUT_SCHEMA = LogicianOutput
+
 
     def get_response_schema(self) -> type[BaseModel] | None:
         """Returns the expected output schema.

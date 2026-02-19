@@ -11,7 +11,7 @@ from typing import Any, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator
 
-from backend.models.domain.base import ReasoningTrace
+from backend.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 from backend.models.enums import FidelityLevel
 from typing import TYPE_CHECKING
 from backend.models.domain.analyst import AnalystOutput
@@ -160,12 +160,16 @@ class FalsifierData(BaseModel):
         return v
 
 
-class FalsifierOutput(ReasoningTrace):
-    """Output schema for the Falsifier Agent."""
-
+class FalsifierDTO(ReasoningTraceDTO):
+    """Falsifier DTO (Content Only)."""
     falsifier_data: FalsifierData = Field(
         ...,
         description="Falsification audit result.",
         json_schema_extra={"x-ui-label": "Falsification Audit"},
     )
+    model_config = ConfigDict(frozen=True, strict=False)
+
+
+class FalsifierOutput(FalsifierDTO, ReasoningTrace):
+    """Output schema for the Falsifier Agent."""
     model_config = ConfigDict(frozen=True, strict=False)

@@ -25,7 +25,7 @@ from backend.models.domain import (
     OverseerData,
     PanelOutput,
     PerformativityAnalysis,
-    ProfilerAnalysis,
+    ProfilerOutput,
     TaintedDataContent,
     XAIOutput,
 )
@@ -48,7 +48,7 @@ MODEL_REGISTRY = {
     # Agent Output Models (Domain)
     "tainted_data": TaintedDataContent,  # Guard
     "todistus_kartta": AnalystOutput,  # Analyst
-    "profiler_analysis": ProfilerAnalysis,  # Profiler
+    "profiler_analysis": ProfilerOutput,  # Profiler
     "argumentaatio_analyysi": LogicianData,  # Logician
     "logiikka_auditointi": FalsifierData,  # Falsifier
     "etiikka_ja_fakta": OverseerData,  # Overseer

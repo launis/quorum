@@ -33,7 +33,7 @@ from backend.models.domain import (
     PerformativityHeuristic,
     PerformativityOutput,
     PreMortemAnalysis,
-    ProfilerAnalysis,
+    ProfilerOutput,
     ReasoningFidelity,
     SecurityCheck,
     TaintedDataContent,
@@ -267,7 +267,7 @@ MOCK_INTERACTION_OUTPUT = InteractionAnalysis(
     improvement_suggestions=["Suggestion 1"]
 )
 
-MOCK_PROFILER_OUTPUT = ProfilerAnalysis(
+MOCK_PROFILER_OUTPUT = ProfilerOutput(
     thought_process="Mock Profiler Trace: Analyzed style.",
     conclusion="Consistent tone.",
     confidence_score=0.9,
@@ -359,7 +359,7 @@ MOCK_REGISTRY: dict[type[Any], Any] = {
     PanelOutput: MOCK_PANEL_OUTPUT,
     GuardOutput: MOCK_GUARD_OUTPUT,
     InteractionAnalysis: MOCK_INTERACTION_OUTPUT,
-    ProfilerAnalysis: MOCK_PROFILER_OUTPUT,
+    ProfilerOutput: MOCK_PROFILER_OUTPUT,
     ArchivistOutput: MOCK_ARCHIVIST_OUTPUT,
     EvaluationResult: MOCK_JUDGE_OUTPUT,
     CoachingPlan: MOCK_COACH_OUTPUT,

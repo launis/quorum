@@ -10,7 +10,8 @@ from backend.agents.base import BaseAgent
 
 # 3. Local Imports
 from backend.exceptions import AgentExecutionError, ErrorCodes
-from backend.models.domain import CoachingPlan, CoachInput
+from backend.models.domain import CoachingPlan, CoachInput, CoachingPlanDTO
+from backend.models.domain.base import ReasoningTraceDTO
 
 if TYPE_CHECKING:
     pass
@@ -30,14 +31,15 @@ class CoachAgent(BaseAgent[CoachInput, CoachingPlan]):
     
     INPUT_SCHEMA = CoachInput
     OUTPUT_SCHEMA = CoachingPlan
+    DTO_SCHEMA = CoachingPlanDTO
 
     def get_response_schema(self) -> type[BaseModel] | None:
         """Returns the Pydantic model for the agent's expected output.
 
         Returns:
-            type[BaseModel] | None: The CoachingPlan schema.
+            type[BaseModel] | None: The CoachingPlanDTO schema.
         """
-        return CoachingPlan
+        return CoachingPlanDTO
 
     async def execute(
         self,
@@ -297,4 +299,85 @@ class CoachAgent(BaseAgent[CoachInput, CoachingPlan]):
                  agent_name="CoachAgent"
              ) from e
 
-        return "\n\n".join(parts)
+    def post_process(self, response_data: Any) -> Any:
+        """Lifecycle Hook: Post-Execution (Healing & Python Authority).
+        
+        Enforces:
+        1. DEDUPLICATION: Removes duplicate bibliography items and actionable steps.
+        2. FAIL FAST: Ensures actionable_steps is not empty.
+        """
+        # 1. Access Data
+        is_dict = isinstance(response_data, dict)
+        
+        actionable_steps = []
+        bibliography = []
+        
+        if is_dict:
+            actionable_steps = response_data.get("actionable_steps", [])
+            bibliography = response_data.get("bibliography", [])
+        else:
+            actionable_steps = getattr(response_data, "actionable_steps", [])
+            bibliography = getattr(response_data, "bibliography", [])
+
+        # 2. FAIL FAST: Empty Steps (Coach MUST advise)
+        if not actionable_steps:
+             raise AgentExecutionError(
+                 detail=ErrorCodes.INVALID_OUTPUT_SCHEMA,
+                 original_error=ValueError("Coach returned empty 'actionable_steps'. Assistance failed."),
+                 agent_name="CoachAgent"
+             )
+
+        # 3. DEDUPLICATION AUTHORITY
+        logger.info(f"[CoachAgent] Deduplicating Steps ({len(actionable_steps)}) and Bibliography ({len(bibliography)})...")
+        
+        # Steps (Simple String Dedup)
+        unique_steps = []
+        seen_steps = set()
+        for step in actionable_steps:
+            # Normalize whitespace/case? strict string equality for now.
+            if step not in seen_steps:
+                unique_steps.append(step)
+                seen_steps.add(step)
+        
+        # Bibliography (Dict/Object Dedup)
+        unique_bib = []
+        seen_bib = set()
+        
+        for item in bibliography:
+            # Hash by Title (or URL if robust)
+            title = ""
+            url = ""
+            
+            if isinstance(item, dict):
+                title = item.get("title", "")
+                url = item.get("url", "")
+            else:
+                title = getattr(item, "title", "")
+                url = getattr(item, "url", "")
+            
+            # Key: Title + URL (Handle variants?)
+            # Just Title is often enough for duplicate suppression
+            key = (title, url)
+            
+            if key not in seen_bib:
+                unique_bib.append(item)
+                seen_bib.add(key)
+        
+        # 4. Apply Updates
+        changes_necessary = (len(unique_steps) != len(actionable_steps)) or (len(unique_bib) != len(bibliography))
+        
+        if changes_necessary:
+            logger.info(f"[CoachAgent] Dedup Complete: Steps {len(actionable_steps)}->{len(unique_steps)}, Bib {len(bibliography)}->{len(unique_bib)}")
+            
+            if is_dict:
+                response_data["actionable_steps"] = unique_steps
+                response_data["bibliography"] = unique_bib
+                return response_data
+            else:
+                # Pydantic Copy
+                return response_data.model_copy(update={
+                    "actionable_steps": unique_steps,
+                    "bibliography": unique_bib
+                })
+
+        return response_data
