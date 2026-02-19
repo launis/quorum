@@ -84,6 +84,13 @@ The `generate_report` hook acts as the **Director**.
 
 This guarantees that the PDF and the Dashboard **ALWAYS** show identical numbers, texts, and references.
 
+> [!IMPORTANT]
+> **Design Decision: Why we Persist Domain (ReportContext) and NOT View (ReportView)**
+> We strictly persist the **Domain Model** (`ReportContext`) in the database, never the **View Model**.
+> *   **Decoupling**: The UI changes frequently (widgets, colors, layout). The Data changes rarely. If we stored `ReportView`, every UI redesign would require a database migration or re-execution of historical records.
+> *   **Multi-Channel**: The PDF engine needs raw data (fidelity), while the Mobile App needs simplified data (views). Storing the raw Domain Model allows us to derive multiple different views on-the-fly without data loss.
+> *   **Historical Integrity**: `ReportContext` is the forensic record of *what the AI thought*. `ReportView` is just *how we chose to show it today*.
+
 ### Target A: PDF / Markdown Report
 *   **Source**: `ReportContext` (The JSON).
 *   **Engine**: **Jinja2**.
@@ -98,23 +105,43 @@ This guarantees that the PDF and the Dashboard **ALWAYS** show identical numbers
 
 #### Transformer Example (Retrieval)
 When the Frontend polls `/monitor`, the `RetrievalTransformer` does this:
-1.  Receives `ContextData` from the workflow state.
-2.  Maps `knowledge_items` (List[KnowledgeItem]) to `KnowledgeCardViewModel` (JSON).
-    ```json
-    {
-      "type": "knowledge_list",
-      "items": [
-        {
-          "term": "GDPR",
-          "definition": "General Data Protection Regulation...",
-          "source": "privacy_policy.docx"
-        }
-      ]
-    }
-    ```
-3.  The Flutter client renders this as a carousel of cards, NOT a blob of text.
+1.  Receives `ContextData` (Pydantic Domain Model) from the workflow state.
+2.  Maps `knowledge_items` (List[KnowledgeItem]) to `KnowledgeCardViewModel` (Pydantic View Model).
+    ```python
+    # STRICT: Input must be a Pydantic Model (ExecutionRecord or ReportContext)
+    def transform(self, execution: ExecutionRecord) -> ReportView:
+        # 1. Extract Domain Data
+        domain_data = execution.results # WorkflowState
+        
+        # 2. Transform to View Components (strictly typed UiSection)
+        sections = []
+        
+        # ... logic ...
 
-3.  The Flutter client renders this as a carousel of cards, NOT a blob of text.
+        # 3. Return View Model
+        return ReportView(
+            view_id=execution.id,
+            sections=sections,
+            # ...
+        )
+    ```
+3.  The Frontend receives this strictly typed JSON structure.
+
+### 4. Phase III: Rendering (BFF & P2P Pattern)
+**Goal:** Transform the raw Domain Model into a strictly typed View Model for the Frontend.
+
+The system uses a **Pydantic-to-Pydantic (P2P)** transformation pattern. We do **NOT** pass raw dictionaries or JSON objects to the Frontend.
+
+#### The P2P Flow
+1.  **Source (Domain)**: `ReportContext` (The validated "What Happened" data).
+2.  **Transformation**: `ReportTransformer` (Backend Logic).
+3.  **Destination (View)**: `ReportView` (The "How to Show It" UI contract).
+
+#### Why P2P? (Zero-Magic)
+-   **Build-Time Safety**: Renaming a field in the Domain Model immediately breaks the Transformer code, alerting developers at compile/lint time rather than causing runtime crashes.
+-   **Valet Key Pattern**: `ReportView` exposes only what the UI needs, preventing accidental leakage of sensitive backend state.
+-   **Autocomplete**: Developers get full IDE support (`.total_score`) instead of guessing magic strings (`['total_score']`).
+
 
 ### Implementation Strategy: Fail Fast & Strict Typing
 To ensure zero-hallucination and architectural integrity, the pipeline adheres to the following strict implementation rules (Phase 8):
