@@ -83,6 +83,22 @@ The system utilizes **Pydantic V2** for all internal state management.
     *   **Reasoning (The Healing Pattern)**: LLMs often return JSON with minor structural defects (e.g., missing IDs). By keeping data as a `dict` until the late validation phase, the agent's `post_process` hook can sanitize and fix the data before strict Pydantic enforcement kicks in.
     *   **Testing**: This simplifies testing by allowing developers to pass simple dicts instead of constructing complex nested objects.
 
+### 3.1. The Domain-DTO Dual Architecture
+To strictly separate "Content" from "System Authority", the system employs a **Domain(DTO)** inheritance pattern.
+
+1.  **DTOs (`backend/models/dtos/`)**:
+    *   **Role**: The **Content Contract**.
+    *   **Definition**: Represents data in transit (LLM Input/Output, API Requests).
+    *   **Constraint**: MUST NOT contain system-managed fields (e.g., `id`, `timestamp`, `cost`, `metadata`). This prevents the LLM from hallucinating authoritative data.
+    *   **Example**: `AnalystDTO` contains only `hypotheses` and `rag_evidence`.
+
+2.  **Domain Models (`backend/models/domain/`)**:
+    *   **Role**: The **System Authority** (Single Source of Truth).
+    *   **Definition**: Represents the full, persisted state of an entity.
+    *   **Inheritance**: `class AnalystOutput(AnalystDTO, ReasoningTrace): ...`
+    *   **Mechanism**: The Backend accepts a DTO (Content), validates it, generating necessary Metadata (Authority), and fuses them into a Domain Object.
+    *   **Usage**: The Pipeline *only* reads Domain Models. DTOs are never persisted directly as state.
+
 ---
 
 ## 4. Client-Side Data Layer (Flutter)

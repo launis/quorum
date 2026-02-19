@@ -114,7 +114,23 @@ When the Frontend polls `/monitor`, the `RetrievalTransformer` does this:
     ```
 3.  The Flutter client renders this as a carousel of cards, NOT a blob of text.
 
----
+3.  The Flutter client renders this as a carousel of cards, NOT a blob of text.
+
+### Implementation Strategy: Fail Fast & Strict Typing
+To ensure zero-hallucination and architectural integrity, the pipeline adheres to the following strict implementation rules (Phase 8):
+
+1.  **Removal of Graceful Fallbacks**:
+    *   **Old Way**: If a field was missing, the system would silently skip it or use a default.
+    *   **New Way (Fail Fast)**: Missing data raises `AppException` immediately. A broken report is better than a misleading one. Data corruption must be fixed at the source (Seeding/GraphEngine), not hidden in the view layer.
+
+2.  **Domain-to-View Transformation**:
+    *   Transformers (`backend/api/transformers/`) accept *only* **Domain Models** (`ExecutionRecord`). Passing raw `dicts` is prohibited.
+    *   Transformers return *strictly typed* **View Models** (`UiSection`).
+    *   **LogicDomainTransformer**, **CausalDomainTransformer**, etc., are "Mixins" that enforce specific schema requirements for their respective sections.
+
+3.  **Template Fidelity**:
+    *   The Jinja2 template (`report_template.jinja2`) operates *exclusively* on the `ReportView` object structure.
+    *   No logic (loops, filters, checks) is allowed in the template that isn't directly supporting the View Model. "Smart Templates" are forbidden; logic belongs in the Transformer.
 
 ## 5. Summary Diagram
 

@@ -13,6 +13,7 @@ You have been activated to work on the **Cognitive Quorum** project (Phase 8/9 H
 
 *   **`docs/index.md`** (The "Master Index": Entry point for V3.2 Architecture)
 *   **`docs/flutterpromptohje.md`** (The "System Architecture Manifesto" - **PRIMARY AUTHORITY**)
+*   **`docs/architecture.md`** (The "System Architecture Manifesto" - **PRIMARY AUTHORITY**)
 *   **`docs/documentation_strategy.md`** (The "Map": Explains roles of all docs)
 *   **`docs/structured_cognitive_architecture.md`** (The "Mind": Panel Fusion, Strict DTOs)
 *   **`docs/workflow_data_architecture.md`** (The "Data Flow": Fan-Out Pattern)
