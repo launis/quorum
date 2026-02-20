@@ -698,13 +698,14 @@ Widget \_buildAuth(String key, BuildContext context) {
 ### **18.2. NO Default Values (Strict Typing)**
 
 * **The Rule**: Domain models MUST NOT have implicit default values for required fields.  
-* **BANNED**: score: float \= 0.0 or name: str \= "Unknown".  
-* **EXCEPTION**: Computed properties (@computed\_field) or explicitly optional fields initialized to None (score: float | None \= None).
+* **BANNED**: score: float = 0.0 or name: str = "Unknown".  
+* **EXCEPTION**: Computed properties (@computed_field) or explicitly optional fields initialized to None (score: float | None = None).
 
 ### **18.3. NO Hardcoding (Configuration Sovereignty)**
 
-* **The Rule**: Values that can change MUST exist in seed\_data.json or l10n.  
-* **BANNED**: Hardcoded prompts, magic numbers (if score \> 0.5), or UI strings in Python/Dart code. Extract "Magic Numbers" to Constants or Enums.
+* **The Rule**: Values that can change MUST exist in seed_data.json or l10n.
+* **Infrastructure Mandate**: Infrastructure Wrappers (LLM Providers, DB Clients) MUST NOT inject default configuration values (e.g., `TPM=10000`) if the upstream configuration is missing. They MUST raise `ConfigurationError`.
+* **BANNED**: Hardcoded prompts, magic numbers (if score > 0.5), defaults in Provider constructors, or UI strings in Python/Dart code. Extract "Magic Numbers" to Constants or Enums.
 
 ### **18.4. NO Surface-Level Patches (Root Cause Mandate)**
 

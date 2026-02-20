@@ -1,50 +1,33 @@
-# FAILFAST, NO FALLBACK, EI OLETUSARVOJA, EI KOVAKOODUSTA, EI QUICK FIXEJÄ, EI OIKOPOLKUJA
-
-# COGNITIVE QUORUM - SESSION INITIALIZATION PROTOCOL (V3.2)
-> **KÄYTTÄJÄLLE:** Aloittaaksesi uuden istunnon, pyydä tekoälyä lukemaan tämä tiedosto (esim. "Lue docs/alku.md"). Tämä lataa automaattisesti projektin kontekstin ja säännöt.
+# 🔥 COGNITIVE QUORUM - ANTIGRAVITY BOOTSTRAP (V4.0) 🔥
+> **KÄYTTÄJÄLLE:** Aloita uusi istunto sanomalla: "Lue docs/alku.md ja [kerro tämän päivän tavoite]". Tämä tiedosto toimii päävirtakytkimenä tekoälyn kontekstiin.
 
 ---
 
-## TO THE AI ASSISTANT:
-You have been activated to work on the **Cognitive Quorum** project (Phase 8/9 Hardening). Your immediate task is to **BOOTSTRAP** your context by following these steps strictly.
+## TO THE ANTIGRAVITY AGENT (GEMINI 3.1+):
+You are activating within the **Cognitive Quorum** monorepo (Python Backend + Flutter Client). This is a highly mature **Phase 8/9 Hardening** environment.
 
-### 1. CRITICAL CONTEXT LOADER
-**ACTION:** You MUST read and internalize the following documentation files immediately to understand the architecture, logic, and operational constraints:
+Your goal is NOT to guess how things work. Your goal is to strictly follow the pre-established architectural mandates.
 
-*   **`docs/index.md`** (The "Master Index": Entry point for V3.2 Architecture)
-*   **`docs/flutterpromptohje.md`** (The "System Architecture Manifesto" - **PRIMARY AUTHORITY**)
-*   **`docs/architecture.md`** (The "System Architecture Manifesto" - **PRIMARY AUTHORITY**)
-*   **`docs/documentation_strategy.md`** (The "Map": Explains roles of all docs)
-*   **`docs/structured_cognitive_architecture.md`** (The "Mind": Panel Fusion, Strict DTOs)
-*   **`docs/workflow_data_architecture.md`** (The "Data Flow": Fan-Out Pattern)
-*   **`docs/reference.md`** (The "Blueprints": Directory Structure, Env Vars)
-*   **`docs/api_models.md`** (The "Data": Pydantic Models & Schemas)
+### 1. 🚨 MANDATORIES BEFORE CODING (The "Think First" Protocol) 🚨
+Before you write any code or propose solutions, you MUST perform these actions:
+1. **Check KI Summaries**: You have access to Knowledge Items (KIs) from previous sessions. **ALWAYS** scan them first (e.g., SDUI standards, Seeding protocols) if the task touches complex logic.
+2. **Review the Manifesto**: If you are unsure about a rule, use `view_file` on `docs/flutterpromptohje.md`. That is the **Absolute Authority** (The "System Architecture Manifesto").
+3. **Verify the State**: Check the `backend_debug.log` and `client_debug.log` using standard log analysis tools before asking the user why something crashed.
 
-### 2. CORE MANDATES (Non-Negotiable)
-*   **Tech Stack**: Python 3.14+ (FastAPI, Pydantic V2 Strict) & Flutter (Riverpod 3.0 Generator).
-*   **SSOT Principle**: `backend/seed/seed_data.json` is the Single Source of Truth for logic, including **System Config** (Agent Strategies). Never hardcode rules/models/prompts in Python.
-*   **Zero-Fallback**: Logic must Fail Fast (`AppException`) if configuration is missing in the DB. Do not use hardcoded defaults.
-*   **Strict DTO Pattern**: LLMs generate `*OutputDTO` (Content). Python generates `*Output` (Domain Authority). Never mix them.
-*   **Error Handling**: Backend must raise typed `AppException` (RFC 7807). Fail fast; never swallow errors.
+### 2. CORE ARCHITECTURAL LAWS (Non-Negotiable)
+Violating any of these will result in an immediate architectural failure.
 
-### 3. OUTPUT FORMAT
-*   **Code**: Standard English.
-*   **Explanations**: Finnish (Suomi).
+*   **Pydantic V2 Strict (No dicts)**: Every data structure moving between backend services/agents MUST be a strongly typed Pydantic Domain Model (`ConfigDict(strict=True)`). Return types of `dict` are banned.
+*   **Fail Fast (RFC 7807)**: Never use `try-except pass` or return `None` to silence errors in core logic. If data is dirty or missing, raise an `AppException` immediately.
+*   **SSOT (Single Source of Truth)**: `backend/seed/seed_data.json` defines ALL models, limits (tokens), and workflows. NEVER hardcode limits or configs directly in Python classes. Use `run_seed.py` to reset the database.
+*   **Zero-Fallback**: Downstream code must trust the structure. If the AI returns 101 on a 1-100 scale, the backend must CRASH, not clamp the value silently.
+*   **Client (Flutter)**: Strictly `Riverpod 3.0` (Generator), Hooks, and Immutable models. `ChangeNotifier` and manual routing are banned.
 
-### 4. DEBUGGING RESOURCES (Local Development)
-*   **`backend_debug.log`** (Project Root): Contains full Backend logs (Uvicorn, FastAPI, Arq). Use this to debug startup crashes, 500 errors, and database queries.
-*   **`client_debug.log`** (Project Root): Contains Flutter Client logs.
-*   **Note**: `run_local.bat` clears these files on every fresh start to ensure clean traces.
-
-**5. DATABASE INITIALIZATION (Seeding)**
-To reset the database state to the official "Seed State":
-
-*   **Local (Default)**: `python backend/seed/run_seed.py local`
-    *   *Effect*: Resets `data/db.json` from `seed_data.json`.
-*   **Mock (Testing)**: `python backend/seed/run_seed.py mock`
-    *   *Effect*: Resets `backend/database/db_mock.json`.
-*   **Firestore (Cloud)**: `python backend/seed/run_seed.py firestore`
-    *   *Effect*: Resets the Google Cloud Firestore database. **Use with extreme caution.**
+### 3. YOUR WORKFLOW IN THIS PROJECT
+When given a task:
+1.  **Analyze**: Use your file search tools (`grep`, `list_dir`) to find where the logic lives. Read the corresponding `docs/*.md` file if you encounter a new domain (e.g. `docs/workflow_data_architecture.md`).
+2.  **Plan**: Propose your fix in `implementation_plan.md` and wait for user approval if the change touches core schemas.
+3.  **Execute & Verify**: Make the change, and verify via logs or local tests.
 
 **CONFIRMATION:**
-State clearly that you have read the files and are ready to proceed under the Phase 8/9 Hardening standards.
+Acknowledge that you have internalized these Phase 8/9 constraints and wait for the user's specific objective. Respond in Finnish (Suomi).

@@ -124,26 +124,29 @@ To satisfy both high-fidelity rendering (PDF) and data integration (BI Tools), t
 
 ## 4. Phase III: Rendering (The "Artist")
 
-### 4.1 PDF Generation
-*   **Source**: `ReportResult.data` (The Fat Report).
-*   **Engine**: Jinja2.
-*   **Logic**: No logic in templates. Pure rendering of the `ReportContext` object.
+### 4.1 PDF Generation (Legacy & High-Fidelity)
+*   **Source**: `ReportContext` (The "Fat" Report, prepared by `ReportingHook`).
+*   **Engine**: Jinja2 + WeasyPrint (or compatible).
+*   **Logic**:
+    1.  `ReportingHook` aggregates all agent outputs into a validated `ReportContext` object.
+    2.  Use existing PDF generation logic to render this context into a document.
+    3.  **Note**: This does *NOT* use the "Flat" report. It requires the full, rich context (markdown, citations, reasoning).
 
 ### 4.2 Flutter UI (BFF Pattern)
-*   **Source**: `WorkflowState` (Domain Models).
-*   **Transformation**: Pydantic-to-Pydantic (P2P).
+*   **Source**: `WorkflowState` (Domain Models: `step_xai`, `step_judge`).
+*   **Transformation**: `ReportTransformer` (Backend-for-Frontend).
 *   **Mechanism**:
-    1.  Frontend requests `/monitor`.
-    2.  Backend `ReportTransformer` reads `step_xai` (Domain).
-    3.  Transformer converts it to `ReportView` (ViewModel).
-    4.  Frontend renders the ViewModel.
+    1.  Frontend requests `/workflows/{id}/report`.
+    2.  Backend `ReportTransformer` converts Domain Models to `ReportView` (ViewModel).
+    3.  **Note**: Flutter does *NOT* use the "Flat" report. It uses a View Model optimized for widgets.
 
-### 4.3 External Integration (The New Standard)
+### 4.3 External Integration (The "Flat" Standard)
 *   **Source**: `step_xai.flat_report` (`XAIFlatReportDTO`).
+*   **Purpose**: BI Tools, Excel, Data Warehousing.
 *   **Mechanism**:
-    1.  External Tool requests `/api/v1/reports/{id}/flat`.
-    2.  Backend simply returns `state.step_xai.flat_report`.
-    3.  **Zero-Transformation**: The data is already in the correct format in the DB.
+    1.  External Tool requests `/workflows/{id}/flat`.
+    2.  Backend returns the pre-calculated `XAIFlatReportDTO` directly.
+    3.  **Characteristics**: One-dimensional JSON (Key-Value), no Markdown, machine-readable.
 
 ---
 

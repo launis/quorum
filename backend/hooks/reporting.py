@@ -23,7 +23,10 @@ from backend.models.domain.logician import LogicianOutput
 from backend.models.domain.falsifier import FalsifierOutput
 from backend.models.domain.causal import CausalOutput
 from backend.models.domain.xai import XAIOutput
-from backend.models.domain.coach import BibliographyResult
+from backend.models.domain.profiler import ProfilerOutput
+from backend.models.domain.archivist import ArchivistOutput
+from backend.models.domain.coach import CoachingPlan, BibliographyResult
+from backend.models.dtos.pdf_context import ReportContext
 from backend.models.state import WorkflowState
 from backend.models.domain.inputs import WorkflowInputs
 from backend.services.localization import LocalizationService
@@ -205,6 +208,54 @@ def generate_report(state: WorkflowState) -> WorkflowState:
     # 4. PASS THROUGH SPECIALIST DATA (For Template deep dives)
     context["logician_data"] = logician_out.logician_data if logician_out else None
     context["overseer_data"] = overseer_out.overseer_data if overseer_out else None
+    context["falsifier_data"] = None # Add Falsifier extraction if available
+    context["causal_analysis"] = None # Add Causal extraction if available
+    context["performativity_analysis"] = performativity_out.performativity_analysis if performativity_out else None
+    
+    # 5. ENRICHMENT (Metrics & Knowledge)
+    profiler_out = _get_agent_output("step_profiler", ProfilerOutput)
+    if profiler_out:
+        # Assuming ProfilerOutput has metrics
+        metrics = getattr(profiler_out, "metrics", None)
+        if metrics:
+            # metrics might be a dict (DTO) or object (Domain). Handle both.
+            if isinstance(metrics, dict):
+                 context["word_count"] = metrics.get("word_count", 0)
+                 context["input_control_ratio"] = metrics.get("control_ratio", 0.0)
+            else:
+                 context["word_count"] = getattr(metrics, "word_count", 0)
+                 context["input_control_ratio"] = getattr(metrics, "control_ratio", 0.0)
+            
+    analyst_out = _get_agent_output("step_analyst", AnalystOutput)
+    if analyst_out:
+        # Knowledge Items (Now extracted directly from analyst_out.rag_evidence if we want to show it, or left empty)
+        # Search results and knowledge items were moved/removed in the Strict DTO refactor. 
+        # For the report context, we provide empty lists or omit if not strictly required, 
+        # or we could parse rag_evidence if necessary. For now, graceful degradation:
+        context["google_search_results"] = []
+        context["knowledge_items"] = []
+
+    # Archivist
+    archivist_out = _get_agent_output("step_archivist", ArchivistOutput)
+    if archivist_out:
+        context["archivist_precedents"] = archivist_out # Pass the whole object or specific field
+    
+    # Scoring Result (Hook)
+    scoring_res = _get_agent_output("scoring_result", ScoringResult)
+    if scoring_res:
+        context["penalties_applied"] = scoring_res.penalties_applied
+        context["score_summary"] = scoring_res.score_summary
+    
+    # Validation Result (Hook)
+    validation_res = _get_agent_output("structure_validation", ValidationResult)
+    if validation_res:
+        context["structural_warnings"] = validation_res.warnings
+
+    # Coaching Plan
+    coach_out = _get_agent_output("step_coach", CoachingPlan)
+    if coach_out:
+         context["coaching_plan"] = coach_out.model_dump()
+
     
     # 5. RENDER / GENERATE (Strict Validation)
     try:

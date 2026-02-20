@@ -86,6 +86,7 @@ class BaseAgent(BaseComponent, Generic[InputT, OutputT]):
         provider: str | None = None,
         usage_service: Any = None,
         organization_id: str | None = None,
+        config: Any | None = None,
     ):
         """Dynamically updates the agent's model preference and ensures LLMProvider is ready.
 
@@ -94,6 +95,7 @@ class BaseAgent(BaseComponent, Generic[InputT, OutputT]):
             provider (Optional[str]): The provider type.
             usage_service (Any): UsageService instance for tracking.
             organization_id (Optional[str]): Contextual Org ID.
+            config (Optional[Any]): Full LLMProviderConfig object.
         """
         self.model = model_name
         if provider:
@@ -107,14 +109,7 @@ class BaseAgent(BaseComponent, Generic[InputT, OutputT]):
                  agent_name=self.__class__.__name__
              )
 
-        # Logic: If provider exists and matches usage, AND organization matches, keep it.
-        # But organization_id changes per execution, so we almost always need to update/recreate if context changes.
-        # Or we rely on the fact that we overwrite it.
-        # Ideally, we should check if current provider has same org_id.
-
-        # Simpler approach: Always recreate if dependencies provided, to ensure context is fresh.
-        # Optimizing creation is secondary to correctness.
-        self._create_provider(current_provider_type, model_name, usage_service, organization_id)
+        self._create_provider(current_provider_type, model_name, usage_service, organization_id, config)
 
     def _create_provider(
         self,
@@ -122,6 +117,7 @@ class BaseAgent(BaseComponent, Generic[InputT, OutputT]):
         model_name: str,
         usage_service: Any = None,
         organization_id: str | None = None,
+        config: Any | None = None,
     ):
         """Helper to instantiate and assign the LLM provider.
 
@@ -130,6 +126,7 @@ class BaseAgent(BaseComponent, Generic[InputT, OutputT]):
             model_name (str): The specific model ID.
             usage_service (Any): usage service.
             organization_id (str): org id.
+            config (Any): strict config object.
         """
         try:
             self.llm_provider = LLMFactory.create_provider(
@@ -137,6 +134,7 @@ class BaseAgent(BaseComponent, Generic[InputT, OutputT]):
                 model_name=model_name,
                 usage_service=usage_service,
                 organization_id=organization_id,
+                config=config,
             )
             logger.debug(
                 f"[BaseAgent] Provider initialized with {model_name} (Type: {provider_type}, Org: {organization_id})"
@@ -340,6 +338,32 @@ class BaseAgent(BaseComponent, Generic[InputT, OutputT]):
             AgentExecutionError: If execution fails (wraps all internal exceptions).
         """
         logger.info(f"[{self.__class__.__name__}] Starting execution...")
+        
+        # --- INPUT DIAGNOSTICS (Context Bloat Investigation) ---
+        try:
+            # Create a safe copy for inspection
+            debug_inputs = input_data
+            if isinstance(debug_inputs, BaseModel):
+                debug_inputs = debug_inputs.model_dump()
+            
+            if isinstance(debug_inputs, dict):
+                log_msg = []
+                for k, v in debug_inputs.items():
+                    if isinstance(v, str):
+                        # Log length and preview start/end to catch duplication
+                        preview = v[:50].replace("\n", "\\n")
+                        log_msg.append(f"{k}: {len(v)} chars ('{preview}...')")
+                    elif isinstance(v, (list, dict, tuple)):
+                        log_msg.append(f"{k}: {len(v)} items")
+                    else:
+                        log_msg.append(f"{k}: {type(v).__name__}")
+                logger.info(f"[{self.__class__.__name__}] INPUT DIAGNOSTICS: " + " | ".join(log_msg))
+            else:
+                 logger.info(f"[{self.__class__.__name__}] INPUT DIAGNOSTICS: Non-dict input: {type(debug_inputs)}")
+        except Exception as e:
+            logger.warning(f"[{self.__class__.__name__}] Failed to log input sizes: {e}")
+        # -------------------------------------------------------
+
         try:
             # 0. STRICT INPUT VALIDATION (Phase 8: Type Safety)
             # The Engine is responsible for inflating dict -> Model.

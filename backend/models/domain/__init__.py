@@ -95,12 +95,12 @@ from backend.models.domain.performativity import (
 from backend.models.domain.profiler import ProfilerDTO, ProfilerInput, ProfilerOutput, TextMetrics
 from backend.models.domain.retrieval import ContextData, Precedent, RetrievalInput
 from backend.models.domain.xai import (
-    ReportContext,
     ReportResult,
     XAIOutput,
     XAIScoreItem,
     XAIReporterInput,
 )
+from backend.models.dtos.pdf_context import ReportContext
 
 # --- REGISTRY ---
 DOMAIN_REGISTRY = {

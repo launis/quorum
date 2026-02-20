@@ -242,12 +242,63 @@ class XAIReporterAgent(BaseAgent[XAIReporterInput, XAIOutput]):
                         agent_name="XAIReporterAgent"
                     ) from e
 
-        # 3. Inject into Result
-        # STRICT MODE: Result must be a BaseModel (XAIOutput). Dictionaries are BANNED.
-        if score_cards:
-            # We expect the model (XAIOutput) to have 'score_cards' field.
-            # We create a new instance with the updated field.
-            result = result.model_copy(update={"score_cards": score_cards})
+        # 3. Generate Flat Report (Phase 3)
+        # We need execution_id and timestamp from context or generate them
+        import uuid
+        from datetime import datetime
+        from backend.models.dtos.report import XAIFlatReportDTO
+
+        exec_id_str = NotImplemented
+        if execution_context:
+            exec_id_str = execution_context.get("execution_id")
+        
+        if not exec_id_str:
+            # Fallback if not provided (should not happen in real engine)
+            exec_id_str = str(uuid.uuid4())
+            logger.warning("[XAIReporterAgent] execution_id missing in context, generated new UUID.")
+
+        try:
+            execution_id = uuid.UUID(str(exec_id_str))
+        except ValueError:
+            execution_id = uuid.uuid4()
+            logger.warning(f"[XAIReporterAgent] Invalid execution_id format '{exec_id_str}', generated new UUID.")
+
+        # Aggregate Flattened Scores
+        flattened_scores: dict[str, float] = {}
+        total_score_sum = 0.0
+        count = 0
+        
+        # We use the Aggregated Score Cards
+        for card in score_cards:
+            total_score_sum += card.total_score
+            count += 1
+            for dim in card.dimensions:
+                # Use dimension_id as key
+                flattened_scores[dim.dimension_id] = float(dim.score)
+
+        final_avg_score = (total_score_sum / count) if count > 0 else 0.0
+        
+        # Identify Strengths/Weaknesses from Flattened Scores
+        sorted_scores = sorted(flattened_scores.items(), key=lambda item: item[1], reverse=True)
+        top_strength = sorted_scores[0][0] if sorted_scores else None
+        top_weakness = sorted_scores[-1][0] if sorted_scores else None
+
+        flat_report = XAIFlatReportDTO(
+            execution_id=execution_id,
+            timestamp=datetime.now(),
+            verdict=result.final_verdict,
+            score_total=round(final_avg_score, 2),
+            confidence_score=result.confidence_score,
+            top_strength_id=top_strength,
+            top_weakness_id=top_weakness,
+            flattened_scores=flattened_scores
+        )
+
+        # 4. Inject into Result (XAIOutput)
+        result = result.model_copy(update={
+            "score_cards": score_cards,
+            "flat_report": flat_report
+        })
 
         return result
 

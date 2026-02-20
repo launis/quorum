@@ -70,8 +70,8 @@ class Settings(BaseSettings):
     llm_retry_delay: Annotated[float, Field(description="Delay between retries in seconds")] = 10.0
     
     # --- Rate Limits (Strict Mode) ---
-    llm_default_tpm: Annotated[int, Field(description="Default Tokens Per Minute if not specified by caller")] = 10000
-    llm_default_rpm: Annotated[int, Field(description="Default Requests Per Minute if not specified by caller")] = 10
+    llm_default_tpm: Annotated[int | None, Field(description="Default Tokens Per Minute (None = Strict)")] = None
+    llm_default_rpm: Annotated[int | None, Field(description="Default Requests Per Minute (None = Strict)")] = None
 
     # --- Integrity Thresholds (Integrity, Scoring, Linguistics) ---
     citation_integrity_threshold: Annotated[float, Field(description="Minimum integrity score (0.0-1.0)")] = 0.0
@@ -101,6 +101,28 @@ class Settings(BaseSettings):
     # --- Redis & Arq ---
     redis_host: Annotated[str, Field(description="Redis Host")] = "localhost"
     redis_port: Annotated[int, Field(description="Redis Port")] = 6379
+
+    @computed_field
+    def default_safety_settings(self) -> list[dict[str, str]]:
+        """Returns standard safety settings (Auditing Mode: BLOCK_NONE)."""
+        return [
+            {
+                "category": "HARM_CATEGORY_HATE_SPEECH",
+                "threshold": "BLOCK_NONE",
+            },
+            {
+                "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                "threshold": "BLOCK_NONE",
+            },
+            {
+                "category": "HARM_CATEGORY_HARASSMENT",
+                "threshold": "BLOCK_NONE",
+            },
+            {
+                "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                "threshold": "BLOCK_NONE",
+            },
+        ]
 
     # NOTE: Default models are REMOVED to enforce DB-based configuration.
     # gemini_model_fast and gemini_model_deep are deprecated.

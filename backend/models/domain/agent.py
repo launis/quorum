@@ -18,6 +18,10 @@ class ModelConfig(BaseModel):
     temperature: float | None = Field(default=None, description="Sampling temperature.")
     top_p: float | None = Field(default=None, description="Nucleus sampling probability.")
     supports_grounding: bool = Field(default=False, description="Whether this model strategy supports grounding (Google Search).")
+    is_active: bool = Field(..., description="Whether this model configuration is active.")
+    tpm_limit: int = Field(..., description="Tokens Per Minute Limit (0 = Unlimited/Default).")
+    rpm_limit: int = Field(..., description="Requests Per Minute Limit (0 = Unlimited/Default).")
+    api_key: str | None = Field(default=None, description="API Key (optional/resolved).")
     
     # Additional provider-specific settings
     extra_params: dict[str, Any] = Field(default_factory=dict, description="Provider specific parameters.")

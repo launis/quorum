@@ -64,11 +64,8 @@ def apply_scoring_logic(state: WorkflowState) -> WorkflowState:
     count = 0
     scores_found = []
     
-    # Start with global audit_results if available
-    audit_results = state.audit_results or {}
-    
-    # Also check context_variables for direct step outputs (e.g. step_judge, step_judge_cognitive)
-    candidates = list(audit_results.values())
+    # Candidate list for potential multiple judges (Standard + Cognitive)
+    candidates = []
     
     for judge_key in ["step_judge", "step_judge_cognitive"]:
         if judge_key in context:

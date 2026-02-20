@@ -48,9 +48,22 @@ class EvidenceItem(BaseModel):
     score: float | None
     type: str # "precedent" | "regulation" | "concept"
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=False)
 
     @field_validator("id", "source", "content", "type")
+    @classmethod
+    def validate_non_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Field cannot be empty or whitespace only.")
+        return v.strip()
+
+class MarkdownBlockDisplay(BaseModel):
+    """Server-Driven UI Data for Markdown Content."""
+    content: str
+    
+    model_config = ConfigDict(frozen=True, strict=False)
+    
+    @field_validator("content")
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
         if not v or not v.strip():
@@ -62,7 +75,7 @@ class EvidenceList(BaseModel):
     items: list[EvidenceItem]
     total_count: int
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=False)
 
 class UiSection(BaseModel):
     """Abstract UI Section.
@@ -73,7 +86,7 @@ class UiSection(BaseModel):
     title: str = Field(..., description="User-facing title of the section")
     data: Any = Field(default_factory=dict, description="Flexible payload specific to the section type (dict or Pydantic Model)")
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=False)
 
     @field_validator("id", "title")
     @classmethod
@@ -88,7 +101,7 @@ class SystemNotification(BaseModel):
     message: str
     level: str = "info" # info, warning, danger
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=False)
 
     @field_validator("title", "message", "level")
     @classmethod
@@ -109,7 +122,7 @@ class ReportView(BaseModel):
     metrics: dict[str, Any] | None = Field(default=None, description="Global audit metrics (Word Count, etc.)")
     system_notification: SystemNotification | None = Field(default=None, description="Global notification/warning")
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=False)
 
     @field_validator("view_id", "title", "status_theme")
     @classmethod
@@ -125,7 +138,7 @@ class StepProgressItem(BaseModel):
     label: str = Field(..., description="Human-readable label")
     status: str = Field(..., description="Status: pending, running, completed, failed")
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=False)
 
     @field_validator("id", "label", "status")
     @classmethod
@@ -151,7 +164,7 @@ class AssessmentView(BaseModel):
     steps: list[StepProgressItem] = Field(default_factory=list, description="Ordered list of steps with status")
     finalScore: int | None = Field(default=None, description="Final score if available")
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=False)
 
     @field_validator("sessionId", "statusLabel", "statusMessage")
     @classmethod
@@ -167,7 +180,7 @@ class ToulminDisplay(BaseModel):
     claim: str
     warrant: str
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=False)
 
     @field_validator("claim", "warrant")
     @classmethod
@@ -207,7 +220,7 @@ class LogicAnalysisDisplay(BaseModel):
     strategic_depth_raw: str | None
     arguments: list[ToulminDisplay]
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=False)
 
 
 
@@ -219,7 +232,7 @@ class HeuristicDisplay(BaseModel):
     flag: bool
     color: str # 'red' | 'green'
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=False)
 
     @field_validator("name", "color")
     @classmethod
@@ -237,7 +250,7 @@ class PerformativityDisplay(BaseModel):
 
     heuristics: list[HeuristicDisplay]
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=False)
 
 class CausalDisplay(BaseModel):
     """Server-Driven UI Data for Causal Analysis."""
@@ -266,7 +279,7 @@ class CausalDisplay(BaseModel):
     score: float | None = None
     verdict: str | None = None
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=False)
 
 
 class VerifiedFactDisplay(BaseModel):
@@ -279,7 +292,7 @@ class VerifiedFactDisplay(BaseModel):
     verification_result: str | None
     is_verified: bool | None
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=False)
 
 class EthicalIssueDisplay(BaseModel):
     """Strict View Model for an Ethical Issue."""
@@ -291,14 +304,14 @@ class EthicalIssueDisplay(BaseModel):
     is_critical: bool
     severity: str | None
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=False)
 
 class FactCheckDisplay(BaseModel):
     """Server-Driven UI Data for Fact & Ethics Check."""
     verified_facts: list[VerifiedFactDisplay]
     ethical_issues: list[EthicalIssueDisplay]
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=False)
 
 
 class SecurityDisplay(BaseModel):
@@ -317,7 +330,7 @@ class SecurityDisplay(BaseModel):
 
     findings: list[str]
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=False)
 
     @field_validator("threat_color", "threat_label", "risk_level", "risk_color", "anonymized_color", "anonymized_label")
     @classmethod
@@ -336,7 +349,7 @@ class StressFindingDisplay(BaseModel):
     text_class: str  # "text-held" / "text-broken"
     observation: str
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=False)
 
     @field_validator("question", "result_label", "color_class", "text_class", "observation")
     @classmethod
@@ -354,7 +367,7 @@ class FidelityAudit(BaseModel):
     post_hoc_rationalization_suspected: bool
     reasoning: str
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=False)
 
 class StressTestDisplay(BaseModel):
     """Server-Driven UI Data for Stress Test / Falsifier."""
@@ -378,7 +391,7 @@ class StressTestDisplay(BaseModel):
     # Findings (Hoisted Logic)
     findings: list[StressFindingDisplay]
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=False)
 
 
 class ProfilerDisplay(BaseModel):
@@ -412,7 +425,7 @@ class ProfilerDisplay(BaseModel):
     psychological_profile: str | None
     intent_analysis: str | None
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=False)
 
 
 class ArchivistDisplay(BaseModel):
@@ -423,7 +436,7 @@ class ArchivistDisplay(BaseModel):
     compliance_help: str | None
     recommendations: list[str]
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=False)
 
 
 class DimensionDisplay(BaseModel):
@@ -435,7 +448,7 @@ class DimensionDisplay(BaseModel):
     weight: float
     reasoning: str | None
     
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=False)
 
 
 class ScoreCardDisplay(BaseModel):
@@ -447,7 +460,7 @@ class ScoreCardDisplay(BaseModel):
     verdict: str
     dimensions: list[DimensionDisplay] = Field(default_factory=list)
 
-    model_config = ConfigDict(frozen=True, strict=True)
+    model_config = ConfigDict(frozen=True, strict=False)
 
 
 class DriverProfileDisplay(BaseModel):
@@ -456,5 +469,4 @@ class DriverProfileDisplay(BaseModel):
     input_quality_label: str | None
     strategies: list[str]
 
-    model_config = ConfigDict(frozen=True, strict=True)
-
+    model_config = ConfigDict(frozen=True, strict=False)

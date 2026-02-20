@@ -209,3 +209,37 @@ if isinstance(wf_state, dict):
          # Fallthrough to Fail-Fast
 ```
 This ensures resilience (DB doesn't crash on load) and integrity (Logic layer verifies schema before use).
+
+---
+
+## 10. Model Strategy Architecture (V3.2)
+
+The system employs a specific architectural pattern to decouple **Semantic Intent** from **Operational Constraints**. This ensures the system's "Deep" reasoning capabilities are defined correctly, even if operational limits (e.g., Google Quotas) require temporary downgrades.
+
+### 10.1. Semantic Strategies (Definitions)
+Strategies define *what* a model class represents in the system architecture, regardless of the underlying provider model.
+
+*   **`deep` / `precise`**:
+    *   **Intent**: High-Reasoning capability (PRO Tier). Used for complex analysis, judging, archiving, and causal inference.
+    *   **Target Model**: Typically `vertex_ai/gemini-2.5-pro` (or equivalent high-intelligence model).
+*   **`fast` / `strict`**:
+    *   **Intent**: High-Throughput / Low-Latency capability (FLASH Tier). Used for reporting, interaction, and initial filtering.
+    *   **Target Model**: `vertex_ai/gemini-2.5-flash`.
+
+### 10.2. Operational Mapping (Agent Assignment)
+While strategies are defined globally, the `system_config` table maps specific Agents to these strategies.
+
+*   **Default State**:
+    *   `AnalystAgent` -> `deep` (Pro).
+    *   `JudgeAgent` -> `precise` (Pro).
+*   **Operational Mitigation (The "Flash Override" Pattern)**:
+    *   **Problem**: In high-concurrency environments, Pro models often hit `429 Resource Exhausted` errors due to low quotas (e.g., 5 RPM).
+    *   **Solution**: We can **re-map** specific Agents to lighter strategies (e.g., `fast` / Flash) in the database *without changing the semantic definition of "Deep"*.
+    *   **Mechanism**: Change `models["AnalystAgent"] = "fast"` in `db.json`.
+    *   **Result**: The Agent runs successfully using the lighter model to bypass rate limits, while the system still conceptually understands that `deep` generally refers to the Pro tier for future scalability.
+
+### 10.3. Rate Limit Management
+Limits are enforced at the **Strategy Definition** level in the database (`limits` object).
+*   **Pro Bucket**: Shared by all agents using `deep`/`precise`. (e.g., 500k TPM).
+*   **Flash Bucket**: Shared by all agents using `fast`/`strict`. (e.g., 2M TPM).
+*   **Tuning**: When re-mapping agents to Flash, ensure the Flash strategy has sufficient TPM/RPM limits (e.g., `max_tokens: 65536` to match Flash limits) to handle the increased load.

@@ -144,6 +144,11 @@ class AgentRegistry:
                 else:
                     logger.debug(f"[AgentRegistry] Direct resolution (No Chain). Final Config: {config}")
 
+                    # 4. Construct strict ModelConfig
+                    keys_to_exclude = {
+                        "model_name", "provider", "max_tokens", "temperature", "top_p", 
+                        "supports_grounding", "is_active", "tpm_limit", "rpm_limit", "api_key"
+                    }
                     return ModelConfig(
                         model_name=config.get("model_name", "unknown"),
                         provider=config.get("provider", "unknown"),
@@ -151,7 +156,11 @@ class AgentRegistry:
                         temperature=config.get("temperature"),
                         top_p=config.get("top_p"),
                         supports_grounding=config.get("supports_grounding", False),
-                        extra_params={k: v for k, v in config.items() if k not in ["model_name", "provider", "max_tokens", "temperature", "top_p", "supports_grounding"]}
+                        is_active=config.get("is_active"),
+                        tpm_limit=config.get("tpm_limit"),
+                        rpm_limit=config.get("rpm_limit"),
+                        api_key=config.get("api_key"),
+                        extra_params={k: v for k, v in config.items() if k not in keys_to_exclude}
                     )
 
         # 3. Fail if not found

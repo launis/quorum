@@ -118,7 +118,7 @@ class TaskRegistry:
                 model_config = await registry.resolve_model_config(agent_cls.__name__)
                 
                 if hasattr(agent, "set_model"):
-                    agent.set_model(model_config.model_name, provider=model_config.provider)
+                    agent.set_model(model_config.model_name, provider=model_config.provider, config=model_config)
             except Exception as e:
                 logger.error(f"Failed to configure agent {agent_cls.__name__}: {e}")
                 from backend.exceptions import AppException, ErrorCodes, status

@@ -118,7 +118,7 @@ class LLMProviderConfig(BaseModel):
     tpm_limit: Annotated[
         int,
         Field(
-            default=0,
+            ...,
             ge=0,
             description="Tokens per minute limit. 0=unlimited.",
             json_schema_extra={"x-ui-label": "TPM Limit"},
@@ -127,7 +127,7 @@ class LLMProviderConfig(BaseModel):
     rpm_limit: Annotated[
         int,
         Field(
-            default=0,
+            ...,
             ge=0,
             description="Requests per minute limit. 0=unlimited.",
             json_schema_extra={"x-ui-label": "RPM Limit"},

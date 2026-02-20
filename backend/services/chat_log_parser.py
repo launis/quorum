@@ -36,6 +36,10 @@ class ChatLogParser:
                 details={"error_code": error_code}
             )
 
+        # DEBUG DIAGNOSTICS (Context Bloat Investigation)
+        input_len = len(text)
+        logger.info(f"[ChatLogParser] Parsing input of length: {input_len} chars")
+
         # NORMALIZE LINE ENDINGS (Fix for Windows \r\n)
         text = text.replace("\r\n", "\n")
 

@@ -188,8 +188,8 @@ class WorkflowState(BaseModel):
     @property
     def step_coach(self) -> Any | None:
         """Type-Safe Accessor for Coach Output."""
-        from backend.models.domain.coach import CoachOutput
-        return self.get_context("step_coach", CoachOutput)
+        from backend.models.domain.coach import CoachingPlan
+        return self.get_context("step_coach", CoachingPlan)
 
     @property
     def step_xai(self) -> Any | None:

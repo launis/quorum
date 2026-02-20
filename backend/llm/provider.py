@@ -119,35 +119,17 @@ class LiteLLMProvider(LLMProvider):
         # Limits must be provided via specific configuration (Organization/User/System).
         
         if not limits:
-             # If no limits passed, we check settings or raise.
-             # We do not default to 10000/10 silently.
-             if settings and hasattr(settings, "default_llm_limits"):
-                  limits = settings.default_llm_limits
-             else:
-                  # For now, we might allow a very strict safe fallback OR fail.
-                  # "mikään ei saa olla kovakoodattua" implies we shouldn't have 10000 here.
-                  # But we need A limit. 
-                  # Let's assume the caller MUST provide them or we fallback to a STRICTLY DEFINED
-                  # system setting, not a magic number in code.
-                  # Since we don't have that setting yet, we'll enforce that 'limits' is required 
-                  # or we raise.
-                  # However, existing calls might not pass it.
-                  # Let's add 'default_tpm' to settings if needed, or just fail if missing.
-                  # Given the user's strictness: FAIL.
-                  pass
+             msg = "Strict Mode: LLM Rate Limits (TPM/RPM) must be explicitly passed to Provider. No hardcoded defaults allowed."
+             logger.error(f"[LiteLLMProvider] {msg}")
+             raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR})
 
-        tpm = limits.get("tpm") if limits else None
-        rpm = limits.get("rpm") if limits else None
+        tpm = limits.get("tpm")
+        rpm = limits.get("rpm")
         
         if tpm is None or rpm is None:
-             # Check settings for global fallback (configured, not hardcoded)
-             if settings and settings.llm_default_tpm and settings.llm_default_rpm:
-                 tpm = tpm or settings.llm_default_tpm
-                 rpm = rpm or settings.llm_default_rpm
-             else:
-                 msg = "Strict Mode: LLM Rate Limits (TPM/RPM) must be explicitly configured. No hardcoded defaults."
-                 logger.error(f"[LiteLLMProvider] {msg}")
-                 raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR})
+             msg = "Strict Mode: Both TPM and RPM must be defined in limits config."
+             logger.error(f"[LiteLLMProvider] {msg}")
+             raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR})
 
         # 2. Build deployment config
         model_config = {
@@ -259,6 +241,10 @@ class LiteLLMProvider(LLMProvider):
                 "drop_params": True,
                 # STRICT NETWORK TIMEOUT: Fail fast (120s) instead of hanging forever.
                 "timeout": 120,
+                # SAFETY FILTERS (Auditing Requirement):
+                # We must be able to process "unsafe" content (e.g. Hate Speech in logs) without blocking.
+                # Therefore, we disable safety filters for the Analyzer.
+                "safety_settings": self.settings.default_safety_settings,
             }
             # Inject dynamic extra params (top_p, top_k, etc.) provided via kwargs
             # Filter out internal keys if necessary, but litellm.drop_params=True handles most.
