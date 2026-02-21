@@ -1,0 +1,68 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.14.2, pytest-9.0.2, pluggy-1.6.0 -- C:\Python314\python.exe
+cachedir: .pytest_cache
+rootdir: C:\src\quorum
+configfile: pytest.ini
+plugins: anyio-4.12.1, asyncio-1.3.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collecting ... collected 5 items
+
+backend/tests/hooks/test_integrity.py::test_enforce_hypothesis_linking_success PASSED [ 20%]
+backend/tests/hooks/test_integrity.py::test_enforce_hypothesis_linking_bad_format FAILED [ 40%]
+backend/tests/hooks/test_integrity.py::test_enforce_hypothesis_linking_sequence_gap FAILED [ 60%]
+backend/tests/hooks/test_integrity.py::test_verify_citation_integrity_success FAILED [ 80%]
+backend/tests/hooks/test_integrity.py::test_verify_citation_integrity_fail_fast FAILED [100%]
+
+================================== FAILURES ===================================
+_________________ test_enforce_hypothesis_linking_bad_format __________________
+backend\tests\hooks\test_integrity.py:48: in test_enforce_hypothesis_linking_bad_format
+    assert "INVALID_HYPOTHESIS_ID" in str(exc.value.details)
+E   assert 'INVALID_HYPOTHESIS_ID' in "{'error_code': <ErrorCodes.VALIDATION_FAILED: 'VALIDATION_FAILED'>}"
+E    +  where "{'error_code': <ErrorCodes.VALIDATION_FAILED: 'VALIDATION_FAILED'>}" = str({'error_code': <ErrorCodes.VALIDATION_FAILED: 'VALIDATION_FAILED'>})
+E    +    where {'error_code': <ErrorCodes.VALIDATION_FAILED: 'VALIDATION_FAILED'>} = AppException("Invalid Hypothesis ID format: 'INVALID-2'. Expected 'HYP-N'.").details
+E    +      where AppException("Invalid Hypothesis ID format: 'INVALID-2'. Expected 'HYP-N'.") = <ExceptionInfo AppException("Invalid Hypothesis ID format: 'INVALID-2'. Expected 'HYP-N'.") tblen=2>.value
+------------------------------ Captured log call ------------------------------
+ERROR    backend.hooks.integrity:integrity.py:319 [IntegrityHook] VALIDATION_FAILED: Invalid Hypothesis ID format: 'INVALID-2'. Expected 'HYP-N'.
+________________ test_enforce_hypothesis_linking_sequence_gap _________________
+backend\tests\hooks\test_integrity.py:60: in test_enforce_hypothesis_linking_sequence_gap
+    assert "HYPOTHESIS_SEQUENCE_ERROR" in str(exc.value.details)
+E   assert 'HYPOTHESIS_SEQUENCE_ERROR' in "{'error_code': <ErrorCodes.STATE_INTEGRITY_ERROR: 'STATE_INTEGRITY_ERROR'>, 'expected': 'HYP-2', 'got': 'HYP-3'}"
+E    +  where "{'error_code': <ErrorCodes.STATE_INTEGRITY_ERROR: 'STATE_INTEGRITY_ERROR'>, 'expected': 'HYP-2', 'got': 'HYP-3'}" = str({'error_code': <ErrorCodes.STATE_INTEGRITY_ERROR: 'STATE_INTEGRITY_ERROR'>, 'expected': 'HYP-2', 'got': 'HYP-3'})
+E    +    where {'error_code': <ErrorCodes.STATE_INTEGRITY_ERROR: 'STATE_INTEGRITY_ERROR'>, 'expected': 'HYP-2', 'got': 'HYP-3'} = AppException('Hypothesis ID sequence error. Expected HYP-2, got HYP-3.').details
+E    +      where AppException('Hypothesis ID sequence error. Expected HYP-2, got HYP-3.') = <ExceptionInfo AppException('Hypothesis ID sequence error. Expected HYP-2, got HYP-3.') tblen=2>.value
+------------------------------ Captured log call ------------------------------
+ERROR    backend.hooks.integrity:integrity.py:328 [IntegrityHook] STATE_INTEGRITY_ERROR: Hypothesis ID sequence error. Expected HYP-2, got HYP-3.
+___________________ test_verify_citation_integrity_success ____________________
+backend\tests\hooks\test_integrity.py:73: in test_verify_citation_integrity_success
+    new_state = verify_citation_integrity(state)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\hooks\integrity.py:103: in verify_citation_integrity
+    raise AppException(message=msg, status_code=400, details={"error_code": error_code})
+E   backend.exceptions.AppException: Missing mandatory input fields (history_text, product_text, reflection_text) for citation verification.
+------------------------------ Captured log call ------------------------------
+ERROR    backend.hooks.integrity:integrity.py:102 [IntegrityHook] EMPTY_INPUT: Missing mandatory input fields (history_text, product_text, reflection_text) for citation verification.
+__________________ test_verify_citation_integrity_fail_fast ___________________
+backend\tests\hooks\test_integrity.py:93: in test_verify_citation_integrity_fail_fast
+    assert "CITATION_INTEGRITY_FAILURE" in str(exc.value.details)
+E   assert 'CITATION_INTEGRITY_FAILURE' in "{'error_code': <ErrorCodes.EMPTY_INPUT: 'EMPTY_INPUT'>}"
+E    +  where "{'error_code': <ErrorCodes.EMPTY_INPUT: 'EMPTY_INPUT'>}" = str({'error_code': <ErrorCodes.EMPTY_INPUT: 'EMPTY_INPUT'>})
+E    +    where {'error_code': <ErrorCodes.EMPTY_INPUT: 'EMPTY_INPUT'>} = AppException('Missing mandatory input fields (history_text, product_text, reflection_text) for citation verification.').details
+E    +      where AppException('Missing mandatory input fields (history_text, product_text, reflection_text) for citation verification.') = <ExceptionInfo AppException('Missing mandatory input fields (history_text, product_text, reflection_text) for citation verification.') tblen=2>.value
+------------------------------ Captured log call ------------------------------
+ERROR    backend.hooks.integrity:integrity.py:102 [IntegrityHook] EMPTY_INPUT: Missing mandatory input fields (history_text, product_text, reflection_text) for citation verification.
+--------- generated xml file: C:\src\quorum\tests\output\results.xml ----------
+=========================== short test summary info ===========================
+FAILED backend/tests/hooks/test_integrity.py::test_enforce_hypothesis_linking_bad_format - assert 'INVALID_HYPOTHESIS_ID' in "{'error_code': <ErrorCodes.VALIDATION_FAILED: 'VALIDATION_FAILED'>}"
+ +  where "{'error_code': <ErrorCodes.VALIDATION_FAILED: 'VALIDATION_FAILED'>}" = str({'error_code': <ErrorCodes.VALIDATION_FAILED: 'VALIDATION_FAILED'>})
+ +    where {'error_code': <ErrorCodes.VALIDATION_FAILED: 'VALIDATION_FAILED'>} = AppException("Invalid Hypothesis ID format: 'INVALID-2'. Expected 'HYP-N'.").details
+ +      where AppException("Invalid Hypothesis ID format: 'INVALID-2'. Expected 'HYP-N'.") = <ExceptionInfo AppException("Invalid Hypothesis ID format: 'INVALID-2'. Expected 'HYP-N'.") tblen=2>.value
+FAILED backend/tests/hooks/test_integrity.py::test_enforce_hypothesis_linking_sequence_gap - assert 'HYPOTHESIS_SEQUENCE_ERROR' in "{'error_code': <ErrorCodes.STATE_INTEGRITY_ERROR: 'STATE_INTEGRITY_ERROR'>, 'expected': 'HYP-2', 'got': 'HYP-3'}"
+ +  where "{'error_code': <ErrorCodes.STATE_INTEGRITY_ERROR: 'STATE_INTEGRITY_ERROR'>, 'expected': 'HYP-2', 'got': 'HYP-3'}" = str({'error_code': <ErrorCodes.STATE_INTEGRITY_ERROR: 'STATE_INTEGRITY_ERROR'>, 'expected': 'HYP-2', 'got': 'HYP-3'})
+ +    where {'error_code': <ErrorCodes.STATE_INTEGRITY_ERROR: 'STATE_INTEGRITY_ERROR'>, 'expected': 'HYP-2', 'got': 'HYP-3'} = AppException('Hypothesis ID sequence error. Expected HYP-2, got HYP-3.').details
+ +      where AppException('Hypothesis ID sequence error. Expected HYP-2, got HYP-3.') = <ExceptionInfo AppException('Hypothesis ID sequence error. Expected HYP-2, got HYP-3.') tblen=2>.value
+FAILED backend/tests/hooks/test_integrity.py::test_verify_citation_integrity_success - backend.exceptions.AppException: Missing mandatory input fields (history_text, product_text, reflection_text) for citation verification.
+FAILED backend/tests/hooks/test_integrity.py::test_verify_citation_integrity_fail_fast - assert 'CITATION_INTEGRITY_FAILURE' in "{'error_code': <ErrorCodes.EMPTY_INPUT: 'EMPTY_INPUT'>}"
+ +  where "{'error_code': <ErrorCodes.EMPTY_INPUT: 'EMPTY_INPUT'>}" = str({'error_code': <ErrorCodes.EMPTY_INPUT: 'EMPTY_INPUT'>})
+ +    where {'error_code': <ErrorCodes.EMPTY_INPUT: 'EMPTY_INPUT'>} = AppException('Missing mandatory input fields (history_text, product_text, reflection_text) for citation verification.').details
+ +      where AppException('Missing mandatory input fields (history_text, product_text, reflection_text) for citation verification.') = <ExceptionInfo AppException('Missing mandatory input fields (history_text, product_text, reflection_text) for citation verification.') tblen=2>.value
+========================= 4 failed, 1 passed in 0.52s =========================

@@ -50,11 +50,6 @@ class WorkflowStep(BaseModel):
         description="Arbitrary metadata for the step (e.g., 'agent_class')",
         json_schema_extra={"x-ui-label": "Metadata"},
     )
-    is_custom: bool = Field(False, description="Whether this is a custom builder step")
-    execution_config: dict[str, Any] | None = Field(None, description="Custom execution config map")
-    output_config_component: str | None = Field(None, description="Optional output component mapping")
-    output_filename: str | None = Field(None, description="Optional output filename")
-    is_missing_registry: bool = Field(False, description="Flag indicating the step is missing from registry")
 
     model_config = ConfigDict(frozen=True, strict=True)
 
@@ -64,6 +59,9 @@ class WorkflowStep(BaseModel):
         if not v or not v.strip():
             raise ValueError("Field cannot be empty or whitespace only.")
         return v.strip()
+
+
+
 
 
 
@@ -137,12 +135,13 @@ class WorkflowDefinition(BaseModel):
             "x-ui-label": "Workflow Name",
         },
     )
-    steps: list[WorkflowStep] = Field(
+    steps: list[str] = Field(
         default_factory=list,
-        description="Ordered list of Step Definitions",
+        description="Ordered list of step IDs to execute",
         json_schema_extra={
             "x-ui-widget": "reorderable-list",
             "x-ui-group": "Steps",
+            "x-ui-label": "Steps"
         },
     )
     description: str = Field(

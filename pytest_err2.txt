@@ -1,0 +1,110 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.14.2, pytest-9.0.2, pluggy-1.6.0 -- C:\src\quorum\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: C:\src\quorum
+configfile: pytest.ini
+plugins: anyio-4.12.0, logfire-4.16.0, asyncio-1.3.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collecting ... collected 4 items
+
+backend/tests/core/test_engine_errors.py::test_resolve_inputs_failure PASSED [ 25%]
+backend/tests/core/test_engine_errors.py::test_execute_workflow_task_not_found FAILED [ 50%]
+backend/tests/core/test_engine_errors.py::test_execute_workflow_input_validation_failed FAILED [ 75%]
+backend/tests/core/test_engine_errors.py::test_execute_workflow_chat_parsing_failed PASSED [100%]
+
+================================== FAILURES ===================================
+____________________ test_execute_workflow_task_not_found _____________________
+backend\tests\core\test_engine_errors.py:42: in test_execute_workflow_task_not_found
+    assert exc.value.error_code == ErrorCodes.TASK_NOT_FOUND
+E   AssertionError: assert <ErrorCodes.W...UTION_FAILED'> == <ErrorCodes.T...SK_NOT_FOUND'>
+E     
+E     - TASK_NOT_FOUND
+E     + WORKFLOW_EXECUTION_FAILED
+------------------------------ Captured log call ------------------------------
+ERROR    backend.core.engine:engine.py:243 [GraphEngine] Failed to properly validate hydrated step 'step1': 1 validation error for WorkflowStep
+name
+  Field required [type=missing, input_value={'task_key': 'missing.task', 'id': 'step1'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing. Rejecting due to Zero-Fallback mandate.
+ERROR    backend.core.engine:engine.py:448 ErrorCodes.WORKFLOW_EXECUTION_FAILED: Workflow failed at step 'step1': Step 'step1' (Task: 'missing.task') failed: 1 validation error for WorkflowStep
+name
+  Field required [type=missing, input_value={'task_key': 'missing.task', 'id': 'step1'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+Traceback (most recent call last):
+  File "C:\src\quorum\backend\core\engine.py", line 241, in execute_workflow
+    step = WorkflowStep.model_validate(merged)
+  File "C:\src\quorum\.venv\Lib\site-packages\pydantic\main.py", line 716, in model_validate
+    return cls.__pydantic_validator__.validate_python(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        obj,
+        ^^^^
+    ...<5 lines>...
+        by_name=by_name,
+        ^^^^^^^^^^^^^^^^
+    )
+    ^
+pydantic_core._pydantic_core.ValidationError: 1 validation error for WorkflowStep
+name
+  Field required [type=missing, input_value={'task_key': 'missing.task', 'id': 'step1'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\src\quorum\backend\core\engine.py", line 244, in execute_workflow
+    raise WorkflowExecutionError(
+    ...<4 lines>...
+    ) from e
+backend.exceptions.WorkflowExecutionError: Step 'step1' (Task: 'missing.task') failed: 1 validation error for WorkflowStep
+name
+  Field required [type=missing, input_value={'task_key': 'missing.task', 'id': 'step1'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+________________ test_execute_workflow_input_validation_failed ________________
+backend\tests\core\test_engine_errors.py:61: in test_execute_workflow_input_validation_failed
+    assert exc.value.error_code == ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED
+E   AssertionError: assert <ErrorCodes.W...UTION_FAILED'> == <ErrorCodes.A...ATION_FAILED'>
+E     
+E     - AGENT_SCHEMA_VALIDATION_FAILED
+E     + WORKFLOW_EXECUTION_FAILED
+------------------------------ Captured log call ------------------------------
+ERROR    backend.core.engine:engine.py:243 [GraphEngine] Failed to properly validate hydrated step 'step1': 1 validation error for WorkflowStep
+name
+  Field required [type=missing, input_value={'task_key': 'valid.task', 'id': 'step1'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing. Rejecting due to Zero-Fallback mandate.
+ERROR    backend.core.engine:engine.py:448 ErrorCodes.WORKFLOW_EXECUTION_FAILED: Workflow failed at step 'step1': Step 'step1' (Task: 'valid.task') failed: 1 validation error for WorkflowStep
+name
+  Field required [type=missing, input_value={'task_key': 'valid.task', 'id': 'step1'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+Traceback (most recent call last):
+  File "C:\src\quorum\backend\core\engine.py", line 241, in execute_workflow
+    step = WorkflowStep.model_validate(merged)
+  File "C:\src\quorum\.venv\Lib\site-packages\pydantic\main.py", line 716, in model_validate
+    return cls.__pydantic_validator__.validate_python(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        obj,
+        ^^^^
+    ...<5 lines>...
+        by_name=by_name,
+        ^^^^^^^^^^^^^^^^
+    )
+    ^
+pydantic_core._pydantic_core.ValidationError: 1 validation error for WorkflowStep
+name
+  Field required [type=missing, input_value={'task_key': 'valid.task', 'id': 'step1'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\src\quorum\backend\core\engine.py", line 244, in execute_workflow
+    raise WorkflowExecutionError(
+    ...<4 lines>...
+    ) from e
+backend.exceptions.WorkflowExecutionError: Step 'step1' (Task: 'valid.task') failed: 1 validation error for WorkflowStep
+name
+  Field required [type=missing, input_value={'task_key': 'valid.task', 'id': 'step1'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+--------- generated xml file: C:\src\quorum\tests\output\results.xml ----------
+=========================== short test summary info ===========================
+FAILED backend/tests/core/test_engine_errors.py::test_execute_workflow_task_not_found
+FAILED backend/tests/core/test_engine_errors.py::test_execute_workflow_input_validation_failed
+========================= 2 failed, 2 passed in 0.39s =========================

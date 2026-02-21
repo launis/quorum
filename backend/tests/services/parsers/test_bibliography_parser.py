@@ -1,4 +1,6 @@
+import pytest
 from backend.services.parsers.bibliography_parser import BibliographyParser
+from backend.exceptions import AppException
 
 
 class TestBibliographyParser:
@@ -61,5 +63,5 @@ class TestBibliographyParser:
     def test_no_bibliography(self):
         parser = BibliographyParser()
         text = "Just some text without references."
-        refs = parser.parse_references(text)
-        assert refs == {}
+        with pytest.raises(AppException):
+            refs = parser.parse_references(text)

@@ -305,24 +305,8 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
             else:
                 return None
 
-        # Hydrate steps from Registry
-        if "steps" in data and isinstance(data["steps"], list):
-            # Fetch all steps for hydration
-            # Optimization: Could cache steps or fetch by ID if driver supports 'in'
-            # For now fetch all is safer for small step counts
-            all_steps = await self.driver.query("steps")
-            registry_steps = {s["id"]: s for s in all_steps if "id" in s}
-
-            hydrated = []
-            for step in data["steps"]:
-                sid = step.get("id")
-                if sid and sid in registry_steps:
-                    merged = registry_steps[sid].copy()
-                    merged.update(step)
-                    hydrated.append(merged)
-                else:
-                    hydrated.append(step)
-            data["steps"] = hydrated
+        # Note: Hydration is strictly handled at the execution (engine.py) 
+        # or presentation (_expand_workflow) layer according to Strict SSOT API.
 
         return WorkflowDefinition(**data)
 

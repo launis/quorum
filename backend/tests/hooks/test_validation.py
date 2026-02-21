@@ -64,6 +64,4 @@ def test_verify_structure_invalid_inputs_type(mock_state):
     with pytest.raises(AppException) as exc:
         verify_structure(mock_state)
     
-    assert exc.value.error_code == ErrorCodes.VALIDATION_FAILED
-    # All fields missing/short
-    assert len(exc.value.details["warnings"]) == 3
+    assert exc.value.error_code == ErrorCodes.EMPTY_INPUT

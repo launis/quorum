@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from backend.services.knowledge_base_service import KnowledgeBaseService
+from backend.exceptions import ServiceUnavailableError
 
 
 @pytest.mark.asyncio
@@ -87,9 +88,7 @@ async def test_retrieve_context_exception_handling():
     mock_repo.get_knowledge_base_items.side_effect = Exception("DB Error")
     service = KnowledgeBaseService(repository=mock_repo, storage_client=MagicMock())
 
-    # Act
-    result = await service.retrieve_context()
-
-    # Assert
-    assert result == []
+    # Act & Assert
+    with pytest.raises(ServiceUnavailableError, match="DB Error"):
+        await service.retrieve_context()
 

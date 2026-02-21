@@ -57,6 +57,11 @@ async def test_agent_execution_mock():
         "falsifier_data": {
             "is_falsifiable": True,
             "falsification_attempts": [],
+            "stress_test_findings": [{"question": "Q", "evidence_held": False, "observation": "O"}],
+            "fidelity_audit": {
+                "fidelity_score": "High",
+                "justification": "Mock fidelity audit"
+            },
             "stress_test": {"resilience_score": 0.5, "weak_points": []},
             "fidelity": {"score": 0.8, "assessment": "Good"}
         }
@@ -77,10 +82,12 @@ async def test_agent_execution_mock():
         # So we mock generate to return the DTO instance.
         
         dto_instance = agent.DTO_SCHEMA(**mock_response_dict)
-        mock_llm.generate.return_value = dto_instance
+        mock_response = MagicMock()
+        mock_response.parsed_content = dto_instance
+        mock_llm.generate.return_value = mock_response
         
         # Inject mock llm
-        agent.client = mock_llm 
+        agent.llm_provider = mock_llm 
         
         # ACT
         result = await agent.execute(input_data)
@@ -95,7 +102,13 @@ async def test_agent_execution_mock():
     # 1. LogicalFalsifierAgent
     falsifier = LogicalFalsifierAgent()
     falsifier_input = FalsifierInput(
-        history_text="Foo", product_text="Bar", reflection_text="Baz"
+        history_text="Foo", product_text="Bar", reflection_text="Baz",
+        step_analyst={
+            "thought_process": "tp",
+            "conclusion": "c",
+            "confidence_score": 1.0,
+            "hypotheses": [{"id": "h1", "claim_text": "Claim", "evidence_found": False, "search_query": "test"}]
+        }
     )
     await run_agent_test(falsifier, falsifier_input, falsifier_dto_mock)
 

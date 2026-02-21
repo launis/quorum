@@ -6,7 +6,9 @@ from unittest.mock import AsyncMock, patch, MagicMock
 
 from backend.main import app
 from backend.dependencies import get_async_repository, get_current_user_from_header
-from backend.models.state import WorkflowState
+from backend.models.state import WorkflowState, TraceEvent
+from backend.models.domain.execution import ExecutionRecord
+from datetime import datetime, timezone
 from backend.models.domain.xai import XAIOutput
 from backend.models.domain.judge import JudgeScoreCard, DimensionResultItem
 from backend.models.view.sdui import ReportView, SectionType
@@ -60,10 +62,19 @@ async def test_get_execution_view_endpoint():
             )
         ]
     )
-    state.context_variables["step_xai"] = xai_out.model_dump()
+    xai_dict = xai_out.model_dump()
+    xai_dict["xai_report_formatted"] = "Test Summary"
+    state.execution_trace.append(TraceEvent(
+        event_type="output",
+        step_name="step_xai",
+        content=xai_dict
+    ))
 
     mock_repo = create_mock_repo()
-    mock_repo.get_execution.return_value = state
+    mock_repo.get_execution.return_value = ExecutionRecord(
+        id=exec_id, workflow_id="wf-123", status="completed",
+        completed_at=datetime.now(timezone.utc), results=state
+    )
     # Inject Mock into Singleton
     import backend.dependencies
     import backend.api.routes.execution.views
@@ -87,11 +98,11 @@ async def test_get_execution_view_endpoint():
         # Verify ReportView structure (SDUI)
         view = ReportView(**data)
         assert view.view_id == exec_id
-        assert view.title == "Audit Report"
+        assert view.title == "Auditintiraportti"
         assert len(view.sections) >= 2 # Summary + Scorecard
         
         # Check Summary Section
-        summary = next((s for s in view.sections if s.id == "summary"), None)
+        summary = next((s for s in view.sections if s.id == "xai-summary"), None)
         assert summary is not None
         assert summary.type == SectionType.MARKDOWN_BLOCK
         # Data is dict when parsed from JSON unless we explicitly cast via strict typing on UiSection.data
@@ -120,12 +131,18 @@ async def test_get_flat_report_endpoint():
         flattened_scores={"dim1": 4.0, "dim2": 5.0}
     )
     
-    state.context_variables["step_xai"] = {
-        "flat_report": flat_report.model_dump(mode='json')
-    }
+    state.execution_trace.append(TraceEvent(
+        event_type="output",
+        step_name="step_xai",
+        content={"flat_report": flat_report.model_dump(mode='json')}
+    ))
+    state.context_variables["step_xai"] = {"flat_report": flat_report.model_dump(mode='json')}
     
     mock_repo = create_mock_repo()
-    mock_repo.get_execution.return_value = state
+    mock_repo.get_execution.return_value = ExecutionRecord(
+        id=exec_id, workflow_id="wf-123", status="completed",
+        completed_at=datetime.now(timezone.utc), results=state
+    )
     
     import backend.dependencies
     backend.dependencies._repository_instance = mock_repo
@@ -153,7 +170,10 @@ async def test_get_pdf_endpoint():
     
     # We don't need full state if PdfService is mocked, but repo.get_execution must return SOMETHING.
     mock_repo = create_mock_repo()
-    mock_repo.get_execution.return_value = state
+    mock_repo.get_execution.return_value = ExecutionRecord(
+        id=exec_id, workflow_id="wf-123", status="completed",
+        completed_at=datetime.now(timezone.utc), results=state
+    )
     
     import backend.dependencies
     import backend.api.routes.execution.views

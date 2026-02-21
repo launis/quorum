@@ -47,15 +47,16 @@ def verify_structure(state: WorkflowState) -> WorkflowState:
             details={"error_code": ErrorCodes.EMPTY_INPUT}
         )
 
+    input_data = state.context_variables.get("inputs")
     inputs = state.get_context("inputs", WorkflowInputs)
     
     if not inputs:
         error_code = ErrorCodes.EMPTY_INPUT
-        if inputs_data is None:
+        if input_data is None:
              msg = "Missing 'inputs' in context_variables."
              status_code = 400
         else:
-             msg = f"Inputs key missing or invalid type: {type(inputs_data)}. Expected WorkflowInputs."
+             msg = f"Inputs key missing or invalid type: {type(input_data)}. Expected WorkflowInputs."
              status_code = 500
              
         logger.error(f"[ValidationHook] {error_code.name}: {msg}")

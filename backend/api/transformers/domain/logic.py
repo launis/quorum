@@ -6,6 +6,7 @@ from backend.models.enums import HelpTextKey, StrategicDepth, TitleKey, BloomLev
 from backend.models.view import SectionType, UiSection
 from backend.exceptions import AppException
 # UVM: Use strict extensions
+from pydantic import ValidationError
 from backend.models.view import LogicAnalysisDisplay, ToulminDisplay
 from backend.models.view_extensions import LogicDisplay as LegacyLogicDisplay, Argument as LegacyArgument # Deprecated
 

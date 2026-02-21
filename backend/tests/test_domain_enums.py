@@ -117,7 +117,12 @@ def test_causal_analysis():
     data = {
         "abductive_conclusion": AbductiveConclusion.GENUINE,
         "observation": "Obs",
-        "hypothesis": "Hyp"
+        "hypothesis": "Hyp",
+        "counterfactual_test": {
+            "plausibility_score": PlausibilityLevel.IMPOSSIBLE,
+            "actual_scenario": "A",
+            "simulation_result": "B"
+        }
     }
     obj = CausalAnalysis.model_validate(data)
     assert obj.abductive_score == 3.0

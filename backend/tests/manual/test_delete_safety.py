@@ -1,6 +1,8 @@
-
 import asyncio
 import sys
+import pytest
+
+pytestmark = pytest.mark.skip(reason="Manual API test requiring live server")
 
 import httpx
 

@@ -32,7 +32,7 @@ def test_sanitize_hook_success(mock_state):
             "inputs": {
                 "history_text": "My email is foo@bar.com",
                 "product_text": "Clean product",
-                "reflection_text": ""
+                "reflection_text": "Clean reflection"
             }
         }
     })
@@ -57,16 +57,20 @@ def test_banned_phrases_check_defaults(mock_state):
     
     mock_state = mock_state.model_copy(update={
         "context_variables": {
-            "inputs": {"product_text": "This contains a paradigm shift."}
+            "inputs": {
+                "history_text": "History",
+                "product_text": "This contains a system override.",
+                "reflection_text": "Reflection"
+            }
         }
     })
 
-    # Should detect "paradigm shift" from defaults
+    # Should detect "system override" from defaults
     with pytest.raises(SecurityViolationError) as exc:
         asyncio.run(check_banned_phrases_hook(mock_state, repository=None))
     
     assert ErrorCodes.SECURITY_VIOLATION in str(exc.value.error_code)
-    assert "paradigm shift" in exc.value.details["banned_phrases"]
+    assert "system override" in exc.value.details["banned_phrases"]
 
 
 @pytest.mark.asyncio
@@ -88,7 +92,11 @@ async def test_banned_phrases_detected(mock_state):
     
     mock_state = mock_state.model_copy(update={
         "context_variables": {
-            "inputs": {"product_text": "This is a secret message."}
+            "inputs": {
+                "history_text": "History",
+                "product_text": "This is a secret message.",
+                "reflection_text": "Reflection"
+            }
         }
     })
     
@@ -106,7 +114,11 @@ async def test_banned_phrases_clean(mock_state):
     
     mock_state = mock_state.model_copy(update={
         "context_variables": {
-            "inputs": {"product_text": "Clean text."},
+            "inputs": {
+                "history_text": "History",
+                "product_text": "Clean text.",
+                "reflection_text": "Reflection"
+            },
             # Pre-existing result to verify merge
             "sanitization_result": SanitizationResult(
                  sanitized_inputs={}, pii_threats_detected=[], banned_phrases_detected=[]

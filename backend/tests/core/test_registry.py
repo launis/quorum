@@ -75,7 +75,9 @@ async def test_agent_wrapper_model_override_failure():
     mock_repo = MagicMock()
     mock_registry = AsyncMock()
     # resolve_model_config success
-    mock_registry.resolve_model_config.return_value = {"model_name": "default"}
+    config_mock = MagicMock()
+    config_mock.model_dump.return_value = {"model_name": "default"}
+    mock_registry.resolve_model_config.return_value = config_mock
     # resolve_model_name failure
     mock_registry.resolve_model_name.side_effect = ValueError("Invalid Model")
     

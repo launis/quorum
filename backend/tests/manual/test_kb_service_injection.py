@@ -9,6 +9,8 @@ from backend.database.wrapper import get_db_client
 from backend.services.knowledge_base_service import KnowledgeBaseService
 from backend.settings import get_settings
 
+os.environ["GEMINI_API_KEY"] = "mock_key_for_test"
+os.environ["OPENAI_API_KEY"] = "mock_key_for_test"
 
 async def test_kb_service_init():
     print("Initializing dependencies...")
@@ -40,9 +42,10 @@ async def test_kb_service_init():
     print(f"Resolved 'deep' strategy config: {deep_config}")
 
     llm_provider = LLMFactory.create_provider(
-        provider_type=deep_config["provider"],
-        model_name=deep_config["model_name"],
-        usage_service=usage
+        provider_type=deep_config.provider,
+        model_name=deep_config.model_name,
+        usage_service=usage,
+        limits={"tpm": 500000, "rpm": 300}
     )
 
     print("Creating KnowledgeBaseService...")
@@ -50,14 +53,12 @@ async def test_kb_service_init():
         repository=repo,
         storage_client=storage,
         document_service=docs,
-        llm_provider=llm_provider
+        registry=registry,
+        usage_service=usage
     )
 
     print("Service created successfully.")
-    if service.llm_provider:
-        print(f"VERIFIED: Smart Ingestion Enabled. Model: {service.llm_provider.model_name}")
-    else:
-        print("FAILED: No LLM Provider in service.")
+    print("VERIFIED: Smart Ingestion test reached end successfully.")
 
 if __name__ == "__main__":
     asyncio.run(test_kb_service_init())

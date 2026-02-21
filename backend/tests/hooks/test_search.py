@@ -31,9 +31,14 @@ def test_invalid_step_analyst_schema(mock_state):
     assert exc.value.error_code == ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED
 
 def test_no_hypotheses(mock_state):
-    """Should skip search if no hypotheses."""
+    """Should skip search if no valid hypotheses."""
     analyst_output = AnalystOutput(
-        hypotheses=[], 
+        hypotheses=[
+            Hypothesis(
+                id="1", claim_text="dummy claim", evidence_found=False, 
+                search_query="foo", quotes=[]
+            )
+        ], 
         rag_evidence=[],
         thought_process="Thinking...",
         conclusion="Conclusion",
@@ -64,8 +69,8 @@ def test_config_error_fail_fast(mock_state):
         "context_variables": {"step_analyst": analyst_output}
     })
     
-    # Patch GoogleSearchTool to raise ConfigurationError
-    with patch("backend.hooks.search.GoogleSearchTool", side_effect=ConfigurationError("Missing keys")):
+    # Patch VertexAISearchTool to raise ConfigurationError
+    with patch("backend.hooks.search.VertexAISearchTool", side_effect=ConfigurationError("Missing keys")):
         with pytest.raises(ConfigurationError):
              execute_google_search(mock_state)
 
@@ -95,7 +100,7 @@ def test_execution_success(mock_state):
         )
     ]
     
-    with patch("backend.hooks.search.GoogleSearchTool", return_value=mock_tool_instance):
+    with patch("backend.hooks.search.VertexAISearchTool", return_value=mock_tool_instance):
         new_state = execute_google_search(mock_state)
         
         assert "search_result" in new_state.context_variables
@@ -125,7 +130,7 @@ def test_execution_failure_fail_fast(mock_state):
     mock_tool_instance = MagicMock()
     mock_tool_instance.search.side_effect = Exception("API Down")
     
-    with patch("backend.hooks.search.GoogleSearchTool", return_value=mock_tool_instance):
+    with patch("backend.hooks.search.VertexAISearchTool", return_value=mock_tool_instance):
         with pytest.raises(AppException) as exc:
             execute_google_search(mock_state)
         
@@ -148,14 +153,19 @@ def test_language_context(mock_state):
     mock_state = mock_state.model_copy(update={
         "context_variables": {
             "step_analyst": analyst_output,
-            "language": "fi"
+            "inputs": {
+                "history_text": "History",
+                "product_text": "Product",
+                "reflection_text": "Reflection",
+                "language": "fi"
+            }
         }
     })
     
     mock_tool_instance = MagicMock()
     mock_tool_instance.search.return_value = []
     
-    with patch("backend.hooks.search.GoogleSearchTool", return_value=mock_tool_instance):
+    with patch("backend.hooks.search.VertexAISearchTool", return_value=mock_tool_instance):
         execute_google_search(mock_state)
         
         # Verify tool.search called with language='fi'

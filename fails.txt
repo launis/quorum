@@ -1,0 +1,211 @@
+﻿
+E   assert 'ARCHIVAL_RETRIEVAL_FAILED' in "{'error_code': <Er
+rorCodes.KNOWLEDGE_RETRIEVAL_FAILED: 'KNOWLEDGE_RETRIEVAL_FAI
+LED'>}"
+     +  where "{'error_code': <ErrorCodes.KNOWLEDGE_RETRIEVAL
+_FAILED: 'KNOWLEDGE_RETRIEVAL_FAILED'>}" = str({'error_code':
+ <ErrorCodes.KNOWLEDGE_RETRIEVAL_FAILED: 'KNOWLEDGE_RETRIEVAL
+_FAILED'>})
+     +    where {'error_code': <ErrorCodes.KNOWLEDGE_RETRIEVA
+L_FAILED: 'KNOWLEDGE_RETRIEVAL_FAILED'>} = AppException('Fail
+ed to retrieve precedents: DB Down').details
+     +      where AppException('Failed to retrieve precedents
+: DB Down') = <ExceptionInfo AppException('Failed to retrieve
+ precedents: DB Down') tblen=2>.value
+ERROR    backend.hooks.archival:archival.py:167 [ArchivalHook
+] KNOWLEDGE_RETRIEVAL_FAILED: DB Down
+C:\src\quorum\backend\tests\hooks\test_archival.py:75: assert
+ 'ARCHIVAL_RETRIEVAL_FAILED' in "{'error_code': <ErrorCodes.K
+NOWLEDGE_RETRIEVAL_FAILED: 'KNOWLEDGE_RETRIEVAL_FAILED'>}"
+E   Failed: DID NOT RAISE <class 'backend.exceptions.AppExcep
+tion'>
+ERROR    backend.utils.pydantic_utils:pydantic_utils.py:34 Fa
+iled to inflate XAIOutput: 1 validation error for XAIOutput
+C:\src\quorum\backend\tests\hooks\test_reporting.py:69: Faile
+d: DID NOT RAISE <class 'backend.exceptions.AppException'>
+E   Failed: DID NOT RAISE <class 'backend.exceptions.Security
+ViolationError'>
+C:\src\quorum\backend\tests\hooks\test_security.py:65: Failed
+: DID NOT RAISE <class 'backend.exceptions.SecurityViolationE
+rror'>
+E   AssertionError: Response: {"type":"https://api.quorum.fi/
+errors/report-generation-failed","title":"Report Generation F
+ailed","status":500,"detail":"ReportTransformer requires Exec
+utionRecord. Got: <class 'backend.models.state.WorkflowState'
+>","instance":"/executions/68671bdd-6b1c-4cf6-af25-e9361ce740
+48/view","extensions":{"error_code":"REPORT_GENERATION_FAILED
+"}}
+ERROR    backend.api.routes.execution.views:views.py:66 Error
+Codes.REPORT_GENERATION_FAILED: ReportTransformer requires Ex
+ecutionRecord. Got: <class 'backend.models.state.WorkflowStat
+e'>
+ERROR    backend.main:main.py:180 ErrorCodes.REPORT_GENERATIO
+N_FAILED: ReportTransformer requires ExecutionRecord. Got: <c
+lass 'backend.models.state.WorkflowState'> (Status: 500)
+c:\src\quorum\backend\tests\integration\test_execution_endpoi
+nts.py:84: AssertionError: Response: {"type":"https://api.quo
+rum.fi/errors/report-generation-failed","title":"Report Gener
+ation Failed","status":500,"detail":"ReportTransformer requir
+es ExecutionRecord. Got: <class 'backend.models.state.Workflo
+wState'>","instance":"/executions/68671bdd-6b1c-4cf6-af25-e93
+61ce74048/view","extensions":{"error_code":"REPORT_GENERATION
+_FAILED"}}
+E   httpcore.ConnectError: All connection attempts failed
+E   httpx.ConnectError: All connection attempts failed
+C:\Python314\Lib\site-packages\httpx\_transports\default.py:1
+18: httpx.ConnectError: All connection attempts failed
+E   httpcore.ConnectError: All connection attempts failed
+E   httpx.ConnectError: All connection attempts failed
+C:\Python314\Lib\site-packages\httpx\_transports\default.py:1
+18: httpx.ConnectError: All connection attempts failed
+ERROR    backend.utils.pydantic_utils:pydantic_utils.py:34 Fa
+iled to inflate GuardOutput: 5 validation errors for GuardOut
+put
+E   backend.exceptions.AppException: Bibliography Parsing Fai
+led: Bibliography section not found in document.
+ERROR    backend.services.parsers.bibliography_parser:bibliog
+raphy_parser.py:150 Bibliography Parsing Failed: Bibliography
+ section not found in document.
+C:\src\quorum\backend\services\parsers\bibliography_parser.py
+:151: backend.exceptions.AppException: Bibliography Parsing F
+ailed: Bibliography section not found in document.
+E   backend.exceptions.AppException: Failed to generate radar
+ chart.
+ERROR    backend.services.chart_service:chart_service.py:113 
+ErrorCodes.CHART_GENERATION_FAILED: Failed to generate radar 
+chart.: __version__
+C:\src\quorum\backend\services\chart_service.py:114: backend.
+exceptions.AppException: Failed to generate radar chart.
+E   backend.exceptions.ServiceUnavailableError: Knowledge Bas
+e retrieval failed: DB Error
+ERROR    backend.services.knowledge_base_service:knowledge_ba
+se_service.py:564 [KBService] KNOWLEDGE_RETRIEVAL_FAILED: Ret
+rieval failed: DB Error
+C:\src\quorum\backend\services\knowledge_base_service.py:566:
+ backend.exceptions.ServiceUnavailableError: Knowledge Base r
+etrieval failed: DB Error
+E   backend.exceptions.AppException: Strict Label Resolution 
+Failed in PDF: Dimension 'None' has no label.
+C:\src\quorum\backend\services\pdf_generator.py:186: backend.
+exceptions.AppException: Strict Label Resolution Failed in PD
+F: Dimension 'None' has no label.
+E   assert ('Chart Error' in "Strict Label Resolution Failed 
+in PDF: Dimension 'None' has no label." or 'Chart Error' in "
+{'error_code': <ErrorCodes.CHART_GENERATION_FAILED: 'CHART_GE
+NERATION_FAILED'>}")
+     +  where "Strict Label Resolution Failed in PDF: Dimensi
+on 'None' has no label." = str(AppException("Strict Label Res
+olution Failed in PDF: Dimension 'None' has no label."))
+     +    where AppException("Strict Label Resolution Failed 
+in PDF: Dimension 'None' has no label.") = <ExceptionInfo App
+Exception("Strict Label Resolution Failed in PDF: Dimension '
+None' has no label.") tblen=2>.value
+     +  and   "{'error_code': <ErrorCodes.CHART_GENERATION_FA
+ILED: 'CHART_GENERATION_FAILED'>}" = str({'error_code': <Erro
+rCodes.CHART_GENERATION_FAILED: 'CHART_GENERATION_FAILED'>})
+     +    where {'error_code': <ErrorCodes.CHART_GENERATION_F
+AILED: 'CHART_GENERATION_FAILED'>} = AppException("Strict Lab
+el Resolution Failed in PDF: Dimension 'None' has no label.")
+.details
+     +      where AppException("Strict Label Resolution Faile
+d in PDF: Dimension 'None' has no label.") = <ExceptionInfo A
+ppException("Strict Label Resolution Failed in PDF: Dimension
+ 'None' has no label.") tblen=2>.value
+C:\src\quorum\backend\tests\unit\test_pdf_generator.py:129: a
+ssert ('Chart Error' in "Strict Label Resolution Failed in PD
+F: Dimension 'None' has no label." or 'Chart Error' in "{'err
+or_code': <ErrorCodes.CHART_GENERATION_FAILED: 'CHART_GENERAT
+ION_FAILED'>}")
+E   backend.exceptions.AppException: PDF generation failed: R
+eportTransformer requires ExecutionRecord. Got: <class 'unitt
+est.mock.MagicMock'>
+ERROR    backend.services.pdf_generator:pdf_generator.py:293 
+ErrorCodes.PDF_GENERATION_FAILED: PDF generation failed for e
+xec-logic: ReportTransformer requires ExecutionRecord. Got: <
+class 'unittest.mock.MagicMock'>
+C:\src\quorum\backend\services\pdf_generator.py:301: backend.
+exceptions.AppException: PDF generation failed: ReportTransfo
+rmer requires ExecutionRecord. Got: <class 'unittest.mock.Mag
+icMock'>
+FAILED backend/tests/hooks/test_archival.py::test_retrieve_pr
+ecedent_no_repo
+FAILED backend/tests/hooks/test_archival.py::test_retrieve_pr
+ecedent_success
+FAILED backend/tests/hooks/test_archival.py::test_retrieve_pr
+ecedent_empty - ...
+FAILED backend/tests/hooks/test_archival.py::test_retrieve_pr
+ecedent_repo_error
+FAILED backend/tests/hooks/test_reporting.py::test_generate_r
+eport_success - ...
+FAILED backend/tests/hooks/test_reporting.py::test_generate_r
+eport_fail_fast_missing_template_dir
+FAILED backend/tests/hooks/test_reporting.py::test_generate_r
+eport_context_validation_failure
+FAILED backend/tests/hooks/test_search.py::test_no_hypotheses
+ - pydantic_core...
+FAILED backend/tests/hooks/test_search.py::test_config_error_
+fail_fast - Attr...
+FAILED backend/tests/hooks/test_search.py::test_execution_suc
+cess - Attribute...
+FAILED backend/tests/hooks/test_search.py::test_execution_fai
+lure_fail_fast
+FAILED backend/tests/hooks/test_search.py::test_language_cont
+ext - AttributeE...
+FAILED backend/tests/hooks/test_security.py::test_sanitize_ho
+ok_success - bac...
+FAILED backend/tests/hooks/test_security.py::test_banned_phra
+ses_check_defaults
+FAILED backend/tests/hooks/test_validation.py::test_verify_st
+ructure_invalid_inputs_type
+FAILED backend/tests/integration/test_execution_endpoints.py:
+:test_get_execution_view_endpoint
+FAILED backend/tests/integration/test_pdf_worker.py::test_gen
+erate_pdf_job_success
+FAILED backend/tests/manual/test_agents_strict_dto.py::test_a
+gent_execution_mock
+FAILED backend/tests/manual/test_delete_model.py::test_delete
+_api - httpx.Con...
+FAILED backend/tests/manual/test_delete_safety.py::test_safet
+y - httpx.Connec...
+FAILED backend/tests/manual/test_kb_service_injection.py::tes
+t_kb_service_init
+FAILED backend/tests/manual/test_output_pipeline_strict.py::t
+est_strict_accessors
+FAILED backend/tests/manual/test_xai_flat_generation.py::Test
+XAIFlatGeneration::test_flat_report_generation
+FAILED backend/tests/services/parsers/test_bibliography_parse
+r.py::TestBibliographyParser::test_no_bibliography
+FAILED backend/tests/test_domain_enums.py::test_causal_analys
+is - pydantic_co...
+FAILED backend/tests/test_storage_driver.py::test_repo_delega
+tion - TypeError...
+FAILED backend/tests/unit/test_chart_service.py::TestChartSer
+vice::test_generate_radar_chart_valid
+FAILED backend/tests/unit/test_chart_service.py::TestChartSer
+vice::test_generate_radar_chart_empty
+FAILED backend/tests/unit/test_chart_service.py::TestChartSer
+vice::test_generate_radar_chart_none
+FAILED backend/tests/unit/test_engine_cancellation.py::test_e
+ngine_graceful_cancellation
+FAILED backend/tests/unit/test_knowledge_service.py::test_ret
+rieve_context_exception_handling
+FAILED backend/tests/unit/test_llm_config.py::test_llm_provid
+er_config_defaults
+FAILED backend/tests/unit/test_pdf_generator.py::test_generat
+e_execution_pdf_success
+FAILED backend/tests/unit/test_pdf_generator.py::test_generat
+e_execution_pdf_error_handling
+FAILED backend/tests/unit/test_pdf_generator.py::test_generat
+e_pdf_with_logic_and_ethics
+FAILED backend/tests/unit/test_reporting_hook.py::test_genera
+te_report_no_data
+FAILED backend/tests/unit/test_reporting_hook.py::test_genera
+te_report_with_data
+FAILED backend/tests/unit/test_retrieval_agent.py::test_retri
+eval_agent_hybrid_execution
+FAILED backend/tests/unit/test_retrieval_agent.py::test_retri
+eval_agent_kb_failure_resilience
+================ 39 failed, 180 passed, 28 warnings in 20.81s
+ =================
+
+

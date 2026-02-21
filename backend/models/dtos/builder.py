@@ -92,7 +92,7 @@ class BuilderWorkflowCreateRequest(BaseModel):
     """Payload for creating a new workflow."""
     name: Annotated[str, Field(description="Name of the new workflow.")]
     description: Annotated[str, Field(description="Optional description.")] = ""
-    steps: Annotated[list[str | WorkflowStep], Field(description="List of step IDs or full configs.")] = []
+    steps: Annotated[list[str], Field(description="List of step IDs.")] = []
     default_model_mapping: Annotated[dict[str, str] | None, Field(description="Initial model mapping.")] = {}
     ui_schema: Annotated[dict[str, Any] | None, Field(description="UI Layout metadata.")] = {}
     is_public: Annotated[bool, Field(description="If True, visible to all tenants (System Only).")] = False
@@ -104,7 +104,7 @@ class WorkflowUpdateRequest(BaseModel):
     """Payload for updating an existing workflow."""
     name: Annotated[str | None, Field(description="New name.")] = None
     description: Annotated[str, Field(description="New description.")] = ""
-    steps: Annotated[list[str | WorkflowStep] | None, Field(description="New step sequence (IDs or Full Objects).")] = None
+    steps: Annotated[list[str] | None, Field(description="New step sequence IDs.")] = None
     ui_schema: Annotated[dict[str, Any] | None, Field(description="New UI metadata.")] = None
     default_model_mapping: Annotated[dict[str, str] | None, Field(description="Updated model mapping.")] = None
     is_public: Annotated[bool | None, Field(description="Update visibility.")] = None

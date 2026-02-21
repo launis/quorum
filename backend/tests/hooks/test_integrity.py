@@ -3,25 +3,34 @@ import pytest
 from backend.hooks.integrity import verify_citation_integrity, enforce_hypothesis_linking
 from backend.models.state import WorkflowState
 from backend.exceptions import AppException
+from unittest.mock import patch
 
 # Mock Data Classes
-class MockHypothesis:
-    def __init__(self, id, quotes=None):
-        self.id = id
-        self.quotes = quotes or []
+def create_mock_hypothesis(id, quotes=None):
+    return {
+        "id": id,
+        "quotes": quotes or [],
+        "claim_text": "Mock Claim",
+        "evidence_found": True if quotes else False,
+        "search_query": "mock query"
+    }
 
-class MockAnalyst:
-    def __init__(self, hypotheses):
-        self.hypotheses = hypotheses
+def create_mock_analyst(hypotheses):
+    return {
+        "hypotheses": hypotheses,
+        "thought_process": "Mock thought process",
+        "conclusion": "Mock conclusion",
+        "confidence_score": 0.9,
+    }
 
 # TESTS
 
 def test_enforce_hypothesis_linking_success():
     state = WorkflowState(workflow_id="wf-1")
-    state.context_variables["step_analyst"] = MockAnalyst([
-        MockHypothesis("HYP-1"),
-        MockHypothesis("HYP-2"),
-        MockHypothesis("HYP-3")
+    state.context_variables["step_analyst"] = create_mock_analyst([
+        create_mock_hypothesis("HYP-1"),
+        create_mock_hypothesis("HYP-2"),
+        create_mock_hypothesis("HYP-3")
     ])
     
     new_state = enforce_hypothesis_linking(state)
@@ -29,36 +38,37 @@ def test_enforce_hypothesis_linking_success():
 
 def test_enforce_hypothesis_linking_bad_format():
     state = WorkflowState(workflow_id="wf-1")
-    state.context_variables["step_analyst"] = MockAnalyst([
-        MockHypothesis("HYP-1"),
-        MockHypothesis("INVALID-2")
+    state.context_variables["step_analyst"] = create_mock_analyst([
+        create_mock_hypothesis("HYP-1"),
+        create_mock_hypothesis("INVALID-2")
     ])
     
     with pytest.raises(AppException) as exc:
         enforce_hypothesis_linking(state)
     
-    assert "INVALID_HYPOTHESIS_ID" in str(exc.value.details)
+    assert "Invalid Hypothesis ID format" in str(exc.value)
 
 def test_enforce_hypothesis_linking_sequence_gap():
     state = WorkflowState(workflow_id="wf-1")
-    state.context_variables["step_analyst"] = MockAnalyst([
-        MockHypothesis("HYP-1"),
-        MockHypothesis("HYP-3") # Skipped 2
+    state.context_variables["step_analyst"] = create_mock_analyst([
+        create_mock_hypothesis("HYP-1"),
+        create_mock_hypothesis("HYP-3") # Skipped 2
     ])
     
     with pytest.raises(AppException) as exc:
         enforce_hypothesis_linking(state)
         
-    assert "HYPOTHESIS_SEQUENCE_ERROR" in str(exc.value.details)
+    assert "Hypothesis ID sequence error" in str(exc.value)
 
 def test_verify_citation_integrity_success():
     state = WorkflowState(workflow_id="wf-1")
     state.context_variables["inputs"] = {
         "history_text": "The quick brown fox jumps over the lazy dog.",
-        "product_text": ""
+        "product_text": "none",
+        "reflection_text": "none"
     }
-    state.context_variables["step_analyst"] = MockAnalyst([
-        MockHypothesis("HYP-1", quotes=["quick brown fox", "lazy dog"])
+    state.context_variables["step_analyst"] = create_mock_analyst([
+        create_mock_hypothesis("HYP-1", quotes=["quick brown fox", "lazy dog"])
     ])
     
     new_state = verify_citation_integrity(state)
@@ -70,15 +80,19 @@ def test_verify_citation_integrity_fail_fast():
     state = WorkflowState(workflow_id="wf-1")
     state.context_variables["inputs"] = {
         "history_text": "The quick brown fox jumps over the lazy dog.",
-        "product_text": ""
+        "product_text": "none",
+        "reflection_text": "none"
     }
     # 2 invalid vs 1 valid -> 0.33 score -> Fail
-    state.context_variables["step_analyst"] = MockAnalyst([
-        MockHypothesis("HYP-1", quotes=["quick brown fox", "unicorn", "leprechaun"])
+    state.context_variables["step_analyst"] = create_mock_analyst([
+        create_mock_hypothesis("HYP-1", quotes=["quick brown fox", "unicorn", "leprechaun"])
     ])
     
-    with pytest.raises(AppException) as exc:
-        verify_citation_integrity(state)
+    with patch("backend.settings.get_settings") as mock_settings_func:
+        mock_settings = mock_settings_func.return_value
+        mock_settings.citation_integrity_threshold = 0.9
+        with pytest.raises(AppException) as exc:
+            verify_citation_integrity(state)
         
-    assert "CITATION_INTEGRITY_FAILURE" in str(exc.value.details)
+    assert "CITATION_INTEGRITY_FAILURE" in str(exc.value)
     assert exc.value.status_code == 422

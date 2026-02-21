@@ -91,8 +91,14 @@ async def get_flat_report(
         if not execution:
             raise ResourceNotFoundError(f"Execution '{execution_id}' not found.")
 
+        if not execution.results or not execution.results.context_variables:
+             raise AppException(
+                message="Workflow state (results) missing in execution.",
+                status_code=status.HTTP_404_NOT_FOUND,
+                details={"error_code": ErrorCodes.REPORT_NOT_READY}
+            )
         # Extract from step_xai
-        xai_data = execution.context_variables.get("step_xai")
+        xai_data = execution.results.context_variables.get("step_xai")
         if not xai_data or "flat_report" not in xai_data:
              raise AppException(
                 message="Flat report not found in execution state.",

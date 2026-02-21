@@ -1,6 +1,8 @@
 import asyncio
-
 import httpx
+import pytest
+
+pytestmark = pytest.mark.skip(reason="Manual API test requiring live server")
 
 BASE_URL = "http://127.0.0.1:8000/api/v1/config/models"
 

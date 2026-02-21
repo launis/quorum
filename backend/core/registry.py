@@ -192,8 +192,13 @@ class TaskRegistry:
                     try:
                         resolved_override = await registry.resolve_model_name(override_model)
                         execution_config["model"] = resolved_override
-                    except Exception:
-                         pass # Warning logged in original code
+                    except Exception as e:
+                         from backend.exceptions import AppException, ErrorCodes, status
+                         raise AppException(
+                             message=f"Invalid model override: {e}",
+                             status_code=status.HTTP_400_BAD_REQUEST,
+                             details={"error_code": ErrorCodes.INVALID_JSON_PAYLOAD, "original_error": str(e)}
+                         ) from e
                 exec_kwargs.update(execution_config)
 
             # CALL EXECUTE

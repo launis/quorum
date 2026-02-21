@@ -18,8 +18,11 @@ class AssessmentTransformer(BaseTransformer):
              steps = getattr(workflow_definition, "steps", [])
              if isinstance(steps, list):
                  for s in steps:
-                     # Handle Pydantic model or dict
-                     sid = getattr(s, "id", None) or s.get("id")
+                     if isinstance(s, str):
+                         sid = s
+                     else:
+                         # Handle fallback Pydantic model or dict
+                         sid = getattr(s, "id", None) or s.get("id")
                      if sid:
                          chain.append(sid)
 

@@ -30,62 +30,39 @@ logger = logging.getLogger(__name__)
 # --- Helpers ---
 
 async def _expand_workflow(wf: dict[str, Any], repository: RepositoryDep) -> dict[str, Any]:
-    """Hydrates step IDs into full step objects using SSOT Registry."""
+    """Hydrates step IDs into full step objects using SSOT Registry.
+    Hyper-Strict Mode: Only pure string IDs are permitted in the workflow.
+    """
     full_wf = wf.copy()
     step_ids = wf.get("steps", [])
 
     hydrated_steps = []
-    for item in step_ids:
-        step_id = None
-        overrides = {}
-
-        # 1. Resolve ID and Overrides
-        if isinstance(item, str):
-            step_id = item
-        elif isinstance(item, dict):
-            step_id = item.get("id")
-            overrides = item  # Inputs, etc.
-
-        if not step_id:
+    # Hyper-Strict: step_ids is strictly list[str]
+    for step_id in step_ids:
+        if not isinstance(step_id, str):
             continue
 
-        # 2. Fetch Canonical Definition from Registry (SSOT)
+        # Fetch Canonical Definition from Registry (SSOT)
         canonical_step = await repository.get_step_by_id(step_id)
 
         if canonical_step:
-            # 3. Merge: Registry is Base, Workflow Item is Override
             # We copy canonical to avoid mutating cache/db result
             merged = canonical_step.copy()
-
-            # Merge inputs (deep merge usually better, but shallow for now)
-            if "inputs" in overrides:
-                merged_inputs = merged.get("inputs", {}).copy()
-                merged_inputs.update(overrides["inputs"])
-                merged["inputs"] = merged_inputs
-
-            # Merge other non-protected fields if necessary
-            # For now, inputs are the main override.
-
+            
             # Ensure 'task_key' exists for frontend strict parsing
             if "task_key" not in merged:
                 merged["task_key"] = merged.get("component", "unknown")
 
             hydrated_steps.append(merged)
         else:
-            # 4. Fallback: Step missing in Registry?
-            # If we have a dict item, use it, but warn about missing canonical connection.
-            # Frontend crashes without 'task_key', so we must ensure it exists.
-
-            fallback_step = overrides.copy() if isinstance(item, dict) else {"id": step_id}
-
-            if "name" not in fallback_step:
-                fallback_step["name"] = f"Missing Step ({step_id})"
-            if "task_key" not in fallback_step:
-                fallback_step["task_key"] = "unknown" # Prevent Frontend Crash
-
-            fallback_step["is_missing_registry"] = True
+            # Fallback for missing registry component to prevent Frontend Crash
             logger.warning(f"Workflow {wf.get('id')} references missing registry step {step_id}")
-            hydrated_steps.append(fallback_step)
+            hydrated_steps.append({
+                "id": step_id,
+                "name": f"Missing Step ({step_id})",
+                "task_key": "unknown",
+                "is_missing_registry": True
+            })
 
     full_wf["steps"] = hydrated_steps
     return full_wf

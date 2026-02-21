@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="4" time="0.427" timestamp="2026-02-21T15:01:57.646855+02:00" hostname="Laptop-Risto"><testcase classname="backend.tests.core.test_engine_errors" name="test_resolve_inputs_failure" time="0.001" /><testcase classname="backend.tests.core.test_engine_errors" name="test_execute_workflow_task_not_found" time="0.006"><failure message="AssertionError: assert &lt;ErrorCodes.W...UTION_FAILED'&gt; == &lt;ErrorCodes.T...SK_NOT_FOUND'&gt;&#10;  &#10;  #x1B[0m#x1B[91m- TASK_NOT_FOUND#x1B[39;49;00m#x1B[90m#x1B[39;49;00m&#10;  #x1B[92m+ WORKFLOW_EXECUTION_FAILED#x1B[39;49;00m#x1B[90m#x1B[39;49;00m">engine = &lt;backend.core.engine.GraphEngine object at 0x000002E4E3EF4410&gt;
+
+    @pytest.mark.asyncio
+    async def test_execute_workflow_task_not_found(engine):
+        """Verify missing task raises TASK_NOT_FOUND."""
+        workflow = WorkflowDefinition(
+            id="test_wf",
+            description="Test Workflow",
+            organization_id="testorg",
+            steps=["step1"]
+        )
+    
+        with patch("backend.core.registry.TaskRegistry.get", return_value=None):
+            with pytest.raises(AppException) as exc:
+                await engine.execute_workflow(workflow, {"inputs": {}})
+    
+&gt;           assert exc.value.error_code == ErrorCodes.TASK_NOT_FOUND
+E           AssertionError: assert &lt;ErrorCodes.W...UTION_FAILED'&gt; == &lt;ErrorCodes.T...SK_NOT_FOUND'&gt;
+E             
+E             #x1B[0m#x1B[91m- TASK_NOT_FOUND#x1B[39;49;00m#x1B[90m#x1B[39;49;00m
+E             #x1B[92m+ WORKFLOW_EXECUTION_FAILED#x1B[39;49;00m#x1B[90m#x1B[39;49;00m
+
+backend\tests\core\test_engine_errors.py:42: AssertionError</failure></testcase><testcase classname="backend.tests.core.test_engine_errors" name="test_execute_workflow_input_validation_failed" time="0.004"><failure message="AssertionError: assert &lt;ErrorCodes.W...UTION_FAILED'&gt; == &lt;ErrorCodes.A...ATION_FAILED'&gt;&#10;  &#10;  #x1B[0m#x1B[91m- AGENT_SCHEMA_VALIDATION_FAILED#x1B[39;49;00m#x1B[90m#x1B[39;49;00m&#10;  #x1B[92m+ WORKFLOW_EXECUTION_FAILED#x1B[39;49;00m#x1B[90m#x1B[39;49;00m">engine = &lt;backend.core.engine.GraphEngine object at 0x000002E4E5795810&gt;
+
+    @pytest.mark.asyncio
+    async def test_execute_workflow_input_validation_failed(engine):
+        """Verify input validation failure raises AGENT_SCHEMA_VALIDATION_FAILED."""
+        workflow = WorkflowDefinition(
+            id="test_wf",
+            description="Test Workflow",
+            organization_id="testorg",
+            steps=["step1"]
+        )
+    
+        mock_task = MagicMock()
+        mock_task.input_schema.model_validate.side_effect = ValueError("Invalid Input")
+    
+        with patch("backend.core.registry.TaskRegistry.get", return_value=mock_task):
+            with pytest.raises(AppException) as exc:
+                await engine.execute_workflow(workflow, {"inputs": {}})
+    
+&gt;           assert exc.value.error_code == ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED
+E           AssertionError: assert &lt;ErrorCodes.W...UTION_FAILED'&gt; == &lt;ErrorCodes.A...ATION_FAILED'&gt;
+E             
+E             #x1B[0m#x1B[91m- AGENT_SCHEMA_VALIDATION_FAILED#x1B[39;49;00m#x1B[90m#x1B[39;49;00m
+E             #x1B[92m+ WORKFLOW_EXECUTION_FAILED#x1B[39;49;00m#x1B[90m#x1B[39;49;00m
+
+backend\tests\core\test_engine_errors.py:61: AssertionError</failure></testcase><testcase classname="backend.tests.core.test_engine_errors" name="test_execute_workflow_chat_parsing_failed" time="0.002" /></testsuite></testsuites>

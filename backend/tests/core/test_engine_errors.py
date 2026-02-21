@@ -1,9 +1,9 @@
 
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, AsyncMock
 from backend.core.engine import GraphEngine, WorkflowState
 from backend.exceptions import AppException, ErrorCodes
-from backend.models.workflow import WorkflowDefinition, WorkflowStep
+from backend.models.workflow import WorkflowDefinition
 
 @pytest.fixture
 def engine():
@@ -31,12 +31,16 @@ async def test_execute_workflow_task_not_found(engine):
     workflow = WorkflowDefinition(
         id="test_wf",
         description="Test Workflow",
-        steps=[WorkflowStep(id="step1", task_key="missing.task", inputs={})]
+        organization_id="testorg",
+        steps=["step1"]
     )
+    
+    mock_repo = AsyncMock()
+    mock_repo.get_step_by_id.return_value = {"id": "step1", "name": "Test Step", "component": "test_task"}
     
     with patch("backend.core.registry.TaskRegistry.get", return_value=None):
         with pytest.raises(AppException) as exc:
-            await engine.execute_workflow(workflow, {"inputs": {}})
+            await engine.execute_workflow(workflow, {"inputs": {}}, repository=mock_repo)
         
         assert exc.value.error_code == ErrorCodes.TASK_NOT_FOUND
 
@@ -46,15 +50,19 @@ async def test_execute_workflow_input_validation_failed(engine):
     workflow = WorkflowDefinition(
         id="test_wf",
         description="Test Workflow",
-        steps=[WorkflowStep(id="step1", task_key="valid.task", inputs={})]
+        organization_id="testorg",
+        steps=["step1"]
     )
     
     mock_task = MagicMock()
     mock_task.input_schema.model_validate.side_effect = ValueError("Invalid Input")
     
+    mock_repo = AsyncMock()
+    mock_repo.get_step_by_id.return_value = {"id": "step1", "name": "Test Step", "component": "test_task"}
+    
     with patch("backend.core.registry.TaskRegistry.get", return_value=mock_task):
         with pytest.raises(AppException) as exc:
-            await engine.execute_workflow(workflow, {"inputs": {}})
+            await engine.execute_workflow(workflow, {"inputs": {}}, repository=mock_repo)
             
         assert exc.value.error_code == ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED
 
@@ -64,6 +72,7 @@ async def test_execute_workflow_chat_parsing_failed(engine):
     workflow = WorkflowDefinition(
         id="test_wf",
         description="Test Workflow",
+        organization_id="testorg",
         steps=[]
     )
     

@@ -215,12 +215,11 @@ class PdfReportService:
                 elif section.type == SectionType.LOGIC_ANALYSIS:
                     # Logic Matrix Bubble Chart
                     # Extract scores (Standardized keys from domain model)
-                    cog = section.data.get("cognitive_level", {})
-                    bloom = float(cog.get("bloom_score", 0))
-                    strat = float(cog.get("strategic_score", 0))
+                    bloom = float(getattr(section.data, "bloom_score", 0.0) or 0.0)
+                    strat = float(getattr(section.data, "strategic_score", 0.0) or 0.0)
 
                     # Toulmin score might be flat in data or calculated
-                    toulmin_score = float(section.data.get("toulmin_score", 0))
+                    toulmin_score = float(getattr(section.data, "toulmin_score", 0.0) or 0.0)
 
                     if bloom > 0 and strat > 0:
                         chart_b64 = ChartService.generate_bubble_chart(

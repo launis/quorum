@@ -18,36 +18,26 @@ async def test_generate_pdf_job_success():
     execution_id = "exec-worker-test"
 
     # Mock PdfReportService to avoid actual generation and dependencies
-    with patch("backend.worker.PdfReportService") as MockServiceClass:
+    with patch("backend.worker.PdfReportService") as MockServiceClass, \
+         patch("backend.worker.get_storage_driver") as mock_get_storage:
+        
         mock_service_instance = MockServiceClass.return_value
         mock_service_instance.generate_execution_pdf = AsyncMock(return_value=b"%PDF-MOCK")
+        
+        mock_storage = AsyncMock()
+        mock_storage.save.return_value = f"data/files/executions/{execution_id}/report.pdf"
+        mock_get_storage.return_value = mock_storage
 
-        # Mock File Operations
-        with patch("builtins.open", mock_open()) as mock_file:
-            with patch("os.makedirs") as mock_makedirs:
+        # Execute
+        result_path = await generate_pdf_job(ctx, execution_id=execution_id)
 
-                # Execute
-                result_path = await generate_pdf_job(ctx, execution_id=execution_id)
-
-                # Verify Logic
-
-                # 1. ProgressService Init
-                # We can't easily check internal variable 'progress' but we can check PdfReportService init args
-                # MockServiceClass.call_args[0][1] should be the progress service
-                assert MockServiceClass.called
-
-                # 2. Service Call
-                mock_service_instance.generate_execution_pdf.assert_called_with(execution_id)
-
-                # 3. Directories
-                mock_makedirs.assert_called_with(f"data/files/executions/{execution_id}", exist_ok=True)
-
-                # 4. File Write
-                mock_file.assert_called_with(f"data/files/executions/{execution_id}/report.pdf", "wb")
-                mock_file().write.assert_called_with(b"%PDF-MOCK")
-
-                # 5. Return
-                assert result_path == f"data/files/executions/{execution_id}/report.pdf"
+        # Verify Logic
+        assert MockServiceClass.called
+        mock_service_instance.generate_execution_pdf.assert_called_with(execution_id)
+        mock_storage.save.assert_called_with(f"executions/{execution_id}/report.pdf", b"%PDF-MOCK")
+        
+        # 5. Return
+        assert result_path == f"data/files/executions/{execution_id}/report.pdf"
 
 @pytest.mark.asyncio
 async def test_generate_pdf_job_failure():

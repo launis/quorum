@@ -171,7 +171,7 @@ async def test_repo_delegation():
     mock_driver.get.return_value = {"id": "ex1", "status": "running"}
     res = await repo.get_execution("ex1")
 
-    assert res["id"] == "ex1"
+    assert res.id == "ex1" # STRICT DTO FIX
     mock_driver.get.assert_called_with("executions", "ex1")
 
     # Test create_execution

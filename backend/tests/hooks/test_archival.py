@@ -1,76 +1,106 @@
-
 import pytest
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 from backend.hooks.archival import retrieve_precedent
-from backend.models.state import WorkflowState
+from backend.models.state import WorkflowState, TraceEvent
+from backend.models.domain.execution import ExecutionRecord
+from backend.models.domain.judge import JudgeOutput, JudgeScoreCard, DimensionResultItem
 from backend.exceptions import AppException
 
 @pytest.mark.asyncio
 async def test_retrieve_precedent_no_repo():
-    # Fix: Use correct fields for WorkflowState
     state = WorkflowState(workflow_id="test_workflow")
+    state.context_variables["inputs"] = {}
     
     with pytest.raises(AppException) as excinfo:
         await retrieve_precedent(state, repository=None)
     
-    assert "ARCHIVAL_CONFIG_ERROR" in str(excinfo.value.details)
+    assert "CONFIGURATION_ERROR" in str(excinfo.value.details)
     assert excinfo.value.status_code == 500
 
 @pytest.mark.asyncio
 async def test_retrieve_precedent_success():
     state = WorkflowState(workflow_id="current_workflow")
+    state.context_variables["inputs"] = {}
     mock_repo = AsyncMock()
     
-    # Mock executions
+    judge_out = JudgeOutput(
+        matrix_id="matrix_1",
+        scale_min=0.0,
+        scale_max=100.0,
+        confidence_score=0.9,
+        thought_process="Mock thought",
+        conclusion="Mock conclusion",
+        critical_findings=[],
+        score_card=JudgeScoreCard(
+            total_score=80.0,
+            verdict="Verdict 1",
+            agent_name="Standard",
+            max_score=100,
+            scale_min=0,
+            scale_max=100,
+            dimensions=[DimensionResultItem(dimension_id="dim1", dimension_label="Dim1", score=80.0, reasoning="OK")]
+        )
+    )
+    
+    # Needs proper WorkflowState inside results
+    past_state = WorkflowState(workflow_id="past")
+    past_state = past_state.model_copy(update={
+        "execution_trace": [
+            TraceEvent(
+                event_type="output",
+                step_name="step_judge",
+                content=judge_out.model_dump()
+            )
+        ]
+    })
+    
+    # Mock executions returning ExecutionRecord instances
     mock_repo.get_all_executions.return_value = [
-        {
-            "execution_id": "exe-1",
-            "status": "completed",
-            "end_time": "2025-01-01T12:00:00",
-            "trace": {
-                "step_judge": {
-                    "pisteet": {
-                        "analyysi": {"arvosana": 80},
-                        "arviointi": {"arvosana": 80},
-                        "synteesi": {"arvosana": 80}
-                    },
-                    "kriittiset_havainnot_yhteenveto": "Verdict 1"
-                }
-            }
-        },
-        {
-            "execution_id": "exe-2", # In progress, should be skipped
-            "status": "running"
-        }
+        ExecutionRecord(
+            id="exe-1",
+            workflow_id="foo",
+            status="completed",
+            completed_at=datetime(2025, 1, 1, 12, 0, 0, tzinfo=timezone.utc),
+            results=past_state
+        ),
+        ExecutionRecord(
+            id="exe-2",
+            workflow_id="bar",
+            status="running"  # Should be skipped
+        )
     ]
     
     new_state = await retrieve_precedent(state, repository=mock_repo)
     
     assert "archivist_precedents" in new_state.context_variables
     summary = new_state.context_variables["archivist_precedents"]
-    assert "Case exe-1" in summary
-    assert "Verdict 1" in summary
-    assert "Case exe-2" not in summary
+    assert len(summary) > 0
+    assert summary[0]["id"] == "exe-1"
+    assert "Standard: 80.00" in summary[0]["scores"]
 
 @pytest.mark.asyncio
 async def test_retrieve_precedent_empty():
     state = WorkflowState(workflow_id="current_workflow")
+    state.context_variables["inputs"] = {}
     mock_repo = AsyncMock()
     mock_repo.get_all_executions.return_value = []
     
     new_state = await retrieve_precedent(state, repository=mock_repo)
     
+    assert "archivist_precedents" in new_state.context_variables
     summary = new_state.context_variables["archivist_precedents"]
-    assert "Ei aiempi tapauksia tiedostossa" in summary
+    assert len(summary) == 0
 
 @pytest.mark.asyncio
 async def test_retrieve_precedent_repo_error():
     state = WorkflowState(workflow_id="current_workflow")
+    state.context_variables["inputs"] = {}
     mock_repo = AsyncMock()
     mock_repo.get_all_executions.side_effect = Exception("DB Down")
     
     with pytest.raises(AppException) as excinfo:
         await retrieve_precedent(state, repository=mock_repo)
         
-    assert "ARCHIVAL_RETRIEVAL_FAILED" in str(excinfo.value.details)
-    assert "DB Down" in str(excinfo.value.message)
+    assert "KNOWLEDGE_RETRIEVAL_FAILED" in str(excinfo.value.details)
+    assert "DB Down" in str(excinfo.value)

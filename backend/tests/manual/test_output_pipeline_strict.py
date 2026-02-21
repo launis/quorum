@@ -3,7 +3,7 @@ import logging
 import sys
 from typing import Any
 from backend.models.state import WorkflowState, TraceEvent
-from backend.models.domain.guard import GuardOutput, TaintedData
+from backend.models.domain.guard import GuardOutput
 from backend.models.domain.xai import XAIOutput
 from pydantic import ValidationError
 
@@ -23,13 +23,34 @@ def test_strict_accessors():
 
     # 3. Inject Valid Data (Simulate GraphEngine)
     valid_guard_data = {
-        "is_safe": True,
-        "tainted_data": None,
-        "reasoning_trace": {
-            "thought_process": "Input is safe.",
-            "conclusion": "Safe",
-            "confidence_score": 0.99
-        }
+        "thought_process": "Input is safe.",
+        "conclusion": "Safe",
+        "confidence_score": 0.99,
+        "security_check": {
+            "threat_detected": False,
+            "risk_level": "RISK_LOW",
+            "risk_score": 1.0,
+            "simulation_score": 1.0,
+            "simulation_result": "SIM_PASSIVE",
+            "anonymized": False,
+            "pii_findings": []
+        },
+        "tainted_data": {
+            "chat_history": "clean",
+            "product_text": "clean",
+            "reflection_text": "clean",
+            "safe_data": "clean"
+        },
+        "metadata": {
+            "luontiaika": "2026-02-19T10:00:00Z",
+            "muokkausaika": "2026-02-19T10:00:00Z",
+            "versio": "1.0",
+            "validoija": "system",
+            "laatu_pisteet": 0.0,
+            "agentti": "step_guard",
+            "suoritus_ymparisto": "test"
+        },
+        "semanttinen_tarkistussumma": "mock_hash"
     }
     
     state.context_variables["step_guard"] = valid_guard_data
@@ -38,7 +59,7 @@ def test_strict_accessors():
     guard_output = state.step_guard
     print(f"Inflated Guard Output: {type(guard_output)}")
     assert isinstance(guard_output, GuardOutput)
-    assert guard_output.is_safe is True
+    assert guard_output.conclusion == "Safe"
 
     # 5. Inject Invalid Data (Fail Fast Test)
     invalid_data = {

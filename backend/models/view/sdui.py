@@ -86,7 +86,7 @@ class UiSection(BaseModel):
     title: str = Field(..., description="User-facing title of the section")
     data: Any = Field(default_factory=dict, description="Flexible payload specific to the section type (dict or Pydantic Model)")
 
-    model_config = ConfigDict(frozen=True, strict=False)
+    model_config = ConfigDict(frozen=False, strict=False)
 
     @field_validator("id", "title")
     @classmethod

@@ -4,6 +4,7 @@ import pytest
 
 from backend.agents.base import BaseAgent
 from backend.core.registry import TaskRegistry
+from backend.models.domain.agent import ModelConfig
 
 
 # Mock Agent for Testing
@@ -24,13 +25,16 @@ async def test_agent_wrapper_propagates_temperature():
     """Verify that agent_wrapper correctly extracts 'temperature' from Registry and passes it to Agent."""
     # 1. Setup Mock Registry & Config
     # This simulates what AgentRegistry.resolve_model_config() returns from the DB
-    mock_db_config = {
-        "model_name": "mock-model-v1",
-        "provider": "mock_provider",
-        "temperature": 0.42,          # Critical Value < 1.0
-        "max_tokens": 1234,
-        "top_p": 0.9,
-    }
+    mock_db_config = ModelConfig(
+        model_name="mock-model-v1",
+        provider="mock",
+        is_active=True,
+        tpm_limit=5000,
+        rpm_limit=100,
+        temperature=0.42,          # Critical Value < 1.0
+        max_tokens=1234,
+        top_p=0.9,
+    )
 
     # 2. Mock Internal Dependencies
     # We mock get_async_repository to avoid DB connection
@@ -44,9 +48,11 @@ async def test_agent_wrapper_propagates_temperature():
         mock_registry_instance = MockRegistryClass.return_value
         mock_registry_instance.resolve_model_config = AsyncMock(return_value=mock_db_config)
 
-        # Setup Component Registry (for prompts) - Not strictly needed if logic skips prompts
-        mock_comp_reg = MockComponentRegistry.return_value
-        mock_comp_reg.resolve_prompts.return_value = "Mock System Instruction"
+        # Component Registry returns our TEMPLATE
+        mock_instance = MagicMock()
+        mock_instance.resolve_prompts = AsyncMock(return_value="Mock System Instruction")
+        MockComponentRegistry.resolve_prompts_map = AsyncMock(return_value={"mock_key": "Mock System Instruction"})
+        MockComponentRegistry.return_value = mock_instance
 
         # 3. Register the Mock Agent
         # This triggers the specific logic in TaskRegistry.register_agent that creates the 'agent_wrapper'
@@ -63,8 +69,8 @@ async def test_agent_wrapper_propagates_temperature():
         # This runs the 'agent_wrapper' function inside registry.py
         wrapper_func = task_def.handler
 
-        input_data = {"some": "input"}
-        # input_data.model_dump.return_value = {"some": "input"}
+        input_data = MagicMock()
+        input_data.model_dump.return_value = {"some": "input"}
 
         # Call the wrapper!
         try:
@@ -102,7 +108,7 @@ async def test_prompt_substitution():
     raw_prompt = "Analyze the following: {{HISTORY_TEXT}}. End of input."
     expected_prompt_snippet = "Analyze the following: CRITICAL_DATA_FOUND. End of input."
 
-    mock_db_config = {"model_name": "mock", "temperature": 0.1}
+    mock_db_config = ModelConfig(model_name="mock", provider="mock", is_active=True, tpm_limit=5000, rpm_limit=100, temperature=0.1)
 
     with patch("backend.dependencies.get_async_repository", new_callable=AsyncMock), \
          patch("backend.services.agent_registry.AgentRegistry") as MockRegistryClass, \
@@ -115,7 +121,8 @@ async def test_prompt_substitution():
 
         # Component Registry returns our TEMPLATE
         mock_instance = MagicMock()
-        mock_instance.resolve_prompts.return_value = "Analyzed: {{HISTORY_TEXT}}"
+        mock_instance.resolve_prompts = AsyncMock(return_value="Analyzed: {{HISTORY_TEXT}}")
+        MockComponentRegistry.resolve_prompts_map = AsyncMock(return_value={"SOME_KEY": "Analyzed: {{HISTORY_TEXT}}"})
         MockComponentRegistry.return_value = mock_instance
 
         # Registry returns simple config
@@ -133,7 +140,8 @@ async def test_prompt_substitution():
         wrapper_func = task_def.handler
 
         # 4. Input with DATA
-        input_dict = {"history_text": "CRITICAL_DATA_FOUND"}
+        input_dict = MagicMock()
+        input_dict.model_dump.return_value = {"history_text": "CRITICAL_DATA_FOUND"}
 
         # 5. Execute with 'llm_prompts' key to trigger substitution logic
         # MUST BE INSIDE WITH BLOCK because resolving happens here

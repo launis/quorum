@@ -189,10 +189,14 @@ class GraphEngine:
             if event.event_type == "output"  # Only count successful outputs
         }
 
-        for _, step in enumerate(definition.steps):
+        for _, step_id in enumerate(definition.steps):
+            if not isinstance(step_id, str):
+                logger.error(f"[GraphEngine] Invalid step type in workflow {definition.id}: Expected str, got {type(step_id)}")
+                continue
+
             # Idempotency Check
-            if step.id in executed_step_names:
-                logger.info(f"[GraphEngine] Skipping step '{step.id}' - event already exists in trace.")
+            if step_id in executed_step_names:
+                logger.info(f"[GraphEngine] Skipping step '{step_id}' - event already exists in trace.")
                 continue
 
             # Graceful Cancellation Check
@@ -200,30 +204,46 @@ class GraphEngine:
                 exec_status = await repository.get_execution_status(execution_id)
                 if exec_status in ("cancelling", "cancelled"):
                     logger.info(f"[GraphEngine] Execution {execution_id} cancelled by user.")
+                    execution_state = execution_state.model_copy(update={"status": exec_status})
                     break
 
             try:
-                # 0. HYDRATION (SSOT Pattern)
+                # 0. HYDRATION (Hyper-Strict SSOT)
+                canonical_step = None
                 if repository:
                     try:
-                        library_step_data = await repository.get_step_by_id(step.id)
-                        if library_step_data:
-                            updates = {}
-                            if "task_key" in library_step_data:
-                                updates["task_key"] = library_step_data["task_key"]
-
-                            lib_config = library_step_data.get("config", {})
-                            if not step.config:
-                                updates["config"] = lib_config
-                            else:
-                                merged = lib_config.copy()
-                                merged.update(step.config)
-                                updates["config"] = merged
-                            
-                            if updates:
-                                step = step.model_copy(update=updates)
+                        canonical_step = await repository.get_step_by_id(step_id)
                     except Exception as e:
-                        logger.warning(f"[GraphEngine] Step hydration failed for '{step.id}': {e}")
+                        logger.warning(f"[GraphEngine] Step fetch failed for '{step_id}': {e}")
+                
+                if not canonical_step:
+                     logger.error(f"[GraphEngine] Step '{step_id}' not found in Registry. Rejecting due to Zero-Fallback mandate.")
+                     raise WorkflowExecutionError(
+                        step_id=step_id,
+                        task_key="unknown",
+                        original_error=ValueError(f"Step {step_id} completely missing from canonical registry"),
+                        details={"message": "Strict Hydration failed: Missing Canonical Step"}
+                     )
+                
+                # We copy canonical to avoid mutating cache/db result
+                merged = canonical_step.copy()
+
+                if "task_key" not in merged:
+                    merged["task_key"] = merged.get("component", "unknown")
+                if "id" not in merged:
+                    merged["id"] = step_id
+
+                from backend.models.workflow import WorkflowStep
+                try:
+                    step = WorkflowStep.model_validate(merged)
+                except Exception as e:
+                    logger.error(f"[GraphEngine] Failed to properly validate step '{step_id}': {e}. Rejecting due to Zero-Fallback mandate.")
+                    raise WorkflowExecutionError(
+                        step_id=step_id,
+                        task_key=merged.get("task_key", "unknown"),
+                        original_error=e,
+                        details={"message": "Step validation failed against strict SSOT Schema (Zero-Fallback)"}
+                    ) from e
 
                 # --- 0.5 PRE-HOOKS ---
                 if step.config and "pre_hooks" in step.config:
@@ -421,11 +441,12 @@ class GraphEngine:
 
             except AppException as ae:
                  # Specific Application Error (Fail Fast)
-                 logger.error(f"{ae.error_code}: Workflow failed at step '{step.id}': {ae.message}", exc_info=True)
+                 safe_step_id = step.id if 'step' in locals() else step_id
+                 logger.error(f"{ae.error_code}: Workflow failed at step '{safe_step_id}': {ae.message}", exc_info=True)
                  
                  # Create Error Event
                  error_event = TraceEvent(
-                     step_name=step.id,
+                     step_name=safe_step_id,
                      event_type="error",
                      content={"error": ae.message, "code": ae.error_code},
                      metadata={"timestamp": datetime.now(timezone.utc).isoformat()},
@@ -441,11 +462,12 @@ class GraphEngine:
 
             except Exception as e:
                 error_code = "WORKFLOW_STEP_FAILED"
-                logger.error(f"{error_code}: Workflow failed at step '{step.id}': {e}", exc_info=True)
+                safe_step_id = step.id if 'step' in locals() else step_id
+                logger.error(f"{error_code}: Workflow failed at step '{safe_step_id}': {e}", exc_info=True)
 
                 # Create Error Event
                 error_event = TraceEvent(
-                    step_name=step.id,
+                    step_name=safe_step_id,
                     event_type="error",
                     content={"error": str(e), "code": error_code},
                     metadata={"timestamp": datetime.now(timezone.utc).isoformat()},
@@ -456,9 +478,10 @@ class GraphEngine:
                     pass
 
                 failed_state_dump = execution_state.model_dump(mode='json')
+                safe_task_key = step.task_key if 'step' in locals() else "unknown"
                 raise WorkflowExecutionError(
-                    step_id=step.id,
-                    task_key=step.task_key,
+                    step_id=safe_step_id,
+                    task_key=safe_task_key,
                     original_error=e,
                     details={"execution_state": failed_state_dump, "error_code": error_code},
                 ) from e

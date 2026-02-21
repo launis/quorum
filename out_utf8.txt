@@ -1,0 +1,26 @@
+﻿python : INFO:TestOutputPipeline:--- Testing Strict Acces
+sors in WorkflowState ---
+At line:1 char:1
++ python backend/tests/manual/test_output_pipeline_strict
+.py > out.txt  ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (INFO:TestOu 
+   tput...rkflowState ---:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+ERROR:backend.utils.pydantic_utils:Failed to inflate Guar
+dOutput: 2 validation errors for GuardOutput
+metadata.agentti
+  Field required [type=missing, input_value={'luontiaika'
+: '2026-02-1...', 'laatu_pisteet': 0.0}, input_type=dict]
+    For further information visit https://errors.pydantic
+.dev/2.12/v/missing
+metadata.suoritus_ymparisto
+  Field required [type=missing, input_value={'luontiaika'
+: '2026-02-1...', 'laatu_pisteet': 0.0}, input_type=dict]
+    For further information visit https://errors.pydantic
+.dev/2.12/v/missing
+ERROR:TestOutputPipeline:Test Failed: 
+Initial Step Guard: None
+Inflated Guard Output: <class 'NoneType'>

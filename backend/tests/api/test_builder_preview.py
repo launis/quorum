@@ -67,6 +67,8 @@ def test_preview_chain_flow():
     # 2. Create Workflow
     wf_payload = {
         "name": "Chain Test",
+        "description": "A workflow chain for testing.",
+        "organization_id": "test-org",
         "steps": [s1_id, s2_id],
         "default_model_mapping": {s1_id: "test-model", s2_id: "test-model"}
     }

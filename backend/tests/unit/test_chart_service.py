@@ -16,20 +16,14 @@ class TestChartService:
         assert result.startswith("data:image/png;base64,")
 
     def test_generate_radar_chart_empty(self):
-        """Test empty input returns an empty string."""
-        result = ChartService.generate_radar_chart({})
-        assert result == ""
+        """Test empty input raises AppException."""
+        with pytest.raises(AppException):
+            ChartService.generate_radar_chart({})
 
     def test_generate_radar_chart_none(self):
-        """Test None input raises AttributeError or handled if typed strictly,
-        but here we pass None equivalent to empty if typed loosenly or check logic.
-        The code `if not scores:` handles None too.
-        """
-        result = ChartService.generate_radar_chart({}) # Empty dict
-        assert result == ""
-        # If we pass None (type violation but runtime possible)
-        result_none = ChartService.generate_radar_chart(None) # type: ignore
-        assert result_none == ""
+        """Test None raises AppException as per fail-fast."""
+        with pytest.raises(AppException):
+            ChartService.generate_radar_chart(None) # type: ignore
 
     def test_generate_radar_chart_failure(self):
         """Test that validation/generation errors raise AppException."""

@@ -79,23 +79,21 @@ def migrate_db_to_seed():
         # Helper: Minimize Workflow Steps (Strip config/metadata/hoist_keys from nested steps)
         def minimize_workflow_steps(workflows):
             minimized = []
+            allowed_keys = {
+                "id", "task_key", "name", "description", "inputs", 
+                "is_custom", "execution_config", "output_config_component", "output_filename"
+            }
             for wf in workflows:
                 # Deep copy to avoid modifying source
                 wf_copy = json.loads(json.dumps(wf))
                 if "steps" in wf_copy:
                     new_steps = []
                     for step in wf_copy["steps"]:
-                        # Minimal reference: id, task_key, inputs, name, description
-                        # Strip: config, metadata, hoist_keys (unless they have non-default values?)
-                        # Actually verify logic says: "workflows[].steps... config={} ... != config={}"
-                        # So we MUST include empty dicts if DB has them.
-                        # Wait, DB HAS them. Verifier checks DB vs Seed.
-                        # If I write to Seed, I should write EXACTLY what is in DB.
-                        # So simply dumping DB content is correct for strict equality.
-                        # BUT user wants "Minimal Reference" in Seed.
-                        # If I strip them here, Verifier will fail unless I backfill them in DB (which I did).
-                        # Let's trust the DB state. If DB has them, Seed gets them.
-                        new_steps.append(step)
+                        if isinstance(step, str):
+                            new_steps.append(step)
+                        elif isinstance(step, dict):
+                            link = {k: v for k, v in step.items() if k in allowed_keys}
+                            new_steps.append(link)
                     wf_copy["steps"] = new_steps
                 minimized.append(wf_copy)
             return minimized
@@ -113,15 +111,7 @@ def migrate_db_to_seed():
         print(f"  [+] steps: {len(new_seed_data['steps'])} items")
 
         # 3. Workflows
-        # For workflows, we want to dump what is in DB.
-        # DB has fully hydrated steps? No, DB has whatever we put in it.
-        # Recently we minimized seed, then ran seeder. 
-        # Run_seed.py validates and upserts.
-        # Check if DB has minimal or full steps.
-        # Verifier said OK. 
-        # So DB has minimal steps + empty defaults (config={}, metadata={}).
-        # We can just dump it.
-        new_seed_data["workflows"] = extract_list("workflows")
+        new_seed_data["workflows"] = minimize_workflow_steps(extract_list("workflows"))
         print(f"  [+] workflows: {len(new_seed_data['workflows'])} items")
 
         # 4. Components

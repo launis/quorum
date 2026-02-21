@@ -53,14 +53,15 @@ class TestXAIFlatGeneration(unittest.TestCase):
     def test_flat_report_generation(self, mock_base_execute):
         # Setup Mock Return from BaseAgent (LLM part)
         mock_base_execute.return_value = XAIOutput(
-            reasoning_trace={"thought_process": "x", "conclusion": "y", "confidence_score": 0.9},
+            thought_process="x",
+            conclusion="y",
+            confidence_score=0.9,
             executive_summary="Summary",
             analysis_strengths="S",
             analysis_weaknesses="W",
             analysis_opportunities="O",
             analysis_recommendations="R",
             final_verdict="Approved",
-            confidence_score=0.9,
             score_cards=[] # Initially empty
         )
 

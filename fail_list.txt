@@ -1,0 +1,43 @@
+FAILED backend/tests/hooks/test_archival.py::test_retrieve_precedent_no_repo
+FAILED backend/tests/hooks/test_archival.py::test_retrieve_precedent_success
+FAILED backend/tests/hooks/test_archival.py::test_retrieve_precedent_empty - ...
+FAILED backend/tests/hooks/test_archival.py::test_retrieve_precedent_repo_error
+FAILED backend/tests/hooks/test_integrity.py::test_enforce_hypothesis_linking_bad_format
+FAILED backend/tests/hooks/test_integrity.py::test_enforce_hypothesis_linking_sequence_gap
+FAILED backend/tests/hooks/test_integrity.py::test_verify_citation_integrity_success
+FAILED backend/tests/hooks/test_integrity.py::test_verify_citation_integrity_fail_fast
+FAILED backend/tests/hooks/test_reporting.py::test_generate_report_success - ...
+FAILED backend/tests/hooks/test_reporting.py::test_generate_report_fail_fast_missing_template_dir
+FAILED backend/tests/hooks/test_reporting.py::test_generate_report_context_validation_failure
+FAILED backend/tests/hooks/test_search.py::test_no_hypotheses - pydantic_core...
+FAILED backend/tests/hooks/test_search.py::test_config_error_fail_fast - Attr...
+FAILED backend/tests/hooks/test_search.py::test_execution_success - Attribute...
+FAILED backend/tests/hooks/test_search.py::test_execution_failure_fail_fast
+FAILED backend/tests/hooks/test_search.py::test_language_context - AttributeE...
+FAILED backend/tests/hooks/test_security.py::test_sanitize_hook_success - bac...
+FAILED backend/tests/hooks/test_security.py::test_banned_phrases_check_defaults
+FAILED backend/tests/hooks/test_validation.py::test_verify_structure_invalid_inputs_type
+FAILED backend/tests/integration/test_execution_endpoints.py::test_get_execution_view_endpoint
+FAILED backend/tests/integration/test_pdf_worker.py::test_generate_pdf_job_success
+FAILED backend/tests/manual/test_agents_strict_dto.py::test_agent_execution_mock
+FAILED backend/tests/manual/test_delete_model.py::test_delete_api - httpx.Con...
+FAILED backend/tests/manual/test_delete_safety.py::test_safety - httpx.Connec...
+FAILED backend/tests/manual/test_kb_service_injection.py::test_kb_service_init
+FAILED backend/tests/manual/test_output_pipeline_strict.py::test_strict_accessors
+FAILED backend/tests/manual/test_xai_flat_generation.py::TestXAIFlatGeneration::test_flat_report_generation
+FAILED backend/tests/services/parsers/test_bibliography_parser.py::TestBibliographyParser::test_no_bibliography
+FAILED backend/tests/test_domain_enums.py::test_causal_analysis - pydantic_co...
+FAILED backend/tests/test_storage_driver.py::test_repo_delegation - TypeError...
+FAILED backend/tests/unit/test_chart_service.py::TestChartService::test_generate_radar_chart_valid
+FAILED backend/tests/unit/test_chart_service.py::TestChartService::test_generate_radar_chart_empty
+FAILED backend/tests/unit/test_chart_service.py::TestChartService::test_generate_radar_chart_none
+FAILED backend/tests/unit/test_engine_cancellation.py::test_engine_graceful_cancellation
+FAILED backend/tests/unit/test_knowledge_service.py::test_retrieve_context_exception_handling
+FAILED backend/tests/unit/test_llm_config.py::test_llm_provider_config_defaults
+FAILED backend/tests/unit/test_pdf_generator.py::test_generate_execution_pdf_success
+FAILED backend/tests/unit/test_pdf_generator.py::test_generate_execution_pdf_error_handling
+FAILED backend/tests/unit/test_pdf_generator.py::test_generate_pdf_with_logic_and_ethics
+FAILED backend/tests/unit/test_reporting_hook.py::test_generate_report_no_data
+FAILED backend/tests/unit/test_reporting_hook.py::test_generate_report_with_data
+FAILED backend/tests/unit/test_retrieval_agent.py::test_retrieval_agent_hybrid_execution
+FAILED backend/tests/unit/test_retrieval_agent.py::test_retrieval_agent_kb_failure_resilience

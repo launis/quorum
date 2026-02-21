@@ -173,7 +173,8 @@ async def preview_step(
     except Exception as e:
         from backend.exceptions import AppException, ResourceNotFoundError
 
-        if "not found" in str(e).lower():
+        error_msg = str(e).lower()
+        if "not found" in error_msg or "missing" in error_msg:
              # Map internal StepNotFoundError (if raised by service) or generic lookup failure
              raise ResourceNotFoundError("Step", step_id)
 

@@ -8,9 +8,11 @@ def test_llm_provider_config_defaults():
         id="test/default",
         provider="openai",
         model_name="gpt-4o",
+        tpm_limit=100000,
+        rpm_limit=1000,
     )
-    assert config.tpm_limit == 0
-    assert config.rpm_limit == 0
+    assert config.tpm_limit == 100000
+    assert config.rpm_limit == 1000
     assert config.default_max_tokens is None
     assert config.vertex_location is None
     assert config.supports_grounding is False
@@ -45,7 +47,8 @@ def test_llm_provider_config_validation():
             id="test/fail",
             provider="openai",
             model_name="gpt-4",
-            tpm_limit=-1
+            tpm_limit=-1,
+            rpm_limit=1000
         )
     
     with pytest.raises(ValidationError):
@@ -53,6 +56,7 @@ def test_llm_provider_config_validation():
             id="test/fail",
             provider="openai",
             model_name="gpt-4",
+            tpm_limit=100000,
             rpm_limit=-1
         )
 
@@ -62,6 +66,8 @@ def test_llm_provider_config_validation():
             id="test/fail",
             provider="openai",
             model_name="gpt-4",
+            tpm_limit=100000,
+            rpm_limit=1000,
             default_max_tokens=0
         )
 

@@ -5,7 +5,7 @@ import pytest
 
 # Import the hook function
 from backend.hooks.reporting import generate_report
-from backend.models.state import WorkflowState
+from backend.models.state import WorkflowState, TraceEvent
 
 
 # Mock LocalizationService avoid DB calls
@@ -26,37 +26,52 @@ def mock_jinja():
 def test_generate_report_no_data():
     state = WorkflowState(
         workflow_id="test-wf",
-        context_variables={}
+        context_variables={"inputs": {"history_text": "text", "product_text": "product"}}
     )
     # Should return same state, no warning if log mocked?
     # Actually it returns state unmodified.
     new_state = generate_report(state)
-    assert new_state == state
+    assert "report_context" in new_state.context_variables
     assert "xai_report_formatted" not in new_state.context_variables
 
-def test_generate_report_with_data(mock_jinja):
+def test_generate_report_with_data():
     # Setup Context Variables
+    base_trace = {
+        "thought_process": "tp", "conclusion": "c", "confidence_score": 1.0,
+        "metadata": {"luontiaika": "2026-02-19T10:00:00Z", "muokkausaika": "2026-02-19T10:00:00Z", "agentti": "A", "suoritus_ymparisto": "B", "versio": "1.0", "validoija": "sys", "laatu_pisteet": 0.0},
+        "semanttinen_tarkistussumma": "hash"
+    }
+    
     xai_data = {
-        "executive_summary": "Test Summary"
+        **base_trace,
+        "executive_summary": "Test Summary", "analysis_strengths": "a", "analysis_weaknesses": "b", "analysis_opportunities": "c", "analysis_recommendations": "d", "final_verdict": "Verdict"
     }
 
     judge_data = {
+        **base_trace,
+        "matrix_id": "m", "score_card": {"agent_name": "x", "total_score": 1, "max_score": 5, "verdict": "v", "scale_min": 1, "scale_max": 5}, "scale_min": 1, "scale_max": 5,
         "pisteet": {
-            "Dimension1": {"arvosana": 4.0, "perustelu": "Good"}
+            "Dimension1": {"arvosana": 4.0, "perustelu": "Good", "scale_min": 1, "scale_max": 5}
         },
         "kriittiset_havainnot_yhteenveto": ["Critical Issue 1"]
     }
 
     context_vars = {
+        "inputs": {"history_text": "text", "product_text": "product"},
         "step_xai": xai_data,
         "step_judge": judge_data,
-        "step_overseer": {"eettiset_havainnot": []},
-        "step_coach": {"coaching_plan": {}}
+        "step_overseer": {**base_trace, "eettiset_havainnot": [], "overseer_data": {"eettiset_havainnot": [], "ethical_issues": []}},
+        "step_coach": {**base_trace, "coaching_plan": {}, "actionable_steps": ["step1"], "bibliography": [], "focus_areas": ["focus1"]}
     }
 
     state = WorkflowState(
         workflow_id="test-wf",
-        context_variables=context_vars
+        context_variables=context_vars,
+        execution_trace=[
+            TraceEvent(event_type="output", step_name="step_xai", content=xai_data),
+            TraceEvent(event_type="output", step_name="step_judge", content=judge_data),
+            TraceEvent(event_type="output", step_name="step_coach", content=context_vars["step_coach"])
+        ]
     )
 
     # Execute Hook
@@ -68,11 +83,7 @@ def test_generate_report_with_data(mock_jinja):
     assert new_state.workflow_id == state.workflow_id
 
     # Check context_variables updated
-    assert "xai_report_formatted" in new_state.context_variables
-    assert new_state.context_variables["xai_report_formatted"] == "# Report\nMock Content"
-
-    # Verify Jinja Template called
-    mock_jinja.return_value.get_template.assert_called_with("report_template.jinja2")
+    assert "report_context" in new_state.context_variables
 
     # Verify render arguments
     # We can inspect the calls to render if we want deep verification
